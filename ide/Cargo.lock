@@ -567,7 +567,7 @@ version = "0.1.0"
 dependencies = [
  "basegl-system-web 0.1.0",
  "enso-prelude 0.1.0",
- "keyboard-types 0.4.3 (git+https://github.com/farmaazon/keyboard-types)",
+ "keyboard-types 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "percent-encoding 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rust-dense-bitset 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1218,8 +1218,8 @@ dependencies = [
 
 [[package]]
 name = "keyboard-types"
-version = "0.4.3"
-source = "git+https://github.com/farmaazon/keyboard-types#c983ff5cba38a8b712a59dbd1a7406c4b1a3c17d"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3152,7 +3152,7 @@ dependencies = [
 "checksum itoa 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)" = "b8b7a7c0c47db5545ed3fef7468ee7bb5b74691498139e4b3f6a20685dc6dd8e"
 "checksum js-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)" = "7889c7c36282151f6bf465be4700359318aef36baa951462382eae49e9577cf9"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
-"checksum keyboard-types 0.4.3 (git+https://github.com/farmaazon/keyboard-types)" = "<none>"
+"checksum keyboard-types 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a989afac88279b0482f402d234b5fbd405bf1ad051308595b58de4e6de22346b"
 "checksum language-tags 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a91d884b6667cd606bb5a69aa0c99ba811a115fc68915e7056ec08a46e93199a"
 "checksum lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 "checksum libc 0.2.67 (registry+https://github.com/rust-lang/crates.io-index)" = "eb147597cdf94ed43ab7a9038716637d2d1bf2bc571da995d0028dec06bd3018"

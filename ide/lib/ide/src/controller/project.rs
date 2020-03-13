@@ -151,14 +151,14 @@ impl Handle {
 mod test {
     use super::*;
 
-    use crate::executor::global::spawn;
-    use crate::executor::global::set_spawner;
+    use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use crate::transport::test_utils::TestWithMockedTransport;
 
     use file_manager_client::Path;
     use json_rpc::test_util::transport::mock::MockTransport;
-    use futures::executor::LocalPool;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
+
 
     wasm_bindgen_test_configure!(run_in_browser);
 
@@ -166,15 +166,10 @@ mod test {
 
     #[wasm_bindgen_test]
     fn obtain_module_controller() {
-        let mut executor    = LocalPool::new();
-        let finished        = Rc::new(RefCell::new(false));
-        let finished_clone  = finished.clone_ref();
-        let mut transport   = MockTransport::new();
-        let transport_clone = transport.clone_ref();
-        set_spawner(executor.spawner());
-
-        spawn(async move {
-            let project_ctrl = controller::project::Handle::new_running(transport_clone);
+        let transport = MockTransport::new();
+        let mut test  = TestWithMockedTransport::set_up(&transport);
+        test.run_test(async move {
+            let project_ctrl = controller::project::Handle::new_running(transport);
             let location     = controller::module::Location("TestLocation".to_string());
             let another_loc  = controller::module::Location("TestLocation2".to_string());
 
@@ -185,48 +180,16 @@ mod test {
             assert_eq!(location   , module_ctrl        .location());
             assert_eq!(another_loc, another_module_ctrl.location());
             assert!(module_ctrl.identity_equals(&same_module_ctrl));
-            *finished_clone.borrow_mut() = true;
         });
-        // Load module (touch + read content)
-        executor.run_until_stalled();
-        transport.mock_peer_message_text(r#"{
-            "jsonrpc" : "2.0",
-            "id"      : 0,
-            "result"  : null
-        }"#);
-        executor.run_until_stalled();
-        transport.mock_peer_message_text(r#"{
-            "jsonrpc" : "2.0",
-            "id"      : 1,
-            "result"  :"2 + 2"
-        }"#);
-        // Load Another Module (touch + read content)
-        executor.run_until_stalled();
-        transport.mock_peer_message_text(r#"{
-            "jsonrpc" : "2.0",
-            "id"      : 2,
-            "result"  : null
-        }"#);
-        executor.run_until_stalled();
-        transport.mock_peer_message_text(r#"{
-            "jsonrpc" : "2.0",
-            "id"      : 3,
-            "result"  :"3+3"
-        }"#);
-        // Check test reach its end
-        executor.run_until_stalled();
-        assert!(*finished.borrow());
+
+        test.when_stalled_send_response("2 + 2");
+        test.when_stalled_send_response("3+3");
     }
 
     #[wasm_bindgen_test]
     fn obtain_plain_text_controller() {
-        let mut executor    = LocalPool::new();
-        let finished        = Rc::new(RefCell::new(false));
-        let finished_clone  = finished.clone_ref();
         let transport       = MockTransport::new();
-        set_spawner(executor.spawner());
-
-        spawn(async move {
+        TestWithLocalPoolExecutor::set_up().run_test(async move {
             let project_ctrl        = controller::project::Handle::new_running(transport);
             let file_manager_handle = project_ctrl.file_manager();
             let path                = Path("TestPath".to_string());
@@ -241,42 +204,20 @@ mod test {
             assert_eq!(path        , text_ctrl        .file_path()  );
             assert_eq!(another_path, another_txt_ctrl.file_path()  );
             assert!(text_ctrl.identity_equals(&same_text_ctrl));
-            *finished_clone.borrow_mut() = true;
         });
-        executor.run_until_stalled();
-        assert!(*finished.borrow());
     }
 
     #[wasm_bindgen_test]
     fn obtain_text_controller_for_module() {
-        let mut executor    = LocalPool::new();
-        let finished        = Rc::new(RefCell::new(false));
-        let finished_clone  = finished.clone_ref();
-        let mut transport   = MockTransport::new();
-        let transport_clone = transport.clone_ref();
-        set_spawner(executor.spawner());
-
-        spawn(async move {
-            let project_ctrl = controller::project::Handle::new_running(transport_clone);
+        let transport       = MockTransport::new();
+        let mut test        = TestWithMockedTransport::set_up(&transport);
+        test.run_test(async move {
+            let project_ctrl = controller::project::Handle::new_running(transport);
             let path         = controller::module::Location("test".to_string()).to_path();
             let text_ctrl    = project_ctrl.get_text_controller(path.clone()).await.unwrap();
             let content      = text_ctrl.read_content().await.unwrap();
             assert_eq!("2 + 2", content.as_str());
-            *finished_clone.borrow_mut() = true;
         });
-        executor.run_until_stalled();
-        transport.mock_peer_message_text(r#"{
-            "jsonrpc" : "2.0",
-            "id"      : 0,
-            "result"  : null
-        }"#);
-        executor.run_until_stalled();
-        transport.mock_peer_message_text(r#"{
-            "jsonrpc" : "2.0",
-            "id"      : 1,
-            "result"  :"2 + 2"
-        }"#);
-        executor.run_until_stalled();
-        assert!(*finished.borrow());
+        test.when_stalled_send_response("2 + 2");
     }
 }

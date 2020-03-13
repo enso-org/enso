@@ -71,6 +71,7 @@ impl SubAssign for Size {
     }
 }
 
+
 // === Span ===
 
 /// Strongly typed span into container with index and size.
@@ -144,6 +145,7 @@ impl Sub for Index {
     }
 }
 
+
 // === TextLocation ===
 
 /// A position of character in a multiline text.
@@ -179,104 +181,55 @@ impl TextLocation {
 // === Change ===
 // ==============
 
-/// A change type
-#[derive(Copy,Clone,Debug)]
-pub enum ChangeType {
-    /// A change where we replace fragment of one line with text without new lines.
-    SingleLine,
-    /// A multi-line change is a change which is not a single line change (see docs for SingleLine).
-    MultiLine
-}
-
-/// A structure describing a text operation in one place.
-#[derive(Clone,Debug)]
-pub struct TextChange {
-    /// Text fragment to be replaced. If we don't mean to remove any text, this should be an empty
-    /// range with start set at position there `lines` will be inserted (see `TextChange::insert`
-    /// definition).
-    pub replaced : Range<TextLocation>,
-    /// Lines to insert instead of replaced fragment.
-    pub lines : Vec<Vec<char>>,
-}
-
-impl TextChange {
-    /// Creates operation which inserts text at given position.
-    pub fn insert(at:TextLocation, text:&str) -> Self {
-        TextChange {
-            replaced : at..at,
-            lines    : Self::mk_lines_as_char_vector(text)
-        }
-    }
-
-    /// Creates operation which deletes text at given range.
-    pub fn delete(range:Range<TextLocation>) -> Self {
-        TextChange {
-            replaced : range,
-            lines    : vec![vec![]],
-        }
-    }
-
-    /// Creates operation which replaces text at given range with given string.
-    pub fn replace(replaced:Range<TextLocation>, text:&str) -> Self {
-        TextChange {replaced,
-            lines : Self::mk_lines_as_char_vector(text)
-        }
-    }
-
-    /// A type of this change. See `ChangeType` doc for details.
-    pub fn change_type(&self) -> ChangeType {
-        if self.lines.is_empty() {
-            panic!("Invalid change");
-        }
-        let is_one_line_modified = self.replaced.start.line == self.replaced.end.line;
-        let is_one_line_inserted = self.lines.len() == 1;
-        if is_one_line_modified && is_one_line_inserted {
-            ChangeType::SingleLine
-        } else {
-            ChangeType::MultiLine
-        }
-    }
-
-    /// Converts change representation to String.
-    pub fn inserted_string(&self) -> String {
-        self.lines.iter().map(|line| line.iter().collect::<String>()).join("\n")
-    }
-
-    /// Returns text location range where the inserted text will appear after making this change.
-    pub fn inserted_text_range(&self) -> Range<TextLocation> {
-        let start         = self.replaced.start;
-        let end_line      = start.line + self.lines.len().saturating_sub(1);
-        let last_line_len = self.lines.last().map_or(0, |l| l.len());
-        let end_column = if start.line == end_line {
-            start.column + last_line_len
-        } else {
-            last_line_len
-        };
-        start..TextLocation{line:end_line, column:end_column}
-    }
-
-    fn mk_lines_as_char_vector(text:&str) -> Vec<Vec<char>> {
-        split_to_lines(text).map(|s| s.chars().collect_vec()).collect()
-    }
-}
-
-
-
-// ===========================
-// === Change Notification ===
-// ===========================
-
-/// A notification about text change.
+/// A template for structure describing a text operation in one place.
 ///
-/// In essence, it's `TextChange` with some additional useful information.
-#[derive(Clone,Debug,Shrinkwrap)]
-pub struct TextChangedNotification {
-    /// A change which has occurred.
-    #[shrinkwrap(main_field)]
-    pub change : TextChange,
-    /// The replaced range as char positions from document begin, instead of row:column pairs.
-    pub replaced_chars : Range<usize>,
+/// This is a generalized template, because we use different representation for both index
+/// (e.g. `Index` or `TextLocation`) and inserted content (it may be just String, but also e.g.
+/// Vec<char>, or Vec<Vec<char>> split by newlines).
+#[derive(Clone,Debug)]
+pub struct TextChangeTemplate<Index,Content> {
+    /// Text fragment to be replaced. If we don't mean to remove any text, this should be an empty
+    /// range with start set at position there `lines` will be inserted
+    /// (see `TextChangeTemplate::insert` definition).
+    pub replaced : Range<Index>,
+    /// Text which replaces fragment described in `replaced` field.
+    pub inserted: Content,
 }
+
+/// The simplest change representation.
+pub type TextChange = TextChangeTemplate<Index,String>;
+
+
+// === Constructors ===
+
+impl<Index:Copy,Content> TextChangeTemplate<Index,Content> {
+    /// Creates operation which inserts text at given position.
+    pub fn insert(at:Index, text:Content) -> Self {
+        TextChangeTemplate {
+            replaced : at..at,
+            inserted: text,
+        }
+    }
+}
+
+impl<Index,Content> TextChangeTemplate<Index,Content> {
+    /// Creates operation which replaces text at given range with given string.
+    pub fn replace(replaced:Range<Index>, text:Content) -> Self {
+        let inserted = text;
+        TextChangeTemplate {replaced,inserted}
+    }
+}
+
+impl<Index,Content:Default> TextChangeTemplate<Index,Content> {
+    /// Creates operation which deletes text at given range.
+    pub fn delete(range:Range<Index>) -> Self {
+        TextChangeTemplate {
+            replaced : range,
+            inserted : default(),
+        }
+    }
+}
+
 
 
 // =================

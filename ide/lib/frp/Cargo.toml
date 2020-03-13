@@ -7,10 +7,8 @@ edition = "2018"
 [lib]
 
 [dependencies]
-enso-prelude      = { version = "0.1.0"  , path = "../prelude"       }
-basegl-system-web = { version = "0.1.0"  , path = "../system/web"    }
-percent-encoding  = { version = "2.1.0"  }
-rust-dense-bitset = "0.1.1"
-#TODO [ao] replace with official version once this will be merged and released:
-#https://github.com/pyfisch/keyboard-types/pull/4
-keyboard-types    = { git = "https://github.com/farmaazon/keyboard-types" }
+enso-prelude      = { version = "0.1.0"  , path = "../prelude"    }
+basegl-system-web = { version = "0.1.0"  , path = "../system/web" }
+percent-encoding  = { version = "2.1.0"                           }
+rust-dense-bitset = { version = "0.1.1"                           }
+keyboard-types    = { version = "0.5.0"                           }

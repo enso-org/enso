@@ -3,20 +3,19 @@
 pub mod content;
 pub mod cursor;
 pub mod frp;
-pub mod location;
 pub mod render;
 pub mod word_occurrence;
 
 use crate::prelude::*;
 
 use crate::display;
+use crate::display::shape::text::text_field::content::location::TextLocationChange;
 use crate::display::shape::text::text_field::content::TextFieldContent;
 use crate::display::shape::text::text_field::cursor::Cursors;
 use crate::display::shape::text::text_field::cursor::Cursor;
 use crate::display::shape::text::text_field::cursor::CursorId;
 use crate::display::shape::text::text_field::cursor::Step;
 use crate::display::shape::text::text_field::cursor::CursorNavigation;
-use crate::display::shape::text::text_field::location::TextLocationChange;
 use crate::display::shape::text::text_field::frp::TextFieldFrp;
 use crate::display::shape::text::text_field::word_occurrence::WordOccurrences;
 use crate::display::shape::text::glyph::font::FontHandle;
@@ -26,7 +25,6 @@ use crate::display::shape::text::text_field::render::assignment::GlyphLinesAssig
 use crate::display::world::World;
 
 use data::text::TextChange;
-use data::text::TextChangedNotification;
 use data::text::TextLocation;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
@@ -85,7 +83,7 @@ shared! { TextField
         frp              : Option<TextFieldFrp>,
         word_occurrences : Option<WordOccurrences>,
         #[derivative(Debug="ignore")]
-        text_change_callback : Option<Box<dyn FnMut(&TextChangedNotification)>>
+        text_change_callback : Option<Box<dyn FnMut(&TextChange)>>
     }
 
     impl {
@@ -173,16 +171,6 @@ shared! { TextField
             self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
         }
 
-        /// Make change in text content.
-        ///
-        /// As an opposite to `edit` function, here we don't care about cursors, nor call any
-        /// "text changed" callback, just do the change described in `TextChange` structure.
-        pub fn apply_change(&mut self, change:TextChange) {
-            self.content.apply_change(change);
-            self.assignment_update().update_after_text_edit();
-            self.rendered.update_glyphs(&mut self.content);
-        }
-
         /// Obtains the whole text content as a single String.
         pub fn get_content(&self) -> String {
             let mut line_strings = self.content.lines().iter().map(|l| l.to_string());
@@ -242,7 +230,7 @@ shared! { TextField
         ///
         /// This callback will be called once per `write` function call and all functions using it.
         /// That's include all edits being an effect of keyboard or mouse event.
-        pub fn set_text_edit_callback<Callback:FnMut(&TextChangedNotification) + 'static>
+        pub fn set_text_edit_callback<Callback:FnMut(&TextChange) + 'static>
         (&mut self, callback:Callback) {
             self.text_change_callback = Some(Box::new(callback))
         }
@@ -381,18 +369,20 @@ impl TextFieldData {
         }
     }
 
+    /// Applies change for one cursor, updating its position, and returns struct which should be
+    /// passed to `text_change_callback`.
     fn apply_one_cursor_change
     (&mut self, location_change:&mut TextLocationChange, cursor_id:CursorId, to_insert:&str)
-    -> TextChangedNotification {
+    -> TextChange {
         let CursorId(id)   = cursor_id;
         let cursor         = &mut self.cursors.cursors[id];
         let replaced       = location_change.apply_to_range(cursor.selection_range());
         let replaced_chars = self.content.convert_location_range_to_char_index(&replaced);
-        let change         = TextChange::replace(replaced,to_insert);
+        let change         = content::Change::replace(replaced,to_insert);
         location_change.add_change(&change);
         *cursor = Cursor::new(change.inserted_text_range().end);
-        self.content.apply_change(change.clone());
-        TextChangedNotification {change,replaced_chars}
+        self.content.apply_change(change);
+        TextChange::replace(replaced_chars, to_insert.to_string())
     }
 }
 

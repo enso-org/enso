@@ -1,7 +1,7 @@
 //! Module with content regarding location in text (e.g. location of cursors or changes etc.)
+use crate::display::shape::text::text_field::content::Change;
 
 use data::text::TextLocation;
-use data::text::TextChange;
 use std::ops::Range;
 
 
@@ -44,7 +44,7 @@ impl TextLocationChange {
     }
 
     /// Add a new text change into consideration.
-    pub fn add_change(&mut self, change:&TextChange) {
+    pub fn add_change(&mut self, change:&Change) {
         let removed             = &change.replaced;
         let inserted            = change.inserted_text_range();
         let lines_removed       = (removed.end.line - removed.start.line) as isize;
@@ -99,42 +99,42 @@ mod test {
 
         // initial change
         let replaced = TextLocation{line:2, column:2}..TextLocation{line:2, column: 2};
-        location_change.add_change(&TextChange::replace(replaced,one_line));
+        location_change.add_change(&Change::replace(replaced,one_line));
         assert_eq!(0, location_change.line_offset);
         assert_eq!(2, location_change.last_changed_line);
         assert_eq!(8, location_change.column_offset);
 
         // single line in the same line as previous
         let replaced = TextLocation{line:2, column:2}..TextLocation{line:2, column: 13};
-        location_change.add_change(&TextChange::replace(replaced,one_line));
+        location_change.add_change(&Change::replace(replaced,one_line));
         assert_eq!(0, location_change.line_offset);
         assert_eq!(2, location_change.last_changed_line);
         assert_eq!(5, location_change.column_offset);
 
         // single -> multiple lines in the same line as previous
         let replaced = TextLocation{line:2, column:2}..TextLocation{line:2, column: 8};
-        location_change.add_change(&TextChange::replace(replaced,two_lines));
+        location_change.add_change(&Change::replace(replaced,two_lines));
         assert_eq!(1, location_change.line_offset);
         assert_eq!(3, location_change.last_changed_line);
         assert_eq!(2, location_change.column_offset);
 
         // multiple -> multiple lines
         let replaced = TextLocation{line:3, column:2}..TextLocation{line:7, column: 3};
-        location_change.add_change(&TextChange::replace(replaced,two_lines));
+        location_change.add_change(&Change::replace(replaced,two_lines));
         assert_eq!(-2, location_change.line_offset);
         assert_eq!(4 , location_change.last_changed_line);
         assert_eq!(2 , location_change.column_offset);
 
         // multiple -> single lines in the same line as previous
         let replaced = TextLocation{line:4, column:2}..TextLocation{line:5, column: 11};
-        location_change.add_change(&TextChange::replace(replaced,one_line));
+        location_change.add_change(&Change::replace(replaced,one_line));
         assert_eq!(-3, location_change.line_offset);
         assert_eq!(4 , location_change.last_changed_line);
         assert_eq!(-1, location_change.column_offset);
 
         // single line in other line than previous
         let replaced = TextLocation{line:5, column:2}..TextLocation{line:5, column: 12};
-        location_change.add_change(&TextChange::replace(replaced,one_line));
+        location_change.add_change(&Change::replace(replaced,one_line));
         assert_eq!(-3, location_change.line_offset);
         assert_eq!(5 , location_change.last_changed_line);
         assert_eq!(-2, location_change.column_offset);

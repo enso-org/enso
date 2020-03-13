@@ -17,6 +17,7 @@
 
 pub mod text;
 pub mod module;
+pub mod notification;
 pub mod project;
 
 /// General-purpose `Result` supporting any `Error`-compatible failures.

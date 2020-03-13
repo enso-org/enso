@@ -8,16 +8,19 @@
 use crate::prelude::*;
 
 use crate::controller::FallibleResult;
+use crate::controller::notification;
 use crate::double_representation::text::apply_code_change_to_id_map;
+use crate::executor::global::spawn;
 
+use ast;
 use ast::Ast;
 use ast::HasRepr;
 use ast::IdMap;
-use data::text::Index;
-use data::text::Size;
 use data::text::Span;
-use data::text::TextChangedNotification;
+use data::text::TextChange;
 use file_manager_client as fmc;
+use flo_stream::MessagePublisher;
+use flo_stream::Subscriber;
 use json_rpc::error::RpcError;
 use parser::api::IsParser;
 use parser::Parser;
@@ -76,8 +79,13 @@ shared! { Handle
         id_map: IdMap,
         /// The File Manager Client handle.
         file_manager: fmc::Handle,
-        /// The Parser handle
+        /// The Parser handle.
         parser: Parser,
+        /// Publisher of "text changed" notifications
+        text_notifications  : notification::Publisher<notification::Text>,
+        /// Publisher of "graph changed" notifications
+        graph_notifications : notification::Publisher<notification::Graph>,
+        /// The logger handle.
         logger: Logger,
     }
 
@@ -88,17 +96,18 @@ shared! { Handle
         }
 
         /// Updates AST after code change.
-        pub fn apply_code_change(&mut self,change:&TextChangedNotification) -> FallibleResult<()> {
-            let mut code        = self.code();
-            let replaced_range  = change.replaced_chars.clone();
-            let inserted_string = change.inserted_string();
-            let replaced_size   = Size::new(replaced_range.end - replaced_range.start);
-            let replaced_span   = Span::new(Index::new(replaced_range.start),replaced_size);
+        pub fn apply_code_change(&mut self,change:&TextChange) -> FallibleResult<()> {
+            let mut code         = self.code();
+            let replaced_size    = change.replaced.end - change.replaced.start;
+            let replaced_span    = Span::new(change.replaced.start,replaced_size);
+            let replaced_indices = change.replaced.start.value..change.replaced.end.value;
 
-            code.replace_range(replaced_range,&inserted_string);
-            apply_code_change_to_id_map(&mut self.id_map,&replaced_span,&inserted_string);
-            self.ast = self.parser.parse(code, self.id_map.clone())?;
+            code.replace_range(replaced_indices,&change.inserted);
+            apply_code_change_to_id_map(&mut self.id_map,&replaced_span,&change.inserted);
+            let ast = self.parser.parse(code, self.id_map.clone())?;
+            self.update_ast(ast);
             self.logger.trace(|| format!("Applied change; Ast is now {:?}", self.ast));
+
             Ok(())
         }
 
@@ -119,6 +128,16 @@ shared! { Handle
             }
             Ok(())
         }
+
+        /// Get subscriber receiving notifications about changes in module's text representation.
+        pub fn subscribe_text_notifications(&mut self) -> Subscriber<notification::Text> {
+            self.text_notifications.subscribe()
+        }
+
+        /// Get subscriber receiving notifications about changes in module's graph representation.
+        pub fn subscribe_graph_notifications(&mut self) -> Subscriber<notification::Graph> {
+            self.graph_notifications.subscribe()
+        }
     }
 }
 
@@ -126,20 +145,38 @@ impl Handle {
     /// Create a module controller for given location.
     ///
     /// It may wait for module content, because the module must initialize its state.
-    pub async fn new(location:Location, mut file_manager:fmc::Handle, mut parser:Parser)
+    pub async fn new(location:Location, file_manager:fmc::Handle, parser:Parser)
     -> FallibleResult<Self> {
-        let logger  = Logger::new(format!("Module Controller {}", location));
+        let logger              = Logger::new(format!("Module Controller {}", location));
+        let ast                 = Ast::new(ast::Module{lines:default()},None);
+        let id_map              = default();
+        let text_notifications  = default();
+        let graph_notifications = default();
+
+        let data = Controller {location,ast,file_manager,parser,id_map,logger,text_notifications,
+            graph_notifications};
+        let handle = Handle::new_from_data(data);
+        handle.load_file().await?;
+        Ok(handle)
+    }
+
+    /// Load or reload module content from file.
+    pub async fn load_file(&self) -> FallibleResult<()> {
+        let (logger,path,mut fm,mut parser) = self.with_borrowed(|data| {
+            ( data.logger.clone()
+            , data.location.to_path()
+            , data.file_manager.clone_ref()
+            , data.parser.clone_ref()
+            )
+        });
         logger.info(|| "Loading module file");
-        let path    = location.to_path();
-        file_manager.touch(path.clone()).await?;
-        let content = file_manager.read(path).await?;
+        let content = fm.read(path).await?;
         logger.info(|| "Parsing code");
-        let ast     = parser.parse(content,default())?;
+        let ast = parser.parse(content,default())?;
         logger.info(|| "Code parsed");
         logger.trace(|| format!("The parsed ast is {:?}", ast));
-        let id_map  = default();
-        let data    = Controller {location,ast,file_manager,parser,id_map,logger};
-        Ok(Handle::new_from_data(data))
+        self.with_borrowed(|data| data.update_ast(ast));
+        Ok(())
     }
 
     /// Save the module to file.
@@ -152,35 +189,49 @@ impl Handle {
     }
 
     #[cfg(test)]
-    fn new_mock
+    pub fn new_mock
     (location:Location, code:&str, id_map:IdMap, file_manager:fmc::Handle, mut parser:Parser)
     -> FallibleResult<Self> {
-        let logger   = Logger::new("Mocked Module Controller");
-        let ast      = parser.parse(code.to_string(),id_map.clone())?;
-        let data     = Controller {location,ast,file_manager,parser,id_map,logger};
+        let logger              = Logger::new("Mocked Module Controller");
+        let ast                 = parser.parse(code.to_string(),id_map.clone())?;
+        let text_notifications  = default();
+        let graph_notifications = default();
+        let data                = Controller {location,ast,file_manager,parser,id_map,logger,
+            text_notifications,graph_notifications};
         Ok(Handle::new_from_data(data))
     }
-
 }
 
+impl Controller {
+    /// Update current ast in module controller and emit notification about overall invalidation.
+    fn update_ast(&mut self,ast:Ast) {
+        self.ast = ast;
+        let text_change  = notification::Text::Invalidate;
+        let graph_change = notification::Graph::Invalidate;
+        let code_notify  = self.text_notifications.publish(text_change);
+        let graph_notify = self.graph_notifications.publish(graph_change);
+        spawn(async move { futures::join!(code_notify,graph_notify); });
+    }
+}
 
 
 #[cfg(test)]
 mod test {
     use super::*;
 
+    use crate::controller::notification;
+    use crate::executor::test_utils::TestWithLocalPoolExecutor;
+
     use ast;
     use ast::BlockLine;
     use data::text::Index;
     use data::text::Span;
     use data::text::Size;
-    use data::text::TextChange;
-    use data::text::TextLocation;
+    use file_manager_client::Path;
     use json_rpc::test_util::transport::mock::MockTransport;
     use parser::Parser;
     use uuid::Uuid;
     use wasm_bindgen_test::wasm_bindgen_test;
-    use file_manager_client::Path;
 
     #[test]
     fn get_location_from_path() {
@@ -194,41 +245,47 @@ mod test {
 
     #[wasm_bindgen_test]
     fn update_ast_after_text_change() {
-        let transport    = MockTransport::new();
-        let file_manager = file_manager_client::Handle::new(transport);
-        let parser       = Parser::new().unwrap();
-        let location     = Location("Test".to_string());
+        TestWithLocalPoolExecutor::set_up().run_test(async {
+            let transport    = MockTransport::new();
+            let file_manager = file_manager_client::Handle::new(transport);
+            let parser       = Parser::new().unwrap();
+            let location     = Location("Test".to_string());
 
-        let uuid1        = Uuid::new_v4();
-        let uuid2        = Uuid::new_v4();
-        let uuid3        = Uuid::new_v4();
-        let code         = "2+2";
-        let id_map       = IdMap(vec!
-            [ (Span::new(Index::new(0), Size::new(1)),uuid1.clone())
-            , (Span::new(Index::new(2), Size::new(1)),uuid2)
-            , (Span::new(Index::new(0), Size::new(3)),uuid3)
-            ]);
+            let uuid1        = Uuid::new_v4();
+            let uuid2        = Uuid::new_v4();
+            let uuid3        = Uuid::new_v4();
+            let code         = "2+2";
+            let id_map       = IdMap(vec!
+                [ (Span::new(Index::new(0), Size::new(1)),uuid1.clone())
+                , (Span::new(Index::new(2), Size::new(1)),uuid2)
+                , (Span::new(Index::new(0), Size::new(3)),uuid3)
+                ]);
 
-        let controller   = Handle::new_mock(location,code,id_map,file_manager,parser).unwrap();
+            let controller   = Handle::new_mock(location,code,id_map,file_manager,parser).unwrap();
 
-        // Change code from "2+2" to "22+2"
-        let change = TextChangedNotification {
-            change        : TextChange::insert(TextLocation{line:0,column:1}, "2"),
-            replaced_chars: 1..1
-        };
-        controller.apply_code_change(&change).unwrap();
-        let expected_ast = Ast::new(ast::Module {
-            lines: vec![BlockLine {
-                elem: Some(Ast::new(ast::Infix {
-                    larg : Ast::new(ast::Number{base:None, int:"22".to_string()}, Some(uuid1)),
-                    loff : 0,
-                    opr  : Ast::new(ast::Opr {name:"+".to_string()}, None),
-                    roff : 0,
-                    rarg : Ast::new(ast::Number{base:None, int:"2".to_string()}, Some(uuid2)),
-                }, Some(uuid3))),
-                off: 0
-            }]
-        }, None);
-        assert_eq!(expected_ast, controller.with_borrowed(|data| data.ast.clone()));
+            let mut text_notifications  = controller.subscribe_text_notifications();
+            let mut graph_notifications = controller.subscribe_graph_notifications();
+
+            // Change code from "2+2" to "22+2"
+            let change = TextChange::insert(Index::new(1),"2".to_string());
+            controller.apply_code_change(&change).unwrap();
+            let expected_ast = Ast::new(ast::Module {
+                lines: vec![BlockLine {
+                    elem: Some(Ast::new(ast::Infix {
+                        larg : Ast::new(ast::Number{base:None, int:"22".to_string()}, Some(uuid1)),
+                        loff : 0,
+                        opr  : Ast::new(ast::Opr {name:"+".to_string()}, None),
+                        roff : 0,
+                        rarg : Ast::new(ast::Number{base:None, int:"2".to_string()}, Some(uuid2)),
+                    }, Some(uuid3))),
+                    off: 0
+                }]
+            }, None);
+            assert_eq!(expected_ast, controller.with_borrowed(|data| data.ast.clone()));
+
+            // Check emitted notifications
+            assert_eq!(Some(notification::Text::Invalidate ), text_notifications.next().await );
+            assert_eq!(Some(notification::Graph::Invalidate), graph_notifications.next().await);
+        });
     }
 }

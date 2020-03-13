@@ -14,6 +14,7 @@ need the following setup:
   rustup toolchain install nightly-2019-11-04 # Install the nightly channel.
   rustup default nightly                      # Set it as the default one.
   rustup component add clippy                 # Install the linter.
+  cargo install cargo-watch                   # To enable ./run watch utility
   ```
 
 - **Node and Node Package Manager LTS**  
@@ -22,7 +23,7 @@ need the following setup:
   changes are known to cause serious issues, thus **we provide support for the latest LTS version only.
   Please do not report build issues if you use other versions.** In case you run run MacOS or Linux 
   the easiest way to setup the proper version is by installing the 
-  [Node Version Manager](https://github.com/nvm-sh/nvm) and running `nvm use --lts`.
+  [Node Version Manager](https://github.com/nvm-sh/nvm) and running `nvm install --lts && nvm use --lts`.
 
 <br/>
 <br/>
