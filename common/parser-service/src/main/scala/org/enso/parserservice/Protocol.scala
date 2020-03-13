@@ -14,7 +14,7 @@ object Protocol {
   sealed trait Request
   final case class ParseRequest(program: String, ids: Parser.IDMap)
     extends Request
-  final case class ParseWithMetadataRequest(content: String)
+  final case class ParseRequestWithMetadata(content: String)
     extends Request
 
   sealed trait Response

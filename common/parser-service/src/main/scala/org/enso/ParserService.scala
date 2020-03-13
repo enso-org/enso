@@ -42,7 +42,7 @@ case class ParserService() extends Server with Protocol {
       case ParseRequest(program, ids) =>
         val ast     = new Parser().run(new Reader(program), ids)
         Protocol.Success(SourceFile(ast, Json.Null))
-      case ParseWithMetadataRequest(content) =>
+      case ParseRequestWithMetadata(content) =>
         val module  = new Parser().run_with_metadata(content)
         Protocol.Success(module)
       case _ =>

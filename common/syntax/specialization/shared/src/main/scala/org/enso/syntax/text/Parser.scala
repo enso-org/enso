@@ -159,8 +159,7 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
 case class SourceFile(ast: AST, metadata: Json)
 
 object SourceFile {
-  val IDTAG   = "\n# [idmap] "
-  val METATAG = "\n# [metadata]"
+  val METATAG = "\n\n\n#### METADATA ####\n"
 
   implicit def MWMEncoder: Encoder[SourceFile] = module =>
     Json.obj("ast" -> module.ast.toJson(), "metadata" -> module.metadata)
@@ -177,12 +176,12 @@ class Parser {
   def run_with_metadata(program: String): SourceFile = {
     import SourceFile._
 
-    program.split(IDTAG) match {
-      case Array(input)  => SourceFile(run(input), Json.Null)
+    program.split(METATAG) match {
+      case Array(input)  => SourceFile(run(input), Json.obj())
       case Array(input, rest) =>
-        val meta     = rest.split(METATAG)
+        val meta     = rest.split('\n')
         if (meta.size < 2) {
-          throw new ParserError(s"Expected `$METATAG ..`\n after `$IDTAG ..`.")
+          throw new ParserError(s"Expected two lines after METADATA.")
         }
         val idmap    = idMapFromJson(meta(0)).left.map { error =>
           throw new ParserError("Could not deserialize idmap.", error)
@@ -456,7 +455,6 @@ class Parser {
 object Parser {
 
   type IDMap    = Seq[(Span, AST.ID)]
-  type Metadata = String
 
   private val newEngine = flexer.Parser.compile(ParserDef())
 
