@@ -74,7 +74,7 @@ pub struct WrongEnum { pub expected_con: String }
 /// number of children nodes, each marked with a single `K`.
 ///
 /// It is used to describe ambiguous macro match.
-#[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone,Eq,PartialEq,Debug,Serialize,Deserialize)]
 pub struct Tree<K,V> {
     pub value    : Option<V>,
     pub branches : Vec<(K, Tree<K,V>)>,
@@ -87,7 +87,7 @@ pub struct Tree<K,V> {
 // ===============
 
 /// A value of type `T` annotated with offset value `off`.
-#[derive(Eq, PartialEq, Debug, Serialize, Deserialize, Shrinkwrap, Iterator)]
+#[derive(Clone,Eq,PartialEq,Debug,Serialize,Deserialize,Shrinkwrap,Iterator)]
 #[shrinkwrap(mutable)]
 pub struct Shifted<T> {
     #[shrinkwrap(main_field)]
@@ -96,7 +96,7 @@ pub struct Shifted<T> {
 }
 
 /// A non-empty sequence of `T`s interspersed by offsets.
-#[derive(Eq, PartialEq, Debug, Serialize, Deserialize, Iterator)]
+#[derive(Clone,Eq,PartialEq,Debug,Serialize,Deserialize,Iterator)]
 pub struct ShiftedVec1<T> {
     pub head: T,
     pub tail: Vec<Shifted<T>>
@@ -211,6 +211,16 @@ impl Ast {
     /// Iterates over all transitive child nodes (including self).
     pub fn iter_recursive(&self) -> impl Iterator<Item=&Ast> {
         internal::iterate_subtree(self)
+    }
+
+    /// Returns this AST node with ID set to given value.
+    pub fn with_id(&self, id:ID) -> Ast {
+        Ast::from_ast_id_len(self.shape().clone(), Some(id), self.len())
+    }
+
+    /// Returns this AST node with removed ID.
+    pub fn without_id(&self) -> Ast {
+        Ast::from_ast_id_len(self.shape().clone(), None, self.len())
     }
 }
 
@@ -1070,6 +1080,17 @@ mod tests {
         let json_str            = serde_json::to_string(&input_val).unwrap();
         let deserialized_val: T = serde_json::from_str(&json_str).unwrap();
         assert_eq!(*input_val, deserialized_val);
+    }
+
+    #[test]
+    fn ast_updating_id() {
+        let var = Var {name:"foo".into()};
+        let ast = Ast::new(var, None);
+        assert!(ast.id.is_none());
+
+        let id  = Uuid::default();
+        let ast = ast.with_id(id);
+        assert_eq!(ast.id, Some(id));
     }
 
     #[test]
