@@ -36,9 +36,9 @@ pub fn ast_node
 ) -> proc_macro::TokenStream {
     let input: TokenStream = input.into();
     let output = quote! {
-        #[derive(Eq, PartialEq, Debug)]
+        #[derive(Clone,Eq,PartialEq,Debug)]
         #[derive(Iterator)]
-        #[derive(Serialize, Deserialize)]
+        #[derive(Serialize,Deserialize)]
         #input
     };
     output.into()
