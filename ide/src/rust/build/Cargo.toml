@@ -1,0 +1,9 @@
+[package]
+name = "ensogl-build-utilities"
+version = "0.1.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+[dependencies]
+download-lp = "0.2.0"
+path-clean  = "0.1.0"

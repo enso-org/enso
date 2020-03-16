@@ -1,5 +1,0 @@
-node_modules
-dist
-generated
-lerna-debug.log
-*.lerna_backup

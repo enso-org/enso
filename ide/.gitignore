@@ -1,3 +1,5 @@
+dist
+
 # Rust
 /target
 /build/rust/target/
@@ -9,7 +11,7 @@ wasm-pack.log
 .idea/
 *.iml
 
-# VisualStudio Code
+# Visual Studio Code
 .vscode/
 
 # A thirdparty downloaded js

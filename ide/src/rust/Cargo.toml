@@ -1,0 +1,49 @@
+[workspace]
+
+members = [
+    "build",
+    "ensogl",
+    "ensogl/embedded-fonts",
+    "ensogl/msdf-sys",
+    "ide",
+    "ide/ast/impl",
+    "ide/ast/macros",
+    "ide/file-manager",
+    "ide/file-manager/mock-server",
+    "ide/json-rpc",
+    "ide/parser",
+    "ide/utils",
+
+    "lib/code-builder",
+    "lib/data",
+    "lib/debug-scenes",
+    "lib/eval-tt",
+    "lib/frp",
+    "lib/logger",
+    "lib/macro-utils",
+    "lib/optics",
+    "lib/prelude",
+    "lib/shapely/impl",
+    "lib/shapely/macros",
+    "lib/system/web",
+]
+
+[profile.dev]
+opt-level = 2
+lto       = false
+debug     = true
+
+[profile.release]
+opt-level = 3
+lto       = true
+debug     = false
+
+[profile.bench]
+opt-level = 3
+lto       = true
+debug     = false
+
+[profile.test]
+opt-level = 0
+lto       = false
+debug     = false

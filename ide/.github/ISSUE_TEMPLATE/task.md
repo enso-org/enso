@@ -1,6 +1,6 @@
 ---
 name: Task
-about: Create a new development task for BaseGL.
+about: Create a new development task for Enso IDE.
 title: ''
 labels: ''
 assignees: ''
