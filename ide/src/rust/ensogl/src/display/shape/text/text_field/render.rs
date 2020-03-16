@@ -161,7 +161,6 @@ impl TextFieldSprites {
                 }
             }
         }
-        self.display_object.update();
     }
 
     /// Update all displayed cursors with their selections.
@@ -180,7 +179,6 @@ impl TextFieldSprites {
             sprites.selection.clear();
             sprites.selection = generator.generate(&selection);
         }
-        self.display_object.update();
     }
 
     fn update_glyph_line

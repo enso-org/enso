@@ -168,7 +168,6 @@ impl TextEditor {
         // https://app.zenhub.com/workspaces/enso-5b57093c92e09f0d21193695/issues/luna/ide/217
         // let padding  = Vector2::new(padding.left + padding.right, padding.top + padding.bottom);
         // self.text_field.set_size(self.dimensions - padding);
-        data.text_field.update();
     }
 }
 

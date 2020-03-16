@@ -69,5 +69,4 @@ fn animate_text_component
     if start_scrolling <= js_sys::Date::now() {
         text_field.scroll(Vector2::new(0.0,-0.1));
     }
-    text_field.update();
 }

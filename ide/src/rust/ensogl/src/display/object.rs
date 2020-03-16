@@ -274,6 +274,17 @@ impl {
             });
         }
     }
+
+    /// Unset all node's callbacks. Because the Node structure may live longer than one's could
+    /// expect (usually to the next scene refresh), it is wise to unset all callbacks when disposing
+    /// object.
+    // TODO[ao] Instead if this, the Node should keep weak references to its children (at least in
+    // "removed" list) and do not extend their lifetime.
+    pub fn clear_callbacks(&mut self) {
+        self.callbacks.on_updated = None;
+        self.callbacks.on_show    = None;
+        self.callbacks.on_hide    = None;
+    }
 }
 
 
@@ -299,9 +310,6 @@ impl {
         self.child_dirty.set_callback(None);
         self.removed_children.set_callback(None);
         self.new_parent_dirty.set();
-//        self.take_parent_bind();
-
-
     }
 
     /// Set parent of the object. If the object already has a parent, the parent would be replaced.
@@ -461,7 +469,6 @@ impl Node {
         })
     }
 }
-
 
 
 // === Getters ===

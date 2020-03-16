@@ -117,6 +117,17 @@ impl Drop for SpriteData {
         self.bbox.set(Vector2::new(0.0,0.0));
         self.symbol.surface().instance_scope().dispose(self.instance_id);
         self.display_object.unset_parent();
+        // TODO[ao] this is a temporary workaround for problem with dropping and creating sprites
+        // in the same frame.
+        //
+        // In detail: detaching display::object::Node from parent does not remove it immediately,
+        // but parent keeps its reference to the next update, and call "hide" during this update.
+        //
+        // The Sprites set on its display object Node a callback setting bbox to (0.0,0.0). When
+        // sprite is removed, the node with its callback persists. If the new sprite is created in
+        // this same frame, it could receive same instance_id as the removed one, so the hide
+        // callback of the old Node sets bbox of the new sprite to (0.0,0.0)
+        self.display_object.clear_callbacks();
     }
 }
 

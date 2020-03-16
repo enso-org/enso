@@ -212,11 +212,6 @@ shared! { TextField
             }
         }
 
-        /// Update underlying Display Object.
-        pub fn update(&self) {
-            self.display_object.update()
-        }
-
         /// Check if given point on screen is inside this TextField.
         pub fn is_inside(&self, point:Vector2<f32>) -> bool {
             let position = self.display_object.global_position();
