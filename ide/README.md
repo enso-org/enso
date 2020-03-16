@@ -42,7 +42,7 @@
          alt="Actions Status">
   </a>
   <a href="https://codecov.io/gh/luna/ide/branch/master">
-    <img src="https://img.shields.io/codecov/c/github/luna/ide?label=Coverage&labelColor=2c3239"
+    <img src="https://img.shields.io/codecov/c/github/luna/basegl?label=Coverage&labelColor=2c3239"
          alt="Coverage">
   </a>
 </p>
