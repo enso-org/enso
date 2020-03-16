@@ -165,13 +165,17 @@ commands.start.js = async function() {
 // === Test ===
 
 commands.test = command(`Run test suites`)
-commands.test.rust = async function() {
-    console.log(`Running Rust test suite.`)
-    await run('cargo',['test'])
+commands.test.rust = async function(argv) {
+    if (argv.native) {
+        console.log(`Running Rust test suite.`)
+        await run('cargo',['test'])
+    }
 
-    console.log(`Running Rust visual test suite.`)
-    let args = ['run','--manifest-path=test/Cargo.toml','--bin','test_all','--','--headless','--chrome']
-    await run('cargo',args)
+    if (argv.wasm) {
+        console.log(`Running Rust WASM test suite.`)
+        let args = ['run','--manifest-path=test/Cargo.toml','--bin','test_all','--','--headless','--chrome']
+        await run('cargo',args)
+    }
 }
 
 
@@ -261,7 +265,18 @@ let commandList = Object.keys(commands)
 commandList.sort()
 for (let command of commandList) {
     let config = commands[command]
-    optParser.command(command,config.docs)
+    optParser.command(command,config.docs,(args) => {
+        args.options('native', {
+            describe : 'Run native tests',
+            type     : 'bool',
+            default  : true
+        })
+        args.options('wasm', {
+            describe : 'Run WASM tests',
+            type     : 'bool',
+            default  : true
+        })
+    })
 }
 
 

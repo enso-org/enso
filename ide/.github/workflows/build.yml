@@ -10,6 +10,7 @@ jobs:
 
   build:
     name: Build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -81,8 +82,8 @@ jobs:
           path: dist/client/mac/Enso Studio.app
 
 
-  lint:
-    name: Lint
+  check:
+    name: Check
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -110,10 +111,7 @@ jobs:
 
   test:
     name: Tests
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest,macOS-latest,ubuntu-latest]
+    runs-on: macOS-latest
     steps:
       - uses: actions/checkout@v1
 
@@ -135,7 +133,34 @@ jobs:
           node-version: '12.16.1'
 
       - name: Run tests
-        run: node ./run test
+        run: node ./run test --no-wasm
+
+
+  wasm-test:
+    name: WASM Tests
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+
+      - name: Install wasm-pack
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: wasm-pack --version 0.8.1
+
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12.16.1'
+
+      - name: Run tests
+        run: node ./run test --no-native
 
 
   # TODO: enable after fixing https://github.com/actions-rs/grcov/issues/50
