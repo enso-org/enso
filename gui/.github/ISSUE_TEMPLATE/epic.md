@@ -1,6 +1,6 @@
 ---
 name: Epic
-about: Create a new epic for BaseGL development.
+about: Create a new epic for Enso IDE development.
 title: ''
 labels: ''
 assignees: ''

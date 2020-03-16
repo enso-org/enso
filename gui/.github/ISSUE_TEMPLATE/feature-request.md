@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Request a new feature in BaseGL.
+about: Request a new feature in Enso IDE.
 title: ''
 labels: 'Type: Enhancement'
 assignees: ''
@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 <!--
-Please ensure that you check the latest version of BaseGL to see if your feature 
+Please ensure that you check the latest version of Enso IDE to see if your feature 
 has been implemented.
 -->
 
@@ -19,6 +19,6 @@ has been implemented.
 
 ### Motivation
 <!--
-- A description of the motivation for adding this feature to BaseGL.
+- A description of the motivation for adding this feature to Enso IDE.
 - Ideally this would include use-cases that support the feature.
 -->
