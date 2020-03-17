@@ -146,30 +146,36 @@ or benchmarks to run (e.g. `testOnly *FunctionArguments*`).
 #### Building the Interpreter CLI Fat Jar
 In order to build a fat jar with the CLI component, run the `assembly` task
 inside the `runtime` subproject:
-```
+
+```bash
 sbt "runtime/assembly"
 ```
+
 This will produce an executable `enso.jar` fat jar in the repository root.
 It's self contained, with its only dependencies being available inside
 a vanilla GraalVM distribution. To run it, use:
-```
+
+```bash
 JAVA_HOME=<PATH_TO_GRAAL_HOME> ./enso.jar <CLI_ARGS>
 ```
+
 If you decide not to use the default launcher script, make sure to pass
 the `-XX:-UseJVMCIClassLoader` option to the `java` command.
 
 #### Installing the Jupyter kernel
-Enso has a higly experimental and not-actively-maintained Jupyer Kernel.
+Enso has a highly experimental and not-actively-maintained Jupyer Kernel.
 To run it:
 
 1. Build (or download from the CI server) the CLI Fat Jar.
 2. Fill in the `engine/language-server/jupyter-kernel/enso/kernel.json`
-file, providing correct paths to the `enso.jar` distribution
-and GraalVM JAVA_HOME.
+   file, providing correct paths to the `enso.jar` distribution and GraalVM 
+   `JAVA_HOME`.
 3. Run:
-```
+
+```bash
 jupyter kernelspec install <ROOT_OF_THIS_REPO>/engine/language-server/jupyter-kernel/enso
 ```
+
 Congratulations, your Jupyter Kernel should now be installed and ready to use.
 
 #### Passing Debug Options
@@ -321,11 +327,12 @@ Below are options uses by the Language Server:
 - `--root-id <uuid>`: Content root id.
 - `--path <path>`: Path to the content root.
 - `--interface <interface>`: Interface for processing all incoming connections. 
-Default value is 127.0.0.1
+  Default value is 127.0.0.1
 - `--port <port>`: Port for processing all incoming connections. Default value 
-is 8080.
+  is 8080.
 
 To run the Language Server on 127.0.0.1:8080 type:
+
 ```bash
 java -jar enso.jar \
   --server \
@@ -333,16 +340,11 @@ java -jar enso.jar \
   --path /tmp/content-root
 ```
 
-If you want to provide a socket that the server should listen to, type:
+If you want to provide a socket that the server should listen to, you must
+specify the following options:
 
-```bash
-java -jar enso.jar \
-  --server \
-  --root-id 3256d10d-45be-45b1-9ea4-7912ef4226b1 \
-  --path /tmp/content-root \
-  --interface 0.0.0.0 \
-  --port 80
-``` 
+- `--interface`: The interface on which the socket will exist (e.g. `0.0.0.0`).
+- `--port`: The port on `interface` where the socket will be opened (e.g. `80`).
 
 ## Pull Requests
 Pull Requests are the primary method for making changes to Enso. GitHub has
@@ -355,21 +357,29 @@ to bring those changes into the main Enso repository.
 
 Please make all pull requests against the `master` branch.
 
-Before making your PR, please make sure that the commit passes the Enso test
-suite. You can run all the tests by ... TBC. In addition, please ensure that
-your code conforms to the Enso [Scala Style Guide](./doc/scala-style-guide.md)
-and [Haskell Style Guide](./doc/haskell-style-guide.md) as relevant.
+- We enforce a strict review-before-CI policy for external contributions, but we
+  do ask that you make sure to run the test suite locally. This can be done by
+  running `test` in the `enso` project in sbt.
+- Additionally, please ensure that your code conforms to the Enso style guides,
+  particularly the [Scala Style Guide](./doc/scala-style-guide.md) and the
+  [Java Style Guide](./doc/java-style-guide.md).
 
 Make sure you perform these checks before _every_ pull request. You can even add
 [git hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) before
 every push to make sure that you can't forget.
 
-Every pull request for Enso is reviewed by another person! You'll get a
-reviewer from the core team assigned at random, but feel free to ask for a
-specific person if you've dealt with them in a certain area before!
+- Every pull request to the Enso repository is reviewed by a member of the core
+  team! You'll get assigned a reviewer based on the areas your PR touches, but
+  please feel free to ask for a specific person if you've worked with them in a
+  specific area before!
+- If you have questions, or would like to begin the review process before your
+  PR is 'done', please use the [Draft Pull Requests](https://github.blog/2019-02-14-introducing-draft-pull-requests/)
+  feature on GitHub.
 
 Once the reviewer approves your pull request it will be tested by our continuous
-integration provider before being merged!
+integration provider before being merged. If we request changes to your PR,
+please feel free to discuss the suggestions and comments! We can only achieve
+the best results through open collaboration.
 
 ## Documentation
 Documentation improvements are very welcome! The source for the Enso, Book can be
