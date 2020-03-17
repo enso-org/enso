@@ -4,19 +4,19 @@ let config = {
     main: "index.js",
 
     dependencies: {
-        "enso-studio-content": "2.0.0-alpha.0",
-        "enso-studio-common": "2.0.0-alpha.0",
-        "enso-studio-icons": "2.0.0-alpha.0",
-        "copy-webpack-plugin": "^5.1.1",
         "create-servers": "^3.1.0",
-        "electron-is-dev": "^1.1.0"
+        "electron-is-dev": "^1.1.0",
+        "enso-studio-common": "2.0.0-alpha.0",
+        "enso-studio-content": "2.0.0-alpha.0",
+        "enso-studio-icons": "2.0.0-alpha.0",
+        "yargs": "^15.3.0"
     },
 
     devDependencies: {
         "compression-webpack-plugin": "^3.1.0",
         "copy-webpack-plugin": "^5.1.1",
         "devtron": "^1.4.0",
-        "electron": "8.0.2",
+        "electron": "8.1.1",
         "electron-builder": "^22.3.2"
     },
 

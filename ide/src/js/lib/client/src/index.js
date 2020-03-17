@@ -1,15 +1,18 @@
 'use strict'
 
+import * as buildCfg  from '../../../../../dist/build.json'
 import * as Electron  from 'electron'
 import * as isDev     from 'electron-is-dev'
 import * as minimist  from 'minimist'
 import * as path      from 'path'
 import * as pkg       from '../package.json'
 import * as rootCfg   from '../../../package.json'
-import * as buildCfg  from '../../../../../dist/build.json'
 import * as Server    from 'enso-studio-common/src/server'
+import * as yargs     from 'yargs'
 
 
+// FIXME default options parsed wrong
+// https://github.com/yargs/yargs/issues/1590
 
 // ================
 // === Defaults ===
@@ -22,71 +25,111 @@ let windowCfg = {
 
 
 
-// =============
-// === Utils ===
-// =============
+// =====================
+// === Option Parser ===
+// =====================
 
-function kebabToCamelCase(str){
-  let arr     = str.split('-');
-  let capital = arr.map((item,index) => {
-      return index ? item.charAt(0).toUpperCase() + item.slice(1).toLowerCase() : item
-  })
-  return capital.join("");
-}
-
-function parseCmdArgs() {
-    let argv = isDev ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv
-    let args = minimist(argv)
-    for (let argName in args) {
-        let newName = kebabToCamelCase(argName)
-        args[newName] = args[argName]
-    }
-    return args
-}
-
-
-
-// ==================================
-// === Command Line Args Handlers ===
-// ==================================
-
-const HELP_MESSAGE = `
+let usage = `
 ${pkg.build.productName} ${rootCfg.version} command line interface.
 
 Usage: ${pkg.build.productName} [options]
-
-Config Options:
-    --port                   Port to use [${Server.DEFAULT_PORT}].
-    --server                 Run the server [true].
-    --window                 Show the window [true].
-
-Debug Options:
-    --background-throttling  Throttle animations when the app becomes background.
-    --debug-scene [SCENE]    Run the debug scene instead of the main app.
-    --dev                    Run the application in development mode.
-    --devtron                Install the Devtron Developer Tools extension.
-
-Style Options:
-    --frame                  Draw window frame.
-    --vibrancy               Use the vibrancy effect [true].
-    --window-size [SIZE]     Set the window size [${windowCfg.width}x${windowCfg.height}].
-
-Other Options:
-    --help                   Print the help message and exit.
-    --version                Print the version.
 `
 
+let optParser = yargs
+    .scriptName("")
+    .usage(usage)
+    .help()
+    .version(false)
+    .parserConfiguration({'populate--':true})
+    .strict()
+
+
+// === Config Options ===
+
+let configOptionsGroup = 'Config Options:'
+
+optParser.options('port', {
+    group    : configOptionsGroup,
+    describe : `Port to use [${Server.DEFAULT_PORT}]`,
+})
+
+optParser.options('server', {
+    group    : configOptionsGroup,
+    describe : 'Run the server [true]',
+})
+
+optParser.options('window', {
+    group    : configOptionsGroup,
+    describe : 'Show the window [true]',
+})
+
+optParser.options('background-throttling', {
+    group    : configOptionsGroup,
+    describe : 'Throttle animations when run in background [false]',
+})
+
+
+// === Debug Options ===
+
+let debugOptionsGroup = 'Debug Options:'
+
+optParser.options('debug-scene', {
+    group       : debugOptionsGroup,
+    describe    : 'Run the debug scene instead of the main app',
+    requiresArg : true
+})
+
+optParser.options('dev', {
+    group       : debugOptionsGroup,
+    describe    : 'Run the application in development mode',
+})
+
+optParser.options('devtron', {
+    group       : debugOptionsGroup,
+    describe    : 'Install the Devtron Developer Tools extension',
+})
+
+
+// === Style Options ===
+
+let styleOptionsGroup = 'Style Options:'
+
+optParser.options('frame', {
+    group       : styleOptionsGroup,
+    describe    : 'Draw window frame [false]'
+})
+
+optParser.options('vibrancy', {
+    group       : styleOptionsGroup,
+    describe    : 'Use the vibrancy effect [true]'
+})
+
+optParser.options('window-size', {
+    group       : styleOptionsGroup,
+    describe    : `Set the window size [${windowCfg.width}x${windowCfg.height}]`,
+    requiresArg : true
+})
+
+
+// === Other Options ===
+
+optParser.options('info', {
+    describe    : `Print the system debug info`,
+})
+
+optParser.options('version', {
+    describe    : `Print the version`,
+})
+
+
+// === Parsing ===
+
+function parseCmdArgs() {
+    let argv = isDev ? process.argv.slice(process.argv.indexOf('--') + 1) : process.argv
+    return optParser.parse(argv)
+}
+
 let args = parseCmdArgs()
-
-if (args.help) {
-    console.log(HELP_MESSAGE)
-    process.exit()
-}
-
-if (args.version) {
-    console.log(`${rootCfg.version} (build ${buildCfg.buildVersion})`)
-    process.exit();
-}
 
 if (args.windowSize) {
     let size   = args.windowSize.split('x')
@@ -98,6 +141,47 @@ if (args.windowSize) {
         windowCfg.width  = width
         windowCfg.height = height
     }
+}
+
+
+
+// ==================
+// === Debug Info ===
+// ==================
+
+let versionInfo = {
+    core: rootCfg.version,
+    build: buildCfg.buildVersion,
+    electron: process.versions.electron,
+    chrome: process.versions.chrome,
+}
+
+async function getDebugInfo() {
+    let procMemInfo = await process.getProcessMemoryInfo()
+    return {
+        version: versionInfo,
+        creation: process.getCreationTime(),
+        perf: {
+            cpu: process.getCPUUsage(),
+        },
+        memory: {
+            heap: process.getHeapStatistics(),
+            blink: process.getBlinkMemoryInfo(),
+            process: procMemInfo,
+            system: process.getSystemMemoryInfo(),
+        },
+        system: {
+            platform: process.platform,
+            arch: process.arch,
+            version: process.getSystemVersion(),
+        },
+    }
+}
+
+async function printDebugInfo() {
+    let info = await getDebugInfo()
+    console.log(JSON.stringify(info,undefined,4))
+    process.exit();
 }
 
 
@@ -191,7 +275,7 @@ async function main() {
         serverCfg.fallback = '/assets/index.html'
         server             = await Server.create(serverCfg)
     }
-    mainWindow         = createWindow()
+    mainWindow = createWindow()
     mainWindow.on("close", (evt) => {
        if (hideInsteadOfQuit) {
            evt.preventDefault()
@@ -297,8 +381,18 @@ Electron.app.on('activate', () => {
 })
 
 Electron.app.on('ready', () => {
-    if(args.window !== false) {
-        main()
+    if (args.version) {
+        console.log(`core     : ${versionInfo.core}`)
+        console.log(`build    : ${versionInfo.build}`)
+        console.log(`electron : ${versionInfo.electron}`)
+        console.log(`chrome   : ${versionInfo.chrome}`)
+        process.exit();
+    } else if (args.info) {
+        printDebugInfo()
+    } else {
+        if(args.window !== false) {
+            main()
+        }
     }
 })
 
