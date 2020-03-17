@@ -32,11 +32,16 @@ mod js {
 
         #[allow(unsafe_code)]
         #[wasm_bindgen(method)]
-        pub fn set_copy_handler(this:&TextInputHandlers, handler:&Closure<dyn FnMut(bool) -> String>);
+        pub fn set_copy_handler
+        (this:&TextInputHandlers, handler:&Closure<dyn FnMut(bool) -> String>);
 
         #[allow(unsafe_code)]
         #[wasm_bindgen(method)]
         pub fn set_paste_handler(this:&TextInputHandlers, handler:&Closure<dyn FnMut(String)>);
+
+        #[allow(unsafe_code)]
+        #[wasm_bindgen(method)]
+        pub fn set_window_defocus_handler(this:&TextInputHandlers, handler:&Closure<dyn FnMut()>);
 
         #[allow(unsafe_code)]
         #[wasm_bindgen(method)]
@@ -62,6 +67,9 @@ pub trait CopyHandler = FnMut(bool) -> String + 'static;
 /// The paste handler takes in its argument the text from clipboard to paste.
 pub trait PasteHandler = FnMut(String) + 'static;
 
+/// The window defocus handler is called each time browser window loses its focus.
+pub trait WindowDefocusHandler = FnMut() + 'static;
+
 /// Keyboard event handler takes event as an argument.
 pub trait KeyboardEventHandler = FnMut(KeyboardEvent) + 'static;
 
@@ -73,6 +81,7 @@ pub struct KeyboardBinding {
     js_handlers      : js::TextInputHandlers,
     copy_handler     : Option<Closure<dyn CopyHandler>>,
     paste_handler    : Option<Closure<dyn PasteHandler>>,
+    defocus_handler: Option<Closure<dyn WindowDefocusHandler>>,
     key_down_handler : Option<Closure<dyn KeyboardEventHandler>>,
     key_up_handler   : Option<Closure<dyn KeyboardEventHandler>>,
 }
@@ -85,6 +94,7 @@ impl KeyboardBinding {
             js_handlers      : js::TextInputHandlers::new(),
             copy_handler     : None,
             paste_handler    : None,
+            defocus_handler: None,
             key_down_handler : None,
             key_up_handler   : None
         }
@@ -102,6 +112,13 @@ impl KeyboardBinding {
         let handler_js : Closure<dyn PasteHandler> = Closure::wrap(Box::new(handler));
         self.js_handlers.set_paste_handler(&handler_js);
         self.paste_handler = Some(handler_js);
+    }
+
+    /// Set window defocus handler.
+    pub fn set_window_defocus_handler<Handler:WindowDefocusHandler>(&mut self, handler:Handler) {
+        let handler_js : Closure<dyn WindowDefocusHandler> = Closure::wrap(Box::new(handler));
+        self.js_handlers.set_window_defocus_handler(&handler_js);
+        self.defocus_handler = Some(handler_js);
     }
 
     /// Set keydown handler.
@@ -151,6 +168,9 @@ pub fn bind_frp_to_js_keyboard_actions(frp:&Keyboard) -> KeyboardBinding {
         if let Ok(key) = event.key().parse::<Key>() {
             frp.event.emit(key);
         }
+    }));
+    binding.set_window_defocus_handler(enclose!((frp.on_defocus => frp) move || {
+        frp.event.emit(())
     }));
     binding
 }
