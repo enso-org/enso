@@ -148,5 +148,6 @@ async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         let provider         = ParserProvider::new(required_version,&parser_path);
         provider.run().await;
     }
+    println!("cargo:rerun-if-changed=build.rs");
     Ok(())
 }

@@ -58,4 +58,5 @@ fn main() {
     let out_dir = path::Path::new(&out);
     huge_text_generator::make_long_text_file(out_dir.join("long.txt").as_path());
     huge_text_generator::make_wide_text_file(out_dir.join("wide.txt").as_path());
+    println!("cargo:rerun-if-changed=build.rs");
 }
