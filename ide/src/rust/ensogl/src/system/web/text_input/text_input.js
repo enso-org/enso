@@ -12,6 +12,8 @@ export class TextInputHandlers {
         document.body.appendChild(this.text_area)
         this.text_area.focus()
         this.bind_text_area_events()
+        this.bind_window_events()
+
     }
 
     // Set event handler. The name can be 'keyup' or 'keydown'.
@@ -28,6 +30,11 @@ export class TextInputHandlers {
     // Set paste handler. The paste handler takes the text from clipboard as the only argument.
     set_paste_handler(handler) {
         this.paste_handler = handler
+    }
+
+    // Set callback called each time the browser window lose focus.
+    set_window_defocus_handler(handler) {
+        this.window_defocus_handler = handler
     }
 
     // Remove the textarea element and stop handling any events.
@@ -55,7 +62,7 @@ export class TextInputHandlers {
         })
         this.text_area.addEventListener('contextmenu', e => {
             e.preventDefault()
-        });
+        })
         this.text_area.addEventListener('blur', e => {
             this.text_area.focus()
         })
@@ -85,6 +92,14 @@ export class TextInputHandlers {
             e.preventDefault()
             if (typeof this.event_handlers['keyup'] !== 'undefined') {
                 this.event_handlers['keyup'](e)
+            }
+        })
+    }
+
+    bind_window_events() {
+        window.addEventListener('blur', e => {
+            if (typeof this.window_defocus_handler !== 'undefined') {
+                this.window_defocus_handler()
             }
         })
     }

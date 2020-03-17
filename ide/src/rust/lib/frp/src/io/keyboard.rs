@@ -104,36 +104,32 @@ impl KeyMask {
 // === KeyState ===
 // ================
 
-/// A helper structure used for describing specific key state.
-#[derive(Clone,Debug,Default)]
-struct KeyState {
-    key     : Key,
-    pressed : bool,
+/// A helper structure used for describing KeyMask changes.
+#[derive(Clone,Debug)]
+enum KeyMaskChange {
+    Set(Key),
+    Unset(Key),
+    Clear,
 }
 
-impl KeyState {
-    /// Create _pressed_ state for given key.
-    fn key_pressed(key:&Key) -> Self {
-        let pressed = true;
-        let key    = key.clone();
-        KeyState{key,pressed}
-    }
-
-    /// Create _released_ state for given key.
-    fn key_released(key:&Key) -> Self {
-        let pressed = false;
-        let key     = key.clone();
-        KeyState{key,pressed}
-    }
-
-    /// Returns copy of given KeyMask with updated key state.
+impl KeyMaskChange {
+    /// Returns copy of given KeyMask with applied change
     fn updated_mask(&self, mask:&KeyMask) -> KeyMask {
         let mut mask = mask.clone();
-        mask.set_key(&self.key, self.pressed);
+        match self {
+            Self::Set(ref key)   => mask.set_key(key, true),
+            Self::Unset(ref key) => mask.set_key(key, false),
+            Self::Clear          => mask = default()
+        }
         mask
     }
 }
 
+impl Default for KeyMaskChange {
+    fn default() -> Self {
+        Self::Clear
+    }
+}
 
 
 // ================
@@ -147,24 +143,32 @@ pub struct Keyboard {
     pub on_pressed: Dynamic<Key>,
     /// The key released event.
     pub on_released: Dynamic<Key>,
+    /// The "losing focus" event. When we're losing focus we should clear keymask, because we are
+    /// not sure what keys were released during being unfocused.
+    pub on_defocus: Dynamic<()>,
     /// The structure holding mask of all of the currently pressed keys.
     pub key_mask: Dynamic<KeyMask>,
 }
 
 impl Default for Keyboard {
     fn default() -> Self {
+        let change_set   = |key:&Key| KeyMaskChange::Set  (key.clone());
+        let change_unset = |key:&Key| KeyMaskChange::Unset(key.clone());
         frp! {
             keyboard.on_pressed        = source();
             keyboard.on_released       = source();
-            keyboard.pressed_state     = on_pressed.map(KeyState::key_pressed);
-            keyboard.released_state    = on_released.map(KeyState::key_released);
-            keyboard.key_state         = pressed_state.merge(&released_state);
+            keyboard.on_defocus        = source();
+            keyboard.change_set        = on_pressed .map(change_set);
+            keyboard.change_unset      = on_released.map(change_unset);
+            keyboard.change_clear      = on_defocus .map(|()| KeyMaskChange::Clear);
+            keyboard.change_set_unset  = change_set.merge(&change_unset);
+            keyboard.change            = change_set_unset.merge(&change_clear);
             keyboard.previous_key_mask = recursive::<KeyMask>();
-            keyboard.key_mask          = key_state.map2(&previous_key_mask,KeyState::updated_mask);
+            keyboard.key_mask          = change.map2(&previous_key_mask,KeyMaskChange::updated_mask);
         }
         previous_key_mask.initialize(&key_mask);
 
-        Keyboard { on_pressed,on_released,key_mask}
+        Keyboard { on_pressed,on_released,on_defocus,key_mask}
     }
 }
 
