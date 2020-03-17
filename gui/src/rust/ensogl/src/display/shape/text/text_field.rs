@@ -102,10 +102,20 @@ shared! { TextField
             self.properties.size
         }
 
+        /// Scroll one page down.
+        pub fn page_down(&mut self) {
+            self.scroll(Vector2::new(0.0, -self.size().y))
+        }
+
+        /// Scroll one page up.
+        pub fn page_up(&mut self) {
+            self.scroll(Vector2::new(0.0, self.size().y))
+        }
+
         /// Scroll text by given offset in pixels.
         pub fn scroll(&mut self, offset:Vector2<f32>) {
             let position_change = -Vector3::new(offset.x,offset.y,0.0);
-            self.rendered.display_object.mod_position(|pos| *pos += position_change );
+            self.rendered.display_object.mod_position(|pos| *pos += position_change);
             let mut update = self.assignment_update();
             if offset.x != 0.0 {
                 update.update_after_x_scroll(offset.x);
@@ -126,10 +136,17 @@ shared! { TextField
             self.word_occurrences = None;
         }
 
+        /// Finish multicursor mode, removing any additional cursors.
+        pub fn finish_multicursor_mode(&mut self) {
+            self.cursors.finish_multicursor_mode();
+            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
+            self.clear_word_occurrences();
+        }
+
         /// Removes all cursors except one which is set and given point.
         pub fn set_cursor(&mut self, point:Vector2<f32>) {
             self.clear_word_occurrences();
-            self.cursors.remove_additional_cursors();
+            self.cursors.finish_multicursor_mode();
             self.jump_cursor(point,false);
         }
 
@@ -141,10 +158,9 @@ shared! { TextField
 
         /// Jump active cursor to point on the screen.
         pub fn jump_cursor(&mut self, point:Vector2<f32>, selecting:bool) {
+            let point_on_text  = self.relative_position(point);
             let content        = &mut self.content;
-            let text_position  = self.rendered.display_object.global_position();
-            let point_on_text  = point - text_position.xy();
-            let mut navigation = CursorNavigation {content,selecting};
+            let mut navigation = CursorNavigation {selecting, ..CursorNavigation::default(content)};
             self.cursors.jump_cursor(&mut navigation,point_on_text);
             self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
         }
@@ -179,9 +195,7 @@ shared! { TextField
 
         /// Get the selected text.
         pub fn get_selected_text(&self) -> String {
-            let cursor_select  = |c:&Cursor| self.content.copy_fragment(c.selection_range());
-            let mut selections = self.cursors.cursors.iter().map(cursor_select);
-            selections.join("\n")
+            self.cursors.get_selected_text(&self.content)
         }
 
         /// Text field has a selected text.
@@ -189,12 +203,24 @@ shared! { TextField
             self.cursors.cursors.iter().any(|cursor| cursor.has_selection())
         }
 
+        /// Transforms `absolute_position` to relative position from TextField's content origin.
+        pub fn relative_position(&self, absolute_position:Vector2<f32>) -> Vector2<f32> {
+            absolute_position - self.rendered.display_object.global_position().xy()
+        }
+
+        /// Block selects a text from active cursor's position to screen `position`.
+        pub fn block_selection(&mut self, position:Vector2<f32>) {
+            let point_on_text = self.relative_position(position);
+            self.cursors.block_selection(&mut self.content, point_on_text);
+            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
+        }
+
         /// Selects the current word, if the cursor is inside a word, or select a next word if a
         /// word is already selected. For definition of word check `word_occurrence` module doc.
         pub fn select_next_word_occurrence(&mut self) {
             let not_multicursors = self.cursors.cursors.len() == 1;
             if self.word_occurrences.is_none() && not_multicursors {
-                let cursor            = self.cursors.active_cursor();
+                let cursor            = self.cursors.last_cursor();
                 self.word_occurrences = WordOccurrences::new(&self.content,&cursor);
             }
 
@@ -205,7 +231,7 @@ shared! { TextField
                         self.cursors.add_cursor(TextLocation::at_document_begin());
                     }
 
-                    let cursor = self.cursors.active_cursor_mut();
+                    let cursor = self.cursors.last_cursor_mut();
                     cursor.select_range(&word);
                     self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
                 }
@@ -299,7 +325,8 @@ impl TextField {
         self.with_borrowed(|this| {
             let content           = &mut this.content;
             let selecting         = true;
-            let mut navigation    = CursorNavigation {content,selecting};
+            let mut navigation    = CursorNavigation
+                {selecting,..CursorNavigation::default(content)};
             let without_selection = |c:&Cursor| !c.has_selection();
             this.cursors.navigate_cursors(&mut navigation,step,without_selection);
         });
