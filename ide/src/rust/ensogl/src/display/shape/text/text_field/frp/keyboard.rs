@@ -143,18 +143,23 @@ impl TextFieldKeyboardFrp {
     (actions:&mut KeyboardActions, text_field:WeakTextField) {
         use Key::*;
         let mut setter = TextFieldActionsSetter{actions,text_field};
-        setter.set_navigation_action(&[ArrowLeft],    Step::Left);
-        setter.set_navigation_action(&[ArrowRight],   Step::Right);
-        setter.set_navigation_action(&[ArrowUp],      Step::Up);
-        setter.set_navigation_action(&[ArrowDown],    Step::Down);
-        setter.set_navigation_action(&[Home],         Step::LineBegin);
-        setter.set_navigation_action(&[End],          Step::LineEnd);
-        setter.set_navigation_action(&[Control,Home], Step::DocBegin);
-        setter.set_navigation_action(&[Control,End],  Step::DocEnd);
+        setter.set_navigation_action(&[ArrowLeft],          Step::Left);
+        setter.set_navigation_action(&[ArrowRight],         Step::Right);
+        setter.set_navigation_action(&[ArrowUp],            Step::Up);
+        setter.set_navigation_action(&[ArrowDown],          Step::Down);
+        setter.set_navigation_action(&[Home],               Step::LineBegin);
+        setter.set_navigation_action(&[End],                Step::LineEnd);
+        setter.set_navigation_action(&[Control,Home],       Step::DocBegin);
+        setter.set_navigation_action(&[Control,End],        Step::DocEnd);
+        setter.set_navigation_action(&[Control,ArrowLeft],  Step::LeftWord);
+        setter.set_navigation_action(&[Control,ArrowRight], Step::RightWord);
         setter.set_action(&[Alt, Character("j".into())], |t| t.select_next_word_occurrence());
         setter.set_action(&[Enter],                      |t| t.write("\n"));
         setter.set_action(&[Delete],                     |t| t.do_delete_operation(Step::Right));
         setter.set_action(&[Backspace],                  |t| t.do_delete_operation(Step::Left));
+        setter.set_action(&[Escape],                     |t| t.finish_multicursor_mode());
+        setter.set_action(&[PageDown],                   |t| t.page_down());
+        setter.set_action(&[PageUp],                     |t| t.page_up());
     }
 }
 
@@ -179,10 +184,9 @@ impl<'a> TextFieldActionsSetter<'a> {
         });
     }
 
-    fn set_navigation_action(&mut self, base_keys:&[Key], step:Step) {
-        self.set_action(base_keys, move |t| t.navigate_cursors(step,false));
-        let base_keys_cloned = base_keys.iter().cloned();
-        let selecting_keys   = base_keys_cloned.chain(std::iter::once(Key::Shift)).collect_vec();
-        self.set_action(selecting_keys.as_ref(), move |t| t.navigate_cursors(step,true));
+    fn set_navigation_action(&mut self, base:&[Key], step:Step) {
+        let selecting   = base.iter().cloned().chain(std::iter::once(Key::Shift)).collect_vec();
+        self.set_action(base, move |t| t.navigate_cursors(step,false));
+        self.set_action(selecting.as_ref(), move |t| t.navigate_cursors(step,true));
     }
 }

@@ -242,21 +242,33 @@ impl TextFieldContent {
         self.dirty_lines.add_lines_range_from(0..);
     }
 
-    /// Get the nearest text location from the point on the screen.
-    pub fn location_at_point(&mut self, point:Vector2<f32>) -> TextLocation {
+    /// Get the nearest line from the point on the screen.
+    pub fn line_location_at_point(&mut self, point:Vector2<f32>) -> usize {
         let line_opt = self.line_at_y_position(point.y);
-        let mut line = match line_opt {
+        let line     = match line_opt {
             Some(line)             => line,
             None if point.y >= 0.0 => self.line(0),
             None                   => self.line(self.lines.len()-1),
         };
+        line.line_id
+    }
+
+    /// Get the nearest column from te point on the screen.
+    pub fn column_location_at_point(&mut self, line:usize, point:Vector2<f32>) -> usize {
+        let mut line   = self.line(line);
         let column_opt = line.find_char_at_x_position(point.x);
-        let column = match column_opt {
+        match column_opt {
             Some(column)           => column,
             None if point.x <= 0.0 => 0,
-            None                   => line.len(),
-        };
-        TextLocation{line:line.line_id, column}
+            None                   => line.len()
+        }
+    }
+
+    /// Get the nearest text location from the point on the screen.
+    pub fn location_at_point(&mut self, point:Vector2<f32>) -> TextLocation {
+        let line   = self.line_location_at_point(point);
+        let column = self.column_location_at_point(line,point);
+        TextLocation{line,column}
     }
 
     /// Get the index of line which is displayed at given y screen coordinate.
