@@ -22,7 +22,8 @@ use crate::display::world::World;
 
 use nalgebra::Vector2;
 use nalgebra::Vector3;
-
+use crate::math::topology::unit::PixelDistance;
+use crate::display::Glsl;
 
 
 // =======================
@@ -74,8 +75,8 @@ impl TextFieldSprites {
         let line_height       = properties.text_size;
         let window_size       = properties.size;
         let color             = properties.base_color;
-        let cursor_system     = Self::create_cursor_system(world,line_height);
         let selection_system  = Self::create_selection_system(world);
+        let cursor_system     = Self::create_cursor_system(world,line_height,&color);
         let cursors           = Vec::new();
         let mut glyph_system  = GlyphSystem::new(world,font.clone_ref());
         let display_object    = display::object::Node::new(Logger::new("RenderedContent"));
@@ -96,9 +97,14 @@ impl TextFieldSprites {
             line_height,display_object,assignment}
     }
 
-    fn create_cursor_system(world:&World,line_height:f32) -> ShapeSystem {
-        const WIDTH_FUNCTION:&str = "fract(input_time / 1000.0) < 0.5 ? 2.0 : 0.0";
-        let cursor_definition     = Rect((WIDTH_FUNCTION,line_height.px()));
+    fn create_cursor_system(world:&World,line_height:f32,color:&Vector4<f32>) -> ShapeSystem {
+        const WIDTH:f32         = 2.0;
+        const COLOR_HIDDEN:&str = "vec4(0.0,0.0,0.0,0.0)";
+        let color_glsl:Glsl     = color.into();
+        let color_function      = format!("fract(input_time / 1000.0) < 0.5 ? {} : {}",
+            color_glsl,COLOR_HIDDEN);
+        let cursor_definition     = Rect(Vector2::new(WIDTH.px(),line_height.px()));
+        let cursor_definition     = cursor_definition.fill(color_function);
         ShapeSystem::new(world,&cursor_definition)
     }
 
