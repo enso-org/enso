@@ -131,7 +131,11 @@ impl TextFieldKeyboardFrp {
             text_field.upgrade().for_each(|text_field| {
                 if let Key::Character(string) = key {
                     let modifiers = &[Key::Control,Key::Alt];
-                    if !modifiers.iter().any(|k| mask.has_key(k)) {
+                    let is_modifier  = modifiers.iter().any(|k| mask.has_key(k));
+                    let is_alt_graph = mask.has_key(&Key::AltGraph);
+                    // On Windows AltGraph is emitted as both AltGraph and Ctrl. Therefore we don't
+                    // care about modifiers when AltGraph is pressed.
+                    if  !is_modifier || is_alt_graph {
                         text_field.write(string);
                     }
                 }
