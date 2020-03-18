@@ -1,15 +1,10 @@
 package org.enso.languageserver.requesthandler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import org.enso.jsonrpc.Errors.ServiceError
+import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
 import org.enso.languageserver.data.Client
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
-import org.enso.languageserver.jsonrpc.Errors.ServiceError
-import org.enso.languageserver.jsonrpc.{
-  Id,
-  Request,
-  ResponseError,
-  ResponseResult
-}
 import org.enso.languageserver.text.TextApi.OpenFile
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.text.TextProtocol.{

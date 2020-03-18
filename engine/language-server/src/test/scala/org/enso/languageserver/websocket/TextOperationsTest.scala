@@ -5,7 +5,7 @@ import io.circe.literal._
 import org.enso.languageserver.event.BufferClosed
 import org.enso.languageserver.filemanager.Path
 
-class TextOperationsTest extends WebSocketServerTest {
+class TextOperationsTest extends BaseServerTest {
 
   "text/openFile" must {
     "fail opening a file if it does not exist" in {

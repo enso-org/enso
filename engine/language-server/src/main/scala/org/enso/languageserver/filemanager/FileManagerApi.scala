@@ -1,12 +1,6 @@
 package org.enso.languageserver.filemanager
 
-import org.enso.languageserver.jsonrpc.{
-  Error,
-  HasParams,
-  HasResult,
-  Method,
-  Unused
-}
+import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 
 /**
   * The file manager JSON RPC API provided by the language server.

@@ -2,13 +2,7 @@ package org.enso.languageserver.text
 
 import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
-import org.enso.languageserver.jsonrpc.{
-  Error,
-  HasParams,
-  HasResult,
-  Method,
-  Unused
-}
+import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.text.editing.model.FileEdit
 
 /**

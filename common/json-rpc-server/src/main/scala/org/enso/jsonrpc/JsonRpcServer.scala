@@ -1,4 +1,4 @@
-package org.enso.languageserver
+package org.enso.jsonrpc
 
 import java.util.UUID
 
@@ -6,50 +6,27 @@ import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
-import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Directives.{get, handleWebSocketMessages, path}
 import akka.http.scaladsl.server.Route
-import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{Materializer, OverflowStrategy}
-import org.enso.languageserver.jsonrpc.MessageHandler
+import akka.stream.scaladsl.{Flow, Sink, Source}
 
-import scala.concurrent.duration.{FiniteDuration, _}
 import scala.concurrent.{ExecutionContext, Future}
-
-object WebSocketServer {
-
-  /**
-    * A configuration object for properties of the WebSocketServer.
-    *
-    * @param outgoingBufferSize the number of messages buffered internally
-    *                           if the downstream connection is lagging behind.
-    * @param lazyMessageTimeout the timeout for downloading the whole of a lazy
-    *                           stream message from the user.
-    */
-  case class Config(outgoingBufferSize: Int, lazyMessageTimeout: FiniteDuration)
-
-  case object Config {
-
-    /**
-      * Creates a default instance of [[Config]].
-      *
-      * @return a default config.
-      */
-    def default: Config =
-      Config(outgoingBufferSize = 10, lazyMessageTimeout = 10.seconds)
-  }
-}
+import scala.concurrent.duration._
 
 /**
-  * Exposes a multi-client Lanugage Server instance over WebSocket connections.
-  * @param languageServer an instance of a running and initialized Language
-  *                       Server.
+  * Exposes a multi-client JSON RPC Server instance over WebSocket connections.
+  *
+  * @param protocol a protocol supported be the server
+  * @param clientControllerFactory a factory used to create a client controller
+  * @param config a server config
+  * @param system an actor system
+  * @param materializer a materializer
   */
-class WebSocketServer(
-  languageServer: ActorRef,
-  bufferRegistry: ActorRef,
-  capabilityRouter: ActorRef,
-  runtimeConnector: ActorRef,
-  config: WebSocketServer.Config = WebSocketServer.Config.default
+class JsonRpcServer(
+  protocol: Protocol,
+  clientControllerFactory: ClientControllerFactory,
+  config: JsonRpcServer.Config = JsonRpcServer.Config.default
 )(
   implicit val system: ActorSystem,
   implicit val materializer: Materializer
@@ -57,27 +34,15 @@ class WebSocketServer(
 
   implicit val ec: ExecutionContext = system.dispatcher
 
-  private val newConnectionPath: String = ""
-
   private def newUser(): Flow[Message, Message, NotUsed] = {
-    val clientId = UUID.randomUUID()
-    val clientActor =
-      system.actorOf(
-        Props(
-          new ClientController(
-            clientId,
-            languageServer,
-            bufferRegistry,
-            capabilityRouter
-          )
-        )
-      )
+    val clientId    = UUID.randomUUID()
+    val clientActor = clientControllerFactory.createClientController(clientId)
 
     val messageHandler =
       system.actorOf(
-        Props(new MessageHandler(ClientApi.protocol, clientActor))
+        Props(new MessageHandler(protocol, clientActor))
       )
-    clientActor ! ClientApi.WebConnect(messageHandler)
+    clientActor ! JsonRpcServer.WebConnect(messageHandler)
 
     val incomingMessages: Sink[Message, NotUsed] =
       Flow[Message]
@@ -117,7 +82,7 @@ class WebSocketServer(
     Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
   }
 
-  private val route: Route = path(newConnectionPath) {
+  private val route: Route = path(config.path) {
     get { handleWebSocketMessages(newUser()) }
   }
 
@@ -131,4 +96,36 @@ class WebSocketServer(
     */
   def bind(interface: String, port: Int): Future[Http.ServerBinding] =
     Http().bindAndHandle(route, interface, port)
+}
+
+object JsonRpcServer {
+
+  /**
+    * A configuration object for properties of the JsonRpcServer.
+    *
+    * @param outgoingBufferSize the number of messages buffered internally
+    *                           if the downstream connection is lagging behind.
+    * @param lazyMessageTimeout the timeout for downloading the whole of a lazy
+    *                           stream message from the user.
+    * @param path the http path that the server listen to.
+    */
+  case class Config(
+    outgoingBufferSize: Int,
+    lazyMessageTimeout: FiniteDuration,
+    path: String = ""
+  )
+
+  case object Config {
+
+    /**
+      * Creates a default instance of [[Config]].
+      *
+      * @return a default config.
+      */
+    def default: Config =
+      Config(outgoingBufferSize = 10, lazyMessageTimeout = 10.seconds)
+  }
+
+  case class WebConnect(webActor: ActorRef)
+
 }

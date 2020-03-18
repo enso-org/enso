@@ -1,9 +1,9 @@
 package org.enso.languageserver.requesthandler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import org.enso.jsonrpc.Errors.ServiceError
+import org.enso.jsonrpc._
 import org.enso.languageserver.data.Client
-import org.enso.languageserver.jsonrpc.Errors.ServiceError
-import org.enso.languageserver.jsonrpc._
 import org.enso.languageserver.text.TextApi.{CloseFile, FileNotOpenedError}
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.text.TextProtocol.{FileClosed, FileNotOpened}

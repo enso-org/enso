@@ -347,9 +347,19 @@ lazy val project_manager = (project in file("common/project-manager"))
   )
   .settings(
     libraryDependencies ++= akka,
-    libraryDependencies ++= circe
+    libraryDependencies ++= circe,
+    libraryDependencies ++= Seq(
+      // config
+      "com.typesafe"          % "config"      % "1.4.0",
+      "com.github.pureconfig" %% "pureconfig" % "0.12.2",
+      // logging
+      "ch.qos.logback"             % "logback-classic" % "1.2.3",
+      "com.typesafe.scala-logging" %% "scala-logging"  % "3.9.2"
+    )
   )
   .dependsOn(pkg)
+  .dependsOn(`json-rpc-server`)
+  .dependsOn(`json-rpc-server-test` % Test)
 
 //////////////////////
 //// Sub Projects ////
@@ -453,6 +463,8 @@ lazy val language_server = (project in file("engine/language-server"))
     )
   )
   .dependsOn(polyglot_api)
+  .dependsOn(`json-rpc-server`)
+  .dependsOn(`json-rpc-server-test` % Test)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
@@ -611,3 +623,28 @@ lazy val runner = project
   .dependsOn(pkg)
   .dependsOn(language_server)
   .dependsOn(polyglot_api)
+
+lazy val `json-rpc-server` = project
+  .in(file("common/json-rpc-server"))
+  .settings(
+    libraryDependencies ++= akka,
+    libraryDependencies ++= circe,
+    libraryDependencies ++= Seq(
+      "io.circe"      %% "circe-literal" % circeVersion,
+      akkaTestkit     % Test,
+      "org.scalatest" %% "scalatest" % "3.2.0-M2" % Test
+    )
+  )
+
+lazy val `json-rpc-server-test` = project
+  .in(file("common/json-rpc-server-test"))
+  .settings(
+    libraryDependencies ++= akka,
+    libraryDependencies ++= circe,
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-literal" % circeVersion,
+      akkaTestkit,
+      "org.scalatest" %% "scalatest" % "3.2.0-M2"
+    )
+  )
+  .dependsOn(`json-rpc-server`)

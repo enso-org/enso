@@ -1,10 +1,10 @@
 package org.enso.languageserver.requesthandler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import org.enso.jsonrpc.Errors.ServiceError
+import org.enso.jsonrpc._
 import org.enso.languageserver.data.Client
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
-import org.enso.languageserver.jsonrpc.Errors.ServiceError
-import org.enso.languageserver.jsonrpc._
 import org.enso.languageserver.text.TextApi.{
   FileNotOpenedError,
   InvalidVersionError,
@@ -12,13 +12,7 @@ import org.enso.languageserver.text.TextApi.{
   WriteDeniedError
 }
 import org.enso.languageserver.text.TextProtocol
-import org.enso.languageserver.text.TextProtocol.{
-  FileNotOpened,
-  FileSaved,
-  SaveDenied,
-  SaveFailed,
-  SaveFileInvalidVersion
-}
+import org.enso.languageserver.text.TextProtocol._
 
 import scala.concurrent.duration.FiniteDuration
 

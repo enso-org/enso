@@ -1,21 +1,10 @@
 package org.enso.runner
 
-import java.io.File
-
-import akka.actor.{ActorSystem, Props}
-import akka.stream.{ActorMaterializer, SystemMaterializer}
-import cats.effect.IO
-import org.enso.interpreter.instrument.ReplDebuggerInstrument
-import org.enso.languageserver.data.Config
-import org.enso.languageserver.filemanager.FileSystem
 import org.enso.languageserver.{
   LanguageProtocol,
-  LanguageServer,
   LanguageServerConfig,
-  MainModule,
-  WebSocketServer
+  MainModule
 }
-import org.enso.polyglot.LanguageInfo
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -47,6 +36,7 @@ object LanguageServerApp {
       s"Started server at ${config.interface}:${config.port}, press enter to kill server"
     )
     StdIn.readLine()
+    binding.terminate(10.seconds)
   }
 
 }

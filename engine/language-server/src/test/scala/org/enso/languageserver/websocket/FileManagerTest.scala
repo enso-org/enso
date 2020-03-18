@@ -6,7 +6,7 @@ import java.util.UUID
 import io.circe.literal._
 import org.apache.commons.io.FileUtils
 
-class FileManagerTest extends WebSocketServerTest {
+class FileManagerTest extends BaseServerTest {
   "File Server" must {
 
     "write textual content to a file" in {

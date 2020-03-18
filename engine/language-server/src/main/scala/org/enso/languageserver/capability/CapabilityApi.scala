@@ -1,7 +1,7 @@
 package org.enso.languageserver.capability
 
 import org.enso.languageserver.data.CapabilityRegistration
-import org.enso.languageserver.jsonrpc.{HasParams, HasResult, Method, Unused}
+import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
 
 /**
   * The capability JSON RPC API provided by the language server.

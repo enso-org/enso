@@ -1,8 +1,8 @@
-package org.enso.languageserver.jsonrpc
+package org.enso.jsonrpc
 
 import akka.actor.{Actor, ActorRef, Stash}
 import io.circe.Json
-import org.enso.languageserver.jsonrpc.Errors.InvalidParams
+import org.enso.jsonrpc.Errors.InvalidParams
 
 /**
   * An actor responsible for passing parsed massages between the web and

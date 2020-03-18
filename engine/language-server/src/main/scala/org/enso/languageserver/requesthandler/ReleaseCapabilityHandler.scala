@@ -1,6 +1,8 @@
 package org.enso.languageserver.requesthandler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import org.enso.jsonrpc.Errors.ServiceError
+import org.enso.jsonrpc._
 import org.enso.languageserver.capability.CapabilityApi.ReleaseCapability
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.capability.CapabilityProtocol.{
@@ -8,8 +10,6 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityReleased
 }
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
-import org.enso.languageserver.jsonrpc.Errors.ServiceError
-import org.enso.languageserver.jsonrpc._
 
 import scala.concurrent.duration.FiniteDuration
 

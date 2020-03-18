@@ -1,8 +1,12 @@
-package org.enso.languageserver
+package org.enso.languageserver.protocol
+
+import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import akka.pattern.ask
 import akka.util.Timeout
+import org.enso.jsonrpc.Errors.ServiceError
+import org.enso.jsonrpc._
 import org.enso.languageserver.capability.CapabilityApi.{
   AcquireCapability,
   ForceReleaseCapability,
@@ -21,64 +25,22 @@ import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
   FileSystemFailureMapper
 }
-import org.enso.languageserver.jsonrpc.Errors.ServiceError
-import org.enso.languageserver.jsonrpc._
-import org.enso.languageserver.requesthandler.{
-  AcquireCapabilityHandler,
-  ApplyEditHandler,
-  CloseFileHandler,
-  OpenFileHandler,
-  ReleaseCapabilityHandler,
-  SaveFileHandler
-}
-import org.enso.languageserver.text.TextApi.{
-  ApplyEdit,
-  CloseFile,
-  OpenFile,
-  SaveFile,
-  TextDidChange
-}
+import org.enso.languageserver.requesthandler._
+import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 /**
-  * The JSON RPC API provided by the language server.
-  * See [[https://github.com/luna/enso/blob/master/doc/design/engine/engine-services.md]]
-  * for message specifications.
-  */
-object ClientApi {
-  import io.circe.generic.auto._
-
-  val protocol: Protocol = Protocol.empty
-    .registerRequest(AcquireCapability)
-    .registerRequest(ReleaseCapability)
-    .registerRequest(WriteFile)
-    .registerRequest(ReadFile)
-    .registerRequest(CreateFile)
-    .registerRequest(OpenFile)
-    .registerRequest(CloseFile)
-    .registerRequest(SaveFile)
-    .registerRequest(ApplyEdit)
-    .registerRequest(DeleteFile)
-    .registerRequest(CopyFile)
-    .registerRequest(MoveFile)
-    .registerRequest(ExistsFile)
-    .registerRequest(TreeFile)
-    .registerNotification(ForceReleaseCapability)
-    .registerNotification(GrantCapability)
-    .registerNotification(TextDidChange)
-
-  case class WebConnect(webActor: ActorRef)
-}
-
-/**
   * An actor handling communications between a single client and the language
   * server.
   *
   * @param clientId the internal client id.
-  * @param server the language server actor.
+  * @param server the language server actor ref.
+  * @param bufferRegistry a router that dispatches text editing requests
+  * @param capabilityRouter a router that dispatches capability requests
+  * @param requestTimeout a request timeout
   */
 class ClientController(
   val clientId: Client.Id,
@@ -114,7 +76,7 @@ class ClientController(
     log.warning("Received unknown message: {}", message)
 
   override def receive: Receive = {
-    case ClientApi.WebConnect(webActor) =>
+    case JsonRpcServer.WebConnect(webActor) =>
       context.system.eventStream
         .publish(ClientConnected(Client(clientId, self)))
       unstashAll()
@@ -341,5 +303,36 @@ class ClientController(
           webActor ! ResponseError(Some(id), ServiceError)
       }
   }
+
+}
+
+object ClientController {
+
+  /**
+    * Creates a configuration object used to create a [[ClientController]].
+    *
+    * @param clientId the internal client id.
+    * @param server the language server actor ref.
+    * @param bufferRegistry a router that dispatches text editing requests
+    * @param capabilityRouter a router that dispatches capability requests
+    * @param requestTimeout a request timeout
+    * @return a configuration object
+    */
+  def props(
+    clientId: UUID,
+    server: ActorRef,
+    bufferRegistry: ActorRef,
+    capabilityRouter: ActorRef,
+    requestTimeout: FiniteDuration = 10.seconds
+  ): Props =
+    Props(
+      new ClientController(
+        clientId,
+        server,
+        bufferRegistry,
+        capabilityRouter,
+        requestTimeout
+      )
+    )
 
 }

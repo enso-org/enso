@@ -1,31 +1,18 @@
-package org.enso.languageserver
+package org.enso.jsonrpc
+
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import io.circe.Json
 import io.circe.literal._
 import io.circe.parser._
-import org.enso.languageserver.jsonrpc.MessageHandler.{Connected, WebMessage}
-import org.enso.languageserver.jsonrpc.{
-  Error,
-  HasParams,
-  HasResult,
-  Id,
-  MessageHandler,
-  Method,
-  Notification,
-  Protocol,
-  Request,
-  ResponseError,
-  ResponseResult,
-  Unused
-}
+import org.enso.jsonrpc.MessageHandler.{Connected, WebMessage}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 
 import scala.concurrent.duration._
 
-class MessageHandlerTest
+class MessageHandlerSpec
     extends TestKit(ActorSystem("TestSystem"))
     with ImplicitSender
     with AnyWordSpecLike

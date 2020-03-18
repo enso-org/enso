@@ -1,4 +1,4 @@
-package org.enso.languageserver.jsonrpc
+package org.enso.jsonrpc
 
 import io.circe.{Decoder, Encoder, Json}
 

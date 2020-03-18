@@ -2,13 +2,11 @@ package org.enso.languageserver
 
 import java.io.File
 import java.net.URI
-import java.nio.ByteBuffer
-import java.util.UUID
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.{ActorSystem, Props}
 import akka.stream.SystemMaterializer
 import cats.effect.IO
-import org.enso.languageserver
+import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
@@ -16,9 +14,10 @@ import org.enso.languageserver.data.{
   Sha3_224VersionCalculator
 }
 import org.enso.languageserver.filemanager.{FileSystem, FileSystemApi}
+import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.polyglot.{RuntimeApi, LanguageInfo, RuntimeServerInfo}
+import org.enso.polyglot.{LanguageInfo, RuntimeServerInfo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 
@@ -74,11 +73,13 @@ class MainModule(serverConfig: LanguageServerConfig) {
     })
     .build()
 
+  lazy val clientControllerFactory = new ServerClientControllerFactory(
+    languageServer,
+    bufferRegistry,
+    capabilityRouter
+  )
+
   lazy val server =
-    new WebSocketServer(
-      languageServer,
-      bufferRegistry,
-      capabilityRouter,
-      runtimeConnector
-    )
+    new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)
+
 }
