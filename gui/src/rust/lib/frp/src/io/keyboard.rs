@@ -113,6 +113,18 @@ enum KeyMaskChange {
 }
 
 impl KeyMaskChange {
+    fn on_pressed(key:&Key) -> Self { Self::Set(key.clone()) }
+    fn on_defocus()         -> Self { Self::Clear            }
+
+    fn on_released(key:&Key) -> Self {
+        match key {
+            // The very special case: pressing CMD on MacOS makes all the keyup events for letters
+            // lost. Therefore for CMD releasing we must clear keymask.
+            Key::Meta => Self::Clear,
+            other     => Self::Unset(other.clone())
+        }
+    }
+
     /// Returns copy of given KeyMask with applied change
     fn updated_mask(&self, mask:&KeyMask) -> KeyMask {
         let mut mask = mask.clone();
@@ -152,15 +164,13 @@ pub struct Keyboard {
 
 impl Default for Keyboard {
     fn default() -> Self {
-        let change_set   = |key:&Key| KeyMaskChange::Set  (key.clone());
-        let change_unset = |key:&Key| KeyMaskChange::Unset(key.clone());
         frp! {
             keyboard.on_pressed        = source();
             keyboard.on_released       = source();
             keyboard.on_defocus        = source();
-            keyboard.change_set        = on_pressed .map(change_set);
-            keyboard.change_unset      = on_released.map(change_unset);
-            keyboard.change_clear      = on_defocus .map(|()| KeyMaskChange::Clear);
+            keyboard.change_set        = on_pressed .map(KeyMaskChange::on_pressed);
+            keyboard.change_unset      = on_released.map(KeyMaskChange::on_released);
+            keyboard.change_clear      = on_defocus .map(|()| KeyMaskChange::on_defocus());
             keyboard.change_set_unset  = change_set.merge(&change_unset);
             keyboard.change            = change_set_unset.merge(&change_clear);
             keyboard.previous_key_mask = recursive::<KeyMask>();
