@@ -5,8 +5,6 @@
 
 use crate::prelude::*;
 
-use crate::controller::FallibleResult;
-
 use file_manager_client as fmc;
 use json_rpc::Transport;
 use parser::Parser;

@@ -172,12 +172,32 @@ impl Clone for Ast {
     }
 }
 
+impl CloneRef for Ast {}
+
 /// `IntoIterator` for `&Ast` that just delegates to `&Shape`'s `IntoIterator`.
 impl<'t> IntoIterator for &'t Ast {
     type Item     = <&'t Shape<Ast> as IntoIterator>::Item;
     type IntoIter = <&'t Shape<Ast> as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
         self.shape().into_iter()
+    }
+}
+
+impl ToString for Ast {
+    fn to_string(&self) -> String {
+        self.repr()
+    }
+}
+
+impl From<Ast> for String {
+    fn from(ast:Ast) -> Self {
+        ast.to_string()
+    }
+}
+
+impl From<&Ast> for String {
+    fn from(ast:&Ast) -> Self {
+        ast.to_string()
     }
 }
 
@@ -916,37 +936,46 @@ impl Ast {
     // TODO smart constructors for other cases
     //  as part of https://github.com/luna/enso/issues/338
 
+    /// Creates an Ast node with Number inside.
     pub fn number(number:i64) -> Ast {
         let number = Number {base:None,int:number.to_string()};
         Ast::from(number)
     }
 
-    pub fn cons<Str: ToString>(name:Str) -> Ast {
+    /// Creates an Ast node with Cons inside.
+    pub fn cons<Str:ToString>(name:Str) -> Ast {
         let cons = Cons {name:name.to_string()};
         Ast::from(cons)
     }
 
-    pub fn var<Str: ToString>(name:Str) -> Ast {
+    /// Creates an Ast node with Var inside and given ID.
+    pub fn var_with_id<Name:Str>(name:Name, id:ID) -> Ast {
+        let name = name.into();
+        let var  = Var{name};
+        Ast::new(var,Some(id))
+    }
+
+    pub fn var<Str:ToString>(name:Str) -> Ast {
         let var = Var{name:name.to_string()};
         Ast::from(var)
     }
 
-    pub fn opr<Str: ToString>(name:Str) -> Ast {
+    pub fn opr<Str:ToString>(name:Str) -> Ast {
         let opr = Opr{name:name.to_string() };
         Ast::from(opr)
     }
 
     pub fn prefix<Func:Into<Ast>, Arg:Into<Ast>>(func:Func, arg:Arg) -> Ast {
         let off = 1;
-        let opr = Prefix{ func:func.into(), off, arg:arg.into() };
+        let opr = Prefix { func:func.into(), off, arg:arg.into() };
         Ast::from(opr)
     }
 
     /// Creates an AST node with `Infix` shape, where both its operands are Vars.
-    pub fn infix_var<Str0, Str1, Str2>(larg:Str0, opr:Str1, rarg:Str2) -> Ast
-    where Str0: ToString
-        , Str1: ToString
-        , Str2: ToString {
+    pub fn infix_var<Str0,Str1,Str2>(larg:Str0, opr:Str1, rarg:Str2) -> Ast
+    where Str0 : ToString
+        , Str1 : ToString
+        , Str2 : ToString {
         let larg  = Ast::var(larg);
         let loff  = 1;
         let opr   = Ast::opr(opr);

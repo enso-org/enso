@@ -1,7 +1,6 @@
 //! Code for node discovery and other node-related tasks.
 
 use ast::Ast;
-use ast::HasRepr;
 use ast::ID;
 use ast::known;
 
@@ -47,22 +46,17 @@ impl NodeInfo {
 
     /// Node's unique ID.
     pub fn id(&self) -> ID {
-        // Panic must not happen, as the only available constructor checks that
+        // Panic must not happen, as the only available constructors checks that
         // there is an ID present.
-        self.expression_ast().id.expect("Node AST must bear an ID")
+        self.expression().id.expect("Node AST must bear an ID")
     }
 
     /// AST of the node's expression.
-    pub fn expression_ast(&self) -> &Ast {
+    pub fn expression(&self) -> &Ast {
         match self {
             NodeInfo::Binding   {infix} => &infix.rarg,
             NodeInfo::Expression{ast}   => &ast,
         }
-    }
-
-    /// The node's expression textual representation.
-    pub fn expression_text(&self) -> String {
-        self.expression_ast().repr()
     }
 }
 
@@ -76,13 +70,14 @@ impl NodeInfo {
 mod tests {
     use super::*;
 
+    use ast::HasRepr;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     fn expect_node(ast:Ast, expression_text:&str, id:ID) {
         let node_info = NodeInfo::from_line_ast(&ast).expect("expected a node");
-        assert_eq!(node_info.expression_text(),expression_text);
+        assert_eq!(node_info.expression().repr(),expression_text);
         assert_eq!(node_info.id(), id);
     }
 
