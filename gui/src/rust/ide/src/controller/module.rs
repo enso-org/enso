@@ -17,6 +17,7 @@ use ast;
 use ast::Ast;
 use ast::HasRepr;
 use ast::IdMap;
+use ast::HasIdMap;
 use ast::known;
 use data::text::*;
 use double_representation as dr;
@@ -97,12 +98,8 @@ shared! { Handle
     pub struct Controller {
         /// This module's location.
         location: Location,
-        /// The current module used by synchronizing both module representations.
+        /// The current source code of file containing ast and metadata.
         module: SourceFile<Metadata>,
-        /// The id map of current ast
-        // TODO: written for test purposes, should be removed once generating id_map from AST will
-        // be implemented.
-        id_map: IdMap,
         /// The File Manager Client handle.
         file_manager: fmc::Handle,
         /// The Parser handle.
@@ -124,13 +121,14 @@ shared! { Handle
         /// Updates AST after code change.
         pub fn apply_code_change(&mut self,change:&TextChange) -> FallibleResult<()> {
             let mut code         = self.code();
+            let mut id_map       = self.module.ast.id_map();
             let replaced_size    = change.replaced.end - change.replaced.start;
             let replaced_span    = Span::new(change.replaced.start,replaced_size);
             let replaced_indices = change.replaced.start.value..change.replaced.end.value;
 
             code.replace_range(replaced_indices,&change.inserted);
-            apply_code_change_to_id_map(&mut self.id_map,&replaced_span,&change.inserted);
-            let ast = self.parser.parse(code, self.id_map.clone())?;
+            apply_code_change_to_id_map(&mut id_map,&replaced_span,&change.inserted);
+            let ast = self.parser.parse(code, id_map)?;
             self.update_ast(ast);
             self.logger.trace(|| format!("Applied change; Ast is now {:?}", self.module.ast));
 
@@ -156,7 +154,6 @@ shared! { Handle
                 self.logger.error(|| format!("The module controller ast was not synchronized with \
                     text editor content!\n >>> Module: {:?}\n >>> Editor: {:?}",my_code,code));
                 self.module.ast = self.parser.parse(code,default())?;
-                self.id_map     = default();
             }
             Ok(())
         }
@@ -182,12 +179,11 @@ impl Handle {
         let logger              = Logger::new(format!("Module Controller {}", location));
         let ast                 = Ast::new(ast::Module{lines:default()},None);
         let module              = SourceFile {ast, metadata:default()};
-        let id_map              = default();
         let text_notifications  = default();
         let graph_notifications = default();
 
 
-        let data = Controller {location,module,file_manager,parser,id_map,logger,
+        let data = Controller {location,module,file_manager,parser,logger,
             text_notifications,graph_notifications};
         let handle = Handle::new_from_data(data);
         handle.load_file().await?;
@@ -245,7 +241,7 @@ impl Handle {
         let module = SourceFile{ast, metadata:Metadata::default()};
         let text_notifications  = default();
         let graph_notifications = default();
-        let data   = Controller {location,module,file_manager,parser,id_map,logger,
+        let data   = Controller {location,module,file_manager,parser,logger,
             text_notifications,graph_notifications};
         Ok(Handle::new_from_data(data))
     }
