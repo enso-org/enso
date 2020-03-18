@@ -277,24 +277,6 @@ impl<'a> CursorNavigation<'a> {
         Self::next_valid_text_location(line, previous_line, previous_column, line_end)
     }
 
-    /// Calculates the next position of the cursor when navigating right.
-    fn step_forward(&mut self, position:TextLocation, jumping_words:bool) -> TextLocation {
-        if jumping_words {
-            self.next_word_position(&position)
-        } else {
-            self.next_char_position(&position)
-        }.unwrap_or(position)
-    }
-
-    /// Calculates the previous position of the cursor when navigating left.
-    fn step_backwards(&mut self, position:TextLocation, jumping_words:bool) -> TextLocation {
-        if jumping_words {
-            self.prev_word_position(&position)
-        } else {
-            self.prev_char_position(&position)
-        }.unwrap_or(position)
-    }
-
     /// New position of cursor at `position` after applying `step`.
     fn new_position(&mut self, position: TextLocation, step:Step) -> TextLocation {
         match step {
@@ -718,24 +700,23 @@ mod test {
         let content        = "first sentence\r\nthis is a second sentence\r\nlast sentence\n";
         let content        = &mut TextFieldContent::new(content,&mock_properties());
         let selecting      = false;
-        let jumping_words  = true;
-        let mut navigation = CursorNavigation{content,selecting,jumping_words};
+        let mut navigation = CursorNavigation{content,selecting};
         let mut location   = TextLocation::at_document_begin();
-        location           = navigation.step_forward(location);
+        location           = navigation.next_word_position(&location).unwrap();
         assert_eq!(location, TextLocation{line:0, column:5});
-        location = navigation.step_forward(location);
+        location = navigation.next_word_position(&location).unwrap();
         assert_eq!(location, TextLocation{line:0, column:14});
-        location = navigation.step_forward(location);
+        location = navigation.next_word_position(&location).unwrap();
         assert_eq!(location, TextLocation{line:1, column:0});
-        location = navigation.step_forward(location);
+        location = navigation.next_word_position(&location).unwrap();
         assert_eq!(location, TextLocation{line:1, column:4});
-        location = navigation.step_backwards(location);
+        location = navigation.prev_word_position(&location).unwrap();
         assert_eq!(location, TextLocation{line:1, column:0});
-        location = navigation.step_backwards(location);
+        location = navigation.prev_word_position(&location).unwrap();
         assert_eq!(location, TextLocation{line:0, column:14});
-        location = navigation.step_backwards(location);
+        location = navigation.prev_word_position(&location).unwrap();
         assert_eq!(location, TextLocation{line:0, column:6});
-        location = navigation.step_backwards(location);
+        location = navigation.prev_word_position(&location).unwrap();
         assert_eq!(location, TextLocation::at_document_begin());
     }
 
