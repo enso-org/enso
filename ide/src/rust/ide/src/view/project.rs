@@ -4,7 +4,6 @@
 use crate::prelude::*;
 
 use crate::view::layout::ViewLayout;
-use crate::controller::FallibleResult;
 
 use ensogl::control::callback::CallbackHandle;
 use ensogl::control::io::keyboard::listener::KeyboardFrpBindings;

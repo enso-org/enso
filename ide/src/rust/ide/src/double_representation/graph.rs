@@ -3,10 +3,66 @@
 use crate::prelude::*;
 
 use crate::double_representation::definition;
+use crate::double_representation::definition::DefinitionInfo;
+use crate::double_representation::definition::DefinitionName;
+use crate::double_representation::definition::DefinitionProvider;
 use crate::double_representation::node;
 
 use ast::Ast;
 use ast::known;
+
+
+
+// ================
+// === Graph Id ===
+// ================
+
+/// Crumb describes step that needs to be done when going from context (for graph being a module)
+/// to the target.
+// TODO [mwu]
+//  Currently we support only entering named definitions.
+pub type Crumb = DefinitionName;
+
+/// Identifies graph in the module.
+#[derive(Clone,Debug,Eq,Hash,PartialEq)]
+pub struct Id {
+    /// Sequence of traverses from module root up to the identified graph.
+    pub crumbs : Vec<Crumb>,
+}
+
+impl Id {
+    /// Creates a new graph identifier consisting of a single crumb.
+    pub fn new_single_crumb(crumb:DefinitionName) -> Id {
+        let crumbs = vec![crumb];
+        Id {crumbs}
+    }
+}
+
+
+// ===============================
+// === Finding Graph In Module ===
+// ===============================
+
+#[derive(Fail,Clone,Debug)]
+#[fail(display="Definition ID was empty")]
+struct CannotFindDefinition(Id);
+
+#[derive(Fail,Clone,Debug)]
+#[fail(display="Definition ID was empty")]
+struct EmptyDefinitionId;
+
+/// Looks up graph in the module.
+pub fn traverse_for_definition
+(ast:ast::known::Module, id:&Id) -> FallibleResult<DefinitionInfo> {
+    let err            = || CannotFindDefinition(id.clone());
+    let mut crumb_iter = id.crumbs.iter();
+    let first_crumb    = crumb_iter.next().ok_or(EmptyDefinitionId)?;
+    let mut definition = ast.find_definition(first_crumb).ok_or_else(err)?;
+    for crumb in crumb_iter {
+        definition = definition.find_definition(crumb).ok_or_else(err)?;
+    }
+    Ok(definition)
+}
 
 
 
@@ -17,20 +73,17 @@ use ast::known;
 /// Description of the graph, based on information available in AST.
 #[derive(Clone,Debug)]
 pub struct GraphInfo {
-    name : definition::DefinitionName,
-    args : Vec<Ast>,
+    source : DefinitionInfo,
     /// Describes all known nodes in this graph (does not include special pseudo-nodes like graph
     /// inputs and outputs).
-    pub nodes:Vec<node::NodeInfo>,
+    pub nodes : Vec<node::NodeInfo>,
 }
 
 impl GraphInfo {
     /// Describe graph of the given definition.
-    pub fn from_definition(info:&definition::DefinitionInfo) -> GraphInfo {
-        let name  = info.name.clone();
-        let args  = info.args.clone();
-        let nodes = Self::from_function_binding(info.ast.clone());
-        GraphInfo {name,args,nodes}
+    pub fn from_definition(source:DefinitionInfo) -> GraphInfo {
+        let nodes = Self::from_function_binding(source.ast.clone());
+        GraphInfo {source,nodes}
     }
 
     /// Lists nodes in the given binding's ast (infix expression).
@@ -79,6 +132,7 @@ mod tests {
     use crate::double_representation::definition::DefinitionName;
     use crate::double_representation::definition::DefinitionProvider;
 
+    use ast::HasRepr;
     use parser::api::IsParser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -89,8 +143,7 @@ mod tests {
         let module = parser.parse_module(program.into(), default()).unwrap();
         let name   = DefinitionName::new_plain("main");
         let main   = module.find_definition(&name).unwrap();
-        println!("{:?}",module);
-        GraphInfo::from_definition(&main)
+        GraphInfo::from_definition(main)
     }
 
     #[wasm_bindgen_test]
@@ -107,7 +160,7 @@ mod tests {
             let graph = main_graph(&mut parser, program);
             assert_eq!(graph.nodes.len(), 1);
             let node = &graph.nodes[0];
-            assert_eq!(node.expression_text(), "2+2");
+            assert_eq!(node.expression().repr(), "2+2");
             let _ = node.id(); // just to make sure it is available
         }
     }
@@ -119,15 +172,13 @@ mod tests {
 main =
     foo = node
     foo a = not_node
+    Int.= a = node
     node
 ";
-        // TODO [mwu]
-        //  Add case like `Int.= a = node` once https://github.com/luna/enso/issues/565 is fixed
-
         let graph = main_graph(&mut parser, program);
         assert_eq!(graph.nodes.len(), 2);
         for node in graph.nodes.iter() {
-            assert_eq!(node.expression_text(), "node");
+            assert_eq!(node.expression().repr(), "node");
         }
     }
 }

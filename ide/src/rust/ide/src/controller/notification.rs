@@ -16,7 +16,6 @@ use crate::prelude::*;
 /// therefore there is no need for setting big buffers.
 const NOTIFICATION_BUFFER_SIZE : usize = 36;
 
-
 /// A notification publisher which implements Debug and Default.
 #[derive(Shrinkwrap)]
 #[shrinkwrap(mutable)]
@@ -36,7 +35,6 @@ impl<Message:'static> Debug for Publisher<Message> {
 
 
 
-
 // =====================================
 // === Double Representation Changes ===
 // =====================================
@@ -51,11 +49,33 @@ pub enum Text {
 }
 
 
-// === Graph ===
+// === Graphs ===
 
 /// A notification about changes of graph representation of a module.
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
+pub enum Graphs {
+    /// The content should be fully reloaded.
+    Invalidate,
+}
+
+
+// === Graph ===
+
+/// A notification about changes of a specific graph in a module.
 #[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub enum Graph {
     /// The content should be fully reloaded.
     Invalidate,
 }
+
+
+// === Node ===
+
+/// A notification about changes of specific node in a graph.
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
+pub enum Node {
+    /// The content should be fully reloaded.
+    Invalidate,
+}
+
+

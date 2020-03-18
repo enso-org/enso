@@ -7,9 +7,9 @@
 
 use crate::prelude::*;
 
-use crate::controller::FallibleResult;
 use crate::controller::notification;
 use crate::double_representation::text::apply_code_change_to_id_map;
+use crate::double_representation::definition::DefinitionInfo;
 use crate::executor::global::spawn;
 
 use parser::api::SourceFile;
@@ -17,7 +17,9 @@ use ast;
 use ast::Ast;
 use ast::HasRepr;
 use ast::IdMap;
+use ast::known;
 use data::text::*;
+use double_representation as dr;
 use file_manager_client as fmc;
 use flo_stream::MessagePublisher;
 use flo_stream::Subscriber;
@@ -108,7 +110,7 @@ shared! { Handle
         /// Publisher of "text changed" notifications
         text_notifications  : notification::Publisher<notification::Text>,
         /// Publisher of "graph changed" notifications
-        graph_notifications : notification::Publisher<notification::Graph>,
+        graph_notifications : notification::Publisher<notification::Graphs>,
         /// The logger handle.
         logger: Logger,
     }
@@ -140,6 +142,12 @@ shared! { Handle
             self.module.ast.repr()
         }
 
+        /// Obtains definition information for given graph id.
+        pub fn find_definition(&self,id:&dr::graph::Id) -> FallibleResult<DefinitionInfo> {
+            let module = known::Module::try_new(self.module.ast.clone())?;
+            double_representation::graph::traverse_for_definition(module,id)
+        }
+
         /// Check if current module state is synchronized with given code. If it's not, log error,
         /// and update module state to match the `code` passed as argument.
         pub fn check_code_sync(&mut self, code:String) -> FallibleResult<()> {
@@ -159,7 +167,7 @@ shared! { Handle
         }
 
         /// Get subscriber receiving notifications about changes in module's graph representation.
-        pub fn subscribe_graph_notifications(&mut self) -> Subscriber<notification::Graph> {
+        pub fn subscribe_graph_notifications(&mut self) -> Subscriber<notification::Graphs> {
             self.graph_notifications.subscribe()
         }
     }
@@ -178,8 +186,9 @@ impl Handle {
         let text_notifications  = default();
         let graph_notifications = default();
 
-        let data = Controller {location,module,file_manager,parser,id_map,logger,text_notifications,
-            graph_notifications};
+
+        let data = Controller {location,module,file_manager,parser,id_map,logger,
+            text_notifications,graph_notifications};
         let handle = Handle::new_from_data(data);
         handle.load_file().await?;
         Ok(handle)
@@ -216,6 +225,13 @@ impl Handle {
         async move { fm.write(path.clone(),code?).await }
     }
 
+    /// Returns a graph controller for graph in this module's subtree identified by `id`.
+    /// Reuses already existing controller if possible.
+    pub fn get_graph_controller(&self, id:dr::graph::Id)
+    -> FallibleResult<controller::graph::Handle> {
+        controller::graph::Handle::new(self.clone(),id)
+    }
+
     #[cfg(test)]
     pub fn new_mock
     ( location     : Location
@@ -240,13 +256,17 @@ impl Controller {
     fn update_ast(&mut self,ast:Ast) {
         self.module.ast  = ast;
         let text_change  = notification::Text::Invalidate;
-        let graph_change = notification::Graph::Invalidate;
+        let graph_change = notification::Graphs::Invalidate;
         let code_notify  = self.text_notifications.publish(text_change);
         let graph_notify = self.graph_notifications.publish(graph_change);
         spawn(async move { futures::join!(code_notify,graph_notify); });
     }
 }
 
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod test {
@@ -318,7 +338,7 @@ mod test {
 
             // Check emitted notifications
             assert_eq!(Some(notification::Text::Invalidate ), text_notifications.next().await );
-            assert_eq!(Some(notification::Graph::Invalidate), graph_notifications.next().await);
+            assert_eq!(Some(notification::Graphs::Invalidate), graph_notifications.next().await);
         });
     }
 }

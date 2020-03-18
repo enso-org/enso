@@ -5,7 +5,6 @@
 //! user.
 
 use crate::prelude::*;
-use crate::controller::FallibleResult;
 use crate::controller::notification;
 use crate::executor::global::spawn;
 

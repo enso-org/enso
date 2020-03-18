@@ -8,7 +8,7 @@ use ast::Shape;
 use ast::known;
 use ast::prefix;
 use ast::opr;
-
+use shapely::EmptyIterator;
 
 
 // =================
@@ -93,14 +93,14 @@ impl DefinitionName {
     }
 }
 
-impl ToString for DefinitionName {
-    fn to_string(&self) -> String {
+impl Display for DefinitionName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut pieces = self.extended_target.iter().map(|s| s.as_str()).collect_vec();
         pieces.push(&self.name);
-        pieces.join(opr::predefined::ACCESS)
+        let text = pieces.join(opr::predefined::ACCESS);
+        write!(f, "{}", text)
     }
 }
-
 
 
 // ======================
@@ -213,6 +213,16 @@ impl DefinitionProvider for known::Block {
     fn scope_kind() -> ScopeKind { ScopeKind::NonRoot }
     fn line_asts<'a>(&'a self) -> Box<dyn Iterator<Item=&'a Ast> + 'a> {
         Box::new(self.iter())
+    }
+}
+
+impl DefinitionProvider for DefinitionInfo {
+    fn scope_kind() -> ScopeKind { ScopeKind::NonRoot }
+    fn line_asts<'a>(&'a self) -> Box<dyn Iterator<Item=&'a Ast> + 'a> {
+        match self.ast.rarg.shape() {
+            ast::Shape::Block(_) => self.ast.rarg.iter(),
+            _                    => Box::new(EmptyIterator::new())
+        }
     }
 }
 
