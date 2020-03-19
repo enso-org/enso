@@ -1442,7 +1442,11 @@ directory.
 ```
 
 ##### Errors
-TBC
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`FileNotFound`](#filenotfound) informs that requested path does not exist.
+- [`NotDirectory`](#notdirectory) informs that requested path is not a
+  directory.
 
 #### `file/info`
 This request gets information about a specified filesystem object.

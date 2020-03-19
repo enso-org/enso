@@ -357,6 +357,47 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     result shouldBe Right(false)
   }
 
+  it should "list directory contents" in new TestCtx {
+    //given
+    val path    = Paths.get(testDirPath.toString, "list")
+    val fileA   = Paths.get(testDirPath.toString, "list", "a.txt")
+    val symlink = Paths.get(testDirPath.toString, "list", "b.symlink")
+    val subdir  = Paths.get(testDirPath.toString, "list", "subdir")
+    val fileB   = Paths.get(testDirPath.toString, "list", "subdir", "b.txt")
+    createEmptyFile(fileA)
+    createEmptyFile(fileB)
+    Files.createSymbolicLink(symlink, fileA)
+    //when
+    val result = objectUnderTest.list(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Right(
+      Vector(
+        FileEntry(fileA),
+        FileEntry(symlink),
+        DirectoryEntryTruncated(subdir)
+      )
+    )
+  }
+
+  it should "return FileNotFound error when listing nonexistent path" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "nonexistent")
+    //when
+    val result = objectUnderTest.list(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Left(FileNotFound)
+  }
+
+  it should "return NotDirectory error when listing a file" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "a.txt")
+    createEmptyFile(path)
+    //when
+    val result = objectUnderTest.list(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Left(NotDirectory)
+  }
+
   it should "tree directory contents" in new TestCtx {
     //given
     val path     = Paths.get(testDirPath.toString, "dir")

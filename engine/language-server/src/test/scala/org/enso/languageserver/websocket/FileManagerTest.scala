@@ -1484,6 +1484,73 @@ class FileManagerTest extends BaseServerTest {
           """)
     }
 
+    "list a subdirectory" in {
+      val client = new WsTestClient(address)
+
+      // create:
+      //
+      //  subdir
+      //  └── b.txt
+
+      // create subdir/b.txt
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 44,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "b.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "subdir" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 44,
+            "result": null
+          }
+          """)
+
+      // get a tree of subdir
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/list",
+            "id": 45,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "subdir" ]
+              }
+            }
+          }
+      """)
+      // expect: b.txt
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 45,
+            "result" : {
+              "paths" : [
+                {
+                  "type" : "File",
+                  "name" : "b.txt",
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "subdir"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+          """)
+    }
+
   }
 
   def withCleanRoot[T](test: => T): T = {

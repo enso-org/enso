@@ -97,6 +97,20 @@ object FileManagerApi {
     }
   }
 
+  case object ListFile extends Method("file/list") {
+
+    case class Params(path: Path)
+
+    case class Result(paths: Vector[FileSystemObject])
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ListFile.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = ListFile.Result
+    }
+  }
+
   case object TreeFile extends Method("file/tree") {
 
     case class Params(path: Path, depth: Option[Int])

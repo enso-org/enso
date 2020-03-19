@@ -124,6 +124,18 @@ class FileManager(
         .pipeTo(sender())
       ()
 
+    case FileManagerProtocol.ListFile(path) =>
+      val result =
+        for {
+          rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
+          entries  <- fs.list(path.toFile(rootPath))
+        } yield entries.map(FileSystemObject.fromEntry(rootPath, path, _))
+      exec
+        .execTimed(config.fileManager.timeout, result)
+        .map(FileManagerProtocol.ListFileResult)
+        .pipeTo(sender())
+      ()
+
     case FileManagerProtocol.TreeFile(path, depth) =>
       val result =
         for {

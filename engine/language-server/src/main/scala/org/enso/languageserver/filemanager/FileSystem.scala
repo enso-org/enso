@@ -140,6 +140,12 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     effectBlocking(Files.exists(file.toPath))
       .mapError(errorHandling)
 
+  /**
+    * List contents of a given path.
+    *
+    * @param path to the file system object
+    * @return either [[FileSystemFailure]] or list of entries
+    */
   override def list(path: File): BlockingIO[FileSystemFailure, Vector[Entry]] =
     if (path.exists) {
       if (path.isDirectory) {

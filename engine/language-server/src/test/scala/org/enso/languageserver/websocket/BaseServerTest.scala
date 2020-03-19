@@ -3,11 +3,12 @@ package org.enso.languageserver.websocket
 import java.nio.file.Files
 import java.util.UUID
 
-import akka.actor.Props
+import akka.actor.{ActorRef, Props}
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.languageserver.{LanguageProtocol, LanguageServer}
 import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.filemanager.{FileManagerProtocol, Path}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
@@ -34,11 +35,9 @@ class BaseServerTest extends JsonRpcServerTestKit {
   override def protocol: Protocol = JsonRpc.protocol
 
   override def clientControllerFactory: ClientControllerFactory = {
-    val zioExec        = ZioExec(zio.Runtime.default)
     val languageServer = system.actorOf(Props(new LanguageServer(config)))
     languageServer ! LanguageProtocol.Initialize
-    val fileManager =
-      system.actorOf(FileManager.props(config, new FileSystem, zioExec))
+    val fileManager = getFileManager()
     val bufferRegistry =
       system.actorOf(
         BufferRegistry.props(fileManager)(Sha3_224VersionCalculator)
@@ -54,4 +53,17 @@ class BaseServerTest extends JsonRpcServerTestKit {
     )
   }
 
+  private def getFileManager(): ActorRef = {
+    val zioExec = ZioExec(zio.Runtime.default)
+    val fileManager =
+      system.actorOf(FileManager.props(config, new FileSystem, zioExec))
+    // Tests requiring FileManager can randomly fail with timeout on
+    // Windows. And it's always the first one that fails. I assume it happens
+    // due to a cold Zio executor. Here we send a few messages to warm up the
+    // FileManager.
+    fileManager ! FileManagerProtocol.ExistsFile(
+      Path(testContentRootId, Vector())
+    )
+    fileManager
+  }
 }

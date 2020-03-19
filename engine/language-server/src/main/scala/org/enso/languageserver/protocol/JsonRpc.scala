@@ -30,6 +30,7 @@ object JsonRpc {
     .registerRequest(CopyFile)
     .registerRequest(MoveFile)
     .registerRequest(ExistsFile)
+    .registerRequest(ListFile)
     .registerRequest(TreeFile)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)

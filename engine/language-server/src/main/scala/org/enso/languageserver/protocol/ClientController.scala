@@ -65,6 +65,7 @@ class ClientController(
       CopyFile   -> file.CopyFileHandler.props(requestTimeout, fileManager),
       MoveFile   -> file.MoveFileHandler.props(requestTimeout, fileManager),
       ExistsFile -> file.ExistsFileHandler.props(requestTimeout, fileManager),
+      ListFile   -> file.ListFileHandler.props(requestTimeout, fileManager),
       TreeFile   -> file.TreeFileHandler.props(requestTimeout, fileManager)
     )
 
