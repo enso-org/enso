@@ -10,7 +10,7 @@ import scala.collection.mutable.ArrayBuffer
   *
   * @tparam F represents target monad
   */
-trait FileSystemApi[F[_]] {
+trait FileSystemApi[F[_, _]] {
 
   import FileSystemApi._
 
@@ -24,7 +24,7 @@ trait FileSystemApi[F[_]] {
   def write(
     file: File,
     content: String
-  ): F[Either[FileSystemFailure, Unit]]
+  ): F[FileSystemFailure, Unit]
 
   /**
     * Reads the contents of a textual file.
@@ -32,7 +32,7 @@ trait FileSystemApi[F[_]] {
     * @param file path to the file
     * @return either [[FileSystemFailure]] or the content of a file as a String
     */
-  def read(file: File): F[Either[FileSystemFailure, String]]
+  def read(file: File): F[FileSystemFailure, String]
 
   /**
     * Deletes the specified file or directory recursively.
@@ -40,7 +40,7 @@ trait FileSystemApi[F[_]] {
     * @param file path to the file or directory
     * @return either [[FileSystemFailure]] or Unit
     */
-  def delete(file: File): F[Either[FileSystemFailure, Unit]]
+  def delete(file: File): F[FileSystemFailure, Unit]
 
   /**
     * Creates an empty file with parent directory.
@@ -48,7 +48,7 @@ trait FileSystemApi[F[_]] {
     * @param file path to the file
     * @return
     */
-  def createFile(file: File): F[Either[FileSystemFailure, Unit]]
+  def createFile(file: File): F[FileSystemFailure, Unit]
 
   /**
     * Creates a directory, including any necessary but nonexistent parent
@@ -57,7 +57,7 @@ trait FileSystemApi[F[_]] {
     * @param file path to the file
     * @return
     */
-  def createDirectory(file: File): F[Either[FileSystemFailure, Unit]]
+  def createDirectory(file: File): F[FileSystemFailure, Unit]
 
   /**
     * Copy a file or directory recursively
@@ -69,7 +69,7 @@ trait FileSystemApi[F[_]] {
   def copy(
     from: File,
     to: File
-  ): F[Either[FileSystemFailure, Unit]]
+  ): F[FileSystemFailure, Unit]
 
   /**
     * Move a file or directory recursively
@@ -81,7 +81,7 @@ trait FileSystemApi[F[_]] {
   def move(
     from: File,
     to: File
-  ): F[Either[FileSystemFailure, Unit]]
+  ): F[FileSystemFailure, Unit]
 
   /**
     * Checks if the specified file exists.
@@ -89,7 +89,7 @@ trait FileSystemApi[F[_]] {
     * @param file path to the file or directory
     * @return either [[FileSystemFailure]] or file existence flag
     */
-  def exists(file: File): F[Either[FileSystemFailure, Boolean]]
+  def exists(file: File): F[FileSystemFailure, Boolean]
 
   /**
     * List contents of a given path.
@@ -97,7 +97,7 @@ trait FileSystemApi[F[_]] {
     * @param path to the file system object
     * @return either [[FileSystemFailure]] or list of entries
     */
-  def list(path: File): F[Either[FileSystemFailure, Vector[Entry]]]
+  def list(path: File): F[FileSystemFailure, Vector[Entry]]
 
   /**
     * Returns contents of a given path.
@@ -109,7 +109,7 @@ trait FileSystemApi[F[_]] {
   def tree(
     path: File,
     depth: Option[Int]
-  ): F[Either[FileSystemFailure, DirectoryEntry]]
+  ): F[FileSystemFailure, DirectoryEntry]
 }
 
 object FileSystemApi {

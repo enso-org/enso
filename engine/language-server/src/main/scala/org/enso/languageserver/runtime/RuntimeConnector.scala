@@ -1,7 +1,6 @@
 package org.enso.languageserver.runtime
 
 import java.nio.ByteBuffer
-import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.languageserver.runtime.RuntimeConnector.Destroy

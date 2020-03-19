@@ -2,12 +2,14 @@ package org.enso.languageserver.filemanager
 
 import java.nio.file.{Files, Path, Paths}
 
-import cats.effect.IO
+import org.enso.languageserver.effect.ZioExec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.io.Source
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 class FileSystemSpec extends AnyFlatSpec with Matchers {
 
@@ -538,8 +540,12 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val testDir = testDirPath.toFile
     testDir.deleteOnExit()
 
-    val objectUnderTest = new FileSystem[IO]
+    val objectUnderTest = new FileSystem
 
   }
 
+  implicit final class UnsafeRunZio[E, A](io: zio.ZIO[zio.ZEnv, E, A]) {
+    def unsafeRunSync(): Either[E, A] =
+      Await.result(ZioExec(zio.Runtime.default).exec(io), 3.seconds)
+  }
 }

@@ -16,7 +16,8 @@ import org.enso.jsonrpc.ClientControllerFactory
 class ServerClientControllerFactory(
   server: ActorRef,
   bufferRegistry: ActorRef,
-  capabilityRouter: ActorRef
+  capabilityRouter: ActorRef,
+  fileManager: ActorRef
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
 
@@ -28,6 +29,7 @@ class ServerClientControllerFactory(
     */
   override def createClientController(clientId: UUID): ActorRef =
     system.actorOf(
-      ClientController.props(clientId, server, bufferRegistry, capabilityRouter)
+      ClientController
+        .props(clientId, server, bufferRegistry, capabilityRouter, fileManager)
     )
 }

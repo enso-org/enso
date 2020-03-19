@@ -5,21 +5,24 @@ import java.net.URI
 
 import akka.actor.{ActorSystem, Props}
 import akka.stream.SystemMaterializer
-import cats.effect.IO
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
   ContentBasedVersioning,
+  FileManagerConfig,
   Sha3_224VersionCalculator
 }
-import org.enso.languageserver.filemanager.{FileSystem, FileSystemApi}
+import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.filemanager.{FileManager, FileSystem}
 import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.polyglot.{LanguageInfo, RuntimeServerInfo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
+
+import scala.concurrent.duration._
 
 /**
   * A main module containing all components of th server.
@@ -29,10 +32,13 @@ import org.graalvm.polyglot.io.MessageEndpoint
 class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val languageServerConfig = Config(
-    Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath))
+    Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
+    FileManagerConfig(timeout = 3.seconds)
   )
 
-  lazy val fileSystem: FileSystemApi[IO] = new FileSystem[IO]
+  val zioExec = ZioExec(zio.Runtime.default)
+
+  lazy val fileSystem: FileSystem = new FileSystem
 
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
@@ -43,12 +49,17 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val languageServer =
     system.actorOf(
-      Props(new LanguageServer(languageServerConfig, fileSystem)),
+      Props(new LanguageServer(languageServerConfig)),
       "server"
     )
 
+  lazy val fileManager = system.actorOf(
+    FileManager.pool(languageServerConfig, fileSystem, zioExec),
+    "file-manager"
+  )
+
   lazy val bufferRegistry =
-    system.actorOf(BufferRegistry.props(languageServer), "buffer-registry")
+    system.actorOf(BufferRegistry.props(fileManager), "buffer-registry")
 
   lazy val capabilityRouter =
     system.actorOf(CapabilityRouter.props(bufferRegistry), "capability-router")
@@ -76,7 +87,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val clientControllerFactory = new ServerClientControllerFactory(
     languageServer,
     bufferRegistry,
-    capabilityRouter
+    capabilityRouter,
+    fileManager
   )
 
   lazy val server =
