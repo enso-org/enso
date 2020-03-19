@@ -12,7 +12,7 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
   class TestContext(packageName: String) {
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
     val pkg: Package = Package.create(tmpDir, packageName)
-    val executionContext = new ExecutionContext(
+    val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)

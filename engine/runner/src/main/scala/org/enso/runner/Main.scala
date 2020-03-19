@@ -9,7 +9,7 @@ import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.languageserver
 import org.enso.languageserver.LanguageServerConfig
 import org.enso.pkg.Package
-import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
+import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.graalvm.polyglot.Value
 
 import scala.annotation.unused
@@ -182,7 +182,7 @@ object Main {
   }
 
   private def runPackage(
-    context: ExecutionContext,
+    context: PolyglotContext,
     mainModuleName: String
   ): Unit = {
     val topScope   = context.getTopScope
@@ -190,7 +190,7 @@ object Main {
     runMain(mainModule): Unit
   }
 
-  private def runSingleFile(context: ExecutionContext, file: File): Unit = {
+  private def runSingleFile(context: PolyglotContext, file: File): Unit = {
     val mainModule = context.evalModule(file)
     runMain(mainModule): Unit
   }
@@ -263,11 +263,11 @@ object Main {
     */
   def displayVersion(@unused options: Options): Unit = {
     // Running platform information
-    val vmName = System.getProperty("java.vm.name")
+    val vmName     = System.getProperty("java.vm.name")
     val jreVersion = System.getProperty("java.runtime.version")
-    val osArch = System.getProperty("os.arch")
-    val osName = System.getProperty("os.name")
-    val osVersion = System.getProperty("os.version")
+    val osArch     = System.getProperty("os.arch")
+    val osName     = System.getProperty("os.name")
+    val osVersion  = System.getProperty("os.version")
 
     val dirtyStr = if (Info.isDirty) {
       "*"

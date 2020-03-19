@@ -6,7 +6,7 @@ import org.scalatest.matchers.should.Matchers
 
 class ApiTest extends AnyFlatSpec with Matchers {
   import LanguageInfo._
-  val executionContext = new ExecutionContext(Context.newBuilder(ID).build())
+  val executionContext = new PolyglotContext(Context.newBuilder(ID).build())
 
   "Parsing a file and calling a toplevel function defined in it" should "be possible" in {
     val code =

@@ -11,14 +11,14 @@ import io.github.spencerpark.jupyter.kernel.KernelConnectionProperties
 import io.github.spencerpark.jupyter.kernel
 import io.github.spencerpark.jupyter.kernel.display.DisplayData
 import org.enso.polyglot
-import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
+import org.enso.polyglot.{PolyglotContext, LanguageInfo, Module}
 import org.graalvm.polyglot.Value
 
 /**
   * A wrapper for Enso interpreter for use by Jupyter
   */
 class JupyterKernel extends BaseKernel {
-  private val context: ExecutionContext =
+  private val context: PolyglotContext =
     new ContextFactory().create(
       "",
       getIO.in,

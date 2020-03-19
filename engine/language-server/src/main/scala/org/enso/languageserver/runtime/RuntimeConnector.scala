@@ -4,7 +4,7 @@ import java.nio.ByteBuffer
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.languageserver.runtime.RuntimeConnector.Destroy
-import org.enso.polyglot.RuntimeApi
+import org.enso.polyglot.runtime.Runtime
 import org.graalvm.polyglot.io.MessageEndpoint
 
 /**
@@ -22,7 +22,7 @@ class RuntimeConnector extends Actor with ActorLogging with Stash {
 
   def initialized(engineConnection: MessageEndpoint): Receive = {
     case Destroy => context.stop(self)
-    case RuntimeApi.CreateContextResponse(uid) =>
+    case Runtime.Api.CreateContextResponse(uid) =>
       log.info("Context created {}.", uid)
   }
 }
@@ -60,7 +60,7 @@ object RuntimeConnector {
     override def sendText(text: String): Unit = {}
 
     override def sendBinary(data: ByteBuffer): Unit =
-      RuntimeApi
+      Runtime.Api
         .deserialize(data)
         .foreach(actor ! _)
 

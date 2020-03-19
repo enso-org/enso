@@ -3,7 +3,7 @@ package org.enso.interpreter.test
 import java.io.File
 
 import org.enso.pkg.Package
-import org.enso.polyglot.{ExecutionContext, LanguageInfo, RuntimeOptions}
+import org.enso.polyglot.{PolyglotContext, LanguageInfo, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -25,7 +25,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .in(System.in)
       .build()
     context.initialize(LanguageInfo.ID)
-    val executionContext = new ExecutionContext(context)
+    val executionContext = new PolyglotContext(context)
     val topScope         = executionContext.getTopScope
     val mainModuleScope  = topScope.getModule(mainModule.toString)
     val assocCons        = mainModuleScope.getAssociatedConstructor

@@ -30,13 +30,14 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   @Override
   protected void onCreate(Env env) {
     env.registerService(this);
+    Handler handler = new Handler();
+    this.handler = handler;
+
     try {
-      Handler handler = new Handler();
       MessageEndpoint client =
           env.startServer(URI.create(RuntimeServerInfo.URI), handler.endpoint());
       if (client != null) {
         handler.endpoint().setClient(client);
-        this.handler = handler;
       }
     } catch (MessageTransport.VetoException | IOException e) {
       throw new RuntimeException(e);
@@ -62,5 +63,14 @@ public class RuntimeServerInstrument extends TruffleInstrument {
         Collections.singletonList(
             OptionDescriptor.newBuilder(new OptionKey<>(""), RuntimeServerInfo.ENABLE_OPTION)
                 .build()));
+  }
+
+  /**
+   * Gets the associated message handler.
+   *
+   * @return the message handler.
+   */
+  public Handler getHandler() {
+    return handler;
   }
 }

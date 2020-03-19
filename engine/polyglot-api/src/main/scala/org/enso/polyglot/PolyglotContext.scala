@@ -7,7 +7,7 @@ import org.graalvm.polyglot.{Context, Source}
   * Exposes language specific aliases for generic polyglot context operations.
   * @param context the Graal polyglot context to use.
   */
-class ExecutionContext(val context: Context) {
+class PolyglotContext(val context: Context) {
 
   /**
     * Evaluates provided code string as a new module.

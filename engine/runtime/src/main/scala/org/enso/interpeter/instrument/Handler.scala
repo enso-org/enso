@@ -2,7 +2,8 @@ package org.enso.interpeter.instrument
 
 import java.nio.ByteBuffer
 
-import org.enso.polyglot.RuntimeApi
+import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.ContextId
 import org.graalvm.polyglot.io.MessageEndpoint
 
 /**
@@ -25,13 +26,13 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
     *
     * @param msg the message to send.
     */
-  def sendToClient(msg: RuntimeApi): Unit =
-    client.sendBinary(RuntimeApi.serialize(msg))
+  def sendToClient(msg: Api): Unit =
+    client.sendBinary(Api.serialize(msg))
 
   override def sendText(text: String): Unit = {}
 
   override def sendBinary(data: ByteBuffer): Unit =
-    RuntimeApi.deserialize(data).foreach(handler.onMessage)
+    Api.deserialize(data).foreach(handler.onMessage)
 
   override def sendPing(data: ByteBuffer): Unit = client.sendPong(data)
 
@@ -45,15 +46,28 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
   * from an instance of [[Endpoint]].
   */
 class Handler {
-  val endpoint = new Endpoint(this)
+  val endpoint       = new Endpoint(this)
+  val contextManager = new ExecutionContextManager
 
   /**
     * Handles a message received from the client.
     *
     * @param msg the message to handle.
     */
-  def onMessage(msg: RuntimeApi): Unit = msg match {
-    case RuntimeApi.CreateContextRequest(id) =>
-      endpoint.sendToClient(RuntimeApi.CreateContextResponse(id))
+  def onMessage(msg: Api): Unit = msg match {
+    case Api.CreateContextRequest(id) =>
+      contextManager.create(id)
+      endpoint.sendToClient(Api.CreateContextResponse(id))
+
+    case Api.DestroyContextRequest(id) =>
+      if (contextManager.get(id).isDefined) {
+        contextManager.destroy(id)
+        endpoint.sendToClient(Api.DestroyContextResponse(id, None))
+      } else {
+        endpoint.sendToClient(
+          Api.DestroyContextResponse(id, Some(Api.ContextDoesNotExistError()))
+        )
+      }
+
   }
 }
