@@ -55,7 +55,7 @@ public abstract class EvalNode extends BaseNode {
   public abstract Stateful execute(CallerInfo callerInfo, Object state, String expression);
 
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
-    LocalScope localScope = new LocalScope(scope);
+    LocalScope localScope = scope.createChild();
     Language language = lookupLanguageReference(Language.class).get();
     ExpressionNode expr =
         lookupContextReference(Language.class)

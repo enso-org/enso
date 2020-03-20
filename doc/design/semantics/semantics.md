@@ -13,11 +13,50 @@ Enso.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
+- [Scoping](#scoping)
+    - [Scoping Rules](#scoping-rules)
 - [Strict Evaluation](#strict-evaluation)
     - [Optional Suspension](#optional-suspension)
 - [Bindings](#bindings)
 
 <!-- /MarkdownTOC -->
+
+## Scoping
+Enso's scoping rules should be fairly familiar to those coming from other
+languages that are immutable (or make heavy use of immutability). In essence,
+Enso is a lexically-scoped language where bindings may be shadowed in child
+scopes.
+
+- A name may not be redefined in the same scope that it was defined in.
+- A name may be redefined in any child of that scope. This redefinition shadows
+  the binding higher up the tree of scopes.
+
+### Scoping Rules
+The following constructs introduce new scopes in Enso:
+
+- **Method Definitions:** A method definition introduces a new scope. These
+  scopes are considered to be 'top-level' and hence have no parent other than
+  the module scope. If the body of the method is a block or a function, the
+  scope of the method definition should be _reused_ as the scope of the
+  function or block.
+- **Function Definitions:** A function definition introduces a new scope. This
+  scope is either a child of the scope in which the function is defined, or is
+  the scope of the method being defined. If the body of the function is a block,
+  the function scope should be _reused_ as the block scope.
+- **Blocks:** A block introduces a new scope. This scope is a child of the scope
+  in which the block is defined, or is the scope of the method being defined.
+- **Case Branches:** Each case branch introduces a new scope.
+- **Function Call Arguments:** In order to handle suspension of arguments
+  correctly, each argument used to call a function is evaluated in its own
+  scope. This scope is a direct child of the scope in which the function call is
+  taking place.
+
+> The actionables for this section are:
+>
+> - Write this out in more detail when we have time. The above is only intended
+>   as a brief summary.
+> - NOTE: The note about case-branch scoping needs to be refined as the
+>   implementation of `case` evolves.
 
 ## Strict Evaluation
 Though Enso shares many syntactic similarities with Haskell, the most famous

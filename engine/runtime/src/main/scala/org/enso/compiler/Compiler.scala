@@ -8,9 +8,8 @@ import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.ApplicationSaturation
+import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
-import org.enso.flexer.Reader
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
@@ -34,10 +33,16 @@ class Compiler(
   val context: Context
 ) {
 
-  /** A list of the compiler phases, in the order they should be run. */
+  /** A list of the compiler phases, in the order they should be run.
+    *
+    * Please note that these passes _must_ be run in this order. While we
+    * currently can't account for the dependencies between passes in the types,
+    * they nevertheless exist.
+    */
   val compilerPhaseOrdering: List[IRPass] = List(
     LiftSpecialOperators,
     OperatorToFunction,
+    AliasAnalysis,
     ApplicationSaturation()
   )
 
@@ -120,7 +125,8 @@ class Compiler(
 
     generateIRInline(parsed).flatMap { ir =>
       Some({
-        val compilerOutput = runCompilerPhasesInline(ir)
+        val compilerOutput =
+          runCompilerPhasesInline(ir, localScope, moduleScope)
 
         truffleCodegenInline(
           compilerOutput,
@@ -201,9 +207,14 @@ class Compiler(
     * @param ir the compiler intermediate representation to transform
     * @return the output result of the
     */
-  def runCompilerPhasesInline(ir: IR.Expression): IR.Expression = {
+  def runCompilerPhasesInline(
+    ir: IR.Expression,
+    localScope: LocalScope,
+    moduleScope: ModuleScope
+  ): IR.Expression = {
     compilerPhaseOrdering.foldLeft(ir)(
-      (intermediateIR, pass) => pass.runExpression(intermediateIR)
+      (intermediateIR, pass) =>
+        pass.runExpression(intermediateIR, Some(localScope), Some(moduleScope))
     )
   }
 

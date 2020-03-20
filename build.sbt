@@ -5,6 +5,7 @@ import sbt.Keys.scalacOptions
 import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
+import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
@@ -396,6 +397,13 @@ lazy val core_definition = (project in file("engine/core-definition"))
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+    ),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
+    scalacOptions ++= Seq(
+      "-P:splain:infix:true",
+      "-P:splain:foundreq:true",
+      "-P:splain:implicits:true",
+      "-P:splain:tree:true"
     )
   )
   .dependsOn(graph)
@@ -475,6 +483,7 @@ lazy val runtime = (project in file("engine/runtime"))
     parallelExecution in Test := false,
     logBuffered in Test := false,
     scalacOptions += "-Ymacro-annotations",
+    scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ Seq(
       "com.chuusai"         %% "shapeless"            % "2.3.3",
       "org.apache.commons"  % "commons-lang3"         % "3.9",

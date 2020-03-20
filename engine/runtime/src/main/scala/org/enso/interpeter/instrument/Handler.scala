@@ -3,7 +3,6 @@ package org.enso.interpeter.instrument
 import java.nio.ByteBuffer
 
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.polyglot.runtime.Runtime.Api.ContextId
 import org.graalvm.polyglot.io.MessageEndpoint
 
 /**

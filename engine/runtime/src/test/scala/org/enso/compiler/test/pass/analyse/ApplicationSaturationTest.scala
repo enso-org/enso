@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Metadata
-import org.enso.compiler.pass.analyse.ApplicationSaturation
+import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
 import org.enso.compiler.pass.analyse.ApplicationSaturation.{
   CallSaturation,
   FunctionSpec,
@@ -12,6 +12,7 @@ import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.callable.argument.CallArgument
+import org.enso.interpreter.runtime.scope.LocalScope
 
 import scala.annotation.unused
 import scala.reflect.ClassTag
@@ -49,6 +50,14 @@ class ApplicationSaturationTest extends CompilerTest {
     "foo" -> FunctionSpec(4, dummyFn)
   )
 
+  val passes = List(
+    LiftSpecialOperators,
+    OperatorToFunction,
+    AliasAnalysis
+  )
+
+  val localScope = Some(LocalScope.root)
+
   // === The Tests ============================================================
 
   "Known applications" should {
@@ -57,28 +66,28 @@ class ApplicationSaturationTest extends CompilerTest {
       genNArgs(2),
       hasDefaultsSuspended = false,
       None
-    )
+    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
 
     val bazFn = IR.Application.Prefix(
       IR.Name.Literal("baz", None),
       genNArgs(2),
       hasDefaultsSuspended = false,
       None
-    )
+    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
 
     val fooFn = IR.Application.Prefix(
       IR.Name.Literal("foo", None),
       genNArgs(5),
       hasDefaultsSuspended = false,
       None
-    )
+    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
 
     val fooFnByName = IR.Application.Prefix(
       IR.Name.Literal("foo", None),
       genNArgs(4, positional = false),
       hasDefaultsSuspended = false,
       None
-    )
+    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
 
     "be tagged with full saturation where possible" in {
       val resultIR = ApplicationSaturation(knownFunctions).runExpression(plusFn)
@@ -118,7 +127,7 @@ class ApplicationSaturationTest extends CompilerTest {
       genNArgs(10),
       hasDefaultsSuspended = false,
       None
-    )
+    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
 
     "be tagged with unknown saturation" in {
       val resultIR =
@@ -136,21 +145,21 @@ class ApplicationSaturationTest extends CompilerTest {
       genNArgs(2),
       hasDefaultsSuspended = false,
       None
-    )
+    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
 
     val undersaturatedPlus = IR.Application.Prefix(
       IR.Name.Literal("+", None),
       genNArgs(1),
       hasDefaultsSuspended = false,
       None
-    )
+    ).runPasses(passes,localScope).asInstanceOf[IR.Application.Prefix]
 
     val oversaturatedPlus = IR.Application.Prefix(
       IR.Name.Literal("+", None),
       genNArgs(3),
       hasDefaultsSuspended = false,
       None
-    )
+    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
 
     implicit class InnerMeta(ir: IR.Expression) {
       def getInnerMetadata[T <: Metadata: ClassTag]: Option[T] = {
@@ -172,7 +181,7 @@ class ApplicationSaturationTest extends CompilerTest {
         ),
         hasDefaultsSuspended = false,
         None
-      )
+      ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
     }
 
     "have fully saturated applications tagged correctly" in {
@@ -234,28 +243,24 @@ class ApplicationSaturationTest extends CompilerTest {
   }
 
   "Shadowed known functions" should {
-    val passes = List(
-      LiftSpecialOperators,
-      OperatorToFunction
-    )
+    val rawIR =
+      """
+        |main =
+        |    foo = x y z -> x + y + z
+        |
+        |    foo a b c
+        |""".stripMargin.toIR
 
-    val rawIR = toIR("""
-                       |main =
-                       |  foo = x y z -> x + y + z
-                       |
-                       |  foo a b c
-                       |""".stripMargin)
-
-    val inputIR = runPasses(rawIR, passes).asInstanceOf[IR.Expression]
+    val inputIR = rawIR
+      .runPasses(passes, localScope = localScope)
+      .asInstanceOf[IR.Expression]
 
     val result = ApplicationSaturation(knownFunctions)
-      .runExpression(inputIR)
+      .runExpression(inputIR, localScope = localScope)
       .asInstanceOf[IR.Expression.Binding]
 
     "be tagged as unknown even if their name is known" in {
       // Needs alias analysis to work
-      pending
-
       result.expression
         .asInstanceOf[IR.Expression.Block]
         .returnValue

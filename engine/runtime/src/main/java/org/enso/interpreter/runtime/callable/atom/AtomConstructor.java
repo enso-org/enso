@@ -8,14 +8,14 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.node.ClosureRootNode;
+import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
+import org.enso.interpreter.node.expression.builtin.InstantiateAtomNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A representation of an Atom constructor. */
@@ -69,14 +69,7 @@ public class AtomConstructor implements TruffleObject {
       argumentReaders[i] = ReadArgumentNode.build(i, args[i].getDefaultValue().orElse(null));
     }
     ExpressionNode instantiateNode = InstantiateNode.build(this, argumentReaders);
-    ClosureRootNode rootNode =
-        ClosureRootNode.build(
-            null,
-            new LocalScope(),
-            definitionScope,
-            instantiateNode,
-            null,
-            "<constructor>:" + name);
+    RootNode rootNode = InstantiateAtomNode.build(null, name, instantiateNode);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     return new Function(
         callTarget, null, new FunctionSchema(FunctionSchema.CallStrategy.ALWAYS_DIRECT, args));

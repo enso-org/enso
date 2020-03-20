@@ -4,7 +4,9 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
-import org.enso.compiler.pass.analyse.ApplicationSaturation
+import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
+import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
+import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -137,7 +139,16 @@ class IRToTruffle(
       .zip(atomDefs)
       .foreach {
         case (atomCons, atomDefn) => {
-          val argFactory = new DefinitionArgumentProcessor()
+          val scopeInfo = atomDefn
+            .getMetadata[AliasAnalysis.Info.Scope.Root]
+            .getOrElse(
+              throw new CompilerError("No root scope on an atom definition.")
+            )
+          val argFactory =
+            new DefinitionArgumentProcessor(
+              scope =
+                new LocalScope(None, scopeInfo.graph, scopeInfo.graph.rootScope)
+            )
           val argDefs =
             new Array[ArgumentDefinition](atomDefn.arguments.size)
 
@@ -151,12 +162,11 @@ class IRToTruffle(
 
     // Register the method definitions in scope
     methodDefs.foreach(methodDef => {
-      val thisArgument =
-        IR.DefinitionArgument.Specified(
-          IR.Name.This(None),
-          None,
-          suspended = false,
-          None
+
+      val scopeInfo = methodDef
+        .getMetadata[AliasAnalysis.Info.Scope.Root]
+        .getOrElse(
+          throw new CompilerError(("Missing scope information for method."))
         )
 
       val typeName =
@@ -167,19 +177,21 @@ class IRToTruffle(
         }
 
       val expressionProcessor = new ExpressionProcessor(
-        typeName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name
+        typeName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
+        scopeInfo.graph,
+        scopeInfo.graph.rootScope
       )
 
       val funNode = methodDef.body match {
         case fn: IR.Function =>
           expressionProcessor.processFunctionBody(
-            thisArgument :: fn.arguments,
+            fn.arguments,
             fn.body,
             fn.location
           )
         case _ =>
           expressionProcessor.processFunctionBody(
-            List(thisArgument),
+            List(),
             methodDef.body,
             methodDef.body.location
           )
@@ -263,8 +275,8 @@ class IRToTruffle(
       *
       * @param scopeName the name to attribute to the default local scope.
       */
-    def this(scopeName: String) = {
-      this(new LocalScope(), scopeName)
+    def this(scopeName: String, graph: AliasGraph, scope: AliasScope) = {
+      this(new LocalScope(None, graph, scope), scopeName)
     }
 
     /** Creates an instance of [[ExpressionProcessor]] that operates in a child
@@ -273,8 +285,11 @@ class IRToTruffle(
       * @param name the name of the child scope
       * @return an expression processor operating on a child scope
       */
-    def createChild(name: String): ExpressionProcessor = {
-      new ExpressionProcessor(this.scope.createChild(), name)
+    def createChild(
+      name: String,
+      scope: AliasScope
+    ): ExpressionProcessor = {
+      new ExpressionProcessor(this.scope.createChild(scope), name)
     }
 
     // === Runner =============================================================
@@ -338,7 +353,11 @@ class IRToTruffle(
       */
     def processBlock(block: IR.Expression.Block): RuntimeExpression = {
       if (block.suspended) {
-        val childFactory = this.createChild("suspended-block")
+        val scopeInfo = block
+          .getMetadata[AliasAnalysis.Info.Scope.Child]
+          .getOrElse(throw new CompilerError("Missing scope data on block."))
+
+        val childFactory = this.createChild("suspended-block", scopeInfo.scope)
         val childScope   = childFactory.scope
 
         val blockNode = childFactory.processBlock(block.copy(suspended = false))
@@ -406,9 +425,17 @@ class IRToTruffle(
       * @return the truffle nodes corresponding to `binding`
       */
     def processBinding(binding: IR.Expression.Binding): RuntimeExpression = {
+      val occInfo = binding
+        .getMetadata[AliasAnalysis.Info.Occurrence]
+        .getOrElse(
+          throw new CompilerError(
+            "Binding with missing occurrence information."
+          )
+        )
+
       currentVarName = binding.name.name
 
-      val slot = scope.createVarSlot(currentVarName)
+      val slot = scope.createVarSlot(occInfo.id)
 
       setLocation(
         AssignmentNode.build(this.run(binding.expression), slot),
@@ -422,13 +449,17 @@ class IRToTruffle(
       * @return the truffle nodes corresponding to `function`
       */
     def processFunction(function: IR.Function): RuntimeExpression = {
+      val scopeInfo = function
+        .getMetadata[AliasAnalysis.Info.Scope.Child]
+        .getOrElse(throw new CompilerError("No scope info on a function."))
+
       val scopeName = if (function.canBeTCO) {
         currentVarName
       } else {
         "case_expression"
       }
 
-      val child = this.createChild(scopeName)
+      val child = this.createChild(scopeName, scopeInfo.scope)
 
       val fn = child.processFunctionBody(
         function.arguments,
@@ -447,18 +478,25 @@ class IRToTruffle(
       */
     def processName(name: IR.Name): RuntimeExpression = {
       val nameExpr = name match {
-        case IR.Name.Literal(name, _, _) =>
-          val slot     = scope.getSlot(name).toScala
-          val atomCons = moduleScope.getConstructor(name).toScala
+        case IR.Name.Literal(nameStr, _, _) =>
+          val useInfo = name
+            .getMetadata[AliasAnalysis.Info.Occurrence]
+            .getOrElse(
+              throw new CompilerError("No occurence on variable usage.")
+            )
 
-          if (name == Constants.Names.CURRENT_MODULE) {
+          val slot = scope.getFramePointer(useInfo.id)
+          val atomCons = moduleScope.getConstructor(nameStr).toScala
+          if (nameStr == Constants.Names.CURRENT_MODULE) {
             ConstructorNode.build(moduleScope.getAssociatedType)
           } else if (slot.isDefined) {
             ReadLocalTargetNode.build(slot.get)
           } else if (atomCons.isDefined) {
             ConstructorNode.build(atomCons.get)
           } else {
-            DynamicSymbolNode.build(UnresolvedSymbol.build(name, moduleScope))
+            DynamicSymbolNode.build(
+              UnresolvedSymbol.build(nameStr, moduleScope)
+            )
           }
         case IR.Name.Here(_, _) =>
           ConstructorNode.build(moduleScope.getAssociatedType)
@@ -507,7 +545,15 @@ class IRToTruffle(
         val arg = argFactory.run(unprocessedArg, idx)
         argDefinitions(idx) = arg
 
-        val slot = scope.createVarSlot(arg.getName)
+        val occInfo = unprocessedArg
+          .getMetadata[AliasAnalysis.Info.Occurrence]
+          .getOrElse(
+            throw new CompilerError(
+              "No occurrence on an argument definition."
+            )
+          )
+
+        val slot = scope.createVarSlot(occInfo.id)
         val readArg =
           ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
         val assignArg = AssignmentNode.build(readArg, slot)
@@ -636,11 +682,18 @@ class IRToTruffle(
       */
     def run(arg: IR.CallArgument, position: Int): CallArgument = arg match {
       case IR.CallArgument.Specified(name, value, _, _) =>
+        val scopeInfo = arg
+          .getMetadata[AliasAnalysis.Info.Scope.Child]
+          .getOrElse(
+            throw new CompilerError("No scope attached to a call argument.")
+          )
         val result = value match {
           case term: IR.Application.Force =>
-            new ExpressionProcessor(scope, scopeName).run(term.target)
+            val childScope =
+              scope.createChild(scopeInfo.scope, flattenToParent = true)
+            new ExpressionProcessor(childScope, scopeName).run(term.target)
           case _ =>
-            val childScope = scope.createChild()
+            val childScope = scope.createChild(scopeInfo.scope)
             val argumentExpression =
               new ExpressionProcessor(childScope, scopeName).run(value)
             argumentExpression.markTail()
@@ -681,7 +734,7 @@ class IRToTruffle(
     */
   sealed private class DefinitionArgumentProcessor(
     val scopeName: String = "<root>",
-    val scope: LocalScope = new LocalScope()
+    val scope: LocalScope
   ) {
 
     // === Runner =============================================================
@@ -741,6 +794,11 @@ class IRToTruffle(
           arg.name.name,
           defaultedValue,
           executionMode
+        )
+      case err: IR.Error.Redefined.Argument =>
+        throw new CompilerError(
+          s"Argument redefinition errors should not be present during " +
+          s"codegen, but found $err."
         )
     }
   }

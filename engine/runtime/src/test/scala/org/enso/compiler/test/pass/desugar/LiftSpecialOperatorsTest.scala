@@ -46,8 +46,8 @@ class LiftSpecialOperatorsTest extends CompilerTest {
     }
 
     "be lifted by the pass in a module context" in {
-      val moduleInput  = moduleDefsFrom(expressionIR)
-      val moduleOutput = moduleDefsFrom(outputExpressionIR)
+      val moduleInput  = expressionIR.asModuleDefs
+      val moduleOutput = outputExpressionIR.asModuleDefs
 
       LiftSpecialOperators.runModule(moduleInput) shouldEqual moduleOutput
     }

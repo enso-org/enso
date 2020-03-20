@@ -29,6 +29,31 @@ class ReplTest extends InterpreterTest {
     )
   }
 
+  "Repl" should "be able to list bindings it has created" in {
+    val code =
+      """
+        |main =
+        |    x = 10
+        |    y = 20
+        |    z = x + y
+        |
+        |    Debug.breakpoint
+        |""".stripMargin
+    var scopeResult: Map[String, AnyRef] = Map()
+    getReplInstrument.setSessionManager { executor =>
+      executor.evaluate("x = y + z")
+      scopeResult = executor.listBindings.asScala.toMap
+      executor.exit()
+    }
+    eval(code)
+    scopeResult.view.mapValues(_.toString).toMap shouldEqual Map(
+      "this" -> "Test",
+      "x"    -> "50",
+      "y"    -> "20",
+      "z"    -> "30"
+    )
+  }
+
   "Repl" should "be able to execute arbitrary code in the caller scope" in {
     val code =
       """

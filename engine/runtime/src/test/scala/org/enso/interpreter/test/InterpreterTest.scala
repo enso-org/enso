@@ -80,10 +80,10 @@ trait InterpreterRunner {
   def eval(
     code: String
   ): Value = {
-    val main = getMain(code)
-    InterpreterException.rethrowPolyglot(
+    InterpreterException.rethrowPolyglot {
+      val main = getMain(code)
       main.mainFunction.execute(main.mainConstructor)
-    )
+    }
   }
 
   def consumeOut: List[String] = {

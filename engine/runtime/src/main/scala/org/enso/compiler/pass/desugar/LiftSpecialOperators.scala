@@ -2,6 +2,9 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
+import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+
+import scala.annotation.unused
 
 /** This pass lifts any special operators (ones reserved by the language
   * implementation) into their own special IR constructs.
@@ -26,7 +29,11 @@ case object LiftSpecialOperators extends IRPass {
     * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
-  override def runExpression(ir: IR.Expression): IR.Expression =
+  override def runExpression(
+    ir: IR.Expression,
+    @unused localScope: Option[LocalScope]   = None,
+    @unused moduleScope: Option[ModuleScope] = None
+  ): IR.Expression =
     ir.transformExpressions({
       case IR.Application.Operator.Binary(l, op, r, loc, meta) =>
         op.name match {

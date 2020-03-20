@@ -3,8 +3,6 @@ package org.enso.interpreter.test.instrument
 import java.nio.ByteBuffer
 import java.util.UUID
 
-import org.enso.interpeter.instrument.Endpoint
-import org.enso.interpreter.instrument.RuntimeServerInstrument
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.{LanguageInfo, RuntimeServerInfo}
 import org.graalvm.polyglot.Context

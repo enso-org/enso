@@ -51,8 +51,8 @@ class OperatorToFunctionTest extends CompilerTest {
     }
 
     "be translated in module contexts" in {
-      val moduleInput  = moduleDefsFrom(operator)
-      val moduleOutput = moduleDefsFrom(operatorFn)
+      val moduleInput  = operator.asModuleDefs
+      val moduleOutput = operatorFn.asModuleDefs
 
       OperatorToFunction.runModule(moduleInput) shouldEqual moduleOutput
     }

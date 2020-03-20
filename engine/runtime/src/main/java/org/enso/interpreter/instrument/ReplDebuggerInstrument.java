@@ -135,7 +135,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      * @return a map, where keys are variable names and values are current values of variables.
      */
     public Map<String, Object> listBindings() {
-      Map<String, FramePointer> flatScope = lastScope.getLocalScope().flatten();
+      Map<String, FramePointer> flatScope = lastScope.getLocalScope().flattenBindings();
       Map<String, Object> result = new HashMap<>();
       for (Map.Entry<String, FramePointer> entry : flatScope.entrySet()) {
         result.put(entry.getKey(), getValue(lastScope.getFrame(), entry.getValue()));
@@ -185,9 +185,16 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     protected void onEnter(VirtualFrame frame) {
       lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
       lastReturn = lookupContextReference(Language.class).get().getUnit().newInstance();
-      lastState = lastScope.getFrame().getValue(lastScope.getLocalScope().getStateFrameSlot());
+      // Note [Safe Access to State in the Debugger Instrument]
+      lastState = Function.ArgumentsHelper.getState(frame.getArguments());
       sessionManagerReference.get().startSession(this);
     }
+
+    /* Note [Safe Access to State in the Debugger Instrument]
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * This is safe to do as we ensure that the instrument's `onEnter` is always called as the
+     * first instruction of the function that it's observing.
+     */
 
     /**
      * Called by Truffle whenever an unwind {@see {@link EventContext#createUnwind(Object)}} was
