@@ -7,11 +7,11 @@
 use crate::prelude::*;
 
 pub use crate::double_representation::graph::Id;
+use crate::controller::module::NodeMetadata;
 
 use flo_stream::MessagePublisher;
 use flo_stream::Subscriber;
 use utils::channel::process_stream_with_handle;
-
 
 
 // ==============
@@ -28,10 +28,6 @@ pub struct NodeNotFound(ast::ID);
 // ============
 // === Node ===
 // ============
-
-/// TODO: replace with usage of the structure to be provided by Josef
-#[derive(Clone,Copy,Debug)]
-pub struct NodeMetadata; // here goes position
 
 /// Description of the node with all information available to the graph controller.
 #[derive(Clone,Debug)]
@@ -184,7 +180,8 @@ impl Handle {
     }
 
     /// Removes the node with given Id.
-    pub fn remove_node(&self, _id:ast::ID) -> FallibleResult<()> {
+    pub fn remove_node(&self, id:ast::ID) -> FallibleResult<()> {
+        self.module().pop_node_metadata(id)?;
         todo!()
     }
 
@@ -194,17 +191,17 @@ impl Handle {
     }
 
     /// Retrieves metadata for the given node.
-    pub fn node_metadata(&self, _id:ast::ID) -> FallibleResult<NodeMetadata> {
-        // todo!()
-        #[derive(Clone,Copy,Debug,Display,Fail)]
-        struct NotImplemented;
-        Err(NotImplemented.into())
+    pub fn node_metadata(&self, id:ast::ID) -> FallibleResult<NodeMetadata> {
+        self.module().node_metadata(id)
     }
 
-    /// Update metadata for the given node.
-    pub fn update_node_metadata<F>(&self, _id:ast::ID, _updater:F) -> FallibleResult<NodeMetadata>
-    where F : FnOnce(&mut NodeMetadata) {
-        todo!()
+    /// Modify metadata of given node.
+    /// If ID doesn't have metadata, empty (default) metadata is inserted.
+    pub fn with_node_metadata(&self, id:ast::ID, fun:impl FnOnce(&mut NodeMetadata)) {
+        let     module = self.module();
+        let mut data   = module.pop_node_metadata(id).unwrap_or(default());
+        fun(&mut data);
+        module.set_node_metadata(id, data);
     }
 }
 
@@ -216,6 +213,7 @@ mod tests {
     use crate::double_representation::definition::DefinitionName;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::controller::module;
+    use crate::controller::graph;
     use crate::controller::notification;
 
     use ast::HasRepr;
@@ -255,6 +253,29 @@ mod tests {
             let name = "main";
             self.run_graph_for_program(code,name,test)
         }
+    }
+
+    #[wasm_bindgen_test]
+    fn node_operations() {
+        TestWithLocalPoolExecutor::set_up().run_test(async {
+            let transport    = MockTransport::new();
+            let file_manager = file_manager_client::Handle::new(transport);
+            let parser       = Parser::new().unwrap();
+            let location     = module::Location("Test".to_string());
+            let code         = "main = Hello World";
+            let idmap        = default();
+            let module       = module::Handle::new_mock
+                (location,code,idmap,file_manager,parser).unwrap();
+            let pos          = module::Position {vector:Vector2::new(0.0,0.0)};
+            let crumbs       = vec![DefinitionName::new_plain("main")];
+            let graph        = graph::Handle::new(module, Id {crumbs}).unwrap();
+
+            let uid          = graph.all_node_infos().unwrap()[0].id();
+
+            graph.with_node_metadata(uid, |data| data.position = Some(pos));
+
+            assert_eq!(graph.node_metadata(uid).unwrap().position, Some(pos));
+        })
     }
 
     #[wasm_bindgen_test]
