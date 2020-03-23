@@ -12,7 +12,7 @@ need the following setup:
 
   ```bash
   rustup toolchain install nightly-2019-11-04 # Install the nightly channel.
-  rustup default nightly                      # Set it as the default one.
+  rustup override set nightly-2019-11-04      # Set it as the default toolchain for this folder.
   rustup component add clippy                 # Install the linter.
   cargo install cargo-watch                   # To enable ./run watch utility
   ```
