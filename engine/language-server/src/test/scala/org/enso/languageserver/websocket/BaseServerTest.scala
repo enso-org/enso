@@ -4,6 +4,8 @@ import java.nio.file.Files
 import java.util.UUID
 
 import akka.actor.{ActorRef, Props}
+import akka.pattern.ask
+import akka.util.Timeout
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.languageserver.{LanguageProtocol, LanguageServer}
@@ -19,6 +21,7 @@ import org.enso.languageserver.filemanager.{FileManager, FileSystem}
 import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.text.BufferRegistry
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class BaseServerTest extends JsonRpcServerTestKit {
@@ -54,6 +57,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
   }
 
   private def getFileManager(): ActorRef = {
+    implicit val timeout = Timeout(10.seconds)
     val zioExec = ZioExec(zio.Runtime.default)
     val fileManager =
       system.actorOf(FileManager.props(config, new FileSystem, zioExec))
@@ -61,9 +65,10 @@ class BaseServerTest extends JsonRpcServerTestKit {
     // Windows. And it's always the first one that fails. I assume it happens
     // due to a cold Zio executor. Here we send a few messages to warm up the
     // FileManager.
-    fileManager ! FileManagerProtocol.ExistsFile(
+    val result = fileManager ? FileManagerProtocol.ExistsFile(
       Path(testContentRootId, Vector())
     )
+    Await.ready(result, Duration.Inf)
     fileManager
   }
 }
