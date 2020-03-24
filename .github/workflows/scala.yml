@@ -1,0 +1,39 @@
+name: Enso CI (MacOS, Linux, Windows)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+    paths-ignore: 
+      - .github/*
+      - doc/*
+      - .gitignore
+      - .scalafmt.conf
+      - CODE_OF_CONDUCT.md
+      - CONTRIBUTING.md
+      - LICENSE
+      - README.md
+
+env:
+  # Please ensure that this is in sync with graalAPIVersion in build.sbt
+  graalVersion: 20.0.0
+  javaVersion: java8
+  # Please ensure that this is in sync with project/build.properties
+  sbtVersion: 1.3.3
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macOS-latest, ubuntu-latest]
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup GraalVM CE
+      uses: rinx/setup-graalvm-ce@v0.0.1
+      with:
+        graalvm-version: $graalVersion
+        java-version: $javaVersion
