@@ -22,7 +22,7 @@
 </p>
 
 ### Overview
-[![Build Status](https://dev.azure.com/luna-lang/luna/_apis/build/status/luna.enso?branchName=master)](https://dev.azure.com/luna-lang/luna/_build/latest?definitionId=10&branchName=master)
+![Enso CI](https://github.com/luna/enso/workflows/Enso%20CI/badge.svg?branch=master)
 
 <h3 align="center">
 Visual and textual functional programming language with a focus on productivity,
