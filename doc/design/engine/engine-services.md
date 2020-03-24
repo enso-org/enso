@@ -718,7 +718,6 @@ This message requests the creation of a new project.
 ```typescript
 interface ProjectCreateRequest {
   name: String;
-  location: SystemPath | URI;
 }
 ```
 
@@ -729,7 +728,13 @@ interface ProjectCreateRequest {
 ```
 
 ##### Errors
-TBC
+- [`ProjectNameValidationError`](#projectnamevalidationerror) to signal 
+validation failures.
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+underlying data store.
+- [`ProjectExistsError`](#projectexistserror) to signal that the project 
+already exists.
+
 
 #### `project/delete`
 This message requests the deletion of a project.
@@ -752,7 +757,11 @@ interface ProjectDeleteRequest {
 ```
 
 ##### Errors
-TBC
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+underlying data store.
+- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project 
+doesn't exist.
+
 
 #### `project/listSample`
 This request lists the sample projects that are available to the user.
@@ -2162,3 +2171,44 @@ Signals that the client doesn't hold write lock to the buffer.
   "message" : "Write denied"
 }
 ```
+
+##### `ProjectNameValidationError`
+Signals validation failures.
+
+```typescript
+"error" : {
+  "code" : 4001,
+  "message" : "Cannot create project with empty name"
+}
+```
+
+##### `ProjectDataStoreError`
+Signals problems with underlying data store.
+
+```typescript
+"error" : {
+  "code" : 4002,
+  "message" : "Cannot load project index"
+}
+```
+
+##### `ProjectExistsError`
+Signals that the project already exists.
+
+```typescript
+"error" : {
+  "code" : 4003,
+  "message" : "Project with the provided name exists"
+}
+```
+
+##### `ProjectNotFoundError`
+Signals that the project doesn't exist.
+
+```typescript
+"error" : {
+  "code" : 4004,
+  "message" : "Project with the provided id does not exist"
+}
+```
+

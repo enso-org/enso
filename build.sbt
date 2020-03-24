@@ -355,7 +355,14 @@ lazy val project_manager = (project in file("common/project-manager"))
       "com.github.pureconfig" %% "pureconfig" % "0.12.2",
       // logging
       "ch.qos.logback"             % "logback-classic" % "1.2.3",
-      "com.typesafe.scala-logging" %% "scala-logging"  % "3.9.2"
+      "com.typesafe.scala-logging" %% "scala-logging"  % "3.9.2",
+      //zio
+      "dev.zio"    %% "zio"              % "1.0.0-RC18-2",
+      "dev.zio"    %% "zio-interop-cats" % "2.0.0.0-RC12",
+      "commons-io" % "commons-io"        % "2.6"
+    ),
+    addCompilerPlugin(
+      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     )
   )
   .dependsOn(pkg)
