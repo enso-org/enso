@@ -32,8 +32,3 @@ jobs:
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
-    - name: Setup GraalVM CE
-      uses: rinx/setup-graalvm-ce@v0.0.1
-      with:
-        graalvm-version: $graalVersion
-        java-version: $javaVersion
