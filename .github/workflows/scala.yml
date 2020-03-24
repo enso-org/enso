@@ -1,4 +1,4 @@
-name: Enso CI (MacOS, Linux, Windows)
+name: Enso CI
 
 on:
   push:
@@ -23,12 +23,92 @@ env:
   sbtVersion: 1.3.3
 
 jobs:
-  build:
 
+  test:
+    name: Test
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       matrix:
         os: [windows-latest, macOS-latest, ubuntu-latest]
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
+    - name: Setup GraalVM Environment
+      uses: DeLaGuardo/setup-graalvm@2.0
+      with:
+        graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+    - name: Set Up SBT
+      run: |
+        curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+        tar -xzf sbt.tgz
+        echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
+    - name: Test Enso
+      run: sbt --no-colors test
+    - name: Benchmark the Parser
+      run: sbt -no-colors syntax/bench
+    - name: Check Runtime Benchmark Compilation
+      run: sbt -no-colors runtime/Benchmark/compile
+    - name: Build the Uberjar
+      run: sbt -no-colors runner/assembly
+    - name: Test the Uberjar
+      run: ./enso.jar --run ci/Test.enso
+      
+
+  build: 
+    name: Build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 5
+    - name: Setup GraalVM Environment
+      uses: DeLaGuardo/setup-graalvm@2.0
+      with:
+        graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+    - name: Set Up SBT
+      run: |
+        curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+        tar -xzf sbt.tgz
+        echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
+    - name: Build the Uberjar
+      run: sbt --no-colors runner/assembly
+    - name: Publish the Uberjar
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: Enso CLI
+        path: ./enso.jar
+    - name: Build the Parser JS Bundle
+      run: sbt -no-colors syntaxJS/fullOptJS
+    - name: Publish the Parser JS Bundle
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: Parser JS Bundle
+        path: ./target/scala-parser.js
+    - name: Prepare Parser JS Bundle for Upload
+      run: |
+        mkdir parser_upload
+        cp ./target/scala-parser.js parser_upload
+    - name: Prepare AWS Session
+      run: |
+        aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+        ${{ secrets.PARSER_S3_ACCESS_KEY_ID }}
+        ${{ secrets.PARSER_S3_SECRET_ACCESS_KEY }}
+        us-west-2
+        text
+        EOF
+    - name: Upload Parser JS Bundle to S3
+      run: |
+        echo s3://packages-luna/parser-js/nightly/`git rev-parse HEAD`
+        aws s3 sync ./parser_upload s3://packages-luna/parser-js/nightly/$GITHUB_SHA --profile s3-upload --acl public-read --delete
+    - name: Teardown AWS Session
+      run: |
+        aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+        null
+        null
+        null
+        text
+        EOF
+      
