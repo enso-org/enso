@@ -31,16 +31,6 @@ public class BlockNode extends ExpressionNode {
   }
 
   /**
-   * Sets whether or not the function is tail-recursive.
-   *
-   * @param isTail whether or not the function is tail-recursive.
-   */
-  @Override
-  public void setTail(boolean isTail) {
-    returnExpr.setTail(isTail);
-  }
-
-  /**
    * Executes the body of the function.
    *
    * @param frame the stack frame for execution

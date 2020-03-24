@@ -1,5 +1,6 @@
 package org.enso.compiler.test.pass.desugar
 
+import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.desugar.LiftSpecialOperators
 import org.enso.compiler.test.CompilerTest
@@ -8,6 +9,8 @@ import org.enso.syntax.text.Location
 class LiftSpecialOperatorsTest extends CompilerTest {
 
   // === Utilities ============================================================
+
+  val ctx = new InlineContext
 
   /** Tests whether a given operator is lifted correctly into the corresponding
     * special construct.
@@ -42,7 +45,7 @@ class LiftSpecialOperatorsTest extends CompilerTest {
 
     "be lifted by the pass in an inline context" in {
       LiftSpecialOperators
-        .runExpression(expressionIR) shouldEqual outputExpressionIR
+        .runExpression(expressionIR, ctx) shouldEqual outputExpressionIR
     }
 
     "be lifted by the pass in a module context" in {
@@ -62,7 +65,7 @@ class LiftSpecialOperatorsTest extends CompilerTest {
       )
 
       LiftSpecialOperators
-        .runExpression(recursiveIR) shouldEqual recursiveIROutput
+        .runExpression(recursiveIR, ctx) shouldEqual recursiveIROutput
     }
   }
 

@@ -43,20 +43,6 @@ public abstract class MatchNode extends ExpressionNode {
     return MatchNodeGen.create(cases, fallback, scrutinee);
   }
 
-  /**
-   * Sets whether or not the pattern match is tail-recursive.
-   *
-   * @param isTail whether or not the expression is tail-recursive
-   */
-  @Override
-  @ExplodeLoop
-  public void setTail(boolean isTail) {
-    for (CaseNode caseNode : cases) {
-      caseNode.setTail(isTail);
-    }
-    fallback.setTail(isTail);
-  }
-
   @Specialization
   Object doError(VirtualFrame frame, RuntimeError error) {
     return error;

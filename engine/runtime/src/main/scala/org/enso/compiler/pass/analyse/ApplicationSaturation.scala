@@ -1,25 +1,21 @@
 package org.enso.compiler.pass.analyse
 
+import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.ApplicationSaturation.{CallSaturation, Default, FunctionSpec, PassConfiguration}
+import org.enso.compiler.pass.analyse.ApplicationSaturation.{
+  CallSaturation,
+  Default,
+  FunctionSpec,
+  PassConfiguration
+}
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.callable.argument.CallArgument
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
-
-import scala.annotation.unused
 
 /** This optimisation pass recognises fully-saturated applications of known
   * functions and writes analysis data that allows optimisation of them to
   * specific nodes at codegen time.
-  *
-  * PLEASE NOTE: This implementation is _incomplete_ as the analysis it performs
-  * is _unconditional_ at this stage. This means that, until we have alias
-  * analysis information,
-  *
-  * PLEASE NOTE: This implementation is _incomplete_ as the analysis it performs
-  * only operates for functions where the arguments are applied positionally.
   *
   * @param knownFunctions a mapping from known function names to information
   *                       about that function that can be used for optimisation
@@ -39,7 +35,9 @@ case class ApplicationSaturation(
     *         IR.
     */
   override def runModule(ir: IR.Module): IR.Module =
-    ir.transformExpressions({ case x => runExpression(x) })
+    ir.transformExpressions({
+      case x => runExpression(x, new InlineContext)
+    })
 
   /** Executes the analysis pass, marking functions with information about their
     * argument saturation.
@@ -50,8 +48,7 @@ case class ApplicationSaturation(
     */
   override def runExpression(
     ir: IR.Expression,
-    @unused localScope: Option[LocalScope]   = None,
-    @unused moduleScope: Option[ModuleScope] = None
+    inlineContext: InlineContext
   ): IR.Expression = {
     ir.transformExpressions {
       case func @ IR.Application.Prefix(fn, args, _, _, meta) =>
@@ -82,7 +79,8 @@ case class ApplicationSaturation(
                     func.copy(
                       arguments = args.map(
                         _.mapExpressions(
-                          (ir: IR.Expression) => runExpression(ir)
+                          (ir: IR.Expression) =>
+                            runExpression(ir, inlineContext)
                         )
                       ),
                       passData = meta + saturationInfo
@@ -92,7 +90,8 @@ case class ApplicationSaturation(
                     func.copy(
                       arguments = args.map(
                         _.mapExpressions(
-                          (ir: IR.Expression) => runExpression(ir)
+                          (ir: IR.Expression) =>
+                            runExpression(ir, inlineContext)
                         )
                       ),
                       passData = meta + CallSaturation.Over(args.length - arity)
@@ -101,7 +100,8 @@ case class ApplicationSaturation(
                     func.copy(
                       arguments = args.map(
                         _.mapExpressions(
-                          (ir: IR.Expression) => runExpression(ir)
+                          (ir: IR.Expression) =>
+                            runExpression(ir, inlineContext)
                         )
                       ),
                       passData = meta + CallSaturation.Partial(
@@ -112,22 +112,26 @@ case class ApplicationSaturation(
                 case None =>
                   func.copy(
                     arguments = args.map(
-                      _.mapExpressions((ir: IR.Expression) => runExpression(ir))
+                      _.mapExpressions(
+                        (ir: IR.Expression) => runExpression(ir, inlineContext)
+                      )
                     ),
                     passData = meta + CallSaturation.Unknown()
                   )
               }
             } else {
               func.copy(
-                function = runExpression(fn),
-                arguments = args.map(_.mapExpressions(runExpression(_))),
+                function = runExpression(fn, inlineContext),
+                arguments =
+                  args.map(_.mapExpressions(runExpression(_, inlineContext))),
                 passData = meta + CallSaturation.Unknown()
               )
             }
           case _ =>
             func.copy(
-              function = runExpression(fn),
-              arguments = args.map(_.mapExpressions(runExpression(_))),
+              function = runExpression(fn, inlineContext),
+              arguments =
+                args.map(_.mapExpressions(runExpression(_, inlineContext))),
               passData = meta + CallSaturation.Unknown()
             )
         }

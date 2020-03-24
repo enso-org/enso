@@ -1,13 +1,13 @@
 import java.io.File
 
-import sbt.Keys.scalacOptions
-
-import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
+import sbt.Keys.scalacOptions
 import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+
+import scala.sys.process._
 
 //////////////////////////////
 //// Global Configuration ////
@@ -446,16 +446,16 @@ lazy val polyglot_api = project
 lazy val language_server = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
-      "ch.qos.logback"   % "logback-classic"       % "1.2.3",
+      "ch.qos.logback"   % "logback-classic" % "1.2.3",
       "io.circe"         %% "circe-generic-extras" % "0.12.2",
-      "io.circe"         %% "circe-literal"        % circeVersion,
-      "org.bouncycastle" % "bcpkix-jdk15on"        % "1.64",
-      "dev.zio"          %% "zio"                  % "1.0.0-RC18-2",
+      "io.circe"         %% "circe-literal" % circeVersion,
+      "org.bouncycastle" % "bcpkix-jdk15on" % "1.64",
+      "dev.zio"          %% "zio" % "1.0.0-RC18-2",
       akkaTestkit        % Test,
-      "commons-io"       % "commons-io"            % "2.6",
-      "org.scalatest"    %% "scalatest"            % "3.2.0-M2" % Test,
-      "org.scalacheck"   %% "scalacheck"           % "1.14.0" % Test,
-      "org.graalvm.sdk"  % "polyglot-tck"          % graalVersion % "provided"
+      "commons-io"       % "commons-io" % "2.6",
+      "org.scalatest"    %% "scalatest" % "3.2.0-M2" % Test,
+      "org.scalacheck"   %% "scalacheck" % "1.14.0" % Test,
+      "org.graalvm.sdk"  % "polyglot-tck" % graalVersion % "provided"
     ),
     testOptions in Test += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000")

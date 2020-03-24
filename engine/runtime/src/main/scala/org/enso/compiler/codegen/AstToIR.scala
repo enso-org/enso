@@ -140,17 +140,11 @@ object AstToIR {
           (Constants.Names.CURRENT_MODULE, None)
         }
 
-        val nameStr       = name match { case AST.Ident.Var.any(name) => name }
-        val defExpression = translateExpression(definition)
-        val defExpr: Function.Lambda = defExpression match {
-          case fun: Function.Lambda => fun
-          case expr =>
-            Function.Lambda(List(), expr, expr.location)
-        }
+        val nameStr = name match { case AST.Ident.Var.any(name) => name }
         Module.Scope.Definition.Method(
           Name.Literal(path, pathLoc),
           Name.Literal(nameStr.name, nameStr.location),
-          defExpr,
+          translateExpression(definition),
           inputAST.location
         )
       case _ =>
@@ -180,10 +174,14 @@ object AstToIR {
       case AstView.Assignment(name, expr) =>
         translateBinding(inputAST.location, name, expr)
       case AstView.MethodCall(target, name, args) =>
+        val (validArguments, hasDefaultsSuspended) =
+          calculateDefaultsSuspension(args)
+
+        // Note [Uniform Call Syntax Translation]
         Application.Prefix(
           translateExpression(name),
-          (target :: args).map(translateCallArgument),
-          false,
+          (target :: validArguments).map(translateCallArgument),
+          hasDefaultsSuspended = hasDefaultsSuspended,
           inputAST.location
         )
       case AstView.CaseExpression(scrutinee, branches) =>
@@ -225,6 +223,16 @@ object AstToIR {
         throw new UnhandledEntity(inputAST, "translateExpression")
     }
   }
+
+  /* Note [Uniform Call Syntax Translation]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * As the uniform call syntax must work for both methods and functions, the
+   * conversion can't take advantage of any by-name application semantics at the
+   * current time.
+   *
+   * This means that it is a purely _positional_ conversion on the first
+   * argument and cannot be performed any other way.
+   */
 
   /** Translates a program literal from its [[AST]] representation into
     * [[Core]].
@@ -289,7 +297,7 @@ object AstToIR {
         DefinitionArgument.Specified(
           Name.Literal(name.name, name.location),
           Some(translateExpression(value)),
-          true,
+          suspended = true,
           arg.location
         )
       case AstView.LazyArgument(arg) =>
@@ -331,6 +339,28 @@ object AstToIR {
       CallArgument.Specified(None, translateExpression(arg), arg.location)
   }
 
+  /** Calculates whether a set of arguments has its defaults suspended, and
+    * processes the argument list to remove that operator.
+    *
+    * @param args the list of arguments
+    * @return the list of arguments with the suspension operator removed, and
+    *         whether or not the defaults are suspended
+    */
+  def calculateDefaultsSuspension(args: List[AST]): (List[AST], Boolean) = {
+    val validArguments = args.filter {
+      case AstView.SuspendDefaultsOperator(_) => false
+      case _                                  => true
+    }
+
+    val suspendPositions = args.zipWithIndex.collect {
+      case (AstView.SuspendDefaultsOperator(_), ix) => ix
+    }
+
+    val hasDefaultsSuspended = suspendPositions.contains(args.length - 1)
+
+    (validArguments, hasDefaultsSuspended)
+  }
+
   /** Translates an arbitrary expression that takes the form of a syntactic
     * application from its [[AST]] representation into [[Core]].
     *
@@ -348,16 +378,8 @@ object AstToIR {
       case AstView.ForcedTerm(term) =>
         Application.Force(translateExpression(term), callable.location)
       case AstView.Application(name, args) =>
-        val validArguments = args.filter {
-          case AstView.SuspendDefaultsOperator(_) => false
-          case _                                  => true
-        }
-
-        val suspendPositions = args.zipWithIndex.collect {
-          case (AstView.SuspendDefaultsOperator(_), ix) => ix
-        }
-
-        val hasDefaultsSuspended = suspendPositions.contains(args.length - 1)
+        val (validArguments, hasDefaultsSuspended) =
+          calculateDefaultsSuspension(args)
 
         Application.Prefix(
           translateExpression(name),

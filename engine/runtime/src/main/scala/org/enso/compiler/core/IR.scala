@@ -2,7 +2,7 @@ package org.enso.compiler.core
 
 import org.enso.compiler.core.IR.Expression
 import org.enso.syntax.text.ast.Doc
-import org.enso.syntax.text.{AST, Location}
+import org.enso.syntax.text.{AST, Debug, Location}
 
 import scala.collection.immutable.{Set => ISet}
 import scala.reflect.ClassTag
@@ -51,6 +51,12 @@ sealed trait IR {
     * @return `this`, potentially having had its children transformed by `fn`
     */
   def mapExpressions(fn: Expression => Expression): IR
+
+  /** Pretty prints the IR.
+   *
+   * @return a pretty-printed representation of the IR
+   */
+  def pretty: String = Debug.pretty(this.toString)
 }
 object IR {
 
@@ -185,6 +191,8 @@ object IR {
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
           */
+        // TODO [AA] Separate Method into Method.Binding and Method.Explicit to
+        //  account for syntax sugar later.
         sealed case class Method(
           typeName: IR.Name,
           methodName: IR.Name,
@@ -850,7 +858,7 @@ object IR {
         right: Expression,
         override val location: Option[Location],
         override val passData: ISet[Metadata] = ISet()
-      ) extends Application
+      ) extends Operator
           with IRKind.Sugar {
         override def addMetadata(newData: Metadata): Binary = {
           copy(passData = this.passData + newData)
@@ -1035,7 +1043,7 @@ object IR {
       code: String,
       override val location: Option[Location],
       override val passData: ISet[Metadata] = ISet()
-    ) extends Expression
+    ) extends Foreign
         with IRKind.Primitive {
       override def addMetadata(newData: Metadata): Definition = {
         copy(passData = this.passData + newData)

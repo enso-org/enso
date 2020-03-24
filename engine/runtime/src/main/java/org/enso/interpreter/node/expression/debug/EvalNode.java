@@ -5,6 +5,7 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.compiler.InlineContext;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
@@ -16,6 +17,7 @@ import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
+import scala.Some;
 
 /** Node running Enso expressions passed to it as strings. */
 @NodeInfo(shortName = "Eval", description = "Evaluates code passed to it as string")
@@ -57,11 +59,12 @@ public abstract class EvalNode extends BaseNode {
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
     LocalScope localScope = scope.createChild();
     Language language = lookupLanguageReference(Language.class).get();
+    InlineContext inlineContext = InlineContext.fromJava(localScope, moduleScope, isTail());
     ExpressionNode expr =
         lookupContextReference(Language.class)
             .get()
             .compiler()
-            .runInline(expression, localScope, moduleScope)
+            .runInline(expression, inlineContext)
             .getOrElse(null);
     if (expr == null) {
       throw new RuntimeException("Invalid code passed to `eval`: " + expression);
@@ -78,7 +81,6 @@ public abstract class EvalNode extends BaseNode {
             expr,
             null,
             "<dynamic_eval>");
-    framedNode.setTail(isTail());
     return Truffle.getRuntime().createCallTarget(framedNode);
   }
 

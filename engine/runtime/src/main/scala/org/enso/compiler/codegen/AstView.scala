@@ -355,6 +355,11 @@ object AstView {
     def unapply(ast: AST): Option[(AST, AST.Ident, List[AST])] = ast match {
       case OperatorDot(target, Application(ConsOrVar(ident), args)) =>
         Some((target, ident, args))
+      case AST.App.Section.Left(
+          MethodCall(target, ident, List()),
+          susp @ SuspendDefaultsOperator(_)
+          ) =>
+        Some((target, ident, List(susp)))
       case OperatorDot(target, ConsOrVar(ident)) =>
         Some((target, ident, List()))
       case _ => None

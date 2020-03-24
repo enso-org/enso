@@ -57,4 +57,20 @@ class CurryingTest extends InterpreterTest {
 
     eval(code) shouldEqual 32
   }
+
+  "Method call syntax" should "allow default arguments to be suspended" in {
+    val code =
+      """
+        |Unit.fn = w x (y = 10) (z = 20) -> w + x + y + z
+        |
+        |main =
+        |    fn1 = Unit.fn ...
+        |    fn2 = fn1 1 2 ...
+        |    fn3 = fn2 3 ...
+        |
+        |    fn3.call
+        |""".stripMargin
+
+    eval(code) shouldEqual 26
+  }
 }

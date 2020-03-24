@@ -70,15 +70,4 @@ public class ClosureRootNode extends EnsoRootNode {
     state = FrameUtil.getObjectSafe(frame, this.getStateFrameSlot());
     return new Stateful(state, result);
   }
-
-  /**
-   * Sets whether the node is tail-recursive.
-   *
-   * @param isTail whether or not the node is tail-recursive.
-   */
-  @Override
-  public void setTail(boolean isTail) {
-    CompilerDirectives.transferToInterpreterAndInvalidate();
-    body.setTail(isTail);
-  }
 }

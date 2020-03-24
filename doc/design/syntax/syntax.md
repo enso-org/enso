@@ -641,7 +641,8 @@ binds the function name. This means that:
 ### Methods
 Enso makes a distinction between functions and methods. In Enso, a method is a
 function where the first argument (known as the `this` argument) is associated
-with a given atom.
+with a given atom. Methods are dispatched dynamically based on the type of the
+`this` argument, while functions are not.
 
 Methods can be defined in Enso in two ways:
 
@@ -669,6 +670,18 @@ Methods can be defined in Enso in two ways:
       ...
   ```
 
+3. **As a Function with an Explicit `this` Argument:** A function defined with
+   the type of the `this` argument specified to be a type.
+
+  ```ruby
+  floor (this : Number) = case this of
+      Integer -> ...
+  ```
+
+If the user does not explicitly specify the `this` argument by name when
+defining a method (e.g. they use the `Type.name` syntax), it is implicitly added
+to the start of the argument list.
+
 #### This vs. Self
 Though it varies greatly between programming languages, we have chosen `this` to
 be the name of the 'current type' rather than `self`. This is a purely aesthetic
@@ -687,17 +700,10 @@ when calling it. To that end, Enso supports what is known as Uniform Call Syntax
 - This is a needless constraint as both notations have their advantages.
 - Enso has two notations, but one unified semantics.
 
-The rules for the uniform syntax call translation in Enso are as follows.
+The rules for the uniform syntax call translation in Enso are as follows:
 
-1. For an expression `t.fn`, this is equivalent to `fn (this = t)`.
-2. The `this` argument may occur at any position in the function.
-
-> The actionables for this section are:
->
-> - Clarify exactly how this should work, and which argument should be
->   translated.
-> - We do not _currently_ implement the above-listed transformation, so we need
->   to solidify these rules.
+1. For an expression `t.fn <args>`, this is equivalent to `fn t <args>`.
+2. For an expression `fn t <args>`, this is equivalent to `t.fn <args>`.
 
 ### Code Blocks
 Top-level blocks in the language are evaluated immediately. This means that the

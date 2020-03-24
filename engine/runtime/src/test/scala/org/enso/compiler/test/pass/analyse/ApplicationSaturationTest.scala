@@ -1,13 +1,14 @@
 package org.enso.compiler.test.pass.analyse
 
+import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Metadata
-import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
 import org.enso.compiler.pass.analyse.ApplicationSaturation.{
   CallSaturation,
   FunctionSpec,
   PassConfiguration
 }
+import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.node.ExpressionNode
@@ -58,39 +59,54 @@ class ApplicationSaturationTest extends CompilerTest {
 
   val localScope = Some(LocalScope.root)
 
+  val ctx = new InlineContext(localScope = localScope)
+
   // === The Tests ============================================================
 
   "Known applications" should {
-    val plusFn = IR.Application.Prefix(
-      IR.Name.Literal("+", None),
-      genNArgs(2),
-      hasDefaultsSuspended = false,
-      None
-    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
+    val plusFn = IR.Application
+      .Prefix(
+        IR.Name.Literal("+", None),
+        genNArgs(2),
+        hasDefaultsSuspended = false,
+        None
+      )
+      .runPasses(passes, ctx)
+      .asInstanceOf[IR.Application.Prefix]
 
-    val bazFn = IR.Application.Prefix(
-      IR.Name.Literal("baz", None),
-      genNArgs(2),
-      hasDefaultsSuspended = false,
-      None
-    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
+    val bazFn = IR.Application
+      .Prefix(
+        IR.Name.Literal("baz", None),
+        genNArgs(2),
+        hasDefaultsSuspended = false,
+        None
+      )
+      .runPasses(passes, ctx)
+      .asInstanceOf[IR.Application.Prefix]
 
-    val fooFn = IR.Application.Prefix(
-      IR.Name.Literal("foo", None),
-      genNArgs(5),
-      hasDefaultsSuspended = false,
-      None
-    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
+    val fooFn = IR.Application
+      .Prefix(
+        IR.Name.Literal("foo", None),
+        genNArgs(5),
+        hasDefaultsSuspended = false,
+        None
+      )
+      .runPasses(passes, ctx)
+      .asInstanceOf[IR.Application.Prefix]
 
-    val fooFnByName = IR.Application.Prefix(
-      IR.Name.Literal("foo", None),
-      genNArgs(4, positional = false),
-      hasDefaultsSuspended = false,
-      None
-    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
+    val fooFnByName = IR.Application
+      .Prefix(
+        IR.Name.Literal("foo", None),
+        genNArgs(4, positional = false),
+        hasDefaultsSuspended = false,
+        None
+      )
+      .runPasses(passes, ctx)
+      .asInstanceOf[IR.Application.Prefix]
 
     "be tagged with full saturation where possible" in {
-      val resultIR = ApplicationSaturation(knownFunctions).runExpression(plusFn)
+      val resultIR =
+        ApplicationSaturation(knownFunctions).runExpression(plusFn, ctx)
 
       resultIR.getMetadata[CallSaturation].foreach {
         case _: CallSaturation.Exact => succeed
@@ -99,14 +115,16 @@ class ApplicationSaturationTest extends CompilerTest {
     }
 
     "be tagged with partial saturation where possible" in {
-      val resultIR = ApplicationSaturation(knownFunctions).runExpression(bazFn)
+      val resultIR =
+        ApplicationSaturation(knownFunctions).runExpression(bazFn, ctx)
       val expected = Some(CallSaturation.Partial(1))
 
       resultIR.getMetadata[CallSaturation] shouldEqual expected
     }
 
     "be tagged with over saturation where possible" in {
-      val resultIR = ApplicationSaturation(knownFunctions).runExpression(fooFn)
+      val resultIR =
+        ApplicationSaturation(knownFunctions).runExpression(fooFn, ctx)
       val expected = Some(CallSaturation.Over(1))
 
       resultIR.getMetadata[CallSaturation] shouldEqual expected
@@ -114,7 +132,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     "be tagged with by name if applied by name" in {
       val resultIR =
-        ApplicationSaturation(knownFunctions).runExpression(fooFnByName)
+        ApplicationSaturation(knownFunctions).runExpression(fooFnByName, ctx)
       val expected = Some(CallSaturation.ExactButByName())
 
       resultIR.getMetadata[CallSaturation] shouldEqual expected
@@ -122,16 +140,19 @@ class ApplicationSaturationTest extends CompilerTest {
   }
 
   "Unknown applications" should {
-    val unknownFn = IR.Application.Prefix(
-      IR.Name.Literal("unknown", None),
-      genNArgs(10),
-      hasDefaultsSuspended = false,
-      None
-    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
+    val unknownFn = IR.Application
+      .Prefix(
+        IR.Name.Literal("unknown", None),
+        genNArgs(10),
+        hasDefaultsSuspended = false,
+        None
+      )
+      .runPasses(passes, ctx)
+      .asInstanceOf[IR.Application.Prefix]
 
     "be tagged with unknown saturation" in {
       val resultIR =
-        ApplicationSaturation(knownFunctions).runExpression(unknownFn)
+        ApplicationSaturation(knownFunctions).runExpression(unknownFn, ctx)
       val expected = Some(CallSaturation.Unknown())
 
       resultIR.getMetadata[CallSaturation] shouldEqual expected
@@ -140,26 +161,35 @@ class ApplicationSaturationTest extends CompilerTest {
 
   "Known applications containing known applications" should {
     val empty = IR.Empty(None)
-    val knownPlus = IR.Application.Prefix(
-      IR.Name.Literal("+", None),
-      genNArgs(2),
-      hasDefaultsSuspended = false,
-      None
-    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
+    val knownPlus = IR.Application
+      .Prefix(
+        IR.Name.Literal("+", None),
+        genNArgs(2),
+        hasDefaultsSuspended = false,
+        None
+      )
+      .runPasses(passes, ctx)
+      .asInstanceOf[IR.Application.Prefix]
 
-    val undersaturatedPlus = IR.Application.Prefix(
-      IR.Name.Literal("+", None),
-      genNArgs(1),
-      hasDefaultsSuspended = false,
-      None
-    ).runPasses(passes,localScope).asInstanceOf[IR.Application.Prefix]
+    val undersaturatedPlus = IR.Application
+      .Prefix(
+        IR.Name.Literal("+", None),
+        genNArgs(1),
+        hasDefaultsSuspended = false,
+        None
+      )
+      .runPasses(passes, ctx)
+      .asInstanceOf[IR.Application.Prefix]
 
-    val oversaturatedPlus = IR.Application.Prefix(
-      IR.Name.Literal("+", None),
-      genNArgs(3),
-      hasDefaultsSuspended = false,
-      None
-    ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
+    val oversaturatedPlus = IR.Application
+      .Prefix(
+        IR.Name.Literal("+", None),
+        genNArgs(3),
+        hasDefaultsSuspended = false,
+        None
+      )
+      .runPasses(passes, ctx)
+      .asInstanceOf[IR.Application.Prefix]
 
     implicit class InnerMeta(ir: IR.Expression) {
       def getInnerMetadata[T <: Metadata: ClassTag]: Option[T] = {
@@ -173,21 +203,25 @@ class ApplicationSaturationTest extends CompilerTest {
     }
 
     def outerPlus(argExpr: IR.Expression): IR.Application.Prefix = {
-      IR.Application.Prefix(
-        IR.Name.Literal("+", None),
-        List(
-          IR.CallArgument.Specified(None, argExpr, None),
-          IR.CallArgument.Specified(None, empty, None)
-        ),
-        hasDefaultsSuspended = false,
-        None
-      ).runPasses(passes, localScope).asInstanceOf[IR.Application.Prefix]
+      IR.Application
+        .Prefix(
+          IR.Name.Literal("+", None),
+          List(
+            IR.CallArgument.Specified(None, argExpr, None),
+            IR.CallArgument.Specified(None, empty, None)
+          ),
+          hasDefaultsSuspended = false,
+          None
+        )
+        .runPasses(passes, ctx)
+        .asInstanceOf[IR.Application.Prefix]
     }
 
     "have fully saturated applications tagged correctly" in {
       val result =
         ApplicationSaturation(knownFunctions).runExpression(
-          outerPlus(knownPlus)
+          outerPlus(knownPlus),
+          ctx
         )
 
       // The outer should be reported as fully saturated
@@ -206,7 +240,8 @@ class ApplicationSaturationTest extends CompilerTest {
     "have non-fully saturated applications tagged correctly" in {
       val result =
         ApplicationSaturation(knownFunctions).runExpression(
-          outerPlus(undersaturatedPlus)
+          outerPlus(undersaturatedPlus),
+          ctx
         )
       val expectedInnerMeta = CallSaturation.Partial(1)
 
@@ -225,7 +260,8 @@ class ApplicationSaturationTest extends CompilerTest {
     "have a mixture of application saturations tagged correctly" in {
       val result =
         ApplicationSaturation(knownFunctions).runExpression(
-          outerPlus(oversaturatedPlus)
+          outerPlus(oversaturatedPlus),
+          ctx
         )
       val expectedInnerMeta = CallSaturation.Over(1)
 
@@ -252,11 +288,11 @@ class ApplicationSaturationTest extends CompilerTest {
         |""".stripMargin.toIR
 
     val inputIR = rawIR
-      .runPasses(passes, localScope = localScope)
+      .runPasses(passes, ctx)
       .asInstanceOf[IR.Expression]
 
     val result = ApplicationSaturation(knownFunctions)
-      .runExpression(inputIR, localScope = localScope)
+      .runExpression(inputIR, ctx)
       .asInstanceOf[IR.Expression.Binding]
 
     "be tagged as unknown even if their name is known" in {

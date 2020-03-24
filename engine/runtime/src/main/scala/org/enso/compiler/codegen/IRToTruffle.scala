@@ -4,7 +4,11 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
-import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  ApplicationSaturation,
+  TailCall
+}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
@@ -127,7 +131,7 @@ class IRToTruffle(
 
     // Register the imports in scope
     imports.foreach(
-      i => this.moduleScope.addImport(context.compiler.requestProcess(i.name))
+      i => this.moduleScope.addImport(context.compiler.processImport(i.name))
     )
 
     // Register the atoms and their constructors in scope
@@ -138,7 +142,7 @@ class IRToTruffle(
     atomConstructors
       .zip(atomDefs)
       .foreach {
-        case (atomCons, atomDefn) => {
+        case (atomCons, atomDefn) =>
           val scopeInfo = atomDefn
             .getMetadata[AliasAnalysis.Info.Scope.Root]
             .getOrElse(
@@ -157,7 +161,6 @@ class IRToTruffle(
           }
 
           atomCons.initializeFields(argDefs: _*)
-        }
       }
 
     // Register the method definitions in scope
@@ -166,7 +169,7 @@ class IRToTruffle(
       val scopeInfo = methodDef
         .getMetadata[AliasAnalysis.Info.Scope.Root]
         .getOrElse(
-          throw new CompilerError(("Missing scope information for method."))
+          throw new CompilerError("Missing scope information for method.")
         )
 
       val typeName =
@@ -182,6 +185,12 @@ class IRToTruffle(
         scopeInfo.graph.rootScope
       )
 
+      val methodFunIsTail = methodDef.body
+        .getMetadata[TailCall.Metadata]
+        .getOrElse(
+          throw new CompilerError("Method body missing tail call info.")
+        )
+
       val funNode = methodDef.body match {
         case fn: IR.Function =>
           expressionProcessor.processFunctionBody(
@@ -190,14 +199,12 @@ class IRToTruffle(
             fn.location
           )
         case _ =>
-          expressionProcessor.processFunctionBody(
-            List(),
-            methodDef.body,
-            methodDef.body.location
+          throw new CompilerError(
+            "Method bodies must be functions at the point of codegen."
           )
       }
 
-      funNode.markTail()
+      funNode.setTail(methodFunIsTail)
 
       val function = new RuntimeFunction(
         funNode.getCallTarget,
@@ -266,7 +273,7 @@ class IRToTruffle(
     val scopeName: String
   ) {
 
-    private var currentVarName = "anonymous";
+    private var currentVarName = "anonymous"
 
     // === Construction =======================================================
 
@@ -299,25 +306,36 @@ class IRToTruffle(
       * @param ir the IR to generate code for
       * @return a truffle expression that represents the same program as `ir`
       */
-    def run(ir: IR): RuntimeExpression = ir match {
-      case block: IR.Expression.Block     => processBlock(block)
-      case literal: IR.Literal            => processLiteral(literal)
-      case app: IR.Application            => processApplication(app)
-      case name: IR.Name                  => processName(name)
-      case function: IR.Function          => processFunction(function)
-      case binding: IR.Expression.Binding => processBinding(binding)
-      case caseExpr: IR.Case              => processCase(caseExpr)
-      case comment: IR.Comment            => processComment(comment)
-      case err: IR.Error =>
-        throw new CompilerError(
-          s"No errors should remain by the point of truffle codegen, but " +
-          s"found $err."
+    def run(ir: IR): RuntimeExpression = {
+      val tailMeta = ir
+        .getMetadata[TailCall.Metadata]
+        .getOrElse(
+          throw new CompilerError(s"Missing tail call metadata for $ir")
         )
-      case IR.Foreign.Definition(_, _, _, _) =>
-        throw new CompilerError(
-          s"Foreign expressions not yet implemented: $ir."
-        )
-      case _ => throw new UnhandledEntity(ir, "run")
+
+      val runtimeExpression = ir match {
+        case block: IR.Expression.Block     => processBlock(block)
+        case literal: IR.Literal            => processLiteral(literal)
+        case app: IR.Application            => processApplication(app)
+        case name: IR.Name                  => processName(name)
+        case function: IR.Function          => processFunction(function)
+        case binding: IR.Expression.Binding => processBinding(binding)
+        case caseExpr: IR.Case              => processCase(caseExpr)
+        case comment: IR.Comment            => processComment(comment)
+        case err: IR.Error =>
+          throw new CompilerError(
+            s"No errors should remain by the point of truffle codegen, but " +
+            s"found $err."
+          )
+        case IR.Foreign.Definition(_, _, _, _) =>
+          throw new CompilerError(
+            s"Foreign expressions not yet implemented: $ir."
+          )
+        case _ => throw new UnhandledEntity(ir, "run")
+      }
+
+      runtimeExpression.setTail(tailMeta)
+      runtimeExpression
     }
 
     /** Executes the expression processor on a piece of code that has been
@@ -328,7 +346,6 @@ class IRToTruffle(
       */
     def runInline(ir: IR.Expression): RuntimeExpression = {
       val expression = run(ir)
-      expression.markNotTail()
       expression
     }
 
@@ -393,9 +410,21 @@ class IRToTruffle(
 
         val cases = branches
           .map(
-            branch =>
-              ConstructorCaseNode
+            branch => {
+              val caseIsTail = branch
+                .getMetadata[TailCall.Metadata]
+                .getOrElse(
+                  throw new CompilerError(
+                    "Case branch missing tail position information."
+                  )
+                )
+
+              val caseNode = ConstructorCaseNode
                 .build(this.run(branch.pattern), this.run(branch.expression))
+              caseNode.setTail(caseIsTail)
+
+              caseNode
+            }
           )
           .toArray[CaseNode]
 
@@ -466,7 +495,6 @@ class IRToTruffle(
         function.body,
         function.location
       )
-      fn.setTail(function.canBeTCO)
 
       fn
     }
@@ -485,7 +513,7 @@ class IRToTruffle(
               throw new CompilerError("No occurence on variable usage.")
             )
 
-          val slot = scope.getFramePointer(useInfo.id)
+          val slot     = scope.getFramePointer(useInfo.id)
           val atomCons = moduleScope.getConstructor(nameStr).toScala
           if (nameStr == Constants.Names.CURRENT_MODULE) {
             ConstructorNode.build(moduleScope.getAssociatedType)
@@ -567,6 +595,14 @@ class IRToTruffle(
         } else seenArgNames.add(argName)
       }
 
+      val bodyIsTail = body
+        .getMetadata[TailCall.Metadata]
+        .getOrElse(
+          throw new CompilerError(
+            "Function body missing tail call information."
+          )
+        )
+
       val bodyExpr = this.run(body)
 
       val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
@@ -581,6 +617,8 @@ class IRToTruffle(
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
 
       val expr = CreateFunctionNode.build(callTarget, argDefinitions)
+
+      fnBodyNode.setTail(bodyIsTail)
 
       setLocation(expr, location)
     }
@@ -696,7 +734,16 @@ class IRToTruffle(
             val childScope = scope.createChild(scopeInfo.scope)
             val argumentExpression =
               new ExpressionProcessor(childScope, scopeName).run(value)
-            argumentExpression.markTail()
+
+            val argExpressionIsTail = value
+              .getMetadata[TailCall.Metadata]
+              .getOrElse(
+                throw new CompilerError(
+                  "Argument with missing tail call information."
+                )
+              )
+
+            argumentExpression.setTail(argExpressionIsTail)
 
             val displayName =
               s"call_argument<${name.getOrElse(String.valueOf(position))}>"

@@ -38,16 +38,6 @@ public class CreateFunctionNode extends ExpressionNode {
   }
 
   /**
-   * Sets the tail-recursiveness of the function.
-   *
-   * @param isTail whether or not the function is tail-recursive
-   */
-  @Override
-  public void setTail(boolean isTail) {
-    ((ClosureRootNode) callTarget.getRootNode()).setTail(isTail);
-  }
-
-  /**
    * Generates the provided function definition in the given stack {@code frame}.
    *
    * @param frame the stack frame for execution

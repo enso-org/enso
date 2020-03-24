@@ -1,9 +1,9 @@
 package org.enso.compiler.test
 
+import org.enso.compiler.InlineContext
 import org.enso.compiler.codegen.AstToIR
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
-import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -93,12 +93,12 @@ trait CompilerRunner {
       */
     def runPasses(
       passes: List[IRPass],
-      localScope: Option[LocalScope] = None
+      inlineContext: InlineContext
     ): IR = ir match {
       case expr: IR.Expression =>
         passes.foldLeft(expr)(
           (intermediate, pass) =>
-            pass.runExpression(intermediate, localScope = localScope)
+            pass.runExpression(intermediate, inlineContext)
         )
       case mod: IR.Module =>
         passes.foldLeft(mod)(

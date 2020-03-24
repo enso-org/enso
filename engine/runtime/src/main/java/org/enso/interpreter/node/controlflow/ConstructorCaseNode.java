@@ -39,16 +39,6 @@ public class ConstructorCaseNode extends CaseNode {
   }
 
   /**
-   * Sets whether or not the case expression is tail recursive.
-   *
-   * @param isTail whether or not the case expression is tail-recursive
-   */
-  @Override
-  public void setTail(boolean isTail) {
-    branch.setTail(isTail);
-  }
-
-  /**
    * Handles the atom scrutinee case.
    *
    * <p>The atom's constructor is checked and if it matches the conditional branch is executed with

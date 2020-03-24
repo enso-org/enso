@@ -1,7 +1,7 @@
 package org.enso.compiler.pass
 
+import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 /** A representation of a compiler pass that runs on the [[IR]] type. */
 trait IRPass {
@@ -22,14 +22,13 @@ trait IRPass {
     * or annotated version of `ir` in an inline context.
     *
     * @param ir the Enso IR to process
-    * @param localScope the local scope in which the expression is executed
-    * @param moduleScope the module scope in which the expression is executed
+    * @param inlineContext a context object that contains the information needed
+    *                      for inline evaluation
     * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
   def runExpression(
     ir: IR.Expression,
-    localScope: Option[LocalScope]   = None,
-    moduleScope: Option[ModuleScope] = None
+    inlineContext: InlineContext
   ): IR.Expression
 }

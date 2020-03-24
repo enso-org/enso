@@ -84,13 +84,6 @@ public abstract class EnsoRootNode extends RootNode {
   }
 
   /**
-   * Sets whether the node is tail-recursive.
-   *
-   * @param isTail whether or not the node is tail-recursive
-   */
-  public abstract void setTail(boolean isTail);
-
-  /**
    * Gets the frame slot containing the program state.
    *
    * @return the state frame slot
