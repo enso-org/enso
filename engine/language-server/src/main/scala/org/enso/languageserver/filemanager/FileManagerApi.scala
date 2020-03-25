@@ -125,6 +125,20 @@ object FileManagerApi {
     }
   }
 
+  case object InfoFile extends Method("file/info") {
+
+    case class Params(path: Path)
+
+    case class Result(attributes: FileAttributes)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = InfoFile.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = InfoFile.Result
+    }
+  }
+
   // Errors
 
   case class FileSystemError(override val message: String)

@@ -1,6 +1,7 @@
 package org.enso.languageserver.filemanager
 
 import java.nio.file.{Files, Path, Paths}
+import java.nio.file.attribute.BasicFileAttributes
 
 import org.enso.languageserver.effect.ZioExec
 import org.scalatest.flatspec.AnyFlatSpec
@@ -558,6 +559,56 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val result = objectUnderTest
       .tree(path.getParent.toFile, depth = Some(0))
       .unsafeRunSync()
+    //then
+    result shouldBe Left(FileNotFound)
+  }
+
+  it should "get attributes of a file" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "a.txt")
+    createEmptyFile(path)
+    val attrs = Files.readAttributes(path, classOf[BasicFileAttributes])
+    //when
+    val result = objectUnderTest.info(path.toFile).unsafeRunSync()
+    //then
+    val expectedAttrs = Attributes(
+      creationTime     = attrs.creationTime,
+      lastAccessTime   = attrs.lastAccessTime,
+      lastModifiedTime = attrs.lastModifiedTime,
+      kind             = FileEntry(path),
+      byteSize         = 0
+    )
+    result shouldBe Right(expectedAttrs)
+  }
+
+  it should "get attributes of a directory" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "dir", "a.txt")
+    val dir  = path.getParent()
+    createEmptyFile(path)
+    //when
+    val result = objectUnderTest.info(dir.toFile).unsafeRunSync()
+    //then
+    result.map(_.kind) shouldBe Right(DirectoryEntryTruncated(dir))
+  }
+
+  it should "get attributes of a symlink" in new TestCtx {
+    //given
+    val path    = Paths.get(testDirPath.toString, "a.txt")
+    val symlink = Paths.get(testDirPath.toString, "symlink.txt")
+    createEmptyFile(path)
+    Files.createSymbolicLink(symlink, path)
+    //when
+    val result = objectUnderTest.info(symlink.toFile).unsafeRunSync()
+    //then
+    result.map(_.kind) shouldBe Right(FileEntry(symlink))
+  }
+
+  it should "return FileNotFound getting attributes if file does not exist" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "nonexistent.txt")
+    //when
+    val result = objectUnderTest.info(path.toFile).unsafeRunSync()
     //then
     result shouldBe Left(FileNotFound)
   }

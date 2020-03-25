@@ -38,10 +38,25 @@ object Path {
     b.result().filter(_.nonEmpty)
   }
 
+  /**
+    * Get path relative to the root.
+    *
+    * @param root a root path
+    * @param base a path relative to the root
+    * @param path a path that will be relativized
+    * @return a path relative to the root
+    */
   def getRelativePath(root: File, base: Path, path: nio.file.Path): Path =
     Path(base.rootId, root.toPath.relativize(path))
 
+  /**
+    * Get path relative to the root, and return a parent path.
+    *
+    * @param root a root path
+    * @param base a path relative to the root
+    * @param path a path that will be relativized
+    * @return a parent of a path relative to the root
+    */
   def getRelativeParent(root: File, base: Path, path: nio.file.Path): Path =
     getRelativePath(root, base, path.getParent())
-
 }

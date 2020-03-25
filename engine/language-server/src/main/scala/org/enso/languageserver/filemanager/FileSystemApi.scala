@@ -2,6 +2,8 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 import java.nio.file.Path
+import java.nio.file.attribute.{BasicFileAttributes, FileTime}
+import java.time.{OffsetDateTime, ZoneOffset}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -110,6 +112,14 @@ trait FileSystemApi[F[_, _]] {
     path: File,
     depth: Option[Int]
   ): F[FileSystemFailure, DirectoryEntry]
+
+  /**
+    * Returns attributes of a given path.
+    *
+    * @param path to the file system object
+    * @return either [[FileSystemFailure]] or file attributes
+    */
+  def info(path: File): F[FileSystemFailure, Attributes]
 }
 
 object FileSystemApi {
@@ -119,6 +129,25 @@ object FileSystemApi {
     */
   sealed trait Entry {
     def path: Path
+  }
+
+  object Entry {
+
+    /**
+      * Creates [[Entry]] from file system attributes.
+      *
+      * @param path a path to the file system object
+      * @param attrs a file system attributes
+      * @return an entry
+      */
+    def fromBasicAttributes(path: Path, attrs: BasicFileAttributes): Entry =
+      if (attrs.isDirectory) {
+        DirectoryEntryTruncated(path)
+      } else if (attrs.isRegularFile) {
+        FileEntry(path)
+      } else {
+        OtherEntry(path)
+      }
   }
 
   /**
@@ -163,4 +192,70 @@ object FileSystemApi {
     */
   case class OtherEntry(path: Path) extends Entry
 
+  /**
+    * Basic attributes of an [[Entry]].
+    *
+    * @param creationTime creation time
+    * @param lastAccessTime last access time
+    * @param lastModifiedtime last modified time
+    * @param kind either [[DirectoryEntryTruncated]] or [[FileEntry]] or [[OtherEntry]]
+    * @param byteSize size of entry in bytes
+    */
+  case class Attributes(
+    creationTime: OffsetDateTime,
+    lastAccessTime: OffsetDateTime,
+    lastModifiedTime: OffsetDateTime,
+    kind: Entry,
+    byteSize: Long
+  )
+
+  object Attributes {
+
+    /**
+      * Creates attributes using the [[FileTime]] time.
+      *
+      * @param creationTime creation time
+      * @param lastAccessTime last access time
+      * @param lastModifiedtime last modified time
+      * @param kind a type of the file system object
+      * @param byteSize size of an entry in bytes
+      * @return file attributes
+      */
+    def apply(
+      creationTime: FileTime,
+      lastAccessTime: FileTime,
+      lastModifiedTime: FileTime,
+      kind: Entry,
+      byteSize: Long
+    ): Attributes =
+      Attributes(
+        creationTime     = utcTime(creationTime),
+        lastAccessTime   = utcTime(lastAccessTime),
+        lastModifiedTime = utcTime(lastModifiedTime),
+        kind             = kind,
+        byteSize         = byteSize
+      )
+
+    /**
+      * Creates [[Attributes]] from file system attributes
+      *
+      * @param path to the file system object
+      * @param attributes of a file system object
+      * @return file attributes
+      */
+    def fromBasicAttributes(
+      path: Path,
+      basic: BasicFileAttributes
+    ): Attributes =
+      Attributes(
+        creationTime     = basic.creationTime(),
+        lastAccessTime   = basic.lastAccessTime(),
+        lastModifiedTime = basic.lastModifiedTime(),
+        kind             = Entry.fromBasicAttributes(path, basic),
+        byteSize         = basic.size()
+      )
+
+    private def utcTime(time: FileTime): OffsetDateTime =
+      OffsetDateTime.ofInstant(time.toInstant, ZoneOffset.UTC)
+  }
 }

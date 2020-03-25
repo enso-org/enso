@@ -132,4 +132,18 @@ object FileManagerProtocol {
     * @param result either file system failure or directory tree
     */
   case class TreeFileResult(result: Either[FileSystemFailure, DirectoryTree])
+
+  /**
+    * Requests the Language Server to get attributes of a file system object.
+    *
+    * @param path to the file system object
+    */
+  case class InfoFile(path: Path)
+
+  /**
+    * Returns an attributes of a file system object.
+    *
+    * @param result either file system failure or attributes
+    */
+  case class InfoFileResult(result: Either[FileSystemFailure, FileAttributes])
 }

@@ -2,6 +2,7 @@ package org.enso.languageserver.websocket
 
 import java.nio.file.{Files, Paths}
 import java.util.UUID
+import java.nio.file.attribute.BasicFileAttributes
 
 import io.circe.literal._
 import org.apache.commons.io.FileUtils
@@ -1546,6 +1547,102 @@ class FileManagerTest extends BaseServerTest {
                   }
                 }
               ]
+            }
+          }
+          """)
+    }
+
+    "get file info" in {
+      val client = new WsTestClient(address)
+
+      // create a file
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 46,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "test.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "info" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 46,
+            "result": null
+          }
+          """)
+      val path = Paths.get(testContentRoot.toString, "info", "test.txt")
+      path.toFile.isFile shouldBe true
+      val attrs = Files.readAttributes(path, classOf[BasicFileAttributes])
+
+      // get file info
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/info",
+            "id": 47,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "info", "test.txt" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 47,
+            "result" : {
+              "attributes" : {
+                "creationTime" : ${attrs.creationTime.toString()},
+                "lastAccessTime" : ${attrs.lastAccessTime.toString()},
+                "lastModifiedTime" : ${attrs.lastModifiedTime.toString()},
+                "kind" : {
+                  "type" : "File",
+                  "name" : "test.txt",
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "info"
+                    ]
+                  }
+                },
+                "byteSize" : 0
+              }
+            }
+          }
+          """)
+    }
+
+    "return FileNotFound when getting info of nonexistent file" in {
+      val client = new WsTestClient(address)
+      val file   = Paths.get(testContentRoot.toString, "nonexistent.txt").toFile
+      file.exists shouldBe false
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/info",
+            "id": 48,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "nonexistent.txt" ]
+              }
+            }
+          }
+      """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 48,
+            "error": {
+              "code": 1003,
+              "message": "File not found"
             }
           }
           """)

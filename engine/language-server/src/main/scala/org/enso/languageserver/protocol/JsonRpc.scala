@@ -32,6 +32,7 @@ object JsonRpc {
     .registerRequest(ExistsFile)
     .registerRequest(ListFile)
     .registerRequest(TreeFile)
+    .registerRequest(InfoFile)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)

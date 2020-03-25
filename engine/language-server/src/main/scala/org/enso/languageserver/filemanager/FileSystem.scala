@@ -2,6 +2,7 @@ package org.enso.languageserver.filemanager
 
 import java.io.{File, FileNotFoundException}
 import java.nio.file._
+import java.nio.file.attribute.BasicFileAttributes
 
 import org.apache.commons.io.{FileExistsException, FileUtils}
 import org.enso.languageserver.effect.BlockingIO
@@ -197,6 +198,25 @@ class FileSystem extends FileSystemApi[BlockingIO] {
       IO.fail(FileNotFound)
     }
   }
+
+  /**
+    * Returns attributes of a given path.
+    *
+    * @param path to the file system object
+    * @return either [[FileSystemFailure]] or file attributes
+    */
+  override def info(
+    path: File
+  ): BlockingIO[FileSystemFailure, Attributes] =
+    if (path.exists) {
+      effectBlocking {
+        val attrs =
+          Files.readAttributes(path.toPath, classOf[BasicFileAttributes])
+        Attributes.fromBasicAttributes(path.toPath, attrs)
+      }.mapError(errorHandling)
+    } else {
+      IO.fail(FileNotFound)
+    }
 
   private val errorHandling: Throwable => FileSystemFailure = {
     case _: FileNotFoundException => FileNotFound
