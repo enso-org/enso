@@ -33,6 +33,7 @@ env:
 
 jobs:
 
+  # This job is responsible for testing the codebase
   test:
     name: Test
     runs-on: ${{ matrix.os }}
@@ -63,16 +64,20 @@ jobs:
     - name: Test the Uberjar
       run: ./enso.jar --run ci/Test.enso
       
-
+  # This job is responsible for building the artifacts
   build: 
     name: Build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout (PR)
+      uses: actions/checkout@v2
+      if: github.event_name == 'pull_request'
       with:
-        fetch-depth: 5
+        ref: ${{ github.event.pull_request.head.sha }}
+    - name: Checkout (Branch)
+      uses: actions/checkout@v2
+      if: github.event_name != 'pull_request'
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
@@ -110,8 +115,7 @@ jobs:
         EOF
     - name: Upload Parser JS Bundle to S3
       run: |
-        echo s3://packages-luna/parser-js/nightly/`git rev-parse HEAD`
-        aws s3 sync ./parser_upload s3://packages-luna/parser-js/nightly/$GITHUB_SHA --profile s3-upload --acl public-read --delete
+        aws s3 sync ./parser_upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
     - name: Teardown AWS Session
       run: |
         aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
@@ -120,4 +124,3 @@ jobs:
         null
         text
         EOF
-      
