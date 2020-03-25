@@ -40,7 +40,9 @@ class BaseServerTest extends JsonRpcServerTestKit {
   override def clientControllerFactory: ClientControllerFactory = {
     val languageServer = system.actorOf(Props(new LanguageServer(config)))
     languageServer ! LanguageProtocol.Initialize
-    val fileManager = getFileManager()
+    val zioExec = ZioExec(zio.Runtime.default)
+    val fileManager =
+      system.actorOf(FileManager.props(config, new FileSystem, zioExec))
     val bufferRegistry =
       system.actorOf(
         BufferRegistry.props(fileManager)(Sha3_224VersionCalculator)
@@ -54,21 +56,5 @@ class BaseServerTest extends JsonRpcServerTestKit {
       capabilityRouter,
       fileManager
     )
-  }
-
-  private def getFileManager(): ActorRef = {
-    implicit val timeout = Timeout(10.seconds)
-    val zioExec = ZioExec(zio.Runtime.default)
-    val fileManager =
-      system.actorOf(FileManager.props(config, new FileSystem, zioExec))
-    // Tests requiring FileManager can randomly fail with timeout on
-    // Windows. And it's always the first one that fails. I assume it happens
-    // due to a cold Zio executor. Here we send a few messages to warm up the
-    // FileManager.
-    val result = fileManager ? FileManagerProtocol.ExistsFile(
-      Path(testContentRootId, Vector())
-    )
-    Await.ready(result, Duration.Inf)
-    fileManager
   }
 }
