@@ -9,27 +9,15 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  ApplicationSaturation,
-  TailCall
-}
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  LiftSpecialOperators,
-  OperatorToFunction
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation, TailCall}
+import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.scope.{
-  LocalScope,
-  ModuleScope,
-  TopLevelScope
-}
+import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope, TopLevelScope}
 import org.enso.polyglot.LanguageInfo
-import org.enso.syntax.text.{AST, Parser}
+import org.enso.syntax.text.{AST, Debug, Parser}
 
 /**
   * This class encapsulates the static transformation processes that take place
@@ -70,7 +58,6 @@ class Compiler(
     val parsedAST      = parse(source)
     val expr           = generateIR(parsedAST)
     val compilerOutput = runCompilerPhases(expr)
-
     truffleCodegen(compilerOutput, source, scope)
   }
 
@@ -163,14 +150,8 @@ class Compiler(
     * @param source the code to parse
     * @return an AST representation of `source`
     */
-  def parse(source: Source): AST = {
-    val parser: Parser = Parser()
-    val unresolvedAST: AST.Module =
-      parser.run(source.getCharacters.toString)
-    val resolvedAST: AST.Module = parser.dropMacroMeta(unresolvedAST)
-
-    resolvedAST
-  }
+  def parse(source: Source): AST =
+    Parser().runWithIds(source.getCharacters.toString)
 
   /**
     * Lowers the input AST to the compiler's high-level intermediate

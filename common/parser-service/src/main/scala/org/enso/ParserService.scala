@@ -43,7 +43,7 @@ case class ParserService() extends Server with Protocol {
         val ast     = new Parser().run(new Reader(program), ids)
         Protocol.Success(SourceFile(ast, Json.Null))
       case ParseRequestWithMetadata(content) =>
-        val module  = new Parser().run_with_metadata(content)
+        val module  = new Parser().runWithMetadata(content)
         Protocol.Success(module)
       case _ =>
         throw new Exception(f"unimplemented request: $request")

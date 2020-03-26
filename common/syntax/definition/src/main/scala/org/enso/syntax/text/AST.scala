@@ -1360,7 +1360,8 @@ object AST {
     override def toString = s"Node($id,$location,$shape)"
     override def hashCode(): Int = shape.hashCode()
 
-    def setID(newID: ID): ASTOf[T] = copy(id = Some(newID))
+    def setID(newID: Option[ID]): ASTOf[T] = copy(id = newID)
+    def setID(newID: ID): ASTOf[T] = setID(Some(newID))
     def withNewID():      ASTOf[T] = copy(id = Some(UUID.randomUUID()))
     def withNewIDIfMissing(): ASTOf[T] = id match {
       case Some(id) => this

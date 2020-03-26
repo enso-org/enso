@@ -1,6 +1,6 @@
 package org.enso.compiler.core
 
-import org.enso.compiler.core.IR.Expression
+import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.{AST, Debug, Location}
 
@@ -42,7 +42,7 @@ sealed trait IR {
   }
 
   /** The source location that the node corresponds to. */
-  val location: Option[Location]
+  val location: Option[IdentifiedLocation]
 
   /** Maps the provided function over any expression defined as a child of the
     * node this is called on.
@@ -53,12 +53,48 @@ sealed trait IR {
   def mapExpressions(fn: Expression => Expression): IR
 
   /** Pretty prints the IR.
-   *
-   * @return a pretty-printed representation of the IR
-   */
+    *
+    * @return a pretty-printed representation of the IR
+    */
   def pretty: String = Debug.pretty(this.toString)
 }
 object IR {
+
+  /**
+    * Couples a location with a possible source identifier.
+    *
+    * @param location the code location.
+    * @param id the identifier for the location.
+    */
+  case class IdentifiedLocation(location: Location, id: Option[AST.ID]) {
+
+    /**
+      * @return the character index of the start of this source location.
+      */
+    def start: Int = location.start
+
+    /**
+      * @return the character index of the end of this source location.
+      */
+    def end: Int = location.end
+
+    /**
+      * @return the length in characters of this location.
+      */
+    def length: Int = location.length
+  }
+
+  object IdentifiedLocation {
+
+    /**
+      * Utility constructor, building a location without an ID.
+      *
+      * @param location the code location.
+      * @return an [[IdentifiedLocation]] corresponding to the input location.
+      */
+    def apply(location: Location): IdentifiedLocation =
+      IdentifiedLocation(location, None)
+  }
 
   // === Basic Shapes =========================================================
 
@@ -68,7 +104,7 @@ object IR {
     * @param passData the pass metadata associated with this node
     */
   sealed case class Empty(
-    override val location: Option[Location],
+    override val location: Option[IdentifiedLocation],
     override val passData: ISet[Metadata] = ISet()
   ) extends IR
       with Expression
@@ -96,7 +132,7 @@ object IR {
   sealed case class Module(
     imports: List[Module.Scope.Import],
     bindings: List[Module.Scope.Definition],
-    override val location: Option[Location],
+    override val location: Option[IdentifiedLocation],
     override val passData: ISet[Metadata] = ISet()
   ) extends IR
       with IRKind.Primitive {
@@ -138,7 +174,7 @@ object IR {
         */
       sealed case class Import(
         name: String,
-        override val location: Option[Location],
+        override val location: Option[IdentifiedLocation],
         override val passData: ISet[Metadata] = ISet()
       ) extends Scope
           with IRKind.Primitive {
@@ -166,7 +202,7 @@ object IR {
         sealed case class Atom(
           name: IR.Name,
           arguments: List[DefinitionArgument],
-          override val location: Option[Location],
+          override val location: Option[IdentifiedLocation],
           override val passData: ISet[Metadata] = ISet()
         ) extends Definition
             with IRKind.Primitive {
@@ -197,7 +233,7 @@ object IR {
           typeName: IR.Name,
           methodName: IR.Name,
           body: Expression,
-          override val location: Option[Location],
+          override val location: Option[IdentifiedLocation],
           override val passData: ISet[Metadata] = ISet()
         ) extends Definition
             with IRKind.Primitive {
@@ -254,7 +290,7 @@ object IR {
     sealed case class Block(
       expressions: List[Expression],
       returnValue: Expression,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       suspended: Boolean                    = false,
       override val passData: ISet[Metadata] = ISet()
     ) extends Expression
@@ -281,7 +317,7 @@ object IR {
     sealed case class Binding(
       name: IR.Name,
       expression: Expression,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Expression
         with IRKind.Primitive {
@@ -312,7 +348,7 @@ object IR {
       */
     sealed case class Number(
       value: String,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Literal {
       override def addMetadata(newData: Metadata): Number = {
@@ -330,7 +366,7 @@ object IR {
       */
     sealed case class Text(
       text: String,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Literal {
       override def addMetadata(newData: Metadata): Text = {
@@ -360,7 +396,7 @@ object IR {
       */
     sealed case class Literal(
       override val name: String,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Name {
       override def addMetadata(newData: Metadata): Name.Literal = {
@@ -376,7 +412,7 @@ object IR {
       * @param passData the pass metadata associated with this node
       */
     sealed case class This(
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Name {
       override val name: String = "this"
@@ -395,7 +431,7 @@ object IR {
       * @param passData the pass metadata associated with this node
       */
     sealed case class Here(
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Name {
       override val name: String = "here"
@@ -432,7 +468,7 @@ object IR {
     sealed case class Ascription(
       typed: Expression,
       signature: Expression,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Type
         with IRKind.Primitive {
@@ -459,7 +495,7 @@ object IR {
     sealed case class Context(
       typed: Expression,
       context: Expression,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Type
         with IRKind.Primitive {
@@ -494,7 +530,7 @@ object IR {
         label: Name,
         memberType: Expression,
         value: Expression,
-        override val location: Option[Location],
+        override val location: Option[IdentifiedLocation],
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
@@ -524,7 +560,7 @@ object IR {
       sealed case class Subsumption(
         left: Expression,
         right: Expression,
-        override val location: Option[Location],
+        override val location: Option[IdentifiedLocation],
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
@@ -552,7 +588,7 @@ object IR {
       sealed case class Equality(
         left: Expression,
         right: Expression,
-        override val location: Option[Location],
+        override val location: Option[IdentifiedLocation],
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
@@ -578,7 +614,7 @@ object IR {
       sealed case class Concat(
         left: Expression,
         right: Expression,
-        override val location: Option[Location],
+        override val location: Option[IdentifiedLocation],
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
@@ -604,7 +640,7 @@ object IR {
       sealed case class Union(
         left: Expression,
         right: Expression,
-        override val location: Option[Location],
+        override val location: Option[IdentifiedLocation],
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
@@ -630,7 +666,7 @@ object IR {
       sealed case class Intersection(
         left: Expression,
         right: Expression,
-        override val location: Option[Location],
+        override val location: Option[IdentifiedLocation],
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
@@ -658,7 +694,7 @@ object IR {
       sealed case class Subtraction(
         left: Expression,
         right: Expression,
-        override val location: Option[Location],
+        override val location: Option[IdentifiedLocation],
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
@@ -720,7 +756,7 @@ object IR {
     sealed case class Lambda(
       override val arguments: List[DefinitionArgument],
       override val body: Expression,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val canBeTCO: Boolean        = true,
       override val passData: ISet[Metadata] = ISet()
     ) extends Function
@@ -762,7 +798,7 @@ object IR {
       name: IR.Name,
       override val defaultValue: Option[Expression],
       suspended: Boolean,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends DefinitionArgument
         with IRKind.Primitive {
@@ -803,7 +839,7 @@ object IR {
       function: Expression,
       arguments: List[CallArgument],
       hasDefaultsSuspended: Boolean,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Application
         with IRKind.Primitive {
@@ -824,7 +860,7 @@ object IR {
       */
     sealed case class Force(
       target: Expression,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Application
         with IRKind.Primitive {
@@ -856,7 +892,7 @@ object IR {
         left: Expression,
         operator: IR.Name,
         right: Expression,
-        override val location: Option[Location],
+        override val location: Option[IdentifiedLocation],
         override val passData: ISet[Metadata] = ISet()
       ) extends Operator
           with IRKind.Sugar {
@@ -896,7 +932,7 @@ object IR {
     sealed case class Specified(
       override val name: Option[IR.Name],
       value: Expression,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends CallArgument
         with IRKind.Primitive {
@@ -934,7 +970,7 @@ object IR {
       scrutinee: Expression,
       branches: Seq[Branch],
       fallback: Option[Expression],
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Case
         with IRKind.Primitive {
@@ -961,7 +997,7 @@ object IR {
     sealed case class Branch(
       pattern: Expression,
       expression: Expression,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Case
         with IRKind.Primitive {
@@ -1006,7 +1042,7 @@ object IR {
     sealed case class Documentation(
       override val commented: Expression,
       doc: Doc,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Comment
         with IRKind.Primitive {
@@ -1041,7 +1077,7 @@ object IR {
     sealed case class Definition(
       lang: String,
       code: String,
-      override val location: Option[Location],
+      override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Foreign
         with IRKind.Primitive {
@@ -1089,7 +1125,8 @@ object IR {
     ) extends Error
         with Kind.Static
         with IRKind.Primitive {
-      override val location: Option[Location] = ast.location
+      override val location: Option[IdentifiedLocation] =
+        ast.location.map(IdentifiedLocation(_, ast.id))
 
       override def addMetadata(newData: Metadata): Syntax = {
         copy(passData = this.passData + newData)
@@ -1109,7 +1146,7 @@ object IR {
     ) extends Error
         with Kind.Static
         with IRKind.Primitive {
-      override val location: Option[Location] = ir.location
+      override val location: Option[IdentifiedLocation] = ir.location
 
       override def addMetadata(newData: Metadata): InvalidIR = {
         copy(passData = this.passData + newData)
@@ -1138,7 +1175,8 @@ object IR {
           with IRKind.Primitive
           with IR.DefinitionArgument {
         override val defaultValue: Option[Expression] = None
-        override val location: Option[Location]       = invalidArgDef.location
+        override val location: Option[IdentifiedLocation] =
+          invalidArgDef.location
 
         override def addMetadata(newData: Metadata): Argument = {
           copy(passData = this.passData + newData)
@@ -1163,7 +1201,8 @@ object IR {
       ) extends Redefined
           with Kind.Static
           with IRKind.Primitive {
-        override val location: Option[Location] = invalidBinding.location
+        override val location: Option[IdentifiedLocation] =
+          invalidBinding.location
 
         override def addMetadata(newData: Metadata): Binding = {
           copy(passData = this.passData + newData)

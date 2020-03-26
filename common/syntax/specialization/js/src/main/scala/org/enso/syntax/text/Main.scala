@@ -24,7 +24,7 @@ object Parse {
   @JSExportTopLevel("parse_with_metadata")
   def parse_with_metadata(program: String): String = {
     try {
-      new Parser().run_with_metadata(program).asJson.noSpacesSortKeys
+      new Parser().runWithMetadata(program).asJson.noSpacesSortKeys
     } catch {
       // FIXME We wrap the error message in JavaScriptException, so that javascript
       //  can display it. This is no longer needed in scalajs 1.0

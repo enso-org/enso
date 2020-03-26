@@ -154,44 +154,73 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
   * applies [[AST.Macro.Definition.Resolver]] to each [[AST.Macro.Match]] found
   * in the AST, while loosing a lot of positional information.
   */
-
-
 case class SourceFile(ast: AST, metadata: Json)
 
 object SourceFile {
   val METATAG = "\n\n\n#### METADATA ####\n"
 
-  implicit def MWMEncoder: Encoder[SourceFile] = module =>
-    Json.obj("ast" -> module.ast.toJson(), "metadata" -> module.metadata)
+  implicit def MWMEncoder: Encoder[SourceFile] =
+    module =>
+      Json.obj("ast" -> module.ast.toJson(), "metadata" -> module.metadata)
 }
-
 
 class Parser {
   import Parser._
   private val engine = newEngine()
 
-  /** Parse contents of the program source file,
-    * where program code may be followed by idmap and metadata.
-    */
-  def run_with_metadata(program: String): SourceFile = {
+  private def splitMeta(code: String): (String, IDMap, Json) = {
     import SourceFile._
-
-    program.split(METATAG) match {
-      case Array(input)  => SourceFile(run(input), Json.obj())
+    code.split(METATAG) match {
+      case Array(input) => (input, Seq(), Json.obj())
       case Array(input, rest) =>
-        val meta     = rest.split('\n')
-        if (meta.size < 2) {
+        val meta = rest.split('\n')
+        if (meta.length < 2) {
           throw new ParserError(s"Expected two lines after METADATA.")
         }
-        val idmap    = idMapFromJson(meta(0)).left.map { error =>
+        val idmap = idMapFromJson(meta(0)).left.map { error =>
           throw new ParserError("Could not deserialize idmap.", error)
         }.merge
         val metadata = decode[Json](meta(1)).left.map { error =>
           throw new ParserError("Could not deserialize metadata.", error)
         }.merge
-
-        SourceFile(run(new Reader(input), idmap), metadata)
+        (input, idmap, metadata)
     }
+  }
+
+  /** Parse contents of the program source file,
+    * where program code may be followed by idmap and metadata.
+    */
+  def runWithMetadata(program: String): SourceFile = {
+    val (input, idmap, metadata) = splitMeta(program)
+    SourceFile(run(new Reader(input), idmap), metadata)
+  }
+
+  /**
+   * Parse contents of the program source file, attaching any IDs defined
+   * in the metadata section and dropping macros resolution data.
+   *
+   * @param input the code parse.
+   * @return the AST resulting from parsing input.
+   */
+  def runWithIds(input: String): AST.Module = {
+    val (code, idmap, _) = splitMeta(input)
+    val ast              = run(code)
+    val noMacros         = dropMacroMeta(ast)
+    attachIds(noMacros, idmap)
+  }
+
+  private def attachIds(module: AST.Module, ids: IDMap): AST.Module = {
+    val idMap: Map[Location, AST.ID] = ids.map {
+      case (span, id) =>
+        (Location(span.index.value, span.index.value + span.size.value), id)
+    }.toMap
+
+    def go(ast: AST): AST = {
+      val id = ast.location.flatMap(idMap.get)
+      ast.setID(id).map(go)
+    }
+
+    module.map(go)
   }
 
   /** Parse simple string with empty IdMap into AST. */
@@ -454,7 +483,7 @@ class Parser {
 
 object Parser {
 
-  type IDMap    = Seq[(Span, AST.ID)]
+  type IDMap = Seq[(Span, AST.ID)]
 
   private val newEngine = flexer.Parser.compile(ParserDef())
 

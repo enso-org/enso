@@ -2,6 +2,7 @@ package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.IdentifiedLocation
 import org.enso.compiler.pass.desugar.LiftSpecialOperators
 import org.enso.compiler.test.CompilerTest
 import org.enso.syntax.text.Location
@@ -23,13 +24,13 @@ class LiftSpecialOperatorsTest extends CompilerTest {
     constructor: (
       IR.Expression,
       IR.Expression,
-      Option[Location]
+      Option[IdentifiedLocation]
     ) => IR.Expression
   ): Unit = s"The ${opInfo.name} operator" should {
     val op    = IR.Name.Literal(opInfo.name, None)
     val left  = IR.Empty(None)
     val right = IR.Empty(None)
-    val loc   = Location(1, 20)
+    val loc   = IdentifiedLocation(Location(1, 20))
 
     val expressionIR = IR.Application.Operator.Binary(
       left,

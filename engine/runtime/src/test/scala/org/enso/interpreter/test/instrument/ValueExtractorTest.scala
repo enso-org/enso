@@ -18,6 +18,7 @@ class ValueExtractorTest extends InterpreterTest {
   }
 
   subject should "work for multiple callbacks" in {
+
     val code =
       """
         |main = arg ->
