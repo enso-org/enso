@@ -71,7 +71,7 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
   )
 
 
-  val filename = "common/scala/syntax/specialization/.jvm/target/bench-input.txt"
+  val filename = "target/parser-bench-input.txt"
 
   if (!new File(filename).exists()) {
     val file = new PrintWriter(new File(filename))
