@@ -199,7 +199,7 @@ impl Handle {
     /// If ID doesn't have metadata, empty (default) metadata is inserted.
     pub fn with_node_metadata(&self, id:ast::ID, fun:impl FnOnce(&mut NodeMetadata)) {
         let     module = self.module();
-        let mut data   = module.pop_node_metadata(id).unwrap_or(default());
+        let mut data   = module.pop_node_metadata(id).unwrap_or_default();
         fun(&mut data);
         module.set_node_metadata(id, data);
     }

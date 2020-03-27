@@ -26,7 +26,10 @@ function run(cmd,args) {
     return new Promise((resolve, reject) => {
         console.log(`Calling '${cmd} ${args.join(' ')}'`)
         let proc = spawn(cmd,args,{stdio:'inherit', shell:true})
-        proc.on('exit', () => resolve(out))
+        proc.on('exit', (code) => {
+            if (code) process.exit(code)
+            resolve(out)
+        })
     })
 }
 
@@ -36,7 +39,10 @@ function run_read(cmd,args) {
         let proc = spawn(cmd,args,{shell:true})
         proc.stderr.pipe(process.stderr)
         proc.stdout.on('data', (data) => { out += data })
-        proc.on('exit', () => resolve(out))
+        proc.on('exit', (code) => {
+            if (code) process.exit(code);
+            resolve(out)
+        })
     })
 }
 
