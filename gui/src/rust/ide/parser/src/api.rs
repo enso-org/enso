@@ -11,7 +11,7 @@ pub use ast::Ast;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
-
+use utils::fail::FallibleResult;
 
 
 // ================
@@ -63,9 +63,28 @@ pub trait IsParser : Debug {
     fn parse(&mut self, program:String, ids:IdMap) -> Result<Ast>;
 
     /// Parse program into module.
-    fn parse_module(&mut self, program:String, ids:IdMap) -> Result<ast::known::Module> {
-        let ast = self.parse(program,ids)?;
+    fn parse_module(&mut self, program:impl Str, ids:IdMap) -> Result<ast::known::Module> {
+        let ast = self.parse(program.into(),ids)?;
         ast::known::Module::try_from(ast).map_err(|_| Error::NonModuleRoot)
+    }
+
+    /// Program is expected to be single non-empty line module. The line's AST is
+    /// returned. Panics otherwise.
+    fn parse_line(&mut self, program:impl Str) -> FallibleResult<Ast> {
+        let module = self.parse_module(program,default())?;
+
+        let mut lines = module.lines.clone().into_iter().filter_map(|line| {
+            line.elem
+        });
+        if let Some(first_non_empty_line) = lines.next() {
+            if lines.next().is_some() {
+                Err(TooManyLinesProduced.into())
+            } else {
+                Ok(first_non_empty_line)
+            }
+        } else {
+            Err(NoLinesProduced.into())
+        }
     }
 
     /// Parse contents of the program source file,
@@ -96,6 +115,16 @@ pub enum Error {
     #[fail(display = "Interop error: {}.", _0)]
     InteropError(#[cause] Box<dyn Fail>),
 }
+
+/// When trying to parse a line, not a single line was produced.
+#[derive(Debug,Fail,Clone,Copy)]
+#[fail(display = "Expected a single line, parsed none.")]
+struct NoLinesProduced;
+
+/// When trying to parse a single line, more were generated.
+#[derive(Debug,Fail,Clone,Copy)]
+#[fail(display = "Expected just a single line, found more.")]
+struct TooManyLinesProduced;
 
 /// Wraps an arbitrary `std::error::Error` as an `InteropError.`
 pub fn interop_error<T>(error:T) -> Error

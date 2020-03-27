@@ -16,3 +16,4 @@ pub mod channel;
 pub mod env;
 pub mod fail;
 pub mod test;
+pub mod vec;

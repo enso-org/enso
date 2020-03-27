@@ -33,14 +33,14 @@ use shapely::shared;
 
 
 
-/// ============
-/// == Errors ==
-/// ============
+// ============
+// == Errors ==
+// ============
 
 /// Failure for missing node metadata.
 #[derive(Debug,Clone,Copy,Fail)]
 #[fail(display="Node with ID {} was not found in metadata.", _0)]
-pub struct NodeMetadataNotFound(pub ast::ID);
+pub struct NodeMetadataNotFound(pub ast::Id);
 
 
 
@@ -66,7 +66,7 @@ impl parser::api::Metadata for Metadata {}
 #[derive(Debug,Clone,Default,Deserialize,Serialize)]
 pub struct IdeMetadata {
     /// Metadata that belongs to nodes.
-    node : HashMap<ast::ID,NodeMetadata>
+    node : HashMap<ast::Id,NodeMetadata>
 }
 
 /// Metadata of specific node.
@@ -83,6 +83,13 @@ pub struct Position {
     pub vector:Vector2<f32>
 }
 
+impl Position {
+    /// Creates a new position with given coordinates.
+    pub fn new(x:f32, y:f32) -> Position {
+        let vector = Vector2::new(x,y);
+        Position {vector}
+    }
+}
 
 
 
@@ -161,10 +168,15 @@ shared! { Handle
             code.replace_range(replaced_indices,&change.inserted);
             apply_code_change_to_id_map(&mut id_map,&replaced_span,&change.inserted);
             let ast = self.parser.parse(code, id_map)?;
-            self.update_ast(ast);
+            self.update_ast(ast.try_into()?);
             self.logger.trace(|| format!("Applied change; Ast is now {:?}", self.module.ast));
 
             Ok(())
+        }
+
+        /// Obtain parser handle.
+        pub fn parser(&self) -> Parser {
+            self.parser.clone()
         }
 
         /// Read module code.
@@ -175,7 +187,7 @@ shared! { Handle
         /// Obtains definition information for given graph id.
         pub fn find_definition(&self,id:&dr::graph::Id) -> FallibleResult<DefinitionInfo> {
             let module = known::Module::try_new(self.module.ast.clone())?;
-            double_representation::graph::traverse_for_definition(module,id)
+            double_representation::definition::traverse_for_definition(&module,id)
         }
 
         /// Check if current module state is synchronized with given code. If it's not, log error,
@@ -201,20 +213,36 @@ shared! { Handle
         }
 
         /// Returns metadata for given node, if present.
-        pub fn node_metadata(&mut self, id:ast::ID) -> FallibleResult<NodeMetadata> {
+        pub fn node_metadata(&mut self, id:ast::Id) -> FallibleResult<NodeMetadata> {
             let data = self.module.metadata.ide.node.get(&id).cloned();
             data.ok_or_else(|| NodeMetadataNotFound(id).into())
         }
 
         /// Sets metadata for given node.
-        pub fn set_node_metadata(&mut self, id:ast::ID, data:NodeMetadata) {
+        pub fn set_node_metadata(&mut self, id:ast::Id, data:NodeMetadata) {
             self.module.metadata.ide.node.insert(id,data);
         }
 
         /// Removes metadata of given node and returns them.
-        pub fn pop_node_metadata(&mut self, id:ast::ID) -> FallibleResult<NodeMetadata> {
+        pub fn pop_node_metadata(&mut self, id:ast::Id) -> FallibleResult<NodeMetadata> {
             let data = self.module.metadata.ide.node.remove(&id);
             data.ok_or_else(|| NodeMetadataNotFound(id).into())
+        }
+
+        /// Update current ast in module controller and emit notification about overall
+        /// invalidation.
+        pub fn update_ast(&mut self, ast:known::Module) {
+            self.module.ast  = ast.into();
+            let text_change  = notification::Text::Invalidate;
+            let graph_change = notification::Graphs::Invalidate;
+            let code_notify  = self.text_notifications.publish(text_change);
+            let graph_notify = self.graph_notifications.publish(graph_change);
+            spawn(async move { futures::join!(code_notify,graph_notify); });
+        }
+
+        /// Returns the current module's AST.
+        pub fn ast(&mut self) -> FallibleResult<known::Module> {
+            Ok(known::Module::try_from(&self.module.ast)?)
         }
     }
 }
@@ -254,8 +282,9 @@ impl Handle {
         let SourceFile{ast,metadata} = parser.parse_with_metadata(content)?;
         logger.info(|| "Code parsed");
         logger.trace(|| format!("The parsed ast is {:?}", ast));
+        let module_ast = known::Module::try_new(ast)?;
         self.with_borrowed(|data| data.module.metadata = metadata);
-        self.with_borrowed(|data| data.update_ast(ast));
+        self.update_ast(module_ast);
         Ok(())
     }
 
@@ -294,20 +323,13 @@ impl Handle {
             text_notifications,graph_notifications};
         Ok(Handle::new_from_data(data))
     }
-}
 
-impl Controller {
-    /// Update current ast in module controller and emit notification about overall invalidation.
-    fn update_ast(&mut self,ast:Ast) {
-        self.module.ast  = ast;
-        let text_change  = notification::Text::Invalidate;
-        let graph_change = notification::Graphs::Invalidate;
-        let code_notify  = self.text_notifications.publish(text_change);
-        let graph_notify = self.graph_notifications.publish(graph_change);
-        spawn(async move { futures::join!(code_notify,graph_notify); });
+    #[cfg(test)]
+    pub fn expect_code(&self, expected_code:impl Str) {
+        let code = self.code();
+        assert_eq!(code,expected_code.as_ref());
     }
 }
-
 
 // =============
 // === Tests ===

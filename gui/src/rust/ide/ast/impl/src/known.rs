@@ -37,6 +37,45 @@ impl<T> KnownAst<T> {
             Ok(KnownAst {ast,phantom:default()})
         }
     }
+
+    /// Creates a new `KnownAst<T>` from ast node containing shape of variant `T`.
+    ///
+    /// Note that this API requires caller to ensure that Ast stores proper shape. Violating this
+    /// rule will lead to panics later.
+    fn new_unchecked(ast:Ast) -> KnownAst<T> {
+        KnownAst {ast,phantom:default()}
+    }
+
+    /// Gets AST id.
+    pub fn id(&self) -> Option<crate::Id> { self.ast.id }
+
+    /// Returns a reference to the stored `Ast` with `Shape` of `T`.
+    pub fn ast(&self) -> &Ast { &self.ast }
+
+    /// Returns the AST's shape.
+    pub fn shape<E>(&self) -> &T
+    where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E>,
+          E                      : Debug, {
+        self.deref()
+    }
+
+    /// Updated self in place by applying given function on the stored Shape.
+    pub fn update_shape<E>(&mut self, f:impl FnOnce(&mut T))
+    where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E>,
+          T                      : Clone + Into<Shape<Ast>>,
+          E                      : Debug {
+        let mut shape = self.shape().clone();
+        f(&mut shape);
+        self.ast = self.ast.with_shape(shape)
+    }
+}
+
+impl<T:Into<Shape<Ast>>> KnownAst<T> {
+    /// Creates a new `KnownAst<T>` from `shape`.
+    pub fn new(shape:T, id:Option<crate::Id>) -> KnownAst<T> {
+        let ast = Ast::new(shape,id);
+        Self::new_unchecked(ast)
+    }
 }
 
 impl<T,E> Deref for KnownAst<T>
@@ -73,6 +112,13 @@ impl<T> From<KnownAst<T>> for Ast {
         known_ast.ast
     }
 }
+
+impl<'a,T> From<&'a KnownAst<T>> for &'a Ast {
+    fn from(known_ast:&'a KnownAst<T>) -> &'a Ast {
+        &known_ast.ast
+    }
+}
+
 
 
 

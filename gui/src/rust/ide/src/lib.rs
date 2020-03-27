@@ -4,6 +4,7 @@
 #![feature(bool_to_option)]
 #![feature(drain_filter)]
 #![feature(trait_alias)]
+#![recursion_limit="256"]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
@@ -23,6 +24,7 @@ pub mod view;
 pub mod prelude {
     pub use ensogl::prelude::*;
     pub use enso_prelude::*;
+    pub use ast::prelude::*;
     pub use wasm_bindgen::prelude::*;
 
     pub use crate::constants;
@@ -37,6 +39,7 @@ pub mod prelude {
     pub use futures::task::LocalSpawnExt;
 
     pub use utils::fail::FallibleResult;
+    pub use utils::vec::VecExt;
 }
 
 use crate::prelude::*;
