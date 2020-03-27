@@ -79,16 +79,26 @@ impl SubAssign for Size {
 #[derive(Clone,Copy,Debug,Default,PartialEq,Eq,PartialOrd,Ord,Serialize,Deserialize)]
 pub struct Span { pub index:Index, pub size:Size }
 
-impl From<(usize,usize)> for Span {
-    fn from(val:(usize, usize)) -> Span {
-        Span::new(Index::new(val.0), Size::new(val.1))
-    }
-}
-
 impl Span {
     /// Initializes Span with given values.
     pub fn new(index:Index, size:Size) -> Self {
         Span {index,size}
+    }
+
+    /// Creates a span describing a range between two indices.
+    pub fn from_indices(begin:Index, end:Index) -> Self {
+        if end < begin {
+            Self::from_indices(end,begin)
+        } else {
+            let index = begin;
+            let size  = end - begin;
+            Span {index,size}
+        }
+    }
+
+    /// Creates a span from zero index with given length.
+    pub fn from_beginning(size:Size) -> Self {
+        Span {index:Index::new(0), size}
     }
 
     /// Get the character after last character of this span.
