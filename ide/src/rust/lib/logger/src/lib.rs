@@ -186,6 +186,12 @@ macro_rules! log_internal_bug_template_impl {
     };
 }
 
+#[macro_export]
+macro_rules! trace {
+    ($($toks:tt)*) => {
+        $crate::log_template! {trace $($toks)*}
+    };
+}
 
 #[macro_export]
 macro_rules! info {

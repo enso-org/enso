@@ -4,7 +4,6 @@ use parser::prelude::*;
 
 use ast::*;
 use ast::test_utils::expect_shape;
-use ast::test_utils::expect_single_line;
 use parser::api::IsParser;
 use parser::api::SourceFile;
 use utils::test::ExpectTuple;
@@ -29,17 +28,6 @@ fn assert_opr<StringLike:Into<String>>(ast:&Ast, name:StringLike) {
     assert_eq!(*actual,expected);
 }
 
-/// Checks if all nodes in subtree have declared spans equal to
-/// spans we calculate.
-fn validate_spans(ast:&Ast) {
-    for node in ast.iter_recursive() {
-        let calculated = node.shape().len();
-        let declared   = node.wrapped.wrapped.len;
-        assert_eq!(calculated, declared
-                  , "`{}` part of `{}`", node.repr(), ast.repr());
-    }
-}
-
 
 
 // ===============
@@ -60,30 +48,12 @@ impl Fixture {
         Fixture {parser:parser::Parser::new_or_panic()}
     }
 
-    /// Runs parser on given input, panics on any error.
-    fn parse(&mut self, program:&str) -> Ast {
-        println!("parsing {}", program);
-        let ast = self.parser.parse(program.into(), default()).unwrap();
-        assert_eq!(ast.shape().len(), program.len());
-        validate_spans(&ast);
-        assert_eq!(ast.repr(), program, "{:?}", ast);
-        ast
-    }
-
-    /// Program is expected to be single line module. The line's AST is
-    /// returned. Panics otherwise.
-    fn parse_line(&mut self, program:&str) -> Ast {
-        let ast  = self.parse(program);
-        let line = expect_single_line(&ast);
-        line.clone()
-    }
-
     /// Program is expected to be single line module. The line's Shape subtype
     /// is obtained and passed to `tester`.
     fn test_shape<T,F>(&mut self, program:&str, tester:F)
     where for<'t> &'t Shape<Ast>: TryInto<&'t T>,
                       F         : FnOnce(&T) -> () {
-        let ast   = self.parse_line(program);
+        let ast   = self.parser.parse_line(program).unwrap();
         let shape = expect_shape(&ast);
         tester(shape);
     }
@@ -380,7 +350,7 @@ impl Fixture {
             ];
 
         for macro_usage in macro_usages.iter() {
-            let ast = self.parse_line(macro_usage);
+            let ast = self.parser.parse_line(*macro_usage).unwrap();
             expect_shape::<Match<Ast>>(&ast);
         };
     }

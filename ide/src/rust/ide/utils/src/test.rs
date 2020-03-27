@@ -91,3 +91,36 @@ for Collection {
         (v1,v2,v3)
     }
 }
+
+impl<Collection: IntoIterator>
+ExpectTuple<(Collection::Item,Collection::Item,Collection::Item,Collection::Item)>
+for Collection {
+    fn expect_tuple
+    (self) -> (Collection::Item,Collection::Item,Collection::Item,Collection::Item) {
+        let mut iter = self.into_iter();
+        let     v1   = iter.next().unwrap();
+        let     v2   = iter.next().unwrap();
+        let     v3   = iter.next().unwrap();
+        let     v4   = iter.next().unwrap();
+        assert!(iter.next().is_none());
+        (v1,v2,v3,v4)
+    }
+}
+
+#[allow(clippy::type_complexity)]
+impl<Collection: IntoIterator>
+ExpectTuple<(Collection::Item,Collection::Item,Collection::Item,Collection::Item,Collection::Item)>
+for Collection {
+    fn expect_tuple
+    (self)
+     -> (Collection::Item,Collection::Item,Collection::Item,Collection::Item,Collection::Item) {
+        let mut iter = self.into_iter();
+        let     v1   = iter.next().unwrap();
+        let     v2   = iter.next().unwrap();
+        let     v3   = iter.next().unwrap();
+        let     v4   = iter.next().unwrap();
+        let     v5   = iter.next().unwrap();
+        assert!(iter.next().is_none());
+        (v1,v2,v3,v4,v5)
+    }
+}

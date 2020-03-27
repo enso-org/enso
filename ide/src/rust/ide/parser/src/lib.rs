@@ -15,6 +15,8 @@
 #![warn(missing_debug_implementations)]
 
 pub mod api;
+pub mod test_utils;
+
 mod jsclient;
 mod wsclient;
 
