@@ -100,6 +100,42 @@ pub fn field_ident_token(field:&syn::Field, index:syn::Index) -> TokenStream {
     }
 }
 
+/// Returns names of the named fields.
+pub fn field_names(fields:&syn::FieldsNamed) -> Vec<&syn::Ident> {
+    fields.named.iter().map(|field| {
+        field.ident.as_ref().expect("Impossible: no name on a named field.")
+    }).collect()
+}
+
+
+
+// ==================
+// === Path Utils ===
+// ==================
+
+/// Checks if a given `Path` consists of a single identifier same as given string.
+pub fn path_matching_ident(path:&syn::Path, str:impl Str) -> bool {
+    path.get_ident().map_or(false, |ident| ident == str.as_ref())
+}
+
+
+
+// ======================
+// === Index Sequence ===
+// ======================
+
+/// For given length, returns a sequence of Literals like `[0,1,2…]`. These are unsuffixed
+/// usize literals, so e.g. can be used to identify the tuple unnamed fields.
+pub fn index_sequence(len:usize) -> Vec<syn::Index> {
+    (0..len).map(syn::Index::from).collect()
+}
+
+/// For given length returns sequence of identifiers like `[field0,field1,…]`.
+pub fn identifier_sequence(len:usize) -> Vec<syn::Ident> {
+    let format_field = |ix| quote::format_ident!("field{}",ix);
+    (0..len).map(format_field).collect()
+}
+
 
 
 // =======================

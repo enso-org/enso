@@ -2,6 +2,8 @@
 //! directly, but only through `shapely` crate, as it provides utilities
 //! necessary for the generated code to compile.
 
+#![feature(bool_to_option)]
+#![feature(exact_size_is_empty)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
@@ -13,6 +15,7 @@
 
 extern crate proc_macro;
 
+mod derive_clone_ref;
 mod derive_iterator;
 mod overlappable;
 
@@ -68,6 +71,21 @@ pub fn derive_iterator_mut
     derive_iterator::derive(input,IsMut::Mutable)
 }
 
+/// Derives `CloneRef` implementation for given type. It performs `clone_ref` on every member
+/// field. The input type must implement `Clone` and its every field must implement `CloneRef`.
+///
+/// For generic types no bounds are introduced in the generated implementation. To customize this
+/// behavior user might add `#[clone_ref(bound="…")]` attribute. Then the generated implementation
+/// will use the provided bounds.
+///
+/// Supported inputs are structs (unit, named, unnamed), enums (with unit, named, unnamed and no
+/// variants at all). Unions are currently not supported.
+#[proc_macro_derive(CloneRef, attributes(clone_ref))]
+pub fn derive_clone_ref
+(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derive_clone_ref::derive(input)
+}
+
 #[allow(missing_docs)]
 #[proc_macro_attribute]
 pub fn overlappable
@@ -76,4 +94,3 @@ pub fn overlappable
 ) -> proc_macro::TokenStream {
     overlappable::overlappable(attrs,input)
 }
-
