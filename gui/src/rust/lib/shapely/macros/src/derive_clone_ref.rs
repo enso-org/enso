@@ -195,7 +195,7 @@ pub fn derive
     };
     let bounds = decl.attrs.iter().filter_map(clone_ref_bounds).flatten();
     let output = quote!{
-        impl <#(#params)*> CloneRef for #ident<#(#params)*>
+        impl <#(#params),*> CloneRef for #ident<#(#params),*>
         where #(#bounds),* {
             fn clone_ref(&self) -> Self {
                 #body
