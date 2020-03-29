@@ -32,3 +32,7 @@ struct StructUnnamedUnbound<T>(Rc<T>);
 #[derive(CloneRef,Clone)]
 #[clone_ref(bound="T:CloneRef")]
 struct StructUnnamedBound<T>(T);
+
+#[derive(CloneRef,Clone)]
+#[clone_ref(bound="T:CloneRef,U:CloneRef")]
+struct StructUnnamedBoundTwoPatams<T,U>(T,U);
