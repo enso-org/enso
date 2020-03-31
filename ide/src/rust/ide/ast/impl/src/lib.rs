@@ -1042,6 +1042,10 @@ impl Module<Ast> {
         let lines = line_asts.iter().cloned().map(|elem| BlockLine {elem, off:0}).collect();
         Module {lines}
     }
+
+    pub fn from_line(line_ast:impl Into<Ast>) -> Self {
+        Self::from_lines(&[Some(line_ast.into())])
+    }
 }
 
 // === AST ===
@@ -1103,6 +1107,11 @@ impl Ast {
         , Str2 : ToString {
         let infix = Infix::from_vars(larg,opr,rarg);
         Ast::from(infix)
+    }
+
+    /// Creates AST node with `Module` shape with one line.
+    pub fn one_line_module(line_ast:impl Into<Ast>) -> Ast {
+        Module::from_line(line_ast).into()
     }
 }
 

@@ -24,7 +24,7 @@ impl TestWithMockedTransport {
 
     pub fn run_test<TestBody>(&mut self, test:TestBody)
     where TestBody : Future<Output=()> + 'static {
-        self.with_executor_fixture.run_test(test);
+        self.with_executor_fixture.run_task(test);
     }
 
     pub fn when_stalled_send_response(&mut self, result:impl Serialize) {

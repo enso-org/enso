@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use ast::IdMap;
 use ast::HasRepr;
 use ast::HasIdMap;
 
@@ -11,7 +10,6 @@ pub use ast::Ast;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
-use utils::fail::FallibleResult;
 
 
 // ================
@@ -28,7 +26,7 @@ impl Metadata for serde_json::Value {}
 #[derive(Debug,Clone,Serialize,Deserialize,PartialEq,Eq)]
 pub struct SourceFile<Metadata> {
     /// Ast representation.
-    pub ast: Ast,
+    pub ast: ast::known::Module,
     /// Raw metadata in json.
     pub metadata: Metadata
 }
@@ -50,47 +48,6 @@ impl<M:Metadata> TryFrom<&SourceFile<M>> for String {
         let meta = to_json_single_line(&val.metadata)?;
         Ok(iformat!("{code}{METADATA_TAG}{ids}\n{meta}"))
     }
-}
-
-
-// ============
-// == Parser ==
-// ============
-
-/// Entity being able to parse programs into AST.
-pub trait IsParser : Debug {
-    /// Parse program.
-    fn parse(&mut self, program:String, ids:IdMap) -> Result<Ast>;
-
-    /// Parse program into module.
-    fn parse_module(&mut self, program:impl Str, ids:IdMap) -> Result<ast::known::Module> {
-        let ast = self.parse(program.into(),ids)?;
-        ast::known::Module::try_from(ast).map_err(|_| Error::NonModuleRoot)
-    }
-
-    /// Program is expected to be single non-empty line module. The line's AST is
-    /// returned. Panics otherwise.
-    fn parse_line(&mut self, program:impl Str) -> FallibleResult<Ast> {
-        let module = self.parse_module(program,default())?;
-
-        let mut lines = module.lines.clone().into_iter().filter_map(|line| {
-            line.elem
-        });
-        if let Some(first_non_empty_line) = lines.next() {
-            if lines.next().is_some() {
-                Err(TooManyLinesProduced.into())
-            } else {
-                Ok(first_non_empty_line)
-            }
-        } else {
-            Err(NoLinesProduced.into())
-        }
-    }
-
-    /// Parse contents of the program source file,
-    /// where program code may be followed by idmap and metadata.
-    fn parse_with_metadata<M:Metadata>
-    (&mut self, program:String) -> Result<SourceFile<M>>;
 }
 
 
@@ -119,12 +76,12 @@ pub enum Error {
 /// When trying to parse a line, not a single line was produced.
 #[derive(Debug,Fail,Clone,Copy)]
 #[fail(display = "Expected a single line, parsed none.")]
-struct NoLinesProduced;
+pub struct NoLinesProduced;
 
 /// When trying to parse a single line, more were generated.
 #[derive(Debug,Fail,Clone,Copy)]
 #[fail(display = "Expected just a single line, found more.")]
-struct TooManyLinesProduced;
+pub struct TooManyLinesProduced;
 
 /// Wraps an arbitrary `std::error::Error` as an `InteropError.`
 pub fn interop_error<T>(error:T) -> Error

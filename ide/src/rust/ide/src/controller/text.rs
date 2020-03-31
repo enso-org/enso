@@ -5,16 +5,23 @@
 //! user.
 
 use crate::prelude::*;
-use crate::controller::notification;
-use crate::executor::global::spawn;
+
+use crate::notification;
 
 use data::text::TextChange;
 use file_manager_client as fmc;
-use flo_stream::MessagePublisher;
-use flo_stream::Subscriber;
 use json_rpc::error::RpcError;
-use shapely::shared;
-use utils::channel::process_stream_with_handle;
+use std::pin::Pin;
+
+
+
+// ============
+// === Path ===
+// ============
+
+/// Path to a file on disc.
+type Path = Rc<fmc::Path>;
+
 
 
 // =======================
@@ -25,71 +32,61 @@ use utils::channel::process_stream_with_handle;
 ///
 /// This makes distinction between module and plain text files. The module files are handled by
 /// Module Controller, the plain text files are handled directly by File Manager Client.
-#[derive(Clone,Debug)]
+#[derive(Clone,CloneRef,Debug)]
 enum FileHandle {
-    PlainText {path:fmc::Path, file_manager:fmc::Handle},
-    Module    {controller:controller::module::Handle},
+    PlainText {path:Path, file_manager:fmc::Handle},
+    Module    {controller:controller::Module },
 }
 
-
-shared! { Handle
-
-    /// Data stored by the text controller.
-    #[derive(Debug)]
-    pub struct Controller {
-        file: FileHandle,
-        /// Sink where we put events to be consumed by the view.
-        notifications: notification::Publisher<notification::Text>,
-    }
-
-    impl {
-        /// Get subscriber receiving controller's notifications.
-        pub fn subscribe(&mut self) -> Subscriber<notification::Text> {
-            self.notifications.subscribe()
-        }
-
-        /// Get clone of file path handled by this controller.
-        pub fn file_path(&self) -> fmc::Path {
-            match &self.file {
-                FileHandle::PlainText{path,..} => path.clone(),
-                FileHandle::Module{controller} => controller.location().to_path(),
-            }
-        }
-    }
+/// A Text Controller Handle.
+///
+/// This struct contains all information and handles to do all module controller operations.
+#[derive(Clone,CloneRef,Debug)]
+pub struct Handle {
+    file: FileHandle,
 }
 
 impl Handle {
+
     /// Create controller managing plain text file (which is not a module).
     pub fn new_for_plain_text(path:fmc::Path, file_manager:fmc::Handle) -> Self {
-        Self::new(FileHandle::PlainText {path,file_manager})
+        let path = Rc::new(path);
+        Self {
+            file : FileHandle::PlainText {path,file_manager}
+        }
     }
+
     /// Create controller managing Luna module file.
-    pub fn new_for_module(controller:controller::module::Handle) -> Self {
-        let text_notifications = controller.subscribe_text_notifications();
-        let handle             = Self::new(FileHandle::Module {controller});
-        let weak               = handle.downgrade();
-        spawn(process_stream_with_handle(text_notifications,weak,|notification,this| {
-            this.with_borrowed(move |data| data.notifications.publish(notification))
-        }));
-        handle
+    pub fn new_for_module(controller:controller::Module) -> Self {
+        Self {
+            file : FileHandle::Module {controller}
+        }
+    }
+
+    /// Get clone of file path handled by this controller.
+    pub fn file_path(&self) -> Path {
+        match &self.file {
+            FileHandle::PlainText{path,..} => path.clone_ref(),
+            FileHandle::Module{controller} => Path::new(controller.location.to_path()),
+        }
     }
 
     /// Read file's content.
     pub async fn read_content(&self) -> Result<String,RpcError> {
         use FileHandle::*;
-        match self.file_handle() {
-            PlainText {path,mut file_manager} => file_manager.read(path).await,
-            Module    {controller}            => Ok(controller.code())
+        match &self.file {
+            PlainText {path,file_manager} => file_manager.read(path.deref().clone()).await,
+            Module    {controller}        => Ok(controller.code())
         }
     }
 
     /// Store the given content to file.
     pub fn store_content(&self, content:String) -> impl Future<Output=FallibleResult<()>> {
-        let file_handle = self.file_handle();
+        let file_handle = self.file.clone_ref();
         async move {
             match file_handle {
-                FileHandle::PlainText {path,mut file_manager} => {
-                    file_manager.write(path,content).await?
+                FileHandle::PlainText {path,file_manager} => {
+                    file_manager.write(path.deref().clone(),content).await?
                 },
                 FileHandle::Module {controller} => {
                     controller.check_code_sync(content)?;
@@ -106,31 +103,25 @@ impl Handle {
     /// of file. It will e.g. update the Module Controller state and notify other views about
     /// update in case of module files.
     pub fn apply_text_change(&self, change:&TextChange) -> FallibleResult<()> {
-        if let FileHandle::Module {controller} =  self.file_handle() {
+        if let FileHandle::Module {controller} = &self.file {
             controller.apply_code_change(change)
         } else {
             Ok(())
         }
     }
-}
 
-
-// === Private functions ===
-
-impl Handle {
-    /// Create controller managing plain text file.
-    fn new(file_handle:FileHandle) -> Self {
-        let state = Controller {
-            file          : file_handle,
-            notifications : default(),
-        };
-        Self {rc:Rc::new(RefCell::new(state))}
-    }
-
-    fn file_handle(&self) -> FileHandle {
-        self.with_borrowed(|state| state.file.clone())
+    /// Get a stream of text changes notifications.
+    pub fn subscribe(&self) -> Pin<Box<dyn Stream<Item=notification::Text>>> {
+        match &self.file {
+            FileHandle::PlainText{..}       => StreamExt::boxed(futures::stream::empty()),
+            FileHandle::Module {controller} => {
+                let subscriber = controller.model.subscribe_text_notifications();
+                StreamExt::boxed(subscriber)
+            }
+        }
     }
 }
+
 
 
 // === Test Utilities ===
@@ -139,17 +130,18 @@ impl Handle {
 impl Handle {
     /// Get FileManagerClient handle used by this controller.
     pub fn file_manager(&self) -> fmc::Handle {
-        self.with_borrowed(|state| {
-            match &state.file {
-                FileHandle::PlainText {file_manager,..} => file_manager.clone_ref(),
-                FileHandle::Module {..} =>
-                    panic!("Cannot get FileManagerHandle from module file"),
-            }
-        })
+        match &self.file {
+            FileHandle::PlainText {file_manager,..} => file_manager.clone_ref(),
+            FileHandle::Module {controller}         => controller.file_manager.clone_ref()
+        }
     }
 }
 
 
+
+// ============
+// === Test ===
+// ============
 
 #[cfg(test)]
 mod test {
@@ -163,18 +155,18 @@ mod test {
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test]
-    fn passing_notifications_from_modue() {
+    fn passing_notifications_from_module() {
         let mut test  = TestWithLocalPoolExecutor::set_up();
-        test.run_test(async move {
-            let fm         = file_manager_client::Handle::new(MockTransport::new());
-            let loc        = controller::module::Location("test".to_string());
+        test.run_task(async move {
+            let fm         = fmc::Handle::new(MockTransport::new());
+            let loc        = controller::module::Location::new("test");
             let parser     = Parser::new().unwrap();
-            let module_res = controller::module::Handle::new_mock(loc,"2+2",default(),fm,parser);
+            let module_res = controller::Module::new_mock(loc,"main = 2+2",default(),fm,parser);
             let module     = module_res.unwrap();
             let controller = Handle::new_for_module(module.clone_ref());
             let mut sub    = controller.subscribe();
 
-            module.apply_code_change(&TextChange::insert(Index::new(1),"2".to_string())).unwrap();
+            module.apply_code_change(&TextChange::insert(Index::new(8),"2".to_string())).unwrap();
             assert_eq!(Some(notification::Text::Invalidate), sub.next().await);
         })
     }

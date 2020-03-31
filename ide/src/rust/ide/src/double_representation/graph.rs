@@ -197,21 +197,20 @@ mod tests {
 
     use ast::HasRepr;
     use ast::test_utils::expect_single_line;
-    use parser::api::IsParser;
     use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     /// Takes a program with main definition in root and returns main's graph.
-    fn main_graph(parser:&mut impl IsParser, program:impl Str) -> GraphInfo {
+    fn main_graph(parser:&parser::Parser, program:impl Str) -> GraphInfo {
         let module = parser.parse_module(program.into(), default()).unwrap();
         let name   = DefinitionName::new_plain("main");
         let main   = module.def_iter().find_by_name(&name).unwrap();
         GraphInfo::from_definition(main.item)
     }
 
-    fn find_graph(parser:&mut impl IsParser, program:impl Str, name:impl Str) -> GraphInfo {
+    fn find_graph(parser:&parser::Parser, program:impl Str, name:impl Str) -> GraphInfo {
         let module     = parser.parse_module(program.into(), default()).unwrap();
         let crumbs     = name.into().split(".").map(|name| {
             DefinitionName::new_plain(name)
@@ -241,7 +240,7 @@ mod tests {
         }
     }
 
-    fn create_node_ast(parser:&mut impl IsParser, expression:&str) -> (Ast,ast::Id) {
+    fn create_node_ast(parser:&parser::Parser, expression:&str) -> (Ast,ast::Id) {
         let node_ast = parser.parse(expression.to_string(), default()).unwrap();
         let line_ast = expect_single_line(&node_ast).clone();
         let id       = line_ast.id.expect("line_ast should have an ID");
@@ -250,17 +249,17 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn add_node_to_graph_with_single_line() {
-        let program    = "main = print \"hello\"";
-        let mut parser = parser::Parser::new_or_panic();
-        let mut graph  = main_graph(&mut parser, program);
-        let nodes      = graph.nodes();
+        let program   = "main = print \"hello\"";
+        let parser    = parser::Parser::new_or_panic();
+        let mut graph = main_graph(&parser, program);
+        let nodes     = graph.nodes();
         assert_eq!(nodes.len(), 1);
         assert_eq!(nodes[0].expression().repr(), "print \"hello\"");
 
         let expr0 = "a + 2";
         let expr1 = "b + 3";
-        let (line_ast0,id0) = create_node_ast(&mut parser, expr0);
-        let (line_ast1,id1) = create_node_ast(&mut parser, expr1);
+        let (line_ast0,id0) = create_node_ast(&parser, expr0);
+        let (line_ast1,id1) = create_node_ast(&parser, expr1);
 
         graph.add_node(line_ast0, LocationHint::Start).unwrap();
         assert_eq!(graph.nodes().len(), 2);

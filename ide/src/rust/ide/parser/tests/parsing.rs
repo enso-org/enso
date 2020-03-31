@@ -4,7 +4,6 @@ use parser::prelude::*;
 
 use ast::*;
 use ast::test_utils::expect_shape;
-use parser::api::IsParser;
 use parser::api::SourceFile;
 use utils::test::ExpectTuple;
 
@@ -63,7 +62,7 @@ impl Fixture {
 
     fn deserialize_metadata(&mut self) {
         let term = ast::Module {lines: vec![ast::BlockLine {elem:None,off:0}]};
-        let ast  = Ast::new(term,None);
+        let ast  = known::Module::new(term,None);
         let file = SourceFile {ast, metadata: serde_json::json!({})};
         let code = String::try_from(&file).unwrap();
         assert_eq!(self.parser.parse_with_metadata(code).unwrap(), file);

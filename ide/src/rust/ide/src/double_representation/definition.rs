@@ -475,7 +475,6 @@ impl DefinitionProvider for DefinitionInfo {
 mod tests {
     use super::*;
 
-    use parser::api::IsParser;
     use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -497,7 +496,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn list_definition_test() {
-        let mut parser = parser::Parser::new_or_panic();
+        let parser = parser::Parser::new_or_panic();
 
         // TODO [mwu]
         //  Due to a parser bug, extension methods defining operators cannot be currently
@@ -553,8 +552,8 @@ mod tests {
             ("foo = bar\n\nmain = bar", 2),
         ];
 
-        let mut parser = parser::Parser::new_or_panic();
-        let main_id    = Id::new_plain_name("main");
+        let parser  = parser::Parser::new_or_panic();
+        let main_id = Id::new_plain_name("main");
         for (program,expected_line_index) in program_to_expected_main_pos {
             let module   = parser.parse_module(program,default()).unwrap();
             let location = locate(&module, &main_id).unwrap();
