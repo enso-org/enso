@@ -11,10 +11,15 @@ import org.enso.languageserver.data.{
   Config,
   ContentBasedVersioning,
   FileManagerConfig,
+  PathWatcherConfig,
   Sha3_224VersionCalculator
 }
 import org.enso.languageserver.effect.ZioExec
-import org.enso.languageserver.filemanager.{FileManager, FileSystem}
+import org.enso.languageserver.filemanager.{
+  FileManager,
+  FileSystem,
+  ReceivesTreeUpdatesHandler
+}
 import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
@@ -33,7 +38,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
-    FileManagerConfig(timeout = 3.seconds)
+    FileManagerConfig(timeout = 3.seconds),
+    PathWatcherConfig()
   )
 
   val zioExec = ZioExec(zio.Runtime.default)
@@ -61,8 +67,18 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val bufferRegistry =
     system.actorOf(BufferRegistry.props(fileManager), "buffer-registry")
 
+  lazy val receivesTreeUpdatesHandler =
+    system.actorOf(
+      ReceivesTreeUpdatesHandler
+        .props(languageServerConfig, fileSystem, zioExec),
+      "file-event-registry"
+    )
+
   lazy val capabilityRouter =
-    system.actorOf(CapabilityRouter.props(bufferRegistry), "capability-router")
+    system.actorOf(
+      CapabilityRouter.props(bufferRegistry, receivesTreeUpdatesHandler),
+      "capability-router"
+    )
 
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")

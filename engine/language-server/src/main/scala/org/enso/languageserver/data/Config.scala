@@ -8,7 +8,34 @@ import org.enso.languageserver.filemanager.{
   FileSystemFailure
 }
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
+
+/**
+  * Configuration of the path watcher.
+  *
+  * @param timeout path watcher operations timeout
+  * @param restartTimeout timeout before watcher is restarted on error
+  * @param maxRestartsCount maximum number of unsuccessful restarts
+  * before returning an error
+  */
+case class PathWatcherConfig(
+  timeout: FiniteDuration,
+  restartTimeout: FiniteDuration,
+  maxRestarts: Int
+)
+
+object PathWatcherConfig {
+
+  /**
+    * Default path watcher config.
+    */
+  def apply(): PathWatcherConfig =
+    PathWatcherConfig(
+      timeout        = 5.seconds,
+      restartTimeout = 5.seconds,
+      maxRestarts    = 10
+    )
+}
 
 case class FileManagerConfig(timeout: FiniteDuration, parallelism: Int)
 
@@ -29,7 +56,8 @@ object FileManagerConfig {
   */
 case class Config(
   contentRoots: Map[UUID, File],
-  fileManager: FileManagerConfig
+  fileManager: FileManagerConfig,
+  pathWatcher: PathWatcherConfig
 ) {
 
   def findContentRoot(rootId: UUID): Either[FileSystemFailure, File] =

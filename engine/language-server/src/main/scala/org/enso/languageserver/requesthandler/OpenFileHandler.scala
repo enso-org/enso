@@ -1,6 +1,6 @@
 package org.enso.languageserver.requesthandler
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
 import org.enso.languageserver.data.Client
@@ -35,11 +35,16 @@ class OpenFileHandler(
   private def requestStage: Receive = {
     case Request(OpenFile, id, params: OpenFile.Params) =>
       bufferRegistry ! TextProtocol.OpenFile(client, params.path)
-      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(id, sender()))
+      val cancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      context.become(responseStage(id, sender(), cancellable))
   }
 
-  private def responseStage(id: Id, replyTo: ActorRef): Receive = {
+  private def responseStage(
+    id: Id,
+    replyTo: ActorRef,
+    cancellable: Cancellable
+  ): Receive = {
     case RequestTimeout =>
       log.error(s"Opening file for ${client.id} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
@@ -52,6 +57,7 @@ class OpenFileHandler(
         OpenFile
           .Result(capability, buffer.contents.toString, buffer.version)
       )
+      cancellable.cancel()
       context.stop(self)
 
     case OpenFileResponse(Left(failure)) =>
@@ -59,6 +65,7 @@ class OpenFileHandler(
         Some(id),
         FileSystemFailureMapper.mapFailure(failure)
       )
+      cancellable.cancel()
       context.stop(self)
   }
 

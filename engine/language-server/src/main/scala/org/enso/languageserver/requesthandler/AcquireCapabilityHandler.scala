@@ -1,15 +1,17 @@
 package org.enso.languageserver.requesthandler
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.capability.CapabilityApi.AcquireCapability
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityAcquired,
-  CapabilityAcquisitionBadRequest
+  CapabilityAcquisitionBadRequest,
+  CapabilityAcquisitionFileSystemFailure
 }
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
+import org.enso.languageserver.filemanager.FileSystemFailureMapper
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -37,11 +39,16 @@ class AcquireCapabilityHandler(
         client,
         registration
       )
-      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(id, sender()))
+      val cancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      context.become(responseStage(id, sender(), cancellable))
   }
 
-  private def responseStage(id: Id, replyTo: ActorRef): Receive = {
+  private def responseStage(
+    id: Id,
+    replyTo: ActorRef,
+    cancellable: Cancellable
+  ): Receive = {
     case RequestTimeout =>
       log.error(s"Acquiring capability for ${client.id} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
@@ -49,10 +56,20 @@ class AcquireCapabilityHandler(
 
     case CapabilityAcquired =>
       replyTo ! ResponseResult(AcquireCapability, id, Unused)
+      cancellable.cancel()
       context.stop(self)
 
     case CapabilityAcquisitionBadRequest =>
       replyTo ! ResponseError(Some(id), ServiceError)
+      cancellable.cancel()
+      context.stop(self)
+
+    case CapabilityAcquisitionFileSystemFailure(error) =>
+      replyTo ! ResponseError(
+        Some(id),
+        FileSystemFailureMapper.mapFailure(error)
+      )
+      cancellable.cancel()
       context.stop(self)
   }
 

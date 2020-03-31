@@ -154,7 +154,7 @@ object FileSystemApi {
     * An entry representing a directory.
     *
     * @param path to the directory
-    * @children a paths to the children entries
+    * @param children a paths to the children entries
     */
   case class DirectoryEntry(path: Path, children: ArrayBuffer[Entry])
       extends Entry
@@ -212,7 +212,7 @@ object FileSystemApi {
   object Attributes {
 
     /**
-      * Creates attributes using the [[FileTime]] time.
+      * Creates attributes using the `FileTime` time.
       *
       * @param creationTime creation time
       * @param lastAccessTime last access time

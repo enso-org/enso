@@ -36,5 +36,6 @@ object JsonRpc {
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)
+    .registerNotification(EventFile)
 
 }

@@ -11,8 +11,8 @@ import java.time.OffsetDateTime
   * @param lastModifiedTime last modified time
   * @param kind type of [[FileSystemObject]], can be
   *   [[FileSystemObject.DirectoryTruncated]]
-  * | [[FileSystemObject.FileEntry]]
-  * | [[FileSystemObject.OtherEntry]]
+  * | [[FileSystemObject.File]]
+  * | [[FileSystemObject.Other]]
   * @param byteSize size in bytes
   */
 case class FileAttributes(

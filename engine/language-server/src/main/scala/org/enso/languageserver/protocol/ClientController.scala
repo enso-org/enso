@@ -14,6 +14,7 @@ import org.enso.languageserver.capability.CapabilityApi.{
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.data.Client
 import org.enso.languageserver.event.{ClientConnected, ClientDisconnected}
+import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.text.TextApi._
@@ -84,7 +85,7 @@ class ClientController(
 
   def connected(webActor: ActorRef): Receive = {
     case MessageHandler.Disconnected =>
-      context.system.eventStream.publish(ClientDisconnected(clientId))
+      context.system.eventStream.publish(ClientDisconnected(client))
       context.stop(self)
 
     case CapabilityProtocol.CapabilityForceReleased(registration) =>
@@ -95,6 +96,9 @@ class ClientController(
 
     case TextProtocol.TextDidChange(changes) =>
       webActor ! Notification(TextDidChange, TextDidChange.Params(changes))
+
+    case PathWatcherProtocol.FileEventResult(event) =>
+      webActor ! Notification(EventFile, EventFile.Params(event))
 
     case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
       val handler = context.actorOf(requestHandlers(method))

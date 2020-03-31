@@ -1,6 +1,6 @@
 package org.enso.languageserver.requesthandler.file
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
+import akka.actor._
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.{
@@ -23,15 +23,20 @@ class TreeFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
   private def requestStage: Receive = {
     case Request(TreeFile, id, params: TreeFile.Params) =>
       fileManager ! FileManagerProtocol.TreeFile(params.path, params.depth)
-      context.system.scheduler
+      val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(id, sender()))
+      context.become(responseStage(id, sender(), cancellable))
   }
 
-  private def responseStage(id: Id, replyTo: ActorRef): Receive = {
+  private def responseStage(
+    id: Id,
+    replyTo: ActorRef,
+    cancellable: Cancellable
+  ): Receive = {
     case Status.Failure(ex) =>
       log.error(s"Failure during $TreeFile operation:", ex)
       replyTo ! ResponseError(Some(id), ServiceError)
+      cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
@@ -44,10 +49,12 @@ class TreeFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
         Some(id),
         FileSystemFailureMapper.mapFailure(failure)
       )
+      cancellable.cancel()
       context.stop(self)
 
     case FileManagerProtocol.TreeFileResult(Right(result)) =>
       replyTo ! ResponseResult(TreeFile, id, TreeFile.Result(result))
+      cancellable.cancel()
       context.stop(self)
   }
 }

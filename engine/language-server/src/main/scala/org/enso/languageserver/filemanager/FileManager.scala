@@ -12,7 +12,7 @@ import zio._
   * effects and forms the responses.
   *
   * @param config configuration
-  * @param fs an instance of a [[FileSyste]] that creates the effects
+  * @param fs an instance of a [[FileSystem]] that creates the effects
   * @param exec effects executor
   */
 class FileManager(

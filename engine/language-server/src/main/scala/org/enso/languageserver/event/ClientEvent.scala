@@ -18,6 +18,6 @@ case class ClientConnected(client: Client) extends ClientEvent
   * Notifies the Language Server about a client disconnecting.
   * The client may not send any further messages after this one.
   *
-  * @param clientId the internal id of this client
+  * @param client an object representing a client
   */
-case class ClientDisconnected(clientId: Client.Id) extends ClientEvent
+case class ClientDisconnected(client: Client) extends ClientEvent

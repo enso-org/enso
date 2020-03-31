@@ -1,6 +1,6 @@
 package org.enso.languageserver.requesthandler
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.data.Client
@@ -31,11 +31,16 @@ class ApplyEditHandler(
   private def requestStage: Receive = {
     case Request(ApplyEdit, id, params: ApplyEdit.Params) =>
       bufferRegistry ! TextProtocol.ApplyEdit(client.id, params.edit)
-      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(id, sender()))
+      val cancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      context.become(responseStage(id, sender(), cancellable))
   }
 
-  private def responseStage(id: Id, replyTo: ActorRef): Receive = {
+  private def responseStage(
+    id: Id,
+    replyTo: ActorRef,
+    cancellable: Cancellable
+  ): Receive = {
     case RequestTimeout =>
       log.error(s"Applying edit for ${client.id} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
@@ -43,10 +48,12 @@ class ApplyEditHandler(
 
     case ApplyEditSuccess =>
       replyTo ! ResponseResult(ApplyEdit, id, Unused)
+      cancellable.cancel()
       context.stop(self)
 
     case TextEditValidationFailed(msg) =>
       replyTo ! ResponseError(Some(id), TextEditValidationError(msg))
+      cancellable.cancel()
       context.stop(self)
 
     case TextEditInvalidVersion(clientVersion, serverVersion) =>
@@ -54,14 +61,17 @@ class ApplyEditHandler(
         Some(id),
         InvalidVersionError(clientVersion, serverVersion)
       )
+      cancellable.cancel()
       context.stop(self)
 
     case WriteDenied =>
       replyTo ! ResponseError(Some(id), WriteDeniedError)
+      cancellable.cancel()
       context.stop(self)
 
     case FileNotOpened =>
       replyTo ! ResponseError(Some(id), FileNotOpenedError)
+      cancellable.cancel()
       context.stop(self)
   }
 

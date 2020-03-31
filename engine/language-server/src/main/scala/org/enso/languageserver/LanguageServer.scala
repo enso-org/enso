@@ -48,8 +48,8 @@ class LanguageServer(config: Config)
         initialized(config, env.addClient(client))
       )
 
-    case ClientDisconnected(clientId) =>
-      log.info("Client disconnected [{}].", clientId)
-      context.become(initialized(config, env.removeClient(clientId)))
+    case ClientDisconnected(client) =>
+      log.info("Client disconnected [{}].", client.id)
+      context.become(initialized(config, env.removeClient(client.id)))
   }
 }

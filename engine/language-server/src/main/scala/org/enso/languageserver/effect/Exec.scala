@@ -3,6 +3,7 @@ package org.enso.languageserver.effect
 import java.util.concurrent.{ExecutionException, TimeoutException}
 
 import zio._
+import zio.blocking.blocking
 
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.FiniteDuration
@@ -29,12 +30,19 @@ trait Exec[-F[_, _]] {
     */
   def execTimed[E, A](
     timeout: FiniteDuration,
-    op: ZIO[ZEnv, E, A]
+    op: F[E, A]
   ): Future[Either[E, A]]
+
+  /**
+    * Execute long running task in background.
+    *
+    * @param op effect to execute
+    */
+  def exec_[E, A](op: F[E, A]): Unit
 }
 
 /**
-  * Executor of [[ZIO]] effects.
+  * Executor of Zio effects.
   *
   * @param runtime zio runtime
   */
@@ -62,7 +70,7 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     *
     * @param timeout execution timeout
     * @param op effect to execute
-    * @return a future. On timeout future is failed with [[TimeoutException]].
+    * @return a future. On timeout future is failed with `TimeoutException`.
     * Otherwise future contains either a failure or a result.
     */
   override def execTimed[E, A](
@@ -82,6 +90,14 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     }
     promise.future
   }
+
+  /**
+    * Execute long running task in background.
+    *
+    * @param op effect to execute
+    */
+  override def exec_[E, A](op: ZIO[ZEnv, E, A]): Unit =
+    runtime.unsafeRunAsync_(blocking(op))
 }
 
 object ZioExec {

@@ -1,7 +1,7 @@
 package org.enso.languageserver.capability
 
 import org.enso.languageserver.data.CapabilityRegistration
-import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
+import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 
 /**
   * The capability JSON RPC API provided by the language server.
@@ -41,4 +41,8 @@ object CapabilityApi {
     }
   }
 
+  // Errors
+
+  case object CapabilityNotAcquired
+      extends Error(5001, "Capability not acquired")
 }

@@ -1,6 +1,6 @@
 package org.enso.languageserver.requesthandler
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.data.Client
@@ -41,11 +41,16 @@ class SaveFileHandler(
         params.path,
         params.currentVersion
       )
-      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(id, sender()))
+      val cancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      context.become(responseStage(id, sender(), cancellable))
   }
 
-  private def responseStage(id: Id, replyTo: ActorRef): Receive = {
+  private def responseStage(
+    id: Id,
+    replyTo: ActorRef,
+    cancellable: Cancellable
+  ): Receive = {
     case RequestTimeout =>
       log.error(s"Saving file for ${client.id} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
@@ -53,6 +58,7 @@ class SaveFileHandler(
 
     case FileSaved =>
       replyTo ! ResponseResult(SaveFile, id, Unused)
+      cancellable.cancel()
       context.stop(self)
 
     case SaveFailed(fsFailure) =>
@@ -60,10 +66,12 @@ class SaveFileHandler(
         Some(id),
         FileSystemFailureMapper.mapFailure(fsFailure)
       )
+      cancellable.cancel()
       context.stop(self)
 
     case SaveDenied =>
       replyTo ! ResponseError(Some(id), WriteDeniedError)
+      cancellable.cancel()
       context.stop(self)
 
     case SaveFileInvalidVersion(clientVersion, serverVersion) =>
@@ -71,10 +79,12 @@ class SaveFileHandler(
         Some(id),
         InvalidVersionError(clientVersion, serverVersion)
       )
+      cancellable.cancel()
       context.stop(self)
 
     case FileNotOpened =>
       replyTo ! ResponseError(Some(id), FileNotOpenedError)
+      cancellable.cancel()
       context.stop(self)
   }
 

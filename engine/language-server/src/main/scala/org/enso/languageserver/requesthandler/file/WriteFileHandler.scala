@@ -1,6 +1,6 @@
 package org.enso.languageserver.requesthandler.file
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
+import akka.actor._
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.{
@@ -23,15 +23,20 @@ class WriteFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
   private def requestStage: Receive = {
     case Request(WriteFile, id, params: WriteFile.Params) =>
       fileManager ! FileManagerProtocol.WriteFile(params.path, params.contents)
-      context.system.scheduler
+      val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(id, sender()))
+      context.become(responseStage(id, sender(), cancellable))
   }
 
-  private def responseStage(id: Id, replyTo: ActorRef): Receive = {
+  private def responseStage(
+    id: Id,
+    replyTo: ActorRef,
+    cancellable: Cancellable
+  ): Receive = {
     case Status.Failure(ex) =>
       log.error(s"Failure during $WriteFile operation:", ex)
       replyTo ! ResponseError(Some(id), ServiceError)
+      cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
@@ -44,10 +49,12 @@ class WriteFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
         Some(id),
         FileSystemFailureMapper.mapFailure(failure)
       )
+      cancellable.cancel()
       context.stop(self)
 
     case FileManagerProtocol.WriteFileResult(Right(())) =>
       replyTo ! ResponseResult(WriteFile, id, Unused)
+      cancellable.cancel()
       context.stop(self)
   }
 }

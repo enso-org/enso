@@ -1,6 +1,6 @@
 package org.enso.languageserver.requesthandler.file
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
+import akka.actor._
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.{
@@ -29,15 +29,20 @@ class InfoFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
   private def requestStage: Receive = {
     case Request(InfoFile, id, params: InfoFile.Params) =>
       fileManager ! FileManagerProtocol.InfoFile(params.path)
-      context.system.scheduler
+      val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(id, sender()))
+      context.become(responseStage(id, sender(), cancellable))
   }
 
-  private def responseStage(id: Id, replyTo: ActorRef): Receive = {
+  private def responseStage(
+    id: Id,
+    replyTo: ActorRef,
+    cancellable: Cancellable
+  ): Receive = {
     case Status.Failure(ex) =>
       log.error(s"Failure during $InfoFile operation:", ex)
       replyTo ! ResponseError(Some(id), ServiceError)
+      cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
@@ -50,10 +55,12 @@ class InfoFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
         Some(id),
         FileSystemFailureMapper.mapFailure(failure)
       )
+      cancellable.cancel()
       context.stop(self)
 
     case FileManagerProtocol.InfoFileResult(Right(result)) =>
       replyTo ! ResponseResult(InfoFile, id, InfoFile.Result(result))
+      cancellable.cancel()
       context.stop(self)
   }
 }

@@ -21,16 +21,27 @@ object CanEdit {
   val methodName = "canEdit"
 }
 
+/**
+  * A capability allowing user to receive file events.
+  *
+  * @param path path to watch.
+  */
+case class ReceivesTreeUpdates(path: Path)
+    extends Capability(ReceivesTreeUpdates.methodName)
+
+object ReceivesTreeUpdates {
+  val methodName = "receivesTreeUpdates"
+}
+
 object Capability {
-  import cats.syntax.functor._
   import io.circe.generic.auto._
   import io.circe.syntax._
 
   implicit val encoder: Encoder[Capability] = {
-    case cap: CanEdit => cap.asJson
+    case cap: CanEdit             => cap.asJson
+    case cap: ReceivesTreeUpdates => cap.asJson
   }
 
-  implicit val decoder: Decoder[Capability] = Decoder[CanEdit].widen
 }
 
 /**
@@ -62,7 +73,8 @@ object CapabilityRegistration {
       method: String,
       json: Json
     ): Decoder.Result[Capability] = method match {
-      case CanEdit.methodName => json.as[CanEdit]
+      case CanEdit.methodName             => json.as[CanEdit]
+      case ReceivesTreeUpdates.methodName => json.as[ReceivesTreeUpdates]
       case _ =>
         Left(DecodingFailure("Unrecognized capability method.", List()))
     }
