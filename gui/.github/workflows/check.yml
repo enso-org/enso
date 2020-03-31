@@ -1,0 +1,213 @@
+name: Check
+
+on: [push]
+
+# Please check if all components are available before updating the rust toolchain version.
+# https://rust-lang.github.io/rustup-components-history/x86_64-unknown-linux-gnu.html
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-wasm-registry-${{ hashFiles('src/rust/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-wasm-registry
+
+      - name: Cache Wasm
+        uses: actions/cache@v1
+        with:
+          path: src/rust/target
+          key: ${{ runner.os }}-wasm-build-${{ hashFiles('src/rust/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-wasm-build
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+
+      - name: Install wasm-pack
+        # We could use cargo install wasm-pack, but that takes 3.5 minutes compared to few seconds.
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.8.1
+          WASMPACKDIR: wasm-pack-v0.8.1-x86_64-apple-darwin
+        run: |
+          curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+          mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+          rm -r $WASMPACKDIR
+        shell: bash
+
+
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12.16.1'
+
+      - name: Build
+        run: node ./run build --dev
+
+
+  check:
+    name: Linter
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('src/rust/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-registry
+
+      - name: Cache Cargo Check
+        uses: actions/cache@v1
+        with:
+          path: src/rust/target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('src/rust/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-build
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+
+      - name: Install Clippy
+        run: rustup component add clippy
+
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12.16.1'
+
+      - name: Building Rust Sources
+        run: node ./run lint
+
+
+  test:
+    name: Tests
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('src/rust/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-registry
+
+      - name: Cache Cargo Test
+        uses: actions/cache@v1
+        with:
+          path: src/rust/target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('src/rust/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-build
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12.16.1'
+
+      - name: Run tests
+        run: node ./run test --no-wasm
+
+
+  wasm-test:
+    name: WASM Tests
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Cache Cargo Registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-wasm-test-registry-${{ hashFiles('src/rust/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-wasm-test-registry
+
+      - name: Cache Wasm Test
+        uses: actions/cache@v1
+        with:
+          path: src/rust/target
+          key: ${{ runner.os }}-wasm-test-build-${{ hashFiles('src/rust/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-wasm-test-build
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+
+      - name: Install wasm-pack
+        # We could use cargo install wasm-pack, but that takes 3.5 minutes compared to few seconds.
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v0.8.1
+          WASMPACKDIR: wasm-pack-v0.8.1-x86_64-apple-darwin
+        run: |
+          curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+          mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+          rm -r $WASMPACKDIR
+        shell: bash
+
+
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12.16.1'
+
+      - name: Run tests
+        run: node ./run test --no-native
+
+
+  # TODO: enable after fixing https://github.com/actions-rs/grcov/issues/50 
+  # coverage:
+  #   name: Coverage
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v1
+  #
+  #     - name: Install Rust
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: nightly-2019-11-04
+  #         override: true
+  #
+  #     - name: Install Node
+  #       uses: actions/setup-node@v1
+  #       with:
+  #         node-version: '12.16.1'
+  #
+  #     - name: Generate test profile
+  #       working-directory: src/rust
+  #       run: cargo test --all-features --no-fail-fast
+  #       env:
+  #         'CARGO_INCREMENTAL': '0'
+  #         'RUSTFLAGS': '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads'
+  #
+  #     - name: Generate coverage report
+  #       id: coverage
+  #       uses: actions-rs/grcov@v0.1
+  #
+  #     - name: Show the coverage report
+  #       run: cat ${{ steps.coverage.outputs.report }}
+  #
+  #     - name: Upload the coverage report
+  #       uses: codecov/codecov-action@v1.0.2
+  #       with:
+  #         token: ${{ secrets.CODECOV_TOKEN }}
+  #         file: ./lcov.info
