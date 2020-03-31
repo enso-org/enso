@@ -14,7 +14,7 @@ import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailur
   ProjectNotFoundInIndex,
   StorageFailure
 }
-import org.enso.projectmanager.main.configuration.StorageConfig
+import org.enso.projectmanager.boot.configuration.StorageConfig
 import org.enso.projectmanager.model.Project
 
 /**
@@ -42,6 +42,15 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     indexStorage
       .load()
       .map(_.exists(name))
+      .mapError(_.fold(convertFileStorageFailure))
+
+  /** @inheritdoc **/
+  override def findUserProject(
+    projectId: UUID
+  ): F[ProjectRepositoryFailure, Option[Project]] =
+    indexStorage
+      .load()
+      .map(_.userProjects.get(projectId))
       .mapError(_.fold(convertFileStorageFailure))
 
   /**

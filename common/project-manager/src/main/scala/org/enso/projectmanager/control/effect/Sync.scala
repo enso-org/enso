@@ -7,7 +7,7 @@ import zio.{ZEnv, ZIO}
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A class for synchronous effects that blocks threads.
+  * A class for synchronous effects that block threads.
   *
   * @tparam F an effectful context
   */

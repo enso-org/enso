@@ -6,8 +6,8 @@ import java.util.UUID
 import buildinfo.Info
 import cats.implicits._
 import org.apache.commons.cli.{Option => CliOption, _}
-import org.enso.languageserver
-import org.enso.languageserver.LanguageServerConfig
+import org.enso.languageserver.boot
+import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.pkg.Package
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.graalvm.polyglot.Value
@@ -254,7 +254,7 @@ object Main {
       port      <- Either
                      .catchNonFatal(portString.toInt)
                      .leftMap(_ => "Port must be integer") 
-    } yield languageserver.LanguageServerConfig(interface, port, rootId, rootPath)
+    } yield boot.LanguageServerConfig(interface, port, rootId, rootPath)
     // format: on
 
   /** Prints the version of the enso executable.

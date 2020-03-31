@@ -1,4 +1,4 @@
-package org.enso.languageserver
+package org.enso.languageserver.boot
 
 import java.io.File
 import java.net.URI
@@ -23,6 +23,7 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
+import org.enso.languageserver.LanguageServer
 import org.enso.polyglot.{LanguageInfo, RuntimeServerInfo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -49,7 +50,13 @@ class MainModule(serverConfig: LanguageServerConfig) {
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
 
-  implicit val system = ActorSystem()
+  implicit val system =
+    ActorSystem(
+      serverConfig.name,
+      None,
+      None,
+      Some(serverConfig.computeExecutionContext)
+    )
 
   implicit val materializer = SystemMaterializer.get(system)
 

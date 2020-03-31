@@ -4,10 +4,9 @@ import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import org.enso.jsonrpc.ClientControllerFactory
+import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.service.ProjectServiceApi
-
-import scala.concurrent.duration.FiniteDuration
 
 /**
   * Project manager client controller factory.
@@ -17,7 +16,7 @@ import scala.concurrent.duration.FiniteDuration
 class ManagerClientControllerFactory[F[+_, +_]: Exec](
   system: ActorSystem,
   projectService: ProjectServiceApi[F],
-  requestTimeout: FiniteDuration
+  timeoutConfig: TimeoutConfig
 ) extends ClientControllerFactory {
 
   /**
@@ -28,7 +27,7 @@ class ManagerClientControllerFactory[F[+_, +_]: Exec](
     */
   override def createClientController(clientId: UUID): ActorRef =
     system.actorOf(
-      ClientController.props[F](clientId, projectService, requestTimeout)
+      ClientController.props[F](clientId, projectService, timeoutConfig)
     )
 
 }

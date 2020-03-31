@@ -94,7 +94,6 @@ lazy val enso = (project in file("."))
     syntax_definition.jvm,
     syntax.jvm,
     pkg,
-    project_manager,
     runtime,
     polyglot_api,
     parser_service,
@@ -344,9 +343,21 @@ lazy val file_manager = (project in file("common/file-manager"))
 
 lazy val project_manager = (project in file("common/project-manager"))
   .settings(
-    (Compile / mainClass) := Some("org.enso.projectmanager.Server")
+    (Compile / mainClass) := Some("org.enso.projectmanager.boot.ProjectManager")
   )
   .settings(
+    (Compile / run / fork) := true,
+    (Test / fork) := true,
+    (Compile / run / connectInput) := true,
+    javaOptions ++= Seq(
+      // Puts the language runtime on the truffle classpath, rather than the
+      // standard classpath. This is the recommended way of handling this and
+      // we should strive to use such structure everywhere. See
+      // https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
+      s"-Dtruffle.class.path.append=${(runtime / Compile / fullClasspath).value
+        .map(_.data)
+        .mkString(File.pathSeparator)}"
+    ),
     libraryDependencies ++= akka,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
@@ -366,6 +377,7 @@ lazy val project_manager = (project in file("common/project-manager"))
     )
   )
   .dependsOn(pkg)
+  .dependsOn(language_server)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
 
@@ -453,18 +465,19 @@ lazy val polyglot_api = project
 lazy val language_server = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
-      "ch.qos.logback"   % "logback-classic" % "1.2.3",
-      "io.circe"         %% "circe-generic-extras" % "0.12.2",
-      "io.circe"         %% "circe-literal"        % circeVersion,
-      "org.bouncycastle" % "bcpkix-jdk15on"        % "1.64",
-      "dev.zio"          %% "zio"                  % "1.0.0-RC18-2",
-      "io.methvin"       % "directory-watcher"     % "0.9.6",
-      "com.beachape"     %% "enumeratum-circe"     % "1.5.23",
-      akkaTestkit        % Test,
-      "commons-io"       % "commons-io" % "2.6",
-      "org.scalatest"    %% "scalatest" % "3.2.0-M2" % Test,
-      "org.scalacheck"   %% "scalacheck" % "1.14.0" % Test,
-      "org.graalvm.sdk"  % "polyglot-tck" % graalVersion % "provided"
+      "ch.qos.logback"             % "logback-classic" % "1.2.3",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
+      "io.circe"                   %% "circe-generic-extras" % "0.12.2",
+      "io.circe"                   %% "circe-literal" % circeVersion,
+      "org.bouncycastle"           % "bcpkix-jdk15on" % "1.64",
+      "dev.zio"                    %% "zio" % "1.0.0-RC18-2",
+      "io.methvin"                 % "directory-watcher" % "0.9.6",
+      "com.beachape"               %% "enumeratum-circe" % "1.5.23",
+      akkaTestkit                  % Test,
+      "commons-io"                 % "commons-io" % "2.6",
+      "org.scalatest"              %% "scalatest" % "3.2.0-M2" % Test,
+      "org.scalacheck"             %% "scalacheck" % "1.14.0" % Test,
+      "org.graalvm.sdk"            % "polyglot-tck" % graalVersion % "provided"
     ),
     testOptions in Test += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000")

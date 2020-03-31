@@ -1,10 +1,7 @@
 package org.enso.runner
 
-import org.enso.languageserver.{
-  LanguageProtocol,
-  LanguageServerConfig,
-  MainModule
-}
+import org.enso.languageserver.boot.{LanguageServerConfig, MainModule}
+import org.enso.languageserver.LanguageProtocol
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

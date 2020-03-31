@@ -4,18 +4,25 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
+import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.effect.Exec
+import org.enso.projectmanager.event.ClientEvent.{
+  ClientConnected,
+  ClientDisconnected
+}
 import org.enso.projectmanager.protocol.ProjectManagementApi.{
+  ProjectClose,
   ProjectCreate,
-  ProjectDelete
+  ProjectDelete,
+  ProjectOpen
 }
 import org.enso.projectmanager.requesthandler.{
+  ProjectCloseHandler,
   ProjectCreateHandler,
-  ProjectDeleteHandler
+  ProjectDeleteHandler,
+  ProjectOpenHandler
 }
 import org.enso.projectmanager.service.ProjectServiceApi
-
-import scala.concurrent.duration.FiniteDuration
 
 /**
   * An actor handling communications between a single client and the project
@@ -23,20 +30,26 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param clientId the internal client id.
   * @param projectService a project service
-  * @param timeout a request timeout
+  * @param config a request timeout cofig
   */
 class ClientController[F[+_, +_]: Exec](
   clientId: UUID,
   projectService: ProjectServiceApi[F],
-  timeout: FiniteDuration
+  config: TimeoutConfig
 ) extends Actor
     with Stash
     with ActorLogging {
 
   private val requestHandlers: Map[Method, Props] =
     Map(
-      ProjectCreate -> ProjectCreateHandler.props[F](projectService, timeout),
-      ProjectDelete -> ProjectDeleteHandler.props[F](projectService, timeout)
+      ProjectCreate -> ProjectCreateHandler
+        .props[F](projectService, config.requestTimeout),
+      ProjectDelete -> ProjectDeleteHandler
+        .props[F](projectService, config.requestTimeout),
+      ProjectOpen -> ProjectOpenHandler
+        .props[F](clientId, projectService, config.bootTimeout),
+      ProjectClose -> ProjectCloseHandler
+        .props[F](clientId, projectService, config.bootTimeout)
     )
 
   override def unhandled(message: Any): Unit =
@@ -44,14 +57,18 @@ class ClientController[F[+_, +_]: Exec](
 
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>
+      log.info(s"Client connected to Project Manager [$clientId]")
       unstashAll()
       context.become(connected(webActor))
+      context.system.eventStream.publish(ClientConnected(clientId))
 
     case _ => stash()
   }
 
   def connected(webActor: ActorRef): Receive = {
     case MessageHandler.Disconnected =>
+      log.info(s"Client disconnected from the Project Manager [$clientId]")
+      context.system.eventStream.publish(ClientDisconnected(clientId))
       context.stop(self)
 
     case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
@@ -71,8 +88,8 @@ object ClientController {
   def props[F[+_, +_]: Exec](
     clientId: UUID,
     projectService: ProjectServiceApi[F],
-    timeout: FiniteDuration
+    config: TimeoutConfig
   ): Props =
-    Props(new ClientController(clientId, projectService, timeout))
+    Props(new ClientController(clientId, projectService, config: TimeoutConfig))
 
 }

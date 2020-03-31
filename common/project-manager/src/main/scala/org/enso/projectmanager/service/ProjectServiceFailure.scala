@@ -31,4 +31,39 @@ object ProjectServiceFailure {
     */
   case object ProjectNotFound extends ProjectServiceFailure
 
+  /**
+    * Signals that a failure occurred during project startup.
+    *
+    * @param message a failure message
+    */
+  case class ProjectOpenFailed(message: String) extends ProjectServiceFailure
+
+  /**
+    * Signals that a failure occurred during project shutdown.
+    *
+    * @param message a failure message
+    */
+  case class ProjectCloseFailed(message: String) extends ProjectServiceFailure
+
+  /**
+    * Signals that operation cannot be executed, because a project is not open.
+    */
+  case object ProjectNotOpen extends ProjectServiceFailure
+
+  /**
+    * Signals that the project cannot be closed, because other clients are
+    * connected.
+    */
+  case object ProjectOpenByOtherPeers extends ProjectServiceFailure
+
+  /**
+    * Signals that removal of project failed because one client still use it.
+    */
+  case object CannotRemoveOpenProject extends ProjectServiceFailure
+
+  /**
+    * Signals operation timeout.
+    */
+  case object ProjectOperationTimeout extends ProjectServiceFailure
+
 }

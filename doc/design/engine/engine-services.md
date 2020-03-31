@@ -649,12 +649,16 @@ interface ProjectOpenRequest {
 
 ```typescript
 interface ProjectOpenResult {
-  lsAddress: IPWithSocket;
+  languageServerAddress: IPWithSocket;
 }
 ```
 
 ##### Errors
-TBC
+- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project 
+doesn't exist.
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+underlying data store.
+- [`ProjectOpenError`](#projectopenerror) to signal failures during server boot.
 
 #### `project/close`
 This message requests that the project picker close a specified project. This
@@ -679,7 +683,16 @@ interface ProjectCloseRequest {
 ```
 
 ##### Errors
-TBC
+- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project 
+doesn't exist.
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+underlying data store.
+- [`ProjectCloseError`](#projectcloseerror) to signal failures that occurred
+during language server stoppage.
+- [`ProjectNotOpenError`](#projectnotopenerror) to signal cannot close a project
+that is not open.
+- [`ProjectOpenByOtherPeersError`](#projectopenbyotherpeerserror) to signal 
+that cannot close a project that is open by other clients.
 
 #### `project/listRecent`
 This message requests that the project picker lists the user's most recently
@@ -724,7 +737,9 @@ interface ProjectCreateRequest {
 ##### Result
 
 ```typescript
-{}
+interface ProjectOpenResponse {
+  projectId: UUID;
+}
 ```
 
 ##### Errors
@@ -761,6 +776,8 @@ interface ProjectDeleteRequest {
 underlying data store.
 - [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
 doesn't exist.
+- [`CannotRemoveOpenProjectError`](#cannotremoveopenprojecterror) to signal that 
+the project cannot be removed, because is open by at least one user.
 
 
 #### `project/listSample`
@@ -2246,6 +2263,57 @@ Signals that the project doesn't exist.
 }
 ```
 
+```
+##### `ProjectOpenError`
+Signals that the project cannot be open due to boot failures.
+
+```typescript
+"error" : {
+  "code" : 4005,
+  "message" : "A boot failure."
+}
+```
+
+##### `ProjectCloseError`
+Signals failures during shutdown of a server.
+
+```typescript
+"error" : {
+  "code" : 4009,
+  "message" : "A shutdown failure."
+}
+```
+
+##### `ProjectNotOpenError`
+Signals that cannot close project that is not open.
+
+```typescript
+"error" : {
+  "code" : 4006,
+  "message" : "Cannot close project that is not open"
+}
+```
+
+##### `ProjectOpenByOtherPeersError`
+Signals that cannot close a project that is open by other clients.
+
+```typescript
+"error" : {
+  "code" : 4007,
+  "message" : "Cannot close project because it is open by other peers"
+}
+```
+
+##### `CannotRemoveOpenProjectError`
+Signals that cannot remove open project.
+
+```typescript
+"error" : {
+  "code" : 4008,
+  "message" : "Cannot remove open project"
+}
+```
+
 ##### `CapabilityNotAcquired`
 Signals that requested capability is not acquired.
 
@@ -2254,4 +2322,3 @@ Signals that requested capability is not acquired.
   "code" : 5001,
   "message" : "Capability not acquired"
 }
-```

@@ -13,11 +13,21 @@ import org.enso.projectmanager.infrastructure.file.{
   BlockingFileSystem,
   SynchronizedFileStorage
 }
+import org.enso.projectmanager.infrastructure.languageserver.{
+  LanguageServerRegistry,
+  LanguageServerRegistryProxy,
+  LanguageServerService
+}
 import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
   ProjectIndex
 }
-import org.enso.projectmanager.main.configuration.StorageConfig
+import org.enso.projectmanager.boot.configuration.{
+  BootloaderConfig,
+  NetworkConfig,
+  StorageConfig,
+  TimeoutConfig
+}
 import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
 import org.enso.projectmanager.test.{ConstGenerator, NopLogging, StoppedClock}
 import zio.interop.catz.core._
@@ -50,6 +60,12 @@ class BaseServerSpec extends JsonRpcServerTestKit {
     userProjectsPath    = userProjectDir
   )
 
+  lazy val bootloaderConfig = BootloaderConfig(3, 1.second)
+
+  lazy val timeoutConfig = TimeoutConfig(3.seconds, 3.seconds, 3.seconds)
+
+  lazy val netConfig = NetworkConfig("127.0.0.1", 40000, 60000)
+
   implicit val exec = new ZioEnvExec(Runtime.default)
 
   lazy val fileSystem = new BlockingFileSystem(5.seconds)
@@ -72,20 +88,30 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   lazy val projectValidator = new MonadicProjectValidator[ZIO[ZEnv, *, *]]()
 
+  lazy val languageServerRegistry =
+    system.actorOf(LanguageServerRegistry.props(netConfig, bootloaderConfig))
+
+  lazy val languageServerService =
+    new LanguageServerRegistryProxy[ZIO[ZEnv, +*, +*]](
+      languageServerRegistry,
+      timeoutConfig
+    )
+
   lazy val projectService =
     new ProjectService[ZIO[ZEnv, +*, +*]](
       projectValidator,
       projectRepository,
       new NopLogging[ZEnv],
       testClock,
-      gen
+      gen,
+      languageServerService
     )
 
   override def clientControllerFactory: ClientControllerFactory = {
     new ManagerClientControllerFactory[ZIO[ZEnv, +*, +*]](
       system,
       projectService,
-      10.seconds
+      timeoutConfig
     )
   }
 
