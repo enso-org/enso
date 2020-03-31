@@ -1,6 +1,8 @@
 name: Build (MacOS, Linux, Windows)
 
-on: [push]
+on:
+  push:
+    branches: master
 
 # Please check if all components are available before updating the rust toolchain version.
 # https://rust-lang.github.io/rustup-components-history/x86_64-unknown-linux-gnu.html
@@ -10,7 +12,6 @@ jobs:
 
   build:
     name: Build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -80,126 +81,6 @@ jobs:
         with:
           name: Enso IDE (macOS, app)
           path: dist/client/mac/Enso Studio.app
-
-
-  check:
-    name: Check
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [windows-latest, macOS-latest, ubuntu-latest]
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2019-11-04
-          override: true
-
-      - name: Install Clippy
-        run: rustup component add clippy
-
-      - name: Install Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: '12.16.1'
-
-      - name: Building Rust Sources
-        run: node ./run lint
-
-
-  test:
-    name: Tests
-    runs-on: macOS-latest
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2019-11-04
-          override: true
-
-      - name: Install wasm-pack
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: wasm-pack --version 0.8.1
-
-      - name: Install Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: '12.16.1'
-
-      - name: Run tests
-        run: node ./run test --no-wasm
-
-
-  wasm-test:
-    name: WASM Tests
-    runs-on: macOS-latest
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2019-11-04
-          override: true
-
-      - name: Install wasm-pack
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: wasm-pack --version 0.8.1
-
-      - name: Install Node
-        uses: actions/setup-node@v1
-        with:
-          node-version: '12.16.1'
-
-      - name: Run tests
-        run: node ./run test --no-native
-
-
-  # TODO: enable after fixing https://github.com/actions-rs/grcov/issues/50
-  # coverage:
-  #   name: Coverage
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v1
-  #
-  #     - name: Install Rust
-  #       uses: actions-rs/toolchain@v1
-  #       with:
-  #         toolchain: nightly-2019-11-04
-  #         override: true
-  #
-  #     - name: Install Node
-  #       uses: actions/setup-node@v1
-  #       with:
-  #         node-version: '12.16.1'
-  #
-  #     - name: Generate test profile
-  #       working-directory: src/rust
-  #       run: cargo test --all-features --no-fail-fast
-  #       env:
-  #         'CARGO_INCREMENTAL': '0'
-  #         'RUSTFLAGS': '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads'
-  #
-  #     - name: Generate coverage report
-  #       id: coverage
-  #       uses: actions-rs/grcov@v0.1
-  #
-  #     - name: Show the coverage report
-  #       run: cat ${{ steps.coverage.outputs.report }}
-  #
-  #     - name: Upload the coverage report
-  #       uses: codecov/codecov-action@v1.0.2
-  #       with:
-  #         token: ${{ secrets.CODECOV_TOKEN }}
-  #         file: ./lcov.info
 
 
   build-fm:
