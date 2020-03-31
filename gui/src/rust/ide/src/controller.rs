@@ -17,6 +17,10 @@
 
 pub mod graph;
 pub mod module;
-pub mod notification;
 pub mod project;
 pub mod text;
+
+pub use graph::Handle   as Graph;
+pub use module::Handle  as Module;
+pub use project::Handle as Project;
+pub use text::Handle    as Text;

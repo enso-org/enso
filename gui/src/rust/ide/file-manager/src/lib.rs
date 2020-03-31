@@ -44,7 +44,7 @@ pub struct Path(pub String);
 
 impl Path {
     /// Wraps a `String`-like entity into a new `Path`.
-    pub fn new<S>(s:S) -> Path where S:Into<String> {
+    pub fn new(s:impl Str) -> Path {
         Path(s.into())
     }
 }
@@ -216,7 +216,7 @@ macro_rules! make_rpc_method {
         impl Handle {
             /// Remote call to the method on the File Manager Server.
             pub fn $name
-            (&mut self, $($arg:$type),*) -> impl Future<Output=Result<$out>> {
+            (&self, $($arg:$type),*) -> impl Future<Output=Result<$out>> {
                 self.with_borrowed(|client| client.$name  ($($arg),*))
             }
         }

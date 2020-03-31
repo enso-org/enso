@@ -16,7 +16,8 @@ use crate::prelude::*;
 /// therefore there is no need for setting big buffers.
 const NOTIFICATION_BUFFER_SIZE : usize = 36;
 
-/// A notification publisher which implements Debug and Default.
+/// A notification publisher which implements Debug, Default and CloneRef (which is same as
+/// republishing for the same stream).
 #[derive(Shrinkwrap)]
 #[shrinkwrap(mutable)]
 pub struct Publisher<Message>(pub flo_stream::Publisher<Message>);
@@ -30,6 +31,15 @@ impl<Message:Clone> Default for Publisher<Message> {
 impl<Message:'static> Debug for Publisher<Message> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(f, "notification::Publisher<{:?}>", std::any::TypeId::of::<Message>())
+    }
+}
+
+impl<Message:Clone> CloneRef for Publisher<Message> {}
+
+impl<Message:Clone> Clone for Publisher<Message> {
+    fn clone(&self) -> Self {
+        let Self(inner) = self;
+        Self(inner.republish())
     }
 }
 

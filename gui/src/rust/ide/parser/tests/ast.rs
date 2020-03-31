@@ -11,7 +11,6 @@ use parser::prelude::*;
 use ast::HasRepr;
 use ast::opr;
 use ast::prefix;
-use parser::api::IsParser;
 use wasm_bindgen_test::wasm_bindgen_test;
 use ast::test_utils::expect_single_line;
 use ast::opr::GeneralizedInfix;
@@ -20,8 +19,8 @@ wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 #[wasm_bindgen_test]
 pub fn to_assignment_test() {
-    let mut parser         = parser::Parser::new_or_panic();
-    let mut is_assignment = |code:&str| {
+    let parser         = parser::Parser::new_or_panic();
+    let is_assignment = |code:&str| {
         let ast  = parser.parse(code.to_string(),default()).unwrap();
         let line = expect_single_line(&ast);
         ast::opr::to_assignment(line).is_some()
@@ -40,8 +39,8 @@ pub fn to_assignment_test() {
 
 #[wasm_bindgen_test]
 pub fn generalized_infix_test() {
-    let mut parser         = parser::Parser::new_or_panic();
-    let mut make_gen_infix = |code:&str| {
+    let parser         = parser::Parser::new_or_panic();
+    let make_gen_infix = |code:&str| {
         let ast  = parser.parse(code.to_string(),default()).unwrap();
         let line = expect_single_line(&ast);
         GeneralizedInfix::try_new(line)
@@ -79,8 +78,8 @@ pub fn flatten_prefix_test() {
         })
     }
 
-    let mut parser = parser::Parser::new_or_panic();
-    let mut case = |code:&str, expected_pieces:Vec<&str>| {
+    let parser = parser::Parser::new_or_panic();
+    let case   = |code:&str, expected_pieces:Vec<&str>| {
         let ast = parser.parse(code.into(),default()).unwrap();
         let ast = ast::test_utils::expect_single_line(&ast);
         let flattened = prefix::Chain::new_non_strict(&ast);
@@ -105,8 +104,8 @@ pub fn flatten_infix_test() {
         })
     }
 
-    let mut parser = parser::Parser::new_or_panic();
-    let mut case = |code:&str, target:&str, expected_pieces:Vec<&str>| {
+    let parser = parser::Parser::new_or_panic();
+    let case   = |code:&str, target:&str, expected_pieces:Vec<&str>| {
         let ast = parser.parse(code.into(),default()).unwrap();
         let ast = ast::test_utils::expect_single_line(&ast);
         let flattened = opr::Chain::try_new(&ast).unwrap();

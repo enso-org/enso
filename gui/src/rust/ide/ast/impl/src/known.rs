@@ -7,6 +7,11 @@ use crate::Ast;
 use crate::Shape;
 use crate::with_shape_variants;
 
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
+
 
 
 // =================
@@ -19,7 +24,7 @@ use crate::with_shape_variants;
 /// Provides `Deref` implementation that allows accessing underlying shape `T` value.
 #[derive(Derivative)]
 #[derivative(Clone(bound=""))]
-#[derive(Debug)]
+#[derive(Debug,Eq,PartialEq)]
 pub struct KnownAst<T> {
     ast     : Ast,
     phantom : PhantomData<T>,
@@ -119,7 +124,32 @@ impl<'a,T> From<&'a KnownAst<T>> for &'a Ast {
     }
 }
 
+impl<T> Serialize for KnownAst<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok,S::Error>
+    where S : Serializer {
+        self.ast.serialize(serializer)
+    }
+}
 
+impl<'de,T,E> Deserialize<'de> for KnownAst<T>
+where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E>,
+      E                      : fmt::Display {
+
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where D : Deserializer<'de> {
+        let ast = Ast::deserialize(deserializer)?;
+        Self::try_new(ast).map_err(serde::de::Error::custom)
+    }
+}
+
+impl<T> CloneRef for KnownAst<T> {
+    fn clone_ref(&self) -> Self {
+        Self {
+            ast     : self.ast.clone_ref(),
+            phantom : PhantomData
+        }
+    }
+}
 
 
 // ===============

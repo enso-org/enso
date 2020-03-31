@@ -56,6 +56,7 @@ pub mod system;
 pub mod prelude {
     pub use enso_prelude::*;
     pub use logger::*;
+    pub use shapely::CloneRef;
     pub use shapely::newtype_copy;
     pub use shapely::shared;
     pub use super::data::container::AddMut;

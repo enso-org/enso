@@ -3,6 +3,7 @@
 use ensogl::traits::*;
 use crate::prelude::*;
 
+use crate::notification;
 use crate::view::temporary_panel::TemporaryPadding;
 use crate::view::temporary_panel::TemporaryPanel;
 
@@ -33,7 +34,7 @@ pub struct TextEditorData {
     padding    : TemporaryPadding,
     position   : Vector2<f32>,
     size       : Vector2<f32>,
-    controller : controller::text::Handle,
+    controller : controller::Text,
     logger     : Logger
 }
 
@@ -65,7 +66,7 @@ impl TextEditor {
     pub fn new
     ( logger           : &Logger
     , world            : &World
-    , controller       : controller::text::Handle
+    , controller       : controller::Text
     , keyboard_actions : &mut KeyboardActions) -> Self {
         let logger     = logger.sub("TextEditor");
         let scene      = world.scene();
@@ -124,10 +125,10 @@ impl TextEditor {
         }));
     }
 
-    fn handle_controller_notification(&self, notification:controller::notification::Text)
+    fn handle_controller_notification(&self, notification:notification::Text)
     -> impl Future<Output=()> {
         match notification {
-            controller::notification::Text::Invalidate => self.reload_content()
+            notification::Text::Invalidate => self.reload_content()
         }
     }
 

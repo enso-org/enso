@@ -8,9 +8,6 @@ use crate::prelude::*;
 use file_manager_client as fmc;
 use json_rpc::Transport;
 use parser::Parser;
-use shapely::shared;
-use weak_table::weak_value_hash_map::Entry::Occupied;
-use weak_table::weak_value_hash_map::Entry::Vacant;
 
 
 
@@ -20,45 +17,30 @@ use weak_table::weak_value_hash_map::Entry::Vacant;
 
 type ModuleLocation = controller::module::Location;
 
-shared! { Handle
 
-    /// Project controller's state.
-    #[derive(Debug)]
-    pub struct Controller {
-        /// File Manager Client.
-        file_manager: fmc::Handle,
-        /// Cache of module controllers.
-        module_cache: WeakValueHashMap<ModuleLocation,controller::module::WeakHandle>,
-        /// Cache of text controllers.
-        text_cache: WeakValueHashMap<fmc::Path,controller::text::WeakHandle>,
-        /// Parser handle.
-        parser: Parser,
-        /// Id which will be given to next unsaved file.
-        next_unsaved_id: usize,
-    }
-
-    impl {
-        /// Create a new project controller.
-        ///
-        /// The remote connections should be already established.
-        pub fn new(file_manager_transport:impl Transport + 'static) -> Self {
-            Controller {
-                file_manager    : fmc::Handle::new(file_manager_transport),
-                module_cache    : default(),
-                text_cache      : default(),
-                parser          : Parser::new_or_panic(),
-                next_unsaved_id : default(),
-            }
-        }
-
-        /// Get the file manager handle used by this controller.
-        pub fn file_manager(&self) -> fmc::Handle {
-           self.file_manager.clone_ref()
-        }
-    }
+/// Project controller's state.
+#[derive(Debug)]
+pub struct Handle {
+    /// File Manager Client.
+    pub file_manager: fmc::Handle,
+    /// Cache of module controllers.
+    pub module_registry: Rc<model::module::registry::Registry>,
+    /// Parser handle.
+    pub parser: Parser,
 }
 
-impl Controller {
+impl Handle {
+    /// Create a new project controller.
+    ///
+    /// The remote connections should be already established.
+    pub fn new(file_manager_transport:impl Transport + 'static) -> Self {
+        Handle {
+            file_manager    : fmc::Handle::new(file_manager_transport),
+            module_registry : default(),
+            parser          : Parser::new_or_panic(),
+        }
+    }
+
     /// Creates a new project controller. Schedules all necessary execution with
     /// the global executor.
     pub fn new_running(file_manager_transport:impl Transport + 'static) -> Self {
@@ -66,80 +48,42 @@ impl Controller {
         crate::executor::global::spawn(ret.file_manager.runner());
         ret
     }
-}
-
-impl Handle {
-    /// Creates a new project controller. Schedules all necessary execution with
-    /// the global executor.
-    pub fn new_running(file_manager_transport:impl Transport + 'static) -> Self {
-        let data = Controller::new_running(file_manager_transport);
-        Self::new_from_data(data)
-    }
 
     /// Returns a text controller for given file path.
     ///
     /// It may be a controller for both modules and plain text files.
-    pub async fn get_text_controller(&self, path:fmc::Path)
-    -> FallibleResult<controller::text::Handle> {
-        let cached = self.with_borrowed(|data| data.text_cache.get(&path));
-        match cached {
-            Some(controller) => Ok(controller),
+    pub async fn text_controller(&self, path:fmc::Path) -> FallibleResult<controller::Text> {
+        match ModuleLocation::from_path(&path) {
+            Some(location) => {
+                let module = self.module_controller(location).await?;
+                Ok(controller::Text::new_for_module(module))
+            },
             None => {
-                let loaded = self.create_text_controller(path.clone()).await?;
-                //TODO[ao] Here we should make a better solution for case where we simultaneously
-                // load one module twice.
-                // This is duplicated with open_module, but it's not worth refactoring as it's
-                // temporary solution.
-                let cached = self.with_borrowed(|data|
-                    match data.text_cache.entry(path) {
-                        Occupied(entry) => entry.get().clone_ref(),
-                        Vacant(entry)   => entry.insert(loaded)
-                    }
-                );
-                Ok(cached)
+                let fm = self.file_manager.clone_ref();
+                Ok(controller::Text::new_for_plain_text(path,fm))
             }
         }
     }
 
     /// Returns a module controller which have module opened from file.
-    pub async fn get_module_controller(&self, loc:ModuleLocation)
-    -> FallibleResult<controller::module::Handle> {
-        let cached = self.with_borrowed(|data| data.module_cache.get(&loc));
-        match cached {
-            Some(controller) => Ok(controller),
-            None => {
-                let loaded = self.create_module_controller(loc.clone()).await?;
-                //TODO[ao] Here we should make a better solution for case where we simultaneously
-                // load one module twice.
-                let cached = self.with_borrowed(|data|
-                    match data.module_cache.entry(loc) {
-                        Occupied(entry) => entry.get().clone_ref(),
-                        Vacant(entry)   => entry.insert(loaded)
-                    }
-                );
-                Ok(cached)
-            },
-        }
+    pub async fn module_controller
+    (&self, location:ModuleLocation) -> FallibleResult<controller::Module> {
+        let model_loader = self.load_module(location.clone());
+        let model        = self.module_registry.get_or_load(location.clone(), model_loader).await?;
+        Ok(self.module_controller_with_model(location,model))
     }
 
-    async fn create_text_controller(&self, path:fmc::Path)
-    -> FallibleResult<controller::text::Handle> {
-        match ModuleLocation::from_path(&path) {
-            Some(location) => {
-                let module = self.get_module_controller(location).await?;
-                Ok(controller::text::Handle::new_for_module(module))
-            },
-            None => {
-                let fm = self.file_manager();
-                Ok(controller::text::Handle::new_for_plain_text(path, fm))
-            }
-        }
+    fn module_controller_with_model
+    (&self, location:ModuleLocation, model:Rc<model::Module>) -> controller::Module {
+        let fm     = self.file_manager.clone_ref();
+        let parser = self.parser.clone_ref();
+        controller::Module::new(location, model, fm, parser)
     }
 
-    async fn create_module_controller(&self, location:ModuleLocation)
-    -> FallibleResult<controller::module::Handle> {
-        let (fm,parser) = self.with_borrowed(|d| (d.file_manager.clone_ref(),d.parser.clone_ref()));
-        controller::module::Handle::new(location,fm,parser).await
+    async fn load_module(&self, location:ModuleLocation) -> FallibleResult<Rc<model::Module>> {
+        let model  = Rc::<model::Module>::default();
+        let module = self.module_controller_with_model(location, model.clone_ref());
+        module.load_file().await.map(move |()| model)
     }
 }
 
@@ -167,17 +111,17 @@ mod test {
         let transport = MockTransport::new();
         let mut test  = TestWithMockedTransport::set_up(&transport);
         test.run_test(async move {
-            let project_ctrl = controller::project::Handle::new_running(transport);
-            let location     = controller::module::Location("TestLocation".to_string());
-            let another_loc  = controller::module::Location("TestLocation2".to_string());
+            let project     = controller::Project::new_running(transport);
+            let location    = ModuleLocation::new("TestLocation");
+            let another_loc = ModuleLocation::new("TestLocation2");
 
-            let module_ctrl         = project_ctrl.get_module_controller(location.clone()).await.unwrap();
-            let same_module_ctrl    = project_ctrl.get_module_controller(location.clone()).await.unwrap();
-            let another_module_ctrl = project_ctrl.get_module_controller(another_loc.clone()).await.unwrap();
+            let module         = project.module_controller(location.clone()).await.unwrap();
+            let same_module    = project.module_controller(location.clone()).await.unwrap();
+            let another_module = project.module_controller(another_loc.clone()).await.unwrap();
 
-            assert_eq!(location   , module_ctrl        .location());
-            assert_eq!(another_loc, another_module_ctrl.location());
-            assert!(module_ctrl.identity_equals(&same_module_ctrl));
+            assert_eq!(location,    module.location);
+            assert_eq!(another_loc, another_module.location);
+            assert!(Rc::ptr_eq(&module.model, &same_module.model));
         });
 
         test.when_stalled_send_response("2 + 2");
@@ -187,21 +131,18 @@ mod test {
     #[wasm_bindgen_test]
     fn obtain_plain_text_controller() {
         let transport       = MockTransport::new();
-        TestWithLocalPoolExecutor::set_up().run_test(async move {
-            let project_ctrl        = controller::project::Handle::new_running(transport);
-            let file_manager_handle = project_ctrl.file_manager();
-            let path                = Path("TestPath".to_string());
-            let another_path        = Path("TestPath2".to_string());
+        TestWithLocalPoolExecutor::set_up().run_task(async move {
+            let project_ctrl        = controller::Project::new_running(transport);
+            let path                = Path::new("TestPath");
+            let another_path        = Path::new("TestPath2");
 
-            let text_ctrl        = project_ctrl.get_text_controller(path.clone()).await.unwrap();
-            let same_text_ctrl   = project_ctrl.get_text_controller(path.clone()).await.unwrap();
-            let another_txt_ctrl = project_ctrl.get_text_controller(another_path.clone()).await.unwrap();
+            let text_ctrl    = project_ctrl.text_controller(path.clone()).await.unwrap();
+            let another_ctrl = project_ctrl.text_controller(another_path.clone()).await.unwrap();
 
-            assert!(file_manager_handle.identity_equals(&text_ctrl       .file_manager()));
-            assert!(file_manager_handle.identity_equals(&another_txt_ctrl.file_manager()));
-            assert_eq!(path        , text_ctrl        .file_path()  );
-            assert_eq!(another_path, another_txt_ctrl.file_path()  );
-            assert!(text_ctrl.identity_equals(&same_text_ctrl));
+            assert!(project_ctrl.file_manager.identity_equals(&text_ctrl   .file_manager()));
+            assert!(project_ctrl.file_manager.identity_equals(&another_ctrl.file_manager()));
+            assert_eq!(path        , *text_ctrl   .file_path().deref()  );
+            assert_eq!(another_path, *another_ctrl.file_path().deref()  );
         });
     }
 
@@ -210,9 +151,9 @@ mod test {
         let transport       = MockTransport::new();
         let mut test        = TestWithMockedTransport::set_up(&transport);
         test.run_test(async move {
-            let project_ctrl = controller::project::Handle::new_running(transport);
-            let path         = controller::module::Location("test".to_string()).to_path();
-            let text_ctrl    = project_ctrl.get_text_controller(path.clone()).await.unwrap();
+            let project_ctrl = controller::Project::new_running(transport);
+            let path         = ModuleLocation::new("test").to_path();
+            let text_ctrl    = project_ctrl.text_controller(path.clone()).await.unwrap();
             let content      = text_ctrl.read_content().await.unwrap();
             assert_eq!("2 + 2", content.as_str());
         });

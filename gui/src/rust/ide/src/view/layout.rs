@@ -112,7 +112,7 @@ impl ViewLayout {
     ( logger     : &Logger
     , kb_actions : &mut KeyboardActions
     , world      : &World
-    , controller : controller::text::Handle
+    , controller : controller::Text
     ) -> Self {
         let logger       = logger.sub("ViewLayout");
         let text_editor  = TextEditor::new(&logger,&world,controller,kb_actions);

@@ -4,9 +4,10 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
+use enso_prelude::*;
+use shapely::CloneRef;
 use std::fmt::Debug;
 use wasm_bindgen::JsValue;
-use enso_prelude::*;
 
 #[cfg(target_arch = "wasm32")]
 use web_sys::console;
@@ -38,15 +39,15 @@ impl<F: Fn() -> S, S:Str> LogMsg for F {
 // === Logger ===
 // ==============
 
-#[derive(Clone,Debug,Default)]
+#[derive(Clone,CloneRef,Debug,Default)]
 pub struct Logger {
-    pub path: String,
+    pub path: Rc<String>,
 }
 
 #[allow(dead_code)]
 impl Logger {
     pub fn new<T:Str>(path:T) -> Self {
-        let path = path.as_ref().to_string();
+        let path = Rc::new(path.into());
         Self {path}
     }
 
