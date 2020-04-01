@@ -26,11 +26,16 @@ use crate::prelude::*;
 use futures::task::LocalSpawnExt;
 use futures::task::LocalSpawn;
 
-/// Global spawner handle.
-///
-/// It should be set up once, as part of the IDE initialization routine and
-/// remain accessible indefinitely.
-static mut SPAWNER: Option<Box<dyn LocalSpawn>> = None;
+thread_local! {
+    /// Global spawner handle.
+    ///
+    /// It should be set up once, as part of the IDE initialization routine and
+    /// remain accessible indefinitely.
+    ///
+    /// This is made thread local for tests which may be run in parallel; Each test should set
+    /// executor independently.
+    static SPAWNER: RefCell<Option<Box<dyn LocalSpawn>>> = default();
+}
 
 /// Sets the global spawner. It will remain accessible until it is set again to
 /// something else.
@@ -40,29 +45,26 @@ static mut SPAWNER: Option<Box<dyn LocalSpawn>> = None;
 #[allow(unsafe_code)]
 pub fn set_spawner(spawner_to_set:impl LocalSpawn + 'static) {
     // Note [Global Executor Safety]
-    unsafe {
-        SPAWNER = Some(Box::new(spawner_to_set));
-    }
+    SPAWNER.with(|s| *s.borrow_mut() = Some(Box::new(spawner_to_set)));
 }
-
-// Note [Global Executor Safety]
-// =============================
-// This is safe, because the global mutable state is only accessed through the
-// two functions provided in this module, the code will be used only in a web
-// single-threaded environment (so no race conditions are possible), and the
-// functions do not leak reference to the global spawner.
 
 /// Spawns a task using the global spawner.
 /// Panics, if called when there is no global spawner set or if it fails to
 /// spawn task (e.g. because the connected executor was prematurely dropped).
 #[allow(unsafe_code)]
 pub fn spawn(f:impl Future<Output=()> + 'static) {
-    // Note [Global Executor Safety]
-    let spawner = unsafe {
+    SPAWNER.with(|spawner| {
         let error_msg = "No global executor has been provided.";
-        SPAWNER.as_mut().expect(error_msg)
-    };
-
-    let error_msg = "Failed to spawn the task. Global executor might have been dropped.";
-    spawner.spawn_local(f).expect(error_msg);
+        // Note [Global Executor Safety]
+        let mut borrowed = spawner.borrow_mut();
+        let unwrapped    = borrowed.as_mut().expect(error_msg);
+        let error_msg    = "Failed to spawn the task. Global executor might have been dropped.";
+        unwrapped.spawn_local(f).expect(error_msg);
+    });
 }
+
+// Note [Global Executor Safety]
+// =============================
+// This borrowing is safe, because the global mutable state is only accessed through the
+// two functions provided in this module, and the functions do not leak reference to the global
+// spawner.
