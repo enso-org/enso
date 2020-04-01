@@ -219,7 +219,7 @@ mod test {
 
     #[test]
     fn notifying() {
-        let mut test               = TestWithLocalPoolExecutor::set_up();
+        let mut test = TestWithLocalPoolExecutor::set_up();
         test.run_task(async {
             let module                 = Module::default();
             let mut text_subscription  = module.subscribe_text_notifications();
@@ -259,21 +259,24 @@ mod test {
 
     #[test]
     fn handling_metadata() {
-        let module = Module::default();
+        let mut test = TestWithLocalPoolExecutor::set_up();
+        test.run_task(async {
+            let module = Module::default();
 
-        let id            = Uuid::new_v4();
-        let initial_md    = module.node_metadata(id.clone());
-        assert!(initial_md.is_err());
+            let id         = Uuid::new_v4();
+            let initial_md = module.node_metadata(id.clone());
+            assert!(initial_md.is_err());
 
-        let md_to_set = NodeMetadata {position:Some(Position::new(1.0, 2.0))};
-        module.set_node_metadata(id.clone(),md_to_set.clone());
-        assert_eq!(md_to_set.position, module.node_metadata(id.clone()).unwrap().position);
+            let md_to_set = NodeMetadata {position:Some(Position::new(1.0, 2.0))};
+            module.set_node_metadata(id.clone(),md_to_set.clone());
+            assert_eq!(md_to_set.position, module.node_metadata(id.clone()).unwrap().position);
 
-        let new_pos = Position::new(4.0, 5.0);
-        module.with_node_metadata(id.clone(), |md| {
-            assert_eq!(md_to_set.position, md.position);
-            md.position = Some(new_pos);
+            let new_pos = Position::new(4.0, 5.0);
+            module.with_node_metadata(id.clone(), |md| {
+                assert_eq!(md_to_set.position, md.position);
+                md.position = Some(new_pos);
+            });
+            assert_eq!(Some(new_pos), module.node_metadata(id).unwrap().position);
         });
-        assert_eq!(Some(new_pos), module.node_metadata(id).unwrap().position);
     }
 }
