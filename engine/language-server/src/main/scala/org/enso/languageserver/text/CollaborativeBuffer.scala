@@ -54,7 +54,8 @@ class CollaborativeBuffer(
   import context.dispatcher
 
   override def preStart(): Unit = {
-    context.system.eventStream.subscribe(self, classOf[ClientDisconnected])
+    context.system.eventStream
+      .subscribe(self, classOf[ClientDisconnected]): Unit
   }
 
   override def receive: Receive = uninitialized
@@ -77,7 +78,7 @@ class CollaborativeBuffer(
     case ReadFileResult(Right(content)) =>
       handleFileContent(client, replyTo, content)
       unstashAll()
-      timeoutCancellable.cancel()
+      timeoutCancellable.cancel(): Unit
 
     case ReadFileResult(Left(failure)) =>
       replyTo ! OpenFileResponse(Left(failure))

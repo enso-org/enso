@@ -17,6 +17,7 @@ import org.enso.languageserver.event.{ClientConnected, ClientDisconnected}
 import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.requesthandler._
+import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
 
@@ -30,6 +31,8 @@ import scala.concurrent.duration._
   * @param server the language server actor ref.
   * @param bufferRegistry a router that dispatches text editing requests
   * @param capabilityRouter a router that dispatches capability requests
+  * @param fileManager performs operations with file system
+  * @param contextRegistry a router that dispatches execution context requests
   * @param requestTimeout a request timeout
   */
 class ClientController(
@@ -38,6 +41,7 @@ class ClientController(
   val bufferRegistry: ActorRef,
   val capabilityRouter: ActorRef,
   val fileManager: ActorRef,
+  val contextRegistry: ActorRef,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
@@ -68,7 +72,9 @@ class ClientController(
       ExistsFile -> file.ExistsFileHandler.props(requestTimeout, fileManager),
       ListFile   -> file.ListFileHandler.props(requestTimeout, fileManager),
       TreeFile   -> file.TreeFileHandler.props(requestTimeout, fileManager),
-      InfoFile   -> file.InfoFileHandler.props(requestTimeout, fileManager)
+      InfoFile   -> file.InfoFileHandler.props(requestTimeout, fileManager),
+      ExecutionContextCreate -> executioncontext.CreateHandler
+        .props(requestTimeout, contextRegistry)
     )
 
   override def unhandled(message: Any): Unit =
@@ -115,6 +121,8 @@ object ClientController {
     * @param server the language server actor ref.
     * @param bufferRegistry a router that dispatches text editing requests
     * @param capabilityRouter a router that dispatches capability requests
+    * @param fileManager performs operations with file system
+    * @param contextRegistry a router that dispatches execution context requests
     * @param requestTimeout a request timeout
     * @return a configuration object
     */
@@ -124,6 +132,7 @@ object ClientController {
     bufferRegistry: ActorRef,
     capabilityRouter: ActorRef,
     fileManager: ActorRef,
+    contextRegistry: ActorRef,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
     Props(
@@ -133,6 +142,7 @@ object ClientController {
         bufferRegistry,
         capabilityRouter,
         fileManager,
+        contextRegistry,
         requestTimeout
       )
     )

@@ -10,6 +10,7 @@ import org.enso.languageserver.capability.CapabilityApi.{
 }
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.text.TextApi._
+import org.enso.languageserver.runtime.ExecutionApi._
 
 object JsonRpc {
 
@@ -33,6 +34,7 @@ object JsonRpc {
     .registerRequest(ListFile)
     .registerRequest(TreeFile)
     .registerRequest(InfoFile)
+    .registerRequest(ExecutionContextCreate)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)

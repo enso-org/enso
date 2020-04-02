@@ -10,6 +10,7 @@ import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
   ContentBasedVersioning,
+  ExecutionContextConfig,
   FileManagerConfig,
   PathWatcherConfig,
   Sha3_224VersionCalculator
@@ -21,7 +22,7 @@ import org.enso.languageserver.filemanager.{
   ReceivesTreeUpdatesHandler
 }
 import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
-import org.enso.languageserver.runtime.RuntimeConnector
+import org.enso.languageserver.runtime.{ContextRegistry, RuntimeConnector}
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.LanguageServer
 import org.enso.polyglot.{LanguageInfo, RuntimeServerInfo}
@@ -40,7 +41,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
     FileManagerConfig(timeout = 3.seconds),
-    PathWatcherConfig()
+    PathWatcherConfig(),
+    ExecutionContextConfig()
   )
 
   val zioExec = ZioExec(zio.Runtime.default)
@@ -90,6 +92,13 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
 
+  lazy val contextRegistry =
+    system.actorOf(
+      ContextRegistry
+        .props(languageServerConfig.executionContext, runtimeConnector),
+      "context-registry"
+    )
+
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
@@ -111,7 +120,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
     languageServer,
     bufferRegistry,
     capabilityRouter,
-    fileManager
+    fileManager,
+    contextRegistry
   )
 
   lazy val server =

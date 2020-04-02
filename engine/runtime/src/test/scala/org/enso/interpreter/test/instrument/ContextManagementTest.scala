@@ -16,9 +16,9 @@ class ContextManagementTest
     with Matchers
     with BeforeAndAfterEach {
 
-  var context: Context          = _
-  var messageQueue: List[Api]   = _
-  var endPoint: MessageEndpoint = _
+  var context: Context                 = _
+  var messageQueue: List[Api.Response] = _
+  var endPoint: MessageEndpoint        = _
 
   override protected def beforeEach(): Unit = {
     messageQueue = List()
@@ -33,7 +33,7 @@ class ContextManagementTest
             override def sendText(text: String): Unit = {}
 
             override def sendBinary(data: ByteBuffer): Unit =
-              messageQueue ++= Api.deserialize(data)
+              messageQueue ++= Api.deserializeResponse(data)
 
             override def sendPing(data: ByteBuffer): Unit = {}
 
@@ -46,29 +46,42 @@ class ContextManagementTest
       .build()
   }
 
-  def send(msg: Api): Unit = endPoint.sendBinary(Api.serialize(msg))
-  def receive: Option[Api] = {
+  def send(msg: Api.Request): Unit = endPoint.sendBinary(Api.serialize(msg))
+  def receive: Option[Api.Response] = {
     val msg = messageQueue.headOption
     messageQueue = messageQueue.drop(1)
     msg
   }
 
   "Runtime server" should "allow context creation and deletion" in {
-    val uuid = UUID.randomUUID()
-    send(Api.CreateContextRequest(uuid))
-    receive shouldEqual Some(Api.CreateContextResponse(uuid))
-    send(Api.DestroyContextRequest(uuid))
-    receive shouldEqual Some(Api.DestroyContextResponse(uuid, None))
+    val requestId1 = UUID.randomUUID()
+    val requestId2 = UUID.randomUUID()
+    val contextId = UUID.randomUUID()
+    send(Api.Request(requestId1, Api.CreateContextRequest(contextId)))
+    receive shouldEqual Some(
+      Api.Response(requestId1, Api.CreateContextResponse(contextId))
+    )
+    send(Api.Request(requestId2, Api.DestroyContextRequest(contextId)))
+    receive shouldEqual Some(
+      Api.Response(requestId2, Api.DestroyContextResponse(contextId, None))
+    )
   }
 
   "Runtime server" should "fail destroying a context if it does not exist" in {
-    val uuid1 = UUID.randomUUID()
-    val uuid2 = UUID.randomUUID()
-    send(Api.CreateContextRequest(uuid1))
-    receive shouldEqual Some(Api.CreateContextResponse(uuid1))
-    send(Api.DestroyContextRequest(uuid2))
+    val requestId1 = UUID.randomUUID()
+    val contextId1 = UUID.randomUUID()
+    val requestId2 = UUID.randomUUID()
+    val contextId2 = UUID.randomUUID()
+    send(Api.Request(requestId1, Api.CreateContextRequest(contextId1)))
     receive shouldEqual Some(
-      Api.DestroyContextResponse(uuid2, Some(Api.ContextDoesNotExistError()))
+      Api.Response(requestId1, Api.CreateContextResponse(contextId1))
+    )
+    send(Api.Request(requestId2, Api.DestroyContextRequest(contextId2)))
+    receive shouldEqual Some(
+      Api.Response(
+        requestId2,
+        Api.DestroyContextResponse(contextId2, Some(Api.ContextDoesNotExistError()))
+      )
     )
   }
 }

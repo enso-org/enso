@@ -16,14 +16,29 @@ class RuntimeConnector extends Actor with ActorLogging with Stash {
     case RuntimeConnector.Initialize(engine) =>
       log.info("Engine connection established.")
       unstashAll()
-      context.become(initialized(engine))
+      context.become(initialized(engine, Map()))
     case _ => stash()
   }
 
-  def initialized(engineConnection: MessageEndpoint): Receive = {
+  /**
+    * Performs communication between runtime and language server.
+    * Requests are sent from language server to runtime,
+    * responses are forwarded from runtime to the sender.
+    *
+    * @param engine endpoint of a runtime
+    * @param senders request ids with corresponding senders
+    */
+  def initialized(
+    engine: MessageEndpoint,
+    senders: Map[Runtime.Api.RequestId, ActorRef]
+  ): Receive = {
     case Destroy => context.stop(self)
-    case Runtime.Api.CreateContextResponse(uid) =>
-      log.info("Context created {}.", uid)
+    case msg: Runtime.Api.Request =>
+      engine.sendBinary(Runtime.Api.serialize(msg))
+      context.become(initialized(engine, senders + (msg.requestId -> sender())))
+    case msg: Runtime.Api.Response =>
+      senders.get(msg.correlationId).foreach(_ ! msg)
+      context.become(initialized(engine, senders - msg.correlationId))
   }
 }
 
@@ -61,7 +76,7 @@ object RuntimeConnector {
 
     override def sendBinary(data: ByteBuffer): Unit =
       Runtime.Api
-        .deserialize(data)
+        .deserializeResponse(data)
         .foreach(actor ! _)
 
     override def sendPing(data: ByteBuffer): Unit = peerEndpoint.sendPong(data)

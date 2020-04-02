@@ -654,9 +654,9 @@ interface ProjectOpenResult {
 ```
 
 ##### Errors
-- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project 
+- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
 doesn't exist.
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
 underlying data store.
 - [`ProjectOpenError`](#projectopenerror) to signal failures during server boot.
 
@@ -683,15 +683,15 @@ interface ProjectCloseRequest {
 ```
 
 ##### Errors
-- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project 
+- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
 doesn't exist.
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
 underlying data store.
 - [`ProjectCloseError`](#projectcloseerror) to signal failures that occurred
 during language server stoppage.
 - [`ProjectNotOpenError`](#projectnotopenerror) to signal cannot close a project
 that is not open.
-- [`ProjectOpenByOtherPeersError`](#projectopenbyotherpeerserror) to signal 
+- [`ProjectOpenByOtherPeersError`](#projectopenbyotherpeerserror) to signal
 that cannot close a project that is open by other clients.
 
 #### `project/listRecent`
@@ -776,7 +776,7 @@ interface ProjectDeleteRequest {
 underlying data store.
 - [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
 doesn't exist.
-- [`CannotRemoveOpenProjectError`](#cannotremoveopenprojecterror) to signal that 
+- [`CannotRemoveOpenProjectError`](#cannotremoveopenprojecterror) to signal that
 the project cannot be removed, because is open by at least one user.
 
 
@@ -1961,13 +1961,14 @@ Points to a method definition.
 ```
 
 #### `executionContext/create`
-Sent from the client to the server to create a new execution context.
+Sent from the client to the server to create a new execution context. Return
+capabilities [`executionContext/canModify`](#executioncontextcanmodify) and
+[`executionContext/receivesEvents`](#executioncontextreceivesevents)
+containing freshly created [`ContextId`](#contextid)
 
 ##### Parameters
 ```typescript
-{
-  contextId: ContextId;
-}
+null
 ```
 
 ##### Result
@@ -1979,7 +1980,7 @@ Sent from the client to the server to create a new execution context.
 ```
 
 ##### Errors
-No known errors.
+None
 
 #### `executionContext/destroy`
 Sent from the client to the server destroy an execution context and free its

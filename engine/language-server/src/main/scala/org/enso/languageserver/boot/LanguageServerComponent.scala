@@ -35,7 +35,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
       mainModule <- Future { new MainModule(config) }
       _          <- Future { mainModule.languageServer ! LanguageProtocol.Initialize }
       binding    <- mainModule.server.bind(config.interface, config.port)
-      _          <- Future { maybeServerState = Some(mainModule, binding) }
+      _          <- Future { maybeServerState = Some((mainModule, binding)) }
       _ <- Future {
         logger.info(s"Started server at ${config.interface}:${config.port}")
       }

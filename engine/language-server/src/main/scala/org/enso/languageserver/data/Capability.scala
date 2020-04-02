@@ -3,6 +3,7 @@ import java.util.UUID
 
 import io.circe._
 import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.runtime.ExecutionApi.ContextId
 
 /**
   * A superclass for all capabilities in the system.
@@ -33,6 +34,30 @@ object ReceivesTreeUpdates {
   val methodName = "receivesTreeUpdates"
 }
 
+/**
+  * A capability allowing user to modify the execution context.
+  *
+  * @param contextId identifier of an execution conatext
+  */
+case class CanModify(contextId: ContextId)
+    extends Capability(CanModify.methodName)
+
+object CanModify {
+  val methodName = "canModify"
+}
+
+/**
+  * A capability allowing user to receive events from the execution context.
+  *
+  * @param contextId identifier of an execution conatext
+  */
+case class ReceivesEvents(contextId: ContextId)
+    extends Capability(ReceivesEvents.methodName)
+
+object ReceivesEvents {
+  val methodName = "receivesEvents"
+}
+
 object Capability {
   import io.circe.generic.auto._
   import io.circe.syntax._
@@ -40,6 +65,8 @@ object Capability {
   implicit val encoder: Encoder[Capability] = {
     case cap: CanEdit             => cap.asJson
     case cap: ReceivesTreeUpdates => cap.asJson
+    case cap: CanModify           => cap.asJson
+    case cap: ReceivesEvents      => cap.asJson
   }
 
 }
@@ -75,6 +102,8 @@ object CapabilityRegistration {
     ): Decoder.Result[Capability] = method match {
       case CanEdit.methodName             => json.as[CanEdit]
       case ReceivesTreeUpdates.methodName => json.as[ReceivesTreeUpdates]
+      case CanModify.methodName           => json.as[CanModify]
+      case ReceivesEvents.methodName      => json.as[ReceivesEvents]
       case _ =>
         Left(DecodingFailure("Unrecognized capability method.", List()))
     }

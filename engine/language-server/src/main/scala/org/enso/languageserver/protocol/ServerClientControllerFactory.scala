@@ -17,7 +17,8 @@ class ServerClientControllerFactory(
   server: ActorRef,
   bufferRegistry: ActorRef,
   capabilityRouter: ActorRef,
-  fileManager: ActorRef
+  fileManager: ActorRef,
+  contextRegistry: ActorRef
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
 
@@ -29,7 +30,13 @@ class ServerClientControllerFactory(
     */
   override def createClientController(clientId: UUID): ActorRef =
     system.actorOf(
-      ClientController
-        .props(clientId, server, bufferRegistry, capabilityRouter, fileManager)
+      ClientController.props(
+        clientId,
+        server,
+        bufferRegistry,
+        capabilityRouter,
+        fileManager,
+        contextRegistry
+      )
     )
 }
