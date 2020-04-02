@@ -3,6 +3,7 @@
 #![feature(generators, generator_trait)]
 #![feature(trivial_bounds)]
 #![feature(type_alias_impl_trait)]
+#![feature(matches_macro)]
 
 #[warn(missing_docs)]
 pub mod assoc;
@@ -1023,10 +1024,7 @@ impl Block<Ast> {
 
 impl Infix<Ast> {
     /// Creates an `Infix` Shape, where both its operands are Vars and spacing is 1.
-    pub fn from_vars<Str0,Str1,Str2>(larg:Str0, opr:Str1, rarg:Str2) -> Infix<Ast>
-        where Str0 : ToString,
-              Str1 : ToString,
-              Str2 : ToString, {
+    pub fn from_vars(larg:impl Str, opr:impl Str, rarg:impl Str) -> Infix<Ast> {
         let larg  = Ast::var(larg);
         let loff  = 1;
         let opr   = Ast::opr(opr);
@@ -1061,57 +1059,107 @@ impl Ast {
     }
 
     /// Creates an Ast node with Cons inside.
-    pub fn cons<Str:ToString>(name:Str) -> Ast {
-        let cons = Cons {name:name.to_string()};
+    pub fn cons(name:impl Str) -> Ast {
+        let cons = Cons {name:name.into()};
         Ast::from(cons)
     }
 
     /// Creates an Ast node with Var inside and given ID.
-    pub fn var_with_id<Name:Str>(name:Name, id:Id) -> Ast {
+    pub fn var_with_id(name:impl Str, id:Id) -> Ast {
         let name = name.into();
         let var  = Var{name};
         Ast::new(var,Some(id))
     }
 
-    pub fn var<Str:ToString>(name:Str) -> Ast {
-        let var = Var{name:name.to_string()};
+    /// Creates an AST node with `Var` shape.
+    pub fn var(name:impl Str) -> Ast {
+        let var = Var{name:name.into()};
         Ast::from(var)
     }
 
-    pub fn opr<Str:ToString>(name:Str) -> Ast {
-        let opr = Opr{name:name.to_string() };
+    /// Creates an AST node with `Opr` shape.
+    pub fn opr(name:impl Str) -> Ast {
+        let opr = Opr{name:name.into() };
         Ast::from(opr)
     }
 
+    /// Creates an AST node with `SectionLeft` shape.
+    pub fn section_left<Arg:Into<Ast>>(arg:Arg, opr:impl Str) -> Ast {
+        let off          = 1;
+        let opr          = Ast::opr(opr);
+        let section_left = SectionLeft { arg:arg.into(), off, opr };
+        Ast::from(section_left)
+    }
+
+    /// Creates an AST node with `SectionRight` shape.
+    pub fn section_right<Arg:Into<Ast>>(opr:impl Str, arg:Arg) -> Ast {
+        let off           = 1;
+        let opr           = Ast::opr(opr);
+        let section_right = SectionRight { arg:arg.into(), off, opr };
+        Ast::from(section_right)
+    }
+
+    /// Creates an AST node with `SectionSides` shape.
+    pub fn section_sides(opr:impl Str) -> Ast {
+        let opr           = Ast::opr(opr);
+        let section_sides = SectionSides { opr };
+        Ast::from(section_sides)
+    }
+
+    /// Creates an AST node with `Prefix` shape.
     pub fn prefix<Func:Into<Ast>, Arg:Into<Ast>>(func:Func, arg:Arg) -> Ast {
         let off = 1;
         let opr = Prefix { func:func.into(), off, arg:arg.into() };
         Ast::from(opr)
     }
 
+    /// Creates an AST node with `InvalidSuffix` shape.
+    pub fn invalid_suffix(elem:impl Into<Ast>, suffix:impl Str) -> Ast {
+        let elem           = elem.into();
+        let suffix         = suffix.into();
+        let invalid_suffix = InvalidSuffix {elem,suffix};
+        Ast::from(invalid_suffix)
+    }
+
     /// Creates an AST node with `Infix` shape.
     pub fn infix(larg:impl Into<Ast>, opr:impl Str, rarg:impl Into<Ast>) -> Ast {
         let larg = larg.into();
         let loff  = 1;
-        let opr   = Ast::opr(opr.into());
+        let opr   = Ast::opr(opr);
         let roff  = 1;
         let rarg  = rarg.into();
         let infix = Infix {larg,loff,opr,roff,rarg};
         Ast::from(infix)
     }
 
-    /// Creates an AST node with `Infix` shape, where both its operands are Vars.
-    pub fn infix_var<Str0,Str1,Str2>(larg:Str0, opr:Str1, rarg:Str2) -> Ast
-    where Str0 : ToString
-        , Str1 : ToString
-        , Str2 : ToString {
-        let infix = Infix::from_vars(larg,opr,rarg);
-        Ast::from(infix)
-    }
-
     /// Creates AST node with `Module` shape with one line.
     pub fn one_line_module(line_ast:impl Into<Ast>) -> Ast {
         Module::from_line(line_ast).into()
+    }
+
+    /// Creates an AST node with `TextLineFmt` shape.
+    pub fn text_line_fmt(text:Vec<SegmentFmt<Ast>>) -> Ast {
+        let text_line_fmt = TextLineFmt {text};
+        Ast::from(text_line_fmt)
+    }
+
+    /// Creates an AST node with `TextUnclosed` shape.
+    pub fn text_unclosed(line:TextLine<Ast>) -> Ast {
+        let text_unclosed = TextUnclosed {line};
+        Ast::from(text_unclosed)
+    }
+
+    /// Creates an AST node with `TextBlockFmt` shape.
+    pub fn text_block_fmt(text:Vec<TextBlockLine<SegmentFmt<Ast>>>, offset:usize) -> Ast {
+        let spaces = 0;
+        let text_block_fmt = TextBlockFmt {text,spaces,offset};
+        Ast::from(text_block_fmt)
+    }
+
+    /// Creates an AST node with `Infix` shape, where both its operands are Vars.
+    pub fn infix_var(larg:impl Str, opr:impl Str, rarg:impl Str) -> Ast {
+        let infix = Infix::from_vars(larg,opr,rarg);
+        Ast::from(infix)
     }
 }
 
