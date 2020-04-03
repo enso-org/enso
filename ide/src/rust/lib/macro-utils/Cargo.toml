@@ -5,7 +5,6 @@ authors = ["Enso Team <contact@luna-lang.org>"]
 edition = "2018"
 
 [dependencies]
-enso-prelude   = { version = "0.1.0"  , path = "../prelude" }
 proc-macro2    = "1.0"
 quote          = "1.0"
 
@@ -13,5 +12,6 @@ quote          = "1.0"
 version = "1.0"
 features = [
   'extra-traits',
-  'full' # for syn::ItemStruct
+  'full', # for syn::ItemStruct
+  'visit'
 ]

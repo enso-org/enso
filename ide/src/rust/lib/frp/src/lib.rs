@@ -31,6 +31,8 @@ pub use io::*;
 pub use macros::*;
 pub use crate::core::*;
 
+pub use crate::core::dynamic::*;
+
 use enso_prelude      as prelude;
 use ensogl_system_web as web;
 

@@ -110,7 +110,7 @@ pub type Behavior <T> = Node<BehaviorData<T>>;
 
 /// Node is used as a common types for frp operations. For example, `Event<T>` is just an alias to
 /// `Node<EventData<T>>`.
-#[derive(Derivative)]
+#[derive(CloneRef,Derivative)]
 #[derivative(Clone(bound=""))]
 #[derivative(Debug(bound=""))]
 pub struct Node<Out:NodeAsTraitObjectForData> {
@@ -142,13 +142,6 @@ impl<Out:Data> Deref for Node<Out> {
     type Target = NodeAsTraitObject<Out>;
     fn deref(&self) -> &Self::Target {
         &self.storage
-    }
-}
-
-impl<Out:Data> CloneRef for Node<Out> {
-    fn clone_ref(&self) -> Self {
-        let storage = self.storage.clone_ref();
-        Self {storage}
     }
 }
 

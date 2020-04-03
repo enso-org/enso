@@ -174,7 +174,7 @@ impl<T> Layer<T> for Layered<T> {
 /// to either of the implementation need to be applied to the other one as well.
 ///
 /// Each AST node is annotated with span and an optional ID.
-#[derive(Eq, PartialEq, Debug, Shrinkwrap)]
+#[derive(CloneRef,Eq,PartialEq,Debug,Shrinkwrap)]
 #[shrinkwrap(mutable)]
 pub struct Ast {
     pub wrapped: Rc<WithID<WithLength<Shape<Ast>>>>
@@ -185,8 +185,6 @@ impl Clone for Ast {
         Ast { wrapped: self.wrapped.clone() }
     }
 }
-
-impl CloneRef for Ast {}
 
 /// `IntoIterator` for `&Ast` that just delegates to `&Shape`'s `IntoIterator`.
 impl<'t> IntoIterator for &'t Ast {

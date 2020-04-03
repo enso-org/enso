@@ -8,16 +8,20 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-ensogl               = { version = "0.1.0"  , path = "../../ensogl" }
+shapely              = { version = "0.1.0"  , path = "../shapely/impl"       }
+ensogl               = { version = "0.1.0"  , path = "../../ensogl"          }
 ensogl-core-msdf-sys = { version = "0.1.0"  , path = "../../ensogl/msdf-sys" }
-ensogl-system-web    = { version = "0.1.0"  , path = "../system/web" }
-enso-frp             = { version = "0.1.0"  , path = "../frp" }
-ide                  = { version = "0.1.0"  , path = "../../ide" }
+ensogl-system-web    = { version = "0.1.0"  , path = "../system/web"         }
+enso-frp             = { version = "0.1.0"  , path = "../frp"                }
+ide                  = { version = "0.1.0"  , path = "../../ide"             }
+graph-editor         = { version = "0.1.0"  , path = "../graph-editor"       }
 
-enso-prelude         = { version = "0.1.0"  , path = "../prelude" }
+enso-prelude         = { version = "0.1.0"  , path = "../prelude"     }
 wasm-bindgen         = { version = "=0.2.58" , features = ["nightly"] }
-nalgebra             = { version = "0.19.0" }
-js-sys               = { version = "0.3.28" }
+nalgebra             = { version = "0.19.0"                           }
+js-sys               = { version = "0.3.28"                           }
+
+im-rc = "14.3.0"
 
 [dependencies.web-sys]
 version = "0.3.4"

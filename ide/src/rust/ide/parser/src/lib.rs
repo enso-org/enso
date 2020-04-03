@@ -47,7 +47,7 @@ type Client = jsclient::Client;
 /// Currently this component is implemented as a wrapper over parser written
 /// in Scala. Depending on compilation target (native or wasm) it uses either
 /// implementation provided by `wsclient` or `jsclient`.
-#[derive(Clone,Debug,Shrinkwrap)]
+#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
 #[shrinkwrap(mutable)]
 pub struct Parser(pub Rc<RefCell<Client>>);
 
@@ -110,5 +110,3 @@ impl Parser {
         }
     }
 }
-
-impl CloneRef for Parser {}

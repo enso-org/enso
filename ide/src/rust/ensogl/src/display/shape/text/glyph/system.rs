@@ -12,10 +12,13 @@ use crate::display::symbol::shader::builder::CodeTemplate;
 use crate::display::world::*;
 use crate::system::gpu::texture::*;
 use crate::system::gpu::types::*;
+use crate::display::object::traits::*;
 
 use nalgebra::Vector2;
 use nalgebra::Vector4;
 use crate::display;
+
+
 
 // =============
 // === Glyph ===
@@ -167,7 +170,7 @@ impl GlyphSystem {
         let msdf_width    = MsdfTexture::WIDTH as f32;
         let msdf_height   = MsdfTexture::ONE_GLYPH_HEIGHT as f32;
         let scene         = world.scene();
-        let context       = scene.context();
+        let context       = scene.context.clone_ref();
         let sprite_system = SpriteSystem::new(world);
         let symbol        = sprite_system.symbol();
         let texture       = Texture::<GpuOnly,Rgb,u8>::new(&context,(0,0));
@@ -175,8 +178,8 @@ impl GlyphSystem {
 
         sprite_system.set_material(Self::material());
         sprite_system.set_alignment(HorizontalAlignment::Left,VerticalAlignment::Bottom);
-        scene.variables().add("msdf_range",GlyphRenderInfo::MSDF_PARAMS.range as f32);
-        scene.variables().add("msdf_size",Vector2::new(msdf_width,msdf_height));
+        scene.variables.add("msdf_range",GlyphRenderInfo::MSDF_PARAMS.range as f32);
+        scene.variables.add("msdf_size",Vector2::new(msdf_width,msdf_height));
         Self {context,sprite_system,font,
             msdf_uniform       : symbol.variables().add_or_panic("msdf_texture",texture),
             color              : mesh.instance_scope().add_buffer("color"),
@@ -189,7 +192,7 @@ impl GlyphSystem {
     pub fn new_glyph(&mut self) -> Glyph {
         let context         = self.context.clone();
         let sprite          = self.sprite_system.new_instance();
-        let instance_id     = sprite.instance_id();
+        let instance_id     = sprite.instance_id;
         let color_attr      = self.color.at(instance_id);
         let msdf_index_attr = self.glyph_msdf_index.at(instance_id);
         let font            = self.font.clone_ref();
@@ -231,11 +234,12 @@ impl GlyphSystem {
     }
 }
 
-impl From<&GlyphSystem> for display::object::Node {
-    fn from(glyph_system: &GlyphSystem) -> Self {
-        (&glyph_system.sprite_system).into()
+impl<'t> From<&'t GlyphSystem> for &'t display::object::Node {
+    fn from(glyph_system:&'t GlyphSystem) -> Self {
+        glyph_system.sprite_system.display_object()
     }
 }
+
 
 // === Private ===
 

@@ -53,11 +53,14 @@ pub trait InternalFormat : Default + Into<AnyInternalFormat> + 'static {
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#5.22
     type Sampler: Sampler;
 
-    /// Checks if the texture format can be rendered as color.
+    /// Checks if the texture format can be rendered from shaders.
     type ColorRenderable: KnownTypeValue<Value=bool>;
 
     /// Checks it he texture can be filtered.
     type Filterable: KnownTypeValue<Value=bool>;
+
+    /// Checks wether blending applies to this texture when rendering from shaders.
+    type ColorBlendable: KnownTypeValue<Value=bool>;
 
     /// Checks if the texture format can be rendered as color.
     fn color_renderable() -> bool {
@@ -84,11 +87,11 @@ pub trait InternalFormat : Default + Into<AnyInternalFormat> + 'static {
 #[macro_export]
 macro_rules! generate_internal_format_instances {
     ([] $( $internal_format:ident $format:ident $sampler:ident
-           $color_renderable:tt $filterable:tt $elem_descs:tt
+           $renderable:tt $filterable:tt $blendable:tt $elem_descs:tt
     )*) => {
         $(
             $crate::generate_internal_format_instances_item!
-            { $internal_format $format $sampler $color_renderable $filterable $elem_descs }
+            { $internal_format $format $sampler $renderable $filterable $blendable $elem_descs }
         )*
     }
 }
@@ -96,7 +99,8 @@ macro_rules! generate_internal_format_instances {
 /// See docs of `generate_internal_format_instances`.
 #[macro_export]
 macro_rules! generate_internal_format_instances_item {
-    ( $internal_format:ident $format:ident $sampler:ident $color_renderable:tt $filterable:tt
+    ( $internal_format:ident $format:ident $sampler:ident
+      $renderable:tt $filterable:tt $blendable:tt
       [$($possible_types:ident : $bytes_per_element:ident),*]
     ) => {
         $(impl InternalItem<$possible_types> for $internal_format {
@@ -106,7 +110,8 @@ macro_rules! generate_internal_format_instances_item {
         impl InternalFormat for $internal_format {
             type Format          = $format;
             type Sampler         = $sampler;
-            type ColorRenderable = $color_renderable;
+            type ColorRenderable = $renderable;
+            type ColorBlendable  = $blendable;
             type Filterable      = $filterable;
         }
     }

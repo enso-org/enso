@@ -3,11 +3,11 @@
 
 pub use shapely_macros::*;
 
-use crate::prelude::*;
-
+use derivative::Derivative;
 use std::ops::Generator;
 use std::ops::GeneratorState;
 use std::pin::Pin;
+use std::marker::PhantomData;
 
 
 
@@ -44,7 +44,7 @@ pub struct EmptyIterator<T>(PhantomData<T>);
 impl<T> EmptyIterator<T> {
     /// Create a new empty iterator.
     pub fn new() -> Self {
-        default()
+        Default::default()
     }
 }
 

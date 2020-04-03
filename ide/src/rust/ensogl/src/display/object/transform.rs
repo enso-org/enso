@@ -2,15 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::data::dirty;
-use crate::data::function::callback::*;
-
-use nalgebra::Matrix4;
-use nalgebra::Vector3;
-use nalgebra::Vector4;
-
-use crate::data::dirty::traits::*;
-
 
 
 // =================
@@ -160,43 +151,43 @@ impl Transform {
 /// The same as `Transform` but with caching. It contains cached transformation matrix and dirty
 /// flags which are set after fields are modified. You can use the `update` function to recompute
 /// the matrix.
-#[derive(Derivative)]
-#[derivative(Clone(bound=""))]
-#[derivative(Debug(bound=""))]
-pub struct CachedTransform<OnChange> {
+#[derive(Clone,Copy,Debug)]
+pub struct CachedTransform {
     transform        : Transform,
     transform_matrix : Matrix4<f32>,
     origin           : Matrix4<f32>,
     pub matrix       : Matrix4<f32>,
-    pub dirty        : dirty::SharedBool<OnChange>,
-    pub logger       : Logger,
+    pub dirty        : bool,
 }
 
-impl<OnChange> CachedTransform<OnChange> {
-    pub fn new(logger:Logger, on_change:OnChange) -> Self {
-        let logger_dirty     = logger.sub("dirty");
+impl Default for CachedTransform {
+    fn default() -> Self {
         let transform        = default();
         let transform_matrix = Matrix4::identity();
         let origin           = Matrix4::identity();
         let matrix           = Matrix4::identity();
-        let dirty            = dirty::SharedBool::new(logger_dirty,on_change);
-        Self {transform,transform_matrix,origin,matrix,dirty,logger}
+        let dirty            = default();
+        Self {transform,transform_matrix,origin,matrix,dirty}
+    }
+}
+
+impl CachedTransform {
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
     }
 
     /// Update the transformation matrix and return information if the data was really updated.
-    pub fn update(&mut self, new_origin:Option<&Matrix4<f32>>) -> bool {
-        let is_dirty       = self.dirty.check_all();
+    pub fn update(&mut self, new_origin:Option<Matrix4<f32>>) -> bool {
         let origin_changed = new_origin.is_some();
-        let changed        = is_dirty || origin_changed;
+        let changed        = self.dirty || origin_changed;
         if changed {
-            group!(self.logger, "Update.", {
-                if is_dirty {
-                    self.transform_matrix = self.transform.matrix();
-                    self.dirty.unset_all();
-                }
-                new_origin.iter().for_each(|t| self.origin = **t);
-                self.matrix = self.origin * self.transform_matrix;
-            })
+            if self.dirty {
+                self.transform_matrix = self.transform.matrix();
+                self.dirty = false;
+            }
+            new_origin.into_iter().for_each(|t| self.origin = t);
+            self.matrix = self.origin * self.transform_matrix;
         }
         changed
     }
@@ -205,7 +196,7 @@ impl<OnChange> CachedTransform<OnChange> {
 
 // === Getters ===
 
-impl<OnChange> CachedTransform<OnChange> {
+impl CachedTransform {
     pub fn position(&self) -> Vector3<f32> {
         self.transform.position
     }
@@ -230,19 +221,19 @@ impl<OnChange> CachedTransform<OnChange> {
 
 // === Setters ===
 
-impl<OnChange:Function0> CachedTransform<OnChange> {
+impl CachedTransform{
     pub fn position_mut(&mut self) -> &mut Vector3<f32> {
-        self.dirty.set();
+        self.dirty = true;
         &mut self.transform.position
     }
 
     pub fn rotation_mut(&mut self) -> &mut Vector3<f32> {
-        self.dirty.set();
+        self.dirty = true;
         &mut self.transform.rotation
     }
 
     pub fn scale_mut(&mut self) -> &mut Vector3<f32> {
-        self.dirty.set();
+        self.dirty = true;
         &mut self.transform.scale
     }
 
@@ -259,14 +250,14 @@ impl<OnChange:Function0> CachedTransform<OnChange> {
     }
 
     pub fn mod_position<F:FnOnce(&mut Vector3<f32>)>(&mut self, f:F) {
-        f(self.position_mut())
+        f(self.position_mut());
     }
 
     pub fn mod_rotation<F:FnOnce(&mut Vector3<f32>)>(&mut self, f:F) {
-        f(self.rotation_mut())
+        f(self.rotation_mut());
     }
 
     pub fn mod_scale<F:FnOnce(&mut Vector3<f32>)>(&mut self, f:F) {
-        f(self.scale_mut())
+        f(self.scale_mut());
     }
 }

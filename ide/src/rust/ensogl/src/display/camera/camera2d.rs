@@ -7,9 +7,7 @@ use crate::data::dirty;
 use crate::display;
 use crate::display::layout::types::*;
 use crate::data::dirty::traits::*;
-use crate::control::callback::CallbackRegistry1;
-use crate::control::callback::CallbackHandle;
-use crate::control::callback::CallbackMut1Fn;
+use crate::control::callback;
 
 use nalgebra::Vector2;
 use nalgebra::Vector3;
@@ -55,7 +53,7 @@ impl Screen {
 pub enum Projection {
     /// Perspective projection.
     Perspective {
-        /// Perspective projection's field of view.
+        /// Field of view.
         fov : f32
     },
 
@@ -65,7 +63,8 @@ pub enum Projection {
 
 impl Default for Projection {
     fn default() -> Self {
-        Self::Perspective {fov:45.0f32.to_radians()}
+        let fov = 45.0f32.to_radians();
+        Self::Perspective {fov}
     }
 }
 
@@ -100,10 +99,10 @@ impl Default for Clipping {
 // ====================
 
 /// Function used to return the updated screen dimensions.
-pub trait ScreenUpdateFn = CallbackMut1Fn<Vector2<f32>>;
+pub trait ScreenUpdateFn = callback::CallbackMut1Fn<Vector2<f32>>;
 
 /// Function used to return the updated `Camera2d`'s zoom.
-pub trait ZoomUpdateFn = CallbackMut1Fn<f32>;
+pub trait ZoomUpdateFn = callback::CallbackMut1Fn<f32>;
 
 /// Internal `Camera2d` representation. Please see `Camera2d` for full documentation.
 #[derive(Derivative)]
@@ -120,16 +119,16 @@ struct Camera2dData {
     projection_matrix      : Matrix4<f32>,
     view_projection_matrix : Matrix4<f32>,
     projection_dirty       : ProjectionDirty,
-    transform_dirty        : TransformDirty2,
-    zoom_update_registry   : CallbackRegistry1<f32>,
-    screen_update_registry : CallbackRegistry1<Vector2<f32>>,
+    transform_dirty        : TransformDirty,
+    zoom_update_registry   : callback::Registry1<f32>,
+    screen_update_registry : callback::Registry1<Vector2<f32>>,
 }
 
 type ProjectionDirty = dirty::SharedBool<()>;
-type TransformDirty2 = dirty::SharedBool<()>;
+type TransformDirty = dirty::SharedBool<()>;
 
 impl Camera2dData {
-    pub fn new(logger:Logger, width:f32, height:f32) -> Self {
+    pub fn new(logger:Logger, transform:&display::object::Node, width:f32, height:f32) -> Self {
         let screen                 = Screen::new(width,height);
         let projection             = default();
         let clipping               = default();
@@ -140,12 +139,11 @@ impl Camera2dData {
         let projection_matrix      = Matrix4::identity();
         let view_projection_matrix = Matrix4::identity();
         let projection_dirty       = ProjectionDirty::new(logger.sub("projection_dirty"),());
-        let transform_dirty        = TransformDirty2::new(logger.sub("transform_dirty"),());
-        let transform_dirty_copy   = transform_dirty.clone();
-        let transform              = display::object::Node::new(logger);
+        let transform_dirty        = TransformDirty::new(logger.sub("transform_dirty"),());
+        let transform              = transform.clone2();
         let zoom_update_registry   = default();
         let screen_update_registry = default();
-        transform.set_on_updated(move |_| { transform_dirty_copy.set(); });
+        transform.set_on_updated(enclose!((transform_dirty) move |_| transform_dirty.set() ));
         transform.mod_position(|p| p.z = 1.0);
         projection_dirty.set();
         let mut camera = Self {transform,screen,projection,clipping,alignment,zoom,native_z,
@@ -155,11 +153,11 @@ impl Camera2dData {
         camera
     }
 
-    pub fn add_zoom_update_callback<F:ZoomUpdateFn>(&mut self, f:F) -> CallbackHandle {
+    pub fn add_zoom_update_callback<F:ZoomUpdateFn>(&mut self, f:F) -> callback::Handle {
         self.zoom_update_registry.add(f)
     }
 
-    pub fn add_screen_update_callback<F:ScreenUpdateFn>(&mut self, f:F) -> CallbackHandle {
+    pub fn add_screen_update_callback<F:ScreenUpdateFn>(&mut self, f:F) -> callback::Handle {
         self.screen_update_registry.add(f)
     }
 
@@ -314,18 +312,20 @@ impl Camera2dData {
 ///   in the center of the view will not move visually. If you set the alignment to bottom-left
 ///   corner, you will get a view which behaves like a window in window-based GUIs. When scaling
 ///   the window, the left-bottom corner will stay in place.
-#[derive(Clone,Debug)]
+#[derive(Clone,CloneRef,Debug)]
 pub struct Camera2d {
-    rc: Rc<RefCell<Camera2dData>>
+    display_object : display::object::Node,
+    data           : Rc<RefCell<Camera2dData>>,
 }
 
 impl Camera2d {
     /// Creates new Camera instance.
-    pub fn new<L:Into<Logger>>(logger:L, width:f32, height:f32) -> Self {
-        let logger = logger.into();
-        let data   = Camera2dData::new(logger,width,height);
-        let rc     = Rc::new(RefCell::new(data));
-        Self {rc}
+    pub fn new(logger:&Logger, width:f32, height:f32) -> Self {
+        let logger         = logger.sub("camera");
+        let display_object = display::object::Node::new(&logger);
+        let data           = Camera2dData::new(logger,&display_object,width,height);
+        let data           = Rc::new(RefCell::new(data));
+        Self {display_object,data}
     }
 }
 
@@ -335,22 +335,22 @@ impl Camera2d {
 impl Camera2d {
     /// Sets screen dimensions.
     pub fn set_screen(&self, width:f32, height:f32) {
-        self.rc.borrow_mut().set_screen(width,height)
+        self.data.borrow_mut().set_screen(width,height)
     }
 
     /// Update all diry camera parameters and compute updated view-projection matrix.
     pub fn update(&self) -> bool {
-        self.rc.borrow_mut().update()
+        self.data.borrow_mut().update()
     }
 
     /// Adds a callback to notify when `zoom` is updated.
-    pub fn add_zoom_update_callback<F:ZoomUpdateFn>(&self, f:F) -> CallbackHandle {
-        self.rc.borrow_mut().add_zoom_update_callback(f)
+    pub fn add_zoom_update_callback<F:ZoomUpdateFn>(&self, f:F) -> callback::Handle {
+        self.data.borrow_mut().add_zoom_update_callback(f)
     }
 
     /// Adds a callback to notify when `screen` is updated.
-    pub fn add_screen_update_callback<F:ScreenUpdateFn>(&self, f:F) -> CallbackHandle {
-        self.rc.borrow_mut().add_screen_update_callback(f)
+    pub fn add_screen_update_callback<F:ScreenUpdateFn>(&self, f:F) -> callback::Handle {
+        self.data.borrow_mut().add_screen_update_callback(f)
     }
 }
 
@@ -360,32 +360,27 @@ impl Camera2d {
 impl Camera2d {
     /// Gets `Clipping`.
     pub fn clipping(&self) -> Clipping {
-        self.rc.borrow().clipping
+        self.data.borrow().clipping
     }
 
     /// Gets `Screen`.
     pub fn screen(&self) -> Screen {
-        self.rc.borrow().screen
+        self.data.borrow().screen
     }
 
     /// Gets zoom.
     pub fn zoom(&self) -> f32 {
-        self.rc.borrow().zoom()
-    }
-
-    /// Gets transform.
-    pub fn transform(&self) -> display::object::Node {
-        self.rc.borrow().transform.clone()
+        self.data.borrow().zoom()
     }
 
     /// Gets `Projection` type.
     pub fn projection(&self) -> Projection {
-        self.rc.borrow().projection
+        self.data.borrow().projection
     }
 
     /// Gets Camera2d's y field of view.
     pub fn fovy(&self) -> f32 {
-        (1.0 / self.projection_matrix()[(1, 1)]).atan() * 2.0
+        (1.0 / self.projection_matrix()[(1,1)]).atan() * 2.0
     }
 
     /// Gets Camera2d's half y field of view's slope.
@@ -395,12 +390,12 @@ impl Camera2d {
 
     /// Gets projection matrix.
     pub fn projection_matrix(&self) -> Matrix4<f32> {
-        self.rc.borrow().projection_matrix
+        self.data.borrow().projection_matrix
     }
 
     /// Gets view x projection matrix.
     pub fn view_projection_matrix(&self) -> Matrix4<f32> {
-        *self.rc.borrow().view_projection_matrix()
+        *self.data.borrow().view_projection_matrix()
     }
 }
 
@@ -410,18 +405,20 @@ impl Camera2d {
 impl Camera2d {
     /// Modifies position.
     pub fn mod_position<F:FnOnce(&mut Vector3<f32>)>(&self, f:F) {
-        self.rc.borrow_mut().mod_position(f)
+        self.data.borrow_mut().mod_position(f)
     }
 
     /// Sets position.
     pub fn set_position(&self, value:Vector3<f32>) {
-        self.rc.borrow_mut().set_position(value)
-    }
-
-    /// Sets Camera2d's rotation.
-    pub fn set_rotation(&self, yaw:f32, pitch:f32, roll:f32) {
-        self.rc.borrow_mut().set_rotation(yaw,pitch,roll);
+        self.data.borrow_mut().set_position(value)
     }
 }
 
-impl CloneRef for Camera2d {}
+
+// === Conversions ===
+
+impl<'t> From<&'t Camera2d> for &'t display::object::Node {
+    fn from(camera:&'t Camera2d) -> Self {
+        &camera.display_object
+    }
+}

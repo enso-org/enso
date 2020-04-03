@@ -37,6 +37,15 @@ impl<Quantity,Type,Repr> Unit<Quantity,Type,Repr> {
 }
 
 
+// === Num ===
+
+impl<Quantity,Type,Repr> Abs for Unit<Quantity,Type,Repr> where Repr:Abs {
+    fn abs(&self) -> Self {
+        Self { value:self.value.abs(), ..*self }
+    }
+}
+
+
 // === Operators ===
 
 impls! { [Quantity,Type,Repr] From<Repr> for Unit<Quantity,Type,Repr>  { |t| {Self::new(t)} } }

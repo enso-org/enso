@@ -197,6 +197,7 @@ macro_rules! shared_struct {
         }
     ) => {
         $(#[$($meta)*])*
+        #[derive(CloneRef)]
         pub struct $name <$($params)*> { rc: Rc<RefCell<$name_mut<$($params)*>>> }
 
         $(#[$($meta)*])*
@@ -210,10 +211,9 @@ macro_rules! shared_struct {
             }
         }
 
-        impl<$($params)*> CloneRef for $name <$($params)*> {}
-
         paste::item! {
             $(#[$($meta)*])*
+            #[derive(CloneRef)]
             pub struct [<Weak $name>] <$($params)*> { weak: Weak<RefCell<$name_mut<$($params)*>>> }
 
             impl<$($params)*> Clone for [<Weak $name>] <$($params)*> {
@@ -222,8 +222,6 @@ macro_rules! shared_struct {
                     Self {weak}
                 }
             }
-
-            impl<$($params)*> CloneRef for [<Weak $name>] <$($params)*> {}
 
             impl<$($params)*> [<Weak $name>] <$($params)*> {
                 /// Attempts to upgrade the weak pointer to an rc, delaying dropping of the inner

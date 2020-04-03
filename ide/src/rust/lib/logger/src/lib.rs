@@ -166,7 +166,7 @@ macro_rules! log_template_impl {
 
 #[macro_export]
 macro_rules! with_internal_bug_message { ($f:ident $($args:tt)*) => { $crate::$f! {
-"This is a bug. We will be thankful if you report it and provide us with as much information as \
+"This is a bug. Please report it and and provide us with as much information as \
 possible at https://github.com/luna/enso/issues. Thank you!"
 $($args)*
 }};}

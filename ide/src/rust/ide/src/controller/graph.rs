@@ -89,26 +89,23 @@ impl NewNodeInfo {
 // ==================
 
 /// Handle providing graph controller interface.
-#[derive(Clone,Debug)]
+#[derive(Clone,CloneRef,Debug)]
 pub struct Handle {
     /// Model of the module which this graph belongs to.
     module : Rc<model::Module>,
     parser : Parser,
-    id     : Id,
+    id     : Rc<Id>,
     logger : Logger,
 }
 
 impl Handle {
-    /// Gets a handle to a controller of the module that this definition belongs to.
-    pub fn id(&self) -> Id {
-        self.id.clone()
-    }
 
     /// Creates a new controller. Does not check if id is valid.
     ///
     /// Requires global executor to spawn the events relay task.
     pub fn new_unchecked(module:Rc<model::Module>, parser:Parser, id:Id) -> Handle {
-        let logger    = Logger::new(format!("Graph Controller {}", id));
+        let id = Rc::new(id);
+        let logger = Logger::new(format!("Graph Controller {}", id));
         Handle {module,parser,id,logger}
     }
 
@@ -285,7 +282,7 @@ mod tests {
             let parser   = Parser::new_or_panic();
             let module   = controller::Module::new_mock(loc,code,default(),fm,parser).unwrap();
             let graph_id = Id::new_single_crumb(DefinitionName::new_plain(function_name.into()));
-            let graph    = module.get_graph_controller(graph_id).unwrap();
+            let graph    = module.graph_controller(graph_id).unwrap();
             self.0.run_task(async move {
                 test(module,graph).await
             })
@@ -299,7 +296,7 @@ mod tests {
             let loc    = controller::module::Location::new("Main");
             let parser = Parser::new_or_panic();
             let module = controller::Module::new_mock(loc,code,default(),fm,parser).unwrap();
-            let graph  = module.get_graph_controller(graph_id).unwrap();
+            let graph  = module.graph_controller(graph_id).unwrap();
             self.0.run_task(async move {
                 test(module,graph).await
             })

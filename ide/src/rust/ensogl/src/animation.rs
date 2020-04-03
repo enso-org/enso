@@ -2,8 +2,10 @@
 //! animation with easing functions.
 
 pub mod physics;
-pub mod animator;
+mod loops;
 pub mod easing;
+
+pub use loops::*;
 
 
 

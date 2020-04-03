@@ -11,7 +11,7 @@ use crate::prelude::*;
 // =============
 
 /// Structure containing all the gathered stats.
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,CloneRef)]
 pub struct Stats {
     rc: Rc<RefCell<StatsData>>
 }
@@ -103,5 +103,3 @@ macro_rules! if_compiled_with_stats {
         {}
     };
 }
-
-impl CloneRef for Stats {}

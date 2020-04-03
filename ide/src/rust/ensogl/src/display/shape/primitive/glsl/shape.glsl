@@ -174,25 +174,25 @@ Id new_id_layer (BoundSdf sdf, int i) {
 
 // Premultiplied
 struct Color {
-    Rgba color;
+    Srgba color;
 };
 
-Color premultiply(Rgba t) {
+Color premultiply(Srgba t) {
     float alpha = a(t);
     vec3 rgb    = t.raw.rgb * alpha;
-    return Color(rgba(rgb,alpha));
+    return Color(srgba(rgb,alpha));
 }
 
-Rgba unpremultiply(Color t) {
+Srgba unpremultiply(Color t) {
     float alpha = t.color.raw.a;
     vec3  rgb   = t.color.raw.rgb / alpha;
-    return rgba(rgb,alpha);
+    return srgba(rgb,alpha);
 }
 
 // Implements glBlendFuncSeparate(GL_ONE,GL_ONE_MINUS_SRC_ALPHA,GL_ONE,GL_ONE_MINUS_SRC_ALPHA);
 Color blend(Color bg, Color fg) {
     vec4 raw = fg.color.raw + (1.0 - fg.color.raw.a) * bg.color.raw;
-    return Color(rgba(raw));
+    return Color(srgba(raw));
 }
 
 
@@ -213,7 +213,7 @@ struct Shape {
     float    alpha;
 };
 
-Shape shape (Id id, BoundSdf bound_sdf, Rgba rgba) {
+Shape shape (Id id, BoundSdf bound_sdf, Srgba rgba) {
     float alpha = render(bound_sdf);
     rgba.raw.a *= alpha;
     Color color = premultiply(rgba);
@@ -228,7 +228,7 @@ Shape shape (Id id, BoundSdf bound_sdf, Color color) {
 Shape resample (Shape s, float multiplier) {
     Id       id    = s.id;
     BoundSdf sdf   = resample(s.sdf,multiplier);
-    Rgba     color = unpremultiply(s.color);
+    Srgba    color = unpremultiply(s.color);
     color.raw.a /= s.alpha;
     return shape(id,sdf,color);
 }
@@ -236,7 +236,7 @@ Shape resample (Shape s, float multiplier) {
 Shape pixel_snap (Shape s) {
     Id       id    = s.id;
     BoundSdf sdf   = pixel_snap(s.sdf);
-    Rgba     color = unpremultiply(s.color);
+    Srgba    color = unpremultiply(s.color);
     color.raw.a /= s.alpha;
     return shape(id,sdf,color);
 }
@@ -257,12 +257,13 @@ Shape intersection (Shape s1, Shape s2) {
     return shape(s1.id,intersection(s1.sdf,s2.sdf),blend(s1.color,s2.color));
 }
 
-Shape set_color(Shape shape, Rgba t) {
+Shape set_color(Shape shape, Srgba t) {
     t.raw.a *= shape.alpha;
     Color color = premultiply(t);
     shape.color = color;
     return shape;
 }
+
 
 
 // ===========

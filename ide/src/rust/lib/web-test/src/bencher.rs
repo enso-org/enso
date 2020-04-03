@@ -2,8 +2,8 @@ use crate::prelude::*;
 
 use super::BenchContainer;
 use crate::system::web;
-use ensogl::control::EventLoop;
-use ensogl::control::callback::CallbackHandle;
+use ensogl::animation;
+use ensogl::control::callback;
 
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
@@ -24,13 +24,13 @@ pub struct BencherProperties {
     container      : BenchContainer,
     iterations     : usize,
     total_time     : f64,
-    event_loop     : EventLoop,
-    callback_guard : Option<CallbackHandle>
+    event_loop     : animation::DynamicLoop,
+    callback_guard : Option<callback::Handle>
 }
 
 impl BencherProperties {
     pub fn new<T:FnMut() + 'static>
-    (event_loop:EventLoop, callback:T, container:BenchContainer) -> Self {
+    (event_loop:animation::DynamicLoop, callback:T, container:BenchContainer) -> Self {
         let iterations     = 0;
         let total_time     = 0.0;
         let callback_guard = None;
@@ -64,9 +64,10 @@ pub struct BencherData {
 
 impl BencherData {
     pub fn new<T:FnMut() + 'static>
-    ( event_loop:EventLoop
+    ( event_loop:animation::DynamicLoop
     , callback:T
-    , container:BenchContainer) -> Rc<Self> {
+    , container:BenchContainer
+    ) -> Rc<Self> {
         let properties = RefCell::new(BencherProperties::new(event_loop,callback,container));
         Rc::new(Self {properties})
     }
@@ -76,7 +77,7 @@ impl BencherData {
         let data_clone = self.clone();
         let performance = web::performance();
         let mut t0 = performance.now();
-        let callback_guard = self.event_loop().add_callback(Box::new(move |_:&f64| {
+        let callback_guard = self.event_loop().on_frame(Box::new(move |_| {
             let mut data = data_clone.borrow_mut();
 
             (&mut data.callback)();
@@ -105,7 +106,7 @@ impl BencherData {
 // === Getters ===
 
 impl BencherData {
-    fn event_loop(&self) -> EventLoop {
+    fn event_loop(&self) -> animation::DynamicLoop {
         self.properties.borrow().event_loop.clone()
     }
 
@@ -131,7 +132,7 @@ impl Bencher {
     /// Creates a Bencher with a html test container.
     pub fn new(container:BenchContainer) -> Self {
         let func       = Box::new(|| ());
-        let event_loop = EventLoop::new();
+        let event_loop = animation::DynamicLoop::new();
         let data       = BencherData::new(event_loop, func, container);
 
         let data_clone = data.clone();
@@ -163,7 +164,7 @@ impl Bencher {
         self.data.iter(callback);
     }
 
-    pub fn event_loop(&self) -> EventLoop {
+    pub fn event_loop(&self) -> animation::DynamicLoop {
         self.data.event_loop()
     }
 }

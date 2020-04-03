@@ -8,7 +8,7 @@
 /// it automatically to the FRP node constructor.
 #[macro_export]
 macro_rules! frp {
-    ($($ts:tt)*) => { split_on_terminator! { [[frp_lines]] [] [] $($ts)* } };
+    ($($ts:tt)*) => { $crate::split_on_terminator! { [[$crate::frp_lines]] [] [] $($ts)* } };
 }
 
 /// Utility for easy definition of the FRP network definition. Read docs of `frp` macro to learn
@@ -16,12 +16,12 @@ macro_rules! frp {
 #[macro_export]
 macro_rules! frp_def {
     ($var:ident = $fn:ident $(::<$ty:ty>)? ($($args:tt)*)) => {
-        let $var = Dynamic $(::<$ty>)? :: $fn
+        let $var = $crate::Dynamic $(::<$ty>)? :: $fn
         ( stringify!{$var}, $($args)* );
     };
 
     ($scope:ident . $var:ident = $fn:ident $(::<$ty:ty>)? ($($args:tt)*)) => {
-        let $var = Dynamic $(::<$ty>)? :: $fn
+        let $var = $crate::Dynamic $(::<$ty>)? :: $fn
         ( concat! {stringify!{$scope},".",stringify!{$var}}, $($args)* );
     };
 
@@ -40,7 +40,7 @@ macro_rules! frp_def {
 #[macro_export]
 macro_rules! frp_lines {
     ([ $([$($line:tt)*])* ]) => {
-        $( frp_def! { $($line)* } )*
+        $( $crate::frp_def! { $($line)* } )*
     };
 }
 
@@ -56,14 +56,14 @@ macro_rules! split_on_terminator {
     };
 
     ($f:tt [$($out:tt)*] $current:tt ; $($ts:tt)*) => {
-        split_on_terminator! { $f [$($out)* $current] [] $($ts)* }
+        $crate::split_on_terminator! { $f [$($out)* $current] [] $($ts)* }
     };
 
     ($f:tt $out:tt [$($current:tt)*] $t:tt $($ts:tt)*) => {
-        split_on_terminator! { $f $out [$($current)* $t] $($ts)* }
+        $crate::split_on_terminator! { $f $out [$($current)* $t] $($ts)* }
     };
 
     ([[$($f:tt)*] $($args:tt)?] [$($out:tt)*] $current:tt) => {
-        split_on_terminator! { [[$($f)*] $($args)?] [$($out)* $current] [] }
+        $crate::split_on_terminator! { [[$($f)*] $($args)?] [$($out)* $current] [] }
     };
 }

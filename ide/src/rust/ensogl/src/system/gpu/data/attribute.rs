@@ -86,8 +86,7 @@ impl {
             let on_set     = Box::new(move || { buffer_dirty.set(ix) });
             let on_resize  = Box::new(move || { shape_dirty.set() });
             let logger     = self.logger.sub(&name);
-            let context    = &self.context;
-            let buffer     = Buffer::new(logger,&self.stats,context,on_set,on_resize);
+            let buffer     = Buffer::new(logger,&self.stats,&self.context,on_set,on_resize);
             let buffer_ref = buffer.clone();
             self.buffers.set(ix,AnyBuffer::from(buffer));
             self.buffer_name_map.insert(name,ix.into());

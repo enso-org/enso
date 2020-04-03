@@ -81,7 +81,7 @@ pub struct KeyboardBinding {
     js_handlers      : js::TextInputHandlers,
     copy_handler     : Option<Closure<dyn CopyHandler>>,
     paste_handler    : Option<Closure<dyn PasteHandler>>,
-    defocus_handler: Option<Closure<dyn WindowDefocusHandler>>,
+    defocus_handler  : Option<Closure<dyn WindowDefocusHandler>>,
     key_down_handler : Option<Closure<dyn KeyboardEventHandler>>,
     key_up_handler   : Option<Closure<dyn KeyboardEventHandler>>,
 }
@@ -94,7 +94,7 @@ impl KeyboardBinding {
             js_handlers      : js::TextInputHandlers::new(),
             copy_handler     : None,
             paste_handler    : None,
-            defocus_handler: None,
+            defocus_handler  : None,
             key_down_handler : None,
             key_up_handler   : None
         }
@@ -157,8 +157,7 @@ impl Debug for KeyboardBinding {
 ///
 /// Until the returned `KeyboardBinding` structure lives, the js events will emit the proper
 /// source events in this graph.
-pub fn bind_frp_to_js_keyboard_actions(frp:&Keyboard) -> KeyboardBinding {
-    let mut binding     = KeyboardBinding::create();
+pub fn bind_frp_to_js_keyboard_actions(frp:&Keyboard, binding:&mut KeyboardBinding) {
     binding.set_key_down_handler(enclose!((frp.on_pressed => frp) move |event:KeyboardEvent| {
         if let Ok(key) = event.key().parse::<Key>() {
             frp.event.emit(key);
@@ -172,5 +171,4 @@ pub fn bind_frp_to_js_keyboard_actions(frp:&Keyboard) -> KeyboardBinding {
     binding.set_window_defocus_handler(enclose!((frp.on_defocus => frp) move || {
         frp.event.emit(())
     }));
-    binding
 }

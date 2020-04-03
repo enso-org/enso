@@ -23,7 +23,6 @@ use crate::display::symbol::geometry::primitive::mesh;
 use crate::display;
 
 use shader::Shader;
-use shapely::shared;
 use wasm_bindgen::JsValue;
 use web_sys::WebGlProgram;
 use web_sys::WebGlUniformLocation;
@@ -108,17 +107,35 @@ impl TextureBinding {
 // === VertexArrayObject ===
 // =========================
 
-/// A safe wrapper for WebGL VertexArrayObject. It implements `drop` which deletes the VAO from
-/// GPU memory as soon as this object is dropped.
-#[derive(Debug)]
+/// A safe wrapper for WebGL VertexArrayObject. It releases the VAO from GPU memory as soon as all
+/// references to this object are dropped.
+#[derive(Clone,Debug,Shrinkwrap)]
 pub struct VertexArrayObject {
+    rc : Rc<VertexArrayObjectData>
+}
+
+impl VertexArrayObject {
+    /// Constructor
+    pub fn new(context:&Context) -> Self {
+        let rc = Rc::new(VertexArrayObjectData::new(context));
+        Self {rc}
+    }
+}
+
+
+// === Data ===
+
+/// Internal representation for `VertexArrayObject`.
+#[derive(Debug)]
+pub struct VertexArrayObjectData {
     context : Context,
     vao     : WebGlVertexArrayObject,
 }
 
+
 // === Public API ===
 
-impl VertexArrayObject {
+impl VertexArrayObjectData {
     /// Creates a new VAO instance.
     pub fn new(context:&Context) -> Self {
         let context = context.clone();
@@ -138,7 +155,7 @@ impl VertexArrayObject {
 
 // === Private API ===
 
-impl VertexArrayObject {
+impl VertexArrayObjectData {
     fn bind(&self) {
         self.context.bind_vertex_array(Some(&self.vao));
     }
@@ -151,9 +168,50 @@ impl VertexArrayObject {
 
 // === Instances ===
 
-impl Drop for VertexArrayObject {
+impl Drop for VertexArrayObjectData {
     fn drop(&mut self) {
         self.context.delete_vertex_array(Some(&self.vao));
+    }
+}
+
+
+
+// ===================
+// === SymbolStats ===
+// ===================
+
+/// Wrapper for `Stats` which counts the number of symbols.
+#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
+pub struct SymbolStats {
+    rc : Rc<SymbolStatsData>
+}
+
+/// Internal representation for `SymbolStats`.
+#[derive(Debug,Shrinkwrap)]
+pub struct SymbolStatsData {
+    stats : Stats
+}
+
+impl SymbolStats {
+    /// Constructor.
+    pub fn new(stats:&Stats) -> Self {
+        let rc = Rc::new(SymbolStatsData::new(stats));
+        Self {rc}
+    }
+}
+
+impl SymbolStatsData {
+    /// Constructor.
+    pub fn new(stats:&Stats) -> Self {
+        stats.inc_symbol_count();
+        let stats = stats.clone_ref();
+        Self {stats}
+    }
+}
+
+impl Drop for SymbolStatsData {
+    fn drop(&mut self) {
+        self.stats.dec_symbol_count();
     }
 }
 
@@ -162,7 +220,6 @@ impl Drop for VertexArrayObject {
 // ==============
 // === Symbol ===
 // ==============
-
 
 // === Types ===
 
@@ -175,15 +232,23 @@ pub type GeometryDirty = dirty::SharedBool<Box<dyn Fn()>>;
 pub type ShaderDirty   = dirty::SharedBool<Box<dyn Fn()>>;
 
 
+// === Bindings ====
+
+#[derive(Clone,Debug,Default)]
+pub struct Bindings {
+    vao      : Option<VertexArrayObject>,
+    uniforms : Vec<UniformBinding>,
+    textures : Vec<TextureBinding>,
+}
+
 
 // === Definition ===
 
-shared! { Symbol
 /// Symbol is a surface with attached `Shader`.
-#[derive(Debug)]
-pub struct SymbolData {
+#[derive(Debug,Clone,CloneRef)]
+pub struct Symbol {
     display_object    : display::object::Node,
-    id                : i32,
+    pub id            : i32,
     surface           : Mesh,
     shader            : Shader,
     surface_dirty     : GeometryDirty,
@@ -193,44 +258,53 @@ pub struct SymbolData {
     symbol_id_uniform : Uniform<i32>,
     context           : Context,
     logger            : Logger,
-    vao               : Option<VertexArrayObject>,
-    uniforms          : Vec<UniformBinding>,
-    textures          : Vec<TextureBinding>,
-    stats             : Stats,
+    bindings          : Rc<RefCell<Bindings>>,
+    stats             : SymbolStats,
     is_hidden         : Rc<Cell<bool>>,
 }
 
-impl {
-    pub fn surface(&self) -> Mesh {
-        self.surface.clone_ref()
-    }
-
-    pub fn shader(&self) -> Shader {
-        self.shader.clone_ref()
-    }
-
-    pub fn variables(&self) -> UniformScope {
-        self.variables.clone_ref()
-    }
-
-    pub fn set_hidden(&self, b:bool) {
-        self.is_hidden.set(b)
-    }
-
-    pub fn hide(&self) {
-        self.set_hidden(true)
-    }
-
-    pub fn show(&self) {
-        self.set_hidden(false)
-    }
-
-    pub fn is_hidden(&self) -> bool {
-        self.is_hidden.get()
+impl Symbol {
+    /// Create new instance with the provided on-dirty callback.
+    pub fn new <OnMut:Fn()+Clone+'static>
+    ( logger           : Logger
+    , context          : &Context
+    , stats            : &Stats
+    , id               : i32
+    , global_variables : &UniformScope
+    , on_mut           : OnMut
+    ) -> Self {
+        let init_logger = logger.clone();
+        group!(init_logger, "Initializing.", {
+            let on_mut2           = on_mut.clone();
+            let surface_logger    = logger.sub("surface");
+            let shader_logger     = logger.sub("shader");
+            let geo_dirt_logger   = logger.sub("surface_dirty");
+            let mat_dirt_logger   = logger.sub("shader_dirty");
+            let surface_dirty     = GeometryDirty::new(geo_dirt_logger,Box::new(on_mut2));
+            let shader_dirty      = ShaderDirty::new(mat_dirt_logger,Box::new(on_mut));
+            let surface_dirty2    = surface_dirty.clone_ref();
+            let shader_dirty2     = shader_dirty.clone_ref();
+            let surface_on_mut    = Box::new(move || { surface_dirty2.set() });
+            let shader_on_mut     = Box::new(move || { shader_dirty2.set() });
+            let shader            = Shader::new(shader_logger,&stats,context,shader_on_mut);
+            let surface           = Mesh::new(surface_logger,&stats,context,surface_on_mut);
+            let variables         = UniformScope::new(logger.sub("uniform_scope"),context);
+            let global_variables  = global_variables.clone();
+            let bindings          = default();
+            let stats             = SymbolStats::new(stats);
+            let context           = context.clone();
+            let symbol_id_uniform = variables.add_or_panic("symbol_id",id);
+            let display_object    = display::object::Node::new(logger.clone());
+            let is_hidden         = Rc::new(Cell::new(false));
+            display_object.set_on_hide(enclose!((is_hidden) move || { is_hidden.set(true)  }));
+            display_object.set_on_show(enclose!((is_hidden) move || { is_hidden.set(false) }));
+            Self{id,surface,shader,surface_dirty,shader_dirty,variables,global_variables,logger,context
+                ,bindings,stats,symbol_id_uniform,display_object,is_hidden}
+        })
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update(&mut self) {
+    pub fn update(&self) {
         group!(self.logger, "Updating.", {
             if self.surface_dirty.check() {
                 self.surface.update();
@@ -260,11 +334,14 @@ impl {
                 return;
             }
             self.with_program(|_|{
-                for binding in &self.uniforms {
+                for binding in &self.bindings.borrow().uniforms {
                     binding.upload(&self.context);
                 }
-                let bind_texture_unit  = |b:&TextureBinding| b.bind_texture_unit(&self.context);
-                let _tex_unit_bindings = self.textures.iter().map(bind_texture_unit).collect_vec();
+
+                let context              = &self.context;
+                let textures             = &self.bindings.borrow().textures;
+                let bound_textures_iter  = textures.iter().map(|t| {t.bind_texture_unit(context)});
+                let _textures_keep_alive = bound_textures_iter.collect_vec();
 
                 let mode           = Context::TRIANGLE_STRIP;
                 let first          = 0;
@@ -280,97 +357,64 @@ impl {
             });
         })
     }
-}}
-
-
-impl SymbolData {
-    /// Create new instance with the provided on-dirty callback.
-    pub fn new <OnMut:Fn()+Clone+'static>
-    ( logger           : Logger
-    , context          : &Context
-    , stats            : &Stats
-    , id               : i32
-    , global_variables : &UniformScope
-    , on_mut           : OnMut
-    ) -> Self {
-        stats.inc_symbol_count();
-        let init_logger = logger.clone();
-        group!(init_logger, "Initializing.", {
-            let on_mut2           = on_mut.clone();
-            let surface_logger    = logger.sub("surface");
-            let shader_logger     = logger.sub("shader");
-            let geo_dirt_logger   = logger.sub("surface_dirty");
-            let mat_dirt_logger   = logger.sub("shader_dirty");
-            let surface_dirty     = GeometryDirty::new(geo_dirt_logger,Box::new(on_mut2));
-            let shader_dirty      = ShaderDirty::new(mat_dirt_logger,Box::new(on_mut));
-            let surface_dirty2    = surface_dirty.clone_ref();
-            let shader_dirty2     = shader_dirty.clone_ref();
-            let surface_on_mut    = Box::new(move || { surface_dirty2.set() });
-            let shader_on_mut     = Box::new(move || { shader_dirty2.set() });
-            let shader            = Shader::new(shader_logger,&stats,context,shader_on_mut);
-            let surface           = Mesh::new(surface_logger,&stats,context,surface_on_mut);
-            let variables         = UniformScope::new(logger.sub("uniform_scope"),context);
-            let global_variables  = global_variables.clone();
-            let vao               = default();
-            let uniforms          = default();
-            let textures          = default();
-            let stats             = stats.clone_ref();
-            let context           = context.clone();
-            let symbol_id_uniform = variables.add_or_panic("symbol_id",id);
-            let display_object    = display::object::Node::new(logger.clone());
-            let is_hidden         = Rc::new(Cell::new(false));
-            display_object.set_on_hide(enclose!((is_hidden) move || { is_hidden.set(true)  }));
-            display_object.set_on_show(enclose!((is_hidden) move || { is_hidden.set(false) }));
-            Self{id,surface,shader,surface_dirty,shader_dirty,variables,global_variables,logger,context
-                ,vao,uniforms,textures,stats,symbol_id_uniform,display_object,is_hidden}
-        })
-    }
 }
+
+
+// === Visibility ===
 
 impl Symbol {
-    /// Create new instance with the provided on-dirty callback.
-    pub fn new <OnMut:Fn()+Clone+'static>
-    ( logger           : Logger
-    , context          : &Context
-    , stats            : &Stats
-    , id               : i32
-    , global_variables : &UniformScope
-    , on_mut           : OnMut
-    ) -> Self {
-        let data = SymbolData::new(logger,context,stats,id,global_variables,on_mut);
-        let rc   = Rc::new(RefCell::new(data));
-        Self {rc}
+    pub fn set_hidden(&self, b:bool) {
+        self.is_hidden.set(b)
     }
-}
 
-impl From<&SymbolData> for display::object::Node {
-    fn from(t:&SymbolData) -> Self {
-        t.display_object.clone_ref()
+    pub fn hide(&self) {
+        self.set_hidden(true)
     }
-}
 
-impl From<&Symbol> for display::object::Node {
-    fn from(t:&Symbol) -> Self {
-        t.rc.borrow().display_object.clone_ref()
+    pub fn show(&self) {
+        self.set_hidden(false)
+    }
+
+    pub fn is_hidden(&self) -> bool {
+        self.is_hidden.get()
     }
 }
 
 
-impl SymbolData {
+// === Getters ===
+
+impl Symbol {
+    pub fn surface(&self) -> &Mesh {
+        &self.surface
+    }
+
+    pub fn shader(&self) -> &Shader {
+        &self.shader
+    }
+
+    pub fn variables(&self) -> &UniformScope {
+        &self.variables
+    }
+}
+
+
+// === Private API ===
+
+impl Symbol {
     /// Creates a new VertexArrayObject, discovers all variable bindings from shader to geometry,
     /// and initializes the VAO with the bindings.
-    fn init_variable_bindings(&mut self, var_bindings:&[shader::VarBinding]) {
-        let max_texture_units     = self.context.get_parameter(Context::MAX_TEXTURE_IMAGE_UNITS);
-        let max_texture_units     = max_texture_units.unwrap_or_else(|err| {
+    fn init_variable_bindings(&self, var_bindings:&[shader::VarBinding]) {
+        let max_texture_units = self.context.get_parameter(Context::MAX_TEXTURE_IMAGE_UNITS);
+        let max_texture_units = max_texture_units.unwrap_or_else(|err| {
             self.logger.error(fmt!("Cannot retrieve max texture units: {:?}. Assuming minimal \
                 texture units possible",err));
             JsValue::from_f64(2.0)
         });
         let max_texture_units     = max_texture_units.as_f64().unwrap() as u32;
         let mut texture_unit_iter = 0..max_texture_units;
-        self.vao                  = Some(VertexArrayObject::new(&self.context));
-        self.uniforms             = default();
-        self.textures             = default();
+        self.bindings.borrow_mut().vao      = Some(VertexArrayObject::new(&self.context));
+        self.bindings.borrow_mut().uniforms = default();
+        self.bindings.borrow_mut().textures = default();
         self.with_program_mut(|this,program|{
             for binding in var_bindings {
                 match binding.scope.as_ref() {
@@ -386,7 +430,7 @@ impl SymbolData {
     }
 
     fn init_attribute_binding
-    (&mut self, program:&WebGlProgram, binding:&shader::VarBinding, mesh_scope_type:mesh::ScopeType) {
+    (&self, program:&WebGlProgram, binding:&shader::VarBinding, mesh_scope_type:mesh::ScopeType) {
         let vtx_name = shader::builder::mk_vertex_name(&binding.name);
         let scope    = self.surface.scope_by_type(mesh_scope_type);
         let location = self.context.get_attrib_location(program, &vtx_name);
@@ -404,7 +448,7 @@ impl SymbolData {
     /// Init uniform binding. This function should be run in context of `program` (used inside
     /// closure passed as argument to `with_program`).
     fn init_uniform_binding
-    ( &mut self
+    ( &self
     , program:&WebGlProgram
     , binding:&shader::VarBinding
     , texture_unit_iter : &mut dyn Iterator<Item=TextureUnit>
@@ -424,13 +468,13 @@ impl SymbolData {
             });
             match uniform {
                 AnyUniform::Prim(uniform) =>
-                    self.uniforms.push(UniformBinding::new(name,location,uniform)),
+                    self.bindings.borrow_mut().uniforms.push(UniformBinding::new(name,location,uniform)),
                 AnyUniform::Texture(uniform) => {
                     match texture_unit_iter.next() {
                         Some(texture_unit) => {
                             let binding = TextureBinding::new(name,location,uniform,texture_unit);
                             binding.upload_uniform(&self.context);
-                            self.textures.push(binding);
+                            self.bindings.borrow_mut().textures.push(binding);
                         }
                         None => {
                             self.logger.error("Texture unit limit exceeded.");
@@ -441,9 +485,8 @@ impl SymbolData {
         });
     }
 
-
     /// For each variable from the shader definition, looks up its position in geometry scopes.
-    pub fn discover_variable_bindings(&self) -> Vec<shader::VarBinding> {
+    fn discover_variable_bindings(&self) -> Vec<shader::VarBinding> {
         let var_decls = self.shader.collect_variables();
         var_decls.into_iter().map(|(var_name,var_decl)| {
             let target = self.lookup_variable(&var_name);
@@ -457,19 +500,20 @@ impl SymbolData {
 
     /// Runs the provided function in a context of active program and active VAO. After the function
     /// is executed, both program and VAO are bound to None.
-    pub fn with_program<F:FnOnce(&WebGlProgram) -> T,T>(&self, f:F) -> T {
+    fn with_program<F:FnOnce(&WebGlProgram) -> T,T>(&self, f:F) -> T {
         let program = self.shader.program().unwrap(); // FIXME
         self.context.use_program(Some(&program));
-        let vao = self.vao.as_ref().unwrap(); // FIXME
-        let out = vao.with(||{ f(&program) });
+        let bindings = self.bindings.borrow();
+        let vao      = bindings.vao.as_ref().unwrap(); // FIXME
+        let out      = vao.with(||{ f(&program) });
         self.context.use_program(None);
         out
     }
 
     /// Runs the provided function in a context of active program and active VAO. After the function
     /// is executed, both program and VAO are bound to None.
-    pub fn with_program_mut<F:FnOnce(&mut Self, &WebGlProgram) -> T,T>(&mut self, f:F) -> T {
-        let this:&mut Self = self;
+    fn with_program_mut<F:FnOnce(&Self, &WebGlProgram) -> T,T>(&self, f:F) -> T {
+        let this:&Self = self;
         let program = this.shader.program().as_ref().unwrap().clone(); // FIXME
         this.context.use_program(Some(&program));
         let out = this.with_vao_mut(|this|{ f(this,&program) });
@@ -477,17 +521,25 @@ impl SymbolData {
         out
     }
 
-    pub fn with_vao_mut<F:FnOnce(&mut Self) -> T,T>(&mut self, f:F) -> T {
-        self.vao.as_ref().unwrap().bind();
+    fn with_vao_mut<F:FnOnce(&Self) -> T,T>(&self, f:F) -> T {
+        self.bindings.borrow().vao.as_ref().unwrap().bind();
         let out = f(self);
-        self.vao.as_ref().unwrap().unbind();
+        self.bindings.borrow().vao.as_ref().unwrap().unbind();
         out
     }
-
 }
 
-impl Drop for SymbolData {
-    fn drop(&mut self) {
-        self.stats.dec_symbol_count();
+
+// === Conversions ===
+
+impl From<&Symbol> for display::object::Node {
+    fn from(t:&Symbol) -> Self {
+        t.display_object.clone_ref()
+    }
+}
+
+impl<'t> From<&'t Symbol> for &'t display::object::Node {
+    fn from(t:&'t Symbol) -> Self {
+        &t.display_object
     }
 }

@@ -95,6 +95,8 @@ impl Handle {
         let path    = self.location.to_path();
         let content = self.file_manager.read(path).await?;
         self.logger.info(|| "Parsing code");
+        // TODO[ao] we should not fail here when metadata are malformed, but discard them and set
+        // default instead.
         let parsed = self.parser.parse_with_metadata(content)?;
         self.logger.info(|| "Code parsed");
         self.logger.trace(|| format!("The parsed ast is {:?}", parsed.ast));
@@ -149,9 +151,14 @@ impl Handle {
     }
 
     /// Returns a graph controller for graph in this module's subtree identified by `id`.
-    /// Reuses already existing controller if possible.
-    pub fn get_graph_controller(&self, id:dr::graph::Id) -> FallibleResult<controller::Graph> {
+    pub fn graph_controller(&self, id:dr::graph::Id) -> FallibleResult<controller::Graph> {
         controller::Graph::new(self.model.clone_ref(), self.parser.clone_ref(), id)
+    }
+
+    /// Returns a graph controller for graph in this module's subtree identified by `id` without
+    /// checking if the graph exists.
+    pub fn graph_controller_unchecked(&self, id:dr::graph::Id) -> controller::Graph {
+        controller::Graph::new_unchecked(self.model.clone_ref(), self.parser.clone_ref(), id)
     }
 
     #[cfg(test)]
