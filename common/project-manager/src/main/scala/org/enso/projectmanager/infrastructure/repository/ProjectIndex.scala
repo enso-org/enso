@@ -8,33 +8,27 @@ import org.enso.projectmanager.model.Project
 /**
   * A helper data object enabling indexing of projects.
   *
-  * @param userProjects user projects index
-  * @param sampleProjects sample project index
-  * @param temporaryProjects temporary projects index
+  * @param projects user projects index
   */
-case class ProjectIndex(
-  userProjects: Map[UUID, Project]      = Map.empty,
-  sampleProjects: List[Project]         = List.empty,
-  temporaryProjects: Map[UUID, Project] = Map.empty
-) {
+case class ProjectIndex(projects: Map[UUID, Project] = Map.empty) {
 
   /**
-    * Adds user project to the index.
+    * Adds project to the index.
     *
     * @param project the project to add
     * @return an updated project
     */
-  def addUserProject(project: Project): ProjectIndex =
-    ProjectIndex(userProjects + (project.id -> project))
+  def add(project: Project): ProjectIndex =
+    ProjectIndex(projects + (project.id -> project))
 
   /**
-    * Removes a user project.
+    * Removes a project.
     *
     * @param projectId the project id to remove
     * @return an updated project
     */
-  def removeUserProject(projectId: UUID): ProjectIndex =
-    ProjectIndex(userProjects - projectId)
+  def remove(projectId: UUID): ProjectIndex =
+    ProjectIndex(projects - projectId)
 
   /**
     * Finds user project by ID.
@@ -42,8 +36,17 @@ case class ProjectIndex(
     * @param projectId a project id
     * @return optional project
     */
-  def findUserProject(projectId: UUID): Option[Project] =
-    userProjects.get(projectId)
+  def findById(projectId: UUID): Option[Project] =
+    projects.get(projectId)
+
+  /**
+    * Queries index using a function that specifies criteria of result set.
+    *
+    * @param predicate a predicate function
+    * @return projects that meet the criteria
+    */
+  def find(predicate: Project => Boolean): List[Project] =
+    projects.values.filter(predicate).toList
 
   /**
     * Checks if project with the provided name is in the index.
@@ -51,7 +54,7 @@ case class ProjectIndex(
     * @param name a project name
     * @return true if exists
     */
-  def exists(name: String): Boolean = userProjects.values.exists(_.name == name)
+  def exists(name: String): Boolean = projects.values.exists(_.name == name)
 
 }
 

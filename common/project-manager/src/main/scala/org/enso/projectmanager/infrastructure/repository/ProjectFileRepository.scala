@@ -4,6 +4,7 @@ import java.io.File
 import java.util.UUID
 
 import org.enso.pkg.Package
+import org.enso.projectmanager.boot.configuration.StorageConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
@@ -14,7 +15,6 @@ import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailur
   ProjectNotFoundInIndex,
   StorageFailure
 }
-import org.enso.projectmanager.boot.configuration.StorageConfig
 import org.enso.projectmanager.model.Project
 
 /**
@@ -30,12 +30,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   indexStorage: FileStorage[ProjectIndex, F]
 ) extends ProjectRepository[F] {
 
-  /**
-    * Tests if project is present in the data storage.
-    *
-    * @param name a project name
-    * @return true if project exists
-    */
+  /** @inheritdoc **/
   override def exists(
     name: String
   ): F[ProjectRepositoryFailure, Boolean] =
@@ -45,21 +40,32 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .mapError(_.fold(convertFileStorageFailure))
 
   /** @inheritdoc **/
-  override def findUserProject(
+  override def find(
+    predicate: Project => Boolean
+  ): F[ProjectRepositoryFailure, List[Project]] =
+    indexStorage
+      .load()
+      .map(_.find(predicate))
+      .mapError(_.fold(convertFileStorageFailure))
+
+  /** @inheritdoc **/
+  override def getAll(): F[ProjectRepositoryFailure, List[Project]] =
+    indexStorage
+      .load()
+      .map(_.projects.values.toList)
+      .mapError(_.fold(convertFileStorageFailure))
+
+  /** @inheritdoc **/
+  override def findById(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Option[Project]] =
     indexStorage
       .load()
-      .map(_.userProjects.get(projectId))
+      .map(_.findById(projectId))
       .mapError(_.fold(convertFileStorageFailure))
 
-  /**
-    * Inserts the provided user project to the storage.
-    *
-    * @param project the project to insert
-    * @return
-    */
-  override def insertUserProject(
+  /** @inheritdoc **/
+  override def save(
     project: Project
   ): F[ProjectRepositoryFailure, Unit] = {
     val projectPath     = new File(storageConfig.userProjectsPath, project.name)
@@ -68,7 +74,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     createProjectStructure(project, projectPath) *>
     indexStorage
       .modify { index =>
-        val updated = index.addUserProject(projectWithPath)
+        val updated = index.add(projectWithPath)
         (updated, ())
       }
       .mapError(_.fold(convertFileStorageFailure))
@@ -82,19 +88,14 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .blockingOp { Package.create(projectPath, project.name) }
       .mapError(th => StorageFailure(th.toString))
 
-  /**
-    * Removes the provided project from the storage.
-    *
-    * @param projectId the project id to remove
-    * @return either failure or success
-    */
-  override def deleteUserProject(
+  /** @inheritdoc **/
+  override def delete(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Unit] =
     indexStorage
       .modify { index =>
-        val maybeProject = index.findUserProject(projectId)
-        index.removeUserProject(projectId) -> maybeProject
+        val maybeProject = index.findById(projectId)
+        index.remove(projectId) -> maybeProject
       }
       .mapError(_.fold(convertFileStorageFailure))
       .flatMap {

@@ -14,10 +14,11 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
   StopServer
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
+import org.enso.projectmanager.util.UnhandledLogging
 
 /**
   * An actor that routes request regarding lang. server lifecycle to the
-  * right controller managing the server.
+  * right controller that manages the server.
   * It creates a controller actor, if a server doesn't exists.
   *
   * @param networkConfig a net config
@@ -27,7 +28,8 @@ class LanguageServerRegistry(
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig
 ) extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   override def receive: Receive = running()
 
@@ -64,9 +66,6 @@ class LanguageServerRegistry(
       sender() ! serverControllers.contains(projectId)
 
   }
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 
 }
 

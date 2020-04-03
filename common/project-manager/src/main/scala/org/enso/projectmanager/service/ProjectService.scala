@@ -7,7 +7,7 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.ErrorChannel
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.{ProjectMetadata, SocketData}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerService
 import org.enso.projectmanager.infrastructure.log.Logging
@@ -24,6 +24,7 @@ import org.enso.projectmanager.infrastructure.repository.{
 }
 import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.Project
+import org.enso.projectmanager.model.ProjectKind.UserProject
 import org.enso.projectmanager.service.ProjectServiceFailure._
 import org.enso.projectmanager.service.ValidationFailure.{
   EmptyName,
@@ -51,12 +52,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
 
   import E._
 
-  /**
-    * Creates a user project.
-    *
-    * @param name the name of th project
-    * @return projectId
-    */
+  /** @inheritdoc **/
   override def createUserProject(
     name: String
   ): F[ProjectServiceFailure, UUID] = {
@@ -67,25 +63,20 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       _            <- validateExists(name)
       creationTime <- clock.nowInUtc()
       projectId    <- gen.randomUUID()
-      project       = Project(projectId, name, creationTime)
-      _            <- repo.insertUserProject(project).mapError(toServiceFailure)
+      project       = Project(projectId, name, UserProject, creationTime)
+      _            <- repo.save(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")
     } yield projectId
     // format: on
   }
 
-  /**
-    * Deletes a user project.
-    *
-    * @param projectId the project id
-    * @return either failure or unit representing success
-    */
+  /** @inheritdoc **/
   override def deleteUserProject(
     projectId: UUID
   ): F[ProjectServiceFailure, Unit] =
     log.debug(s"Deleting project $projectId.") *>
     ensureProjectIsNotRunning(projectId) *>
-    repo.deleteUserProject(projectId).mapError(toServiceFailure) *>
+    repo.delete(projectId).mapError(toServiceFailure) *>
     log.info(s"Project $projectId deleted.")
 
   private def ensureProjectIsNotRunning(
@@ -99,41 +90,40 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
         case true  => ErrorChannel[F].fail(CannotRemoveOpenProject)
       }
 
-  /**
-    * Opens a project. It starts up a Language Server if needed.
-    *
-    * @param clientId the requester id
-    * @param projectId the project id
-    * @return either failure or a socket of the Language Server
-    */
+  /** @inheritdoc **/
   override def openProject(
     clientId: UUID,
     projectId: UUID
   ): F[ProjectServiceFailure, SocketData] = {
+    // format: off
     for {
-      _       <- log.debug(s"Opening project $projectId")
-      project <- getUserProject(projectId)
-      socket <- languageServerService
-        .start(clientId, project)
-        .mapError {
-          case ServerBootTimedOut =>
-            ProjectOpenFailed("Language server boot timed out")
-
-          case ServerBootFailed(th) =>
-            ProjectOpenFailed(
-              s"Language server boot failed: ${th.getMessage}"
-            )
-        }
+      _        <- log.debug(s"Opening project $projectId")
+      project  <- getUserProject(projectId)
+      openTime <- clock.nowInUtc()
+      updated   = project.copy(lastOpened = Some(openTime))
+      _        <- repo.save(updated).mapError(toServiceFailure)
+      socket   <- startServer(clientId, updated)
     } yield socket
+    // format: on
   }
 
-  /**
-    * Closes a project. Tries to shut down the Language Server.
-    *
-    * @param clientId the requester id
-    * @param projectId the project id
-    * @return either failure or [[Unit]] representing void success
-    */
+  private def startServer(
+    clientId: UUID,
+    project: Project
+  ): F[ProjectServiceFailure, SocketData] =
+    languageServerService
+      .start(clientId, project)
+      .mapError {
+        case ServerBootTimedOut =>
+          ProjectOpenFailed("Language server boot timed out")
+
+        case ServerBootFailed(th) =>
+          ProjectOpenFailed(
+            s"Language server boot failed: ${th.getMessage}"
+          )
+      }
+
+  /** @inheritdoc **/
   override def closeProject(
     clientId: UUID,
     projectId: UUID
@@ -146,11 +136,28 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     }
   }
 
+  /** @inheritdoc **/
+  override def listRecentProjects(
+    size: Int
+  ): F[ProjectServiceFailure, List[ProjectMetadata]] =
+    repo
+      .getAll()
+      .map(_.sorted(RecentlyUsedProjectsOrdering).take(size))
+      .map(_.map(toProjectMetadata))
+      .mapError(toServiceFailure)
+
+  private def toProjectMetadata(project: Project): ProjectMetadata =
+    ProjectMetadata(
+      name       = project.name,
+      id         = project.id,
+      lastOpened = project.lastOpened
+    )
+
   private def getUserProject(
     projectId: UUID
   ): F[ProjectServiceFailure, Project] =
     repo
-      .findUserProject(projectId)
+      .findById(projectId)
       .mapError(toServiceFailure)
       .flatMap {
         case None          => ErrorChannel[F].fail(ProjectNotFound)

@@ -619,9 +619,7 @@ This type represents information about a project.
 interface ProjectMetadata {
   name: String;
   id: UUID;
-  size: Size;
   lastOpened: UTCDateTime;
-  path: Path | URI;
 }
 ```
 
@@ -705,7 +703,7 @@ opened projects.
 
 ```typescript
 interface ProjectListRecentRequest {
-  numProjects: Int;
+  numberOfProjects: Int;
 }
 ```
 
@@ -718,7 +716,8 @@ interface ProjectListRecentResponse {
 ```
 
 ##### Errors
-TBC
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+underlying data store.
 
 #### `project/create`
 This message requests the creation of a new project.

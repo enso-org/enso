@@ -2,12 +2,12 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.{ProjectMetadata, SocketData}
 
 /**
   * A contract for the Project Service.
   *
-  * @tparam F target bifunctor
+  * @tparam F a monadic context
   */
 trait ProjectServiceApi[F[+_, +_]] {
 
@@ -50,5 +50,15 @@ trait ProjectServiceApi[F[+_, +_]] {
     clientId: UUID,
     projectId: UUID
   ): F[ProjectServiceFailure, Unit]
+
+  /**
+    * Lists the user's most recently opened projects..
+    *
+    * @param size the size of result set
+    * @return list of recent projects
+    */
+  def listRecentProjects(
+    size: Int
+  ): F[ProjectServiceFailure, List[ProjectMetadata]]
 
 }

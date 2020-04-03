@@ -6,8 +6,15 @@ import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
 import io.circe.generic.auto._
+import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
+import org.enso.projectmanager.boot.configuration.{
+  BootloaderConfig,
+  NetworkConfig,
+  StorageConfig,
+  TimeoutConfig
+}
 import org.enso.projectmanager.control.effect.ZioEnvExec
 import org.enso.projectmanager.infrastructure.file.{
   BlockingFileSystem,
@@ -15,21 +22,18 @@ import org.enso.projectmanager.infrastructure.file.{
 }
 import org.enso.projectmanager.infrastructure.languageserver.{
   LanguageServerRegistry,
-  LanguageServerRegistryProxy,
-  LanguageServerService
+  LanguageServerRegistryProxy
 }
 import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
   ProjectIndex
 }
-import org.enso.projectmanager.boot.configuration.{
-  BootloaderConfig,
-  NetworkConfig,
-  StorageConfig,
-  TimeoutConfig
-}
 import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
-import org.enso.projectmanager.test.{ConstGenerator, NopLogging, StoppedClock}
+import org.enso.projectmanager.test.{
+  NopLogging,
+  ObservableGenerator,
+  ProgrammableClock
+}
 import zio.interop.catz.core._
 import zio.{Runtime, Semaphore, ZEnv, ZIO}
 
@@ -39,13 +43,12 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   override def protocol: Protocol = JsonRpc.protocol
 
-  val TestNow = OffsetDateTime.now(ZoneOffset.UTC)
+  val testClock =
+    new ProgrammableClock[ZEnv](OffsetDateTime.now(ZoneOffset.UTC))
 
-  val testClock = new StoppedClock[ZEnv](TestNow)
+  def getGeneratedUUID: UUID = gen.takeFirst()
 
-  val TestUUID = UUID.randomUUID()
-
-  lazy val gen = new ConstGenerator[ZEnv](TestUUID)
+  lazy val gen = new ObservableGenerator[ZEnv]()
 
   val testProjectsRoot = Files.createTempDirectory(null).toFile
   testProjectsRoot.deleteOnExit()
@@ -55,9 +58,9 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   val indexFile = new File(testProjectsRoot, "project-index.json")
 
   lazy val testStorageConfig = StorageConfig(
-    projectsRoot        = testProjectsRoot,
-    projectMetadataPath = indexFile,
-    userProjectsPath    = userProjectDir
+    projectsRoot     = testProjectsRoot,
+    projectIndexPath = indexFile,
+    userProjectsPath = userProjectDir
   )
 
   lazy val bootloaderConfig = BootloaderConfig(3, 1.second)
@@ -75,7 +78,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   lazy val indexStorage =
     new SynchronizedFileStorage[ProjectIndex, ZIO[ZEnv, +*, +*]](
-      testStorageConfig.projectMetadataPath,
+      testStorageConfig.projectIndexPath,
       fileSystem
     )
 
@@ -113,6 +116,11 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       projectService,
       timeoutConfig
     )
+  }
+
+  override def afterEach(): Unit = {
+    super.afterEach()
+    FileUtils.deleteDirectory(testProjectsRoot)
   }
 
 }

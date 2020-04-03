@@ -13,6 +13,7 @@ import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure
 }
+import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -26,7 +27,8 @@ class ProjectCreateHandler[F[+_, +_]: Exec](
   service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
   override def receive: Receive = requestStage
 
   import context.dispatcher

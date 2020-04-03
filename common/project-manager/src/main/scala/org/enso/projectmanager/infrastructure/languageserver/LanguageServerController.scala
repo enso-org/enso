@@ -37,6 +37,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerContr
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 import org.enso.projectmanager.model.Project
+import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration._
 
@@ -53,8 +54,9 @@ class LanguageServerController(
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig
 ) extends Actor
+    with ActorLogging
     with Stash
-    with ActorLogging {
+    with UnhandledLogging {
 
   import context.dispatcher
 
@@ -183,9 +185,6 @@ class LanguageServerController(
     context.stop(self)
     context.parent ! ServerShutDown(project.id)
   }
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 
 }
 

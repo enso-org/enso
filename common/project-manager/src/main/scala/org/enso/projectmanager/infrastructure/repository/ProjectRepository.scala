@@ -20,12 +20,12 @@ trait ProjectRepository[F[+_, +_]] {
   def exists(name: String): F[ProjectRepositoryFailure, Boolean]
 
   /**
-    * Inserts the provided user project to the storage.
+    * Saves the provided user project in the storage.
     *
     * @param project the project to insert
     * @return
     */
-  def insertUserProject(
+  def save(
     project: Project
   ): F[ProjectRepositoryFailure, Unit]
 
@@ -35,7 +35,7 @@ trait ProjectRepository[F[+_, +_]] {
     * @param projectId the project id to remove
     * @return either failure or success
     */
-  def deleteUserProject(projectId: UUID): F[ProjectRepositoryFailure, Unit]
+  def delete(projectId: UUID): F[ProjectRepositoryFailure, Unit]
 
   /**
     * Finds a project by project id.
@@ -43,8 +43,25 @@ trait ProjectRepository[F[+_, +_]] {
     * @param projectId a project id
     * @return option with the project entity
     */
-  def findUserProject(
+  def findById(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Option[Project]]
+
+  /**
+    * Finds projects that meet criteria specified by predicate.
+    *
+    * @param predicate a predicate function
+    * @return projects that meet the criteria
+    */
+  def find(
+    predicate: Project => Boolean
+  ): F[ProjectRepositoryFailure, List[Project]]
+
+  /**
+    * Gets all projects from the data store.
+    *
+    * @return all projects stored in the project index
+    */
+  def getAll(): F[ProjectRepositoryFailure, List[Project]]
 
 }

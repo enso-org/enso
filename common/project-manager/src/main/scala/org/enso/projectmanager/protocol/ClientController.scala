@@ -10,19 +10,10 @@ import org.enso.projectmanager.event.ClientEvent.{
   ClientConnected,
   ClientDisconnected
 }
-import org.enso.projectmanager.protocol.ProjectManagementApi.{
-  ProjectClose,
-  ProjectCreate,
-  ProjectDelete,
-  ProjectOpen
-}
-import org.enso.projectmanager.requesthandler.{
-  ProjectCloseHandler,
-  ProjectCreateHandler,
-  ProjectDeleteHandler,
-  ProjectOpenHandler
-}
+import org.enso.projectmanager.protocol.ProjectManagementApi._
+import org.enso.projectmanager.requesthandler._
 import org.enso.projectmanager.service.ProjectServiceApi
+import org.enso.projectmanager.util.UnhandledLogging
 
 /**
   * An actor handling communications between a single client and the project
@@ -37,8 +28,9 @@ class ClientController[F[+_, +_]: Exec](
   projectService: ProjectServiceApi[F],
   config: TimeoutConfig
 ) extends Actor
+    with ActorLogging
     with Stash
-    with ActorLogging {
+    with UnhandledLogging {
 
   private val requestHandlers: Map[Method, Props] =
     Map(
@@ -49,11 +41,10 @@ class ClientController[F[+_, +_]: Exec](
       ProjectOpen -> ProjectOpenHandler
         .props[F](clientId, projectService, config.bootTimeout),
       ProjectClose -> ProjectCloseHandler
-        .props[F](clientId, projectService, config.bootTimeout)
+        .props[F](clientId, projectService, config.bootTimeout),
+      ProjectListRecent -> ProjectListRecentHandler
+        .props[F](clientId, projectService, config.requestTimeout)
     )
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>

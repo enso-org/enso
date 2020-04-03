@@ -61,7 +61,7 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
     new BlockingFileSystem[F](config.timeout.ioTimeout)
 
   lazy val indexStorage = new SynchronizedFileStorage[ProjectIndex, F](
-    config.storage.projectMetadataPath,
+    config.storage.projectIndexPath,
     fileSystem
   )
 
