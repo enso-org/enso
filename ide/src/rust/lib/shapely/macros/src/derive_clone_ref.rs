@@ -5,11 +5,12 @@ use macro_utils::identifier_sequence;
 use macro_utils::index_sequence;
 use macro_utils::path_matching_ident;
 use syn::Attribute;
-use syn::Ident;
+use syn::DeriveInput;
 use syn::Data;
 use syn::DataEnum;
 use syn::DataStruct;
 use syn::Fields;
+use syn::Ident;
 use syn::Lit;
 use syn::Meta;
 use syn::MetaNameValue;
@@ -17,6 +18,7 @@ use syn::NestedMeta;
 use syn::Variant;
 use syn::WhereClause;
 use syn::WherePredicate;
+
 
 
 // ==============
@@ -184,8 +186,7 @@ pub fn clone_ref_bounds(attr:&Attribute) -> Option<Vec<WherePredicate>> {
 /// Derives `CloneRef` implementation, refer to `crate::derive_clone_ref` for details.
 pub fn derive
 (input:proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
-    let params = &decl.generics.params.iter().collect::<Vec<_>>();
+    let decl   = syn::parse_macro_input!(input as DeriveInput);
     let ident  = &decl.ident;
     let body   = match &decl.data {
         Data::Struct(data_struct) => body_for_struct(ident,data_struct),
@@ -193,10 +194,20 @@ pub fn derive
         Data::Union(_)            =>
             panic!("CloneRef cannot be derived for an untagged union input."),
     };
-    let bounds = decl.attrs.iter().filter_map(clone_ref_bounds).flatten();
+
+    let (impl_generics, ty_generics, inherent_where_clause_opt) = &decl.generics.split_for_impl();
+
+    // Where clause must contain both user-provided bounds and bounds inherent due to type
+    // declaration-level where clause.
+    let user_requested_bounds = decl.attrs.iter().filter_map(clone_ref_bounds).flatten();
+    let mut where_clause      = macro_utils::new_where_clause(user_requested_bounds);
+    for inherent_where_clause in inherent_where_clause_opt {
+        where_clause.predicates.extend(inherent_where_clause.predicates.iter().cloned())
+    }
+
     let output = quote!{
-        impl <#(#params),*> CloneRef for #ident<#(#params),*>
-        where #(#bounds),* {
+        impl #impl_generics CloneRef for #ident #ty_generics
+        #where_clause {
             fn clone_ref(&self) -> Self {
                 #body
             }
