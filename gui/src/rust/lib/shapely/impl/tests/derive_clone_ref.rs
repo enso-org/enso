@@ -36,3 +36,21 @@ struct StructUnnamedBound<T>(T);
 #[derive(CloneRef,Clone)]
 #[clone_ref(bound="T:CloneRef,U:CloneRef")]
 struct StructUnnamedBoundTwoPatams<T,U>(T,U);
+
+#[derive(Clone,CloneRef)]
+#[clone_ref(bound="T:Clone+Display")]
+struct StructBoundGeneric<T:Display>(Rc<T>);
+
+#[derive(CloneRef,Derivative)]
+#[derivative(Clone(bound=""))]
+// Note: CloneRef "knows" about `Display` bound.
+struct StructGenericLifetime<'t>(Rc<&'t String>);
+
+#[derive(CloneRef,Derivative)]
+#[derivative(Clone(bound=""))]
+struct StructWhereClause<T>(Rc<T>) where T:Debug;
+
+#[derive(CloneRef,Clone)]
+#[clone_ref(bound="T:CloneRef")]
+// Here derive macro must correctly merge user-provided bound, generics list bound and where clause.
+struct StructVariousBounds<T:Display>(T) where T:Debug;
