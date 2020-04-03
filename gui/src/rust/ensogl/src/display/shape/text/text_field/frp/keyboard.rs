@@ -77,8 +77,8 @@ impl TextFieldKeyboardFrp {
     ///
     /// Until the returned `KeyboardBinding` structure lives, the js events will emit the proper
     /// source events in this graph.
-    pub fn bind_frp_to_js_text_input_actions(&self) -> KeyboardBinding {
-        let mut binding  = bind_frp_to_js_keyboard_actions(&self.keyboard);
+    pub fn bind_frp_to_js_text_input_actions(&self, binding:&mut KeyboardBinding) {
+        bind_frp_to_js_keyboard_actions(&self.keyboard,binding);
         let copy_handler = enclose!(
             ( self.on_cut  => on_cut
             , self.on_copy => on_copy
@@ -99,7 +99,6 @@ impl TextFieldKeyboardFrp {
         });
         binding.set_copy_handler(copy_handler);
         binding.set_paste_handler(paste_handler);
-        binding
     }
 }
 

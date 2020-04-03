@@ -58,7 +58,7 @@ HasEventTargets for NodeWrapperTemplate<Shape,EventData<T>> {
 /// Internal representation for `NodeWrapper`. Please note that we define this structure and the
 /// `NodeWrapper` alias instead of just single struct in order not to keep bounds on struct
 /// definition (which is bad and you should never do it).
-#[derive(Debug,Derivative,Shrinkwrap)]
+#[derive(CloneRef,Debug,Derivative,Shrinkwrap)]
 #[derivative(Default(bound="Shape:Default"))]
 #[derivative(Clone(bound=""))]
 #[allow(missing_docs)]
@@ -67,8 +67,6 @@ pub struct NodeWrapperTemplate<Shape,Out> {
     pub immutable : Rc<NodeWrapperTemplateImmutable<Shape>>,
     pub config    : Rc<RefCell<NodeWrapperTemplateMutable<Out>>>,
 }
-
-impl<Shape,Out> CloneRef for NodeWrapperTemplate<Shape,Out> {}
 
 impl<Shape,Out>
 HasId for NodeWrapperTemplate<Shape,Out> {

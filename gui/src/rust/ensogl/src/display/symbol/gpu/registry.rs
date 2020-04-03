@@ -14,16 +14,14 @@ use crate::system::gpu::shader::Context;
 use data::opt_vec::OptVec;
 use nalgebra::Matrix4;
 
-use shapely::shared;
 
 
-
+// =============
 // === Types ===
+// =============
 
 pub type SymbolId    = usize;
 pub type SymbolDirty = dirty::SharedSet<SymbolId,Box<dyn Fn()>>;
-
-
 
 
 
@@ -33,12 +31,10 @@ pub type SymbolDirty = dirty::SharedSet<SymbolId,Box<dyn Fn()>>;
 
 // === Definition ===
 
-shared! { SymbolRegistry
-
 /// Registry for all the created symbols.
-#[derive(Debug)]
-pub struct SymbolRegistryData {
-    symbols         : OptVec<Symbol>,
+#[derive(Clone,CloneRef,Debug)]
+pub struct SymbolRegistry {
+    symbols         : Rc<RefCell<OptVec<Symbol>>>,
     symbol_dirty    : SymbolDirty,
     logger          : Logger,
     view_projection : Uniform<Matrix4<f32>>,
@@ -47,10 +43,11 @@ pub struct SymbolRegistryData {
     stats           : Stats,
 }
 
-impl {
-
-    /// Create new instance with the provided on-dirty callback.
-    pub fn new<OnMut:Fn()+'static>(variables:&UniformScope, stats:&Stats, context:&Context, logger:Logger, on_mut:OnMut) -> Self {
+impl SymbolRegistry {
+    /// Constructor.
+    pub fn mk<OnMut:Fn()+'static>
+    (variables:&UniformScope, stats:&Stats, context:&Context, logger:&Logger, on_mut:OnMut) -> Self {
+        let logger = logger.sub("symbol_registry");
         logger.info("Initializing.");
         let symbol_logger   = logger.sub("symbol_dirty");
         let symbol_dirty    = SymbolDirty::new(symbol_logger,Box::new(on_mut));
@@ -62,14 +59,14 @@ impl {
         Self {symbols,symbol_dirty,logger,view_projection,variables,context,stats}
     }
 
-    /// Creates a new `Symbol` instance.
-    pub fn new_symbol_by_id(&mut self) -> SymbolId {
+    /// Creates a new `Symbol` instance and returns its id.
+    pub fn new_get_id(&self) -> SymbolId {
         let symbol_dirty = self.symbol_dirty.clone();
         let variables    = &self.variables;
         let logger       = &self.logger;
         let context      = &self.context;
         let stats        = &self.stats;
-        self.symbols.insert_with_ix(|ix| {
+        self.symbols.borrow_mut().insert_with_ix(|ix| {
             let on_mut = move || {symbol_dirty.set(ix)};
             let logger = logger.sub(format!("symbol{}",ix));
             let id     = ix as i32;
@@ -78,33 +75,41 @@ impl {
     }
 
     /// Creates a new `Symbol` instance.
-    pub fn new_symbol(&mut self) -> Symbol {
-        let ix = self.new_symbol_by_id();
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new(&self) -> Symbol {
+        let ix = self.new_get_id();
         self.index(ix)
     }
 
     pub fn index(&self, ix:usize) -> Symbol {
-        self.symbols[ix].clone_ref()
+        self.symbols.borrow()[ix].clone_ref()
     }
 
     /// Check dirty flags and update the state accordingly.
-    pub fn update(&mut self) {
+    pub fn update(&self) {
         group!(self.logger, "Updating.", {
             for id in self.symbol_dirty.take().iter() {
-                self.symbols[*id].update()
+                self.symbols.borrow()[*id].update()
             }
             self.symbol_dirty.unset_all();
         })
     }
 
     /// Updates the view-projection matrix after camera movement.
-    pub fn update_view_projection(&self, camera:&Camera2d) {
+    pub fn set_camera(&self, camera:&Camera2d) {
         self.view_projection.set(camera.view_projection_matrix());
     }
 
     pub fn render(&self) {
-        for symbol in &self.symbols {
+        for symbol in &*self.symbols.borrow() {
             symbol.render()
         }
     }
-}}
+
+    pub fn render_by_ids(&self,ids:&[SymbolId]) {
+        let symbols = self.symbols.borrow();
+        for id in ids {
+            symbols[*id].render();
+        }
+    }
+}

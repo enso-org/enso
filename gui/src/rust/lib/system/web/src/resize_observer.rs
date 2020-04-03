@@ -1,3 +1,5 @@
+use crate::prelude::*;
+
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsValue;
@@ -8,7 +10,7 @@ use wasm_bindgen::JsValue;
 // === Types ===
 // =============
 
-pub type Listener = Closure<dyn FnMut(f64,f64)>;
+pub type Listener = Closure<dyn FnMut(f32,f32)>;
 
 
 
@@ -46,8 +48,8 @@ pub struct ResizeObserver {
 }
 
 impl ResizeObserver {
-    pub fn new(target: &JsValue, listener: Listener) -> Self {
-        let target = target.clone();
+    pub fn new(target:&JsValue, listener:Listener) -> Self {
+        let target      = target.clone_ref();
         let observer_id = resize_observe(&target, &listener);
         Self {target,listener,observer_id}
     }

@@ -19,7 +19,7 @@ pub fn run_example_text_typing() {
     web::forward_panic_hook_to_console();
     web::set_stdout();
     ensogl_core_msdf_sys::run_once_initialized(|| {
-        let world     = &WorldData::new(&web::get_html_element_by_id("root").unwrap());
+        let world     = &World::new(&web::get_html_element_by_id("root").unwrap());
         let mut fonts = FontRegistry::new();
         let font      = fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap();
 
@@ -32,7 +32,7 @@ pub fn run_example_text_typing() {
 
         let mut text_field = TextField::new(&world,properties);
         text_field.set_position(Vector3::new(10.0, 600.0, 0.0));
-        world.add_child(&text_field);
+        world.add_child(&text_field.display_object());
 
         let now             = js_sys::Date::now();
         let animation_start = now + 3000.0;
@@ -41,6 +41,7 @@ pub fn run_example_text_typing() {
         world.on_frame(move |_| {
             animate_text_component(&mut text_field,&mut chars,start_scrolling)
         }).forget();
+        world.keep_alive_forever();
     });
 }
 

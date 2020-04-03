@@ -17,6 +17,7 @@ members = [
     "lib/code-builder",
     "lib/data",
     "lib/debug-scenes",
+    "lib/graph-editor",
     "lib/eval-tt",
     "lib/frp",
     "lib/logger",

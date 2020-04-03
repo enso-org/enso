@@ -4,15 +4,12 @@
 use crate::prelude::*;
 
 use crate::display;
+use crate::display::object::traits::*;
 use crate::system::web;
 use crate::system::web::StyleSetter;
 use crate::system::web::NodeInserter;
 use crate::system::gpu::data::JsBufferView;
 
-use nalgebra::Vector2;
-use nalgebra::Vector3;
-use nalgebra::Matrix4;
-use shapely::shared;
 use wasm_bindgen::prelude::wasm_bindgen;
 use web_sys::HtmlDivElement;
 
@@ -56,81 +53,89 @@ pub fn set_object_transform(dom:&web::JsValue, matrix:&Matrix4<f32>) {
 
 
 
-// =================
-// === DomSymbol ===
-// =================
+// =============
+// === Guard ===
+// =============
 
-shared! { DomSymbol
-/// A DOM element which is managed by the rendering engine.
+/// Drop guard for `DomSymbol`.
 #[derive(Debug)]
-pub struct DomSymbolData {
+pub struct Guard {
     display_object : display::object::Node,
     dom            : HtmlDivElement,
-    size           : Vector2<f32>,
 }
 
-impl {
+impl Guard {
     /// Constructor.
-    pub fn new(content:&web_sys::Node) -> Self {
-        let dom    = web::create_div();
-        let logger = Logger::new("DomSymbol");
-        dom.set_style_or_warn("position", "absolute", &logger);
-        dom.set_style_or_warn("width"   , "0px"     , &logger);
-        dom.set_style_or_warn("height"  , "0px"     , &logger);
-        dom.append_or_panic(content);
-        let display_object = display::object::Node::new(logger);
-        let size           = Vector2::new(0.0,0.0);
-        display_object.set_on_updated(enclose!((dom) move |t| {
-            let mut transform = t.matrix();
-            transform.iter_mut().for_each(|a| *a = eps(*a));
-            set_object_transform(&dom,&transform);
-        }));
-        Self {display_object,dom,size}
+    pub fn new(display_object:&display::object::Node, dom:&HtmlDivElement) -> Self {
+        let display_object = display_object.clone2();
+        let dom            = dom.clone();
+        Self {display_object,dom}
     }
+}
 
-    /// Position getter.
-    pub fn position(&self) -> Vector3<f32> {
-        self.display_object.position()
-    }
-
-    /// Size getter.
-    pub fn size(&self) -> Vector2<f32> {
-        self.size
-    }
-
-    /// DOM element getter.
-    pub fn dom(&self) -> HtmlDivElement {
-        self.dom.clone()
-    }
-
-    /// Size setter.
-    pub fn set_size(&mut self, size:Vector2<f32>) {
-        self.size = size;
-        self.dom.set_style_or_panic("width",  format!("{}px", size.x));
-        self.dom.set_style_or_panic("height", format!("{}px", size.y));
-    }
-
-    /// Position modifier.
-    pub fn mod_position<F:FnOnce(&mut Vector3<f32>)>(&self, f:F) {
-        self.display_object.mod_position(f);
-    }
-
-    /// Scale modifier.
-    pub fn mod_scale<F:FnOnce(&mut Vector3<f32>)>(&self, f:F) {
-        self.display_object.mod_scale(f);
-    }
-}}
-
-impl Drop for DomSymbolData {
+impl Drop for DomSymbol {
     fn drop(&mut self) {
         self.dom.remove();
         self.display_object.unset_parent();
     }
 }
 
-impl From<&DomSymbol> for display::object::Node {
-    fn from(obj:&DomSymbol) -> Self {
-        obj.rc.borrow().display_object.clone_ref()
+
+
+// =================
+// === DomSymbol ===
+// =================
+
+/// A DOM element which is managed by the rendering engine.
+#[derive(Debug)]
+pub struct DomSymbol {
+    display_object : display::object::Node,
+    dom            : HtmlDivElement,
+    size           : Cell<Vector2<f32>>,
+    guard          : Guard,
+}
+
+impl DomSymbol {
+    /// Constructor.
+    pub fn new(content:&web_sys::Node) -> Self {
+        let logger = Logger::new("DomSymbol");
+        let size   = Cell::new(Vector2::new(0.0,0.0));
+        let dom    = web::create_div();
+        dom.set_style_or_warn("position", "absolute", &logger);
+        dom.set_style_or_warn("width"   , "0px"     , &logger);
+        dom.set_style_or_warn("height"  , "0px"     , &logger);
+        dom.append_or_panic(content);
+        let display_object = display::object::Node::new(logger);
+        let guard          = Guard::new(&display_object,&dom);
+        display_object.set_on_updated(enclose!((dom) move |t| {
+            let mut transform = t.matrix();
+            transform.iter_mut().for_each(|a| *a = eps(*a));
+            set_object_transform(&dom,&transform);
+        }));
+        Self {display_object,dom,size,guard}
+    }
+
+    /// Size getter.
+    pub fn size(&self) -> Vector2<f32> {
+        self.size.get()
+    }
+
+    /// DOM element getter.
+    pub fn dom(&self) -> &HtmlDivElement {
+        &self.dom
+    }
+
+    /// Size setter.
+    pub fn set_size(&self, size:Vector2<f32>) {
+        self.size.set(size);
+        self.dom.set_style_or_panic("width",  format!("{}px",size.x));
+        self.dom.set_style_or_panic("height", format!("{}px",size.y));
+    }
+}
+
+impl<'t> From<&'t DomSymbol> for &'t display::object::Node {
+    fn from(obj:&'t DomSymbol) -> Self {
+        &obj.display_object
     }
 }
 

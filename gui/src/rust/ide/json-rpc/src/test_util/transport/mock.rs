@@ -68,7 +68,7 @@ pub struct MockTransportData {
 // ======================
 
 /// Shareable wrapper over `MockTransportData`.
-#[derive(Clone,Debug,Default)]
+#[derive(Clone,CloneRef,Debug,Default)]
 pub struct MockTransport(Rc<RefCell<MockTransportData>>);
 
 impl Transport for MockTransport {
@@ -150,5 +150,3 @@ impl MockTransport {
         res.expect("failed to deserialize client's message")
     }
 }
-
-impl CloneRef for MockTransport {}

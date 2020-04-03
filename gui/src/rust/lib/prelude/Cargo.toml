@@ -7,6 +7,8 @@ edition = "2018"
 [lib]
 
 [dependencies]
+shapely  = { version = "0.1.0"  , path = "../shapely/impl" }
+
 boolinator   = "2.4.0"
 derivative   = "1.0.3"
 derive_more  = "0.99.2"
@@ -20,7 +22,48 @@ paste        = "0.1"
 shrinkwraprs = "0.3.0"
 smallvec     = "1.0.0"
 weak-table   = "0.2.3"
+wasm-bindgen = { version = "=0.2.58" , features = ["nightly"]      }
+
 
 # TODO: should be behind a flag, as the `nalgebra` package is pretty big and this crate would be
 #       also useful for projects which do not require `nalgebra`.
 nalgebra     = "0.19.0"
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'CanvasRenderingContext2d',
+  'CssStyleDeclaration',
+  'Document',
+  'Element',
+  'EventTarget',
+  'KeyboardEvent',
+  'HtmlCanvasElement',
+  'HtmlCollection',
+  'HtmlDivElement',
+  'HtmlElement',
+  'HtmlImageElement',
+  'Location',
+  'Node',
+  'Url',
+  'WebGlBuffer',
+  'WebGlFramebuffer',
+  'WebGlProgram',
+  'WebGlRenderingContext',
+  'WebGlShader',
+  'WebGlSync',
+  'WebGlTexture',
+  'WebGl2RenderingContext',
+  'WebGlUniformLocation',
+  'WebGlUniformLocation',
+  'WebGlVertexArrayObject',
+  'Window',
+  'console',
+  'EventTarget',
+  'Event',
+  'MouseEvent',
+  'Performance',
+  'WheelEvent',
+  'DomRect',
+  'AddEventListenerOptions'
+]

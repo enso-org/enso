@@ -44,29 +44,103 @@ pub use weak_table::traits::WeakElement;
 pub use weak_table::WeakValueHashMap;
 pub use weak_table;
 
+pub use shapely::CloneRef;
+
+use std::cell::UnsafeCell;
+
+
+
+// =================
+// === Immutable ===
+// =================
+
+/// A zero-overhead newtype which provides immutable access to its content. Of course this does not
+/// apply to internal mutability of the wrapped data. A good use case of this structure is when you
+/// want to pass an ownership to a structure, allow access all its public fields, but do not allow
+/// their modification.
+#[derive(Clone,Copy,Default)]
+pub struct Immutable<T> {
+    data : T
+}
+
+/// Constructor of the `Immutable` struct.
+#[allow(non_snake_case)]
+pub fn Immutable<T>(data:T) -> Immutable<T> {
+    Immutable {data}
+}
+
+impl<T:Debug> Debug for Immutable<T> {
+    fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.data.fmt(f)
+    }
+}
+
+impl<T:Display> Display for Immutable<T> {
+    fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.data.fmt(f)
+    }
+}
+
+impl<T:Clone> CloneRef for Immutable<T> {
+    fn clone_ref(&self) -> Self {
+        Self {data:self.data.clone()}
+    }
+}
+
+impl<T> AsRef<T> for Immutable<T> {
+    fn as_ref(&self) -> &T {
+        &self.data
+    }
+}
+
+impl<T> std::borrow::Borrow<T> for Immutable<T> {
+    fn borrow(&self) -> &T {
+        &self.data
+    }
+}
+
+impl<T> Deref for Immutable<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
 
 
 // ================
 // === CloneRef ===
 // ================
 
-/// Like `Clone` but should be implemented only for cheap reference-based clones. Using `clone_ref`
-/// instead of `clone` makes the code more clear and makes it easier to predict its performance.
+/// Clone for internal-mutable structures. This trait can be implemented only if mutating one
+/// structure will be reflected in all of its clones. Please note that it does not mean that all the
+/// fields needs to provide internal mutability as well. For example, a structure can remember it's
+/// creation time and store it as `f32`. As long as it cannot be mutated, the structure can
+/// implement `CloneRef`. In order to guide the auto-deriving mechanism, it is advised to wrap all
+/// immutable fields in the `Immutable` newtype.
 pub trait CloneRef: Sized + Clone {
     fn clone_ref(&self) -> Self {
         self.clone()
     }
 }
 
-impl CloneRef for () {
-    fn clone_ref(&self) -> Self {}
-}
+impl CloneRef for () {}
+impl CloneRef for f32 {}
+impl CloneRef for f64 {}
+impl CloneRef for i32 {}
+impl CloneRef for i64 {}
+impl CloneRef for usize {}
+impl<T> CloneRef for PhantomData<T> {}
+impl<T:?Sized> CloneRef for Rc<T> {}
+impl<T:?Sized> CloneRef for Weak<T> {}
 
-impl<T:?Sized> CloneRef for Rc<T> {
-    fn clone_ref(&self) -> Self {
-        self.clone()
-    }
-}
+impl CloneRef for wasm_bindgen::JsValue {}
+impl CloneRef for web_sys::HtmlDivElement {}
+impl CloneRef for web_sys::HtmlElement {}
+impl CloneRef for web_sys::Performance {}
+impl CloneRef for web_sys::WebGl2RenderingContext {}
+impl CloneRef for web_sys::HtmlCanvasElement {}
+impl CloneRef for web_sys::EventTarget {}
 
 /// Provides method `to`, which is just like `into` but allows fo superfish syntax.
 pub trait ToImpl: Sized {
@@ -75,7 +149,6 @@ pub trait ToImpl: Sized {
     }
 }
 impl<T> ToImpl for T {}
-
 
 // TODO
 // This impl should be hidden behind a flag. Not everybody using prelude want to import nalgebra.
@@ -116,3 +189,164 @@ macro_rules! clone_boxed {
 
 /// Alias for `for<'t> &'t Self : Into<T>`.
 pub trait RefInto<T> = where for<'t> &'t Self : Into<T>;
+
+
+
+// =================
+// === CloneCell ===
+// =================
+
+#[derive(Debug)]
+pub struct CloneCell<T> {
+    data : UnsafeCell<T>
+}
+
+impl<T> CloneCell<T> {
+    pub fn new(elem:T) -> CloneCell<T> {
+        CloneCell { data:UnsafeCell::new(elem) }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn get(&self) -> T where T:Clone {
+        unsafe {(*self.data.get()).clone()}
+    }
+
+    #[allow(unsafe_code)]
+    pub fn set(&self, elem:T) {
+        unsafe { *self.data.get() = elem; }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn take(&self) -> T where T:Default {
+        let ptr:&mut T = unsafe { &mut *self.data.get() };
+        std::mem::take(ptr)
+    }
+}
+
+impl<T:Clone> Clone for CloneCell<T> {
+    fn clone(&self) -> Self {
+        Self::new(self.get())
+    }
+}
+
+impl<T:Default> Default for CloneCell<T> {
+    fn default() -> Self {
+        Self::new(default())
+    }
+}
+
+
+
+// =================
+// === CloneCell ===
+// =================
+
+#[derive(Debug)]
+pub struct CloneRefCell<T> {
+    data : UnsafeCell<T>
+}
+
+impl<T> CloneRefCell<T> {
+    pub fn new(elem:T) -> CloneRefCell<T> {
+        CloneRefCell { data:UnsafeCell::new(elem) }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn get(&self) -> T where T:CloneRef {
+        unsafe {(*self.data.get()).clone_ref()}
+    }
+
+    #[allow(unsafe_code)]
+    pub fn set(&self, elem:T) {
+        unsafe { *self.data.get() = elem; }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn take(&self) -> T where T:Default {
+        let ptr:&mut T = unsafe { &mut *self.data.get() };
+        std::mem::take(ptr)
+    }
+}
+
+impl<T:CloneRef> Clone for CloneRefCell<T> {
+    fn clone(&self) -> Self {
+        Self::new(self.get())
+    }
+}
+
+impl<T:CloneRef> CloneRef for CloneRefCell<T> {
+    fn clone_ref(&self) -> Self {
+        Self::new(self.get())
+    }
+}
+
+impl<T:Default> Default for CloneRefCell<T> {
+    fn default() -> Self {
+        Self::new(default())
+    }
+}
+
+
+
+// ================================
+// === RefCell<Option<T>> Utils ===
+// ================================
+
+pub trait RefcellOptionOps<T> {
+    fn clear(&self);
+    fn set(&self, val:T);
+    fn set_if_none(&self, val:T);
+}
+
+impl<T> RefcellOptionOps<T> for RefCell<Option<T>> {
+    fn clear(&self) {
+        *self.borrow_mut() = None;
+    }
+
+    fn set(&self, val:T) {
+        *self.borrow_mut() = Some(val);
+    }
+
+    fn set_if_none(&self, val:T) {
+        let mut ptr = self.borrow_mut();
+        if ptr.is_some() { panic!("The value was already set.") }
+        *ptr = Some(val)
+    }
+}
+
+
+
+// ================================
+// === Strong / Weak References ===
+// ================================
+
+/// Abstraction for a strong reference like `Rc` or newtypes over it.
+pub trait StrongRef : CloneRef {
+    /// Downgraded reference type.
+    type WeakRef : WeakRef<StrongRef=Self>;
+    /// Creates a new weak reference of this allocation.
+    fn downgrade(&self) -> Self::WeakRef;
+}
+
+/// Abstraction for a weak reference like `Weak` or newtypes over it.
+pub trait WeakRef : CloneRef {
+    /// Upgraded reference type.
+    type StrongRef : StrongRef<WeakRef=Self>;
+    /// Attempts to upgrade the weak referenc to a strong one, delaying dropping of the inner value
+    /// if successful.
+    fn upgrade(&self) -> Option<Self::StrongRef>;
+}
+
+impl<T:?Sized> StrongRef for Rc<T> {
+    type WeakRef = Weak<T>;
+    fn downgrade(&self) -> Self::WeakRef {
+        Rc::downgrade(&self)
+    }
+}
+
+impl<T:?Sized> WeakRef for Weak<T> {
+    type StrongRef = Rc<T>;
+    fn upgrade(&self) -> Option<Self::StrongRef> {
+        Weak::upgrade(self)
+    }
+}

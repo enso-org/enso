@@ -15,13 +15,11 @@ use crate::system::gpu::data::types::*;
 
 
 /// Defines a system containing shapes. It is a specialized `SpriteSystem` version.
-#[derive(Clone,Debug)]
+#[derive(Clone,CloneRef,Debug)]
 pub struct Screen {
     sprite        : Sprite,
     sprite_system : SpriteSystem,
 }
-
-impl CloneRef for Screen {}
 
 impl Screen {
     /// Constructor.
@@ -45,7 +43,7 @@ impl Screen {
 
     /// Local variables used by the screen object.
     pub fn variables(&self) -> UniformScope {
-        self.sprite_system.symbol().variables()
+        self.sprite_system.symbol().variables().clone() // FIXME remove clone
     }
 
     /// Render the shape.

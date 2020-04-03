@@ -6,7 +6,9 @@ use macro_utils::type_depends_on;
 use macro_utils::type_matches;
 use macro_utils::ty_path_type_args;
 use macro_utils::variant_depends_on;
+use boolinator::Boolinator;
 use inflector::Inflector;
+use itertools::Itertools;
 
 
 

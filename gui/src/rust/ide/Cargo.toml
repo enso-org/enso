@@ -14,6 +14,7 @@ ensogl-system-web        = { version = "0.1.0"  , path = "../lib/system/web"    
 data                     = { version = "0.1.0"  , path = "../lib/data"          }
 enso-frp                 = { version = "0.1.0"  , path = "../lib/frp"           }
 enso-prelude             = { version = "0.1.0"  , path = "../lib/prelude"       }
+graph-editor             = { version = "0.1.0"  , path = "../lib/graph-editor"  }
 shapely                  = { version = "0.1.0"  , path = "../lib/shapely/impl"  }
 
 ast                      = { version = "0.1.0"  , path = "ast/impl"             }

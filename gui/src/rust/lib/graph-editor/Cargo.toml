@@ -1,0 +1,19 @@
+[package]
+name    = "graph-editor"
+version = "0.1.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+[dependencies]
+shapely      = { version = "0.1.0"   , path = "../shapely/impl"  }
+ensogl       = { version = "0.1.0"   , path = "../../ensogl"     }
+enso-prelude = { version = "0.1.0"   , path = "../prelude"       }
+logger       = { version = "0.1.0"   , path = "../logger"        }
+enso-frp     = { version = "0.1.0"   , path = "../frp"           }
+wasm-bindgen = { version = "=0.2.58" , features = ["nightly"]    }
+
+nalgebra     = { version = "0.19.0" }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = []

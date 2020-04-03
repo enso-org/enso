@@ -116,6 +116,75 @@ impls! {[T:Into<Glsl>] From<Var<T>> for Glsl { |t|
 
 
 
+// ==================
+// === Operations ===
+// ==================
+
+impl<T> Abs for Var<T>
+where T:Abs {
+    fn abs(&self) -> Self {
+        match self {
+            Self::Static  (t) => Var::Static(t.abs()),
+            Self::Dynamic (t) => Var::Dynamic(format!("abs({})",t).into())
+        }
+    }
+}
+
+impl<T:Scalar> HasComponents for Var<Vector2<T>> {
+    type Component = Var<T>;
+}
+
+impl<T:Scalar> HasComponents for Var<Vector3<T>> {
+    type Component = Var<T>;
+}
+
+impl<T:Scalar> Dim1 for Var<Vector2<T>> {
+    fn x(&self) -> Var<T> {
+        match self {
+            Self::Static  (t) => Var::Static(t.x),
+            Self::Dynamic (t) => Var::Dynamic(format!("{}.x",t).into())
+        }
+    }
+}
+
+impl<T:Scalar> Dim2 for Var<Vector2<T>> {
+    fn y(&self) -> Var<T> {
+        match self {
+            Self::Static  (t) => Var::Static(t.y),
+            Self::Dynamic (t) => Var::Dynamic(format!("{}.y",t).into())
+        }
+    }
+}
+
+impl<T:Scalar> Dim1 for Var<Vector3<T>> {
+    fn x(&self) -> Var<T> {
+        match self {
+            Self::Static  (t) => Var::Static(t.x),
+            Self::Dynamic (t) => Var::Dynamic(format!("{}.x",t).into())
+        }
+    }
+}
+
+impl<T:Scalar> Dim2 for Var<Vector3<T>> {
+    fn y(&self) -> Var<T> {
+        match self {
+            Self::Static  (t) => Var::Static(t.y),
+            Self::Dynamic (t) => Var::Dynamic(format!("{}.y",t).into())
+        }
+    }
+}
+
+impl<T:Scalar> Dim3 for Var<Vector3<T>> {
+    fn z(&self) -> Var<T> {
+        match self {
+            Self::Static  (t) => Var::Static(t.z),
+            Self::Dynamic (t) => Var::Dynamic(format!("{}.z",t).into())
+        }
+    }
+}
+
+
+
 // =================
 // === Operators ===
 // =================

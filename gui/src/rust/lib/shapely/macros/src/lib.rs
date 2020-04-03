@@ -20,8 +20,6 @@ mod derive_iterator;
 mod overlappable;
 
 mod prelude {
-    pub use enso_prelude::*;
-
     pub use macro_utils::repr;
     pub use proc_macro2::Span;
     pub use proc_macro2::TokenStream;

@@ -18,13 +18,13 @@ pub mod shared;
 pub mod singleton;
 pub mod cartesian;
 
-pub use enso_prelude as prelude;
 pub use shapely_macros::*;
 
 pub use generator::EmptyIterator;
 pub use generator::GeneratingIterator;
 
-use crate::prelude::*;
+use shrinkwraprs::Shrinkwrap;
+
 
 
 /// Generates a newtype wrapper for the provided types. It also generates a lot of impls,
@@ -57,7 +57,7 @@ use crate::prelude::*;
 macro_rules! newtype_copy {
     ($( $(#$meta:tt)* $name:ident($type:ty); )*) => {$(
         $(#$meta)*
-        #[derive(Copy,Clone,Debug,Default,Display,From,Into)]
+        #[derive(Copy,Clone,CloneRef,Debug,Default,Display,From,Into)]
         pub struct $name($type);
 
         impl Deref for $name {

@@ -4,405 +4,400 @@
 
 use crate::prelude::*;
 
-use crate::animation::animator::Animator;
-use crate::animation::animator::fixed_step::IntervalCounter;
-use crate::animation::linear_interpolation;
-
-use nalgebra::Vector3;
-use nalgebra::zero;
+use crate::animation;
 
 
 
-// ====================
-// === PhysicsForce ===
-// ====================
+// ================
+// === Position ===
+// ================
 
-/// A trait for implementing 3 dimensional forces.
-pub trait PhysicsForce {
-    /// Gets the calculated force.
-    fn force(&self, kinematics:&KinematicsProperties) -> Vector3<f32>;
-}
-
-
-
-// ======================
-// === DragProperties ===
-// ======================
-
-/// This structure contains air dragging properties.
-#[derive(Default,Clone,Copy,Debug)]
-pub struct DragProperties {
-    /// Drag`s coefficient.
-    pub coefficient: f32
-}
-
-impl DragProperties {
-    /// Creates `DragProperties` with drag's `coefficient`.
-    pub fn new(coefficient:f32) -> Self {
-        Self { coefficient }
-    }
-}
-
-impl PhysicsForce for DragProperties {
-    fn force(&self, kinematics:&KinematicsProperties) -> Vector3<f32> {
-        -kinematics.velocity * self.coefficient
-    }
-}
+/// The type of the position of the simulation. In particular, the Position could be `f32`
+/// (1-dimensional simulation), or `Vector<f32>` (3-dimensional simulation).
+pub trait Position
+    = 'static + Copy + Default + Debug + Magnitude + Normalize
+    + Neg<       Output=Self>
+    + Sub<Self , Output=Self>
+    + Add<Self , Output=Self>
+    + Div<f32  , Output=Self>
+    + Mul<f32  , Output=Self>;
 
 
 
-// ========================
-// === SpringProperties ===
-// ========================
+// ==================
+// === Properties ===
+// ==================
 
-/// This structure contains spring physics properties.
-#[derive(Debug, Clone, Copy)]
-pub struct SpringProperties {
-    /// Spring's coefficient.
-    pub coefficient : f32,
-    /// Spring's fixed point.
-    pub fixed_point : Vector3<f32>
-}
-
-impl Default for SpringProperties {
-    fn default() -> Self {
-        Self::new(zero(),zero())
-    }
-}
-
-impl SpringProperties {
-    /// Creates `SpringProperties` with spring's `coefficient` and `fixed_point`.
-    pub fn new(coefficient:f32, fixed_point:Vector3<f32>) -> Self {
-        Self { coefficient,fixed_point }
-    }
-}
-
-impl PhysicsForce for SpringProperties {
-    fn force(&self, kinematics:&KinematicsProperties) -> Vector3<f32> {
-        let delta     = self.fixed_point - kinematics.position;
-        let delta_len = delta.magnitude();
-        if delta_len > 0.0 {
-            let force_val = delta_len * self.coefficient;
-            delta.normalize() * force_val
-        } else {
-            zero()
+macro_rules! define_property {
+    ($name:ident = $default:expr) => {
+        /// Simulation property.
+        #[derive(Debug,Clone,Copy,Into,From)]
+        pub struct $name {
+            /// Internal value of the $name.
+            pub value : f32,
         }
-    }
+
+        impl $name {
+            /// Constructor.
+            pub fn new() -> Self {
+                default()
+            }
+        }
+
+        impl Default for $name {
+            fn default() -> Self {
+                let value = $default;
+                Self {value}
+            }
+        }
+    };
 }
 
-
-
-// ============================
-// === KinematicProperties ===
-// ============================
-
-/// This structure contains kinematics properties.
-#[derive(Debug,Clone,Copy)]
-pub struct KinematicsProperties {
-    position     : Vector3<f32>,
-    velocity     : Vector3<f32>,
-    acceleration : Vector3<f32>,
-    mass         : f32
-}
-
-impl Default for KinematicsProperties {
-    fn default() -> Self {
-        Self::new(zero(),zero(),zero(),zero())
-    }
-}
-
-impl KinematicsProperties {
-    /// Creates `KinematicsProperties` with `position`, `velocity`, `acceleration` and `mass`.
-    pub fn new
-    (position:Vector3<f32>, velocity:Vector3<f32>, acceleration:Vector3<f32>, mass:f32) -> Self {
-        Self { position,velocity,acceleration,mass }
-    }
-}
-
-
-// === Getters ===
-
-impl KinematicsProperties {
-    /// `Position` getter.
-    pub fn position(&self) -> Vector3<f32> {
-        self.position
-    }
-
-    /// `Velocity` getter.
-    pub fn velocity(&self) -> Vector3<f32> {
-        self.velocity
-    }
-
-    /// `Acceleration` getter.
-    pub fn acceleration(&self) -> Vector3<f32> {
-        self.acceleration
-    }
-
-    /// `Mass` getter.
-    pub fn mass(&self) -> f32 {
-        self.mass
-    }
-}
-
-
-// === Setters ===
-
-impl KinematicsProperties {
-    /// `Position` setter.
-    pub fn set_position(&mut self, position:Vector3<f32>) {
-        self.position = position
-    }
-
-    /// `Velocity` setter.
-    pub fn set_velocity(&mut self, velocity:Vector3<f32>) {
-        self.velocity = velocity
-    }
-
-    /// `Acceleration` setter.
-    pub fn set_acceleration(&mut self, acceleration:Vector3<f32>) {
-        self.acceleration = acceleration
-    }
-
-    /// `Mass` setter.
-    pub fn set_mass(&mut self, mass:f32) {
-        self.mass = mass
-    }
-}
+define_property! { Drag   = 1500.0 }
+define_property! { Spring = 20000.0 }
+define_property! { Mass   = 30.0 }
 
 
 
-// =============================
-// === PhysicsPropertiesData ===
-// =============================
+// ==================
+// === Thresholds ===
+// ==================
 
-#[derive(Debug)]
-struct PhysicsPropertiesData {
-    kinematics : KinematicsProperties,
-    spring     : SpringProperties,
-    drag       : DragProperties,
-    thresholds : SimulationThresholds
-}
-
-impl PhysicsPropertiesData {
-    pub fn new
-    (kinematics: KinematicsProperties, spring:SpringProperties, drag:DragProperties) -> Self {
-        let thresholds = default();
-        Self {kinematics,spring,drag,thresholds}
-    }
-}
-
-
-
-// =========================
-// === PhysicsProperties ===
-// =========================
-
-/// A structure including kinematics, drag and spring properties.
-#[derive(Clone,Debug)]
-pub struct PhysicsProperties {
-    data : Rc<RefCell<PhysicsPropertiesData>>
-}
-
-impl PhysicsProperties {
-    /// Creates  `PhysicsProperties` with `kinematics`, `spring` and `drag`.
-    pub fn new
-    (kinematics:KinematicsProperties, spring:SpringProperties, drag:DragProperties) -> Self {
-        let data = Rc::new(RefCell::new(PhysicsPropertiesData::new(kinematics,spring,drag)));
-        Self {data}
-    }
-}
-
-
-// === Getters ===
-
-impl PhysicsProperties {
-    /// `KinematicsProperties` getter.
-    pub fn kinematics(&self) -> KinematicsProperties {
-        self.data.borrow().kinematics
-    }
-
-    /// `SpringProperties` getter.
-    pub fn spring(&self) -> SpringProperties {
-        self.data.borrow().spring
-    }
-
-    /// `DragProperties` getter.
-    pub fn drag(&self) -> DragProperties {
-        self.data.borrow().drag
-    }
-
-    /// `SimulationThresholds` getter.
-    pub fn thresholds(&self) -> SimulationThresholds {
-        self.data.borrow().thresholds
-    }
-}
-
-
-// === Setters ===
-
-impl PhysicsProperties {
-    /// Safe accessor to modify `KinematicsProperties`.
-    pub fn modify_kinematics<F:FnOnce(&mut KinematicsProperties)>(&mut self, f:F) {
-        let mut kinematics = self.kinematics();
-        f(&mut kinematics);
-        self.set_kinematics(kinematics);
-    }
-
-    /// `KinematicsProperties` setter.
-    pub fn set_kinematics(&mut self, kinematics:KinematicsProperties) {
-        self.data.borrow_mut().kinematics = kinematics;
-    }
-
-    /// Safe accessor to modify `SpringProperties`.
-    pub fn modify_spring<F:FnOnce(&mut SpringProperties)>(&mut self, f:F) {
-        let mut spring = self.spring();
-        f(&mut spring);
-        self.set_spring(spring);
-    }
-
-    /// `SpringProperties` setter.
-    pub fn set_spring(&mut self, spring:SpringProperties) {
-        self.data.borrow_mut().spring = spring;
-    }
-
-    /// Safe accessor to modify `DragProperties`.
-    pub fn modify_drag<F:FnOnce(&mut DragProperties)>(&mut self, f:F) {
-        let mut drag = self.drag();
-        f(&mut drag);
-        self.set_drag(drag);
-    }
-
-    /// `DragProperties` setter.
-    pub fn set_drag(&mut self, drag:DragProperties) {
-        self.data.borrow_mut().drag = drag;
-    }
-
-    /// Safe accessor to modify `SimulationThresholds`.
-    pub fn modify_thresholds<F:FnOnce(&mut SimulationThresholds)>(&mut self, f:F) {
-        let mut thresholds = self.thresholds();
-        f(&mut thresholds);
-        self.set_thresholds(thresholds);
-    }
-
-    /// `SimulationThresholds` setter.
-    pub fn set_thresholds(&mut self, thresholds:SimulationThresholds) {
-        self.data.borrow_mut().thresholds = thresholds;
-    }
-}
-
-impl From<&PhysicsProperties> for PhysicsProperties {
-    fn from(t:&PhysicsProperties) -> PhysicsProperties {
-        t.clone()
-    }
-}
-
-
-
-// ============================
-// === SimulationThresholds ===
-// ============================
-
-/// A struct holding simulation thresholds used for computing optimizations.
+/// Thresholds defining the values which define when simulation stops.
 #[derive(Clone,Copy,Debug)]
-pub struct SimulationThresholds {
-    /// Used to snap object to fixed point if its distance is less than this threshold.
-    pub fixed_point_distance : f32,
-
-    /// The minimum speed threshold to stopping simulation.
-    pub speed : f32
+#[allow(missing_docs)]
+pub struct Thresholds {
+    pub distance : f32,
+    pub speed    : f32
 }
 
-impl Default for SimulationThresholds {
+impl Default for Thresholds {
     fn default() -> Self {
         Self::new(0.1,0.1)
     }
 }
 
-impl SimulationThresholds {
-    /// Creates a new SimulationThresholds.
-    pub fn new(fixed_point_distance:f32, speed:f32) -> Self {
-        Self {fixed_point_distance,speed}
+impl Thresholds {
+    /// Constructor.
+    pub fn new(distance:f32, speed:f32) -> Self {
+        Self {distance,speed}
     }
 }
 
 
 
-// ========================
-// === PhysicsSimulator ===
-// ========================
+// ======================
+// === SimulationData ===
+// ======================
 
-/// A callback used by PhysicsSimulator.
-pub trait PhysicsCallback = FnMut(Vector3<f32>) + 'static;
-
-/// A fixed step physics simulator used to simulate `PhysicsProperties`.
-#[derive(Debug)]
-pub struct PhysicsSimulator {
-    _animator : Animator
+/// A fixed step physics simulator used to simulate `PhysicsState`.
+#[derive(Clone,Copy,Debug,Default)]
+pub struct SimulationData<T> {
+    position        : T,
+    target_position : T,
+    velocity        : T,
+    mass            : Mass,
+    spring          : Spring,
+    drag            : Drag,
+    thresholds      : Thresholds,
+    active          : bool,
 }
 
-impl PhysicsSimulator {
-    /// Simulates `Properties` and inputs `Kinematics`' position in `PhysicsCallback`.
-    pub fn new<F:PhysicsCallback,Properties:Into<PhysicsProperties>>
-    ( steps_per_second : f64
-    , properties       : Properties
-    , mut callback     : F) -> Self {
-        let mut properties       = properties.into();
-        let step_ms              = 1000.0 / steps_per_second;
-        let mut current_position = properties.kinematics().position();
-        let mut next_position    = simulate(&mut properties, step_ms);
-        let mut interval_counter = IntervalCounter::new(step_ms);
-        let _animator            = Animator::new(move |delta_ms| {
-            let intervals = interval_counter.add_time(delta_ms);
-            for _ in 0..intervals {
-                current_position = next_position;
-                next_position    = simulate(&mut properties,step_ms);
+impl<T:Position> SimulationData<T> {
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
+    }
+
+    /// Runs a simulation step.
+    fn step(&mut self, delta_seconds:f32) {
+        if self.active {
+            let velocity      = self.velocity.magnitude();
+            let distance      = (self.position - self.target_position).magnitude();
+            let snap_velocity = velocity < self.thresholds.speed;
+            let snap_distance = distance < self.thresholds.distance;
+            let should_snap   = snap_velocity && snap_distance;
+            if should_snap {
+                self.position = self.target_position;
+                self.velocity = default();
+                self.active   = false;
+            } else {
+                let force        = self.spring_force() + self.drag_force();
+                let acceleration = force / self.mass.value;
+                self.velocity    = self.velocity + acceleration  * delta_seconds;
+                self.position    = self.position + self.velocity * delta_seconds;
             }
+        }
+    }
 
-            let transition = interval_counter.accumulated_time / interval_counter.interval_duration;
+    /// Compute spring force.
+    fn spring_force(&self) -> T {
+        let position_delta = self.target_position - self.position;
+        let distance       = position_delta.magnitude();
+        if distance > 0.0 {
+            let coefficient = distance * self.spring.value;
+            position_delta.normalize() * coefficient
+        } else {
+            default()
+        }
+    }
 
-            let fixed_point = properties.spring().fixed_point;
-            let thresholds  = properties.thresholds();
-            properties.modify_kinematics(|kinematics| {
-                let speed    = kinematics.velocity.magnitude();
-                let position = kinematics.position();
-                let distance = (position - fixed_point).magnitude();
-                if speed < thresholds.speed && distance < thresholds.fixed_point_distance {
-                    kinematics.set_position(fixed_point);
-                    kinematics.set_velocity(zero());
-                    callback(fixed_point)
-                } else {
-                    let interpolated_position = linear_interpolation(
-                        current_position,
-                        next_position,
-                        transition as f32
-                    );
-                    callback(interpolated_position)
-                }
-            });
-        });
-
-        Self { _animator }
+    /// Compute air drag force.
+    fn drag_force(&self) -> T {
+        -self.velocity * self.drag.value
     }
 }
 
-/// Simulate the `KinematicProperties`.
-fn simulate_kinematics(kinematics:&mut KinematicsProperties, force:&Vector3<f32>, dt:f64) {
-    let dt = dt as f32;
-    kinematics.set_acceleration(force / kinematics.mass);
-    kinematics.set_velocity(kinematics.velocity() + kinematics.acceleration() * dt);
-    kinematics.set_position(kinematics.position() + kinematics.velocity()     * dt);
+
+// === Getters ===
+
+#[allow(missing_docs)]
+impl<T:Position> SimulationData<T> {
+    pub fn position        (&self) -> T          { self.position }
+    pub fn target_position (&self) -> T          { self.target_position }
+    pub fn velocity        (&self) -> T          { self.velocity }
+    pub fn mass            (&self) -> Mass       { self.mass }
+    pub fn spring          (&self) -> Spring     { self.spring }
+    pub fn drag            (&self) -> Drag       { self.drag }
+    pub fn thresholds      (&self) -> Thresholds { self.thresholds }
+    pub fn active          (&self) -> bool       { self.active }
 }
 
-/// Runs a simulation step.
-fn simulate(properties:&mut PhysicsProperties, delta_ms:f64) -> Vector3<f32> {
-    let spring        = properties.spring();
-    let drag          = properties.drag();
-    let mut net_force = zero();
-    properties.modify_kinematics(|mut kinematics| {
-        net_force += spring.force(&kinematics);
-        net_force += drag.force(&kinematics);
-        let delta_seconds = delta_ms / 1000.0;
-        simulate_kinematics(&mut kinematics, &net_force, delta_seconds);
-    });
-    properties.kinematics().position()
+
+// === Setters ===
+
+#[allow(missing_docs)]
+impl<T:Position> SimulationData<T> {
+    pub fn set_velocity   (&mut self, velocity:T)            { self.velocity   = velocity; }
+    pub fn set_mass       (&mut self, mass:Mass)             { self.mass       = mass; }
+    pub fn set_spring     (&mut self, spring:Spring)         { self.spring     = spring; }
+    pub fn set_drag       (&mut self, drag:Drag)             { self.drag       = drag; }
+    pub fn set_thresholds (&mut self, thresholds:Thresholds) { self.thresholds = thresholds; }
+
+    pub fn set_position(&mut self, position:T) {
+        self.active = true;
+        self.position = position;
+    }
+
+    pub fn set_target_position(&mut self, target_position:T) {
+        self.active = true;
+        self.target_position = target_position;
+    }
+
+    pub fn update_position<F:FnOnce(T)->T>(&mut self, f:F) {
+        self.set_position(f(self.position()));
+    }
+
+    pub fn update_target_position<F:FnOnce(T)->T>(&mut self, f:F) {
+        self.set_target_position(f(self.target_position()));
+    }
+
+    pub fn update_velocity<F:FnOnce(T)->T>(&mut self, f:F) {
+        self.set_velocity(f(self.velocity()));
+    }
+
+    pub fn update_mass<F:FnOnce(Mass)->Mass>(&mut self, f:F) {
+        self.set_mass(f(self.mass()));
+    }
+
+    pub fn update_spring<F:FnOnce(Spring)->Spring>(&mut self, f:F) {
+        self.set_spring(f(self.spring()));
+    }
+
+    pub fn update_drag<F:FnOnce(Drag)->Drag>(&mut self, f:F) {
+        self.set_drag(f(self.drag()));
+    }
+
+    pub fn update_thresholds<F:FnOnce(Thresholds)->Thresholds>(&mut self, f:F) {
+        self.set_thresholds(f(self.thresholds()));
+    }
+}
+
+
+
+// ==================
+// === Simulation ===
+// ==================
+
+/// The main simulation engine. It allows running the simulation by explicitly calling the `step`
+/// function. Refer to `Simulator` for a more aautomated solution.
+#[derive(Clone,CloneRef,Debug,Default)]
+pub struct Simulation<T:Copy> {
+    data : Rc<Cell<SimulationData<T>>>
+}
+
+impl<T:Position> Simulation<T> {
+    /// Constructor.
+    pub fn new() -> Self {
+        default()
+    }
+
+    /// Runs a simulation step.
+    pub fn step(&self, delta_seconds:f32) {
+        let mut data = self.data.get();
+        data.step(delta_seconds);
+        self.data.set(data);
+    }
+}
+
+
+// === Getters ===
+
+#[allow(missing_docs)]
+impl<T:Position> Simulation<T> {
+    pub fn active(&self) -> bool {
+        self.data.get().active()
+    }
+
+    pub fn position(&self) -> T {
+        self.data.get().position()
+    }
+
+    pub fn target_position(&self) -> T {
+        self.data.get().target_position()
+    }
+}
+
+
+// === Setters ===
+
+#[allow(missing_docs)]
+impl<T:Position> Simulation<T> {
+    pub fn set_mass(&self, mass:Mass) {
+        self.data.update(|mut sim| {sim.set_mass(mass); sim});
+    }
+
+    pub fn set_spring(&self, spring:Spring) {
+        self.data.update(|mut sim| {sim.set_spring(spring); sim});
+    }
+
+    pub fn set_drag(&self, drag:Drag) {
+        self.data.update(|mut sim| {sim.set_drag(drag); sim});
+    }
+
+    pub fn set_velocity(&self, velocity:T) {
+        self.data.update(|mut sim| {sim.set_velocity(velocity); sim});
+    }
+
+    pub fn set_position(&self, position:T) {
+        self.data.update(|mut sim| {sim.set_position(position); sim});
+    }
+
+    pub fn set_target_position(&self, target_position:T) {
+        self.data.update(|mut sim| {sim.set_target_position(target_position); sim});
+    }
+
+    pub fn update_target_position<F:FnOnce(T)->T>(&self, f:F) {
+        self.data.update(|mut sim| {sim.update_target_position(f); sim});
+    }
+}
+
+
+
+// =================
+// === Simulator ===
+// =================
+
+/// Simulator callback.
+pub trait Callback<T> = Fn(T)+'static;
+
+/// Handy alias for `Simulator` with a boxed closure callback.
+pub type DynSimulator<T> = Simulator<T,Box<dyn Fn(T)>>;
+
+/// The `Simulation` with an associated animation loop. The simulation is updated every frame in an
+/// efficient way – when the simulation finishes, it automatically unregisters in the animation loop
+/// and registers back only when needed.
+#[derive(CloneRef,Derivative,Shrinkwrap)]
+#[derivative(Clone(bound=""))]
+#[derivative(Debug(bound=""))]
+pub struct Simulator<T:Position,Cb> {
+    #[shrinkwrap(main_field)]
+    simulation     : Simulation<T>,
+    animation_loop : Rc<CloneCell<Option<FixedFrameRateAnimationStep<T,Cb>>>>,
+    frame_rate     : Rc<Cell<f32>>,
+    #[derivative(Debug="ignore")]
+    callback       : Rc<Cb>,
+}
+
+impl<T:Position,Cb> Simulator<T,Cb>
+where Cb : Callback<T> {
+    /// Constructor.
+    pub fn new(callback:Cb) -> Self {
+        let frame_rate     = Rc::new(Cell::new(60.0));
+        let callback       = Rc::new(callback);
+        let simulation     = Simulation::new();
+        let animation_loop = default();
+        Self {simulation,animation_loop,frame_rate,callback} . init()
+    }
+}
+
+// === Setters ===
+
+#[allow(missing_docs)]
+impl<T:Position,Cb> Simulator<T,Cb>
+where Cb : Callback<T> {
+    pub fn set_callback(&mut self, callback:Cb) {
+        let callback = Rc::new(callback);
+        self.callback = callback;
+        self.stop();
+        self.start();
+    }
+
+    pub fn set_position(&self, position:T) {
+        self.simulation.set_position(position);
+        self.start();
+    }
+
+    pub fn set_target_position(&self, target_position:T) {
+        self.simulation.set_target_position(target_position);
+        self.start();
+    }
+
+    pub fn update_target_position<F:FnOnce(T)->T>(&self, f:F) {
+        self.simulation.update_target_position(f);
+        self.start();
+    }
+}
+
+
+// === Private API ===
+
+impl<T:Position,Cb> Simulator<T,Cb>
+where Cb : Callback<T> {
+    fn init(self) -> Self {
+        self.start();
+        self
+    }
+
+    /// Starts the simulation and attaches it to an animation loop.
+    fn start(&self) {
+        if self.animation_loop.get().is_none() {
+            let frame_rate     = self.frame_rate.get();
+            let step           = step(&self);
+            let animation_loop = animation::Loop::new_with_fixed_frame_rate(frame_rate,step);
+            self.animation_loop.set(Some(animation_loop));
+        }
+    }
+
+    /// Stops the simulation and detaches it from animation loop.
+    fn stop(&self) {
+        self.animation_loop.set(None);
+    }
+}
+
+/// Alias for `FixedFrameRateLoop` with specified step callback.
+pub type FixedFrameRateAnimationStep<T,Cb> = animation::FixedFrameRateLoop<Step<T,Cb>>;
+pub type Step<T,Cb> = impl Fn(animation::TimeInfo);
+fn step<T:Position,Cb>(simulator:&Simulator<T,Cb>) -> Step<T,Cb>
+where Cb : Callback<T> {
+    let this = simulator.clone_ref();
+    move |time:animation::TimeInfo| {
+        let delta_seconds = time.frame / 1000.0;
+        if this.simulation.active() {
+            this.simulation.step(delta_seconds);
+            (this.callback)(this.simulation.position());
+        } else {
+            this.stop();
+        }
+    }
 }

@@ -1,3 +1,5 @@
+#![allow(missing_docs)] // TODO: Fixme
+
 //! A module defining TextField. TextField is a ensogl component displaying editable block of text.
 
 pub mod content;
@@ -9,6 +11,7 @@ pub mod word_occurrence;
 use crate::prelude::*;
 
 use crate::display;
+use crate::display::object::traits::*;
 use crate::display::shape::text::text_field::content::location::TextLocationChange;
 use crate::display::shape::text::text_field::content::TextFieldContent;
 use crate::display::shape::text::text_field::cursor::Cursors;
@@ -29,6 +32,41 @@ use data::text::TextLocation;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 use nalgebra::Vector4;
+use crate::system::web::text_input::KeyboardBinding;
+
+
+
+// =====================
+// === Focus Manager ===
+// =====================
+
+#[derive(Clone,CloneRef,Debug)]
+pub struct FocusManager {
+    binding    : Rc<RefCell<KeyboardBinding>>,
+    focused_on : Rc<CloneCell<Option<WeakTextField>>>,
+}
+
+impl FocusManager {
+    pub fn new_with_js_handlers() -> Self {
+        FocusManager {
+            binding    : Rc::new(RefCell::new(KeyboardBinding::create())),
+            focused_on : default()
+        }
+    }
+
+    pub fn set_focus_on(&self, text_field:&TextField) {
+        let current = self.focused_on.get().and_then(|ptr| ptr.upgrade());
+        let already_focused = current.as_ref().map_or(false, |ptr| (ptr.identity_equals(text_field)));
+        if !already_focused {
+            current.for_each(|current| current.on_defocus());
+            let tf_ref = text_field.rc.borrow();
+            let frp    = &tf_ref.frp.as_ref().unwrap().keyboard;
+            frp.bind_frp_to_js_text_input_actions(&mut self.binding.borrow_mut());
+            self.focused_on.set(Some(text_field.downgrade()))
+        }
+
+    }
+}
 
 
 
@@ -83,10 +121,18 @@ shared! { TextField
         frp              : Option<TextFieldFrp>,
         word_occurrences : Option<WordOccurrences>,
         #[derivative(Debug="ignore")]
-        text_change_callback : Option<Box<dyn FnMut(&TextChange)>>
+        text_change_callback : Option<Box<dyn FnMut(&TextChange)>>,
+        focus_manager        : FocusManager,
+        // TODO[ao] this should be infered from focus_manager, but it requires much refactoring.
+        focused              : bool,
     }
 
     impl {
+        /// Display object getter.
+        pub fn display_object(&self) -> display::object::Node {
+            self.display_object.clone()
+        }
+
         /// Set position of this TextField.
         pub fn set_position(&mut self, position:Vector3<f32>) {
             self.display_object.set_position(position);
@@ -139,7 +185,7 @@ shared! { TextField
         /// Finish multicursor mode, removing any additional cursors.
         pub fn finish_multicursor_mode(&mut self) {
             self.cursors.finish_multicursor_mode();
-            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
+            self.rendered.update_cursor_sprites(&self.cursors,&mut self.content,self.focused);
             self.clear_word_occurrences();
         }
 
@@ -162,7 +208,7 @@ shared! { TextField
             let content        = &mut self.content;
             let mut navigation = CursorNavigation {selecting, ..CursorNavigation::default(content)};
             self.cursors.jump_cursor(&mut navigation,point_on_text);
-            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
+            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content,self.focused);
         }
 
         /// Move all cursors by given step.
@@ -173,7 +219,7 @@ shared! { TextField
             let content        = &mut self.content;
             let mut navigation = CursorNavigation {content,selecting};
             self.cursors.navigate_all_cursors(&mut navigation,step);
-            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
+            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content,self.focused);
         }
 
         /// Discards all current content and replaces it with new one.
@@ -184,7 +230,12 @@ shared! { TextField
             self.cursors.recalculate_positions(&self.content);
             self.assignment_update().update_after_text_edit();
             self.rendered.update_glyphs(&mut self.content);
-            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
+            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content,self.focused);
+        }
+
+        /// Clear content.
+        pub fn clear_content(&mut self) {
+            self.set_content("");
         }
 
         /// Obtains the whole text content as a single String.
@@ -212,7 +263,7 @@ shared! { TextField
         pub fn block_selection(&mut self, position:Vector2<f32>) {
             let point_on_text = self.relative_position(position);
             self.cursors.block_selection(&mut self.content, point_on_text);
-            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
+            self.rendered.update_cursor_sprites(&self.cursors, &mut self.content,self.focused);
         }
 
         /// Selects the current word, if the cursor is inside a word, or select a next word if a
@@ -233,7 +284,8 @@ shared! { TextField
 
                     let cursor = self.cursors.last_cursor_mut();
                     cursor.select_range(&word);
-                    self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
+                    let focused = self.focused;
+                    self.rendered.update_cursor_sprites(&self.cursors,&mut self.content,focused);
                 }
             }
         }
@@ -255,11 +307,16 @@ shared! { TextField
         (&mut self, callback:Callback) {
             self.text_change_callback = Some(Box::new(callback))
         }
+
+        fn on_defocus(&mut self) {
+            self.focused = false;
+            self.rendered.update_cursor_sprites(&self.cursors,&mut self.content,self.focused);
+        }
     }
 }
 
 
-// === Constructor ===
+// === Public ===
 
 impl TextField {
     /// Create new empty TextField
@@ -276,6 +333,12 @@ impl TextField {
         let frp  = TextFieldFrp::new(world,this.downgrade());
         this.with_borrowed(move |mut data| { data.frp = Some(frp); });
         this
+    }
+
+    pub fn set_focus(&self) {
+        let focus_manager = self.with_borrowed(|data| data.focus_manager.clone_ref());
+        focus_manager.set_focus_on(&self);
+        self.with_borrowed(|data| data.focused = true);
     }
 }
 
@@ -308,7 +371,7 @@ impl TextField {
             // see https://github.com/luna/ide/issues/178
             this.assignment_update().update_after_text_edit();
             this.rendered.update_glyphs(&mut this.content);
-            this.rendered.update_cursor_sprites(&this.cursors, &mut this.content);
+            this.rendered.update_cursor_sprites(&this.cursors, &mut this.content, this.focused);
         });
     }
 
@@ -369,16 +432,18 @@ impl TextFieldData {
         let frp                  = None;
         let word_occurrences     = None;
         let text_change_callback = None;
-        display_object.add_child(rendered.display_object.clone_ref());
+        let focus_manager        = world.text_field_focus_manager().clone_ref();
+        let focused              = false;
+        display_object.add_child(&rendered.display_object);
 
         Self {properties,content,cursors,rendered,display_object,frp,word_occurrences,
-              text_change_callback}.initialize()
+              text_change_callback,focus_manager,focused}.initialize()
     }
 
     fn initialize(mut self) -> Self {
         self.assignment_update().update_line_assignment();
         self.rendered.update_glyphs(&mut self.content);
-        self.rendered.update_cursor_sprites(&self.cursors, &mut self.content);
+        self.rendered.update_cursor_sprites(&self.cursors,&mut self.content,self.focused);
         self
     }
 
@@ -410,8 +475,8 @@ impl TextFieldData {
 
 // === Display Object ===
 
-impl From<&TextField> for display::object::Node {
-    fn from(text_fields: &TextField) -> Self {
-        text_fields.rc.borrow().display_object.clone_ref()
-    }
-}
+//impl From<&TextField> for display::object::Node {
+//    fn from(text_fields: &TextField) -> Self {
+//        text_fields.rc.borrow().display_object.clone_ref()
+//    }
+//}

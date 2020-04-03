@@ -22,7 +22,7 @@ use serde::Serializer;
 /// Use `TryFrom<&Ast>` to obtain values.
 ///
 /// Provides `Deref` implementation that allows accessing underlying shape `T` value.
-#[derive(Derivative)]
+#[derive(CloneRef,Derivative)]
 #[derivative(Clone(bound=""))]
 #[derive(Debug,Eq,PartialEq)]
 pub struct KnownAst<T> {
@@ -142,14 +142,6 @@ where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E>,
     }
 }
 
-impl<T> CloneRef for KnownAst<T> {
-    fn clone_ref(&self) -> Self {
-        Self {
-            ast     : self.ast.clone_ref(),
-            phantom : PhantomData
-        }
-    }
-}
 
 
 // ===============

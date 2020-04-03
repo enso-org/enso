@@ -218,14 +218,6 @@ ContentRef for Texture<S,I,T> {
     }
 }
 
-//impl<S:StorageRelation<I,T>,I,T>
-//WithContent2 for Texture<S,I,T> {
-//    type Content = Texture<S,I,T>;
-//    fn with_content<F:FnOnce(&Self::Content)->R,R>(&self, f:F) -> R {
-//        f(self)
-//    }
-//}
-
 
 
 // ==================

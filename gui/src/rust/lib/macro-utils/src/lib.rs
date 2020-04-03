@@ -2,22 +2,30 @@
 //! definitions.
 
 #![warn(missing_docs)]
-
-pub use enso_prelude as prelude;
-
-use crate::prelude::*;
+#![feature(trait_alias)]
 
 use proc_macro2::TokenStream;
 use proc_macro2::TokenTree;
 use quote::quote;
-use syn;
+use std::iter::FromIterator;
 use syn::visit::Visit;
 use syn::WhereClause;
 use syn::WherePredicate;
+use syn;
 
-// =========================
+
+
+// =====================
+// === Trait Aliases ===
+// =====================
+
+pub trait Str = Into<String> + AsRef<str>;
+
+
+
+// ==========================
 // === Token Stream Utils ===
-// =========================
+// ==========================
 
 /// Maps all the tokens in the stream using a given function.
 pub fn map_tokens<F:Fn(TokenTree) -> TokenTree>
@@ -86,7 +94,7 @@ pub fn fields_list(fields:&syn::Fields) -> Vec<&syn::Field> {
     match fields {
         syn::Fields::Named  (ref f) => f.named  .iter().collect(),
         syn::Fields::Unnamed(ref f) => f.unnamed.iter().collect(),
-        syn::Fields::Unit           => default(),
+        syn::Fields::Unit           => Default::default(),
     }
 }
 
@@ -247,7 +255,7 @@ pub fn variant_depends_on
 /// Creates a new where clause from provided sequence of where predicates.
 pub fn new_where_clause(predicates:impl IntoIterator<Item=WherePredicate>) -> WhereClause {
     let predicates = syn::punctuated::Punctuated::from_iter(predicates);
-    WhereClause {where_token:default(),predicates}
+    WhereClause {where_token:Default::default(),predicates}
 }
 
 

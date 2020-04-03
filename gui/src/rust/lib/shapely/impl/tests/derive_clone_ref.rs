@@ -3,8 +3,6 @@
 
 use enso_prelude::*;
 
-use shapely::*;
-
 #[derive(Clone,CloneRef)] struct StructUnit;
 
 #[derive(Clone,CloneRef)] struct StructUnnamedEmpty();

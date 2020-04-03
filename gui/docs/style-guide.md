@@ -344,3 +344,25 @@ fn set_field(&mut self, val:Type) {
     *self.field_mut = val;
 }
 ```
+
+
+### Trait exporting
+All names should be designed to be used in a qualified fashion. However, this makes one situation 
+tricky. In order to use methods defined in a trait, it has to be in scope. Consider a trait
+`display::Object`. We want to use it as function bound like `fn test<T:display::Object>(t:T) {...}`,
+and we also want to use methods defined in this trait (so it has to be in scope). In such a case, 
+`Clippy` warns that `display::Object` is unnecessary qualification and could be replaced simply by
+`Object`, which is not what we want. Thus, in order to export traits, please always rename them
+using the following convention:
+
+```rust
+/// Common traits.
+pub mod traits {
+    // Read the Rust Style Guide to learn more about the used naming.
+    pub use super::Object    as TRAIT_Object;
+    pub use super::ObjectOps as TRAIT_ObjectOps;
+}
+```
+
+Having such a definition, we can import traits to scope using `use display::object::traits::*`, and
+we would not have any warning about unnecessary qualification anymore.

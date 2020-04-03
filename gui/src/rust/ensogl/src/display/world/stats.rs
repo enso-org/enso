@@ -2,46 +2,44 @@
 
 use crate::prelude::*;
 
-use crate::debug::monitor::Monitor;
-use crate::debug::monitor::Panel;
-use crate::debug::monitor;
+use crate::debug;
 use crate::debug::stats::Stats;
 
 
 
-// ====================
-// === StatsMonitor ===
-// ====================
+// ===============
+// === Monitor ===
+// ===============
 
-shared! { StatsMonitor
+shared! { Monitor
 
 /// Visual panel showing performance-related methods.
 #[derive(Debug)]
-pub struct StatsMonitorData {
+pub struct MonitorData {
     stats   : Stats,
-    monitor : Monitor,
-    panels  : Vec<Panel>
+    monitor : debug::Monitor,
+    panels  : Vec<debug::monitor::Panel>
 }
 
 impl {
     /// Constructor.
     pub fn new(stats:&Stats) -> Self {
         let stats       = stats.clone_ref();
-        let mut monitor = Monitor::new();
+        let mut monitor = debug::Monitor::new();
         let panels = vec![
-            monitor.add( monitor::FrameTime          :: new()       ),
-            monitor.add( monitor::Fps                :: new()       ),
-            monitor.add( monitor::WasmMemory         :: new()       ),
-            monitor.add( monitor::GpuMemoryUsage     :: new(&stats) ),
-            monitor.add( monitor::DrawCallCount      :: new(&stats) ),
-            monitor.add( monitor::DataUploadCount    :: new(&stats) ),
-            monitor.add( monitor::DataUploadSize     :: new(&stats) ),
-            monitor.add( monitor::BufferCount        :: new(&stats) ),
-            monitor.add( monitor::SymbolCount        :: new(&stats) ),
-            monitor.add( monitor::ShaderCount        :: new(&stats) ),
-            monitor.add( monitor::ShaderCompileCount :: new(&stats) ),
-            monitor.add( monitor::SpriteSystemCount  :: new(&stats) ),
-            monitor.add( monitor::SpriteCount        :: new(&stats) ),
+            monitor.add( debug::monitor::FrameTime          :: new()       ),
+            monitor.add( debug::monitor::Fps                :: new()       ),
+            monitor.add( debug::monitor::WasmMemory         :: new()       ),
+            monitor.add( debug::monitor::GpuMemoryUsage     :: new(&stats) ),
+            monitor.add( debug::monitor::DrawCallCount      :: new(&stats) ),
+            monitor.add( debug::monitor::DataUploadCount    :: new(&stats) ),
+            monitor.add( debug::monitor::DataUploadSize     :: new(&stats) ),
+            monitor.add( debug::monitor::BufferCount        :: new(&stats) ),
+            monitor.add( debug::monitor::SymbolCount        :: new(&stats) ),
+            monitor.add( debug::monitor::ShaderCount        :: new(&stats) ),
+            monitor.add( debug::monitor::ShaderCompileCount :: new(&stats) ),
+            monitor.add( debug::monitor::SpriteSystemCount  :: new(&stats) ),
+            monitor.add( debug::monitor::SpriteCount        :: new(&stats) ),
         ];
         Self {stats,monitor,panels}
     }

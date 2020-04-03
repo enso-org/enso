@@ -4,6 +4,7 @@ use crate::display::shape::primitive::system::ShapeSystem;
 use crate::display::shape::text::text_field::content::TextFieldContent;
 use crate::display::shape::text::text_field::cursor::Cursor;
 use crate::display::symbol::geometry::compound::sprite::Sprite;
+use crate::display::object::traits::*;
 
 use data::text::TextLocation;
 use nalgebra::Vector2;

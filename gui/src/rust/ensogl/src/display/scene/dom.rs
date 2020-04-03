@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::display::object::traits::*;
 use crate::display::camera::Camera2d;
 use crate::display::camera::camera2d::Projection;
 use crate::display::symbol::DomSymbol;
@@ -129,7 +130,7 @@ impl DomSceneData {
 /// To make use of its functionalities, the API user can create a `Css3dSystem` by using
 /// the `DomScene::new_system` method which creates and manages instances of
 /// `DomSymbol`s.
-#[derive(Clone,Debug,Shrinkwrap)]
+#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
 pub struct DomScene {
     data : Rc<DomSceneData>,
 }
@@ -175,7 +176,7 @@ impl DomScene {
     /// Update the objects to match the new camera's point of view. This function should be called
     /// only after camera position change.
     pub fn update_view_projection(&self, camera:&Camera2d) {
-        let trans_cam  = camera.transform().matrix().try_inverse();
+        let trans_cam  = camera.transform_matrix().try_inverse();
         let trans_cam  = trans_cam.expect("Camera's matrix is not invertible.");
         let trans_cam  = trans_cam.map(eps);
         let trans_cam  = invert_y(trans_cam);
@@ -194,8 +195,6 @@ impl DomScene {
         }
     }
 }
-
-impl CloneRef for DomScene {}
 
 
 

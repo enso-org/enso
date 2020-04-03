@@ -4,9 +4,9 @@ let config = {
     private: true,
     devDependencies: {
         "lerna": "^3.20.2",
-        "webpack": "^4.42.0",
+        "webpack": "^4.42.1",
         "webpack-cli": "^3.3.11",
-        "webpack-dev-server": "^3.1.5"
+        "webpack-dev-server": "^3.1.5",
     },
     scripts: {
         "build": "lerna run build --stream",
