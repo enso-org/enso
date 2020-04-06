@@ -53,8 +53,7 @@ about, so report as many bugs as you can! If you're not sure whether something
 is a bug, file it anyway!
 
 **If you are concerned that your bug publicly presents a security risk to the
-users of Enso, please contact
-[security@luna-lang.org](mailto:security@luna-lang.org).**
+users of Enso, please contact [security@enso.org](mailto:security@enso.org).**
 
 Even though GitHub search can be a bit hard to use sometimes, we'd appreciate if
 you could
@@ -93,7 +92,9 @@ In order to build and run Enso you will need the following tools:
 - [sbt](https://www.scala-sbt.org/) with version at least 1.3.0.
 - [GraalVM](https://www.graalvm.org/) with version at least that described in
   the [`build.sbt`](build.sbt) file configured as your default JVM.
-  [Jenv](http://www.jenv.be/) is a useful tool for managing multiple JVMs.
+
+Managing multiple JVM installations can be a pain, so some of the team use
+[Jenv](http://www.jenv.be/) is a useful tool for managing multiple JVMs.
 
 ### Getting the Sources
 Given you've probably been reading this document on GitHub, you might have an
@@ -358,7 +359,7 @@ to bring those changes into the main Enso repository.
 Please make all pull requests against the `master` branch.
 
 - We run CI on all contributions to Enso, but it's still useful for you to run
-  the CI yourself locally first! This can be done by running `test` in the
+  the tests yourself locally first! This can be done by running `test` in the
   `enso` project in sbt.
 - Additionally, please ensure that your code conforms to the Enso style guides,
   particularly the [Scala Style Guide](./doc/scala-style-guide.md) and the
@@ -374,7 +375,8 @@ every push to make sure that you can't forget.
   specific area before!
 - If you have questions, or would like to begin the review process before your
   PR is 'done', please use the [Draft Pull Requests](https://github.blog/2019-02-14-introducing-draft-pull-requests/)
-  feature on GitHub.
+  feature on GitHub. Doing so will allow you to make use of our CI
+  infrastructure as part of your development process.
 
 Once the reviewer approves your pull request it will be tested by our continuous
 integration provider before being merged. If we request changes to your PR,
@@ -416,13 +418,13 @@ label.
 As helpful as contributing to Enso directly is, it can also be just as helpful
 to contribute in other ways outside this repository:
 
-- Answer questions in the [Discord](https://discordapp.com/invite/YFEZz3y) or
-  on [StackOverflow](https://stackoverflow.com/questions/tagged/luna).
-- Participate in the [RFC Process](https://github.com/luna/luna-rfcs).
+- Answer questions in the [Discord](https://chat.luna-lang.org) or on
+  [StackOverflow](https://stackoverflow.com/questions/tagged/luna).
 
 ## Helpful Documentation and Links
 For people new to Enso, and just starting to contribute, or even for more
 seasoned developers, some useful places to look for information are:
 
-- [The Enso Book](https://luna-lang.gitbooks.io/docs/)
+- The [design documentation](doc/design/).
 - The community! Don't be afraid to ask questions.
+

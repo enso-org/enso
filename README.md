@@ -50,7 +50,7 @@ visually profile and debug your programs in real-time.
 Enso consists of several sub projects, including the
 [Enso Language Compiler](https://github.com/luna/enso) and the
 [Enso Integrated Development Environment (IDE)](https://github.com/luna/ide).
-You can also check out the [Enso Website](https://www.luna-lang.org) for more
+You can also check out the [Enso Website](https://enso.org) for more
 information.
 
 This repository contains [Enso Engine](engine/), which consists of the compiler,
@@ -61,7 +61,7 @@ language in its entirety, and are usable in isolation.
 Enso is distributed as [pre-built packages](https://github.com/luna/enso/releases)
 for MacOS, Linux and Windows, as well as universal `.jar` packages that can run
 anywhere that [GraalVM](https://graalvm.org) can. See the
-[documentation](http://luna-lang.org) for more.
+[documentation](http://enso.org) for more.
 
 ### Building
 The project builds on any platform where [GraalVM](https://graalvm.org) can run.
@@ -104,3 +104,4 @@ detailed instructions for building and hacking on Enso.
 <a href="https://github.com/luna/enso/graphs/contributors">
   <img src="https://contributors-img.firebaseapp.com/image?repo=luna/enso" />
 </a>
+
