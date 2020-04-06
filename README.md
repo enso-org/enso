@@ -22,7 +22,6 @@
 </p>
 
 ### Overview
-![Enso CI](https://github.com/luna/enso/workflows/Enso%20CI/badge.svg?branch=master)
 <p>
   <a href="https://github.com/luna/ide/actions">
     <img src="https://github.com/luna/enso/workflows/Enso%20CI/badge.svg?branch=master"
