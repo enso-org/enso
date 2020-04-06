@@ -3,11 +3,6 @@ package org.enso.languageserver.requesthandler.executioncontext
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.languageserver.data.{
-  CanModify,
-  CapabilityRegistration,
-  ReceivesEvents
-}
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.{
@@ -19,12 +14,12 @@ import org.enso.languageserver.util.UnhandledLogging
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for `executionContext/create` commands.
+  * A request handler for `executionContext/destroy` commands.
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
   */
-class CreateHandler(
+class DestroyHandler(
   timeout: FiniteDuration,
   contextRegistry: ActorRef
 ) extends Actor
@@ -36,8 +31,12 @@ class CreateHandler(
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case Request(ExecutionContextCreate, id, _) =>
-      contextRegistry ! CreateContextRequest(sender())
+    case Request(
+        ExecutionContextDestroy,
+        id,
+        params: ExecutionContextDestroy.Params
+        ) =>
+      contextRegistry ! DestroyContextRequest(sender(), params.contextId)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -53,11 +52,8 @@ class CreateHandler(
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case CreateContextResponse(contextId) =>
-      val canModify      = CapabilityRegistration(CanModify(contextId))
-      val receivesEvents = CapabilityRegistration(ReceivesEvents(contextId))
-      val result         = ExecutionContextCreate.Result(canModify, receivesEvents)
-      replyTo ! ResponseResult(ExecutionContextCreate, id, result)
+    case DestroyContextResponse(_) =>
+      replyTo ! ResponseResult(ExecutionContextDestroy, id, Unused)
       cancellable.cancel()
       context.stop(self)
 
@@ -68,15 +64,15 @@ class CreateHandler(
   }
 }
 
-object CreateHandler {
+object DestroyHandler {
 
   /**
-    * Creates configuration object used to create a [[CreateHandler]].
+    * Creates configuration object used to create a [[DestroyHandler]].
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.
     */
   def props(timeout: FiniteDuration, contextRegistry: ActorRef): Props =
-    Props(new CreateHandler(timeout, contextRegistry))
+    Props(new DestroyHandler(timeout, contextRegistry))
 
 }

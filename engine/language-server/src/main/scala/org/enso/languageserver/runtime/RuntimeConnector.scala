@@ -3,6 +3,7 @@ package org.enso.languageserver.runtime
 import java.nio.ByteBuffer
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
+import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.runtime.RuntimeConnector.Destroy
 import org.enso.polyglot.runtime.Runtime
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -10,7 +11,11 @@ import org.graalvm.polyglot.io.MessageEndpoint
 /**
   * An actor managing a connection to Enso's runtime server.
   */
-class RuntimeConnector extends Actor with ActorLogging with Stash {
+class RuntimeConnector
+    extends Actor
+    with ActorLogging
+    with UnhandledLogging
+    with Stash {
 
   override def receive: Receive = {
     case RuntimeConnector.Initialize(engine) =>

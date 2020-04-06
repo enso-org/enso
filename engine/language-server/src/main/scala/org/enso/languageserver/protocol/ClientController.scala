@@ -18,6 +18,7 @@ import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
 
@@ -45,7 +46,8 @@ class ClientController(
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   implicit val timeout = Timeout(requestTimeout)
 
@@ -74,11 +76,10 @@ class ClientController(
       TreeFile   -> file.TreeFileHandler.props(requestTimeout, fileManager),
       InfoFile   -> file.InfoFileHandler.props(requestTimeout, fileManager),
       ExecutionContextCreate -> executioncontext.CreateHandler
+        .props(requestTimeout, contextRegistry),
+      ExecutionContextDestroy -> executioncontext.DestroyHandler
         .props(requestTimeout, contextRegistry)
     )
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>

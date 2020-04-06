@@ -6,10 +6,12 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.ExecutionContextConfig
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.runtime.handler._
+import org.enso.languageserver.util.UnhandledLogging
+import org.enso.polyglot.runtime.Runtime.Api
 
 /**
-  * Registry handles execution context requests and routes them to the
-  * appropriate context manager.
+  * Registry handles execution context requests and communicates with runtime
+  * connector.
   *
   * == Implementation ==
   *
@@ -38,25 +40,35 @@ import org.enso.languageserver.runtime.handler._
   */
 final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
     extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
-  import ContextRegistry._
+  import ContextRegistry._, ContextRegistryProtocol._
 
   override def receive: Receive =
     withStore(Store(Map()))
 
   private def withStore(store: Store): Receive = {
-    case ContextRegistryProtocol.CreateContextRequest(client) =>
+    case CreateContextRequest(client) =>
       val handler = context.actorOf(
         CreateContextHandler.props(config.requestTimeout, runtime)
       )
       val contextId = UUID.randomUUID()
-      handler.forward(ExecutionProtocol.CreateContextRequest(contextId))
+      handler.forward(Api.CreateContextRequest(contextId))
       context.become(withStore(store.addContext(client, contextId)))
-  }
 
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
+    case DestroyContextRequest(client, contextId) =>
+      val contexts = store.getContexts(client)
+      if (contexts.contains(contextId)) {
+        val handler = context.actorOf(
+          DestroyContextHandler.props(config.requestTimeout, runtime)
+        )
+        handler.forward(Api.DestroyContextRequest(contextId))
+        context.become(withStore(store.updated(client, contexts - contextId)))
+      } else {
+        sender() ! AccessDenied
+      }
+  }
 }
 
 object ContextRegistry {
@@ -68,8 +80,8 @@ object ContextRegistry {
     def addContext(client: ClientRef, contextId: ContextId): Store =
       copy(store = store + (client -> (getContexts(client) + contextId)))
 
-    def removeContext(client: ClientRef, contextId: ContextId): Store =
-      copy(store = store + (client -> (getContexts(client) - contextId)))
+    def updated(client: ClientRef, contexts: Set[ContextId]): Store =
+      copy(store = store.updated(client, contexts))
 
     def getContexts(client: ClientRef): Set[ContextId] =
       store.getOrElse(client, Set())

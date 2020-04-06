@@ -63,7 +63,7 @@ class ContextManagementTest
     )
     send(Api.Request(requestId2, Api.DestroyContextRequest(contextId)))
     receive shouldEqual Some(
-      Api.Response(requestId2, Api.DestroyContextResponse(contextId, None))
+      Api.Response(requestId2, Api.DestroyContextResponse(contextId))
     )
   }
 
@@ -78,10 +78,7 @@ class ContextManagementTest
     )
     send(Api.Request(requestId2, Api.DestroyContextRequest(contextId2)))
     receive shouldEqual Some(
-      Api.Response(
-        requestId2,
-        Api.DestroyContextResponse(contextId2, Some(Api.ContextDoesNotExistError()))
-      )
+      Api.Response(requestId2, Api.ContextNotExistError(contextId2))
     )
   }
 }

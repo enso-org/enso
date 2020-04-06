@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.data.Client
+import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.TextApi.{CloseFile, FileNotOpenedError}
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.text.TextProtocol.{FileClosed, FileNotOpened}
@@ -22,7 +23,8 @@ class CloseFileHandler(
   timeout: FiniteDuration,
   client: Client
 ) extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   import context.dispatcher
 
@@ -56,10 +58,6 @@ class CloseFileHandler(
       cancellable.cancel()
       context.stop(self)
   }
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
-
 }
 
 object CloseFileHandler {

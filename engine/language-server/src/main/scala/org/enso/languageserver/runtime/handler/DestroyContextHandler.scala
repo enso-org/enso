@@ -14,12 +14,12 @@ import org.enso.polyglot.runtime.Runtime.Api
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for create context commands.
+  * A request handler for destroy context commands.
   *
   * @param timeout request timeout
-  * @param runtime reference to the runtime connector
+  * @param runtime reference to the runtime conector
   */
-final class CreateContextHandler(
+final class DestroyContextHandler(
   timeout: FiniteDuration,
   runtime: ActorRef
 ) extends Actor
@@ -31,7 +31,7 @@ final class CreateContextHandler(
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case msg: Api.CreateContextRequest =>
+    case msg: Api.DestroyContextRequest =>
       runtime ! Api.Request(UUID.randomUUID(), msg)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
@@ -46,8 +46,8 @@ final class CreateContextHandler(
       replyTo ! RequestTimeout
       context.stop(self)
 
-    case Api.Response(_, Api.CreateContextResponse(contextId)) =>
-      replyTo ! CreateContextResponse(contextId)
+    case Api.Response(_, Api.DestroyContextResponse(contextId)) =>
+      replyTo ! DestroyContextResponse(contextId)
       cancellable.cancel()
       context.stop(self)
 
@@ -58,14 +58,14 @@ final class CreateContextHandler(
   }
 }
 
-object CreateContextHandler {
+object DestroyContextHandler {
 
   /**
-    * Creates configuration object used to create a [[CreateContextHandler]].
+    * Creates a configuration object used to create [[DestroyContextHandler]].
     *
     * @param timeout request timeout
-    * @param runtime reference to the runtime connector
+    * @param runtime reference to the runtime conector
     */
   def props(timeout: FiniteDuration, runtime: ActorRef): Props =
-    Props(new CreateContextHandler(timeout, runtime))
+    Props(new DestroyContextHandler(timeout, runtime))
 }

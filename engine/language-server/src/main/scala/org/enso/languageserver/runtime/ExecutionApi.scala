@@ -2,7 +2,7 @@ package org.enso.languageserver.runtime
 
 import java.util.UUID
 
-import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
+import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.data.CapabilityRegistration
 
 /**
@@ -28,4 +28,22 @@ object ExecutionApi {
       type Result = ExecutionContextCreate.Result
     }
   }
+
+  case object ExecutionContextDestroy
+      extends Method("executionContext/destroy") {
+
+    case class Params(contextId: ContextId)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecutionContextDestroy.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object StackItemNotFoundError extends Error(2001, "Stack item not found")
+
+  case object ContextNotFoundError extends Error(2002, "Context not found")
+
 }

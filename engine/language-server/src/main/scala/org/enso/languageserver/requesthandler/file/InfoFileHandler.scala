@@ -9,6 +9,7 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.filemanager.FileManagerApi.InfoFile
 import org.enso.languageserver.requesthandler.RequestTimeout
+import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -20,7 +21,8 @@ import scala.concurrent.duration.FiniteDuration
   */
 class InfoFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
     extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   import context.dispatcher
 

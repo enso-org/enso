@@ -2000,6 +2000,8 @@ null
 ##### Errors
 - [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
   `executionContext/canModify` capability for this context.
+- [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
+  by provided id.
 
 #### `executionContext/fork`
 Sent from the client to the server to duplicate an execution context, creating
@@ -2105,6 +2107,16 @@ expressions becoming available.
 The language server component also has its own set of errors. This section is
 not a complete specification and will be updated as new errors are added.
 
+##### `AccessDeniedError`
+It signals that a user doesn't have access to a resource.
+
+```typescript
+"error" : {
+  "code" : 100,
+  "message" : "Access denied"
+}
+```
+
 ##### `FileSystemError`
 This error signals generic file system errors.
 
@@ -2122,16 +2134,6 @@ The error informs that the requested content root cannot be found.
 "error" : {
   "code" : 1001,
   "message" : "Content root not found"
-}
-```
-
-##### `AccessDeniedError`
-It signals that a user doesn't have access to a resource.
-
-```typescript
-"error" : {
-  "code" : 1002,
-  "message" : "Access denied"
 }
 ```
 
@@ -2176,12 +2178,26 @@ It signals that provided path is not a directory.
 ```
 
 ##### `StackItemNotFoundError`
+It signals that provided stack item was not found.
+
 ```typescript
 "error" : {
   "code" : 2001,
-  "message" : "Stack item not found."
+  "message" : "Stack item not found"
+}
+
+```
+
+##### `ContextNotFoundError`
+It signals that provided context was not found.
+
+```typescript
+"error" : {
+  "code" : 2002,
+  "message" : "Context not found"
 }
 ```
+
 ##### `FileNotOpenedError`
 Signals that a file wasn't opened.
 

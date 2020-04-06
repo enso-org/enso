@@ -12,6 +12,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 }
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
+import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -27,7 +28,8 @@ class AcquireCapabilityHandler(
   timeout: FiniteDuration,
   client: Client
 ) extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   import context.dispatcher
 
@@ -72,10 +74,6 @@ class AcquireCapabilityHandler(
       cancellable.cancel()
       context.stop(self)
   }
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
-
 }
 
 object AcquireCapabilityHandler {

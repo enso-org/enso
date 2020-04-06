@@ -24,6 +24,7 @@ import org.enso.languageserver.filemanager.{
   OperationTimeout,
   Path
 }
+import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.Buffer.Version
 import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
@@ -49,7 +50,8 @@ class CollaborativeBuffer(
   implicit versionCalculator: ContentBasedVersioning
 ) extends Actor
     with Stash
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   import context.dispatcher
 
@@ -59,9 +61,6 @@ class CollaborativeBuffer(
   }
 
   override def receive: Receive = uninitialized
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 
   private def uninitialized: Receive = {
     case OpenFile(client, path) =>

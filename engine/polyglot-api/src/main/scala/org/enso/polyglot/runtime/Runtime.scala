@@ -36,6 +36,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.DestroyContextResponse],
         name  = "destroyContextResponse"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ContextNotExistError],
+        name  = "contextNotExistError"
       )
     )
   )
@@ -47,6 +51,11 @@ object Runtime {
 
     type ContextId = UUID
     type RequestId = UUID
+
+    /**
+      * Indicates error response.
+      */
+    sealed trait Error extends ApiResponse
 
     /**
       * Envelope for an Api request.
@@ -94,15 +103,12 @@ object Runtime {
       * @param contextId the destroyed context's id
       * @param error optional error
       */
-    case class DestroyContextResponse(
-      contextId: ContextId,
-      error: Option[ContextDoesNotExistError]
-    ) extends ApiResponse
+    case class DestroyContextResponse(contextId: ContextId) extends ApiResponse
 
     /**
       * An error payload signifying a non-existent context.
       */
-    case class ContextDoesNotExistError()
+    case class ContextNotExistError(contextId: ContextId) extends Error
 
     private lazy val mapper = {
       val factory = new CBORFactory()

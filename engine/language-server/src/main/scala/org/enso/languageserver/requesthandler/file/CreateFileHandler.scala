@@ -9,12 +9,14 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.filemanager.FileManagerApi.CreateFile
 import org.enso.languageserver.requesthandler.RequestTimeout
+import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
 class CreateFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
     extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   import context.dispatcher
 

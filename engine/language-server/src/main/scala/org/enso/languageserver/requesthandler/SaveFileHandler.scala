@@ -5,6 +5,7 @@ import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.data.Client
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
+import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.TextApi.{
   FileNotOpenedError,
   InvalidVersionError,
@@ -28,7 +29,8 @@ class SaveFileHandler(
   timeout: FiniteDuration,
   client: Client
 ) extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   import context.dispatcher
 
@@ -87,10 +89,6 @@ class SaveFileHandler(
       cancellable.cancel()
       context.stop(self)
   }
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
-
 }
 
 object SaveFileHandler {

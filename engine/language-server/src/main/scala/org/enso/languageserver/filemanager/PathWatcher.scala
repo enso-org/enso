@@ -18,6 +18,7 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.effect._
 import org.enso.languageserver.event.ClientDisconnected
+import org.enso.languageserver.util.UnhandledLogging
 import zio._
 
 import scala.concurrent.Await
@@ -35,7 +36,8 @@ final class PathWatcher(
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   import context.dispatcher, PathWatcherProtocol._
 
@@ -52,9 +54,6 @@ final class PathWatcher(
   }
 
   override def receive: Receive = uninitializedStage
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 
   private def uninitializedStage: Receive = {
     case WatchPath(path, clients) =>

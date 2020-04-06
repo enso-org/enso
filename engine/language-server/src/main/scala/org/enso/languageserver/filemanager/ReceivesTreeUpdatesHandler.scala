@@ -12,6 +12,7 @@ import org.enso.languageserver.data.{
   ReceivesTreeUpdates
 }
 import org.enso.languageserver.effect._
+import org.enso.languageserver.util.UnhandledLogging
 
 /**
   * Handles `receivesTreeUpdates` capabilities acquisition and release.
@@ -54,14 +55,12 @@ final class ReceivesTreeUpdatesHandler(
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   import ReceivesTreeUpdatesHandler._
 
   override def receive: Receive = withStore(Store())
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 
   private def withStore(store: Store): Receive = {
     case AcquireCapability(

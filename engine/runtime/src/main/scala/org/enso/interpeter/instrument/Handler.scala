@@ -64,16 +64,11 @@ class Handler {
       if (contextManager.get(contextId).isDefined) {
         contextManager.destroy(contextId)
         endpoint.sendToClient(
-          Api.Response(requestId, Api.DestroyContextResponse(contextId, None))
+          Api.Response(requestId, Api.DestroyContextResponse(contextId))
         )
       } else {
         endpoint.sendToClient(
-          Api.Response(
-            requestId,
-            Api.DestroyContextResponse(
-              contextId,
-              Some(Api.ContextDoesNotExistError()))
-          )
+          Api.Response(requestId, Api.ContextNotExistError(contextId))
         )
       }
 

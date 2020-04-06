@@ -156,8 +156,6 @@ object FileManagerApi {
   case object ContentRootNotFoundError
       extends Error(1001, "Content root not found")
 
-  case object AccessDeniedError extends Error(1002, "Access denied")
-
   case object FileNotFoundError extends Error(1003, "File not found")
 
   case object FileExistsError extends Error(1004, "File already exists")
