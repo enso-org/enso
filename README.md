@@ -1,10 +1,11 @@
 [![Build Status](https://dev.azure.com/luna-lang/luna/_apis/build/status/luna.luna?branchName=master)](https://dev.azure.com/luna-lang/luna/_build/latest?definitionId=1&branchName=master)
 
 <h1 align="center">
-  <b>DEVELOPMENT HAS MOVED TO <a href="https://github.com/luna/enso">ENSO</a> WHICH IS THE 2.0 VERSION OF LUNA</b>
+  <b>Development has moved to <a href="https://github.com/luna/enso">Enso</a>.</b> <br/>
+  Watch <a href="https://github.com/luna/enso">Enso</a> for the upcoming 2.0 release.<br/>
 </h1>
 <p align="center">
-  <b>If you want to add a GitHub star to this project, please add it to that repo instead!</b>
+  <b>Want to support Enso? Star the new repo, or check out our <a href="https://github.com/luna/enso/contribute">good first issues.</a> </b>
 </p>
 
 <p align="center">
