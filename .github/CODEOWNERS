@@ -1,38 +1,34 @@
-
-# === Catch All ==============================================
+# Catch All
 * @iamrecursion
 
-# === Libraries ==============================================
+# Libraries
 /common/flexer @iamrecursion
 /common/graph @iamrecursion
 /common/json-rpc-server @lolczak @4e6
-/common/json-rpc-server @lolczak @4e6
+/common/json-rpc-server-test @lolczak @4e6
 /common/logger @kustosz @iamrecursion
 /common/parser-service @kustosz @iamrecursion
 /common/pkg @kustosz
 /common/syntax @iamrecursion
 /common/unused @iamrecursion
 
-# === Main Project ============================================
-
+# Main Project
 /engine/core-definition @iamrecursion
 /engine/language-server @lolczak @4e6
 /engine/polyglot-api @iamrecursion @kustosz
 /engine/runner @iamrecursion @kustosz @lolczak @4e6
 /engine/runtime @iamrecursion @kustosz
 
-# === Documentation ===========================================
-
+# Documentation
 /doc @iamrecursion
 /.gitignore @iamrecursion
 /.jvmopts @iamrecursion @kustosz
 /.scalafmt.conf @iamrecursion
 /CODE_OF_CONDUCT.md @iamrecursion
 /LICENSE @iamrecursion
-README.md @iamrecursion # all readmes
+README.md @iamrecursion
 
-# === Config ==================================================
-
+# Config
 /.github @iamrecursion
 /ci @iamrecursion @kustosz
 /project @iamrecursion @kustosz
