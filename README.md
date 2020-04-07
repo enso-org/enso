@@ -21,7 +21,7 @@
   <br/>
 </p>
 
-### Overview
+### Fluidly Combining Worlds
 <p>
   <a href="https://github.com/luna/ide/actions">
     <img src="https://github.com/luna/enso/workflows/Enso%20CI/badge.svg?branch=master"
@@ -43,9 +43,10 @@
 
 Enso is an open-source, visual language for data science that lets you design,
 prototype, develop and refactor any application by connecting visual elements
-together. A developer's whiteboard on steroids, Enso lets you collaborate with
-your co-workers, interactively fine-tune parameters, inspect results and
-visually profile and debug your programs in real-time.
+together. Enso lets you collaborate with your co-workers, interactively 
+fine-tune parameters, inspect results and visually profile and debug your 
+programs in real-time, creating a moment where the mind is free to let the body
+create.
 
 Enso consists of several sub projects, including the
 [Enso Language Compiler](https://github.com/luna/enso) and the
