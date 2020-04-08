@@ -1,4 +1,4 @@
-# Contributing Guide
+# Development & Contributing Guide
 Thank you for your interest in contributing to the Enso IDE! We believe that only through community
 involvement can Enso be the best it can be! There are a whole host of ways to contribute, and every
 single one is appreciated.
