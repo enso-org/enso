@@ -6,12 +6,13 @@ single one is appreciated.
 <br/>
 
 ## Reporting Issues
-While it's never great to find a bug, they are a reality of software and software development! We
-can't fix or improve on the things that we don't know about, so report as many bugs as you can! If
-you're not sure whether something is a bug, file it anyway!
 
 **If you are concerned that your bug publicly presents a security risk to the users of Enso, please
 contact [security@enso.org](mailto:security@enso.org).**
+
+While it's never great to find a bug, they are a reality of software and software development! We
+can't fix or improve on the things that we don't know about, so report as many bugs as you can! If
+you're not sure whether something is a bug, file it anyway!
 
 Even though GitHub search can be a bit hard to use sometimes, we'd appreciate if you could
 [search](https://github.com/luna/enso/search?q=&type=Issues&utf8=%E2%9C%93) for your issue before
