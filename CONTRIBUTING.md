@@ -91,10 +91,10 @@ In order to build and run Enso you will need the following tools:
 
 - [sbt](https://www.scala-sbt.org/) with version at least 1.3.0.
 - [GraalVM](https://www.graalvm.org/) with version at least that described in
-  the [`build.sbt`](build.sbt) file configured as your default JVM.
+  the [`build.sbt`](build.sbt) file, and Java 8, configured as your default JVM.
 
 Managing multiple JVM installations can be a pain, so some of the team use
-[Jenv](http://www.jenv.be/) is a useful tool for managing multiple JVMs.
+[Jenv](http://www.jenv.be/): A useful tool for managing multiple JVMs.
 
 ### Getting the Sources
 Given you've probably been reading this document on GitHub, you might have an
@@ -146,10 +146,10 @@ or benchmarks to run (e.g. `testOnly *FunctionArguments*`).
 
 #### Building the Interpreter CLI Fat Jar
 In order to build a fat jar with the CLI component, run the `assembly` task
-inside the `runtime` subproject:
+inside the `runner` subproject:
 
 ```bash
-sbt "runtime/assembly"
+sbt "runner/assembly"
 ```
 
 This will produce an executable `enso.jar` fat jar in the repository root.
@@ -427,4 +427,3 @@ seasoned developers, some useful places to look for information are:
 
 - The [design documentation](doc/design/).
 - The community! Don't be afraid to ask questions.
-
