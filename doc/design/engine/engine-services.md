@@ -187,8 +187,8 @@ to language server operations, as instead it needs to work for all of the
 various services in this set.
 
 The protocol we are using intends to be fully compatible with the Microsoft LSP
-[specification](https://microsoft.github.io/language-server-protocol/specifications/specification-3-145) (version 3.15). In essence, we will operate
-as follows:
+[specification](https://microsoft.github.io/language-server-protocol/specifications/specification-3-145)
+(version 3.15). In essence, we will operate as follows:
 
 - Where our use case matches with a function provided by LSP, we will use the
   specified LSP message (e.g. completions).
@@ -236,7 +236,9 @@ messages (discussed in [the protocol format](#the-protocol-format) below) are
 sent. As we are maintaining compatibility with LSP, the protocol transport
 format is already defined for us.
 
-- Textual messages are sent using [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC) over a WebSocket connection (as defined in the LSP spec).
+- Textual messages are sent using
+  [JSON-RPC](https://en.wikipedia.org/wiki/JSON-RPC) over a WebSocket connection
+  (as defined in the LSP spec).
 - As a protocol extension we also negotiate a secondary binary WebSocket
   connection for sending visualisation data. This transport is independent of
   the LSP spec, and hence is defined entirely by us.
@@ -586,7 +588,8 @@ messages. They are specified below.
 A path is a representation of a path relative to a specified content root.
 
 ##### Format
-Please note that segments can only be ordinary file names, `..` and `.` may not be supported.
+Please note that segments can only be ordinary file names, `..` and `.` may not
+be supported.
 
 ```typescript
 interface Path {
@@ -653,9 +656,9 @@ interface ProjectOpenResult {
 
 ##### Errors
 - [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
-doesn't exist.
+  doesn't exist.
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
-underlying data store.
+  underlying data store.
 - [`ProjectOpenError`](#projectopenerror) to signal failures during server boot.
 
 #### `project/close`
@@ -682,15 +685,15 @@ interface ProjectCloseRequest {
 
 ##### Errors
 - [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
-doesn't exist.
+  doesn't exist.
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
-underlying data store.
+  underlying data store.
 - [`ProjectCloseError`](#projectcloseerror) to signal failures that occurred
-during language server stoppage.
+  during language server stoppage.
 - [`ProjectNotOpenError`](#projectnotopenerror) to signal cannot close a project
-that is not open.
+  that is not open.
 - [`ProjectOpenByOtherPeersError`](#projectopenbyotherpeerserror) to signal
-that cannot close a project that is open by other clients.
+  that cannot close a project that is open by other clients.
 
 #### `project/listRecent`
 This message requests that the project picker lists the user's most recently
@@ -716,8 +719,8 @@ interface ProjectListRecentResponse {
 ```
 
 ##### Errors
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
-underlying data store.
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
 
 #### `project/create`
 This message requests the creation of a new project.
@@ -743,11 +746,11 @@ interface ProjectOpenResponse {
 
 ##### Errors
 - [`ProjectNameValidationError`](#projectnamevalidationerror) to signal
-validation failures.
+  validation failures.
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
-underlying data store.
+  underlying data store.
 - [`ProjectExistsError`](#projectexistserror) to signal that the project
-already exists.
+  already exists.
 
 
 #### `project/delete`
@@ -772,11 +775,11 @@ interface ProjectDeleteRequest {
 
 ##### Errors
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
-underlying data store.
+  underlying data store.
 - [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
-doesn't exist.
+  doesn't exist.
 - [`CannotRemoveOpenProjectError`](#cannotremoveopenprojecterror) to signal that
-the project cannot be removed, because is open by at least one user.
+  the project cannot be removed, because is open by at least one user.
 
 
 #### `project/listSample`
@@ -1263,9 +1266,12 @@ null
 
 ##### Errors
 
-- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
-- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
-- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have
+  access to a resource.
 
 #### `file/read`
 This requests that the file manager component reads the contents of a specified
@@ -1295,9 +1301,12 @@ return the contents from the in-memory buffer rather than the file on disk.
 
 ##### Errors
 
-- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
-- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
-- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have
+  access to a resource.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
 #### `file/create`
@@ -1324,9 +1333,12 @@ null
 
 ##### Errors
 
-- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
-- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
-- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have
+  access to a resource.
 
 #### `file/delete`
 This request asks the file manager to delete the specified file system object.
@@ -1349,8 +1361,10 @@ null
 ```
 
 ##### Errors
-- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
-- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
 - [`FileExists`](#fileexists) informs that file already exists
 
@@ -1377,8 +1391,10 @@ null
 ```
 
 ##### Errors
-- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
-- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
 #### `file/move`
@@ -1407,8 +1423,10 @@ null
 ```
 
 ##### Errors
-- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
-- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
 - [`FileExists`](#fileexists) informs that target file already exists.
 
@@ -1685,9 +1703,12 @@ the client that sent the `text/openFile` message.
 ```
 
 ##### Errors
-- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
-- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
-- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have
+  access to a resource.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
 
@@ -1714,7 +1735,7 @@ null
 
 ##### Errors
 - [`FileNotOpenedError`](#filenotopenederror) to signal that a file wasn't
-opened.
+  opened.
 
 #### `text/save`
 This requests for the language server to save the specified file.
@@ -1742,13 +1763,17 @@ null
 
 ##### Errors
 - [`FileNotOpenedError`](#filenotopenederror) to signal that the file isn't
-open.
-- [`InvalidVersionError`](#invalidversionerror) to signal that the version provided by the client doesn't match the version
-computed by the server.
-- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold write lock for the buffer.
-- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
-- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
-- [`AccessDeniedError`](#accessdeniederror) to signal that the user doesn't have access to a resource.
+  open.
+- [`InvalidVersionError`](#invalidversionerror) to signal that the version
+  provided by the client doesn't match the version computed by the server.
+- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold
+  write lock for the buffer.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that the user doesn't have
+  access to a resource.
 
 #### `text/applyEdit`
 This requests that the server apply a series of edits to the project. These
@@ -1777,11 +1802,13 @@ null
 
 ##### Errors
 - [`FileNotOpenedError`](#filenotopenederror) to signal that the file isn't
-open.
-- [`TextEditValidationError`](#texteditvalidationerror) to signal that validation has failed for a series of edits.
-- [`InvalidVersionError`](#invalidversionerror) to signal that the version provided by the client doesn't match the version
-computed by the server.
-- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold write lock for the buffer.
+  open.
+- [`TextEditValidationError`](#texteditvalidationerror) to signal that
+  validation has failed for a series of edits.
+- [`InvalidVersionError`](#invalidversionerror) to signal that the version
+  provided by the client doesn't match the version computed by the server.
+- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold
+  write lock for the buffer.
 
 #### `text/didChange`
 This is a notification sent from the server to the clients to inform them of any
