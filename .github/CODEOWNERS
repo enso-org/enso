@@ -1,35 +1,35 @@
 # Catch All
-* @iamrecursion
+* @iamrecursion @kustosz
 
 # Libraries
-/common/flexer @iamrecursion
-/common/graph @iamrecursion
+/common/flexer @iamrecursion @kustosz
+/common/graph @iamrecursion @kustosz
 /common/json-rpc-server @lolczak @4e6
 /common/json-rpc-server-test @lolczak @4e6
 /common/logger @kustosz @iamrecursion
 /common/parser-service @kustosz @iamrecursion
-/common/pkg @kustosz
-/common/syntax @iamrecursion
-/common/unused @iamrecursion
+/common/pkg @iamrecursion @kustosz
+/common/syntax @iamrecursion @kustosz
+/common/unused @iamrecursion @kustosz
 
 # Main Project
-/engine/core-definition @iamrecursion
+/engine/core-definition @iamrecursion @kustosz
 /engine/language-server @lolczak @4e6
 /engine/polyglot-api @iamrecursion @kustosz
 /engine/runner @iamrecursion @kustosz @lolczak @4e6
 /engine/runtime @iamrecursion @kustosz
 
 # Documentation
-/doc @iamrecursion
-/.gitignore @iamrecursion
+/doc @iamrecursion @kustosz
+/.gitignore @iamrecursion @kustosz
 /.jvmopts @iamrecursion @kustosz
-/.scalafmt.conf @iamrecursion
-/CODE_OF_CONDUCT.md @iamrecursion
-/LICENSE @iamrecursion
-README.md @iamrecursion
+/.scalafmt.conf @iamrecursion @kustosz
+/CODE_OF_CONDUCT.md @iamrecursion @kustosz
+/LICENSE @iamrecursion @kustosz
+README.md @iamrecursion @kustosz
 
 # Config
-/.github @iamrecursion
+/.github @iamrecursion @kustosz
 /ci @iamrecursion @kustosz
 /project @iamrecursion @kustosz
 /build.sbt @iamrecursion @kustosz @lolczak @4e6
