@@ -4,25 +4,29 @@ on:
   push:
     branches: [ master ]
     paths-ignore: 
-      - .github/*
-      - doc/*
-      - .gitignore
-      - .scalafmt.conf
-      - CODE_OF_CONDUCT.md
-      - CONTRIBUTING.md
-      - LICENSE
-      - README.md
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/CODEOWNERS'
+      - '.github/ISSUE_TEMPLATE'
+      - '/doc/*'
+      - '.gitignore'
+      - '.scalafmt.conf'
+      - 'CODE_OF_CONDUCT.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE'
+      - 'README.md'
   pull_request:
     branches: [ master ]
     paths-ignore: 
-      - .github/*
-      - doc/*
-      - .gitignore
-      - .scalafmt.conf
-      - CODE_OF_CONDUCT.md
-      - CONTRIBUTING.md
-      - LICENSE
-      - README.md
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '.github/CODEOWNERS'
+      - '.github/ISSUE_TEMPLATE'
+      - '/doc/*'
+      - '.gitignore'
+      - '.scalafmt.conf'
+      - 'CODE_OF_CONDUCT.md'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE'
+      - 'README.md'
 
 env:
   # Please ensure that this is in sync with graalAPIVersion in build.sbt
