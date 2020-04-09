@@ -16,6 +16,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
@@ -115,6 +116,16 @@ public final class Function implements TruffleObject {
    */
   public RootCallTarget getCallTarget() {
     return callTarget;
+  }
+
+  /** @return the name of this function. */
+  public String getName() {
+    return getCallTarget().getRootNode().getName();
+  }
+
+  /** @return the source section this function was defined in. */
+  public SourceSection getSourceSection() {
+    return getCallTarget().getRootNode().getSourceSection();
   }
 
   /**

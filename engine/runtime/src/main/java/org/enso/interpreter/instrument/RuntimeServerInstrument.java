@@ -1,7 +1,12 @@
 package org.enso.interpreter.instrument;
 
+import com.oracle.truffle.api.TruffleContext;
+import com.oracle.truffle.api.instrumentation.ContextsListener;
+import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
+import com.oracle.truffle.api.nodes.LanguageInfo;
 import org.enso.interpeter.instrument.Handler;
+import org.enso.interpreter.service.ExecutionService;
 import org.enso.polyglot.*;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
@@ -25,10 +30,55 @@ import java.util.Collections;
     id = RuntimeServerInfo.INSTRUMENT_NAME,
     services = RuntimeServerInstrument.class)
 public class RuntimeServerInstrument extends TruffleInstrument {
+  private Env env;
   private Handler handler;
+  private EventBinding<Initializer> initializerEventBinding;
+
+  private void initializeExecutionService(ExecutionService service, TruffleContext context) {
+    initializerEventBinding.dispose();
+    handler.initializeExecutionService(service, context);
+  }
+
+  private static class Initializer implements ContextsListener {
+    private final RuntimeServerInstrument instrument;
+
+    public Initializer(RuntimeServerInstrument instrument) {
+      this.instrument = instrument;
+    }
+
+    @Override
+    public void onContextCreated(TruffleContext context) {}
+
+    @Override
+    public void onLanguageContextCreated(TruffleContext context, LanguageInfo language) {}
+
+    @Override
+    public void onLanguageContextInitialized(TruffleContext context, LanguageInfo language) {
+      if (language.getId().equals(org.enso.polyglot.LanguageInfo.ID)) {
+        Object token = context.enter();
+        ExecutionService service;
+        try {
+          service = instrument.env.lookup(language, ExecutionService.class);
+        } finally {
+          context.leave(token);
+        }
+        instrument.initializeExecutionService(service, context);
+      }
+    }
+
+    @Override
+    public void onLanguageContextFinalized(TruffleContext context, LanguageInfo language) {}
+
+    @Override
+    public void onLanguageContextDisposed(TruffleContext context, LanguageInfo language) {}
+
+    @Override
+    public void onContextClosed(TruffleContext context) {}
+  }
 
   @Override
   protected void onCreate(Env env) {
+    this.env = env;
     env.registerService(this);
     Handler handler = new Handler();
     this.handler = handler;
@@ -42,6 +92,9 @@ public class RuntimeServerInstrument extends TruffleInstrument {
     } catch (MessageTransport.VetoException | IOException e) {
       throw new RuntimeException(e);
     }
+
+    initializerEventBinding =
+        env.getInstrumenter().attachContextsListener(new Initializer(this) {}, true);
   }
 
   @Override
@@ -63,14 +116,5 @@ public class RuntimeServerInstrument extends TruffleInstrument {
         Collections.singletonList(
             OptionDescriptor.newBuilder(new OptionKey<>(""), RuntimeServerInfo.ENABLE_OPTION)
                 .build()));
-  }
-
-  /**
-   * Gets the associated message handler.
-   *
-   * @return the message handler.
-   */
-  public Handler getHandler() {
-    return handler;
   }
 }

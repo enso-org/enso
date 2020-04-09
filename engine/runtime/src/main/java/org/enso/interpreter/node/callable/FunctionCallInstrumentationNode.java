@@ -17,6 +17,9 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.tag.IdentifiedTag;
+
+import java.util.UUID;
 
 /**
  * A node used for instrumenting function calls. It does nothing useful from the language
@@ -25,6 +28,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 @GenerateWrapper
 @NodeInfo(description = "A node used for instrumenting function calls.")
 public class FunctionCallInstrumentationNode extends Node implements InstrumentableNode {
+  private UUID id;
 
   FunctionCallInstrumentationNode() {}
 
@@ -54,7 +58,14 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
     private final Object state;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] arguments;
 
-    private FunctionCall(Function function, Object state, Object[] arguments) {
+    /**
+     * Creates an instance of this class.
+     *
+     * @param function the function being called.
+     * @param state the monadic state to pass to the function.
+     * @param arguments the arguments passed to the function.
+     */
+    public FunctionCall(Function function, Object state, Object[] arguments) {
       this.function = function;
       this.state = state;
       this.arguments = arguments;
@@ -127,14 +138,14 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
   }
 
   /**
-   * Makrs this node as carrying the {@link StandardTags.CallTag} tag.
+   * Makrs this node with relevant runtime tags.
    *
    * @param tag the tag to check agains.
-   * @return true if the tag is {@link StandardTags.CallTag}, false otherwise.
+   * @return true if the node carries the {@code tag}, false otherwise.
    */
   @Override
   public boolean hasTag(Class<? extends Tag> tag) {
-    return tag == StandardTags.CallTag.class;
+    return tag == StandardTags.CallTag.class || (tag == IdentifiedTag.class && id != null);
   }
 
   /** @return the source section of this node. */
@@ -142,5 +153,19 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
   public SourceSection getSourceSection() {
     Node parent = getParent();
     return parent == null ? null : parent.getSourceSection();
+  }
+
+  /** @return the expression ID of this node. */
+  public UUID getId() {
+    return id;
+  }
+
+  /**
+   * Sets the expression ID of this node.
+   *
+   * @param expressionId the ID to assign this node.
+   */
+  public void setId(UUID expressionId) {
+    this.id = expressionId;
   }
 }

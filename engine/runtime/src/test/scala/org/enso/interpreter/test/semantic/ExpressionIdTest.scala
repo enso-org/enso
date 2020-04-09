@@ -1,34 +1,8 @@
 package org.enso.interpreter.test.semantic
 
-import java.util.UUID
-
-import org.enso.interpreter.node.callable.ApplicationNode
-import org.enso.interpreter.node.callable.function.CreateFunctionNode
-import org.enso.interpreter.node.callable.thunk.ForceNode
-import org.enso.interpreter.node.controlflow.MatchNode
-import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
-import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalTargetNode}
-import org.enso.interpreter.test.InterpreterTest
+import org.enso.interpreter.test.{InterpreterTest, Metadata}
 
 class ExpressionIdTest extends InterpreterTest {
-  case class Item(start: Int, len: Int, id: UUID) {
-    def toJsonString: String =
-      s"""[{"index": {"value": $start}, "size": {"value": $len}}, "$id"]"""
-  }
-
-  class Metadata {
-    var items: List[Item] = List()
-    def addItem(start: Int, len: Int): UUID = {
-      val id = UUID.randomUUID();
-      items ::= Item(start, len, id)
-      id
-    }
-    def toJsonString: String =
-      "[" + items.map(_.toJsonString).mkString(",") + "]"
-    def appendToCode(code: String): String =
-      s"$code\n\n\n#### METADATA ####\n$toJsonString\n[]"
-  }
-
   "Ids" should "be correct in simple arithmetic expressions" in
   withIdsInstrumenter { instrumenter =>
     val code = "main = 2 + 45 * 20"

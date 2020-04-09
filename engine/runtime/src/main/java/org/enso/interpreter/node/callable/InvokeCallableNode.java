@@ -18,6 +18,8 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.state.Stateful;
 
+import java.util.UUID;
+
 /**
  * This class is responsible for performing the actual invocation of a given callable with its
  * arguments.
@@ -219,5 +221,14 @@ public abstract class InvokeCallableNode extends BaseNode {
   public SourceSection getSourceSection() {
     Node parent = getParent();
     return parent == null ? null : parent.getSourceSection();
+  }
+
+  /**
+   * Sets the expression ID of this node.
+   *
+   * @param id the ID to assign this node.
+   */
+  public void setId(UUID id) {
+    invokeFunctionNode.setId(id);
   }
 }

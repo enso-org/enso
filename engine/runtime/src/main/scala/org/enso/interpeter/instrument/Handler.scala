@@ -1,7 +1,17 @@
 package org.enso.interpeter.instrument
 
 import java.nio.ByteBuffer
+import java.util.UUID
+import java.util.function.Consumer
 
+import com.oracle.truffle.api.TruffleContext
+import com.oracle.truffle.api.instrumentation.TruffleInstrument
+import org.enso.interpreter.instrument.IdExecutionInstrument.{
+  ExpressionCall,
+  ExpressionValue
+}
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
+import org.enso.interpreter.service.ExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.graalvm.polyglot.io.MessageEndpoint
 
@@ -21,7 +31,7 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
   def setClient(ep: MessageEndpoint): Unit = client = ep
 
   /**
-    * Sends a message to the connected client.
+    * Sends a response to the connected client.
     *
     * @param msg the message to send.
     */
@@ -48,6 +58,87 @@ class Handler {
   val endpoint       = new Endpoint(this)
   val contextManager = new ExecutionContextManager
 
+  var executionService: ExecutionService = _
+  var truffleContext: TruffleContext     = _
+
+  /**
+    * Initializes the handler with relevant Truffle objects, allowing it to
+    * perform code execution.
+    *
+    * @param service the language execution service instance.
+    * @param context the current Truffle context.
+    */
+  def initializeExecutionService(
+    service: ExecutionService,
+    context: TruffleContext
+  ): Unit = {
+    executionService = service
+    truffleContext   = context
+    endpoint.sendToClient(Api.Response(Api.InitializedNotification()))
+  }
+
+  sealed private trait ExecutionItem
+
+  private object ExecutionItem {
+    case class Method(
+      module: String,
+      constructor: String,
+      function: String
+    ) extends ExecutionItem
+
+    case class CallData(callData: FunctionCall) extends ExecutionItem
+  }
+  private def sendVal(res: ExpressionValue): Unit = {
+    endpoint.sendToClient(
+      Api.Response(
+        Api.ExpressionValueUpdateNotification(
+          res.getExpressionId,
+          res.getValue.toString
+        )
+      )
+    )
+  }
+
+  private def execute(
+    executionItem: ExecutionItem,
+    furtherStack: List[UUID]
+  ): Unit = {
+    var enterables: Map[UUID, FunctionCall] = Map()
+    val valsCallback: Consumer[ExpressionValue] =
+      if (furtherStack.isEmpty) sendVal else _ => ()
+    val callablesCallback: Consumer[ExpressionCall] = fun =>
+      enterables += fun.getExpressionId -> fun.getCall
+    executionItem match {
+      case ExecutionItem.Method(module, cons, function) =>
+        executionService.execute(
+          module,
+          cons,
+          function,
+          valsCallback,
+          callablesCallback
+        )
+      case ExecutionItem.CallData(callData) =>
+        executionService.execute(callData, valsCallback, callablesCallback)
+    }
+
+    furtherStack match {
+      case Nil => ()
+      case item :: tail =>
+        enterables
+          .get(item)
+          .foreach(call => execute(ExecutionItem.CallData(call), tail))
+    }
+  }
+
+  private def withContext(action: => Unit): Unit = {
+    val token = truffleContext.enter()
+    try {
+      action
+    } finally {
+      truffleContext.leave(token)
+    }
+  }
+
   /**
     * Handles a message received from the client.
     *
@@ -71,6 +162,9 @@ class Handler {
           Api.Response(requestId, Api.ContextNotExistError(contextId))
         )
       }
+
+    case Api.Request(_, Api.Execute(mod, cons, fun, furtherStack)) =>
+      withContext(execute(ExecutionItem.Method(mod, cons, fun), furtherStack))
 
   }
 }

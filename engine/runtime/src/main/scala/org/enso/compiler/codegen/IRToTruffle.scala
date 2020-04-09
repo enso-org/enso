@@ -63,16 +63,18 @@ import scala.jdk.OptionConverters._
   * It should be noted that, as is, there is no support for cross-module links,
   * with each lowering pass operating solely on a single module.
   *
-  * @param language the language instance for which this is executing
+  * @param context the language context instance for which this is executing
   * @param source the source code that corresponds to the text for which code
   *               is being generated
   * @param moduleScope the scope of the module for which code is being generated
   */
 class IRToTruffle(
-  val language: Language,
+  val context: Context,
   val source: Source,
   val moduleScope: ModuleScope
 ) {
+
+  val language: Language = context.getLanguage
 
   // ==========================================================================
   // === Top-Level Runners ====================================================
@@ -120,8 +122,6 @@ class IRToTruffle(
     * @param module the module for which code should be generated
     */
   private def processModule(module: IR.Module): Unit = {
-    val context: Context = language.getCurrentContext
-
     val imports = module.imports
     val atomDefs = module.bindings.collect {
       case atom: IR.Module.Scope.Definition.Atom => atom

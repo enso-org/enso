@@ -1,18 +1,17 @@
 package org.enso.interpreter;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Scope;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.debug.DebuggerTags;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.util.Collections;
 
+import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
+import org.enso.interpreter.service.ExecutionService;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
@@ -35,7 +34,8 @@ import org.graalvm.options.OptionDescriptors;
     defaultMimeType = LanguageInfo.MIME_TYPE,
     characterMimeTypes = {LanguageInfo.MIME_TYPE},
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
-    fileTypeDetectors = FileDetector.class)
+    fileTypeDetectors = FileDetector.class,
+    services = ExecutionService.class)
 @ProvidedTags({
   DebuggerTags.AlwaysHalt.class,
   StandardTags.CallTag.class,
@@ -53,7 +53,13 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected Context createContext(Env env) {
-    return new Context(this, env);
+    Context context = new Context(this, env);
+    InstrumentInfo idValueListenerInstrument =
+        env.getInstruments().get(IdExecutionInstrument.INSTRUMENT_ID);
+    IdExecutionInstrument idExecutionInstrumentService =
+        env.lookup(idValueListenerInstrument, IdExecutionInstrument.class);
+    env.registerService(new ExecutionService(context, idExecutionInstrumentService));
+    return context;
   }
 
   /**
@@ -89,15 +95,6 @@ public final class Language extends TruffleLanguage<Context> {
   protected CallTarget parse(ParsingRequest request) {
     RootNode root = ProgramRootNode.build(this, request.getSource());
     return Truffle.getRuntime().createCallTarget(root);
-  }
-
-  /**
-   * Gets the current Enso execution context.
-   *
-   * @return the current execution context
-   */
-  public Context getCurrentContext() {
-    return getCurrentContext(Language.class);
   }
 
   /**

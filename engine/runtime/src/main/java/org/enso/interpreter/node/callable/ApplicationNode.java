@@ -5,6 +5,8 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
+import java.util.UUID;
+
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -99,5 +101,16 @@ public class ApplicationNode extends ExpressionNode {
             this.callable.executeGeneric(frame), frame, state, evaluateArguments(frame));
     frame.setObject(getStateFrameSlot(), result.getState());
     return result.getValue();
+  }
+
+  /**
+   * Sets the expression ID for this node.
+   *
+   * @param id the ID for this node.
+   */
+  @Override
+  public void setId(UUID id) {
+    super.setId(id);
+    invokeCallableNode.setId(id);
   }
 }

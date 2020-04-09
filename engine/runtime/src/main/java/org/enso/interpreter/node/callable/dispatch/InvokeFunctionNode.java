@@ -20,6 +20,8 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
 
+import java.util.UUID;
+
 /**
  * This class represents the protocol for remapping the arguments provided at a call site into the
  * positional order expected by the definition of the {@link Function}.
@@ -157,5 +159,14 @@ public abstract class InvokeFunctionNode extends BaseNode {
   public SourceSection getSourceSection() {
     Node parent = getParent();
     return parent == null ? null : parent.getSourceSection();
+  }
+
+  /**
+   * Sets the expression ID of this node.
+   *
+   * @param id the expression ID to assign this node.
+   */
+  public void setId(UUID id) {
+    functionCallInstrumentationNode.setId(id);
   }
 }

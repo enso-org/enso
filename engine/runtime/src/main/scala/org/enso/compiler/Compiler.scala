@@ -212,7 +212,7 @@ class Compiler(
     source: Source,
     scope: ModuleScope
   ): Unit = {
-    new IRToTruffle(language, source, scope).run(ir)
+    new IRToTruffle(context, source, scope).run(ir)
   }
 
   /** Generates code for the truffle interpreter in an inline context.
@@ -229,7 +229,7 @@ class Compiler(
     inlineContext: InlineContext
   ): RuntimeExpression = {
     new IRToTruffle(
-      this.language,
+      context,
       source,
       inlineContext.moduleScope.getOrElse(
         throw new CompilerError(
