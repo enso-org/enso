@@ -3,7 +3,8 @@ package org.enso.languageserver.runtime
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import org.enso.languageserver.data.ExecutionContextConfig
+import org.enso.languageserver.data.Config
+import org.enso.languageserver.filemanager.FileSystemFailure
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.runtime.handler._
 import org.enso.languageserver.util.UnhandledLogging
@@ -35,24 +36,25 @@ import org.enso.polyglot.runtime.Runtime.Api
   *
   * }}}
   *
-  * @param config execution context configuration
+  * @param config configuration
   * @param runtime reference to the [[RuntimeConnector]]
   */
-final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
+final class ContextRegistry(config: Config, runtime: ActorRef)
     extends Actor
     with ActorLogging
     with UnhandledLogging {
 
-  import ContextRegistry._, ContextRegistryProtocol._
+  import ContextRegistryProtocol._
+
+  private val timeout = config.executionContext.requestTimeout
 
   override def receive: Receive =
-    withStore(Store(Map()))
+    withStore(ContextRegistry.Store(Map()))
 
-  private def withStore(store: Store): Receive = {
+  private def withStore(store: ContextRegistry.Store): Receive = {
     case CreateContextRequest(client) =>
-      val handler = context.actorOf(
-        CreateContextHandler.props(config.requestTimeout, runtime)
-      )
+      val handler =
+        context.actorOf(CreateContextHandler.props(timeout, runtime))
       val contextId = UUID.randomUUID()
       handler.forward(Api.CreateContextRequest(contextId))
       context.become(withStore(store.addContext(client, contextId)))
@@ -60,15 +62,61 @@ final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
     case DestroyContextRequest(client, contextId) =>
       val contexts = store.getContexts(client)
       if (contexts.contains(contextId)) {
-        val handler = context.actorOf(
-          DestroyContextHandler.props(config.requestTimeout, runtime)
-        )
+        val handler =
+          context.actorOf(DestroyContextHandler.props(timeout, runtime))
         handler.forward(Api.DestroyContextRequest(contextId))
         context.become(withStore(store.updated(client, contexts - contextId)))
       } else {
         sender() ! AccessDenied
       }
+
+    case PushContextRequest(client, contextId, stackItem) =>
+      if (store.hasContext(client, contextId)) {
+        getRuntimeStackItem(stackItem) match {
+          case Right(stackItem) =>
+            val handler =
+              context.actorOf(PushContextHandler.props(timeout, runtime))
+            handler.forward(Api.PushContextRequest(contextId, stackItem))
+          case Left(error) =>
+            sender() ! FileSystemError(error)
+        }
+      } else {
+        sender() ! AccessDenied
+      }
+
+    case PopContextRequest(client, contextId) =>
+      if (store.hasContext(client, contextId)) {
+        val handler = context.actorOf(PopContextHandler.props(timeout, runtime))
+        handler.forward(Api.PopContextRequest(contextId))
+      } else {
+        sender() ! AccessDenied
+      }
   }
+
+  private def getRuntimeStackItem(
+    stackItem: StackItem
+  ): Either[FileSystemFailure, Api.StackItem] =
+    stackItem match {
+      case StackItem.ExplicitCall(pointer, argument, arguments) =>
+        getRuntimeMethodPointer(pointer).map { methodPointer =>
+          Api.StackItem.ExplicitCall(methodPointer, argument, arguments)
+        }
+
+      case StackItem.LocalCall(expressionId) =>
+        Right(Api.StackItem.LocalCall(expressionId))
+    }
+
+  private def getRuntimeMethodPointer(
+    pointer: MethodPointer
+  ): Either[FileSystemFailure, Api.MethodPointer] =
+    config.findContentRoot(pointer.file.rootId).map { rootPath =>
+      Api.MethodPointer(
+        file          = pointer.file.toFile(rootPath).toPath,
+        definedOnType = pointer.definedOnType,
+        name          = pointer.name
+      )
+    }
+
 }
 
 object ContextRegistry {
@@ -85,14 +133,17 @@ object ContextRegistry {
 
     def getContexts(client: ClientRef): Set[ContextId] =
       store.getOrElse(client, Set())
+
+    def hasContext(client: ClientRef, contextId: ContextId): Boolean =
+      getContexts(client).contains(contextId)
   }
 
   /**
     * Creates a configuration object used to create a [[ContextRegistry]].
     *
-    * @param config execution context configuration
+    * @param config language server configuration
     * @param runtime reference to the [[RuntimeConnector]]
     */
-  def props(config: ExecutionContextConfig, runtime: ActorRef): Props =
+  def props(config: Config, runtime: ActorRef): Props =
     Props(new ContextRegistry(config, runtime))
 }

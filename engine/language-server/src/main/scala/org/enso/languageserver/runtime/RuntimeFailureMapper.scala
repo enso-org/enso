@@ -1,6 +1,7 @@
 package org.enso.languageserver.runtime
 
 import org.enso.jsonrpc._
+import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.protocol.ErrorApi._
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.polyglot.runtime.Runtime.Api
@@ -19,6 +20,10 @@ object RuntimeFailureMapper {
         AccessDeniedError
       case ContextRegistryProtocol.ContextNotFound(_) =>
         ContextNotFoundError
+      case ContextRegistryProtocol.FileSystemError(error) =>
+        FileSystemFailureMapper.mapFailure(error)
+      case ContextRegistryProtocol.EmptyStackError(_) =>
+        EmptyStackError
     }
 
   /**
@@ -31,6 +36,8 @@ object RuntimeFailureMapper {
     error match {
       case Api.ContextNotExistError(contextId) =>
         ContextRegistryProtocol.ContextNotFound(contextId)
+      case Api.EmptyStackError(contextId) =>
+        ContextRegistryProtocol.EmptyStackError(contextId)
     }
 
 }

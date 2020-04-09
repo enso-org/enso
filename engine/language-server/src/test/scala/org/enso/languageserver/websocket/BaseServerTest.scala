@@ -59,10 +59,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
         ReceivesTreeUpdatesHandler.props(config, new FileSystem, zioExec)
       )
     val contextRegistry =
-      system.actorOf(
-        ContextRegistry
-          .props(config.executionContext, runtimeConnectorProbe.ref)
-      )
+      system.actorOf(ContextRegistry.props(config, runtimeConnectorProbe.ref))
     lazy val capabilityRouter =
       system.actorOf(CapabilityRouter.props(bufferRegistry, fileEventRegistry))
 

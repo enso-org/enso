@@ -163,6 +163,27 @@ class Handler {
         )
       }
 
+    case Api.Request(requestId, Api.PushContextRequest(contextId, item)) => {
+      val payload = contextManager.push(contextId, item) match {
+        case Some(()) => Api.PushContextResponse(contextId)
+        case None     => Api.ContextNotExistError(contextId)
+      }
+      endpoint.sendToClient(Api.Response(requestId, payload))
+    }
+
+    case Api.Request(requestId, Api.PopContextRequest(contextId)) =>
+      if (contextManager.get(contextId).isDefined) {
+        val payload = contextManager.pop(contextId) match {
+          case Some(_) => Api.PopContextResponse(contextId)
+          case None    => Api.EmptyStackError(contextId)
+        }
+        endpoint.sendToClient(Api.Response(requestId, payload))
+      } else {
+        endpoint.sendToClient(
+          Api.Response(requestId, Api.ContextNotExistError(contextId))
+        )
+      }
+
     case Api.Request(_, Api.Execute(mod, cons, fun, furtherStack)) =>
       withContext(execute(ExecutionItem.Method(mod, cons, fun), furtherStack))
 

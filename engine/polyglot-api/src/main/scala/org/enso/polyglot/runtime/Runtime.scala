@@ -1,6 +1,7 @@
 package org.enso.polyglot.runtime
 
 import java.nio.ByteBuffer
+import java.nio.file.Path
 import java.util.UUID
 
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
@@ -38,8 +39,28 @@ object Runtime {
         name  = "destroyContextResponse"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.PushContextRequest],
+        name  = "pushContextRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.PushContextResponse],
+        name  = "pushContextResponse"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.PopContextRequest],
+        name  = "popContextRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.PopContextResponse],
+        name  = "popContextResponse"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.ContextNotExistError],
         name  = "contextNotExistError"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.EmptyStackError],
+        name  = "emptyStackError"
       ),
       new JsonSubTypes.Type(value = classOf[Api.Execute], name = "execute"),
       new JsonSubTypes.Type(
@@ -57,14 +78,55 @@ object Runtime {
   sealed trait ApiResponse extends Api
 
   object Api {
-    type ContextId    = UUID
-    type RequestId    = UUID
+
+    type ContextId = UUID
     type ExpressionId = UUID
+    type RequestId = UUID
 
     /**
       * Indicates error response.
       */
     sealed trait Error extends ApiResponse
+
+    /**
+      * A representation of a pointer to a method definition.
+      */
+    case class MethodPointer(file: Path, definedOnType: String, name: String)
+
+    /**
+      * A representation of an executable position in code.
+      */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[StackItem.ExplicitCall],
+          name  = "explicitCall"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[StackItem.LocalCall],
+          name  = "localCall"
+        )
+      )
+    )
+    sealed trait StackItem
+
+    object StackItem {
+
+      /**
+        * A call performed at the top of the stack, to initialize the context.
+        */
+      case class ExplicitCall(
+        methodPointer: MethodPointer,
+        thisArgumentExpression: Option[String],
+        positionalArgumentsExpressions: Vector[String]
+      ) extends StackItem
+
+      /**
+        * A call corresponding to "entering a function call".
+        */
+      case class LocalCall(expressionId: ExpressionId) extends StackItem
+    }
 
     /**
       * Envelope for an Api request.
@@ -136,9 +198,50 @@ object Runtime {
     case class DestroyContextResponse(contextId: ContextId) extends ApiResponse
 
     /**
-      * An error payload signifying a non-existent context.
+      * A Request sent from the client to the runtime server, to move
+      * the execution context to a new location deeper down the stack.
+      *
+      * @param contextId the context's id.
+      * @param stackItem an item that should be pushed on the stack.
+      */
+    case class PushContextRequest(contextId: ContextId, stackItem: StackItem)
+        extends ApiRequest
+
+    /**
+      * A response sent from the server upon handling the [[PushContextRequest]]
+      *
+      * @param contextId the context's id.
+      */
+    case class PushContextResponse(contextId: ContextId) extends ApiResponse
+
+    /**
+      * A Request sent from the client to the runtime server, to move
+      * the execution context up the stack.
+      *
+      * @param contextId the context's id.
+      */
+    case class PopContextRequest(contextId: ContextId) extends ApiRequest
+
+    /**
+      * A response sent from the server upon handling the [[PopContextRequest]]
+      *
+      * @param contextId the context's id.
+      */
+    case class PopContextResponse(contextId: ContextId) extends ApiResponse
+
+    /**
+      * An error response signifying a non-existent context.
+      *
+      * @param contextId the context's id
       */
     case class ContextNotExistError(contextId: ContextId) extends Error
+
+    /**
+      * An error response signifying that stack is empty.
+      *
+      * @param contextId the context's id
+      */
+    case class EmptyStackError(contextId: ContextId) extends Error
 
     /**
       * Notification sent from the server to the client upon successful

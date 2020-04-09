@@ -119,9 +119,154 @@ class ContextRegistryTest extends BaseServerTest {
           """)
     }
 
+    "push stack item" in {
+      val client = new WsTestClient(address)
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId1, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId1,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // push stack item
+      val expressionId = UUID.randomUUID()
+      client.send(json.executionContextPushRequest(2, contextId, expressionId))
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+              requestId,
+              Api.PushContextRequest(
+                `contextId`,
+                Api.StackItem.LocalCall(`expressionId`)
+              )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.PushContextResponse(contextId)
+      )
+      client.expectJson(json.ok(2))
+    }
+
+    "pop stack item" in {
+      val client = new WsTestClient(address)
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId1, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId1,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // push stack item
+      val expressionId = UUID.randomUUID()
+      client.send(json.executionContextPushRequest(2, contextId, expressionId))
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+              requestId,
+              Api.PushContextRequest(
+                `contextId`,
+                Api.StackItem.LocalCall(`expressionId`)
+              )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.PushContextResponse(contextId)
+      )
+      client.expectJson(json.ok(2))
+
+      // pop stack item
+      client.send(json.executionContextPopRequest(3, contextId))
+      val requestId3 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.PopContextRequest(`contextId`)) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId3,
+        Api.PopContextResponse(contextId)
+      )
+      client.expectJson(json.ok(3))
+    }
+
+    "return EmptyStackError when popping empty stack" in {
+      val client = new WsTestClient(address)
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId1, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId1,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // pop stack item
+      client.send(json.executionContextPopRequest(2, contextId))
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.PopContextRequest(`contextId`)) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.EmptyStackError(contextId)
+      )
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id" : 2,
+            "error" : {
+              "code" : 2003,
+              "message" : "Stack is empty"
+            }
+          }
+          """)
+    }
   }
 
   object json {
+
+    def localCall(expressionId: Api.ExpressionId) =
+      json"""
+          { "type": "LocalCall",
+            "expressionId": $expressionId
+          }
+          """
 
     def ok(reqId: Int) =
       json"""
@@ -171,5 +316,35 @@ class ContextRegistryTest extends BaseServerTest {
               }
             }
             """
+
+    def executionContextPushRequest(
+      reqId: Int,
+      contextId: Api.ContextId,
+      expressionId: Api.ExpressionId
+    ) =
+      json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/push",
+            "id": $reqId,
+            "params": {
+              "contextId": $contextId,
+              "stackItem": ${json.localCall(expressionId)}
+            }
+          }
+          """
+
+    def executionContextPopRequest(
+      reqId: Int,
+      contextId: Api.ContextId
+    ) =
+      json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/pop",
+            "id": $reqId,
+            "params": {
+              "contextId": $contextId
+            }
+          }
+          """
   }
 }

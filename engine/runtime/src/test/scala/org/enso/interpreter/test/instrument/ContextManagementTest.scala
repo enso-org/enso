@@ -81,4 +81,58 @@ class ContextManagementTest
       Api.Response(requestId2, Api.ContextNotExistError(contextId2))
     )
   }
+
+  "Runtime server" should "push and pop the context stack" in {
+    val contextId    = UUID.randomUUID()
+    val expressionId = UUID.randomUUID()
+    val requestId1   = UUID.randomUUID()
+    val requestId2   = UUID.randomUUID()
+    val requestId3   = UUID.randomUUID()
+    send(Api.Request(requestId1, Api.CreateContextRequest(contextId)))
+    receive shouldEqual Some(
+      Api.Response(requestId1, Api.CreateContextResponse(contextId))
+    )
+    send(
+      Api.Request(
+        requestId2,
+        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(expressionId))
+      )
+    )
+    receive shouldEqual Some(
+      Api.Response(requestId2, Api.PushContextResponse(contextId))
+    )
+    send(Api.Request(requestId3, Api.PopContextRequest(contextId)))
+    receive shouldEqual Some(
+      Api.Response(requestId3, Api.PopContextResponse(contextId))
+    )
+  }
+
+  "Runtime server" should "fail pushing context stack if it doesn't exist" in {
+    val contextId    = UUID.randomUUID()
+    val expressionId = UUID.randomUUID()
+    val requestId    = UUID.randomUUID()
+    send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(contextId, Api.StackItem.LocalCall(expressionId))
+      )
+    )
+    receive shouldEqual Some(
+      Api.Response(requestId, Api.ContextNotExistError(contextId))
+    )
+  }
+
+  "Runtime server" should "fail popping empty stack" in {
+    val contextId  = UUID.randomUUID()
+    val requestId1 = UUID.randomUUID()
+    val requestId2 = UUID.randomUUID()
+    send(Api.Request(requestId1, Api.CreateContextRequest(contextId)))
+    receive shouldEqual Some(
+      Api.Response(requestId1, Api.CreateContextResponse(contextId))
+    )
+    send(Api.Request(requestId2, Api.PopContextRequest(contextId)))
+    receive shouldEqual Some(
+      Api.Response(requestId2, Api.EmptyStackError(contextId))
+    )
+  }
 }

@@ -94,8 +94,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val contextRegistry =
     system.actorOf(
-      ContextRegistry
-        .props(languageServerConfig.executionContext, runtimeConnector),
+      ContextRegistry.props(languageServerConfig, runtimeConnector),
       "context-registry"
     )
 
