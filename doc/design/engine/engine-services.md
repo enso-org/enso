@@ -17,11 +17,11 @@ services components, as well as any open questions that may remain.
 - [Architecture](#architecture)
   - [The Project Picker](#the-project-picker)
   - [Language Server](#language-server)
-- [The Protocol Itself](#the-protocol-itself)
-  - [Protocol Communication Patterns](#protocol-communication-patterns)
-  - [The Protocol Transport](#the-protocol-transport)
+- [Textual Protocol](#textual-protocol)
+  - [Textual Protocol Communication Patterns](#textual-protocol-communication-patterns)
+  - [Textual Protocol Transport](#textual-protocol-transport)
   - [The Protocol Format](#the-protocol-format)
-- [Protocol Functionality](#protocol-functionality)
+- [Textual Protocol Functionality](#textual-protocol-functionality)
   - [Textual Diff Management](#textual-diff-management)
   - [Handling Multiple Clients](#handling-multiple-clients)
   - [Project State Management](#project-state-management)
@@ -29,13 +29,19 @@ services components, as well as any open questions that may remain.
   - [Execution Management](#execution-management)
     - [Caching](#caching)
     - [Progress Reporting](#progress-reporting)
-  - [Visualisation Support](#visualisation-support)
   - [Completion](#completion)
   - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
+- [Binary Protocol](#binary-protocol)
+  - [Binary Protocol Communication Patterns](#binary-protocol-communication-patterns)
+  - [Binary Protocol Transport](#binary-protocol-transport)
+- [Binary Protocol Functionality](#binary-protocol-functionality)
+  - [Displaying Visualisations](#displaying-visualisations)
+- [Service Connection Setup](#service-connection-setup)
+- [Service Connection Teardown](#service-connection-teardown)
+- [Protocol Message Specification - Key](#protocol-message-specification---key)
 - [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
     - [`Path`](#path)
-    - [`AbsolutePath`](#absolutepath)
 - [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
   - [Types](#types)
     - [`ProjectMetadata`](#projectmetadata)
@@ -53,6 +59,7 @@ services components, as well as any open questions that may remain.
     - [`File`](#file)
     - [`DirectoryTree`](#directorytree)
     - [`FileAttributes`](#fileattributes)
+    - [`UTCDateTime`](#utcdatetime)
     - [`FileEventKind`](#fileeventkind)
     - [`Position`](#position)
     - [`Range`](#range)
@@ -61,6 +68,10 @@ services components, as well as any open questions that may remain.
     - [`FileContents`](#filecontents)
     - [`FileSystemObject`](#filesystemobject)
     - [`WorkspaceEdit`](#workspaceedit)
+  - [Connection Management](#connection-management)
+    - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
+    - [`session/initDataConnection`](#sessioninitdataconnection)
+    - [`session/end`](#sessionend)
   - [Capability Management](#capability-management)
     - [`capability/acquire`](#capabilityacquire)
     - [`capability/release`](#capabilityrelease)
@@ -71,6 +82,7 @@ services components, as well as any open questions that may remain.
     - [`file/receivesTreeUpdates`](#filereceivestreeupdates)
     - [`executionContext/canModify`](#executioncontextcanmodify)
     - [`executionContext/receiveUpdates`](#executioncontextreceiveupdates)
+    - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
   - [File Management Operations](#file-management-operations)
     - [`file/write`](#filewrite)
     - [`file/read`](#fileread)
@@ -106,6 +118,9 @@ services components, as well as any open questions that may remain.
     - [`executionContext/pop`](#executioncontextpop)
     - [`executionContext/recompute`](#executioncontextrecompute)
     - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
+    - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
+    - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
+    - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
   - [Errors - Language Server](#errors---language-server)
 
 <!-- /MarkdownTOC -->
@@ -180,7 +195,7 @@ introduce significant coupling between the runtime implementation and the
 language server. Instead, the LS should only depend on `org.graalvm.polyglot` to
 interface with the runtime.
 
-## The Protocol Itself
+## Textual Protocol
 The protocol refers to the communication format that all of the above services
 speak between each other and to the GUI. This protocol is not specialised only
 to language server operations, as instead it needs to work for all of the
@@ -202,9 +217,9 @@ The protocol we are using intends to be fully compatible with the Microsoft LSP
      a future extension to the specification.
 
 Aside from the language server protocol-based operations, we will definitely
-need a protocol extension
+need a protocol extension to support Enso's custom language functionality.
 
-### Protocol Communication Patterns
+### Textual Protocol Communication Patterns
 Whatever protocol we decide on will need to have support for a couple of main
 communication patterns:
 
@@ -230,7 +245,7 @@ We can support additional patterns through LSP's mechanisms:
 - Asynchronous responses can be sent as notifications.
 - Protocol-level acknowledgements is supported directly in LSP.
 
-### The Protocol Transport
+### Textual Protocol Transport
 The transport of the protocol refers to the underlying layer over which its
 messages (discussed in [the protocol format](#the-protocol-format) below) are
 sent. As we are maintaining compatibility with LSP, the protocol transport
@@ -261,7 +276,7 @@ LSP messages. The following notes apply:
 This means that we have two pipes: one is the textual WebSocket defined by LSP,
 and the other is a binary WebSocket.
 
-## Protocol Functionality
+## Textual Protocol Functionality
 This entire section deals with the _functional_ requirements placed upon the
 protocol used by the engine services. These requirements are overwhelmingly
 imposed by the IDE, but also include additional functionality for the future
@@ -450,26 +465,6 @@ with visualisations. As a result that should be reserved for reporting progress
 of long-running operations within the _language server_ rather than in user
 code.
 
-### Visualisation Support
-A major part of Enso Studio's functionality is the rich embedded visualisations
-that it supports. This means that the following functionality is necessary:
-
-- Execution of an arbitrary Enso expression on a cached value designated by
-  a source location.
-- The ability to create and destroy visualisation subscriptions with an
-  arbitrary piece of Enso code as the preprocessing function.
-- The ability to update _existing_ subscriptions with a new preprocessing
-  function.
-
-From the implementation perspective:
-
-- This will need to be an entirely separate set of protocol messages that should
-  be specified in detail in this document.
-- Visualisations should work on a pub/sub model, where an update is sent every
-  time the underlying data is recomputed.
-- Protocol responses must contain a pointer into the binary pipe carrying the
-  visualisation data to identify an update.
-
 ### Completion
 The IDE needs the ability to request completions for some target point (cursor
 position) in the source code. In essence, this boils down to _some_ kind of
@@ -580,6 +575,115 @@ and will be expanded upon as necessary in the future.
 - **LSP Spec Completeness:** We should also support all LSP messages that are
   relevant to our language. Currently we only support a small subset thereof.
 
+## Binary Protocol
+The binary protocol refers to the auxiliary protocol used to transport raw
+binary data between the engine and the client. This functionality is _entirely_
+extraneous to the operation of the [textual protocol](#textual-protocol), and is
+used for transferring large amounts of data between Enso components.
+
+As the protocol is a binary transport, it is _mediated and controlled_ by
+messages that exist as part of the textual protocol.
+
+### Binary Protocol Communication Patterns
+The binary protocol currently only supports a single type of communication
+pattern:
+
+- **Push:** Messages containing data are pushed in response to operations 
+  performed using the textual protocol.
+
+### Binary Protocol Transport
+The binary protocol uses [flatbuffers](https://github.com/google/flatbuffers)
+for the protocol transport format. This choice has been made for a few reasons:
+
+- Robust multi-language support, including Rust and Java on the JVM.
+- High performance, including support for zero-copy data handling and streaming
+  data.
+- Robust, schema-based messages.
+
+## Binary Protocol Functionality
+The binary protocol exists in order to serve the high-bandwidth data transfer
+requirements of the engine and the GUI.
+
+### Displaying Visualisations
+A major part of Enso Studio's functionality is the rich embedded visualisations
+that it supports. This means that the following functionality is necessary:
+
+- Execution of an arbitrary Enso expression on a cached value designated by
+  a source location.
+- The ability to create and destroy visualisation subscriptions with an
+  arbitrary piece of Enso code as the preprocessing function.
+- The ability to update _existing_ subscriptions with a new preprocessing
+  function.
+
+Visualisations in Enso are able to output arbitrary data for display in the GUI,
+which requires a mechanism for transferring arbitrary data between the engine
+and the GUI. These visualisations can output data in common formats, which will
+be serialised by the transport (e.g. text), but they can also write arbitrary
+binary data that can then be interpreted by the visualisation component itself
+in any language that can be used from within the IDE.
+
+From the implementation perspective:
+
+- This will need to be an entirely separate set of protocol messages that should
+  be specified in detail in this document.
+- Visualisations should work on a pub/sub model, where an update is sent every
+  time the underlying data is recomputed.
+- Protocol responses must contain a pointer into the binary pipe carrying the
+  visualisation data to identify an update.
+
+## Service Connection Setup
+As these services need to support multiple clients in future, there is some
+rigmarole around setting up the various connections needed by each client. The
+process for spawning and connecting to an engine instance is as follows:
+
+1.  **Spawn the Server:** The project manager spawns the language server,
+    passing the socket information as part of the initialisation flow.
+2.  **Client ID Generation:** The client generates and stores a UUID that will
+    be used to identify the client while it is connected.
+3.  **Protocol Connection Initialisation:** The client performs the init for the
+    textual protocol connection, passing its client identifier as it does so.
+    See [`session/initProtocolConnection`](#sessioninitprotocolconnection)
+    below for more information.
+4.  **Data Connection Initialisation:** The client performs the init for the
+    data connection, passing its client identifier as it does so. See
+    [`session/initDataConnection`](#sessioninitdataconnection) below for more
+    information.
+
+## Service Connection Teardown
+As the engine performs sophisticated caching and persisting of data where
+possible, it is very important that the client informs the engine of the end of
+its session. In contrast to the initialisation flow above, this is not an
+involved process.
+
+1.  **Notify the Engine:** _Prior_ to disconnecting from the sockets, the client
+    must send `session/end` to the server.
+2.  **Disconnect:** Once that message has been sent, the client may disconnect
+    at any time.
+
+## Protocol Message Specification - Key
+The message specification for protocol messages must include the following
+fields:
+
+- **Type:** The type of the message (e.g. Request or Notification).
+- **Direction:** The direction in which the _originating_ message is sent
+  (either `Client -> Server` or `Server -> Client`).
+- **Connection:** Which connection the message should be sent on. Write
+  'Protocol' for the textual connection and 'Data' for the binary connection.
+- **Visibility:** Whether the method should be used by the public or is an
+  internal / implementation detail ('Public' or 'Private').
+
+They must also contain separate sections specifying their parameters, result (if
+it has one), and any errors that may occur. These specifications should be
+either in typescript or flatbuffers syntax, depending on the connection on
+which the message occurs.
+
+The capability specifications must include the following fields, as well as a
+section 'Enables' stating which protocol messages are gated by the capability.
+
+- **method:** The name of the capability.
+- **registerOptions:** The options that must be provided to register the
+  capability, described using typescript type syntax.
+
 ## Protocol Message Specification - Common Types
 There are a number of types that are shared between many of the protocol
 messages. They are specified below.
@@ -637,6 +741,8 @@ specified project.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -668,6 +774,8 @@ persist state to disk as needed.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -701,6 +809,8 @@ opened projects.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -727,6 +837,8 @@ This message requests the creation of a new project.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -758,6 +870,8 @@ This message requests the deletion of a project.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -787,6 +901,8 @@ This request lists the sample projects that are available to the user.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1057,12 +1173,102 @@ interface File {
 interface Other {
   name: String;
   path: Path;
-;
+}
 ```
 
 #### `WorkspaceEdit`
 This is a message to be specified once we better understand the intricacies of
 undo/redo.
+
+### Connection Management
+In order to properly set-up and tear-down the language server connection, we
+need a set of messages to control this process.
+
+#### `session/initProtocolConnection`
+This message initialises the connection used to send the textual protocol
+messages. This initialisation is important such that the client identifier can
+be correlated between the textual and data connections.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+##### Parameters
+
+```typescript
+{
+  clientId: UUID;
+}
+```
+
+##### Result
+
+```typescript
+{
+  contentRoots: [UUID];
+}
+```
+
+##### Errors
+TBC
+
+#### `session/initDataConnection`
+This message initialises the data connection used for transferring binary data
+between engine and clients. This initialisation is important such that the
+client identifier can be correlated between the data and textual connections.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Data
+- **Visibility:** Public
+
+##### Parameters
+
+```idl
+namespace session;
+
+struct UUID {
+  lowBytes:uint64;
+  highBytes:uint64;
+}
+
+struct Init {
+  identifier:UUID;
+}
+
+root_type Init;
+
+```
+
+##### Result
+
+```
+namespace session;
+
+table InitResponse {}
+```
+
+##### Errors
+N/A
+
+#### `session/end`
+This message informs the engine that the session is being terminated by a given
+user.
+
+- **Type:** Notification
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+##### Parameters
+
+```typescript
+null
+```
+
+##### Errors
+TBC
 
 ### Capability Management
 In order to mediate between multiple clients properly, the language server has
@@ -1075,6 +1281,8 @@ client.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1107,6 +1315,8 @@ capability.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1131,6 +1341,8 @@ action on its part.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1149,6 +1361,8 @@ capability set.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1202,8 +1416,6 @@ None
 - [`CapabilityNotAcquired`](#capabilitynotacquired) informs that requested
   capability is not acquired.
 
-
-
 #### `executionContext/canModify`
 This capability states that the client has the ability to modify an execution
 context, including modifying the execution stack, invalidating caches, or
@@ -1217,6 +1429,10 @@ destroying the context.
 - `executionContext/recompute`
 - `executionContext/push`
 - `executionContext/pop`
+- `executionContext/attachVisualisation`
+- `executionContext/modifyVisualisation`
+- `executionContext/detachVisualisation`
+- `executionContext/visualisationUpdate`
 
 ##### Disables
 None
@@ -1233,6 +1449,46 @@ a given execution context.
 
 ##### Disables
 None
+
+#### `executionContext/visualisationUpdate`
+This message is responsible for providing a visualisation data update to the
+client.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Data
+- **Visibility:** Public
+
+The `visualisationData` component of the table definition _must_ be
+pre-serialized before being inserted into this message. As far as this level of
+transport is concerned, it is just a binary blob.
+
+##### Parameters
+
+```idl
+namespace executionContext;
+
+struct UUID {
+  lowBytes:uint64;
+  highBytes:uint64;
+}
+
+struct VisualisationContext {
+  visualisationId:UUID;
+  contextId:UUID;
+  expressionId:UUID;
+}
+
+struct VisualisationUpdate {
+  visualisationContext:VisualisationContext;
+  data:[ubyte];
+}
+
+root_type VisualisationUpdate;
+```
+
+##### Errors
+N/A
 
 ### File Management Operations
 The language server also provides file operations to the IDE.
@@ -1279,6 +1535,8 @@ file.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 If the file is recorded as open by the language server, then the result will
 return the contents from the in-memory buffer rather than the file on disk.
@@ -1314,6 +1572,8 @@ This request asks the file manager to create the specified file system object.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 This will fail if the specified object already exists.
 
@@ -1345,6 +1605,8 @@ This request asks the file manager to delete the specified file system object.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1374,6 +1636,8 @@ another location.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1403,6 +1667,8 @@ another location.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 The move should be specified by filesystem events, and such notifications should
 inform the client that the currently edited file has been moved.
@@ -1436,6 +1702,8 @@ at the specified path.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1463,6 +1731,8 @@ directory tree starting at a given path.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 For trees that exceed the provided `depth`, the result should be truncated, and
 the corresponding flag should be set.
@@ -1499,6 +1769,8 @@ directory.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1528,6 +1800,8 @@ This request gets information about a specified filesystem object.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 This request should work for all kinds of filesystem object.
 
@@ -1559,6 +1833,8 @@ stays in synchronisation with reality.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 Events should be sent from server to client for every event observed under one
 of the (possibly multiple) content roots.
@@ -1580,6 +1856,8 @@ This request adds a content root to the active project.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 When a content root is added, the language server must notify clients other than
 the one that added the root by sending a `file/rootAdded`. Additionally, all
@@ -1610,6 +1888,8 @@ This request removes a content root from the active project.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 When a content root is removed, the language server must notify clients other
 than the one that added the root by sending a `file/rootRemoved`. Additionally,
@@ -1639,6 +1919,8 @@ addition of the root in order to inform them of the content root's ID.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1658,6 +1940,8 @@ removal of the content root in order to inform them of the removal of the root.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1680,6 +1964,8 @@ file.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 If no client has write lock on the opened file, the capability is granted to
 the client that sent the `text/openFile` message.
@@ -1718,6 +2004,8 @@ file.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1742,6 +2030,8 @@ This requests for the language server to save the specified file.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 The request may fail if the requesting client does not have permission to edit
 that file, or if the client is requesting a save of an outdated version.
@@ -1781,6 +2071,8 @@ edits solely concern text files.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 This operation may fail if the requesting client does not have permission to
 edit the resources for which edits are sent. This failure _may_ be partial, in
@@ -1816,6 +2108,8 @@ changes made to files that they have open.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 This notification must _only_ be sent for files that the client has open.
 
@@ -1842,6 +2136,8 @@ the server process, allowing it to obtain some initial information.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1866,6 +2162,8 @@ be undone.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 The exact behaviour of this message is to be determined, but it must involve the
 server undoing that same action for all clients in the workspace.
@@ -1893,6 +2191,8 @@ be redone.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 The exact behaviour of this message is to be determined, but it must involve the
 server redoing that same action for all clients in the workspace.
@@ -1968,7 +2268,7 @@ interface LocalCall {
 Points to a method definition.
 
 ```typescript
-{
+interface MethodPointer {
   file: Path;
   definedOnType: String;
   name: String;
@@ -1978,11 +2278,21 @@ Points to a method definition.
 ##### `ExpressionValueUpdate`
 
 ```typescript
-{
+interface ExpressionValueUpdate {
   id: ExpressionId;
   type?: String;
   shortValue?: String;
   methodCall?: MethodPointer;
+}
+```
+
+##### `VisualisationConfiguration`
+
+```typescript
+interface VisualisationConfiguration {
+  executionContextId: UUID;
+  visualisationModule: QualifiedName;
+  expression: String;
 }
 ```
 
@@ -1991,6 +2301,11 @@ Sent from the client to the server to create a new execution context. Return
 capabilities [`executionContext/canModify`](#executioncontextcanmodify) and
 [`executionContext/receivesEvents`](#executioncontextreceivesevents)
 containing freshly created [`ContextId`](#contextid)
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 ```typescript
@@ -2011,6 +2326,11 @@ None
 #### `executionContext/destroy`
 Sent from the client to the server destroy an execution context and free its
 resources.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 ```typescript
@@ -2034,6 +2354,11 @@ null
 Sent from the client to the server to duplicate an execution context, creating
 an independent copy, containing all the data precomputed in the first one.
 
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
 ##### Parameters
 ```typescript
 {
@@ -2056,6 +2381,11 @@ No known errors.
 #### `executionContext/push`
 Sent from the client to the server move the execution context to a new location
 deeper down the stack.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 ```typescript
@@ -2081,6 +2411,11 @@ null
 Sent from the client to the server move the execution context up the stack,
 corresponding to the client clicking out of the current breadcrumb.
 
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
 ##### Parameters
 ```typescript
 {
@@ -2101,11 +2436,16 @@ null
 Sent from the client to the server to force recomputation of current position.
 May include a list of expressions for which caches should be invalidated.
 
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
 ##### Parameters
 ```typescript
 {
   contextId: ContextId;
-  invalidatedExpressions?: "all" | ExpressionId[]
+  invalidatedExpressions?: "all" | [ExpressionId]
 }
 ```
 
@@ -2121,14 +2461,102 @@ No known errors.
 Sent from the server to the client to inform about new information for certain
 expressions becoming available.
 
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
 ##### Parameters
 ```typescript
 {
   contextId: ContextId;
-  updates: ExpressionValueUpdate[]
+  updates: [ExpressionValueUpdate]
 }
 ```
 
+##### Errors
+TBC
+
+#### `executionContext/attachVisualisation`
+This message allows the client to attach a visualisation, potentially
+preprocessed by some arbitrary Enso code, to a given node in the program.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+##### Parameters
+
+```typescript
+interface AttachVisualisationRequest {
+  visualisationId: UUID;
+  expressionId: UUID;
+  visualisationConfig: VisualisationConfiguration;
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `executionContext/detachVisualisation`
+This message allows a client to detach a visualisation from the executing code.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+##### Parameters
+
+```typescript
+interface DetachVisualisationRequest {
+  executionContextId: UUID;
+  visualisationId: UUID;
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `executionContext/modifyVisualisation`
+This message allows a client to modify the configuration for an existing
+visualisation.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+##### Parameters
+
+```typescript
+interface ModifyVisualisationRequest {
+  visualisationId: UUID;
+  visualisationConfig: VisualisationConfiguration;
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
 
 ### Errors - Language Server
 The language server component also has its own set of errors. This section is
