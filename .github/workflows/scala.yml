@@ -3,37 +3,26 @@ name: Enso CI
 on:
   push:
     branches: [ master ]
-    paths-ignore: 
-      - '.github/PULL_REQUEST_TEMPLATE.md'
-      - '.github/CODEOWNERS'
-      - '.github/ISSUE_TEMPLATE'
-      - '/doc/*'
-      - '.gitignore'
-      - '.scalafmt.conf'
-      - 'CODE_OF_CONDUCT.md'
-      - 'CONTRIBUTING.md'
-      - 'LICENSE'
-      - 'README.md'
   pull_request:
     branches: [ master ]
-    paths-ignore: 
-      - '.github/PULL_REQUEST_TEMPLATE.md'
-      - '.github/CODEOWNERS'
-      - '.github/ISSUE_TEMPLATE'
-      - '/doc/*'
-      - '.gitignore'
-      - '.scalafmt.conf'
-      - 'CODE_OF_CONDUCT.md'
-      - 'CONTRIBUTING.md'
-      - 'LICENSE'
-      - 'README.md'
 
 env:
   # Please ensure that this is in sync with graalAPIVersion in build.sbt
   graalVersion: 20.0.0
   javaVersion: java8
   # Please ensure that this is in sync with project/build.properties
-  sbtVersion: 1.3.5
+  sbtVersion: 1.3.9
+  excludedPaths: |
+    .github/PULL_REQUEST_TEMPLATE.md
+    .github/CODEOWNERS
+    .github/ISSUE_TEMPLATE/*
+    /doc/*
+    .gitignore
+    .scalafmt.conf
+    CODE_OF_CONDUCT.md
+    CONTRIBUTING.md
+    LICENSE
+    README.md
 
 jobs:
 
@@ -56,7 +45,59 @@ jobs:
       run: |
         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
         tar -xzf sbt.tgz
-        echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
+        echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+
+    # Caches (fragile, depends on the dependencies of the parser)
+    - name: Cache Ivy
+      uses: actions/cache@v1.1.2
+      with:
+        path: /home/runner/.ivy2/cache
+        key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
+        restore-keys: ${{ runner.os }}-ivy-
+    - name: Cache SBT
+      uses: actions/cache@v1.1.2
+      with:
+        path: /home/runner/.sbt
+        key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
+        restore-keys: ${{ runner.os }}-sbt-
+    - name: Cache SBT Project
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./project/target
+        key: ${{ runner.os }}-sbt-project-${{ hashFiles('project/**') }}
+        restore-keys: ${{ runner.os }}-sbt-project-
+    - name: Cache Unused (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/unused/.jvm
+        key: ${{ runner.os }}-unused-jvm-${{ hashFiles('common/unused/src/**') }}
+        restore-keys: ${{ runner.os }}-unused-jvm-
+    - name: Cache Logger (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/logger/.jvm
+        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('common/logger/src/**') }}
+        restore-keys: ${{ runner.os }}-logger-jvm-
+    - name: Cache Flexer (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/flexer/.jvm
+        key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('common/flexer/src/**') }}
+        restore-keys: ${{ runner.os }}-flexer-jvm-
+    - name: Cache Syntax Definition (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/syntax/definition/.jvm
+        key: ${{ runner.os }}-syntax-definition-jvm-${{ hashFiles('common/syntax/definition/src/**') }}
+        restore-keys: ${{ runner.os }}-syntax-defintion-jvm-
+    - name: Cache Syntax Specialization (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/syntax/specialization/jvm
+        key: ${{ runner.os }}-syntax-specialization-jvm-${{ hashFiles('common/syntax/specialization/shared/src/**') }}
+        restore-keys: ${{ runner.os }}-syntax-specialization-jvm-
+
+    # Tests
     - name: Test Enso
       run: sbt --no-colors test
     - name: Benchmark the Parser
@@ -67,9 +108,9 @@ jobs:
       run: sbt -no-colors runner/assembly
     - name: Test the Uberjar
       run: ./enso.jar --run ci/Test.enso
-      
+
   # This job is responsible for building the artifacts
-  build: 
+  build:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -90,7 +131,89 @@ jobs:
       run: |
         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
         tar -xzf sbt.tgz
-        echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
+        echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+
+    # Caches (fragile, depends on the dependencies of the parser)
+    - name: Cache Ivy
+      uses: actions/cache@v1.1.2
+      with:
+        path: /home/runner/.ivy2/cache
+        key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
+        restore-keys: ${{ runner.os }}-ivy-
+    - name: Cache SBT
+      uses: actions/cache@v1.1.2
+      with:
+        path: /home/runner/.sbt
+        key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
+        restore-keys: ${{ runner.os }}-sbt-
+    - name: Cache SBT Project
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./project/target
+        key: ${{ runner.os }}-sbt-project-${{ hashFiles('project/**') }}
+        restore-keys: ${{ runner.os }}-sbt-project-
+    - name: Cache Unused (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/unused/.jvm
+        key: ${{ runner.os }}-unused-jvm-${{ hashFiles('common/unused/src/**') }}
+        restore-keys: ${{ runner.os }}-unused-jvm-
+    - name: Cache Logger (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/logger/.jvm
+        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('common/logger/src/**') }}
+        restore-keys: ${{ runner.os }}-logger-jvm-
+    - name: Cache Flexer (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/flexer/.jvm
+        key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('common/flexer/src/**') }}
+        restore-keys: ${{ runner.os }}-flexer-jvm-
+    - name: Cache Syntax Definition (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/syntax/definition/.jvm
+        key: ${{ runner.os }}-syntax-definition-jvm-${{ hashFiles('common/syntax/definition/src/**') }}
+        restore-keys: ${{ runner.os }}-syntax-defintion-jvm-
+    - name: Cache Syntax Specialization (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/syntax/specialization/jvm
+        key: ${{ runner.os }}-syntax-specialization-jvm-${{ hashFiles('common/syntax/specialization/shared/src/**') }}
+        restore-keys: ${{ runner.os }}-syntax-specialization-jvm-
+    - name: Cache Unused (JS)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/unused/.js
+        key: ${{ runner.os }}-unused-js-${{ hashFiles('common/unused/src/**') }}
+        restore-keys: ${{ runner.os }}-unused-js-
+    - name: Cache Logger (JS)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/logger/.js
+        key: ${{ runner.os }}-logger-js-${{ hashFiles('common/logger/src/**') }}
+        restore-keys: ${{ runner.os }}-logger-js-
+    - name: Cache Flexer (JS)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/flexer/.js
+        key: ${{ runner.os }}-flexer-js-${{ hashFiles('common/flexer/src/**') }}
+        restore-keys: ${{ runner.os }}-flexer-js-
+    - name: Cache Syntax Definition (JS)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/syntax/definition/.js
+        key: ${{ runner.os }}-syntax-definition-js-${{ hashFiles('common/syntax/definition/src/**') }}
+        restore-keys: ${{ runner.os }}-syntax-defintion-js-
+    - name: Cache Syntax Specialization (JS)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/syntax/specialization/js
+        key: ${{ runner.os }}-syntax-specialization-js-${{ hashFiles('common/syntax/specialization/shared/src/**') }}
+        restore-keys: ${{ runner.os }}-syntax-specialization-js-
+
+    # Builds
     - name: Build the Uberjar
       run: sbt --no-colors runner/assembly
     - name: Publish the Uberjar
@@ -128,3 +251,4 @@ jobs:
         null
         text
         EOF
+
