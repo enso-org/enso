@@ -13,6 +13,7 @@ import org.enso.languageserver.data.{
   ContentBasedVersioning
 }
 import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.TextProtocol.{
   ApplyEdit,
@@ -39,6 +40,9 @@ class BufferRegistry(fileManager: ActorRef)(
   override def receive: Receive = running(Map.empty)
 
   private def running(registry: Map[Path, ActorRef]): Receive = {
+    case Ping =>
+      sender() ! Pong
+
     case msg @ OpenFile(_, path) =>
       if (registry.contains(path)) {
         registry(path).forward(msg)

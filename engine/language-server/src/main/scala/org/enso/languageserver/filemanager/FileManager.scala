@@ -5,6 +5,7 @@ import akka.routing.SmallestMailboxPool
 import akka.pattern.pipe
 import org.enso.languageserver.effect._
 import org.enso.languageserver.data.Config
+import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
 import zio._
 
@@ -27,6 +28,9 @@ class FileManager(
   import context.dispatcher
 
   override def receive: Receive = {
+    case Ping =>
+      sender() ! Pong
+
     case FileManagerProtocol.WriteFile(path, content) =>
       val result =
         for {

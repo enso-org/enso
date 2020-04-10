@@ -109,6 +109,8 @@ services components, as well as any open questions that may remain.
     - [`workspace/connect`](#workspaceconnect)
     - [`workspace/undo`](#workspaceundo)
     - [`workspace/redo`](#workspaceredo)
+  - [Monitoring](#monitoring)
+    - [`heartbeat/ping`](#heartbeatping)
   - [Execution Management](#execution-management-1)
     - [Types](#types-2)
     - [`executionContext/create`](#executioncontextcreate)
@@ -2213,6 +2215,35 @@ null
 
 ##### Errors
 TBC
+
+### Monitoring
+The language server also has a heartbeat operation to monitor the Language
+server. This API is private and should be used only by the Project Manager.
+
+#### `heartbeat/ping`
+This request is sent from the supervisor process to the server to check the
+health of the Language Server.
+
+- **Type:** Request
+- **Direction:** Supervisor -> Server
+- **Connection:** Protocol
+- **Visibility:** Private
+
+##### Parameters
+
+```typescript
+null
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+None
+
 
 ### Execution Management
 The execution management portion of the language server API deals with exposing

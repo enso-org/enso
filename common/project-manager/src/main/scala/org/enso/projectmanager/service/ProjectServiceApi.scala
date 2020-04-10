@@ -2,7 +2,7 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 
-import org.enso.projectmanager.data.{ProjectMetadata, SocketData}
+import org.enso.projectmanager.data.{ProjectMetadata, Socket}
 
 /**
   * A contract for the Project Service.
@@ -37,7 +37,7 @@ trait ProjectServiceApi[F[+_, +_]] {
   def openProject(
     clientId: UUID,
     projectId: UUID
-  ): F[ProjectServiceFailure, SocketData]
+  ): F[ProjectServiceFailure, Socket]
 
   /**
     * Closes a project. Tries to shut down the Language Server.

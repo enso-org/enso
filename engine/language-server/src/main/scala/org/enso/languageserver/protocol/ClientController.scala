@@ -14,9 +14,11 @@ import org.enso.languageserver.capability.CapabilityApi.{
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.data.Client
 import org.enso.languageserver.event.{ClientConnected, ClientDisconnected}
-import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.filemanager.FileManagerApi._
+import org.enso.languageserver.filemanager.PathWatcherProtocol
+import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.requesthandler._
+import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.TextApi._
@@ -55,6 +57,16 @@ class ClientController(
 
   private val requestHandlers: Map[Method, Props] =
     Map(
+      Ping -> PingHandler.props(
+        List(
+          server,
+          bufferRegistry,
+          capabilityRouter,
+          fileManager,
+          contextRegistry
+        ),
+        requestTimeout
+      ),
       AcquireCapability -> AcquireCapabilityHandler
         .props(capabilityRouter, requestTimeout, client),
       ReleaseCapability -> ReleaseCapabilityHandler

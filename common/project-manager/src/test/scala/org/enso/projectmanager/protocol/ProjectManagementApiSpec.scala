@@ -6,7 +6,7 @@ import java.util.UUID
 
 import io.circe.literal._
 import io.circe.parser.parse
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.Socket
 
 class ProjectManagementApiSpec extends BaseServerSpec {
 
@@ -474,7 +474,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
 
   def openProject(
     projectId: UUID
-  )(implicit client: WsTestClient): SocketData = {
+  )(implicit client: WsTestClient): Socket = {
     client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/open",
@@ -490,7 +490,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
       .downField("languageServerAddress")
     val Right(host) = socketField.downField("host").as[String]
     val Right(port) = socketField.downField("port").as[Int]
-    SocketData(host, port)
+    Socket(host, port)
   }
 
   def closeProject(

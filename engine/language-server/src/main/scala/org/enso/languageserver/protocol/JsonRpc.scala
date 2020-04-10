@@ -9,8 +9,9 @@ import org.enso.languageserver.capability.CapabilityApi.{
   ReleaseCapability
 }
 import org.enso.languageserver.filemanager.FileManagerApi._
-import org.enso.languageserver.text.TextApi._
+import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.text.TextApi._
 
 object JsonRpc {
 
@@ -18,6 +19,7 @@ object JsonRpc {
     * A description of supported JSON RPC messages.
     */
   val protocol: Protocol = Protocol.empty
+    .registerRequest(Ping)
     .registerRequest(AcquireCapability)
     .registerRequest(ReleaseCapability)
     .registerRequest(WriteFile)

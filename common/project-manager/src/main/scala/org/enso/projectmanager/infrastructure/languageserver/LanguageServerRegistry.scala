@@ -5,7 +5,8 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
 import org.enso.projectmanager.boot.configuration.{
   BootloaderConfig,
-  NetworkConfig
+  NetworkConfig,
+  SupervisionConfig
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   CheckIfServerIsRunning,
@@ -26,7 +27,8 @@ import org.enso.projectmanager.util.UnhandledLogging
   */
 class LanguageServerRegistry(
   networkConfig: NetworkConfig,
-  bootloaderConfig: BootloaderConfig
+  bootloaderConfig: BootloaderConfig,
+  supervisionConfig: SupervisionConfig
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -42,7 +44,7 @@ class LanguageServerRegistry(
       } else {
         val controller = context.actorOf(
           LanguageServerController
-            .props(project, networkConfig, bootloaderConfig)
+            .props(project, networkConfig, bootloaderConfig, supervisionConfig)
         )
         context.watch(controller)
         controller.forward(msg)
@@ -87,8 +89,15 @@ object LanguageServerRegistry {
     */
   def props(
     networkConfig: NetworkConfig,
-    bootloaderConfig: BootloaderConfig
+    bootloaderConfig: BootloaderConfig,
+    supervisionConfig: SupervisionConfig
   ): Props =
-    Props(new LanguageServerRegistry(networkConfig, bootloaderConfig))
+    Props(
+      new LanguageServerRegistry(
+        networkConfig,
+        bootloaderConfig,
+        supervisionConfig
+      )
+    )
 
 }

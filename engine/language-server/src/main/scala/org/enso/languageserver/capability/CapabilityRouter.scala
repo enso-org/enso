@@ -10,6 +10,7 @@ import org.enso.languageserver.data.{
   CapabilityRegistration,
   ReceivesTreeUpdates
 }
+import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
 
 /**
@@ -28,6 +29,9 @@ class CapabilityRouter(
     with UnhandledLogging {
 
   override def receive: Receive = {
+    case Ping =>
+      sender() ! Pong
+
     case msg @ AcquireCapability(_, CapabilityRegistration(CanEdit(_))) =>
       bufferRegistry.forward(msg)
 

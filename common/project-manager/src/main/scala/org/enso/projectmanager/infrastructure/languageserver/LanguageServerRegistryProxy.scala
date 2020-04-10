@@ -10,7 +10,7 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel}
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.model.Project
 
@@ -33,7 +33,7 @@ class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatM
   override def start(
     clientId: UUID,
     project: Project
-  ): F[ServerStartupFailure, SocketData] =
+  ): F[ServerStartupFailure, Socket] =
     Async[F]
       .fromFuture { () =>
         (registry ? StartServer(clientId, project)).mapTo[ServerStartupResult]

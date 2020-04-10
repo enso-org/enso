@@ -2,7 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   CheckTimeout,
   ServerStartupFailure,
@@ -27,7 +27,7 @@ trait LanguageServerService[F[+_, +_]] {
   def start(
     clientId: UUID,
     project: Project
-  ): F[ServerStartupFailure, SocketData]
+  ): F[ServerStartupFailure, Socket]
 
   /**
     * Stops a lang. server.

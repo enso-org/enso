@@ -3,6 +3,7 @@ package org.enso.languageserver.runtime
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.filemanager.FileSystemFailure
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
@@ -52,6 +53,9 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
     withStore(ContextRegistry.Store(Map()))
 
   private def withStore(store: ContextRegistry.Store): Receive = {
+    case Ping =>
+      sender() ! Pong
+
     case CreateContextRequest(client) =>
       val handler =
         context.actorOf(CreateContextHandler.props(timeout, runtime))

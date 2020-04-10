@@ -2,7 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.model.Project
 
 /**
@@ -28,7 +28,7 @@ object LanguageServerProtocol {
     *
     * @param socket the server socket
     */
-  case class ServerStarted(socket: SocketData) extends ServerStartupResult
+  case class ServerStarted(socket: Socket) extends ServerStartupResult
 
   /**
     * Base trait for server startup failures.

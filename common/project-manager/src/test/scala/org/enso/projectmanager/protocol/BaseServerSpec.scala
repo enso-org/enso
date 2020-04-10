@@ -13,6 +13,7 @@ import org.enso.projectmanager.boot.configuration.{
   BootloaderConfig,
   NetworkConfig,
   StorageConfig,
+  SupervisionConfig,
   TimeoutConfig
 }
 import org.enso.projectmanager.control.effect.ZioEnvExec
@@ -69,6 +70,9 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   lazy val netConfig = NetworkConfig("127.0.0.1", 40000, 60000)
 
+  lazy val supervisionConfig =
+    SupervisionConfig(5.seconds, 10.seconds, 5.seconds, 3, 1.seconds)
+
   implicit val exec = new ZioEnvExec(Runtime.default)
 
   lazy val fileSystem = new BlockingFileSystem(5.seconds)
@@ -92,7 +96,10 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val projectValidator = new MonadicProjectValidator[ZIO[ZEnv, *, *]]()
 
   lazy val languageServerRegistry =
-    system.actorOf(LanguageServerRegistry.props(netConfig, bootloaderConfig))
+    system.actorOf(
+      LanguageServerRegistry
+        .props(netConfig, bootloaderConfig, supervisionConfig)
+    )
 
   lazy val languageServerService =
     new LanguageServerRegistryProxy[ZIO[ZEnv, +*, +*]](

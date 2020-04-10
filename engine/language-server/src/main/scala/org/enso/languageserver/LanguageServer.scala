@@ -7,6 +7,7 @@ import org.enso.languageserver.event.{
   ClientDisconnected,
   ClientEvent
 }
+import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.util.UnhandledLogging
 
 object LanguageProtocol {
@@ -34,6 +35,7 @@ class LanguageServer(config: Config)
   }
 
   override def receive: Receive = {
+    case Ping => sender() ! Pong
     case Initialize =>
       log.debug("Language Server initialized.")
       unstashAll()
@@ -45,6 +47,7 @@ class LanguageServer(config: Config)
     config: Config,
     env: Environment = Environment.empty
   ): Receive = {
+    case Ping => sender() ! Pong
     case ClientConnected(client) =>
       log.info("Client connected [{}].", client.id)
       context.become(

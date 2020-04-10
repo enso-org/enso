@@ -8,7 +8,7 @@ import org.enso.languageserver.boot.{
   LanguageServerConfig
 }
 import org.enso.projectmanager.boot.configuration.BootloaderConfig
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
   Boot,
   FindFreeSocket,
@@ -54,11 +54,11 @@ class LanguageServerBootLoader(
       )
       self ! Boot
       context.become(
-        booting(SocketData(descriptor.networkConfig.interface, port), retry)
+        booting(Socket(descriptor.networkConfig.interface, port), retry)
       )
   }
 
-  private def booting(socket: SocketData, retryCount: Int): Receive = {
+  private def booting(socket: Socket, retryCount: Int): Receive = {
     case Boot =>
       log.debug("Booting a language server")
       val config = LanguageServerConfig(

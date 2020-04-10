@@ -15,24 +15,27 @@ import akka.actor.{
   Terminated
 }
 import akka.pattern.pipe
-import org.enso.languageserver.boot.LanguageServerComponent.ServerStopped
+import org.enso.languageserver.boot.LifecycleComponent.ComponentStopped
 import org.enso.languageserver.boot.{
   LanguageServerComponent,
   LanguageServerConfig
 }
 import org.enso.projectmanager.boot.configuration.{
   BootloaderConfig,
-  NetworkConfig
+  NetworkConfig,
+  SupervisionConfig
 }
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
+import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
   ServerBootFailed,
   ServerBooted
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.{
   Boot,
-  BootTimeout
+  BootTimeout,
+  ServerDied
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
@@ -52,13 +55,14 @@ import scala.concurrent.duration._
 class LanguageServerController(
   project: Project,
   networkConfig: NetworkConfig,
-  bootloaderConfig: BootloaderConfig
+  bootloaderConfig: BootloaderConfig,
+  supervisionConfig: SupervisionConfig
 ) extends Actor
     with ActorLogging
     with Stash
     with UnhandledLogging {
 
-  import context.dispatcher
+  import context.{dispatcher, system}
 
   private val descriptor =
     LanguageServerDescriptor(
@@ -81,7 +85,8 @@ class LanguageServerController(
     case Boot =>
       val bootloader =
         context.actorOf(
-          LanguageServerBootLoader.props(descriptor, bootloaderConfig)
+          LanguageServerBootLoader.props(descriptor, bootloaderConfig),
+          "bootloader"
         )
       context.watch(bootloader)
       val timeoutCancellable =
@@ -108,6 +113,16 @@ class LanguageServerController(
       unstashAll()
       timeoutCancellable.cancel()
       context.become(supervising(config, server))
+      context.actorOf(
+        LanguageServerSupervisor.props(
+          config,
+          server,
+          supervisionConfig,
+          new AkkaBasedWebSocketConnectionFactory(),
+          context.system.scheduler
+        ),
+        "supervisor"
+      )
 
     case Terminated(Bootloader) =>
       log.error(s"Bootloader for project ${project.name} failed")
@@ -127,7 +142,7 @@ class LanguageServerController(
   ): Receive = {
     case StartServer(clientId, _) =>
       sender() ! ServerStarted(
-        SocketData(config.interface, config.port)
+        Socket(config.interface, config.port)
       )
       context.become(supervising(config, server, clients + clientId))
 
@@ -140,6 +155,9 @@ class LanguageServerController(
     case ClientDisconnected(clientId) =>
       removeClient(config, server, clients, clientId, None)
 
+    case ServerDied =>
+      log.error(s"Language server died [$config]")
+      context.stop(self)
   }
 
   private def removeClient(
@@ -163,7 +181,6 @@ class LanguageServerController(
     case StartServer(_, _) =>
       sender() ! LanguageServerProtocol.ServerBootFailed(th)
       stop()
-
   }
 
   private def stopping(maybeRequester: Option[ActorRef]): Receive = {
@@ -175,15 +192,28 @@ class LanguageServerController(
       maybeRequester.foreach(_ ! FailureDuringStoppage(th))
       stop()
 
-    case ServerStopped =>
+    case ComponentStopped =>
       log.info(s"Language server shut down successfully [$project].")
-      maybeRequester.foreach(_ ! LanguageServerProtocol.ServerStopped)
+      maybeRequester.foreach(_ ! ServerStopped)
       stop()
   }
 
+  private def waitingForChildren(): Receive = {
+    case Terminated(_) =>
+      if (context.children.isEmpty) {
+        context.stop(self)
+      }
+  }
+
   private def stop(): Unit = {
-    context.stop(self)
     context.parent ! ServerShutDown(project.id)
+    if (context.children.isEmpty) {
+      context.stop(self)
+    } else {
+      context.children.foreach(_ ! GracefulStop)
+      context.children.foreach(context.watch)
+      context.become(waitingForChildren())
+    }
   }
 
 }
@@ -201,10 +231,16 @@ object LanguageServerController {
   def props(
     project: Project,
     networkConfig: NetworkConfig,
-    bootloaderConfig: BootloaderConfig
+    bootloaderConfig: BootloaderConfig,
+    supervisionConfig: SupervisionConfig
   ): Props =
     Props(
-      new LanguageServerController(project, networkConfig, bootloaderConfig)
+      new LanguageServerController(
+        project,
+        networkConfig,
+        bootloaderConfig,
+        supervisionConfig
+      )
     )
 
   /**
@@ -216,5 +252,7 @@ object LanguageServerController {
     * Boot command.
     */
   case object Boot
+
+  case object ServerDied
 
 }
