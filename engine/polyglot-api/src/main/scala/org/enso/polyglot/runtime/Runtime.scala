@@ -55,6 +55,10 @@ object Runtime {
         name  = "popContextResponse"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.ExpressionValuesComputed],
+        name  = "expressionValuesComputed"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.ContextNotExistError],
         name  = "contextNotExistError"
       ),
@@ -76,6 +80,7 @@ object Runtime {
   sealed trait Api
   sealed trait ApiRequest  extends Api
   sealed trait ApiResponse extends Api
+  sealed trait ApiNotification extends ApiResponse
 
   object Api {
 
@@ -127,6 +132,32 @@ object Runtime {
         */
       case class LocalCall(expressionId: ExpressionId) extends StackItem
     }
+
+    /**
+      * An update containing information about expression.
+      *
+      * @param expressionId expression id
+      * @param expressionType optional type of expression
+      * @param shortValue optional value of expression
+      * @param methodCall optional pointer to a method definition
+      */
+    case class ExpressionValueUpdate(
+      expressionId: ExpressionId,
+      expressionType: Option[String],
+      shortValue: Option[String],
+      methodCall: Option[MethodPointer]
+    )
+
+    /**
+      * A notification about updated expressions of the context.
+      *
+      * @param contextId the context's id.
+      * @param updates a list of updates.
+      */
+    case class ExpressionValuesComputed(
+      contextId: ContextId,
+      updates: Vector[ExpressionValueUpdate]
+    ) extends ApiNotification
 
     /**
       * Envelope for an Api request.

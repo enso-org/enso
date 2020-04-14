@@ -1,5 +1,6 @@
 package org.enso.languageserver.websocket
 
+import java.nio.file.Paths
 import java.util.UUID
 
 import io.circe.literal._
@@ -256,6 +257,77 @@ class ContextRegistryTest extends BaseServerTest {
             }
           }
           """)
+    }
+
+    "send notifications" in {
+      val client = new WsTestClient(address)
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // notify
+      val update = Api.ExpressionValueUpdate(
+        expressionId   = UUID.randomUUID(),
+        expressionType = Some("ExpressionType"),
+        shortValue     = Some("ShortValue"),
+        methodCall = Some(
+          Api.MethodPointer(
+            file          = testContentRoot,
+            definedOnType = "DefinedOnType",
+            name          = "Name"
+          )
+        )
+      )
+      val invalidPathUpdate = Api.ExpressionValueUpdate(
+        expressionId   = UUID.randomUUID(),
+        expressionType = None,
+        shortValue     = None,
+        methodCall = Some(
+          Api.MethodPointer(Paths.get("/invalid"), "Invalid", "Invalid")
+        )
+      )
+      system.eventStream.publish(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(update, invalidPathUpdate)
+        )
+      )
+      client.expectJson(json"""
+          { "jsonrpc" : "2.0",
+            "method" : "executionContext/expressionValuesComputed",
+            "params" : {
+              "contextId" : $contextId,
+              "updates" : [
+                {
+                  "id" : ${update.expressionId},
+                  "type" : "ExpressionType",
+                  "shortValue" : "ShortValue",
+                  "methodCall" : {
+                    "file" : {
+                      "rootId" : $testContentRootId,
+                      "segments" : [
+                      ]
+                    },
+                    "definedOnType" : "DefinedOnType",
+                    "name" : "Name"
+                  }
+                }
+              ]
+            }
+          }
+      """)
     }
   }
 

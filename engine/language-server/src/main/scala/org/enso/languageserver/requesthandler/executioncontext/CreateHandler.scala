@@ -6,6 +6,7 @@ import org.enso.jsonrpc._
 import org.enso.languageserver.data.{
   CanModify,
   CapabilityRegistration,
+  Client,
   ReceivesEvents
 }
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -23,10 +24,12 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
+  * @param client an object representing a client connected to the language server
   */
 class CreateHandler(
   timeout: FiniteDuration,
-  contextRegistry: ActorRef
+  contextRegistry: ActorRef,
+  client: Client
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -37,7 +40,7 @@ class CreateHandler(
 
   private def requestStage: Receive = {
     case Request(ExecutionContextCreate, id, _) =>
-      contextRegistry ! CreateContextRequest(sender())
+      contextRegistry ! CreateContextRequest(client)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -75,8 +78,13 @@ object CreateHandler {
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.
+    * @param client an object representing a client connected to the language server
     */
-  def props(timeout: FiniteDuration, contextRegistry: ActorRef): Props =
-    Props(new CreateHandler(timeout, contextRegistry))
+  def props(
+    timeout: FiniteDuration,
+    contextRegistry: ActorRef,
+    client: Client
+  ): Props =
+    Props(new CreateHandler(timeout, contextRegistry, client))
 
 }

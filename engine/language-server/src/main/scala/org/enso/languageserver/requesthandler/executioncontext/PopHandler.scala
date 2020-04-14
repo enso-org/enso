@@ -3,6 +3,7 @@ package org.enso.languageserver.requesthandler.executioncontext
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
+import org.enso.languageserver.data.Client
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.{
@@ -18,10 +19,12 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
+  * @param client an object representing a client connected to the language server
   */
 class PopHandler(
   timeout: FiniteDuration,
-  contextRegistry: ActorRef
+  contextRegistry: ActorRef,
+  client: Client
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -32,7 +35,7 @@ class PopHandler(
 
   private def requestStage: Receive = {
     case Request(ExecutionContextPop, id, params: ExecutionContextPop.Params) =>
-      contextRegistry ! PopContextRequest(sender(), params.contextId)
+      contextRegistry ! PopContextRequest(client, params.contextId)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -67,8 +70,13 @@ object PopHandler {
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.
+    * @param client an object representing a client connected to the language server
     */
-  def props(timeout: FiniteDuration, contextRegistry: ActorRef): Props =
-    Props(new PopHandler(timeout, contextRegistry))
+  def props(
+    timeout: FiniteDuration,
+    contextRegistry: ActorRef,
+    client: Client
+  ): Props =
+    Props(new PopHandler(timeout, contextRegistry, client))
 
 }

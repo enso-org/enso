@@ -590,7 +590,7 @@ messages that exist as part of the textual protocol.
 The binary protocol currently only supports a single type of communication
 pattern:
 
-- **Push:** Messages containing data are pushed in response to operations 
+- **Push:** Messages containing data are pushed in response to operations
   performed using the textual protocol.
 
 ### Binary Protocol Transport
@@ -2508,7 +2508,7 @@ expressions becoming available.
 ```
 
 ##### Errors
-TBC
+None
 
 #### `executionContext/attachVisualisation`
 This message allows the client to attach a visualisation, potentially

@@ -3,6 +3,7 @@ package org.enso.languageserver.requesthandler.executioncontext
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
+import org.enso.languageserver.data.Client
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.{
@@ -18,10 +19,12 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
+  * @param client an object representing a client connected to the language server
   */
 class PushHandler(
   timeout: FiniteDuration,
-  contextRegistry: ActorRef
+  contextRegistry: ActorRef,
+  client: Client
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -37,7 +40,7 @@ class PushHandler(
         params: ExecutionContextPush.Params
         ) =>
       contextRegistry ! PushContextRequest(
-        sender(),
+        client,
         params.contextId,
         params.stackItem
       )
@@ -75,8 +78,13 @@ object PushHandler {
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.
+    * @param client an object representing a client connected to the language server
     */
-  def props(timeout: FiniteDuration, contextRegistry: ActorRef): Props =
-    Props(new PushHandler(timeout, contextRegistry))
+  def props(
+    timeout: FiniteDuration,
+    contextRegistry: ActorRef,
+    client: Client
+  ): Props =
+    Props(new PushHandler(timeout, contextRegistry, client))
 
 }

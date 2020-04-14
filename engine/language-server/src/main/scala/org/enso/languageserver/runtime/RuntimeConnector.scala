@@ -38,6 +38,8 @@ class RuntimeConnector
     senders: Map[Runtime.Api.RequestId, ActorRef]
   ): Receive = {
     case Destroy => context.stop(self)
+    case msg: Runtime.ApiNotification =>
+      context.system.eventStream.publish(msg)
     case msg: Runtime.Api.Request =>
       engine.sendBinary(Runtime.Api.serialize(msg))
       context.become(initialized(engine, senders + (msg.requestId -> sender())))

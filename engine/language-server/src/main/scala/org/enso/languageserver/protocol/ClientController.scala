@@ -19,6 +19,7 @@ import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
+import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.TextApi._
@@ -88,13 +89,13 @@ class ClientController(
       TreeFile   -> file.TreeFileHandler.props(requestTimeout, fileManager),
       InfoFile   -> file.InfoFileHandler.props(requestTimeout, fileManager),
       ExecutionContextCreate -> executioncontext.CreateHandler
-        .props(requestTimeout, contextRegistry),
+        .props(requestTimeout, contextRegistry, client),
       ExecutionContextDestroy -> executioncontext.DestroyHandler
-        .props(requestTimeout, contextRegistry),
+        .props(requestTimeout, contextRegistry, client),
       ExecutionContextPush -> executioncontext.PushHandler
-        .props(requestTimeout, contextRegistry),
+        .props(requestTimeout, contextRegistry, client),
       ExecutionContextPop -> executioncontext.PopHandler
-        .props(requestTimeout, contextRegistry)
+        .props(requestTimeout, contextRegistry, client)
     )
 
   override def receive: Receive = {
@@ -122,6 +123,13 @@ class ClientController(
 
     case PathWatcherProtocol.FileEventResult(event) =>
       webActor ! Notification(EventFile, EventFile.Params(event))
+
+    case ContextRegistryProtocol
+          .ExpressionValuesComputedNotification(contextId, updates) =>
+      webActor ! Notification(
+        ExecutionContextExpressionValuesComputed,
+        ExecutionContextExpressionValuesComputed.Params(contextId, updates)
+      )
 
     case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
       val handler = context.actorOf(requestHandlers(method))

@@ -1,6 +1,6 @@
 package org.enso.languageserver.runtime
 
-import akka.actor.ActorRef
+import org.enso.languageserver.data.Client
 import org.enso.languageserver.filemanager.FileSystemFailure
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 
@@ -16,7 +16,7 @@ object ContextRegistryProtocol {
     *
     * @param client reference to the client
     */
-  case class CreateContextRequest(client: ActorRef)
+  case class CreateContextRequest(client: Client)
 
   /**
     * A response about creation of a new execution context.
@@ -30,7 +30,7 @@ object ContextRegistryProtocol {
     *
     * @param client reference to the client
     */
-  case class DestroyContextRequest(client: ActorRef, contextId: ContextId)
+  case class DestroyContextRequest(client: Client, contextId: ContextId)
 
   /**
     * A response about deletion of an execution context.
@@ -48,7 +48,7 @@ object ContextRegistryProtocol {
     * @param stackItem an object representing an item on the stack
     */
   case class PushContextRequest(
-    client: ActorRef,
+    client: Client,
     contextId: ContextId,
     stackItem: StackItem
   )
@@ -67,7 +67,7 @@ object ContextRegistryProtocol {
     * @param client reference to the client
     * @param contextId execution context identifier
     */
-  case class PopContextRequest(client: ActorRef, contextId: ContextId)
+  case class PopContextRequest(client: Client, contextId: ContextId)
 
   /**
     * A response about popping the stack.
@@ -75,6 +75,17 @@ object ContextRegistryProtocol {
     * @param contextId execution context identifier
     */
   case class PopContextResponse(contextId: ContextId)
+
+  /**
+    * A notification that new information about some expressions is available.
+    *
+    * @param contextId execution context identifier
+    * @param updates a list of updated expressions
+    */
+  case class ExpressionValuesComputedNotification(
+    contextId: ContextId,
+    updates: Vector[ExpressionValueUpdate]
+  )
 
   /**
     * Signals that user doesn't have access to the requested context.

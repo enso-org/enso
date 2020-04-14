@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
-import org.enso.languageserver.data.Config
+import org.enso.languageserver.data.{Client, Config}
 import org.enso.languageserver.filemanager.FileSystemFailure
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.runtime.handler._
@@ -20,12 +20,20 @@ import org.enso.polyglot.runtime.Runtime.Api
   * Legend:
   *
   *   - 1  - Singleton
+  *   - *C - Created per client.
+  *   - *X - Created per context.
   *   - *H - Request is forwarded to intermediate handler. Created per request.
   *
   * {{{
   *
-  *                   *C                            1
-  *  +------------------+   *H    +------------------+
+  *                                                     *X
+  *                               +-----------------------+
+  *            +------------------+ ContextEventsListener |
+  *            |                  +-----------------------+
+  *            |
+  *            |
+  *            v      *C                            1
+  *  +---------+--------+   *H    +------------------+
   *  | ClientController +----+--->+ ContextRegistry  |
   *  +------------------+    ^    +---------+--------+
   *                          |              |
@@ -50,26 +58,28 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
   private val timeout = config.executionContext.requestTimeout
 
   override def receive: Receive =
-    withStore(ContextRegistry.Store(Map()))
+    withStore(ContextRegistry.Store())
 
   private def withStore(store: ContextRegistry.Store): Receive = {
     case Ping =>
       sender() ! Pong
 
     case CreateContextRequest(client) =>
+      val contextId = UUID.randomUUID()
       val handler =
         context.actorOf(CreateContextHandler.props(timeout, runtime))
-      val contextId = UUID.randomUUID()
+      val listener =
+        context.actorOf(ContextEventsListener.props(config, client, contextId))
       handler.forward(Api.CreateContextRequest(contextId))
-      context.become(withStore(store.addContext(client, contextId)))
+      context.become(withStore(store.addContext(client, contextId, listener)))
 
     case DestroyContextRequest(client, contextId) =>
-      val contexts = store.getContexts(client)
-      if (contexts.contains(contextId)) {
+      if (store.hasContext(client, contextId)) {
         val handler =
           context.actorOf(DestroyContextHandler.props(timeout, runtime))
+        store.getListener(contextId).foreach(context.stop)
         handler.forward(Api.DestroyContextRequest(contextId))
-        context.become(withStore(store.updated(client, contexts - contextId)))
+        context.become(withStore(store.removeContext(client, contextId)))
       } else {
         sender() ! AccessDenied
       }
@@ -125,21 +135,41 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
 
 object ContextRegistry {
 
-  private type ClientRef = ActorRef
+  private case class Store(
+    contexts: Map[Client, Set[ContextId]],
+    listeners: Map[ContextId, ActorRef]
+  ) {
 
-  private case class Store(store: Map[ClientRef, Set[ContextId]]) {
+    def addContext(
+      client: Client,
+      contextId: ContextId,
+      listener: ActorRef
+    ): Store =
+      copy(
+        contexts  = contexts + (client     -> (getContexts(client) + contextId)),
+        listeners = listeners + (contextId -> listener)
+      )
 
-    def addContext(client: ClientRef, contextId: ContextId): Store =
-      copy(store = store + (client -> (getContexts(client) + contextId)))
+    def removeContext(client: Client, contextId: ContextId): Store =
+      copy(
+        contexts  = contexts.updated(client, getContexts(client) - contextId),
+        listeners = listeners - contextId
+      )
 
-    def updated(client: ClientRef, contexts: Set[ContextId]): Store =
-      copy(store = store.updated(client, contexts))
+    def getContexts(client: Client): Set[ContextId] =
+      contexts.getOrElse(client, Set())
 
-    def getContexts(client: ClientRef): Set[ContextId] =
-      store.getOrElse(client, Set())
+    def getListener(contextId: ContextId): Option[ActorRef] =
+      listeners.get(contextId)
 
-    def hasContext(client: ClientRef, contextId: ContextId): Boolean =
+    def hasContext(client: Client, contextId: ContextId): Boolean =
       getContexts(client).contains(contextId)
+  }
+
+  private object Store {
+
+    def apply(): Store =
+      Store(Map(), Map())
   }
 
   /**

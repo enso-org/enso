@@ -5,7 +5,8 @@ import java.util.UUID
 
 import org.enso.languageserver.filemanager.{
   ContentRootNotFound,
-  FileSystemFailure
+  FileSystemFailure,
+  Path
 }
 
 import scala.concurrent.duration._
@@ -94,5 +95,15 @@ case class Config(
     contentRoots
       .get(rootId)
       .toRight(ContentRootNotFound)
+
+  def findRelativePath(path: File): Option[Path] =
+    contentRoots.view.flatMap {
+      case (id, root) =>
+        if (path.toPath.startsWith(root.toPath)) {
+          Some(Path(id, root.toPath.relativize(path.toPath)))
+        } else {
+          None
+        }
+    }.headOption
 
 }
