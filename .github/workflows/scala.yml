@@ -66,35 +66,29 @@ jobs:
         path: ./project/target
         key: ${{ runner.os }}-sbt-project-${{ hashFiles('project/**') }}
         restore-keys: ${{ runner.os }}-sbt-project-
-    - name: Cache Unused (JVM)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./common/unused/.jvm
-        key: ${{ runner.os }}-unused-jvm-${{ hashFiles('common/unused/src/**') }}
-        restore-keys: ${{ runner.os }}-unused-jvm-
     - name: Cache Logger (JVM)
       uses: actions/cache@v1.1.2
       with:
-        path: ./common/logger/.jvm
-        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('common/logger/src/**') }}
+        path: ./lib/logger/.jvm
+        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('lib/logger/src/**') }}
         restore-keys: ${{ runner.os }}-logger-jvm-
     - name: Cache Flexer (JVM)
       uses: actions/cache@v1.1.2
       with:
-        path: ./common/flexer/.jvm
-        key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('common/flexer/src/**') }}
+        path: ./lib/flexer/.jvm
+        key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('lib/flexer/src/**') }}
         restore-keys: ${{ runner.os }}-flexer-jvm-
     - name: Cache Syntax Definition (JVM)
       uses: actions/cache@v1.1.2
       with:
-        path: ./common/syntax/definition/.jvm
-        key: ${{ runner.os }}-syntax-definition-jvm-${{ hashFiles('common/syntax/definition/src/**') }}
+        path: ./lib/syntax/definition/.jvm
+        key: ${{ runner.os }}-syntax-definition-jvm-${{ hashFiles('lib/syntax/definition/src/**') }}
         restore-keys: ${{ runner.os }}-syntax-defintion-jvm-
     - name: Cache Syntax Specialization (JVM)
       uses: actions/cache@v1.1.2
       with:
-        path: ./common/syntax/specialization/jvm
-        key: ${{ runner.os }}-syntax-specialization-jvm-${{ hashFiles('common/syntax/specialization/shared/src/**') }}
+        path: ./lib/syntax/specialization/jvm
+        key: ${{ runner.os }}-syntax-specialization-jvm-${{ hashFiles('lib/syntax/specialization/shared/src/**') }}
         restore-keys: ${{ runner.os }}-syntax-specialization-jvm-
 
     # Tests
@@ -107,7 +101,7 @@ jobs:
     - name: Build the Uberjar
       run: sbt -no-colors runner/assembly
     - name: Test the Uberjar
-      run: ./enso.jar --run ci/Test.enso
+      run: ./enso.jar --run tools/ci/Test.enso
 
   # This job is responsible for building the artifacts
   build:
@@ -152,65 +146,53 @@ jobs:
         path: ./project/target
         key: ${{ runner.os }}-sbt-project-${{ hashFiles('project/**') }}
         restore-keys: ${{ runner.os }}-sbt-project-
-    - name: Cache Unused (JVM)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./common/unused/.jvm
-        key: ${{ runner.os }}-unused-jvm-${{ hashFiles('common/unused/src/**') }}
-        restore-keys: ${{ runner.os }}-unused-jvm-
     - name: Cache Logger (JVM)
       uses: actions/cache@v1.1.2
       with:
-        path: ./common/logger/.jvm
-        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('common/logger/src/**') }}
+        path: ./lib/logger/.jvm
+        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('lib/logger/src/**') }}
         restore-keys: ${{ runner.os }}-logger-jvm-
     - name: Cache Flexer (JVM)
       uses: actions/cache@v1.1.2
       with:
-        path: ./common/flexer/.jvm
-        key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('common/flexer/src/**') }}
+        path: ./lib/flexer/.jvm
+        key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('lib/flexer/src/**') }}
         restore-keys: ${{ runner.os }}-flexer-jvm-
     - name: Cache Syntax Definition (JVM)
       uses: actions/cache@v1.1.2
       with:
-        path: ./common/syntax/definition/.jvm
-        key: ${{ runner.os }}-syntax-definition-jvm-${{ hashFiles('common/syntax/definition/src/**') }}
+        path: ./lib/syntax/definition/.jvm
+        key: ${{ runner.os }}-syntax-definition-jvm-${{ hashFiles('lib/syntax/definition/src/**') }}
         restore-keys: ${{ runner.os }}-syntax-defintion-jvm-
     - name: Cache Syntax Specialization (JVM)
       uses: actions/cache@v1.1.2
       with:
-        path: ./common/syntax/specialization/jvm
-        key: ${{ runner.os }}-syntax-specialization-jvm-${{ hashFiles('common/syntax/specialization/shared/src/**') }}
+        path: ./lib/syntax/specialization/jvm
+        key: ${{ runner.os }}-syntax-specialization-jvm-${{ hashFiles('lib/syntax/specialization/shared/src/**') }}
         restore-keys: ${{ runner.os }}-syntax-specialization-jvm-
-    - name: Cache Unused (JS)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./common/unused/.js
-        key: ${{ runner.os }}-unused-js-${{ hashFiles('common/unused/src/**') }}
-        restore-keys: ${{ runner.os }}-unused-js-
     - name: Cache Logger (JS)
       uses: actions/cache@v1.1.2
       with:
-        path: ./common/logger/.js
-        key: ${{ runner.os }}-logger-js-${{ hashFiles('common/logger/src/**') }}
+        path: ./lib/logger/.js
+        key: ${{ runner.os }}-logger-js-${{ hashFiles('lib/logger/src/**') }}
         restore-keys: ${{ runner.os }}-logger-js-
     - name: Cache Flexer (JS)
       uses: actions/cache@v1.1.2
       with:
-        path: ./common/flexer/.js
-        key: ${{ runner.os }}-flexer-js-${{ hashFiles('common/flexer/src/**') }}
+        path: ./lib/flexer/.js
+        key: ${{ runner.os }}-flexer-js-${{ hashFiles('lib/flexer/src/**') }}
         restore-keys: ${{ runner.os }}-flexer-js-
     - name: Cache Syntax Definition (JS)
       uses: actions/cache@v1.1.2
       with:
-        path: ./common/syntax/definition/.js
-        key: ${{ runner.os }}-syntax-definition-js-${{ hashFiles('common/syntax/definition/src/**') }}
+        path: ./lib/syntax/definition/.js
+        key: ${{ runner.os }}-syntax-definition-js-${{ hashFiles('lib/syntax/definition/src/**') }}
         restore-keys: ${{ runner.os }}-syntax-defintion-js-
     - name: Cache Syntax Specialization (JS)
       uses: actions/cache@v1.1.2
       with:
-        path: ./common/syntax/specialization/js
-        key: ${{ runner.os }}-syntax-specialization-js-${{ hashFiles('common/syntax/specialization/shared/src/**') }}
+        path: ./lib/syntax/specialization/js
+        key: ${{ runner.os }}-syntax-specialization-js-${{ hashFiles('lib/syntax/specialization/shared/src/**') }}
         restore-keys: ${{ runner.os }}-syntax-specialization-js-
 
     # Builds
@@ -251,4 +233,3 @@ jobs:
         null
         text
         EOF
-

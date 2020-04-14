@@ -86,7 +86,7 @@ class RuntimeServerTest
 
   "Runtime server" should "allow executing a stack of functions by entering them through call-sites" in {
     val metadata = new Metadata
-    val idMainX  = metadata.addItem(14, 7)
+    val _        = metadata.addItem(14, 7)
     val idMainY  = metadata.addItem(30, 7)
     val idFooY   = metadata.addItem(85, 8)
     val idFooZ   = metadata.addItem(102, 5)

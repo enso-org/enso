@@ -1,4 +1,19 @@
-# Enso Compiler and Interpreter
+# Enso Runtime
+The Enso [runtime](/runtime) is responsible for the actual execution of Enso
+code. This means that it encompasses the following functionality:
+
+- **Parsing:** Taking Enso code as input and generating an AST that maintains a
+  sophisticated set of information about the input.
+- **Desugaring:** Reducing the user-facing Enso code into a simplified language
+  known as `Core`.
+- **Type Inference:** Inferring the types of bindings in the user's code.
+- **Type Checking:** Checking that the inferred and provided types for bindings
+  match up across the codebase.
+- **Optimisation:** Static optimisation processes to improve the performance of
+  the user's program.
+- **Code Execution:** Actually running the Enso code.
+- **Introspection Hooks:** Providing hooks into the running code to allow the
+  language server to inspect information about the code as it runs.
 
 ### Truffle Nodes creation convention
 

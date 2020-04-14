@@ -74,6 +74,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
           _ <- Future { mainModule.context.close(true) }.recover(logError)
           _ <- Future { maybeServerState = None }
         } yield ComponentStopped
+       Future()
     }
   }
 

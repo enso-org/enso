@@ -68,8 +68,7 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-unused:locals",               // Warn if a local definition is unused.
   "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
   "-Ywarn-unused:privates",             // Warn if a private member is unused.
-  "-Ywarn-unused:params",               // Warn if a value parameter is unused.
-  "-Ywarn-value-discard"                // Warn when non-Unit expression results are unused.
+  "-Ywarn-unused:params"                // Warn if a value parameter is unused.
 )
 
 /////////////////////////////////
@@ -89,19 +88,18 @@ lazy val buildNativeImage =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    unused.jvm,
     flexer.jvm,
-    syntax_definition.jvm,
+    `syntax-definition`.jvm,
     syntax.jvm,
     pkg,
     runtime,
-    polyglot_api,
-    parser_service,
-    file_manager,
-    project_manager,
+    `polyglot-api`,
+    `parser-service`,
+    `file-manager`,
+    `project-manager`,
     graph,
     runner,
-    language_server
+    `language-server`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
@@ -174,8 +172,7 @@ val jsSettings = Seq(
 lazy val logger = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
-  .in(file("common/logger"))
-  .dependsOn(unused)
+  .in(file("lib/logger"))
   .settings(
     version := "0.1",
     libraryDependencies ++= scala_compiler
@@ -185,7 +182,7 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
 lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
-  .in(file("common/flexer"))
+  .in(file("lib/flexer"))
   .dependsOn(logger)
   .settings(
     version := "0.1",
@@ -198,19 +195,13 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   )
   .jsSettings(jsSettings)
 
-lazy val unused = crossProject(JVMPlatform, JSPlatform)
+lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
-  .in(file("common/unused"))
-  .settings(version := "0.1", scalacOptions += "-nowarn")
-  .jsSettings(testFrameworks := Nil)
-
-lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("common/syntax/definition"))
+  .in(file("lib/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
+    scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= monocle ++ scala_compiler ++ Seq(
       "org.typelevel" %%% "cats-core"     % catsVersion,
       "org.typelevel" %%% "kittens"       % "2.0.0",
@@ -225,12 +216,13 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full)
-  .in(file("common/syntax/specialization"))
-  .dependsOn(logger, flexer, syntax_definition)
+  .in(file("lib/syntax/specialization"))
+  .dependsOn(logger, flexer, `syntax-definition`)
   .configs(Test)
   .configs(Benchmark)
   .settings(
     testFrameworks := Nil,
+    scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     logBuffered := false,
@@ -244,7 +236,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
         val parserCompile =
-          (syntax_definition.jvm / Compile / compileIncremental).value
+          (`syntax-definition`.jvm / Compile / compileIncremental).value
         if (parserCompile.hasModified) {
           Def.task {
             streams.value.log.info("Parser changed, forcing recompilation.")
@@ -272,14 +264,14 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
 
-lazy val parser_service = (project in file("common/parser-service"))
+lazy val `parser-service` = (project in file("lib/parser-service"))
   .dependsOn(syntax.jvm)
   .settings(
     libraryDependencies ++= akka,
     mainClass := Some("org.enso.ParserServiceMain")
   )
 
-lazy val graph = (project in file("common/graph/"))
+lazy val graph = (project in file("lib/graph/"))
   .dependsOn(logger.jvm)
   .configs(Test)
   .settings(
@@ -315,7 +307,7 @@ lazy val graph = (project in file("common/graph/"))
     )
   )
 
-lazy val pkg = (project in file("common/pkg"))
+lazy val pkg = (project in file("lib/pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
@@ -325,7 +317,7 @@ lazy val pkg = (project in file("common/pkg"))
     )
   )
 
-lazy val file_manager = (project in file("common/file-manager"))
+lazy val `file-manager` = (project in file("lib/file-manager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.filemanager.FileManager")
   )
@@ -341,7 +333,7 @@ lazy val file_manager = (project in file("common/file-manager"))
     libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
   )
 
-lazy val project_manager = (project in file("common/project-manager"))
+lazy val `project-manager` = (project in file("lib/project-manager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.projectmanager.boot.ProjectManager")
   )
@@ -377,27 +369,36 @@ lazy val project_manager = (project in file("common/project-manager"))
     )
   )
   .dependsOn(pkg)
-  .dependsOn(language_server)
+  .dependsOn(`language-server`)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
 
-//////////////////////
-//// Sub Projects ////
-//////////////////////
+lazy val `json-rpc-server` = project
+  .in(file("lib/json-rpc-server"))
+  .settings(
+    libraryDependencies ++= akka,
+    libraryDependencies ++= circe,
+    libraryDependencies ++= Seq(
+      "io.circe"      %% "circe-literal" % circeVersion,
+      akkaTestkit     % Test,
+      "org.scalatest" %% "scalatest" % "3.2.0-M2" % Test
+    )
+  )
 
-val truffleRunOptions = Seq(
-  "-Dpolyglot.engine.IterativePartialEscape=true",
-  "-XX:-UseJVMCIClassLoader",
-  "-Dpolyglot.engine.BackgroundCompilation=false",
-  "-Dgraalvm.locatorDisabled=true"
-)
+lazy val `json-rpc-server-test` = project
+  .in(file("lib/json-rpc-server-test"))
+  .settings(
+    libraryDependencies ++= akka,
+    libraryDependencies ++= circe,
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-literal" % circeVersion,
+      akkaTestkit,
+      "org.scalatest" %% "scalatest" % "3.2.0-M2"
+    )
+  )
+  .dependsOn(`json-rpc-server`)
 
-val truffleRunOptionsSettings = Seq(
-  fork := true,
-  javaOptions ++= truffleRunOptions
-)
-
-lazy val core_definition = (project in file("engine/core-definition"))
+lazy val `core-definition` = (project in file("lib/core-definition"))
   .configs(Benchmark)
   .settings(
     version := "0.1",
@@ -428,7 +429,23 @@ lazy val core_definition = (project in file("engine/core-definition"))
   .dependsOn(graph)
   .dependsOn(syntax.jvm)
 
-lazy val polyglot_api = project
+//////////////////////
+//// Sub Projects ////
+//////////////////////
+
+val truffleRunOptions = Seq(
+  "-Dpolyglot.engine.IterativePartialEscape=true",
+  "-XX:-UseJVMCIClassLoader",
+  "-Dpolyglot.engine.BackgroundCompilation=false",
+  "-Dgraalvm.locatorDisabled=true"
+)
+
+val truffleRunOptionsSettings = Seq(
+  fork := true,
+  javaOptions ++= truffleRunOptions
+)
+
+lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
   .settings(
     Test / fork := true,
@@ -462,7 +479,7 @@ lazy val polyglot_api = project
   )
   .dependsOn(pkg)
 
-lazy val language_server = (project in file("engine/language-server"))
+lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
       "ch.qos.logback"             % "logback-classic" % "1.2.3",
@@ -491,7 +508,7 @@ lazy val language_server = (project in file("engine/language-server"))
       new TestFramework("org.scalameter.ScalaMeterFramework")
     )
   )
-  .dependsOn(polyglot_api)
+  .dependsOn(`polyglot-api`)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
 
@@ -524,10 +541,10 @@ lazy val runtime = (project in file("engine/runtime"))
       "eu.timepit"          %% "refined"              % "0.9.12"
     ),
     // Note [Unmanaged Classpath]
-    Compile / unmanagedClasspath += (core_definition / Compile / packageBin).value,
-    Test / unmanagedClasspath += (core_definition / Compile / packageBin).value,
+    Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
+    Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Compile / compile := (Compile / compile)
-      .dependsOn(core_definition / Compile / packageBin)
+      .dependsOn(`core-definition` / Compile / packageBin)
       .value
   )
   .settings(
@@ -569,7 +586,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(pkg)
   .dependsOn(syntax.jvm)
   .dependsOn(graph)
-  .dependsOn(polyglot_api)
+  .dependsOn(`polyglot-api`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -651,30 +668,5 @@ lazy val runner = project
   )
   .dependsOn(runtime)
   .dependsOn(pkg)
-  .dependsOn(language_server)
-  .dependsOn(polyglot_api)
-
-lazy val `json-rpc-server` = project
-  .in(file("common/json-rpc-server"))
-  .settings(
-    libraryDependencies ++= akka,
-    libraryDependencies ++= circe,
-    libraryDependencies ++= Seq(
-      "io.circe"      %% "circe-literal" % circeVersion,
-      akkaTestkit     % Test,
-      "org.scalatest" %% "scalatest" % "3.2.0-M2" % Test
-    )
-  )
-
-lazy val `json-rpc-server-test` = project
-  .in(file("common/json-rpc-server-test"))
-  .settings(
-    libraryDependencies ++= akka,
-    libraryDependencies ++= circe,
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-literal" % circeVersion,
-      akkaTestkit,
-      "org.scalatest" %% "scalatest" % "3.2.0-M2"
-    )
-  )
-  .dependsOn(`json-rpc-server`)
+  .dependsOn(`language-server`)
+  .dependsOn(`polyglot-api`)
