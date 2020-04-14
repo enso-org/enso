@@ -103,6 +103,6 @@ all the ways in which you can help out with the project, as well as provides
 detailed instructions for building and hacking on Enso.
 
 <a href="https://github.com/luna/enso/graphs/contributors">
-  <img src="https://contributors-img.firebaseapp.com/image?repo=luna/enso" />
+  <img src="https://opencollective.com/enso-language/contributors.svg?width=890&button=false">
 </a>
 
