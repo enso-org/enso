@@ -132,6 +132,7 @@ impl Default for AxisOrder {
 }
 
 
+
 // =================
 // === Transform ===
 // =================
@@ -150,6 +151,7 @@ pub enum TransformOrder {
 impl Default for TransformOrder {
     fn default() -> Self { Self::ScaleRotateTranslate }
 }
+
 
 
 // =============================
@@ -177,6 +179,7 @@ impl<OnChange> HierarchicalTransform<OnChange> {
     }
 }
 
+
 // === Getters ===
 
 impl<OnChange> HierarchicalTransform<OnChange> {
@@ -190,6 +193,7 @@ impl<OnChange> HierarchicalTransform<OnChange> {
 
     ...
 }
+
 
 // === Setters ===
 
@@ -212,11 +216,16 @@ impl<OnChange:Callback0> HierarchicalTransform<OnChange> {
 We use the following rules for the amount of vertical space separating various
 constructs in the source:
 
-- 2 blank lines after the imporst
-- 2 blank lines before each section
-- 1 blank line before and after sub-section
-- 1 blank line before functions / structures / impls
-- 1 blank line at the end of the file
+- 3 blank lines after imports.
+- 3 blank lines before each section.
+- 2 blank lines before each sub-section.
+- 1 blank line after each section / sub-section.
+- 1 blank line before functions / structures / impls.
+- 1 blank line at the end of the file.
+
+Please note that the spacing 'overlaps', in that if multiple rules, you should
+take the maximum of the spacings that apply. For example, if you have a section
+following the imports, you only use three lines of spacing.
 
 ### Multi-Line Expressions
 In an ideal world, all expressions in the code should be a single line. This is
@@ -331,7 +340,7 @@ pub fn new<Dom:Str>
 }
 ```
 
-Long `where` clauses are formatted this way:
+Long `where` clauses are formatted like this:
 
 ```rust
 pub fn new<D,L>(dom:D, logger:L) -> Result<Self,Error>
@@ -340,7 +349,7 @@ where D:AsRef<str>, L:IsLogger {
 }
 ```
 
-Or, in case they are really long, this way:
+Or, in case they are really long, like this:
 
 ```rust
 pub fn new<D,L>(dom:D, logger:L) -> Result<Self,Error>
@@ -403,6 +412,32 @@ fn set_field(&mut self, val:Type) {
 }
 ```
 
+### Trait Exports
+All names should be designed to be used in a qualified fashion. This does,
+however, make one situation quite tricky. In order to use methods defined inside
+a trait, that trait has to be in scope.
+
+Consider a trait `display::Object`. We want to use it in a function definition
+like the following `fn test<T:display::Object>(t:T) { ... }`, and we also want
+the ability to use methods defined in the trait (and hence it has to be in
+scope). Under these circumstances, `clippy` warns that `display::Object` is
+being subject to unnecessary qualification, but we don't want to perform the
+replacement.
+
+In order to export traits, please rename them using the following convention:
+
+```rust
+/// Common traits.
+pub mod traits {
+    // Read the Rust Style Guide to learn more about the used naming.
+    pub use super::Object    as TRAIT_Object;
+    pub use super::ObjectOps as TRAIT_ObjectOps;
+```
+
+Once we have such a definition, we can import traits into scope using the simple
+`use display::object::traits::*`, which will avoid any warnings about
+unnecessary qualification.
+
 ## Naming
 Enso has some fairly simple general naming conventions, though the sections
 below may provide more rules for use in specific cases.
@@ -425,7 +460,8 @@ below may provide more rules for use in specific cases.
 
 ## Package Structure and Naming
 Enso follows the standard rust convention for structuring crates, as provided
-by `cargo new`. This is discussed more in depth [here](https://learning-rust.github.io/docs/a4.cargo,crates_and_basic_project_structure.html#Project-Structure).
+by `cargo new`. This is discussed more in depth
+[here](https://learning-rust.github.io/docs/a4.cargo,crates_and_basic_project_structure.html#Project-Structure).
 
 In order to match up with the project naming convention we use for Scala and
 Java projects, any rust code must be in a directory named using `UpperCamelCase`

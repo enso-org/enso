@@ -43,8 +43,8 @@
 
 Enso is an open-source, visual language for data science that lets you design,
 prototype, develop and refactor any application by connecting visual elements
-together. Enso lets you collaborate with your co-workers, interactively 
-fine-tune parameters, inspect results and visually profile and debug your 
+together. Enso lets you collaborate with your co-workers, interactively
+fine-tune parameters, inspect results and visually profile and debug your
 programs in real-time, creating a moment where the mind is free to let the body
 create.
 
@@ -73,7 +73,17 @@ information, please read the detailed instructions in
 ### Enso's Design
 If you would like to gain a better understanding of the principles on which Enso
 is based, or just delve into the why's and what's of Enso's design, please take
-a look in the [`doc/design/` folder](./doc/design).
+a look in the [`doc/` folder](./doc/). It is split up into subfolders for each
+component of Enso, and then further subdivided into:
+
+- `specification`: Specification of elements of the language.
+- `design`: Documents detailing the design process and how decisions were made.
+- `implementation`: Documentation detailing complexities, or design decisions
+  made at the implementation level.
+
+This folder also contains a document on Enso's
+[design philosophy](./doc/enso-philosophy.md), that details the thought process
+that we use when contemplating changes or additions to the language.
 
 This documentation will evolve as Enso does, both to help newcomers to the
 project understand the reasoning behind the code, but also to act as a record of
