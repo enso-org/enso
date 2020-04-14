@@ -5,7 +5,6 @@ import java.util.UUID
 import java.util.function.Consumer
 
 import com.oracle.truffle.api.TruffleContext
-import com.oracle.truffle.api.instrumentation.TruffleInstrument
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue

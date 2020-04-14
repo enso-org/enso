@@ -9,15 +9,27 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation, TailCall}
-import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  ApplicationSaturation,
+  TailCall
+}
+import org.enso.compiler.pass.desugar.{
+  GenerateMethodBodies,
+  LiftSpecialOperators,
+  OperatorToFunction
+}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope, TopLevelScope}
+import org.enso.interpreter.runtime.scope.{
+  LocalScope,
+  ModuleScope,
+  TopLevelScope
+}
 import org.enso.polyglot.LanguageInfo
-import org.enso.syntax.text.{AST, Debug, Parser}
+import org.enso.syntax.text.{AST, Parser}
 
 /**
   * This class encapsulates the static transformation processes that take place
@@ -179,8 +191,8 @@ class Compiler(
     * @return the output result of the
     */
   def runCompilerPhases(ir: IR.Module): IR.Module = {
-    compilerPhaseOrdering.foldLeft(ir)(
-      (intermediateIR, pass) => pass.runModule(intermediateIR)
+    compilerPhaseOrdering.foldLeft(ir)((intermediateIR, pass) =>
+      pass.runModule(intermediateIR)
     )
   }
 
@@ -195,9 +207,8 @@ class Compiler(
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    compilerPhaseOrdering.foldLeft(ir)(
-      (intermediateIR, pass) =>
-        pass.runExpression(intermediateIR, inlineContext)
+    compilerPhaseOrdering.foldLeft(ir)((intermediateIR, pass) =>
+      pass.runExpression(intermediateIR, inlineContext)
     )
   }
 

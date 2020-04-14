@@ -5,13 +5,13 @@ import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.IdentifiedLocation
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
+import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
+import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   ApplicationSaturation,
   TailCall
 }
-import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
-import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -50,7 +50,6 @@ import org.enso.interpreter.runtime.error.{
 }
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
-import org.enso.syntax.text.Location
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -131,8 +130,8 @@ class IRToTruffle(
     }
 
     // Register the imports in scope
-    imports.foreach(
-      i => this.moduleScope.addImport(context.compiler.processImport(i.name))
+    imports.foreach(i =>
+      this.moduleScope.addImport(context.compiler.processImport(i.name))
     )
 
     // Register the atoms and their constructors in scope
@@ -218,8 +217,8 @@ class IRToTruffle(
 
       val cons = moduleScope
         .getConstructor(typeName)
-        .orElseThrow(
-          () => new VariableDoesNotExistException(methodDef.typeName.name)
+        .orElseThrow(() =>
+          new VariableDoesNotExistException(methodDef.typeName.name)
         )
       moduleScope.registerMethod(cons, methodDef.methodName.name, function)
     })
@@ -256,9 +255,7 @@ class IRToTruffle(
   ): T = {
     location.foreach { loc =>
       expr.setSourceLocation(loc.start, loc.length)
-      loc.id.foreach { id =>
-        expr.setId(id)
-      }
+      loc.id.foreach { id => expr.setId(id) }
     }
     expr
   }
@@ -414,23 +411,21 @@ class IRToTruffle(
         val targetNode = this.run(scrutinee)
 
         val cases = branches
-          .map(
-            branch => {
-              val caseIsTail = branch
-                .getMetadata[TailCall.Metadata]
-                .getOrElse(
-                  throw new CompilerError(
-                    "Case branch missing tail position information."
-                  )
+          .map(branch => {
+            val caseIsTail = branch
+              .getMetadata[TailCall.Metadata]
+              .getOrElse(
+                throw new CompilerError(
+                  "Case branch missing tail position information."
                 )
+              )
 
-              val caseNode = ConstructorCaseNode
-                .build(this.run(branch.pattern), this.run(branch.expression))
-              caseNode.setTail(caseIsTail)
+            val caseNode = ConstructorCaseNode
+              .build(this.run(branch.pattern), this.run(branch.expression))
+            caseNode.setTail(caseIsTail)
 
-              caseNode
-            }
-          )
+            caseNode
+          })
           .toArray[CaseNode]
 
         // Note [Pattern Match Fallbacks]
