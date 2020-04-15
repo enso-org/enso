@@ -117,7 +117,7 @@ shared! { TextField
         content          : TextFieldContent,
         cursors          : Cursors,
         rendered         : TextFieldSprites,
-        display_object   : display::object::Node,
+        display_object   : display::object::Instance,
         frp              : Option<TextFieldFrp>,
         word_occurrences : Option<WordOccurrences>,
         #[derivative(Debug="ignore")]
@@ -129,7 +129,7 @@ shared! { TextField
 
     impl {
         /// Display object getter.
-        pub fn display_object(&self) -> display::object::Node {
+        pub fn display_object(&self) -> display::object::Instance {
             self.display_object.clone()
         }
 
@@ -456,7 +456,7 @@ impl TextField {
 impl TextFieldData {
     fn new(world:&World, initial_content:&str, properties:TextFieldProperties) -> Self {
         let logger               = Logger::new("TextField");
-        let display_object       = display::object::Node::new(logger);
+        let display_object       = display::object::Instance::new(logger);
         let content              = TextFieldContent::new(initial_content,&properties);
         let cursors              = Cursors::default();
         let rendered             = TextFieldSprites::new(world,&properties);
@@ -465,7 +465,7 @@ impl TextFieldData {
         let text_change_callback = None;
         let focus_manager        = world.text_field_focus_manager().clone_ref();
         let focused              = false;
-        display_object.add_child(&rendered.display_object);
+        display_object.add_child(&rendered);
 
         Self {properties,content,cursors,rendered,display_object,frp,word_occurrences,
               text_change_callback,focus_manager,focused}.initialize()
@@ -506,7 +506,7 @@ impl TextFieldData {
 
 // === Display Object ===
 
-//impl From<&TextField> for display::object::Node {
+//impl From<&TextField> for display::object::Instance {
 //    fn from(text_fields: &TextField) -> Self {
 //        text_fields.rc.borrow().display_object.clone_ref()
 //    }

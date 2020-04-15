@@ -41,6 +41,8 @@ pub use num::Num;
 pub use paste;
 pub use shrinkwraprs::Shrinkwrap;
 pub use weak_table::traits::WeakElement;
+pub use weak_table::traits::WeakKey;
+pub use weak_table::WeakKeyHashMap;
 pub use weak_table::WeakValueHashMap;
 pub use weak_table;
 

@@ -247,7 +247,7 @@ pub struct Bindings {
 /// Symbol is a surface with attached `Shader`.
 #[derive(Debug,Clone,CloneRef)]
 pub struct Symbol {
-    display_object    : display::object::Node,
+    display_object    : display::object::Instance,
     pub id            : i32,
     surface           : Mesh,
     shader            : Shader,
@@ -294,7 +294,7 @@ impl Symbol {
             let stats             = SymbolStats::new(stats);
             let context           = context.clone();
             let symbol_id_uniform = variables.add_or_panic("symbol_id",id);
-            let display_object    = display::object::Node::new(logger.clone());
+            let display_object    = display::object::Instance::new(logger.clone());
             let is_hidden         = Rc::new(Cell::new(false));
             display_object.set_on_hide(enclose!((is_hidden) move || { is_hidden.set(true)  }));
             display_object.set_on_show(enclose!((is_hidden) move || { is_hidden.set(false) }));
@@ -532,14 +532,8 @@ impl Symbol {
 
 // === Conversions ===
 
-impl From<&Symbol> for display::object::Node {
-    fn from(t:&Symbol) -> Self {
-        t.display_object.clone_ref()
-    }
-}
-
-impl<'t> From<&'t Symbol> for &'t display::object::Node {
-    fn from(t:&'t Symbol) -> Self {
-        &t.display_object
+impl display::Object for Symbol {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
     }
 }

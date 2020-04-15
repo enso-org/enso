@@ -55,15 +55,15 @@ pub struct SpriteGuard {
     instance_id    : AttributeInstanceIndex,
     symbol         : Symbol,
     bbox           : Attribute<Vector2<f32>>,
-    display_object : display::object::Node,
+    display_object : display::object::Instance,
 }
 
 impl SpriteGuard {
     fn new
-    ( instance_id   : AttributeInstanceIndex
-    , symbol        : &Symbol
-    , bbox          : &Attribute<Vector2<f32>>
-    , display_object: &display::object::Node
+    ( instance_id    : AttributeInstanceIndex
+    , symbol         : &Symbol
+    , bbox           : &Attribute<Vector2<f32>>
+    , display_object : &display::object::Instance
     ) -> Self {
         let symbol         = symbol.clone();
         let bbox           = bbox.clone();
@@ -80,7 +80,7 @@ impl Drop for SpriteGuard {
         // TODO[ao] this is a temporary workaround for problem with dropping and creating sprites
         // in the same frame.
         //
-        // In detail: detaching display::object::Node from parent does not remove it immediately,
+        // In detail: detaching display::object::Instance from parent does not remove it immediately,
         // but parent keeps its reference to the next update, and call "hide" during this update.
         //
         // The Sprites set on its display object Node a callback setting bbox to (0.0,0.0). When
@@ -104,14 +104,14 @@ impl Drop for SpriteGuard {
 #[derive(Debug,Clone,CloneRef)]
 #[allow(missing_docs)]
 pub struct Sprite {
-    pub symbol       : Symbol,
-    pub instance_id  : AttributeInstanceIndex,
-    display_object   : display::object::Node,
-    transform        : Attribute<Matrix4<f32>>,
-    bbox             : Attribute<Vector2<f32>>,
-    stats            : Rc<SpriteStats>,
-    size_when_hidden : Rc<Cell<Vector2<f32>>>,
-    guard            : Rc<SpriteGuard>,
+    pub symbol      : Symbol,
+    pub instance_id : AttributeInstanceIndex,
+    display_object  : display::object::Instance,
+    transform       : Attribute<Matrix4<f32>>,
+    bbox            : Attribute<Vector2<f32>>,
+    stats           : Rc<SpriteStats>,
+    size_backup     : Rc<Cell<Vector2<f32>>>,
+    guard           : Rc<SpriteGuard>,
 }
 
 impl Sprite {
@@ -123,34 +123,33 @@ impl Sprite {
     , bbox        : Attribute<Vector2<f32>>
     , stats       : &Stats
     ) -> Self {
-        let symbol           = symbol.clone_ref();
-        let logger           = Logger::new(iformat!("Sprite{instance_id}"));
-        let display_object   = display::object::Node::new(logger);
-        let stats            = Rc::new(SpriteStats::new(stats));
-        let size_when_hidden = Rc::new(Cell::new(Vector2::new(0.0,0.0)));
-        let guard            = Rc::new(SpriteGuard::new(instance_id,&symbol,&bbox,&display_object));
-
-        Self {symbol,instance_id,display_object,transform,bbox,stats,size_when_hidden,guard}.init()
+        let symbol         = symbol.clone_ref();
+        let logger         = Logger::new(iformat!("Sprite{instance_id}"));
+        let display_object = display::object::Instance::new(logger);
+        let stats          = Rc::new(SpriteStats::new(stats));
+        let size_backup    = Rc::new(Cell::new(Vector2::new(0.0, 0.0)));
+        let guard          = Rc::new(SpriteGuard::new(instance_id,&symbol,&bbox,&display_object));
+        Self {symbol,instance_id,display_object,transform,bbox,stats,size_backup,guard}.init()
     }
 
     /// Init display object bindings. In particular defines the behavior of the show and hide
     /// callbacks.
     fn init(self) -> Self {
-        let bbox             = &self.bbox;
-        let transform        = &self.transform;
-        let size_when_hidden = &self.size_when_hidden;
+        let bbox        = &self.bbox;
+        let transform   = &self.transform;
+        let size_backup = &self.size_backup;
 
         self.display_object.set_on_updated(enclose!((transform) move |t| {
             transform.set(t.matrix())
         }));
 
-        self.display_object.set_on_hide(enclose!((bbox,size_when_hidden) move || {
-            size_when_hidden.set(bbox.get());
+        self.display_object.set_on_hide(enclose!((bbox,size_backup) move || {
+            size_backup.set(bbox.get());
             bbox.set(Vector2::new(0.0,0.0));
         }));
 
-        self.display_object.set_on_show(enclose!((bbox,size_when_hidden) move || {
-            bbox.set(size_when_hidden.get());
+        self.display_object.set_on_show(enclose!((bbox,size_backup) move || {
+            bbox.set(size_backup.get());
         }));
 
         self
@@ -162,9 +161,9 @@ impl Sprite {
     }
 }
 
-impl<'t> From<&'t Sprite> for &'t display::object::Node {
-    fn from(sprite:&'t Sprite) -> Self {
-        &sprite.display_object
+impl display::Object for Sprite {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
     }
 }
 
@@ -330,14 +329,8 @@ impl SpriteSystem {
     }
 }
 
-impl<'t> From<&'t SpriteSystem> for &'t display::object::Node {
-    fn from(sprite_system:&'t SpriteSystem) -> Self {
-        sprite_system.symbol.display_object()
-    }
-}
-
-impl From<&SpriteSystem> for display::object::Node {
-    fn from(sprite_system:&SpriteSystem) -> Self {
-        sprite_system.symbol.display_object().clone()
+impl display::Object for SpriteSystem {
+    fn display_object(&self) -> &display::object::Instance {
+        self.symbol.display_object()
     }
 }

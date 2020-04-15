@@ -92,7 +92,7 @@ impl NewNodeInfo {
 #[derive(Clone,CloneRef,Debug)]
 pub struct Handle {
     /// Model of the module which this graph belongs to.
-    module : Rc<model::Module>,
+    pub module : Rc<model::Module>,
     parser : Parser,
     id     : Rc<Id>,
     logger : Logger,

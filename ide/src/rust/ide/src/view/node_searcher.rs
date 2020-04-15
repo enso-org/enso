@@ -12,7 +12,7 @@ use ensogl::display::shape::text::glyph::font::FontRegistry;
 
 #[derive(Clone,Debug)]
 pub struct NodeSearcher {
-    display_object : display::object::Node,
+    display_object : display::object::Instance,
     text_field     : TextField,
     controller     : controller::graph::Handle,
     logger         : Logger,
@@ -26,7 +26,7 @@ impl NodeSearcher {
         let camera         = scene.camera();
         let screen         = camera.screen();
         let logger         = logger.sub("NodeSearcher");
-        let display_object = display::object::Node::new(&logger);
+        let display_object = display::object::Instance::new(&logger);
         let properties     = TextFieldProperties {
             font           : fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap(),
             text_size      : 16.0,
@@ -64,8 +64,8 @@ impl NodeSearcher {
     }
 }
 
-impl<'t> From<&'t NodeSearcher> for &'t display::object::Node {
-    fn from(graph_editor:&'t NodeSearcher) -> Self {
-        &graph_editor.display_object
+impl display::Object for NodeSearcher {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
     }
 }

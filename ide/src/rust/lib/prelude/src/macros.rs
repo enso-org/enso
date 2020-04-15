@@ -104,3 +104,50 @@ macro_rules! alias {
         impl<T:$($tok)*> $name for T {}
     )*};
 }
+
+
+
+// ==============
+// === Lambda ===
+// ==============
+
+/// Clones all arguments from the first argument list by using `CloneRef` and defines lambda with
+/// arguments from the second argument list (if present). For example, the following usage
+///
+/// ```compile_fail
+/// f! { (a,b)(c) a + b + c }
+/// ```
+///
+/// is equivalent to:
+///
+/// ```compile_fail
+/// {
+///     let a = a.clone_ref();
+///     let b = b.clone_ref();
+///     move |c| { a + b + c }
+/// }
+/// ```
+#[macro_export]
+macro_rules! f {
+    (($($name:ident),*) ($($args:tt)*) $($expr:tt)*) => {
+        {
+            $(let $name = $name.clone_ref();)*
+            move |$($args)*| $($expr)*
+        }
+    };
+
+    (($($name:ident),*) $($expr:tt)*) => {
+        {
+            $(let $name = $name.clone_ref();)*
+            move || $($expr)*
+        }
+    };
+}
+
+/// Variant of the `f` macro producing a lambda which drops its first argument.
+#[macro_export]
+macro_rules! f_ {
+    (($($name:ident),*) $($expr:tt)*) => {
+        f! { ($($name),*) (_) $($expr)*  }
+    };
+}

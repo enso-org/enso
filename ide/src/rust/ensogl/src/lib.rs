@@ -48,6 +48,7 @@
 // =================================
 
 pub mod animation;
+pub mod application;
 pub mod control;
 pub mod data;
 pub mod debug;
@@ -55,6 +56,8 @@ pub mod display;
 pub mod gui;
 pub mod math;
 pub mod system;
+
+pub use enso_frp as frp;
 
 /// Prelude - commonly used utilities.
 pub mod prelude {

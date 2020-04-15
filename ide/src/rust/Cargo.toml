@@ -14,6 +14,7 @@ members = [
     "ide/parser",
     "ide/utils",
 
+    "lib/callback",
     "lib/code-builder",
     "lib/data",
     "lib/debug-scenes",

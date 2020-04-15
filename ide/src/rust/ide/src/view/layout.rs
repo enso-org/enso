@@ -7,17 +7,18 @@ use crate::view::temporary_panel::TemporaryPadding;
 use crate::view::temporary_panel::TemporaryPanel;
 use crate::view::text_editor::TextEditor;
 
-use ensogl::display;
 use ensogl::display::traits::*;
 use ensogl::display::world::World;
-use enso_frp::io::KeyboardActions;
+use enso_frp::io::keyboard;
 use nalgebra::zero;
 use nalgebra::Vector2;
 use std::rc::Rc;
 use std::cell::RefCell;
+use ensogl::application::Application;
 use crate::view::node_editor::NodeEditor;
 use ensogl::display::shape::text::glyph::font::FontRegistry;
 use crate::view::node_searcher::NodeSearcher;
+
 
 
 // ==================
@@ -72,19 +73,15 @@ impl ViewLayoutData {
     }
 
     fn update_graph_editor(&mut self) {
-        let screen_size = self.size;
-        let position    = Vector3::new(50.0, screen_size.y * 3.0 / 4.0, 0.0);
-
-        let graph_object:&display::object::Node = (&self.node_editor).into();
-        graph_object.set_position(position);
+        let screen_size  = self.size;
+        let position     = Vector3::new(50.0, screen_size.y * 3.0 / 4.0, 0.0);
+        self.node_editor.set_position(position);
     }
 
     fn update_node_searcher(&mut self) {
         let screen_size = self.size;
         let position    = Vector3::new(screen_size.x*2.0/3.0, screen_size.y - 10.0, 0.0);
-
-        let graph_object:&display::object::Node = (&self.node_searcher).into();
-        graph_object.set_position(position);
+        self.node_searcher.set_position(position);
     }
 }
 
@@ -92,15 +89,16 @@ impl ViewLayout {
     /// Creates a new ViewLayout with a single TextEditor.
     pub fn new
     ( logger           : &Logger
-    , kb_actions       : &mut KeyboardActions
-    , world            : &World
+    , kb_actions       : &mut keyboard::Actions
+    , application      : &Application
     , text_controller  : controller::text::Handle
     , graph_controller : controller::graph::Handle
     , fonts            : &mut FontRegistry
     ) -> Self {
         let logger        = logger.sub("ViewLayout");
+        let world         = &application.display;
         let text_editor   = TextEditor::new(&logger,world,text_controller,kb_actions,fonts);
-        let node_editor   = NodeEditor::new(&logger, world, graph_controller.clone());
+        let node_editor   = NodeEditor::new(&logger,application,graph_controller.clone());
         let node_searcher = NodeSearcher::new(world,&logger,graph_controller,fonts);
         world.add_child(&text_editor.display_object());
         world.add_child(&node_editor);
@@ -111,12 +109,12 @@ impl ViewLayout {
         Self {rc}.init(world,kb_actions)
     }
 
-    fn init_keyboard(self, _keyboard_actions:&mut KeyboardActions) -> Self {
+    fn init_keyboard(self, _keyboard_actions:&mut keyboard::Actions) -> Self {
         // TODO[ao] add here some useful staff (quitting project for example)
         self
     }
 
-    fn init(self, world:&World, keyboard_actions:&mut KeyboardActions) -> Self {
+    fn init(self, world:&World, keyboard_actions:&mut keyboard::Actions) -> Self {
         let screen = world.scene().camera().screen();
         let size   = Vector2::new(screen.width,screen.height);
         self.set_size(size);

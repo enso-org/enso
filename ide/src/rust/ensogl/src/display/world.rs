@@ -16,7 +16,6 @@ use crate::display::render::*;
 use crate::display::render::passes::SymbolsRenderPass;
 use crate::display::scene::Scene;
 use crate::display::shape::text::text_field;
-use crate::display::traits::*;
 use crate::display;
 use crate::system::web;
 
@@ -180,9 +179,9 @@ impl World {
     }
 }
 
-impl<'t> From<&'t World> for &'t display::object::Node {
-    fn from(world:&'t World) -> Self {
-        world.scene.display_object()
+impl display::Object for World {
+    fn display_object(&self) -> &display::object::Instance {
+        self.scene.display_object()
     }
 }
 

@@ -1,6 +1,8 @@
+#![feature(trait_alias)]
+
 //! Definitions of callback handling utilities.
 
-use crate::prelude::*;
+use enso_prelude::*;
 
 use std::any::TypeId;
 
@@ -76,7 +78,7 @@ impl Handle {
 // =============
 
 /// Handle's guard. Used to check if the handle is still valid.
-#[derive(Debug)]
+#[derive(Clone,Debug)]
 pub struct Guard {
     weak: Weak<()>
 }
@@ -99,6 +101,95 @@ impl Guard {
 /// as well.
 #[derive(Derivative)]
 #[derivative(Debug,Default(bound=""))]
+pub struct Registry {
+    #[derivative(Debug="ignore")]
+    callback_list: Vec<(Guard,CallbackMut)>
+}
+
+impl Registry {
+    /// Adds new callback and returns a new handle for it.
+    pub fn add<F:CallbackMutFn>(&mut self, callback:F) -> Handle {
+        let callback = Box::new(callback);
+        let handle   = Handle::new();
+        let guard    = handle.guard();
+        self.callback_list.push((guard,callback));
+        handle
+    }
+
+    ///Checks whether there are any callbacks registered.
+    pub fn is_empty(&self) -> bool {
+        self.callback_list.is_empty()
+    }
+
+    /// Fires all registered callbacks and removes the ones which got dropped.
+    pub fn run_all(&mut self) {
+        self.clear_unused_callbacks();
+        self.callback_list.iter_mut().for_each(move |(_,callback)| callback());
+    }
+
+    /// Checks all registered callbacks and removes the ones which got dropped.
+    fn clear_unused_callbacks(&mut self) {
+        self.callback_list.retain(|(guard,_)| guard.exists());
+    }
+}
+
+
+
+// =========================
+// === SharedRegistryMut ===
+// =========================
+
+/// Registry gathering callbacks. Each registered callback is assigned with a handle. Callback and
+/// handle lifetimes are strictly connected. As soon a handle is dropped, the callback is removed
+/// as well.
+#[derive(CloneRef,Derivative)]
+#[derivative(Clone,Debug,Default)]
+#[allow(clippy::type_complexity)]
+pub struct SharedRegistryMut {
+    #[derivative(Debug="ignore")]
+    callback_list: Rc<RefCell<Vec<(Guard,Rc<RefCell<dyn CallbackMutFn>>)>>>
+}
+
+impl SharedRegistryMut {
+    /// Adds new callback and returns a new handle for it.
+    pub fn add<F:CallbackMutFn>(&self, callback:F) -> Handle {
+        let callback = Rc::new(RefCell::new(callback));
+        let handle   = Handle::new();
+        let guard    = handle.guard();
+        self.callback_list.borrow_mut().push((guard,callback));
+        handle
+    }
+
+    ///Checks whether there are any callbacks registered.
+    pub fn is_empty(&self) -> bool {
+        self.callback_list.borrow().is_empty()
+    }
+
+    /// Fires all registered callbacks and removes the ones which got dropped. The implementation is
+    /// safe. You are allowed to change the regisry while a callback is running.
+    pub fn run_all(&self) {
+        self.clear_unused_callbacks();
+        let callbacks = self.callback_list.borrow().clone();
+        callbacks.iter().for_each(|(_,callback)| (&mut *callback.borrow_mut())());
+    }
+
+    /// Checks all registered callbacks and removes the ones which got dropped.
+    fn clear_unused_callbacks(&self) {
+        self.callback_list.borrow_mut().retain(|(guard,_)| guard.exists());
+    }
+}
+
+
+
+// =================
+// === Registry1 ===
+// =================
+
+/// Registry gathering callbacks. Each registered callback is assigned with a handle. Callback and
+/// handle lifetimes are strictly connected. As soon a handle is dropped, the callback is removed
+/// as well.
+#[derive(Derivative)]
+#[derivative(Debug,Default(bound=""))]
 pub struct Registry1<T> {
     #[derivative(Debug="ignore")]
     callback_list: Vec<(Guard,CallbackMut1<T>)>
@@ -114,7 +205,12 @@ impl<T> Registry1<T> {
         handle
     }
 
-    /// Fires all registered callbacks.
+    ///Checks whether there are any callbacks registered.
+    pub fn is_empty(&self) -> bool {
+        self.callback_list.is_empty()
+    }
+
+    /// Fires all registered callbacks and removes the ones which got dropped.
     pub fn run_all(&mut self, t:&T) {
         self.clear_unused_callbacks();
         self.callback_list.iter_mut().for_each(move |(_,callback)| callback(t));
@@ -151,7 +247,12 @@ impl<T:Copy> CopyRegistry1<T> {
         handle
     }
 
-    /// Fires all registered callbacks.
+    ///Checks whether there are any callbacks registered.
+    pub fn is_empty(&self) -> bool {
+        self.callback_list.is_empty()
+    }
+
+    /// Fires all registered callbacks and removes the ones which got dropped.
     pub fn run_all(&mut self, t:T) {
         self.clear_unused_callbacks();
         self.callback_list.iter_mut().for_each(move |(_,callback)| callback(t));

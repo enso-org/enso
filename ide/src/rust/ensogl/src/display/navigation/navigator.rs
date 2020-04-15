@@ -68,10 +68,9 @@ impl Navigator {
             simulator.update_target_position(|p| p + diff);
         });
 
-        let transform       = camera.display_object();
         let resize_callback = camera.add_screen_update_callback(
-            enclose!((mut simulator,transform) move |_:&Vector2<f32>| {
-                let position = transform.position().into();
+            enclose!((mut simulator,camera) move |_:&Vector2<f32>| {
+                let position = camera.position().into();
                 simulator.set_position(position);
                 simulator.set_target_position(position);
                 simulator.set_velocity(default());

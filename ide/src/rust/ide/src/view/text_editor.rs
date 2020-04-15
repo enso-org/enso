@@ -12,8 +12,8 @@ use ensogl::display::shape::text::text_field::TextField;
 use ensogl::display::shape::text::text_field::TextFieldProperties;
 use ensogl::display::world::*;
 use data::text::TextChange;
-use enso_frp::io::KeyboardActions;
-use enso_frp::io::KeyMask;
+use enso_frp::io::keyboard;
+use enso_frp::io::keyboard::KeyMask;
 use nalgebra::Vector2;
 use nalgebra::zero;
 use utils::channel::process_stream_with_handle;
@@ -56,7 +56,7 @@ impl {
     }
 
     /// Get the editor's display object.
-    pub fn display_object(&self) -> display::object::Node {
+    pub fn display_object(&self) -> display::object::Instance {
         self.text_field.display_object()
     }
 }}
@@ -67,7 +67,7 @@ impl TextEditor {
     ( logger           : &Logger
     , world            : &World
     , controller       : controller::Text
-    , keyboard_actions : &mut KeyboardActions
+    , keyboard_actions : &mut keyboard::Actions
     , fonts            : &mut FontRegistry
     ) -> Self {
         let logger     = logger.sub("TextEditor");
@@ -89,14 +89,14 @@ impl TextEditor {
         Self::new_from_data(data).initialize(keyboard_actions)
     }
 
-    fn initialize(self, keyboard_actions:&mut KeyboardActions) -> Self {
-        let save_keys   = KeyMask::new_control_character('s');
+    fn initialize(self, keyboard_actions:&mut keyboard::Actions) -> Self {
+        let save_keys   = KeyMask::control_plus('s');
         let text_editor = Rc::downgrade(&self.rc);
-        keyboard_actions.set_action(save_keys,enclose!((text_editor) move |_| {
+        keyboard_actions.add_action_for_key_mask(save_keys,enclose!((text_editor) move || {
             if let Some(text_editor) = text_editor.upgrade() {
                 text_editor.borrow().save();
             }
-        }));
+        })).forget(); // FIXME remove forget
 
         self.setup_notifications();
         executor::global::spawn(self.reload_content());

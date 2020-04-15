@@ -3,8 +3,6 @@
 use crate::prelude::*;
 
 use enso_frp as frp;
-use enso_frp::frp;
-use enso_frp;
 use ensogl::control::callback;
 use ensogl::data::color::Srgba;
 use ensogl::display::Buffer;
@@ -12,7 +10,6 @@ use ensogl::display::layout::alignment;
 use ensogl::display::scene::{Scene,ShapeRegistry};
 use ensogl::display::scene;
 use ensogl::display::shape::*;
-use ensogl::display::traits::*;
 use ensogl::display::{Sprite, Attribute};
 use ensogl::display;
 use ensogl::gui::component::animation;
@@ -83,17 +80,19 @@ impl component::ShapeViewDefinition for CursorView {
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Events {
-    pub press   : frp::Dynamic<()>,
-    pub release : frp::Dynamic<()>,
+    pub network : frp::Network,
+    pub press   : frp::Source,
+    pub release : frp::Source,
 }
 
 impl Default for Events {
     fn default() -> Self {
-        frp! {
-            press   = source::<()> ();
-            release = source::<()> ();
+        frp::new_network! { cursor_events
+            def press   = source::<()> ();
+            def release = source::<()> ();
         }
-        Self {press,release}
+        let network = cursor_events;
+        Self {network,press,release}
     }
 }
 
@@ -136,21 +135,28 @@ impl Cursor {
     }
 
     fn init(self) -> Self {
+        let network = &self.data.events.network;
+
         // FIXME: This is needed now because frp leaks memory.
         let weak_view_data = Rc::downgrade(&self.view.data);
-        let press = animation(move |value| {
+        let press = animation(network,move |value| {
             weak_view_data.upgrade().for_each(|view_data| {
                 view_data.borrow().as_ref().for_each(|t| t.shape.press.set(value))
             })
         });
 
-        self.events.press.map("press", enclose!((press) move |_| {
-            press.set_target_position(1.0);
-        }));
 
-        self.events.release.map("release", enclose!((press) move |_| {
-            press.set_target_position(0.0);
-        }));
+        frp::extend_network! { network
+
+            def _t_press = self.events.press.map(enclose!((press) move |_| {
+                press.set_target_position(1.0);
+            }));
+
+            def _t_release = self.events.release.map(enclose!((press) move |_| {
+                press.set_target_position(0.0);
+            }));
+
+        }
 
         self
     }
@@ -190,8 +196,8 @@ impl WeakRef for WeakCursor {
     }
 }
 
-impl<'t> From<&'t Cursor> for &'t display::object::Node {
-    fn from(t:&'t Cursor) -> Self {
-        &t.view.display_object
+impl display::Object for Cursor {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.view.display_object
     }
 }
