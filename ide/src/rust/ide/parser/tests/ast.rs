@@ -43,7 +43,7 @@ pub fn generalized_infix_test() {
     let make_gen_infix = |code:&str| {
         let ast  = parser.parse(code.to_string(),default()).unwrap();
         let line = expect_single_line(&ast);
-        GeneralizedInfix::try_new(line)
+        GeneralizedInfix::try_new_root(line)
     };
 
     let infix = make_gen_infix("a+b").unwrap();

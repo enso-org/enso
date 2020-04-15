@@ -10,6 +10,8 @@ pub mod assoc;
 #[warn(missing_docs)]
 pub mod crumbs;
 #[warn(missing_docs)]
+pub mod identifier;
+#[warn(missing_docs)]
 pub mod internal;
 #[warn(missing_docs)]
 pub mod known;
@@ -30,6 +32,7 @@ pub mod prelude {
 
     pub use crate::Ast;
     pub use crate::traits::*;
+    pub use utils::option::*;
 }
 
 use crate::prelude::*;
@@ -932,6 +935,49 @@ where T:HasLength {
     }
 }
 
+
+
+
+#[derive(Debug,Clone)]
+struct TraverserWithIndex<F> {
+    index    : usize,
+    callback : F,
+}
+
+impl<F> TraverserWithIndex<F> {
+    pub fn new(callback:F) -> TraverserWithIndex<F> {
+        let offset = 0;
+        TraverserWithIndex { index: offset,callback}
+    }
+}
+
+impl<F> TokenConsumer for TraverserWithIndex<F>
+where F:FnMut(Index,&Ast) {
+    fn feed(&mut self, token:Token) {
+        match token {
+            Token::Off(val) => self.index += val,
+            Token::Chr( _ ) => self.index += 1,
+            Token::Str(val) => self.index += val.len(),
+            Token::Ast(val) => {
+                (self.callback)(Index::new(self.index), val);
+                val.shape().feed_to(self);
+            }
+        }
+    }
+}
+
+/// Visits each Ast node, while keeping track of its index.
+pub fn traverse_with_index(ast:&impl HasTokens, f:impl FnMut(Index, &Ast)) {
+    let mut traverser = TraverserWithIndex::new(f);
+    ast.feed_to(&mut traverser);
+}
+
+/// Visits each Ast node, while keeping track of its span.
+pub fn traverse_with_span(ast:&impl HasTokens, mut f:impl FnMut(Span, &Ast)) {
+    traverse_with_index(ast, move |index, ast| {
+        f(Span::new(index, data::text::Size::new(ast.len())),ast)
+    })
+}
 
 // === WithLength ===
 

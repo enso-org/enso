@@ -2,8 +2,12 @@
 
 use crate::prelude::*;
 
-use crate::known;
 use crate::Ast;
+use crate::crumbs::Located;
+use crate::crumbs::PrefixCrumb;
+use crate::known;
+
+use utils::vec::VecExt;
 
 #[derive(Clone,Debug)]
 /// Result of flattening a sequence of prefix applications.
@@ -35,6 +39,11 @@ impl Chain {
         Chain {func,args}
     }
 
+    /// Like `new` but returns None if given Ast is not of a Prefix shape.
+    pub fn try_new(ast:&Ast) -> Option<Chain> {
+        known::Prefix::try_from(ast).as_ref().map(Chain::new).ok()
+    }
+
     /// As new but if the AST is not a prefix, interprets is a function with an
     /// empty arguments list.
     pub fn new_non_strict(ast:&Ast) -> Chain {
@@ -54,5 +63,49 @@ impl Chain {
             let args = Vec::new();
             Chain {func,args}
         }
+    }
+
+    /// Iterates over all arguments, left-to right.
+    pub fn enumerate_args<'a>(&'a self) -> impl Iterator<Item = Located<&'a Ast>> + 'a {
+        // Location is always like [Func,Func,…,Func,Arg].
+        // We iterate beginning from the deeply nested args. So we can just create crumbs
+        // location once and then just pop initial crumb when traversing arguments.
+        let func_crumbs = std::iter::repeat(PrefixCrumb::Func).take(self.args.len());
+        let mut crumbs  = func_crumbs.collect_vec();
+        crumbs.push(PrefixCrumb::Arg);
+        self.args.iter().map(move |arg| {
+            crumbs.pop_front();
+            Located::new(&crumbs, arg)
+        })
+    }
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use utils::test::ExpectTuple;
+
+    #[test]
+    fn prefix_chain() {
+        let a = Ast::var("a");
+        let b = Ast::var("b");
+        let c = Ast::var("c");
+
+        let a_b = Ast::prefix(a.clone(),b.clone());
+        let a_b_c = Ast::prefix(a_b.clone(),c.clone());
+
+        let chain = Chain::try_new(&a_b_c).unwrap();
+        assert_eq!(chain.func, a);
+        assert_eq!(chain.args[0], b);
+        assert_eq!(chain.args[1], c);
+
+        let (arg1,arg2) = chain.enumerate_args().expect_tuple();
+        assert_eq!(arg1.item, &b);
+        assert_eq!(a_b_c.get_traversing(&arg1.crumbs).unwrap(), &b);
+        assert_eq!(arg2.item, &c);
+        assert_eq!(a_b_c.get_traversing(&arg2.crumbs).unwrap(), &c);
     }
 }

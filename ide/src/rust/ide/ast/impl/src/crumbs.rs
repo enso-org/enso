@@ -4,7 +4,9 @@
 use crate::prelude::*;
 
 use crate::known;
+use crate::HasTokens;
 use crate::Shape;
+use crate::TokenConsumer;
 
 use utils::fail::FallibleResult;
 
@@ -92,21 +94,21 @@ pub type Crumbs = Vec<Crumb>;
 // === InvalidSuffix ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub struct InvalidSuffixCrumb;
 
 
 // === TextLineFmt ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub struct TextLineFmtCrumb {pub segment_index:usize}
 
 
 // === TextBlockFmt ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub struct TextBlockFmtCrumb {
     pub text_line_index : usize,
     pub segment_index   : usize
@@ -116,7 +118,7 @@ pub struct TextBlockFmtCrumb {
 // === TextUnclosed ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub struct TextUnclosedCrumb {
     pub text_line_crumb : TextLineFmtCrumb
 }
@@ -125,7 +127,7 @@ pub struct TextUnclosedCrumb {
 // === Prefix ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub enum PrefixCrumb {
     Func,
     Arg
@@ -135,7 +137,7 @@ pub enum PrefixCrumb {
 // === Infix ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub enum InfixCrumb {
     LeftOperand,
     Operator,
@@ -146,7 +148,7 @@ pub enum InfixCrumb {
 // === SectionLeft ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub enum SectionLeftCrumb {
     Arg,
     Opr
@@ -156,7 +158,7 @@ pub enum SectionLeftCrumb {
 // === SectionRight ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub enum SectionRightCrumb {
     Opr,
     Arg
@@ -166,21 +168,21 @@ pub enum SectionRightCrumb {
 // === SectionSides ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub struct SectionSidesCrumb;
 
 
 // === Module ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub struct ModuleCrumb {pub line_index:usize}
 
 
 // === Block ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub enum BlockCrumb {
     /// The first non-empty line in block.
     HeadLine,
@@ -192,14 +194,14 @@ pub enum BlockCrumb {
 // === Import ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub struct ImportCrumb {pub index:usize}
 
 
 // === Mixfix ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub enum MixfixCrumb {
     Name {index:usize},
     Args {index:usize}
@@ -209,14 +211,14 @@ pub enum MixfixCrumb {
 // === Group ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub struct GroupCrumb;
 
 
 // === Def ===
 
 #[allow(missing_docs)]
-#[derive(Clone,Copy,Debug,PartialEq,Hash)]
+#[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
 pub enum DefCrumb {
     Name,
     Args {index:usize},
@@ -237,6 +239,14 @@ macro_rules! from_crumb {
         impl From<&$crumb_id> for Crumb {
             fn from(crumb:&$crumb_id) -> Self {
                 Crumb::$id(crumb.clone())
+            }
+        }
+
+        impl IntoIterator for $crumb_id {
+            type Item = Crumb;
+            type IntoIter = std::iter::Once<Self::Item>;
+            fn into_iter(self) -> Self::IntoIter {
+                std::iter::once(Crumb::from(self))
             }
         }
     }
@@ -271,13 +281,22 @@ macro_rules! impl_crumbs {
         }
 
         /// Crumb identifies location of child AST in an AST node. Allows for a single step AST traversal.
-        #[derive(Clone,Copy,Debug,PartialEq,Hash)]
+        #[derive(Clone,Copy,Debug,PartialEq,Eq,Hash)]
         #[allow(missing_docs)]
         pub enum Crumb {
             $($id($crumb_id),)*
         }
     }
 }
+
+impl IntoIterator for Crumb {
+    type Item = Crumb;
+    type IntoIter = std::iter::Once<Self::Item>;
+    fn into_iter(self) -> Self::IntoIter {
+        std::iter::once(self)
+    }
+}
+
 
 impl_crumbs!{
     (InvalidSuffix,InvalidSuffixCrumb),
@@ -306,7 +325,7 @@ impl_crumbs!{
 /// Interface for items that allow getting/setting stored Ast located by arbitrary `Crumb`.
 pub trait Crumbable {
     /// Specific `Crumb` type used by `Self` to locate child Asts.
-    type Crumb : Into<Crumb>;
+    type Crumb : Into<Crumb> + IntoIterator<Item=Crumb>;
 
     /// Retrieves `Ast` under the crumb.
     fn get(&self, crumb:&Self::Crumb) -> FallibleResult<&Ast>;
@@ -860,7 +879,7 @@ pub fn non_empty_line_indices<'a, T:'a>
 // ===============
 
 /// Item which location is identified by `Crumbs`.
-#[derive(Clone,Debug,Shrinkwrap)]
+#[derive(Clone,Debug,Shrinkwrap,PartialEq,Eq,Hash)]
 pub struct Located<T> {
     /// Crumbs from containing parent.
     pub crumbs : Crumbs,
@@ -871,7 +890,9 @@ pub struct Located<T> {
 
 impl<T> Located<T> {
     /// Creates a new located item.
-    pub fn new(crumbs:Crumbs, item:T) -> Located<T> {
+    pub fn new<Cs>(crumbs:Cs, item:T) -> Located<T>
+    where Cs : IntoIterator<Item:Into<Crumb>>, {
+        let crumbs = crumbs.into_iter().map(|crumb| crumb.into()).collect();
         Located {crumbs,item}
     }
 
@@ -881,27 +902,32 @@ impl<T> Located<T> {
         Located {crumbs,item}
     }
 
-    /// Creates a new item in a root location (single crumb location).
-    pub fn new_direct_child(crumb:impl Into<Crumb>, item:T) -> Located<T> {
-        let crumbs = vec![crumb.into()];
-        Located {crumbs,item}
-    }
-
     /// Uses given function to map over the item.
     pub fn map<U>(self, f:impl FnOnce(T) -> U) -> Located<U> {
         Located::new(self.crumbs, f(self.item))
     }
 
-    /// Replaces the item, while pushing given crumbs on top of already present ones.
-    pub fn into_descendant<U>(self, crumbs:Crumbs, item:U) -> Located<U> {
+    /// Takes crumbs relative to self and item that will be wrapped.
+    pub fn descendant<Cs,U>(&self, crumbs:Cs, child:U) -> Located<U>
+    where Cs : IntoIterator<Item:Into<Crumb>>,{
+        let crumbs_so_far = self.crumbs.iter().copied();
+        let crumbs_to_add = crumbs.into_iter().map(|crumb| crumb.into());
+        let crumbs = crumbs_so_far.chain(crumbs_to_add);
+        Located::new(crumbs, child)
+    }
+
+    /// Maps into child, concatenating this crumbs and child crumbs.
+    pub fn into_descendant<U>(self, child:Located<U>) -> Located<U> {
+        let Located {crumbs,item} = child;
         let mut ret = self.map(|_| item);
         ret.crumbs.extend(crumbs);
         ret
     }
+}
 
-    /// Maps into child, concatenating this crumbs and child crumbs.
-    pub fn push_descendant<U>(self, child:Located<U>) -> Located<U> {
-        self.into_descendant(child.crumbs,child.item)
+impl<T:HasTokens> HasTokens for Located<T> {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        self.item.feed_to(consumer)
     }
 }
 
@@ -1423,17 +1449,11 @@ mod tests {
         assert_eq!(item.item, "zero");
         assert!(item.crumbs.is_empty());
 
-        let item = item.into_descendant(vec![Crumb::Infix(InfixCrumb::LeftOperand)], 1);
-        assert_eq!(item.item, 1);
-        let (crumb0,) = item.crumbs.iter().expect_tuple();
-        assert_eq!(crumb0,&Crumb::Infix(InfixCrumb::LeftOperand));
-
-        let child_item = Located::new_direct_child(InfixCrumb::Operator, "two");
-        let item = item.push_descendant(child_item);
+        let child_item = Located::new(InfixCrumb::Operator, "two");
+        let item = item.into_descendant(child_item);
         assert_eq!(item.item, "two");
-        let (crumb0,crumb1) = item.crumbs.iter().expect_tuple();
-        assert_eq!(crumb0,&Crumb::Infix(InfixCrumb::LeftOperand));
-        assert_eq!(crumb1,&Crumb::Infix(InfixCrumb::Operator));
+        let (crumb0,) = item.crumbs.iter().expect_tuple();
+        assert_eq!(crumb0,&Crumb::Infix(InfixCrumb::Operator));
 
         let item2 = item.clone().map(|item| item.len() );
         assert_eq!(item2.item,3);
