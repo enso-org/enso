@@ -58,7 +58,7 @@ jobs:
       uses: actions/cache@v1.1.2
       with:
         path: /home/runner/.sbt
-        key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
+        key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
         restore-keys: ${{ runner.os }}-sbt-
     - name: Cache SBT Project
       uses: actions/cache@v1.1.2
@@ -138,7 +138,7 @@ jobs:
       uses: actions/cache@v1.1.2
       with:
         path: /home/runner/.sbt
-        key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
+        key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
         restore-keys: ${{ runner.os }}-sbt-
     - name: Cache SBT Project
       uses: actions/cache@v1.1.2
