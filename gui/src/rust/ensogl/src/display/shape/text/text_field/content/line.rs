@@ -8,7 +8,6 @@ use nalgebra::Vector2;
 use std::ops::Range;
 
 
-
 // ============
 // === Line ===
 // ============
@@ -99,11 +98,16 @@ pub struct LineFullInfo<'a> {
 }
 
 impl<'a> LineFullInfo<'a> {
+    /// Get the y position of the top of the line.
+    pub fn y_position(&self) -> f32 {
+        self.height * self.line_id as f32
+    }
+
     /// Get the point where a _baseline_ of current line begins (The _baseline_ is a font specific
     /// term, for details see [freetype documentation]
     /// (https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)).
     pub fn baseline_start(&self) -> Vector2<f32> {
-        Vector2::new(0.0, (-(self.line_id as f32) - 0.85) * self.height)
+        Vector2::new(0.0, -self.y_position() - self.height * 0.85)
     }
 
     /// Get x position of character with given index. The position is in _text space_.

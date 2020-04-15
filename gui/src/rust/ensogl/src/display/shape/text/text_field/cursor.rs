@@ -133,11 +133,14 @@ impl Cursor {
 /// Home, End, Ctrl+Home, etc.)
 #[derive(Copy,Clone,Debug,Eq,Hash,PartialEq)]
 #[allow(missing_docs)]
-pub enum Step {Left,LeftWord,Right,RightWord,Up,Down,LineBegin,LineEnd,DocBegin,DocEnd}
+pub enum Step
+{Left,LeftWord,Right,RightWord,PageUp,Up,PageDown,Down,LineBegin,LineEnd,DocBegin,DocEnd}
 
 /// A struct for cursor navigation process.
 #[derive(Debug)]
 pub struct CursorNavigation<'a> {
+    /// A snapshot of TextField's size.
+    pub text_field_size: Vector2<f32>,
     /// A reference to text content. This is required to obtain the x positions of chars for proper
     /// moving cursors up and down.
     pub content: &'a mut TextFieldContent,
@@ -146,12 +149,6 @@ pub struct CursorNavigation<'a> {
 }
 
 impl<'a> CursorNavigation<'a> {
-    /// Creates a new CursorNavigation with defaults.
-    pub fn default(content:&'a mut TextFieldContent) -> Self {
-        let selecting     = default();
-        Self {content,selecting}
-    }
-
     /// Jump cursor directly to given position.
     pub fn move_cursor_to_position(&self, cursor:&mut Cursor, to:TextLocation) {
         cursor.position = to;
@@ -220,16 +217,18 @@ impl<'a> CursorNavigation<'a> {
 
     /// Get cursor position one line above the given position, such the new x coordinate of
     /// displayed cursor on the screen will be nearest the current value.
-    pub fn line_up_position(&mut self, position:&TextLocation) -> Option<TextLocation> {
-        let prev_line = position.line.checked_sub(1);
-        prev_line.map(|line| self.near_same_x_in_another_line(position,line))
+    pub fn line_up_position(&mut self, position:&TextLocation, lines:usize) -> TextLocation {
+        let prev_line = position.line.checked_sub(lines);
+        let prev_line = prev_line.map(|line| self.near_same_x_in_another_line(position,line));
+        prev_line.unwrap_or_else(TextLocation::at_document_begin)
     }
 
     /// Get cursor position one line behind the given position, such the new x coordinate of
     /// displayed cursor on the screen will be nearest the current value.
-    pub fn line_down_position(&mut self, position:&TextLocation) -> Option<TextLocation> {
-        let next_line = Some(position.line + 1).filter(|l| *l < self.content.lines().len());
-        next_line.map(|line| self.near_same_x_in_another_line(position,line))
+    pub fn line_down_position(&mut self, position:&TextLocation, lines:usize) -> TextLocation {
+        let next_line = Some(position.line + lines).filter(|l| *l < self.content.lines().len());
+        let next_line = next_line.map(|line| self.near_same_x_in_another_line(position,line));
+        next_line.unwrap_or_else(|| self.content_end_position())
     }
 
     /// Returns the next column if it exists. If it doesn't exist it attempts to return the
@@ -277,6 +276,10 @@ impl<'a> CursorNavigation<'a> {
         Self::next_valid_text_location(line, previous_line, previous_column, line_end)
     }
 
+    fn get_lines_from_height(&self) -> usize {
+        (self.text_field_size.y / self.content.line_height) as usize
+    }
+
     /// New position of cursor at `position` after applying `step`.
     fn new_position(&mut self, position: TextLocation, step:Step) -> TextLocation {
         match step {
@@ -284,8 +287,10 @@ impl<'a> CursorNavigation<'a> {
             Step::RightWord => self.next_word_position(&position).unwrap_or(position),
             Step::Left      => self.prev_char_position(&position).unwrap_or(position),
             Step::Right     => self.next_char_position(&position).unwrap_or(position),
-            Step::Up        => self.line_up_position(&position).unwrap_or(position),
-            Step::Down      => self.line_down_position(&position).unwrap_or(position),
+            Step::PageUp    => self.line_up_position(&position,self.get_lines_from_height()),
+            Step::PageDown  => self.line_down_position(&position,self.get_lines_from_height()),
+            Step::Up        => self.line_up_position(&position,1),
+            Step::Down      => self.line_down_position(&position,1),
             Step::LineBegin => TextLocation::at_line_begin(position.line),
             Step::LineEnd   => self.line_end_position(position.line),
             Step::DocBegin  => TextLocation::at_document_begin(),
@@ -587,13 +592,19 @@ mod test {
         expected_positions.insert(LineEnd,   vec![(0,10),(1,10),(2,9)]);
         expected_positions.insert(DocBegin,  vec![(0,0)]);
         expected_positions.insert(DocEnd,    vec![(2,9)]);
+        expected_positions.insert(PageUp,    vec![(0,0),(0,9)]);
+        expected_positions.insert(PageDown,  vec![(2,0),(2,9)]);
 
-        let mut fonts      = FontRegistry::new();
-        let properties     = TextFieldProperties::default(&mut fonts);
-        let mut content    = TextFieldContent::new(text,&properties);
-        let mut navigation = CursorNavigation::default(&mut content);
+        let mut fonts       = FontRegistry::new();
+        let mut properties  = TextFieldProperties::default(&mut fonts);
+        let two_lines_high  = properties.text_size * 2.0;
+        properties.size     = Vector2::new(10.0, two_lines_high);
+        let content         = &mut TextFieldContent::new(text,&properties);
+        let text_field_size = properties.size;
+        let selecting       = false;
+        let mut navigation  = CursorNavigation{selecting,content,text_field_size};
 
-        for step in &[/*Left,Right,Up,*/Down,/*LineBegin,LineEnd,DocBegin,DocEnd*/] {
+        for step in &[Left,Right,Up,Down,LineBegin,LineEnd,DocBegin,DocEnd,PageUp,PageDown] {
             let mut cursors = Cursors::mock(initial_cursors.clone());
             cursors.navigate_all_cursors(&mut navigation,*step);
             let expected = expected_positions.get(step).unwrap();
@@ -613,14 +624,37 @@ mod test {
         let initial_cursors   = vec![initial_cursor];
         let new_position      = TextLocation {line:1,column:10};
 
-        let mut fonts      = FontRegistry::new();
-        let properties     = TextFieldProperties::default(&mut fonts);
-        let mut content    = TextFieldContent::new(text,&properties);
-        let mut navigation = CursorNavigation::default(&mut content);
+        let mut fonts       = FontRegistry::new();
+        let properties      = TextFieldProperties::default(&mut fonts);
+        let content         = &mut TextFieldContent::new(text,&properties);
+        let selecting       = false;
+        let text_field_size = properties.size;
+        let mut navigation  = CursorNavigation{content,text_field_size,selecting};
         let mut cursors = Cursors::mock(initial_cursors.clone());
         cursors.navigate_all_cursors(&mut navigation,LineEnd);
         assert_eq!(new_position, cursors.first_cursor().position);
         assert_eq!(new_position, cursors.first_cursor().selected_to);
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn page_scrolling() {
+        ensogl_core_msdf_sys::initialized().await;
+        let text              = "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19";
+        let initial_cursor    = Cursor::new(TextLocation::at_document_begin());
+        let initial_cursors   = vec![initial_cursor];
+        let expected_position = TextLocation {line:6,column:0};
+
+        let mut fonts  = FontRegistry::new();
+        let mut properties = TextFieldProperties::default(&mut fonts);
+        properties.size = Vector2::new(100.0,100.0);
+        let content         = &mut TextFieldContent::new(text,&properties);
+        let selecting       = false;
+        let text_field_size = properties.size;
+        let mut navigation = CursorNavigation{selecting,content,text_field_size};
+        let mut cursors = Cursors::mock(initial_cursors.clone());
+        cursors.navigate_all_cursors(&mut navigation,PageDown);
+        assert_eq!(expected_position, cursors.first_cursor().position);
+        assert_eq!(expected_position, cursors.first_cursor().selected_to);
     }
 
     #[wasm_bindgen_test(async)]
@@ -631,11 +665,12 @@ mod test {
         let initial_cursors = vec![Cursor::new(initial_loc)];
         let new_loc         = TextLocation {line:0,column:9};
 
-        let mut fonts      = FontRegistry::new();
-        let properties     = TextFieldProperties::default(&mut fonts);
-        let mut content    = TextFieldContent::new(text,&properties);
-        let mut navigation = CursorNavigation
-            {selecting:true, ..CursorNavigation::default(&mut content)};
+        let mut fonts       = FontRegistry::new();
+        let properties      = TextFieldProperties::default(&mut fonts);
+        let content         = &mut TextFieldContent::new(text,&properties);
+        let selecting       = true;
+        let text_field_size = properties.size;
+        let mut navigation = CursorNavigation{selecting,content,text_field_size};
         let mut cursors = Cursors::mock(initial_cursors.clone());
         cursors.navigate_all_cursors(&mut navigation,LineEnd);
         assert_eq!(new_loc    , cursors.first_cursor().position);
@@ -697,12 +732,14 @@ mod test {
     #[wasm_bindgen_test(async)]
     async fn step_into_word() {
         msdf_sys::initialized().await;
-        let content        = "first sentence\r\nthis is a second sentence\r\nlast sentence\n";
-        let content        = &mut TextFieldContent::new(content,&mock_properties());
-        let selecting      = false;
-        let mut navigation = CursorNavigation{content,selecting};
-        let mut location   = TextLocation::at_document_begin();
-        location           = navigation.next_word_position(&location).unwrap();
+        let content         = "first sentence\r\nthis is a second sentence\r\nlast sentence\n";
+        let properties      = mock_properties();
+        let content         = &mut TextFieldContent::new(content,&properties);
+        let selecting       = false;
+        let text_field_size = properties.size;
+        let mut navigation  = CursorNavigation{content,selecting,text_field_size};
+        let mut location    = TextLocation::at_document_begin();
+        location            = navigation.next_word_position(&location).unwrap();
         assert_eq!(location, TextLocation{line:0, column:5});
         location = navigation.next_word_position(&location).unwrap();
         assert_eq!(location, TextLocation{line:0, column:14});

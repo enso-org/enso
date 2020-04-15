@@ -77,7 +77,7 @@ impl TextEditor {
         let font       = fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap();
         let padding    = default();
         let position   = zero();
-        let size       = Vector2::new(screen.width, screen.height);
+        let size       = Vector2::new(screen.width, screen.height / 2.0);
         let black      = Vector4::new(0.0,0.0,0.0,1.0);
         let base_color = black;
         let text_size  = 16.0;

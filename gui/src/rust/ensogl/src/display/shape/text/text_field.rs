@@ -26,13 +26,13 @@ use crate::display::shape::text::glyph::font::FontRegistry;
 use crate::display::shape::text::text_field::render::TextFieldSprites;
 use crate::display::shape::text::text_field::render::assignment::GlyphLinesAssignmentUpdate;
 use crate::display::world::World;
+use crate::system::web::text_input::KeyboardBinding;
 
 use data::text::TextChange;
 use data::text::TextLocation;
 use nalgebra::Vector2;
 use nalgebra::Vector3;
 use nalgebra::Vector4;
-use crate::system::web::text_input::KeyboardBinding;
 
 
 
@@ -148,28 +148,28 @@ shared! { TextField
             self.properties.size
         }
 
-        /// Scroll one page down.
-        pub fn page_down(&mut self) {
-            self.scroll(Vector2::new(0.0, -self.size().y))
-        }
-
-        /// Scroll one page up.
-        pub fn page_up(&mut self) {
-            self.scroll(Vector2::new(0.0, self.size().y))
-        }
-
         /// Scroll text by given offset in pixels.
         pub fn scroll(&mut self, offset:Vector2<f32>) {
-            let position_change = -Vector3::new(offset.x,offset.y,0.0);
-            self.rendered.display_object.mod_position(|pos| *pos += position_change);
-            let mut update = self.assignment_update();
-            if offset.x != 0.0 {
-                update.update_after_x_scroll(offset.x);
+            let scroll_position = self.scroll_position();
+            let padding_lines   = 2;
+            let lines           = self.content.lines().len() + padding_lines;
+            let text_height     = self.content.line_height * lines as f32;
+            let view_height     = self.size().y;
+            let height          = (text_height - view_height).max(0.0);
+            let offset_y        = offset.y.min(scroll_position.y).max(scroll_position.y - height);
+            let offset          = Vector2::new(offset.x, offset_y);
+            if offset.x != 0.0 || offset.y != 0.0 {
+                let position_change = -Vector3::new(offset.x,offset.y,0.0);
+                self.rendered.display_object.mod_position(|pos| *pos += position_change);
+                let mut update = self.assignment_update();
+                if offset.x != 0.0 {
+                    update.update_after_x_scroll(offset.x);
+                }
+                if offset.y != 0.0 {
+                    update.update_line_assignment();
+                }
+                self.rendered.update_glyphs(&mut self.content);
             }
-            if offset.y != 0.0 {
-                update.update_line_assignment();
-            }
-            self.rendered.update_glyphs(&mut self.content);
         }
 
         /// Get current scroll position.
@@ -204,11 +204,38 @@ shared! { TextField
 
         /// Jump active cursor to point on the screen.
         pub fn jump_cursor(&mut self, point:Vector2<f32>, selecting:bool) {
-            let point_on_text  = self.relative_position(point);
-            let content        = &mut self.content;
-            let mut navigation = CursorNavigation {selecting, ..CursorNavigation::default(content)};
+            let point_on_text   = self.relative_position(point);
+            let text_field_size = self.size();
+            let content         = &mut self.content;
+            let mut navigation      = CursorNavigation{selecting,content,text_field_size};
             self.cursors.jump_cursor(&mut navigation,point_on_text);
             self.rendered.update_cursor_sprites(&self.cursors, &mut self.content,self.focused);
+        }
+
+        /// Processes PageUp and PageDown, scrolling the page accordingly.
+        fn scroll_page(&mut self, step:Step) {
+            let page_height     = self.size().y;
+            let scrolling       = match step {
+                Step::PageUp   =>  page_height,
+                Step::PageDown => -page_height,
+                _              => 0.0
+            };
+
+            self.scroll(Vector2::new(0.0,scrolling));
+        }
+
+        /// Adjust the view to make the last cursor visible.
+        fn adjust_view(&mut self) {
+            let last_cursor      = self.cursors.last_cursor();
+            let scroll_y         = self.scroll_position().y;
+            let view_size        = self.size();
+            let current_line     = last_cursor.current_line(&mut self.content);
+            let current_line_pos = current_line.y_position();
+            let next_line_pos    = current_line_pos + current_line.height;
+            let y_scrolling      = (scroll_y - next_line_pos + view_size.y).min(0.0);
+            let y_scrolling      = (scroll_y - current_line_pos).max(y_scrolling);
+            let scrolling        = Vector2::new(0.0,y_scrolling);
+            self.scroll(scrolling);
         }
 
         /// Move all cursors by given step.
@@ -216,9 +243,12 @@ shared! { TextField
             if !selecting {
                 self.clear_word_occurrences()
             }
-            let content        = &mut self.content;
-            let mut navigation = CursorNavigation {content,selecting};
+            let text_field_size = self.size();
+            let content         = &mut self.content;
+            let mut navigation  = CursorNavigation{content,selecting,text_field_size};
             self.cursors.navigate_all_cursors(&mut navigation,step);
+            self.scroll_page(step);
+            self.adjust_view();
             self.rendered.update_cursor_sprites(&self.cursors, &mut self.content,self.focused);
         }
 
@@ -370,6 +400,7 @@ impl TextField {
             // TODO[ao] updates should be done only in one place and only once per frame
             // see https://github.com/luna/ide/issues/178
             this.assignment_update().update_after_text_edit();
+            this.adjust_view();
             this.rendered.update_glyphs(&mut this.content);
             this.rendered.update_cursor_sprites(&this.cursors, &mut this.content, this.focused);
         });
@@ -385,11 +416,11 @@ impl TextField {
     /// For cursors with selection it will just remove the selected text. For the rest, it will
     /// remove all content covered by `step`.
     pub fn do_delete_operation(&self, step:Step) {
+        let text_field_size = self.size();
         self.with_borrowed(|this| {
             let content           = &mut this.content;
             let selecting         = true;
-            let mut navigation    = CursorNavigation
-                {selecting,..CursorNavigation::default(content)};
+            let mut navigation    = CursorNavigation{selecting,content,text_field_size};
             let without_selection = |c:&Cursor| !c.has_selection();
             this.cursors.navigate_cursors(&mut navigation,step,without_selection);
         });
