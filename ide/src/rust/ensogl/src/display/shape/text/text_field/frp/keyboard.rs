@@ -150,6 +150,8 @@ impl TextFieldKeyboardFrp {
         setter.set_navigation_action(&[ArrowRight],         Step::Right);
         setter.set_navigation_action(&[ArrowUp],            Step::Up);
         setter.set_navigation_action(&[ArrowDown],          Step::Down);
+        setter.set_navigation_action(&[PageDown],           Step::PageDown);
+        setter.set_navigation_action(&[PageUp],             Step::PageUp);
         setter.set_navigation_action(&[Home],               Step::LineBegin);
         setter.set_navigation_action(&[End],                Step::LineEnd);
         setter.set_navigation_action(&[Control,Home],       Step::DocBegin);
@@ -161,8 +163,6 @@ impl TextFieldKeyboardFrp {
         setter.set_action(&[Delete],                     |t| t.do_delete_operation(Step::Right));
         setter.set_action(&[Backspace],                  |t| t.do_delete_operation(Step::Left));
         setter.set_action(&[Escape],                     |t| t.finish_multicursor_mode());
-        setter.set_action(&[PageDown],                   |t| t.page_down());
-        setter.set_action(&[PageUp],                     |t| t.page_up());
     }
 }
 
