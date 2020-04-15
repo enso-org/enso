@@ -9,13 +9,14 @@ use crate::view::layout::ViewLayout;
 use ensogl::control::callback;
 use ensogl::control::io::keyboard::listener::KeyboardFrpBindings;
 use ensogl::display::shape::text::glyph::font::FontRegistry;
-use ensogl::display::world::World;
 use ensogl::system::web;
-use enso_frp::Keyboard;
-use enso_frp::KeyboardActions;
+use enso_frp::io::keyboard::Keyboard;
+use enso_frp::io::keyboard;
 use file_manager_client::Path;
 use nalgebra::Vector2;
 use shapely::shared;
+use ensogl::application::Application;
+
 
 
 // =================
@@ -48,13 +49,13 @@ shared! { ProjectView
     /// GraphEditor.
     #[derive(Debug)]
     pub struct ProjectViewData {
-        world             : World,
+        application       : Application,
         layout            : ViewLayout,
         resize_callback   : Option<callback::Handle>,
         controller        : controller::Project,
         keyboard          : Keyboard,
         keyboard_bindings : KeyboardFrpBindings,
-        keyboard_actions  : KeyboardActions
+        keyboard_actions  : keyboard::Actions
     }
 
     impl {
@@ -80,23 +81,24 @@ impl ProjectView {
         let graph_id             = controller::graph::Id::new_single_crumb(main_name);
         let module_controller    = controller.module_controller(location).await?;
         let graph_controller     = module_controller.graph_controller_unchecked(graph_id);
-        let world                = World::new(&web::get_html_element_by_id("root").unwrap());
+        let application          = Application::new(&web::get_html_element_by_id("root").unwrap());
+        let _world               = &application.display;
         // graph::register_shapes(&world);
         let logger               = logger.sub("ProjectView");
         let keyboard             = Keyboard::default();
         let keyboard_bindings    = KeyboardFrpBindings::new(&logger,&keyboard);
-        let mut keyboard_actions = KeyboardActions::new(&keyboard);
+        let mut keyboard_actions = keyboard::Actions::new(&keyboard);
         let resize_callback      = None;
         let mut fonts            = FontRegistry::new();
         let layout               = ViewLayout::new
-            (&logger,&mut keyboard_actions,&world,text_controller,graph_controller,&mut fonts);
+            (&logger,&mut keyboard_actions,&application,text_controller,graph_controller,&mut fonts);
         let data = ProjectViewData
-            {world,layout,resize_callback,controller,keyboard,keyboard_bindings,keyboard_actions};
+            {application,layout,resize_callback,controller,keyboard,keyboard_bindings,keyboard_actions};
         Ok(Self::new_from_data(data).init())
     }
 
     fn init(self) -> Self {
-        let scene = self.with_borrowed(|data| data.world.scene().clone_ref());
+        let scene = self.with_borrowed(|data| data.application.display.scene().clone_ref());
         let weak  = self.downgrade();
         let resize_callback = scene.camera().add_screen_update_callback(
             move |size:&Vector2<f32>| {

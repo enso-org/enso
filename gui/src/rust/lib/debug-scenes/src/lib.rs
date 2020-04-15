@@ -20,6 +20,7 @@
 
 pub mod dom_symbols;
 pub mod easing_animator;
+pub mod frp;
 pub mod glyph_system;
 pub mod ide;
 pub mod shapes;

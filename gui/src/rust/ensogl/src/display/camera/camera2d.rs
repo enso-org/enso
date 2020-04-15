@@ -108,7 +108,7 @@ pub trait ZoomUpdateFn = callback::CallbackMut1Fn<f32>;
 #[derive(Derivative)]
 #[derivative(Debug)]
 struct Camera2dData {
-    pub transform          : display::object::Node,
+    pub transform          : display::object::Instance,
     screen                 : Screen,
     zoom                   : f32,
     native_z               : f32,
@@ -128,7 +128,7 @@ type ProjectionDirty = dirty::SharedBool<()>;
 type TransformDirty = dirty::SharedBool<()>;
 
 impl Camera2dData {
-    pub fn new(logger:Logger, transform:&display::object::Node, width:f32, height:f32) -> Self {
+    pub fn new(logger:Logger, transform:&display::object::Instance, width:f32, height:f32) -> Self {
         let screen                 = Screen::new(width,height);
         let projection             = default();
         let clipping               = default();
@@ -314,7 +314,7 @@ impl Camera2dData {
 ///   the window, the left-bottom corner will stay in place.
 #[derive(Clone,CloneRef,Debug)]
 pub struct Camera2d {
-    display_object : display::object::Node,
+    display_object : display::object::Instance,
     data           : Rc<RefCell<Camera2dData>>,
 }
 
@@ -322,7 +322,7 @@ impl Camera2d {
     /// Creates new Camera instance.
     pub fn new(logger:&Logger, width:f32, height:f32) -> Self {
         let logger         = logger.sub("camera");
-        let display_object = display::object::Node::new(&logger);
+        let display_object = display::object::Instance::new(&logger);
         let data           = Camera2dData::new(logger,&display_object,width,height);
         let data           = Rc::new(RefCell::new(data));
         Self {display_object,data}
@@ -417,8 +417,8 @@ impl Camera2d {
 
 // === Conversions ===
 
-impl<'t> From<&'t Camera2d> for &'t display::object::Node {
-    fn from(camera:&'t Camera2d) -> Self {
-        &camera.display_object
+impl display::Object for Camera2d {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
     }
 }

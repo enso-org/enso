@@ -2,8 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::nodes::*;
-use crate::frp_def;
+use crate as frp;
 
 
 
@@ -12,17 +11,22 @@ use crate::frp_def;
 // ================
 
 /// A 2-dimensional position. Used for storing the mouse position on the screen.
-#[derive(Clone,Copy,Debug,Default,PartialEq,Eq)]
+#[derive(Clone,Copy,Debug,Default,PartialEq)]
 #[allow(missing_docs)]
 pub struct Position {
-    pub x:i32,
-    pub y:i32,
+    pub x:f32,
+    pub y:f32,
 }
 
 impl Position {
     /// Constructor.
-    pub fn new(x:i32, y:i32) -> Self {
+    pub fn new(x:f32, y:f32) -> Self {
         Self {x,y}
+    }
+
+    /// Length of a vector from the origin to a point of the position.
+    pub fn length(self) -> f32 {
+        (self.x * self.x + self.y * self.y).sqrt()
     }
 }
 
@@ -43,32 +47,39 @@ impl Sub<&Position> for &Position {
 
 /// Mouse FRP bindings.
 #[derive(Clone,CloneRef,Debug)]
+#[allow(missing_docs)]
 pub struct Mouse {
-    /// The mouse up event.
-    pub on_up : Dynamic<()>,
-    /// The mouse down event.
-    pub on_down : Dynamic<()>,
-    /// The mouse wheel event.
-    pub on_wheel : Dynamic<()>,
-    /// The mouse leave event.
-    pub on_leave : Dynamic<()>,
-    /// Mouse button press status.
-    pub is_down : Dynamic<bool>,
-    /// Current mouse position.
-    pub position : Dynamic<Position>,
+    pub network       : frp::Network,
+    pub release       : frp::Source,
+    pub press         : frp::Source,
+    pub wheel         : frp::Source,
+    pub leave         : frp::Source,
+    pub down          : frp::Stream<bool>,
+    pub up            : frp::Stream<bool>,
+    pub position      : frp::Source<Position>,
+    pub prev_position : frp::Stream<Position>,
+    pub translation      : frp::Stream<Position>,
+    pub distance      : frp::Stream<f32>,
 }
 
 impl Default for Mouse {
     fn default() -> Self {
-        frp_def! { mouse.on_up     = source() }
-        frp_def! { mouse.on_down   = source() }
-        frp_def! { mouse.on_wheel  = source() }
-        frp_def! { mouse.on_leave  = source() }
-        frp_def! { mouse.position  = source() }
-        frp_def! { mouse.down_bool = on_down.constant(true) }
-        frp_def! { mouse.up_bool   = on_up.constant(false) }
-        frp_def! { mouse.is_down   = down_bool.merge(&up_bool) }
-        Self {on_up,on_down,on_leave,on_wheel,is_down,position}
+        frp::new_network! { mouse
+            def release       = source_();
+            def press         = source_();
+            def wheel         = source_();
+            def leave         = source_();
+            def position      = source();
+            def down_const    = press.constant(true);
+            def up_const      = release.constant(false);
+            def down          = down_const.merge(&up_const);
+            def up            = down.map(|t| !t);
+            def prev_position = position.previous();
+            def translation   = position.map2(&prev_position,|t,s| t - s);
+            def distance      = translation.map(|t:&Position| t.length());
+        };
+        let network = mouse;
+        Self {network,release,press,leave,wheel,down,up,position,prev_position,translation,distance}
     }
 }
 

@@ -8,7 +8,6 @@ pub mod event;
 use crate::control::callback;
 use crate::system::web;
 
-use enso_frp::EventEmitterPoly;
 use enso_frp::Position;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -139,15 +138,15 @@ pub struct MouseFrpCallbackHandles {
 }
 
 /// Bind FRP graph to MouseManager.
-pub fn bind_frp_to_mouse(frp:&enso_frp::Mouse, mouse_manager:&MouseManager)
+pub fn bind_frp_to_mouse(frp:&enso_frp::io::Mouse, mouse_manager:&MouseManager)
 -> MouseFrpCallbackHandles {
-    let on_move = enclose!((frp.position.event => frp) move |e:&OnMove| {
-        frp.emit(Position::new(e.client_x(),e.client_y()));
+    let on_move = enclose!((frp.position => frp) move |e:&OnMove| {
+        frp.emit(Position::new(e.client_x() as f32,e.client_y() as f32));
     });
-    let on_down  = enclose!((frp.on_down.event  => frp) move |_:&OnDown | frp.emit(()));
-    let on_up    = enclose!((frp.on_up.event    => frp) move |_:&OnUp   | frp.emit(()));
-    let on_wheel = enclose!((frp.on_wheel.event => frp) move |_:&OnWheel| frp.emit(()));
-    let on_leave = enclose!((frp.on_leave.event => frp) move |_:&OnLeave| frp.emit(()));
+    let on_down  = enclose!((frp.press   => frp) move |_:&OnDown | frp.emit(()));
+    let on_up    = enclose!((frp.release => frp) move |_:&OnUp   | frp.emit(()));
+    let on_wheel = enclose!((frp.wheel   => frp) move |_:&OnWheel| frp.emit(()));
+    let on_leave = enclose!((frp.leave   => frp) move |_:&OnLeave| frp.emit(()));
     MouseFrpCallbackHandles {
         on_move  : mouse_manager.on_move.add(on_move),
         on_down  : mouse_manager.on_down.add(on_down),

@@ -63,7 +63,7 @@ pub struct TextFieldSprites {
     /// line height in pixels.
     pub line_height: f32,
     /// Display object of the whole rendered content.
-    pub display_object: display::object::Node,
+    pub display_object: display::object::Instance,
 }
 
 
@@ -81,7 +81,7 @@ impl TextFieldSprites {
         let cursor_system     = Self::create_cursor_system(world,line_height,&color);
         let cursors           = Vec::new();
         let mut glyph_system  = GlyphSystem::new(world,font.clone_ref());
-        let display_object    = display::object::Node::new(Logger::new("RenderedContent"));
+        let display_object    = display::object::Instance::new(Logger::new("RenderedContent"));
         display_object.add_child(&selection_system);
         display_object.add_child(&glyph_system);
         display_object.add_child(&cursor_system);
@@ -213,5 +213,11 @@ impl TextFieldSprites {
             cursor    : cursor_system.new_instance(),
             selection : Vec::new(),
         }
+    }
+}
+
+impl display::Object for TextFieldSprites {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
     }
 }

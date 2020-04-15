@@ -234,9 +234,9 @@ impl GlyphSystem {
     }
 }
 
-impl<'t> From<&'t GlyphSystem> for &'t display::object::Node {
-    fn from(glyph_system:&'t GlyphSystem) -> Self {
-        glyph_system.sprite_system.display_object()
+impl display::Object for GlyphSystem {
+    fn display_object(&self) -> &display::object::Instance {
+        self.sprite_system.display_object()
     }
 }
 

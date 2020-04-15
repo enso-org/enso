@@ -60,13 +60,13 @@ pub fn set_object_transform(dom:&web::JsValue, matrix:&Matrix4<f32>) {
 /// Drop guard for `DomSymbol`.
 #[derive(Debug)]
 pub struct Guard {
-    display_object : display::object::Node,
+    display_object : display::object::Instance,
     dom            : HtmlDivElement,
 }
 
 impl Guard {
     /// Constructor.
-    pub fn new(display_object:&display::object::Node, dom:&HtmlDivElement) -> Self {
+    pub fn new(display_object:&display::object::Instance, dom:&HtmlDivElement) -> Self {
         let display_object = display_object.clone2();
         let dom            = dom.clone();
         Self {display_object,dom}
@@ -89,7 +89,7 @@ impl Drop for DomSymbol {
 /// A DOM element which is managed by the rendering engine.
 #[derive(Debug)]
 pub struct DomSymbol {
-    display_object : display::object::Node,
+    display_object : display::object::Instance,
     dom            : HtmlDivElement,
     size           : Cell<Vector2<f32>>,
     guard          : Guard,
@@ -105,7 +105,7 @@ impl DomSymbol {
         dom.set_style_or_warn("width"   , "0px"     , &logger);
         dom.set_style_or_warn("height"  , "0px"     , &logger);
         dom.append_or_panic(content);
-        let display_object = display::object::Node::new(logger);
+        let display_object = display::object::Instance::new(logger);
         let guard          = Guard::new(&display_object,&dom);
         display_object.set_on_updated(enclose!((dom) move |t| {
             let mut transform = t.matrix();
@@ -133,9 +133,9 @@ impl DomSymbol {
     }
 }
 
-impl<'t> From<&'t DomSymbol> for &'t display::object::Node {
-    fn from(obj:&'t DomSymbol) -> Self {
-        &obj.display_object
+impl display::Object for DomSymbol {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
     }
 }
 
