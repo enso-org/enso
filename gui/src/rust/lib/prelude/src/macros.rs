@@ -20,6 +20,11 @@
 /// ```
 ///
 /// This macro is meant to support many standard traits (like From) and should grow in the future.
+/// Currently supported ones are:
+/// * From<…>
+/// * From + &From<…>
+/// * Into + &Into<…>
+/// * PhantomFrom<…>
 #[macro_export]
 macro_rules! impls {
     ($([$($impl_params:tt)*])? From<$ty:ty> for $target:ty $(where [$($bounds:tt)*])? {
@@ -49,6 +54,26 @@ macro_rules! impls {
         impl <$($($impl_params)*)?> From <&$ty> for $target $(where $($bounds)*)? {
             fn from (arg:&$ty) -> Self {
                 (|$arg:&$ty| $($result)*)(arg)
+            }
+        }
+    };
+
+    ($([$($impl_params:tt)*])? Into + &Into <$ty:ty> for $target:ty $(where [$($bounds:tt)*])? {
+        |$arg:tt| $($result:tt)*
+    } ) => {
+        #[allow(clippy::redundant_closure_call)]
+        #[allow(clippy::identity_conversion)]
+        impl <$($($impl_params)*)?> Into <$ty> for $target $(where $($bounds)*)? {
+            fn into(self) -> $ty {
+                (|$arg:Self| $($result)*)(self)
+            }
+        }
+
+        #[allow(clippy::redundant_closure_call)]
+        #[allow(clippy::identity_conversion)]
+        impl <$($($impl_params)*)?> Into <$ty> for &$target $(where $($bounds)*)? {
+            fn into(self) -> $ty {
+                (|$arg:Self| $($result)*)(self)
             }
         }
     };

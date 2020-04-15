@@ -4,8 +4,6 @@ use crate::prelude::*;
 
 use ast::crumbs::ChildAst;
 use ast::crumbs::Crumbable;
-use ast::HasRepr;
-use ast::Shape;
 use ast::known;
 use ast::prefix;
 use ast::opr;
@@ -127,28 +125,6 @@ pub enum ScopeKind {
 
 
 
-// ==================
-// === Identifier ===
-// ==================
-
-/// Checks if given Ast node can be used to represent identifier being part of definition name.
-pub fn is_identifier(ast:&Ast) -> bool {
-    match ast.shape() {
-        Shape::Var          {..} => true,
-        Shape::Cons         {..} => true,
-        Shape::SectionSides {..} => true,
-        Shape::Opr          {..} => true,
-        _                        => false,
-    }
-}
-
-/// Retrieves the identifier's name, if the Ast node is an identifier. Otherwise, returns None.
-pub fn identifier_name(ast:&Ast) -> Option<String> {
-    is_identifier(ast).then(ast.repr())
-}
-
-
-
 // ======================
 // === DefinitionName ===
 // ======================
@@ -178,16 +154,24 @@ impl DefinitionName {
         let accessor_chain = opr::Chain::try_new_of(ast,opr::predefined::ACCESS);
         let (extended_target,name) = match accessor_chain {
             Some(accessor_chain) => {
-                let mut args = vec![identifier_name(&accessor_chain.target?)?];
+                let mut args = vec![ast::identifier::name(&*accessor_chain.target?)?.clone()];
                 for arg in accessor_chain.args.iter() {
                     let arg_ast = arg.operand.as_ref()?;
-                    args.push(identifier_name(arg_ast)?)
+                    args.push(ast::identifier::name(&*arg_ast)?.clone())
                 }
                 let name = args.pop()?;
                 (args,name)
             }
             None => {
-                (Vec::new(), identifier_name(ast)?)
+                let name = match ast.shape() {
+                    ast::Shape::Var         (var)   => Some(&var.name),
+                    ast::Shape::Opr         (opr)   => Some(&opr.name),
+                    ast::Shape::SectionSides(sides) => ast::identifier::name(&sides.opr),
+                    // Shape::Cons is intentionally omitted.
+                    // It serves to pattern-match, not as definition name.
+                    _ => None
+                }?;
+                (Vec::new(), name.clone())
             }
         };
         Some(DefinitionName {extended_target,name})
@@ -332,7 +316,7 @@ pub type ChildDefinition = ast::crumbs::Located<DefinitionInfo>;
 /// Its crumbs will accumulate both current crumbs and the passed one.
 pub fn resolve_single_name(def:ChildDefinition, id:&Crumb) -> FallibleResult<ChildDefinition> {
     let child = def.item.def_iter().find_by_name(id)?;
-    Ok(def.push_descendant(child))
+    Ok(def.into_descendant(child))
 }
 
 
@@ -408,7 +392,7 @@ pub trait DefinitionProvider {
 pub fn ast_direct_children<'a>
 (ast:&'a impl Crumbable) -> Box<dyn Iterator<Item = ChildAst<'a>>+'a> {
     let iter = ast.enumerate().map(|(crumb,ast)| {
-        ChildAst::new_direct_child(crumb,ast)
+        ChildAst::new(crumb,ast)
     });
     Box::new(iter)
 }
@@ -475,6 +459,8 @@ impl DefinitionProvider for DefinitionInfo {
 mod tests {
     use super::*;
 
+    use crate::double_representation::INDENT;
+
     use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -492,6 +478,29 @@ mod tests {
 
     fn indented(line:impl Display) -> String {
         iformat!("    {line}")
+    }
+
+    #[test]
+    fn match_is_not_definition() {
+        let cons = Ast::cons("Foo");
+        let arg  = Ast::number(5);
+        let lhs  = Ast::prefix(cons, arg.clone());
+        let rhs  = Ast::var("bar");
+        let ast  = Ast::infix(lhs, "=", rhs.clone());
+
+        // Not a definition, it is a pattern match/
+        assert_eq!(ast.repr(), "Foo 5 = bar");
+        let def_opt = DefinitionInfo::from_line_ast(&ast,ScopeKind::NonRoot,INDENT);
+        assert!(def_opt.is_none());
+
+        let var = Ast::var("foo");
+        let lhs = Ast::prefix(var, arg);
+        let ast = Ast::infix(lhs, "=", rhs);
+
+        // Now it is a definition.
+        assert_eq!(ast.repr(), "foo 5 = bar");
+        let def_opt = DefinitionInfo::from_line_ast(&ast,ScopeKind::NonRoot,INDENT);
+        assert!(def_opt.is_some());
     }
 
     #[wasm_bindgen_test]

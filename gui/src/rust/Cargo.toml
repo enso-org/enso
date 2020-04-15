@@ -47,4 +47,4 @@ debug     = false
 [profile.test]
 opt-level = 0
 lto       = false
-debug     = false
+debug     = true

@@ -338,9 +338,11 @@ mod tests {
 main =
     foo = node
     foo a = not_node
-    Int.= a = node
     node
 ";
+        // TODO [mwu]
+        //  Add case like `Int.+ a = not_node` once https://github.com/luna/enso/issues/565 is fixed
+
         let graph = main_graph(&mut parser, program);
         let nodes = graph.nodes();
         assert_eq!(nodes.len(), 2);

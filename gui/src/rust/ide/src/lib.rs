@@ -1,9 +1,11 @@
 //! Main library crate for IDE. It includes implementation of
 //! controllers, view logic and code that wraps them all together.
-
+//!
+#![feature(associated_type_bounds)]
 #![feature(bool_to_option)]
 #![feature(cell_update)]
 #![feature(drain_filter)]
+#![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![recursion_limit="256"]
 #![warn(missing_docs)]
@@ -42,8 +44,15 @@ pub mod prelude {
     pub use futures::StreamExt;
     pub use futures::task::LocalSpawnExt;
 
+    pub use std::ops::Range;
+
     pub use utils::fail::FallibleResult;
+    pub use utils::option::OptionExt;
     pub use utils::vec::VecExt;
+
+
+    #[cfg(test)] pub use wasm_bindgen_test::wasm_bindgen_test;
+    #[cfg(test)] pub use wasm_bindgen_test::wasm_bindgen_test_configure;
 }
 
 use crate::prelude::*;
