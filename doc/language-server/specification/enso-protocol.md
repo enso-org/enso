@@ -71,7 +71,6 @@ services components, as well as any open questions that may remain.
   - [Connection Management](#connection-management)
     - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
     - [`session/initDataConnection`](#sessioninitdataconnection)
-    - [`session/end`](#sessionend)
   - [Capability Management](#capability-management)
     - [`capability/acquire`](#capabilityacquire)
     - [`capability/release`](#capabilityrelease)
@@ -1213,7 +1212,8 @@ be correlated between the textual and data connections.
 ```
 
 ##### Errors
-TBC
+- [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror) to signal 
+that session is already initialised.
 
 #### `session/initDataConnection`
 This message initialises the data connection used for transferring binary data
@@ -1253,24 +1253,6 @@ table InitResponse {}
 
 ##### Errors
 N/A
-
-#### `session/end`
-This message informs the engine that the session is being terminated by a given
-user.
-
-- **Type:** Notification
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-##### Parameters
-
-```typescript
-null
-```
-
-##### Errors
-TBC
 
 ### Capability Management
 In order to mediate between multiple clients properly, the language server has
@@ -2836,3 +2818,24 @@ Signals that requested capability is not acquired.
   "code" : 5001,
   "message" : "Capability not acquired"
 }
+```
+
+##### `SessionNotInitialisedError`
+Signals that requested cannot be proccessed, beacuse session is not initialised.
+
+```typescript
+"error" : {
+  "code" : 6001,
+  "message" : "Session not initialised"
+}
+```
+
+##### `SessionAlreadyInitialisedError`
+Signals that session is already initialised.
+
+```typescript
+"error" : {
+  "code" : 6002,
+  "message" : "Session already initialised"
+}
+```

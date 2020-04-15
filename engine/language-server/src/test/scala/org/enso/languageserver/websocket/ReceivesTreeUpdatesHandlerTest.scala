@@ -9,15 +9,13 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
   "ReceivesTreeUpdatesHandler" must {
 
     "acquire capability receivesTreeUpdates" in {
-      val client = new WsTestClient(address)
-
+      val client = getInitialisedWsClient()
       client.send(jsonrpc.acquireReceivesTreeUpdates(1))
       client.expectJson(jsonrpc.ok(1))
     }
 
     "fail to acquire capability if directory doesn't exist" in {
-      val client = new WsTestClient(address)
-
+      val client = getInitialisedWsClient()
       client.send(jsonrpc.acquireReceivesTreeUpdates(1, "nonexistent"))
       client.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -31,8 +29,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
     }
 
     "reacquire capability receivesTreeUpdates" in {
-      val client = new WsTestClient(address)
-
+      val client = getInitialisedWsClient()
       // acquire
       client.send(jsonrpc.acquireReceivesTreeUpdates(1))
       client.expectJson(jsonrpc.ok(1))
@@ -43,8 +40,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
     }
 
     "fail to release capability it does not hold" in {
-      val client = new WsTestClient(address)
-
+      val client = getInitialisedWsClient()
       client.send(jsonrpc.releaseReceivesTreeUpdates(1))
       client.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -58,8 +54,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
     }
 
     "release capability receivesTreeUpdates" in {
-      val client = new WsTestClient(address)
-
+      val client = getInitialisedWsClient()
       // acquire capability
       client.send(jsonrpc.acquireReceivesTreeUpdates(1))
       client.expectJson(jsonrpc.ok(1))
@@ -70,9 +65,8 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
     }
 
     "receive file system updates" in {
-      val client1 = new WsTestClient(address)
-      val client2 = new WsTestClient(address)
-
+      val client1 = getInitialisedWsClient()
+      val client2 = getInitialisedWsClient()
       // acquire capability
       client1.send(jsonrpc.acquireReceivesTreeUpdates(1))
       client1.expectJson(jsonrpc.ok(1))

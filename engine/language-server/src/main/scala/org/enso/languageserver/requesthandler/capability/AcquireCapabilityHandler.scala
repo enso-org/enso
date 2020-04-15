@@ -1,31 +1,30 @@
-package org.enso.languageserver.requesthandler
+package org.enso.languageserver.requesthandler.capability
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.languageserver.capability.CapabilityApi.{
-  CapabilityNotAcquired,
-  ReleaseCapability
-}
+import org.enso.languageserver.capability.CapabilityApi.AcquireCapability
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.capability.CapabilityProtocol.{
-  CapabilityNotAcquiredResponse,
-  CapabilityReleaseBadRequest,
-  CapabilityReleased
+  CapabilityAcquired,
+  CapabilityAcquisitionBadRequest,
+  CapabilityAcquisitionFileSystemFailure
 }
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
+import org.enso.languageserver.filemanager.FileSystemFailureMapper
+import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for `capability/release` commands.
+  * A request handler for `capability/acquire` commands.
   *
   * @param capabilityRouter a router that dispatches capability requests
   * @param timeout a request timeout
   * @param client an object representing a client connected to the language server
   */
-class ReleaseCapabilityHandler(
+class AcquireCapabilityHandler(
   capabilityRouter: ActorRef,
   timeout: FiniteDuration,
   client: Client
@@ -33,48 +32,55 @@ class ReleaseCapabilityHandler(
     with ActorLogging
     with UnhandledLogging {
 
-  override def receive: Receive = requestStage
-
   import context.dispatcher
 
+  override def receive: Receive = requestStage
+
   private def requestStage: Receive = {
-    case Request(ReleaseCapability, id, params: CapabilityRegistration) =>
-      capabilityRouter ! CapabilityProtocol.ReleaseCapability(client, params)
+    case Request(AcquireCapability, id, registration: CapabilityRegistration) =>
+      capabilityRouter ! CapabilityProtocol.AcquireCapability(
+        client,
+        registration
+      )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
   }
+
   private def responseStage(
     id: Id,
     replyTo: ActorRef,
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Releasing capability for ${client.id} timed out")
+      log.error(s"Acquiring capability for ${client.id} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case CapabilityReleased =>
-      replyTo ! ResponseResult(ReleaseCapability, id, Unused)
+    case CapabilityAcquired =>
+      replyTo ! ResponseResult(AcquireCapability, id, Unused)
       cancellable.cancel()
       context.stop(self)
 
-    case CapabilityReleaseBadRequest =>
+    case CapabilityAcquisitionBadRequest =>
       replyTo ! ResponseError(Some(id), ServiceError)
       cancellable.cancel()
       context.stop(self)
 
-    case CapabilityNotAcquiredResponse =>
-      replyTo ! ResponseError(Some(id), CapabilityNotAcquired)
+    case CapabilityAcquisitionFileSystemFailure(error) =>
+      replyTo ! ResponseError(
+        Some(id),
+        FileSystemFailureMapper.mapFailure(error)
+      )
       cancellable.cancel()
       context.stop(self)
   }
 }
 
-object ReleaseCapabilityHandler {
+object AcquireCapabilityHandler {
 
   /**
-    * Creates a configuration object used to create a [[ReleaseCapabilityHandler]]
+    * Creates a configuration object used to create a [[AcquireCapabilityHandler]]
     *
     * @param capabilityRouter a router that dispatches capability requests
     * @param requestTimeout a request timeout
@@ -87,7 +93,7 @@ object ReleaseCapabilityHandler {
     client: Client
   ): Props =
     Props(
-      new ReleaseCapabilityHandler(capabilityRouter, requestTimeout, client)
+      new AcquireCapabilityHandler(capabilityRouter, requestTimeout, client)
     )
 
 }

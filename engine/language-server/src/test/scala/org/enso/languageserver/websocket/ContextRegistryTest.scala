@@ -11,8 +11,7 @@ class ContextRegistryTest extends BaseServerTest {
   "ContextRegistry" must {
 
     "create execution context" in {
-      val client = new WsTestClient(address)
-
+      val client = getInitialisedWsClient()
       client.send(json.executionContextCreateRequest(1))
       val (requestId, contextId) =
         runtimeConnectorProbe.receiveN(1).head match {
@@ -29,8 +28,7 @@ class ContextRegistryTest extends BaseServerTest {
     }
 
     "destroy execution context" in {
-      val client = new WsTestClient(address)
-
+      val client = getInitialisedWsClient()
       // create context
       client.send(json.executionContextCreateRequest(1))
       val (requestId1, contextId) =
@@ -64,8 +62,7 @@ class ContextRegistryTest extends BaseServerTest {
     }
 
     "reply AccessDenied when destroying context it doesn't hold" in {
-      val client = new WsTestClient(address)
-
+      val client = getInitialisedWsClient()
       client.send(json.executionContextDestroyRequest(1, UUID.randomUUID()))
       client.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -79,8 +76,7 @@ class ContextRegistryTest extends BaseServerTest {
     }
 
     "reply ContextNotFound when destroying context that wasn't found" in {
-      val client = new WsTestClient(address)
-
+      val client = getInitialisedWsClient()
       // create context
       client.send(json.executionContextCreateRequest(1))
       val (requestId1, contextId) =
@@ -121,8 +117,7 @@ class ContextRegistryTest extends BaseServerTest {
     }
 
     "push stack item" in {
-      val client = new WsTestClient(address)
-
+      val client = getInitialisedWsClient()
       // create context
       client.send(json.executionContextCreateRequest(1))
       val (requestId1, contextId) =
@@ -162,8 +157,7 @@ class ContextRegistryTest extends BaseServerTest {
     }
 
     "pop stack item" in {
-      val client = new WsTestClient(address)
-
+      val client = getInitialisedWsClient()
       // create context
       client.send(json.executionContextCreateRequest(1))
       val (requestId1, contextId) =
@@ -218,8 +212,7 @@ class ContextRegistryTest extends BaseServerTest {
     }
 
     "return EmptyStackError when popping empty stack" in {
-      val client = new WsTestClient(address)
-
+      val client = getInitialisedWsClient()
       // create context
       client.send(json.executionContextCreateRequest(1))
       val (requestId1, contextId) =
@@ -260,7 +253,7 @@ class ContextRegistryTest extends BaseServerTest {
     }
 
     "send notifications" in {
-      val client = new WsTestClient(address)
+      val client = getInitialisedWsClient()
 
       // create context
       client.send(json.executionContextCreateRequest(1))

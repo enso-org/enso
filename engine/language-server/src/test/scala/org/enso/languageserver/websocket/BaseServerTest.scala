@@ -5,17 +5,11 @@ import java.util.UUID
 
 import akka.actor.Props
 import akka.testkit.TestProbe
-import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
+import io.circe.literal._
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
-import org.enso.languageserver.{LanguageProtocol, LanguageServer}
+import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.languageserver.capability.CapabilityRouter
-import org.enso.languageserver.data.{
-  Config,
-  ExecutionContextConfig,
-  FileManagerConfig,
-  PathWatcherConfig,
-  Sha3_224VersionCalculator
-}
+import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{
   FileManager,
@@ -25,6 +19,7 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.runtime.ContextRegistry
 import org.enso.languageserver.text.BufferRegistry
+import org.enso.languageserver.{LanguageProtocol, LanguageServer}
 
 import scala.concurrent.duration._
 
@@ -71,4 +66,33 @@ class BaseServerTest extends JsonRpcServerTestKit {
       contextRegistry
     )
   }
+
+  def getInitialisedWsClient(): WsTestClient = {
+    val client = new WsTestClient(address)
+    initSession(client)
+    client
+  }
+
+  private def initSession(client: WsTestClient): UUID = {
+    val clientId = UUID.randomUUID()
+    client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "session/initProtocolConnection",
+            "id": 1,
+            "params": {
+              "clientId": $clientId
+            }
+          }
+          """)
+    client.expectJson(json"""
+            { "jsonrpc":"2.0",
+              "id":1,
+              "result":{
+                "contentRoots":[ $testContentRootId ]
+              }
+            }
+              """)
+    clientId
+  }
+
 }

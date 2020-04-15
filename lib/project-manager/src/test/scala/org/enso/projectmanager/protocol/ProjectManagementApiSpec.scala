@@ -265,7 +265,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
           {
             "jsonrpc":"2.0",
              "id":1,
-             "error":{"code":1001,"message":"Content root not found"}}
+             "error":{"code":6001,"message":"Session not initialised"}}
             """)
       //teardown
       closeProject(projectId)

@@ -1,6 +1,20 @@
 package org.enso.languageserver.filemanager
 
+import java.util.UUID
+
 object FileManagerProtocol {
+
+  /**
+    * Gets all content roots.
+    */
+  case object GetContentRoots
+
+  /**
+    * Response containing all content roots.
+    *
+    * @param contentRoots content roots
+    */
+  case class ContentRootsResult(contentRoots: Set[UUID])
 
   /**
     * Requests the Language Server write textual content to an arbitrary file.

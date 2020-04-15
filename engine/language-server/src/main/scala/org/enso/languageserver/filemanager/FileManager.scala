@@ -31,6 +31,11 @@ class FileManager(
     case Ping =>
       sender() ! Pong
 
+    case FileManagerProtocol.GetContentRoots =>
+      sender() ! FileManagerProtocol.ContentRootsResult(
+        config.contentRoots.keySet
+      )
+
     case FileManagerProtocol.WriteFile(path, content) =>
       val result =
         for {

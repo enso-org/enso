@@ -1,30 +1,25 @@
-package org.enso.languageserver.requesthandler
+package org.enso.languageserver.requesthandler.text
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.data.Client
-import org.enso.languageserver.filemanager.FileSystemFailureMapper
-import org.enso.languageserver.util.UnhandledLogging
-import org.enso.languageserver.text.TextApi.{
-  FileNotOpenedError,
-  InvalidVersionError,
-  SaveFile,
-  WriteDeniedError
-}
+import org.enso.languageserver.requesthandler.RequestTimeout
+import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
-import org.enso.languageserver.text.TextProtocol._
+import org.enso.languageserver.text.TextProtocol.{ApplyEdit => _, _}
+import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for `text/save` commands.
+  * A request handler for `text/applyEdit` commands.
   *
   * @param bufferRegistry a router that dispatches text editing requests
   * @param timeout a request timeout
   * @param client an object representing a client connected to the language server
   */
-class SaveFileHandler(
+class ApplyEditHandler(
   bufferRegistry: ActorRef,
   timeout: FiniteDuration,
   client: Client
@@ -37,12 +32,8 @@ class SaveFileHandler(
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case Request(SaveFile, id, params: SaveFile.Params) =>
-      bufferRegistry ! TextProtocol.SaveFile(
-        client.id,
-        params.path,
-        params.currentVersion
-      )
+    case Request(ApplyEdit, id, params: ApplyEdit.Params) =>
+      bufferRegistry ! TextProtocol.ApplyEdit(client.id, params.edit)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -54,33 +45,30 @@ class SaveFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Saving file for ${client.id} timed out")
+      log.error(s"Applying edit for ${client.id} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case FileSaved =>
-      replyTo ! ResponseResult(SaveFile, id, Unused)
+    case ApplyEditSuccess =>
+      replyTo ! ResponseResult(ApplyEdit, id, Unused)
       cancellable.cancel()
       context.stop(self)
 
-    case SaveFailed(fsFailure) =>
-      replyTo ! ResponseError(
-        Some(id),
-        FileSystemFailureMapper.mapFailure(fsFailure)
-      )
+    case TextEditValidationFailed(msg) =>
+      replyTo ! ResponseError(Some(id), TextEditValidationError(msg))
       cancellable.cancel()
       context.stop(self)
 
-    case SaveDenied =>
-      replyTo ! ResponseError(Some(id), WriteDeniedError)
-      cancellable.cancel()
-      context.stop(self)
-
-    case SaveFileInvalidVersion(clientVersion, serverVersion) =>
+    case TextEditInvalidVersion(clientVersion, serverVersion) =>
       replyTo ! ResponseError(
         Some(id),
         InvalidVersionError(clientVersion, serverVersion)
       )
+      cancellable.cancel()
+      context.stop(self)
+
+    case WriteDenied =>
+      replyTo ! ResponseError(Some(id), WriteDeniedError)
       cancellable.cancel()
       context.stop(self)
 
@@ -91,10 +79,10 @@ class SaveFileHandler(
   }
 }
 
-object SaveFileHandler {
+object ApplyEditHandler {
 
   /**
-    * Creates a configuration object used to create a [[SaveFileHandler]].
+    * Creates a configuration object used to create a [[ApplyEditHandler]]
     *
     * @param bufferRegistry a router that dispatches text editing requests
     * @param requestTimeout a request timeout
@@ -105,6 +93,6 @@ object SaveFileHandler {
     bufferRegistry: ActorRef,
     requestTimeout: FiniteDuration,
     client: Client
-  ): Props = Props(new SaveFileHandler(bufferRegistry, requestTimeout, client))
+  ): Props = Props(new ApplyEditHandler(bufferRegistry, requestTimeout, client))
 
 }
