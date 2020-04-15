@@ -2,12 +2,15 @@ package org.enso.syntax.text
 
 import java.util.UUID
 
-import cats.{Foldable, Functor, Monoid}
+import cats.Foldable
+import cats.Functor
+import cats.Monoid
 import cats.derived._
 import cats.implicits._
 import io.circe.Encoder
 import io.circe.Json
-import org.enso.syntax.text.ast.text.{Escape, RawEscape}
+import org.enso.syntax.text.ast.text.Escape
+import org.enso.syntax.text.ast.text.RawEscape
 import org.enso.data.List1._
 import org.enso.data.List1
 import org.enso.data.Index
@@ -774,11 +777,16 @@ object Shape extends ShapeImplicit {
       headRepr + emptyLinesRepr + firstLineRepr + linesRepr
     }
     implicit def ozipBlock[T: HasSpan]: OffsetZip[Block, T] = t => {
-      val line   = t.firstLine.copy(elem = (Index.Start, t.firstLine.elem))
-      var offset = Index(t.firstLine.span)
+      var index = 0
+      index += (if (t.isOrphan) 0 else 1)
+      index += t.emptyLines.map(_ + 1).sum
+      index += t.indent
+      val line = t.firstLine.copy(elem = (Index(index), t.firstLine.elem))
+      index += t.firstLine.span + newline.span
       val lines = for (line <- t.lines) yield {
-        val elem = line.elem.map((offset, _))
-        offset += Size(line.span)
+        index += t.indent
+        val elem = line.elem.map((Index(index), _))
+        index += line.span + newline.span
         line.copy(elem = elem)
       }
       t.copy(firstLine = line, lines = lines)
@@ -1360,8 +1368,8 @@ object AST {
     override def hashCode(): Int = shape.hashCode()
 
     def setID(newID: Option[ID]): ASTOf[T] = copy(id = newID)
-    def setID(newID: ID): ASTOf[T] = setID(Some(newID))
-    def withNewID():      ASTOf[T] = copy(id = Some(UUID.randomUUID()))
+    def setID(newID: ID):         ASTOf[T] = setID(Some(newID))
+    def withNewID():              ASTOf[T] = copy(id = Some(UUID.randomUUID()))
     def withNewIDIfMissing(): ASTOf[T] = id match {
       case Some(_) => this
       case None    => this.withNewID()
