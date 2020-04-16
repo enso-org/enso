@@ -157,6 +157,29 @@ impls! { From + &From <Rgba<encoding::Linear<encoding::Srgb>>> for Glsl {
 #[derive(Clone,Copy,Debug)]
 pub struct NotGlslError;
 
+// === Glsl to Glsl helpers to convert between types ===
+
+/// Converts a number to a `Radians` struct.
+pub(crate) fn f32_to_rad(glsl:&Glsl) -> Glsl{
+    iformat!("Radians({glsl})").into()
+}
+
+/// Extracts a number from a `Radians` struct.
+pub(crate) fn rad_to_f32(glsl:&Glsl) -> Glsl{
+    iformat!("value({glsl})").into()
+}
+
+/// Converts a number to a `Degree` struct.
+pub(crate) fn f32_to_deg(glsl:&Glsl) -> Glsl{
+    // We just use the radians representation of the degrees.
+    iformat!("Degrees({glsl})").into()
+}
+
+/// Extracts a number from a `Degree` struct. The number will be in radians.
+pub(crate) fn deg_to_f32(glsl:&Glsl) -> Glsl{
+    iformat!("radians({glsl})").into()
+}
+
 
 
 // =================================================================================================

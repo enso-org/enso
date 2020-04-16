@@ -270,10 +270,30 @@ impl AngleOps for i32 {
     }
 }
 
-impls! { From< Angle<Radians>> for Glsl { |t| { iformat!("Radians({t.value.glsl()})").into() } }}
-impls! { From<&Angle<Radians>> for Glsl { |t| { iformat!("Radians({t.value.glsl()})").into() } }}
-impls! { From< Angle<Degrees>> for Glsl { |t| { iformat!("radians(Degrees({t.value.glsl()}))").into() } }}
-impls! { From<&Angle<Degrees>> for Glsl { |t| { iformat!("radians(Degrees({t.value.glsl()}))").into() } }}
+impl AngleOps for Angle<Degrees> {
+    fn degrees(&self) -> Angle<Degrees> {
+        *self
+    }
+
+    fn radians(&self) -> Angle<Radians> {
+        Angle::new(self.value.to_radians())
+    }
+}
+
+impl AngleOps for Angle<Radians> {
+    fn degrees(&self) -> Angle<Degrees> {
+        Angle::new(self.value.to_degrees())
+    }
+
+    fn radians(&self) -> Angle<Radians> {
+        *self
+    }
+}
+
+impls! { From< Angle<Radians>> for Glsl { |t| { glsl::f32_to_rad(&t.value.glsl()) } }}
+impls! { From<&Angle<Radians>> for Glsl { |t| { glsl::f32_to_rad(&t.value.glsl()) } }}
+impls! { From< Angle<Degrees>> for Glsl { |t| { glsl::deg_to_f32(&glsl::f32_to_deg(&t.value.glsl())) } }}
+impls! { From<&Angle<Degrees>> for Glsl { |t| { glsl::deg_to_f32(&glsl::f32_to_deg(&t.value.glsl())) } }}
 impls! { From<PhantomData<Angle<Radians>>> for glsl::PrimType {
     |_|  { "Radians".into() }
 }}
