@@ -1,19 +1,26 @@
 //! Definition of the Node component.
 
+pub mod port;
+
 use crate::prelude::*;
 
-use ensogl::data::color::Srgba;
-use ensogl::display;
-use ensogl::display::traits::*;
-use ensogl::display::{Sprite, Attribute};
+use crate::component::node::port::Registry;
+
 use enso_frp;
 use enso_frp as frp;
-use ensogl::display::Buffer;
 use ensogl::data::color::*;
+use ensogl::data::color::Srgba;
+use ensogl::display::Attribute;
+use ensogl::display::Buffer;
+use ensogl::display::Sprite;
+use ensogl::display::scene::Scene;
+use ensogl::display::scene::ShapeRegistry;
 use ensogl::display::shape::*;
-use ensogl::display::scene::{Scene,ShapeRegistry};
+use ensogl::display::traits::*;
+use ensogl::display;
 use ensogl::gui::component::animation;
 use ensogl::gui::component;
+use ensogl::math::topology::unit::AngleOps;
 
 
 /// Icons definitions.
@@ -193,6 +200,7 @@ pub struct NodeData {
     pub label  : frp::Source<String>,
     pub events : Events,
     pub view   : component::ShapeView<NodeView>,
+    pub ports  : Registry,
 }
 
 impl Node {
@@ -204,10 +212,11 @@ impl Node {
             def deselect = source::<()>     ();
         }
         let network = node_network;
-        let logger = Logger::new("node");
-        let view   = component::ShapeView::new(&logger);
-        let events = Events {network,select,deselect};
-        let data   = Rc::new(NodeData {logger,label,events,view});
+        let logger  = Logger::new("node");
+        let view    = component::ShapeView::new(&logger);
+        let events  = Events {network,select,deselect};
+        let ports   = Registry::default() ;
+        let data    = Rc::new(NodeData {logger,label,events,view,ports});
         Self {data} . init()
     }
 
@@ -244,6 +253,12 @@ impl Node {
                 selection_ref.set_target_position(0.0);
             });
         }
+
+        // TODO this is sample functionality. Needs to be replaced with logic creating ports.
+        let input_port = self.data.ports.input.create(&self);
+        input_port.set_position(90.0_f32.degrees());
+        let output_port = self.data.ports.output.create(&self);
+        output_port.set_position(270.0_f32.degrees());
 
         self
     }

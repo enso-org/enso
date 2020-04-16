@@ -168,6 +168,124 @@ impl Normalize for f32 {
 }
 
 
+// ===================
+// === Square Root ===
+// ===================
+
+/// Types from which a square root can be calculated.
+pub trait Sqrt {
+    /// The output type of the computation.
+    type Output;
+    /// Compute the square root of the given number.
+    fn sqrt(&self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Sqrt for f32 {
+    type Output = f32;
+    fn sqrt(&self) -> f32 {
+        f32::sqrt(*self)
+    }
+}
+
+
+// ==============
+// === Cosine ===
+// ==============
+
+/// Types from which a cosine can be calculated.
+pub trait Cos {
+    /// The output type of the computation.
+    type Output;
+    /// Compute the cosine of the given number.
+    fn cos(&self) -> Self;
+}
+
+
+// === Impls ===
+
+impl Cos for f32 {
+    type Output = f32;
+    fn cos(&self) -> f32 {
+        f32::cos(*self)
+    }
+}
+
+
+
+// ============
+// === Sine ===
+// ============
+
+/// Types from which a sine can be calculated
+pub trait Sin {
+    /// The output type of the computation.
+    type Output;
+    /// Compute the sine of the given number.
+    fn sin(&self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Sin for f32 {
+    type Output = f32;
+    fn sin(&self) -> f32 {
+        f32::sin(*self)
+    }
+}
+
+
+
+// =============
+// === Asine ===
+// ==============
+
+/// Types from which a asin can be calculated
+pub trait Asin {
+    /// The output type of the computation.
+    type Output;
+    /// Compute the asin of the given number.
+    fn asin(&self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Asin for f32 {
+    type Output = f32;
+    fn asin(&self) -> f32 {
+        f32::asin(*self)
+    }
+}
+
+
+
+// ===============
+// === Acosine ===
+// ===============
+
+/// Types from which a asin can be calculated
+pub trait Acos {
+    /// The output type of the computation.
+    type Output;
+    /// Compute the asin of the given number.
+    fn acos(&self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Acos for f32 {
+    type Output = f32;
+    fn acos(&self) -> f32 {
+        f32::acos(*self)
+    }
+}
+
+
 
 // =============
 // === Point ===
@@ -221,3 +339,14 @@ impl Into<Vector3<f32>> for Point3 {
         self.matrix
     }
 }
+
+
+
+// ============================
+// === Algebraic Structures ===
+// ============================
+// TODO evaluate for correctness and usefulness.
+
+/// Trait that describes a set of numbers that define addition, subtraction, multiplication,
+/// and division.
+pub trait Field<T> = Add<T,Output=T> + Sub<T,Output=T> + Mul<T,Output=T> + Div<T,Output=T>;
