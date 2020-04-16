@@ -8,6 +8,9 @@
 ///   - A Rgba struct which contains `vec4 raw` field for each component.
 ///   - A rich set of smart constructors for each of the types.
 ///   - A rich set of simple conversions between them.
+///
+/// All component values are in range 0.0..1.0.
+
 
 #define DEF_COLOR(type_name3,type_name4,name3,name4,t1,t2,t3) \
                                                               \
