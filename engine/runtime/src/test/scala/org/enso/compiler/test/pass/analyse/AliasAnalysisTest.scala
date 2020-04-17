@@ -18,41 +18,12 @@ class AliasAnalysisTest extends CompilerTest {
 
   // === Utilities ============================================================
 
-  /** Adds an extension method to preprocess the source as IR.
-    *
-    * @param source the source code to preprocess
-    */
-  implicit class Preprocess(source: String) {
-    val precursorPasses: List[IRPass] = List(
-      GenerateMethodBodies,
-      LiftSpecialOperators,
-      OperatorToFunction
-    )
-
-    /** Translates the source code into appropriate IR for testing this pass.
-      *
-      * @return IR appropriate for testing the alias analysis pass as a module
-      */
-    def preprocessModule: IR.Module = {
-      source.toIrModule
-        .runPasses(precursorPasses, InlineContext())
-        .asInstanceOf[IR.Module]
-    }
-
-    /** Translates the source code into appropriate IR for testing this pass
-      *
-      * @return IR appropriate for testing the alias analysis pass as an
-      *         expression
-      */
-    def preprocessExpression(
-      inlineContext: InlineContext
-    ): Option[IR.Expression] = {
-      source.toIrExpression.map(
-        _.runPasses(precursorPasses, inlineContext)
-          .asInstanceOf[IR.Expression]
-      )
-    }
-  }
+  /** The passes that need to be run before the alias analysis pass. */
+  implicit val precursorPasses: List[IRPass] = List(
+    GenerateMethodBodies,
+    LiftSpecialOperators,
+    OperatorToFunction
+  )
 
   /** Adds an extension method to run alias analysis on an [[IR.Module]].
     *
@@ -69,7 +40,7 @@ class AliasAnalysisTest extends CompilerTest {
     }
   }
 
-  /** Adds an extension method to run alias analusis on an [[IR.Expression]].
+  /** Adds an extension method to run alias analysis on an [[IR.Expression]].
     *
     * @param ir the expression to run alias analysis on
     */
@@ -77,6 +48,8 @@ class AliasAnalysisTest extends CompilerTest {
 
     /** Runs alias analysis on an expression.
       *
+      * @param inlineContext the inline context in which to process the
+      *                      expression
       * @return [[ir]], with attached aliasing information
       */
     def analyse(inlineContext: InlineContext): IR.Expression = {
@@ -515,8 +488,8 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "assign Info.Occurrence to definitions and usages of symbols" in {
-      topLambda.arguments.foreach(
-        arg => arg.getMetadata[Info.Occurrence] shouldBe defined
+      topLambda.arguments.foreach(arg =>
+        arg.getMetadata[Info.Occurrence] shouldBe defined
       )
 
       topLambdaBody.expressions.foreach(
@@ -524,8 +497,8 @@ class AliasAnalysisTest extends CompilerTest {
           .getMetadata[Info.Occurrence] shouldBe defined
       )
 
-      childLambda.arguments.foreach(
-        arg => arg.getMetadata[Info.Occurrence] shouldBe defined
+      childLambda.arguments.foreach(arg =>
+        arg.getMetadata[Info.Occurrence] shouldBe defined
       )
 
       childLambdaBody.function.getMetadata[Info.Occurrence] shouldBe defined

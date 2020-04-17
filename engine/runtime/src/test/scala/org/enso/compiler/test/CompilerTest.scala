@@ -96,15 +96,47 @@ trait CompilerRunner {
       inlineContext: InlineContext
     ): IR = ir match {
       case expr: IR.Expression =>
-        passes.foldLeft(expr)(
-          (intermediate, pass) =>
-            pass.runExpression(intermediate, inlineContext)
+        passes.foldLeft(expr)((intermediate, pass) =>
+          pass.runExpression(intermediate, inlineContext)
         )
       case mod: IR.Module =>
-        passes.foldLeft(mod)(
-          (intermediate, pass) => pass.runModule(intermediate)
+        passes.foldLeft(mod)((intermediate, pass) =>
+          pass.runModule(intermediate)
         )
       case _ => throw new RuntimeException(s"Cannot run passes on $ir.")
+    }
+  }
+
+  /** Adds an extension method to preprocess the source as IR.
+    *
+    * @param source the source code to preprocess
+    */
+  implicit class Preprocess(source: String)(
+    implicit precursorPasses: List[IRPass]
+  ) {
+
+    /** Translates the source code into appropriate IR for testing this pass.
+      *
+      * @return IR appropriate for testing the alias analysis pass as a module
+      */
+    def preprocessModule: IR.Module = {
+      source.toIrModule
+        .runPasses(precursorPasses, InlineContext())
+        .asInstanceOf[IR.Module]
+    }
+
+    /** Translates the source code into appropriate IR for testing this pass
+      *
+      * @return IR appropriate for testing the alias analysis pass as an
+      *         expression
+      */
+    def preprocessExpression(
+      implicit inlineContext: InlineContext
+    ): Option[IR.Expression] = {
+      source.toIrExpression.map(
+        _.runPasses(precursorPasses, inlineContext)
+          .asInstanceOf[IR.Expression]
+      )
     }
   }
 

@@ -107,7 +107,7 @@ class GlobalScopeTest extends InterpreterTest {
         |        0
         |
         |    IO.println 5
-        |    ~myFun
+        |    myFun
         |""".stripMargin
 
     eval(code) shouldEqual 0
@@ -123,7 +123,7 @@ class GlobalScopeTest extends InterpreterTest {
         |
         |    State.put 5
         |    IO.println State.get
-        |    ~block
+        |    block
         |    IO.println State.get
         |""".stripMargin
 

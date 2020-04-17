@@ -16,7 +16,6 @@ class ExpressionIdTest extends InterpreterTest {
     instrumenter.assertNodeExists(id3, "45")
 
     eval(meta.appendToCode(code))
-    ()
   }
 
   "Ids" should "be correct with parenthesized expressions" in
@@ -29,7 +28,6 @@ class ExpressionIdTest extends InterpreterTest {
     instrumenter.assertNodeExists(id1, "940")
     instrumenter.assertNodeExists(id2, "47")
     eval(meta.appendToCode(code))
-    ()
   }
 
   "Ids" should "be correct in applications and method calls" in
@@ -42,7 +40,6 @@ class ExpressionIdTest extends InterpreterTest {
     instrumenter.assertNodeExists(id1, "Cons 5 6")
     instrumenter.assertNodeExists(id2, "Cons 5 6")
     eval(meta.appendToCode(code))
-    ()
   }
 
   "Ids" should "be correct for deeply nested functions" in
@@ -69,7 +66,6 @@ class ExpressionIdTest extends InterpreterTest {
     instrumenter.assertNodeExistsTail(id3)
     instrumenter.assertNodeExistsTail(id4)
     eval(meta.appendToCode(code))
-    ()
   }
 
   "Ids" should "be correct inside pattern matches" in
@@ -102,7 +98,6 @@ class ExpressionIdTest extends InterpreterTest {
     instrumenter.assertNodeExists(id3, "Unit")
     instrumenter.assertNodeExists(id4, "25")
     eval(meta.appendToCode(code))
-    ()
   }
 
   "Ids" should "be correct for defaulted arguments" in
@@ -121,7 +116,6 @@ class ExpressionIdTest extends InterpreterTest {
     instrumenter.assertNodeExists(id1, "12")
     instrumenter.assertNodeExists(id2, "3")
     eval(meta.appendToCode(code))
-    ()
   }
 
   "Ids" should "be correct for lazy arguments" in
@@ -129,15 +123,14 @@ class ExpressionIdTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    bar = a ~b ~c -> ~b
+        |    bar = a ~b ~c -> b
         |
         |    bar 0 10 0
         |""".stripMargin
     val meta = new Metadata
-    val id   = meta.addItem(29, 2)
+    val id   = meta.addItem(29, 1)
 
     instrumenter.assertNodeExists(id, "10")
     eval(meta.appendToCode(code))
-    ()
   }
 }

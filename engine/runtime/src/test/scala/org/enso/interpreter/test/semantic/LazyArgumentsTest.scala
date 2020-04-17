@@ -9,7 +9,7 @@ class LazyArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    lazyId = ~x -> ~x
+        |    lazyId = ~x -> x
         |    lazyId (1 + 1)
         |""".stripMargin
 
@@ -20,7 +20,7 @@ class LazyArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    foo = i ~x ~y -> ifZero i ~x ~y
+        |    foo = i ~x ~y -> ifZero i x y
         |    foo 1 (IO.println 1) (IO.println 2)
         |""".stripMargin
     eval(code)
@@ -31,7 +31,7 @@ class LazyArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    ifTest = c ~ifT ~ifF -> ifZero c ~ifT ~ifF
+        |    ifTest = c ~ifT ~ifF -> ifZero c ifT ifF
         |    sum = c acc -> ifTest c acc (sum c-1 acc+c)
         |    sum 10000 0
         |""".stripMargin
@@ -42,7 +42,7 @@ class LazyArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    suspInc = ~x -> 1 + ~x
+        |    suspInc = ~x -> 1 + x
         |    suspInc (suspInc 10)
         |""".stripMargin
 
@@ -71,7 +71,7 @@ class LazyArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    ifTest = c ~ifT ~ifF -> ifZero c ~ifT ~ifF
+        |    ifTest = c ~ifT ~ifF -> ifZero c ifT ifF
         |    foo = c -> ifTest c
         |
         |    foo 0 (IO.println 1) (IO.println 2)
@@ -87,5 +87,15 @@ class LazyArgumentsTest extends InterpreterTest {
         |main = a (~b = Panic.throw 1) -> a
         |""".stripMargin
     eval(code).call(1) shouldEqual 1
+  }
+
+  subject should "allow passing suspended functions" in {
+    val code =
+      """main =
+        |    foo = ~x -> x 1
+        |    foo (x -> x)
+        |""".stripMargin
+
+    eval(code) shouldEqual 1
   }
 }

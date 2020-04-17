@@ -14,9 +14,9 @@ Enso.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Scoping](#scoping)
-    - [Scoping Rules](#scoping-rules)
+  - [Scoping Rules](#scoping-rules)
 - [Strict Evaluation](#strict-evaluation)
-    - [Optional Suspension](#optional-suspension)
+  - [Optional Suspension](#optional-suspension)
 - [Bindings](#bindings)
 
 <!-- /MarkdownTOC -->
@@ -81,6 +81,15 @@ optional _suspension_, through the built-in `Suspended` type.
 - When a type `a` is wrapped in a `Suspended`, it is turned into a thunk.
 - A value of type `Suspended a` may be forced to execute the suspended
   computation and thereby obtain an `a`.
+
+This forcing can take place in two ways:
+
+- The user calls the standard library function `force : Suspended a -> a` on the
+  value.
+- Automatically, at a site where its evaluation is demanded. The algorithm for
+  this is simple. If a value of type `Suspended a` is provided in a location
+  that expects a value of type `a`, the compiler will insert an implicit call to
+  `force` to produce the `a`.
 
 > The actionables for this section are:
 >

@@ -133,28 +133,6 @@ object AstView {
     }
   }
 
-  object ForcedTerm {
-
-    /** Matches a forced term.
-      *
-      * A forced term is one of the form `~t`, where `t` is an arbitrary program
-      * expression. This is temporary syntax and will be removed once we have
-      * the ability to insert these analytically.
-      *
-      * @param ast the structure to try and match on
-      * @return the term being forced
-      */
-    def unapply(ast: AST): Option[AST] = {
-      ast match {
-        case MaybeParensed(
-            AST.App.Section.Right(AST.Ident.Opr("~"), ast)
-            ) =>
-          Some(ast)
-        case _ => None
-      }
-    }
-  }
-
   object ContextAscription {
 
     /** Matches a usage of the `in` keyword for ascribing a monadic context to

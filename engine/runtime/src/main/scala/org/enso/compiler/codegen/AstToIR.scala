@@ -5,7 +5,7 @@ import cats.implicits._
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
-import org.enso.syntax.text.{AST, Location}
+import org.enso.syntax.text.AST
 
 // FIXME [AA] All places where we currently throw a `RuntimeException` should
 //  generate informative and useful nodes in core.
@@ -129,14 +129,12 @@ object AstToIR {
           val pathStr = pathSegments.map(_.name).mkString(".")
           val loc = pathSegments.headOption
             .flatMap(_.location)
-            .flatMap(
-              locationStart =>
-                pathSegments.lastOption
-                  .flatMap(_.location)
-                  .flatMap(
-                    locationEnd =>
-                      Some(locationStart.copy(end = locationEnd.end))
-                  )
+            .flatMap(locationStart =>
+              pathSegments.lastOption
+                .flatMap(_.location)
+                .flatMap(locationEnd =>
+                  Some(locationStart.copy(end = locationEnd.end))
+                )
             )
 
           (pathStr, loc)
@@ -264,12 +262,11 @@ object AstToIR {
             Literal.Text(fullString, getIdentifiedLocation(literal))
           case AST.Literal.Text.Block.Raw(lines, _, _) =>
             val fullString = lines
-              .map(
-                t =>
-                  t.text.collect {
-                    case AST.Literal.Text.Segment.Plain(str)   => str
-                    case AST.Literal.Text.Segment.RawEsc(code) => code.repr
-                  }.mkString
+              .map(t =>
+                t.text.collect {
+                  case AST.Literal.Text.Segment.Plain(str)   => str
+                  case AST.Literal.Text.Segment.RawEsc(code) => code.repr
+                }.mkString
               )
               .mkString("\n")
 
@@ -378,11 +375,6 @@ object AstToIR {
         Type.Context(
           translateExpression(expr),
           translateExpression(context),
-          getIdentifiedLocation(callable)
-        )
-      case AstView.ForcedTerm(term) =>
-        Application.Force(
-          translateExpression(term),
           getIdentifiedLocation(callable)
         )
       case AstView.Application(name, args) =>

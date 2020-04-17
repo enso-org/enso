@@ -157,11 +157,11 @@ class CodeLocationsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    bar = a ~b ~c -> ~b
+        |    bar = a ~b ~c -> b
         |
         |    bar 0 10 0
         |""".stripMargin
-    instrumenter.assertNodeExists(29, 2, classOf[ForceNode])
+    instrumenter.assertNodeExists(29, 1, classOf[ForceNode])
     eval(code)
     ()
   }

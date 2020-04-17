@@ -719,56 +719,80 @@ class IRToTruffle(
       *         `arg`
       */
     def run(arg: IR.CallArgument, position: Int): CallArgument = arg match {
-      case IR.CallArgument.Specified(name, value, _, _) =>
+      case IR.CallArgument.Specified(name, value, _, shouldBeSuspended, _) =>
         val scopeInfo = arg
           .getMetadata[AliasAnalysis.Info.Scope.Child]
           .getOrElse(
             throw new CompilerError("No scope attached to a call argument.")
           )
-        val result = value match {
-          case term: IR.Application.Force =>
-            val childScope =
-              scope.createChild(scopeInfo.scope, flattenToParent = true)
-            new ExpressionProcessor(childScope, scopeName).run(term.target)
-          case _ =>
-            val childScope = scope.createChild(scopeInfo.scope)
-            val argumentExpression =
-              new ExpressionProcessor(childScope, scopeName).run(value)
 
-            val argExpressionIsTail = value
-              .getMetadata[TailCall.Metadata]
-              .getOrElse(
-                throw new CompilerError(
-                  "Argument with missing tail call information."
-                )
-              )
+        val shouldSuspend =
+          shouldBeSuspended.getOrElse(
+            throw new CompilerError(
+              "Demand analysis information missing from call argument."
+            )
+          )
 
-            argumentExpression.setTail(argExpressionIsTail)
+        val childScope = if (shouldSuspend) {
+          scope.createChild(scopeInfo.scope)
+        } else {
+          // Note [Scope Flattening]
+          scope.createChild(scopeInfo.scope, flattenToParent = true)
+        }
+        val argumentExpression =
+          new ExpressionProcessor(childScope, scopeName).run(value)
 
-            val displayName =
-              s"call_argument<${name.getOrElse(String.valueOf(position))}>"
-
-            val section = value.location
-              .map(loc => source.createSection(loc.start, loc.end))
-              .orNull
-
-            val callTarget = Truffle.getRuntime.createCallTarget(
-              ClosureRootNode.build(
-                language,
-                childScope,
-                moduleScope,
-                argumentExpression,
-                section,
-                displayName
+        val result = if (!shouldSuspend) {
+          argumentExpression
+        } else {
+          val argExpressionIsTail = value
+            .getMetadata[TailCall.Metadata]
+            .getOrElse(
+              throw new CompilerError(
+                "Argument with missing tail call information."
               )
             )
 
-            CreateThunkNode.build(callTarget)
+          argumentExpression.setTail(argExpressionIsTail)
+
+          val displayName =
+            s"call_argument<${name.getOrElse(String.valueOf(position))}>"
+
+          val section = value.location
+            .map(loc => source.createSection(loc.start, loc.end))
+            .orNull
+
+          val callTarget = Truffle.getRuntime.createCallTarget(
+            ClosureRootNode.build(
+              language,
+              childScope,
+              moduleScope,
+              argumentExpression,
+              section,
+              displayName
+            )
+          )
+
+          CreateThunkNode.build(callTarget)
         }
 
         new CallArgument(name.map(_.name).orNull, result)
     }
   }
+
+  /* Note [Scope Flattening]
+   * ~~~~~~~~~~~~~~~~~~~~~~~
+   * Given that we represent _all_ function arguments as thunks at runtime, we
+   * account for this during alias analysis by allocating new scopes for the
+   * function arguments as they are passed. However, in the case of an argument
+   * that is _already_ suspended, we want to pass this directly. However, we do
+   * not have demand information at the point of alias analysis, and so we have
+   * allocated a new scope for it regardless.
+   *
+   * As a result, we flatten that scope back into the parent during codegen to
+   * work around the differences between the semantic meaning of the language
+   * and the runtime representation of function arguments.
+   */
 
   // ==========================================================================
   // === Definition Argument Processor ========================================

@@ -46,7 +46,7 @@ class StateTest extends InterpreterTest {
         |        State.put 0
         |        res
         |
-        |    res2 = State.run 10 ~myBlock
+        |    res2 = State.run 10 myBlock
         |    state = State.get
         |    res2 + state
         |""".stripMargin
@@ -108,7 +108,7 @@ class StateTest extends InterpreterTest {
         |        Panic.throw Unit
         |
         |    State.put 5
-        |    Panic.recover ~panicker
+        |    Panic.recover panicker
         |    State.get
         |""".stripMargin
     eval(code) shouldEqual 5

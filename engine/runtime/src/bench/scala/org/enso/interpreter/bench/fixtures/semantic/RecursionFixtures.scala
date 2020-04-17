@@ -77,15 +77,15 @@ class RecursionFixtures extends InterpreterRunner {
     """
       |main = n ->
       |    doNTimes = n ~block ->
-      |        ~block
-      |        ifZero n-1 Unit (doNTimes n-1 ~block)
+      |        block
+      |        ifZero n-1 Unit (doNTimes n-1 block)
       |
       |    block =
       |        x = State.get
       |        State.put x+1
       |
       |    State.put 0
-      |    doNTimes n ~block
+      |    doNTimes n block
       |    State.get
       |""".stripMargin
   val nestedThunkSum = getMain(nestedThunkSumCode)

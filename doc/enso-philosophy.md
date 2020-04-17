@@ -352,10 +352,12 @@ You can find out more about the various components that make up Enso by having a
 read of the design documents listed below. These documents are highly technical,
 and are not intended to be user-facing documentation.
 
-- **[Syntax](syntax/syntax.md):** A description of Enso's syntax, with a focus
-  on both the main principles behind its design and its nitty gritty details.
-- **[The Type System](types/types.md):** A description of Enso's type system,
-  starting at a very high level and slowly getting into more detail as the
-  design evolves.
-- **[The Runtime](runtime/runtime.md):** A description of the design for the
-  runtime that is evolving in tandem with the runtime's development.
+- **[Semantics](semantics/):** A description of Enso's semantics, with a focus
+  on both the main principles and the details.
+- **[Syntax](syntax/):** A description of Enso's syntax, with a focus on both
+  the main principles behind its design and its nitty gritty details.
+- **[The Type System](types/):** A description of Enso's type system, starting
+  at a very high level and slowly getting into more detail as the design
+  evolves.
+- **[The Runtime](runtime/):** A description of the design for the runtime that
+  is evolving in tandem with the runtime's development.
