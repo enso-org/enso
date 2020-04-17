@@ -37,6 +37,21 @@ jobs:
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
+    - name: Setup conda
+      uses: s-weigand/setup-conda@v1
+      with:
+        update-conda: true
+        conda-channels: anaconda, conda-forge
+    - name: Setup Conda Environment on Windows
+      if: runner.os == 'Windows'
+      run: |
+        conda create --name enso
+        conda init powershell
+    - name: Activate Conda Environment on Windows
+      if: runner.os == 'Windows'
+      run: conda activate enso
+    - name: Install FlatBuffers Compiler
+      run: conda install flatbuffers=1.12.0
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
@@ -117,6 +132,13 @@ jobs:
     - name: Checkout (Branch)
       uses: actions/checkout@v2
       if: github.event_name != 'pull_request'
+    - name: Setup conda
+      uses: s-weigand/setup-conda@v1
+      with:
+        update-conda: true
+        conda-channels: anaconda, conda-forge
+    - name: Install FlatBuffers Compiler
+      run: conda install flatbuffers=1.12.0
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:

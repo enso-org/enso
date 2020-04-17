@@ -1,0 +1,6 @@
+namespace org.enso.languageserver.protocol.util;
+
+struct EnsoUUID {
+  leastSigBits:uint64;
+  mostSigBits:uint64;
+}

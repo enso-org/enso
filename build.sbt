@@ -490,6 +490,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "dev.zio"                    %% "zio" % "1.0.0-RC18-2",
       "io.methvin"                 % "directory-watcher" % "0.9.6",
       "com.beachape"               %% "enumeratum-circe" % "1.5.23",
+      "com.google.flatbuffers"     % "flatbuffers-java" % "1.12.0",
       akkaTestkit                  % Test,
       "commons-io"                 % "commons-io" % "2.6",
       "org.scalatest"              %% "scalatest" % "3.2.0-M2" % Test,
@@ -497,7 +498,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "org.graalvm.sdk"            % "polyglot-tck" % graalVersion % "provided"
     ),
     testOptions in Test += Tests
-      .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000")
+      .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
+    sourceGenerators in Compile += GenerateFlatbuffers.task
   )
   .configs(Benchmark)
   .settings(

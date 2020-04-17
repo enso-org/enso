@@ -1,0 +1,9 @@
+include "util.fbs";
+
+namespace org.enso.languageserver.protocol.session;
+
+table SessionInit {
+  identifier: org.enso.languageserver.protocol.util.EnsoUUID (required);
+}
+
+table SessionInitResponse {}

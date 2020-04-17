@@ -29,7 +29,7 @@ import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
   */
 object ProjectManager extends App with LazyLogging {
 
-  logger.info("Starting Language Server...")
+  logger.info("Starting Project Manager...")
 
   /**
     * A configuration of the project manager.
