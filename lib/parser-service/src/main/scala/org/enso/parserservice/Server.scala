@@ -37,7 +37,7 @@ object Server {
   * another Text Message.
   */
 trait Server {
-  implicit val system: ActorSystem             = ActorSystem()
+  implicit val system: ActorSystem = ActorSystem()
 
   /** Generate text reply for given request text message. */
   def handleMessage(input: String): String

@@ -6,7 +6,7 @@ package object data {
   type List1[+T] = NonEmptyList[T]
   object List1 {
     def apply[T](el: T, tail: List[T]): List1[T] = new List1(el, tail)
-    def apply[T](el: T, tail: T*):      List1[T] = new List1(el, tail.toList)
+    def apply[T](el: T, tail: T*): List1[T]      = new List1(el, tail.toList)
 
     def apply[T](list: List[T]): Option[List1[T]] = fromListOption(list)
 

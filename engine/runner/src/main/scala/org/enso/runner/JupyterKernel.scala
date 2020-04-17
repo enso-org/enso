@@ -11,7 +11,7 @@ import io.github.spencerpark.jupyter.kernel.KernelConnectionProperties
 import io.github.spencerpark.jupyter.kernel
 import io.github.spencerpark.jupyter.kernel.display.DisplayData
 import org.enso.polyglot
-import org.enso.polyglot.{PolyglotContext, LanguageInfo, Module}
+import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.graalvm.polyglot.Value
 
 /**

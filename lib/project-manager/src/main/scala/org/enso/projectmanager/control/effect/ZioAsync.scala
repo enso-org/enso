@@ -18,9 +18,7 @@ class ZioAsync[R] extends Async[ZIO[R, +*, +*]] {
     register: (Either[E, A] => Unit) => Unit
   ): ZIO[R, E, A] =
     ZIO.effectAsync[R, E, A] { callback =>
-      register { result =>
-        callback(ZIO.fromEither(result))
-      }
+      register { result => callback(ZIO.fromEither(result)) }
 
     }
 

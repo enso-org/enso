@@ -579,7 +579,6 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   text.FMT || "\\" >> any     || text.onEscapeInvalid()
   text.FMT || "\\"            || text.onEscapeUnfinished()
 
-
   text.RAW_LINE || "\\\""      || text.onEscapeRawQuote()
   text.RAW_LINE || "\\\\"      || text.onEscapeSlash()
   text.RAW_LINE || "\\" >> any || text.onEscapeInvalid()

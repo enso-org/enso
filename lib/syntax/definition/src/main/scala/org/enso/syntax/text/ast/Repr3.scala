@@ -27,7 +27,7 @@ object SpannedRepr {
     val repr    = implicitly[Repr[T]]
   }
   implicit def asSpanned[T: SpannedRepr]: Spanned[T] = SpannedRepr[T].spanned
-  implicit def asRepr[T: SpannedRepr]:    Repr[T]    = SpannedRepr[T].repr
+  implicit def asRepr[T: SpannedRepr]: Repr[T]       = SpannedRepr[T].repr
 }
 
 trait Spanned[T] {
@@ -59,7 +59,7 @@ object Repr {
   //// Smart Constructors ////
 
   def apply[T: Repr](t: T): Builder = implicitly[Repr[T]].repr(t)
-  val R = Monoid[Builder].empty
+  val R                             = Monoid[Builder].empty
 
   //// Operations ////
 
@@ -112,8 +112,8 @@ object Repr {
     def build(): String = shape().build()
 
     def +[T: SpannedRepr](that: T) = {
-      val sr      = SpannedRepr[T]
-      val newSpan = span + sr.spanned.span(that)
+      val sr                = SpannedRepr[T]
+      val newSpan           = span + sr.spanned.span(that)
       def newShape(): Shape = Shape._Seq(shape, sr.repr.repr(that).shape)
 
       Builder(newSpan, newShape)
@@ -137,8 +137,8 @@ object Repr {
     def Text(str: String)           = Builder(str.length, () => Shape.Text(str))
     def Seq(l: Builder, r: Builder) = l |+| r
 
-    implicit def fromString(a: String):        Builder = Repr(a)
-    implicit def fromChar(a: Char):            Builder = Repr(a)
+    implicit def fromString(a: String): Builder        = Repr(a)
+    implicit def fromChar(a: Char): Builder            = Repr(a)
     implicit def reprForBuilder[T <: Builder]: Repr[T] = identity(_)
   }
 
@@ -152,7 +152,7 @@ object Repr {
 //    val byteSpan: Int
 //    val span: Int
 
-    def +[T: Repr](that: T):  Shape = Seq(this, Repr(that).shape())
+    def +[T: Repr](that: T): Shape  = Seq(this, Repr(that).shape())
     def ++[T: Repr](that: T): Shape = this + " " + that
     def build(): String = {
       val bldr = new StringBuilder()

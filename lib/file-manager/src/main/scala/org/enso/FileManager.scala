@@ -28,8 +28,10 @@ import scala.util.Try
   * [[org.enso.filemanager.API]] for a list of supported operations and their
   * respective request-response packages.
   */
-case class FileManager(projectRoot: Path, override val context: ActorContext[API.InputMessage])
-    extends AbstractBehavior[API.InputMessage](context) {
+case class FileManager(
+  projectRoot: Path,
+  override val context: ActorContext[API.InputMessage]
+) extends AbstractBehavior[API.InputMessage](context) {
 
   /** Active filesystem subtree watchers */
   val watchers: mutable.Map[UUID, DirectoryWatcher] = mutable.Map()
@@ -37,11 +39,12 @@ case class FileManager(projectRoot: Path, override val context: ActorContext[API
   def onMessageTyped[response <: Response.Success: ClassTag](
     message: Request[response]
   ): Unit = {
-    val response = try {
-      message.contents.validate(projectRoot)
-      val result = message.contents.handle(this)
-      Success(result)
-    } catch { case ex: Throwable => Failure(ex) }
+    val response =
+      try {
+        message.contents.validate(projectRoot)
+        val result = message.contents.handle(this)
+        Success(result)
+      } catch { case ex: Throwable => Failure(ex) }
     context.log.debug(s"Responding with $response")
     message.replyTo ! response
   }
@@ -70,11 +73,7 @@ object FileManager {
   def ask[response <: Response.Success: ClassTag](
     actor: ActorRef[API.InputMessage],
     payload: Request.Payload[response]
-  )(implicit timeout: Timeout,
-    scheduler: Scheduler
-  ): Future[Try[response]] = {
-    actor.ask { replyTo: ActorRef[Try[response]] =>
-      Request(replyTo, payload)
-    }
+  )(implicit timeout: Timeout, scheduler: Scheduler): Future[Try[response]] = {
+    actor.ask { replyTo: ActorRef[Try[response]] => Request(replyTo, payload) }
   }
 }

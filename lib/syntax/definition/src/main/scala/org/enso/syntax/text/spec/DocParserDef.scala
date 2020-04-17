@@ -58,8 +58,8 @@ case class DocParserDef() extends Parser[Doc] {
   val newline: Char       = '\n'
 
   val char: Pattern = lowerChar | upperChar
-  val specialChars
-    : Pattern                = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
+  val specialChars: Pattern =
+    "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
   val possibleChars: Pattern = char | digit | whitespace | specialChars
 
   val normalText: Pattern = possibleChars.many1
@@ -196,8 +196,8 @@ case class DocParserDef() extends Parser[Doc] {
     }
 
     val inlineCodeTrigger = '`'
-    val inlinePattern
-      : Pattern = inlineCodeTrigger >> not(inlineCodeTrigger).many >> inlineCodeTrigger
+    val inlinePattern: Pattern =
+      inlineCodeTrigger >> not(inlineCodeTrigger).many >> inlineCodeTrigger
   }
 
   val notNewLine: Pattern = not(newline).many1
@@ -389,8 +389,8 @@ case class DocParserDef() extends Parser[Doc] {
     val imageNameTrigger: String = Elem.Link.Image().marker.get + urlNameTrigger
     val imagePattern: Pattern    = imageNameTrigger >> not(')').many1 >> ')'
     val urlPattern: Pattern      = urlNameTrigger >> not(')').many1 >> ')'
-    val invalidPatternNewline
-      : Pattern = (imageNameTrigger | urlNameTrigger) >> not(
+    val invalidPatternNewline: Pattern =
+      (imageNameTrigger | urlNameTrigger) >> not(
         ')'
       ).many1 >> newline
     val invalidPatternEOF: Pattern = (imageNameTrigger | urlNameTrigger) >> not(
@@ -602,10 +602,10 @@ case class DocParserDef() extends Parser[Doc] {
     val orderedListTrigger: Char   = Elem.List.Ordered.marker
     val unorderedListTrigger: Char = Elem.List.Unordered.marker
 
-    val orderedPattern
-      : Pattern = indent.indentPattern >> orderedListTrigger >> notNewLine
-    val unorderedPattern
-      : Pattern = indent.indentPattern >> unorderedListTrigger >> notNewLine
+    val orderedPattern: Pattern =
+      indent.indentPattern >> orderedListTrigger >> notNewLine
+    val unorderedPattern: Pattern =
+      indent.indentPattern >> unorderedListTrigger >> notNewLine
   }
 
   NEWLINE || list.orderedPattern   || list.onOrdered()
@@ -731,12 +731,12 @@ case class DocParserDef() extends Parser[Doc] {
     val infoTrigger: Char      = Section.Marked.Info.marker
     val exampleTrigger: Char   = Section.Marked.Example.marker
 
-    val importantPattern
-      : Pattern = indent.indentPattern >> importantTrigger >> indent.indentPattern
-    val infoPattern
-      : Pattern = indent.indentPattern >> infoTrigger >> indent.indentPattern
-    val examplePattern
-      : Pattern = indent.indentPattern >> exampleTrigger >> indent.indentPattern
+    val importantPattern: Pattern =
+      indent.indentPattern >> importantTrigger >> indent.indentPattern
+    val infoPattern: Pattern =
+      indent.indentPattern >> infoTrigger >> indent.indentPattern
+    val examplePattern: Pattern =
+      indent.indentPattern >> exampleTrigger >> indent.indentPattern
   }
 
   NEWLINE || indent.emptyLine || section.onNewRaw()

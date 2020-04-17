@@ -56,7 +56,7 @@ class ContextManagementTest
   "Runtime server" should "allow context creation and deletion" in {
     val requestId1 = UUID.randomUUID()
     val requestId2 = UUID.randomUUID()
-    val contextId = UUID.randomUUID()
+    val contextId  = UUID.randomUUID()
     send(Api.Request(requestId1, Api.CreateContextRequest(contextId)))
     receive shouldEqual Some(
       Api.Response(requestId1, Api.CreateContextResponse(contextId))

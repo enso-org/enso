@@ -83,8 +83,8 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     ) {
       _.fold(
         ZioExec.completeFailure(promise, _),
-        _.fold(promise.failure(ZioExec.timeoutFailure))(
-          a => promise.success(Right(a))
+        _.fold(promise.failure(ZioExec.timeoutFailure))(a =>
+          promise.success(Right(a))
         )
       )
     }

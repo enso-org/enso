@@ -305,7 +305,7 @@ object DocParserHTMLGenerator {
           generateHTMLForEveryDocumented(elem, path, cssFileName)
       }
       elem
-    } : Unit
+    }: Unit
   }
 
   //////////////////////////////////////////////////////////////////////////////

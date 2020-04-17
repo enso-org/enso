@@ -6,7 +6,10 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.effect.Exec
-import org.enso.projectmanager.event.ClientEvent.{ClientConnected, ClientDisconnected}
+import org.enso.projectmanager.event.ClientEvent.{
+  ClientConnected,
+  ClientDisconnected
+}
 import org.enso.projectmanager.protocol.ProjectManagementApi._
 import org.enso.projectmanager.requesthandler._
 import org.enso.projectmanager.service.ProjectServiceApi

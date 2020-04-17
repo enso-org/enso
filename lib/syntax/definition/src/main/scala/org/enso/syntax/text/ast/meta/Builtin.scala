@@ -240,9 +240,7 @@ object Builtin {
     // block with a `Seq` node. This would allow us here to return `Nothing`,
     // and also return many top-level defs connected with a `Seq`.
     val disableComment =
-      Definition(Opr("#") -> Pattern.Expr().tag("disable")) { _ =>
-        AST.Blank()
-      }
+      Definition(Opr("#") -> Pattern.Expr().tag("disable")) { _ => AST.Blank() }
 
     Registry(
       group,

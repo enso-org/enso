@@ -13,7 +13,9 @@ object State {
 
   object Implicits {
 
-    final implicit class RangeMapWrapper[K <: Comparable[_], V](underlying: guava.RangeMap[K, V]) {
+    implicit final class RangeMapWrapper[K <: Comparable[_], V](
+      underlying: guava.RangeMap[K, V]
+    ) {
 
       def getOption(key: K): Option[V] =
         Option(underlying.get(key))

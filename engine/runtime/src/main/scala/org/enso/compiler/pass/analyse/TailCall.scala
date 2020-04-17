@@ -328,10 +328,9 @@ case object TailCall extends IRPass {
       case arg @ IR.DefinitionArgument.Specified(_, default, _, _, _) =>
         arg
           .copy(
-            defaultValue = default.map(
-              x =>
-                analyseExpression(x, isInTailPosition = false)
-                  .addMetadata(TailPosition.NotTail)
+            defaultValue = default.map(x =>
+              analyseExpression(x, isInTailPosition = false)
+                .addMetadata(TailPosition.NotTail)
             )
           )
           .addMetadata(TailPosition.NotTail)

@@ -32,7 +32,7 @@ class OpaqueMacroTest extends AnyFlatSpec with Matchers {
   subject should "allow access to its member under the correct name" in {
     @opaque case class Backref(opaque: String)
 
-    val backrefStorage = BackrefStorage()
+    val backrefStorage                   = BackrefStorage()
     val member: mutable.Map[Int, String] = backrefStorage.backref
 
     val testStr = "Foo"

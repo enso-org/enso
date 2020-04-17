@@ -122,12 +122,8 @@ class IdeWorkflowTest extends InterpreterTest {
     val extractInstrument = getValueExtractorInstrument
     var yVal: AnyRef      = null
     var zVal: AnyRef      = null
-    extractInstrument.bindTo("Test.main", 148, 10, { y =>
-      yVal = y
-    })
-    extractInstrument.bindTo("Test.main", 167, 10, { z =>
-      zVal = z
-    })
+    extractInstrument.bindTo("Test.main", 148, 10, { y => yVal = y })
+    extractInstrument.bindTo("Test.main", 167, 10, { z => zVal = z })
 
     main.execute(assocCons.newInstance()) shouldEqual 75
     consumeOut shouldEqual List("I'm expensive!", "I'm more expensive!")

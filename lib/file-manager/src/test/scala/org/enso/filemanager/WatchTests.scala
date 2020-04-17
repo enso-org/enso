@@ -172,14 +172,14 @@ class WatchTests
 
   test("Watcher: cannot watch ordinary file") {
     val file = createSubFile()
-    assertThrows[NotDirectoryException]({ observe(file, testProbe.ref) })
+    assertThrows[NotDirectoryException] { observe(file, testProbe.ref) }
   }
 
   test("Watcher: cannot watch symlink") {
     val dir     = createSubDir()
     val dirLink = tempDir.resolve("mylink")
     Files.createSymbolicLink(dirLink, dir)
-    assertThrows[NotDirectoryException]({ observe(dirLink, testProbe.ref) })
+    assertThrows[NotDirectoryException] { observe(dirLink, testProbe.ref) }
   }
 
   test("Watcher: can watch under symlink") {

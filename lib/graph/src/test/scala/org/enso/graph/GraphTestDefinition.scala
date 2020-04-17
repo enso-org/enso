@@ -83,7 +83,6 @@ object GraphTestDefinition {
     // === Component Field Definitions ========================================
     // ========================================================================
 
-
     object Node {
 
       @field object Shape {

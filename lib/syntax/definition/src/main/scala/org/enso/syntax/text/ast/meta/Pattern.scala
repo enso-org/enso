@@ -83,28 +83,28 @@ object Pattern {
     def apply(ast: AST): Tok = Tok(None, ast)
   }
   object Var {
-    def apply():                Var = Var(None)
+    def apply(): Var                = Var(None)
     def apply(spaced: Boolean): Var = Var(Some(spaced))
   }
   object Cons {
-    def apply():                Cons = Cons(None)
+    def apply(): Cons                = Cons(None)
     def apply(spaced: Boolean): Cons = Cons(Some(spaced))
   }
   object Opr {
-    def apply():                Opr = Opr(None, None)
-    def apply(spaced: Spaced):  Opr = Opr(spaced, None)
+    def apply(): Opr                = Opr(None, None)
+    def apply(spaced: Spaced): Opr  = Opr(spaced, None)
     def apply(spaced: Boolean): Opr = Opr(Some(spaced))
   }
   object Num {
-    def apply():                Num = Num(None)
+    def apply(): Num                = Num(None)
     def apply(spaced: Boolean): Num = Num(Some(spaced))
   }
   object Text {
-    def apply():                Text = Text(None)
+    def apply(): Text                = Text(None)
     def apply(spaced: Boolean): Text = Text(Some(spaced))
   }
   object Block {
-    def apply():                Block = Block(None)
+    def apply(): Block                = Block(None)
     def apply(spaced: Boolean): Block = Block(Some(spaced))
   }
 
@@ -123,8 +123,8 @@ object Pattern {
      } else {
        Invalid(spaced)
      })
-  def Any(spaced: Boolean):      Pattern = Any(Some(spaced))
-  def ErrTillEnd(msg: String):   Pattern = Any().tillEnd.err(msg)
+  def Any(spaced: Boolean): Pattern      = Any(Some(spaced))
+  def ErrTillEnd(msg: String): Pattern   = Any().tillEnd.err(msg)
   def ErrUnmatched(msg: String): Pattern = End() | ErrTillEnd(msg)
   def Expr(allowBlocks: Boolean = true): Pattern =
     Any(allowBlocks = allowBlocks).many1.build
@@ -337,23 +337,23 @@ sealed trait Pattern {
   ////////////////////////////
 
   def ::(that: Pattern): Pattern = Seq(that, this)
-  def !(that: Pattern):  Pattern = Except(that, this)
-  def |(that: Pattern):  Pattern = Or(this, that)
-  def |(msg: String):    Pattern = this | Err(msg, Nothing())
-  def |?(tag: String):   Pattern = Tag(tag, this)
+  def !(that: Pattern): Pattern  = Except(that, this)
+  def |(that: Pattern): Pattern  = Or(this, that)
+  def |(msg: String): Pattern    = this | Err(msg, Nothing())
+  def |?(tag: String): Pattern   = Tag(tag, this)
 
-  def or(that: Pattern):  Pattern = Or(this, that)
-  def or(msg: String):    Pattern = this | Err(msg, Nothing())
-  def err(msg: String):   Pattern = Err(msg, this)
-  def but(pat: Pattern):  Pattern = Except(pat, this)
-  def many:               Pattern = Many(this)
-  def many1:              Pattern = this :: this.many
-  def tag(tag: String):   Pattern = Tag(tag, this)
-  def opt:                Pattern = this | Nothing()
-  def build:              Pattern = Build(this)
+  def or(that: Pattern): Pattern  = Or(this, that)
+  def or(msg: String): Pattern    = this | Err(msg, Nothing())
+  def err(msg: String): Pattern   = Err(msg, this)
+  def but(pat: Pattern): Pattern  = Except(pat, this)
+  def many: Pattern               = Many(this)
+  def many1: Pattern              = this :: this.many
+  def tag(tag: String): Pattern   = Tag(tag, this)
+  def opt: Pattern                = this | Nothing()
+  def build: Pattern              = Build(this)
   def till(end: Pattern): Pattern = this.but(end).many
-  def tillEnd:            Pattern = this :: End() // fixme: rename
-  def fromBegin:          Pattern = Begin() :: this
+  def tillEnd: Pattern            = this :: End() // fixme: rename
+  def fromBegin: Pattern          = Begin() :: this
 
   def matchRevUnsafe(
     stream: AST.Stream,
@@ -491,8 +491,8 @@ sealed trait Pattern {
 
         case p @ P.Err(msg, p1) =>
           step(p1, stream).map {
-            _.map(
-              m => M.Err(p, Shifted(AST.Invalid.Unexpected(msg, m.toStream)))
+            _.map(m =>
+              M.Err(p, Shifted(AST.Invalid.Unexpected(msg, m.toStream)))
             )
           }
 

@@ -10,7 +10,10 @@ import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.data.ProjectMetadata
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectListRecent
 import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
-import org.enso.projectmanager.service.{ProjectServiceApi, ProjectServiceFailure}
+import org.enso.projectmanager.service.{
+  ProjectServiceApi,
+  ProjectServiceFailure
+}
 import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.annotation.unused

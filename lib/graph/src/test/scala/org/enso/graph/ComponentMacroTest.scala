@@ -28,11 +28,11 @@ class ComponentMacroTest extends AnyFlatSpec with Matchers {
   }
 
   "The `@component` macro" should "only allow application to case classes" in {
-    illTyped (
+    illTyped(
       "@component object Test",
       "You must provide a class definition to the @component macro."
     )
-    illTyped (
+    illTyped(
       "@component class Foo()",
       "@component must be applied to a case class."
     )

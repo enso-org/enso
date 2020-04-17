@@ -43,9 +43,7 @@ class AkkaBasedWebSocketConnection(address: String)(
       outboundChannel = actorRef
       NotUsed
     }
-    .map { txt: String =>
-      TextMessage(txt)
-    }
+    .map { txt: String => TextMessage(txt) }
 
   private def completionMatcher: PartialFunction[Any, CompletionStrategy] = {
     case CloseWebSocket => CompletionStrategy.immediately
@@ -54,7 +52,7 @@ class AkkaBasedWebSocketConnection(address: String)(
   private val sink: Sink[Message, NotUsed] = Flow[Message]
     .map {
       case TextMessage.Strict(s) => WebSocketMessage(s)
-      case _ => throw new RuntimeException("Unmatched case")
+      case _                     => throw new RuntimeException("Unmatched case")
     }
     .to(
       Sink.actorRef[WebSocketMessage](

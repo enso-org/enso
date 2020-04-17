@@ -44,13 +44,13 @@ sealed trait IR {
 
   // TODO [AA] Use this throughout the passes
   /** Gets the metadata of the given type from the node, throwing a fatal
-   * compiler error with the specified message if it doesn't exist
-   *
-   * @param message the message to throw on error
-   * @tparam T the type of the metadata to be obtained
-   * @return the requested metadata
-   */
-  def unsafeGetMetadata[T <: IR.Metadata : ClassTag](message: String): T = {
+    * compiler error with the specified message if it doesn't exist
+    *
+    * @param message the message to throw on error
+    * @tparam T the type of the metadata to be obtained
+    * @return the requested metadata
+    */
+  def unsafeGetMetadata[T <: IR.Metadata: ClassTag](message: String): T = {
     this.getMetadata[T].getOrElse(throw new CompilerError(message))
   }
 

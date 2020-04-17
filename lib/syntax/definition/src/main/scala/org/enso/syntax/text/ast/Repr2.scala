@@ -50,7 +50,7 @@ object SpannedRepr {
     val repr    = implicitly[Repr[T]]
   }
   implicit def asSpanned[T: SpannedRepr]: Spanned[T] = SpannedRepr[T].spanned
-  implicit def asRepr[T: SpannedRepr]:    Repr[T]    = SpannedRepr[T].repr
+  implicit def asRepr[T: SpannedRepr]: Repr[T]       = SpannedRepr[T].repr
 }
 
 trait Spanned[T] {
@@ -82,7 +82,7 @@ object Repr {
   //// Smart Constructors ////
 
   def apply[T: Repr](t: T): Builder = implicitly[Repr[T]].repr(t)
-  val R = Monoid[Builder].empty
+  val R                             = Monoid[Builder].empty
 
   //// Operations ////
 
@@ -166,8 +166,8 @@ object Repr {
     def Text(str: String)           = Builder(str.length, _ ++= str)
     def Seq(l: Builder, r: Builder) = l |+| r
 
-    implicit def fromString(a: String):        Builder = Repr(a)
-    implicit def fromChar(a: Char):            Builder = Repr(a)
+    implicit def fromString(a: String): Builder        = Repr(a)
+    implicit def fromChar(a: Char): Builder            = Repr(a)
     implicit def reprForBuilder[T <: Builder]: Repr[T] = identity(_)
   }
 }

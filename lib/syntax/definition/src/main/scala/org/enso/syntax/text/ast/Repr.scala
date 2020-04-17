@@ -124,8 +124,8 @@ object Repr {
 
     //// Instances ////
 
-    implicit def fromString(a: String):        Builder = Repr(a)
-    implicit def fromChar(a: Char):            Builder = Repr(a)
+    implicit def fromString(a: String): Builder        = Repr(a)
+    implicit def fromChar(a: Char): Builder            = Repr(a)
     implicit def reprForBuilder[T <: Builder]: Repr[T] = identity(_)
     implicit val monoidForBuilder: Monoid[Builder] = new Monoid[Builder] {
       def empty: Builder = R

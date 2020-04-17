@@ -3,7 +3,7 @@ package org.enso.interpreter.test
 import java.io.File
 
 import org.enso.pkg.Package
-import org.enso.polyglot.{PolyglotContext, LanguageInfo, RuntimeOptions}
+import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

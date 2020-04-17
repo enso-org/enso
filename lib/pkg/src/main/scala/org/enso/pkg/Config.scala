@@ -6,11 +6,12 @@ import io.circe.yaml
 import io.circe.yaml.syntax._
 
 case class Config(
-    author: String,
-    maintainer: String,
-    name: String,
-    version: String,
-    license: String) {
+  author: String,
+  maintainer: String,
+  name: String,
+  version: String,
+  license: String
+) {
   def toYaml: String = this.asJson.asYaml.spaces4
 }
 

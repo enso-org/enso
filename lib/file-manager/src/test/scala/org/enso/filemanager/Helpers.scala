@@ -43,7 +43,8 @@ trait Helpers extends Matchers {
   case class Subtree(
     root: Path,
     childrenFiles: Seq[Path],
-    childrenDirs: Seq[Path]) {
+    childrenDirs: Seq[Path]
+  ) {
 
     val elements: Seq[Path] =
       (Seq(root) ++ childrenDirs ++ childrenFiles).map(root.resolve)
@@ -66,12 +67,10 @@ trait Helpers extends Matchers {
 
   def expectSubtree(subtree: Subtree): Unit = {
     assert(Files.exists(subtree.root))
-    subtree.elements.foreach(
-      elem => expectExist(subtree.root.resolve(elem))
-    )
+    subtree.elements.foreach(elem => expectExist(subtree.root.resolve(elem)))
 
     val listStream = Files.list(subtree.root)
-    try listStream.count() should be(2) : Unit
+    try listStream.count() should be(2): Unit
     finally listStream.close()
   }
 

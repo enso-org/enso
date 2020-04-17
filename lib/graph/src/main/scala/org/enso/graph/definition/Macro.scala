@@ -114,11 +114,10 @@ object Macro {
               case valDef: ValDef => valDef
             }
 
-            allVals.filter(
-              t =>
-                t.mods.hasFlag(
-                  c.universe.Flag.CASEACCESSOR | c.universe.Flag.PARAMACCESSOR
-                )
+            allVals.filter(t =>
+              t.mods.hasFlag(
+                c.universe.Flag.CASEACCESSOR | c.universe.Flag.PARAMACCESSOR
+              )
             )
           }
           case _ => List()

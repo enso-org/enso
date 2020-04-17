@@ -40,10 +40,10 @@ case class ParserService() extends Server with Protocol {
   def handleRequest(request: Request): Response = {
     request match {
       case ParseRequest(program, ids) =>
-        val ast     = new Parser().run(new Reader(program), ids)
+        val ast = new Parser().run(new Reader(program), ids)
         Protocol.Success(SourceFile(ast, Json.Null))
       case ParseRequestWithMetadata(content) =>
-        val module  = new Parser().runWithMetadata(content)
+        val module = new Parser().runWithMetadata(content)
         Protocol.Success(module)
       case _ =>
         throw new Exception(f"unimplemented request: $request")

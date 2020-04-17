@@ -118,8 +118,8 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   ): F[ProjectRepositoryFailure, Unit] =
     fileSystem
       .removeDir(new File(projectPath))
-      .mapError[ProjectRepositoryFailure](
-        failure => StorageFailure(failure.toString)
+      .mapError[ProjectRepositoryFailure](failure =>
+        StorageFailure(failure.toString)
       )
 
 }

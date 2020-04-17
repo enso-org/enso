@@ -168,7 +168,8 @@ class ModuleManagementTest extends AnyFlatSpec with Matchers {
         |""".stripMargin,
       "X2"
     )
-    val exception = the[PolyglotException] thrownBy mod2.getAssociatedConstructor
+    val exception =
+      the[PolyglotException] thrownBy mod2.getAssociatedConstructor
     exception.getMessage shouldEqual "Module Test.Main does not exist."
   }
 }

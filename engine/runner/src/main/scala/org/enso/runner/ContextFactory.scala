@@ -4,7 +4,7 @@ import java.io.InputStream
 import java.io.OutputStream
 
 import org.enso.interpreter.instrument.ReplDebuggerInstrument
-import org.enso.polyglot.{PolyglotContext, LanguageInfo, RuntimeOptions}
+import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.Context
 
 /**

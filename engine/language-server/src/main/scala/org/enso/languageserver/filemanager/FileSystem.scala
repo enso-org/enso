@@ -51,13 +51,13 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     * @return either [[FileSystemFailure]] or Unit
     */
   def delete(file: File): BlockingIO[FileSystemFailure, Unit] =
-    effectBlocking({
+    effectBlocking {
       if (file.isDirectory) {
         FileUtils.deleteDirectory(file)
       } else {
         Files.delete(file.toPath)
       }
-    }).mapError(errorHandling)
+    }.mapError(errorHandling)
 
   /**
     * Creates an empty file with parent directory.
@@ -101,7 +101,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     if (from.isDirectory && to.isFile) {
       IO.fail(FileExists)
     } else {
-      effectBlocking({
+      effectBlocking {
         if (from.isFile && to.isDirectory) {
           FileUtils.copyFileToDirectory(from, to)
         } else if (from.isDirectory) {
@@ -109,7 +109,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
         } else {
           FileUtils.copyFile(from, to)
         }
-      }).mapError(errorHandling)
+      }.mapError(errorHandling)
     }
 
   /**
@@ -120,7 +120,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     * @return either [[FileSystemFailure]] or Unit
     */
   override def move(from: File, to: File): BlockingIO[FileSystemFailure, Unit] =
-    effectBlocking({
+    effectBlocking {
       if (to.isDirectory) {
         val createDestDir = false
         FileUtils.moveToDirectory(from, to, createDestDir)
@@ -129,7 +129,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
       } else {
         FileUtils.moveFile(from, to)
       }
-    }).mapError(errorHandling)
+    }.mapError(errorHandling)
 
   /**
     * Checks if the specified file exists.
@@ -150,7 +150,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
   override def list(path: File): BlockingIO[FileSystemFailure, Vector[Entry]] =
     if (path.exists) {
       if (path.isDirectory) {
-        effectBlocking({
+        effectBlocking {
           FileSystem
             .list(path.toPath)
             .map {
@@ -158,7 +158,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
                 FileSystem.readSymbolicLink(path)
               case entry => entry
             }
-        }).mapError(errorHandling)
+        }.mapError(errorHandling)
       } else {
         IO.fail(NotDirectory)
       }
@@ -180,7 +180,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     val limit = FileSystem.Depth(depth)
     if (path.exists && limit.canGoDeeper) {
       if (path.isDirectory) {
-        effectBlocking({
+        effectBlocking {
           val directory = DirectoryEntry.empty(path.toPath)
           FileSystem.readDirectoryEntry(
             directory,
@@ -190,7 +190,7 @@ class FileSystem extends FileSystemApi[BlockingIO] {
             mutable.Queue()
           )
           directory
-        }).mapError(errorHandling)
+        }.mapError(errorHandling)
       } else {
         IO.fail(NotDirectory)
       }

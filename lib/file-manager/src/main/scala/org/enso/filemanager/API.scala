@@ -38,8 +38,8 @@ object API {
     */
   final case class PathOutsideProjectException(
     projectRoot: Path,
-    accessedPath: Path)
-      extends Exception(
+    accessedPath: Path
+  ) extends Exception(
         s"""Cannot access path $accessedPath because it does not belong to
            |the project under root directory $projectRoot""".stripMargin
           .replaceAll("\n", " ")
@@ -53,7 +53,8 @@ object API {
     */
   sealed case class Request[ResponseType <: Success: ClassTag](
     replyTo: ActorRef[Try[ResponseType]],
-    contents: Payload[ResponseType]) {
+    contents: Payload[ResponseType]
+  ) {
 
     def handle(fileManager: FileManager): Unit =
       fileManager.onMessageTyped(this)
@@ -68,7 +69,7 @@ object API {
 
     /** Base class for all the operation-specific contents of [[Request]]. */
     abstract class Payload[+ResponseType <: Success: ClassTag] {
-      def touchedPaths: Seq[Path]
+      def touchedPaths:                     Seq[Path]
       def handle(fileManager: FileManager): ResponseType
 
       def validate(projectRoot: Path): Unit =
@@ -241,8 +242,8 @@ object API {
       case class Response(id: UUID) extends Success
       case class Request(
         observedDirPath: Path,
-        observer: ActorRef[FileSystemEvent])
-          extends Payload[Response] {
+        observer: ActorRef[FileSystemEvent]
+      ) extends Payload[Response] {
         override def touchedPaths: Seq[Path] = Seq(observedDirPath)
         override def handle(fileManager: FileManager): Response = {
           // Watching a symlink target works only on Windows, presumably thanks
@@ -298,7 +299,8 @@ object API {
 
   case class FileSystemEvent(
     eventType: DirectoryChangeEvent.EventType,
-    path: Path)
+    path: Path
+  )
 }
 
 /** Implementation details, not expected to be relied on as path of API. */
@@ -315,7 +317,8 @@ object Detail {
   case class EventNotifier(
     observedPath: Path,
     observer: ActorRef[FileSystemEvent],
-    fileManager: FileManager) {
+    fileManager: FileManager
+  ) {
 
     val realObservedPath: Path           = observedPath.toRealPath()
     val observingUnresolvedPath: Boolean = observedPath != realObservedPath

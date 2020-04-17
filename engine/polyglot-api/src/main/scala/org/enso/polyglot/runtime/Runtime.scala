@@ -78,15 +78,15 @@ object Runtime {
     )
   )
   sealed trait Api
-  sealed trait ApiRequest  extends Api
-  sealed trait ApiResponse extends Api
+  sealed trait ApiRequest      extends Api
+  sealed trait ApiResponse     extends Api
   sealed trait ApiNotification extends ApiResponse
 
   object Api {
 
-    type ContextId = UUID
+    type ContextId    = UUID
     type ExpressionId = UUID
-    type RequestId = UUID
+    type RequestId    = UUID
 
     /**
       * Indicates error response.

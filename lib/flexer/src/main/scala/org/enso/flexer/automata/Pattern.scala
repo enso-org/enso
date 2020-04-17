@@ -6,11 +6,11 @@ import scala.annotation.tailrec
 trait Pattern {
   import Pattern._
 
-  def |(that: Pattern):  Pattern = Or(this, that)
+  def |(that: Pattern): Pattern  = Or(this, that)
   def >>(that: Pattern): Pattern = Seq(this, that)
-  def many:              Pattern = Many(this)
-  def many1:             Pattern = this >> many
-  def opt:               Pattern = this | always
+  def many: Pattern              = Many(this)
+  def many1: Pattern             = this >> many
+  def opt: Pattern               = this | always
 }
 
 object Pattern {
@@ -22,19 +22,19 @@ object Pattern {
 
   //// API ////
 
-  val always: Pattern = Always
+  val always: Pattern                      = Always
   def range(start: Char, end: Char): Range = Range(start.toInt, end.toInt)
-  def range(start: Int, end: Int):   Range = Range(start, end)
-  def range(end: Int):               Range = range(0, end)
-  def range(end: Char):              Range = range(0, end.toInt)
-  def char(char: Char):              Range = range(char.toInt, char.toInt)
-  def char(char: Int):               Range = range(char, char)
+  def range(start: Int, end: Int): Range   = Range(start, end)
+  def range(end: Int): Range               = range(0, end)
+  def range(end: Char): Range              = range(0, end.toInt)
+  def char(char: Char): Range              = range(char.toInt, char.toInt)
+  def char(char: Int): Range               = range(char, char)
 
   val never: Pattern = range(-1)
   val any: Range     = range(Int.MaxValue)
   val eof: Range     = char(Parser.eofCodePoint)
 
-  def anyOf(chars: String):            Pattern = anyOf(chars.map(char))
+  def anyOf(chars: String): Pattern            = anyOf(chars.map(char))
   def anyOf(alts: scala.Seq[Pattern]): Pattern = alts.fold(never)(_ | _)
   def noneOf(chars: String): Pattern = {
     val pointCodes  = chars.map(_.toInt).sorted

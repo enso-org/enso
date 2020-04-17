@@ -367,8 +367,8 @@ object Doc {
       elems: List[Elem]
     ) extends Section {
       val marker: String = typ.marker.toString
-      val firstIndentRepr
-        : Repr.Builder = R + indentBeforeMarker + marker + indentAfterMarker
+      val firstIndentRepr: Repr.Builder =
+        R + indentBeforeMarker + marker + indentAfterMarker
 
       val dummyElem = Elem.Text("")
       val elemsRepr: List[Repr.Builder] = elems.zip(dummyElem :: elems).map {
@@ -499,9 +499,9 @@ object Doc {
     */
   final case class Tags(elems: List1[Tags.Tag]) extends Symbol {
     val newLn: Elem = Elem.Newline
-    val repr
-      : Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _) + newLn
-    val html: HTML   = Seq(HTML.div(htmlCls())(elems.toList.map(_.html)))
+    val repr: Repr.Builder =
+      R + elems.head + elems.tail.map(R + newLn + _) + newLn
+    val html: HTML = Seq(HTML.div(htmlCls())(elems.toList.map(_.html)))
   }
   object Tags {
     def apply(elem: Tag): Tags   = Tags(List1(elem))

@@ -22,7 +22,7 @@ object Macro {
     new Transformer(t).run(AST.tokenize(t).toList())
 
   final private class Transformer(@unused t: AST) {
-    val root: Builder.Context       = Builder.Context(Builtin.registry.tree)
+    val root: Builder.Context = Builder.Context(Builtin.registry.tree)
 
     var builder: Builder            = Builder.moduleBuilder()
     var builderStack: List[Builder] = Nil
@@ -70,7 +70,8 @@ object Macro {
             if (noLastPattern) {
               val (revLeftUnusedStream, matched, rightUnusedStream) =
                 bldr.build(List())
-              subStream = subStream ++ (rightUnusedStream.reverse :+ matched) ++ revLeftUnusedStream
+              subStream =
+                subStream ++ (rightUnusedStream.reverse :+ matched) ++ revLeftUnusedStream
             } else {
               bldr.current.revStream = subStream ++ bldr.current.revStream
               subStream              = List()

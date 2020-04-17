@@ -626,12 +626,11 @@ class DocParserTests extends AnyFlatSpec with Matchers {
   val allPossibleTags: Set[Tag.Type] =
     Tags.Tag.Type.codes.-(Tags.Tag.Unrecognized)
 
-  allPossibleTags.foreach(
-    t =>
-      s"${t.toString.toUpperCase()}\nFoo" ?= Doc(
-        Tags(Tags.Tag(t)),
-        Synopsis(Section.Raw("Foo"))
-      )
+  allPossibleTags.foreach(t =>
+    s"${t.toString.toUpperCase()}\nFoo" ?= Doc(
+      Tags(Tags.Tag(t)),
+      Synopsis(Section.Raw("Foo"))
+    )
   )
   "DEPRECATED in 1.0\nFoo" ?= Doc(
     Tags(Tags.Tag(Tags.Tag.Type.Deprecated, " in 1.0")),
