@@ -85,4 +85,6 @@ object ExecutionApi {
 
   case object EmptyStackError extends Error(2003, "Stack is empty")
 
+  case object InvalidStackItemError extends Error(2004, "Invalid stack item")
+
 }

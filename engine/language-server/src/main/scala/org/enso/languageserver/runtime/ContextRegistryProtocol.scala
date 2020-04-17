@@ -112,4 +112,11 @@ object ContextRegistryProtocol {
     * @param contextId execution context identifier
     */
   case class EmptyStackError(contextId: ContextId) extends Failure
+
+  /**
+    * Signals that stack item is invalid in this context.
+    *
+    * @param contextId execution context identifier
+    */
+  case class InvalidStackItemError(contextId: ContextId) extends Failure
 }

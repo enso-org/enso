@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstanceVisitor;
@@ -10,7 +11,9 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
+import org.enso.interpreter.runtime.type.Types;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -34,7 +37,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     this.env = env;
   }
 
-  /** A value class for notifications about functions being called in the course of execution. */
+  /** A class for notifications about functions being called in the course of execution. */
   public static class ExpressionCall {
     private UUID expressionId;
     private FunctionCallInstrumentationNode.FunctionCall call;
@@ -61,25 +64,34 @@ public class IdExecutionInstrument extends TruffleInstrument {
     }
   }
 
-  /** A value class for notifications about identified expressions' values being computed. */
+  /** A class for notifications about identified expressions' values being computed. */
   public static class ExpressionValue {
-    private UUID expressionId;
-    private Object value;
+    private final UUID expressionId;
+    private final String type;
+    private final Object value;
 
     /**
      * Creates a new instance of this class.
      *
      * @param expressionId the id of the expression being computed.
+     * @param type of the computed expression.
      * @param value the value returned by computing the expression.
      */
-    public ExpressionValue(UUID expressionId, Object value) {
+    public ExpressionValue(UUID expressionId, String type, Object value) {
       this.expressionId = expressionId;
+      this.type = type;
       this.value = value;
     }
 
     /** @return the id of the expression computed. */
     public UUID getExpressionId() {
       return expressionId;
+    }
+
+    /** @return the computed type of the expression. */
+    @CompilerDirectives.TruffleBoundary
+    public Optional<String> getType() {
+      return Optional.ofNullable(type);
     }
 
     /** @return the computed value of the expression. */
@@ -166,7 +178,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
                 (FunctionCallInstrumentationNode.FunctionCall) result));
       } else if (node instanceof ExpressionNode) {
         valueCallback.accept(
-            new ExpressionValue(((ExpressionNode) context.getInstrumentedNode()).getId(), result));
+            new ExpressionValue(
+                ((ExpressionNode) node).getId(), Types.getName(result).orElse(null), result));
       }
     }
 

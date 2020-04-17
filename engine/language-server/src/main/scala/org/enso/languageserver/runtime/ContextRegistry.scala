@@ -125,7 +125,7 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
   ): Either[FileSystemFailure, Api.MethodPointer] =
     config.findContentRoot(pointer.file.rootId).map { rootPath =>
       Api.MethodPointer(
-        file          = pointer.file.toFile(rootPath).toPath,
+        file          = pointer.file.toFile(rootPath),
         definedOnType = pointer.definedOnType,
         name          = pointer.name
       )

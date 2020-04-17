@@ -14,7 +14,9 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.pkg.QualifiedName;
 
+import java.io.File;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -93,24 +95,26 @@ public class ExecutionService {
    * Executes a method described by its name, constructor it's defined on and the module it's
    * defined in.
    *
-   * @param moduleName the qualified name of the module the method is defined in.
+   * @param modulePath the path to the module where the method is defined.
    * @param consName the name of the constructor the method is defined on.
    * @param methodName the method name.
    * @param valueCallback the consumer for expression value events.
    * @param funCallCallback the consumer for function call events.
    */
   public void execute(
-      String moduleName,
+      File modulePath,
       String consName,
       String methodName,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-    Optional<FunctionCallInstrumentationNode.FunctionCall> callMay =
-        prepareFunctionCall(moduleName, consName, methodName);
+    Optional<FunctionCallInstrumentationNode.FunctionCall> callMay = context
+      .getModuleNameForFile(modulePath)
+      .flatMap(moduleName -> prepareFunctionCall(moduleName.toString(), consName, methodName));
     if (!callMay.isPresent()) {
       return;
     }
     execute(callMay.get(), valueCallback, funCallCallback);
   }
+
 }

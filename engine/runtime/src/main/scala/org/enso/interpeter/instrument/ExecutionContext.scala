@@ -44,6 +44,15 @@ class ExecutionContextManager {
     } yield ExecutionContext(id)
 
   /**
+    * Gets a stack for a given context id.
+    *
+    * @param id the context id.
+    * @return the stack.
+    */
+  def getStack(id: ContextId): Stack[StackItem] =
+    contexts.getOrElse(ExecutionContext(id), Stack())
+
+  /**
     * If the context exists, push the item on the stack.
     *
     * @param id the context id.

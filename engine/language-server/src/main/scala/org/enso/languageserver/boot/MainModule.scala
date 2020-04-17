@@ -25,7 +25,7 @@ import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeConnector}
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.LanguageServer
-import org.enso.polyglot.{LanguageInfo, RuntimeServerInfo}
+import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 
@@ -103,6 +103,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+    .option(RuntimeOptions.getPackagesPathOption, serverConfig.contentRootPath)
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(

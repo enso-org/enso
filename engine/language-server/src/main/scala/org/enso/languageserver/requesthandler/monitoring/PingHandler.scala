@@ -22,20 +22,22 @@ class PingHandler(
 
   import context.dispatcher
 
+  private var cancellable: Option[Cancellable] = None
+
   override def receive: Receive = scatter
 
   private def scatter: Receive = {
     case Request(MonitoringApi.Ping, id, Unused) =>
       subsystems.foreach(_ ! Ping)
-      val cancellable =
+      cancellable = Some(
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(gather(id, sender(), cancellable))
+      )
+      context.become(gather(id, sender()))
   }
 
   private def gather(
     id: Id,
     replyTo: ActorRef,
-    cancellable: Cancellable,
     count: Int = 0
   ): Receive = {
     case RequestTimeout =>
@@ -47,11 +49,14 @@ class PingHandler(
     case Pong =>
       if (count + 1 == subsystems.size) {
         replyTo ! ResponseResult(MonitoringApi.Ping, id, Unused)
-        cancellable.cancel()
         context.stop(self)
       } else {
-        context.become(gather(id, replyTo, cancellable, count + 1))
+        context.become(gather(id, replyTo, count + 1))
       }
+  }
+
+  override def postStop(): Unit = {
+    cancellable.foreach(_.cancel())
   }
 
 }

@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
+import org.enso.pkg.QualifiedName;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -28,6 +29,7 @@ public class Context {
   private final Env environment;
   private final Compiler compiler;
   private final PrintStream out;
+  private List<Package> packages;
 
   /**
    * Creates a new Enso context.
@@ -41,12 +43,17 @@ public class Context {
     this.out = new PrintStream(environment.out());
 
     List<File> packagePaths = OptionsHelper.getPackagesPaths(environment);
-    Map<String, Module> knownFiles =
+
+    packages =
         packagePaths.stream()
             .map(Package::fromDirectory)
             .map(ScalaConversions::asJava)
             .filter(Optional::isPresent)
             .map(Optional::get)
+            .collect(Collectors.toList());
+
+    Map<String, Module> knownFiles =
+        packages.stream()
             .flatMap(p -> ScalaConversions.asJava(p.listSources()).stream())
             .collect(
                 Collectors.toMap(
@@ -122,6 +129,33 @@ public class Context {
   public void resetScope(ModuleScope scope) {
     scope.reset();
     initializeScope(scope);
+  }
+
+  /**
+   * Guess module name from the file path by comparing it with the source pathes
+   * of imported packages.
+   *
+   * @param path file path.
+   * @return qualified module name if the function can find imported package
+   * with matching path.
+   */
+  public Optional<QualifiedName> getModuleNameForFile(File path) {
+    return packages.stream()
+        .filter(pkg -> path.getAbsolutePath().startsWith(pkg.sourceDir().getAbsolutePath()))
+        .map(pkg -> pkg.moduleNameForFile(path))
+        .findFirst();
+  }
+
+  /**
+   * Get module from the file path. Function tries to recover module name from
+   * the provided file path.
+   *
+   * @param path file path.
+   * @return module if module name can be guessed from the provided file path.
+   */
+  public Optional<Module> getModuleForFile(File path) {
+    return getModuleNameForFile(path)
+        .flatMap(n -> compiler().topScope().getModule(n.toString()));
   }
 
   private void initializeScope(ModuleScope scope) {

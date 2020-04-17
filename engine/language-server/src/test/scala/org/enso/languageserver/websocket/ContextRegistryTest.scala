@@ -1,6 +1,6 @@
 package org.enso.languageserver.websocket
 
-import java.nio.file.Paths
+import java.io.File
 import java.util.UUID
 
 import io.circe.literal._
@@ -252,6 +252,54 @@ class ContextRegistryTest extends BaseServerTest {
           """)
     }
 
+    "return InvalidStackItemError when pushing invalid item to stack" in {
+      val client = getInitialisedWsClient()
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId1, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId1,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // push invalid item
+      val expressionId = UUID.randomUUID()
+      client.send(json.executionContextPushRequest(2, contextId, expressionId))
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+            requestId,
+            Api.PushContextRequest(
+              `contextId`,
+              Api.StackItem.LocalCall(`expressionId`)
+            )
+          ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.InvalidStackItemError(contextId)
+      )
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id" : 2,
+            "error" : {
+              "code" : 2004,
+              "message" : "Invalid stack item"
+            }
+          }
+          """)
+    }
+
     "send notifications" in {
       val client = getInitialisedWsClient()
 
@@ -277,7 +325,7 @@ class ContextRegistryTest extends BaseServerTest {
         shortValue     = Some("ShortValue"),
         methodCall = Some(
           Api.MethodPointer(
-            file          = testContentRoot,
+            file          = testContentRoot.toFile,
             definedOnType = "DefinedOnType",
             name          = "Name"
           )
@@ -288,7 +336,7 @@ class ContextRegistryTest extends BaseServerTest {
         expressionType = None,
         shortValue     = None,
         methodCall = Some(
-          Api.MethodPointer(Paths.get("/invalid"), "Invalid", "Invalid")
+          Api.MethodPointer(new File("/invalid"), "Invalid", "Invalid")
         )
       )
       system.eventStream.publish(
