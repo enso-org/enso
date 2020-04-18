@@ -155,6 +155,11 @@ impl Sprite {
         self
     }
 
+    /// Get the symbol id.
+    pub fn symbol_id(&self) -> i32 {
+        self.symbol.id
+    }
+
     /// Size accessor.
     pub fn size(&self) -> Attribute<Vector2<f32>> {
         self.bbox.clone_ref()

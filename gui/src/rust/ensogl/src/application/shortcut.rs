@@ -50,7 +50,7 @@ impl Registry {
         let logger           = self.logger.clone_ref();
         let rule_map         = self.rule_map.clone_ref();
         let command_registry = self.command_registry.clone_ref();
-        frp::extend_network! { network
+        frp::extend! { network
             def _on_key_press = self.keyboard.key_mask.map(move |key_mask| {
                 rule_map.borrow_mut().get_mut(key_mask).map(|rules| {
                     Self::process_rules(&logger,&command_registry,rules)

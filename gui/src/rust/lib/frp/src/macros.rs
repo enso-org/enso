@@ -28,11 +28,18 @@ macro_rules! new_network {
     ($($ts:tt)*)           => { $crate::_new_network! { NO_TRACE $($ts)* } };
 }
 
+/// Just like `new_network` but for the dynamic FRP mode.
+#[macro_export]
+macro_rules! new_dynamic_network {
+    (TRACE_ALL $($ts:tt)*) => { $crate::_new_dynamic_network! { TRACE    $($ts)* } };
+    ($($ts:tt)*)           => { $crate::_new_dynamic_network! { NO_TRACE $($ts)* } };
+}
+
 /// Extends the provided network with new rules. See documentation of `new_network` to learn more.
 #[macro_export]
-macro_rules! extend_network {
-    (TRACE_ALL $($ts:tt)*) => { $crate::_extend_network! { TRACE    $($ts)* } };
-    ($($ts:tt)*)           => { $crate::_extend_network! { NO_TRACE $($ts)* } };
+macro_rules! extend {
+    (TRACE_ALL $($ts:tt)*) => { $crate::_extend! { TRACE    $($ts)* } };
+    ($($ts:tt)*)           => { $crate::_extend! { NO_TRACE $($ts)* } };
 }
 
 
@@ -48,7 +55,16 @@ macro_rules! extend_network {
 macro_rules! _new_network {
     ($trace:ident $network:ident $($ts:tt)*) => {
         let $network = $crate::Network::new();
-        $crate::_extend_network! { $trace $network $($ts)* }
+        $crate::_extend! { $trace $network $($ts)* }
+    };
+}
+
+/// Internal helper for `new_dynamic_network` macro.
+#[macro_export]
+macro_rules! _new_dynamic_network {
+    ($trace:ident $($ts:tt)*) => {
+        let __dynamic__ = $crate::DynamicNetwork::new();
+        $crate::_extend! { $trace __dynamic__ $($ts)* }
     };
 }
 
@@ -57,7 +73,7 @@ macro_rules! _new_network {
 macro_rules! new_bridge_network {
     ([$($($path:ident).*),*] $($ts:tt)*) => {
         let _birdge_network_ = $crate::Network::new();
-        $crate::extend_network! { _birdge_network_ $($ts)* }
+        $crate::extend! { _birdge_network_ $($ts)* }
         let _birdge_network_ = $crate::BridgeNetwork::from(_birdge_network_);
         $($($path).*.register_bridge_network(&_birdge_network_);)*
     };
@@ -66,37 +82,37 @@ macro_rules! new_bridge_network {
 
 // === Extend ===
 
-/// Extends the provided network with new rules. See documentation of `new_network` to learn more.
+/// Internal helper for `extend` macro.
 #[macro_export]
-macro_rules! _extend_network {
+macro_rules! _extend {
     ($trace:ident $network:ident $($ts:tt)*) => {
-        $crate::divide_on_terminator! { [[$crate::extend_network_lines] [$trace $network]] $($ts)* }
+        $crate::divide_on_terminator! { [[$crate::extend_lines] [$trace $network]] $($ts)* }
     };
 }
 
-/// Internal helpers for `extend_network` macro.
+/// Internal helper for `extend` macro.
 #[macro_export]
-macro_rules! extend_network_lines {
+macro_rules! extend_lines {
     ([$trace:ident $network:ident] [ $([$($line:tt)*])* ]) => {$(
-        $crate::extend_network_line1! { $trace $network $($line)* }
+        $crate::extend_line1! { $trace $network $($line)* }
     )*}
 }
 
-/// Internal helpers for `extend_network` macro.
+/// Internal helper for `extend` macro.
 #[macro_export]
-macro_rules! extend_network_line1 {
+macro_rules! extend_line1 {
     (TRACE $network:ident def $name:ident $($toks:tt)*) => {
-        $crate::extend_network_line2! { $network def $name $($toks)* }
-        $crate::extend_network_line2! { $network trace $name; }
+        $crate::extend_line2! { $network def $name $($toks)* }
+        $crate::extend_line2! { $network trace $name; }
     };
     ($trace:ident $($toks:tt)*) => {
-        $crate::extend_network_line2! { $($toks)* }
+        $crate::extend_line2! { $($toks)* }
     };
 }
 
-/// Internal helpers for `extend_network` macro.
+/// Internal helper for `extend` macro.
 #[macro_export]
-macro_rules! extend_network_line2 {
+macro_rules! extend_line2 {
     ($network:ident def $name:ident $(:$ty:ty)? =                                                                       $base:ident$(::<$param:ty>)?($($arg:tt)*) $($ts:tt)*) => { let $name $(:$ty)? = $network.$base$(::<$param>)?(concat!(stringify!($network),".",stringify!($name)),$($arg)*)                                $($ts)* };
     ($network:ident def $name:ident $(:$ty:ty)? = $tgt1:ident                                                         . $base:ident$(::<$param:ty>)?($($arg:tt)*) $($ts:tt)*) => { let $name $(:$ty)? = $network.$base$(::<$param>)?(concat!(stringify!($network),".",stringify!($name)),&$tgt1,$($arg)*)                         $($ts)* };
     ($network:ident def $name:ident $(:$ty:ty)? = $tgt1:ident . $tgt2:ident                                           . $base:ident$(::<$param:ty>)?($($arg:tt)*) $($ts:tt)*) => { let $name $(:$ty)? = $network.$base$(::<$param>)?(concat!(stringify!($network),".",stringify!($name)),&$tgt1.$tgt2,$($arg)*)                   $($ts)* };
@@ -110,13 +126,13 @@ macro_rules! extend_network_line2 {
 
 // === Utils ===
 
-/// Internal helpers for `extend_network` macro.
+/// Internal helper for `extend` macro.
 #[macro_export]
 macro_rules! divide_on_terminator {
     ($f:tt $($ts:tt)*) => { $crate::_divide_on_terminator! { $f [] [] $($ts)* } };
 }
 
-/// Internal helpers for `extend_network` macro.
+/// Internal helper for `extend` macro.
 #[macro_export]
 macro_rules! _divide_on_terminator {
     ([[$($f:tt)*] $args:tt] $lines:tt       [])                              => { $($f)*! {$args $lines} };
