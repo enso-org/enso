@@ -205,9 +205,18 @@ impl<Out:Data> ValueProvider for NodeData<Out> {
 
 // === Types ===
 
+/// Strong reference to FRP stream node with limited functionality and parametrized only by the
+/// output type. This should be the main type used in public FRP APIs. See the docs of `NodeData`
+/// to learn more about its internal design.
+#[derive(CloneRef,Debug,Derivative)]
+#[derivative(Clone(bound=""))]
+pub struct OwnedStream<Out=()> {
+    data : Rc<NodeData<Out>>,
+}
+
 /// Weak reference to FRP stream node with limited functionality and parametrized only by the
-/// output type. This should be the main type used in public FRP APIs.
-/// See the docs of `NodeData` to learn more about its internal design.
+/// output type. This should be the main type used in public FRP APIs. See the docs of `NodeData`
+/// to learn more about its internal design.
 #[derive(CloneRef,Derivative)]
 #[derivative(Clone(bound=""))]
 pub struct Stream<Out=()> {
@@ -219,7 +228,7 @@ pub struct Stream<Out=()> {
 #[derive(CloneRef,Debug,Derivative)]
 #[derivative(Clone(bound=""))]
 pub struct Node<Def:HasOutputStatic> {
-    data       : Rc<NodeData<Output<Def>>>,
+    stream     : OwnedStream<Output<Def>>,
     definition : Rc<Def>,
 }
 
@@ -229,15 +238,16 @@ pub struct Node<Def:HasOutputStatic> {
 #[derivative(Clone(bound=""))]
 pub struct WeakNode<Def:HasOutputStatic> {
     stream     : Stream<Output<Def>>,
-    definition : Rc<Def>,
+    definition : Weak<Def>,
 }
 
 
 // === Output ===
 
-impl<Out:Data>            HasOutput for Stream   <Out> { type Output = Out; }
-impl<Def:HasOutputStatic> HasOutput for Node     <Def> { type Output = Output<Def>; }
-impl<Def:HasOutputStatic> HasOutput for WeakNode <Def> { type Output = Output<Def>; }
+impl<Out:Data>            HasOutput for OwnedStream <Out> { type Output = Out; }
+impl<Out:Data>            HasOutput for Stream      <Out> { type Output = Out; }
+impl<Def:HasOutputStatic> HasOutput for Node        <Def> { type Output = Output<Def>; }
+impl<Def:HasOutputStatic> HasOutput for WeakNode    <Def> { type Output = Output<Def>; }
 
 
 // === Derefs ===
@@ -257,8 +267,9 @@ impl<Def:HasOutputStatic> Node<Def> {
     /// Constructor.
     pub fn construct(label:Label, definition:Def) -> Self {
         let data       = Rc::new(NodeData::new(label));
+        let stream     = OwnedStream {data};
         let definition = Rc::new(definition);
-        Self {data,definition}
+        Self {stream,definition}
     }
 
     /// Constructor which registers the newly created node as the event target of the argument.
@@ -272,8 +283,8 @@ impl<Def:HasOutputStatic> Node<Def> {
 
     /// Downgrades to the weak version.
     pub fn downgrade(&self) -> WeakNode<Def> {
-        let stream     = Stream {data:Rc::downgrade(&self.data)};
-        let definition = self.definition.clone_ref();
+        let stream     = self.stream.downgrade();
+        let definition = Rc::downgrade(&self.definition);
         WeakNode {stream,definition}
     }
 }
@@ -281,10 +292,25 @@ impl<Def:HasOutputStatic> Node<Def> {
 impl<T:HasOutputStatic> WeakNode<T> {
     /// Upgrades to the strong version.
     pub fn upgrade(&self) -> Option<Node<T>> {
-        self.stream.data.upgrade().map(|data| {
-            let definition = self.definition.clone_ref();
-            Node{data,definition}
+        self.stream.upgrade().and_then(|stream| {
+            self.definition.upgrade().map(|definition| {
+                Node{stream,definition}
+            })
         })
+    }
+}
+
+impl<Out> OwnedStream<Out> {
+    /// Downgrades to the weak version.
+    pub fn downgrade(&self) -> Stream<Out> {
+        Stream {data:Rc::downgrade(&self.data)}
+    }
+}
+
+impl<Out> Stream<Out> {
+    /// Upgrades to the strong version.
+    pub fn upgrade(&self) -> Option<OwnedStream<Out>> {
+        self.data.upgrade().map(|data| OwnedStream {data})
     }
 }
 
@@ -302,11 +328,24 @@ impl<Def> From<&WeakNode<Def>> for Stream<Def::Output>
     }
 }
 
+impl<Def> From<Node<Def>> for OwnedStream<Def::Output>
+    where Def:HasOutputStatic {
+    fn from(node:Node<Def>) -> Self {
+        node.stream.clone_ref()
+    }
+}
+
+impl<Def> From<&Node<Def>> for OwnedStream<Def::Output>
+    where Def:HasOutputStatic {
+    fn from(node:&Node<Def>) -> Self {
+        node.stream.clone_ref()
+    }
+}
+
 impl<Def> From<Node<Def>> for Stream<Def::Output>
 where Def:HasOutputStatic {
     fn from(node:Node<Def>) -> Self {
-        let data = Rc::downgrade(&node.data);
-        Stream {data}
+        node.stream.downgrade()
     }
 }
 
@@ -320,30 +359,44 @@ where Def:HasOutputStatic {
 
 // === EventEmitter ===
 
-impl<Out:Data> EventEmitter for Stream<Out> {
+impl<Out:Data> EventEmitter for OwnedStream<Out> {
     fn emit_event(&self, value:&Self::Output) {
-        self.data.upgrade().for_each(|t| t.emit_event(value))
+        self.data.emit_event(value)
     }
 
     fn register_target(&self,target:EventInput<Output<Self>>) {
-        self.data.upgrade().for_each(|t| t.register_target(target))
+        self.data.register_target(target)
     }
 
     fn register_watch(&self) -> watch::Handle {
-        self.data.upgrade().map(|t| t.register_watch()).unwrap() // FIXME
+        self.data.register_watch()
+    }
+}
+
+impl<Out:Data> EventEmitter for Stream<Out> {
+    fn emit_event(&self, value:&Self::Output) {
+        self.upgrade().for_each(|t| t.emit_event(value))
+    }
+
+    fn register_target(&self,target:EventInput<Output<Self>>) {
+        self.upgrade().for_each(|t| t.register_target(target))
+    }
+
+    fn register_watch(&self) -> watch::Handle {
+        self.upgrade().map(|t| t.register_watch()).unwrap() // FIXME
     }
 }
 
 impl<Def:HasOutputStatic> EventEmitter for Node<Def>  {
-    fn emit_event      (&self, value:&Output<Def>)           { self.data.emit_event(value) }
-    fn register_target (&self,tgt:EventInput<Output<Self>>) { self.data.register_target(tgt) }
-    fn register_watch  (&self) -> watch::Handle                { self.data.register_watch() }
+    fn emit_event      (&self, value:&Output<Def>)          { self.stream.emit_event(value) }
+    fn register_target (&self,tgt:EventInput<Output<Self>>) { self.stream.register_target(tgt) }
+    fn register_watch  (&self) -> watch::Handle             { self.stream.register_watch() }
 }
 
 impl<Def:HasOutputStatic> EventEmitter for WeakNode<Def> {
-    fn emit_event      (&self, value:&Output<Def>)           { self.stream.emit_event(value) }
+    fn emit_event      (&self, value:&Output<Def>)          { self.stream.emit_event(value) }
     fn register_target (&self,tgt:EventInput<Output<Self>>) { self.stream.register_target(tgt) }
-    fn register_watch  (&self) -> watch::Handle                { self.stream.register_watch() }
+    fn register_watch  (&self) -> watch::Handle             { self.stream.register_watch() }
 }
 
 
@@ -359,15 +412,21 @@ impl<Def,T> WeakEventConsumer<T> for WeakNode<Def>
 
 // === ValueProvider ===
 
+impl<Out:Data> ValueProvider for OwnedStream<Out> {
+    fn value(&self) -> Self::Output {
+        self.data.value()
+    }
+}
+
 impl<Out:Data> ValueProvider for Stream<Out> {
     fn value(&self) -> Self::Output {
-        self.data.upgrade().map(|t| t.value()).unwrap_or_default()
+        self.upgrade().map(|t| t.value()).unwrap_or_default()
     }
 }
 
 impl<Def:HasOutputStatic> ValueProvider for Node<Def> {
     fn value(&self) -> Self::Output {
-        self.data.value_cache.borrow().clone()
+        self.stream.value()
     }
 }
 
@@ -405,7 +464,7 @@ impl<Def:HasOutputStatic> HasId for WeakNode<Def> {
 impl<Def:HasOutputStatic> HasLabel for Node<Def>
     where Def:InputBehaviors {
     fn label(&self) -> Label {
-        self.data.label
+        self.stream.data.label
     }
 }
 
@@ -428,6 +487,12 @@ impl<Def> HasOutputTypeLabel for Node<Def>
 
 
 // === Conversions ===
+
+impl<Out> From<&OwnedStream<Out>> for OwnedStream<Out> {
+    fn from(t:&OwnedStream<Out>) -> Self {
+        t.clone_ref()
+    }
+}
 
 impl<Out> From<&Stream<Out>> for Stream<Out> {
     fn from(t:&Stream<Out>) -> Self {

@@ -59,7 +59,7 @@ shared! { ShapeRegistry
 pub struct ShapeRegistryData {
     scene            : Option<Scene>,
     shape_system_map : HashMap<TypeId,Box<dyn Any>>,
-    mouse_target_map : HashMap<usize,Rc<dyn MouseTarget>>,
+    mouse_target_map : HashMap<(i32,usize),Rc<dyn MouseTarget>>,
 }
 
 impl {
@@ -89,17 +89,17 @@ impl {
         system.new_instance()
     }
 
-    pub fn insert_mouse_target<T:MouseTarget>(&mut self, id:usize, target:T) {
+    pub fn insert_mouse_target<T:MouseTarget>(&mut self, symbol_id:i32, instance_id:usize, target:T) {
         let target = Rc::new(target);
-        self.mouse_target_map.insert(id,target);
+        self.mouse_target_map.insert((symbol_id,instance_id),target);
     }
 
-    pub fn remove_mouse_target(&mut self, id:&usize) {
-        self.mouse_target_map.remove(id);
+    pub fn remove_mouse_target(&mut self, symbol_id:i32, instance_id:usize) {
+        self.mouse_target_map.remove(&(symbol_id,instance_id));
     }
 
-    pub fn get_mouse_target(&mut self, id:&usize) -> Option<Rc<dyn MouseTarget>> {
-        self.mouse_target_map.get(&id).map(|t| t.clone_ref())
+    pub fn get_mouse_target(&mut self, symbol_id:i32, instance_id:usize) -> Option<Rc<dyn MouseTarget>> {
+        self.mouse_target_map.get(&(symbol_id,instance_id)).map(|t| t.clone_ref())
     }
 }}
 

@@ -25,7 +25,6 @@ pub fn run_example_shapes() {
     mem::forget(app);
 }
 
-
 fn init(app:&Application) {
     let world     = &app.display;
     let scene     = world.scene();

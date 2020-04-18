@@ -174,7 +174,7 @@ ensogl::def_command_api! { Commands
 
 impl Commands {
     pub fn new(network:&frp::Network) -> Self {
-        frp::extend_network! { network
+        frp::extend! { network
             def add_node_at_cursor    = source();
             def remove_selected_nodes = source();
             def remove_all_nodes      = source();
@@ -196,7 +196,7 @@ pub struct FrpInputs {
 impl FrpInputs {
     pub fn new(network:&frp::Network) -> Self {
         let commands = Commands::new(network);
-        frp::extend_network! { network
+        frp::extend! { network
             def register_node            = source();
             def add_node_at              = source();
             def select_node              = source();
@@ -282,7 +282,7 @@ pub struct TouchNetwork<T:frp::Data> {
 
 impl<T:frp::Data> TouchNetwork<T> {
     pub fn new(network:&frp::Network, mouse:&frp::io::Mouse) -> Self {
-        frp::extend_network! { network
+        frp::extend! { network
             def down          = source::<T> ();
             def down_bool     = down.map(|_| true);
             def up_bool       = mouse.release.map(|_| false);
@@ -367,7 +367,7 @@ impl application::View for GraphEditor {
         let touch          = TouchState::new(&network,mouse);
 
 
-        frp::extend_network! { network
+        frp::extend! { network
 
         // === Cursor ===
 
@@ -403,8 +403,8 @@ impl application::View for GraphEditor {
                 display::scene::Target::Background => {
                     touch.bg.down.emit(());
                 }
-                display::scene::Target::Symbol {instance_id,..} => {
-                    scene.shapes.get_mouse_target(&(*instance_id as usize)).for_each(|target| {
+                display::scene::Target::Symbol {symbol_id,instance_id} => {
+                    scene.shapes.get_mouse_target(*symbol_id as i32, *instance_id as usize).for_each(|target| {
                         target.mouse_down().for_each(|t| t.emit(()));
                     })
                 }

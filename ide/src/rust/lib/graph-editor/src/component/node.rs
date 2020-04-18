@@ -242,7 +242,7 @@ impl Node {
         });
 
 
-        frp::extend_network! { network
+        frp::extend! { network
             let selection_ref = selection.clone_ref();
             def _f_select = self.events.select.map(move |_| {
                 selection_ref.set_target_position(1.0);
