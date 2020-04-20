@@ -10,6 +10,7 @@ use ast::Ast;
 use ast::BlockLine;
 use ast::known;
 use utils::fail::FallibleResult;
+use crate::double_representation::connection::Connection;
 
 /// Graph uses the same `Id` as the definition which introduces the graph.
 pub type Id = double_representation::definition::Id;
@@ -83,6 +84,11 @@ impl GraphInfo {
         Self::from_function_binding(self.source.ast.clone())
     }
 
+    /// Gets the list of connections between the nodes in this graph.
+    pub fn connections(&self) -> Vec<Connection> {
+        double_representation::connection::list(&self.source.ast.rarg)
+    }
+
     fn is_node_by_id(line:&BlockLine<Option<Ast>>, id:ast::Id) -> bool {
         let node_info  = line.elem.as_ref().and_then(NodeInfo::from_line_ast);
         let id_matches = node_info.map(|node| node.id() == id);
@@ -111,6 +117,11 @@ impl GraphInfo {
         let off  = 0;
         lines.insert(index,BlockLine{elem,off});
         self.source.set_block_lines(lines)
+    }
+
+    /// Locates a node with the given id.
+    pub fn find_node(&self,id:ast::Id) -> Option<NodeInfo> {
+        self.nodes().iter().find(|node| node.id() == id).cloned()
     }
 
     /// After removing last node, we want to insert a placeholder value for definition value.

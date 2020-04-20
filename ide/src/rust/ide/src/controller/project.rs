@@ -32,7 +32,7 @@ pub struct Handle {
 impl Handle {
     /// Create a new project controller.
     ///
-    /// The remote connections should be already established.
+    /// The remote connection should be already established.
     pub fn new(file_manager_transport:impl Transport + 'static) -> Self {
         Handle {
             file_manager    : fmc::Handle::new(file_manager_transport),

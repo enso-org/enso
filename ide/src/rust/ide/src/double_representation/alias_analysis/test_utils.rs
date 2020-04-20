@@ -5,9 +5,9 @@ use crate::prelude::*;
 use crate::double_representation::alias_analysis::NormalizedName;
 use crate::double_representation::alias_analysis::LocatedName;
 use crate::double_representation::node::NodeInfo;
+use crate::double_representation::test_utils::MarkdownProcessor;
 
 use regex::Captures;
-use regex::Match;
 use regex::Regex;
 use regex::Replacer;
 
@@ -75,30 +75,11 @@ const USED:&str="used";
 /// * accumulates spans of introduced and used identifiers.
 #[derive(Debug,Default)]
 struct MarkdownReplacer {
-    markdown_bytes_consumed : usize,
+    processor:MarkdownProcessor,
     /// Spans in the unmarked code.
-    introduced              : Vec<Range<usize>>,
+    introduced:Vec<Range<usize>>,
     /// Spans in the unmarked code.
-    used                    : Vec<Range<usize>>,
-}
-
-impl MarkdownReplacer {
-    fn marked_to_unmarked_index(&self, i:usize) -> usize {
-        assert!(self.markdown_bytes_consumed <= i);
-        i - self.markdown_bytes_consumed
-    }
-    /// Increments the consumed marker bytes count by size of a single marker character.
-    fn consume_marker(&mut self) {
-        self.markdown_bytes_consumed += '«'.len_utf8();
-    }
-    /// Consumes opening and closing marker. Returns span of marked item in unmarked text indices.
-    fn consume_marked(&mut self, capture:&Match) -> Range<usize> {
-        self.consume_marker();
-        let start = self.marked_to_unmarked_index(capture.start());
-        let end   = self.marked_to_unmarked_index(capture.end());
-        self.consume_marker();
-        start .. end
-    }
+    used:Vec<Range<usize>>,
 }
 
 // Processes every single match for a marked entity.
@@ -112,13 +93,11 @@ impl Replacer for MarkdownReplacer {
             panic!("Unexpected capture: expected named capture `{}` or `{}`.",INTRODUCED,USED)
         };
 
-        let span    = self.consume_marked(&matched);
-        let out_vec = match kind {
-            Kind::Introduced => &mut self.introduced,
-            Kind::Used       => &mut self.used,
+        let span = self.processor.process_match(captures,&matched,dst);
+        match kind {
+            Kind::Introduced => self.introduced.push(span),
+            Kind::Used       => self.used.push(span),
         };
-        out_vec.push(span);
-        dst.push_str(matched.as_str());
     }
 }
 
