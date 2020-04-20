@@ -119,7 +119,7 @@ impl Scope {
 #[derive(Clone,Debug,Default)]
 pub struct AliasAnalyzer {
     /// Root scope for this analyzer.
-    root_scope : Scope,
+    pub root_scope : Scope,
     /// Stack of scopes that shadow the root one.
     shadowing_scopes : Vec<Scope>,
     /// Stack of context. Lack of any context information is considered non-pattern context.
@@ -229,7 +229,7 @@ impl AliasAnalyzer {
     }
 
     /// Processes all subtrees of the given AST in their respective locations.
-    fn process_subtrees(&mut self, ast:&Ast) {
+    pub fn process_subtrees(&mut self, ast:&impl Crumbable) {
         for (crumb,ast) in ast.enumerate() {
             self.process_subtree_at(crumb, ast)
         }
@@ -241,7 +241,7 @@ impl AliasAnalyzer {
     pub fn process_ast(&mut self, ast:&Ast) {
         if let Some(definition) = DefinitionInfo::from_line_ast(&ast,ScopeKind::NonRoot,default()) {
             // If AST looks like definition, we disregard its arguments and body, as they cannot
-            // form connections in the analyzed graph. However, we need to record the name, because
+            // form connection in the analyzed graph. However, we need to record the name, because
             // it may shadow identifier from parent scope.
             let name = NormalizedName::new(definition.name.name);
             self.record_identifier(OccurrenceKind::Introduced,name);
@@ -320,9 +320,16 @@ impl AliasAnalyzer {
 
 /// Describes identifiers that nodes introduces into the graph and identifiers from graph's scope
 /// that node uses. This logic serves as a base for connection discovery.
-pub fn analyse_identifier_usage(node:&NodeInfo) -> IdentifierUsage {
+pub fn analyse_node(node:&NodeInfo) -> IdentifierUsage {
     let mut analyzer = AliasAnalyzer::new();
     analyzer.process_ast(node.ast());
+    analyzer.root_scope.symbols
+}
+
+/// Describes variable usage within a given code block.
+pub fn analyse_block(block:&ast::Block<Ast>) -> IdentifierUsage {
+    let mut analyzer = AliasAnalyzer::default();
+    analyzer.process_subtrees(block);
     analyzer.root_scope.symbols
 }
 
@@ -353,7 +360,7 @@ mod tests {
         println!("Case: {}",&case.code);
         let ast    = parser.parse_line(&case.code).unwrap();
         let node   = NodeInfo::from_line_ast(&ast).unwrap();
-        let result = analyse_identifier_usage(&node);
+        let result = analyse_node(&node);
         println!("Analysis results: {:?}", result);
         validate_identifiers("introduced",&node, case.expected_introduced, &result.introduced);
         validate_identifiers("used",      &node, case.expected_used,       &result.used);

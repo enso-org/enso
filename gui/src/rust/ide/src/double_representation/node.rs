@@ -3,11 +3,11 @@
 use crate::prelude::*;
 
 use ast::Ast;
-use ast::Id;
 use ast::crumbs::Crumbable;
 use ast::known;
 
-
+/// Node Id is the Ast Id attached to the node's expression.
+pub type Id = ast::Id;
 
 // ================
 // === NodeInfo ===
