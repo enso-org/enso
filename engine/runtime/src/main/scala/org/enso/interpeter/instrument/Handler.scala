@@ -16,6 +16,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import scala.jdk.javaapi.OptionConverters
+import scala.jdk.CollectionConverters._
 
 /**
   * A message endpoint implementation used by the
@@ -193,66 +194,104 @@ final class Handler {
     *
     * @param msg the message to handle.
     */
-  def onMessage(msg: Api.Request): Unit = msg match {
-    case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
-      contextManager.create(contextId)
-      endpoint.sendToClient(
-        Api.Response(requestId, Api.CreateContextResponse(contextId))
-      )
+  def onMessage(msg: Api.Request): Unit = {
+    val requestId = msg.requestId
+    msg.payload match {
+      case Api.CreateContextRequest(contextId) =>
+        contextManager.create(contextId)
+        endpoint.sendToClient(
+          Api.Response(requestId, Api.CreateContextResponse(contextId))
+        )
 
-    case Api.Request(requestId, Api.DestroyContextRequest(contextId)) =>
-      if (contextManager.get(contextId).isDefined) {
-        contextManager.destroy(contextId)
-        endpoint.sendToClient(
-          Api.Response(requestId, Api.DestroyContextResponse(contextId))
-        )
-      } else {
-        endpoint.sendToClient(
-          Api.Response(requestId, Api.ContextNotExistError(contextId))
-        )
+      case Api.PushContextRequest(contextId, item) => {
+        if (contextManager.get(contextId).isDefined) {
+          val stack = contextManager.getStack(contextId)
+          val payload = item match {
+            case call: Api.StackItem.ExplicitCall if stack.isEmpty =>
+              contextManager.push(contextId, item)
+              withContext(execute(contextId, List(call)))
+              Api.PushContextResponse(contextId)
+            case _: Api.StackItem.LocalCall if stack.nonEmpty =>
+              contextManager.push(contextId, item)
+              withContext(execute(contextId, stack.toList))
+              Api.PushContextResponse(contextId)
+            case _ =>
+              Api.InvalidStackItemError(contextId)
+          }
+          endpoint.sendToClient(Api.Response(requestId, payload))
+        } else {
+          endpoint.sendToClient(
+            Api.Response(requestId, Api.ContextNotExistError(contextId))
+          )
+        }
       }
 
-    case Api.Request(requestId, Api.PushContextRequest(contextId, item)) => {
-      if (contextManager.get(contextId).isDefined) {
-        val stack = contextManager.getStack(contextId)
-        val payload = item match {
-          case call: Api.StackItem.ExplicitCall if stack.isEmpty =>
-            contextManager.push(contextId, item)
-            withContext(execute(contextId, List(call)))
-            Api.PushContextResponse(contextId)
-          case _: Api.StackItem.LocalCall if stack.nonEmpty =>
-            contextManager.push(contextId, item)
-            withContext(execute(contextId, stack.toList))
-            Api.PushContextResponse(contextId)
-          case _ =>
-            Api.InvalidStackItemError(contextId)
+      case Api.PopContextRequest(contextId) =>
+        if (contextManager.get(contextId).isDefined) {
+          val payload = contextManager.pop(contextId) match {
+            case Some(_: Api.StackItem.ExplicitCall) =>
+              Api.PopContextResponse(contextId)
+            case Some(_: Api.StackItem.LocalCall) =>
+              withContext(
+                execute(contextId, contextManager.getStack(contextId).toList)
+              )
+              Api.PopContextResponse(contextId)
+            case None =>
+              Api.EmptyStackError(contextId)
+          }
+          endpoint.sendToClient(Api.Response(requestId, payload))
+        } else {
+          endpoint.sendToClient(
+            Api.Response(requestId, Api.ContextNotExistError(contextId))
+          )
+        }
+
+      case Api.DestroyContextRequest(contextId) =>
+        if (contextManager.get(contextId).isDefined) {
+          contextManager.destroy(contextId)
+          endpoint.sendToClient(
+            Api.Response(requestId, Api.DestroyContextResponse(contextId))
+          )
+        } else {
+          endpoint.sendToClient(
+            Api.Response(requestId, Api.ContextNotExistError(contextId))
+          )
+        }
+
+      case Api.PushContextRequest(contextId, item) =>
+        val payload = contextManager.push(contextId, item) match {
+          case Some(()) => Api.PushContextResponse(contextId)
+          case None     => Api.ContextNotExistError(contextId)
         }
         endpoint.sendToClient(Api.Response(requestId, payload))
-      } else {
-        endpoint.sendToClient(
-          Api.Response(requestId, Api.ContextNotExistError(contextId))
-        )
-      }
+
+      case Api.PopContextRequest(contextId) =>
+        if (contextManager.get(contextId).isDefined) {
+          val payload = contextManager.pop(contextId) match {
+            case Some(_) => Api.PopContextResponse(contextId)
+            case None    => Api.EmptyStackError(contextId)
+          }
+          endpoint.sendToClient(Api.Response(requestId, payload))
+        } else {
+          endpoint.sendToClient(
+            Api.Response(requestId, Api.ContextNotExistError(contextId))
+          )
+        }
+
+      case Api.OpenFileNotification(path, contents) =>
+        executionService.setModuleSources(path, contents)
+
+      case Api.CreateFileNotification(path) =>
+        executionService.createModule(path)
+
+      case Api.OpenFileNotification(path, contents) =>
+        executionService.setModuleSources(path, contents)
+
+      case Api.CloseFileNotification(path) =>
+        executionService.resetModuleSources(path)
+
+      case Api.EditFileNotification(path, edits) =>
+        executionService.modifyModuleSources(path, edits.asJava)
     }
-
-    case Api.Request(requestId, Api.PopContextRequest(contextId)) =>
-      if (contextManager.get(contextId).isDefined) {
-        val payload = contextManager.pop(contextId) match {
-          case Some(_: Api.StackItem.ExplicitCall) =>
-            Api.PopContextResponse(contextId)
-          case Some(_: Api.StackItem.LocalCall) =>
-            withContext(
-              execute(contextId, contextManager.getStack(contextId).toList)
-            )
-            Api.PopContextResponse(contextId)
-          case None =>
-            Api.EmptyStackError(contextId)
-        }
-        endpoint.sendToClient(Api.Response(requestId, payload))
-      } else {
-        endpoint.sendToClient(
-          Api.Response(requestId, Api.ContextNotExistError(contextId))
-        )
-      }
   }
 }

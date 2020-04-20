@@ -1,7 +1,7 @@
-package org.enso.languageserver.text.editing
+package org.enso.text.editing
 
-import org.enso.languageserver.data.buffer.Rope
-import org.enso.languageserver.text.editing.model.TextEdit
+import org.enso.text.buffer.Rope
+import org.enso.text.editing.model.TextEdit
 
 /**
   * TextEditor is a type class that specifies a set of function for text

@@ -1,4 +1,4 @@
-package org.enso.languageserver.data.buffer
+package org.enso.text.buffer
 
 /**
   * Exposes a character-based API for rope operations.
@@ -72,6 +72,8 @@ case class CharView(rope: Rope) extends CharSequence {
     start: Int,
     end: Int
   ): CharSequence = CharView(substring(start, end))
+
+  override def toString: String = rope.toString
 }
 
 object CharView {

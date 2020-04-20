@@ -25,13 +25,14 @@ import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
+import org.enso.text.buffer.Rope;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
 public class Module implements TruffleObject {
   private ModuleScope scope;
   private TruffleFile sourceFile;
-  private Source literalSource;
+  private Rope literalSource;
   private boolean isParsed = false;
   private final QualifiedName name;
 
@@ -46,7 +47,24 @@ public class Module implements TruffleObject {
     this.name = name;
   }
 
-  public Module(QualifiedName name, Source literalSource) {
+  /**
+   * Creates a new module.
+   *
+   * @param name the qualified name of this module.
+   * @param literalSource the module's source.
+   */
+  public Module(QualifiedName name, String literalSource) {
+    this.literalSource = Rope.apply(literalSource);
+    this.name = name;
+  }
+
+  /**
+   * Creates a new module.
+   *
+   * @param name the qualified name of this module.
+   * @param literalSource the module's source.
+   */
+  public Module(QualifiedName name, Rope literalSource) {
     this.literalSource = literalSource;
     this.name = name;
   }
@@ -62,12 +80,41 @@ public class Module implements TruffleObject {
     this.isParsed = true;
   }
 
-  public void setLiteralSource(Source source) {
-    this.literalSource = source;
-    this.sourceFile = null;
+  /** Clears any literal source set for this module. */
+  public void unsetLiteralSource() {
+    this.literalSource = null;
     this.isParsed = false;
   }
 
+  /** @return the literal source of this module. */
+  public Rope getLiteralSource() {
+    return literalSource;
+  }
+
+  /**
+   * Sets new literal sources for the module.
+   *
+   * @param source the module source.
+   */
+  public void setLiteralSource(String source) {
+    setLiteralSource(Rope.apply(source));
+  }
+
+  /**
+   * Sets new literal sources for the module.
+   *
+   * @param source the module source.
+   */
+  public void setLiteralSource(Rope source) {
+    this.literalSource = source;
+    this.isParsed = false;
+  }
+
+  /**
+   * Sets a source file for the module.
+   *
+   * @param file the module source file.
+   */
   public void setSourceFile(TruffleFile file) {
     this.literalSource = null;
     this.sourceFile = file;
@@ -95,15 +142,22 @@ public class Module implements TruffleObject {
     }
   }
 
-  public void parse(Context context) {
+  private void parse(Context context) {
     ensureScopeExists(context);
     context.resetScope(scope);
     isParsed = true;
-    if (sourceFile != null) {
-      context.compiler().run(sourceFile, scope);
-    } else if (literalSource != null) {
-      context.compiler().run(literalSource, scope);
+    if (literalSource != null) {
+      Source source =
+          Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
+      context.getCompiler().run(source, scope);
+    } else if (sourceFile != null) {
+      context.getCompiler().run(sourceFile, scope);
     }
+  }
+
+  /** @return the qualified name of this module. */
+  public QualifiedName getName() {
+    return name;
   }
 
   /**
@@ -140,7 +194,7 @@ public class Module implements TruffleObject {
       Source source =
           Source.newBuilder(LanguageInfo.ID, sourceString, scope.getAssociatedType().getName())
               .build();
-      context.compiler().run(source, scope);
+      context.getCompiler().run(source, scope);
       return module;
     }
 
@@ -154,8 +208,7 @@ public class Module implements TruffleObject {
     private static Module setSource(Module module, Object[] args, Context context)
         throws ArityException, UnsupportedTypeException {
       String source = Types.extractArguments(args, String.class);
-      module.setLiteralSource(
-          Source.newBuilder(LanguageInfo.ID, source, module.name.module()).build());
+      module.setLiteralSource(source);
       return module;
     }
 

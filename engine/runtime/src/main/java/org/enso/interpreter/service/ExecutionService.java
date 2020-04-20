@@ -14,9 +14,13 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.pkg.QualifiedName;
 
 import java.io.File;
+import org.enso.text.buffer.Rope;
+import org.enso.text.editing.JavaEditorAdapter;
+import org.enso.text.editing.model;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -43,7 +47,7 @@ public class ExecutionService {
 
   private Optional<FunctionCallInstrumentationNode.FunctionCall> prepareFunctionCall(
       String moduleName, String consName, String methodName) {
-    Optional<Module> moduleMay = context.compiler().topScope().getModule(moduleName);
+    Optional<Module> moduleMay = context.getCompiler().topScope().getModule(moduleName);
     if (!moduleMay.isPresent()) {
       return Optional.empty();
     }
@@ -108,13 +112,63 @@ public class ExecutionService {
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-    Optional<FunctionCallInstrumentationNode.FunctionCall> callMay = context
-      .getModuleNameForFile(modulePath)
-      .flatMap(moduleName -> prepareFunctionCall(moduleName.toString(), consName, methodName));
+    Optional<FunctionCallInstrumentationNode.FunctionCall> callMay =
+        context
+            .getModuleNameForFile(modulePath)
+            .flatMap(
+                moduleName -> prepareFunctionCall(moduleName.toString(), consName, methodName));
     if (!callMay.isPresent()) {
       return;
     }
     execute(callMay.get(), valueCallback, funCallCallback);
   }
 
+  /**
+   * Sets a module at a given path to use a literal source.
+   *
+   * @param path the module path.
+   * @param contents the sources to use for it.
+   */
+  public void setModuleSources(File path, String contents) {
+    Optional<Module> module = context.getModuleForFile(path);
+    module.ifPresent(mod -> mod.setLiteralSource(contents));
+  }
+
+  /**
+   * Resets a module to use on-disk sources.
+   *
+   * @param path the module path.
+   */
+  public void resetModuleSources(File path) {
+    Optional<Module> module = context.getModuleForFile(path);
+    module.ifPresent(Module::unsetLiteralSource);
+  }
+
+  /**
+   * Registers a new file as a source module.
+   *
+   * @param path the file to register.
+   */
+  public void createModule(File path) {
+    context.createModuleForFile(path);
+  }
+
+  /**
+   * Applies modifications to literal module sources.
+   *
+   * @param path the module to edit.
+   * @param edits the edits to apply.
+   */
+  public void modifyModuleSources(File path, List<model.TextEdit> edits) {
+    Optional<Module> moduleMay = context.getModuleForFile(path);
+    if (!moduleMay.isPresent()) {
+      return;
+    }
+    Module module = moduleMay.get();
+    if (module.getLiteralSource() == null) {
+      return;
+    }
+    Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);
+    editedSource.ifPresent(module::setLiteralSource);
+  }
 }

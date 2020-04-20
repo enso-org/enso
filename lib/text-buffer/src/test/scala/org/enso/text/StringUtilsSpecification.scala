@@ -1,5 +1,6 @@
-package org.enso.languageserver.text
-import org.enso.languageserver.data.buffer.StringUtils
+package org.enso.text
+
+import org.enso.text.buffer.StringUtils
 import org.scalacheck.Properties
 import org.scalacheck.Prop.forAll
 

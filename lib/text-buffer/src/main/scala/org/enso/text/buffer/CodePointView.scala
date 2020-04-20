@@ -1,7 +1,8 @@
-package org.enso.languageserver.data.buffer
+package org.enso.text.buffer
 
 /**
   * Exposes a code points based view over rope indexing operations.
+  *
   * @param rope the underlying rope.
   */
 case class CodePointView(rope: Rope) {

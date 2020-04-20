@@ -115,6 +115,6 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected Iterable<Scope> findTopScopes(Context context) {
-    return Collections.singleton(context.compiler().topScope().getScope());
+    return Collections.singleton(context.getCompiler().topScope().getScope());
   }
 }

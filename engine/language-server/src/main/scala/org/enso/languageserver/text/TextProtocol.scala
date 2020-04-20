@@ -2,7 +2,6 @@ package org.enso.languageserver.text
 
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
-import org.enso.languageserver.text.editing.model.FileEdit
 
 object TextProtocol {
 

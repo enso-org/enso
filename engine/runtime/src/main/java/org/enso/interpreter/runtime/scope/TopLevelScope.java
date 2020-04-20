@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.Scope;
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -57,7 +58,23 @@ public class TopLevelScope implements TruffleObject {
    * @return empty result if the module does not exist or the requested module.
    */
   public Optional<Module> getModule(String name) {
+    if (name.equals(Builtins.MODULE_NAME)) {
+      return Optional.of(builtins.getModule());
+    }
     return Optional.ofNullable(modules.get(name));
+  }
+
+  /**
+   * Creates and registers a new module with given name and source file.
+   *
+   * @param name the module name.
+   * @param sourceFile the module source file.
+   * @return the newly created module.
+   */
+  public Module createModule(QualifiedName name, TruffleFile sourceFile) {
+    Module module = new Module(name, sourceFile);
+    modules.put(name.toString(), module);
+    return module;
   }
 
   /**

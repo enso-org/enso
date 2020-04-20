@@ -1,6 +1,6 @@
-package org.enso.languageserver.text.editing
+package org.enso.text.editing
 
-import org.enso.languageserver.data.buffer.Rope
+import org.enso.text.buffer.Rope
 
 object TestData {
 

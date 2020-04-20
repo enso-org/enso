@@ -1,7 +1,7 @@
 package org.enso.languageserver.text
 
 import org.enso.languageserver.data.ContentBasedVersioning
-import org.enso.languageserver.data.buffer.Rope
+import org.enso.text.buffer.Rope
 
 /**
   * A buffer state representation.

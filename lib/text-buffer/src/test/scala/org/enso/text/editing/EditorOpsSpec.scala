@@ -1,7 +1,7 @@
-package org.enso.languageserver.text.editing
+package org.enso.text.editing
 
-import org.enso.languageserver.text.editing.TestData.testSnippet
-import org.enso.languageserver.text.editing.model.{Position, Range, TextEdit}
+import TestData.testSnippet
+import org.enso.text.editing.model.{Position, Range, TextEdit}
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers

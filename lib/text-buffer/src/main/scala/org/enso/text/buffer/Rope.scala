@@ -1,8 +1,10 @@
-package org.enso.languageserver.data.buffer
-import cats.kernel.Monoid
+package org.enso.text.buffer
+
+import cats.Monoid
 
 /**
   * The measure used for storing strings in the b-tree.
+  *
   * @param utf16Size number of characters.
   * @param utf32Size number of code points.
   * @param fullLines number of lines terminated with a new line character.
@@ -66,7 +68,7 @@ case class Rope(root: Node[String, StringMeasure]) {
     */
   override def toString: String = {
     val sb = new StringBuilder(root.measure.utf16Size)
-    root.value.foreach { str => val _ = sb.append(str) }
+    root.value.foreach { str => sb.append(str) }
     sb.toString()
   }
 

@@ -48,7 +48,10 @@ public class ProgramRootNode extends RootNode {
   public Object execute(VirtualFrame frame) {
     if (module == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      module = new Module(QualifiedName.simpleName(sourceCode.getName()), sourceCode);
+      module =
+          new Module(
+              QualifiedName.simpleName(sourceCode.getName()),
+              sourceCode.getCharacters().toString());
     }
     // Note [Static Passes]
     return module;

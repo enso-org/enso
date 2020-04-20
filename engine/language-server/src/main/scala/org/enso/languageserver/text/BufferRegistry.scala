@@ -22,7 +22,6 @@ import org.enso.languageserver.text.TextProtocol.{
   OpenFile,
   SaveFile
 }
-import org.enso.languageserver.text.editing.model.FileEdit
 
 /**
   * An actor that routes request regarding text editing to the right buffer.

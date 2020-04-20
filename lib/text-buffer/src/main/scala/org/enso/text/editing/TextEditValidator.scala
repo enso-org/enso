@@ -1,7 +1,7 @@
-package org.enso.languageserver.text.editing
+package org.enso.text.editing
 
-import org.enso.languageserver.text.editing.model.TextEdit
 import cats.implicits._
+import org.enso.text.editing.model.TextEdit
 
 /**
   * A validator of [[TextEdit]] object.

@@ -1,19 +1,21 @@
 package org.enso.interpreter.test.instrument
 
-import java.io.File
+import java.io.{ByteArrayOutputStream, File, OutputStream}
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
 
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.Package
-import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
 import org.enso.polyglot.{
   LanguageInfo,
   PolyglotContext,
   RuntimeOptions,
   RuntimeServerInfo
 }
+import org.enso.text.editing.model
+import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.scalatest.BeforeAndAfterEach
@@ -30,8 +32,11 @@ class RuntimeServerTest
   class TestContext(packageName: String) {
     var endPoint: MessageEndpoint        = _
     var messageQueue: List[Api.Response] = List()
-    val tmpDir: File                     = Files.createTempDirectory("enso-test-packages").toFile
-    val pkg: Package                     = Package.create(tmpDir, packageName)
+
+    val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
+
+    val pkg: Package               = Package.create(tmpDir, packageName)
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
@@ -39,6 +44,7 @@ class RuntimeServerTest
         .allowAllAccess(true)
         .option(RuntimeOptions.getPackagesPathOption, pkg.root.getAbsolutePath)
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+        .out(out)
         .serverTransport { (uri, peer) =>
           if (uri.toString == RuntimeServerInfo.URI) {
             endPoint = peer
@@ -60,8 +66,11 @@ class RuntimeServerTest
     )
     executionContext.context.initialize(LanguageInfo.ID)
 
-    def writeMain(contents: String): File = {
+    def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
+
+    def writeFile(file: File, contents: String): Unit = {
+      Files.write(file.toPath, contents.getBytes): Unit
     }
 
     def send(msg: Api.Request): Unit = endPoint.sendBinary(Api.serialize(msg))
@@ -70,6 +79,12 @@ class RuntimeServerTest
       val msg = messageQueue.headOption
       messageQueue = messageQueue.drop(1)
       msg
+    }
+
+    def consumeOut: List[String] = {
+      val result = out.toString
+      out.reset()
+      result.linesIterator.toList
     }
   }
 
@@ -276,4 +291,68 @@ class RuntimeServerTest
     )
   }
 
+  "Runtime server" should "support file modification operations" in {
+    def send(msg: ApiRequest): Unit =
+      context.send(Api.Request(UUID.randomUUID(), msg))
+
+    val fooFile   = new File(context.pkg.sourceDir, "Foo.enso")
+    val contextId = UUID.randomUUID()
+
+    send(Api.CreateContextRequest(contextId))
+    context.receive
+
+    def push: Unit =
+      send(
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem
+            .ExplicitCall(
+              Api.MethodPointer(fooFile, "Foo", "main"),
+              None,
+              Vector()
+            )
+        )
+      )
+    def pop: Unit = send(Api.PopContextRequest(contextId))
+
+    // Create a new file
+    context.writeFile(fooFile, "main = IO.println \"I'm a file!\"")
+    send(Api.CreateFileNotification(fooFile))
+    push
+    context.consumeOut shouldEqual List("I'm a file!")
+
+    // Open the new file and set literal source
+    send(
+      Api.OpenFileNotification(
+        fooFile,
+        "main = IO.println \"I'm an open file!\""
+      )
+    )
+    pop
+    push
+    context.consumeOut shouldEqual List("I'm an open file!")
+
+    // Modify the file
+    send(
+      Api.EditFileNotification(
+        fooFile,
+        Seq(
+          TextEdit(
+            model.Range(model.Position(0, 24), model.Position(0, 30)),
+            " modified"
+          )
+        )
+      )
+    )
+    pop
+    push
+    context.consumeOut shouldEqual List("I'm a modified file!")
+
+    // Close the file
+    send(Api.CloseFileNotification(fooFile))
+    pop
+    push
+    context.consumeOut shouldEqual List("I'm a file!")
+
+  }
 }

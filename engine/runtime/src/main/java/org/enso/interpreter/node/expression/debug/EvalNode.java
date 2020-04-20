@@ -17,7 +17,6 @@ import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
-import scala.Some;
 
 /** Node running Enso expressions passed to it as strings. */
 @NodeInfo(shortName = "Eval", description = "Evaluates code passed to it as string")
@@ -63,7 +62,7 @@ public abstract class EvalNode extends BaseNode {
     ExpressionNode expr =
         lookupContextReference(Language.class)
             .get()
-            .compiler()
+            .getCompiler()
             .runInline(expression, inlineContext)
             .getOrElse(null);
     if (expr == null) {

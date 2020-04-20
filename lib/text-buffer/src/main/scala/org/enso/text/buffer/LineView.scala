@@ -1,7 +1,8 @@
-package org.enso.languageserver.data.buffer
+package org.enso.text.buffer
 
 /**
   * Exposes a line-based API for the rope.
+  *
   * @param rope the underlying rope.
   */
 case class LineView(rope: Rope) {

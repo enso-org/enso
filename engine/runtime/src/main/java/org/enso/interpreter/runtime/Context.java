@@ -83,7 +83,7 @@ public class Context {
    *
    * @return a handle to the compiler
    */
-  public final Compiler compiler() {
+  public final Compiler getCompiler() {
     return compiler;
   }
 
@@ -126,18 +126,22 @@ public class Context {
     return moduleScope;
   }
 
+  /**
+   * Removes all contents from a given scope.
+   *
+   * @param scope the scope to reset.
+   */
   public void resetScope(ModuleScope scope) {
     scope.reset();
     initializeScope(scope);
   }
 
   /**
-   * Guess module name from the file path by comparing it with the source pathes
-   * of imported packages.
+   * Fetches the module name associated with a given file, using the environment packages
+   * information.
    *
-   * @param path file path.
-   * @return qualified module name if the function can find imported package
-   * with matching path.
+   * @param path the path to decode.
+   * @return a qualified name of the module corresponding to the file, if exists.
    */
   public Optional<QualifiedName> getModuleNameForFile(File path) {
     return packages.stream()
@@ -147,15 +151,25 @@ public class Context {
   }
 
   /**
-   * Get module from the file path. Function tries to recover module name from
-   * the provided file path.
+   * Fetches a module associated with a given file.
    *
-   * @param path file path.
-   * @return module if module name can be guessed from the provided file path.
+   * @param path the module path to lookup.
+   * @return the relevant module, if exists.
    */
   public Optional<Module> getModuleForFile(File path) {
     return getModuleNameForFile(path)
-        .flatMap(n -> compiler().topScope().getModule(n.toString()));
+        .flatMap(n -> getCompiler().topScope().getModule(n.toString()));
+  }
+
+  /**
+   * Registers a new module corresponding to a given file.
+   *
+   * @param path the file to register.
+   * @return the newly created module, if the file is a source file.
+   */
+  public Optional<Module> createModuleForFile(File path) {
+    return getModuleNameForFile(path)
+        .map(name -> getCompiler().topScope().createModule(name, getTruffleFile(path)));
   }
 
   private void initializeScope(ModuleScope scope) {

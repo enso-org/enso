@@ -1,8 +1,7 @@
-package org.enso.languageserver.text.editing
+package org.enso.text.editing
 
 import cats.implicits._
-import org.enso.languageserver.text.editing.TextEditValidator.validate
-import org.enso.languageserver.text.editing.model.TextEdit
+import org.enso.text.editing.model.TextEdit
 
 /**
   * Auxiliary operations that edit a buffer validating diffs before applying it.
@@ -25,7 +24,9 @@ object EditorOps {
     * @return either validation failure or a modified buffer
     */
   def edit[A: TextEditor](buffer: A, diff: TextEdit): EditorOp[A] =
-    validate(buffer, diff).map(_ => TextEditor[A].edit(buffer, diff))
+    TextEditValidator
+      .validate(buffer, diff)
+      .map(_ => TextEditor[A].edit(buffer, diff))
 
   /**
     * Applies a series of edits to the buffer and validates each diff against

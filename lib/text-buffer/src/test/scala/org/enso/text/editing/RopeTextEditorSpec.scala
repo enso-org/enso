@@ -1,8 +1,8 @@
-package org.enso.languageserver.text.editing
+package org.enso.text.editing
 
-import org.enso.languageserver.data.buffer.Rope
-import org.enso.languageserver.text.editing.TestData._
-import org.enso.languageserver.text.editing.model.{Position, Range, TextEdit}
+import TestData._
+import org.enso.text.buffer.Rope
+import org.enso.text.editing.model.{Position, Range, TextEdit}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers
 

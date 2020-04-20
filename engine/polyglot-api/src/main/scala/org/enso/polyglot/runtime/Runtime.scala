@@ -11,6 +11,7 @@ import com.fasterxml.jackson.module.scala.{
   DefaultScalaModule,
   ScalaObjectMapper
 }
+import org.enso.text.editing.model.TextEdit
 
 import scala.util.Try
 
@@ -53,6 +54,22 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.PopContextResponse],
         name  = "popContextResponse"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.OpenFileNotification],
+        name  = "openFileNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.EditFileNotification],
+        name  = "editFileNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.CloseFileNotification],
+        name  = "closeFileNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.CreateFileNotification],
+        name  = "createFileNotification"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.ExpressionValuesComputed],
@@ -279,6 +296,41 @@ object Runtime {
       * @param contextId the context's id
       */
     case class InvalidStackItemError(contextId: ContextId) extends Error
+
+    /**
+      * A notification sent to the server about switching a file to literal
+      * contents.
+      *
+      * @param path the file being moved to memory.
+      * @param contents the current file contents.
+      */
+    case class OpenFileNotification(path: File, contents: String)
+        extends ApiRequest
+
+    /**
+      * A notification sent to the server about in-memory file contents being
+      * edited.
+      *
+      * @param path the file being edited.
+      * @param edits the diffs to apply to the contents.
+      */
+    case class EditFileNotification(path: File, edits: Seq[TextEdit])
+        extends ApiRequest
+
+    /**
+      * A notification sent to the server about dropping the file from memory
+      * back to on-disk version.
+      *
+      * @param path the file being closed.
+      */
+    case class CloseFileNotification(path: File) extends ApiRequest
+
+    /**
+      * A notification sent to the server about a file being created.
+      *
+      * @param path the newly created file.
+      */
+    case class CreateFileNotification(path: File) extends ApiRequest
 
     /**
       * Notification sent from the server to the client upon successful

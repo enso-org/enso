@@ -1,7 +1,4 @@
-package org.enso.languageserver.text.editing
-
-import org.enso.languageserver.filemanager.Path
-import org.enso.languageserver.text.Buffer
+package org.enso.text.editing
 
 object model {
 
@@ -43,20 +40,5 @@ object model {
     * @param text a change to a text file
     */
   case class TextEdit(range: Range, text: String)
-
-  /**
-    * A representation of a batch of edits to a file, versioned.
-    *
-    * @param path a path of a file
-    * @param edits a series of edits to a file
-    * @param oldVersion the current version of a buffer
-    * @param newVersion the version of a buffer after applying all edits
-    */
-  case class FileEdit(
-    path: Path,
-    edits: List[TextEdit],
-    oldVersion: Buffer.Version,
-    newVersion: Buffer.Version
-  )
 
 }

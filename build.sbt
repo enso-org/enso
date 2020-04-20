@@ -99,7 +99,8 @@ lazy val enso = (project in file("."))
     `project-manager`,
     graph,
     runner,
-    `language-server`
+    `language-server`,
+    `text-buffer`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
@@ -269,6 +270,17 @@ lazy val `parser-service` = (project in file("lib/parser-service"))
   .settings(
     libraryDependencies ++= akka,
     mainClass := Some("org.enso.ParserServiceMain")
+  )
+
+lazy val `text-buffer` = project
+  .in(file("lib/text-buffer"))
+  .configs(Test)
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.typelevel"  %% "cats-core"  % catsVersion,
+      "org.scalatest"  %% "scalatest"  % "3.2.0-M2" % Test,
+      "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
+    )
   )
 
 lazy val graph = (project in file("lib/graph/"))
@@ -478,6 +490,7 @@ lazy val `polyglot-api` = project
     )
   )
   .dependsOn(pkg)
+  .dependsOn(`text-buffer`)
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
@@ -513,6 +526,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
+  .dependsOn(`text-buffer`)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
@@ -589,6 +603,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(syntax.jvm)
   .dependsOn(graph)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`text-buffer`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~

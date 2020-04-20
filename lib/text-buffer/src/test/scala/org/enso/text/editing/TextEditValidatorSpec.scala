@@ -1,10 +1,10 @@
-package org.enso.languageserver.text.editing
+package org.enso.text.editing
 
-import org.enso.languageserver.data.buffer.Rope
-import org.enso.languageserver.text.editing.TextEditValidator.validate
-import org.enso.languageserver.text.editing.model._
+import org.enso.text.buffer.Rope
+import org.enso.text.editing.model.{Position, Range, TextEdit}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers
+import TextEditValidator.validate
 
 class TextEditValidatorSpec extends AnyFlatSpec with Matchers {
 

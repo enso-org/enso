@@ -1,5 +1,6 @@
-package org.enso.languageserver.text
-import org.enso.languageserver.data.buffer.Rope
+package org.enso.text
+
+import org.enso.text.buffer.Rope
 import org.scalacheck.Prop.forAll
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Properties

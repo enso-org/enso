@@ -1,6 +1,6 @@
-package org.enso.languageserver.data.buffer
+package org.enso.text.buffer
 
-import cats.kernel.Monoid
+import cats.Monoid
 
 /**
   * A super class of nodes stored in the tree.

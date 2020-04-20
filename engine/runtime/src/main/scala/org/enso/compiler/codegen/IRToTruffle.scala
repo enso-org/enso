@@ -131,7 +131,7 @@ class IRToTruffle(
 
     // Register the imports in scope
     imports.foreach(i =>
-      this.moduleScope.addImport(context.compiler.processImport(i.name))
+      this.moduleScope.addImport(context.getCompiler.processImport(i.name))
     )
 
     // Register the atoms and their constructors in scope

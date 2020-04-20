@@ -1,4 +1,5 @@
-package org.enso.languageserver.data.buffer
+package org.enso.text.buffer
+
 import scala.collection.mutable.ArrayBuffer
 
 object StringUtils {
