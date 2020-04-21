@@ -3,11 +3,14 @@
 use crate::prelude::*;
 
 use crate::Ast;
+use crate::Shifted;
 use crate::Shape;
 use crate::assoc::Assoc;
 use crate::crumbs::Crumb;
 use crate::crumbs::Located;
 use crate::known;
+
+
 
 /// Identifiers of operators with special meaning for IDE.
 pub mod predefined {
@@ -64,14 +67,16 @@ pub fn is_assignment(ast:&Ast) -> bool {
 // ===========================
 
 /// Infix operator operand. Optional, as we deal with Section* nodes as well.
-pub type Operand = Option<Located<Ast>>;
+pub type Operand = Option<Shifted<Located<Ast>>>;
 
 /// Infix operator standing between (optional) operands.
 pub type Operator = Located<known::Opr>;
 
 /// Creates `Operand` from `ast` with position relative to the given `parent` node.
-pub fn make_operand(parent:&Located<Ast>, crumb:impl Into<Crumb>, child:&Ast) -> Operand {
-    Some(parent.descendant(crumb.into(),child.clone()))
+pub fn make_operand
+(parent:&Located<Ast>, crumb:impl Into<Crumb>, child:&Ast, off:usize) -> Operand {
+    let wrapped = parent.descendant(crumb.into(),child.clone());
+    Some(Shifted{wrapped,off})
 }
 
 /// Creates `Operator` from `ast` with position relative to the given `parent` node.
@@ -118,19 +123,19 @@ impl GeneralizedInfix {
 
         match ast.shape() {
             Shape::Infix(infix) => Some(GeneralizedInfix{
-                left  : make_operand (ast,InfixCrumb::LeftOperand, &infix.larg),
+                left  : make_operand (ast,InfixCrumb::LeftOperand, &infix.larg,infix.loff),
                 opr   : make_operator(ast,InfixCrumb::Operator,    &infix.opr)?,
-                right : make_operand (ast,InfixCrumb::RightOperand,&infix.rarg),
+                right : make_operand (ast,InfixCrumb::RightOperand,&infix.rarg,infix.roff),
             }),
             Shape::SectionLeft(left) => Some(GeneralizedInfix{
-                left  : make_operand (ast,SectionLeftCrumb::Arg,&left.arg),
+                left  : make_operand (ast,SectionLeftCrumb::Arg,&left.arg,left.off),
                 opr   : make_operator(ast,SectionLeftCrumb::Opr,&left.opr)?,
                 right : None,
             }),
             Shape::SectionRight(right) => Some(GeneralizedInfix{
                 left  : None,
                 opr   : make_operator(ast,SectionRightCrumb::Opr,&right.opr)?,
-                right : make_operand (ast,SectionRightCrumb::Arg,&right.arg),
+                right : make_operand (ast,SectionRightCrumb::Arg,&right.arg,right.off),
             }),
             Shape::SectionSides(sides) => Some(GeneralizedInfix{
                 left  : None,
@@ -178,7 +183,7 @@ impl GeneralizedInfix {
         };
 
         let target_subtree_infix = target.clone().and_then(|ast| {
-            GeneralizedInfix::try_new(&ast)
+            GeneralizedInfix::try_new(&*ast)
         });
         let mut target_subtree_flat = match target_subtree_infix {
             Some(target_infix) if target_infix.name() == self.name() =>
@@ -225,7 +230,7 @@ impl Chain {
 
     /// Iterates over &Located<Ast>, beginning with target (this argument) and then subsequent
     /// arguments.
-    pub fn enumerate_operands<'a>(&'a self) -> impl Iterator<Item=&'a Located<Ast>> + 'a {
+    pub fn enumerate_operands<'a>(&'a self) -> impl Iterator<Item=&'a Shifted<Located<Ast>>> + 'a {
         let this = std::iter::once(&self.target);
         let args = self.args.iter().map(|elem| &elem.operand);
         this.chain(args).flatten()

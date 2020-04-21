@@ -37,6 +37,8 @@ pub mod prelude {
 
 use crate::prelude::*;
 
+pub use crumbs::Crumbs;
+
 use ast_macros::*;
 use data::text::Index;
 use data::text::Span;

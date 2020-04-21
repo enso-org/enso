@@ -4,6 +4,8 @@
 use crate::prelude::*;
 
 use crate::Ast;
+use crate::HasTokens;
+use crate::TokenConsumer;
 use crate::Shape;
 use crate::with_shape_variants;
 
@@ -142,6 +144,11 @@ where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E>,
     }
 }
 
+impl<T> HasTokens for KnownAst<T> {
+    fn feed_to(&self, consumer:&mut impl TokenConsumer) {
+        self.ast.feed_to(consumer)
+    }
+}
 
 
 // ===============

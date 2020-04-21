@@ -50,7 +50,6 @@ pub mod prelude {
     pub use utils::option::OptionExt;
     pub use utils::vec::VecExt;
 
-
     #[cfg(test)] pub use wasm_bindgen_test::wasm_bindgen_test;
     #[cfg(test)] pub use wasm_bindgen_test::wasm_bindgen_test_configure;
 }
