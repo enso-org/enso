@@ -4,7 +4,7 @@
       <img
           src="https://user-images.githubusercontent.com/1623053/79905826-22bac080-8417-11ea-82b0-ee015904a485.png"
           alt="Enso Studio"
-          width="150"
+          width="136"
       />
   </a>
   <br/>
@@ -13,7 +13,7 @@
       <img
           src="https://user-images.githubusercontent.com/1623053/75661125-05664300-5c6d-11ea-9bd3-8a5355db9609.png"
           alt="Enso Language"
-          width="260"
+          width="240"
       />
   </a>
   <br/>
