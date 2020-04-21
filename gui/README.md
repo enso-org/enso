@@ -4,7 +4,7 @@
       <img
           src="https://user-images.githubusercontent.com/1623053/79905824-22222a00-8417-11ea-825b-5623ac1617dd.png"
           alt="Enso Studio"
-          width="128"
+          width="140"
       />
   </a>
   <br/>
