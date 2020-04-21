@@ -2,9 +2,9 @@
   <br/>
   <a href="http://luna-lang.org">
       <img
-          src="https://user-images.githubusercontent.com/1623053/75657359-50c92300-5c66-11ea-9cb8-61da8ee34df1.png"
+          src="https://user-images.githubusercontent.com/1623053/79905826-22bac080-8417-11ea-82b0-ee015904a485.png"
           alt="Enso Studio"
-          width="128"
+          width="136"
       />
   </a>
   <br/>
@@ -58,17 +58,23 @@ This repository contains [Enso Engine](engine/), which consists of the compiler,
 type-checker, runtime and language server. These components implement Enso the
 language in its entirety, and are usable in isolation.
 
+<br/>
+
 ### Getting Started
 Enso is distributed as [pre-built packages](https://github.com/luna/enso/releases)
 for MacOS, Linux and Windows, as well as universal `.jar` packages that can run
 anywhere that [GraalVM](https://graalvm.org) can. See the
 [documentation](http://enso.org) for more.
 
+<br/>
+
 ### Building
 The project builds on any platform where [GraalVM](https://graalvm.org) can run.
 You will need the source code, and [`sbt`](https://www.scala-sbt.org/). For more
 information, please read the detailed instructions in
 [CONTRIBUTING.md](CONTRIBUTING.md).
+
+<br/>
 
 ### Enso's Design
 If you would like to gain a better understanding of the principles on which Enso
@@ -89,6 +95,8 @@ This documentation will evolve as Enso does, both to help newcomers to the
 project understand the reasoning behind the code, but also to act as a record of
 the decisions that have been made through Enso's evolution.
 
+<br/>
+
 ### License
 This repository is licensed under the
 [Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
@@ -98,6 +106,8 @@ This license set was choosen to both provide you with a complete freedom to use
 Enso, create libraries, and release them under any license of your choice, while
 also allowing us to release commercial products on top of the platform,
 including Enso Cloud and Enso Enterprise server managers.
+
+<br/>
 
 ### Contributing to Enso
 Enso is a community-driven open source project which is and will always be open
