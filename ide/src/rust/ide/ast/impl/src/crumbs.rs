@@ -77,6 +77,19 @@ struct MismatchedCrumbType;
 
 // === Ast ===
 
+/// Trait automatically implemented for all IntoIterators of crumbs.
+///
+/// It provides way to easily convert vector of specific crumbs (e.g.
+/// `[InfixCrumb::LeftoOperand, ..]` without calling into on each element.
+pub trait IntoCrumbs : IntoIterator<Item:Into<Crumb>> + Sized {
+    /// Convert to the actual Crumbs structure.
+    fn into_crumbs(self) -> Crumbs {
+        self.into_iter().map(|cb| cb.into()).collect()
+    }
+}
+
+impl<T:IntoIterator<Item:Into<Crumb>> + Sized> IntoCrumbs for T {}
+
 /// Sequence of `Crumb`s describing traversal path through AST.
 pub type Crumbs = Vec<Crumb>;
 
@@ -898,9 +911,8 @@ pub struct Located<T> {
 
 impl<T> Located<T> {
     /// Creates a new located item.
-    pub fn new<Cs>(crumbs:Cs, item:T) -> Located<T>
-    where Cs : IntoIterator<Item:Into<Crumb>>, {
-        let crumbs = crumbs.into_iter().map(|crumb| crumb.into()).collect();
+    pub fn new(crumbs:impl IntoCrumbs, item:T) -> Located<T> {
+        let crumbs = crumbs.into_crumbs();
         Located {crumbs,item}
     }
 
@@ -916,11 +928,9 @@ impl<T> Located<T> {
     }
 
     /// Takes crumbs relative to self and item that will be wrapped.
-    pub fn descendant<Cs,U>(&self, crumbs:Cs, child:U) -> Located<U>
-    where Cs : IntoIterator<Item:Into<Crumb>>,{
+    pub fn descendant<U>(&self, crumbs:impl IntoCrumbs, child:U) -> Located<U> {
         let crumbs_so_far = self.crumbs.iter().copied();
-        let crumbs_to_add = crumbs.into_iter().map(|crumb| crumb.into());
-        let crumbs = crumbs_so_far.chain(crumbs_to_add);
+        let crumbs = crumbs_so_far.chain(crumbs.into_crumbs());
         Located::new(crumbs, child)
     }
 

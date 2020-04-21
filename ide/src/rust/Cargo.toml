@@ -12,6 +12,7 @@ members = [
     "ide/file-manager/mock-server",
     "ide/json-rpc",
     "ide/parser",
+    "ide/span-tree",
     "ide/utils",
 
     "lib/callback",

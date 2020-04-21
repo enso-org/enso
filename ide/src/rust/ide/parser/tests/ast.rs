@@ -58,7 +58,7 @@ pub fn generalized_infix_test() {
 
     let left = make_gen_infix("a+").unwrap();
     assert_eq!(left.name(),"+");
-    assert_eq!(left.left.repr(),"a");
+    assert_eq!(left.left.map(|a| a.wrapped).repr(),"a");
 
     let sides = make_gen_infix("+").unwrap();
     assert_eq!(sides.name(),"+");
@@ -95,12 +95,12 @@ pub fn flatten_prefix_test() {
 #[wasm_bindgen_test]
 pub fn flatten_infix_test() {
     fn expect_pieces(flattened:&opr::Chain, target:&str, pieces:Vec<&str>) {
-        assert_eq!(&flattened.target.repr(),target);
+        assert_eq!(flattened.target.as_ref().map(|a| &a.wrapped).repr(),target);
 
         let piece_itr = pieces.iter();
         assert_eq!(flattened.args.len(), pieces.len());
         flattened.args.iter().zip(piece_itr).for_each(|(lhs,rhs)|{
-            assert_eq!(&lhs.operand.repr(),rhs);
+            assert_eq!(lhs.operand.as_ref().map(|a| &a.wrapped).repr(),*rhs);
         })
     }
 
