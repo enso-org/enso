@@ -18,6 +18,8 @@ import org.enso.interpreter.node.expression.builtin.number.SubtractNode;
 import org.enso.interpreter.node.expression.builtin.state.GetStateNode;
 import org.enso.interpreter.node.expression.builtin.state.PutStateNode;
 import org.enso.interpreter.node.expression.builtin.state.RunStateNode;
+import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
+import org.enso.interpreter.node.expression.builtin.text.ConcatNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -105,6 +107,9 @@ public class Builtins {
     scope.registerMethod(debug, "breakpoint", DebugBreakpointNode.makeFunction(language));
 
     scope.registerMethod(function, "call", ExplicitCallFunctionNode.makeFunction(language));
+
+    scope.registerMethod(text, "+", ConcatNode.makeFunction(language));
+    scope.registerMethod(any, "to_text", AnyToTextNode.makeFunction(language));
   }
 
   /**

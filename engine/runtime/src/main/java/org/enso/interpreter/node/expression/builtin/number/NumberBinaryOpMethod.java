@@ -12,7 +12,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 
 @NodeInfo(shortName = "Number.BinOp", description = "An abstract class for binary ops on numbers.")
 public abstract class NumberBinaryOpMethod extends BuiltinRootNode {
-  private BranchProfile thatOpBadTypeProfile = BranchProfile.create();
+  private final BranchProfile thatOpBadTypeProfile = BranchProfile.create();
 
   /**
    * Constructs an instance of this node.

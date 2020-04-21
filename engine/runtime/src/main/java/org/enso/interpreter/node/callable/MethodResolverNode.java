@@ -74,6 +74,15 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = "cachedSymbol == symbol")
+  Function resolveStringCached(
+          UnresolvedSymbol symbol,
+          String self,
+          @Cached("symbol") UnresolvedSymbol cachedSymbol,
+          @Cached("resolveMethodOnString(cachedSymbol)") Function function) {
+    return function;
+  }
+
+  @Specialization(guards = "cachedSymbol == symbol")
   Function resolveFunctionCached(
       UnresolvedSymbol symbol,
       Function self,
@@ -105,6 +114,11 @@ public abstract class MethodResolverNode extends Node {
   Function resolveMethodOnNumber(UnresolvedSymbol symbol) {
     return ensureMethodExists(
         symbol.resolveFor(getBuiltins().number(), getBuiltins().any()), "Number", symbol);
+  }
+
+  Function resolveMethodOnString(UnresolvedSymbol symbol) {
+    return ensureMethodExists(
+            symbol.resolveFor(getBuiltins().text(), getBuiltins().any()), "Text", symbol);
   }
 
   Function resolveMethodOnFunction(UnresolvedSymbol symbol) {
