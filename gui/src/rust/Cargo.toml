@@ -21,6 +21,7 @@ members = [
     "lib/debug-scenes",
     "lib/graph-editor",
     "lib/eval-tt",
+    "lib/flexer",
     "lib/frp",
     "lib/logger",
     "lib/macro-utils",
