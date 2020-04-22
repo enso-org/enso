@@ -7,6 +7,7 @@ use crate::display::shape::text::text_field::TextField;
 use crate::display::shape::text::text_field::WeakTextField;
 use crate::system::web::text_input::KeyboardBinding;
 use crate::system::web::text_input::bind_frp_to_js_keyboard_actions;
+use crate::system::web::platform::Platform;
 
 use enso_frp as frp;
 use enso_frp::io::Keyboard;
@@ -159,17 +160,68 @@ impl TextFieldKeyboardFrp {
         setter.set_navigation_action(&[ArrowDown],          Step::Down);
         setter.set_navigation_action(&[PageDown],           Step::PageDown);
         setter.set_navigation_action(&[PageUp],             Step::PageUp);
-        setter.set_navigation_action(&[Home],               Step::LineBegin);
-        setter.set_navigation_action(&[End],                Step::LineEnd);
-        setter.set_navigation_action(&[Control,Home],       Step::DocBegin);
-        setter.set_navigation_action(&[Control,End],        Step::DocEnd);
-        setter.set_navigation_action(&[Control,ArrowLeft],  Step::LeftWord);
-        setter.set_navigation_action(&[Control,ArrowRight], Step::RightWord);
+        setter.set_navigation_action(&line_begin_keys(), Step::LineBegin);
+        setter.set_navigation_action(&line_end_keys(),   Step::LineEnd);
+        setter.set_navigation_action(&doc_begin_keys(),  Step::DocBegin);
+        setter.set_navigation_action(&doc_end_keys(),    Step::DocEnd);
+        setter.set_navigation_action(&left_word_keys(),  Step::LeftWord);
+        setter.set_navigation_action(&right_word_keys(), Step::RightWord);
         setter.set_action(&[Alt, Character("j".into())], |t| t.select_next_word_occurrence());
         setter.set_action(&[Enter],                      |t| t.write("\n"));
         setter.set_action(&[Delete],                     |t| t.do_delete_operation(Step::Right));
         setter.set_action(&[Backspace],                  |t| t.do_delete_operation(Step::Left));
         setter.set_action(&[Escape],                     |t| t.finish_multicursor_mode());
+    }
+}
+
+
+// === Keys combinations ===
+
+fn line_begin_keys() -> Vec<keyboard::Key> {
+    if let Platform::MacOS = Platform::query() {
+        vec![keyboard::Key::Meta,keyboard::Key::ArrowLeft]
+    } else {
+        vec![keyboard::Key::Home]
+    }
+}
+
+fn line_end_keys() -> Vec<keyboard::Key> {
+    if let Platform::MacOS = Platform::query() {
+        vec![keyboard::Key::Meta,keyboard::Key::ArrowRight]
+    } else {
+        vec![keyboard::Key::End]
+    }
+}
+
+fn doc_begin_keys() -> Vec<keyboard::Key> {
+    if let Platform::MacOS = Platform::query() {
+        vec![keyboard::Key::Meta,keyboard::Key::ArrowUp]
+    } else {
+        vec![keyboard::Key::Control,keyboard::Key::Home]
+    }
+}
+
+fn doc_end_keys() -> Vec<keyboard::Key> {
+    if let Platform::MacOS = Platform::query() {
+        vec![keyboard::Key::Meta,keyboard::Key::ArrowDown]
+    } else {
+        vec![keyboard::Key::Control,keyboard::Key::End]
+    }
+}
+
+fn left_word_keys() -> Vec<keyboard::Key> {
+    if let Platform::MacOS = Platform::query() {
+        vec![keyboard::Key::Alt,keyboard::Key::ArrowLeft]
+    } else {
+        vec![keyboard::Key::Control,keyboard::Key::ArrowLeft]
+    }
+}
+
+fn right_word_keys() -> Vec<keyboard::Key> {
+    if let Platform::MacOS = Platform::query() {
+        vec![keyboard::Key::Alt,keyboard::Key::ArrowRight]
+    } else {
+        vec![keyboard::Key::Control,keyboard::Key::ArrowRight]
     }
 }
 
