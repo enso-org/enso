@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.instrument
 
-import java.io.{ByteArrayOutputStream, File, OutputStream}
+import java.io.{ByteArrayOutputStream, File}
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
@@ -88,7 +88,7 @@ class RuntimeServerTest
     }
   }
 
-  object Program {
+  object Main {
 
     val metadata = new Metadata
 
@@ -98,7 +98,7 @@ class RuntimeServerTest
     val idFooY  = metadata.addItem(85, 8)
     val idFooZ  = metadata.addItem(102, 5)
 
-    val text =
+    val code = metadata.appendToCode(
       """
         |main =
         |    x = 1 + 5
@@ -111,8 +111,7 @@ class RuntimeServerTest
         |    z = y * x
         |    z
         |""".stripMargin
-
-    val code = metadata.appendToCode(text)
+    )
 
     object update {
 
@@ -122,7 +121,7 @@ class RuntimeServerTest
             contextId,
             Vector(
               Api.ExpressionValueUpdate(
-                Program.idMainX,
+                Main.idMainX,
                 Some("Number"),
                 Some("6"),
                 None
@@ -137,7 +136,7 @@ class RuntimeServerTest
             contextId,
             Vector(
               Api.ExpressionValueUpdate(
-                Program.idMainY,
+                Main.idMainY,
                 Some("Number"),
                 Some("45"),
                 None
@@ -152,7 +151,7 @@ class RuntimeServerTest
             contextId,
             Vector(
               Api.ExpressionValueUpdate(
-                Program.idMainZ,
+                Main.idMainZ,
                 Some("Number"),
                 Some("50"),
                 None
@@ -167,7 +166,7 @@ class RuntimeServerTest
             contextId,
             Vector(
               Api.ExpressionValueUpdate(
-                Program.idFooY,
+                Main.idFooY,
                 Some("Number"),
                 Some("9"),
                 None
@@ -182,7 +181,7 @@ class RuntimeServerTest
             contextId,
             Vector(
               Api.ExpressionValueUpdate(
-                Program.idFooZ,
+                Main.idFooZ,
                 Some("Number"),
                 Some("45"),
                 None
@@ -199,7 +198,7 @@ class RuntimeServerTest
   }
 
   "RuntimeServer" should "push and pop functions on the stack" in {
-    val mainFile  = context.writeMain(Program.code)
+    val mainFile  = context.writeMain(Main.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -210,7 +209,7 @@ class RuntimeServerTest
     )
 
     // push local item on top of the empty stack
-    val invalidLocalItem = Api.StackItem.LocalCall(Program.idMainY)
+    val invalidLocalItem = Api.StackItem.LocalCall(Main.idMainY)
     context.send(
       Api
         .Request(requestId, Api.PushContextRequest(contextId, invalidLocalItem))
@@ -231,21 +230,21 @@ class RuntimeServerTest
     )
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
-      Some(Program.update.idMainX(contextId)),
-      Some(Program.update.idMainY(contextId)),
-      Some(Program.update.idMainZ(contextId)),
+      Some(Main.update.idMainX(contextId)),
+      Some(Main.update.idMainY(contextId)),
+      Some(Main.update.idMainZ(contextId)),
       None
     )
 
     // push foo call
-    val item2 = Api.StackItem.LocalCall(Program.idMainY)
+    val item2 = Api.StackItem.LocalCall(Main.idMainY)
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
     Set.fill(4)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
-      Some(Program.update.idFooY(contextId)),
-      Some(Program.update.idFooZ(contextId)),
+      Some(Main.update.idFooY(contextId)),
+      Some(Main.update.idFooZ(contextId)),
       None
     )
 
@@ -270,9 +269,9 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PopContextResponse(contextId))),
-      Some(Program.update.idMainX(contextId)),
-      Some(Program.update.idMainY(contextId)),
-      Some(Program.update.idMainZ(contextId)),
+      Some(Main.update.idMainX(contextId)),
+      Some(Main.update.idMainY(contextId)),
+      Some(Main.update.idMainZ(contextId)),
       None
     )
 
@@ -291,7 +290,7 @@ class RuntimeServerTest
     )
   }
 
-  "Runtime server" should "support file modification operations" in {
+  it should "support file modification operations" in {
     def send(msg: ApiRequest): Unit =
       context.send(Api.Request(UUID.randomUUID(), msg))
 
@@ -301,36 +300,40 @@ class RuntimeServerTest
     send(Api.CreateContextRequest(contextId))
     context.receive
 
-    def push: Unit =
-      send(
-        Api.PushContextRequest(
-          contextId,
-          Api.StackItem
-            .ExplicitCall(
-              Api.MethodPointer(fooFile, "Foo", "main"),
-              None,
-              Vector()
-            )
-        )
-      )
-    def pop: Unit = send(Api.PopContextRequest(contextId))
-
     // Create a new file
     context.writeFile(fooFile, "main = IO.println \"I'm a file!\"")
-    send(Api.CreateFileNotification(fooFile))
-    push
+
+    // Open the new file
+    send(
+      Api.OpenFileNotification(
+        fooFile,
+        "main = IO.println \"I'm a file!\""
+      )
+    )
+    context.consumeOut shouldEqual List()
+
+    // Push new item on the stack to trigger the re-execution
+    send(
+      Api.PushContextRequest(
+        contextId,
+        Api.StackItem
+          .ExplicitCall(
+            Api.MethodPointer(fooFile, "Foo", "main"),
+            None,
+            Vector()
+          )
+      )
+    )
     context.consumeOut shouldEqual List("I'm a file!")
 
-    // Open the new file and set literal source
+    // Open the file with contents changed
     send(
       Api.OpenFileNotification(
         fooFile,
         "main = IO.println \"I'm an open file!\""
       )
     )
-    pop
-    push
-    context.consumeOut shouldEqual List("I'm an open file!")
+    context.consumeOut shouldEqual List()
 
     // Modify the file
     send(
@@ -344,15 +347,10 @@ class RuntimeServerTest
         )
       )
     )
-    pop
-    push
     context.consumeOut shouldEqual List("I'm a modified file!")
 
     // Close the file
     send(Api.CloseFileNotification(fooFile))
-    pop
-    push
-    context.consumeOut shouldEqual List("I'm a file!")
-
+    context.consumeOut shouldEqual List()
   }
 }

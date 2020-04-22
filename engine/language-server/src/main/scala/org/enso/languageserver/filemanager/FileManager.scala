@@ -52,8 +52,9 @@ class FileManager(
       val result =
         for {
           rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
-          content  <- fs.read(path.toFile(rootPath))
-        } yield content
+          file = path.toFile(rootPath)
+          content <- fs.read(file)
+        } yield FileManagerProtocol.FileContent(file, content)
       exec
         .execTimed(config.fileManager.timeout, result)
         .map(FileManagerProtocol.ReadFileResult)

@@ -68,10 +68,6 @@ object Runtime {
         name  = "closeFileNotification"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.CreateFileNotification],
-        name  = "createFileNotification"
-      ),
-      new JsonSubTypes.Type(
         value = classOf[Api.ExpressionValuesComputed],
         name  = "expressionValuesComputed"
       ),
@@ -152,10 +148,10 @@ object Runtime {
     /**
       * An update containing information about expression.
       *
-      * @param expressionId expression id
-      * @param expressionType optional type of expression
-      * @param shortValue optional value of expression
-      * @param methodCall optional pointer to a method definition
+      * @param expressionId expression id.
+      * @param expressionType the type of expression.
+      * @param shortValue the value of expression.
+      * @param methodCall the pointer to a method definition.
       */
     case class ExpressionValueUpdate(
       expressionId: ExpressionId,
@@ -178,10 +174,32 @@ object Runtime {
     /**
       * Envelope for an Api request.
       *
-      * @param requestId request identifier
-      * @param payload request
+      * @param requestId the request identifier.
+      * @param payload the request payload.
       */
-    case class Request(requestId: RequestId, payload: ApiRequest)
+    case class Request(requestId: Option[RequestId], payload: ApiRequest)
+
+    object Request {
+
+      /**
+        * A smart constructor for [[Request]].
+        *
+        * @param requestId the reqest identifier.
+        * @param payload the request payload.
+        * @return a request object with specified request id and payload.
+        */
+      def apply(requestId: RequestId, payload: ApiRequest): Request =
+        Request(Some(requestId), payload)
+
+      /**
+        * A smart constructor for [[Request]].
+        *
+        * @param payload the request payload.
+        * @return a request object without request id and specified payload.
+        */
+      def apply(payload: ApiRequest): Request =
+        Request(None, payload)
+    }
 
     /**
       * Envelope for an Api response.
@@ -324,13 +342,6 @@ object Runtime {
       * @param path the file being closed.
       */
     case class CloseFileNotification(path: File) extends ApiRequest
-
-    /**
-      * A notification sent to the server about a file being created.
-      *
-      * @param path the newly created file.
-      */
-    case class CreateFileNotification(path: File) extends ApiRequest
 
     /**
       * Notification sent from the server to the client upon successful

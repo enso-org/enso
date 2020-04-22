@@ -42,7 +42,9 @@ class RuntimeConnector
       context.system.eventStream.publish(msg)
     case msg: Runtime.Api.Request =>
       engine.sendBinary(Runtime.Api.serialize(msg))
-      context.become(initialized(engine, senders + (msg.requestId -> sender())))
+      msg.requestId.foreach { id =>
+        context.become(initialized(engine, senders + (id -> sender())))
+      }
     case msg: Runtime.Api.Response =>
       msg.correlationId.flatMap(senders.get).foreach(_ ! msg)
       msg.correlationId.foreach { correlationId =>

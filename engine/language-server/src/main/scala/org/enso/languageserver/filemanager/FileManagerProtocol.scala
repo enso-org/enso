@@ -1,8 +1,11 @@
 package org.enso.languageserver.filemanager
 
+import java.io.File
 import java.util.UUID
 
 object FileManagerProtocol {
+
+  case class FileContent(path: File, content: String)
 
   /**
     * Gets all content roots.
@@ -43,7 +46,7 @@ object FileManagerProtocol {
     *
     * @param result either file system failure or content of a file
     */
-  case class ReadFileResult(result: Either[FileSystemFailure, String])
+  case class ReadFileResult(result: Either[FileSystemFailure, FileContent])
 
   /**
     * Requests the Language Server create a file system object.

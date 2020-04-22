@@ -47,7 +47,9 @@ class BaseServerTest extends JsonRpcServerTestKit {
       system.actorOf(FileManager.props(config, new FileSystem, zioExec))
     val bufferRegistry =
       system.actorOf(
-        BufferRegistry.props(fileManager)(Sha3_224VersionCalculator)
+        BufferRegistry.props(fileManager, runtimeConnectorProbe.ref)(
+          Sha3_224VersionCalculator
+        )
       )
     val fileEventRegistry =
       system.actorOf(

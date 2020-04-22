@@ -5,17 +5,10 @@ import org.enso.polyglot.runtime.Runtime.Api.{ContextId, StackItem}
 import scala.collection.mutable.Stack
 
 /**
-  * Represents an execution context.
-  *
-  * @param id the context id.
-  */
-case class ExecutionContext(id: ContextId)
-
-/**
   * Storage for active execution contexts.
   */
 class ExecutionContextManager {
-  private var contexts: Map[ExecutionContext, Stack[StackItem]] = Map()
+  private var contexts: Map[ContextId, Stack[StackItem]] = Map()
 
   /**
     * Creates a new context with a given id.
@@ -23,14 +16,14 @@ class ExecutionContextManager {
     * @param id the context id.
     */
   def create(id: ContextId): Unit =
-    contexts += ExecutionContext(id) -> Stack.empty
+    contexts += id -> Stack.empty
 
   /**
     * Destroys a context with a given id.
     * @param id the context id.
     */
   def destroy(id: ContextId): Unit =
-    contexts -= ExecutionContext(id)
+    contexts -= id
 
   /**
     * Gets a context with a given id.
@@ -38,10 +31,10 @@ class ExecutionContextManager {
     * @param id the context id.
     * @return the context with the given id, if exists.
     */
-  def get(id: ContextId): Option[ExecutionContext] =
+  def get(id: ContextId): Option[ContextId] =
     for {
-      _ <- contexts.get(ExecutionContext(id))
-    } yield ExecutionContext(id)
+      _ <- contexts.get(id)
+    } yield id
 
   /**
     * Gets a stack for a given context id.
@@ -50,7 +43,15 @@ class ExecutionContextManager {
     * @return the stack.
     */
   def getStack(id: ContextId): Stack[StackItem] =
-    contexts.getOrElse(ExecutionContext(id), Stack())
+    contexts.getOrElse(id, Stack())
+
+  /**
+    * Gets all execution contexts.
+    *
+    * @return all currently available execution contexsts.
+    */
+  def getAll: collection.MapView[ContextId, Stack[StackItem]] =
+    contexts.view
 
   /**
     * If the context exists, push the item on the stack.
@@ -61,7 +62,7 @@ class ExecutionContextManager {
     */
   def push(id: ContextId, item: StackItem): Option[Unit] =
     for {
-      stack <- contexts.get(ExecutionContext(id))
+      stack <- contexts.get(id)
     } yield stack.push(item)
 
   /**
@@ -72,7 +73,7 @@ class ExecutionContextManager {
     */
   def pop(id: ContextId): Option[StackItem] =
     for {
-      stack <- contexts.get(ExecutionContext(id))
+      stack <- contexts.get(id)
       if stack.nonEmpty
     } yield stack.pop()
 }

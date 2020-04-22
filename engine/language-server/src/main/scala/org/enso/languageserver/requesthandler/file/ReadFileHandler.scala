@@ -54,8 +54,8 @@ class ReadFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
       cancellable.cancel()
       context.stop(self)
 
-    case FileManagerProtocol.ReadFileResult(Right(content)) =>
-      replyTo ! ResponseResult(ReadFile, id, ReadFile.Result(content))
+    case FileManagerProtocol.ReadFileResult(Right(file)) =>
+      replyTo ! ResponseResult(ReadFile, id, ReadFile.Result(file.content))
       cancellable.cancel()
       context.stop(self)
   }

@@ -167,9 +167,16 @@ final class Handler {
           unwind(xs, explicitCalls, id :: localCalls)
       }
     val (explicitCalls, localCalls) = unwind(stack, Nil, Nil)
-    val item                        = toExecutionItem(explicitCalls.head)
-    execute(item, localCalls, sendUpdate(contextId, _))
+    explicitCalls.headOption.foreach { item =>
+      execute(toExecutionItem(item), localCalls, sendUpdate(contextId, _))
+    }
   }
+
+  private def executeAll(): Unit =
+    contextManager.getAll
+      .filter(kv => kv._2.nonEmpty)
+      .mapValues(_.toList)
+      .foreach(Function.tupled(execute))
 
   private def toExecutionItem(
     call: Api.StackItem.ExplicitCall
@@ -258,32 +265,6 @@ final class Handler {
           )
         }
 
-      case Api.PushContextRequest(contextId, item) =>
-        val payload = contextManager.push(contextId, item) match {
-          case Some(()) => Api.PushContextResponse(contextId)
-          case None     => Api.ContextNotExistError(contextId)
-        }
-        endpoint.sendToClient(Api.Response(requestId, payload))
-
-      case Api.PopContextRequest(contextId) =>
-        if (contextManager.get(contextId).isDefined) {
-          val payload = contextManager.pop(contextId) match {
-            case Some(_) => Api.PopContextResponse(contextId)
-            case None    => Api.EmptyStackError(contextId)
-          }
-          endpoint.sendToClient(Api.Response(requestId, payload))
-        } else {
-          endpoint.sendToClient(
-            Api.Response(requestId, Api.ContextNotExistError(contextId))
-          )
-        }
-
-      case Api.OpenFileNotification(path, contents) =>
-        executionService.setModuleSources(path, contents)
-
-      case Api.CreateFileNotification(path) =>
-        executionService.createModule(path)
-
       case Api.OpenFileNotification(path, contents) =>
         executionService.setModuleSources(path, contents)
 
@@ -292,6 +273,7 @@ final class Handler {
 
       case Api.EditFileNotification(path, edits) =>
         executionService.modifyModuleSources(path, edits.asJava)
+        withContext(executeAll())
     }
   }
 }

@@ -16,6 +16,7 @@ import org.enso.languageserver.event.{
   ClientDisconnected
 }
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
+  FileContent,
   ReadFileResult,
   WriteFileResult
 }
@@ -28,6 +29,7 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.Buffer.Version
 import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
+import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.{
   EditorOps,
   EndPositionBeforeStartPosition,
@@ -45,12 +47,14 @@ import scala.language.postfixOps
   *
   * @param bufferPath a path to a file
   * @param fileManager a file manger actor
+  * @param runtimeConnector a gateway to the runtime
   * @param timeout a request timeout
   * @param versionCalculator a content based version calculator
   */
 class CollaborativeBuffer(
   bufferPath: Path,
   fileManager: ActorRef,
+  runtimeConnector: ActorRef,
   timeout: FiniteDuration
 )(
   implicit versionCalculator: ContentBasedVersioning
@@ -201,6 +205,9 @@ class CollaborativeBuffer(
         sender() ! ApplyEditSuccess
         val subscribers = clients.filterNot(_._1 == clientId).values
         subscribers foreach { _.actor ! TextDidChange(List(change)) }
+        runtimeConnector ! Api.Request(
+          Api.EditFileNotification(buffer.file, change.edits)
+        )
         context.become(
           collaborativeEditing(modifiedBuffer, clients, lockHolder)
         )
@@ -250,7 +257,9 @@ class CollaborativeBuffer(
     EditorOps
       .applyEdits(buffer.contents, edits)
       .leftMap(toEditFailure)
-      .map(rope => Buffer(rope, versionCalculator.evalVersion(rope.toString)))
+      .map(rope =>
+        Buffer(buffer.file, rope, versionCalculator.evalVersion(rope.toString))
+      )
   }
 
   private val toEditFailure: TextEditValidationFailure => ApplyEditFailure = {
@@ -272,12 +281,15 @@ class CollaborativeBuffer(
   private def handleFileContent(
     client: Client,
     originalSender: ActorRef,
-    content: String
+    file: FileContent
   ): Unit = {
-    val buffer = Buffer(content)
+    val buffer = Buffer(file.path, file.content)
     val cap    = CapabilityRegistration(CanEdit(bufferPath))
     originalSender ! OpenFileResponse(
       Right(OpenFileResult(buffer, Some(cap)))
+    )
+    runtimeConnector ! Api.Request(
+      Api.OpenFileNotification(file.path, file.content)
     )
     context.become(
       collaborativeEditing(buffer, Map(client.id -> client), Some(client))
@@ -314,6 +326,7 @@ class CollaborativeBuffer(
       }
     val newClientMap = clients - clientId
     if (newClientMap.isEmpty) {
+      runtimeConnector ! Api.Request(Api.CloseFileNotification(buffer.file))
       stop()
     } else {
       context.become(collaborativeEditing(buffer, newClientMap, newLock))
@@ -382,6 +395,7 @@ object CollaborativeBuffer {
     *
     * @param bufferPath a path to a file
     * @param fileManager a file manager actor
+    * @param runtimeConnector a gateway to the runtime
     * @param timeout a request timeout
     * @param versionCalculator a content based version calculator
     * @return a configuration object
@@ -389,8 +403,16 @@ object CollaborativeBuffer {
   def props(
     bufferPath: Path,
     fileManager: ActorRef,
+    runtimeConnector: ActorRef,
     timeout: FiniteDuration = 10 seconds
   )(implicit versionCalculator: ContentBasedVersioning): Props =
-    Props(new CollaborativeBuffer(bufferPath, fileManager, timeout))
+    Props(
+      new CollaborativeBuffer(
+        bufferPath,
+        fileManager,
+        runtimeConnector,
+        timeout
+      )
+    )
 
 }

@@ -27,10 +27,39 @@ import org.enso.languageserver.text.TextProtocol.{
   * An actor that routes request regarding text editing to the right buffer.
   * It creates a buffer actor, if a buffer doesn't exists.
   *
+  * == Implementation ==
+  *
+  *   - 1  - Singleton
+  *   - *C - Created per client.
+  *   - *P - Created per file path.
+  *   - *H - Request is forwarded to intermediate handler. Created per request.
+  *
+  * {{{
+  *
+  *                   *C                            1
+  *  +------------------+   *H    +------------------+
+  *  | ClientController +----+--->+  BufferRegistry  |
+  *  +------------------+    ^    +---------+--------+
+  *                          |              |
+  *                          |              |
+  *                    1     |              v       *P
+  *  +------------------+    |   +----------+----------+
+  *  | RuntimeConnector +<---+---+ CollaborativeBuffer |
+  *  +------------------+        +----------+----------+
+  *                                         ^
+  *                                         |
+  *                                         v     1
+  *                                  +------+------+
+  *                                  | FileManager |
+  *                                  +-------------+
+  *
+  * }}}
+  *
   * @param fileManager a file manager
+  * @param runtimeConnector a gateway to the runtime
   * @param versionCalculator a content based version calculator
   */
-class BufferRegistry(fileManager: ActorRef)(
+class BufferRegistry(fileManager: ActorRef, runtimeConnector: ActorRef)(
   implicit versionCalculator: ContentBasedVersioning
 ) extends Actor
     with ActorLogging
@@ -47,7 +76,9 @@ class BufferRegistry(fileManager: ActorRef)(
         registry(path).forward(msg)
       } else {
         val bufferRef =
-          context.actorOf(CollaborativeBuffer.props(path, fileManager))
+          context.actorOf(
+            CollaborativeBuffer.props(path, fileManager, runtimeConnector)
+          )
         context.watch(bufferRef)
         bufferRef.forward(msg)
         context.become(running(registry + (path -> bufferRef)))
@@ -100,12 +131,13 @@ object BufferRegistry {
     * Creates a configuration object used to create a [[BufferRegistry]]
     *
     * @param fileManager a file manager actor
+    * @param runtimeConnector a gateway to the runtime
     * @param versionCalculator a content based version calculator
     * @return a configuration object
     */
-  def props(
-    fileManager: ActorRef
-  )(implicit versionCalculator: ContentBasedVersioning): Props =
-    Props(new BufferRegistry(fileManager))
+  def props(fileManager: ActorRef, runtimeConnector: ActorRef)(
+    implicit versionCalculator: ContentBasedVersioning
+  ): Props =
+    Props(new BufferRegistry(fileManager, runtimeConnector))
 
 }

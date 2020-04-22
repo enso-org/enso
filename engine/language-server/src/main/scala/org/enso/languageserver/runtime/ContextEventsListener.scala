@@ -7,8 +7,9 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
 /**
-  * Event listener is created for the given context. It handles notifications
-  * from the runtime and send updates to the client.
+  * EventListener listens event stream for the notifications from the runtime
+  * and send updates to the client. The listener is created per context, and
+  * only handles the notifications with the given `contextId`.
   *
   * @param config configuration
   * @param client reference to the client
@@ -43,8 +44,8 @@ final class ContextEventsListener(
           contextId,
           updates
         )
+
     case _: Api.ExpressionValuesComputed =>
-      // ignore updates from other contexts
   }
 
   private def toRuntimeUpdate(

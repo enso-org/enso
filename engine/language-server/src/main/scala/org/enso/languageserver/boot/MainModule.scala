@@ -62,6 +62,9 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   implicit val materializer = SystemMaterializer.get(system)
 
+  lazy val runtimeConnector =
+    system.actorOf(RuntimeConnector.props, "runtime-connector")
+
   lazy val languageServer =
     system.actorOf(
       Props(new LanguageServer(languageServerConfig)),
@@ -74,7 +77,10 @@ class MainModule(serverConfig: LanguageServerConfig) {
   )
 
   lazy val bufferRegistry =
-    system.actorOf(BufferRegistry.props(fileManager), "buffer-registry")
+    system.actorOf(
+      BufferRegistry.props(fileManager, runtimeConnector),
+      "buffer-registry"
+    )
 
   lazy val receivesTreeUpdatesHandler =
     system.actorOf(
@@ -88,9 +94,6 @@ class MainModule(serverConfig: LanguageServerConfig) {
       CapabilityRouter.props(bufferRegistry, receivesTreeUpdatesHandler),
       "capability-router"
     )
-
-  lazy val runtimeConnector =
-    system.actorOf(RuntimeConnector.props, "runtime-connector")
 
   lazy val contextRegistry =
     system.actorOf(

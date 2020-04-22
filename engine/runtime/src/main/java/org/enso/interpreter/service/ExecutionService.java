@@ -126,11 +126,16 @@ public class ExecutionService {
   /**
    * Sets a module at a given path to use a literal source.
    *
+   * If a module does not exist it will be created.
+   *
    * @param path the module path.
    * @param contents the sources to use for it.
    */
   public void setModuleSources(File path, String contents) {
     Optional<Module> module = context.getModuleForFile(path);
+    if (!module.isPresent()) {
+      module = context.createModuleForFile(path);
+    }
     module.ifPresent(mod -> mod.setLiteralSource(contents));
   }
 
@@ -142,15 +147,6 @@ public class ExecutionService {
   public void resetModuleSources(File path) {
     Optional<Module> module = context.getModuleForFile(path);
     module.ifPresent(Module::unsetLiteralSource);
-  }
-
-  /**
-   * Registers a new file as a source module.
-   *
-   * @param path the file to register.
-   */
-  public void createModule(File path) {
-    context.createModuleForFile(path);
   }
 
   /**
