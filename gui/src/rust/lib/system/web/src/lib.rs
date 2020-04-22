@@ -6,6 +6,7 @@
 
 pub mod closure;
 pub mod resize_observer;
+pub mod platform;
 
 /// Common types that should be visible across the whole crate.
 pub mod prelude {
