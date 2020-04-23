@@ -81,7 +81,7 @@ impl {
         let name         = name.as_ref().to_string();
         let buffer_dirty = self.buffer_dirty.clone();
         let shape_dirty  = self.shape_dirty.clone();
-        let ix           = self.buffers.reserve_ix();
+        let ix           = self.buffers.reserve_index();
         group!(self.logger, "Adding buffer '{name}' at index {ix}.", {
             let on_set     = Box::new(move || { buffer_dirty.set(ix) });
             let on_resize  = Box::new(move || { shape_dirty.set() });

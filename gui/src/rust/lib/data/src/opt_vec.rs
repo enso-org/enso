@@ -1,90 +1,62 @@
- #![allow(missing_docs)]
+//! A sparse vector implementation.
 
 use crate::prelude::*;
 use std::iter::FilterMap;
 use std::slice;
 
+
+
 // ==============
 // === OptVec ===
 // ==============
 
+// === Definition ===
+
 /// A contiguous growable sparse array type. Similar to `Vec<T>`, but allowing missing values.
-/// After a value is removed, it remembers the index for reuse in the future.
+/// After a value is removed, it remembers the index for reuse in the future. Unlike `Vec`, it is
+/// parametrized with optional `Index` type variable which will be used for indexing the vector.
+/// Index have to implement the `Index` trait.
 #[derive(Derivative)]
-#[derivative(Default(bound = ""))]
+#[derivative(Default(bound=""))]
 #[derive(Clone,Debug,Shrinkwrap)]
-pub struct OptVec<T> {
+pub struct OptVec<T,Index=usize> {
     #[shrinkwrap(main_field)]
-    pub items: Vec<Option<T>>,
-    pub free_ixs: SmallVec<[Ix; 128]>,
+    items    : Vec<Option<T>>,
+    free_ixs : SmallVec<[Index; 128]>,
 }
 
-pub type Ix                     = usize;
-pub type Iter           <'t, T> = FilterMap<slice::Iter   <'t, Option<T>>, OptionAsRef   <T>>;
-pub type IterMut        <'t, T> = FilterMap<slice::IterMut<'t, Option<T>>, OptionAsRefMut<T>>;
-pub type OptionAsRef        <T> = for<'r> fn(&'r     Option<T>) -> Option<&'r     T>;
-pub type OptionAsRefMut     <T> = for<'r> fn(&'r mut Option<T>) -> Option<&'r mut T>;
 
-impl<T> OptVec<T> {
+// === Types ===
+
+/// A trait for any vector index type.
+pub trait Index = Debug + Copy + Into<usize> where usize : Into<Self>;
+
+/// Iterator type of this vector.
+pub type Iter<'t,T> = FilterMap<slice::Iter<'t,Option<T>>, OptionAsRef<T>>;
+
+/// Mutable iterator type of this vector.
+pub type IterMut<'t,T> = FilterMap<slice::IterMut<'t, Option<T>>, OptionAsRefMut<T>>;
+
+/// Subtype of `Iter`.
+pub type OptionAsRef    <T> = for<'r> fn(&'r Option<T>) -> Option<&'r T>;
+
+/// Subtype of `IterMut`.
+pub type OptionAsRefMut <T> = for<'r> fn(&'r mut Option<T>) -> Option<&'r mut T>;
+
+
+// === Construction ===
+
+impl<T,I:Index> OptVec<T,I> {
     /// Constructs a new, empty `Vec<T>`. It will not allocate until elements are pushed onto it.
     pub fn new() -> Self {
         default()
     }
+}
 
-    /// Inserts the provided element to the vector. It reuses free indexes if any.
-    pub fn insert(&mut self, item: T) -> Ix {
-        self.insert_with_ix(|_| item)
-    }
 
-    /// Iterator.
-    pub fn iter(&self) -> Iter<T> {
-        self.items.iter().filter_map(Option::as_ref)
-    }
+// === Status Checks ===
 
-    /// Mutable iterator.
-    pub fn iter_mut(&mut self) -> IterMut<T> {
-        self.items.iter_mut().filter_map(Option::as_mut)
-    }
-
-    /// Finds a free index and inserts the element. The index is re-used in case the array is sparse
-    /// or is added in case of no free places.
-    pub fn insert_with_ix<F: FnOnce(Ix) -> T>(&mut self, f: F) -> Ix {
-        match self.free_ixs.pop() {
-            None => {
-                let ix = self.items.len();
-                self.items.push(Some(f(ix)));
-                ix
-            }
-            Some(ix) => {
-                self.items[ix] = Some(f(ix));
-                ix
-            }
-        }
-    }
-
-    /// Reserve an index for further reuse. Please remember that you cannot use the index to read
-    /// values unless the value is set.
-    pub fn reserve_ix(&mut self) -> Ix {
-        self.free_ixs.pop().unwrap_or_else(|| {
-            let ix = self.items.len();
-            self.items.push(None);
-            ix
-        })
-    }
-
-    /// Sets the value at given index. Panics if the index was already freed.
-    pub fn set(&mut self, ix:Ix, t:T) {
-        self.items[ix] = Some(t);
-    }
-
-    /// Removes the element at provided index and marks the index to be reused. Does nothing if the
-    /// index was already empty. Panics if the index was out of bounds.
-    pub fn remove(&mut self, ix: Ix) -> Option<T> {
-        let item = self.items[ix].take();
-        item.iter().for_each(|_| self.free_ixs.push(ix));
-        item
-    }
-
+impl<T,I:Index> OptVec<T,I> {
     /// Returns the number of elements in the vector, including reserved indexes. Also referred to
     /// as its 'length'.
     pub fn len(&self) -> usize {
@@ -98,35 +70,110 @@ impl<T> OptVec<T> {
 }
 
 
-// === Indexing ===
+// === Modifiers ===
 
-impl<T> Index<usize> for OptVec<T> {
-    type Output = T;
-    fn index(&self, ix: usize) -> &Self::Output {
-        self.items.index(ix).as_ref().unwrap()
+impl<T,I:Index> OptVec<T,I> {
+    /// Inserts the provided element to the vector. It reuses free indexes if any.
+    pub fn insert(&mut self, item: T) -> I {
+        self.insert_with_ix(|_| item)
+    }
+
+    /// Finds a free index and inserts the element. The index is re-used in case the array is sparse
+    /// or is added in case of no free places.
+    pub fn insert_with_ix<F:FnOnce(I) -> T>(&mut self, f: F) -> I {
+        match self.free_ixs.pop() {
+            None => {
+                let index = self.items.len().into();
+                self.items.push(Some(f(index)));
+                index
+            }
+            Some(index) => {
+                self.items[index.into()] = Some(f(index));
+                index
+            }
+        }
+    }
+
+    /// Reserve an index for further reuse. Please remember that you cannot use the index to read
+    /// values unless the value is set.
+    pub fn reserve_index(&mut self) -> I {
+        self.free_ixs.pop().unwrap_or_else(|| {
+            let index = self.items.len().into();
+            self.items.push(None);
+            index
+        })
+    }
+
+    /// Sets the value at given index. Panics if the index was already freed.
+    pub fn set(&mut self, index:I, t:T) {
+        self.items[index.into()] = Some(t);
+    }
+
+    /// Removes the element at provided index and marks the index to be reused. Does nothing if the
+    /// index was already empty. Panics if the index was out of bounds.
+    pub fn remove(&mut self, index:I) -> Option<T> {
+        let item = self.items[index.into()].take();
+        item.iter().for_each(|_| self.free_ixs.push(index));
+        item
     }
 }
 
-impl<T> IndexMut<usize> for OptVec<T> {
-    fn index_mut(&mut self, ix: usize) -> &mut Self::Output {
-        self.items.index_mut(ix).as_mut().unwrap()
+
+// === Indexing ===
+
+impl<T,I:Index> OptVec<T,I> {
+    /// Index into vector. Returns `None` if the key was already freed.
+    pub fn safe_index(&self, index:I) -> Option<&T> {
+        self.items[index.into()].as_ref()
+    }
+
+    /// Index into vector. Returns `None` if the key was already freed.
+    pub fn safe_index_mut(&mut self, index:I) -> Option<&mut T> {
+        self.items[index.into()].as_mut()
+    }
+}
+
+impl<T,I:Index> std::ops::Index<I> for OptVec<T,I> {
+    type Output = T;
+    fn index(&self, index:I) -> &Self::Output {
+        let error = || panic!(format!("Trying to access removed index `{:?}`.",index));
+        self.items.index(index.into()).as_ref().unwrap_or_else(error)
+    }
+}
+
+impl<T,I:Index> std::ops::IndexMut<I> for OptVec<T,I> {
+    fn index_mut(&mut self, index:I) -> &mut Self::Output {
+        let error = || panic!(format!("Trying to access removed index `{:?}`.",index));
+        self.items.index_mut(index.into()).as_mut().unwrap_or_else(error)
     }
 }
 
 
 // === Iterators ===
 
-impl<'a, T> IntoIterator for &'a OptVec<T> {
+impl<T,I:Index> OptVec<T,I> {
+    /// Iterator.
+    pub fn iter(&self) -> Iter<T> {
+        self.items.iter().filter_map(Option::as_ref)
+    }
+
+    /// Mutable iterator.
+    pub fn iter_mut(&mut self) -> IterMut<T> {
+        self.items.iter_mut().filter_map(Option::as_mut)
+    }
+}
+
+impl<'a,T,I:Index> IntoIterator for &'a OptVec<T,I> {
     type Item     = &'a T;
-    type IntoIter = Iter<'a, T>;
+    type IntoIter = Iter<'a,T>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
 
-impl<'a, T> IntoIterator for &'a mut OptVec<T> {
+impl<'a,T,I:Index> IntoIterator for &'a mut OptVec<T,I> {
     type Item     = &'a mut T;
-    type IntoIter = IterMut<'a, T>;
+    type IntoIter = IterMut<'a,T>;
     fn into_iter(self) -> Self::IntoIter {
         self.iter_mut()
     }
@@ -144,7 +191,7 @@ mod tests {
 
     #[test]
     fn test_add() {
-        let mut v = OptVec::new();
+        let mut v = OptVec::<usize>::new();
         assert!(v.is_empty());
 
         let ix1 = v.insert(1);
@@ -174,7 +221,7 @@ mod tests {
 
     #[test]
     fn test_iter() {
-        let mut v = OptVec::new();
+        let mut v = OptVec::<usize>::new();
 
         let  ix1 = v.insert(0);
         let _ix2 = v.insert(1);
@@ -194,7 +241,7 @@ mod tests {
 
     #[test]
     fn test_iter_mut() {
-        let mut v = OptVec::new();
+        let mut v = OptVec::<usize>::new();
 
         let  ix1 = v.insert(0);
         let _ix2 = v.insert(1);

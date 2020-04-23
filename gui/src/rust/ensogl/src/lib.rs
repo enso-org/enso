@@ -10,6 +10,7 @@
 #![feature(cell_update)]
 #![feature(drain_filter)]
 #![feature(overlapping_marker_traits)]
+#![feature(slice_patterns)]
 #![feature(specialization)]
 #![feature(fn_traits)]
 #![feature(trait_alias)]
