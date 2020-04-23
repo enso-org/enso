@@ -265,6 +265,22 @@ final class Handler {
           )
         }
 
+      case Api.RecomputeContextRequest(contextId, _) =>
+        if (contextManager.get(contextId).isDefined) {
+          val stack = contextManager.getStack(contextId)
+          val payload = if (stack.isEmpty) {
+            Api.EmptyStackError(contextId)
+          } else {
+            withContext(execute(contextId, stack.toList))
+            Api.RecomputeContextResponse(contextId)
+          }
+          endpoint.sendToClient(Api.Response(requestId, payload))
+        } else {
+          endpoint.sendToClient(
+            Api.Response(requestId, Api.ContextNotExistError(contextId))
+          )
+        }
+
       case Api.OpenFileNotification(path, contents) =>
         executionService.setModuleSources(path, contents)
 

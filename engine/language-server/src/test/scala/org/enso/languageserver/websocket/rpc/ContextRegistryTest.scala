@@ -300,6 +300,154 @@ class ContextRegistryTest extends BaseServerTest {
           """)
     }
 
+    "recompute all expressions" in {
+      val client = getInitialisedWsClient()
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // push stack item
+      val expressionId = UUID.randomUUID()
+      client.send(json.executionContextPushRequest(2, contextId, expressionId))
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+              requestId,
+              Api.PushContextRequest(
+                `contextId`,
+                Api.StackItem.LocalCall(`expressionId`)
+              )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.PushContextResponse(contextId)
+      )
+      client.expectJson(json.ok(2))
+
+      // recompute
+      client.send(
+        json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/recompute",
+            "id": 3,
+            "params": {
+              "contextId": $contextId,
+              "invalidatedExpressions": "all"
+            }
+          }
+          """
+      )
+      val requestId3 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+              requestId,
+              Api.RecomputeContextRequest(
+                `contextId`,
+                Some(Api.InvalidatedExpressions.All())
+              )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId3,
+        Api.RecomputeContextResponse(contextId)
+      )
+      client.expectJson(json.ok(3))
+    }
+
+    "recompute a list of expressions" in {
+      val client = getInitialisedWsClient()
+
+      // create context
+      client.send(json.executionContextCreateRequest(1))
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
+      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
+
+      // push stack item
+      val expressionId = UUID.randomUUID()
+      client.send(json.executionContextPushRequest(2, contextId, expressionId))
+      val requestId2 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+              requestId,
+              Api.PushContextRequest(
+                `contextId`,
+                Api.StackItem.LocalCall(`expressionId`)
+              )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId2,
+        Api.PushContextResponse(contextId)
+      )
+      client.expectJson(json.ok(2))
+
+      // recompute
+      client.send(
+        json"""
+          { "jsonrpc": "2.0",
+            "method": "executionContext/recompute",
+            "id": 3,
+            "params": {
+              "contextId": $contextId,
+              "invalidatedExpressions": [ $expressionId ]
+            }
+          }
+          """
+      )
+      val requestId3 =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(
+              requestId,
+              Api.RecomputeContextRequest(
+                `contextId`,
+                Some(
+                  Api.InvalidatedExpressions.Expressions(Vector(`expressionId`))
+                )
+              )
+              ) =>
+            requestId
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId3,
+        Api.RecomputeContextResponse(contextId)
+      )
+      client.expectJson(json.ok(3))
+    }
+
     "send notifications" in {
       val client = getInitialisedWsClient()
 

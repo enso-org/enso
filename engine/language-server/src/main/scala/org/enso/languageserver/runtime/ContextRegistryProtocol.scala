@@ -77,6 +77,26 @@ object ContextRegistryProtocol {
   case class PopContextResponse(contextId: ContextId)
 
   /**
+    * A request to the context registry to recompute an execution context.
+    *
+    * @param client reference to the client
+    * @param contextId execution context identifier
+    * @param invalidatedExpressions the expressions that should be invalidated
+    */
+  case class RecomputeContextRequest(
+    client: Client,
+    contextId: ContextId,
+    invalidatedExpressions: Option[InvalidatedExpressions]
+  )
+
+  /**
+    * A response about recomputing the context.
+    *
+    * @param contextId execution context identifier
+    */
+  case class RecomputeContextResponse(contextId: ContextId)
+
+  /**
     * A notification that new information about some expressions is available.
     *
     * @param contextId execution context identifier

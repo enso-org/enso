@@ -181,6 +181,8 @@ class ClientController(
       ExecutionContextPush -> executioncontext.PushHandler
         .props(requestTimeout, contextRegistry, client),
       ExecutionContextPop -> executioncontext.PopHandler
+        .props(requestTimeout, contextRegistry, client),
+      ExecutionContextRecompute -> executioncontext.RecomputeHandler
         .props(requestTimeout, contextRegistry, client)
     )
 

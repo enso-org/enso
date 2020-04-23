@@ -586,8 +586,8 @@ used for transferring large amounts of data between Enso components.
 As the protocol is a binary transport, it is _mediated and controlled_ by
 messages that exist as part of the textual protocol.
 
-In order to deserialize a family of messages and correlate responses with 
-requests, each request/response/notification is wrapped in an envelope 
+In order to deserialize a family of messages and correlate responses with
+requests, each request/response/notification is wrapped in an envelope
 structure. There is a separate envelope for incoming and outgoing messages:
 
 ```idl
@@ -770,7 +770,7 @@ interface Path {
 ```
 
 #### `IPWithSocket`
-A IPWithSocket is an endpoint for communication between machines. 
+A IPWithSocket is an endpoint for communication between machines.
 
 ##### Format
 
@@ -2501,7 +2501,10 @@ null
 ```
 
 ##### Errors
-No known errors.
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
+- [`EmptyStackError`](#emptystackerror) when the user tries to recompute an
+  empty stack.
 
 #### `executionContext/expressionValuesComputed`
 Sent from the server to the client to inform about new information for certain

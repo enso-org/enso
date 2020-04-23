@@ -12,7 +12,8 @@ import org.enso.languageserver.data.CapabilityRegistration
   */
 object ExecutionApi {
 
-  type ContextId = UUID
+  type ContextId    = UUID
+  type ExpressionId = UUID
 
   case object ExecutionContextCreate extends Method("executionContext/create") {
 
@@ -60,6 +61,22 @@ object ExecutionApi {
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = ExecutionContextPop.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object ExecutionContextRecompute
+      extends Method("executionContext/recompute") {
+
+    case class Params(
+      contextId: ContextId,
+      invalidatedExpressions: Option[InvalidatedExpressions]
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecutionContextRecompute.Params
     }
     implicit val hasResult = new HasResult[this.type] {
       type Result = Unused.type

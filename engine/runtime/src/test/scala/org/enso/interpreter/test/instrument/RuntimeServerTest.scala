@@ -353,4 +353,44 @@ class RuntimeServerTest
     send(Api.CloseFileNotification(fooFile))
     context.consumeOut shouldEqual List()
   }
+
+  it should "recompute expressions" in {
+    val mainFile  = context.writeMain(Main.code)
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    Set.fill(5)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
+      Some(Main.update.idMainX(contextId)),
+      Some(Main.update.idMainY(contextId)),
+      Some(Main.update.idMainZ(contextId)),
+      None
+    )
+
+    // recompute
+    context.send(Api.Request(requestId, Api.RecomputeContextRequest(contextId, None)))
+    Set.fill(5)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
+      Some(Main.update.idMainX(contextId)),
+      Some(Main.update.idMainY(contextId)),
+      Some(Main.update.idMainZ(contextId)),
+      None
+    )
+  }
+
 }

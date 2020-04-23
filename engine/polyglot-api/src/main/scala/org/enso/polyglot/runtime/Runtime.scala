@@ -56,6 +56,14 @@ object Runtime {
         name  = "popContextResponse"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.RecomputeContextRequest],
+        name  = "recomputeContextRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.RecomputeContextResponse],
+        name  = "recomputeContextResponse"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.OpenFileNotification],
         name  = "openFileNotification"
       ),
@@ -159,6 +167,39 @@ object Runtime {
       shortValue: Option[String],
       methodCall: Option[MethodPointer]
     )
+
+    /**
+      * An object representing invalidated expressions selector.
+      */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[InvalidatedExpressions.All],
+          name  = "all"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[InvalidatedExpressions.Expressions],
+          name  = "expressions"
+        )
+      )
+    )
+    sealed trait InvalidatedExpressions
+
+    object InvalidatedExpressions {
+
+      /**
+        * An object representing invalidation of all expressions.
+        */
+      case class All() extends InvalidatedExpressions
+
+      /**
+        * An object representing invalidation of a list of expressions.
+        *
+        * @param value a list of expressions to invalidate.
+        */
+      case class Expressions(value: Vector[ExpressionId]) extends InvalidatedExpressions
+    }
 
     /**
       * A notification about updated expressions of the context.
@@ -293,6 +334,28 @@ object Runtime {
       * @param contextId the context's id.
       */
     case class PopContextResponse(contextId: ContextId) extends ApiResponse
+
+    /**
+      * A Request sent from the client to the runtime server, to recompute
+      * the execution context.
+      *
+      * @param contextId the context's id.
+      * @param expressions the selector specifying which expressions should be
+      * recomputed.
+      */
+    case class RecomputeContextRequest(
+      contextId: ContextId,
+      expressions: Option[InvalidatedExpressions]
+    ) extends ApiRequest
+
+    /**
+      * A response sent from the server upon handling the
+      * [[RecomputeContextRequest]]
+      *
+      * @param contextId the context's id.
+      */
+    case class RecomputeContextResponse(contextId: ContextId)
+        extends ApiResponse
 
     /**
       * An error response signifying a non-existent context.

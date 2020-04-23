@@ -105,6 +105,19 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
       } else {
         sender() ! AccessDenied
       }
+
+    case RecomputeContextRequest(client, contextId, expressions) =>
+      if (store.hasContext(client, contextId)) {
+        val handler =
+          context.actorOf(RecomputeContextHandler.props(timeout, runtime))
+        val invalidatedExpressions =
+          expressions.map(toRuntimeInvalidatedExpressions)
+        handler.forward(
+          Api.RecomputeContextRequest(contextId, invalidatedExpressions)
+        )
+      } else {
+        sender() ! AccessDenied
+      }
   }
 
   private def getRuntimeStackItem(
@@ -129,6 +142,16 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
         definedOnType = pointer.definedOnType,
         name          = pointer.name
       )
+    }
+
+  private def toRuntimeInvalidatedExpressions(
+    expressions: InvalidatedExpressions
+  ): Api.InvalidatedExpressions =
+    expressions match {
+      case InvalidatedExpressions.All =>
+        Api.InvalidatedExpressions.All()
+      case InvalidatedExpressions.Expressions(es) =>
+        Api.InvalidatedExpressions.Expressions(es)
     }
 
 }
