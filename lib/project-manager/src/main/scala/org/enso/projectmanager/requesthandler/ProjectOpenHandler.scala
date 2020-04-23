@@ -7,7 +7,7 @@ import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
 import org.enso.projectmanager.control.effect.Exec
-import org.enso.projectmanager.data.{LanguageServerSockets, Socket}
+import org.enso.projectmanager.data.LanguageServerSockets
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectOpen
 import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
 import org.enso.projectmanager.service.{

@@ -1,7 +1,7 @@
 package org.enso.interpreter.runtime.scope
 
 import com.oracle.truffle.api.frame.{FrameDescriptor, FrameSlot}
-import org.enso.compiler.pass.analyse.AliasAnalysis
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
   Occurrence,
@@ -34,6 +34,7 @@ class LocalScope(
   final val parentScope: Option[LocalScope],
   final val aliasingGraph: AliasAnalysis.Graph,
   final val scope: AliasAnalysis.Graph.Scope,
+  final val dataflowInfo: DataflowAnalysis.Metadata,
   final val flattenToParent: Boolean                     = false,
   final val frameSlots: mutable.Map[Graph.Id, FrameSlot] = mutable.Map()
 ) {
@@ -62,6 +63,7 @@ class LocalScope(
       Some(this),
       aliasingGraph,
       childScope,
+      dataflowInfo,
       flattenToParent,
       frameSlots
     )
@@ -137,6 +139,11 @@ object LocalScope {
     */
   def root: LocalScope = {
     val graph = new AliasAnalysis.Graph
-    new LocalScope(None, graph, graph.rootScope)
+    new LocalScope(
+      None,
+      graph,
+      graph.rootScope,
+      new DataflowAnalysis.DependencyInfo
+    )
   }
 }

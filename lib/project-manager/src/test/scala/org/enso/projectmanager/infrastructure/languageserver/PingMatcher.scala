@@ -11,10 +11,7 @@ object PingMatcher {
 
     for {
       json <- maybeJson
-      method <- json.hcursor
-        .downField("method")
-        .as[String]
-        .toOption if method == "heartbeat/ping"
+      method <- json.hcursor.downField("method").as[String].toOption if method == "heartbeat/ping"
       id <- json.hcursor.downField("id").as[String].toOption
     } yield UUID.fromString(id)
   }

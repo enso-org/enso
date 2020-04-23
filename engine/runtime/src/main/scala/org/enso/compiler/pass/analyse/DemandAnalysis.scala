@@ -8,8 +8,7 @@ import org.enso.compiler.pass.IRPass
 /** This pass implements demand analysis for Enso.
   *
   * Demand analysis is the process of determining _when_ a suspended term needs
-  * to be forced (where the suspended value is _demanded_). It does the
-  * following:
+  * to be forced (where the suspended value is _demanded_).
   *
   * This pass needs to be run after [[AliasAnalysis]], and also assumes that
   * all members of [[IR.IRKind.Primitive]] have been removed from the IR by the
@@ -221,7 +220,7 @@ case object DemandAnalysis extends IRPass {
                   s"Malformed aliasing link with target ${link.target}"
                 )
               ) match {
-              case AliasAnalysis.Graph.Occurrence.Def(_, _, isLazy) =>
+              case AliasAnalysis.Graph.Occurrence.Def(_, _, _, isLazy) =>
                 if (isLazy) Some(true) else None
               case _ => None
             }

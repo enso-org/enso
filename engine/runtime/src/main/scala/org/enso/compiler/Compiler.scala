@@ -9,12 +9,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  ApplicationSaturation,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
   LiftSpecialOperators,
@@ -56,7 +51,8 @@ class Compiler(
     AliasAnalysis,
     DemandAnalysis,
     ApplicationSaturation(),
-    TailCall
+    TailCall,
+    DataflowAnalysis
   )
 
   /**

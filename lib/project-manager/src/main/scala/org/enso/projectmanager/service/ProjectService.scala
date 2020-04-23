@@ -7,11 +7,7 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.ErrorChannel
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.data.{
-  LanguageServerSockets,
-  ProjectMetadata,
-  Socket
-}
+import org.enso.projectmanager.data.{LanguageServerSockets, ProjectMetadata}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerService
 import org.enso.projectmanager.infrastructure.log.Logging

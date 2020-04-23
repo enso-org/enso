@@ -2,11 +2,7 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 
-import org.enso.projectmanager.data.{
-  LanguageServerSockets,
-  ProjectMetadata,
-  Socket
-}
+import org.enso.projectmanager.data.{LanguageServerSockets, ProjectMetadata}
 
 /**
   * A contract for the Project Service.

@@ -54,7 +54,11 @@ object Debug {
               }
 
             case ')' => go(ind - 1, ss, s2 :: newline(ind - 1) :: out)
-            case ',' => go(ind, ss, newline(ind) :: s2 :: out)
+            case ',' => if (ss.startsWith(" ")) {
+              go(ind, ss.drop(1), newline(ind) :: s2 :: out)
+            } else {
+              go(ind, ss, newline(ind) :: s2 :: out)
+            }
             case _   => go(ind, ss, s2 :: out)
           }
       }

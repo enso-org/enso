@@ -8,7 +8,6 @@ import org.enso.languageserver.boot.{
   LanguageServerConfig
 }
 import org.enso.projectmanager.boot.configuration.BootloaderConfig
-import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
   Boot,
   FindFreeSocket,

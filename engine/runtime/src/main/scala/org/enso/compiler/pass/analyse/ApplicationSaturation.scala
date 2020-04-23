@@ -2,7 +2,6 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
-import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.ApplicationSaturation.{
   CallSaturation,
@@ -54,12 +53,9 @@ case class ApplicationSaturation(
       case func @ IR.Application.Prefix(fn, args, _, _, meta) =>
         fn match {
           case name: IR.Name =>
-            val aliasInfo = name
-              .getMetadata[AliasAnalysis.Info.Occurrence]
-              .getOrElse(
-                throw new CompilerError(
-                  "Name occurrence with missing alias information."
-                )
+            val aliasInfo =
+              name.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
+                "Name occurrence with missing alias information."
               )
 
             if (!aliasInfo.graph.linkedToShadowingBinding(aliasInfo.id)) {
@@ -150,11 +146,26 @@ object ApplicationSaturation {
   /** Describes the saturation state of a function application. */
   sealed trait CallSaturation extends IR.Metadata
   object CallSaturation {
-    sealed case class Over(additionalArgCount: Int)   extends CallSaturation
-    sealed case class Exact(helper: CodegenHelper)    extends CallSaturation
-    sealed case class ExactButByName()                extends CallSaturation
-    sealed case class Partial(unappliedArgCount: Int) extends CallSaturation
-    sealed case class Unknown()                       extends CallSaturation
+    sealed case class Over(additionalArgCount: Int) extends CallSaturation {
+      override val metadataName: String =
+        "ApplicationSaturation.CallSaturation.Over"
+    }
+    sealed case class Exact(helper: CodegenHelper) extends CallSaturation {
+      override val metadataName: String =
+        "ApplicationSaturation.CallSaturation.Exact"
+    }
+    sealed case class ExactButByName() extends CallSaturation {
+      override val metadataName: String =
+        "ApplicationSaturation.CallSaturation.ExactButByName"
+    }
+    sealed case class Partial(unappliedArgCount: Int) extends CallSaturation {
+      override val metadataName: String =
+        "ApplicationSaturation.CallSaturation.Partial"
+    }
+    sealed case class Unknown() extends CallSaturation {
+      override val metadataName: String =
+        "ApplicationSaturation.CallSaturation.Unknown"
+    }
   }
 
   /** A description of a known function

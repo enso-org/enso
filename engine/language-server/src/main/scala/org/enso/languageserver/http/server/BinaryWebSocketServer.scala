@@ -3,8 +3,8 @@ package org.enso.languageserver.http.server
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.RemoteAddress
 import akka.http.scaladsl.model.StatusCodes.InternalServerError
-import akka.http.scaladsl.model.{RemoteAddress, StatusCodes}
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -12,13 +12,13 @@ import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{CompletionStrategy, Materializer, OverflowStrategy}
 import akka.util.ByteString
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.languageserver.http.server.BinaryWebSocketServer.Config
 import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.{
   CloseConnection,
   ConnectionClosed,
   ConnectionFailed,
   OutboundStreamEstablished
 }
+import org.enso.languageserver.http.server.BinaryWebSocketServer.Config
 import org.enso.languageserver.util.binary.{
   BinaryDecoder,
   BinaryEncoder,
@@ -58,8 +58,8 @@ class BinaryWebSocketServer[A, B](
     extractClientIP {
       case RemoteAddress.Unknown =>
         complete(
-          InternalServerError -> "Set akka.http.server.remote-address-header " +
-          "to on"
+          InternalServerError.toString +
+            "Set akka.http.server.remote-address-header to on"
         )
 
       case ip: RemoteAddress.IP =>

@@ -2,7 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import org.enso.projectmanager.data.{LanguageServerSockets, Socket}
+import org.enso.projectmanager.data.LanguageServerSockets
 import org.enso.projectmanager.model.Project
 
 /**

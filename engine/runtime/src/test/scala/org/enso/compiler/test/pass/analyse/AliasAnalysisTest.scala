@@ -71,19 +71,19 @@ class AliasAnalysisTest extends CompilerTest {
     val childOfChildOfChild = childOfChild.addChild()
 
     val aDefId = graph.nextId()
-    val aDef   = Occurrence.Def(aDefId, "a")
+    val aDef   = Occurrence.Def(aDefId, "a", genID)
 
     val bDefId = graph.nextId()
-    val bDef   = Occurrence.Def(bDefId, "b")
+    val bDef   = Occurrence.Def(bDefId, "b", genID)
 
     val aUseId = graph.nextId()
-    val aUse   = Occurrence.Use(aUseId, "a")
+    val aUse   = Occurrence.Use(aUseId, "a", genID)
 
     val bUseId = graph.nextId()
-    val bUse   = Occurrence.Use(bUseId, "b")
+    val bUse   = Occurrence.Use(bUseId, "b", genID)
 
     val cUseId = graph.nextId()
-    val cUse   = Occurrence.Use(cUseId, "c")
+    val cUse   = Occurrence.Use(cUseId, "c", genID)
 
     // Add occurrences to the scopes
     complexScope.add(aDef)
@@ -184,19 +184,19 @@ class AliasAnalysisTest extends CompilerTest {
     val childScope = rootScope.addChild()
 
     val aDefId = graph.nextId()
-    val aDef   = Occurrence.Def(aDefId, "a")
+    val aDef   = Occurrence.Def(aDefId, "a", genID)
 
     val bDefId = graph.nextId()
-    val bDef   = Occurrence.Def(bDefId, "b")
+    val bDef   = Occurrence.Def(bDefId, "b", genID)
 
     val aUse1Id = graph.nextId()
-    val aUse1   = Occurrence.Use(aUse1Id, "a")
+    val aUse1   = Occurrence.Use(aUse1Id, "a", genID)
 
     val aUse2Id = graph.nextId()
-    val aUse2   = Occurrence.Use(aUse2Id, "a")
+    val aUse2   = Occurrence.Use(aUse2Id, "a", genID)
 
     val cUseId = graph.nextId()
-    val cUse   = Occurrence.Use(cUseId, "c")
+    val cUse   = Occurrence.Use(cUseId, "c", genID)
 
     rootScope.add(aDef)
     rootScope.add(aUse1)

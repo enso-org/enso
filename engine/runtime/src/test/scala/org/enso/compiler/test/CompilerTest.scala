@@ -1,5 +1,7 @@
 package org.enso.compiler.test
 
+import java.util.UUID
+
 import org.enso.compiler.InlineContext
 import org.enso.compiler.codegen.AstToIR
 import org.enso.compiler.core.IR
@@ -138,6 +140,21 @@ trait CompilerRunner {
           .asInstanceOf[IR.Expression]
       )
     }
+  }
+
+  /** Generates a random identifier.
+   *
+   * @return a random identifier
+   */
+  def genID: IR.Identifier = UUID.randomUUID()
+
+  /** Creates an IR name from a string.
+   *
+   * @param str the string to turn into a name
+   * @return an IR name representing the name `str`
+   */
+  def nameFromString(str: String): IR.Name.Literal = {
+    IR.Name.Literal(str, None)
   }
 
   // === IR Testing Utils =====================================================
