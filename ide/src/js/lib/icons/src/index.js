@@ -7,14 +7,14 @@ class Logo {
         this.size = 64
         this.compatibleMode = compatibleMode
         this.borderMax = 10
-        this.borderSpread = 0
+        this.borderSpread = 2
         this.init()
     }
 
     init() {
         var scaleStop = 128
         var scaleLog = Math.log2(scaleStop)
-        this.borderWidth = 6
+        this.borderWidth = 7
         this.topRadius = 32
         this.borderOffset = this.borderWidth - this.borderSpread
         this.innerRadius = this.topRadius - this.borderWidth - this.borderOffset
@@ -84,24 +84,26 @@ class Logo {
         ${this.defs}
 
     </defs>
-    <g transform="scale(${this.scale})"> <use ${this.ref}="#final"/> </g>
+    ${this.main()}
 </svg>
 `
     }
+
+    main() {
+        return `<g transform="scale(${this.scale})"> <use ${this.ref}="#final"/> </g>`
+    }
 }
 
-class MinimalWhiteLogo extends Logo {
+class AppLogo extends Logo {
     constructor(size, compatibleMode) {
         super(size, compatibleMode)
-        this.borderMax = 10
-        this.borderSpread = 0
         this.init()
     }
 }
 
 fastGenerate = (cons) => (...args) => new cons(...args).generate()
 
-exports.generateMinimalWhiteLogo = fastGenerate(MinimalWhiteLogo)
+exports.generateMinimalWhiteLogo = fastGenerate(AppLogo)
 
 
 const fss   = require('fs')
