@@ -487,7 +487,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
     val Right(openReply) = parse(client.expectMessage())
     val socketField = openReply.hcursor
       .downField("result")
-      .downField("languageServerAddress")
+      .downField("languageServerRpcAddress")
     val Right(host) = socketField.downField("host").as[String]
     val Right(port) = socketField.downField("port").as[Int]
     Socket(host, port)

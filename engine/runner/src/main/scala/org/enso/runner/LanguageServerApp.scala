@@ -1,7 +1,9 @@
 package org.enso.runner
 
-import org.enso.languageserver.boot.{LanguageServerConfig, MainModule}
-import org.enso.languageserver.LanguageProtocol
+import org.enso.languageserver.boot.{
+  LanguageServerComponent,
+  LanguageServerConfig
+}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -19,21 +21,10 @@ object LanguageServerApp {
     */
   def run(config: LanguageServerConfig): Unit = {
     println("Starting Language Server...")
-    val mainModule = new MainModule(config)
-
-    mainModule.languageServer ! LanguageProtocol.Initialize
-
-    val binding =
-      Await.result(
-        mainModule.server.bind(config.interface, config.port),
-        3.seconds
-      )
-
-    println(
-      s"Started server at ${config.interface}:${config.port}, press enter to kill server"
-    )
+    val server = new LanguageServerComponent(config)
+    Await.result(server.start(), 10.seconds)
     StdIn.readLine()
-    binding.terminate(10.seconds)
+    Await.result(server.stop(), 10.seconds)
   }
 
 }

@@ -44,26 +44,27 @@ class LanguageServerBootLoader(
   private def findingSocket(retry: Int = 0): Receive = {
     case FindFreeSocket =>
       log.debug("Looking for available socket to bind the language server")
-      val port = Tcp.findAvailablePort(
-        descriptor.networkConfig.interface,
-        descriptor.networkConfig.minPort,
-        descriptor.networkConfig.maxPort
-      )
+      val rpcPort  = findPort()
+      var dataPort = findPort()
+      while (dataPort == rpcPort) {
+        dataPort = findPort()
+      }
       log.info(
-        s"Found a socket for the language server [${descriptor.networkConfig.interface}:$port]"
+        s"Found sockets for the language server " +
+        s"[rpc:${descriptor.networkConfig.interface}:$rpcPort, " +
+        s"data:${descriptor.networkConfig.interface}:$dataPort]"
       )
       self ! Boot
-      context.become(
-        booting(Socket(descriptor.networkConfig.interface, port), retry)
-      )
+      context.become(booting(rpcPort, dataPort, retry))
   }
 
-  private def booting(socket: Socket, retryCount: Int): Receive = {
+  private def booting(rpcPort: Int, dataPort: Int, retryCount: Int): Receive = {
     case Boot =>
       log.debug("Booting a language server")
       val config = LanguageServerConfig(
-        socket.host,
-        socket.port,
+        descriptor.networkConfig.interface,
+        rpcPort,
+        dataPort,
         descriptor.rootId,
         descriptor.root,
         descriptor.name,
@@ -71,7 +72,6 @@ class LanguageServerBootLoader(
       )
       val server = new LanguageServerComponent(config)
       server.start().map(_ => config -> server) pipeTo self
-      ()
 
     case Failure(th) =>
       log.error(
@@ -94,8 +94,14 @@ class LanguageServerBootLoader(
       log.info(s"Language server booted [$config].")
       context.parent ! ServerBooted(config, server)
       context.stop(self)
-
   }
+
+  private def findPort(): Int =
+    Tcp.findAvailablePort(
+      descriptor.networkConfig.interface,
+      descriptor.networkConfig.minPort,
+      descriptor.networkConfig.maxPort
+    )
 
 }
 

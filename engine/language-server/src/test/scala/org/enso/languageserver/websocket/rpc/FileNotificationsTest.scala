@@ -1,4 +1,4 @@
-package org.enso.languageserver.websocket
+package org.enso.languageserver.websocket.rpc
 
 import java.io.File
 

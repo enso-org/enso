@@ -68,7 +68,7 @@ class LanguageServerSupervisor(
 
   private def supervising(cancellable: Cancellable): Receive = {
     case SendHeartbeat =>
-      val socket = Socket(config.interface, config.port)
+      val socket = Socket(config.interface, config.rpcPort)
       context.actorOf(
         HeartbeatSession.props(
           socket,

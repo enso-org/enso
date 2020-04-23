@@ -1,4 +1,4 @@
-package org.enso.languageserver.websocket
+package org.enso.languageserver.websocket.rpc
 
 import java.nio.file.Files
 import java.util.UUID
@@ -16,7 +16,10 @@ import org.enso.languageserver.filemanager.{
   FileSystem,
   ReceivesTreeUpdatesHandler
 }
-import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
+import org.enso.languageserver.protocol.rpc.{
+  JsonRpc,
+  ServerClientControllerFactory
+}
 import org.enso.languageserver.runtime.ContextRegistry
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.{LanguageProtocol, LanguageServer}

@@ -46,12 +46,12 @@ class LanguageServerSupervisorSpec
     }
     probe.expectNoMessage()
     //when
-    virtualTime.advance(testInitialDelay)
-    (1 to 10).foreach { _ =>
+    virtualTimeAdvances(testInitialDelay)
+    (1 to 2).foreach { _ =>
       probe.expectMsgPF() { case PingMatcher(_) => () }
-      virtualTime.advance(testHeartbeatInterval / 2)
+      virtualTimeAdvances(testHeartbeatInterval / 2)
       probe.expectNoMessage()
-      virtualTime.advance(testHeartbeatInterval / 2)
+      virtualTimeAdvances(testHeartbeatInterval / 2)
     }
     //then
     `then`(serverComponent.restart()).shouldHaveNoInteractions()
@@ -72,7 +72,7 @@ class LanguageServerSupervisorSpec
       case ping @ PingMatcher(requestId) =>
         probe.ref ! ping
         pingCount += 1
-        if (pingCount == 5) {
+        if (pingCount == 3) {
           Reject
         } else {
           ReplyWith(
@@ -82,24 +82,24 @@ class LanguageServerSupervisorSpec
     }
     probe.expectNoMessage()
     //when
-    virtualTime.advance(testInitialDelay)
-    (1 to 4).foreach { _ =>
+    virtualTimeAdvances(testInitialDelay)
+    (1 to 2).foreach { _ =>
       verifyNoInteractions(serverComponent)
       probe.expectMsgPF() { case PingMatcher(_) => () }
-      virtualTime.advance(testHeartbeatInterval / 2)
+      virtualTimeAdvances(testHeartbeatInterval / 2)
       probe.expectNoMessage()
-      virtualTime.advance(testHeartbeatInterval / 2)
+      virtualTimeAdvances(testHeartbeatInterval / 2)
     }
     probe.expectMsgPF() { case PingMatcher(_) => () }
-    virtualTime.advance(testHeartbeatTimeout)
+    virtualTimeAdvances(testHeartbeatTimeout)
     verify(serverComponent, timeout(VerificationTimeout).times(1)).restart()
-    virtualTime.advance(testInitialDelay)
-    (1 to 10).foreach { _ =>
+    virtualTimeAdvances(testInitialDelay)
+    (1 to 2).foreach { _ =>
       verifyNoMoreInteractions(serverComponent)
       probe.expectMsgPF() { case PingMatcher(_) => () }
-      virtualTime.advance(testHeartbeatInterval / 2)
+      virtualTimeAdvances(testHeartbeatInterval / 2)
       probe.expectNoMessage()
-      virtualTime.advance(testHeartbeatInterval / 2)
+      virtualTimeAdvances(testHeartbeatInterval / 2)
     }
     //teardown
     parent ! GracefulStop
@@ -119,18 +119,15 @@ class LanguageServerSupervisorSpec
     }
     probe.expectNoMessage()
     //when
-    virtualTime.advance(testInitialDelay)
+    virtualTimeAdvances(testInitialDelay)
     probe.expectMsgPF(5.seconds) { case PingMatcher(_) => () }
     verifyNoInteractions(serverComponent)
-    virtualTime.advance(testHeartbeatTimeout)
+    virtualTimeAdvances(testHeartbeatTimeout)
     (1 to testRestartLimit).foreach { i =>
       verify(serverComponent, timeout(VerificationTimeout).times(i)).restart()
-      //I need to wait some time to give the supervisor time to schedule next
-      // restart command
-      Thread.sleep(1000)
-      virtualTime.advance(testRestartDelay)
+      virtualTimeAdvances(testRestartDelay)
     }
-    virtualTime.advance(testHeartbeatInterval)
+    virtualTimeAdvances(testHeartbeatInterval)
     probe.expectNoMessage()
     verifyNoMoreInteractions(serverComponent)
     //then
@@ -155,7 +152,9 @@ class LanguageServerSupervisorSpec
 
     val testHost = "127.0.0.1"
 
-    val testPort = Tcp.findAvailablePort(testHost, 49152, 65535)
+    val testRpcPort = Tcp.findAvailablePort(testHost, 49152, 55535)
+
+    val testDataPort = Tcp.findAvailablePort(testHost, 55535, 65535)
 
     val testInitialDelay = 5.seconds
 
@@ -167,11 +166,17 @@ class LanguageServerSupervisorSpec
 
     val testRestartDelay = 2.seconds
 
-    val fakeServer = new ProgrammableWebSocketServer(testHost, testPort)
+    val fakeServer = new ProgrammableWebSocketServer(testHost, testRpcPort)
     fakeServer.start()
 
     val serverConfig =
-      LanguageServerConfig(testHost, testPort, UUID.randomUUID(), "/tmp")
+      LanguageServerConfig(
+        testHost,
+        testRpcPort,
+        testDataPort,
+        UUID.randomUUID(),
+        "/tmp"
+      )
 
     val supervisionConfig =
       SupervisionConfig(
@@ -198,6 +203,13 @@ class LanguageServerSupervisorSpec
         )
       )
     )
+
+    def virtualTimeAdvances(step: FiniteDuration): Unit = {
+      //I need to wait some time to give the supervisor time to schedule next
+      // command/event
+      Thread.sleep(1000)
+      virtualTime.advance(step)
+    }
 
   }
 }

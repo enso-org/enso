@@ -1,14 +1,28 @@
 include "util.fbs";
 
-namespace org.enso.languageserver.protocol.executioncontext;
+namespace org.enso.languageserver.protocol.data.executioncontext;
 
+//A visualisation context identifying a concrete visualisation.
 table VisualisationContext {
-  visualisationId: org.enso.languageserver.protocol.util.EnsoUUID (required);
-  contextId: org.enso.languageserver.protocol.util.EnsoUUID (required);
-  expressionId: org.enso.languageserver.protocol.util.EnsoUUID (required);
+
+  //A visualisation identifier.
+  visualisationId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  //A context identifier.
+  contextId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  //An expression identifier.
+  expressionId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
 }
 
+//An event signaling visualisation update.
 table VisualisationUpdate {
+
+  //A visualisation context identifying a concrete visualisation.
   visualisationContext: VisualisationContext (required);
+
+  //A visualisation data.
   data: [ubyte] (required);
+
 }

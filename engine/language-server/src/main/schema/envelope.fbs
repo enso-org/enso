@@ -1,0 +1,45 @@
+include "util.fbs";
+include "session.fbs";
+include "execution-context.fbs";
+
+namespace org.enso.languageserver.protocol.data.envelope;
+
+//A mapping between payload enum and inbound payload types.
+union InboundPayload {
+  SESSION_INIT: org.enso.languageserver.protocol.data.session.SessionInit
+}
+
+//An envelope for inbound requests and commands.
+table InboundMessage {
+
+  //A unique id of the request sent to the server.
+  requestId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  //An optional correlation id used to correlate a response with a request.
+  correlationId: org.enso.languageserver.protocol.data.util.EnsoUUID;
+
+  //A message payload that carries requests sent by a client.
+  payload: InboundPayload (required);
+
+}
+
+//A mapping between payload enum and outbound payload types.
+union OutboundPayload {
+  ERROR: org.enso.languageserver.protocol.data.util.Error,
+  SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.data.session.SessionInitResponse,
+  VISUALISATION_UPDATE: org.enso.languageserver.protocol.data.executioncontext.VisualisationUpdate
+}
+
+//An envelope for outbound responses.
+table OutboundMessage {
+
+  //A unique id of the request sent to the server.
+  requestId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  //An optional correlation id used to correlate a response with a request.
+  correlationId: org.enso.languageserver.protocol.data.util.EnsoUUID;
+
+  //A message payload that carries responses and notifications sent by a server
+  payload: OutboundPayload (required);
+
+}

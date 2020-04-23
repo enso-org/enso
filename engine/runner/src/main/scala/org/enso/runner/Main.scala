@@ -25,7 +25,8 @@ object Main {
   private val JUPYTER_OPTION         = "jupyter-kernel"
   private val LANGUAGE_SERVER_OPTION = "server"
   private val INTERFACE_OPTION       = "interface"
-  private val PORT_OPTION            = "port"
+  private val RPC_PORT_OPTION        = "rpc-port"
+  private val DATA_PORT_OPTION       = "data-port"
   private val ROOT_ID_OPTION         = "root-id"
   private val ROOT_PATH_OPTION       = "path"
   private val VERSION_OPTION         = "version"
@@ -77,12 +78,19 @@ object Main {
       .argName("interface")
       .desc("Interface for processing all incoming connections")
       .build()
-    val portOption = CliOption.builder
-      .longOpt(PORT_OPTION)
+    val rpcPortOption = CliOption.builder
+      .longOpt(RPC_PORT_OPTION)
       .hasArg(true)
       .numberOfArgs(1)
-      .argName("port")
-      .desc("Port for processing all incoming connections")
+      .argName("rpc-port")
+      .desc("RPC port for processing all incoming connections")
+      .build()
+    val dataPortOption = CliOption.builder
+      .longOpt(DATA_PORT_OPTION)
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("data-port")
+      .desc("Data port for visualisation protocol")
       .build()
     val uuidOption = CliOption.builder
       .hasArg(true)
@@ -112,7 +120,8 @@ object Main {
       .addOption(jupyterOption)
       .addOption(lsOption)
       .addOption(interfaceOption)
-      .addOption(portOption)
+      .addOption(rpcPortOption)
+      .addOption(dataPortOption)
       .addOption(uuidOption)
       .addOption(pathOption)
       .addOption(version)
@@ -239,22 +248,26 @@ object Main {
   ): Either[String, LanguageServerConfig] =
     // format: off
     for {
-      rootId    <- Option(line.getOptionValue(ROOT_ID_OPTION))
-                     .toRight("Root id must be provided")
-                     .flatMap { id =>
-                       Either
-                         .catchNonFatal(UUID.fromString(id))
-                         .leftMap(_ => "Root must be UUID")
-                     }
-      rootPath  <- Option(line.getOptionValue(ROOT_PATH_OPTION))
-                     .toRight("Root path must be provided")
-      interface  = Option(line.getOptionValue(INTERFACE_OPTION))
-                     .getOrElse("127.0.0.1")
-      portString = Option(line.getOptionValue(PORT_OPTION)).getOrElse("8080")
-      port      <- Either
-                     .catchNonFatal(portString.toInt)
-                     .leftMap(_ => "Port must be integer") 
-    } yield boot.LanguageServerConfig(interface, port, rootId, rootPath)
+      rootId     <- Option(line.getOptionValue(ROOT_ID_OPTION))
+                      .toRight("Root id must be provided")
+                      .flatMap { id =>
+                        Either
+                          .catchNonFatal(UUID.fromString(id))
+                          .leftMap(_ => "Root must be UUID")
+                      }
+      rootPath   <- Option(line.getOptionValue(ROOT_PATH_OPTION))
+                      .toRight("Root path must be provided")
+      interface   = Option(line.getOptionValue(INTERFACE_OPTION))
+                      .getOrElse("127.0.0.1")
+      rpcPortStr  = Option(line.getOptionValue(RPC_PORT_OPTION)).getOrElse("8080")
+      rpcPort    <- Either
+                      .catchNonFatal(rpcPortStr.toInt)
+                      .leftMap(_ => "Port must be integer")
+      dataPortStr = Option(line.getOptionValue(DATA_PORT_OPTION)).getOrElse("8081")
+      dataPort   <- Either
+                      .catchNonFatal(dataPortStr.toInt)
+                      .leftMap(_ => "Port must be integer")
+    } yield boot.LanguageServerConfig(interface, rpcPort, dataPort, rootId, rootPath)
     // format: on
 
   /** Prints the version of the enso executable.

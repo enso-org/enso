@@ -1,4 +1,5 @@
-package org.enso.languageserver.websocket
+package org.enso.languageserver.websocket.rpc
+
 import io.circe.literal._
 
 class MonitoringTest extends BaseServerTest {

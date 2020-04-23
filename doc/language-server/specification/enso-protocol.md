@@ -591,31 +591,63 @@ requests, each request/response/notification is wrapped in an envelope
 structure. There is a separate envelope for incoming and outgoing messages:
 
 ```idl
-namespace org.enso.languageserver.protocol;
+namespace org.enso.languageserver.protocol.data.envelope;
 
+//A mapping between payload enum and inbound payload types.
 union InboundPayload {
-  SESSION_INIT: org.enso.languageserver.protocol.session.SessionInit
+  SESSION_INIT: org.enso.languageserver.protocol.data.session.SessionInit
 }
 
+//An envelope for inbound requests and commands.
 table InboundMessage {
-  requestId: org.enso.languageserver.protocol.util.EnsoUUID (required);
-  correlationId: org.enso.languageserver.protocol.util.EnsoUUID;
+
+  //A unique id of the request sent to the server.
+  requestId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  //An optional correlation id used to correlate a response with a request.
+  correlationId: org.enso.languageserver.protocol.data.util.EnsoUUID;
+
+  //A message payload that carries requests sent by a client.
   payload: InboundPayload (required);
+
 }
 ```
 
 ```idl
-namespace org.enso.languageserver.protocol;
-
+//A mapping between payload enum and outbound payload types.
 union OutboundPayload {
-  SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.session.SessionInitResponse,
-  VISUALISATION_UPDATE: org.enso.languageserver.protocol.executioncontext.VisualisationUpdate
+  ERROR: org.enso.languageserver.protocol.data.util.Error,
+  SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.data.session.SessionInitResponse,
+  VISUALISATION_UPDATE: org.enso.languageserver.protocol.data.executioncontext.VisualisationUpdate
 }
 
+//An envelope for outbound responses.
 table OutboundMessage {
-  requestId: org.enso.languageserver.protocol.util.EnsoUUID (required);
-  correlationId: org.enso.languageserver.protocol.util.EnsoUUID;
+
+  //A unique id of the request sent to the server.
+  requestId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  //An optional correlation id used to correlate a response with a request.
+  correlationId: org.enso.languageserver.protocol.data.util.EnsoUUID;
+
+  //A message payload that carries responses and notifications sent by a server
   payload: OutboundPayload (required);
+
+}
+```
+
+```idl
+namespace org.enso.languageserver.protocol.data.util;
+
+//A generic error object.
+table Error {
+
+  //A unique error code identifying error type.
+  code: int;
+
+  //An error message.
+  message: string;
+
 }
 ```
 
@@ -755,7 +787,7 @@ An EnsoUUID is a value object containing 128-bit universally unique identifier.
 ##### Format
 
 ```idl
-namespace org.enso.languageserver.protocol.util;
+namespace org.enso.languageserver.protocol.data.util;
 
 struct EnsoUUID {
   leastSigBits:uint64;
@@ -817,7 +849,8 @@ interface ProjectOpenRequest {
 
 ```typescript
 interface ProjectOpenResult {
-  languageServerAddress: IPWithSocket;
+  languageServerRpcAddress: IPWithSocket;
+  languageServerDataAddress: IPWithSocket;
 }
 ```
 
@@ -1288,15 +1321,21 @@ client identifier can be correlated between the data and textual connections.
 ##### Parameters
 
 ```idl
-namespace org.enso.languageserver.protocol.session;
+namespace org.enso.languageserver.protocol.data.session;
 
+//A command initializing a data session.
 table SessionInit {
-  identifier: org.enso.languageserver.protocol.util.UUID;
+
+  //A unique identifier of a client initializing the session.
+  identifier: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
 }
 
+//A void response signaling that the session has been initialized.
 table SessionInitResponse {}
 
 root_type SessionInit;
+root_type SessionInitResponse;
 ```
 
 ##### Result
@@ -2581,22 +2620,31 @@ transport is concerned, it is just a binary blob.
 ##### Parameters
 
 ```idl
-namespace executionContext;
+namespace org.enso.languageserver.protocol.data.executioncontext;
 
-struct UUID {
-  lowBytes:uint64;
-  highBytes:uint64;
+//A visualisation context identifying a concrete visualisation.
+table VisualisationContext {
+
+  //A visualisation identifier.
+  visualisationId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  //A context identifier.
+  contextId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  //An expression identifier.
+  expressionId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
 }
 
-struct VisualisationContext {
-  visualisationId:UUID;
-  contextId:UUID;
-  expressionId:UUID;
-}
+//An event signaling visualisation update.
+table VisualisationUpdate {
 
-struct VisualisationUpdate {
-  visualisationContext:VisualisationContext;
-  data:[ubyte];
+  //A visualisation context identifying a concrete visualisation.
+  visualisationContext: VisualisationContext (required);
+
+  //A visualisation data.
+  data: [ubyte] (required);
+
 }
 
 root_type VisualisationUpdate;

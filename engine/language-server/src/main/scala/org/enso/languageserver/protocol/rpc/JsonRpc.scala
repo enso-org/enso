@@ -1,4 +1,4 @@
-package org.enso.languageserver.protocol
+package org.enso.languageserver.protocol.rpc
 
 import io.circe.generic.auto._
 import org.enso.jsonrpc.Protocol

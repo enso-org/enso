@@ -1,4 +1,4 @@
-package org.enso.languageserver.websocket
+package org.enso.languageserver.websocket.rpc
 
 import java.io.File
 import java.util.UUID
@@ -275,12 +275,12 @@ class ContextRegistryTest extends BaseServerTest {
       val requestId2 =
         runtimeConnectorProbe.receiveN(1).head match {
           case Api.Request(
-            requestId,
-            Api.PushContextRequest(
-              `contextId`,
-              Api.StackItem.LocalCall(`expressionId`)
-            )
-          ) =>
+              requestId,
+              Api.PushContextRequest(
+                `contextId`,
+                Api.StackItem.LocalCall(`expressionId`)
+              )
+              ) =>
             requestId
           case msg =>
             fail(s"Unexpected message: $msg")

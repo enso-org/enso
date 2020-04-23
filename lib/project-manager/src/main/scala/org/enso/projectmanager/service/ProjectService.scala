@@ -7,7 +7,11 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.ErrorChannel
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.data.{ProjectMetadata, Socket}
+import org.enso.projectmanager.data.{
+  LanguageServerSockets,
+  ProjectMetadata,
+  Socket
+}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerService
 import org.enso.projectmanager.infrastructure.log.Logging
@@ -94,7 +98,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
   override def openProject(
     clientId: UUID,
     projectId: UUID
-  ): F[ProjectServiceFailure, Socket] = {
+  ): F[ProjectServiceFailure, LanguageServerSockets] = {
     // format: off
     for {
       _        <- log.debug(s"Opening project $projectId")
@@ -102,15 +106,15 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       openTime <- clock.nowInUtc()
       updated   = project.copy(lastOpened = Some(openTime))
       _        <- repo.save(updated).mapError(toServiceFailure)
-      socket   <- startServer(clientId, updated)
-    } yield socket
+      sockets  <- startServer(clientId, updated)
+    } yield sockets
     // format: on
   }
 
   private def startServer(
     clientId: UUID,
     project: Project
-  ): F[ProjectServiceFailure, Socket] =
+  ): F[ProjectServiceFailure, LanguageServerSockets] =
     languageServerService
       .start(clientId, project)
       .mapError {

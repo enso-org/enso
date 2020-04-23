@@ -1,4 +1,4 @@
-package org.enso.languageserver.protocol
+package org.enso.languageserver.protocol.rpc
 
 import org.enso.jsonrpc.Error
 

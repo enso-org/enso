@@ -1,7 +1,5 @@
 package org.enso.languageserver.filemanager
 
-import org.enso.languageserver.protocol.ErrorApi
-
 import org.enso.languageserver.filemanager.FileManagerApi.{
   ContentRootNotFoundError,
   FileExistsError,
@@ -11,6 +9,7 @@ import org.enso.languageserver.filemanager.FileManagerApi.{
   OperationTimeoutError
 }
 import org.enso.jsonrpc.Error
+import org.enso.languageserver.protocol.rpc.ErrorApi
 
 object FileSystemFailureMapper {
 

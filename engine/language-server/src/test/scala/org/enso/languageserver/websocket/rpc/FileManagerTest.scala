@@ -1,8 +1,8 @@
-package org.enso.languageserver.websocket
+package org.enso.languageserver.websocket.rpc
 
+import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-import java.nio.file.attribute.BasicFileAttributes
 
 import io.circe.literal._
 import org.apache.commons.io.FileUtils
