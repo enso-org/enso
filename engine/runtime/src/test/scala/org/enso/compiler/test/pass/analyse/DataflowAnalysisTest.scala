@@ -227,9 +227,9 @@ class DataflowAnalysisTest extends CompilerTest {
     val ir =
       """
         |M.foo = a b ->
-        |   IO.println b
-        |   c = a + b
-        |   frobnicate a c
+        |    IO.println b
+        |    c = a + b
+        |    frobnicate a c
         |""".stripMargin.preprocessModule.analyse
 
     val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get

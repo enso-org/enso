@@ -73,6 +73,7 @@ abstract class JsonRpcServerTestKit
     private val sink: Sink[Message, NotUsed] = Flow[Message]
       .map {
         case TextMessage.Strict(s) => s
+        case _ => throw new RuntimeException("Unexpected message type.")
       }
       .to(Sink.actorRef[String](outActor.ref, PoisonPill, { _: Any =>
         PoisonPill
