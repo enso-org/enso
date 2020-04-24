@@ -25,6 +25,11 @@
 ///   currently stored pixel. Blending applies only in RGBA mode and only if the color buffer has a
 ///   fixed-point or floating-point format; in color index mode or if the color buffer has an
 ///   integer format, it is bypassed.
+///
+/// The features of some texture formats can be modified through extensions. For example, the
+/// the extension `EXT_color_buffer_float` can make the group of float texture (e.g., `Rgba32f`)
+/// color renderable.
+///
 #[macro_export]
 macro_rules! with_texture_format_relations { ($f:ident $args:tt) => { $crate::$f! { $args
 //  INTERNAL_FORMAT   FORMAT         SAMPLER      COL   FILT  BLEND [POSSIBLE_TYPE:BYTES_PER_TEXTURE_ELEM]

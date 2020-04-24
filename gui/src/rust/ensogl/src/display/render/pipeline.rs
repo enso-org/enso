@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 use crate::system::gpu::types::*;
-use crate::system::gpu::texture::*;
+use crate::system::gpu::texture;
 
 
 
@@ -53,19 +53,21 @@ pub struct RenderPassOutput {
     /// Name of the pass.
     pub name : String,
     /// Internal texture format of the pass framebuffer's attachment.
-    pub internal_format : AnyInternalFormat,
+    pub internal_format : texture::AnyInternalFormat,
     /// Item texture type of the pass framebuffer's attachment.
-    pub item_type : AnyItemType,
+    pub item_type : texture::AnyItemType,
+    /// Texture parameters that will be set when binding the texture.
+    pub texture_parameters : texture::Parameters,
 }
 
 impl RenderPassOutput {
     /// Constructor.
-    pub fn new<Name:Str,F:Into<AnyInternalFormat>,T:Into<AnyItemType>>
-    (name:Name, internal_format:F, item_type:T) -> Self {
+    pub fn new<Name:Str,F:Into<texture::AnyInternalFormat>,T:Into<texture::AnyItemType>>
+    (name:Name, internal_format:F, item_type:T, texture_parameters:texture::Parameters) -> Self {
         let name            = name.into();
         let internal_format = internal_format.into();
         let item_type       = item_type.into();
-        Self {name,internal_format,item_type}
+        Self {name,internal_format,item_type,texture_parameters}
     }
 
     /// Getter.

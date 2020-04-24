@@ -62,7 +62,7 @@ TextureReload for Texture<GpuOnly,I,T> {
         self.context().tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_u8_array
         (target,level,internal_format,width,height,border,format,elem_type,None).unwrap();
 
-        Self::set_texture_parameters(self.context());
+        self.apply_texture_parameters(self.context());
     }
 }
 
