@@ -109,6 +109,15 @@ impl {
 // === Target ===
 // ==============
 
+/// Result of a Decoding operation in the Target.
+#[derive(Debug,Clone,Copy,Eq,PartialEq)]
+enum DecodingResult{
+    /// Values had to be truncated.
+    Truncated(u8,u8,u8),
+    /// Values have been encoded successfully.
+    Ok(u8,u8,u8)
+}
+
 /// Mouse target. Contains a path to an object pointed by mouse.
 #[derive(Debug,Clone,Copy,Eq,PartialEq)]
 pub enum Target {
@@ -120,23 +129,82 @@ pub enum Target {
 }
 
 impl Target {
-    fn to_internal(&self) -> Vector4<u32> {
+
+    /// Encode two u32 values into three u8 values.
+    ///
+    /// This is the same encoding that is used in the `fragment_runner`. This encoding is lossy and
+    /// can only encode values up to 12^2=4096 each
+    ///
+    /// We use 12 bits from each value and pack them into the 3 output bytes like described in the
+    /// following diagram.
+    ///
+    /// ```text
+    ///  Input
+    ///
+    ///    value1 (v1) as bytes               value2 (v2) as bytes
+    ///   +-----+-----+-----+-----+           +-----+-----+-----+-----+
+    ///   |     |     |     |     |           |     |     |     |     |
+    ///   +-----+-----+-----+-----+           +-----+-----+-----+-----+
+    /// 32    24    16     8      0         32    24    16     8      0   <- Bit index
+    ///
+    ///
+    /// Output
+    ///
+    /// byte1            byte2                     byte3
+    /// +-----------+    +----------------------+     +------------+
+    /// | v ]12..4] |    | v1 ]4..0]  v2 ]4..0] |     | v2 ]12..4] |
+    /// +-----------+    +----------------------+     +------------+
+    ///
+    /// Ranges use mathematical notation for inclusion/exclusion.
+    /// ```
+    fn encode(value1:u32, value2:u32) -> DecodingResult {
+        let chunk1 = (value1 >> 4u32) & 0x00FFu32;
+        let chunk2 = (value1 & 0x000Fu32) << 4u32;
+        let chunk2 = chunk2 | ((value2 & 0x0F00u32) >> 8u32);
+        let chunk3 = value2 & 0x00FFu32;
+
+        if value1 > 2u32.pow(12) ||value2 > 2u32.pow(12) {
+            DecodingResult::Truncated(chunk1 as u8, chunk2 as u8, chunk3 as u8)
+        }else{
+            DecodingResult::Ok(chunk1 as u8, chunk2 as u8, chunk3 as u8)
+        }
+    }
+
+    /// Decode the symbol_id and instance_id that was encoded in the `fragment_runner`.
+    ///
+    /// See the `encode` method for more information on the encoding.
+    fn decode(chunk1:u32, chunk2:u32, chunk3:u32) -> (u32, u32) {
+        let value1 = (chunk1 << 4) + (chunk2 >> 4);
+        let value2 = chunk3 + ((chunk2 & 0x000F) << 8);
+        (value1, value2)
+    }
+
+    fn to_internal(&self, logger:&Logger) -> Vector4<u32> {
         match self {
             Self::Background                     => Vector4::new(0,0,0,0),
-            Self::Symbol {symbol_id,instance_id} => Vector4::new(*symbol_id,*instance_id,0,1),
+            Self::Symbol {symbol_id,instance_id} => {
+                match Self::encode(*symbol_id,*instance_id) {
+                    DecodingResult::Truncated(pack0,pack1,pack2) => {
+                        warning!(logger,"Target values too big to encode: \
+                                         ({symbol_id},{instance_id}).");
+                        Vector4::new(pack0.into(),pack1.into(),pack2.into(),1)
+                    },
+                    DecodingResult::Ok(pack0,pack1,pack2) => {
+                        Vector4::new(pack0.into(),pack1.into(),pack2.into(),1)
+                    },
+                }
+            },
         }
     }
 
     fn from_internal(v:Vector4<u32>) -> Self {
-        if v.z != 0 {
-            panic!("Wrong internal format for mouse target.")
-        }
         if v.w == 0 {
             Self::Background
         }
-        else if v.w == 1 {
-            let symbol_id   = v.x;
-            let instance_id = v.y;
+        else if v.w == 255 {
+            let decoded     = Self::decode(v.x,v.y,v.z);
+            let symbol_id   = decoded.0;
+            let instance_id = decoded.1;
             Self::Symbol {symbol_id,instance_id}
         } else {
             panic!("Wrong internal format alpha for mouse target.")
@@ -151,6 +219,58 @@ impl Default for Target {
 }
 
 
+// === Target Tests ===
+
+#[cfg(test)]
+mod target_tests {
+    use super::*;
+
+    /// Asserts that decoding encoded the given values returns the correct initial values again.
+    /// That means that `decode(encode(value1,value2)) == (value1,value2)`.
+    fn assert_valid_roundtrip(value1:u32, value2:u32) {
+        let pack   = Target::encode(value1,value2);
+        match pack {
+            DecodingResult::Truncated {..} => {
+               panic!("Values got truncated. This is an invalid test case: {}, {}", value1, value1)
+            },
+            DecodingResult::Ok(pack0,pack1,pack2) => {
+                let unpack = Target::decode(pack0.into(),pack1.into(),pack2.into());
+                assert_eq!(unpack.0,value1);
+                assert_eq!(unpack.1,value2);
+            },
+        }
+    }
+
+    #[test]
+    fn test_roundtrip_coding() {
+        assert_valid_roundtrip(   0,   0);
+        assert_valid_roundtrip(   0,   5);
+        assert_valid_roundtrip( 512,   0);
+        assert_valid_roundtrip(1024,  64);
+        assert_valid_roundtrip(1024, 999);
+    }
+
+    #[test]
+    fn test_encoding() {
+        let pack   = Target::encode(0,0);
+        assert_eq!(pack,DecodingResult::Ok(0,0,0));
+
+        let pack   = Target::encode(3,7);
+        assert_eq!(pack,DecodingResult::Ok(0,48,7));
+
+        let pack   = Target::encode(3,256);
+        assert_eq!(pack,DecodingResult::Ok(0,49,0));
+
+        let pack   = Target::encode(255,356);
+        assert_eq!(pack,DecodingResult::Ok(15,241,100));
+
+        let pack   = Target::encode(256,356);
+        assert_eq!(pack,DecodingResult::Ok(16,1,100));
+
+        let pack   = Target::encode(31256,0);
+        assert_eq!(pack,DecodingResult::Truncated(161,128,0));
+    }
+}
 
 // =============
 // === Mouse ===
@@ -176,14 +296,15 @@ pub struct Mouse {
     pub target          : Rc<Cell<Target>>,
     pub handles         : Rc<Vec<callback::Handle>>,
     pub frp             : enso_frp::io::Mouse,
+    pub logger          : Logger
 }
 
 impl Mouse {
-    pub fn new(shape:&web::dom::Shape, variables:&UniformScope) -> Self {
+    pub fn new(shape:&web::dom::Shape, variables:&UniformScope, logger:Logger) -> Self {
 
         let target          = Target::default();
         let position        = variables.add_or_panic("mouse_position",Vector2::new(0,0));
-        let hover_ids       = variables.add_or_panic("mouse_hover_ids",target.to_internal());
+        let hover_ids       = variables.add_or_panic("mouse_hover_ids",target.to_internal(&logger));
         let button0_pressed = variables.add_or_panic("mouse_button0_pressed",false);
         let button1_pressed = variables.add_or_panic("mouse_button1_pressed",false);
         let button2_pressed = variables.add_or_panic("mouse_button2_pressed",false);
@@ -255,7 +376,7 @@ impl Mouse {
         }).forget();
 
         Self {mouse_manager,position,hover_ids,button0_pressed,button1_pressed,button2_pressed
-             ,button3_pressed,button4_pressed,target,handles,frp}
+             ,button3_pressed,button4_pressed,target,handles,frp,logger}
     }
 }
 
@@ -619,7 +740,8 @@ impl SceneData {
         let symbols_dirty  = dirty_flag;
         let views          = Views::mk(&logger,width,height);
         let stats          = stats.clone();
-        let mouse          = Mouse::new(&dom.shape(),&variables);
+        let mouse_logger   = logger.sub("mouse");
+        let mouse          = Mouse::new(&dom.shape(),&variables,mouse_logger);
         let shapes         = ShapeRegistry::default();
         let uniforms       = Uniforms::new(&variables);
         let dirty          = Dirty {symbols:symbols_dirty,shape:shape_dirty};

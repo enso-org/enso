@@ -142,9 +142,9 @@ impl World {
 
     fn init_composer(&self) {
         let mouse_hover_ids     = self.scene.mouse.hover_ids.clone_ref();
-        let mut pixel_read_pass = PixelReadPass::<u32>::new(&self.scene.mouse.position);
+        let mut pixel_read_pass = PixelReadPass::<u8>::new(&self.scene.mouse.position);
         pixel_read_pass.set_callback(move |v| {
-            mouse_hover_ids.set(Vector4::from_iterator(v))
+            mouse_hover_ids.set(Vector4::from_iterator(v.iter().map(|value| *value as u32)))
         });
         // TODO: We may want to enable it on weak hardware.
         // pixel_read_pass.set_threshold(1);

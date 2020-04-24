@@ -82,6 +82,7 @@ TextureReload for Texture<RemoteImage,I,T> {
         let image_ref_opt = image_ref.clone();
         let context       = self.context().clone();
         let gl_texture    = self.gl_texture().clone();
+        let parameters    = *self.parameters();
         let callback: Closure<dyn FnMut()> = Closure::once(move || {
             let _keep_alive     = callback_ref2;
             let image           = image_ref_opt.borrow();
@@ -94,7 +95,7 @@ TextureReload for Texture<RemoteImage,I,T> {
             context.tex_image_2d_with_u32_and_u32_and_html_image_element
             (target,level,internal_format,format,elem_type,&image).unwrap();
 
-            Self::set_texture_parameters(&context);
+            parameters.apply_parameters(&context);
         });
         let js_callback = callback.as_ref().unchecked_ref();
         let image       = image_ref.borrow();

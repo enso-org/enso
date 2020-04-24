@@ -258,7 +258,7 @@ impl GlyphSystem {
         // FIXME outputs as the number of attachments to framebuffer. We should manage this more
         // FIXME intelligent. For example, we could allow defining output shader fragments,
         // FIXME which will be enabled only if pass of given attachment type was enabled.
-        material.add_output("id", Vector4::<u32>::new(0,0,0,0));
+        material.add_output("id", Vector4::<f32>::new(0.0,0.0,0.0,0.0));
 
         let code = CodeTemplate::new(BEFORE_MAIN.to_string(),MAIN.to_string(),"".to_string());
         material.set_code(code);
