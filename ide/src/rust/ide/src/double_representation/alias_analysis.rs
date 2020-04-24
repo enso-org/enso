@@ -173,7 +173,7 @@ impl AliasAnalyzer {
     /// Enters a new location (relative to the current one), invokes `f`, leaves the location.
     fn in_location_of<T,F,R>(&mut self, located_item:&Located<T>, f:F) -> R
         where F:FnOnce(&mut Self) -> R {
-        self.in_location(located_item.crumbs.iter().copied(), f)
+        self.in_location(located_item.crumbs.iter().cloned(), f)
     }
 
     /// Obtains a mutable reference to the current scope.

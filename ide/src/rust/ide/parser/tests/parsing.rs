@@ -355,7 +355,7 @@ impl Fixture {
     }
 
     fn deserialize_macro_ambiguous(&mut self) {
-        self.test_shape("if  foo",|shape:&Ambiguous| {
+        self.test_shape("if  foo",|shape:&Ambiguous<Ast>| {
             let segment = &shape.segs.head;
             assert_var(&segment.head,"if");
 

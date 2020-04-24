@@ -121,6 +121,11 @@ pub struct ShiftedVec1<T> {
     pub tail: Vec<Shifted<T>>
 }
 
+impl<T> Shifted<T> {
+    pub fn new(off:usize, wrapped:T) -> Self {
+        Shifted{off,wrapped}
+    }
+}
 
 
 // =============
@@ -365,9 +370,9 @@ impl<'de> Deserialize<'de> for Ast {
 #[ast(flat)]
 #[derive(HasTokens)]
 pub enum Shape<T> {
-    Unrecognized  { str : String   },
-    InvalidQuote  { quote: Builder },
-    InlineBlock   { quote: Builder },
+    Unrecognized  { str   : String  },
+    InvalidQuote  { quote : Builder },
+    InlineBlock   { quote : Builder },
 
     // === Identifiers ===
     Blank         { },
@@ -378,8 +383,8 @@ pub enum Shape<T> {
     InvalidSuffix { elem : T, suffix: String },
 
     // === Number ===
-    Number        { base: Option<String>, int: String },
-    DanglingBase  { base: String                      },
+    Number        { base : Option<String>, int: String },
+    DanglingBase  { base : String                      },
 
     // === Text ===
     TextLineRaw   { text   : Vec<SegmentRaw>                  },
@@ -422,10 +427,10 @@ pub enum Shape<T> {
                     is_orphan   : bool                       },
 
     // === Macros ===
-    Match         { pfx      : Option<MacroPatternMatch<Shifted<Ast>>>
+    Match         { pfx      : Option<MacroPatternMatch<Shifted<T>>>
                   , segs     : ShiftedVec1<MacroMatchSegment<T>>
                   , resolved : Ast                                     },
-    Ambiguous     { segs     : ShiftedVec1<MacroAmbiguousSegment>
+    Ambiguous     { segs     : ShiftedVec1<MacroAmbiguousSegment<T>>
                   , paths    : Tree<Ast, Unit>                         },
 
     // === Spaceless AST ===
@@ -447,7 +452,7 @@ macro_rules! with_shape_variants {
               [TextLineRaw] [TextLineFmt Ast] [TextBlockRaw] [TextBlockFmt Ast] [TextUnclosed Ast]
               [Prefix Ast] [Infix Ast] [SectionLeft Ast] [SectionRight Ast] [SectionSides Ast]
               [Module Ast] [Block Ast]
-              [Match Ast] [Ambiguous]
+              [Match Ast] [Ambiguous Ast]
               // Note: Spaceless AST is intentionally omitted here.
             }
     };
@@ -560,13 +565,13 @@ pub struct BlockLine <T> {
 // =============
 
 #[ast] pub struct MacroMatchSegment<T> {
-    pub head : Ast,
+    pub head : T,
     pub body : MacroPatternMatch<Shifted<T>>
 }
 
-#[ast] pub struct MacroAmbiguousSegment {
-    pub head: Ast,
-    pub body: Option<Shifted<Ast>>
+#[ast] pub struct MacroAmbiguousSegment<T> {
+    pub head: T,
+    pub body: Option<Shifted<T>>
 }
 
 pub type MacroPattern = Rc<MacroPatternRaw>;
@@ -580,7 +585,7 @@ pub type MacroPattern = Rc<MacroPatternRaw>;
     Seq     { pat1 : MacroPattern , pat2    : MacroPattern                    },
     Or      { pat1 : MacroPattern , pat2    : MacroPattern                    },
     Many    { pat  : MacroPattern                                             },
-    Except  { not  : MacroPattern, pat      : MacroPattern                    },
+    Except  { not  : MacroPattern , pat     : MacroPattern                    },
 
     // === Meta Patterns ===
     Build   { pat  : MacroPattern                                             },
@@ -617,11 +622,22 @@ pub enum Switch<T> { Left{value: T}, Right{value: T} }
 // Switch however does not need to be #[ast], when derive(Iterator) supports
 // enum with struct variants, this attribute should be possible to remove.
 
-impl<T> Switch<T> {
-    fn get(&self) -> &T {
+impl<T> Deref for Switch<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
         match self {
             Switch::Left (elem) => &elem.value,
             Switch::Right(elem) => &elem.value,
+        }
+    }
+}
+
+impl<T> DerefMut for Switch<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        match self {
+            Switch::Left (elem) => &mut elem.value,
+            Switch::Right(elem) => &mut elem.value,
         }
     }
 }

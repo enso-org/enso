@@ -100,7 +100,7 @@ impl<'a> Ref<'a> {
     pub fn child(mut self, index:usize) -> Option<Ref<'a>> {
         self.node.children.get(index).map(|child| {
             self.crumbs.push(index);
-            self.ast_crumbs.extend(&child.ast_crumbs);
+            self.ast_crumbs.extend(child.ast_crumbs.clone());
             self.span_begin += child.offset;
             self.node = &child.node;
             self
