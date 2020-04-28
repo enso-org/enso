@@ -76,6 +76,30 @@ object Runtime {
         name  = "closeFileNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.AttachVisualisation],
+        name  = "attachVisualisation"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.VisualisationAttached],
+        name  = "visualisationAttached"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.DetachVisualisation],
+        name  = "detachVisualisation"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.VisualisationDetached],
+        name  = "visualisationDetached"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ModifyVisualisation],
+        name  = "modifyVisualisation"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.VisualisationModified],
+        name  = "visualisationModified"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.ExpressionValuesComputed],
         name  = "expressionValuesComputed"
       ),
@@ -104,9 +128,10 @@ object Runtime {
 
   object Api {
 
-    type ContextId    = UUID
-    type ExpressionId = UUID
-    type RequestId    = UUID
+    type ContextId       = UUID
+    type ExpressionId    = UUID
+    type RequestId       = UUID
+    type VisualisationId = UUID
 
     /**
       * Indicates error response.
@@ -198,7 +223,8 @@ object Runtime {
         *
         * @param value a list of expressions to invalidate.
         */
-      case class Expressions(value: Vector[ExpressionId]) extends InvalidatedExpressions
+      case class Expressions(value: Vector[ExpressionId])
+          extends InvalidatedExpressions
     }
 
     /**
@@ -210,6 +236,44 @@ object Runtime {
     case class ExpressionValuesComputed(
       contextId: ContextId,
       updates: Vector[ExpressionValueUpdate]
+    ) extends ApiNotification
+
+    /**
+      * Represents a visualisation context.
+      *
+      * @param visualisationId a visualisation identifier
+      * @param contextId a context identifier
+      * @param expressionId an expression identifier
+      */
+    case class VisualisationContext(
+      visualisationId: VisualisationId,
+      contextId: ContextId,
+      expressionId: ExpressionId
+    )
+
+    /**
+      * A configuration object for properties of the visualisation.
+      *
+      * @param executionContextId an execution context of the visualisation
+      * @param visualisationModule a qualified name of the module containing
+      *                            the expression which creates visualisation
+      * @param expression the expression that creates a visualisation
+      */
+    case class VisualisationConfiguration(
+      executionContextId: ContextId,
+      visualisationModule: String,
+      expression: String
+    )
+
+    /**
+      * An event signaling a visualisation update.
+      *
+      * @param visualisationContext a visualisation context
+      * @param data a visualisation data
+      */
+    case class VisualisationUpdate(
+      visualisationContext: VisualisationContext,
+      data: Array[Byte]
     ) extends ApiNotification
 
     /**
@@ -412,6 +476,63 @@ object Runtime {
       * message will be dropped.
       */
     case class InitializedNotification() extends ApiResponse
+
+    /**
+      * A request sent from the client to the runtime server, to create a new
+      * visualisation for an expression identified by `expressionId`.
+      *
+      * @param visualisationId an identifier of a visualisation
+      * @param expressionId an identifier of an expression which is visualised
+      * @param visualisationConfig a configuration object for properties of the
+      *                            visualisation
+      */
+    case class AttachVisualisation(
+      visualisationId: VisualisationId,
+      expressionId: ExpressionId,
+      visualisationConfig: VisualisationConfiguration
+    ) extends ApiRequest
+
+    /**
+      * Signals that attaching a visualisation has succeeded.
+      */
+    case class VisualisationAttached() extends ApiResponse
+
+    /**
+      * A request sent from the client to the runtime server, to detach a
+      * visualisation from an expression identified by `expressionId`.
+      *
+      * @param contextId an execution context identifier
+      * @param visualisationId an identifier of a visualisation
+      * @param expressionId an identifier of an expression which is visualised
+      */
+    case class DetachVisualisation(
+      contextId: ContextId,
+      visualisationId: VisualisationId,
+      expressionId: ExpressionId
+    ) extends ApiRequest
+
+    /**
+      * Signals that detaching a visualisation has succeeded.
+      */
+    case class VisualisationDetached() extends ApiResponse
+
+    /**
+      * A request sent from the client to the runtime server, to modify a
+      * visualisation identified by `visualisationId`.
+      *
+      * @param visualisationId     an identifier of a visualisation
+      * @param visualisationConfig a configuration object for properties of the
+      *                            visualisation
+      */
+    case class ModifyVisualisation(
+      visualisationId: VisualisationId,
+      visualisationConfig: VisualisationConfiguration
+    ) extends ApiRequest
+
+    /**
+      * Signals that a visualisation modification has succeeded.
+      */
+    case class VisualisationModified() extends ApiResponse
 
     private lazy val mapper = {
       val factory = new CBORFactory()

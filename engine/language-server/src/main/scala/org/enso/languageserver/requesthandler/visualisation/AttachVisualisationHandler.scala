@@ -1,49 +1,46 @@
-package org.enso.languageserver.requesthandler.executioncontext
+package org.enso.languageserver.requesthandler.visualisation
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
+import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.runtime.VisualisationApi.AttachVisualisation
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
-  RuntimeFailureMapper
+  RuntimeFailureMapper,
+  VisualisationProtocol
 }
-import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for `executionContext/push` commands.
+  * A request handler for `executionContext/attachVisualisation` commands.
   *
+  * @param clientId an unique identifier of the client
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
-  * @param session an object representing a client connected to the language server
   */
-class PushHandler(
+class AttachVisualisationHandler(
+  clientId: ClientId,
   timeout: FiniteDuration,
-  contextRegistry: ActorRef,
-  session: RpcSession
+  contextRegistry: ActorRef
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
-  import ContextRegistryProtocol._
   import context.dispatcher
 
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case Request(
-        ExecutionContextPush,
-        id,
-        params: ExecutionContextPush.Params
-        ) =>
-      contextRegistry ! PushContextRequest(
-        session,
-        params.contextId,
-        params.stackItem
+    case Request(AttachVisualisation, id, params: AttachVisualisation.Params) =>
+      contextRegistry ! VisualisationProtocol.AttachVisualisation(
+        clientId,
+        params.visualisationId,
+        params.expressionId,
+        params.visualisationConfig
       )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
@@ -60,8 +57,8 @@ class PushHandler(
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case PushContextResponse(_) =>
-      replyTo ! ResponseResult(ExecutionContextPush, id, Unused)
+    case VisualisationProtocol.VisualisationAttached =>
+      replyTo ! ResponseResult(AttachVisualisation, id, Unused)
       cancellable.cancel()
       context.stop(self)
 
@@ -70,22 +67,23 @@ class PushHandler(
       cancellable.cancel()
       context.stop(self)
   }
+
 }
 
-object PushHandler {
+object AttachVisualisationHandler {
 
   /**
-    * Creates configuration object used to create a [[PushHandler]].
+    * Creates configuration object used to create a [[AttachVisualisationHandler]].
     *
+    * @param clientId an unique identifier of the client
     * @param timeout request timeout
-    * @param contextRegistry a reference to the context registry.
-    * @param rpcSession an object representing a client connected to the language server
+    * @param runtime a reference to the context registry
     */
   def props(
+    clientId: ClientId,
     timeout: FiniteDuration,
-    contextRegistry: ActorRef,
-    rpcSession: RpcSession
+    runtime: ActorRef
   ): Props =
-    Props(new PushHandler(timeout, contextRegistry, rpcSession))
+    Props(new AttachVisualisationHandler(clientId, timeout, runtime))
 
 }

@@ -10,9 +10,10 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityAcquisitionBadRequest,
   CapabilityAcquisitionFileSystemFailure
 }
-import org.enso.languageserver.data.{CapabilityRegistration, Client}
+import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.requesthandler.RequestTimeout
+import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -22,12 +23,12 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param capabilityRouter a router that dispatches capability requests
   * @param timeout a request timeout
-  * @param client an object representing a client connected to the language server
+  * @param session an object representing a client connected to the language server
   */
 class AcquireCapabilityHandler(
   capabilityRouter: ActorRef,
   timeout: FiniteDuration,
-  client: Client
+  session: RpcSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -39,7 +40,7 @@ class AcquireCapabilityHandler(
   private def requestStage: Receive = {
     case Request(AcquireCapability, id, registration: CapabilityRegistration) =>
       capabilityRouter ! CapabilityProtocol.AcquireCapability(
-        client,
+        session,
         registration
       )
       val cancellable =
@@ -53,7 +54,7 @@ class AcquireCapabilityHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Acquiring capability for ${client.id} timed out")
+      log.error(s"Acquiring capability for ${session.clientId} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
@@ -84,16 +85,16 @@ object AcquireCapabilityHandler {
     *
     * @param capabilityRouter a router that dispatches capability requests
     * @param requestTimeout a request timeout
-    * @param client an object representing a client connected to the language server
+    * @param rpcSession an object representing a client connected to the language server
     * @return a configuration object
     */
   def props(
     capabilityRouter: ActorRef,
     requestTimeout: FiniteDuration,
-    client: Client
+    rpcSession: RpcSession
   ): Props =
     Props(
-      new AcquireCapabilityHandler(capabilityRouter, requestTimeout, client)
+      new AcquireCapabilityHandler(capabilityRouter, requestTimeout, rpcSession)
     )
 
 }

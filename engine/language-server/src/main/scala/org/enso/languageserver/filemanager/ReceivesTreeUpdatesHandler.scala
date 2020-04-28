@@ -70,14 +70,14 @@ final class ReceivesTreeUpdatesHandler(
       store.getWatcher(path) match {
         case Some(watcher) =>
           watcher.forward(
-            PathWatcherProtocol.WatchPath(path, client.actor)
+            PathWatcherProtocol.WatchPath(path, client.rpcController)
           )
         case None =>
           val watcher =
             context.actorOf(PathWatcher.props(config, fs, exec))
           context.watch(watcher)
           watcher.forward(
-            PathWatcherProtocol.WatchPath(path, client.actor)
+            PathWatcherProtocol.WatchPath(path, client.rpcController)
           )
           context.become(withStore(store.addWatcher(watcher, path)))
       }
@@ -88,7 +88,7 @@ final class ReceivesTreeUpdatesHandler(
         ) =>
       store.getWatcher(path) match {
         case Some(watcher) =>
-          watcher.forward(PathWatcherProtocol.UnwatchPath(client.actor))
+          watcher.forward(PathWatcherProtocol.UnwatchPath(client.rpcController))
         case None =>
           sender() ! CapabilityNotAcquiredResponse
       }

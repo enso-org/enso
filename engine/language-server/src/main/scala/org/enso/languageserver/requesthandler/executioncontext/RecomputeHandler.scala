@@ -3,13 +3,13 @@ package org.enso.languageserver.requesthandler.executioncontext
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.languageserver.data.Client
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
   RuntimeFailureMapper
 }
+import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -19,17 +19,18 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
-  * @param client an object representing a client connected to the language server
+  * @param session an object representing a client connected to the language server
   */
 class RecomputeHandler(
   timeout: FiniteDuration,
   contextRegistry: ActorRef,
-  client: Client
+  session: RpcSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
-  import context.dispatcher, ContextRegistryProtocol._
+  import ContextRegistryProtocol._
+  import context.dispatcher
 
   override def receive: Receive = requestStage
 
@@ -40,7 +41,7 @@ class RecomputeHandler(
         params: ExecutionContextRecompute.Params
         ) =>
       contextRegistry ! RecomputeContextRequest(
-        client,
+        session,
         params.contextId,
         params.invalidatedExpressions
       )
@@ -78,13 +79,13 @@ object RecomputeHandler {
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.
-    * @param client an object representing a client connected to the language server
+    * @param rpcSession an object representing a client connected to the language server
     */
   def props(
     timeout: FiniteDuration,
     contextRegistry: ActorRef,
-    client: Client
+    rpcSession: RpcSession
   ): Props =
-    Props(new RecomputeHandler(timeout, contextRegistry, client))
+    Props(new RecomputeHandler(timeout, contextRegistry, rpcSession))
 
 }

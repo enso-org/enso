@@ -8,13 +8,11 @@ import org.enso.jsonrpc.ClientControllerFactory
 /**
   * Language server client controller factory.
   *
-  * @param server the language server actor ref
   * @param bufferRegistry the buffer registry actor ref
   * @param capabilityRouter the capability router actor ref
   * @param system the actor system
   */
 class ServerClientControllerFactory(
-  server: ActorRef,
   bufferRegistry: ActorRef,
   capabilityRouter: ActorRef,
   fileManager: ActorRef,
@@ -32,7 +30,6 @@ class ServerClientControllerFactory(
     system.actorOf(
       ClientController.props(
         clientId,
-        server,
         bufferRegistry,
         capabilityRouter,
         fileManager,

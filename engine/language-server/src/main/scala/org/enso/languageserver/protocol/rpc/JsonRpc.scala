@@ -11,6 +11,7 @@ import org.enso.languageserver.capability.CapabilityApi.{
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.runtime.VisualisationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
 
@@ -43,6 +44,9 @@ object JsonRpc {
     .registerRequest(ExecutionContextPush)
     .registerRequest(ExecutionContextPop)
     .registerRequest(ExecutionContextRecompute)
+    .registerRequest(AttachVisualisation)
+    .registerRequest(DetachVisualisation)
+    .registerRequest(ModifyVisualisation)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)

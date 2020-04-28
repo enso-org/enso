@@ -12,8 +12,10 @@ import org.enso.languageserver.capability.CapabilityApi.{
   ReleaseCapability
 }
 import org.enso.languageserver.capability.CapabilityProtocol
-import org.enso.languageserver.data.Client
-import org.enso.languageserver.event.{ClientConnected, ClientDisconnected}
+import org.enso.languageserver.event.{
+  RpcSessionInitialized,
+  RpcSessionTerminated
+}
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
@@ -22,8 +24,19 @@ import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.requesthandler.text._
+import org.enso.languageserver.requesthandler.visualisation.{
+  AttachVisualisationHandler,
+  DetachVisualisationHandler,
+  ModifyVisualisationHandler
+}
 import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.runtime.VisualisationApi.{
+  AttachVisualisation,
+  DetachVisualisation,
+  ModifyVisualisation
+}
+import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.session.SessionApi.{
   InitProtocolConnection,
   SessionAlreadyInitialisedError,
@@ -40,7 +53,6 @@ import scala.concurrent.duration._
   * server.
   *
   * @param connectionId the internal connection id.
-  * @param server the language server actor ref.
   * @param bufferRegistry a router that dispatches text editing requests
   * @param capabilityRouter a router that dispatches capability requests
   * @param fileManager performs operations with file system
@@ -49,7 +61,6 @@ import scala.concurrent.duration._
   */
 class ClientController(
   val connectionId: UUID,
-  val server: ActorRef,
   val bufferRegistry: ActorRef,
   val capabilityRouter: ActorRef,
   val fileManager: ActorRef,
@@ -74,7 +85,6 @@ class ClientController(
       val handler = context.actorOf(
         PingHandler.props(
           List(
-            server,
             bufferRegistry,
             capabilityRouter,
             fileManager,
@@ -90,14 +100,14 @@ class ClientController(
           _,
           InitProtocolConnection.Params(clientId)
         ) =>
-      val client = Client(clientId, self)
-      context.system.eventStream.publish(ClientConnected(client))
-      val requestHandlers = createRequestHandlers(client)
+      val session = RpcSession(clientId, self)
+      context.system.eventStream.publish(RpcSessionInitialized(session))
+      val requestHandlers = createRequestHandlers(session)
       val handler = context.actorOf(
         InitProtocolConnectionHandler.props(fileManager, requestTimeout)
       )
       handler.forward(req)
-      context.become(initialised(webActor, client, requestHandlers))
+      context.become(initialised(webActor, session, requestHandlers))
 
     case Request(_, id, _) =>
       sender() ! ResponseError(Some(id), SessionNotInitialisedError)
@@ -108,14 +118,14 @@ class ClientController(
 
   private def initialised(
     webActor: ActorRef,
-    client: Client,
+    rpcSession: RpcSession,
     requestHandlers: Map[Method, Props]
   ): Receive = {
     case Request(InitProtocolConnection, id, _) =>
       sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
 
     case MessageHandler.Disconnected =>
-      context.system.eventStream.publish(ClientDisconnected(client))
+      context.system.eventStream.publish(RpcSessionTerminated(rpcSession))
       context.stop(self)
 
     case CapabilityProtocol.CapabilityForceReleased(registration) =>
@@ -142,11 +152,12 @@ class ClientController(
       handler.forward(req)
   }
 
-  private def createRequestHandlers(client: Client): Map[Method, Props] =
+  private def createRequestHandlers(
+    rpcSession: RpcSession
+  ): Map[Method, Props] =
     Map(
       Ping -> PingHandler.props(
         List(
-          server,
           bufferRegistry,
           capabilityRouter,
           fileManager,
@@ -155,15 +166,17 @@ class ClientController(
         requestTimeout
       ),
       AcquireCapability -> AcquireCapabilityHandler
-        .props(capabilityRouter, requestTimeout, client),
+        .props(capabilityRouter, requestTimeout, rpcSession),
       ReleaseCapability -> ReleaseCapabilityHandler
-        .props(capabilityRouter, requestTimeout, client),
-      OpenFile -> OpenFileHandler.props(bufferRegistry, requestTimeout, client),
+        .props(capabilityRouter, requestTimeout, rpcSession),
+      OpenFile -> OpenFileHandler
+        .props(bufferRegistry, requestTimeout, rpcSession),
       CloseFile -> CloseFileHandler
-        .props(bufferRegistry, requestTimeout, client),
+        .props(bufferRegistry, requestTimeout, rpcSession),
       ApplyEdit -> ApplyEditHandler
-        .props(bufferRegistry, requestTimeout, client),
-      SaveFile   -> SaveFileHandler.props(bufferRegistry, requestTimeout, client),
+        .props(bufferRegistry, requestTimeout, rpcSession),
+      SaveFile -> SaveFileHandler
+        .props(bufferRegistry, requestTimeout, rpcSession),
       WriteFile  -> file.WriteFileHandler.props(requestTimeout, fileManager),
       ReadFile   -> file.ReadFileHandler.props(requestTimeout, fileManager),
       CreateFile -> file.CreateFileHandler.props(requestTimeout, fileManager),
@@ -175,15 +188,21 @@ class ClientController(
       TreeFile   -> file.TreeFileHandler.props(requestTimeout, fileManager),
       InfoFile   -> file.InfoFileHandler.props(requestTimeout, fileManager),
       ExecutionContextCreate -> executioncontext.CreateHandler
-        .props(requestTimeout, contextRegistry, client),
+        .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextDestroy -> executioncontext.DestroyHandler
-        .props(requestTimeout, contextRegistry, client),
+        .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextPush -> executioncontext.PushHandler
-        .props(requestTimeout, contextRegistry, client),
+        .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextPop -> executioncontext.PopHandler
-        .props(requestTimeout, contextRegistry, client),
+        .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextRecompute -> executioncontext.RecomputeHandler
-        .props(requestTimeout, contextRegistry, client)
+        .props(requestTimeout, contextRegistry, rpcSession),
+      AttachVisualisation -> AttachVisualisationHandler
+        .props(rpcSession.clientId, requestTimeout, contextRegistry),
+      DetachVisualisation -> DetachVisualisationHandler
+        .props(rpcSession.clientId, requestTimeout, contextRegistry),
+      ModifyVisualisation -> ModifyVisualisationHandler
+        .props(rpcSession.clientId, requestTimeout, contextRegistry)
     )
 
 }
@@ -193,8 +212,7 @@ object ClientController {
   /**
     * Creates a configuration object used to create a [[ClientController]].
     *
-    * @param clientId the internal client id.
-    * @param server the language server actor ref.
+    * @param connectionId the internal connection id.
     * @param bufferRegistry a router that dispatches text editing requests
     * @param capabilityRouter a router that dispatches capability requests
     * @param fileManager performs operations with file system
@@ -203,8 +221,7 @@ object ClientController {
     * @return a configuration object
     */
   def props(
-    clientId: UUID,
-    server: ActorRef,
+    connectionId: UUID,
     bufferRegistry: ActorRef,
     capabilityRouter: ActorRef,
     fileManager: ActorRef,
@@ -213,8 +230,7 @@ object ClientController {
   ): Props =
     Props(
       new ClientController(
-        clientId,
-        server,
+        connectionId,
         bufferRegistry,
         capabilityRouter,
         fileManager,

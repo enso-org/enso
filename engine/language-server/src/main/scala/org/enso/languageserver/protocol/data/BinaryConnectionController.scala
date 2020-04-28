@@ -6,6 +6,10 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
+import org.enso.languageserver.event.{
+  DataSessionInitialized,
+  DataSessionTerminated
+}
 import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.{
   ConnectionClosed,
   ConnectionFailed,
@@ -25,6 +29,7 @@ import org.enso.languageserver.protocol.data.factory.{
 import org.enso.languageserver.protocol.data.session.SessionInit
 import org.enso.languageserver.protocol.data.util.EnsoUUID
 import org.enso.languageserver.runtime.VisualisationProtocol.VisualisationUpdate
+import org.enso.languageserver.session.DataSession
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.binary.DecodingFailure
 import org.enso.languageserver.util.binary.DecodingFailure.{
@@ -49,14 +54,14 @@ class BinaryConnectionController(clientIp: RemoteAddress.IP)
     with UnhandledLogging {
 
   override def receive: Receive =
-    connectionEndHandler orElse connectionNotEstablished
+    connectionEndHandler() orElse connectionNotEstablished
 
   private def connectionNotEstablished: Receive = {
     case OutboundStreamEstablished(outboundChannel) =>
       log.info(s"Connection established [$clientIp]")
       unstashAll()
       context.become(
-        connected(outboundChannel) orElse connectionEndHandler
+        connected(outboundChannel) orElse connectionEndHandler()
         orElse decodingFailureHandler(outboundChannel)
       )
 
@@ -66,7 +71,7 @@ class BinaryConnectionController(clientIp: RemoteAddress.IP)
   private def connected(outboundChannel: ActorRef): Receive = {
     case Right(msg: InboundMessage) if msg.payloadType() == SESSION_INIT =>
       val payload = msg.payload(new SessionInit).asInstanceOf[SessionInit]
-      val clientID =
+      val clientId =
         new UUID(
           payload.identifier().mostSigBits(),
           payload.identifier().leastSigBits()
@@ -74,8 +79,11 @@ class BinaryConnectionController(clientIp: RemoteAddress.IP)
 
       val responsePacket = createSessionInitResponsePacket(msg.requestId())
       outboundChannel ! responsePacket
+      val session = DataSession(clientId, self)
+      context.system.eventStream.publish(DataSessionInitialized(session))
       context.become(
-        connectionEndHandler orElse initialized(outboundChannel, clientID)
+        connectionEndHandler(Some(session))
+        orElse initialized(outboundChannel, clientId)
         orElse decodingFailureHandler(outboundChannel)
       )
 
@@ -90,15 +98,23 @@ class BinaryConnectionController(clientIp: RemoteAddress.IP)
       outboundChannel ! updatePacket
   }
 
-  private def connectionEndHandler: Receive = {
+  private def connectionEndHandler(
+    maybeDataSession: Option[DataSession] = None
+  ): Receive = {
     case ConnectionClosed =>
       log.info(s"Connection closed [$clientIp]")
+      maybeDataSession.foreach(session =>
+        context.system.eventStream.publish(DataSessionTerminated(session))
+      )
       context.stop(self)
 
     case ConnectionFailed(th) =>
       log.error(
         s"An error occurred during processing web socket connection [$clientIp]",
         th
+      )
+      maybeDataSession.foreach(session =>
+        context.system.eventStream.publish(DataSessionTerminated(session))
       )
       context.stop(self)
   }

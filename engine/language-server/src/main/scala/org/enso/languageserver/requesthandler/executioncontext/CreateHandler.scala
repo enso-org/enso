@@ -6,7 +6,6 @@ import org.enso.jsonrpc._
 import org.enso.languageserver.data.{
   CanModify,
   CapabilityRegistration,
-  Client,
   ReceivesEvents
 }
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -15,6 +14,7 @@ import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
   RuntimeFailureMapper
 }
+import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -24,23 +24,24 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
-  * @param client an object representing a client connected to the language server
+  * @param session an object representing a client connected to the language server
   */
 class CreateHandler(
   timeout: FiniteDuration,
   contextRegistry: ActorRef,
-  client: Client
+  session: RpcSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
-  import context.dispatcher, ContextRegistryProtocol._
+  import ContextRegistryProtocol._
+  import context.dispatcher
 
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
     case Request(ExecutionContextCreate, id, _) =>
-      contextRegistry ! CreateContextRequest(client)
+      contextRegistry ! CreateContextRequest(session)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -78,13 +79,13 @@ object CreateHandler {
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.
-    * @param client an object representing a client connected to the language server
+    * @param rpcSession an object representing a client connected to the language server
     */
   def props(
     timeout: FiniteDuration,
     contextRegistry: ActorRef,
-    client: Client
+    rpcSession: RpcSession
   ): Props =
-    Props(new CreateHandler(timeout, contextRegistry, client))
+    Props(new CreateHandler(timeout, contextRegistry, rpcSession))
 
 }

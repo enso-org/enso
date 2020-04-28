@@ -2,7 +2,6 @@ package org.enso.languageserver.boot
 
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.languageserver.LanguageProtocol
 import org.enso.languageserver.boot.LanguageServerComponent.ServerContext
 import org.enso.languageserver.boot.LifecycleComponent.{
   ComponentRestarted,
@@ -32,7 +31,6 @@ class LanguageServerComponent(config: LanguageServerConfig)
     logger.info("Starting Language Server...")
     for {
       module      <- Future { new MainModule(config) }
-      _           <- Future { module.languageServer ! LanguageProtocol.Initialize }
       rpcBinding  <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
       dataBinding <- module.dataServer.bind(config.interface, config.dataPort)
       _ <- Future {

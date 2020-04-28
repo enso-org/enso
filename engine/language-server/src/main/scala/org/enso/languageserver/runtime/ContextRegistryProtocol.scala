@@ -1,8 +1,8 @@
 package org.enso.languageserver.runtime
 
-import org.enso.languageserver.data.Client
 import org.enso.languageserver.filemanager.FileSystemFailure
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
+import org.enso.languageserver.session.RpcSession
 
 object ContextRegistryProtocol {
 
@@ -14,9 +14,9 @@ object ContextRegistryProtocol {
   /**
     * A request to the context registry to create a new execution context.
     *
-    * @param client reference to the client
+    * @param rpcSession reference to the client
     */
-  case class CreateContextRequest(client: Client)
+  case class CreateContextRequest(rpcSession: RpcSession)
 
   /**
     * A response about creation of a new execution context.
@@ -28,9 +28,9 @@ object ContextRegistryProtocol {
   /**
     * A request to the context registry to delete an execution context.
     *
-    * @param client reference to the client
+    * @param rpcSession reference to the client
     */
-  case class DestroyContextRequest(client: Client, contextId: ContextId)
+  case class DestroyContextRequest(rpcSession: RpcSession, contextId: ContextId)
 
   /**
     * A response about deletion of an execution context.
@@ -43,12 +43,12 @@ object ContextRegistryProtocol {
     * A request to the context registry to push an execution context
     * down the stack.
     *
-    * @param client reference to the client
+    * @param rpcSession reference to the client
     * @param contextId execution context identifier
     * @param stackItem an object representing an item on the stack
     */
   case class PushContextRequest(
-    client: Client,
+    rpcSession: RpcSession,
     contextId: ContextId,
     stackItem: StackItem
   )
@@ -64,10 +64,10 @@ object ContextRegistryProtocol {
     * A request to the context registry to move an execution context
     * up the stack.
     *
-    * @param client reference to the client
+    * @param rpcSession reference to the client
     * @param contextId execution context identifier
     */
-  case class PopContextRequest(client: Client, contextId: ContextId)
+  case class PopContextRequest(rpcSession: RpcSession, contextId: ContextId)
 
   /**
     * A response about popping the stack.
@@ -79,12 +79,12 @@ object ContextRegistryProtocol {
   /**
     * A request to the context registry to recompute an execution context.
     *
-    * @param client reference to the client
+    * @param rpcSession reference to the client
     * @param contextId execution context identifier
     * @param invalidatedExpressions the expressions that should be invalidated
     */
   case class RecomputeContextRequest(
-    client: Client,
+    rpcSession: RpcSession,
     contextId: ContextId,
     invalidatedExpressions: Option[InvalidatedExpressions]
   )

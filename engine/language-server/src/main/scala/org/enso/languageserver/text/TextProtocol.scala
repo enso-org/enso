@@ -1,16 +1,17 @@
 package org.enso.languageserver.text
 
-import org.enso.languageserver.data.{CapabilityRegistration, Client}
+import org.enso.languageserver.data.{CapabilityRegistration, ClientId}
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
+import org.enso.languageserver.session.RpcSession
 
 object TextProtocol {
 
   /** Requests the language server to open a file on behalf of a given user.
     *
-    * @param client the client opening the file.
+    * @param rpcSession the client opening the file.
     * @param path the file path.
     */
-  case class OpenFile(client: Client, path: Path)
+  case class OpenFile(rpcSession: RpcSession, path: Path)
 
   /** Sent by the server in response to [[OpenFile]]
     *
@@ -34,7 +35,7 @@ object TextProtocol {
     * @param clientId the client closing the file.
     * @param path the file path.
     */
-  case class CloseFile(clientId: Client.Id, path: Path)
+  case class CloseFile(clientId: ClientId, path: Path)
 
   /**
     * Signals file close status.
@@ -57,7 +58,7 @@ object TextProtocol {
     * @param clientId the client closing the file.
     * @param edit a diff describing changes made to a file
     */
-  case class ApplyEdit(clientId: Client.Id, edit: FileEdit)
+  case class ApplyEdit(clientId: ClientId, edit: FileEdit)
 
   /**
     * Signals the result of applying a series of edits.
@@ -113,7 +114,7 @@ object TextProtocol {
     * @param currentVersion the current version evaluated on the client side.
     */
   case class SaveFile(
-    clientId: Client.Id,
+    clientId: ClientId,
     path: Path,
     currentVersion: Buffer.Version
   )

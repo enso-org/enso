@@ -3,13 +3,13 @@ package org.enso.languageserver.requesthandler.executioncontext
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.languageserver.data.Client
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
   RuntimeFailureMapper
 }
+import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -19,17 +19,18 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param timeout request timeout
   * @param contextRegistry a reference to the context registry.
-  * @param client an object representing a client connected to the language server
+  * @param session an object representing a client connected to the language server
   */
 class DestroyHandler(
   timeout: FiniteDuration,
   contextRegistry: ActorRef,
-  client: Client
+  session: RpcSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
-  import context.dispatcher, ContextRegistryProtocol._
+  import ContextRegistryProtocol._
+  import context.dispatcher
 
   override def receive: Receive = requestStage
 
@@ -39,7 +40,7 @@ class DestroyHandler(
         id,
         params: ExecutionContextDestroy.Params
         ) =>
-      contextRegistry ! DestroyContextRequest(client, params.contextId)
+      contextRegistry ! DestroyContextRequest(session, params.contextId)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -74,13 +75,13 @@ object DestroyHandler {
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.
-    * @param client an object representing a client connected to the language server
+    * @param rpcSession an object representing a client connected to the language server
     */
   def props(
     timeout: FiniteDuration,
     contextRegistry: ActorRef,
-    client: Client
+    rpcSession: RpcSession
   ): Props =
-    Props(new DestroyHandler(timeout, contextRegistry, client))
+    Props(new DestroyHandler(timeout, contextRegistry, rpcSession))
 
 }

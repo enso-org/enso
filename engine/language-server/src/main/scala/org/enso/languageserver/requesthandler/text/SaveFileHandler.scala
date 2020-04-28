@@ -3,9 +3,9 @@ package org.enso.languageserver.requesthandler.text
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.languageserver.data.Client
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.requesthandler.RequestTimeout
+import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.text.TextApi.{
   FileNotOpenedError,
   InvalidVersionError,
@@ -23,12 +23,12 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param bufferRegistry a router that dispatches text editing requests
   * @param timeout a request timeout
-  * @param client an object representing a client connected to the language server
+  * @param rpcSession an object representing a client connected to the language server
   */
 class SaveFileHandler(
   bufferRegistry: ActorRef,
   timeout: FiniteDuration,
-  client: Client
+  rpcSession: RpcSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -40,7 +40,7 @@ class SaveFileHandler(
   private def requestStage: Receive = {
     case Request(SaveFile, id, params: SaveFile.Params) =>
       bufferRegistry ! TextProtocol.SaveFile(
-        client.id,
+        rpcSession.clientId,
         params.path,
         params.currentVersion
       )
@@ -55,7 +55,7 @@ class SaveFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Saving file for ${client.id} timed out")
+      log.error(s"Saving file for ${rpcSession.clientId} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
@@ -99,13 +99,14 @@ object SaveFileHandler {
     *
     * @param bufferRegistry a router that dispatches text editing requests
     * @param requestTimeout a request timeout
-    * @param client an object representing a client connected to the language server
+    * @param rpcSession an object representing a client connected to the language server
     * @return a configuration object
     */
   def props(
     bufferRegistry: ActorRef,
     requestTimeout: FiniteDuration,
-    client: Client
-  ): Props = Props(new SaveFileHandler(bufferRegistry, requestTimeout, client))
+    rpcSession: RpcSession
+  ): Props =
+    Props(new SaveFileHandler(bufferRegistry, requestTimeout, rpcSession))
 
 }

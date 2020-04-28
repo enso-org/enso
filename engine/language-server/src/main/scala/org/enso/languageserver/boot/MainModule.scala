@@ -3,10 +3,9 @@ package org.enso.languageserver.boot
 import java.io.File
 import java.net.URI
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
 import org.enso.jsonrpc.JsonRpcServer
-import org.enso.languageserver.LanguageServer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
@@ -25,6 +24,7 @@ import org.enso.languageserver.protocol.rpc.{
   ServerClientControllerFactory
 }
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeConnector}
+import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
@@ -64,14 +64,11 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   implicit val materializer = SystemMaterializer.get(system)
 
+  lazy val sessionRouter =
+    system.actorOf(SessionRouter.props(), "session-router")
+
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
-
-  lazy val languageServer =
-    system.actorOf(
-      Props(new LanguageServer(languageServerConfig)),
-      "server"
-    )
 
   lazy val fileManager = system.actorOf(
     FileManager.pool(languageServerConfig, fileSystem, zioExec),
@@ -99,7 +96,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val contextRegistry =
     system.actorOf(
-      ContextRegistry.props(languageServerConfig, runtimeConnector),
+      ContextRegistry
+        .props(languageServerConfig, runtimeConnector, sessionRouter),
       "context-registry"
     )
 
@@ -122,7 +120,6 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .build()
 
   lazy val clientControllerFactory = new ServerClientControllerFactory(
-    languageServer,
     bufferRegistry,
     capabilityRouter,
     fileManager,

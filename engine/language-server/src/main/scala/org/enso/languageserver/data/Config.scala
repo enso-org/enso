@@ -16,8 +16,8 @@ import scala.concurrent.duration._
   *
   * @param timeout path watcher operations timeout
   * @param restartTimeout timeout before watcher is restarted on error
-  * @param maxRestartsCount maximum number of unsuccessful restarts
-  * before returning an error
+  * @param maxRestarts maximum number of unsuccessful restarts
+  *                    before returning an error
   */
 case class PathWatcherConfig(
   timeout: FiniteDuration,

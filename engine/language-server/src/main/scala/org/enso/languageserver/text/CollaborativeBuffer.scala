@@ -3,17 +3,16 @@ package org.enso.languageserver.text
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Stash}
 import cats.implicits._
 import org.enso.languageserver.capability.CapabilityProtocol._
-import org.enso.languageserver.data.Client.Id
 import org.enso.languageserver.data.{
   CanEdit,
   CapabilityRegistration,
-  Client,
+  ClientId,
   ContentBasedVersioning
 }
 import org.enso.languageserver.event.{
   BufferClosed,
   BufferOpened,
-  ClientDisconnected
+  RpcSessionTerminated
 }
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
   FileContent,
@@ -25,18 +24,13 @@ import org.enso.languageserver.filemanager.{
   OperationTimeout,
   Path
 }
-import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.text.Buffer.Version
 import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
+import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.text.editing.{
-  EditorOps,
-  EndPositionBeforeStartPosition,
-  InvalidPosition,
-  NegativeCoordinateInPosition,
-  TextEditValidationFailure
-}
+import org.enso.text.editing._
 import org.enso.text.editing.model.TextEdit
 
 import scala.concurrent.duration._
@@ -67,7 +61,7 @@ class CollaborativeBuffer(
 
   override def preStart(): Unit = {
     context.system.eventStream
-      .subscribe(self, classOf[ClientDisconnected]): Unit
+      .subscribe(self, classOf[RpcSessionTerminated]): Unit
   }
 
   override def receive: Receive = uninitialized
@@ -75,17 +69,17 @@ class CollaborativeBuffer(
   private def uninitialized: Receive = {
     case OpenFile(client, path) =>
       context.system.eventStream.publish(BufferOpened(path))
-      log.info(s"Buffer opened for $path [client:${client.id}]")
+      log.info(s"Buffer opened for $path [client:${client.clientId}]")
       readFile(client, path)
   }
 
   private def waitingForFileContent(
-    client: Client,
+    rpcSession: RpcSession,
     replyTo: ActorRef,
     timeoutCancellable: Cancellable
   ): Receive = {
     case ReadFileResult(Right(content)) =>
-      handleFileContent(client, replyTo, content)
+      handleFileContent(rpcSession, replyTo, content)
       unstashAll()
       timeoutCancellable.cancel(): Unit
 
@@ -103,8 +97,8 @@ class CollaborativeBuffer(
 
   private def collaborativeEditing(
     buffer: Buffer,
-    clients: Map[Client.Id, Client],
-    lockHolder: Option[Client]
+    clients: Map[ClientId, RpcSession],
+    lockHolder: Option[RpcSession]
   ): Receive = {
     case OpenFile(client, _) =>
       openFile(buffer, clients, lockHolder, client)
@@ -113,11 +107,11 @@ class CollaborativeBuffer(
       acquireWriteLock(buffer, clients, lockHolder, client, path)
 
     case ReleaseCapability(client, CapabilityRegistration(CanEdit(_))) =>
-      releaseWriteLock(buffer, clients, lockHolder, client.id)
+      releaseWriteLock(buffer, clients, lockHolder, client.clientId)
 
-    case ClientDisconnected(client) =>
-      if (clients.contains(client.id)) {
-        removeClient(buffer, clients, lockHolder, client.id)
+    case RpcSessionTerminated(client) =>
+      if (clients.contains(client.clientId)) {
+        removeClient(buffer, clients, lockHolder, client.clientId)
       }
 
     case CloseFile(clientId, _) =>
@@ -137,8 +131,8 @@ class CollaborativeBuffer(
 
   private def saving(
     buffer: Buffer,
-    clients: Map[Client.Id, Client],
-    lockHolder: Option[Client],
+    clients: Map[ClientId, RpcSession],
+    lockHolder: Option[RpcSession],
     replyTo: ActorRef,
     timeoutCancellable: Cancellable
   ): Receive = {
@@ -164,12 +158,12 @@ class CollaborativeBuffer(
 
   private def saveFile(
     buffer: Buffer,
-    clients: Map[Id, Client],
-    lockHolder: Option[Client],
-    clientId: Id,
+    clients: Map[ClientId, RpcSession],
+    lockHolder: Option[RpcSession],
+    clientId: ClientId,
     clientVersion: Version
   ): Unit = {
-    val hasLock = lockHolder.exists(_.id == clientId)
+    val hasLock = lockHolder.exists(_.clientId == clientId)
     if (hasLock) {
       if (clientVersion == buffer.version) {
         fileManager ! FileManagerProtocol.WriteFile(
@@ -192,9 +186,9 @@ class CollaborativeBuffer(
 
   private def edit(
     buffer: Buffer,
-    clients: Map[Id, Client],
-    lockHolder: Option[Client],
-    clientId: Id,
+    clients: Map[ClientId, RpcSession],
+    lockHolder: Option[RpcSession],
+    clientId: ClientId,
     change: FileEdit
   ): Unit = {
     applyEdits(buffer, lockHolder, clientId, change) match {
@@ -204,7 +198,7 @@ class CollaborativeBuffer(
       case Right(modifiedBuffer) =>
         sender() ! ApplyEditSuccess
         val subscribers = clients.filterNot(_._1 == clientId).values
-        subscribers foreach { _.actor ! TextDidChange(List(change)) }
+        subscribers foreach { _.rpcController ! TextDidChange(List(change)) }
         runtimeConnector ! Api.Request(
           Api.EditFileNotification(buffer.file, change.edits)
         )
@@ -216,8 +210,8 @@ class CollaborativeBuffer(
 
   private def applyEdits(
     buffer: Buffer,
-    lockHolder: Option[Client],
-    clientId: Id,
+    lockHolder: Option[RpcSession],
+    clientId: ClientId,
     change: FileEdit
   ): Either[ApplyEditFailure, Buffer] =
     for {
@@ -239,10 +233,10 @@ class CollaborativeBuffer(
   }
 
   private def validateAccess(
-    lockHolder: Option[Client],
-    clientId: Id
+    lockHolder: Option[RpcSession],
+    clientId: ClientId
   ): Either[ApplyEditFailure, Unit] = {
-    val hasLock = lockHolder.exists(_.id == clientId)
+    val hasLock = lockHolder.exists(_.clientId == clientId)
     if (hasLock) {
       Right(())
     } else {
@@ -271,15 +265,17 @@ class CollaborativeBuffer(
       TextEditValidationFailed(s"Invalid position: $position")
   }
 
-  private def readFile(client: Client, path: Path): Unit = {
+  private def readFile(rpcSession: RpcSession, path: Path): Unit = {
     fileManager ! FileManagerProtocol.ReadFile(path)
     val timeoutCancellable = context.system.scheduler
       .scheduleOnce(timeout, self, IOTimeout)
-    context.become(waitingForFileContent(client, sender(), timeoutCancellable))
+    context.become(
+      waitingForFileContent(rpcSession, sender(), timeoutCancellable)
+    )
   }
 
   private def handleFileContent(
-    client: Client,
+    rpcSession: RpcSession,
     originalSender: ActorRef,
     file: FileContent
   ): Unit = {
@@ -292,15 +288,19 @@ class CollaborativeBuffer(
       Api.OpenFileNotification(file.path, file.content)
     )
     context.become(
-      collaborativeEditing(buffer, Map(client.id -> client), Some(client))
+      collaborativeEditing(
+        buffer,
+        Map(rpcSession.clientId -> rpcSession),
+        Some(rpcSession)
+      )
     )
   }
 
   private def openFile(
     buffer: Buffer,
-    clients: Map[Id, Client],
-    lockHolder: Option[Client],
-    client: Client
+    clients: Map[ClientId, RpcSession],
+    lockHolder: Option[RpcSession],
+    rpcSession: RpcSession
   ): Unit = {
     val writeCapability =
       if (lockHolder.isEmpty)
@@ -309,20 +309,24 @@ class CollaborativeBuffer(
         None
     sender ! OpenFileResponse(Right(OpenFileResult(buffer, writeCapability)))
     context.become(
-      collaborativeEditing(buffer, clients + (client.id -> client), lockHolder)
+      collaborativeEditing(
+        buffer,
+        clients + (rpcSession.clientId -> rpcSession),
+        lockHolder
+      )
     )
   }
 
   private def removeClient(
     buffer: Buffer,
-    clients: Map[Id, Client],
-    lockHolder: Option[Client],
-    clientId: Id
+    clients: Map[ClientId, RpcSession],
+    lockHolder: Option[RpcSession],
+    clientId: ClientId
   ): Unit = {
     val newLock =
       lockHolder.flatMap {
-        case holder if (holder.id == clientId) => None
-        case holder                            => Some(holder)
+        case holder if (holder.clientId == clientId) => None
+        case holder                                  => Some(holder)
       }
     val newClientMap = clients - clientId
     if (newClientMap.isEmpty) {
@@ -335,20 +339,20 @@ class CollaborativeBuffer(
 
   private def releaseWriteLock(
     buffer: Buffer,
-    clients: Map[Client.Id, Client],
-    lockHolder: Option[Client],
-    clientId: Id
+    clients: Map[ClientId, RpcSession],
+    lockHolder: Option[RpcSession],
+    clientId: ClientId
   ): Unit = {
     lockHolder match {
       case None =>
         sender() ! CapabilityReleaseBadRequest
         context.become(collaborativeEditing(buffer, clients, lockHolder))
 
-      case Some(holder) if holder.id != clientId =>
+      case Some(holder) if holder.clientId != clientId =>
         sender() ! CapabilityReleaseBadRequest
         context.become(collaborativeEditing(buffer, clients, lockHolder))
 
-      case Some(holder) if holder.id == clientId =>
+      case Some(holder) if holder.clientId == clientId =>
         sender() ! CapabilityReleased
         context.become(collaborativeEditing(buffer, clients, None))
     }
@@ -356,9 +360,9 @@ class CollaborativeBuffer(
 
   private def acquireWriteLock(
     buffer: Buffer,
-    clients: Map[Client.Id, Client],
-    lockHolder: Option[Client],
-    clientId: Client,
+    clients: Map[ClientId, RpcSession],
+    lockHolder: Option[RpcSession],
+    clientId: RpcSession,
     path: Path
   ): Unit = {
     lockHolder match {
@@ -372,7 +376,7 @@ class CollaborativeBuffer(
 
       case Some(holder) if holder != clientId =>
         sender() ! CapabilityAcquired
-        holder.actor ! CapabilityForceReleased(
+        holder.rpcController ! CapabilityForceReleased(
           CapabilityRegistration(CanEdit(path))
         )
         context.become(collaborativeEditing(buffer, clients, Some(clientId)))
