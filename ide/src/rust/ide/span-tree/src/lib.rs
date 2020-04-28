@@ -29,7 +29,7 @@ pub use node::Node;
 
 /// Module gathering all commonly used traits for massive importing.
 pub mod traits {
-    pub use crate::action::SpanTreeActions;
+    pub use crate::action::Actions;
     pub use crate::generate::SpanTreeGenerator;
     #[cfg(test)]
     pub use crate::builder::Builder;

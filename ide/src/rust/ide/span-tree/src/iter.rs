@@ -31,7 +31,7 @@ pub enum TreeFragment {
 #[derive(Debug)]
 pub struct LeafIterator<'a> {
     stack     : Vec<StackFrame<'a>>,
-    next_node : Option<&'a node::Child>,
+    next_node : Option<&'a Node>,
     base_node : node::Ref<'a>,
     fragment  : TreeFragment,
 }
@@ -56,7 +56,7 @@ impl<'a> LeafIterator<'a> {
     /// Create iterator iterating over leafs of subtree rooted  on `node`.
     pub fn new(node: node::Ref<'a>, fragment:TreeFragment) -> Self {
         let stack     = vec![StackFrame {node:&node.node, child_being_visited:0}];
-        let next_node = node.node.children.first();
+        let next_node = node.node.children.first().map(|ch| &ch.node);
         let base_node = node;
         let mut this = Self {stack,next_node,base_node,fragment};
         this.descend_to_leaf();
@@ -69,7 +69,8 @@ impl<'a> LeafIterator<'a> {
             while self.next_node.is_none() && !self.stack.is_empty() {
                 let parent = self.stack.last_mut().unwrap();
                 parent.child_being_visited += 1;
-                self.next_node = parent.node.children.get(parent.child_being_visited);
+                let child = parent.node.children.get(parent.child_being_visited);
+                self.next_node = child.map(|n| &n.node);
                 if self.next_node.is_none() {
                     self.stack.pop();
                 }
@@ -79,18 +80,18 @@ impl<'a> LeafIterator<'a> {
 
     fn descend_to_leaf(&mut self) {
         if let Some(mut current) = std::mem::take(&mut self.next_node) {
-            while self.can_descend(&current) && !current.node.children.is_empty() {
-                self.stack.push(StackFrame { node: &current.node, child_being_visited: 0 });
-                current = &current.node.children.first().unwrap();
+            while self.can_descend(&current) && !current.children.is_empty() {
+                self.stack.push(StackFrame { node: &current, child_being_visited: 0 });
+                current = &current.children.first().unwrap().node;
             }
             self.next_node = Some(current);
         }
     }
 
-    fn can_descend(&self, current_node:&node::Child) -> bool {
+    fn can_descend(&self, current_node:&Node) -> bool {
         match &self.fragment {
             TreeFragment::AllNodes               => true,
-            TreeFragment::ChainAndDirectChildren => current_node.chained_with_parent,
+            TreeFragment::ChainAndDirectChildren => current_node.kind == node::Kind::Chained,
         }
     }
 }
@@ -116,35 +117,33 @@ mod tests {
         use ast::crumbs::PrefixCrumb::*;
         use node::Kind::*;
 
-        // Tree we use for tests (F means node which can be flattened):
+        // Tree we use for tests (C means chained nodes):
         // root:                (-)
         //                    / |  \
-        // children:        (F) ()  (F)
+        // children:        (C) ()  (C)
         //                 /|\      / | \
-        // g-children:   ()()()  () () (F)
+        // g-children:   ()()()  () () (C)
         //                   /|       / | \
         // gg-children:     ()()     ()() ()
 
+        let removable = false;
         let tree = TreeBuilder::new(14)
-            .add_child(0,10,Target,vec![LeftOperand])
-                .chain_with_parent()
-                .add_leaf (0,3,Target   ,vec![LeftOperand])
+            .add_child(0,10,Chained,vec![LeftOperand])
+                .add_leaf (0,3,Target{removable},vec![LeftOperand])
                 .add_leaf (4,1,Operation,vec![Operator])
-                .add_child(6,3,Argument ,vec![RightOperand])
+                .add_child(6,3,Argument{removable},vec![RightOperand])
                     .add_leaf(0,1,Operation,vec![Func])
-                    .add_leaf(2,1,Target   ,vec![Arg])
+                    .add_leaf(2,1,Target{removable},vec![Arg])
                     .done()
                 .done()
             .add_leaf (11,1,Operation,vec![Operator])
-            .add_child(13,1,Target,vec![RightOperand])
-                .chain_with_parent()
-                .add_leaf (0,3,Target   ,vec![LeftOperand])
+            .add_child(13,1,Chained  ,vec![RightOperand])
+                .add_leaf (0,3,Target{removable},vec![LeftOperand])
                 .add_leaf (4,1,Operation,vec![Operator])
-                .add_child(6,5,Argument ,vec![RightOperand])
-                    .chain_with_parent()
-                    .add_leaf(0,1,Target   ,vec![LeftOperand])
+                .add_child(6,5,Chained,vec![RightOperand])
+                    .add_leaf(0,1,Target{removable},vec![LeftOperand])
                     .add_leaf(2,1,Operation,vec![Operator])
-                    .add_leaf(4,1,Argument ,vec![RightOperand])
+                    .add_leaf(4,1,Argument{removable},vec![RightOperand])
                     .done()
                 .done()
             .build();

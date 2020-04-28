@@ -33,18 +33,6 @@ pub struct KnownAst<T> {
 }
 
 impl<T> KnownAst<T> {
-    /// Checks if the shape of given Ast node is compatible with `T`.
-    /// If yes, returns Ok with Ast node wrapped as KnownAst.
-    /// Otherwise, returns an error.
-    pub fn try_new<E>(ast:Ast) -> Result<KnownAst<T>,E>
-    where for<'t> &'t Shape<Ast>: TryInto<&'t T, Error=E> {
-        if let Some(error_matching) = ast.shape().try_into().err() {
-            Err(error_matching)
-        } else {
-            Ok(KnownAst {ast,phantom:default()})
-        }
-    }
-
     /// Creates a new `KnownAst<T>` from ast node containing shape of variant `T`.
     ///
     /// Note that this API requires caller to ensure that Ast stores proper shape. Violating this
@@ -58,22 +46,47 @@ impl<T> KnownAst<T> {
 
     /// Returns a reference to the stored `Ast` with `Shape` of `T`.
     pub fn ast(&self) -> &Ast { &self.ast }
+}
+
+impl<T,E> KnownAst<T>
+where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E> {
+
+    /// Checks if the shape of given Ast node is compatible with `T`.
+    /// If yes, returns Ok with Ast node wrapped as KnownAst.
+    /// Otherwise, returns an error.
+    pub fn try_new(ast:Ast) -> Result<KnownAst<T>,E> {
+        if let Some(error_matching) = ast.shape().try_into().err() {
+            Err(error_matching)
+        } else {
+            Ok(KnownAst {ast,phantom:default()})
+        }
+    }
 
     /// Returns the AST's shape.
-    pub fn shape<E>(&self) -> &T
-    where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E>,
-          E                      : Debug, {
+    pub fn shape(&self) -> &T
+    where E : Debug {
         self.deref()
     }
 
     /// Updated self in place by applying given function on the stored Shape.
-    pub fn update_shape<E>(&mut self, f:impl FnOnce(&mut T))
-    where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E>,
-          T                      : Clone + Into<Shape<Ast>>,
-          E                      : Debug {
+    pub fn update_shape(&mut self, f:impl FnOnce(&mut T))
+    where T : Clone + Into<Shape<Ast>>,
+          E : Debug {
         let mut shape = self.shape().clone();
         f(&mut shape);
         self.ast = self.ast.with_shape(shape)
+    }
+
+    /// Create new instance of KnownAst with mapped shape.
+    pub fn with_shape<S,E1>(&self, f:impl FnOnce(T) -> S) -> KnownAst<S>
+    where for<'t> &'t Shape<Ast> : TryInto<&'t S,Error=E1>,
+          T                      : Clone + Into<Shape<Ast>>,
+          S                      : Clone + Into<Shape<Ast>>,
+          E                      : Debug,
+          E1                     : Debug {
+        let shape     = self.shape().clone();
+        let new_shape = f(shape);
+        KnownAst::new_unchecked(self.ast.with_shape(new_shape))
     }
 }
 
