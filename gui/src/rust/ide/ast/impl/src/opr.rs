@@ -7,6 +7,7 @@ use crate::SectionLeft;
 use crate::SectionRight;
 use crate::SectionSides;
 use crate::Ast;
+use crate::Opr;
 use crate::Shape;
 use crate::assoc::Assoc;
 use crate::crumbs::Crumb;
@@ -16,6 +17,7 @@ use crate::crumbs::SectionRightCrumb;
 use crate::crumbs::SectionSidesCrumb;
 use crate::crumbs::Located;
 use crate::known;
+
 use utils::vec::VecExt;
 
 
@@ -65,6 +67,14 @@ pub fn to_arrow(ast:&Ast) -> Option<known::Infix> {
 pub fn is_assignment(ast:&Ast) -> bool {
     let infix = known::Infix::try_from(ast);
     infix.map(|infix| is_assignment_opr(&infix.opr)).unwrap_or(false)
+}
+
+/// Obtains a new `Opr` with an assignment.
+pub fn assignment() -> known::Opr {
+    // TODO? We could cache and reuse, if we care.
+    let name = predefined::ASSIGNMENT.into();
+    let opr = Opr {name};
+    known::Opr::new(opr,None)
 }
 
 
@@ -497,6 +507,13 @@ mod tests {
         expect_at(&chain.target,&c);
         expect_at(&chain.args[0].operand,&b);
         expect_at(&chain.args[1].operand,&a);
+    }
+
+    #[test]
+    fn assignment_opr_test() {
+        let opr = assignment();
+        assert_eq!(opr.name, "=");
+        assert_eq!(opr.repr(), "=");
     }
 
     // TODO[ao] add tests for modifying chain.

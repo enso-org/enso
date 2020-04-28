@@ -5,7 +5,6 @@ use crate::prelude::*;
 use ast::Ast;
 use ast::crumbs::Crumbable;
 use ast::known;
-
 /// Node Id is the Ast Id attached to the node's expression.
 pub type Id = ast::Id;
 
@@ -77,6 +76,14 @@ impl NodeInfo {
         }
     }
 
+    /// AST of the node's pattern (assignment's left-hand side).
+    pub fn pattern(&self) -> Option<&Ast> {
+        match self {
+            NodeInfo::Binding   {infix} => Some(&infix.larg),
+            NodeInfo::Expression{..}    => None,
+        }
+    }
+
     /// Mutable AST of the node's expression. Maintains ID.
     pub fn set_expression(&mut self, expression:Ast) {
         let id = self.id();
@@ -96,6 +103,35 @@ impl NodeInfo {
             NodeInfo::Expression{ast}   => ast,
         }
     }
+
+    /// Set the pattern (left side of assignment) for node. If it is an Expression node, the
+    /// assignment infix will be introduced.
+    pub fn set_pattern(&mut self, pattern:Ast) {
+        match self {
+            NodeInfo::Binding {infix} => {
+                // Setting infix operand never fails.
+                infix.update_shape(|infix| infix.larg = pattern)
+            }
+            NodeInfo::Expression {ast} => {
+                let infix = ast::Infix {
+                    larg : pattern,
+                    loff : 1,
+                    opr  : Ast::opr("="),
+                    roff : 1,
+                    rarg : ast.clone(),
+                };
+                let infix = known::Infix::new(infix, None);
+                *self = NodeInfo::Binding {infix};
+            }
+        }
+
+    }
+}
+
+impl ast::HasTokens for NodeInfo {
+    fn feed_to(&self, consumer:&mut impl ast::TokenConsumer) {
+        self.ast().feed_to(consumer)
+    }
 }
 
 
@@ -107,6 +143,8 @@ impl NodeInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use ast::opr::predefined::ASSIGNMENT;
 
     fn expect_node(ast:Ast, expression_text:&str, id:Id) {
         let node_info = NodeInfo::from_line_ast(&ast).expect("expected a node");
@@ -154,11 +192,39 @@ mod tests {
         let id = Id::new_v4();
         let number = ast::Number { base:None, int: "4".into()};
         let larg   = Ast::var("foo");
-        let loff   = 1;
-        let opr    = Ast::opr("=");
-        let roff   = 1;
         let rarg   = Ast::new(number, Some(id));
-        let ast    = Ast::new(ast::Infix {larg,loff,opr,roff,rarg}, None);
+        let ast    = Ast::infix(larg,ASSIGNMENT,rarg);
         expect_node(ast,"4",id);
+    }
+
+    #[test]
+    fn setting_pattern_on_expression_node_test() {
+        let id       = uuid::Uuid::new_v4();
+        let line_ast = Ast::number(2).with_id(id);
+        let mut node = NodeInfo::from_line_ast(&line_ast).unwrap();
+        assert_eq!(node.repr(), "2");
+        assert_eq!(node.id(),id);
+
+        node.set_pattern(Ast::var("foo"));
+
+        assert_eq!(node.repr(), "foo = 2");
+        assert_eq!(node.id(),id);
+    }
+
+    #[test]
+    fn setting_pattern_on_binding_node_test() {
+        let id       = uuid::Uuid::new_v4();
+        let larg     = Ast::var("foo");
+        let rarg     = Ast::var("bar").with_id(id);
+        let line_ast = Ast::infix(larg,ASSIGNMENT,rarg);
+        let mut node = NodeInfo::from_line_ast(&line_ast).unwrap();
+
+        assert_eq!(node.repr(), "foo = bar");
+        assert_eq!(node.id(),id);
+
+        node.set_pattern(Ast::var("baz"));
+
+        assert_eq!(node.repr(), "baz = bar");
+        assert_eq!(node.id(),id);
     }
 }

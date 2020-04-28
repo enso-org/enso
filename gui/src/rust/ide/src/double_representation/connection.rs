@@ -77,7 +77,7 @@ pub fn list_block(block:&ast::Block<Ast>) -> Vec<Connection> {
     identifiers.used.into_iter().flat_map(|name| {
         // If name is both introduced and used in the graph's scope; and both of these occurrences
         // can be represented as endpoints, then we have a connection.
-        let source      = introduced_names.get(&name).cloned()?;
+        let source      = introduced_names.get(&name.item).cloned()?;
         let destination = Endpoint::new_in_block(block,name.crumbs)?;
         Some(Connection {source,destination})
     }).collect()
@@ -113,7 +113,6 @@ mod tests {
     use crate::double_representation::definition::DefinitionInfo;
     use crate::double_representation::graph::GraphInfo;
     use ast::crumbs;
-    use ast::crumbs::Crumb;
     use ast::crumbs::InfixCrumb;
 
     struct TestRun {

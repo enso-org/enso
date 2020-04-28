@@ -22,6 +22,7 @@ file-manager-client      = { version = "0.1.0"  , path = "file-manager"         
 json-rpc                 = { version = "0.1.0"  , path = "json-rpc"             }
 parser                   = { version = "0.1.0"  , path = "parser"               }
 utils                    = { version = "0.1.0"  , path = "utils"                }
+span-tree                = { version = "0.1.0"  , path = "span-tree"            }
 
 console_error_panic_hook = { version = "0.1.6"                                   }
 failure                  = { version = "0.1.6"                                   }

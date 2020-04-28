@@ -7,6 +7,7 @@
 //! operator chain.
 
 #![feature(associated_type_bounds)]
+#![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
@@ -26,7 +27,6 @@ pub mod builder;
 
 pub use node::Node;
 
-
 /// Module gathering all commonly used traits for massive importing.
 pub mod traits {
     pub use crate::action::Actions;
@@ -38,12 +38,14 @@ pub mod traits {
 /// Common types that should be visible across the whole crate.
 pub mod prelude {
     pub use crate::traits::*;
+    pub use ast::traits::*;
     pub use enso_prelude::*;
     pub use utils::fail::FallibleResult;
 }
 
-
 use prelude::*;
+
+
 
 // ================
 // === SpanTree ===
@@ -53,7 +55,7 @@ use prelude::*;
 ///
 /// This structure is used to have some specific node marked as root node, to avoid confusion
 /// regarding SpanTree crumbs and AST crumbs.
-#[derive(Debug,Eq,PartialEq)]
+#[derive(Clone,Debug,Eq,PartialEq)]
 pub struct SpanTree {
     /// A root node of the tree.
     pub root : Node

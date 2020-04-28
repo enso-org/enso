@@ -9,10 +9,11 @@ use data::text::Index;
 use data::text::Size;
 
 
-
 // ====================
 // === Helper Types ===
 // ====================
+
+// === Kind ===
 
 /// An enum describing kind of node.
 #[derive(Copy,Clone,Debug,Eq,PartialEq)]
@@ -44,11 +45,16 @@ pub enum Kind {
 #[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub enum InsertType {BeforeTarget,AfterTarget,Append}
 
-/// A type which identifies some node in SpanTree. This is essentially a iterator over child
-/// indices, so `[4]` means _root's fifth child_, `[4, 2]`means _the third child of root's fifth
-/// child_ and so on.
-pub trait Crumbs = IntoIterator<Item=usize>;
 
+// === Crumbs ===
+
+/// Identifies subtree within a node. It is the index of the child node.
+pub type Crumb = usize;
+
+/// Convert crumbs to crumbs pointing to a parent.
+pub fn parent_crumbs(crumbs:&[Crumb]) -> Option<&[Crumb]> {
+    crumbs.len().checked_sub(1).map(|new_len| &crumbs[..new_len])
+}
 
 // === Node ===
 
@@ -56,7 +62,7 @@ pub trait Crumbs = IntoIterator<Item=usize>;
 ///
 /// Each node in SpanTree is bound to some span of code, and potentially may have corresponding
 /// AST node.
-#[derive(Debug,Eq,PartialEq)]
+#[derive(Clone,Debug,Eq,PartialEq)]
 #[allow(missing_docs)]
 pub struct Node {
     pub kind     : Kind,
@@ -85,7 +91,7 @@ impl Node {
 
 /// A structure which contains `Node` being a child of some parent. It contains some additional
 /// data regarding this relation
-#[derive(Debug,Eq,PartialEq)]
+#[derive(Clone,Debug,Eq,PartialEq)]
 pub struct Child {
     /// A child node.
     pub node                : Node,
@@ -106,9 +112,18 @@ pub struct Ref<'a> {
     /// Span begin being an index counted from the root expression.
     pub span_begin : Index,
     /// Crumbs specifying this node position related to root. See `Crumbs` docs.
-    pub crumbs     : Vec<usize>,
+    pub crumbs     : Vec<Crumb>,
     /// Ast crumbs locating associated AST node, related to the root's AST node.
     pub ast_crumbs : ast::Crumbs,
+}
+
+/// A result of `get_subnode_by_ast_crumbs`
+#[derive(Clone,Debug)]
+pub struct NodeFoundByAstCrumbs<'a,'b> {
+    /// A node being a result of the lookup.
+    pub node       : Ref<'a>,
+    /// AST crumbs locating the searched AST node inside the AST of found SpanTree node.
+    pub ast_crumbs : &'b [ast::Crumb],
 }
 
 impl<'a> Ref<'a> {
@@ -146,11 +161,36 @@ impl<'a> Ref<'a> {
     }
 
     /// Get the sub-node (child, or further descendant) identified by `crumbs`.
-    pub fn traverse_subnode(self, crumbs:impl Crumbs) -> Option<Ref<'a>> {
+    pub fn get_descendant(self, crumbs:impl IntoIterator<Item=Crumb>) -> Option<Ref<'a>> {
         let mut iter = crumbs.into_iter();
         match iter.next() {
-            Some(index) => self.child(index).and_then(|child| child.traverse_subnode(iter)),
+            Some(index) => self.child(index).and_then(|child| child.get_descendant(iter)),
             None        => Some(self)
+        }
+    }
+
+    /// Get the sub-node by AST crumbs.
+    ///
+    /// The returned node will be node having corresponding AST node located by given `ast_crumbs`,
+    /// or a leaf whose AST _contains_ node located by `ast_crumbs` - in that case returned
+    /// structure will have non-empty `ast_crumbs` field.
+    pub fn get_descendant_by_ast_crumbs<'b>
+    (self, ast_crumbs:&'b [ast::Crumb]) -> Option<NodeFoundByAstCrumbs<'a,'b>> {
+        if self.node.children.is_empty() || ast_crumbs.is_empty() {
+            let node                 = self;
+            let remaining_ast_crumbs = ast_crumbs;
+            Some(NodeFoundByAstCrumbs{node, ast_crumbs: remaining_ast_crumbs })
+        } else {
+            let mut children = self.node.children.iter();
+            // Please be advised, that the `ch.ast_crumhs` is not a field of Ref, but Child, and
+            // therefore have different meaning!
+            let next = children.find_position(|ch| {
+                !ch.ast_crumbs.is_empty() && ast_crumbs.starts_with(&ch.ast_crumbs)
+            });
+            next.and_then(|(id,child)| {
+                let ast_subcrumbs = &ast_crumbs[child.ast_crumbs.len()..];
+                self.child(id).unwrap().get_descendant_by_ast_crumbs(ast_subcrumbs)
+            })
         }
     }
 
@@ -179,11 +219,13 @@ mod test {
     use crate::builder::TreeBuilder;
     use crate::node::Kind::*;
 
-    use ast::crumbs::InfixCrumb;
+    use ast::crumbs;
+    use crate::node::InsertType;
 
     #[test]
-    fn traversing_tree() {
-        use InfixCrumb::*;
+    fn node_lookup() {
+        use ast::crumbs::InfixCrumb::*;
+
         let removable = false;
         let tree      = TreeBuilder::new(7)
             .add_leaf (0,1,Target{removable},vec![LeftOperand])
@@ -196,10 +238,10 @@ mod test {
             .build();
 
         let root         = tree.root_ref();
-        let child1       = root.clone().traverse_subnode(vec![0]).unwrap();
-        let child2       = root.clone().traverse_subnode(vec![2]).unwrap();
-        let grand_child1 = root.clone().traverse_subnode(vec![2,0]).unwrap();
-        let grand_child2 = child2.clone().traverse_subnode(vec![1]).unwrap();
+        let child1       = root.clone().get_descendant(vec![0]).unwrap();
+        let child2       = root.clone().get_descendant(vec![2]).unwrap();
+        let grand_child1 = root.clone().get_descendant(vec![2, 0]).unwrap();
+        let grand_child2 = child2.clone().get_descendant(vec![1]).unwrap();
 
         // Span begin.
         assert_eq!(root.span_begin.value        , 0);
@@ -230,10 +272,44 @@ mod test {
         assert_eq!(grand_child2.ast_crumbs, [RightOperand.into(),Operator.into()]   );
 
         // Not existing nodes
-        assert!(root.clone().traverse_subnode(vec![3]).is_none());
-        assert!(root.clone().traverse_subnode(vec![1,0]).is_none());
-        assert!(root.clone().traverse_subnode(vec![2,1,0]).is_none());
-        assert!(root.clone().traverse_subnode(vec![2,5]).is_none());
-        assert!(root.traverse_subnode(vec![2,5,0]).is_none());
+        assert!(root.clone().get_descendant(vec![3]).is_none());
+        assert!(root.clone().get_descendant(vec![1, 0]).is_none());
+        assert!(root.clone().get_descendant(vec![2, 1, 0]).is_none());
+        assert!(root.clone().get_descendant(vec![2, 5]).is_none());
+        assert!(root.get_descendant(vec![2, 5, 0]).is_none());
+    }
+
+    #[test]
+    fn node_lookup_by_ast_crumbs() {
+        use ast::crumbs::BlockCrumb::*;
+        use ast::crumbs::InfixCrumb::*;
+        use ast::crumbs::PrefixCrumb::*;
+
+        let removable = false;
+        let tree      = TreeBuilder::new(7)
+            .add_leaf (0,1,Target{removable},vec![LeftOperand])
+            .add_empty_child(1,InsertType::AfterTarget)
+            .add_leaf (1,1,Operation,vec![Operator])
+            .add_child(2,5,Argument{removable},vec![RightOperand])
+                .add_leaf(0,3,Operation,vec![Func])
+                .add_leaf(3,1,Target{removable},vec![Arg])
+            .done()
+            .build();
+
+        let root  = tree.root_ref();
+        let cases:&[(ast::Crumbs,&[usize],ast::Crumbs)] = &
+            [ (crumbs![LeftOperand]              ,&[0]  ,crumbs![])
+            , (crumbs![RightOperand]             ,&[3]  ,crumbs![])
+            , (crumbs![RightOperand,Func]        ,&[3,0],crumbs![])
+            , (crumbs![RightOperand,Arg]         ,&[3,1],crumbs![])
+            , (crumbs![RightOperand,Arg,HeadLine],&[3,1],crumbs![HeadLine])
+            ];
+
+        for case in cases {
+            let (crumbs,expected_crumbs,expected_remaining_ast_crumbs) = case;
+            let result = root.clone().get_descendant_by_ast_crumbs(&crumbs).unwrap();
+            assert_eq!(result.node.crumbs.as_slice(), *expected_crumbs);
+            assert_eq!(result.ast_crumbs, expected_remaining_ast_crumbs.as_slice());
+        }
     }
 }

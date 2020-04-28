@@ -104,11 +104,16 @@ struct MismatchedCrumbType;
 pub trait IntoCrumbs : IntoIterator<Item:Into<Crumb>> + Sized {
     /// Convert to the actual Crumbs structure.
     fn into_crumbs(self) -> Crumbs {
-        self.into_iter().map(|cb| cb.into()).collect()
+        iter_crumbs(self).collect()
     }
 }
 
 impl<T:IntoIterator<Item:Into<Crumb>> + Sized> IntoCrumbs for T {}
+
+/// Converts `IntoCrumbs` value into a `Crumb`-yielding iterator.
+pub fn iter_crumbs(crumbs:impl IntoCrumbs) -> impl Iterator<Item=Crumb> {
+    crumbs.into_iter().map(|crumb| crumb.into())
+}
 
 /// Sequence of `Crumb`s describing traversal path through AST.
 pub type Crumbs = Vec<Crumb>;
@@ -116,8 +121,11 @@ pub type Crumbs = Vec<Crumb>;
 /// Helper macro. Behaves like `vec!` but converts each element into `Crumb`.
 #[macro_export]
 macro_rules! crumbs {
+    ( ) => {
+        Vec::<$crate::crumbs::Crumb>::new()
+    };
     ( $( $x:expr ),* ) => {
-        vec![$(Crumb::from($x)),*]
+        vec![$($crate::crumbs::Crumb::from($x)),*]
     };
 }
 
