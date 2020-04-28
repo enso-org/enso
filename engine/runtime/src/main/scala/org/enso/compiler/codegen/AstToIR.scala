@@ -31,9 +31,8 @@ object AstToIR {
   def translate(inputAST: AST): Module = {
     inputAST match {
       case AST.Module.any(inputAST) => translateModule(inputAST)
-      case _ => {
+      case _ =>
         throw new UnhandledEntity(inputAST, "translate")
-      }
     }
   }
 
@@ -111,7 +110,7 @@ object AstToIR {
     inputAST match {
       case AST.Def(consName, args, body) =>
         if (body.isDefined) {
-          throw new RuntimeException("Cannot support complex type defs yet!!!!")
+          throw new UnhandledEntity(inputAST, "translateModuleSymbol")
         } else {
           Module.Scope.Definition
             .Atom(
@@ -206,9 +205,8 @@ object AstToIR {
       case AST.App.any(inputAST)     => translateApplicationLike(inputAST)
       case AST.Mixfix.any(inputAST)  => translateApplicationLike(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
-      case AST.Group.any(inputAST) =>
-        translateGroup(inputAST, translateExpression)
-      case AST.Ident.any(inputAST) => translateIdent(inputAST)
+      case AST.Group.any(inputAST)   => translateGroup(inputAST)
+      case AST.Ident.any(inputAST)   => translateIdent(inputAST)
       case AstView.Block(lines, retLine) =>
         Expression.Block(
           lines.map(translateExpression),
@@ -218,8 +216,9 @@ object AstToIR {
       case AST.Comment.any(inputAST) => translateComment(inputAST)
       case AST.Invalid.any(inputAST) => translateInvalid(inputAST)
       case AST.Foreign(_, _, _) =>
-        throw new RuntimeException(
-          "Enso does not yet support foreign language blocks"
+        Error.Syntax(
+          inputAST,
+          Error.Syntax.UnsupportedSyntax("foreign blocks")
         )
       case _ =>
         throw new UnhandledEntity(inputAST, "translateExpression")
@@ -246,10 +245,13 @@ object AstToIR {
     literal match {
       case AST.Literal.Number(base, number) => {
         if (base.isDefined && base.get != "10") {
-          throw new RuntimeException("Only base 10 is currently supported")
+          Error.Syntax(
+            literal,
+            Error.Syntax.UnsupportedSyntax("non-base-10 number literals")
+          )
+        } else {
+          Literal.Number(number, getIdentifiedLocation(literal))
         }
-
-        Literal.Number(number, getIdentifiedLocation(literal))
       }
       case AST.Literal.Text.any(literal) =>
         literal.shape match {
@@ -272,9 +274,15 @@ object AstToIR {
 
             Literal.Text(fullString, getIdentifiedLocation(literal))
           case AST.Literal.Text.Block.Fmt(_, _, _) =>
-            throw new RuntimeException("Format strings not yet supported")
+            Error.Syntax(
+              literal,
+              Error.Syntax.UnsupportedSyntax("format strings")
+            )
           case AST.Literal.Text.Line.Fmt(_) =>
-            throw new RuntimeException("Format strings not yet supported")
+            Error.Syntax(
+              literal,
+              Error.Syntax.UnsupportedSyntax("format strings")
+            )
           case _ =>
             throw new UnhandledEntity(literal.shape, "translateLiteral")
         }
@@ -399,24 +407,20 @@ object AstToIR {
           getIdentifiedLocation(callable)
         )
       case AST.App.Prefix(_, _) =>
-        throw new RuntimeException(
-          "Enso does not support arbitrary prefix expressions"
-        )
+        throw new UnhandledEntity(callable, "translateCallable")
       case AST.App.Section.any(_) =>
-        throw new RuntimeException(
-          "Enso does not yet support operator sections"
+        Error.Syntax(
+          callable,
+          Error.Syntax.UnsupportedSyntax("operator sections")
         )
       case AST.Mixfix(nameSegments, args) =>
         val realNameSegments = nameSegments.collect {
-          case AST.Ident.Var.any(v) => v
-        }
-
-        if (realNameSegments.length != nameSegments.length) {
-          throw new RuntimeException("Badly named mixfix function.")
+          case AST.Ident.Var.any(v)  => v.name
+          case AST.Ident.Cons.any(v) => v.name.toLowerCase
         }
 
         val functionName =
-          AST.Ident.Var(realNameSegments.map(_.name).mkString("_"))
+          AST.Ident.Var(realNameSegments.mkString("_"))
 
         Application.Prefix(
           translateExpression(functionName),
@@ -447,12 +451,19 @@ object AstToIR {
       case AST.Ident.Cons(name) =>
         Name.Literal(name, getIdentifiedLocation(identifier))
       case AST.Ident.Blank(_) =>
-        throw new RuntimeException("Blanks not yet properly supported")
+        Error.Syntax(
+          identifier,
+          Error.Syntax.UnsupportedSyntax("blanks")
+        )
       case AST.Ident.Opr.any(_) =>
-        throw new RuntimeException("Operators not generically supported yet")
+        Error.Syntax(
+          identifier,
+          Error.Syntax.UnsupportedSyntax("operator sections")
+        )
       case AST.Ident.Mod(_) =>
-        throw new RuntimeException(
-          "Enso does not support arbitrary module identifiers yet"
+        Error.Syntax(
+          identifier,
+          Error.Syntax.UnsupportedSyntax("module identifiers")
         )
       case _ =>
         throw new UnhandledEntity(identifier, "translateIdent")
@@ -533,17 +544,12 @@ object AstToIR {
     * It is currently an error to have an empty group.
     *
     * @param group the group to translate
-    * @param translator the function to apply to the group's contents
-    * @tparam T the result type of translating the expression contained in
-    *           `group`
     * @return the [[Core]] representation of the contents of `group`
     */
-  def translateGroup[T](group: AST.Group, translator: AST => T): T = {
+  def translateGroup(group: AST.Group): Expression = {
     group.body match {
-      case Some(ast) => translator(ast)
-      case None => {
-        throw new RuntimeException("Empty group")
-      }
+      case Some(ast) => translateExpression(ast)
+      case None      => Error.Syntax(group, Error.Syntax.EmptyParentheses)
     }
   }
 
@@ -569,25 +575,27 @@ object AstToIR {
   def translateInvalid(invalid: AST.Invalid): Expression = {
     invalid match {
       case AST.Invalid.Unexpected(_, _) =>
-        throw new RuntimeException(
-          "Enso does not yet support unexpected blocks properly"
+        Error.Syntax(
+          invalid,
+          Error.Syntax.UnexpectedExpression
         )
       case AST.Invalid.Unrecognized(_) =>
-        throw new RuntimeException(
-          "Enso does not yet support unrecognised tokens properly"
+        Error.Syntax(
+          invalid,
+          Error.Syntax.UnrecognizedToken
         )
       case AST.Ident.InvalidSuffix(_, _) =>
-        throw new RuntimeException(
-          "Enso does not yet support invalid suffixes properly"
+        Error.Syntax(
+          invalid,
+          Error.Syntax.InvalidSuffix
         )
       case AST.Literal.Text.Unclosed(_) =>
-        throw new RuntimeException(
-          "Enso does not yet support unclosed text literals properly"
+        Error.Syntax(
+          invalid,
+          Error.Syntax.UnclosedTextLiteral
         )
       case _ =>
-        throw new RuntimeException(
-          "Fatal: Unhandled entity in processInvalid = " + invalid
-        )
+        throw new UnhandledEntity(invalid, "translateInvalid")
     }
   }
 
@@ -603,8 +611,9 @@ object AstToIR {
   def translateComment(comment: AST): Expression = {
     comment match {
       case AST.Comment(_) =>
-        throw new RuntimeException(
-          "Enso does not yet support comments properly"
+        Error.Syntax(
+          comment,
+          Error.Syntax.UnsupportedSyntax("comments")
         )
       case AST.Documented(doc, _, ast) =>
         Comment.Documentation(

@@ -42,7 +42,7 @@ class RuntimeServerTest
         .newBuilder(LanguageInfo.ID)
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
-        .option(RuntimeOptions.getPackagesPathOption, pkg.root.getAbsolutePath)
+        .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .out(out)
         .serverTransport { (uri, peer) =>
@@ -383,7 +383,9 @@ class RuntimeServerTest
     )
 
     // recompute
-    context.send(Api.Request(requestId, Api.RecomputeContextRequest(contextId, None)))
+    context.send(
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+    )
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(Main.update.idMainX(contextId)),

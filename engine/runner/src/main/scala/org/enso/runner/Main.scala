@@ -10,7 +10,7 @@ import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.pkg.Package
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
-import org.graalvm.polyglot.Value
+import org.graalvm.polyglot.{PolyglotException, Value}
 
 import scala.annotation.unused
 import scala.util.Try
@@ -172,7 +172,8 @@ object Main {
       packagePath,
       System.in,
       System.out,
-      Repl(TerminalIO())
+      Repl(TerminalIO()),
+      strictErrors = true
     )
     if (projectMode) {
       val pkg  = Package.fromDirectory(file)
@@ -196,18 +197,25 @@ object Main {
   ): Unit = {
     val topScope   = context.getTopScope
     val mainModule = topScope.getModule(mainModuleName)
-    runMain(mainModule): Unit
+    runMain(mainModule)
   }
 
   private def runSingleFile(context: PolyglotContext, file: File): Unit = {
     val mainModule = context.evalModule(file)
-    runMain(mainModule): Unit
+    runMain(mainModule)
   }
 
   private def runMain(mainModule: Module): Value = {
-    val mainCons = mainModule.getAssociatedConstructor
-    val mainFun  = mainModule.getMethod(mainCons, "main")
-    mainFun.execute(mainCons.newInstance())
+    try {
+      val mainCons = mainModule.getAssociatedConstructor
+      val mainFun  = mainModule.getMethod(mainCons, "main")
+      mainFun.execute(mainCons.newInstance())
+    } catch {
+      case e: PolyglotException =>
+        System.err.println(e.getMessage)
+        exitFail()
+        throw new RuntimeException("Impossible to reach here.")
+    }
   }
 
   /**

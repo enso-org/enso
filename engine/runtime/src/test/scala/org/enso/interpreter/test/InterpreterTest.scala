@@ -79,7 +79,7 @@ trait InterpreterRunner {
     .allowExperimentalOptions(true)
     .out(output)
     .build()
-  val executionContext = new PolyglotContext(ctx)
+  lazy val executionContext = new PolyglotContext(ctx)
 
   def withLocationsInstrumenter(test: LocationsInstrumenter => Unit): Unit = {
     val instrument = ctx.getEngine.getInstruments

@@ -15,6 +15,7 @@ public class PanicException extends RuntimeException implements TruffleException
    * @param location the node throwing this exception, for use in guest stack traces
    */
   public PanicException(Object payload, Node location) {
+    super(payload.toString());
     this.payload = payload;
     this.location = location;
   }

@@ -3,7 +3,7 @@ package org.enso.compiler.codegen
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.IdentifiedLocation
+import org.enso.compiler.core.IR.{Error, IdentifiedLocation}
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
@@ -23,7 +23,8 @@ import org.enso.interpreter.node.callable.{ApplicationNode, InvokeCallableNode}
 import org.enso.interpreter.node.controlflow._
 import org.enso.interpreter.node.expression.constant.{
   ConstructorNode,
-  DynamicSymbolNode
+  DynamicSymbolNode,
+  ErrorNode
 }
 import org.enso.interpreter.node.expression.literal.{
   IntegerLiteralNode,
@@ -338,11 +339,7 @@ class IRToTruffle(
         case binding: IR.Expression.Binding => processBinding(binding)
         case caseExpr: IR.Case              => processCase(caseExpr)
         case comment: IR.Comment            => processComment(comment)
-        case err: IR.Error =>
-          throw new CompilerError(
-            s"No errors should remain by the point of truffle codegen, but " +
-            s"found $err."
-          )
+        case err: IR.Error                  => processError(err)
         case IR.Foreign.Definition(_, _, _, _) =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
@@ -554,6 +551,34 @@ class IRToTruffle(
         case IR.Literal.Text(text, location, _) =>
           setLocation(TextLiteralNode.build(text), location)
       }
+
+    /**
+      * Generates a runtime implementation for compile error nodes.
+      *
+      * @param error the IR representing a compile error.
+      * @return a runtime node representing the error.
+      */
+    def processError(error: IR.Error): RuntimeExpression = {
+      val payload: AnyRef = error match {
+        case IR.Empty(_, _) =>
+          throw new CompilerError("Unexpected Empty IR during codegen.")
+        case Error.InvalidIR(_, _) =>
+          throw new CompilerError("Unexpected Invalid IR during codegen.")
+        case err: Error.Syntax =>
+          context.getBuiltins
+            .syntaxError()
+            .newInstance(err.message)
+        case err: Error.Redefined.Binding =>
+          context.getBuiltins
+            .compileError()
+            .newInstance(err.message)
+        case err: Error.Redefined.Argument =>
+          context.getBuiltins
+            .compileError()
+            .newInstance(err.message)
+      }
+      setLocation(ErrorNode.build(payload), error.location)
+    }
 
     /** Generates code for an Enso function body.
       *

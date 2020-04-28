@@ -7,9 +7,11 @@ import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
-import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.IRPass
+
 import org.enso.compiler.pass.analyse._
+
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
   LiftSpecialOperators,
@@ -68,6 +70,7 @@ class Compiler(
     val parsedAST      = parse(source)
     val expr           = generateIR(parsedAST)
     val compilerOutput = runCompilerPhases(expr)
+    runErrorHandling(compilerOutput, source)
     truffleCodegen(compilerOutput, source, scope)
   }
 
@@ -132,6 +135,7 @@ class Compiler(
 
     generateIRInline(parsed).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, inlineContext)
+      runErrorHandlingInline(compilerOutput, source, inlineContext)
       Some(truffleCodegenInline(compilerOutput, source, inlineContext))
     }
   }
@@ -209,6 +213,75 @@ class Compiler(
       pass.runExpression(intermediateIR, inlineContext)
     )
   }
+
+  /**
+    * Runs the strict error handling mechanism (if enabled in the language
+    * context) for the inline compiler flow.
+    *
+    * @param ir the IR after compilation passes.
+    * @param source the original source code.
+    * @param inlineContext the inline compilation context.
+    */
+  def runErrorHandlingInline(
+    ir: IR.Expression,
+    source: Source,
+    inlineContext: InlineContext
+  ): Unit = if (context.isStrictErrors) {
+    val errors = GatherErrors
+      .runExpression(ir, inlineContext)
+      .unsafeGetMetadata[GatherErrors.Errors](
+        "No errors metadata right after the gathering pass."
+      )
+      .errors
+    reportErrors(errors, source)
+  }
+
+  /**
+    * Runs the strict error handling mechanism (if enabled in the language
+    * context) for the module-level compiler flow.
+    *
+    * @param ir the IR after compilation passes.
+    * @param source the original source code.
+    */
+  def runErrorHandling(ir: IR.Module, source: Source): Unit =
+    if (context.isStrictErrors) {
+      val errors = GatherErrors
+        .runModule(ir)
+        .unsafeGetMetadata[GatherErrors.Errors](
+          "No errors metadata right after the gathering pass."
+        )
+        .errors
+      reportErrors(errors, source)
+    }
+
+  /**
+    * Reports compilation errors to the standard output and throws an exception
+    * breaking the execution flow.
+    *
+    * @param errors all the errors found in the program IR.
+    * @param source the original source code.
+    */
+  def reportErrors(errors: List[IR.Error], source: Source): Unit =
+    if (errors.nonEmpty) {
+      context.getOut.println("Compiler encountered errors:")
+      errors.foreach { err =>
+        val srcLocation = err.location
+          .map { loc =>
+            val section = source
+              .createSection(loc.location.start, loc.location.length)
+            val locStr =
+              "" + section.getStartLine + ":" +
+              section.getStartColumn + "-" +
+              section.getEndLine + ":" +
+              section.getEndColumn
+            "[" + locStr + "]"
+          }
+          .getOrElse("")
+        val fullMsg = source.getName + srcLocation + ": " + err.message
+        context.getOut.println(fullMsg)
+      }
+      throw new CompilationAbortedException
+    }
 
   /** Generates code for the truffle interpreter.
     *

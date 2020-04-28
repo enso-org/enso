@@ -44,6 +44,8 @@ public class Builtins {
   private final AtomConstructor function;
   private final AtomConstructor text;
   private final AtomConstructor debug;
+  private final AtomConstructor syntaxError;
+  private final AtomConstructor compileError;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -59,6 +61,14 @@ public class Builtins {
     function = new AtomConstructor("Function", scope).initializeFields();
     text = new AtomConstructor("Text", scope).initializeFields();
     debug = new AtomConstructor("Debug", scope).initializeFields();
+    syntaxError =
+        new AtomConstructor("Syntax_Error", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "message", ArgumentDefinition.ExecutionMode.EXECUTE));
+    compileError =
+        new AtomConstructor("Compile_Error", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "message", ArgumentDefinition.ExecutionMode.EXECUTE));
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -84,6 +94,9 @@ public class Builtins {
     scope.registerConstructor(error);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
+
+    scope.registerConstructor(syntaxError);
+    scope.registerConstructor(compileError);
 
     scope.registerMethod(io, "println", PrintNode.makeFunction(language));
 
@@ -164,6 +177,16 @@ public class Builtins {
    */
   public AtomConstructor debug() {
     return debug;
+  }
+
+  /** @return the builtin {@code Syntax_Error} atom constructor. */
+  public AtomConstructor syntaxError() {
+    return syntaxError;
+  }
+
+  /** @return the builtin {@code Compile_Error} atom constructor. */
+  public AtomConstructor compileError() {
+    return compileError;
   }
 
   /**

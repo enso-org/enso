@@ -40,7 +40,7 @@ jobs:
     - name: Setup conda
       uses: s-weigand/setup-conda@v1
       with:
-        update-conda: true
+        update-conda: false
         conda-channels: anaconda, conda-forge
     - name: Setup Conda Environment on Windows
       if: runner.os == 'Windows'
@@ -51,7 +51,7 @@ jobs:
       if: runner.os == 'Windows'
       run: conda activate enso
     - name: Install FlatBuffers Compiler
-      run: conda install flatbuffers=1.12.0
+      run: conda install --freeze-installed flatbuffers=1.12.0
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:

@@ -108,7 +108,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
-    .option(RuntimeOptions.getPackagesPathOption, serverConfig.contentRootPath)
+    .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(

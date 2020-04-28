@@ -25,13 +25,15 @@ class ContextFactory {
     packagesPath: String = "",
     in: InputStream,
     out: OutputStream,
-    repl: Repl
+    repl: Repl,
+    strictErrors: Boolean = false
   ): PolyglotContext = {
     val context = Context
       .newBuilder(LanguageInfo.ID)
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
-      .option(RuntimeOptions.getPackagesPathOption, packagesPath)
+      .option(RuntimeOptions.PACKAGES_PATH, packagesPath)
+      .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
       .out(out)
       .in(in)
       .build

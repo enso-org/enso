@@ -18,6 +18,7 @@ import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.RuntimeOptions;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -193,5 +194,14 @@ public class Context {
    */
   public AtomConstructor getUnit() {
     return getBuiltins().unit();
+  }
+
+  /**
+   * Checks whether the strict errors option was set for this context.
+   *
+   * @return true if the strict errors option is enabled, false otherwise.
+   */
+  public boolean isStrictErrors() {
+    return getEnvironment().getOptions().get(RuntimeOptions.STRICT_ERRORS_KEY);
   }
 }

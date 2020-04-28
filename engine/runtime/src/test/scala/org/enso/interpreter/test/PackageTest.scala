@@ -1,6 +1,6 @@
 package org.enso.interpreter.test
 
-import java.io.File
+import java.io.{ByteArrayOutputStream, File}
 
 import org.enso.pkg.Package
 import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}
@@ -20,16 +20,19 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
       .newBuilder(LanguageInfo.ID)
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
-      .option(RuntimeOptions.getPackagesPathOption, pkgPath.getAbsolutePath)
+      .option(RuntimeOptions.PACKAGES_PATH, pkgPath.getAbsolutePath)
+      .option(RuntimeOptions.STRICT_ERRORS, "true")
       .out(System.out)
       .in(System.in)
       .build()
     context.initialize(LanguageInfo.ID)
     val executionContext = new PolyglotContext(context)
-    val topScope         = executionContext.getTopScope
-    val mainModuleScope  = topScope.getModule(mainModule.toString)
-    val assocCons        = mainModuleScope.getAssociatedConstructor
-    val mainFun          = mainModuleScope.getMethod(assocCons, "main")
-    InterpreterException.rethrowPolyglot(mainFun.execute(assocCons))
+    InterpreterException.rethrowPolyglot {
+      val topScope        = executionContext.getTopScope
+      val mainModuleScope = topScope.getModule(mainModule.toString)
+      val assocCons       = mainModuleScope.getAssociatedConstructor
+      val mainFun         = mainModuleScope.getMethod(assocCons, "main")
+      mainFun.execute(assocCons)
+    }
   }
 }
