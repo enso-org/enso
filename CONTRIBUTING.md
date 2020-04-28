@@ -226,7 +226,7 @@ please choose one best suited for you.
 
 Once you have a copy of the dynamic library, it needs to be placed in
 `$JVM_HOME/jre/lib/server` on a JDK-8 install, or in `$JVM_HOME/lib/server` for
-a JDK-10 or later install.
+a JDK-10 or later install (once this is supported).
 
 #### Native Image
 Native image is a capability provided alongside GraalVM that allows the
