@@ -10,25 +10,39 @@ use data::text::Size;
 
 
 
-// =============
-// === Nodes ===
-// =============
+// ====================
+// === Helper Types ===
+// ====================
 
-/// A type of SpanTree node.
+/// An enum describing kind of node.
 #[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub enum Kind {
     /// A root of the expression this tree was generated.
     Root,
-    /// A node being a target (or "self") parameter of parent Infix, Section or Prefix.
-    Target,
+    /// A node chained with parent node. See crate's docs for more info about chaining.
+    Chained,
     /// A node representing operation (operator or function) of parent Infix, Section or Prefix.
     Operation,
+    /// A node being a target (or "self") parameter of parent Infix, Section or Prefix.
+    Target {
+        /// Indicates if this node can be erased from SpanTree.
+        removable:bool
+    },
     /// A node being a normal (not target) parameter of parent Infix, Section or Prefix.
-    Argument,
-    /// An empty node being a placeholder for adding new child to the parent. The empty node
-    /// should not have any further children.
-    Empty
+    Argument {
+        /// Indicates if this node can be erased from SpanTree.
+        removable:bool
+    },
+    /// A node being a placeholder for inserting new child to Prefix or Operator chain. It should
+    /// have assigned span of length 0 and should not have any child.
+    Empty(InsertType),
 }
+
+/// A helpful information about how the new AST should be inserted during Set action. See `action`
+/// module.
+#[allow(missing_docs)]
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
+pub enum InsertType {BeforeTarget,AfterTarget,Append}
 
 /// A type which identifies some node in SpanTree. This is essentially a iterator over child
 /// indices, so `[4]` means _root's fifth child_, `[4, 2]`means _the third child of root's fifth
@@ -51,12 +65,20 @@ pub struct Node {
 }
 
 impl Node {
-    /// Create new empty node.
-    pub fn new_empty() -> Self {
+    /// Create Empty node.
+    pub fn new_empty(insert_type:InsertType) -> Self {
         Node {
-            kind     : Kind::Empty,
+            kind     : Kind::Empty(insert_type),
             size     : Size::new(0),
             children : Vec::new(),
+        }
+    }
+
+    /// Is this node empty?
+    pub fn is_empty(&self) -> bool {
+        match self.kind {
+            Kind::Empty(_) => true,
+            _              => false,
         }
     }
 }
@@ -69,14 +91,9 @@ pub struct Child {
     pub node                : Node,
     /// An offset counted from the parent node starting index to the start of this node's span.
     pub offset              : Size,
-    /// Flag indicating that parent should take this node's children instead of itself when
-    /// iterating using `chain_children_iter` method. See this method docs for reference, and
-    /// crate's doc for details about _chaining_.
-    pub chained_with_parent : bool,
     /// AST crumbs which lead from parent to child associated AST node.
     pub ast_crumbs          : ast::Crumbs,
 }
-
 
 
 // === Node Reference ===
@@ -95,6 +112,10 @@ pub struct Ref<'a> {
 }
 
 impl<'a> Ref<'a> {
+    /// Get span of current node.
+    pub fn span(&self) -> data::text::Span {
+        data::text::Span::new(self.span_begin,self.node.size)
+    }
 
     /// Get the reference to child with given index. Returns None if index if out of bounds.
     pub fn child(mut self, index:usize) -> Option<Ref<'a>> {
@@ -132,6 +153,18 @@ impl<'a> Ref<'a> {
             None        => Some(self)
         }
     }
+
+    /// Get the node which exactly matches the given Span. If there many such node's, it pick first
+    /// found by DFS.
+    pub fn find_by_span(self, span:&data::text::Span) -> Option<Ref<'a>> {
+        if self.span() == *span {
+            Some(self)
+        } else {
+            self.children_iter().find_map(|ch|
+                ch.span().contains_span(span).and_option_from(|| ch.find_by_span(&span))
+            )
+        }
+    }
 }
 
 
@@ -151,13 +184,14 @@ mod test {
     #[test]
     fn traversing_tree() {
         use InfixCrumb::*;
-        let tree = TreeBuilder::new(7)
-            .add_leaf (0,1,Target   ,vec![LeftOperand])
+        let removable = false;
+        let tree      = TreeBuilder::new(7)
+            .add_leaf (0,1,Target{removable},vec![LeftOperand])
             .add_leaf (1,1,Operation,vec![Operator])
-            .add_child(2,5,Argument ,vec![RightOperand])
-                .add_leaf(0,2,Target   ,vec![LeftOperand])
+            .add_child(2,5,Argument{removable},vec![RightOperand])
+                .add_leaf(0,2,Target{removable},vec![LeftOperand])
                 .add_leaf(3,1,Operation,vec![Operator])
-                .add_leaf(4,1,Argument ,vec![RightOperand])
+                .add_leaf(4,1,Argument{removable},vec![RightOperand])
                 .done()
             .build();
 
@@ -196,7 +230,6 @@ mod test {
         assert_eq!(grand_child2.ast_crumbs, [RightOperand.into(),Operator.into()]   );
 
         // Not existing nodes
-
         assert!(root.clone().traverse_subnode(vec![3]).is_none());
         assert!(root.clone().traverse_subnode(vec![1,0]).is_none());
         assert!(root.clone().traverse_subnode(vec![2,1,0]).is_none());

@@ -2498,6 +2498,7 @@ dependencies = [
  "ast 0.1.0",
  "data 0.1.0",
  "enso-prelude 0.1.0",
+ "failure 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "parser 0.1.0",
  "utils 0.1.0",
  "wasm-bindgen-test 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",

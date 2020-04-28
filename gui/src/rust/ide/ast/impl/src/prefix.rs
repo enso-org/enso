@@ -6,6 +6,8 @@ use crate::Ast;
 use crate::crumbs::Located;
 use crate::crumbs::PrefixCrumb;
 use crate::known;
+use crate::Prefix;
+use crate::Shifted;
 
 use utils::vec::VecExt;
 
@@ -15,7 +17,7 @@ pub struct Chain {
     /// The function (initial application target)
     pub func : Ast,
     /// Subsequent arguments applied over the function.
-    pub args : Vec<Ast>
+    pub args : Vec<Shifted<Ast>>,
 }
 
 impl Chain {
@@ -23,19 +25,17 @@ impl Chain {
     /// App(App(a,b),c) into flat list where first element is the function and
     /// then arguments are placed: `{func:a, args:[b,c]}`.
     pub fn new(ast:&known::Prefix) -> Chain {
-        fn run(ast:&known::Prefix, mut acc: &mut Vec<Ast>) {
-            match known::Prefix::try_from(&ast.func) {
+        fn run(ast:&known::Prefix, mut acc: &mut Vec<Shifted<Ast>>) -> Ast {
+            let func = match known::Prefix::try_from(&ast.func) {
                 Ok(lhs_app) => run(&lhs_app, &mut acc),
-                _           => acc.push(ast.func.clone()),
-            }
-            acc.push(ast.arg.clone())
+                _           => ast.func.clone(),
+            };
+            acc.push(Shifted{wrapped:ast.arg.clone(),off:ast.off});
+            func
         }
 
-        let mut parts = Vec::new();
-        run(ast,&mut parts);
-
-        let func = parts.remove(0);
-        let args = parts; // remaining parts are args
+        let mut args = Vec::new();
+        let func     = run(ast,&mut args);
         Chain {func,args}
     }
 
@@ -54,7 +54,7 @@ impl Chain {
             // Case like `+ a b`
             let func = section.opr.clone();
             let right_chain = Chain::new_non_strict(&section.arg);
-            let mut args = vec![right_chain.func];
+            let mut args = vec![Shifted{wrapped:right_chain.func, off:section.off}];
             args.extend(right_chain.args);
             Chain {func,args}
         } else {
@@ -75,8 +75,29 @@ impl Chain {
         crumbs.push(PrefixCrumb::Arg);
         self.args.iter().map(move |arg| {
             crumbs.pop_front();
-            Located::new(&crumbs, arg)
+            Located::new(&crumbs,&arg.wrapped)
         })
+    }
+
+    /// Replace the `func` and first argument with a new `func` being an proper Prefix ast node.
+    /// Does nothing if there are no arguments.
+    pub fn fold_arg(&mut self) {
+        if let Some(arg) = self.args.pop_front() {
+            let new_prefix = Prefix{
+                arg  : arg.wrapped,
+                func : self.func.clone_ref(),
+                off  : arg.off,
+            };
+            self.func = new_prefix.into();
+        }
+    }
+
+    /// Convert the chain to proper AST node.
+    pub fn into_ast(mut self) -> Ast {
+        while !self.args.is_empty() {
+            self.fold_arg()
+        }
+        self.func
     }
 }
 
@@ -99,8 +120,8 @@ mod tests {
 
         let chain = Chain::try_new(&a_b_c).unwrap();
         assert_eq!(chain.func, a);
-        assert_eq!(chain.args[0], b);
-        assert_eq!(chain.args[1], c);
+        assert_eq!(chain.args[0].wrapped, b);
+        assert_eq!(chain.args[1].wrapped, c);
 
         let (arg1,arg2) = chain.enumerate_args().expect_tuple();
         assert_eq!(arg1.item, &b);
@@ -108,4 +129,6 @@ mod tests {
         assert_eq!(arg2.item, &c);
         assert_eq!(a_b_c.get_traversing(&arg2.crumbs).unwrap(), &c);
     }
+
+    // TODO[ao] add tests for modifying chain.
 }
