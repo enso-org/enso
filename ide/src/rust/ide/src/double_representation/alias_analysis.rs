@@ -27,6 +27,7 @@ pub type LocatedName = Located<NormalizedName>;
 /// The identifier name normalized to a lower-case (as the comparisons are case-insensitive).
 /// Implements case-insensitive compare with AST.
 #[derive(Clone,Debug,Display,Hash,PartialEq,Eq)]
+#[derive(Shrinkwrap)]
 pub struct NormalizedName(String);
 
 impl NormalizedName {
@@ -39,6 +40,12 @@ impl NormalizedName {
     /// If the given AST is an identifier, returns its normalized name.
     pub fn try_from_ast(ast:&Ast) -> Option<NormalizedName> {
         ast::identifier::name(ast).map(NormalizedName::new)
+    }
+
+    /// Is the given string a prefix of this name.
+    pub fn starts_with(&self, name:impl Str) -> bool {
+        let prefix = NormalizedName::new(name);
+        self.0.starts_with(prefix.0.as_str())
     }
 }
 

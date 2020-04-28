@@ -37,6 +37,7 @@ pub mod prelude {
 
 use crate::prelude::*;
 
+pub use crumbs::Crumb;
 pub use crumbs::Crumbs;
 
 use ast_macros::*;
@@ -1113,6 +1114,11 @@ impl Module<Ast> {
 impl Ast {
     // TODO smart constructors for other cases
     //  as part of https://github.com/luna/enso/issues/338
+
+    /// Creates Blank ast node (underscore).
+    pub fn blank() -> Ast {
+        Ast::from(Blank{})
+    }
 
     /// Creates an Ast node with Number inside.
     pub fn number(number:i64) -> Ast {

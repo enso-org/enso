@@ -132,33 +132,47 @@ impl GraphInfo {
 
     /// Removes the node from graph.
     pub fn remove_node(&mut self, node_id:ast::Id) -> FallibleResult<()> {
+        self.update_node(node_id, |_| None)
+    }
+
+    /// Sets a new state for the node. The id of the described node must denote already existing
+    /// node.
+    pub fn set_node(&mut self, node:&NodeInfo) -> FallibleResult<()> {
+        self.update_node(node.id(), |_| Some(node.clone()))
+    }
+
+    /// Sets a new state for the node. The id of the described node must denote already existing
+    /// node.
+    pub fn update_node(&mut self, id:ast::Id, f:impl FnOnce(NodeInfo) -> Option<NodeInfo>) -> FallibleResult<()> {
         let mut lines = self.source.block_lines()?;
-        lines.drain_filter(|line| {
-            let node         = line.elem.as_ref().and_then(NodeInfo::from_line_ast);
-            let removed_node = node.filter(|node| node.id() == node_id);
-            removed_node.is_some()
+        let node_entry = lines.iter().enumerate().find_map(|(index,line)| {
+            let node     = line.elem.as_ref().and_then(NodeInfo::from_line_ast);
+            let filtered = node.filter(|node| node.id() == id);
+            filtered.map(|node| (index,node))
         });
-        if lines.is_empty() {
-            self.source.set_body_ast(Self::empty_graph_body())
+        if let Some((index,node_info)) = node_entry {
+            if let Some(updated_node) = f(node_info) {
+                lines[index].elem = Some(updated_node.ast().clone_ref());
+            } else {
+                lines.remove(index);
+            }
+            if lines.is_empty() {
+                self.source.set_body_ast(Self::empty_graph_body());
+                Ok(())
+            } else {
+                self.source.set_block_lines(lines)
+            }
         } else {
-            self.source.set_block_lines(lines)?
+            Err(IdNotFound {id}.into())
         }
-        Ok(())
     }
 
     /// Sets expression of the given node.
     pub fn edit_node(&mut self, node_id:ast::Id, new_expression:Ast) -> FallibleResult<()> {
-        let mut lines    = self.source.block_lines()?;
-        let node_entry   = lines.iter().enumerate().find_map(|(index,line)| {
-            let node     = line.elem.as_ref().and_then(NodeInfo::from_line_ast);
-            let filtered = node.filter(|node| node.id() == node_id);
-            filtered.map(|node| (index,node))
-        });
-        if let Some((index,mut node)) = node_entry {
+        self.update_node(node_id, |mut node| {
             node.set_expression(new_expression);
-            lines[index].elem = Some(node.ast().clone_ref());
-        }
-        self.source.set_block_lines(lines)
+            Some(node)
+        })
     }
 
     #[cfg(test)]
@@ -382,7 +396,10 @@ main =
         assert_eq!(nodes[0].expression().repr(), "3 + 17");
 
         let expected_code = "main =\n    bar = 3 + 17";
-        graph.expect_code(expected_code)
+        graph.expect_code(expected_code);
+
+        assert!(graph.remove_node(uuid::Uuid::new_v4()).is_err());
+        graph.expect_code(expected_code);
     }
 
     #[wasm_bindgen_test]
@@ -431,6 +448,9 @@ main =
         let expected_code = r#"main =
     foo = print "HELLO"
     bar = 3 + 17"#;
-        graph.expect_code(expected_code)
+        graph.expect_code(expected_code);
+
+        assert!(graph.edit_node(uuid::Uuid::new_v4(), Ast::var("foo")).is_err());
+        graph.expect_code(expected_code);
     }
 }

@@ -159,8 +159,8 @@ impl<'a> Implementation for node::Ref<'a> {
     fn erase_impl(&self) -> Option<EraseOperation> {
 
         match self.node.kind {
-            node::Kind::Argument{removable:true} |
-            node::Kind::Target  {removable:true} => Some(Box::new(move |root| {
+            node::Kind::Argument{removable:true,..} |
+            node::Kind::Target  {removable:true}    => Some(Box::new(move |root| {
                 let parent_crumb = &self.ast_crumbs[..self.ast_crumbs.len()-1];
                 let ast          = root.get_traversing(parent_crumb)?;
                 let new_ast = if let Some(mut infix) = ast::opr::Chain::try_new(ast) {
