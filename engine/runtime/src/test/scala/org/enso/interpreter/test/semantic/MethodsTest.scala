@@ -13,6 +13,17 @@ class MethodsTest extends InterpreterTest {
     eval(code) shouldEqual 11
   }
 
+  "Method calls" should "execute `this` argument once" in {
+    val code =
+      """
+        |Unit.foo = 0
+        |
+        |main = (IO.println "foo").foo
+        |""".stripMargin
+    eval(code)
+    consumeOut shouldEqual List("foo")
+  }
+
   "Methods" should "be callable with dot operator" in {
     val code =
       """
