@@ -4,11 +4,21 @@ use crate::prelude::*;
 
 pub use palette::rgb;
 pub use palette::rgb::*;
+pub use palette::Lch;
 pub use palette::encoding;
 pub use palette::Component;
 
 use crate::system::gpu::shader::glsl::Glsl;
 use crate::system::gpu::shader::glsl::traits::*;
+
+
+
+// =============
+// === Types ===
+// =============
+
+/// Alias for `palette::Lcha` with `Wp` type parameter defaulting to `D65` white point.
+pub type Lcha<Wp=palette::white_point::D65, T=f32> = palette::Lcha<Wp,T>;
 
 
 
@@ -73,30 +83,10 @@ where [Color:Copy + RefInto<Glsl>] {
 }}
 
 
-//#[derive(Copy,Clone,Debug)]
-//pub struct ExponentSampler<Base> {
-//    pub base : Base
-//}
-//
-//impl<Base> ExponentSampler<Base> {
-//    pub fn new(base:Base) -> Self {
-//        Self {base}
-//    }
-//}
-//
-//impls! {[G:RefInto<Glsl>] From< ExponentSampler<G>> for Glsl { |g| { (&g).into() } }}
-//impls! {[G:RefInto<Glsl>] From<&ExponentSampler<G>> for Glsl {
-//    |g| {
-//        "test".into()
-//    }
-//}}
 
-
-
-
-// ========================
+// ==================
 // === SdfSampler ===
-// ========================
+// ==================
 
 /// Default start distance of the distance gradient.
 pub const DEFAULT_DISTANCE_GRADIENT_MIN_DISTANCE : f32 = 0.0;

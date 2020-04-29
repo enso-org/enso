@@ -97,4 +97,3 @@ community on a [Discord chat](http://chat.luna-lang.org) and read the
 <a href="https://github.com/luna/ide/graphs/contributors">
   <img src="https://opencollective.com/enso-language/contributors.svg?width=890&button=false" />
 </a>
-

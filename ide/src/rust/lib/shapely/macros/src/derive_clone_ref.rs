@@ -212,6 +212,13 @@ pub fn derive
                 #body
             }
         }
+
+        impl #impl_generics From<& #ident #ty_generics> for #ident #ty_generics
+        #where_clause {
+            fn from(t:& #ident #ty_generics) -> Self {
+                t.clone_ref()
+            }
+        }
     };
     output.into()
 }

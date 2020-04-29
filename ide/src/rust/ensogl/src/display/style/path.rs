@@ -10,7 +10,7 @@ use crate::prelude::*;
 
 /// Path is a set of strings which describes how the variable or style sheet is nested in the
 /// cascading style sheet map.
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,PartialEq,Eq)]
 #[allow(missing_docs)]
 pub struct Path {
     pub rev_segments : Vec<String>
@@ -24,37 +24,42 @@ impl Path {
     pub fn from_segments<T,I,Item>(t:T) -> Self
     where T : IntoIterator<IntoIter=I,Item=Item>,
           I : DoubleEndedIterator + Iterator<Item=Item>,
-          Item : Into<String> {
+          Item : ToString {
         Self::from_rev_segments(t.into_iter().rev())
     }
 
     /// Builds the path from reversed segment iterator. See `from_segments` to learn more.
     pub fn from_rev_segments<T,Item>(t:T) -> Self
-    where T : IntoIterator<Item=Item>,
-          Item : Into<String> {
-        let rev_segments = t.into_iter().map(|s|s.into()).collect();
-        Self {rev_segments}
+    where T:IntoIterator<Item=Item>, Item:ToString {
+        Self { rev_segments : t.into_iter().map(|s|s.to_string()).collect() }
+    }
+
+    /// Empty path constructor.
+    pub fn empty() -> Self {
+        Self { rev_segments : default() }
     }
 }
 
-impl From<&str> for Path {
-    fn from(t:&str) -> Self {
-        Self::from_rev_segments(t.rsplit('.'))
-    }
-}
+impl AsRef<Path> for Path { fn as_ref(&self) -> &Path { self } }
 
-impl From<&Path> for Path {
-    fn from(t:&Path) -> Self {
-        t.clone()
+impls! {              From<&str>   for Path { |t| Self::from_rev_segments(t.rsplit('.')) } }
+impls! {              From<&&str>  for Path { |t| (*t).into() }}
+impls! {              From<&Path>  for Path { |t| t.clone() }}
+impls! { [T:ToString] From<Vec<T>> for Path { |t| Self::from_segments(t.into_iter()) }}
+
+impl<T> From<&Vec<T>> for Path
+where for<'t> &'t T : ToString {
+    fn from(t:&Vec<T>) -> Self {
+        Self::from_segments(t.iter())
     }
 }
 
 macro_rules! gen_var_path_conversions {
     ($($($num:tt)?),*) => {$(
-        impl<T:?Sized> From<&[&T$(;$num)?]> for Path
-        where for <'t> &'t T : Into<String> {
-            fn from(t:&[&T$(;$num)?]) -> Self {
-                Self::from_segments(t.into_iter().map(|s|*s))
+        impl<T> From<&[T$(;$num)?]> for Path
+        where for<'t> &'t T : ToString {
+            fn from(t:&[T$(;$num)?]) -> Self {
+                Self::from_segments(t.into_iter())
             }
         }
     )*};
