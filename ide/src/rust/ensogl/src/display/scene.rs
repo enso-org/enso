@@ -755,7 +755,7 @@ impl SceneData {
         let callbacks      = Callbacks {on_zoom,on_resize};
         let style_sheet    = default();
 
-        uniforms.zoom.set(dom.shape().pixel_ratio());
+        uniforms.pixel_ratio.set(dom.shape().pixel_ratio());
         Self {renderer,display_object,dom,context,symbols,views,dirty,logger,variables
              ,stats,uniforms,mouse,callbacks,shapes,style_sheet}
     }
