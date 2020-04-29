@@ -373,7 +373,7 @@ impl Handle {
     /// resolution in the code in this graph.
     pub fn used_names(&self) -> FallibleResult<Vec<LocatedName>> {
         let def    = self.graph_definition_info()?;
-        if let Ok(block)  = ast::known::Block::try_from(def.body()) {
+        if let Ok(block) = ast::known::Block::try_from(*def.body()) {
             let usage  = double_representation::alias_analysis::analyse_block(&block);
             let mut idents = usage.introduced;
             idents.extend(usage.used.into_iter());

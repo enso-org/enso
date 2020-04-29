@@ -65,17 +65,29 @@ impl Chain {
         }
     }
 
+    /// Crumbs location for the application target (function).
+    #[allow(trivial_bounds)]
+    pub fn func_location(&self) -> impl Iterator<Item=PrefixCrumb> {
+        // Location is always like [Func,Func,…,Func].
+        std::iter::repeat(PrefixCrumb::Func).take(self.args.len())
+    }
+
+    /// Returns an application target `Ast` reference along with its location.
+    pub fn located_func(&self) -> Located<&Ast> {
+        Located::new(self.func_location(),&self.func)
+    }
+
     /// Iterates over all arguments, left-to right.
     pub fn enumerate_args<'a>(&'a self) -> impl Iterator<Item = Located<&'a Ast>> + 'a {
         // Location is always like [Func,Func,…,Func,Arg].
         // We iterate beginning from the deeply nested args. So we can just create crumbs
         // location once and then just pop initial crumb when traversing arguments.
-        let func_crumbs = std::iter::repeat(PrefixCrumb::Func).take(self.args.len());
-        let mut crumbs  = func_crumbs.collect_vec();
-        crumbs.push(PrefixCrumb::Arg);
+        let arg_once    = std::iter::once(PrefixCrumb::Arg);
+        let func_crumbs = self.func_location().chain(arg_once).collect_vec();
+        let mut i = 0;
         self.args.iter().map(move |arg| {
-            crumbs.pop_front();
-            Located::new(&crumbs,&arg.wrapped)
+            i += 1;
+            Located::new(&func_crumbs[i..],&arg.wrapped)
         })
     }
 

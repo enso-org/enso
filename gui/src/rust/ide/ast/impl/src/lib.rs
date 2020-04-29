@@ -16,6 +16,8 @@ pub mod internal;
 #[warn(missing_docs)]
 pub mod known;
 #[warn(missing_docs)]
+pub mod macros;
+#[warn(missing_docs)]
 pub mod opr;
 #[warn(missing_docs)]
 pub mod prefix;

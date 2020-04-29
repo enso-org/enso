@@ -26,7 +26,12 @@ use ast::IdMap;
 use std::panic;
 use utils::fail::FallibleResult;
 
-pub use enso_prelude as prelude;
+#[allow(missing_docs)]
+pub mod prelude {
+    pub use enso_prelude::*;
+    pub use ast::traits::*;
+}
+
 
 
 // ==============

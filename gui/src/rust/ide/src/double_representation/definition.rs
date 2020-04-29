@@ -4,10 +4,11 @@ use crate::prelude::*;
 
 use ast::crumbs::ChildAst;
 use ast::crumbs::Crumbable;
+use ast::crumbs::InfixCrumb;
+use ast::crumbs::Located;
 use ast::known;
 use ast::prefix;
 use ast::opr;
-
 
 
 // =====================
@@ -135,15 +136,16 @@ pub enum ScopeKind {
 pub struct DefinitionName {
     /// Used when definition is an extension method. Then it stores the segments
     /// of the extended target type path.
-    pub extended_target : Vec<String>,
+    pub extended_target : Vec<Located<String>>,
     /// Name of the function itself.
-    pub name : String,
+    pub name : Located<String>,
 }
 
 impl DefinitionName {
     /// Creates a new name consisting of a single identifier, without any extension target.
     pub fn new_plain(name:impl Str) -> DefinitionName {
-        DefinitionName {name:name.into(), extended_target:default()}
+        let name = Located::new_root(name.into());
+        DefinitionName {name, extended_target:default()}
     }
 
     /// Tries describing given Ast piece as a definition name. Typically, passed Ast
@@ -154,13 +156,20 @@ impl DefinitionName {
         let accessor_chain = opr::Chain::try_new_of(ast,opr::predefined::ACCESS);
         let (extended_target,name) = match accessor_chain {
             Some(accessor_chain) => {
-                let mut args = vec![ast::identifier::name(&accessor_chain.target?.arg)?.clone()];
-                for arg in accessor_chain.args.iter() {
-                    let arg_ast = arg.operand.as_ref()?;
-                    args.push(ast::identifier::name(&arg_ast.arg)?.clone())
+                // Not really clear how the incomplete names should be supported. For now we just
+                // reject them. When use-cases appear, this check might need to be relaxed.
+                if !accessor_chain.all_operands_set() {
+                    return None
                 }
-                let name = args.pop()?;
-                (args,name)
+
+                let mut pieces = Vec::new();
+                for piece in accessor_chain.enumerate_operands() {
+                    let name = ast::identifier::name(&piece.item.arg)?.clone();
+                    pieces.push(piece.map(|_| name));
+                }
+
+                let name = pieces.pop()?;
+                (pieces,name)
             }
             None => {
                 let name = match ast.shape() {
@@ -171,7 +180,8 @@ impl DefinitionName {
                     // It serves to pattern-match, not as definition name.
                     _ => None
                 }?;
-                (Vec::new(), name.clone())
+                let name = Located::new_root(name.clone());
+                (Vec::new(), name)
             }
         };
         Some(DefinitionName {extended_target,name})
@@ -200,27 +210,27 @@ pub struct DefinitionInfo {
     /// an App.
     pub ast:known::Infix,
     /// Name of this definition. Includes typename, if this is an extension method.
-    pub name:DefinitionName,
+    pub name:Located<DefinitionName>,
     /// Arguments for this definition. Does not include any implicit ones (e.g. no `this`).
-    pub args:Vec<Ast>,
+    pub args:Vec<Located<Ast>>,
     /// The absolute indentation of the code block that introduced this definition.
     pub context_indent:usize
 }
 
 impl DefinitionInfo {
     /// Returns the definition body, i.e. Ast standing on the assignment's right-hand side.
-    pub fn body(&self) -> Ast {
-        self.ast.rarg.clone()
+    pub fn body(&self) -> Located<&Ast> {
+        Located::new(InfixCrumb::RightOperand,&self.ast.rarg)
     }
 
     /// Gets the definition block lines. If `body` is a `Block`, it returns its `BlockLine`s,
     /// concatenating `empty_lines`, `first_line` and `lines`, in this exact order. If `body` is
     /// `Infix`, it returns a single `BlockLine`.
     pub fn block_lines(&self) -> FallibleResult<Vec<ast::BlockLine<Option<Ast>>>> {
-        if let Ok(block) = known::Block::try_from(self.body()) {
+        if let Ok(block) = known::Block::try_from(*self.body()) {
             Ok(block.all_lines())
         } else {
-            let elem = Some(self.body());
+            let elem = Some((*self.body()).clone());
             let off  = 0;
             Ok(vec![ast::BlockLine{elem,off}])
         }
@@ -271,8 +281,13 @@ impl DefinitionInfo {
     /// Tries to interpret a root line (i.e. the AST being placed in a line directly in the module
     /// scope) as a definition.
     pub fn from_root_line(line:&ast::BlockLine<Option<Ast>>) -> Option<DefinitionInfo> {
+        Self::from_root_line_ast(line.elem.as_ref()?)
+    }
+
+    /// Tries to interpret a root line's AST as a definition.
+    pub fn from_root_line_ast(ast:&Ast) -> Option<DefinitionInfo> {
         let indent = 0;
-        Self::from_line_ast(line.elem.as_ref()?,ScopeKind::Root,indent)
+        Self::from_line_ast(ast,ScopeKind::Root,indent)
     }
 
     /// Tries to interpret `Line`'s `Ast` as a function definition.
@@ -281,13 +296,22 @@ impl DefinitionInfo {
     /// some binding or other kind of subtree).
     pub fn from_line_ast
     (ast:&Ast, kind:ScopeKind, context_indent:usize) -> Option<DefinitionInfo> {
-        let infix  = opr::to_assignment(ast)?;
+        let infix = opr::to_assignment(ast)?;
         // There two cases - function name is either a Var or operator.
         // If this is a Var, we have Var, optionally under a Prefix chain with args.
         // If this is an operator, we have SectionRight with (if any prefix in arguments).
-        let lhs  = prefix::Chain::new_non_strict(&infix.larg);
-        let name = DefinitionName::from_ast(&lhs.func)?;
-        let args = lhs.args.into_iter().map(|sast| sast.wrapped).collect_vec();
+        let lhs  = Located::new(InfixCrumb::LeftOperand,prefix::Chain::new_non_strict(&infix.larg));
+        let name = lhs.entered(|chain| {
+            let name_ast = chain.located_func();
+            name_ast.map(DefinitionName::from_ast)
+        }).into_opt()?;
+        let args = lhs.enumerate_args().map(|located_ast| {
+            // We already in the left side of assignment, so we need to prepend this crumb.
+            let left   = std::iter::once(ast::crumbs::Crumb::from(InfixCrumb::LeftOperand));
+            let crumbs = left.chain(located_ast.crumbs);
+            let ast    = located_ast.item.clone();
+            Located::new(crumbs,ast)
+        }).collect_vec();
         let ret  = DefinitionInfo {ast:infix,name,args,context_indent};
 
         // Note [Scope Differences]
@@ -317,7 +341,7 @@ impl DefinitionInfo {
 //    this parameter). In definition, this is just a node (evaluated expression).
 
 /// Definition stored under some known crumbs path.
-pub type ChildDefinition = ast::crumbs::Located<DefinitionInfo>;
+pub type ChildDefinition = Located<DefinitionInfo>;
 
 /// Tries to add a new crumb to current path to obtain a deeper child.
 /// Its crumbs will accumulate both current crumbs and the passed one.
@@ -364,7 +388,7 @@ impl<'a> DefinitionIterator<'a> {
     /// Looks up direct child definition by given name.
     pub fn find_by_name(mut self, name:&DefinitionName) -> Result<ChildDefinition,CannotFindChild> {
         let err = || CannotFindChild(name.clone());
-        self.find(|child_def| &child_def.item.name == name).ok_or_else(err)
+        self.find(|child_def| &*child_def.item.name == name).ok_or_else(err)
     }
 }
 
@@ -440,7 +464,6 @@ impl DefinitionProvider for DefinitionInfo {
 
     fn enumerate_asts<'a>(&'a self) -> Box<dyn Iterator<Item = ChildAst<'a>>+'a> {
         use ast::crumbs::Crumb;
-        use ast::crumbs::InfixCrumb;
         match self.ast.rarg.shape() {
             ast::Shape::Block(_) => {
                 let parent_crumb = Crumb::Infix(InfixCrumb::RightOperand);
@@ -487,7 +510,58 @@ mod tests {
         iformat!("    {line}")
     }
 
-    #[test]
+    #[wasm_bindgen_test]
+    fn definition_name_tests() {
+        let parser = parser::Parser::new_or_panic();
+        let ast    = parser.parse_line("Foo.Bar.baz").unwrap();
+        let name   = DefinitionName::from_ast(&ast).unwrap();
+
+        assert_eq!(*name.name, "baz");
+        assert_eq!(name.extended_target[0].as_str(), "Foo");
+        assert_eq!(name.extended_target[1].as_str(), "Bar");
+
+        assert_eq!(ast.get_traversing(&name.name.crumbs).unwrap().repr(), "baz");
+        assert_eq!(ast.get_traversing(&name.extended_target[0].crumbs).unwrap().repr(), "Foo");
+        assert_eq!(ast.get_traversing(&name.extended_target[1].crumbs).unwrap().repr(), "Bar");
+    }
+
+    #[wasm_bindgen_test]
+    fn definition_name_rejecting_incomplete_names() {
+        let parser = parser::Parser::new_or_panic();
+        let ast    = parser.parse_line("Foo. .baz").unwrap();
+        assert!(DefinitionName::from_ast(&ast).is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn definition_info_name() {
+        let parser     = parser::Parser::new_or_panic();
+        let ast        = parser.parse_line("Foo.bar a b c = baz").unwrap();
+        let definition = DefinitionInfo::from_root_line_ast(&ast).unwrap();
+
+        assert_eq!(definition.name.to_string(), "Foo.bar");
+        assert_eq!(ast.get_traversing(&definition.name.crumbs).unwrap().repr(), "Foo.bar");
+    }
+
+    #[wasm_bindgen_test]
+    fn located_definition_args() {
+        let parser     = parser::Parser::new_or_panic();
+        let ast        = parser.parse_line("foo bar baz = a + b + c").unwrap();
+        let definition = DefinitionInfo::from_root_line_ast(&ast).unwrap();
+        let (arg0,arg1) = definition.args.expect_tuple();
+
+        use ast::crumbs::InfixCrumb::*;
+        use ast::crumbs::PrefixCrumb::*;
+        use ast::crumbs;
+        assert_eq!(arg0.crumbs, crumbs![LeftOperand,Func,Arg]);
+        assert_eq!(arg1.crumbs, crumbs![LeftOperand,Arg]);
+
+        assert_eq!(arg0.item.repr(), "bar");
+        assert_eq!(ast.get_traversing(&arg0.crumbs).unwrap(), &arg0.item);
+        assert_eq!(arg1.item.repr(), "baz");
+        assert_eq!(ast.get_traversing(&arg1.crumbs).unwrap(), &arg1.item);
+    }
+
+    #[wasm_bindgen_test]
     fn match_is_not_definition() {
         let cons = Ast::cons("Foo");
         let arg  = Ast::number(5);
@@ -543,7 +617,7 @@ mod tests {
         // Check that definition can be found and their body is properly described.
         let add_name = DefinitionName::new_plain("add");
         let add      = module.def_iter().find_by_name(&add_name).expect("failed to find `add` function");
-        let body     = known::Number::try_new(add.body()).expect("add body should be a Block");
+        let body     = known::Number::try_from(*add.body()).expect("add body should be a Block");
         assert_eq!(body.int,"50");
 
         // === Program with definition in `some_func`'s body `Block` ===
@@ -553,7 +627,7 @@ mod tests {
         let root_defs      = module.def_iter().infos_vec();
         let (only_def,)    = root_defs.expect_tuple();
         assert_eq!(&only_def.name.to_string(),"some_func");
-        let body_block  = known::Block::try_from(only_def.body()).unwrap();
+        let body_block  = known::Block::try_from(*only_def.body()).unwrap();
         let nested_defs = body_block.def_iter().infos_vec();
         assert_eq_strings(to_names(&nested_defs),expected_def_names_in_def);
     }
