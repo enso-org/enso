@@ -542,7 +542,7 @@ lazy val runtime = (project in file("engine/runtime"))
     logBuffered in Test := false,
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= jmh ++ Seq(
+    libraryDependencies ++= circe ++ jmh ++ Seq(
       "com.chuusai"         %% "shapeless"            % "2.3.3",
       "org.apache.commons"  % "commons-lang3"         % "3.9",
       "org.apache.tika"     % "tika-core"             % "1.23",

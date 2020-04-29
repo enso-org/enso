@@ -20,6 +20,7 @@ import org.enso.interpreter.node.expression.builtin.state.PutStateNode;
 import org.enso.interpreter.node.expression.builtin.state.RunStateNode;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.node.expression.builtin.text.ConcatNode;
+import org.enso.interpreter.node.expression.builtin.text.JsonSerializeNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -123,6 +124,7 @@ public class Builtins {
 
     scope.registerMethod(text, "+", ConcatNode.makeFunction(language));
     scope.registerMethod(any, "to_text", AnyToTextNode.makeFunction(language));
+    scope.registerMethod(any, "json_serialize", JsonSerializeNode.makeFunction(language));
   }
 
   /**
