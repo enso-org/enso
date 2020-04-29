@@ -235,6 +235,19 @@ impl AliasAnalyzer {
         self.in_location_of(&located_ast, |this| this.process_ast(located_ast.item.borrow()))
     }
 
+    /// Processes subtrees of the given AST denoted by given crumbs
+    pub fn process_given_subtrees<C>(&mut self, ast:&C, crumbs:impl Iterator<Item=C::Crumb>)
+    where C        : Crumbable,
+          C::Crumb : Into<Crumb> {
+        for crumb in crumbs {
+            // Failure should never happen but we don't really care enough to crash anything
+            // otherwise.
+            if let Ok(subtree) = ast.get(&crumb) {
+                self.process_subtree_at(crumb.into(),subtree)
+            }
+        }
+    }
+
     /// Processes all subtrees of the given AST in their respective locations.
     pub fn process_subtrees(&mut self, ast:&impl Crumbable) {
         for (crumb,ast) in ast.enumerate() {
@@ -247,15 +260,18 @@ impl AliasAnalyzer {
     /// This is the primary function that is recursively being called as the AST is being traversed.
     pub fn process_ast(&mut self, ast:&Ast) {
         if let Some(definition) = DefinitionInfo::from_line_ast(&ast,ScopeKind::NonRoot,default()) {
-            // If AST looks like definition, we disregard its arguments and body, as they cannot
-            // form connection in the analyzed graph. However, we need to record the name, because
-            // it may shadow identifier from parent scope.
-            let name = NormalizedName::new(definition.name.name);
-            self.record_identifier(OccurrenceKind::Introduced,name);
+            self.process_definition(&definition)
         } else if let Some(assignment) = ast::opr::to_assignment(ast) {
             self.process_assignment(&assignment);
-        } else if let Some(lambda) = ast::opr::to_arrow(ast) {
+        } else if let Some(lambda) = ast::macros::as_lambda(ast) {
             self.process_lambda(&lambda);
+        } else if let Ok(macro_match) = ast::known::Match::try_from(ast) {
+            // Macros (except for lambdas which were covered in the previous check) never introduce
+            // new scopes or different context. We skip the keywords ("if" in "if-then-else" is not
+            // an identifier) and process the matched subtrees as usual.
+            self.process_given_subtrees(macro_match.shape(),macro_match.iter_pat_match_subcrumbs())
+        } else if let Ok(ambiguous) = ast::known::Ambiguous::try_from(ast) {
+            self.process_given_subtrees(ambiguous.shape(),ambiguous.iter_pat_match_subcrumbs())
         } else if self.is_in_pattern() {
             // We are in the pattern (be it a lambda's or assignment's left side). Three options:
             // 1) This is a destructuring pattern match using infix syntax, like `head,tail`.
@@ -272,6 +288,11 @@ impl AliasAnalyzer {
                     self.store_if_name(OccurrenceKind::Used,operator);
                 }
             } else if let Some(prefix_chain) = ast::prefix::Chain::try_new(ast) {
+                // Constructor we match against is used. Its arguments introduce names.
+                if ast::known::Cons::try_from(&prefix_chain.func).is_ok() {
+                    self.store_if_name(OccurrenceKind::Used,prefix_chain.located_func());
+                }
+
                 // Arguments introduce names, we ignore function name.
                 // Arguments will just introduce names in pattern context.
                 for argument in prefix_chain.enumerate_args() {
@@ -303,6 +324,32 @@ impl AliasAnalyzer {
         }
     }
 
+    fn process_definition(&mut self, definition:&DefinitionInfo) {
+        // Handle the definition name.
+        self.in_location(definition.name.crumbs.clone(), |this|
+            // We take the base name (ignoring extension components) and mark it as introduced.
+            this.in_location(definition.name.name.crumbs.clone(), |this| {
+                let name = NormalizedName::new(&definition.name.name.item);
+                this.record_identifier(OccurrenceKind::Introduced,name);
+            })
+        );
+
+
+        // The scoping for definitions is not entirely clean (should each argument introduce a new
+        // subscope?) but we do not really care that much. Mostly we are just interested in knowing
+        // what identifiers are taken in / introduced into the parent scope.
+        // What happens in the definition body, stays in the definition body.
+        self.in_new_scope(|this| {
+            // Args are just patterns.
+            this.in_context(Context::Pattern,|this| {
+                for arg in &definition.args {
+                    this.process_located_ast(arg)
+                }
+            });
+            this.process_located_ast(&definition.body());
+        });
+    }
+
     /// Processes the assignment AST node. Left side is pattern, right side is business as usual.
     fn process_assignment(&mut self, assignment:&ast::known::Infix) {
         self.in_context(Context::Pattern, |this|
@@ -311,16 +358,14 @@ impl AliasAnalyzer {
         self.process_subtree_at(InfixCrumb::RightOperand, &assignment.rarg);
     }
 
-    /// Processes the assignment AST node. Left side is pattern, right side is business as usual.
-    /// Additionally, the whole lambda is a new scope.
-    // TODO [mwu]
-    //  Depending on the eventual decision, this might need to be rewritten to use macros.
-    fn process_lambda(&mut self, lambda:&ast::known::Infix) {
+    /// Processes the matched lambda macro. Argument is in pattern context, and the whole lambda is
+    /// a new scope.
+    fn process_lambda(&mut self, lambda:&ast::macros::LambdaInfo) {
         self.in_new_scope(|this| {
             this.in_context(Context::Pattern, |this|
-                this.process_subtree_at(InfixCrumb::LeftOperand, &lambda.larg)
+                this.process_located_ast(&lambda.arg)
             );
-            this.process_subtree_at(InfixCrumb::RightOperand, &lambda.rarg);
+            this.process_located_ast(&lambda.body)
         })
     }
 }
@@ -392,7 +437,7 @@ mod tests {
             "«foo» = »Bar«",
             "5 = »Bar«",
             "«sum» = »a« »+« »b«",
-            "Point «x» «u» = »point«",
+            "»Point« «x» «u» = »point«",
             "«x» »,« «y» = »pair«",
 
             r"«inc» =
@@ -407,6 +452,33 @@ mod tests {
             r"«inc» =
                 foo x = 2
                 foo »+« 1",
+
+            // === Macros Match ===
+            "a -> a",
+            "a -> »b«",
+            "»A« -> »b«",
+            "a -> A -> a",
+            "a -> a -> A",
+            "x»,«y -> »B«",
+            "x»,«y -> y",
+            "x »,« »Y« -> _",
+            "(»foo«)",
+            "(«foo») = (»bar«)",
+            "if »A« then »B«",
+            "if »a« then »b« else »c«",
+            "case »foo« of\n    »Number« a -> a\n    »Wildcard« -> »bar«\n    a»,«b -> a",
+
+            // === Macros Ambiguous ===
+            "(»foo«",
+            "if »a«",
+            "case »a«",
+            // "->»a«", // TODO [mwu] restore (and implement) when parser is able to parse this
+            // "a ->",  // TODO [mwu] restore (and implement) when parser is able to parse this
+
+            // === Definition ===
+            "«foo» a b c = »foo« a »d«",
+            "«foo» a b c = d -> a d",
+            "«foo» a (»Point« x y) c = »foo« a x »d«",
         ];
         for case in &test_cases {
             run_markdown_case(&parser,case)

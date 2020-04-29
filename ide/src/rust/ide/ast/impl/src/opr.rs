@@ -402,6 +402,11 @@ impl Chain {
         // this is still a valid chain. To consider returning error here.
         self.target.unwrap().arg
     }
+
+    /// True if all operands are set, i.e. there are no section shapes in this chain.
+    pub fn all_operands_set(&self) -> bool {
+        self.target.is_some() && self.args.iter().all(|arg| arg.operand.is_some())
+    }
 }
 
 impl From<Chain> for Ast {

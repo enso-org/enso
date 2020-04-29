@@ -6,6 +6,10 @@ use ast::*;
 use ast::test_utils::expect_shape;
 use parser::api::SourceFile;
 use utils::test::ExpectTuple;
+use wasm_bindgen_test::wasm_bindgen_test;
+use wasm_bindgen_test::wasm_bindgen_test_configure;
+
+wasm_bindgen_test_configure!(run_in_browser);
 
 
 
@@ -397,14 +401,12 @@ impl Fixture {
     }
 }
 
-
 /// A single entry point for all the tests here using external parser.
 ///
 /// Setting up the parser is costly, so we run all tests as a single batch.
 /// Until proper CI solution for calling external parser is devised, this
 /// test is marked with `#[ignore]`.
-#[test]
-#[ignore]
+#[wasm_bindgen_test]
 fn parser_tests() {
     Fixture::new().run()
 }
