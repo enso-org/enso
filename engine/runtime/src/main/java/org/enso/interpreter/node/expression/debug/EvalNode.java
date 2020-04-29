@@ -79,7 +79,8 @@ public abstract class EvalNode extends BaseNode {
             moduleScope,
             expr,
             null,
-            "<dynamic_eval>");
+            "<dynamic_eval>",
+            null);
     return Truffle.getRuntime().createCallTarget(framedNode);
   }
 

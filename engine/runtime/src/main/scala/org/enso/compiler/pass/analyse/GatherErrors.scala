@@ -11,6 +11,7 @@ import org.enso.compiler.pass.IRPass
 case object GatherErrors extends IRPass {
 
   case class Errors(errors: List[IR.Error]) extends IR.Metadata {
+
     /** The name of the metadata as a string. */
     override val metadataName: String = "GatherErrors.Errors"
   }

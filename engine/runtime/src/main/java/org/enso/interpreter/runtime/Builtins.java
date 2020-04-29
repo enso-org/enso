@@ -51,11 +51,12 @@ public class Builtins {
   /**
    * Creates an instance with builtin methods installed.
    *
-   * @param language the current {@link Language} instance
+   * @param context the current {@link Context} instance
    */
-  public Builtins(Language language) {
-    scope = new ModuleScope(MODULE_NAME);
-    module = new Module(QualifiedName.simpleName(MODULE_NAME), scope);
+  public Builtins(Context context) {
+    Language language = context.getLanguage();
+    module = Module.empty(QualifiedName.simpleName(MODULE_NAME));
+    scope = module.getScope(context);
     unit = new AtomConstructor("Unit", scope).initializeFields();
     any = new AtomConstructor("Any", scope).initializeFields();
     number = new AtomConstructor("Number", scope).initializeFields();

@@ -64,7 +64,7 @@ public class Context {
                             srcFile.qualifiedName(),
                             getEnvironment()
                                 .getInternalTruffleFile(srcFile.file().getAbsolutePath()))));
-    TopLevelScope topLevelScope = new TopLevelScope(new Builtins(language), knownFiles);
+    TopLevelScope topLevelScope = new TopLevelScope(new Builtins(this), knownFiles);
 
     this.compiler = new Compiler(this.language, topLevelScope, this);
   }
@@ -118,13 +118,25 @@ public class Context {
   /**
    * Creates a new module scope that automatically imports all the builtin types and methods.
    *
-   * @param name the name of the newly created scope.
+   * @param module the module related to the newly created scope.
    * @return a new module scope with automatic builtins dependency.
    */
-  public ModuleScope createScope(String name) {
-    ModuleScope moduleScope = new ModuleScope(name);
+  public ModuleScope createScope(Module module) {
+    ModuleScope moduleScope = new ModuleScope(module);
     initializeScope(moduleScope);
     return moduleScope;
+  }
+
+  /**
+   * Creates a new module with scope that automatically imports all the builtin types and methods.
+   *
+   * @param name the qualified name of the newly created module.
+   * @return a new module containing scope with automatic builtins dependency.
+   */
+  public Module createModule(QualifiedName name) {
+    Module module = Module.empty(name);
+    initializeScope(module.getScope(this));
+    return module;
   }
 
   /**

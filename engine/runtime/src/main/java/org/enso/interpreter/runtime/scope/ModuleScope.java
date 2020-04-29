@@ -7,12 +7,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /** A representation of Enso's per-file top-level scope. */
 public class ModuleScope {
   private final AtomConstructor associatedType;
+  private final Module module;
   private Map<String, AtomConstructor> constructors = new HashMap<>();
   private Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
   private Set<ModuleScope> imports = new HashSet<>();
@@ -20,10 +22,11 @@ public class ModuleScope {
   /**
    * Creates a new object of this class.
    *
-   * @param name the name of the newly created module.
+   * @param module the module related to the newly created scope.
    */
-  public ModuleScope(String name) {
-    associatedType = new AtomConstructor(name, this).initializeFields();
+  public ModuleScope(Module module) {
+    this.module = module;
+    this.associatedType = new AtomConstructor(module.getName().module(), this).initializeFields();
   }
 
   /**
@@ -38,6 +41,11 @@ public class ModuleScope {
   /** @return the associated type of this module. */
   public AtomConstructor getAssociatedType() {
     return associatedType;
+  }
+
+  /** @return the module associated with this scope. */
+  public Module getModule() {
+    return module;
   }
 
   /**

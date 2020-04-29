@@ -1,9 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{
-  InterpreterException,
-  InterpreterTest,
-}
+import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.graalvm.polyglot.Context
 

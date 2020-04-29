@@ -74,10 +74,20 @@ public class Module implements TruffleObject {
    *
    * @param name the qualified name of this module.
    */
-  public Module(QualifiedName name, ModuleScope scope) {
+  private Module(QualifiedName name) {
     this.name = name;
-    this.scope = scope;
+    this.scope = new ModuleScope(this);
     this.isParsed = true;
+  }
+
+  /**
+   * Creates an empty module.
+   *
+   * @param name the qualified name of the newly created module.
+   * @return the module with empty scope.
+   */
+  public static Module empty(QualifiedName name) {
+    return new Module(name);
   }
 
   /** Clears any literal source set for this module. */
@@ -121,6 +131,14 @@ public class Module implements TruffleObject {
     this.isParsed = false;
   }
 
+  /** @return the location of this module. */
+  public String getPath() {
+    if (sourceFile != null) {
+      return sourceFile.getPath();
+    }
+    return null;
+  }
+
   /**
    * Parses the module sources. The results of this operation are cached.
    *
@@ -137,7 +155,7 @@ public class Module implements TruffleObject {
 
   private void ensureScopeExists(Context context) {
     if (scope == null) {
-      scope = context.createScope(name.module());
+      scope = context.createScope(this);
       isParsed = false;
     }
   }

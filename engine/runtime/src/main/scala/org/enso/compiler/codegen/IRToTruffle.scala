@@ -207,7 +207,8 @@ class IRToTruffle(
           expressionProcessor.processFunctionBody(
             fn.arguments,
             fn.body,
-            fn.location
+            fn.location,
+            Some(methodDef.methodName.name)
           )
         case _ =>
           throw new CompilerError(
@@ -398,7 +399,8 @@ class IRToTruffle(
           moduleScope,
           blockNode,
           null,
-          s"default::$scopeName"
+          s"default::$scopeName",
+          null
         )
 
         val callTarget = Truffle.getRuntime.createCallTarget(defaultRootNode)
@@ -497,7 +499,8 @@ class IRToTruffle(
       val fn = child.processFunctionBody(
         function.arguments,
         function.body,
-        function.location
+        function.location,
+        None
       )
 
       fn
@@ -585,12 +588,14 @@ class IRToTruffle(
       * @param arguments the arguments to the function
       * @param body the body of the function
       * @param location the location at which the function exists in the source
+      * @param name the name of the function
       * @return a truffle node representing the described function
       */
     def processFunctionBody(
       arguments: List[IR.DefinitionArgument],
       body: IR.Expression,
-      location: Option[IdentifiedLocation]
+      location: Option[IdentifiedLocation],
+      name: Option[String]
     ): CreateFunctionNode = {
       val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
 
@@ -635,7 +640,8 @@ class IRToTruffle(
         moduleScope,
         fnBodyNode,
         makeSection(location),
-        scopeName
+        scopeName,
+        name.map(moduleScope.getModule.getName.createChild).map(_.toString).orNull
       )
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
 
@@ -785,7 +791,8 @@ class IRToTruffle(
               moduleScope,
               argumentExpression,
               section,
-              displayName
+              displayName,
+              null
             )
           )
 
@@ -860,7 +867,8 @@ class IRToTruffle(
             moduleScope,
             defaultExpression,
             null,
-            s"default::$scopeName::${arg.name}"
+            s"default::$scopeName::${arg.name}",
+            null
           )
 
           CreateThunkNode.build(

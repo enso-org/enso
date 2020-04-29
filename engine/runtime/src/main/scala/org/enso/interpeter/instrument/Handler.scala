@@ -12,6 +12,7 @@ import org.enso.interpreter.instrument.IdExecutionInstrument.{
 }
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.service.ExecutionService
+import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 import org.graalvm.polyglot.io.MessageEndpoint
 
@@ -105,13 +106,35 @@ final class Handler {
               res.getExpressionId,
               OptionConverters.toScala(res.getType),
               Some(res.getValue.toString),
-              None
+              toMethodPointer(res)
             )
           )
         )
       )
     )
   }
+
+  private def toMethodPointer(
+    value: ExpressionValue
+  ): Option[Api.MethodPointer] =
+    for {
+      call <- Option(value.getCall)
+      qualifiedName <- QualifiedName.fromString(
+        call.getFunction.getCallTarget.getRootNode.getQualifiedName
+      )
+      moduleName   <- qualifiedName.getParent
+      functionName <- QualifiedName.fromString(call.getFunction.getName)
+      typeName     <- functionName.getParent
+      module <- OptionConverters.toScala(
+        executionService.getContext.getCompiler.topScope
+          .getModule(moduleName.toString)
+      )
+      modulePath <- Option(module.getPath)
+    } yield Api.MethodPointer(
+      new File(modulePath),
+      typeName.toString,
+      functionName.module
+    )
 
   @scala.annotation.tailrec
   private def execute(

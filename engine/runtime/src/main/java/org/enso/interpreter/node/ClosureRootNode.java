@@ -1,6 +1,5 @@
 package org.enso.interpreter.node;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -23,6 +22,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 public class ClosureRootNode extends EnsoRootNode {
 
   @Child private ExpressionNode body;
+  private final String qualifiedName;
 
   private ClosureRootNode(
       Language language,
@@ -30,9 +30,11 @@ public class ClosureRootNode extends EnsoRootNode {
       ModuleScope moduleScope,
       ExpressionNode body,
       SourceSection section,
-      String name) {
+      String name,
+      String qualifiedName) {
     super(language, localScope, moduleScope, name, section);
     this.body = body;
+    this.qualifiedName = qualifiedName;
   }
 
   /**
@@ -52,8 +54,10 @@ public class ClosureRootNode extends EnsoRootNode {
       ModuleScope moduleScope,
       ExpressionNode body,
       SourceSection section,
-      String name) {
-    return new ClosureRootNode(language, localScope, moduleScope, body, section, name);
+      String name,
+      String qualifiedName) {
+    return new ClosureRootNode(
+        language, localScope, moduleScope, body, section, name, qualifiedName);
   }
 
   /**
@@ -69,5 +73,15 @@ public class ClosureRootNode extends EnsoRootNode {
     Object result = body.executeGeneric(frame);
     state = FrameUtil.getObjectSafe(frame, this.getStateFrameSlot());
     return new Stateful(state, result);
+  }
+
+  /**
+   * Returns a qualified name that uniquely identifies the node.
+   *
+   * @return a qualified name of this node.
+   */
+  @Override
+  public String getQualifiedName() {
+    return qualifiedName;
   }
 }

@@ -137,7 +137,7 @@ public class TopLevelScope implements TruffleObject {
     private static Module createModule(TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
       String moduleName = Types.extractArguments(arguments, String.class);
-      return new Module(QualifiedName.simpleName(moduleName), context.createScope(moduleName));
+      return context.createModule(QualifiedName.simpleName(moduleName));
     }
 
     private static Module registerModule(TopLevelScope scope, Object[] arguments, Context context)

@@ -1,6 +1,6 @@
 package org.enso.interpreter.test
 
-import java.io.{ByteArrayOutputStream, File}
+import java.io.File
 
 import org.enso.pkg.Package
 import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}

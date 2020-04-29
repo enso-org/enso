@@ -88,30 +88,6 @@ class Compiler(
   }
 
   /**
-    * Processes the provided language sources, registering their bindings in a
-    * new scope.
-    *
-    * @param source the source code to be processed
-    * @return an interpreter node whose execution corresponds to the top-level
-    *         executable functionality in the module corresponding to `source`.
-    */
-  def run(source: Source, moduleName: String): Unit = {
-    run(source, context.createScope(moduleName))
-  }
-
-  /**
-    * Processes the language sources in the provided file, registering any
-    * bindings in a new scope.
-    *
-    * @param file the file containing the source code
-    * @return an interpreter node whose execution corresponds to the top-level
-    *         executable functionality in the module corresponding to `source`.
-    */
-  def run(file: TruffleFile, moduleName: String): Unit = {
-    run(Source.newBuilder(LanguageInfo.ID, file).build, moduleName)
-  }
-
-  /**
     * Processes the language source, interpreting it as an expression.
     * Processes the source in the context of given local and module scopes.
     *
