@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use super::def;
 
+use crate::control::callback;
 use crate::display;
 use crate::display::shape::primitive::shader;
 use crate::display::symbol::geometry::SpriteSystem;
@@ -12,6 +13,7 @@ use crate::display::symbol::geometry::Sprite;
 use crate::display::symbol::material;
 use crate::display::symbol::material::Material;
 use crate::display::scene::Scene;
+use crate::display::style;
 use crate::system::gpu::types::*;
 use crate::system::gpu::data::buffer::item::Storable;
 
@@ -90,7 +92,13 @@ impl display::Object for ShapeSystem {
     }
 }
 
-/// Type for every `ShapeSystem` with automatic buffer management. The easiest way to define sych a
+
+
+// ===========================
+// === ShapeSystemInstance ===
+// ===========================
+
+/// Type for every `ShapeSystem` with automatic buffer management. The easiest way to define such a
 /// shape system instance is by using the `define_shape_system` macro.
 pub trait ShapeSystemInstance : 'static + CloneRef {
     /// The shape type of this shape system definition.
@@ -100,6 +108,12 @@ pub trait ShapeSystemInstance : 'static + CloneRef {
     /// New shape constructor.
     fn new_instance(&self) -> Self::Shape;
 }
+
+
+
+// =============
+// === Shape ===
+// =============
 
 /// Type for every shape with automatic attribute management. The easiest way to define such a
 /// shape is by using the `define_shape_system` macro.
@@ -114,12 +128,83 @@ pub trait Shape : display::Object + Debug + Sized {
 pub type ShapeSystemOf<T> = <T as Shape>::System;
 
 
+
+// ==================
+// === StyleWatch ===
+// ==================
+
+/// Style watch utility. It's reference is passed to shapes defined with the `define_shape_system`
+/// macro. Whenever a style sheet value is accessed, the value reference is being remembered and
+/// tracked. Whenever it changes, the `callback` runs. The callback should trigger shape redraw.
+#[derive(Clone,CloneRef,Derivative)]
+#[derivative(Debug)]
+pub struct StyleWatch {
+    sheet    : style::Sheet,
+    vars     : Rc<RefCell<Vec<style::Var>>>,
+    handles  : Rc<RefCell<Vec<callback::Handle>>>,
+    #[derivative(Debug="ignore")]
+    callback : Rc<RefCell<Box<dyn Fn()>>>,
+}
+
+impl StyleWatch {
+    /// Constructor.
+    #[allow(trivial_casts)]
+    pub fn new(sheet:&style::Sheet) -> Self {
+        let sheet    = sheet.clone_ref();
+        let vars     = default();
+        let handles  = default();
+        let callback = Rc::new(RefCell::new(Box::new(||{}) as Box<dyn Fn()>));
+        Self {sheet,vars,handles,callback}
+    }
+
+    /// Resets the state of style manager. Should be used on each new shape definition. It is
+    /// called automatically when used by `define_shape_system`.
+    pub fn reset(&self) {
+        *self.vars.borrow_mut()    = default();
+        *self.handles.borrow_mut() = default();
+    }
+
+    /// Queries style sheet value for a value.
+    pub fn get(&self, path:&str) -> Option<style::Data> {
+        let var      = self.sheet.var(path);
+        let value    = var.value();
+        let callback = self.callback.clone_ref();
+        var.on_change(move |_:&Option<style::Data>| (callback.borrow())());
+        self.vars.borrow_mut().push(var);
+        value
+    }
+
+    /// Sets the callback which will be used when dependent styles change.
+    pub fn set_on_style_change<F:'static+Fn()>(&self, callback:F) {
+        *self.callback.borrow_mut() = Box::new(callback);
+    }
+}
+
+
+
+// ==============
+// === Macros ===
+// ==============
+
 /// Defines 'Shape' and 'ShapeSystem' structures. The generated Shape is a newtype for `Sprite`
 /// and the shader attributes. The generated 'ShapeSystem' is a newtype for the `ShapeSystem` and
 /// the required buffer handlers.
 #[macro_export]
 macro_rules! define_shape_system {
+    ( ($style:ident : Style, $($gpu_param : ident : $gpu_param_type : ty),* $(,)?) {$($body:tt)*} ) => {
+        $crate::_define_shape_system! { [$style] ($($gpu_param : $gpu_param_type),*){$($body)*} }
+    };
+
+    ( ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?) {$($body:tt)*} ) => {
+        $crate::_define_shape_system! { [style] ($($gpu_param : $gpu_param_type),*){$($body)*} }
+    }
+}
+
+/// Internal helper for `define_shape_system`.
+#[macro_export]
+macro_rules! _define_shape_system {
     (
+        [$style:ident]
         ($($gpu_param : ident : $gpu_param_type : ty),* $(,)?)
         {$($body:tt)*}
     ) => {
@@ -159,6 +244,7 @@ macro_rules! define_shape_system {
         #[allow(missing_docs)]
         pub struct ShapeSystem {
             pub shape_system : $crate::display::shape::ShapeSystem,
+            style_manager    : $crate::display::shape::StyleWatch,
             $(pub $gpu_param : Buffer<$gpu_param_type>),*
         }
 
@@ -166,13 +252,14 @@ macro_rules! define_shape_system {
             type Shape = Shape;
 
             fn new(scene:&Scene) -> Self {
-                let shape_system = $crate::display::shape::ShapeSystem::new(scene,&Self::shape_def());
+                let style_manager = $crate::display::shape::StyleWatch::new(&scene.style_sheet);
+                let shape_system  = $crate::display::shape::ShapeSystem::new(scene,&Self::shape_def(&style_manager));
                 $(
                     let name       = stringify!($gpu_param);
                     let value      = $crate::system::gpu::data::default::gpu_default::<$gpu_param_type>();
                     let $gpu_param = shape_system.add_input(name,value);
                 )*
-                Self {shape_system,$($gpu_param),*}
+                Self {shape_system,style_manager,$($gpu_param),*} . init_refresh_on_style_change()
             }
 
             fn new_instance(&self) -> Self::Shape {
@@ -184,12 +271,25 @@ macro_rules! define_shape_system {
         }
 
         impl ShapeSystem {
+            fn init_refresh_on_style_change(self) -> Self {
+                let shape_system  = self.shape_system.clone_ref();
+                let style_manager = self.style_manager.clone_ref();
+                self.style_manager.set_on_style_change(move || {
+                    shape_system.set_shape(&Self::shape_def(&style_manager));
+                });
+                self
+            }
+
             /// The canvas shape definition.
-            pub fn shape_def() -> AnyShape {
+            pub fn shape_def(__style_watch__:&$crate::display::shape::StyleWatch) -> AnyShape {
+                use $crate::display::style::data::DataMatch; // Operations styles.
                 $(
-                    let $gpu_param  : Var<$gpu_param_type> =
+                    __style_watch__.reset();
+                    let $style = __style_watch__;
+                    let $gpu_param : Var<$gpu_param_type> =
                         concat!("input_",stringify!($gpu_param)).into();
                     // Silencing warnings about not used shader input variables.
+                    let _unused = &$style;
                     let _unused = &$gpu_param;
                 )*
                 $($body)*

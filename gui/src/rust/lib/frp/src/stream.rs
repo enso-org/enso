@@ -486,33 +486,6 @@ impl<Def> HasOutputTypeLabel for Node<Def>
 }
 
 
-// === Conversions ===
-
-impl<Out> From<&OwnedStream<Out>> for OwnedStream<Out> {
-    fn from(t:&OwnedStream<Out>) -> Self {
-        t.clone_ref()
-    }
-}
-
-impl<Out> From<&Stream<Out>> for Stream<Out> {
-    fn from(t:&Stream<Out>) -> Self {
-        t.clone_ref()
-    }
-}
-
-impl<Def:HasOutputStatic> From<&Node<Def>> for Node<Def> {
-    fn from(t:&Node<Def>) -> Self {
-        t.clone_ref()
-    }
-}
-
-impl<Def:HasOutputStatic> From<&WeakNode<Def>> for WeakNode<Def> {
-    fn from(t:&WeakNode<Def>) -> Self {
-        t.clone_ref()
-    }
-}
-
-
 // === InputBehaviors ===
 
 impl<Def:HasOutputStatic> InputBehaviors for Node<Def>
@@ -542,11 +515,3 @@ impl<Out> Debug for Stream<Out> {
 
     }
 }
-
-
-
-
-
-
-
-

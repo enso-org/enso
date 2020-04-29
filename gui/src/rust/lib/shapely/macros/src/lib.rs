@@ -76,6 +76,10 @@ pub fn derive_iterator_mut
 /// behavior user might add `#[clone_ref(bound="…")]` attribute. Then the generated implementation
 /// will use the provided bounds.
 ///
+/// Moreover, for a given struct `X` this macro generates also `impl From<&X> for X` which uses
+/// `CloneRef` under the hood. The semantics of `CloneRef` makes each object to naturally provide
+/// transformation from reference to an owned type.
+///
 /// Supported inputs are structs (unit, named, unnamed), enums (with unit, named, unnamed and no
 /// variants at all). Unions are currently not supported.
 #[proc_macro_derive(CloneRef, attributes(clone_ref))]

@@ -94,7 +94,8 @@ pub mod shape {
     use super::*;
 
     ensogl::define_shape_system! {
-        (selection:f32, creation:f32) {
+        (style:Style, selection:f32, creation:f32) {
+            style.get("node.radius").number().unwrap_or(32.0); // FIXME: this is not used yet
             let border_size_f = 16.0;
             let node_radius   = 32.0.px() * creation;
             let border_size   = border_size_f.px();
@@ -137,6 +138,7 @@ pub struct Events {
     pub select     : frp::Source,
     pub deselect   : frp::Source,
 }
+
 
 
 // ============

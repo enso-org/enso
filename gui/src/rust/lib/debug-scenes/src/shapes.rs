@@ -13,7 +13,6 @@ use graph_editor::GraphEditor;
 use wasm_bindgen::prelude::*;
 use ensogl::display::object::ObjectOps;
 
-use ensogl::display::style;
 
 
 #[wasm_bindgen]
@@ -55,6 +54,4 @@ fn init(app:&Application) {
         }
         was_rendered = true;
     }).forget();
-
-    style::test();
 }

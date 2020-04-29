@@ -9,17 +9,19 @@
 #![feature(specialization)]
 #![feature(trait_alias)]
 
-pub mod collections;
-pub mod macros;
-pub mod option;
-pub mod phantom;
-pub mod reference;
-pub mod std_reexports;
-pub mod string;
-pub mod tp;
-pub mod wrapper;
+mod collections;
+mod data;
+mod macros;
+mod option;
+mod phantom;
+mod reference;
+mod std_reexports;
+mod string;
+mod tp;
+mod wrapper;
 
 pub use collections::*;
+pub use data::*;
 pub use macros::*;
 pub use option::*;
 pub use phantom::*;
