@@ -41,8 +41,8 @@ impl<'a> Iterator for LeafIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.next_node.is_some() {
-            let crumbs       = self.stack.iter().map(|sf| sf.child_being_visited);
-            let return_value = self.base_node.clone().get_descendant(crumbs);
+            let crumbs       = self.stack.iter().map(|sf| &sf.child_being_visited);
+            let return_value = self.base_node.clone().get_descendant(crumbs).ok();
             self.make_dfs_step();
             self.descend_to_leaf();
             return_value
