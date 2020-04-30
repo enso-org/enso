@@ -76,4 +76,10 @@ impl SpanTree {
             ast_crumbs : default()
         }
     }
+
+    /// Get the node (root, child, or further descendant) identified by `crumbs`.
+    pub fn get_node<'a>
+    (&self, crumbs:impl IntoIterator<Item=&'a node::Crumb>) -> FallibleResult<node::Ref> {
+        self.root_ref().get_descendant(crumbs)
+    }
 }

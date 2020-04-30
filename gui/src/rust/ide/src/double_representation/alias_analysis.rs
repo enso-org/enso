@@ -73,6 +73,13 @@ pub struct IdentifierUsage {
     pub used       : Vec<LocatedName>,
 }
 
+impl IdentifierUsage {
+    /// Returns all identifiers that are either used from or introduced into the scope.
+    pub fn all_identifiers(&self) -> Vec<LocatedName> {
+        self.introduced.iter().chain(self.used.iter()).cloned().collect()
+    }
+}
+
 
 
 // ================

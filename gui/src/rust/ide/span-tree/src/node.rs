@@ -46,6 +46,21 @@ pub enum Kind {
 pub enum InsertType {BeforeTarget,AfterTarget,Append}
 
 
+// === Errors ===
+
+#[allow(missing_docs)]
+#[fail(display = "The crumb `{}` is invalid, only {} children present. Traversed crumbs: {:?}.", crumb,count,context)]
+#[derive(Debug,Fail,Clone)]
+pub struct InvalidCrumb {
+    /// Crumb that was attempted.
+    pub crumb : Crumb,
+    /// Available children count.
+    pub count : usize,
+    /// Already traversed crumbs.
+    pub context : Vec<Crumb>,
+}
+
+
 // === Crumbs ===
 
 /// Identifies subtree within a node. It is the index of the child node.
@@ -133,8 +148,14 @@ impl<'a> Ref<'a> {
     }
 
     /// Get the reference to child with given index. Returns None if index if out of bounds.
-    pub fn child(mut self, index:usize) -> Option<Ref<'a>> {
-        self.node.children.get(index).map(|child| {
+    pub fn child(mut self, index:usize) -> FallibleResult<Ref<'a>> {
+        let err = || InvalidCrumb {
+            crumb   : index,
+            count   : self.node.children.len(),
+            context : self.crumbs.clone()
+        }.into();
+
+        self.node.children.get(index).ok_or_else(err).map(|child| {
             self.crumbs.push(index);
             self.ast_crumbs.extend(child.ast_crumbs.clone());
             self.span_begin += child.offset;
@@ -161,11 +182,12 @@ impl<'a> Ref<'a> {
     }
 
     /// Get the sub-node (child, or further descendant) identified by `crumbs`.
-    pub fn get_descendant(self, crumbs:impl IntoIterator<Item=Crumb>) -> Option<Ref<'a>> {
+    pub fn get_descendant<'b>
+    (self, crumbs:impl IntoIterator<Item=&'b Crumb>) -> FallibleResult<Ref<'a>> {
         let mut iter = crumbs.into_iter();
         match iter.next() {
-            Some(index) => self.child(index).and_then(|child| child.get_descendant(iter)),
-            None        => Some(self)
+            Some(index) => self.child(*index).and_then(|child| child.get_descendant(iter)),
+            None        => Ok(self)
         }
     }
 
@@ -238,10 +260,10 @@ mod test {
             .build();
 
         let root         = tree.root_ref();
-        let child1       = root.clone().get_descendant(vec![0]).unwrap();
-        let child2       = root.clone().get_descendant(vec![2]).unwrap();
-        let grand_child1 = root.clone().get_descendant(vec![2, 0]).unwrap();
-        let grand_child2 = child2.clone().get_descendant(vec![1]).unwrap();
+        let child1       = root.clone().  get_descendant(&vec![0]).unwrap();
+        let child2       = root.clone().  get_descendant(&vec![2]).unwrap();
+        let grand_child1 = root.clone().  get_descendant(&vec![2, 0]).unwrap();
+        let grand_child2 = child2.clone().get_descendant(&vec![1]).unwrap();
 
         // Span begin.
         assert_eq!(root.span_begin.value        , 0);
@@ -272,11 +294,11 @@ mod test {
         assert_eq!(grand_child2.ast_crumbs, [RightOperand.into(),Operator.into()]   );
 
         // Not existing nodes
-        assert!(root.clone().get_descendant(vec![3]).is_none());
-        assert!(root.clone().get_descendant(vec![1, 0]).is_none());
-        assert!(root.clone().get_descendant(vec![2, 1, 0]).is_none());
-        assert!(root.clone().get_descendant(vec![2, 5]).is_none());
-        assert!(root.get_descendant(vec![2, 5, 0]).is_none());
+        assert!(root.clone().get_descendant(&vec![3]).is_err());
+        assert!(root.clone().get_descendant(&vec![1, 0]).is_err());
+        assert!(root.clone().get_descendant(&vec![2, 1, 0]).is_err());
+        assert!(root.clone().get_descendant(&vec![2, 5]).is_err());
+        assert!(root.get_descendant(&vec![2, 5, 0]).is_err());
     }
 
     #[test]
