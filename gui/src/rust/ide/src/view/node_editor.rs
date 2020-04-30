@@ -74,9 +74,13 @@ impl GraphEditorIntegration {
         let stream  = this.controller.subscribe();
         let weak    = Rc::downgrade(this);
         let handler = process_stream_with_handle(stream,weak,move |notification,this| {
-            match notification {
-                notification::Graph::Invalidate => this.invalidate_graph().unwrap(), // FIXME unwrap
+            let result = match notification {
+                notification::Graph::Invalidate => this.invalidate_graph(),
             };
+            if let Err(err) = result {
+                error!(this.logger,"Error while updating graph after receiving {notification:?} \
+                    from controller: {err}");
+            }
             futures::future::ready(())
         });
         executor::global::spawn(handler);

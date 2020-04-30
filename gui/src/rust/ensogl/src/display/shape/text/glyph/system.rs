@@ -267,4 +267,4 @@ impl GlyphSystem {
 }
 
 const BEFORE_MAIN : &str = include_str!("glyph.glsl");
-const MAIN        : &str = "output_color = color_from_msdf(); output_id=uvec4(0,0,0,0);";
+const MAIN        : &str = "output_color = color_from_msdf(); output_id=vec4(0.0,0.0,0.0,0.0);";
