@@ -6,7 +6,9 @@ import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.compiler.exception.CompilerError
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.{AST, Debug, Location}
+import shapeless.=:!=
 
+import scala.annotation.unused
 import scala.collection.immutable.{Set => ISet}
 import scala.reflect.ClassTag
 
@@ -37,20 +39,60 @@ sealed trait IR {
   /** Adds pass metadata to the IR node.
     *
     * @param newData the metadata to add
+    * @param ev1 ensures that the user hasn't forgotten to specify the type
+    * @param ev2 ensures that the user isn't putting the wrong kind of metadata
+    *            in as a replacement for `T`
+    * @tparam T the pass-level type of the metadata (the equivalent to
+    *           [[org.enso.compiler.pass.IRPass.Metadata]] in the pass, used to
+    *           ensure duplicates are removed)
+    * @tparam M the concrete type of the metadata being inserted
     * @return the node, with `newData` added to its [[passData]]
     */
-  def addMetadata(newData: IR.Metadata): IR
+  def addMetadata[T <: IR.Metadata: ClassTag, M <: IR.Metadata](newData: M)(
+    implicit ev1: T =:!= IR.Metadata,
+    ev2: M <:< T
+  ): IR
 
   /** Gets the metadata of the given type from the node, if it exists.
     *
+    * @param ev ensures that the yser hasn't forgotten to specify the type
     * @tparam T the type of the metadata to be obtained
     * @return the requested metadata
     */
-  def getMetadata[T <: IR.Metadata: ClassTag]: Option[T] = {
+  def getMetadata[T <: IR.Metadata: ClassTag](
+    implicit @unused ev: T =:!= IR.Metadata
+  ): Option[T] = {
     this.passData.collectFirst { case data: T => data }
   }
 
-  // TODO [AA] Use this throughout the passes
+  /** A helper function that ensures that there's only one metadata element of
+    * any given type in the metadata set.
+    *
+    * @param newData the new metadata to add
+    * @param ev1 ensures that the user hasn't forgotten to specify the type
+    * @param ev2 ensures that the user isn't putting the wrong kind of metadata
+    *            in as a replacement for `T`
+    * @tparam T the pass-level type of the metadata (the equivalent to
+    *           [[org.enso.compiler.pass.IRPass.Metadata]] in the pass, used to
+    *           ensure duplicates are removed)
+    * @tparam M the concrete type of the metadata being inserted
+    * @return [[passData]] with `newData` added to it, and any existing members
+    *         of type `T` removed
+    */
+  protected def addToMetadata[T <: IR.Metadata: ClassTag, M <: IR.Metadata](
+    newData: M
+  )(
+    implicit @unused ev1: T =:!= IR.Metadata,
+    @unused ev2: M <:< T
+  ): Set[IR.Metadata] = {
+    val addTo = this.passData.collectFirst { case old: T => old } match {
+      case Some(v) => this.passData - v
+      case None    => this.passData
+    }
+
+    addTo + newData
+  }
+
   /** Gets the metadata of the given type from the node, throwing a fatal
     * compiler error with the specified message if it doesn't exist
     *
@@ -160,7 +202,7 @@ object IR {
     override val passData: ISet[Metadata] = ISet()
   ) extends IR
       with Expression
-      with Error
+      with Diagnostic
       with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
@@ -181,8 +223,10 @@ object IR {
       res
     }
 
-    override def addMetadata(newData: Metadata): Empty = {
-      copy(passData = this.passData + newData)
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Empty = {
+      copy(passData = addToMetadata[T, M](newData))
     }
 
     override def mapExpressions(fn: Expression => Expression): Empty = this
@@ -244,8 +288,10 @@ object IR {
       res
     }
 
-    override def addMetadata(newData: Metadata): Module = {
-      copy(passData = this.passData + newData)
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Module = {
+      copy(passData = addToMetadata[T, M](newData))
     }
 
     override def mapExpressions(fn: Expression => Expression): Module = {
@@ -282,7 +328,10 @@ object IR {
       * module scope
       */
     sealed trait Scope extends IR {
-      override def addMetadata(newData: Metadata):               Scope
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Scope
+
       override def mapExpressions(fn: Expression => Expression): Scope
     }
     object Scope {
@@ -320,8 +369,10 @@ object IR {
           res
         }
 
-        override def addMetadata(newData: Metadata): Import = {
-          copy(passData = this.passData + newData)
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Import = {
+          copy(passData = addToMetadata[T, M](newData))
         }
 
         override def mapExpressions(fn: Expression => Expression): Import = this
@@ -341,7 +392,10 @@ object IR {
 
       /** A representation of top-level definitions. */
       sealed trait Definition extends Scope {
-        override def addMetadata(newData: Metadata):               Definition
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Definition
+
         override def mapExpressions(fn: Expression => Expression): Definition
       }
       object Definition {
@@ -383,8 +437,10 @@ object IR {
             res
           }
 
-          override def addMetadata(newData: Metadata): Atom = {
-            copy(passData = this.passData + newData)
+          override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+            newData: M
+          )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Atom = {
+            copy(passData = addToMetadata[T, M](newData))
           }
 
           override def mapExpressions(fn: Expression => Expression): Atom = {
@@ -453,8 +509,10 @@ object IR {
             res
           }
 
-          override def addMetadata(newData: Metadata): Method = {
-            copy(passData = this.passData + newData)
+          override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+            newData: M
+          )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Method = {
+            copy(passData = addToMetadata[T, M](newData))
           }
 
           override def mapExpressions(fn: Expression => Expression): Method = {
@@ -504,7 +562,10 @@ object IR {
     }
 
     override def mapExpressions(fn: Expression => Expression): Expression
-    override def addMetadata(newData: Metadata):               Expression
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Expression
   }
   object Expression {
 
@@ -550,8 +611,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Block = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Block = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Block = {
@@ -613,8 +676,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Binding = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Binding = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Binding = {
@@ -641,7 +706,10 @@ object IR {
   /** Enso literals. */
   sealed trait Literal extends Expression with IRKind.Primitive {
     override def mapExpressions(fn: Expression => Expression): Literal
-    override def addMetadata(newData: Metadata):               Literal
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Literal
   }
   object Literal {
 
@@ -677,8 +745,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Number = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Number = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Number = this
@@ -727,8 +797,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Text = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Text = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Text = this
@@ -754,7 +826,10 @@ object IR {
     val name: String
 
     override def mapExpressions(fn: Expression => Expression): Name
-    override def addMetadata(newData: Metadata):               Name
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Name
   }
   object Name {
 
@@ -790,8 +865,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Name.Literal = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Literal = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Literal = this
@@ -838,8 +915,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): This = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): This = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): This = this
@@ -886,8 +965,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Here = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Here = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Here = this
@@ -909,7 +990,10 @@ object IR {
   /** Constructs that operate on types. */
   sealed trait Type extends Expression {
     override def mapExpressions(fn: Expression => Expression): Type
-    override def addMetadata(newData: Metadata):               Type
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Type
   }
   object Type {
 
@@ -955,8 +1039,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Ascription = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Ascription = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Ascription = {
@@ -1017,8 +1103,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Context = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Context = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Context = {
@@ -1045,7 +1133,10 @@ object IR {
     /** IR nodes for dealing with typesets. */
     sealed trait Set extends Type {
       override def mapExpressions(fn: Expression => Expression): Set
-      override def addMetadata(newData: Metadata):               Set
+
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Set
     }
     object Set {
 
@@ -1090,8 +1181,10 @@ object IR {
           res
         }
 
-        override def addMetadata(newData: Metadata): Member = {
-          copy(passData = this.passData + newData)
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Member = {
+          copy(passData = addToMetadata[T, M](newData))
         }
 
         override def mapExpressions(fn: Expression => Expression): Member = {
@@ -1158,8 +1251,10 @@ object IR {
           res
         }
 
-        override def addMetadata(newData: Metadata): Subsumption = {
-          copy(passData = this.passData + newData)
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Subsumption = {
+          copy(passData = addToMetadata[T, M](newData))
         }
 
         override def mapExpressions(
@@ -1222,8 +1317,10 @@ object IR {
           res
         }
 
-        override def addMetadata(newData: Metadata): Equality = {
-          copy(passData = this.passData + newData)
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Equality = {
+          copy(passData = addToMetadata[T, M](newData))
         }
 
         override def mapExpressions(fn: Expression => Expression): Equality = {
@@ -1284,8 +1381,10 @@ object IR {
           res
         }
 
-        override def addMetadata(newData: Metadata): Concat = {
-          copy(passData = this.passData + newData)
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Concat = {
+          copy(passData = addToMetadata[T, M](newData))
         }
 
         override def mapExpressions(fn: Expression => Expression): Concat = {
@@ -1346,8 +1445,10 @@ object IR {
           res
         }
 
-        override def addMetadata(newData: Metadata): Union = {
-          copy(passData = this.passData + newData)
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Union = {
+          copy(passData = addToMetadata[T, M](newData))
         }
 
         override def mapExpressions(fn: Expression => Expression): Union = {
@@ -1408,8 +1509,10 @@ object IR {
           res
         }
 
-        override def addMetadata(newData: Metadata): Intersection = {
-          copy(passData = this.passData + newData)
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Intersection = {
+          copy(passData = addToMetadata[T, M](newData))
         }
 
         override def mapExpressions(
@@ -1472,8 +1575,10 @@ object IR {
           res
         }
 
-        override def addMetadata(newData: Metadata): Subtraction = {
-          copy(passData = this.passData + newData)
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Subtraction = {
+          copy(passData = addToMetadata[T, M](newData))
         }
 
         override def mapExpressions(
@@ -1524,7 +1629,10 @@ object IR {
     val canBeTCO: Boolean
 
     override def mapExpressions(fn: Expression => Expression): Function
-    override def addMetadata(newData: Metadata):               Function
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Function
   }
   object Function {
 
@@ -1573,8 +1681,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Lambda = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Function = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Lambda = {
@@ -1608,7 +1718,9 @@ object IR {
       fn: Expression => Expression
     ): DefinitionArgument
 
-    override def addMetadata(newData: Metadata): DefinitionArgument
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): DefinitionArgument
   }
   object DefinitionArgument {
 
@@ -1654,8 +1766,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Specified = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Specified = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       def mapExpressions(fn: Expression => Expression): Specified = {
@@ -1689,7 +1803,10 @@ object IR {
   /** All function applications in Enso. */
   sealed trait Application extends Expression {
     override def mapExpressions(fn: Expression => Expression): Application
-    override def addMetadata(newData: Metadata):               Application
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Application
   }
   object Application {
 
@@ -1737,8 +1854,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Prefix = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Prefix = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Prefix = {
@@ -1794,8 +1913,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Force = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Force = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Force = {
@@ -1819,7 +1940,10 @@ object IR {
     /** Operator applications in Enso. */
     sealed trait Operator extends Application {
       override def mapExpressions(fn: Expression => Expression): Operator
-      override def addMetadata(newData: Metadata):               Operator
+
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Operator
     }
     object Operator {
 
@@ -1864,8 +1988,10 @@ object IR {
           res
         }
 
-        override def addMetadata(newData: Metadata): Binary = {
-          copy(passData = this.passData + newData)
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Binary = {
+          copy(passData = addToMetadata[T, M](newData))
         }
 
         override def mapExpressions(fn: Expression => Expression): Binary = {
@@ -1910,7 +2036,10 @@ object IR {
     val shouldBeSuspended: Option[Boolean]
 
     override def mapExpressions(fn: Expression => Expression): CallArgument
-    override def addMetadata(newData: Metadata):               CallArgument
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): CallArgument
   }
   object CallArgument {
 
@@ -1957,8 +2086,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Specified = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Specified = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Specified = {
@@ -1990,7 +2121,10 @@ object IR {
   /** The Enso case expression. */
   sealed trait Case extends Expression {
     override def mapExpressions(fn: Expression => Expression): Case
-    override def addMetadata(newData: Metadata):               Case
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Case
   }
   object Case {
 
@@ -2035,8 +2169,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Expr = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Expr = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Expr = {
@@ -2101,8 +2237,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Branch = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Branch = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Branch = {
@@ -2127,7 +2265,10 @@ object IR {
     /** The different types of patterns that can occur in a match. */
     sealed trait Pattern extends IR {
       override def mapExpressions(fn: Expression => Expression): Pattern
-      override def addMetadata(newData: Metadata):               Pattern
+
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Pattern
     }
     object Pattern {
       // TODO [AA] Better differentiate the types of patterns that can occur
@@ -2139,7 +2280,10 @@ object IR {
   /** Enso comment entities. */
   sealed trait Comment extends Expression {
     override def mapExpressions(fn: Expression => Expression): Comment
-    override def addMetadata(newData: Metadata):               Comment
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Comment
 
     /** The expression being commented. */
     val commented: Expression
@@ -2183,8 +2327,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Documentation = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Documentation = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(
@@ -2214,7 +2360,10 @@ object IR {
   /** Foreign code entities. */
   sealed trait Foreign extends Expression {
     override def mapExpressions(fn: Expression => Expression): Foreign
-    override def addMetadata(newData: Metadata):               Foreign
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Foreign
   }
   object Foreign {
 
@@ -2255,8 +2404,10 @@ object IR {
         res
       }
 
-      override def addMetadata(newData: Metadata): Definition = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Foreign = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Definition =
@@ -2278,20 +2429,22 @@ object IR {
     }
   }
 
-  // === Errors ===============================================================
+  // === Diagnostics ==========================================================
 
-  /** A trait for all errors in Enso's IR. */
-  sealed trait Error extends Expression {
-    override def mapExpressions(fn: Expression => Expression): Error
+  /** A representation of various kinds of diagnostic in the IR. */
+  sealed trait Diagnostic extends Expression {
+    override def mapExpressions(fn: Expression => Expression): Diagnostic
 
-    override def addMetadata(newData: Metadata): Error
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Diagnostic
 
     /**
       * @return a human-readable description of this error condition.
       */
     def message: String
   }
-  object Error {
+  object Diagnostic {
 
     /** Represents the various kinds of errors in the IR. */
     sealed trait Kind
@@ -2307,6 +2460,105 @@ object IR {
         */
       sealed trait Interactive extends Kind
     }
+  }
+
+  // === Warnings =============================================================
+
+  /** A trait for all warnings in Enso's IR. */
+  sealed trait Warning extends Diagnostic {
+
+    /** The expression that the warning is being attached to. */
+    val warnedExpr: IR.Expression
+
+    override def mapExpressions(fn: Expression => Expression): Warning
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Warning
+  }
+  object Warning {
+
+    /** Warnings about shadowing names. */
+    sealed trait Shadowed extends Warning {
+
+      /** The expression shadowing the warned expression. */
+      val shadower: IR.Expression
+
+      override def mapExpressions(fn: Expression => Expression): Shadowed
+
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Shadowed
+    }
+    object Shadowed {
+
+      /** A warning that a later-defined lambda parameter shadows an
+        * earlier-defined lambda parameter.
+        *
+        * @param warnedExpr the expression that the warning is attached to
+        * @param shadower the expression shadowing `warnedExpr`
+        * @param passData the pass data for the warning
+        */
+      sealed case class LambdaParam(
+        override val warnedExpr: IR.Expression,
+        override val shadower: IR.Expression,
+        override val passData: ISet[Metadata] = ISet()
+      ) extends Shadowed {
+        override protected var id: Identifier = randomId
+
+        override val location: Option[IdentifiedLocation] = warnedExpr.location
+
+        /** Creates a copy of `this`.
+         *
+         * @param warnedExpr the expression that the warning is attached to
+         * @param shadower the expression shadowing `warnedExpr`
+         * @param passData the pass data for the warning
+         * @param id the identifier for the new node
+         * @return a copy of `this`, updated with the specified values
+         */
+        def copy(
+          warnedExpr: IR.Expression            = warnedExpr,
+          shadower: IR.Expression              = shadower,
+          passData: ISet[Metadata]             = passData,
+          id: Identifier                       = id
+        ): LambdaParam = {
+          val res = LambdaParam(warnedExpr, shadower, passData)
+          res.id = id
+          res
+        }
+
+        override def mapExpressions(
+          fn: Expression => Expression
+        ): LambdaParam = {
+          copy(warnedExpr = fn(warnedExpr))
+        }
+
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): LambdaParam = {
+          copy(passData = addToMetadata[T, M](newData))
+        }
+
+        override def message: String =
+          s"The lambda parameter $warnedExpr is being shadowed by $shadower"
+
+        override def children: List[IR] = List(warnedExpr, shadower)
+      }
+
+    }
+  }
+
+  // === Errors ===============================================================
+
+  /** A trait for all errors in Enso's IR. */
+  sealed trait Error extends Diagnostic {
+    override def mapExpressions(fn: Expression => Expression): Error
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Error
+  }
+  object Error {
 
     /** A representation of an Enso syntax error.
       *
@@ -2319,13 +2571,14 @@ object IR {
       reason: Syntax.Reason,
       override val passData: ISet[Metadata] = ISet()
     ) extends Error
-        with Kind.Interactive
+        with Diagnostic.Kind.Interactive
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
       /** Creates a copy of `this`.
         *
         * @param ast the erroneous AST
+        * @param reason the cause of this error
         * @param passData the pass metadata associated with this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
@@ -2344,8 +2597,10 @@ object IR {
       override val location: Option[IdentifiedLocation] =
         ast.location.map(IdentifiedLocation(_, ast.id))
 
-      override def addMetadata(newData: Metadata): Syntax = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Syntax = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): Syntax = this
@@ -2414,7 +2669,7 @@ object IR {
       ir: IR,
       override val passData: ISet[Metadata] = ISet()
     ) extends Error
-        with Kind.Static
+        with Diagnostic.Kind.Static
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
@@ -2437,8 +2692,10 @@ object IR {
 
       override val location: Option[IdentifiedLocation] = ir.location
 
-      override def addMetadata(newData: Metadata): InvalidIR = {
-        copy(passData = this.passData + newData)
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): InvalidIR = {
+        copy(passData = addToMetadata[T, M](newData))
       }
 
       override def mapExpressions(fn: Expression => Expression): InvalidIR =
@@ -2467,66 +2724,6 @@ object IR {
     sealed trait Redefined extends Error
     object Redefined {
 
-      /** An error representing the redefinition of a function argument.
-        *
-        * @param invalidArgDef the invalid definition
-        * @param passData the pass metadata for the error
-        */
-      sealed case class Argument(
-        invalidArgDef: IR.DefinitionArgument.Specified,
-        override val passData: ISet[Metadata] = ISet()
-      ) extends Redefined
-          with Kind.Static
-          with IRKind.Primitive
-          with IR.DefinitionArgument {
-        override protected var id: Identifier = randomId
-
-        /** Creates a copy of `this`.
-          *
-          * @param invalidArgDef the invalid definition
-          * @param passData the pass metadata for the error
-          * @param id the identifier for the new node
-          * @return a copy of `this`, updated with the specified values
-          */
-        def copy(
-          invalidArgDef: IR.DefinitionArgument.Specified = invalidArgDef,
-          passData: ISet[Metadata]                       = passData,
-          id: Identifier                                 = id
-        ): Argument = {
-          val res = Argument(invalidArgDef, passData)
-          res.id = id
-          res
-        }
-
-        override val defaultValue: Option[Expression] = None
-        override val location: Option[IdentifiedLocation] =
-          invalidArgDef.location
-
-        override def addMetadata(newData: Metadata): Argument = {
-          copy(passData = this.passData + newData)
-        }
-
-        override def mapExpressions(
-          fn: Expression => Expression
-        ): Argument = this
-
-        override def toString: String =
-          s"""
-          |IR.Error.Redefined.Argument(
-          |invalidArgDef = $invalidArgDef,
-          |location = $location,
-          |passData = ${this.showPassData},
-          |id = $id
-          |)
-          |""".toSingleLine
-
-        override def children: List[IR] = List(invalidArgDef)
-
-        override def message: String =
-          s"Argument ${invalidArgDef.name.name} is being redefined."
-
-      }
-
       /** An error representing the redefinition of a binding in a given scope.
         *
         * While bindings in child scopes are allowed to _shadow_ bindings in
@@ -2539,7 +2736,7 @@ object IR {
         invalidBinding: IR.Expression.Binding,
         override val passData: ISet[Metadata] = ISet()
       ) extends Redefined
-          with Kind.Static
+          with Diagnostic.Kind.Static
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
@@ -2563,8 +2760,10 @@ object IR {
         override val location: Option[IdentifiedLocation] =
           invalidBinding.location
 
-        override def addMetadata(newData: Metadata): Binding = {
-          copy(passData = this.passData + newData)
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Binding = {
+          copy(passData = addToMetadata[T, M](newData))
         }
 
         override def mapExpressions(fn: Expression => Expression): Binding =
@@ -2680,4 +2879,5 @@ object IR {
       s"${lines.head}${body}${lines.last}"
     }
   }
+
 }

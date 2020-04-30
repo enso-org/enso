@@ -2,7 +2,7 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.InterpreterTest
 
-class CompileErrorsTest extends InterpreterTest {
+class CompileDiagnosticsTest extends InterpreterTest {
   "ast-processing errors" should "be surfaced in the language" in {
     val code =
       """

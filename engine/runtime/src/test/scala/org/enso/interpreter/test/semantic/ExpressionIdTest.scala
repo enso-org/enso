@@ -47,7 +47,7 @@ class ExpressionIdTest extends InterpreterTest {
     val code =
       """
         |Unit.method =
-        |    foo = a b ->
+        |    foo = a -> b ->
         |        IO.println a
         |        add = a -> b -> a + b
         |        add a b
@@ -56,10 +56,10 @@ class ExpressionIdTest extends InterpreterTest {
         |main = Unit.method
         |""".stripMargin
     val meta = new Metadata
-    val id1  = meta.addItem(77, 5)
-    val id2  = meta.addItem(95, 1)
-    val id3  = meta.addItem(91, 7)
-    val id4  = meta.addItem(103, 9)
+    val id1  = meta.addItem(80, 5)
+    val id2  = meta.addItem(98, 1)
+    val id3  = meta.addItem(94, 7)
+    val id4  = meta.addItem(107, 9)
 
     instrumenter.assertNodeExists(id1, "30")
     instrumenter.assertNodeExists(id2, "10")
@@ -76,7 +76,7 @@ class ExpressionIdTest extends InterpreterTest {
         |    x = Cons 1 2
         |    y = Nil
         |
-        |    add = a b -> a + b
+        |    add = a -> b -> a + b
         |
         |    foo = x -> case x of
         |        Cons a b ->
@@ -88,10 +88,10 @@ class ExpressionIdTest extends InterpreterTest {
         |    foo x + foo y
         |""".stripMargin
     val meta = new Metadata
-    val id1  = meta.addItem(77, 109)
-    val id2  = meta.addItem(123, 7)
-    val id3  = meta.addItem(143, 9)
-    val id4  = meta.addItem(180, 5)
+    val id1  = meta.addItem(80, 109)
+    val id2  = meta.addItem(126, 7)
+    val id3  = meta.addItem(146, 9)
+    val id4  = meta.addItem(183, 5)
 
     instrumenter.assertNodeExists(id1, "9")
     instrumenter.assertNodeExists(id2, "3")
@@ -106,12 +106,12 @@ class ExpressionIdTest extends InterpreterTest {
       """
         |main =
         |    bar = x -> x + x * x
-        |    foo = x (y = bar x) -> x + y
+        |    foo = x -> (y = bar x) -> x + y
         |    foo 3
         |""".stripMargin
     val meta = new Metadata
-    val id1  = meta.addItem(50, 5)
-    val id2  = meta.addItem(54, 1)
+    val id1  = meta.addItem(53, 5)
+    val id2  = meta.addItem(57, 1)
 
     instrumenter.assertNodeExists(id1, "12")
     instrumenter.assertNodeExists(id2, "3")
@@ -123,12 +123,12 @@ class ExpressionIdTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    bar = a ~b ~c -> b
+        |    bar = a -> ~b -> ~c -> b
         |
         |    bar 0 10 0
         |""".stripMargin
     val meta = new Metadata
-    val id   = meta.addItem(29, 1)
+    val id   = meta.addItem(35, 1)
 
     instrumenter.assertNodeExists(id, "10")
     eval(meta.appendToCode(code))

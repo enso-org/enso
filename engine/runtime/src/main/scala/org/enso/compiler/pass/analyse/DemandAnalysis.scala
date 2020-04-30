@@ -1,6 +1,6 @@
 package org.enso.compiler.pass.analyse
 
-import org.enso.compiler.InlineContext
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -16,13 +16,20 @@ import org.enso.compiler.pass.IRPass
   */
 case object DemandAnalysis extends IRPass {
   override type Metadata = IR.Metadata.Empty
+  override type Config   = IRPass.Configuration.Default
 
   /** Executes the demand analysis process on an Enso module.
     *
     * @param ir the Enso IR to process
-    * @return `ir`, transformed to correctly force terms
+    * @param moduleContext a context object that contains the information needed
+    *                      to process a module
+    * @return `ir`, possibly having made transformations or annotations to that
+    *         IR.
     */
-  override def runModule(ir: IR.Module): IR.Module = {
+  override def runModule(
+    ir: IR.Module,
+    moduleContext: ModuleContext
+  ): IR.Module = {
     ir.copy(bindings =
       ir.bindings.map(t => t.mapExpressions(runExpression(_, InlineContext())))
     )
@@ -62,6 +69,7 @@ case object DemandAnalysis extends IRPass {
     isInsideCallArgument: Boolean
   ): IR.Expression = {
     expression match {
+      case empty: IR.Empty => empty
       case fn: IR.Function => analyseFunction(fn, isInsideApplication)
       case name: IR.Name   => analyseName(name, isInsideCallArgument)
       case app: IR.Application =>
@@ -86,6 +94,8 @@ case object DemandAnalysis extends IRPass {
             isInsideCallArgument = false
           )
         )
+      case warning: IR.Warning =>
+        analyseWarning(warning, isInsideApplication, isInsideCallArgument)
       case lit: IR.Literal     => lit
       case err: IR.Error       => err
       case foreign: IR.Foreign => foreign
@@ -94,6 +104,32 @@ case object DemandAnalysis extends IRPass {
           analyseExpression(
             x,
             isInsideApplication = false,
+            isInsideCallArgument
+          )
+        )
+    }
+  }
+
+  /** Performs demand analysis on a warning.
+    *
+    * @param warning the warning to perform demand analysis on
+    * @param isInsideApplication whether or not the warning occurs inside an
+    *                            application
+    * @param isInsideCallArgument whether or not the warning occurs inside a
+    *                             call argument
+    * @return `warning`, transformed by the demand analysis process
+    */
+  def analyseWarning(
+    warning: IR.Warning,
+    isInsideApplication: Boolean,
+    isInsideCallArgument: Boolean
+  ): IR.Warning = {
+    warning match {
+      case lp @ IR.Warning.Shadowed.LambdaParam(warnedExpr, _, _) =>
+        lp.copy(warnedExpr =
+          analyseExpression(
+            warnedExpr,
+            isInsideApplication,
             isInsideCallArgument
           )
         )
@@ -272,7 +308,6 @@ case object DemandAnalysis extends IRPass {
             )
           )
         )
-      case redef: IR.Error.Redefined.Argument => redef
     }
   }
 

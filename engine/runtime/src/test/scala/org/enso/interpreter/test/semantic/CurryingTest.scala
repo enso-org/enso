@@ -7,8 +7,8 @@ class CurryingTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    apply = v f -> f v
-        |    adder = a b -> a + b
+        |    apply = v -> f -> f v
+        |    adder = a -> b -> a + b
         |    plusOne = apply (f = adder 1)
         |    result = plusOne 10
         |    result
@@ -21,7 +21,7 @@ class CurryingTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    fn = w x (y = 10) (z = 20) -> w + x + y + z
+        |    fn = w -> x -> (y = 10) -> (z = 20) -> w + x + y + z
         |
         |    fn1 = fn ...
         |    fn2 = fn1 1 2 ...
@@ -37,7 +37,7 @@ class CurryingTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    fn = w x (y = 10) (z = 20) -> w + x + y + z
+        |    fn = w -> x -> (y = 10) -> (z = 20) -> w + x + y + z
         |
         |    fn.call 1 2 (z = 10)
         |""".stripMargin
@@ -49,7 +49,7 @@ class CurryingTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    fn = w x (y = 10) (z = 20) -> w + x + y + z
+        |    fn = w -> x -> (y = 10) -> (z = 20) -> w + x + y + z
         |    id = x -> x
         |
         |    (fn 3 (id 6) ...) 3
@@ -61,7 +61,7 @@ class CurryingTest extends InterpreterTest {
   "Method call syntax" should "allow default arguments to be suspended" in {
     val code =
       """
-        |Unit.fn = w x (y = 10) (z = 20) -> w + x + y + z
+        |Unit.fn = w -> x -> (y = 10) -> (z = 20) -> w + x + y + z
         |
         |main =
         |    fn1 = Unit.fn ...

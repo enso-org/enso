@@ -2,8 +2,8 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.InterpreterTest
 
-class LazyArgumentsTest extends InterpreterTest {
-  val subject = "Lazy arguments"
+class SuspendedArgumentsTest extends InterpreterTest {
+  val subject = "Suspended arguments"
 
   subject should "work in basic expressions" in {
     val code =
@@ -20,7 +20,7 @@ class LazyArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    foo = i ~x ~y -> ifZero i x y
+        |    foo = i -> ~x -> ~y -> ifZero i x y
         |    foo 1 (IO.println 1) (IO.println 2)
         |""".stripMargin
     eval(code)
@@ -31,8 +31,8 @@ class LazyArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    ifTest = c ~ifT ~ifF -> ifZero c ifT ifF
-        |    sum = c acc -> ifTest c acc (sum c-1 acc+c)
+        |    ifTest = c -> ~ifT -> ~ifF -> ifZero c ifT ifF
+        |    sum = c -> acc -> ifTest c acc (sum c-1 acc+c)
         |    sum 10000 0
         |""".stripMargin
     eval(code) shouldEqual 50005000
@@ -71,7 +71,7 @@ class LazyArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    ifTest = c ~ifT ~ifF -> ifZero c ifT ifF
+        |    ifTest = c -> ~ifT -> ~ifF -> ifZero c ifT ifF
         |    foo = c -> ifTest c
         |
         |    foo 0 (IO.println 1) (IO.println 2)
@@ -84,7 +84,7 @@ class LazyArgumentsTest extends InterpreterTest {
   subject should "work properly with defaulted arguments" in {
     val code =
       """
-        |main = a (~b = Panic.throw 1) -> a
+        |main = a -> (~b = Panic.throw 1) -> a
         |""".stripMargin
     eval(code).call(1) shouldEqual 1
   }

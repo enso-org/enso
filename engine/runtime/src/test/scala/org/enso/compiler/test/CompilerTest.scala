@@ -1,12 +1,10 @@
 package org.enso.compiler.test
 
-import java.util.UUID
-
-import org.enso.compiler.InlineContext
 import org.enso.compiler.codegen.AstToIR
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.IRPass
-import org.enso.syntax.text.{AST, Parser}
+import org.enso.compiler.pass.PassManager
+import org.enso.syntax.text.Parser
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -14,32 +12,6 @@ trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
 
   // === IR Utilities =========================================================
-
-  /** An extension method to allow converting string source code to arbitrary
-    * IR.
-    *
-    * @param source the source code to convert
-    */
-  implicit class ToIR(source: String) {
-
-    /** Converts program text to IR.
-      *
-      * @return the [[IR]] representing [[source]]
-      */
-    def toIR: IR = {
-      val parser: Parser = Parser()
-      val unresolvedAST: AST.Module =
-        parser.run(source)
-      val resolvedAST: AST.Module = parser.dropMacroMeta(unresolvedAST)
-
-      val mExpr = AstToIR.translateInline(resolvedAST)
-
-      mExpr match {
-        case Some(expr) => expr
-        case None       => AstToIR.translate(resolvedAST)
-      }
-    }
-  }
 
   /** An extension method to allow converting string source code to IR as a
     * module.
@@ -86,26 +58,40 @@ trait CompilerRunner {
     *
     * @param ir the IR to run the passes on
     */
-  implicit class RunPasses(ir: IR) {
+  implicit class RunPassesOnModule(ir: IR.Module) {
 
-    /** Executes the specified list of passes in order on the provided [[IR]].
+    /** Executes the passes using `passManager` on the input [[ir]].
       *
-      * @param passes the passes to run
-      * @return the result of executing `passes` in sequence on [[ir]]
+      * @param passManager the pass configuration
+      * @param moduleContext the module context it is executing in
+      * @return the result of executing the passes in `passManager` on [[ir]]
       */
     def runPasses(
-      passes: List[IRPass],
+      passManager: PassManager,
+      moduleContext: ModuleContext
+    ): IR.Module = {
+      passManager.runPassesOnModule(ir, moduleContext)
+    }
+  }
+
+  /** Provides an extension method allowing the running of a specified list of
+    * passes on the provided IR.
+    *
+    * @param ir the IR to run the passes on
+    */
+  implicit class RunPassesOnExpression(ir: IR.Expression) {
+
+    /** Executes the passes using `passManager` on the input [[ir]].
+      *
+      * @param passManager the pass configuration
+      * @param inlineContext the inline context it is executing in
+      * @return the result of executing the passes in `passManager` on [[ir]]
+      */
+    def runPasses(
+      passManager: PassManager,
       inlineContext: InlineContext
-    ): IR = ir match {
-      case expr: IR.Expression =>
-        passes.foldLeft(expr)((intermediate, pass) =>
-          pass.runExpression(intermediate, inlineContext)
-        )
-      case mod: IR.Module =>
-        passes.foldLeft(mod)((intermediate, pass) =>
-          pass.runModule(intermediate)
-        )
-      case _ => throw new RuntimeException(s"Cannot run passes on $ir.")
+    ): IR.Expression = {
+      passManager.runPassesInline(ir, inlineContext)
     }
   }
 
@@ -114,17 +100,15 @@ trait CompilerRunner {
     * @param source the source code to preprocess
     */
   implicit class Preprocess(source: String)(
-    implicit precursorPasses: List[IRPass]
+    implicit passManager: PassManager
   ) {
 
     /** Translates the source code into appropriate IR for testing this pass.
       *
       * @return IR appropriate for testing the alias analysis pass as a module
       */
-    def preprocessModule: IR.Module = {
-      source.toIrModule
-        .runPasses(precursorPasses, InlineContext())
-        .asInstanceOf[IR.Module]
+    def preprocessModule(implicit moduleContext: ModuleContext): IR.Module = {
+      source.toIrModule.runPasses(passManager, moduleContext)
     }
 
     /** Translates the source code into appropriate IR for testing this pass
@@ -135,24 +119,21 @@ trait CompilerRunner {
     def preprocessExpression(
       implicit inlineContext: InlineContext
     ): Option[IR.Expression] = {
-      source.toIrExpression.map(
-        _.runPasses(precursorPasses, inlineContext)
-          .asInstanceOf[IR.Expression]
-      )
+      source.toIrExpression.map(_.runPasses(passManager, inlineContext))
     }
   }
 
   /** Generates a random identifier.
-   *
-   * @return a random identifier
-   */
-  def genID: IR.Identifier = UUID.randomUUID()
+    *
+    * @return a random identifier
+    */
+  def genId: IR.Identifier = IR.randomId
 
   /** Creates an IR name from a string.
-   *
-   * @param str the string to turn into a name
-   * @return an IR name representing the name `str`
-   */
+    *
+    * @param str the string to turn into a name
+    * @return an IR name representing the name `str`
+    */
   def nameFromString(str: String): IR.Name.Literal = {
     IR.Name.Literal(str, None)
   }

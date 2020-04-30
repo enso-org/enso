@@ -1,19 +1,15 @@
 package org.enso.compiler.test.pass.analyse
 
-import org.enso.compiler.InlineContext
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.CallArgument
-import org.enso.compiler.pass.analyse.GatherErrors
+import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.test.CompilerTest
 import org.enso.syntax.text.AST
 
-class GatherErrorsTest extends CompilerTest {
+class GatherDiagnosticsTest extends CompilerTest {
   "Error Gathering" should {
-    val error1 = IR.Error.Redefined.Argument(
-      IR.DefinitionArgument
-        .Specified(IR.Name.Literal("foo", None), None, false, None)
-    )
-    val error2 = IR.Error.Syntax(
+    val error1 = IR.Error.Syntax(
       AST.Invalid.Unrecognized("@@"),
       IR.Error.Syntax.UnrecognizedToken
     )
@@ -21,37 +17,41 @@ class GatherErrorsTest extends CompilerTest {
     val plusApp = IR.Application.Prefix(
       plusOp,
       List(
-        CallArgument.Specified(None, error1, None),
-        CallArgument.Specified(None, error2, None)
+        CallArgument.Specified(None, error1, None)
       ),
-      false,
+      hasDefaultsSuspended = false,
       None
     )
     val lam = IR.Function.Lambda(
       List(
         IR.DefinitionArgument
-          .Specified(IR.Name.Literal("bar", None), None, false, None)
+          .Specified(
+            IR.Name.Literal("bar", None),
+            None,
+            suspended = false,
+            None
+          )
       ),
       plusApp,
       None
     )
 
     "work with expression flow" in {
-      val result = GatherErrors.runExpression(lam, new InlineContext())
+      val result = GatherDiagnostics.runExpression(lam, new InlineContext())
       val errors = result
-        .unsafeGetMetadata[GatherErrors.Errors]("Impossible")
-        .errors
+        .unsafeGetMetadata[GatherDiagnostics.Diagnostics]("Impossible")
+        .diagnostics
 
-      errors.toSet shouldEqual Set(error1, error2)
+      errors.toSet shouldEqual Set(error1)
     }
 
     "work with module flow" in {
-      val error3 = IR.Error.Syntax(
+      val error2 = IR.Error.Syntax(
         AST.Invalid.Unexpected("whoa, that was not expected", List()),
         IR.Error.Syntax.UnexpectedExpression
       )
 
-      val error4 = IR.Error.Syntax(
+      val error3 = IR.Error.Syntax(
         AST.Invalid.Unexpected("whoa, that was also not expected", List()),
         IR.Error.Syntax.UnexpectedExpression
       )
@@ -68,22 +68,22 @@ class GatherErrorsTest extends CompilerTest {
             typeName,
             List(
               IR.DefinitionArgument
-                .Specified(fooName, Some(error3), false, None)
+                .Specified(fooName, Some(error2), suspended = false, None)
             ),
             None
           ),
           IR.Module.Scope.Definition.Method(typeName, method1Name, lam, None),
-          IR.Module.Scope.Definition.Method(typeName, method2Name, error4, None)
+          IR.Module.Scope.Definition.Method(typeName, method2Name, error3, None)
         ),
         None
       )
 
-      val result = GatherErrors.runModule(module)
+      val result = GatherDiagnostics.runModule(module, ModuleContext())
       val errors = result
-        .unsafeGetMetadata[GatherErrors.Errors]("Impossible")
-        .errors
+        .unsafeGetMetadata[GatherDiagnostics.Diagnostics]("Impossible")
+        .diagnostics
 
-      errors.toSet shouldEqual Set(error1, error2, error3, error4)
+      errors.toSet shouldEqual Set(error1, error2, error3)
     }
   }
 }

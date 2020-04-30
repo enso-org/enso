@@ -25,6 +25,7 @@ import scala.jdk.CollectionConverters._
   *                      of scopes within which this local scope exists
   * @param scope the particular scope in `aliasingGraph` represented by this
   *              [[LocalScope]].
+  * @param dataflowInfo information on the dataflow analysis for this scope
   * @param flattenToParent whether or not the frame should be flattened into its
   *                        parent
   * @param frameSlots a mapping from symbol definition identifiers to slots in

@@ -56,7 +56,7 @@ class MethodsTest extends InterpreterTest {
         |type Foo
         |type Bar
         |
-        |Foo.bar = a b -> a + b
+        |Foo.bar = a -> b -> a + b
         |Bar.constant = 10
         |
         |main = Foo.bar Bar.constant Bar.constant
@@ -104,7 +104,7 @@ class MethodsTest extends InterpreterTest {
   "Method call target" should "be passable by-name" in {
     val code =
       """
-        |Unit.testMethod = x y z -> x + y + z
+        |Unit.testMethod = x -> y -> z -> x + y + z
         |main = testMethod x=1 y=2 this=Unit z=3
         |""".stripMargin
     eval(code) shouldEqual 6

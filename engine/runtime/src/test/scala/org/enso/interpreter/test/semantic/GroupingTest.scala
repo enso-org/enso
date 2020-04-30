@@ -29,8 +29,8 @@ class GroupingTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    ifTest = c (~ifT) ~ifF -> ifZero c ifT ifF
-        |    sum = c acc -> ifTest c acc (sum c-1 acc+c)
+        |    ifTest = c -> (~ifT) -> ~ifF -> ifZero c ifT ifF
+        |    sum = c -> acc -> ifTest c acc (sum c-1 acc+c)
         |    sum 10000 0
         |""".stripMargin
 

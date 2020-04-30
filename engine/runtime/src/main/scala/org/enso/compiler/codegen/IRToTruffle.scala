@@ -341,6 +341,7 @@ class IRToTruffle(
         case caseExpr: IR.Case              => processCase(caseExpr)
         case comment: IR.Comment            => processComment(comment)
         case err: IR.Error                  => processError(err)
+        case warning: IR.Warning            => processWarning(warning)
         case IR.Foreign.Definition(_, _, _, _) =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
@@ -364,6 +365,18 @@ class IRToTruffle(
     }
 
     // === Processing =========================================================
+
+    /** Performs code generation for any warnings left in the Enso [[IR]].
+      *
+      * @param warning the warning to generate code for
+      * @return the truffle nodes corresponding to `comment`
+      */
+    def processWarning(warning: IR.Warning): RuntimeExpression = {
+      warning match {
+        case IR.Warning.Shadowed.LambdaParam(warnedExpr, _, _) =>
+          run(warnedExpr)
+      }
+    }
 
     /** Performs code generation for any comments left in the Enso [[IR]].
       *
@@ -488,6 +501,13 @@ class IRToTruffle(
           "No scope info on a function."
         )
 
+      if (function.body.isInstanceOf[IR.Function]) {
+        throw new CompilerError(
+          "Lambda found directly as function body. It looks like Lambda " +
+            "Consolidation hasn't run."
+        )
+      }
+
       val scopeName = if (function.canBeTCO) {
         currentVarName
       } else {
@@ -563,8 +583,6 @@ class IRToTruffle(
       */
     def processError(error: IR.Error): RuntimeExpression = {
       val payload: AnyRef = error match {
-        case IR.Empty(_, _) =>
-          throw new CompilerError("Unexpected Empty IR during codegen.")
         case Error.InvalidIR(_, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: Error.Syntax =>
@@ -572,10 +590,6 @@ class IRToTruffle(
             .syntaxError()
             .newInstance(err.message)
         case err: Error.Redefined.Binding =>
-          context.getBuiltins
-            .compileError()
-            .newInstance(err.message)
-        case err: Error.Redefined.Argument =>
           context.getBuiltins
             .compileError()
             .newInstance(err.message)
@@ -889,11 +903,6 @@ class IRToTruffle(
           arg.name.name,
           defaultedValue,
           executionMode
-        )
-      case err: IR.Error.Redefined.Argument =>
-        throw new CompilerError(
-          s"Argument redefinition errors should not be present during " +
-          s"codegen, but found $err."
         )
     }
   }

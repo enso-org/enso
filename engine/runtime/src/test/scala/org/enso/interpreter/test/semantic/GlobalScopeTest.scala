@@ -30,7 +30,7 @@ class GlobalScopeTest extends InterpreterTest {
   "Functions" should "be able to call other functions in scope" in {
     val code =
       """
-        |Unit.adder = a b -> a + b
+        |Unit.adder = a -> b -> a + b
         |
         |main =
         |    fn = multiply ->
@@ -46,13 +46,13 @@ class GlobalScopeTest extends InterpreterTest {
   "Functions" should "be able to be passed as values when in scope" in {
     val code =
       """
-        |Unit.adder = a b -> a + b
+        |Unit.adder = a -> b -> a + b
         |
-        |Unit.binaryFn = a b function ->
+        |Unit.binaryFn = a -> b -> function ->
         |  result = function a b
         |  result
         |
-        |main = Unit.binaryFn 1 2 (a b -> Unit.adder a b)
+        |main = Unit.binaryFn 1 2 (a -> b -> Unit.adder a b)
     """.stripMargin
 
     eval(code) shouldEqual 3

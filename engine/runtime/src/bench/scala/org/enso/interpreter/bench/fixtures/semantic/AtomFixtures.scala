@@ -21,7 +21,7 @@ class AtomFixtures extends InterpreterRunner {
   val generateListCode =
     """
       |main = length ->
-      |    generator = acc i -> ifZero i acc (generator (Cons i acc) (i - 1))
+      |    generator = acc -> i -> ifZero i acc (generator (Cons i acc) (i - 1))
       |
       |    res = generator Nil length
       |    res
@@ -31,7 +31,7 @@ class AtomFixtures extends InterpreterRunner {
   val reverseListCode =
     """
       |main = list ->
-      |    reverser = acc list -> case list of
+      |    reverser = acc -> list -> case list of
       |        Cons h t -> reverser (Cons h acc) t
       |        Nil -> acc
       |
@@ -56,7 +56,7 @@ class AtomFixtures extends InterpreterRunner {
   val sumListCode =
     """
       |main = list ->
-      |    summator = acc list -> case list of
+      |    summator = acc -> list -> case list of
       |        Cons h t -> summator acc+h t
       |        Nil -> acc
       |
@@ -68,11 +68,11 @@ class AtomFixtures extends InterpreterRunner {
   val sumListLeftFoldCode =
     """
       |main = list ->
-      |    fold = f acc list -> case list of
+      |    fold = f -> acc -> list -> case list of
       |        Cons h t -> fold f (f acc h) t
       |        _ -> acc
       |
-      |    res = fold (x y -> x + y) 0 list
+      |    res = fold (x -> y -> x + y) 0 list
       |    res
     """.stripMargin
   val sumListLeftFold = getMain(sumListLeftFoldCode)
@@ -80,7 +80,7 @@ class AtomFixtures extends InterpreterRunner {
   val sumListFallbackCode =
     """
       |main = list ->
-      |    summator = acc list -> case list of
+      |    summator = acc -> list -> case list of
       |        Cons h t -> summator acc+h t
       |        _ -> acc
       |
@@ -103,8 +103,8 @@ class AtomFixtures extends InterpreterRunner {
 
   val mapReverseListCode =
     """
-      |Nil.mapReverse = f acc -> acc
-      |Cons.mapReverse = f acc -> case this of
+      |Nil.mapReverse = f -> acc -> acc
+      |Cons.mapReverse = f -> acc -> case this of
       |    Cons h t -> mapReverse t f (Cons (f h) acc)
       |
       |main = list ->
@@ -115,12 +115,12 @@ class AtomFixtures extends InterpreterRunner {
 
   val mapReverseListCurryCode =
     """
-      |Nil.mapReverse = f acc -> acc
-      |Cons.mapReverse = f acc -> case this of
+      |Nil.mapReverse = f -> acc -> acc
+      |Cons.mapReverse = f -> acc -> case this of
       |    Cons h t -> mapReverse t f (Cons (f h) acc)
       |
       |main = list ->
-      |    adder = x y -> x + y
+      |    adder = x -> y -> x + y
       |    res = mapReverse list (adder 1) Nil
       |    res
       |""".stripMargin

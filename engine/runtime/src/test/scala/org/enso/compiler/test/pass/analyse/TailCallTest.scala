@@ -1,27 +1,25 @@
 package org.enso.compiler.test.pass.analyse
 
-import org.enso.compiler.InlineContext
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
-import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  ApplicationSaturation,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
   LiftSpecialOperators,
   OperatorToFunction
 }
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 
 class TailCallTest extends CompilerTest {
 
   // === Test Setup ===========================================================
+
+  val modCtx = ModuleContext()
 
   val tailCtx = InlineContext(
     localScope       = Some(LocalScope.root),
@@ -37,9 +35,14 @@ class TailCallTest extends CompilerTest {
     GenerateMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction,
-    AliasAnalysis,
-    ApplicationSaturation()
+    AliasAnalysis
   )
+
+  val passConfiguration = new PassConfiguration(
+    Map(AliasAnalysis -> AliasAnalysis.Configuration())
+  )
+
+  val passManager = new PassManager(precursorPasses, passConfiguration)
 
   /** Adds an extension method to preprocess source code as an Enso module.
     *
@@ -53,10 +56,10 @@ class TailCallTest extends CompilerTest {
       */
     def runTCAModule: IR.Module = {
       val preprocessed = code.toIrModule
-        .runPasses(precursorPasses, tailCtx)
+        .runPasses(passManager, ModuleContext())
         .asInstanceOf[IR.Module]
 
-      TailCall.runModule(preprocessed)
+      TailCall.runModule(preprocessed, modCtx)
     }
   }
 
@@ -75,7 +78,7 @@ class TailCallTest extends CompilerTest {
         .getOrElse(
           throw new CompilerError("Code was not a valid expression.")
         )
-        .runPasses(precursorPasses, context)
+        .runPasses(passManager, context)
         .asInstanceOf[IR.Expression]
 
       TailCall.runExpression(preprocessed, context)
@@ -87,7 +90,7 @@ class TailCallTest extends CompilerTest {
   "Tail call analysis on modules" should {
     val ir =
       """
-        |Foo.bar = a b c ->
+        |Foo.bar = a -> b -> c ->
         |    d = a + b
         |
         |    case c of
@@ -111,7 +114,7 @@ class TailCallTest extends CompilerTest {
   "Tail call analysis on expressions" should {
     val code =
       """
-        |x y z -> x y z
+        |x -> y -> z -> x y z
         |""".stripMargin
 
     "mark the expression as tail if the context requires it" in {
@@ -130,7 +133,7 @@ class TailCallTest extends CompilerTest {
   "Tail call analysis on functions" should {
     val ir =
       """
-        |a b c ->
+        |a -> b -> c ->
         |    d = a + b
         |    e = a * c
         |    d + e
@@ -138,7 +141,12 @@ class TailCallTest extends CompilerTest {
         .runTCAExpression(tailCtx)
         .asInstanceOf[IR.Function.Lambda]
 
-    val fnBody = ir.body.asInstanceOf[IR.Expression.Block]
+    val fnBody = ir.body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Expression.Block]
 
     "mark the last expression of the function as tail" in {
       fnBody.returnValue.getMetadata[TailCall.Metadata] shouldEqual Some(
@@ -289,13 +297,17 @@ class TailCallTest extends CompilerTest {
   "Tail call analysis on blocks" should {
     val ir =
       """
-        |Foo.bar = a b c ->
+        |Foo.bar = a -> b -> c ->
         |    d = a + b
-        |    mul = a b -> a * b
+        |    mul = a -> b -> a * b
         |    mul c d
         |""".stripMargin.runTCAModule.bindings.head.asInstanceOf[Method]
 
     val block = ir.body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
       .asInstanceOf[IR.Function.Lambda]
       .body
       .asInstanceOf[IR.Expression.Block]

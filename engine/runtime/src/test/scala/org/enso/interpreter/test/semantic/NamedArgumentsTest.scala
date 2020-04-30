@@ -18,7 +18,7 @@ class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "be able to have named arguments given out of order" in {
     val code =
       """
-        |Unit.subtract = a b -> a - b
+        |Unit.subtract = a -> b -> a - b
         |
         |main = subtract Unit (b = 10) (a = 5)
     """.stripMargin
@@ -42,7 +42,7 @@ class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "be able to be defined with default argument values" in {
     val code =
       """
-        |Unit.addNum = a (num = 10) -> a + num
+        |Unit.addNum = a -> (num = 10) -> a + num
         |
         |main = addNum Unit 5
     """.stripMargin
@@ -53,8 +53,8 @@ class NamedArgumentsTest extends InterpreterTest {
   "Default arguments" should "be able to default to complex expressions" in {
     val code =
       """
-        |Unit.add = a b -> a + b
-        |Unit.doThing = a (b = add Unit 1 2) -> a + b
+        |Unit.add = a -> b -> a + b
+        |Unit.doThing = a -> (b = add Unit 1 2) -> a + b
         |
         |main = doThing Unit 10
         |""".stripMargin
@@ -67,7 +67,7 @@ class NamedArgumentsTest extends InterpreterTest {
       """
         |main =
         |    id = x -> x
-        |    apply = val (fn = id) -> fn val
+        |    apply = val -> (fn = id) -> fn val
         |    res = apply (val = 1)
         |    res
         |""".stripMargin
@@ -78,7 +78,7 @@ class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "use their default values when none is supplied" in {
     val code =
       """
-        |Unit.addTogether = (a = 5) (b = 6) -> a + b
+        |Unit.addTogether = (a = 5) -> (b = 6) -> a + b
         |
         |main = addTogether Unit
     """.stripMargin
@@ -89,7 +89,7 @@ class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "override defaults by name" in {
     val code =
       """
-        |Unit.addNum = a (num = 10) -> a + num
+        |Unit.addNum = a -> (num = 10) -> a + num
         |
         |main = addNum Unit 1 (num = 1)
     """.stripMargin
@@ -100,7 +100,7 @@ class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "override defaults by position" in {
     val code =
       """
-        |Unit.addNum = a (num = 10) -> a + num
+        |Unit.addNum = a -> (num = 10) -> a + num
         |
         |main = addNum Unit 1 2
         |""".stripMargin
@@ -112,7 +112,7 @@ class NamedArgumentsTest extends InterpreterTest {
     val code =
       """
         |Unit.summer = sumTo ->
-        |  summator = (acc = 0) current ->
+        |  summator = (acc = 0) -> current ->
         |      ifZero current acc (summator (current = current - 1) (acc = acc + current))
         |  res = summator (current = sumTo)
         |  res
@@ -127,8 +127,8 @@ class NamedArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    foo = x y -> x - y
-        |    bar = y x -> x - y
+        |    foo = x -> y -> x - y
+        |    bar = y -> x -> x - y
         |    baz = f -> f (x=10) (y=11)
         |    a = baz foo
         |    b = baz bar
@@ -141,7 +141,7 @@ class NamedArgumentsTest extends InterpreterTest {
   "Named arguments" should "be applied in a sequence compatible with Eta-expansions" in {
     val code =
       """
-        |Unit.foo = a b c -> a -> a
+        |Unit.foo = a -> b -> c -> a -> a
         |main = foo Unit 20 (a = 10) 0 0
         |""".stripMargin
 
@@ -151,7 +151,7 @@ class NamedArgumentsTest extends InterpreterTest {
   "Default arguments" should "be able to depend on prior arguments" in {
     val code =
       """
-        |Unit.doubleOrAdd = a (b = a) -> a + b
+        |Unit.doubleOrAdd = a -> (b = a) -> a + b
         |
         |main = doubleOrAdd Unit 5
         |""".stripMargin
@@ -162,7 +162,7 @@ class NamedArgumentsTest extends InterpreterTest {
   "Default arguments" should "not be able to depend on later arguments" in {
     val code =
       """
-        |Unit.badArgFn = a (b = c) (c = a) -> a + b + c
+        |Unit.badArgFn = a -> (b = c) -> (c = a) -> a + b + c
         |
         |main = badArgFn Unit 3
         |""".stripMargin

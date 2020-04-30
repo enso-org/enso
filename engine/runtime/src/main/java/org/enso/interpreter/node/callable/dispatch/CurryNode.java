@@ -1,7 +1,9 @@
 package org.enso.interpreter.node.callable.dispatch;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -12,6 +14,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /** Handles runtime function currying and oversaturated (eta-expanded) calls. */
 @NodeInfo(description = "Handles runtime currying and eta-expansion")
@@ -22,6 +25,8 @@ public class CurryNode extends BaseNode {
   private @Child InvokeCallableNode oversaturatedCallableNode;
   private @Child ExecuteCallNode directCall;
   private @Child CallOptimiserNode loopingCall;
+  private final BranchProfile keepExecutingProfile = BranchProfile.create();
+  private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
 
   private CurryNode(
       FunctionSchema originalSchema,
@@ -30,11 +35,12 @@ public class CurryNode extends BaseNode {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       boolean isTail) {
     setTail(isTail);
+    this.defaultsExecutionMode = defaultsExecutionMode;
     this.preApplicationSchema = originalSchema;
     this.postApplicationSchema = postApplicationSchema;
     appliesFully = isFunctionFullyApplied(defaultsExecutionMode);
     initializeCallNodes();
-    initializeOversaturatedCallNode(defaultsExecutionMode, argumentsExecutionMode);
+    initializeOversaturatedCallNode(argumentsExecutionMode);
   }
 
   /**
@@ -73,7 +79,6 @@ public class CurryNode extends BaseNode {
   }
 
   private void initializeOversaturatedCallNode(
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
     if (postApplicationSchema.hasOversaturatedArgs()) {
       oversaturatedCallableNode =
@@ -106,7 +111,23 @@ public class CurryNode extends BaseNode {
       Object[] oversaturatedArguments) {
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
-        return doCall(function, callerInfo, state, arguments);
+        Stateful result = doCall(function, callerInfo, state, arguments);
+        if (defaultsExecutionMode.isExecute() && TypesGen.isFunction(result.getValue())) {
+          keepExecutingProfile.enter();
+          if (oversaturatedCallableNode == null) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            oversaturatedCallableNode =
+                InvokeCallableNode.build(
+                    new CallArgumentInfo[0],
+                    InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+                    InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
+          }
+
+          return oversaturatedCallableNode.execute(
+              result.getValue(), frame, result.getState(), new Object[0]);
+        } else {
+          return result;
+        }
       } else {
         Stateful evaluatedVal = loopingCall.executeDispatch(function, callerInfo, state, arguments);
 

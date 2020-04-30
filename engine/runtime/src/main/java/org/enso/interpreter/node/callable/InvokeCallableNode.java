@@ -44,6 +44,15 @@ public abstract class InvokeCallableNode extends BaseNode {
     public boolean isIgnore() {
       return this == IGNORE;
     }
+
+    /**
+     * Whether or not any default arguments be executed in this application position.
+     *
+     * @return {@code true} if the defaulted arguments should be executed, {@code false} otherwise
+     */
+    public boolean isExecute() {
+      return this == EXECUTE;
+    }
   }
 
   /** Denotes the mode of arguments execution for a function invocation */

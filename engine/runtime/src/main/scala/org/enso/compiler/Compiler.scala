@@ -5,18 +5,18 @@ import java.io.StringReader
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
-import org.enso.compiler.pass.IRPass
-
 import org.enso.compiler.pass.analyse._
-
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
   LiftSpecialOperators,
   OperatorToFunction
 }
+import org.enso.compiler.pass.optimise.LambdaConsolidate
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
@@ -40,6 +40,8 @@ class Compiler(
   val context: Context
 ) {
 
+  val freshNameSupply = new FreshNameSupply
+
   /** A list of the compiler phases, in the order they should be run.
     *
     * Please note that these passes _must_ be run in this order. While we
@@ -51,11 +53,25 @@ class Compiler(
     LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis,
+    LambdaConsolidate,
+    AliasAnalysis,
     DemandAnalysis,
-    ApplicationSaturation(),
+    ApplicationSaturation,
     TailCall,
     DataflowAnalysis
   )
+
+  /** Configuration for the passes. */
+  val passConfig = new PassConfiguration(
+    Map(
+      ApplicationSaturation -> ApplicationSaturation.Configuration(),
+      AliasAnalysis         -> AliasAnalysis.Configuration()
+    )
+  )
+
+  /** The pass manager for running compiler passes. */
+  val passManager: PassManager =
+    new PassManager(compilerPhaseOrdering, passConfig)
 
   /**
     * Processes the provided language sources, registering any bindings in the
@@ -67,10 +83,11 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source, scope: ModuleScope): Unit = {
+    val moduleContext  = ModuleContext(Some(freshNameSupply))
     val parsedAST      = parse(source)
     val expr           = generateIR(parsedAST)
-    val compilerOutput = runCompilerPhases(expr)
-    runErrorHandling(compilerOutput, source)
+    val compilerOutput = runCompilerPhases(expr, moduleContext)
+    runErrorHandling(compilerOutput, source, moduleContext)
     truffleCodegen(compilerOutput, source, scope)
   }
 
@@ -100,6 +117,7 @@ class Compiler(
     srcString: String,
     inlineContext: InlineContext
   ): Option[RuntimeExpression] = {
+    val newContext = inlineContext.copy(freshNameSupply = Some(freshNameSupply))
     val source = Source
       .newBuilder(
         LanguageInfo.ID,
@@ -110,9 +128,9 @@ class Compiler(
     val parsed: AST = parse(source)
 
     generateIRInline(parsed).flatMap { ir =>
-      val compilerOutput = runCompilerPhasesInline(ir, inlineContext)
-      runErrorHandlingInline(compilerOutput, source, inlineContext)
-      Some(truffleCodegenInline(compilerOutput, source, inlineContext))
+      val compilerOutput = runCompilerPhasesInline(ir, newContext)
+      runErrorHandlingInline(compilerOutput, source, newContext)
+      Some(truffleCodegenInline(compilerOutput, source, newContext))
     }
   }
 
@@ -168,10 +186,11 @@ class Compiler(
     * @param ir the compiler intermediate representation to transform
     * @return the output result of the
     */
-  def runCompilerPhases(ir: IR.Module): IR.Module = {
-    compilerPhaseOrdering.foldLeft(ir)((intermediateIR, pass) =>
-      pass.runModule(intermediateIR)
-    )
+  def runCompilerPhases(
+    ir: IR.Module,
+    moduleContext: ModuleContext
+  ): IR.Module = {
+    passManager.runPassesOnModule(ir, moduleContext)
   }
 
   /** Runs the various compiler passes in an inline context.
@@ -185,9 +204,7 @@ class Compiler(
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    compilerPhaseOrdering.foldLeft(ir)((intermediateIR, pass) =>
-      pass.runExpression(intermediateIR, inlineContext)
-    )
+    passManager.runPassesInline(ir, inlineContext)
   }
 
   /**
@@ -203,13 +220,13 @@ class Compiler(
     source: Source,
     inlineContext: InlineContext
   ): Unit = if (context.isStrictErrors) {
-    val errors = GatherErrors
+    val errors = GatherDiagnostics
       .runExpression(ir, inlineContext)
-      .unsafeGetMetadata[GatherErrors.Errors](
+      .unsafeGetMetadata[GatherDiagnostics.Diagnostics](
         "No errors metadata right after the gathering pass."
       )
-      .errors
-    reportErrors(errors, source)
+      .diagnostics
+    reportDiagnostics(errors, source)
   }
 
   /**
@@ -218,46 +235,77 @@ class Compiler(
     *
     * @param ir the IR after compilation passes.
     * @param source the original source code.
+    * @param moduleContext the module context
     */
-  def runErrorHandling(ir: IR.Module, source: Source): Unit =
+  def runErrorHandling(
+    ir: IR.Module,
+    source: Source,
+    moduleContext: ModuleContext
+  ): Unit =
     if (context.isStrictErrors) {
-      val errors = GatherErrors
-        .runModule(ir)
-        .unsafeGetMetadata[GatherErrors.Errors](
+      val errors = GatherDiagnostics
+        .runModule(ir, moduleContext)
+        .unsafeGetMetadata[GatherDiagnostics.Diagnostics](
           "No errors metadata right after the gathering pass."
         )
-        .errors
-      reportErrors(errors, source)
+        .diagnostics
+      reportDiagnostics(errors, source)
     }
 
   /**
-    * Reports compilation errors to the standard output and throws an exception
-    * breaking the execution flow.
+    * Reports compilation diagnostics to the standard output and throws an
+    * exception breaking the execution flow if there are errors.
     *
-    * @param errors all the errors found in the program IR.
+    * @param diagnostics all the diagnostics found in the program IR.
     * @param source the original source code.
     */
-  def reportErrors(errors: List[IR.Error], source: Source): Unit =
+  def reportDiagnostics(
+    diagnostics: List[IR.Diagnostic],
+    source: Source
+  ): Unit = {
+    val errors   = diagnostics.collect { case e: IR.Error   => e }
+    val warnings = diagnostics.collect { case w: IR.Warning => w }
+
+    if (warnings.nonEmpty) {
+      context.getOut.println("Compiler encountered warnings:")
+      warnings.foreach { warning =>
+        context.getOut.println(formatDiagnostic(warning, source))
+      }
+    }
+
     if (errors.nonEmpty) {
       context.getOut.println("Compiler encountered errors:")
-      errors.foreach { err =>
-        val srcLocation = err.location
-          .map { loc =>
-            val section = source
-              .createSection(loc.location.start, loc.location.length)
-            val locStr =
-              "" + section.getStartLine + ":" +
-              section.getStartColumn + "-" +
-              section.getEndLine + ":" +
-              section.getEndColumn
-            "[" + locStr + "]"
-          }
-          .getOrElse("")
-        val fullMsg = source.getName + srcLocation + ": " + err.message
-        context.getOut.println(fullMsg)
+      errors.foreach { error =>
+        context.getOut.println(formatDiagnostic(error, source))
       }
       throw new CompilationAbortedException
     }
+  }
+
+  /** Pretty prints compiler diagnostics.
+    *
+    * @param diagnostic the diagnostic to pretty print
+    * @param source the original source code
+    * @return the result of pretty printing `diagnostic`
+    */
+  private def formatDiagnostic(
+    diagnostic: IR.Diagnostic,
+    source: Source
+  ): String = {
+    val srcLocation = diagnostic.location
+      .map { loc =>
+        val section =
+          source.createSection(loc.location.start, loc.location.length)
+        val locStr =
+          "" + section.getStartLine + ":" +
+          section.getStartColumn + "-" +
+          section.getEndLine + ":" +
+          section.getEndColumn
+        "[" + locStr + "]"
+      }
+      .getOrElse("")
+    source.getName + srcLocation + ": " + diagnostic.message
+  }
 
   /** Generates code for the truffle interpreter.
     *

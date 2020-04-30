@@ -1,6 +1,6 @@
 package org.enso.compiler.test.pass.desugar
 
-import org.enso.compiler.InlineContext
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.IdentifiedLocation
 import org.enso.compiler.pass.desugar.OperatorToFunction
@@ -11,14 +11,15 @@ class OperatorToFunctionTest extends CompilerTest {
 
   // === Utilities ============================================================
 
-  val ctx = new InlineContext
+  val ctx    = InlineContext()
+  val modCtx = ModuleContext()
 
   /** Generates an operator and its corresponding function.
     *
-    * @param name
-    * @param left
-    * @param right
-    * @return
+    * @param name the name of the operator
+    * @param left the left expression
+    * @param right the right expression
+    * @return an operator `name` and its corresponding function
     */
   def genOprAndFn(
     name: IR.Name,
@@ -58,7 +59,7 @@ class OperatorToFunctionTest extends CompilerTest {
       val moduleInput  = operator.asModuleDefs
       val moduleOutput = operatorFn.asModuleDefs
 
-      OperatorToFunction.runModule(moduleInput) shouldEqual moduleOutput
+      OperatorToFunction.runModule(moduleInput, modCtx) shouldEqual moduleOutput
     }
 
     "be translated recursively" in {

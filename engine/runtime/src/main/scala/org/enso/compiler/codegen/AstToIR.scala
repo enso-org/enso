@@ -7,9 +7,6 @@ import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
 import org.enso.syntax.text.AST
 
-// FIXME [AA] All places where we currently throw a `RuntimeException` should
-//  generate informative and useful nodes in core.
-
 /**
   * This file contains the functionality that translates from the parser's
   * [[AST]] type to the internal representation used by the compiler.
@@ -396,9 +393,18 @@ object AstToIR {
           getIdentifiedLocation(callable)
         )
       case AstView.Lambda(args, body) =>
-        val realArgs = args.map(translateArgumentDefinition(_))
-        val realBody = translateExpression(body)
-        Function.Lambda(realArgs, realBody, getIdentifiedLocation(callable))
+        if (args.length > 1) {
+          Error.Syntax(
+            args(1),
+            Error.Syntax.UnsupportedSyntax(
+              "pattern matching function arguments"
+            )
+          )
+        } else {
+          val realArgs = args.map(translateArgumentDefinition(_))
+          val realBody = translateExpression(body)
+          Function.Lambda(realArgs, realBody, getIdentifiedLocation(callable))
+        }
       case AST.App.Infix(left, fn, right) =>
         Application.Operator.Binary(
           translateExpression(left),

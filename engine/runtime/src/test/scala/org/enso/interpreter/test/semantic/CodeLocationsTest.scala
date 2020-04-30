@@ -75,7 +75,7 @@ class CodeLocationsTest extends InterpreterTest {
     val code =
       """
         |Unit.method =
-        |    foo = a b ->
+        |    foo = a -> b ->
         |        IO.println a
         |        add = a -> b -> a + b
         |        add a b
@@ -83,10 +83,10 @@ class CodeLocationsTest extends InterpreterTest {
         |
         |main = Unit.method
         |""".stripMargin
-    instrumenter.assertNodeExists(77, 5, classOf[ApplicationNode])
-    instrumenter.assertNodeExists(95, 1, classOf[ReadLocalTargetNode])
-    instrumenter.assertNodeExists(91, 7, classOf[ApplicationNode])
-    instrumenter.assertNodeExists(103, 9, classOf[ApplicationNode])
+    instrumenter.assertNodeExists(80, 5, classOf[ApplicationNode])
+    instrumenter.assertNodeExists(98, 1, classOf[ReadLocalTargetNode])
+    instrumenter.assertNodeExists(94, 7, classOf[ApplicationNode])
+    instrumenter.assertNodeExists(106, 9, classOf[ApplicationNode])
     eval(code)
     ()
   }
@@ -99,7 +99,7 @@ class CodeLocationsTest extends InterpreterTest {
         |    x = Cons 1 2
         |    y = Nil
         |
-        |    add = a b -> a + b
+        |    add = a -> b -> a + b
         |
         |    foo = x -> case x of
         |        Cons a b ->
@@ -110,10 +110,10 @@ class CodeLocationsTest extends InterpreterTest {
         |
         |    foo x + foo y
         |""".stripMargin
-    instrumenter.assertNodeExists(77, 109, classOf[MatchNode])
-    instrumenter.assertNodeExists(123, 7, classOf[ApplicationNode])
-    instrumenter.assertNodeExists(143, 9, classOf[AssignmentNode])
-    instrumenter.assertNodeExists(180, 5, classOf[ApplicationNode])
+    instrumenter.assertNodeExists(80, 109, classOf[MatchNode])
+    instrumenter.assertNodeExists(126, 7, classOf[ApplicationNode])
+    instrumenter.assertNodeExists(146, 9, classOf[AssignmentNode])
+    instrumenter.assertNodeExists(183, 5, classOf[ApplicationNode])
     eval(code)
     ()
   }
@@ -123,15 +123,15 @@ class CodeLocationsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    f = a b -> a + b
-        |    g = x y ->
+        |    f = a -> b -> a + b
+        |    g = x -> y ->
         |        z = x * y
         |        z + z
         |
         |    f 1 (g 2 3)
         |""".stripMargin
-    instrumenter.assertNodeExists(16, 12, classOf[CreateFunctionNode])
-    instrumenter.assertNodeExists(37, 39, classOf[CreateFunctionNode])
+    instrumenter.assertNodeExists(16, 15, classOf[CreateFunctionNode])
+    instrumenter.assertNodeExists(40, 42, classOf[CreateFunctionNode])
     eval(code)
     ()
   }
@@ -142,12 +142,12 @@ class CodeLocationsTest extends InterpreterTest {
       """
         |main =
         |    bar = x -> x + x * x
-        |    foo = x (y = bar x) -> x + y
+        |    foo = x -> (y = bar x) -> x + y
         |    foo 0
         |""".stripMargin
-    instrumenter.assertNodeExists(50, 5, classOf[ApplicationNode])
-    instrumenter.assertNodeExists(50, 3, classOf[ReadLocalTargetNode])
-    instrumenter.assertNodeExists(54, 1, classOf[ReadLocalTargetNode])
+    instrumenter.assertNodeExists(53, 5, classOf[ApplicationNode])
+    instrumenter.assertNodeExists(53, 3, classOf[ReadLocalTargetNode])
+    instrumenter.assertNodeExists(57, 1, classOf[ReadLocalTargetNode])
     eval(code)
     ()
   }
@@ -157,11 +157,11 @@ class CodeLocationsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    bar = a ~b ~c -> b
+        |    bar = a -> ~b -> ~c -> b
         |
         |    bar 0 10 0
         |""".stripMargin
-    instrumenter.assertNodeExists(29, 1, classOf[ForceNode])
+    instrumenter.assertNodeExists(35, 1, classOf[ForceNode])
     eval(code)
     ()
   }

@@ -313,6 +313,8 @@ final class Handler {
       case Api.EditFileNotification(path, edits) =>
         executionService.modifyModuleSources(path, edits.asJava)
         withContext(executeAll())
+
+      case _ => throw new RuntimeException("Unhandled cases.")
     }
   }
 }

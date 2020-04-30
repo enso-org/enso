@@ -19,7 +19,7 @@ class InteropTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    fun = x y z -> x + y + z
+        |    fun = x -> y -> z -> x + y + z
         |    fun y=1
         |""".stripMargin
 
@@ -30,7 +30,7 @@ class InteropTest extends InterpreterTest {
   "Interop library" should "support creating curried calls" in {
     val code =
       """
-        |main = x y z -> x + y + z
+        |main = x -> y -> z -> x + y + z
         |""".stripMargin
 
     val fun = eval(code)

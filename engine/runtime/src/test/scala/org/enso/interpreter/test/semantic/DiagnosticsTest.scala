@@ -2,7 +2,7 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
 
-class ErrorsTest extends InterpreterTest {
+class DiagnosticsTest extends InterpreterTest {
   "Panics" should "be thrown and stop evaluation" in {
     val code =
       """

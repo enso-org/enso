@@ -2,7 +2,7 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.InterpreterTest
 
-class LambdaArgumentsTest extends InterpreterTest {
+class LambdaTest extends InterpreterTest {
   "Functions" should "take arguments and use them in their bodies" in {
     val code =
       """
@@ -18,7 +18,7 @@ class LambdaArgumentsTest extends InterpreterTest {
     val code =
       """
         |main = a ->
-        |    add = a b -> a + b
+        |    add = a -> b -> a + b
         |    adder = b -> add a b
         |    adder 2
       """.stripMargin
@@ -29,7 +29,7 @@ class LambdaArgumentsTest extends InterpreterTest {
   "Lambdas" should "be callable directly without assignment" in {
     val code =
       """
-        |main = (x y -> x * y) 5 6
+        |main = (x -> y -> x * y) 5 6
         |""".stripMargin
     eval(code) shouldEqual 30
   }
@@ -60,7 +60,7 @@ class LambdaArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    f = x y -> w -> z -> x * y + w + z
+        |    f = x -> y -> w -> z -> x * y + w + z
         |    f 3 3 10 1
         |""".stripMargin
 
@@ -105,5 +105,36 @@ class LambdaArgumentsTest extends InterpreterTest {
         |""".stripMargin
 
     eval(code) shouldEqual 0
+  }
+
+  "Fully saturated returned lambdas" should "be called" in {
+    val code =
+      """
+        |main =
+        |    fn = a -> b ->
+        |        IO.println (a + b)
+        |        (x = a) -> a + 1
+        |
+        |    fn 1 2
+        |""".stripMargin
+
+    eval(code) shouldEqual 2
+
+    consumeOut shouldEqual List("3")
+  }
+
+  "Fully saturated returned lambdas in TCO" should "be called" in {
+    val code =
+      """
+        |Number.if_then_else = ~t -> ~f -> ifZero this t f
+        |
+        |main =
+        |    lam = (x = 10) -> x
+        |    fn = a -> if a then lam else fn (a-1)
+        |
+        |    fn 10
+        |""".stripMargin
+
+    eval(code) shouldEqual 10
   }
 }

@@ -5,13 +5,14 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.enso.compiler.InlineContext;
+import org.enso.compiler.context.InlineContext;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.scope.LocalScope;
@@ -58,7 +59,10 @@ public abstract class EvalNode extends BaseNode {
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
     LocalScope localScope = scope.createChild();
     Language language = lookupLanguageReference(Language.class).get();
-    InlineContext inlineContext = InlineContext.fromJava(localScope, moduleScope, isTail());
+    Context context = lookupContextReference(Language.class).get();
+    InlineContext inlineContext =
+        InlineContext.fromJava(
+            localScope, moduleScope, isTail());
     ExpressionNode expr =
         lookupContextReference(Language.class)
             .get()

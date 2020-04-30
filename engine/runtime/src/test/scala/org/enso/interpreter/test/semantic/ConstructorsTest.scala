@@ -34,7 +34,7 @@ class ConstructorsTest extends InterpreterTest {
     val testCode =
       """
         |main =
-        |    add = x y -> x + y
+        |    add = x -> y -> x + y
         |    testCons = Cons 1 2
         |
         |    result = case testCons of
