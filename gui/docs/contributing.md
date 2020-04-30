@@ -105,7 +105,15 @@ scripts which maximally automate the process:
   web-based usage.
 
 - **Testing**
+  For the test suite to run you need a current version of Chrome installed.
   Use `node ./run test` run both unit and web-based visual test.
+  
+  - *Note for Windows users*:
+    there is a [known issue with wasm-pack](https://github.com/rustwasm/wasm-pack/issues/611) using the
+    wrong version of the chrome driver. There is
+    [a workaround](https://github.com/rustwasm/wasm-pack/issues/611#issuecomment-522093207) described in 
+    the issue: download compatible ChromeDriver from the 
+    [official source](https://chromedriver.chromium.org/downloads) and ensure it is in your `PATH`.
 
 - **Linting**
   Please be sure to fix all errors reported by `node ./run line` before creating a pull request to
