@@ -126,24 +126,24 @@ mod tests {
         //                   /|       / | \
         // gg-children:     ()()     ()() ()
 
-        let removable = false;
+        let is_removable = false;
         let tree = TreeBuilder::new(14)
             .add_child(0,10,Chained,vec![LeftOperand])
-                .add_leaf (0,3,Target{removable},vec![LeftOperand])
+                .add_leaf (0,3,Target{is_removable},vec![LeftOperand])
                 .add_leaf (4,1,Operation,vec![Operator])
-                .add_child(6,3,Argument{removable},vec![RightOperand])
+                .add_child(6,3,Argument{is_removable},vec![RightOperand])
                     .add_leaf(0,1,Operation,vec![Func])
-                    .add_leaf(2,1,Target{removable},vec![Arg])
+                    .add_leaf(2,1,Target{is_removable},vec![Arg])
                     .done()
                 .done()
             .add_leaf (11,1,Operation,vec![Operator])
             .add_child(13,1,Chained  ,vec![RightOperand])
-                .add_leaf (0,3,Target{removable},vec![LeftOperand])
+                .add_leaf (0,3,Target{is_removable},vec![LeftOperand])
                 .add_leaf (4,1,Operation,vec![Operator])
                 .add_child(6,5,Chained,vec![RightOperand])
-                    .add_leaf(0,1,Target{removable},vec![LeftOperand])
+                    .add_leaf(0,1,Target{is_removable},vec![LeftOperand])
                     .add_leaf(2,1,Operation,vec![Operator])
-                    .add_leaf(4,1,Argument{removable},vec![RightOperand])
+                    .add_leaf(4,1,Argument{is_removable},vec![RightOperand])
                     .done()
                 .done()
             .build();

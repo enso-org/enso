@@ -159,8 +159,8 @@ impl<'a> Implementation for node::Ref<'a> {
     fn erase_impl(&self) -> Option<EraseOperation> {
 
         match self.node.kind {
-            node::Kind::Argument{removable:true,..} |
-            node::Kind::Target  {removable:true}    => Some(Box::new(move |root| {
+            node::Kind::Argument{is_removable:true} |
+            node::Kind::Target  {is_removable:true} => Some(Box::new(move |root| {
                 let parent_crumb = &self.ast_crumbs[..self.ast_crumbs.len()-1];
                 let ast          = root.get_traversing(parent_crumb)?;
                 let new_ast = if let Some(mut infix) = ast::opr::Chain::try_new(ast) {
@@ -233,46 +233,52 @@ mod test {
 
         let cases:&[Case] = &
             // Setting
-            [ Case{expr:"a + b"    , span:0..5, action:Set  , expected:"foo"            }
-            , Case{expr:"a + b"    , span:0..1, action:Set  , expected:"foo + b"        }
-            , Case{expr:"a + b"    , span:4..5, action:Set  , expected:"a + foo"        }
-            , Case{expr:"a + b + c", span:0..1, action:Set  , expected:"foo + b + c"    }
-            , Case{expr:"a + b + c", span:4..5, action:Set  , expected:"a + foo + c"    }
-            , Case{expr:"a , b , c", span:0..1, action:Set  , expected:"foo , b , c"    }
-            , Case{expr:"a , b , c", span:4..5, action:Set  , expected:"a , foo , c"    }
-            , Case{expr:"a , b , c", span:8..9, action:Set  , expected:"a , b , foo"    }
-            , Case{expr:"f a b"    , span:0..1, action:Set  , expected:"foo a b"        }
-            , Case{expr:"f a b"    , span:2..3, action:Set  , expected:"f foo b"        }
-            , Case{expr:"f a b"    , span:4..5, action:Set  , expected:"f a foo"        }
-            , Case{expr:"+ b"      , span:0..0, action:Set  , expected:"foo + b"        }
-            , Case{expr:"+ b"      , span:2..3, action:Set  , expected:"+ foo"          }
-            , Case{expr:"a +"      , span:0..1, action:Set  , expected:"foo +"          }
-            , Case{expr:"a +"      , span:3..3, action:Set  , expected:"a + foo"        }
-            , Case{expr:"+"        , span:0..0, action:Set  , expected:"foo +"          }
-            , Case{expr:"+"        , span:1..1, action:Set  , expected:"+ foo"          }
-            , Case{expr:"a + b"    , span:0..0, action:Set  , expected:"foo + a + b"    }
-            , Case{expr:"a + b"    , span:1..1, action:Set  , expected:"a + foo + b"    }
-            , Case{expr:"a + b"    , span:5..5, action:Set  , expected:"a + b + foo"    }
-            , Case{expr:"+ b"      , span:3..3, action:Set  , expected:"+ b + foo"      }
-            , Case{expr:"a + b + c", span:0..0, action:Set  , expected:"foo + a + b + c"}
-            , Case{expr:"a + b + c", span:5..5, action:Set  , expected:"a + b + foo + c"}
-            , Case{expr:"a , b , c", span:0..0, action:Set  , expected:"foo , a , b , c"}
-            , Case{expr:"a , b , c", span:4..4, action:Set  , expected:"a , foo , b , c"}
-            , Case{expr:"a , b , c", span:8..8, action:Set  , expected:"a , b , foo , c"}
-            , Case{expr:"a , b , c", span:9..9, action:Set  , expected:"a , b , c , foo"}
-            , Case{expr:", b"      , span:3..3, action:Set  , expected:", b , foo"      }
-            , Case{expr:"f a b"    , span:2..2, action:Set  , expected:"f foo a b"      }
-            , Case{expr:"f a b"    , span:3..3, action:Set  , expected:"f a foo b"      }
-            , Case{expr:"f a b"    , span:5..5, action:Set  , expected:"f a b foo"      }
+            [ Case{expr:"a + b"      , span:0..5  , action:Set  , expected:"foo"            }
+            , Case{expr:"a + b"      , span:0..1  , action:Set  , expected:"foo + b"        }
+            , Case{expr:"a + b"      , span:4..5  , action:Set  , expected:"a + foo"        }
+            , Case{expr:"a + b + c"  , span:0..1  , action:Set  , expected:"foo + b + c"    }
+            , Case{expr:"a + b + c"  , span:4..5  , action:Set  , expected:"a + foo + c"    }
+            , Case{expr:"a , b , c"  , span:0..1  , action:Set  , expected:"foo , b , c"    }
+            , Case{expr:"a , b , c"  , span:4..5  , action:Set  , expected:"a , foo , c"    }
+            , Case{expr:"a , b , c"  , span:8..9  , action:Set  , expected:"a , b , foo"    }
+            , Case{expr:"f a b"      , span:0..1  , action:Set  , expected:"foo a b"        }
+            , Case{expr:"f a b"      , span:2..3  , action:Set  , expected:"f foo b"        }
+            , Case{expr:"f a b"      , span:4..5  , action:Set  , expected:"f a foo"        }
+            , Case{expr:"+ b"        , span:0..0  , action:Set  , expected:"foo + b"        }
+            , Case{expr:"+ b"        , span:2..3  , action:Set  , expected:"+ foo"          }
+            , Case{expr:"a +"        , span:0..1  , action:Set  , expected:"foo +"          }
+            , Case{expr:"a +"        , span:3..3  , action:Set  , expected:"a + foo"        }
+            , Case{expr:"+"          , span:0..0  , action:Set  , expected:"foo +"          }
+            , Case{expr:"+"          , span:1..1  , action:Set  , expected:"+ foo"          }
+            , Case{expr:"a + b"      , span:0..0  , action:Set  , expected:"foo + a + b"    }
+            , Case{expr:"a + b"      , span:1..1  , action:Set  , expected:"a + foo + b"    }
+            , Case{expr:"a + b"      , span:5..5  , action:Set  , expected:"a + b + foo"    }
+            , Case{expr:"+ b"        , span:3..3  , action:Set  , expected:"+ b + foo"      }
+            , Case{expr:"a + b + c"  , span:0..0  , action:Set  , expected:"foo + a + b + c"}
+            , Case{expr:"a + b + c"  , span:5..5  , action:Set  , expected:"a + b + foo + c"}
+            , Case{expr:"a , b , c"  , span:0..0  , action:Set  , expected:"foo , a , b , c"}
+            , Case{expr:"a , b , c"  , span:4..4  , action:Set  , expected:"a , foo , b , c"}
+            , Case{expr:"a , b , c"  , span:8..8  , action:Set  , expected:"a , b , foo , c"}
+            , Case{expr:"a , b , c"  , span:9..9  , action:Set  , expected:"a , b , c , foo"}
+            , Case{expr:", b"        , span:3..3  , action:Set  , expected:", b , foo"      }
+            , Case{expr:"f a b"      , span:2..2  , action:Set  , expected:"f foo a b"      }
+            , Case{expr:"f a b"      , span:3..3  , action:Set  , expected:"f a foo b"      }
+            , Case{expr:"f a b"      , span:5..5  , action:Set  , expected:"f a b foo"      }
+            , Case{expr:"if a then b", span:3..4  , action:Set  , expected: "if foo then b" }
+            , Case{expr:"if a then b", span:10..11, action:Set  , expected: "if a then foo" }
+            , Case{expr:"(a + b + c)", span:5..6  , action:Set  , expected: "(a + foo + c)" }
+            , Case{expr:"(a + b + c" , span:5..6  , action:Set  , expected: "(a + foo + c"  }
             // Erasing
-            , Case{expr:"a + b + c", span:0..1, action:Erase, expected:"b + c"          }
-            , Case{expr:"a + b + c", span:4..5, action:Erase, expected:"a + c"          }
-            , Case{expr:"a + b + c", span:8..9, action:Erase, expected:"a + b"          }
-            , Case{expr:"a , b , c", span:0..1, action:Erase, expected:"b , c"          }
-            , Case{expr:"a , b , c", span:4..5, action:Erase, expected:"a , c"          }
-            , Case{expr:"a , b , c", span:8..9, action:Erase, expected:"a , b"          }
-            , Case{expr:"f a b"    , span:2..3, action:Erase, expected:"f b"            }
-            , Case{expr:"f a b"    , span:4..5, action:Erase, expected:"f a"            }
+            , Case{expr:"a + b + c"  , span:0..1  , action:Erase, expected:"b + c"          }
+            , Case{expr:"a + b + c"  , span:4..5  , action:Erase, expected:"a + c"          }
+            , Case{expr:"a + b + c"  , span:8..9  , action:Erase, expected:"a + b"          }
+            , Case{expr:"a , b , c"  , span:0..1  , action:Erase, expected:"b , c"          }
+            , Case{expr:"a , b , c"  , span:4..5  , action:Erase, expected:"a , c"          }
+            , Case{expr:"a , b , c"  , span:8..9  , action:Erase, expected:"a , b"          }
+            , Case{expr:"f a b"      , span:2..3  , action:Erase, expected:"f b"            }
+            , Case{expr:"f a b"      , span:4..5  , action:Erase, expected:"f a"            }
+            , Case{expr:"(a + b + c)", span:5..6  , action:Erase, expected: "(a + c)"       }
+            , Case{expr:"(a + b + c" , span:5..6  , action:Erase, expected: "(a + c"        }
             ];
         let parser = Parser::new_or_panic();
         for case in cases { case.run(&parser); }
@@ -306,27 +312,32 @@ mod test {
             }
         }
         let cases:&[Case] = &
-            [ Case{expr:"abc"      , span:0..3, expected: &[Set]       }
-            , Case{expr:"a + b"    , span:0..0, expected: &[Set]       }
-            , Case{expr:"a + b"    , span:0..1, expected: &[Set] }
-            , Case{expr:"a + b"    , span:1..1, expected: &[Set]       }
-            , Case{expr:"a + b"    , span:2..3, expected: &[]          }
-            , Case{expr:"a + b"    , span:4..5, expected: &[Set] }
-            , Case{expr:"a + b"    , span:5..5, expected: &[Set]       }
-            , Case{expr:"a + b + c", span:0..0, expected: &[Set]       }
-            , Case{expr:"a + b + c", span:0..1, expected: &[Set,Erase] }
-            , Case{expr:"a + b + c", span:1..1, expected: &[Set]       }
-            , Case{expr:"a + b + c", span:4..5, expected: &[Set,Erase] }
-            , Case{expr:"a + b + c", span:5..5, expected: &[Set]       }
-            , Case{expr:"a + b + c", span:8..9, expected: &[Set,Erase] }
-            , Case{expr:"a + b + c", span:9..9, expected: &[Set]       }
-            , Case{expr:"f a b"    , span:0..1, expected: &[Set]       }
-            , Case{expr:"f a b"    , span:2..2, expected: &[Set]       }
-            , Case{expr:"f a b"    , span:2..3, expected: &[Set,Erase] }
-            , Case{expr:"f a b"    , span:3..3, expected: &[Set]       }
-            , Case{expr:"f a b"    , span:4..5, expected: &[Set,Erase] }
-            , Case{expr:"f a b"    , span:5..5, expected: &[Set]       }
-            , Case{expr:"f a"      , span:2..3, expected: &[Set]       }
+            [ Case{expr:"abc"        , span:0..3  , expected: &[Set]       }
+            , Case{expr:"a + b"      , span:0..0  , expected: &[Set]       }
+            , Case{expr:"a + b"      , span:0..1  , expected: &[Set]       }
+            , Case{expr:"a + b"      , span:1..1  , expected: &[Set]       }
+            , Case{expr:"a + b"      , span:2..3  , expected: &[]          }
+            , Case{expr:"a + b"      , span:4..5  , expected: &[Set]       }
+            , Case{expr:"a + b"      , span:5..5  , expected: &[Set]       }
+            , Case{expr:"a + b + c"  , span:0..0  , expected: &[Set]       }
+            , Case{expr:"a + b + c"  , span:0..1  , expected: &[Set,Erase] }
+            , Case{expr:"a + b + c"  , span:1..1  , expected: &[Set]       }
+            , Case{expr:"a + b + c"  , span:4..5  , expected: &[Set,Erase] }
+            , Case{expr:"a + b + c"  , span:5..5  , expected: &[Set]       }
+            , Case{expr:"a + b + c"  , span:8..9  , expected: &[Set,Erase] }
+            , Case{expr:"a + b + c"  , span:9..9  , expected: &[Set]       }
+            , Case{expr:"f a b"      , span:0..1  , expected: &[Set]       }
+            , Case{expr:"f a b"      , span:2..2  , expected: &[Set]       }
+            , Case{expr:"f a b"      , span:2..3  , expected: &[Set,Erase] }
+            , Case{expr:"f a b"      , span:3..3  , expected: &[Set]       }
+            , Case{expr:"f a b"      , span:4..5  , expected: &[Set,Erase] }
+            , Case{expr:"f a b"      , span:5..5  , expected: &[Set]       }
+            , Case{expr:"f a"        , span:2..3  , expected: &[Set]       }
+            , Case{expr:"if a then b", span:3..4  , expected: &[Set]       }
+            , Case{expr:"if a then b", span:10..11, expected: &[Set]       }
+            , Case{expr:"(a + b + c)", span:5..6  , expected: &[Set,Erase] }
+            , Case{expr:"(a"         , span:1..2  , expected: &[Set]       }
+            , Case{expr:"(a + b + c" , span:5..6  , expected: &[Set,Erase] }
             ];
         let parser = Parser::new_or_panic();
         for case in cases { case.run(&parser); }

@@ -27,12 +27,12 @@ pub enum Kind {
     /// A node being a target (or "self") parameter of parent Infix, Section or Prefix.
     Target {
         /// Indicates if this node can be erased from SpanTree.
-        removable:bool
+        is_removable:bool
     },
     /// A node being a normal (not target) parameter of parent Infix, Section or Prefix.
     Argument {
         /// Indicates if this node can be erased from SpanTree.
-        removable:bool
+        is_removable:bool
     },
     /// A node being a placeholder for inserting new child to Prefix or Operator chain. It should
     /// have assigned span of length 0 and should not have any child.
@@ -226,14 +226,14 @@ mod test {
     fn node_lookup() {
         use ast::crumbs::InfixCrumb::*;
 
-        let removable = false;
+        let is_removable = false;
         let tree      = TreeBuilder::new(7)
-            .add_leaf (0,1,Target{removable},vec![LeftOperand])
+            .add_leaf (0,1,Target{is_removable},vec![LeftOperand])
             .add_leaf (1,1,Operation,vec![Operator])
-            .add_child(2,5,Argument{removable},vec![RightOperand])
-                .add_leaf(0,2,Target{removable},vec![LeftOperand])
+            .add_child(2,5,Argument{is_removable},vec![RightOperand])
+                .add_leaf(0,2,Target{is_removable},vec![LeftOperand])
                 .add_leaf(3,1,Operation,vec![Operator])
-                .add_leaf(4,1,Argument{removable},vec![RightOperand])
+                .add_leaf(4,1,Argument{is_removable},vec![RightOperand])
                 .done()
             .build();
 
@@ -285,14 +285,14 @@ mod test {
         use ast::crumbs::InfixCrumb::*;
         use ast::crumbs::PrefixCrumb::*;
 
-        let removable = false;
+        let is_removable = false;
         let tree      = TreeBuilder::new(7)
-            .add_leaf (0,1,Target{removable},vec![LeftOperand])
+            .add_leaf (0,1,Target{is_removable},vec![LeftOperand])
             .add_empty_child(1,InsertType::AfterTarget)
             .add_leaf (1,1,Operation,vec![Operator])
-            .add_child(2,5,Argument{removable},vec![RightOperand])
+            .add_child(2,5,Argument{is_removable},vec![RightOperand])
                 .add_leaf(0,3,Operation,vec![Func])
-                .add_leaf(3,1,Target{removable},vec![Arg])
+                .add_leaf(3,1,Target{is_removable},vec![Arg])
             .done()
             .build();
 
