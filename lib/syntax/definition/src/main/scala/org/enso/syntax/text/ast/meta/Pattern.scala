@@ -5,7 +5,7 @@ import org.enso.syntax.text.AST.SAST
 import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.ast.Repr
 
-import scala.annotation.tailrec
+import scala.annotation.{nowarn, tailrec}
 import org.enso.data.Index
 import org.enso.data.Shifted
 
@@ -225,6 +225,7 @@ object Pattern {
     def mapStruct(f: MatchOf[T] => MatchOf[T]): MatchOf[T] =
       f(this.mapStructShallow(_.mapStruct(f)))
 
+    @nowarn("cat=unchecked")
     def mapStructShallow(f: MatchOf[T] => MatchOf[T]): MatchOf[T] =
       this match {
         case m: M.Begin[T]   => m
@@ -251,6 +252,7 @@ object Pattern {
         case m: M.Invalid[T] => m
       }
 
+    @nowarn("cat=unchecked")
     def isValid: Boolean = {
       var out = true
       this.mapStruct {
@@ -431,6 +433,7 @@ sealed trait Pattern {
             val ok = spaced match {
               case None => true
               case Some(s) =>
+                @nowarn("cat=unchecked")
                 val isBlock = t match {
                   case AST.Block.any(_) => true
                   case _                => false

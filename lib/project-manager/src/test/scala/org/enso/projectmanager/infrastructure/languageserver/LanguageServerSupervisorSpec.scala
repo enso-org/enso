@@ -138,7 +138,7 @@ class LanguageServerSupervisorSpec
     fakeServer.stop()
   }
 
-  override def afterAll: Unit = {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
 

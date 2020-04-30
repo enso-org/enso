@@ -26,7 +26,7 @@ import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.ast.opr
 import org.enso.syntax.text.ast.meta.Pattern
 
-import scala.annotation.{tailrec, unused}
+import scala.annotation.{nowarn, tailrec, unused}
 import scala.reflect.ClassTag
 
 /* Note [JSON Serialization]
@@ -859,6 +859,7 @@ object Shape extends ShapeImplicit {
         })))
       })
     }
+    @nowarn("cat=unused-imports")
     implicit def repr[T: Repr]: Repr[Match[T]] = t => {
       import AST.ASTOf._
       val pfxStream = t.pfx.map(_.toStream.reverse).getOrElse(List())

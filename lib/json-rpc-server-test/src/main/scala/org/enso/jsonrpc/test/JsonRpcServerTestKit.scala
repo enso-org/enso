@@ -28,7 +28,7 @@ abstract class JsonRpcServerTestKit
     with BeforeAndAfterAll
     with BeforeAndAfterEach {
 
-  override def afterAll: Unit = {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
 

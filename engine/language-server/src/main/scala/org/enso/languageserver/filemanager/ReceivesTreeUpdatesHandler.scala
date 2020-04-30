@@ -6,9 +6,9 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityNotAcquiredResponse,
   ReleaseCapability
 }
-import org.enso.languageserver.data.{CapabilityRegistration, Config}
 import org.enso.languageserver.data.{
   CapabilityRegistration,
+  Config,
   ReceivesTreeUpdates
 }
 import org.enso.languageserver.effect._

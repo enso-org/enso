@@ -10,17 +10,20 @@ import org.enso.flexer
 import org.enso.syntax.text.Parser
 import org.scalameter.api._
 import org.enso.syntax.text.ast.DSL._
-import org.scalameter.{Aggregator, Measurer}
+import org.scalameter.Measurer
 import org.scalameter.execution.LocalExecutor
 import org.scalameter.picklers.Implicits._
 
+import scala.annotation.nowarn
 import scala.math.pow
 
 object ParserBenchmark extends Bench.OfflineRegressionReport {
 
-  override def executor = new LocalExecutor(warmer, aggregator, new Measurer.Default)
+  override def executor =
+    new LocalExecutor(warmer, aggregator, new Measurer.Default)
 
   val range = 0
+  @nowarn("cat=w-flag-numeric-widen")
   def exp(i: Int) =
     Gen.exponential("size")(pow(2, i - range).toInt, pow(2, i).toInt, 2)
 
@@ -69,7 +72,6 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
              |""".stripMargin * i
     )
   )
-
 
   val filename = "target/parser-bench-input.txt"
 

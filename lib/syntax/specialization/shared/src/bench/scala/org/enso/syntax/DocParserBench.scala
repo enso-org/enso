@@ -7,6 +7,7 @@ import org.scalameter.api._
 import org.scalameter.execution.LocalExecutor
 import org.scalameter.picklers.Implicits._
 
+import scala.annotation.nowarn
 import scala.math.pow
 
 object DocParserBench extends Bench.OfflineRegressionReport {
@@ -14,6 +15,7 @@ object DocParserBench extends Bench.OfflineRegressionReport {
   override def executor = new LocalExecutor(warmer, aggregator, measurer)
 
   val range = 0
+  @nowarn("cat=w-flag-numeric-widen")
   def exp(i: Int): Gen[Int] =
     Gen.exponential("size")(pow(2, i - range).toInt, pow(2, i).toInt, 2)
 

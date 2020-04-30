@@ -291,13 +291,6 @@ case object AliasAnalysis extends IRPass {
     * occur (e.g. `x = x + 1`, the `x` on the RHS must refer to an `x` outside
     * the argument's scope).
     *
-    * This method _may_ replace an argument with a
-    * [[IR.Error.Redefined.Argument]] error if `args` redefines an argument
-    * name. This is _only_ representative of intended language semantics in the
-    * case that the [[org.enso.compiler.pass.optimise.LambdaConsolidate]] pass
-    * has run before this pass, as it ensures that duplicated argument names
-    * reflect language semantics through renaming.
-    *
     * @param args  the list of arguments to perform analysis on
     * @param graph the graph in which the analysis is taking place
     * @param scope the scope of the function for which `args` are being

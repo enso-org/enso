@@ -18,7 +18,6 @@ import zio._
 import zio.console._
 import zio.interop.catz.core._
 import org.enso.projectmanager.infrastructure.config.ConfigurationReaders.fileReader
-import pureconfig._
 import pureconfig.generic.auto._
 
 import scala.concurrent.duration._

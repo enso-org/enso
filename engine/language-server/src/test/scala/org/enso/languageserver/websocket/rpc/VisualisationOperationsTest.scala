@@ -5,6 +5,8 @@ import io.circe.literal._
 import org.enso.languageserver.runtime.VisualisationConfiguration
 import org.enso.polyglot.runtime.Runtime.Api
 
+import scala.annotation.nowarn
+
 class VisualisationOperationsTest extends BaseServerTest {
 
   "executionContext/attachVisualisation" must {
@@ -136,6 +138,7 @@ class VisualisationOperationsTest extends BaseServerTest {
       val expressionId    = UUID.randomUUID()
       val contextId       = UUID.randomUUID()
       val client          = getInitialisedWsClient()
+      @nowarn("cat=unused-locals")
       val visualisationConfig =
         VisualisationConfiguration(contextId, "Foo.Bar.baz", "a=x+y")
       client.send(json"""
