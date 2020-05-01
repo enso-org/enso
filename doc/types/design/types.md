@@ -320,6 +320,9 @@ Two typesets `A` and `B` are defined to be structurally equal if `A <: B` and
 >   `<:` so we need to work out if we can elide them from the surface language.
 >   This requires considering polymorphic function arguments, partial data,
 >   qualified function types and variable definitions.
+> - Reformulate this in terms of row polymorphism. We really want to avoid a
+>   _real_ subtyping relationship as it doesn't play at all well with global
+>   inference.
 
 #### Unsafe Typeset Field Mutation
 For performance it is sometimes necessary to have the ability to _directly_
