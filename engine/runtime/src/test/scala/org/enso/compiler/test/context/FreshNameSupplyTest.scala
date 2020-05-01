@@ -1,4 +1,4 @@
-package org.enso.compiler.test.pass
+package org.enso.compiler.test.context
 
 import org.enso.compiler.context.FreshNameSupply
 import org.enso.compiler.core.IR

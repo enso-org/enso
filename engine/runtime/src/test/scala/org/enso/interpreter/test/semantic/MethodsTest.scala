@@ -158,4 +158,22 @@ class MethodsTest extends InterpreterTest {
 
     eval(code) shouldEqual 6
   }
+
+  "Methods" should "not be overloaded on a given atom" in {
+    val code =
+      """
+        |type MyAtom
+        |
+        |MyAtom.foo = a -> a
+        |MyAtom.foo = a -> b -> a + b
+        |
+        |main = foo MyAtom 1
+        |""".stripMargin
+
+    val msg =
+      "org.enso.interpreter.runtime.error.RedefinedMethodException: Methods " +
+        "cannot be overloaded, but you have tried to overload MyAtom.foo"
+
+    the[InterpreterException] thrownBy eval(code) should have message msg
+  }
 }

@@ -73,18 +73,4 @@ class LambdaChainingTest extends InterpreterTest {
 
     eval(code) shouldEqual 3
   }
-
-  "Chains of lambdas" should "work syntactically" in {
-    val code =
-      """
-        |main =
-        |    fn1 = a -> b=a -> a + b
-        |    fn2 = a -> (b = a) -> (a = b + 1) -> a + b
-        |
-        |    fn1 1 2
-        |""".stripMargin
-
-    pending
-    eval(code) shouldEqual 3
-  }
 }

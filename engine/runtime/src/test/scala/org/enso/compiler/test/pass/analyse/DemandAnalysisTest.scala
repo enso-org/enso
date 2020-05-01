@@ -2,6 +2,7 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
@@ -24,8 +25,8 @@ class DemandAnalysisTest extends CompilerTest {
     AliasAnalysis
   )
 
-  val passConfig = new PassConfiguration(
-    Map(AliasAnalysis -> AliasAnalysis.Configuration())
+  val passConfig: PassConfiguration = PassConfiguration(
+    AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   implicit val passManager: PassManager =

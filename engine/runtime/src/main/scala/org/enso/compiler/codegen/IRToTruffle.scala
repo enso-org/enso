@@ -88,8 +88,8 @@ class IRToTruffle(
     * before codegen runs, as they will cause a compiler error.
     *
     * In future, this restriction will be relaxed to admit errors that are
-    * members of [[IR.Error.Kind.Interactive]], such that we can display these
-    * to users during interactive execution.
+    * members of [[IR.Diagnostic.Kind.Interactive]], such that we can display
+    * these to users during interactive execution.
     *
     * @param ir the IR to generate code for
     */
@@ -146,13 +146,16 @@ class IRToTruffle(
       .foreach {
         case (atomCons, atomDefn) =>
           val scopeInfo = atomDefn
-            .unsafeGetMetadata[AliasAnalysis.Info.Scope.Root](
+            .unsafeGetMetadata(
+              AliasAnalysis,
               "No root scope on an atom definition."
             )
-          val dataflowInfo =
-            atomDefn.unsafeGetMetadata[DataflowAnalysis.Metadata](
-              "No dataflow information associated with an atom."
-            )
+            .unsafeAs[AliasAnalysis.Info.Scope.Root]
+
+          val dataflowInfo = atomDefn.unsafeGetMetadata(
+            DataflowAnalysis,
+            "No dataflow information associated with an atom."
+          )
 
           val argFactory =
             new DefinitionArgumentProcessor(
@@ -176,13 +179,15 @@ class IRToTruffle(
     // Register the method definitions in scope
     methodDefs.foreach(methodDef => {
       val scopeInfo = methodDef
-        .unsafeGetMetadata[AliasAnalysis.Info.Scope.Root](
+        .unsafeGetMetadata(
+          AliasAnalysis,
           "Missing scope information for method."
         )
-      val dataflowInfo =
-        methodDef.unsafeGetMetadata[DataflowAnalysis.Metadata](
-          "No dataflow information associated with an atom."
-        )
+        .unsafeAs[AliasAnalysis.Info.Scope.Root]
+      val dataflowInfo = methodDef.unsafeGetMetadata(
+        DataflowAnalysis,
+        "Method definition missing dataflow information."
+      )
 
       val typeName =
         if (methodDef.typeName.name == Constants.Names.CURRENT_MODULE) {
@@ -198,9 +203,8 @@ class IRToTruffle(
         dataflowInfo
       )
 
-      val methodFunIsTail = methodDef.body.unsafeGetMetadata[TailCall.Metadata](
-        "Method body missing tail call info."
-      )
+      val methodFunIsTail = methodDef.body
+        .unsafeGetMetadata(TailCall, "Method body missing tail call info.")
 
       val funNode = methodDef.body match {
         case fn: IR.Function =>
@@ -326,10 +330,10 @@ class IRToTruffle(
       * @return a truffle expression that represents the same program as `ir`
       */
     def run(ir: IR): RuntimeExpression = {
-      val tailMeta = ir
-        .unsafeGetMetadata[TailCall.Metadata](
-          s"Missing tail call metadata for $ir"
-        )
+      val tailMeta = ir.unsafeGetMetadata(
+        TailCall,
+        "Missing tail call information on method."
+      )
 
       val runtimeExpression = ir match {
         case block: IR.Expression.Block     => processBlock(block)
@@ -341,8 +345,7 @@ class IRToTruffle(
         case caseExpr: IR.Case              => processCase(caseExpr)
         case comment: IR.Comment            => processComment(comment)
         case err: IR.Error                  => processError(err)
-        case warning: IR.Warning            => processWarning(warning)
-        case IR.Foreign.Definition(_, _, _, _) =>
+        case IR.Foreign.Definition(_, _, _, _, _) =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
           )
@@ -366,18 +369,6 @@ class IRToTruffle(
 
     // === Processing =========================================================
 
-    /** Performs code generation for any warnings left in the Enso [[IR]].
-      *
-      * @param warning the warning to generate code for
-      * @return the truffle nodes corresponding to `comment`
-      */
-    def processWarning(warning: IR.Warning): RuntimeExpression = {
-      warning match {
-        case IR.Warning.Shadowed.LambdaParam(warnedExpr, _, _) =>
-          run(warnedExpr)
-      }
-    }
-
     /** Performs code generation for any comments left in the Enso [[IR]].
       *
       * Comments do not exist at execution time as they cannot be reflected upon,
@@ -397,9 +388,12 @@ class IRToTruffle(
       */
     def processBlock(block: IR.Expression.Block): RuntimeExpression = {
       if (block.suspended) {
-        val scopeInfo = block.unsafeGetMetadata[AliasAnalysis.Info.Scope.Child](
-          "Missing scope data on block."
-        )
+        val scopeInfo = block
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            "Missing scope information on block."
+          )
+          .unsafeAs[AliasAnalysis.Info.Scope.Child]
 
         val childFactory = this.createChild("suspended-block", scopeInfo.scope)
         val childScope   = childFactory.scope
@@ -433,12 +427,13 @@ class IRToTruffle(
       * @return the truffle nodes corresponding to `caseExpr`
       */
     def processCase(caseExpr: IR.Case): RuntimeExpression = caseExpr match {
-      case IR.Case.Expr(scrutinee, branches, fallback, location, _) =>
+      case IR.Case.Expr(scrutinee, branches, fallback, location, _, _) =>
         val targetNode = this.run(scrutinee)
 
         val cases = branches
           .map(branch => {
-            val caseIsTail = branch.unsafeGetMetadata[TailCall.Metadata](
+            val caseIsTail = branch.unsafeGetMetadata(
+              TailCall,
               "Case branch missing tail position information."
             )
 
@@ -457,7 +452,7 @@ class IRToTruffle(
 
         val matchExpr = MatchNode.build(cases, fallbackNode, targetNode)
         setLocation(matchExpr, location)
-      case IR.Case.Branch(_, _, _, _) =>
+      case IR.Case.Branch(_, _, _, _, _) =>
         throw new CompilerError("A CaseBranch should never occur here.")
     }
 
@@ -476,9 +471,12 @@ class IRToTruffle(
       * @return the truffle nodes corresponding to `binding`
       */
     def processBinding(binding: IR.Expression.Binding): RuntimeExpression = {
-      val occInfo = binding.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
-        "Binding with missing occurrence information."
-      )
+      val occInfo = binding
+        .unsafeGetMetadata(
+          AliasAnalysis,
+          "Binding with missing occurrence information."
+        )
+        .unsafeAs[AliasAnalysis.Info.Occurrence]
 
       currentVarName = binding.name.name
 
@@ -496,15 +494,14 @@ class IRToTruffle(
       * @return the truffle nodes corresponding to `function`
       */
     def processFunction(function: IR.Function): RuntimeExpression = {
-      val scopeInfo =
-        function.unsafeGetMetadata[AliasAnalysis.Info.Scope.Child](
-          "No scope info on a function."
-        )
+      val scopeInfo = function
+        .unsafeGetMetadata(AliasAnalysis, "No scope info on a function.")
+        .unsafeAs[AliasAnalysis.Info.Scope.Child]
 
       if (function.body.isInstanceOf[IR.Function]) {
         throw new CompilerError(
           "Lambda found directly as function body. It looks like Lambda " +
-            "Consolidation hasn't run."
+          "Consolidation hasn't run."
         )
       }
 
@@ -533,10 +530,13 @@ class IRToTruffle(
       */
     def processName(name: IR.Name): RuntimeExpression = {
       val nameExpr = name match {
-        case IR.Name.Literal(nameStr, _, _) =>
-          val useInfo = name.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
-            "No occurence on variable usage."
-          )
+        case IR.Name.Literal(nameStr, _, _, _) =>
+          val useInfo = name
+            .unsafeGetMetadata(
+              AliasAnalysis,
+              "No occurrence on variable usage."
+            )
+            .unsafeAs[AliasAnalysis.Info.Occurrence]
 
           val slot     = scope.getFramePointer(useInfo.id)
           val atomCons = moduleScope.getConstructor(nameStr).toScala
@@ -551,9 +551,9 @@ class IRToTruffle(
               UnresolvedSymbol.build(nameStr, moduleScope)
             )
           }
-        case IR.Name.Here(_, _) =>
+        case IR.Name.Here(_, _, _) =>
           ConstructorNode.build(moduleScope.getAssociatedType)
-        case IR.Name.This(location, passData) =>
+        case IR.Name.This(location, passData, _) =>
           processName(
             IR.Name.Literal(Constants.Names.THIS_ARGUMENT, location, passData)
           )
@@ -569,9 +569,9 @@ class IRToTruffle(
       */
     def processLiteral(literal: IR.Literal): RuntimeExpression =
       literal match {
-        case IR.Literal.Number(value, location, _) =>
+        case IR.Literal.Number(value, location, _, _) =>
           setLocation(IntegerLiteralNode.build(value.toLong), location)
-        case IR.Literal.Text(text, location, _) =>
+        case IR.Literal.Text(text, location, _, _) =>
           setLocation(TextLiteralNode.build(text), location)
       }
 
@@ -583,7 +583,7 @@ class IRToTruffle(
       */
     def processError(error: IR.Error): RuntimeExpression = {
       val payload: AnyRef = error match {
-        case Error.InvalidIR(_, _) =>
+        case Error.InvalidIR(_, _, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: Error.Syntax =>
           context.getBuiltins
@@ -622,10 +622,12 @@ class IRToTruffle(
         val arg = argFactory.run(unprocessedArg, idx)
         argDefinitions(idx) = arg
 
-        val occInfo =
-          unprocessedArg.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
+        val occInfo = unprocessedArg
+          .unsafeGetMetadata(
+            AliasAnalysis,
             "No occurrence on an argument definition."
           )
+          .unsafeAs[AliasAnalysis.Info.Occurrence]
 
         val slot = scope.createVarSlot(occInfo.id)
         val readArg =
@@ -641,7 +643,8 @@ class IRToTruffle(
         } else seenArgNames.add(argName)
       }
 
-      val bodyIsTail = body.unsafeGetMetadata[TailCall.Metadata](
+      val bodyIsTail = body.unsafeGetMetadata(
+        TailCall,
         "Function body missing tail call information."
       )
 
@@ -655,7 +658,10 @@ class IRToTruffle(
         fnBodyNode,
         makeSection(location),
         scopeName,
-        name.map(moduleScope.getModule.getName.createChild).map(_.toString).orNull
+        name
+          .map(moduleScope.getModule.getName.createChild)
+          .map(_.toString)
+          .orNull
       )
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
 
@@ -697,7 +703,7 @@ class IRToTruffle(
       */
     def processApplication(application: IR.Application): RuntimeExpression =
       application match {
-        case IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _) =>
+        case IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =>
           val callArgFactory = new CallArgumentProcessor(scope, scopeName)
 
           val arguments = args
@@ -714,8 +720,7 @@ class IRToTruffle(
             InvokeCallableNode.DefaultsExecutionMode.EXECUTE
           }
 
-          val appNode = application
-            .getMetadata[ApplicationSaturation.CallSaturation] match {
+          val appNode = application.getMetadata(ApplicationSaturation) match {
             case Some(
                 ApplicationSaturation.CallSaturation.Exact(createOptimised)
                 ) =>
@@ -729,7 +734,7 @@ class IRToTruffle(
           }
 
           setLocation(appNode, loc)
-        case IR.Application.Force(expr, location, _) =>
+        case IR.Application.Force(expr, location, _, _) =>
           setLocation(ForceNode.build(this.run(expr)), location)
         case op: IR.Application.Operator.Binary =>
           throw new CompilerError(
@@ -762,10 +767,13 @@ class IRToTruffle(
       *         `arg`
       */
     def run(arg: IR.CallArgument, position: Int): CallArgument = arg match {
-      case IR.CallArgument.Specified(name, value, _, shouldBeSuspended, _) =>
-        val scopeInfo = arg.unsafeGetMetadata[AliasAnalysis.Info.Scope.Child](
-          "No scope attached to a call argument."
-        )
+      case IR.CallArgument.Specified(name, value, _, shouldBeSuspended, _, _) =>
+        val scopeInfo = arg
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            "No scope attached to a call argument."
+          )
+          .unsafeAs[AliasAnalysis.Info.Scope.Child]
 
         val shouldSuspend = shouldBeSuspended.getOrElse(
           throw new CompilerError(
@@ -785,7 +793,8 @@ class IRToTruffle(
         val result = if (!shouldSuspend) {
           argumentExpression
         } else {
-          val argExpressionIsTail = value.unsafeGetMetadata[TailCall.Metadata](
+          val argExpressionIsTail = value.unsafeGetMetadata(
+            TailCall,
             "Argument with missing tail call information."
           )
 

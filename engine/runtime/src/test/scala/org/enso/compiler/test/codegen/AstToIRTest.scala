@@ -2,6 +2,7 @@ package org.enso.compiler.test.codegen
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.test.CompilerTest
+import org.enso.syntax.text.Debug
 
 class AstToIRTest extends CompilerTest {
 

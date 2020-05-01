@@ -2,11 +2,8 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Metadata
-import org.enso.compiler.pass.analyse.ApplicationSaturation.{
-  CallSaturation,
-  FunctionSpec
-}
+import org.enso.compiler.pass.PassConfiguration._
+import org.enso.compiler.pass.analyse.ApplicationSaturation.{CallSaturation, FunctionSpec, Metadata}
 import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
@@ -60,11 +57,9 @@ class ApplicationSaturationTest extends CompilerTest {
     AliasAnalysis
   )
 
-  val knownPassConfig = new PassConfiguration(
-    Map(
-      ApplicationSaturation -> knownFunctions,
-      AliasAnalysis         -> AliasAnalysis.Configuration()
-    )
+  val knownPassConfig: PassConfiguration = PassConfiguration(
+    ApplicationSaturation -->> knownFunctions,
+    AliasAnalysis         -->> AliasAnalysis.Configuration()
   )
   val passManagerKnown = new PassManager(passes, knownPassConfig)
 
@@ -124,7 +119,7 @@ class ApplicationSaturationTest extends CompilerTest {
       val resultIR =
         ApplicationSaturation.runExpression(plusFn, knownCtx)
 
-      resultIR.getMetadata[CallSaturation].foreach {
+      resultIR.getMetadata(ApplicationSaturation).foreach {
         case _: CallSaturation.Exact => succeed
         case _                       => fail
       }
@@ -135,7 +130,7 @@ class ApplicationSaturationTest extends CompilerTest {
         ApplicationSaturation.runExpression(bazFn, knownCtx)
       val expected = Some(CallSaturation.Partial(1))
 
-      resultIR.getMetadata[CallSaturation] shouldEqual expected
+      resultIR.getMetadata(ApplicationSaturation) shouldEqual expected
     }
 
     "be tagged with over saturation where possible" in {
@@ -143,7 +138,7 @@ class ApplicationSaturationTest extends CompilerTest {
         ApplicationSaturation.runExpression(fooFn, knownCtx)
       val expected = Some(CallSaturation.Over(1))
 
-      resultIR.getMetadata[CallSaturation] shouldEqual expected
+      resultIR.getMetadata(ApplicationSaturation) shouldEqual expected
     }
 
     "be tagged with by name if applied by name" in {
@@ -151,7 +146,7 @@ class ApplicationSaturationTest extends CompilerTest {
         ApplicationSaturation.runExpression(fooFnByName, knownCtx)
       val expected = Some(CallSaturation.ExactButByName())
 
-      resultIR.getMetadata[CallSaturation] shouldEqual expected
+      resultIR.getMetadata(ApplicationSaturation) shouldEqual expected
     }
   }
 
@@ -171,7 +166,7 @@ class ApplicationSaturationTest extends CompilerTest {
         ApplicationSaturation.runExpression(unknownFn, knownCtx)
       val expected = Some(CallSaturation.Unknown())
 
-      resultIR.getMetadata[CallSaturation] shouldEqual expected
+      resultIR.getMetadata(ApplicationSaturation) shouldEqual expected
     }
   }
 
@@ -208,13 +203,13 @@ class ApplicationSaturationTest extends CompilerTest {
       .asInstanceOf[IR.Application.Prefix]
 
     implicit class InnerMeta(ir: IR.Expression) {
-      def getInnerMetadata[T <: Metadata: ClassTag]: Option[T] = {
+      def getInnerMetadata: Option[Metadata] = {
         ir.asInstanceOf[IR.Application.Prefix]
           .arguments
           .head
           .asInstanceOf[IR.CallArgument.Specified]
           .value
-          .getMetadata[T]
+          .getMetadata(ApplicationSaturation)
       }
     }
 
@@ -238,13 +233,13 @@ class ApplicationSaturationTest extends CompilerTest {
         ApplicationSaturation.runExpression(outerPlus(knownPlus), knownCtx)
 
       // The outer should be reported as fully saturated
-      result.getMetadata[CallSaturation].foreach {
+      result.getMetadata(ApplicationSaturation).foreach {
         case _: CallSaturation.Exact => succeed
         case _                       => fail
       }
 
       // The inner should be reported as fully saturated
-      result.getInnerMetadata[CallSaturation].foreach {
+      result.getInnerMetadata.foreach {
         case _: CallSaturation.Exact => succeed
         case _                       => fail
       }
@@ -259,14 +254,14 @@ class ApplicationSaturationTest extends CompilerTest {
       val expectedInnerMeta = CallSaturation.Partial(1)
 
       // The outer should be reported as fully saturated
-      result.getMetadata[CallSaturation].foreach {
+      result.getMetadata(ApplicationSaturation).foreach {
         case _: CallSaturation.Exact => succeed
         case _                       => fail
       }
 
       // The inner should be reported as under saturateD
       result
-        .getInnerMetadata[CallSaturation]
+        .getInnerMetadata
         .foreach(t => t shouldEqual expectedInnerMeta)
     }
 
@@ -279,14 +274,14 @@ class ApplicationSaturationTest extends CompilerTest {
       val expectedInnerMeta = CallSaturation.Over(1)
 
       // The outer should be reported as fully saturated
-      result.getMetadata[CallSaturation].foreach {
+      result.getMetadata(ApplicationSaturation).foreach {
         case _: CallSaturation.Exact => succeed
         case _                       => fail
       }
 
       // The inner should be reported as under saturateD
       result
-        .getInnerMetadata[CallSaturation]
+        .getInnerMetadata
         .foreach(t => t shouldEqual expectedInnerMeta)
     }
   }
@@ -313,7 +308,7 @@ class ApplicationSaturationTest extends CompilerTest {
       result.expression
         .asInstanceOf[IR.Expression.Block]
         .returnValue
-        .getMetadata[CallSaturation]
+        .getMetadata(ApplicationSaturation)
         .foreach {
           case _: CallSaturation.Unknown => succeed
           case _                         => fail

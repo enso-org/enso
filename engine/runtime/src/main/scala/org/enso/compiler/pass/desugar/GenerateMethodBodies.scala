@@ -16,7 +16,7 @@ import org.enso.compiler.pass.IRPass
 case object GenerateMethodBodies extends IRPass {
 
   /** This is a desugaring pass and performs no analysis */
-  override type Metadata = IR.Metadata.Empty
+  override type Metadata = IRPass.Metadata.Empty
 
   override type Config = IRPass.Configuration.Default
 
@@ -67,7 +67,7 @@ case object GenerateMethodBodies extends IRPass {
     */
   def processBodyFunction(fun: IR.Function): IR.Function = {
     fun match {
-      case lam @ IR.Function.Lambda(args, _, _, _, _) =>
+      case lam @ IR.Function.Lambda(args, _, _, _, _, _) =>
         lam.copy(
           arguments = genThisArgument :: args
         )

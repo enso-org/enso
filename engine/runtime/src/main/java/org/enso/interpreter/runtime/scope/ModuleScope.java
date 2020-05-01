@@ -10,6 +10,7 @@ import java.util.Set;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.RedefinedMethodException;
 
 /** A representation of Enso's per-file top-level scope. */
 public class ModuleScope {
@@ -93,7 +94,13 @@ public class ModuleScope {
    * @param function the {@link Function} associated with this definition
    */
   public void registerMethod(AtomConstructor atom, String method, Function function) {
-    ensureMethodMapFor(atom).put(method, function);
+    Map<String, Function> methodMap = ensureMethodMapFor(atom);
+
+    if (methodMap.containsKey(method)) {
+      throw new RedefinedMethodException(atom.getName(), method);
+    } else {
+      methodMap.put(method, function);
+    }
   }
 
   /**

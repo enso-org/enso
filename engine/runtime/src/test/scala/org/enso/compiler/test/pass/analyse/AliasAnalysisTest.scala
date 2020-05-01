@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.{Atom, Method}
+import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
@@ -25,8 +26,8 @@ class AliasAnalysisTest extends CompilerTest {
     OperatorToFunction
   )
 
-  val passConfig = new PassConfiguration(
-    Map(AliasAnalysis -> AliasAnalysis.Configuration(true))
+  val passConfig = PassConfiguration(
+    AliasAnalysis -->> AliasAnalysis.Configuration(true)
   )
 
   implicit val passManager: PassManager =
@@ -403,16 +404,16 @@ class AliasAnalysisTest extends CompilerTest {
         |type MyAtom a b (c=a)
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[Atom]
-    val goodMeta  = goodAtom.getMetadata[AliasAnalysis.Info.Scope.Root]
-    val goodGraph = goodMeta.get.graph
+    val goodMeta  = goodAtom.getMetadata(AliasAnalysis)
+    val goodGraph = goodMeta.get.unsafeAs[AliasAnalysis.Info.Scope.Root].graph
 
     val badAtom =
       """
         |type MyAtom a=b b
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[Atom]
-    val badMeta  = badAtom.getMetadata[AliasAnalysis.Info.Scope.Root]
-    val badGraph = badMeta.get.graph
+    val badMeta  = badAtom.getMetadata(AliasAnalysis)
+    val badGraph = badMeta.get.unsafeAs[AliasAnalysis.Info.Scope.Root].graph
 
     "assign Info.Scope.Root metadata to the atom" in {
       goodMeta shouldBe defined
@@ -432,15 +433,17 @@ class AliasAnalysisTest extends CompilerTest {
 
     "create usage links where valid" in {
       val aDefId = goodAtom.arguments.head
-        .getMetadata[Info.Occurrence]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Occurrence]
         .id
       val aUseId = goodAtom
         .arguments(2)
         .defaultValue
         .get
-        .getMetadata[Info.Occurrence]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Occurrence]
         .id
 
       goodGraph.links should contain(Link(aUseId, 0, aDefId))
@@ -464,7 +467,11 @@ class AliasAnalysisTest extends CompilerTest {
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[Method]
     val methodWithLambdaGraph =
-      methodWithLambda.getMetadata[Info.Scope.Root].get.graph
+      methodWithLambda
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Scope.Root]
+        .graph
 
     val graphLinks = methodWithLambdaGraph.links
 
@@ -486,7 +493,7 @@ class AliasAnalysisTest extends CompilerTest {
       .asInstanceOf[IR.Application.Prefix]
 
     "assign Info.Scope.Root metadata to the method" in {
-      val meta = methodWithLambda.getMetadata[AliasAnalysis.Metadata]
+      val meta = methodWithLambda.getMetadata(AliasAnalysis)
 
       meta shouldBe defined
       meta.get shouldBe a[Info.Scope.Root]
@@ -495,14 +502,14 @@ class AliasAnalysisTest extends CompilerTest {
     "assign Info.Scope.Child to all child scopes" in {
       methodWithLambda.body
         .asInstanceOf[IR.Function.Lambda]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get shouldBe an[Info.Scope.Child]
 
       methodWithLambda.body
         .asInstanceOf[IR.Function.Lambda]
         .body
         .asInstanceOf[IR.Function.Lambda]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get shouldBe an[Info.Scope.Child]
 
       methodWithLambda.body
@@ -511,16 +518,16 @@ class AliasAnalysisTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
         .asInstanceOf[IR.Function.Lambda]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get shouldBe an[Info.Scope.Child]
 
       topLambdaBody
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get shouldBe an[Info.Scope.Child]
 
       childLambda.body
         .asInstanceOf[IR.Function.Lambda]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get shouldBe an[Info.Scope.Child]
     }
 
@@ -536,8 +543,9 @@ class AliasAnalysisTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
         .asInstanceOf[IR.Function.Lambda]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Scope.Child]
         .scope
 
       val cLamBlockScope =
@@ -549,16 +557,18 @@ class AliasAnalysisTest extends CompilerTest {
           .asInstanceOf[IR.Function.Lambda]
           .body
           .asInstanceOf[IR.Expression.Block]
-          .getMetadata[Info.Scope.Child]
+          .getMetadata(AliasAnalysis)
           .get
+          .unsafeAs[Info.Scope.Child]
           .scope
 
       cLamScope shouldEqual cLamBlockScope
 
       val aLamScope = methodWithLambda.body
         .asInstanceOf[IR.Function.Lambda]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Scope.Child]
         .scope
 
       aLamScope shouldEqual methodWithLambdaGraph.rootScope
@@ -568,16 +578,18 @@ class AliasAnalysisTest extends CompilerTest {
       val topScope =
         methodWithLambda.body
           .asInstanceOf[IR.Function.Lambda]
-          .getMetadata[Info.Scope.Child]
+          .getMetadata(AliasAnalysis)
           .get
+          .unsafeAs[Info.Scope.Child]
           .scope
 
       val bLambdaScope = methodWithLambda.body
         .asInstanceOf[IR.Function.Lambda]
         .body
         .asInstanceOf[IR.Function.Lambda]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Scope.Child]
         .scope
 
       val cLambdaScope = methodWithLambda.body
@@ -586,18 +598,24 @@ class AliasAnalysisTest extends CompilerTest {
         .asInstanceOf[IR.Function.Lambda]
         .body
         .asInstanceOf[IR.Function.Lambda]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Scope.Child]
         .scope
 
-      val mainBlockScope = topLambdaBody.getMetadata[Info.Scope.Child].get.scope
+      val mainBlockScope = topLambdaBody
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Scope.Child]
+        .scope
 
       val dALambdaScope = topLambdaBody.expressions.head
         .asInstanceOf[IR.Expression.Binding]
         .expression
         .asInstanceOf[IR.Function.Lambda]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Scope.Child]
         .scope
 
       val gScope = topLambdaBody
@@ -605,8 +623,9 @@ class AliasAnalysisTest extends CompilerTest {
         .asInstanceOf[IR.Expression.Binding]
         .expression
         .asInstanceOf[IR.Expression.Block]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Scope.Child]
         .scope
 
       val cUseScope = topLambdaBody.returnValue
@@ -614,8 +633,9 @@ class AliasAnalysisTest extends CompilerTest {
         .arguments
         .head
         .asInstanceOf[IR.CallArgument.Specified]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Scope.Child]
         .scope
 
       topScope.childScopes should contain(bLambdaScope)
@@ -627,21 +647,27 @@ class AliasAnalysisTest extends CompilerTest {
 
     "assign Info.Occurrence to definitions and usages of symbols" in {
       topLambda.arguments.foreach(arg =>
-        arg.getMetadata[Info.Occurrence] shouldBe defined
+        arg.getMetadata(AliasAnalysis).get.as[Info.Occurrence] shouldBe defined
       )
 
       topLambdaBody.expressions.foreach(
         _.asInstanceOf[IR.Expression.Binding]
-          .getMetadata[Info.Occurrence] shouldBe defined
+          .getMetadata(AliasAnalysis)
+          .get
+          .as[Info.Occurrence] shouldBe defined
       )
 
       childLambda.arguments.foreach(arg =>
-        arg.getMetadata[Info.Occurrence] shouldBe defined
+        arg.getMetadata(AliasAnalysis).get.as[Info.Occurrence] shouldBe defined
       )
 
-      childLambdaBody.function.getMetadata[Info.Occurrence] shouldBe defined
+      childLambdaBody.function
+        .getMetadata(AliasAnalysis)
+        .get
+        .as[Info.Occurrence] shouldBe defined
+
       childLambdaBody.arguments.foreach(
-        _.getMetadata[Info.Scope.Child] shouldBe defined
+        _.getMetadata(AliasAnalysis).get.as[Info.Scope.Child] shouldBe defined
       )
     }
 
@@ -653,26 +679,33 @@ class AliasAnalysisTest extends CompilerTest {
           .asInstanceOf[IR.Function.Lambda]
           .arguments
           .head
-          .getMetadata[Info.Occurrence]
+          .getMetadata(AliasAnalysis)
           .get
+          .unsafeAs[Info.Occurrence]
           .id
 
       val nestedLambdaADefId =
-        childLambda.arguments.head.getMetadata[Info.Occurrence].get.id
+        childLambda.arguments.head
+          .getMetadata(AliasAnalysis)
+          .get
+          .unsafeAs[Info.Occurrence]
+          .id
       val nestedLambdaBDefId =
         childLambda.body
           .asInstanceOf[IR.Function.Lambda]
           .arguments
           .head
-          .getMetadata[Info.Occurrence]
+          .getMetadata(AliasAnalysis)
           .get
+          .unsafeAs[Info.Occurrence]
           .id
 
       val nestedLambdaAUseId = childLambdaBody
         .asInstanceOf[IR.Application.Prefix]
         .function
-        .getMetadata[Info.Occurrence]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Occurrence]
         .id
 
       val nestedLambdaBUseId = childLambdaBody
@@ -681,20 +714,23 @@ class AliasAnalysisTest extends CompilerTest {
         .head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .getMetadata[Info.Occurrence]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Occurrence]
         .id
 
       val dDefId = topLambdaBody.expressions.head
         .asInstanceOf[IR.Expression.Binding]
-        .getMetadata[Info.Occurrence]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Occurrence]
         .id
       val dUseId = topLambdaBody.returnValue
         .asInstanceOf[IR.Application.Prefix]
         .function
-        .getMetadata[Info.Occurrence]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Occurrence]
         .id
       val dDefCUseId = topLambdaBody.returnValue
         .asInstanceOf[IR.Application.Prefix]
@@ -702,8 +738,9 @@ class AliasAnalysisTest extends CompilerTest {
         .head
         .asInstanceOf[IR.CallArgument.Specified]
         .value
-        .getMetadata[Info.Occurrence]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Occurrence]
         .id
 
       graphLinks should contain(Link(nestedLambdaAUseId, 1, nestedLambdaADefId))
@@ -722,8 +759,9 @@ class AliasAnalysisTest extends CompilerTest {
         .returnValue
         .asInstanceOf[IR.Application.Prefix]
         .function
-        .getMetadata[Info.Occurrence]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Occurrence]
         .id
 
       methodWithLambdaGraph.linksFor(unknownPlusId) shouldBe empty
@@ -746,10 +784,14 @@ class AliasAnalysisTest extends CompilerTest {
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[Method]
     val methodWithBlockGraph =
-      methodWithBlock.getMetadata[Info.Scope.Root].get.graph
+      methodWithBlock
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Scope.Root]
+        .graph
 
     "assign Info.Scope.Root metadata to the method" in {
-      val meta1 = methodWithBlock.getMetadata[AliasAnalysis.Metadata]
+      val meta1 = methodWithBlock.getMetadata(AliasAnalysis)
 
       meta1 shouldBe defined
       meta1.get shouldBe a[Info.Scope.Root]
@@ -758,14 +800,14 @@ class AliasAnalysisTest extends CompilerTest {
     "assign Info.Scope.Child to all child scopes" in {
       methodWithBlock.body
         .asInstanceOf[IR.Function.Lambda]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get shouldBe an[Info.Scope.Child]
 
       methodWithBlock.body
         .asInstanceOf[IR.Function.Lambda]
         .body
         .asInstanceOf[IR.Expression.Block]
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get shouldBe an[Info.Scope.Child]
     }
 
@@ -776,16 +818,18 @@ class AliasAnalysisTest extends CompilerTest {
       val blockChildLambdaScope =
         methodWithBlock.body
           .asInstanceOf[IR.Function.Lambda]
-          .getMetadata[Info.Scope.Child]
+          .getMetadata(AliasAnalysis)
           .get
+          .unsafeAs[Info.Scope.Child]
           .scope
       val blockChildBlockScope =
         methodWithBlock.body
           .asInstanceOf[IR.Function.Lambda]
           .body
           .asInstanceOf[IR.Expression.Block]
-          .getMetadata[Info.Scope.Child]
+          .getMetadata(AliasAnalysis)
           .get
+          .unsafeAs[Info.Scope.Child]
           .scope
 
       blockChildBlockScope shouldEqual methodWithBlockGraph.rootScope
@@ -807,28 +851,52 @@ class AliasAnalysisTest extends CompilerTest {
     val lambda   = methodWithCase.body.asInstanceOf[IR.Function.Lambda]
     val caseExpr = lambda.body.asInstanceOf[IR.Case.Expr]
 
-    val graph = methodWithCase.getMetadata[Info.Scope.Root].get.graph
+    val graph = methodWithCase
+      .getMetadata(AliasAnalysis)
+      .get
+      .as[Info.Scope.Root]
+      .get
+      .graph
 
     "expose the scrutinee in the parent scope" in {
-      val scrutineeId = caseExpr.scrutinee.getMetadata[Info.Occurrence].get.id
+      val scrutineeId = caseExpr.scrutinee
+        .getMetadata(AliasAnalysis)
+        .get
+        .as[Info.Occurrence]
+        .get
+        .id
       graph.rootScope.getOccurrence(scrutineeId) shouldBe defined
 
-      val aDefId = lambda.arguments(1).getMetadata[Info.Occurrence].get.id
+      val aDefId = lambda
+        .arguments(1)
+        .getMetadata(AliasAnalysis)
+        .get
+        .as[Info.Occurrence]
+        .get
+        .id
 
       graph.links should contain(Link(scrutineeId, 0, aDefId))
     }
 
     "create child scopes for the branch function" in {
       val consBranchScope = caseExpr.branches.head.expression
-        .getMetadata[Info.Scope.Child]
+        .getMetadata(AliasAnalysis)
         .get
+        .unsafeAs[Info.Scope.Child]
         .scope
       val nilBranchScope =
-        caseExpr.branches(1).expression.getMetadata[Info.Scope.Child].get.scope
+        caseExpr
+          .branches(1)
+          .expression
+          .getMetadata(AliasAnalysis)
+          .get
+          .unsafeAs[Info.Scope.Child]
+          .scope
       val fallbackBranchScope =
         caseExpr.fallback.get
-          .getMetadata[Info.Scope.Child]
+          .getMetadata(AliasAnalysis)
           .get
+          .unsafeAs[Info.Scope.Child]
           .scope
 
       val rootScope = graph.rootScope

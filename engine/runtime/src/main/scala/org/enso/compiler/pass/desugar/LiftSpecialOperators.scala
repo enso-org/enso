@@ -8,9 +8,10 @@ import org.enso.compiler.pass.IRPass
   * implementation) into their own special IR constructs.
   */
 case object LiftSpecialOperators extends IRPass {
+
   /** A desugaring pass does not output any data. */
-  override type Metadata = IR.Metadata.Empty
-  override type Config = IRPass.Configuration.Default
+  override type Metadata = IRPass.Metadata.Empty
+  override type Config   = IRPass.Configuration.Default
 
   override def runModule(
     ir: IR.Module,
@@ -33,7 +34,7 @@ case object LiftSpecialOperators extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression =
     ir.transformExpressions({
-      case IR.Application.Operator.Binary(l, op, r, loc, meta) =>
+      case IR.Application.Operator.Binary(l, op, r, loc, meta, _) =>
         op.name match {
           case IR.Type.Ascription.name =>
             IR.Type.Ascription(

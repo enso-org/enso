@@ -15,7 +15,7 @@ import org.enso.compiler.pass.IRPass
   * time that it runs.
   */
 case object DemandAnalysis extends IRPass {
-  override type Metadata = IR.Metadata.Empty
+  override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
   /** Executes the demand analysis process on an Enso module.
@@ -78,7 +78,7 @@ case object DemandAnalysis extends IRPass {
         analyseType(typ, isInsideApplication, isInsideCallArgument)
       case cse: IR.Case =>
         analyseCase(cse, isInsideApplication, isInsideCallArgument)
-      case block @ IR.Expression.Block(expressions, retVal, _, _, _) =>
+      case block @ IR.Expression.Block(expressions, retVal, _, _, _, _) =>
         block.copy(
           expressions = expressions.map(x =>
             analyseExpression(x, isInsideApplication, isInsideCallArgument)
@@ -86,7 +86,7 @@ case object DemandAnalysis extends IRPass {
           returnValue =
             analyseExpression(retVal, isInsideApplication, isInsideCallArgument)
         )
-      case binding @ IR.Expression.Binding(_, expression, _, _) =>
+      case binding @ IR.Expression.Binding(_, expression, _, _, _) =>
         binding.copy(expression =
           analyseExpression(
             expression,
@@ -94,8 +94,6 @@ case object DemandAnalysis extends IRPass {
             isInsideCallArgument = false
           )
         )
-      case warning: IR.Warning =>
-        analyseWarning(warning, isInsideApplication, isInsideCallArgument)
       case lit: IR.Literal     => lit
       case err: IR.Error       => err
       case foreign: IR.Foreign => foreign
@@ -104,32 +102,6 @@ case object DemandAnalysis extends IRPass {
           analyseExpression(
             x,
             isInsideApplication = false,
-            isInsideCallArgument
-          )
-        )
-    }
-  }
-
-  /** Performs demand analysis on a warning.
-    *
-    * @param warning the warning to perform demand analysis on
-    * @param isInsideApplication whether or not the warning occurs inside an
-    *                            application
-    * @param isInsideCallArgument whether or not the warning occurs inside a
-    *                             call argument
-    * @return `warning`, transformed by the demand analysis process
-    */
-  def analyseWarning(
-    warning: IR.Warning,
-    isInsideApplication: Boolean,
-    isInsideCallArgument: Boolean
-  ): IR.Warning = {
-    warning match {
-      case lp @ IR.Warning.Shadowed.LambdaParam(warnedExpr, _, _) =>
-        lp.copy(warnedExpr =
-          analyseExpression(
-            warnedExpr,
-            isInsideApplication,
             isInsideCallArgument
           )
         )
@@ -147,7 +119,7 @@ case object DemandAnalysis extends IRPass {
     function: IR.Function,
     isInsideApplication: Boolean
   ): IR.Function = function match {
-    case lam @ IR.Function.Lambda(args, body, _, _, _) =>
+    case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
       lam.copy(
         arguments = args.map(analyseDefinitionArgument),
         body = analyseExpression(
@@ -209,7 +181,7 @@ case object DemandAnalysis extends IRPass {
     isInsideApplication: Boolean,
     isInsideCallArgument: Boolean
   ): IR.Application = application match {
-    case pref @ IR.Application.Prefix(fn, args, _, _, _) =>
+    case pref @ IR.Application.Prefix(fn, args, _, _, _, _) =>
       pref.copy(
         function = analyseExpression(
           fn,
@@ -218,7 +190,7 @@ case object DemandAnalysis extends IRPass {
         ),
         arguments = args.map(analyseCallArgument)
       )
-    case force @ IR.Application.Force(target, _, _) =>
+    case force @ IR.Application.Force(target, _, _, _) =>
       force.copy(target =
         analyseExpression(
           target,
@@ -242,9 +214,12 @@ case object DemandAnalysis extends IRPass {
   def isUsageOfSuspendedTerm(expr: IR.Expression): Boolean = {
     expr match {
       case name: IR.Name =>
-        val aliasInfo = name.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
-          "Missing alias occurrence information for a name usage"
-        )
+        val aliasInfo = name
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            "Missing alias occurrence information for a name usage"
+          )
+          .unsafeAs[AliasAnalysis.Info.Occurrence]
 
         aliasInfo.graph
           .defLinkFor(aliasInfo.id)
@@ -277,7 +252,7 @@ case object DemandAnalysis extends IRPass {
     */
   def analyseCallArgument(arg: IR.CallArgument): IR.CallArgument = {
     arg match {
-      case spec @ IR.CallArgument.Specified(_, expr, _, _, _) =>
+      case spec @ IR.CallArgument.Specified(_, expr, _, _, _, _) =>
         spec.copy(
           value = analyseExpression(
             expr,
@@ -298,7 +273,7 @@ case object DemandAnalysis extends IRPass {
     arg: IR.DefinitionArgument
   ): IR.DefinitionArgument = {
     arg match {
-      case spec @ IR.DefinitionArgument.Specified(_, default, _, _, _) =>
+      case spec @ IR.DefinitionArgument.Specified(_, default, _, _, _, _) =>
         spec.copy(
           defaultValue = default.map(x =>
             analyseExpression(
@@ -343,7 +318,7 @@ case object DemandAnalysis extends IRPass {
     isInsideApplication: Boolean,
     isInsideCallArgument: Boolean
   ): IR.Case = cse match {
-    case expr @ IR.Case.Expr(scrutinee, branches, fallback, _, _) =>
+    case expr @ IR.Case.Expr(scrutinee, branches, fallback, _, _, _) =>
       expr.copy(
         scrutinee = analyseExpression(
           scrutinee,

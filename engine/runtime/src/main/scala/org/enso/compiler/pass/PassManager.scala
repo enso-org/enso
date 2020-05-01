@@ -57,7 +57,7 @@ class PassManager(
       val passCount = passCounts(pass.key)
 
       passConfiguration
-        .get[pass.Config](pass)
+        .get(pass)
         .foreach(c =>
           c.shouldWriteToContext =
             passCount.available - passCount.completed == 1
@@ -91,7 +91,7 @@ class PassManager(
       val passCount = passCounts(pass.key)
 
       passConfiguration
-        .get[pass.Config](pass)
+        .get(pass)
         .foreach(c =>
           c.shouldWriteToContext =
             passCount.available - passCount.completed == 1

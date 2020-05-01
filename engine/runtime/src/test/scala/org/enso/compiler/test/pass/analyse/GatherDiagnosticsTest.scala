@@ -39,7 +39,7 @@ class GatherDiagnosticsTest extends CompilerTest {
     "work with expression flow" in {
       val result = GatherDiagnostics.runExpression(lam, new InlineContext())
       val errors = result
-        .unsafeGetMetadata[GatherDiagnostics.Diagnostics]("Impossible")
+        .unsafeGetMetadata(GatherDiagnostics, "Impossible")
         .diagnostics
 
       errors.toSet shouldEqual Set(error1)
@@ -80,7 +80,7 @@ class GatherDiagnosticsTest extends CompilerTest {
 
       val result = GatherDiagnostics.runModule(module, ModuleContext())
       val errors = result
-        .unsafeGetMetadata[GatherDiagnostics.Diagnostics]("Impossible")
+        .unsafeGetMetadata(GatherDiagnostics, "Impossible")
         .diagnostics
 
       errors.toSet shouldEqual Set(error1, error2, error3)

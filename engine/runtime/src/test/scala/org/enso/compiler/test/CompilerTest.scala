@@ -4,7 +4,7 @@ import org.enso.compiler.codegen.AstToIR
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassManager
-import org.enso.syntax.text.Parser
+import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -12,6 +12,25 @@ trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
 
   // === IR Utilities =========================================================
+
+  /** Adds an extension method for converting a string to its AST
+    * representation.
+    *
+    * @param source the source code to convert
+    */
+  implicit class ToAST(source: String) {
+
+    /** Produces the [[AST]] representation of [[source]].
+     *
+     * @return [[source]] as an AST
+     */
+    def toAST: AST = {
+      val parser: Parser = Parser()
+      val unresolvedAST  = parser.run(source)
+
+      parser.dropMacroMeta(unresolvedAST)
+    }
+  }
 
   /** An extension method to allow converting string source code to IR as a
     * module.
@@ -25,11 +44,7 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]]
       */
     def toIrModule: IR.Module = {
-      val parser: Parser = Parser()
-      val unresolvedAST  = parser.run(source)
-      val resolvedAST    = parser.dropMacroMeta(unresolvedAST)
-
-      AstToIR.translate(resolvedAST)
+      AstToIR.translate(source.toAST)
     }
   }
 
@@ -45,11 +60,7 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]], if it is a valid expression
       */
     def toIrExpression: Option[IR.Expression] = {
-      val parser: Parser = Parser()
-      val unresolvedAST  = parser.run(source)
-      val resolvedAST    = parser.dropMacroMeta(unresolvedAST)
-
-      AstToIR.translateInline(resolvedAST)
+      AstToIR.translateInline(source.toAST)
     }
   }
 
