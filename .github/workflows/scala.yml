@@ -153,25 +153,37 @@ jobs:
     - name: Build Enso
       run: sbt --no-colors compile
 
-    # Artefacts
+    # Build Artefacts
     - name: Build the Uberjar
       run: sbt --no-colors runner/assembly
+    - name: Build the Parser JS Bundle
+      run: sbt -no-colors syntaxJS/fullOptJS
+
+    # Publish
     - name: Publish the Uberjar
       uses: actions/upload-artifact@v1.0.0
       with:
         name: Enso CLI
         path: ./enso.jar
-    - name: Build the Parser JS Bundle
-      run: sbt -no-colors syntaxJS/fullOptJS
+    - name: Prepare the FlatBuffers Schemas for Upload
+      run: |
+        mkdir fbs-upload
+        cp -r "engine/language-server/src/main/schema" fbs-upload/fbs-schema/
+        zip -r -m -ll "fbs-upload/fbs-schema.zip" "fbs-upload/fbs-schema/"
+    - name: Publish the FlatBuffers Schemas
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: Engine Protocol FlatBuffers Schemas
+        path: ./fbs-upload/fbs-schema.zip
+    - name: Prepare Parser JS Bundle for Upload
+      run: |
+        mkdir parser-upload
+        cp ./target/scala-parser.js parser-upload
     - name: Publish the Parser JS Bundle
       uses: actions/upload-artifact@v1.0.0
       with:
         name: Parser JS Bundle
         path: ./target/scala-parser.js
-    - name: Prepare Parser JS Bundle for Upload
-      run: |
-        mkdir parser_upload
-        cp ./target/scala-parser.js parser_upload
     - name: Prepare AWS Session
       run: |
         aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
@@ -182,7 +194,10 @@ jobs:
         EOF
     - name: Upload Parser JS Bundle to S3
       run: |
-        aws s3 sync ./parser_upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+        aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+    - name: Upload FlatBuffers Schemas to S3
+      run: |
+        aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
     - name: Teardown AWS Session
       run: |
         aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
