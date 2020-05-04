@@ -577,6 +577,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-protocol"
+version = "0.1.0"
+dependencies = [
+ "chrono 0.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-prelude 0.1.0",
+ "futures 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "json-rpc 0.1.0",
+ "serde 1.0.106 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.51 (registry+https://github.com/rust-lang/crates.io-index)",
+ "shapely 0.1.0",
+ "utils 0.1.0",
+ "uuid 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "ensogl"
 version = "0.1.0"
 dependencies = [
@@ -1174,6 +1189,7 @@ dependencies = [
  "data 0.1.0",
  "enso-frp 0.1.0",
  "enso-prelude 0.1.0",
+ "enso-protocol 0.1.0",
  "ensogl 0.1.0",
  "ensogl-core-msdf-sys 0.1.0",
  "ensogl-system-web 0.1.0",

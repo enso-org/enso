@@ -18,6 +18,7 @@ graph-editor             = { version = "0.1.0"  , path = "../lib/graph-editor"  
 shapely                  = { version = "0.1.0"  , path = "../lib/shapely/impl"  }
 
 ast                      = { version = "0.1.0"  , path = "ast/impl"             }
+enso-protocol            = { version = "0.1.0"  , path = "enso-protocol"        }
 file-manager-client      = { version = "0.1.0"  , path = "file-manager"         }
 json-rpc                 = { version = "0.1.0"  , path = "json-rpc"             }
 parser                   = { version = "0.1.0"  , path = "parser"               }
