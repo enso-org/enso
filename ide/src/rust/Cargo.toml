@@ -8,6 +8,7 @@ members = [
     "ide",
     "ide/ast/impl",
     "ide/ast/macros",
+    "ide/enso-protocol",
     "ide/file-manager",
     "ide/file-manager/mock-server",
     "ide/json-rpc",
