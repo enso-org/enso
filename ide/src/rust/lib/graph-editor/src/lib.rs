@@ -137,6 +137,26 @@ impl WeakNodeSelectionSet {
     }
 }
 
+// ==================
+// === Connection ===
+// ==================
+
+/// Endpoint of connection. This struct is used for connection identification.
+#[derive(Clone,Debug)]
+pub struct Endpoint {
+    //Note[ao] actually I would be happy if I could put here something like "node id" instead of
+    //handle. The handle is problematic when it comes to comparing and storing structures in
+    //HashSet.
+    pub node : WeakNode,
+    pub port : Vec<span_tree::node::Crumb>,
+}
+
+/// Some connection identification
+#[derive(Clone,Debug)]
+pub struct Connection {
+    pub source      : Endpoint,
+    pub destination : Endpoint,
+}
 
 
 #[derive(Debug,Clone,CloneRef)]
@@ -144,7 +164,18 @@ pub struct GraphEditorFrp {
     pub network : frp::Network,
     pub inputs  : FrpInputs,
     pub status  : FrpStatus,
-    pub node_release : frp::Stream<Option<WeakNode>>
+
+    pub node_release                   : frp::Stream<Option<WeakNode>>,
+    //Note[ao] Here "by_command" means: by keyboard action or mouse event.
+    pub connections_removed_by_command : frp::Stream<Vec<Connection>>,
+    pub connections_added_by_command   : frp::Stream<Vec<Connection>>,
+    //Note[ao] in theory I can just attach to the events in `command` structure, but I need to get
+    // the list of removed nodes, and I'm not quaranteed, that the nodes will still exist
+    // when I receive my event (perhaps the actual removing will be processed first).
+    //
+    // Now it is "hacky" because I directly bind to the Js keyboard input events (I wrote it
+    // before the Keyboard management get the current shape).
+    pub nodes_removed_by_command       : frp::Stream<Vec<WeakNode>>,
 }
 
 impl Deref for GraphEditorFrp {
@@ -188,9 +219,21 @@ pub struct FrpInputs {
     #[shrinkwrap(main_field)]
     commands                     : Commands,
     register_node                : frp::Source<Node>,
+    // Node[ao]: Remember, that NodeEditor currently does not use this endpoint, because it needs to
+    // get the node reference after adding (it keeps mapping between node ids from double rep to the
+    // WeakNode.
     pub add_node_at              : frp::Source<Position>,
     pub select_node              : frp::Source<Option<WeakNode>>,
     pub translate_selected_nodes : frp::Source<Position>,
+
+    // Node[ao]: options are here, because FRP requires Default.
+    pub add_connection           : frp::Source<Option<Connection>>,
+    pub remove_connection        : frp::Source<Option<Connection>>,
+    // Note[ao]: as a reminder: pattern is a left side of assignment, expression here is the right
+    // side (or the whole line if there is no assignment). You can pick better names if you want.
+    pub set_expression_span_tree : frp::Source<Option<(WeakNode, span_tree::SpanTree)>>,
+    // Note[ao]: Here I can send `None` sometimes, because node can lose its pattern.
+    pub set_pattern_span_tree    : frp::Source<Option<(WeakNode, span_tree::SpanTree)>>,
 }
 
 impl FrpInputs {
@@ -201,8 +244,13 @@ impl FrpInputs {
             def add_node_at              = source();
             def select_node              = source();
             def translate_selected_nodes = source();
+            def add_connection           = source();
+            def remove_connection        = source();
+            def set_expression_span_tree = source();
+            def set_pattern_span_tree    = source();
         }
-        Self {commands,register_node,add_node_at,select_node,translate_selected_nodes}
+        Self {commands,register_node,add_node_at,select_node,translate_selected_nodes,
+            add_connection,remove_connection,set_expression_span_tree,set_pattern_span_tree}
     }
 
     fn register_node<T: AsRef<Node>>(&self, arg: T) {
@@ -484,6 +532,9 @@ impl application::View for GraphEditor {
         def is_active = is_active_src.sampler();
         def is_empty  = is_empty_src.sampler();
 
+        def connections_removed_by_command = source::<Vec<Connection>>().into();
+        def connections_added_by_command   = source::<Vec<Connection>>().into();
+        def nodes_removed_by_command       = source::<Vec<WeakNode>>().into();
         }
 
         // FIXME This is a temporary solution. Should be replaced by a real thing once layout
@@ -493,7 +544,8 @@ impl application::View for GraphEditor {
         let status = FrpStatus {is_active,is_empty};
 
         let node_release = touch.nodes.up;
-        let frp = GraphEditorFrp {network,inputs,status,node_release};
+        let frp = GraphEditorFrp {network,inputs,status,node_release,connections_removed_by_command,
+            connections_added_by_command,nodes_removed_by_command};
 
         Self {logger,frp,nodes,display_object}
     }
