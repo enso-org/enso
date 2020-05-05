@@ -6,6 +6,7 @@ import java.util.UUID
 import java.util.function.Consumer
 
 import com.oracle.truffle.api.TruffleContext
+import org.enso.interpreter.instrument.Cache
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
@@ -61,6 +62,7 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
 final class Handler {
   val endpoint       = new Endpoint(this)
   val contextManager = new ExecutionContextManager
+  val cache          = new Cache
 
   var executionService: ExecutionService = _
   var truffleContext: TruffleContext     = _
@@ -153,11 +155,17 @@ final class Handler {
           file,
           cons,
           function,
+          cache,
           valsCallback,
           callablesCallback
         )
       case ExecutionItem.CallData(callData) =>
-        executionService.execute(callData, valsCallback, callablesCallback)
+        executionService.execute(
+          callData,
+          cache,
+          valsCallback,
+          callablesCallback
+        )
     }
 
     callStack match {

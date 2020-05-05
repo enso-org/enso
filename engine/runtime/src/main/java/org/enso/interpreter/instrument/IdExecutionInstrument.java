@@ -41,8 +41,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
 
   /** A class for notifications about functions being called in the course of execution. */
   public static class ExpressionCall {
-    private UUID expressionId;
-    private FunctionCallInstrumentationNode.FunctionCall call;
+    private final UUID expressionId;
+    private final FunctionCallInstrumentationNode.FunctionCall call;
 
     /**
      * Creates an instance of this class.
@@ -125,63 +125,56 @@ public class IdExecutionInstrument extends TruffleInstrument {
     }
   }
 
-  /**
-   * Attach a new listener to observe identified nodes within given function.
-   *
-   * @param entryCallTarget the call target being observed.
-   * @param funSourceStart the source start of the observed range of ids.
-   * @param funSourceLength the length of the observed source range.
-   * @param valueCallback the consumer of the node value events.
-   * @param functionCallCallback the consumer of function call events.
-   * @return a reference to the attached event listener.
-   */
-  public EventBinding<ExecutionEventListener> bind(
-      CallTarget entryCallTarget,
-      int funSourceStart,
-      int funSourceLength,
-      Consumer<ExpressionValue> valueCallback,
-      Consumer<ExpressionCall> functionCallCallback) {
-    SourceSectionFilter filter =
-        SourceSectionFilter.newBuilder()
-            .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
-            .tagIs(IdentifiedTag.class)
-            .indexIn(funSourceStart, funSourceLength)
-            .build();
-
-    EventBinding<ExecutionEventListener> binding =
-        env.getInstrumenter()
-            .attachExecutionEventListener(
-                filter,
-                new IdExecutionEventListener(entryCallTarget, functionCallCallback, valueCallback));
-    return binding;
-  }
-
   /** The listener class used by this instrument. */
   private static class IdExecutionEventListener implements ExecutionEventListener {
     private final CallTarget entryCallTarget;
     private final Consumer<ExpressionCall> functionCallCallback;
     private final Consumer<ExpressionValue> valueCallback;
-    private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> calls;
+    private final Cache cache;
+    private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> calls = new HashMap<>();
 
     /**
      * Creates a new listener.
      *
      * @param entryCallTarget the call target being observed.
+     * @param cache the precomputed expression values.
      * @param functionCallCallback the consumer of function call events.
      * @param valueCallback the consumer of the node value events.
      */
     public IdExecutionEventListener(
         CallTarget entryCallTarget,
+        Cache cache,
         Consumer<ExpressionCall> functionCallCallback,
         Consumer<ExpressionValue> valueCallback) {
       this.entryCallTarget = entryCallTarget;
+      this.cache = cache;
       this.functionCallCallback = functionCallCallback;
       this.valueCallback = valueCallback;
-      this.calls = new HashMap<UUID, FunctionCallInstrumentationNode.FunctionCall>();
     }
 
     @Override
-    public void onEnter(EventContext context, VirtualFrame frame) {}
+    public Object onUnwind(EventContext context, VirtualFrame frame, Object info) {
+      return info;
+    }
+
+    @Override
+    public void onEnter(EventContext context, VirtualFrame frame) {
+      if (!isTopFrame(entryCallTarget)) {
+        return;
+      }
+      Node node = context.getInstrumentedNode();
+      UUID nodeId = null;
+      if (node instanceof FunctionCallInstrumentationNode) {
+        nodeId = ((FunctionCallInstrumentationNode) node).getId();
+      } else if (node instanceof ExpressionNode) {
+        nodeId = ((ExpressionNode) node).getId();
+      }
+
+      Object overrideValue = cache.get(nodeId);
+      if (overrideValue != null) {
+        throw context.createUnwind(overrideValue);
+      }
+    }
 
     /**
      * Triggered when a node (either a function call sentry or an identified expression) finishes
@@ -246,5 +239,38 @@ public class IdExecutionInstrument extends TruffleInstrument {
                   });
       return result == null;
     }
+  }
+
+  /**
+   * Attach a new listener to observe identified nodes within given function.
+   *
+   * @param entryCallTarget the call target being observed.
+   * @param funSourceStart the source start of the observed range of ids.
+   * @param funSourceLength the length of the observed source range.
+   * @param cache the precomputed expression values.
+   * @param valueCallback the consumer of the node value events.
+   * @param functionCallCallback the consumer of function call events.
+   * @return a reference to the attached event listener.
+   */
+  public EventBinding<ExecutionEventListener> bind(
+      CallTarget entryCallTarget,
+      int funSourceStart,
+      int funSourceLength,
+      Cache cache,
+      Consumer<ExpressionValue> valueCallback,
+      Consumer<ExpressionCall> functionCallCallback) {
+    SourceSectionFilter filter =
+        SourceSectionFilter.newBuilder()
+            .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
+            .tagIs(IdentifiedTag.class)
+            .indexIn(funSourceStart, funSourceLength)
+            .build();
+
+    EventBinding<ExecutionEventListener> binding =
+        env.getInstrumenter()
+            .attachExecutionEventListener(
+                filter,
+                new IdExecutionEventListener(entryCallTarget, cache, functionCallCallback, valueCallback));
+    return binding;
   }
 }

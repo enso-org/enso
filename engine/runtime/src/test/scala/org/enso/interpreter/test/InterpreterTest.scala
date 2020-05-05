@@ -7,8 +7,7 @@ import com.oracle.truffle.api.instrumentation.EventBinding
 import org.enso.interpreter.instrument.{
   FunctionCallExtractorInstrument,
   ReplDebuggerInstrument,
-  ValueExtractorInstrument,
-  ValueOverrideInstrument
+  ValueExtractorInstrument
 }
 import org.enso.interpreter.test.CodeIdsTestInstrument.IdEventListener
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
@@ -149,12 +148,6 @@ trait InterpreterRunner {
     ctx.getEngine.getInstruments
       .get(FunctionCallExtractorInstrument.INSTRUMENT_ID)
       .lookup(classOf[FunctionCallExtractorInstrument])
-  }
-
-  def getValueOverrideInstrument: ValueOverrideInstrument = {
-    ctx.getEngine.getInstruments
-      .get(ValueOverrideInstrument.INSTRUMENT_ID)
-      .lookup(classOf[ValueOverrideInstrument])
   }
 
   // For Enso raw text blocks inside scala multiline strings
