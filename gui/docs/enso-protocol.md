@@ -4,8 +4,8 @@ found in the [enso protocol specification document](https://github.com/luna/enso
 
 # Setup
 Follow the contribution guidelines of [Enso repository](https://github.com/luna/enso/blob/master/CONTRIBUTING.md#hacking-on-enso)
-to setup the project. Once you have all the requirements configured, you are able to run the project
-manager service with the command bellow:
+to setup the project. Once you have all the requirements configured, you are able to run the 
+project manager service with the command bellow:
  
 luna/enso$ `sbt -java-home $JAVA_HOME -J-Xss10M project-manager/run`
  

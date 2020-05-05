@@ -40,7 +40,7 @@ trait API {
     /// includes spawning an instance of the language server open on the specified project.
     #[MethodInput=OpenProjectInput,rpc_name="project/open",result=open_project_result,
     set_result=set_open_project_result]
-    fn open_project(&self, project_id:Uuid) -> OpenProjectResponse;
+    fn open_project(&self, project_id:Uuid) -> response::OpenProject;
 
     /// Request the project picker to close a specified project. This operation
     /// includes shutting down the language server gracefully so that it can persist state to disk
@@ -52,12 +52,12 @@ trait API {
     /// Request the project picker to list the user's most recently opened projects.
     #[MethodInput=ListRecentProjectsInput,rpc_name="project/listRecent",
     result=list_recent_projects_result,set_result=set_list_recent_projects_result]
-    fn list_recent_projects(&self, number_of_projects:u32) -> ProjectListResponse;
+    fn list_recent_projects(&self, number_of_projects:u32) -> response::ProjectList;
 
     /// Request the creation of a new project.
     #[MethodInput=CreateProjectInput,rpc_name="project/create",result=create_project_result,
     set_result=set_create_project_result]
-    fn create_project(&self, name:String) -> CreateProjectResponse;
+    fn create_project(&self, name:String) -> response::CreateProject;
 
     /// Request the deletion of a project.
     #[MethodInput=DeleteProjectInput,rpc_name="project/delete",result=delete_project_result,
@@ -67,7 +67,7 @@ trait API {
     /// Request a list of sample projects that are available to the user.
     #[MethodInput=ListSamplesInput,rpc_name="project/listSample",result=list_samples_result,
     set_result=set_list_samples_result]
-    fn list_samples(&self, num_projects:u32) -> ProjectListResponse;
+    fn list_samples(&self, num_projects:u32) -> response::ProjectList;
 }}
 
 
@@ -104,27 +104,33 @@ pub struct ProjectMetadata {
     pub last_opened : Option<UTCDateTime>
 }
 
-/// Response of `list_recent_projects` and `list_samples`.
-#[derive(Debug,Clone,Serialize,Deserialize,PartialEq)]
-pub struct ProjectListResponse {
-    /// List of projects.
-    pub projects : Vec<ProjectMetadata>
-}
 
-/// Response of `create_project`.
-#[derive(Debug,Clone,Copy,Serialize,Deserialize,PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateProjectResponse {
-    /// Created project uuid.
-    pub project_id : Uuid
-}
+/// Wrappers for RPC method responses.
+pub mod response {
+    use super::*;
 
-/// Response of `open_project`.
-#[derive(Debug,Clone,Serialize,Deserialize,PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct OpenProjectResponse {
-    /// Language server address.
-    pub language_server_address : IpWithSocket
+    /// Response of `list_recent_projects` and `list_samples`.
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    pub struct ProjectList {
+        /// List of projects.
+        pub projects: Vec<ProjectMetadata>
+    }
+
+    /// Response of `create_project`.
+    #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub struct CreateProject {
+        /// Created project uuid.
+        pub project_id: Uuid
+    }
+
+    /// Response of `open_project`.
+    #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    pub struct OpenProject {
+        /// Language server address.
+        pub language_server_address: IpWithSocket
+    }
 }
 
 
@@ -161,11 +167,11 @@ mod mock_client_tests {
     fn project_life_cycle() {
         let mock_client             = MockClient::default();
         let expected_uuid           = Uuid::default();
-        let creation_response       = CreateProjectResponse { project_id : expected_uuid.clone() };
+        let creation_response       = response::CreateProject {project_id : expected_uuid.clone()};
         let host                    = "localhost".to_string();
         let port                    = 30500;
         let language_server_address = IpWithSocket {host,port};
-        let expected_ip_with_socket = OpenProjectResponse { language_server_address };
+        let expected_ip_with_socket = response::OpenProject {language_server_address};
         let open_result             = Ok(expected_ip_with_socket.clone());
         mock_client.set_create_project_result("HelloWorld".into(),Ok(creation_response));
         mock_client.set_open_project_result(expected_uuid.clone(),open_result);
@@ -206,7 +212,7 @@ mod mock_client_tests {
             id          : Uuid::default(),
             last_opened : Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap())
         };
-        let expected_recent_projects = ProjectListResponse { projects : vec![project1,project2] };
+        let expected_recent_projects = response::ProjectList { projects : vec![project1,project2] };
         let sample1 = ProjectMetadata {
             name        : ProjectName { name : "sample1".to_string() },
             id          : Uuid::default(),
@@ -217,7 +223,7 @@ mod mock_client_tests {
             id          : Uuid::default(),
             last_opened : Some(DateTime::parse_from_rfc3339("2019-12-25T00:10:58Z").unwrap())
         };
-        let expected_sample_projects = ProjectListResponse { projects : vec![sample1,sample2] };
+        let expected_sample_projects = response::ProjectList { projects : vec![sample1,sample2] };
         mock_client.set_list_recent_projects_result(2,Ok(expected_recent_projects.clone()));
         mock_client.set_list_samples_result(2,Ok(expected_sample_projects.clone()));
 
@@ -264,7 +270,7 @@ mod remote_client_tests {
         Fixture {transport,client,executor}
     }
 
-    /// Tests making a request using file manager:
+    /// Tests making a request using project manager:
     /// * creates PM client and uses `make_request` to make a request
     /// * checks that request is made for `expected_method`
     /// * checks that request input is `expected_input`
@@ -275,10 +281,10 @@ mod remote_client_tests {
     , expected_method : &str
     , expected_input  : &Value
     , result          : &Value
-    , expected_output : &T)
-        where Fun : FnOnce(&mut Client) -> Fut,
-              Fut : Future<Output = Result<T>>,
-              T   : Debug + PartialEq {
+    , expected_output : &T
+    ) where Fun : FnOnce(&mut Client) -> Fut,
+            Fut : Future<Output = Result<T>>,
+              T : Debug + PartialEq {
         let mut fixture = setup_fm();
         let mut fut     = Box::pin(make_request(&mut fixture.client));
 
@@ -297,10 +303,10 @@ mod remote_client_tests {
     fn test_requests() {
         let unit_json               = json!(null);
         let project_id              = Uuid::default();
-        let create_project_response = CreateProjectResponse { project_id };
+        let create_project_response = response::CreateProject { project_id };
         let project_id_json         = json!({"projectId":"00000000-0000-0000-0000-000000000000"});
         let language_server_address = IpWithSocket{host:"localhost".to_string(),port:27015};
-        let ip_with_address         = OpenProjectResponse { language_server_address };
+        let ip_with_address         = response::OpenProject {language_server_address};
         let ip_with_address_json    = json!({
             "languageServerAddress" : {
                 "host" : "localhost",
@@ -322,7 +328,7 @@ mod remote_client_tests {
             id          : Uuid::default(),
             last_opened : Some(DateTime::parse_from_rfc3339("2020-02-02T13:15:20Z").unwrap())
         };
-        let project_list      = ProjectListResponse { projects : vec![project1,project2] };
+        let project_list      = response::ProjectList { projects : vec![project1,project2] };
         let project_list_json = json!({
             "projects" : [
                 {

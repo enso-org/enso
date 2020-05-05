@@ -10,7 +10,7 @@
 #![warn(missing_debug_implementations)]
 
 pub mod types;
-pub mod file_manager;
+pub mod language_server;
 pub mod project_manager;
 
 pub use enso_prelude as prelude;
