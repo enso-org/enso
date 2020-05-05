@@ -38,7 +38,7 @@ public abstract class AssignmentNode extends ExpressionNode {
    * @param ctx language context for global values access
    * @return the unit type
    */
-  @Specialization
+  @Specialization(guards = "isLongOrIllegal(frame)")
   protected Object writeLong(
       VirtualFrame frame, long value, @CachedContext(Language.class) Context ctx) {
     frame.getFrameDescriptor().setFrameSlotKind(getFrameSlot(), FrameSlotKind.Long);
@@ -62,6 +62,11 @@ public abstract class AssignmentNode extends ExpressionNode {
     frame.setObject(getFrameSlot(), value);
 
     return ctx.getUnit().newInstance();
+  }
+
+  boolean isLongOrIllegal(VirtualFrame frame) {
+    FrameSlotKind kind = frame.getFrameDescriptor().getFrameSlotKind(getFrameSlot());
+    return kind == FrameSlotKind.Long || kind == FrameSlotKind.Illegal;
   }
 
   /**

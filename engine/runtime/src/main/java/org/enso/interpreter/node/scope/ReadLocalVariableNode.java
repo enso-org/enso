@@ -16,10 +16,10 @@ import org.enso.interpreter.runtime.scope.FramePointer;
 /** Reads from a local target (variable or call target). */
 @NodeInfo(shortName = "readVar", description = "Access local variable value.")
 @NodeField(name = "framePointer", type = FramePointer.class)
-public abstract class ReadLocalTargetNode extends ExpressionNode {
+public abstract class ReadLocalVariableNode extends ExpressionNode {
   public abstract FramePointer getFramePointer();
 
-  ReadLocalTargetNode() {}
+  ReadLocalVariableNode() {}
 
   /**
    * Creates an instance of this node.
@@ -27,8 +27,8 @@ public abstract class ReadLocalTargetNode extends ExpressionNode {
    * @param pointer the pointer to the local target
    * @return a node that reads from {@code pointer}
    */
-  public static ReadLocalTargetNode build(FramePointer pointer) {
-    return ReadLocalTargetNodeGen.create(pointer);
+  public static ReadLocalVariableNode build(FramePointer pointer) {
+    return ReadLocalVariableNodeGen.create(pointer);
   }
 
   /**

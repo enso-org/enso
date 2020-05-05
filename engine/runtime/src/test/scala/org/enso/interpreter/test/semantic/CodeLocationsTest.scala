@@ -4,7 +4,7 @@ import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.callable.thunk.ForceNode
 import org.enso.interpreter.node.controlflow.MatchNode
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
-import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalTargetNode}
+import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.test.InterpreterTest
 
 class CodeLocationsTest extends InterpreterTest {
@@ -63,9 +63,9 @@ class CodeLocationsTest extends InterpreterTest {
         |""".stripMargin
     instrumenter.assertNodeExists(12, 13, classOf[AssignmentNode])
     instrumenter.assertNodeExists(30, 9, classOf[AssignmentNode])
-    instrumenter.assertNodeExists(34, 1, classOf[ReadLocalTargetNode])
-    instrumenter.assertNodeExists(38, 1, classOf[ReadLocalTargetNode])
-    instrumenter.assertNodeExists(55, 1, classOf[ReadLocalTargetNode])
+    instrumenter.assertNodeExists(34, 1, classOf[ReadLocalVariableNode])
+    instrumenter.assertNodeExists(38, 1, classOf[ReadLocalVariableNode])
+    instrumenter.assertNodeExists(55, 1, classOf[ReadLocalVariableNode])
     eval(code)
     ()
   }
@@ -83,8 +83,9 @@ class CodeLocationsTest extends InterpreterTest {
         |
         |main = Unit.method
         |""".stripMargin
+
     instrumenter.assertNodeExists(80, 5, classOf[ApplicationNode])
-    instrumenter.assertNodeExists(98, 1, classOf[ReadLocalTargetNode])
+    instrumenter.assertNodeExists(98, 1, classOf[ReadLocalVariableNode])
     instrumenter.assertNodeExists(94, 7, classOf[ApplicationNode])
     instrumenter.assertNodeExists(106, 9, classOf[ApplicationNode])
     eval(code)
@@ -145,9 +146,10 @@ class CodeLocationsTest extends InterpreterTest {
         |    foo = x -> (y = bar x) -> x + y
         |    foo 0
         |""".stripMargin
+
     instrumenter.assertNodeExists(53, 5, classOf[ApplicationNode])
-    instrumenter.assertNodeExists(53, 3, classOf[ReadLocalTargetNode])
-    instrumenter.assertNodeExists(57, 1, classOf[ReadLocalTargetNode])
+    instrumenter.assertNodeExists(53, 3, classOf[ReadLocalVariableNode])
+    instrumenter.assertNodeExists(57, 1, classOf[ReadLocalVariableNode])
     eval(code)
     ()
   }

@@ -30,7 +30,7 @@ import org.enso.interpreter.node.expression.literal.{
   IntegerLiteralNode,
   TextLiteralNode
 }
-import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalTargetNode}
+import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.node.{
   ClosureRootNode,
   ExpressionNode => RuntimeExpression
@@ -543,7 +543,7 @@ class IRToTruffle(
           if (nameStr == Constants.Names.CURRENT_MODULE) {
             ConstructorNode.build(moduleScope.getAssociatedType)
           } else if (slot.isDefined) {
-            ReadLocalTargetNode.build(slot.get)
+            ReadLocalVariableNode.build(slot.get)
           } else if (atomCons.isDefined) {
             ConstructorNode.build(atomCons.get)
           } else {
