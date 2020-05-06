@@ -8,6 +8,38 @@ use ast::known;
 /// Node Id is the Ast Id attached to the node's expression.
 pub type Id = ast::Id;
 
+
+
+// =============
+// === Error ===
+// =============
+
+#[allow(missing_docs)]
+#[derive(Clone,Copy,Fail,Debug)]
+#[fail(display="Node with ID {} was not found.", id)]
+pub struct IdNotFound {pub id:Id}
+
+
+
+// ===============
+// === General ===
+// ===============
+
+/// Tests if given line contents can be seen as node with a given id
+pub fn is_node_by_id(line:&ast::BlockLine<Option<Ast>>, id:ast::Id) -> bool {
+    let node_info  = NodeInfo::from_block_line(line);
+    node_info.contains_if(|node| node.id() == id)
+}
+
+/// Searches for `NodeInfo` with the associated `id` index in `lines`. Returns an error if
+/// the Id is not found.
+pub fn index_in_lines(lines:&[ast::BlockLine<Option<Ast>>], id:ast::Id) -> FallibleResult<usize> {
+    let position = lines.iter().position(|line| is_node_by_id(&line,id));
+    position.ok_or_else(|| IdNotFound{id}.into())
+}
+
+
+
 // ================
 // === NodeInfo ===
 // ================
@@ -44,6 +76,11 @@ impl NodeInfo {
         } else {
             Self::new_expression(ast.clone())
         }
+    }
+
+    /// Tries to interpret AST as node, treating whole AST as an expression.
+    pub fn from_block_line(line:&ast::BlockLine<Option<Ast>>) -> Option<NodeInfo> {
+        Self::from_line_ast(line.elem.as_ref()?)
     }
 
     /// Node's unique ID.

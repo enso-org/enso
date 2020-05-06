@@ -550,6 +550,25 @@ impl Handle {
         }
     }
 
+    /// Reorders lines so the former node is placed after the latter.
+    /// Does nothing, if the latter node is already placed after former.
+    pub fn place_node_line_after
+    (&self, node_to_be_before:node::Id, node_to_be_after:node::Id) -> FallibleResult<()> {
+        let definition = self.graph_definition_info()?;
+        let mut lines  = definition.block_lines()?;
+
+        let before_node_position = node::index_in_lines(&lines,node_to_be_before)?;
+        let after_node_position  = node::index_in_lines(&lines,node_to_be_after)?;
+        if before_node_position > after_node_position {
+            lines[after_node_position..=before_node_position].rotate_left(1);
+            self.update_definition_ast(|mut def| {
+                def.set_block_lines(lines)?;
+                Ok(def)
+            })?;
+        }
+        Ok(())
+    }
+
     /// Create connection in graph.
     pub fn connect(&self, connection:&Connection) -> FallibleResult<()> {
         if connection.source.port.is_empty() {
@@ -562,7 +581,13 @@ impl Handle {
         let destination_info         = self.destination_info(connection)?;
         let source_identifier        = source_info.target_ast()?.clone();
         let updated_target_node_expr = destination_info.set(source_identifier)?;
-        self.set_expression_ast(connection.destination.node, updated_target_node_expr)
+        self.set_expression_ast(connection.destination.node,updated_target_node_expr)?;
+
+        // Reorder node lines, so the connection target is after connection source.
+        // Actually this is needed only in some order-dependant context. Once we have better
+        // information about the graph's underlying monadic context, we might want to constrain
+        // this operation.
+        self.place_node_line_after(connection.source.node,connection.destination.node)
     }
 
     /// Remove the connections from the graph.
@@ -1043,6 +1068,37 @@ main =
         }
     }
 
+    #[wasm_bindgen_test]
+    fn graph_controller_create_connection_reordering() {
+        let mut test  = GraphControllerFixture::set_up();
+        const PROGRAM:&str = r"main =
+    sum = _ + _
+    a = 1
+    b = 3";
+        const EXPECTED:&str = r"main =
+    a = 1
+    b = 3
+    sum = _ + b";
+        test.run_graph_for_main(PROGRAM, "main", |_, graph| async move {
+            assert!(graph.connections().unwrap().connections.is_empty());
+            let (node0,node1,node2) = graph.nodes().unwrap().expect_tuple();
+            let connection_to_add = Connection {
+                source : Endpoint {
+                    node      : node2.info.id(),
+                    port      : vec![],
+                    var_crumbs: vec![]
+                },
+                destination : Endpoint {
+                    node      : node0.info.id(),
+                    port      : vec![4], // `_` in `print _`
+                    var_crumbs: vec![]
+                }
+            };
+            graph.connect(&connection_to_add).unwrap();
+            let new_main = graph.graph_definition_info().unwrap().ast.repr();
+            assert_eq!(new_main,EXPECTED);
+        })
+    }
 
     #[wasm_bindgen_test]
     fn graph_controller_create_connection_introducing_var() {
