@@ -1,6 +1,6 @@
 include "util.fbs";
 include "session.fbs";
-include "execution-context.fbs";
+include "execution_context.fbs";
 
 namespace org.enso.languageserver.protocol.data.envelope;
 

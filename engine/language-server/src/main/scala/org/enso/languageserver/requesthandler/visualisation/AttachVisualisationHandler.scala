@@ -8,8 +8,7 @@ import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.VisualisationApi.AttachVisualisation
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
-  RuntimeFailureMapper,
-  VisualisationProtocol
+  RuntimeFailureMapper
 }
 import org.enso.languageserver.util.UnhandledLogging
 
@@ -36,7 +35,7 @@ class AttachVisualisationHandler(
 
   private def requestStage: Receive = {
     case Request(AttachVisualisation, id, params: AttachVisualisation.Params) =>
-      contextRegistry ! VisualisationProtocol.AttachVisualisation(
+      contextRegistry ! ContextRegistryProtocol.AttachVisualisation(
         clientId,
         params.visualisationId,
         params.expressionId,
@@ -57,7 +56,7 @@ class AttachVisualisationHandler(
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case VisualisationProtocol.VisualisationAttached =>
+    case ContextRegistryProtocol.VisualisationAttached =>
       replyTo ! ResponseResult(AttachVisualisation, id, Unused)
       cancellable.cancel()
       context.stop(self)

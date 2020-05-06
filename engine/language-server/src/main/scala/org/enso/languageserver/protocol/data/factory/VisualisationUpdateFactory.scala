@@ -2,7 +2,7 @@ package org.enso.languageserver.protocol.data.factory
 
 import com.google.flatbuffers.FlatBufferBuilder
 import org.enso.languageserver.protocol.data.executioncontext
-import org.enso.languageserver.runtime.VisualisationProtocol.{
+import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualisationContext,
   VisualisationUpdate
 }

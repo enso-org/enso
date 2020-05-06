@@ -5,8 +5,14 @@ import java.nio.ByteBuffer
 import java.util.UUID
 import java.util.function.Consumer
 
+import cats.implicits._
 import com.oracle.truffle.api.TruffleContext
 import org.enso.interpreter.instrument.Cache
+import org.enso.interpeter.instrument.Handler.{
+  EvalFailure,
+  EvaluationFailed,
+  ModuleNotFound
+}
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
@@ -14,11 +20,19 @@ import org.enso.interpreter.instrument.IdExecutionInstrument.{
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.service.ExecutionService
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.{
+  ContextId,
+  ExpressionId,
+  RequestId,
+  VisualisationId
+}
+import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 import org.graalvm.polyglot.io.MessageEndpoint
 
-import scala.jdk.javaapi.OptionConverters
 import scala.jdk.CollectionConverters._
+import scala.jdk.javaapi.OptionConverters
+import scala.util.control.NonFatal
+import cats.implicits._
 
 /**
   * A message endpoint implementation used by the
@@ -95,9 +109,17 @@ final class Handler {
     case class CallData(callData: FunctionCall) extends ExecutionItem
   }
 
-  private def sendUpdate(
+  private def onExpressionValueComputed(
     contextId: Api.ContextId,
-    res: ExpressionValue
+    value: ExpressionValue
+  ): Unit = {
+    sendValueUpdate(contextId, value)
+    fireVisualisationUpdates(contextId, value)
+  }
+
+  private def sendValueUpdate(
+    contextId: ContextId,
+    value: ExpressionValue
   ): Unit = {
     endpoint.sendToClient(
       Api.Response(
@@ -105,15 +127,72 @@ final class Handler {
           contextId,
           Vector(
             Api.ExpressionValueUpdate(
-              res.getExpressionId,
-              OptionConverters.toScala(res.getType),
-              Some(res.getValue.toString),
-              toMethodPointer(res)
+              value.getExpressionId,
+              OptionConverters.toScala(value.getType),
+              Some(value.getValue.toString),
+              toMethodPointer(value)
             )
           )
         )
       )
     )
+  }
+
+  private def fireVisualisationUpdates(
+    contextId: ContextId,
+    value: ExpressionValue
+  ): Unit = {
+    val visualisations =
+      contextManager.findVisualisationForExpression(
+        contextId,
+        value.getExpressionId
+      )
+    visualisations foreach { visualisation =>
+      emitVisualisationUpdate(contextId, value, visualisation)
+    }
+  }
+
+  private def emitVisualisationUpdate(
+    contextId: ContextId,
+    value: ExpressionValue,
+    visualisation: Visualisation
+  ): Unit = {
+    val errorMsgOrVisualisationData =
+      Either
+        .catchNonFatal {
+          executionService.callFunction(
+            visualisation.callback,
+            value.getValue
+          )
+        }
+        .leftMap(_.getMessage)
+        .flatMap {
+          case text: String       => Right(text.getBytes("UTF-8"))
+          case bytes: Array[Byte] => Right(bytes)
+          case other =>
+            Left(s"Cannot encode ${other.getClass} to byte array")
+        }
+
+    errorMsgOrVisualisationData match {
+      case Left(msg) =>
+        endpoint.sendToClient(
+          Api.Response(Api.VisualisationEvaluationFailed(msg))
+        )
+
+      case Right(data) =>
+        endpoint.sendToClient(
+          Api.Response(
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                visualisation.id,
+                contextId,
+                value.getExpressionId
+              ),
+              data
+            )
+          )
+        )
+    }
   }
 
   private def toMethodPointer(
@@ -199,7 +278,11 @@ final class Handler {
       }
     val (explicitCalls, localCalls) = unwind(stack, Nil, Nil)
     explicitCalls.headOption.foreach { item =>
-      execute(toExecutionItem(item), localCalls, sendUpdate(contextId, _))
+      execute(
+        toExecutionItem(item),
+        localCalls,
+        onExpressionValueComputed(contextId, _)
+      )
     }
   }
 
@@ -218,7 +301,7 @@ final class Handler {
       call.methodPointer.name
     )
 
-  private def withContext(action: => Unit): Unit = {
+  private def withContext[A](action: => A): A = {
     val token = truffleContext.enter()
     try {
       action
@@ -322,7 +405,161 @@ final class Handler {
         executionService.modifyModuleSources(path, edits.asJava)
         withContext(executeAll())
 
-      case _ => throw new RuntimeException("Unhandled cases.")
+      case Api.AttachVisualisation(visualisationId, expressionId, config) =>
+        if (contextManager.contains(config.executionContextId)) {
+          upsertVisualisation(
+            requestId,
+            visualisationId,
+            expressionId,
+            config,
+            Api.VisualisationAttached()
+          )
+        } else {
+          endpoint.sendToClient(
+            Api.Response(
+              requestId,
+              Api.ContextNotExistError(config.executionContextId)
+            )
+          )
+        }
+
+      case Api.DetachVisualisation(ctxId, visualisationId, exprId) =>
+        if (contextManager.contains(ctxId)) {
+          contextManager.removeVisualisation(ctxId, exprId, visualisationId)
+          endpoint.sendToClient(
+            Api.Response(
+              requestId,
+              Api.VisualisationDetached()
+            )
+          )
+        } else {
+          endpoint.sendToClient(
+            Api.Response(
+              requestId,
+              Api.ContextNotExistError(ctxId)
+            )
+          )
+        }
+
+      case Api.ModifyVisualisation(visualisationId, config) =>
+        if (contextManager.contains(config.executionContextId)) {
+          val maybeVisualisation = contextManager.getVisualisationById(
+            config.executionContextId,
+            visualisationId
+          )
+          maybeVisualisation match {
+            case None =>
+              endpoint.sendToClient(
+                Api.Response(requestId, Api.VisualisationNotFound())
+              )
+
+            case Some(visualisation) =>
+              upsertVisualisation(
+                requestId,
+                visualisationId,
+                visualisation.expressionId,
+                config,
+                Api.VisualisationModified()
+              )
+          }
+
+        } else {
+          endpoint.sendToClient(
+            Api.Response(
+              requestId,
+              Api.ContextNotExistError(config.executionContextId)
+            )
+          )
+        }
     }
   }
+
+  private def upsertVisualisation(
+    requestId: Option[RequestId],
+    visualisationId: VisualisationId,
+    expressionId: ExpressionId,
+    config: Api.VisualisationConfiguration,
+    replyWith: ApiResponse
+  ): Unit = {
+    val maybeCallable =
+      evaluateExpression(config.visualisationModule, config.expression)
+
+    maybeCallable match {
+      case Left(ModuleNotFound) =>
+        endpoint.sendToClient(
+          Api.Response(
+            requestId,
+            Api.ModuleNotFound(config.visualisationModule)
+          )
+        )
+
+      case Left(EvaluationFailed(msg)) =>
+        endpoint.sendToClient(
+          Api.Response(
+            requestId,
+            Api.VisualisationExpressionFailed(msg)
+          )
+        )
+
+      case Right(callable) =>
+        val visualisation = Visualisation(
+          visualisationId,
+          expressionId,
+          callable
+        )
+        contextManager.upsertVisualisation(
+          config.executionContextId,
+          visualisation
+        )
+        endpoint.sendToClient(
+          Api.Response(requestId, replyWith)
+        )
+        val stack = contextManager.getStack(config.executionContextId)
+        withContext(execute(config.executionContextId, stack.toList))
+    }
+  }
+
+  private def evaluateExpression(
+    moduleName: String,
+    expression: String
+  ): Either[EvalFailure, AnyRef] = {
+    val maybeModule = executionService.findModule(moduleName)
+
+    val notFoundOrModule =
+      if (maybeModule.isPresent) Right(maybeModule.get())
+      else Left(ModuleNotFound)
+
+    notFoundOrModule.flatMap { module =>
+      try {
+        withContext {
+          executionService.evaluateExpression(module, expression).asRight
+        }
+      } catch {
+        case NonFatal(th) => EvaluationFailed(th.getMessage).asLeft
+      }
+    }
+
+  }
+
+}
+
+object Handler {
+
+  /**
+    * Base trait for evaluation failures.
+    */
+  sealed trait EvalFailure
+
+  /**
+    * Signals that a module cannto be found.
+    */
+  case object ModuleNotFound extends EvalFailure
+
+  /**
+    * Signals that an evaluation of an expression failed.
+    *
+    * @param msg the textual reason of a failure
+    */
+  case class EvaluationFailed(msg: String) extends EvalFailure
+
 }

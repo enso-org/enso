@@ -1,10 +1,10 @@
 package org.enso.languageserver.runtime
 
-import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.protocol.rpc.ErrorApi._
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.jsonrpc.Error
 
 object RuntimeFailureMapper {
 
@@ -26,6 +26,14 @@ object RuntimeFailureMapper {
         EmptyStackError
       case ContextRegistryProtocol.InvalidStackItemError(_) =>
         InvalidStackItemError
+      case ContextRegistryProtocol.VisualisationNotFound =>
+        VisualisationNotFoundError
+      case ContextRegistryProtocol.ModuleNotFound(name) =>
+        ModuleNotFoundError(name)
+      case ContextRegistryProtocol.VisualisationExpressionFailed(msg) =>
+        VisualisationExpressionError(msg)
+      case ContextRegistryProtocol.VisualisationEvaluationFailed(msg) =>
+        VisualisationEvaluationError(msg)
     }
 
   /**
@@ -42,6 +50,14 @@ object RuntimeFailureMapper {
         ContextRegistryProtocol.EmptyStackError(contextId)
       case Api.InvalidStackItemError(contextId) =>
         ContextRegistryProtocol.InvalidStackItemError(contextId)
+      case Api.ModuleNotFound(moduleName: String) =>
+        ContextRegistryProtocol.ModuleNotFound(moduleName)
+      case Api.VisualisationExpressionFailed(message: String) =>
+        ContextRegistryProtocol.VisualisationExpressionFailed(message)
+      case Api.VisualisationEvaluationFailed(message: String) =>
+        ContextRegistryProtocol.VisualisationEvaluationFailed(message)
+      case Api.VisualisationNotFound() =>
+        ContextRegistryProtocol.VisualisationNotFound
     }
 
 }

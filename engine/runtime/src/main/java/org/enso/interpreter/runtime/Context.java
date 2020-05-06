@@ -175,6 +175,16 @@ public class Context {
   }
 
   /**
+   * Fetches a module with a given name.
+   *
+   * @param moduleName the qualified name of the module to lookup.
+   * @return the relevant module, if exists.
+   */
+  public Optional<Module> findModule(String moduleName) {
+    return getCompiler().topScope().getModule(moduleName);
+  }
+
+  /**
    * Registers a new module corresponding to a given file.
    *
    * @param path the file to register.

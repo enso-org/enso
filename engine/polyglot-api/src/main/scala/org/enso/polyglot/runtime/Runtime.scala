@@ -76,6 +76,10 @@ object Runtime {
         name  = "closeFileNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.VisualisationUpdate],
+        name  = "visualisationUpdate"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.AttachVisualisation],
         name  = "attachVisualisation"
       ),
@@ -110,6 +114,22 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.EmptyStackError],
         name  = "emptyStackError"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ModuleNotFound],
+        name  = "moduleNotFound"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.VisualisationExpressionFailed],
+        name  = "visualisationExpressionFailed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.VisualisationEvaluationFailed],
+        name  = "visualisationEvaluationFailed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.VisualisationNotFound],
+        name  = "visualisationNotFound"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.InvalidStackItemError],
@@ -427,6 +447,34 @@ object Runtime {
       * @param contextId the context's id
       */
     case class ContextNotExistError(contextId: ContextId) extends Error
+
+    /**
+      * Signals that a module cannot be found.
+      *
+      * @param moduleName the module name
+      */
+    case class ModuleNotFound(moduleName: String) extends Error
+
+    /**
+      * Signals that an expression specified in a [[AttachVisualisation]] or
+      * a [[ModifyVisualisation]] cannot be evaluated.
+      *
+      * @param message the reason of the failure
+      */
+    case class VisualisationExpressionFailed(message: String) extends Error
+
+    /**
+      * Signals that an evaluation of a code responsible for generating
+      * visualisation data failed.
+      *
+      * @param message the reason of the failure
+      */
+    case class VisualisationEvaluationFailed(message: String) extends Error
+
+    /**
+      * Signals that visualisation cannot be found.
+      */
+    case class VisualisationNotFound() extends Error
 
     /**
       * An error response signifying that stack is empty.

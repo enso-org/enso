@@ -6,11 +6,6 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.{ClientId, Config}
 import org.enso.languageserver.filemanager.FileSystemFailure
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
-import org.enso.languageserver.runtime.VisualisationProtocol.{
-  AttachVisualisation,
-  DetachVisualisation,
-  ModifyVisualisation
-}
 import org.enso.languageserver.runtime.handler._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api

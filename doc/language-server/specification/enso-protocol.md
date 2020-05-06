@@ -2552,7 +2552,16 @@ null
 ```
 
 ##### Errors
-TBC
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
+- [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
+  by provided id.
+- [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
+the visualisation cannot be found. 
+- [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
+the expression specified in the `VisualisationConfiguration` cannot be 
+evaluated.
+
 
 #### `executionContext/detachVisualisation`
 This message allows a client to detach a visualisation from the executing code.
@@ -2568,6 +2577,7 @@ This message allows a client to detach a visualisation from the executing code.
 interface DetachVisualisationRequest {
   executionContextId: UUID;
   visualisationId: UUID;
+  expressionId: UUID;
 }
 ```
 
@@ -2578,7 +2588,12 @@ null
 ```
 
 ##### Errors
-TBC
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
+- [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
+  by provided id.
+- [`VisualisationNotFoundError`](#visualisationnotfounderror) when a 
+visualisation can not be found.
 
 #### `executionContext/modifyVisualisation`
 This message allows a client to modify the configuration for an existing
@@ -2605,7 +2620,17 @@ null
 ```
 
 ##### Errors
-TBC
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
+- [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
+  by provided id.
+- [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
+the visualisation cannot be found. 
+- [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
+the expression specified in the `VisualisationConfiguration` cannot be 
+evaluated.
+- [`VisualisationNotFoundError`](#visualisationnotfounderror) when a 
+visualisation can not be found.
 
 #### `executionContext/visualisationUpdate`
 This message is responsible for providing a visualisation data update to the
@@ -2768,6 +2793,48 @@ It signals that stack is invalid in this context.
 "error" : {
   "code" : 2004,
   "message" : "Invalid stack item"
+}
+```
+
+##### `ModuleNotFoundError`
+It signals that the given module cannot be found.
+
+```typescript
+"error" : {
+  "code" : 2005,
+  "message" : "Module not found [Foo.Bar.Baz]"
+}
+```
+
+##### `VisualisationNotFoundError`
+It signals that the visualisation cannot be found.
+
+```typescript
+"error" : {
+  "code" : 2006,
+  "message" : "Visualisation not found"
+}
+```
+
+##### `VisualisationExpressionError`
+It signals that the expression specified in the `VisualisationConfiguration` 
+cannot be evaluated.
+
+```typescript
+"error" : {
+  "code" : 2007,
+  "message" : "Evaluation of the visualisation expression failed [i is not defined]"
+}
+```
+
+##### `VisualisationEvaluationError`
+It is a push message. It signals that an evaluation of a code responsible for 
+generating visualisation data failed.
+
+```typescript
+"error" : {
+  "code" : 2008,
+  "message" : "Evaluation of the visualisation failed [cannot execute foo]"
 }
 ```
 

@@ -10,7 +10,7 @@ import org.enso.languageserver.protocol.data.envelope.{
   OutboundPayload
 }
 import org.enso.languageserver.protocol.data.executioncontext
-import org.enso.languageserver.runtime.VisualisationProtocol.{
+import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualisationContext,
   VisualisationUpdate
 }

@@ -28,7 +28,7 @@ import org.enso.languageserver.protocol.data.factory.{
 }
 import org.enso.languageserver.protocol.data.session.SessionInit
 import org.enso.languageserver.protocol.data.util.EnsoUUID
-import org.enso.languageserver.runtime.VisualisationProtocol.VisualisationUpdate
+import org.enso.languageserver.runtime.ContextRegistryProtocol.VisualisationUpdate
 import org.enso.languageserver.session.DataSession
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.binary.DecodingFailure

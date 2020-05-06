@@ -11,6 +11,7 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.Package
+import org.enso.polyglot.runtime.Runtime.Api.VisualisationUpdate
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
 import org.enso.polyglot.{
   LanguageInfo,
@@ -77,7 +78,11 @@ class RuntimeServerTest
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
 
-    def writeFile(file: File, contents: String): File = {
+    def writeFile(file: File, contents: String): File =
+      Files.write(file.toPath, contents.getBytes).toFile
+
+    def writeInSrcDir(moduleName: String, contents: String): File = {
+      val file = new File(pkg.sourceDir, s"$moduleName.enso")
       Files.write(file.toPath, contents.getBytes).toFile
     }
 
@@ -87,6 +92,19 @@ class RuntimeServerTest
       val msg = messageQueue.headOption
       messageQueue = messageQueue.drop(1)
       msg
+    }
+
+    def drain(): Unit = {
+      messageQueue = List.empty
+    }
+
+    def drainAndCollectFirstMatching[A](
+      pf: PartialFunction[Api.Response, A]
+    ): A = {
+      val maybeMessage = messageQueue.collectFirst(pf)
+      maybeMessage.isDefined shouldBe true
+      drain()
+      maybeMessage.get
     }
 
     def consumeOut: List[String] = {
@@ -197,6 +215,18 @@ class RuntimeServerTest
             )
           )
       }
+    }
+
+    object Visualisation {
+
+      val code =
+        """
+          |encode = x -> x.to_text
+          |
+          |incAndEncode = x -> here.encode x+1
+          |
+          |""".stripMargin
+
     }
 
     object Main2 {
@@ -358,9 +388,6 @@ class RuntimeServerTest
   }
 
   it should "support file modification operations" in {
-    def send(msg: ApiRequest): Unit =
-      context.send(Api.Request(UUID.randomUUID(), msg))
-
     val fooFile   = new File(context.pkg.sourceDir, "Foo.enso")
     val contextId = UUID.randomUUID()
 
@@ -553,4 +580,275 @@ class RuntimeServerTest
     )
     context.consumeOut shouldEqual List()
   }
+
+  it should "emit visualisation update when expression is evaluated" in {
+    val mainFile = context.writeMain(context.Main.code)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+
+    send(
+      Api.OpenFileNotification(
+        visualisationFile,
+        context.Visualisation.code
+      )
+    )
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+
+    context.drain()
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idMainX,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Visualisation",
+            "x -> here.encode x"
+          )
+        )
+      )
+    )
+    context.receive shouldBe Some(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    val expectedExprId = context.Main.idMainX
+    val data = context.drainAndCollectFirstMatching {
+      case Api.Response(
+          None,
+          Api.VisualisationUpdate(
+            Api.VisualisationContext(
+              `visualisationId`,
+              `contextId`,
+              `expectedExprId`
+            ),
+            data
+          )
+          ) =>
+        data
+    }
+    data.sameElements("6".getBytes) shouldBe true
+
+    // recompute
+    context.send(
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+    )
+    val data2 = context.drainAndCollectFirstMatching {
+      case Api.Response(
+          None,
+          Api.VisualisationUpdate(
+            Api.VisualisationContext(
+              `visualisationId`,
+              `contextId`,
+              `expectedExprId`
+            ),
+            data
+          )
+          ) =>
+        data
+    }
+    data2.sameElements("6".getBytes) shouldBe true
+
+  }
+
+  it should "be able to modify visualisations" in {
+    val mainFile = context.writeMain(context.Main.code)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+
+    send(
+      Api.OpenFileNotification(
+        visualisationFile,
+        context.Visualisation.code
+      )
+    )
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+
+    context.drain()
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idMainX,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Visualisation",
+            "x -> here.encode x"
+          )
+        )
+      )
+    )
+    context.receive shouldBe Some(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    val expectedExprId = context.Main.idMainX
+    val data = context.drainAndCollectFirstMatching {
+      case Api.Response(
+          None,
+          Api.VisualisationUpdate(
+            Api.VisualisationContext(
+              `visualisationId`,
+              `contextId`,
+              `expectedExprId`
+            ),
+            data
+          )
+          ) =>
+        data
+    }
+    data.sameElements("6".getBytes) shouldBe true
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ModifyVisualisation(
+          visualisationId,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Visualisation",
+            "x -> here.incAndEncode x"
+          )
+        )
+      )
+    )
+    context.receive shouldBe Some(
+      Api.Response(requestId, Api.VisualisationModified())
+    )
+    val dataAfterModification = context.drainAndCollectFirstMatching {
+      case Api.Response(
+          None,
+          Api.VisualisationUpdate(
+            Api.VisualisationContext(
+              `visualisationId`,
+              `contextId`,
+              `expectedExprId`
+            ),
+            data
+          )
+          ) =>
+        data
+    }
+    dataAfterModification.sameElements("7".getBytes) shouldBe true
+  }
+
+  it should "not emit visualisation updates when visualisation is detached" in {
+    val mainFile = context.writeMain(context.Main.code)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+
+    send(
+      Api.OpenFileNotification(
+        visualisationFile,
+        context.Visualisation.code
+      )
+    )
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idMainX,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Visualisation",
+            "x -> here.encode x"
+          )
+        )
+      )
+    )
+    context.receive shouldBe Some(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.drain()
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.DetachVisualisation(
+          contextId,
+          visualisationId,
+          context.Main.idMainX
+        )
+      )
+    )
+    context.receive shouldBe Some(
+      Api.Response(requestId, Api.VisualisationDetached())
+    )
+    // recompute
+    context.send(
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+    )
+    Set.fill(5)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
+      Some(context.Main.Update.mainX(contextId)),
+      Some(context.Main.Update.mainY(contextId)),
+      Some(context.Main.Update.mainZ(contextId)),
+      None
+    )
+  }
+
+  private def send(msg: ApiRequest): Unit =
+    context.send(Api.Request(UUID.randomUUID(), msg))
+
 }

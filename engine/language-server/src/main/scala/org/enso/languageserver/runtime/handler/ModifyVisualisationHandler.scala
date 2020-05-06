@@ -5,8 +5,8 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.{
-  RuntimeFailureMapper,
-  VisualisationProtocol
+  ContextRegistryProtocol,
+  RuntimeFailureMapper
 }
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
@@ -47,7 +47,7 @@ class ModifyVisualisationHandler(
       context.stop(self)
 
     case Api.Response(_, Api.VisualisationModified()) =>
-      replyTo ! VisualisationProtocol.VisualisationModified
+      replyTo ! ContextRegistryProtocol.VisualisationModified
       cancellable.cancel()
       context.stop(self)
 

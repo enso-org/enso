@@ -8,8 +8,7 @@ import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.VisualisationApi.DetachVisualisation
 import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
-  RuntimeFailureMapper,
-  VisualisationProtocol
+  RuntimeFailureMapper
 }
 import org.enso.languageserver.util.UnhandledLogging
 
@@ -36,7 +35,7 @@ class DetachVisualisationHandler(
 
   private def requestStage: Receive = {
     case Request(DetachVisualisation, id, params: DetachVisualisation.Params) =>
-      contextRegistry ! VisualisationProtocol.DetachVisualisation(
+      contextRegistry ! ContextRegistryProtocol.DetachVisualisation(
         clientId,
         params.contextId,
         params.visualisationId,
@@ -57,7 +56,7 @@ class DetachVisualisationHandler(
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case VisualisationProtocol.VisualisationDetached =>
+    case ContextRegistryProtocol.VisualisationDetached =>
       replyTo ! ResponseResult(DetachVisualisation, id, Unused)
       cancellable.cancel()
       context.stop(self)

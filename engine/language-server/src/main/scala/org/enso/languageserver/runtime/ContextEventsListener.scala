@@ -2,11 +2,11 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.Config
-import org.enso.languageserver.runtime.ExecutionApi.ContextId
-import org.enso.languageserver.runtime.VisualisationProtocol.{
+import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualisationContext,
   VisualisationUpdate
 }
+import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.session.SessionRouter.DeliverToDataController
 import org.enso.languageserver.util.UnhandledLogging

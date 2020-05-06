@@ -2,10 +2,7 @@ package org.enso.interpreter.service;
 
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.instrument.Cache;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
@@ -17,6 +14,8 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 import java.io.File;
+
+import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
@@ -129,6 +128,36 @@ public class ExecutionService {
     execute(callMay.get(), cache, valueCallback, funCallCallback);
   }
 
+    /**
+     * Evaluates an expression in the scope of the provided module.
+     *
+     * @param module the module providing a scope for the expression
+     * @param expression the expression to evluated
+     * @return a result of evaluation
+     */
+  public Object evaluateExpression(Module module, String expression)
+        throws UnsupportedMessageException, ArityException,
+        UnknownIdentifierException, UnsupportedTypeException {
+    return interopLibrary.invokeMember(
+            module,
+            MethodNames.Module.EVAL_EXPRESSION,
+            expression
+    );
+  }
+
+    /**
+     * Calls a function with the given argument.
+     *
+     * @param fn the function object
+     * @param argument the argument applied to the function
+     * @return the result of calling the function
+     */
+  public Object callFunction(Object fn, Object argument)
+        throws UnsupportedTypeException, ArityException,
+        UnsupportedMessageException {
+    return interopLibrary.execute(fn, argument);
+  }
+
   /**
    * Sets a module at a given path to use a literal source.
    *
@@ -153,6 +182,16 @@ public class ExecutionService {
   public void resetModuleSources(File path) {
     Optional<Module> module = context.getModuleForFile(path);
     module.ifPresent(Module::unsetLiteralSource);
+  }
+
+    /**
+     * Finds a module by qualified name.
+     *
+     * @param moduleName the qualified name of the module
+     * @return the relevant module, if exists
+     */
+  public Optional<Module> findModule(String moduleName) {
+    return context.findModule(moduleName);
   }
 
   /**

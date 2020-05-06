@@ -104,4 +104,18 @@ object ExecutionApi {
 
   case object InvalidStackItemError extends Error(2004, "Invalid stack item")
 
+  case class ModuleNotFoundError(moduleName: String)
+      extends Error(2005, s"Module not found [$moduleName]")
+
+  case object VisualisationNotFoundError
+      extends Error(2006, s"Visualisation not found")
+
+  case class VisualisationExpressionError(msg: String)
+      extends Error(
+        2007,
+        s"Evaluation of the visualisation expression failed [$msg]"
+      )
+  case class VisualisationEvaluationError(msg: String)
+      extends Error(2008, s"Evaluation of the visualisation failed [$msg]")
+
 }

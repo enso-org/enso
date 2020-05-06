@@ -5,8 +5,8 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.{
-  RuntimeFailureMapper,
-  VisualisationProtocol
+  ContextRegistryProtocol,
+  RuntimeFailureMapper
 }
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
@@ -47,7 +47,7 @@ class DetachVisualisationHandler(
       context.stop(self)
 
     case Api.Response(_, Api.VisualisationDetached()) =>
-      replyTo ! VisualisationProtocol.VisualisationDetached
+      replyTo ! ContextRegistryProtocol.VisualisationDetached
       cancellable.cancel()
       context.stop(self)
 
