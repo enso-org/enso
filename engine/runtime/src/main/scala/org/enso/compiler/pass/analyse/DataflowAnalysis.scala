@@ -13,10 +13,18 @@ import scala.collection.mutable
   * Dataflow analysis is the processes of determining the dependencies between
   * program expressions.
   *
-  * This pass needs to be run after [[AliasAnalysis]], [[DemandAnalysis]], and
-  * [[TailCall]]. It also assumes that all members of [[IR.IRKind.Primitive]]
-  * have been removed from the IR by the time it runs. This means that it _must_
-  * run after all desugaring passes.
+  * This pass requires the context to provide:
+  *
+  * - A [[org.enso.interpreter.runtime.scope.LocalScope]], where relevant.
+  *
+  * It must have the following passes run before it:
+  *
+  * - [[AliasAnalysis]]
+  * - [[DemandAnalysis]]
+  * - [[TailCall]]
+  *
+  * It also requires that all members of [[IR.IRKind.Primitive]] have been
+  * removed from the IR by the time it runs.
   */
 //noinspection DuplicatedCode
 case object DataflowAnalysis extends IRPass {
@@ -92,6 +100,7 @@ case object DataflowAnalysis extends IRPass {
             body = analyseExpression(body, info)
           )
           .updateMetadata(this -->> info)
+      case err: IR.Error.Redefined => err
     }
   }
 
@@ -328,21 +337,29 @@ case object DataflowAnalysis extends IRPass {
         "Name occurrence with missing aliasing information."
       )
       .unsafeAs[AliasAnalysis.Info.Occurrence]
-    val defIdForName = aliasInfo.graph.defLinkFor(aliasInfo.id)
-    val key = defIdForName match {
-      case Some(defLink) =>
-        aliasInfo.graph.getOccurrence(defLink.target) match {
-          case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, _)) =>
-            DependencyInfo.Type.Static(id)
-          case _ => DependencyInfo.Type.Dynamic(name.name)
+
+    name match {
+      case _: IR.Name.Blank =>
+        throw new CompilerError(
+          "Blanks should not be present during dataflow analysis."
+        )
+      case _ =>
+        val defIdForName = aliasInfo.graph.defLinkFor(aliasInfo.id)
+        val key = defIdForName match {
+          case Some(defLink) =>
+            aliasInfo.graph.getOccurrence(defLink.target) match {
+              case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, _)) =>
+                DependencyInfo.Type.Static(id)
+              case _ => DependencyInfo.Type.Dynamic(name.name)
+            }
+
+          case None => DependencyInfo.Type.Dynamic(name.name)
         }
 
-      case None => DependencyInfo.Type.Dynamic(name.name)
+        info.updateAt(key, Set(name.getId))
+
+        name.updateMetadata(this -->> info)
     }
-
-    info.updateAt(key, Set(name.getId))
-
-    name.updateMetadata(this -->> info)
   }
 
   /** Performs dependency analysis on a case expression.

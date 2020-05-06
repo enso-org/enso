@@ -29,12 +29,22 @@ import org.enso.syntax.text.Location
   *   x y z -> ...
   * }}}
   *
-  * It requires [[org.enso.compiler.pass.analyse.AliasAnalysis]] to be run
-  * _directly_ before it.
-  *
   * Please note that this pass invalidates _all_ metdata on the transformed
   * portions of the program, and hence must be run before the deeper analysis
   * passes.
+  *
+  * This pass requires the context to provide:
+  *
+  * - A [[FreshNameSupply]].
+  *
+  * It must have the following passes run before it:
+  *
+  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
+  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
+  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
+  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
+  * - [[org.enso.compiler.pass.resolve.IgnoredBindings]]
+  * - [[AliasAnalysis]], which must be run _directly_ before this pass.
   */
 case object LambdaConsolidate extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
@@ -56,8 +66,7 @@ case object LambdaConsolidate extends IRPass {
       runExpression(
         x,
         new InlineContext(
-          freshNameSupply   = moduleContext.freshNameSupply,
-          passConfiguration = moduleContext.passConfiguration
+          freshNameSupply = moduleContext.freshNameSupply
         )
       )
   }
@@ -278,8 +287,9 @@ case object LambdaConsolidate extends IRPass {
               case defSpec: IR.DefinitionArgument.Specified => defSpec.name.name
             }
           )
-        case ths: IR.Name.This  => ths
-        case here: IR.Name.Here => here
+        case ths: IR.Name.This    => ths
+        case here: IR.Name.Here   => here
+        case blank: IR.Name.Blank => blank
       }
     } else {
       name

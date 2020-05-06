@@ -323,6 +323,9 @@ Two typesets `A` and `B` are defined to be structurally equal if `A <: B` and
 > - Reformulate this in terms of row polymorphism. We really want to avoid a
 >   _real_ subtyping relationship as it doesn't play at all well with global
 >   inference.
+> - To that end, it is an open question as to whether we can have type unions
+>   without subtyping. Conventionally we wouldn't be able to, but with our
+>   theory we may.
 
 #### Unsafe Typeset Field Mutation
 For performance it is sometimes necessary to have the ability to _directly_

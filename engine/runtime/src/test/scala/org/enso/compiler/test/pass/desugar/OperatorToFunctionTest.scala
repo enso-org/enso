@@ -28,13 +28,14 @@ class OperatorToFunctionTest extends CompilerTest {
   ): (IR.Application.Operator.Binary, IR.Application.Prefix) = {
     val loc = IdentifiedLocation(Location(1, 33))
 
-    val binOp = IR.Application.Operator.Binary(left, name, right, Some(loc))
+    val leftArg  = IR.CallArgument.Specified(None, left, left.location)
+    val rightArg = IR.CallArgument.Specified(None, right, right.location)
+
+    val binOp =
+      IR.Application.Operator.Binary(leftArg, name, rightArg, Some(loc))
     val opFn = IR.Application.Prefix(
       name,
-      List(
-        IR.CallArgument.Specified(None, left, left.location),
-        IR.CallArgument.Specified(None, right, right.location)
-      ),
+      List(leftArg, rightArg),
       hasDefaultsSuspended = false,
       Some(loc)
     )
@@ -45,11 +46,15 @@ class OperatorToFunctionTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Operators" should {
-    val opName = IR.Name.Literal("=:=", None)
-    val left   = IR.Empty(None)
-    val right  = IR.Empty(None)
+    val opName   = IR.Name.Literal("=:=", None)
+    val left     = IR.Empty(None)
+    val right    = IR.Empty(None)
+    val rightArg = IR.CallArgument.Specified(None, IR.Empty(None), None)
 
     val (operator, operatorFn) = genOprAndFn(opName, left, right)
+
+    val oprArg = IR.CallArgument.Specified(None, operator, None)
+    val oprFnArg = IR.CallArgument.Specified(None, operatorFn, None)
 
     "be translated to functions" in {
       OperatorToFunction.runExpression(operator, ctx) shouldEqual operatorFn
@@ -64,13 +69,10 @@ class OperatorToFunctionTest extends CompilerTest {
 
     "be translated recursively" in {
       val recursiveIR =
-        IR.Application.Operator.Binary(operator, opName, right, None)
+        IR.Application.Operator.Binary(oprArg, opName, rightArg, None)
       val recursiveIRResult = IR.Application.Prefix(
         opName,
-        List(
-          IR.CallArgument.Specified(None, operatorFn, operatorFn.location),
-          IR.CallArgument.Specified(None, right, right.location)
-        ),
+        List(oprFnArg, rightArg),
         hasDefaultsSuspended = false,
         None
       )

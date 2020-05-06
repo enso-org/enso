@@ -9,10 +9,10 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
-  ApplicationSaturation,
   DataflowAnalysis,
   TailCall
 }
+import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -557,6 +557,10 @@ class IRToTruffle(
           processName(
             IR.Name.Literal(Constants.Names.THIS_ARGUMENT, location, passData)
           )
+        case _: IR.Name.Blank =>
+          throw new CompilerError(
+            "Blanks should not be present at codegen time."
+          )
       }
 
       setLocation(nameExpr, name.location)
@@ -590,6 +594,14 @@ class IRToTruffle(
             .syntaxError()
             .newInstance(err.message)
         case err: Error.Redefined.Binding =>
+          context.getBuiltins
+            .compileError()
+            .newInstance(err.message)
+        case err: Error.Redefined.Method =>
+          context.getBuiltins
+            .compileError()
+            .newInstance(err.message)
+        case err: Error.Redefined.Atom =>
           context.getBuiltins
             .compileError()
             .newInstance(err.message)
@@ -739,6 +751,11 @@ class IRToTruffle(
         case op: IR.Application.Operator.Binary =>
           throw new CompilerError(
             s"Explicit operators not supported during codegen but $op found"
+          )
+        case sec: IR.Application.Operator.Section =>
+          throw new CompilerError(
+            s"Explicit operator sections not supported during codegen but " +
+            s"$sec found"
           )
       }
   }

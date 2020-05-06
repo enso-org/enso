@@ -171,6 +171,7 @@ object IR {
       |IR.Empty(
       |location = $location,
       |passData = ${this.showPassData},
+      |diagnostics = $diagnostics,
       |id = $id
       |)
       |""".toSingleLine
@@ -251,6 +252,7 @@ object IR {
       |bindings = $bindings,
       |location = $location,
       |passData = ${this.showPassData},
+      |diagnostics = $diagnostics,
       |id = $id
       |)
       |""".toSingleLine
@@ -310,6 +312,7 @@ object IR {
           |name = $name,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |)
           |""".toSingleLine
@@ -378,6 +381,7 @@ object IR {
             |arguments = $arguments,
             |location = $location,
             |passData = ${this.showPassData},
+            |diagnostics = $diagnostics,
             |id = $id
             |)
             |""".toSingleLine
@@ -457,6 +461,7 @@ object IR {
             |body = $body,
             |location = $location,
             |passData = ${this.showPassData},
+            |diagnostics = $diagnostics,
             |id = $id
             |)
             |""".toSingleLine
@@ -559,6 +564,7 @@ object IR {
         |location = $location,
         |suspended = $suspended,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -567,6 +573,9 @@ object IR {
     }
 
     /** A binding expression of the form `name = expr`
+      *
+      * To create a binding that binds no available name, set the name of the
+      * binding to an [[IR.Name.Blank]] (e.g. _ = foo a b).
       *
       * @param name the name being bound to
       * @param expression the expression being bound to `name`
@@ -618,6 +627,7 @@ object IR {
         |expression = $expression,
         |location = $location
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -677,6 +687,7 @@ object IR {
         |value = $value,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -728,6 +739,7 @@ object IR {
         |text = $text,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -745,6 +757,48 @@ object IR {
     override def mapExpressions(fn: Expression => Expression): Name
   }
   object Name {
+
+    /** Represents occurrences of blank (`_`) expressions.
+      *
+      * @param location the soure location that the node corresponds to.
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Blank(
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Name
+        with IRKind.Sugar {
+      override val name: String             = "_"
+      override protected var id: Identifier = randomId
+
+      def copy(
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Blank = {
+        val res = Blank(location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Blank =
+        this
+
+      override def toString: String =
+        s"""
+           |IR.Expression.Blank(
+           |location = $location,
+           |passData = $passData,
+           |diagnostics = $diagnostics,
+           |id = $id
+           |)
+           |""".stripMargin
+
+      override def children: List[IR] = List()
+    }
 
     /** The representation of a literal name.
       *
@@ -790,6 +844,7 @@ object IR {
         |name = $name,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -837,6 +892,7 @@ object IR {
         |IR.Name.This(
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -884,6 +940,7 @@ object IR {
         s"""IR.Name.Here(
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -952,13 +1009,14 @@ object IR {
 
       override def toString: String =
         s"""IR.Type.Ascription(
-           |typed = $typed,
-           |signature = $signature,
-           |location = $location,
-           |passData = ${this.showPassData},
-           |id = $id
-           |)
-           |""".stripMargin
+        |typed = $typed,
+        |signature = $signature,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
+        |id = $id
+        |)
+        |""".toSingleLine
 
       override def children: List[IR] = List(typed, signature)
     }
@@ -1018,6 +1076,7 @@ object IR {
         |context = $context,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -1097,6 +1156,7 @@ object IR {
           |value = $value,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |)
           |""".toSingleLine
@@ -1162,6 +1222,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |""".toSingleLine
 
@@ -1224,6 +1285,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |""".toSingleLine
 
@@ -1286,6 +1348,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |""".toSingleLine
 
@@ -1348,6 +1411,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |""".toSingleLine
 
@@ -1412,6 +1476,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |""".toSingleLine
 
@@ -1476,6 +1541,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |""".toSingleLine
 
@@ -1576,6 +1642,7 @@ object IR {
         |location = $location,
         |canBeTCO = $canBeTCO,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -1589,7 +1656,15 @@ object IR {
 
   /** Definition-site arguments in Enso. */
   sealed trait DefinitionArgument extends IR {
+
+    /** The name of the argument. */
+    val name: IR.Name
+
+    /** The default value of the argument. */
     val defaultValue: Option[Expression]
+
+    /** Whether or not the argument is suspended. */
+    val suspended: Boolean
 
     override def mapExpressions(
       fn: Expression => Expression
@@ -1600,6 +1675,9 @@ object IR {
     /** The representation of an argument from a [[Function]] or
       * [[IR.Module.Scope.Definition.Atom]] definition site.
       *
+      * To create an ignored argument, the argument name should be an
+      * [[IR.Name.Blank]].
+      *
       * @param name the name of the argument
       * @param defaultValue the default value of the argument, if present
       * @param suspended whether or not the argument has its execution suspended
@@ -1608,9 +1686,9 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Specified(
-      name: IR.Name,
+      override val name: IR.Name,
       override val defaultValue: Option[Expression],
-      suspended: Boolean,
+      override val suspended: Boolean,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -1665,15 +1743,13 @@ object IR {
         |suspended = $suspended,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
 
       override def children: List[IR] = name :: defaultValue.toList
-
     }
-
-    // TODO [AA] Add support for `_` ignored arguments.
   }
 
   // === Applications =========================================================
@@ -1751,6 +1827,7 @@ object IR {
         |hasDefaultsSuspended = $hasDefaultsSuspended,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -1806,6 +1883,7 @@ object IR {
         |target = $target,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -1830,9 +1908,9 @@ object IR {
         * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Binary(
-        left: Expression,
+        left: CallArgument,
         operator: IR.Name,
-        right: Expression,
+        right: CallArgument,
         override val location: Option[IdentifiedLocation],
         override val passData: MetadataStorage      = MetadataStorage(),
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -1852,9 +1930,9 @@ object IR {
           * @return a copy of `this`, updated with the specified values
           */
         def copy(
-          left: Expression                     = left,
+          left: CallArgument                   = left,
           operator: IR.Name                    = operator,
-          right: Expression                    = right,
+          right: CallArgument                  = right,
           location: Option[IdentifiedLocation] = location,
           passData: MetadataStorage            = passData,
           diagnostics: DiagnosticStorage       = diagnostics,
@@ -1867,7 +1945,7 @@ object IR {
         }
 
         override def mapExpressions(fn: Expression => Expression): Binary = {
-          copy(left = fn(left), right = fn(right))
+          copy(left = left.mapExpressions(fn), right = right.mapExpressions(fn))
         }
 
         override def toString: String =
@@ -1878,6 +1956,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |)
           |""".toSingleLine
@@ -1885,9 +1964,193 @@ object IR {
         override def children: List[IR] = List(left, operator, right)
 
       }
-    }
 
-    // TODO [AA] Add support for left, right, and centre sections
+      /** Operator sections. */
+      sealed trait Section extends Operator {
+        override def mapExpressions(fn: Expression => Expression): Section
+      }
+      object Section {
+
+        /** Represents a left operator section of the form `(arg op)`.
+          *
+          * @param arg the argument (on the left of the operator)
+          * @param operator the operator
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          */
+        sealed case class Left(
+          arg: CallArgument,
+          operator: IR.Name,
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Section
+            with IRKind.Sugar {
+          override protected var id: Identifier = randomId
+
+          /** Creates a copy of `this`.
+            *
+            * @param arg the argument (on the left of the operator)
+            * @param operator the operator
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
+          def copy(
+            arg: CallArgument                    = arg,
+            operator: IR.Name                    = operator,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: IR.Identifier                    = id
+          ): Left = {
+            val res = Left(arg, operator, location, passData, diagnostics)
+            res.id = id
+            res
+          }
+
+          override def mapExpressions(fn: Expression => Expression): Section =
+            copy(
+              arg      = arg.mapExpressions(fn),
+              operator = operator.mapExpressions(fn)
+            )
+
+          override def toString: String =
+            s"""
+            |IR.Application.Operator.Section.Left(
+            |arg = $arg,
+            |operator =  $operator,
+            |location = $location,
+            |passData = $passData,
+            |diagnostics = $diagnostics,
+            |id = $id
+            |)
+            |""".toSingleLine
+
+          override def children: List[IR] = List(arg, operator)
+        }
+
+        /** Represents a sides operator section of the form `(op)`
+          *
+          * @param operator the operator
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          */
+        sealed case class Sides(
+          operator: IR.Name,
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Section
+            with IRKind.Sugar {
+          override protected var id: Identifier = randomId
+
+          /** Creates a copy of `this`.
+            *
+            * @param operator the operator
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
+          def copy(
+            operator: IR.Name                    = operator,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: Identifier                       = id
+          ): Sides = {
+            val res = Sides(operator, location, passData, diagnostics)
+            res.id = id
+            res
+          }
+
+          override def mapExpressions(fn: Expression => Expression): Section =
+            copy(operator = operator.mapExpressions(fn))
+
+          override def toString: String =
+            s"""
+            |IR.Application.Operator.Section.Centre(
+            |operator =  $operator,
+            |location = $location,
+            |passData = $passData,
+            |diagnostics = $diagnostics,
+            |id = $id
+            |)
+            |""".toSingleLine
+
+          override def children: List[IR] = List(operator)
+        }
+
+        /** Represents a right operator section of the form `(op arg)`
+          *
+          * @param operator the operator
+          * @param arg the argument (on the right of the operator)
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          */
+        sealed case class Right(
+          operator: IR.Name,
+          arg: CallArgument,
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Section
+            with IRKind.Sugar {
+          override protected var id: Identifier = randomId
+
+          /** Creates a copy of `this`.
+            *
+            * @param operator the operator
+            * @param arg the argument (on the right of the operator)
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
+          def copy(
+            operator: IR.Name                    = operator,
+            arg: CallArgument                    = arg,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: Identifier                       = id
+          ): Right = {
+            val res = Right(operator, arg, location, passData, diagnostics)
+            res.id = id
+            res
+          }
+
+          override def mapExpressions(fn: Expression => Expression): Section = {
+            copy(
+              operator = operator.mapExpressions(fn),
+              arg      = arg.mapExpressions(fn)
+            )
+          }
+
+          override def toString: String =
+            s"""
+            |IR.Application.Operator.Section.Right(
+            |operator =  $operator,
+            |arg = $arg,
+            |location = $location,
+            |passData = $passData,
+            |diagnostics = $diagnostics,
+            |id = $id
+            |)
+            |""".toSingleLine
+
+          override def children: List[IR] = List(operator, arg)
+        }
+      }
+    }
   }
 
   // === Call-Site Arguments ==================================================
@@ -1897,6 +2160,9 @@ object IR {
 
     /** The name of the argument, if present. */
     val name: Option[IR.Name]
+
+    /** The expression of the argument, if present. */
+    val value: Expression
 
     /** Whether or not the argument should be suspended at code generation time.
       *
@@ -1913,6 +2179,9 @@ object IR {
 
     /** A representation of an argument at a function call site.
       *
+      * A [[CallArgument]] where the `value` is an [[IR.Name.Blank]] is a
+      * representation of a lambda shorthand argument.
+      *
       * @param name the name of the argument being called, if present
       * @param value the expression being passed as the argument's value
       * @param location the source location that the node corresponds to
@@ -1923,7 +2192,7 @@ object IR {
       */
     sealed case class Specified(
       override val name: Option[IR.Name],
-      value: Expression,
+      override val value: Expression,
       override val location: Option[IdentifiedLocation],
       override val shouldBeSuspended: Option[Boolean] = None,
       override val passData: MetadataStorage          = MetadataStorage(),
@@ -1977,16 +2246,13 @@ object IR {
         |location = $location,
         |shouldBeSuspended = $shouldBeSuspended,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
 
       override def children: List[IR] = name.toList :+ value
-
     }
-
-    // TODO [AA] Add support for the `_` lambda shorthand argument (can be
-    //  called by name)
   }
 
   // === Case Expression ======================================================
@@ -2059,6 +2325,7 @@ object IR {
         |fallback = $fallback,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2120,6 +2387,7 @@ object IR {
         |expression = $expression,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2202,6 +2470,7 @@ object IR {
         |doc = $doc,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2270,6 +2539,7 @@ object IR {
         |code = $code,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2316,6 +2586,38 @@ object IR {
   sealed trait Warning extends Diagnostic
   object Warning {
 
+    /** Warnings about unused language entities. */
+    sealed trait Unused extends Warning {
+      val name: IR.Name
+    }
+    object Unused {
+
+      /** A warning about an unused function argument.
+        *
+        * @param name the name that is unused
+        */
+      sealed case class FunctionArgument(override val name: Name)
+          extends Unused {
+        override def message: String = s"Unused function argument ${name.name}."
+
+        override def toString: String = s"Unused.FunctionArgument(${name.name})"
+
+        override val location: Option[IdentifiedLocation] = name.location
+      }
+
+      /** A warning about an unused binding.
+        *
+        * @param name the name that is unused
+        */
+      sealed case class Binding(override val name: Name) extends Unused {
+        override def message: String = s"Unused variable ${name.name}."
+
+        override def toString: String = s"Unused.Binding(${name.name})"
+
+        override val location: Option[IdentifiedLocation] = name.location
+      }
+    }
+
     /** Warnings about shadowing names. */
     sealed trait Shadowed extends Warning {
 
@@ -2337,7 +2639,7 @@ object IR {
       ) extends Shadowed {
 
         override def message: String =
-          s"The function parameter $shadowedName is being shadowed by $shadower"
+          s"The argument $shadowedName is shadowed by $shadower."
       }
     }
   }
@@ -2399,6 +2701,7 @@ object IR {
         |ast = $ast,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2446,6 +2749,13 @@ object IR {
         override def explanation: String = "Unclosed text literal."
       }
 
+      case object NamedArgInSection extends Reason {
+        override def explanation: String = "Named argument in operator section."
+      }
+
+      case object NamedArgInOperator extends Reason {
+        override def explanation: String = "Named argument in operator section."
+      }
     }
 
     /** A representation of an invalid piece of IR.
@@ -2493,6 +2803,7 @@ object IR {
         |ir = $ir,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2510,6 +2821,138 @@ object IR {
     sealed trait Redefined extends Error
     object Redefined {
 
+      /** An error representing the redefinition of a method in a given module.
+        * This is also known as a method overload.
+        *
+        * @param atomName the name of the atom the method was being redefined on
+        * @param methodName the method name being redefined on `atomName`
+        * @param location the location in the source to which this error
+        *                 corresponds
+        * @param passData the pass metadata for the error
+        * @param diagnostics any diagnostics associated with this error.
+        */
+      sealed case class Method(
+        atomName: IR.Name,
+        methodName: IR.Name,
+        override val location: Option[IdentifiedLocation],
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+      ) extends Redefined
+          with Diagnostic.Kind.Interactive
+          with Module.Scope.Definition
+          with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param atomName the name of the atom the method was being redefined on
+          * @param methodName the method name being redefined on `atomName`
+          * @param location the location in the source to which this error
+          *                 corresponds
+          * @param passData the pass metadata for the error
+          * @param diagnostics any diagnostics associated with this error.
+          * @param id the identifier for the node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          atomName: IR.Name                    = atomName,
+          methodName: IR.Name                  = methodName,
+          location: Option[IdentifiedLocation] = location,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
+          id: Identifier                       = id
+        ): Method = {
+          val res =
+            Method(atomName, methodName, location, passData, diagnostics)
+          res.id = id
+          res
+        }
+
+        override def message: String =
+          s"Method overloads are not supported: ${atomName.name}." +
+          s"${methodName.name} is defined multiple times in this module."
+
+        override def mapExpressions(fn: Expression => Expression): Method = this
+
+        override def toString: String =
+          s"""
+             |IR.Error.Redefined.Method(
+             |atomName = $atomName,
+             |methodName = $methodName,
+             |location = $location,
+             |passData = ${this.showPassData},
+             |diagnostics = $diagnostics,
+             |id = $id
+             |)
+             |""".stripMargin
+
+        override def children: List[IR] = List(atomName, methodName)
+      }
+
+      /** An error representing the redefinition of an atom in a given module.
+        *
+        * @param atomName the name of the atom being redefined
+        * @param location the location in the source to which this error
+        *                 corresponds
+        * @param passData the pass metadata for the error
+        * @param diagnostics any diagnostics associated with this error.
+        */
+      sealed case class Atom(
+        atomName: IR.Name,
+        override val location: Option[IdentifiedLocation],
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+      ) extends Redefined
+          with Diagnostic.Kind.Interactive
+          with Module.Scope.Definition
+          with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param atomName the name of the atom the method was being redefined
+          *                 on
+          * @param location the location in the source to which this error
+          *                 corresponds
+          * @param passData the pass metadata for the error
+          * @param diagnostics any diagnostics associated with this error.
+          * @param id the identifier for the node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          atomName: IR.Name                    = atomName,
+          location: Option[IdentifiedLocation] = location,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
+          id: Identifier                       = id
+        ): Atom = {
+          val res =
+            Atom(atomName, location, passData, diagnostics)
+          res.id = id
+          res
+        }
+
+        override def message: String =
+          s"Redefining atoms is not supported: ${atomName.name} is " +
+          s"defined multiple times in this module."
+
+
+        override def mapExpressions(fn: Expression => Expression): Atom = this
+
+        override def toString: String =
+          s"""
+             |IR.Error.Redefined.Atom(
+             |atomName = $atomName,
+             |location = $location,
+             |passData = ${this.showPassData},
+             |diagnostics = $diagnostics,
+             |id = $id
+             |)
+             |""".stripMargin
+
+        override def children: List[IR] = List(atomName)
+      }
+
       /** An error representing the redefinition of a binding in a given scope.
         *
         * While bindings in child scopes are allowed to _shadow_ bindings in
@@ -2524,7 +2967,7 @@ object IR {
         override val passData: MetadataStorage      = MetadataStorage(),
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Redefined
-          with Diagnostic.Kind.Static
+          with Diagnostic.Kind.Interactive
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
@@ -2559,6 +3002,7 @@ object IR {
              |invalidBinding = $invalidBinding,
              |location = $location,
              |passData = ${this.showPassData},
+             |diagnostics = $diagnostics,
              |id = $id
              |)
              |""".stripMargin
@@ -2771,6 +3215,25 @@ object IR {
   // ==========================================================================
   // === Useful Extension Methods =============================================
   // ==========================================================================
+
+  /** Adds extension methods for working directly with the diagnostics on the
+    * IR.
+    *
+    * @param ir the IR to add the methods to
+    * @tparam T the concrete type of the IR
+    */
+  implicit class AsDiagnostics[T <: IR](ir: T) {
+
+    /** Adds a new diagnostic entity to [[IR]].
+      *
+      * @param diagnostic the diagnostic to add
+      * @return [[ir]] with added diagnostics
+      */
+    def addDiagnostic(diagnostic: IR.Diagnostic): T = {
+      ir.diagnostics.add(diagnostic)
+      ir
+    }
+  }
 
   /** Adds extension methods for working directly with the metadata on the IR.
     *

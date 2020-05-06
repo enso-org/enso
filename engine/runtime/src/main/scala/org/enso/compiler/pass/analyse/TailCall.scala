@@ -11,6 +11,17 @@ import org.enso.compiler.pass.IRPass
   * It is responsible for marking every single expression with whether it is in
   * tail position or not. This allows the code generator to correctly create the
   * Truffle nodes.
+  *
+  * This pass requires the context to provide:
+  *
+  * - The tail position of its expression, where relevant.
+  *
+  * It must have the following passes run before it:
+  *
+  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
+  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
+  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
+  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
   */
 case object TailCall extends IRPass {
 
@@ -77,6 +88,7 @@ case object TailCall extends IRPass {
             arguments = args.map(analyseDefArgument)
           )
           .updateMetadata(this -->> TailPosition.Tail)
+      case err: IR.Error.Redefined => err
     }
   }
 

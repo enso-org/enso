@@ -1,6 +1,6 @@
 package org.enso.compiler.test
 
-import org.enso.compiler.codegen.AstToIR
+import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassManager
@@ -44,7 +44,7 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]]
       */
     def toIrModule: IR.Module = {
-      AstToIR.translate(source.toAST)
+      AstToIr.translate(source.toAST)
     }
   }
 
@@ -60,7 +60,7 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]], if it is a valid expression
       */
     def toIrExpression: Option[IR.Expression] = {
-      AstToIR.translateInline(source.toAST)
+      AstToIr.translateInline(source.toAST)
     }
   }
 

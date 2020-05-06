@@ -7,6 +7,14 @@ import org.enso.compiler.pass.IRPass
 
 /** A pass that traverses the given root IR and accumulates all the encountered
   * diagnostic nodes in the root.
+  *
+  * This pass requires the context to provide:
+  *
+  * - Nothing
+  *
+  * It must have the following passes run before it:
+  *
+  * - None
   */
 case object GatherDiagnostics extends IRPass {
 

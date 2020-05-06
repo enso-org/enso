@@ -76,6 +76,8 @@ val jsSettings = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
 )
 
+scalacOptions in (Compile, console) ~= (_ filterNot (_ == "-Xfatal-warnings"))
+
 // ============================================================================
 // === Benchmark Configuration ================================================
 // ============================================================================

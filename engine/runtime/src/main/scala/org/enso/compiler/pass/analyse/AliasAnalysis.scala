@@ -35,6 +35,21 @@ import scala.reflect.ClassTag
   *   the lambda.
   * - A method whose body is a lambda containing a block as its body allocates
   *   no additional scope for the lambda or the block.
+  *
+  * Alias analysis requires its configuration to be in the configuration object.
+  *
+  * This pass requires the context to provide:
+  *
+  * - A [[org.enso.compiler.pass.PassConfiguration]] containing an instance of
+  *   [[AliasAnalysis.Configuration]].
+  * - A [[org.enso.interpreter.runtime.scope.LocalScope]], where relevant.
+  *
+  * It must have the following passes run before it:
+  *
+  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
+  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
+  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
+  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]],
   */
 case object AliasAnalysis extends IRPass {
 
@@ -138,6 +153,7 @@ case object AliasAnalysis extends IRPass {
               analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
           )
           .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+      case err: IR.Error.Redefined => err
     }
   }
 
@@ -329,7 +345,10 @@ case object AliasAnalysis extends IRPass {
         throw new CompilerError(
           "Binary operator occurred during Alias Analysis."
         )
-
+      case _: IR.Application.Operator.Section =>
+        throw new CompilerError(
+          "Operator section occurred during Alias Analysis."
+        )
     }
   }
 

@@ -15,7 +15,9 @@ import scala.reflect.ClassTag
   * Passes that depend on the metadata of other passes should pull this metadata
   * directly from the IR, and not depend on metadata available in the context.
   *
-  * Every pass should be implemented as a `case object`.
+  * Every pass should be implemented as a `case object` and should document in
+  * its header the requirements it has for pass configuration and for passes
+  * that must run before it.
   */
 trait IRPass {
 

@@ -2,6 +2,7 @@ package org.enso.compiler.codegen
 
 import cats.Foldable
 import cats.implicits._
+import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
@@ -15,7 +16,7 @@ import org.enso.syntax.text.AST
   * [[Core]] becomes implemented. Most function docs will refer to [[Core]]
   * now, as this will become true soon.
   */
-object AstToIR {
+object AstToIr {
   private def getIdentifiedLocation(ast: AST): Option[IdentifiedLocation] =
     ast.location.map(IdentifiedLocation(_, ast.id))
 
@@ -300,28 +301,43 @@ object AstToIR {
   ): DefinitionArgument = {
     arg match {
       case AstView.LazyAssignedArgumentDefinition(name, value) =>
-        DefinitionArgument.Specified(
-          Name.Literal(name.name, getIdentifiedLocation(name)),
-          Some(translateExpression(value)),
-          suspended = true,
-          getIdentifiedLocation(arg)
-        )
+        translateIdent(name) match {
+          case name: IR.Name =>
+            DefinitionArgument.Specified(
+              name,
+              Some(translateExpression(value)),
+              suspended = true,
+              getIdentifiedLocation(arg)
+            )
+          case _ =>
+            throw new UnhandledEntity(arg, "translateArgumentDefinition")
+        }
       case AstView.LazyArgument(arg) =>
         translateArgumentDefinition(arg, isSuspended = true)
       case AstView.DefinitionArgument(arg) =>
-        DefinitionArgument.Specified(
-          Name.Literal(arg.name, getIdentifiedLocation(arg)),
-          None,
-          isSuspended,
-          getIdentifiedLocation(arg)
-        )
+        translateIdent(arg) match {
+          case name: IR.Name =>
+            DefinitionArgument.Specified(
+              name,
+              None,
+              isSuspended,
+              getIdentifiedLocation(arg)
+            )
+          case _ =>
+            throw new UnhandledEntity(arg, "translateArgumentDefinition")
+        }
       case AstView.AssignedArgument(name, value) =>
-        DefinitionArgument.Specified(
-          Name.Literal(name.name, getIdentifiedLocation(name)),
-          Some(translateExpression(value)),
-          isSuspended,
-          getIdentifiedLocation(arg)
-        )
+        translateIdent(name) match {
+          case name: IR.Name =>
+            DefinitionArgument.Specified(
+              name,
+              Some(translateExpression(value)),
+              isSuspended,
+              getIdentifiedLocation(arg)
+            )
+          case _ =>
+            throw new UnhandledEntity(arg, "translateArgumentDefinition")
+        }
       case _ =>
         throw new UnhandledEntity(arg, "translateArgumentDefinition")
     }
@@ -406,19 +422,24 @@ object AstToIR {
           Function.Lambda(realArgs, realBody, getIdentifiedLocation(callable))
         }
       case AST.App.Infix(left, fn, right) =>
-        Application.Operator.Binary(
-          translateExpression(left),
-          Name.Literal(fn.name, getIdentifiedLocation(fn)),
-          translateExpression(right),
-          getIdentifiedLocation(callable)
-        )
+        val leftArg  = translateCallArgument(left)
+        val rightArg = translateCallArgument(right)
+
+        if (leftArg.name.isDefined) {
+          IR.Error.Syntax(left, IR.Error.Syntax.NamedArgInOperator)
+        } else if (rightArg.name.isDefined) {
+          IR.Error.Syntax(right, IR.Error.Syntax.NamedArgInOperator)
+        } else {
+          Application.Operator.Binary(
+            leftArg,
+            Name.Literal(fn.name, getIdentifiedLocation(fn)),
+            rightArg,
+            getIdentifiedLocation(callable)
+          )
+        }
       case AST.App.Prefix(_, _) =>
         throw new UnhandledEntity(callable, "translateCallable")
-      case AST.App.Section.any(_) =>
-        Error.Syntax(
-          callable,
-          Error.Syntax.UnsupportedSyntax("operator sections")
-        )
+      case AST.App.Section.any(sec) => translateOperatorSection(sec)
       case AST.Mixfix(nameSegments, args) =>
         val realNameSegments = nameSegments.collect {
           case AST.Ident.Var.any(v)  => v.name
@@ -431,10 +452,52 @@ object AstToIR {
         Application.Prefix(
           translateExpression(functionName),
           args.map(translateCallArgument).toList,
-          false,
+          hasDefaultsSuspended = false,
           getIdentifiedLocation(callable)
         )
       case _ => throw new UnhandledEntity(callable, "translateCallable")
+    }
+  }
+
+  /** Translates an operator section from its [[AST]] representation into the
+    * [[IR]] representation.
+    *
+    * @param section the operator section
+    * @return the [[IR]] representation of `section`
+    */
+  def translateOperatorSection(
+    section: AST.App.Section
+  ): Expression = {
+    section match {
+      case AST.App.Section.Left.any(left) =>
+        val leftArg = translateCallArgument(left.arg)
+
+        if (leftArg.name.isDefined) {
+          Error.Syntax(section, Error.Syntax.NamedArgInSection)
+        } else {
+          Application.Operator.Section.Left(
+            leftArg,
+            Name.Literal(left.opr.name, getIdentifiedLocation(left.opr)),
+            getIdentifiedLocation(left)
+          )
+        }
+      case AST.App.Section.Sides.any(sides) =>
+        Application.Operator.Section.Sides(
+          Name.Literal(sides.opr.name, getIdentifiedLocation(sides.opr)),
+          getIdentifiedLocation(sides)
+        )
+      case AST.App.Section.Right.any(right) =>
+        val rightArg = translateCallArgument(right.arg)
+
+        if (rightArg.name.isDefined) {
+          Error.Syntax(section, Error.Syntax.NamedArgInSection)
+        } else {
+          Application.Operator.Section.Right(
+            Name.Literal(right.opr.name, getIdentifiedLocation(right.opr)),
+            translateCallArgument(right.arg),
+            getIdentifiedLocation(right)
+          )
+        }
     }
   }
 
@@ -457,10 +520,7 @@ object AstToIR {
       case AST.Ident.Cons(name) =>
         Name.Literal(name, getIdentifiedLocation(identifier))
       case AST.Ident.Blank(_) =>
-        Error.Syntax(
-          identifier,
-          Error.Syntax.UnsupportedSyntax("blanks")
-        )
+        Name.Blank(getIdentifiedLocation(identifier))
       case AST.Ident.Opr.any(_) =>
         Error.Syntax(
           identifier,
@@ -489,15 +549,13 @@ object AstToIR {
     name: AST,
     expr: AST
   ): Expression.Binding = {
-    name match {
-      case v @ AST.Ident.Var(name) =>
-        Expression.Binding(
-          Name.Literal(name, getIdentifiedLocation(v)),
-          translateExpression(expr),
-          location
-        )
+    val irName = translateExpression(name)
+
+    irName match {
+      case n: IR.Name =>
+        Expression.Binding(n, translateExpression(expr), location)
       case _ =>
-        throw new UnhandledEntity(name, "translateAssignment")
+        throw new UnhandledEntity(name, "translateBinding")
     }
   }
 

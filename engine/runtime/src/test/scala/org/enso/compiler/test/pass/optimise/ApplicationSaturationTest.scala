@@ -1,11 +1,12 @@
-package org.enso.compiler.test.pass.analyse
+package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
-import org.enso.compiler.pass.analyse.ApplicationSaturation.{CallSaturation, FunctionSpec, Metadata}
-import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
-import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.optimise.ApplicationSaturation.{CallSaturation, FunctionSpec, Metadata}
+import org.enso.compiler.pass.analyse.AliasAnalysis
+import org.enso.compiler.pass.desugar.OperatorToFunction
+import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.node.ExpressionNode
@@ -13,7 +14,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgument
 import org.enso.interpreter.runtime.scope.LocalScope
 
 import scala.annotation.unused
-import scala.reflect.ClassTag
 
 class ApplicationSaturationTest extends CompilerTest {
 
@@ -52,7 +52,6 @@ class ApplicationSaturationTest extends CompilerTest {
     )
 
   val passes = List(
-    LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis
   )

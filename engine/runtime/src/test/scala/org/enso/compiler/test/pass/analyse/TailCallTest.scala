@@ -8,7 +8,6 @@ import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
-  LiftSpecialOperators,
   OperatorToFunction
 }
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
@@ -34,7 +33,6 @@ class TailCallTest extends CompilerTest {
 
   val precursorPasses: List[IRPass] = List(
     GenerateMethodBodies,
-    LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis
   )

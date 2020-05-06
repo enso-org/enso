@@ -6,7 +6,6 @@ import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
-  LiftSpecialOperators,
   OperatorToFunction
 }
 import org.enso.compiler.pass.optimise.LambdaConsolidate
@@ -19,7 +18,6 @@ class LambdaConsolidateTest extends CompilerTest {
 
   val precursorPasses: List[IRPass] = List(
     GenerateMethodBodies,
-    LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis
   )

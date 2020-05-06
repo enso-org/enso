@@ -4,7 +4,16 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 
-/** This pass converts usages of operators to calls to standard functions. */
+/** This pass converts usages of operators to calls to standard functions.
+ *
+ * This pass requires the context to provide:
+ *
+ * - Nothing
+ *
+ * It must have the following passes run before it:
+ * - [[GenerateMethodBodies]]
+ * - [[SectionsToBinOp]]
+ */
 case object OperatorToFunction extends IRPass {
 
   /** A purely desugaring pass has no analysis output. */
@@ -13,13 +22,13 @@ case object OperatorToFunction extends IRPass {
   override type Config = IRPass.Configuration.Default
 
   /** Executes the conversion pass.
-   *
-   * @param ir the Enso IR to process
-   * @param moduleContext a context object that contains the information needed
-   *                      to process a module
-   * @return `ir`, possibly having made transformations or annotations to that
-   *         IR.
-   */
+    *
+    * @param ir the Enso IR to process
+    * @param moduleContext a context object that contains the information needed
+    *                      to process a module
+    * @return `ir`, possibly having made transformations or annotations to that
+    *         IR.
+    */
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
@@ -45,10 +54,8 @@ case object OperatorToFunction extends IRPass {
         IR.Application.Prefix(
           op,
           List(
-            IR.CallArgument
-              .Specified(None, runExpression(l, inlineContext), l.location),
-            IR.CallArgument
-              .Specified(None, runExpression(r, inlineContext), r.location)
+            l.mapExpressions(runExpression(_, inlineContext)),
+            r.mapExpressions(runExpression(_, inlineContext))
           ),
           hasDefaultsSuspended = false,
           loc,

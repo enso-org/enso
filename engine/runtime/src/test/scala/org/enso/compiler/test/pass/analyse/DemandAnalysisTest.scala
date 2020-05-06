@@ -6,7 +6,6 @@ import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
-  LiftSpecialOperators,
   OperatorToFunction
 }
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
@@ -20,7 +19,6 @@ class DemandAnalysisTest extends CompilerTest {
   /** The passes that must be run before the demand analysis pass. */
   val precursorPasses: List[IRPass] = List(
     GenerateMethodBodies,
-    LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis
   )

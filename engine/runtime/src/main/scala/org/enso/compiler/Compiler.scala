@@ -4,19 +4,17 @@ import java.io.StringReader
 
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
+import org.enso.compiler.codegen.{AstToIr, IRToTruffle}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  LiftSpecialOperators,
-  OperatorToFunction
-}
-import org.enso.compiler.pass.optimise.LambdaConsolidate
+import org.enso.compiler.pass.desugar._
+import org.enso.compiler.pass.lint.UnusedBindings
+import org.enso.compiler.pass.optimise._
+import org.enso.compiler.pass.resolve._
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
@@ -51,15 +49,19 @@ class Compiler(
     */
   val compilerPhaseOrdering: List[IRPass] = List(
     GenerateMethodBodies,
-    LiftSpecialOperators,
+    SectionsToBinOp,
     OperatorToFunction,
+    LambdaShorthandToLambda,
+    IgnoredBindings,
     AliasAnalysis,
     LambdaConsolidate,
+    OverloadsResolution,
     AliasAnalysis,
     DemandAnalysis,
     ApplicationSaturation,
     TailCall,
-    DataflowAnalysis
+    DataflowAnalysis,
+    UnusedBindings
   )
 
   /** Configuration for the passes. */
@@ -168,7 +170,7 @@ class Compiler(
     * @return an IR representation of the program represented by `sourceAST`
     */
   def generateIR(sourceAST: AST): Module =
-    AstToIR.translate(sourceAST)
+    AstToIr.translate(sourceAST)
 
   /**
     * Lowers the input AST to the compiler's high-level intermediate
@@ -178,7 +180,7 @@ class Compiler(
     * @return an IR representation of the program represented by `sourceAST`
     */
   def generateIRInline(sourceAST: AST): Option[Expression] =
-    AstToIR.translateInline(sourceAST)
+    AstToIr.translateInline(sourceAST)
 
   /** Runs the various compiler passes.
     *

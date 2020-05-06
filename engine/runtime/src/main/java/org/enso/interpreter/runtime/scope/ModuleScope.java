@@ -50,19 +50,29 @@ public class ModuleScope {
   }
 
   /**
+   * Looks up a constructor in the module scope locally.
+   *
+   * @param name the name of the module binding
+   * @return the atom constructor associated with {@code name}, or {@link Optional#empty()}
+   */
+  public Optional<AtomConstructor> getLocalConstructor(String name) {
+    if (associatedType.getName().equals(name)) {
+      return Optional.of(associatedType);
+    }
+    return Optional.ofNullable(this.constructors.get(name));
+  }
+
+  /**
    * Looks up a constructor in the module scope.
    *
    * @param name the name of the module binding
    * @return the Atom constructor associated with {@code name}, or {@link Optional#empty()}
    */
   public Optional<AtomConstructor> getConstructor(String name) {
-    if (associatedType.getName().equals(name)) {
-      return Optional.of(associatedType);
-    }
-    Optional<AtomConstructor> locallyDefined = Optional.ofNullable(this.constructors.get(name));
+    Optional<AtomConstructor> locallyDefined = getLocalConstructor(name);
     if (locallyDefined.isPresent()) return locallyDefined;
     return imports.stream()
-        .map(scope -> scope.getConstructor(name))
+        .map(scope -> scope.getLocalConstructor(name))
         .filter(Optional::isPresent)
         .map(Optional::get)
         .findFirst();

@@ -12,6 +12,14 @@ import org.enso.compiler.pass.IRPass
   *
   * - The body is a function (lambda)
   * - The body has `this` at the start of its argument list.
+  *
+  * This pass requires the context to provide:
+  *
+  * - Nothing
+  *
+  * It must have the following passes run before it:
+  *
+  * - None
   */
 case object GenerateMethodBodies extends IRPass {
 
@@ -21,13 +29,13 @@ case object GenerateMethodBodies extends IRPass {
   override type Config = IRPass.Configuration.Default
 
   /** Generates and consolidates method bodies.
-   *
-   * @param ir the Enso IR to process
-   * @param moduleContext a context object that contains the information needed
-   *                      to process a module
-   * @return `ir`, possibly having made transformations or annotations to that
-   *         IR.
-   */
+    *
+    * @param ir the Enso IR to process
+    * @param moduleContext a context object that contains the information needed
+    *                      to process a module
+    * @return `ir`, possibly having made transformations or annotations to that
+    *         IR.
+    */
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext

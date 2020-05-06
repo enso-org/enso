@@ -12,7 +12,6 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
-  LiftSpecialOperators,
   OperatorToFunction
 }
 import org.enso.compiler.pass.optimise.LambdaConsolidate
@@ -28,7 +27,6 @@ class DataflowAnalysisTest extends CompilerTest {
   /** The passes that must be run before the dataflow analysis pass. */
   val precursorPasses: List[IRPass] = List(
     GenerateMethodBodies,
-    LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis,
     LambdaConsolidate,
@@ -37,7 +35,7 @@ class DataflowAnalysisTest extends CompilerTest {
     TailCall
   )
 
-  val passConfig = PassConfiguration(
+  val passConfig: PassConfiguration = PassConfiguration(
     AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 

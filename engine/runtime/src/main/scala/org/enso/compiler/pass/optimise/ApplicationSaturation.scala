@@ -1,16 +1,31 @@
-package org.enso.compiler.pass.analyse
+package org.enso.compiler.pass.optimise
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.callable.argument.CallArgument
 
 /** This optimisation pass recognises fully-saturated applications of known
   * functions and writes analysis data that allows optimisation of them to
   * specific nodes at codegen time.
+  *
+  * This pass requires the context to provide:
+  *
+  * - A [[org.enso.compiler.pass.PassConfiguration]] containing an instance of
+  *   [[ApplicationSaturation.Configuration]].
+  *
+  * It must have the following passes run before it:
+  *
+  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
+  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
+  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
+  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
+  * - [[org.enso.compiler.pass.resolve.IgnoredBindings]]
+  * - [[LambdaConsolidate]]
   */
 case object ApplicationSaturation extends IRPass {
 
