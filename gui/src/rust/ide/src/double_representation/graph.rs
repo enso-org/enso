@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::double_representation::definition;
 use crate::double_representation::definition::DefinitionInfo;
+use crate::double_representation::node;
 use crate::double_representation::node::NodeInfo;
 
 use ast::Ast;
@@ -14,16 +15,6 @@ use crate::double_representation::connection::Connection;
 
 /// Graph uses the same `Id` as the definition which introduces the graph.
 pub type Id = double_representation::definition::Id;
-
-
-
-// =============
-// === Error ===
-// =============
-
-#[derive(Fail,Debug)]
-#[fail(display="ID was not found.")]
-struct IdNotFound {id:ast::Id}
 
 
 
@@ -89,20 +80,6 @@ impl GraphInfo {
         double_representation::connection::list(&self.source.ast.rarg)
     }
 
-    fn is_node_by_id(line:&BlockLine<Option<Ast>>, id:ast::Id) -> bool {
-        let node_info  = line.elem.as_ref().and_then(NodeInfo::from_line_ast);
-        let id_matches = node_info.map(|node| node.id() == id);
-        id_matches.unwrap_or(false)
-    }
-
-    /// Searches for `NodeInfo` with the associated `id` index in `lines`. Returns an error if
-    /// the Id is not found.
-    pub fn find_node_index_in_lines
-    (lines:&[BlockLine<Option<Ast>>], id:ast::Id) -> FallibleResult<usize> {
-        let position = lines.iter().position(|line| Self::is_node_by_id(&line,id));
-        position.ok_or_else(|| IdNotFound{id}.into())
-    }
-
     /// Adds a new node to this graph.
     pub fn add_node
     (&mut self, line_ast:Ast, location_hint:LocationHint) -> FallibleResult<()> {
@@ -110,8 +87,8 @@ impl GraphInfo {
         let index     = match location_hint {
             LocationHint::Start      => 0,
             LocationHint::End        => lines.len(),
-            LocationHint::After(id)  => Self::find_node_index_in_lines(&lines, id)? + 1,
-            LocationHint::Before(id) => Self::find_node_index_in_lines(&lines, id)?
+            LocationHint::After(id)  => node::index_in_lines(&lines, id)? + 1,
+            LocationHint::Before(id) => node::index_in_lines(&lines, id)?
         };
         let elem = Some(line_ast);
         let off  = 0;
@@ -146,7 +123,7 @@ impl GraphInfo {
     pub fn update_node(&mut self, id:ast::Id, f:impl FnOnce(NodeInfo) -> Option<NodeInfo>) -> FallibleResult<()> {
         let mut lines = self.source.block_lines()?;
         let node_entry = lines.iter().enumerate().find_map(|(index,line)| {
-            let node     = line.elem.as_ref().and_then(NodeInfo::from_line_ast);
+            let node     = NodeInfo::from_block_line(line);
             let filtered = node.filter(|node| node.id() == id);
             filtered.map(|node| (index,node))
         });
@@ -163,7 +140,7 @@ impl GraphInfo {
                 self.source.set_block_lines(lines)
             }
         } else {
-            Err(IdNotFound {id}.into())
+            Err(node::IdNotFound {id}.into())
         }
     }
 
