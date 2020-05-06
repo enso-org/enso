@@ -35,13 +35,13 @@ object ExecutionContextJsonMessages {
             "id": $reqId,
             "result" : {
               "canModify" : {
-                "method" : "canModify",
+                "method" : "executionContext/canModify",
                 "registerOptions" : {
                   "contextId" : $contextId
                 }
               },
-              "receivesEvents" : {
-                "method" : "receivesEvents",
+              "receivesUpdates" : {
+                "method" : "executionContext/receivesUpdates",
                 "registerOptions" : {
                   "contextId" : $contextId
                 }

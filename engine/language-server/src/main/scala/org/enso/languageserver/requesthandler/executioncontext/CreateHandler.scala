@@ -6,7 +6,7 @@ import org.enso.jsonrpc._
 import org.enso.languageserver.data.{
   CanModify,
   CapabilityRegistration,
-  ReceivesEvents
+  ReceivesUpdates
 }
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
@@ -58,9 +58,9 @@ class CreateHandler(
       context.stop(self)
 
     case CreateContextResponse(contextId) =>
-      val canModify      = CapabilityRegistration(CanModify(contextId))
-      val receivesEvents = CapabilityRegistration(ReceivesEvents(contextId))
-      val result         = ExecutionContextCreate.Result(canModify, receivesEvents)
+      val canModify       = CapabilityRegistration(CanModify(contextId))
+      val receivesUpdates = CapabilityRegistration(ReceivesUpdates(contextId))
+      val result          = ExecutionContextCreate.Result(canModify, receivesUpdates)
       replyTo ! ResponseResult(ExecutionContextCreate, id, result)
       cancellable.cancel()
       context.stop(self)

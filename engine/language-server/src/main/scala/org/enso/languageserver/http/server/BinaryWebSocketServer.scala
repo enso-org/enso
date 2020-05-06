@@ -59,7 +59,7 @@ class BinaryWebSocketServer[A, B](
       case RemoteAddress.Unknown =>
         complete(
           InternalServerError.toString +
-            "Set akka.http.server.remote-address-header to on"
+          "Set akka.http.server.remote-address-header to on"
         )
 
       case ip: RemoteAddress.IP =>

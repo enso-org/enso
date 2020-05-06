@@ -138,7 +138,10 @@ class ClientController(
       webActor ! Notification(TextDidChange, TextDidChange.Params(changes))
 
     case PathWatcherProtocol.FileEventResult(event) =>
-      webActor ! Notification(EventFile, EventFile.Params(event))
+      webActor ! Notification(
+        EventFile,
+        EventFile.Params(event.path, event.kind)
+      )
 
     case ContextRegistryProtocol
           .ExpressionValuesComputedNotification(contextId, updates) =>

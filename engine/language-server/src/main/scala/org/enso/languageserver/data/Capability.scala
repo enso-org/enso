@@ -19,7 +19,7 @@ sealed abstract class Capability(val method: String)
 case class CanEdit(path: Path) extends Capability(CanEdit.methodName)
 
 object CanEdit {
-  val methodName = "canEdit"
+  val methodName = "text/canEdit"
 }
 
 /**
@@ -31,7 +31,7 @@ case class ReceivesTreeUpdates(path: Path)
     extends Capability(ReceivesTreeUpdates.methodName)
 
 object ReceivesTreeUpdates {
-  val methodName = "receivesTreeUpdates"
+  val methodName = "file/receivesTreeUpdates"
 }
 
 /**
@@ -43,7 +43,7 @@ case class CanModify(contextId: ContextId)
     extends Capability(CanModify.methodName)
 
 object CanModify {
-  val methodName = "canModify"
+  val methodName = "executionContext/canModify"
 }
 
 /**
@@ -51,11 +51,11 @@ object CanModify {
   *
   * @param contextId identifier of an execution conatext
   */
-case class ReceivesEvents(contextId: ContextId)
-    extends Capability(ReceivesEvents.methodName)
+case class ReceivesUpdates(contextId: ContextId)
+    extends Capability(ReceivesUpdates.methodName)
 
-object ReceivesEvents {
-  val methodName = "receivesEvents"
+object ReceivesUpdates {
+  val methodName = "executionContext/receivesUpdates"
 }
 
 object Capability {
@@ -66,7 +66,7 @@ object Capability {
     case cap: CanEdit             => cap.asJson
     case cap: ReceivesTreeUpdates => cap.asJson
     case cap: CanModify           => cap.asJson
-    case cap: ReceivesEvents      => cap.asJson
+    case cap: ReceivesUpdates     => cap.asJson
   }
 
 }
@@ -103,7 +103,7 @@ object CapabilityRegistration {
       case CanEdit.methodName             => json.as[CanEdit]
       case ReceivesTreeUpdates.methodName => json.as[ReceivesTreeUpdates]
       case CanModify.methodName           => json.as[CanModify]
-      case ReceivesEvents.methodName      => json.as[ReceivesEvents]
+      case ReceivesUpdates.methodName     => json.as[ReceivesUpdates]
       case _ =>
         Left(DecodingFailure("Unrecognized capability method.", List()))
     }

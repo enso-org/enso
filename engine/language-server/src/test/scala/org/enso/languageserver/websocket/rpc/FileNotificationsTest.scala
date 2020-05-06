@@ -73,7 +73,7 @@ class FileNotificationsTest extends BaseServerTest {
             "id": 1,
             "result": {
               "writeCapability": {
-                "method": "canEdit",
+                "method": "text/canEdit",
                 "registerOptions": { "path": {
                   "rootId": $testContentRootId,
                   "segments": ["foo.txt"]

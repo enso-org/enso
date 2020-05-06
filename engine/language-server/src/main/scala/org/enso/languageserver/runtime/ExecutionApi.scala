@@ -19,7 +19,7 @@ object ExecutionApi {
 
     case class Result(
       canModify: CapabilityRegistration,
-      receivesEvents: CapabilityRegistration
+      receivesUpdates: CapabilityRegistration
     )
 
     implicit val hasParams = new HasParams[this.type] {

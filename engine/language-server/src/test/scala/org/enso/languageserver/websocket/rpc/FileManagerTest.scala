@@ -1132,7 +1132,7 @@ class FileManagerTest extends BaseServerTest {
                     }
                   },
                   {
-                    "type": "DirectoryTruncated",
+                    "type": "Directory",
                     "name": "subdir",
                     "path": {
                       "rootId": $testContentRootId,

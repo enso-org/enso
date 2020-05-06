@@ -80,13 +80,11 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
-               "event": {
-                 "path": {
-                    "rootId": $testContentRootId,
-                    "segments": [ "oneone.txt" ]
-                 },
-                 "kind": "Added"
-               }
+               "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "oneone.txt" ]
+               },
+               "kind": "Added"
              }
           }
           """)
@@ -94,13 +92,11 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
-               "event": {
-                 "path": {
-                    "rootId": $testContentRootId,
-                    "segments": [ "oneone.txt" ]
-                 },
-                 "kind": "Added"
-               }
+               "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "oneone.txt" ]
+               },
+               "kind": "Added"
              }
           }
           """)
@@ -111,13 +107,11 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
-               "event": {
-                 "path": {
-                    "rootId": $testContentRootId,
-                    "segments": [ "oneone.txt" ]
-                 },
-                 "kind": "Modified"
-               }
+               "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "oneone.txt" ]
+               },
+               "kind": "Modified"
              }
           }
           """)
@@ -125,13 +119,11 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
-               "event": {
-                 "path": {
-                    "rootId": $testContentRootId,
-                    "segments": [ "oneone.txt" ]
-                 },
-                 "kind": "Modified"
-               }
+               "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "oneone.txt" ]
+               },
+               "kind": "Modified"
              }
           }
           """)
@@ -146,13 +138,11 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
-               "event": {
-                 "path": {
-                    "rootId": $testContentRootId,
-                    "segments": [ "oneone.txt" ]
-                 },
-                 "kind": "Removed"
-               }
+               "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "oneone.txt" ]
+               },
+               "kind": "Removed"
              }
           }
           """)
@@ -177,7 +167,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
               "method": "capability/acquire",
               "id": $reqId,
               "params": {
-                "method": "receivesTreeUpdates",
+                "method": "file/receivesTreeUpdates",
                 "registerOptions": {
                   "path": {
                     "rootId": $testContentRootId,
@@ -194,7 +184,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
               "method": "capability/acquire",
               "id": $reqId,
               "params": {
-                "method": "receivesTreeUpdates",
+                "method": "file/receivesTreeUpdates",
                 "registerOptions": {
                   "path": {
                     "rootId": $testContentRootId,
@@ -211,7 +201,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
             "method": "capability/release",
             "id": $reqId,
             "params": {
-              "method": "receivesTreeUpdates",
+              "method": "file/receivesTreeUpdates",
               "registerOptions": {
                 "path": {
                   "rootId": $testContentRootId,
@@ -228,7 +218,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
             "method": "capability/release",
             "id": $reqId,
             "params": {
-              "method": "receivesTreeUpdates",
+              "method": "file/receivesTreeUpdates",
               "registerOptions": {
                 "path": {
                   "rootId": $testContentRootId,

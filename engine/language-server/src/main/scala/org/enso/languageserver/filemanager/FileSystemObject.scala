@@ -20,15 +20,6 @@ object FileSystemObject {
   case class Directory(name: String, path: Path) extends FileSystemObject
 
   /**
-    * Represents a directory which contents have been truncated.
-    *
-    * @param name a name of the directory
-    * @param path a path to the directory
-    */
-  case class DirectoryTruncated(name: String, path: Path)
-      extends FileSystemObject
-
-  /**
     * Represents a symbolic link that creates a loop.
     *
     * @param name a name of the symlink
@@ -65,7 +56,7 @@ object FileSystemObject {
         )
 
       case FileSystemApi.DirectoryEntryTruncated(path) =>
-        FileSystemObject.DirectoryTruncated(
+        FileSystemObject.Directory(
           path.getFileName.toString,
           Path.getRelativeParent(root, base, path)
         )
@@ -107,8 +98,6 @@ object FileSystemObject {
 
     val Directory = "Directory"
 
-    val DirectoryTruncated = "DirectoryTruncated"
-
     val SymlinkLoop = "SymlinkLoop"
 
     val Other = "Other"
@@ -128,12 +117,6 @@ object FileSystemObject {
             name <- cursor.downField(CodecField.Name).as[String]
             path <- cursor.downField(CodecField.Path).as[Path]
           } yield Directory(name, path)
-
-        case CodecType.DirectoryTruncated =>
-          for {
-            name <- cursor.downField(CodecField.Name).as[String]
-            path <- cursor.downField(CodecField.Path).as[Path]
-          } yield DirectoryTruncated(name, path)
 
         case CodecType.SymlinkLoop =>
           for {
@@ -155,13 +138,6 @@ object FileSystemObject {
       case Directory(name, path) =>
         Json.obj(
           CodecField.Type -> CodecType.Directory.asJson,
-          CodecField.Name -> name.asJson,
-          CodecField.Path -> path.asJson
-        )
-
-      case DirectoryTruncated(name, path) =>
-        Json.obj(
-          CodecField.Type -> CodecType.DirectoryTruncated.asJson,
           CodecField.Name -> name.asJson,
           CodecField.Path -> path.asJson
         )
