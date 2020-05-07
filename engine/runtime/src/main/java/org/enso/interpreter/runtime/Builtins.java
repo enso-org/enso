@@ -9,7 +9,10 @@ import org.enso.interpreter.node.expression.builtin.error.CatchPanicNode;
 import org.enso.interpreter.node.expression.builtin.error.PanicNode;
 import org.enso.interpreter.node.expression.builtin.error.ThrowErrorNode;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionNode;
+import org.enso.interpreter.node.expression.builtin.interop.generic.*;
+import org.enso.interpreter.node.expression.builtin.io.NanoTimeNode;
 import org.enso.interpreter.node.expression.builtin.io.PrintNode;
+import org.enso.interpreter.node.expression.builtin.interop.java.*;
 import org.enso.interpreter.node.expression.builtin.number.AddNode;
 import org.enso.interpreter.node.expression.builtin.number.DivideNode;
 import org.enso.interpreter.node.expression.builtin.number.ModNode;
@@ -83,6 +86,8 @@ public class Builtins {
     AtomConstructor error = new AtomConstructor("Error", scope).initializeFields();
     AtomConstructor state = new AtomConstructor("State", scope).initializeFields();
 
+    AtomConstructor java = new AtomConstructor("Java", scope).initializeFields();
+
     scope.registerConstructor(unit);
     scope.registerConstructor(any);
     scope.registerConstructor(number);
@@ -100,7 +105,11 @@ public class Builtins {
     scope.registerConstructor(syntaxError);
     scope.registerConstructor(compileError);
 
+    scope.registerConstructor(java);
+    scope.registerConstructor(createPolyglot(language));
+
     scope.registerMethod(io, "println", PrintNode.makeFunction(language));
+    scope.registerMethod(io, "nano_time", NanoTimeNode.makeFunction(language));
 
     scope.registerMethod(panic, "throw", PanicNode.makeFunction(language));
     scope.registerMethod(panic, "recover", CatchPanicNode.makeFunction(language));
@@ -126,6 +135,28 @@ public class Builtins {
     scope.registerMethod(text, "+", ConcatNode.makeFunction(language));
     scope.registerMethod(any, "to_text", AnyToTextNode.makeFunction(language));
     scope.registerMethod(any, "json_serialize", JsonSerializeNode.makeFunction(language));
+
+    scope.registerMethod(java, "add_to_class_path", AddToClassPathNode.makeFunction(language));
+    scope.registerMethod(java, "lookup_class", LookupClassNode.makeFunction(language));
+  }
+
+  private AtomConstructor createPolyglot(Language language) {
+    AtomConstructor polyglot = new AtomConstructor("Polyglot", scope).initializeFields();
+    scope.registerMethod(polyglot, "execute0", Execute0Node.makeFunction(language));
+    scope.registerMethod(polyglot, "execute1", Execute1Node.makeFunction(language));
+    scope.registerMethod(polyglot, "execute2", Execute2Node.makeFunction(language));
+
+    scope.registerMethod(polyglot, "instantiate0", Instantiate0Node.makeFunction(language));
+    scope.registerMethod(polyglot, "instantiate1", Instantiate1Node.makeFunction(language));
+    scope.registerMethod(polyglot, "instantiate2", Instantiate2Node.makeFunction(language));
+
+    scope.registerMethod(polyglot, "get_member", GetMemberNode.makeFunction(language));
+    scope.registerMethod(polyglot, "get_members", GetMembersNode.makeFunction(language));
+
+    scope.registerMethod(polyglot, "get_array_size", GetArraySizeNode.makeFunction(language));
+    scope.registerMethod(
+        polyglot, "get_array_element", GetArrayElementNode.makeFunction(language));
+    return polyglot;
   }
 
   /**

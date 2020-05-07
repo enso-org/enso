@@ -76,6 +76,7 @@ trait InterpreterRunner {
   val ctx = Context
     .newBuilder(LanguageInfo.ID)
     .allowExperimentalOptions(true)
+    .allowAllAccess(true)
     .out(output)
     .build()
   lazy val executionContext = new PolyglotContext(ctx)
