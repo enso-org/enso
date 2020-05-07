@@ -67,6 +67,27 @@ guide. Be sure to carefully read the
 and the [Rust style guide 2](https://github.com/luna/enso/blob/master/doc/rust-style-guide.md)
 before contributing to the codebase.
 
+### Setting up Engine Services
+IDE requires a service named Project Picker to be running in the background on the local machine.
+The service, being part of the Enso Engine, currently must be built from the sources on the [enso
+repository](https://github.com/luna/enso). If the service is not running, the IDE will not start.
+
+However, it is possible to hack on many components of the IDE without the service. The debug scenes
+and tests will work even without the Project Picker.
+
+To run Project Picker, it must be first built — please follow the Enso Engine [contributing
+guidelines](https://github.com/luna/enso/blob/master/CONTRIBUTING.md) to obtain sources and
+necessary tools. When they are in place, the service can be built and started by issuing the
+following command in the [enso repository](https://github.com/luna/enso) root:
+```
+sbt -java-home $JAVA_HOME -J-Xss10M project-manager/run
+```
+
+Where `$JAVA_HOME` is the path where `graalvm-ce-java8-20.0.0` is located.
+
+In future significant improvements to this process are planned, specifically:
+* not requiring the engine to be able to start the IDE;
+* providing self-contained Project Picker service packages.
 
 ### Development
 As this is a multi-part project with many complex dependencies, it is equipped with a build script

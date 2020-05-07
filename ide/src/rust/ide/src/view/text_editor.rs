@@ -42,11 +42,11 @@ impl {
     /// Saves text editor's content to file.
     pub fn save(&self) {
         let controller = self.controller.clone();
-        let file_path  = controller.file_path();
         let text       = self.text_field.get_content();
         let logger     = self.logger.clone();
         executor::global::spawn(async move {
             if controller.store_content(text).await.is_err() {
+                let file_path  = controller.file_path();
                 let message:&str = &format!("Failed to save file: {}", file_path);
                 logger.error(message);
             } else {
@@ -135,7 +135,7 @@ impl TextEditor {
 
     fn handle_text_field_notification(&self, change:&TextChange) {
         let (logger,controller) = self.with_borrowed(|data|
-            (data.logger.clone(),data.controller.clone_ref()));
+            (data.logger.clone_ref(),data.controller.clone_ref()));
         let result = controller.apply_text_change(change);
         if result.is_err() {
             logger.error(|| "Error while notifying controllers about text change");

@@ -6,6 +6,10 @@
 //! Also, the Enso Protocol specification is source for many names and comments used here.
 //! This file tries to follow the scheme of the protocol specification.
 
+pub mod connection;
+
+pub use connection::Connection;
+
 use crate::prelude::*;
 
 use crate::types::UTCDateTime;
@@ -49,6 +53,24 @@ impl Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "//{}/", self.root_id)?;
         write!(f, "{}", self.segments.join("/"))
+    }
+}
+
+impl Path {
+    /// Returns the file extension, i.e. the part of last path segment after the last dot.
+    /// Returns `None` is there is no segments or no dot in the last segment.
+    pub fn extension(&self) -> Option<&str> {
+        let segment = self.segments.last()?;
+        let last_dot_index = segment.rfind('.')?;
+        Some(&segment[last_dot_index + 1..])
+    }
+
+    /// Constructs a new path from given root ID and segments.
+    pub fn new(root_id:Uuid, segments:impl IntoIterator<Item:AsRef<str>>) -> Path {
+        Path {
+            root_id,
+            segments : segments.into_iter().map(|s| s.as_ref().into()).collect()
+        }
     }
 }
 
