@@ -58,8 +58,6 @@ syntax will be accessible.
 - [Errors](#errors)
   - [Async Exceptions](#async-exceptions)
   - [Broken Values](#broken-values)
-- [Dynamic](#dynamic)
-  - [The Enso Boundary](#the-enso-boundary)
 - [Type Checking and Inference](#type-checking-and-inference)
   - [Maximal Inference Power](#maximal-inference-power)
 - [Dependency and Enso](#dependency-and-enso)
@@ -189,7 +187,7 @@ Typesets can be combined using the [typeset operators](#typeset-operators)
 defined below.
 
 In addition, we provide syntactic sugar for defining typesets as described in
-the syntax document. This syntax has a special desugaring that obeys the 
+the syntax document. This syntax has a special desugaring that obeys the
 following rules:
 
 > Actually fill in these rules.
@@ -201,7 +199,7 @@ type Maybe a
     Nothing
     type Just (value : a)
 
-    isJust = case self of
+    isJust = case this of
         Nothing -> False
         Just _ -> True
 
@@ -216,12 +214,12 @@ maybe a =
   { (Nothing | Just a), isJust: IsJust = isJust, nothing : Nothing = nothing }
 
 Nothing.isJust : Maybe a -> Bool
-Nothing.isJust self = case self of
+Nothing.isJust this = case this of
   Nothing -> False
   Just _ -> True
 
 Just.isJust : Maybe a -> Bool
-Just.isJust self = case self of
+Just.isJust this = case this of
   Nothing -> False
   Just _ -> True
 
@@ -359,11 +357,11 @@ type HasName
     name = "unnamed"
 
 type Vector a
-    self: HasName
+    this: HasName
     V2 x:a y:a
     V3 x:a y:a z:a
 
-name (self:Int) = "IntName"
+name (this:Int) = "IntName"
 
 greet (t:HasName) = print 'Hi, my name is `t.name`'
 
@@ -386,20 +384,20 @@ wrappers for the contained types. This is a big usability bonus for Enso.
 
 ```ruby
 type Wrapper
-    wrapped   : (lens s t a b) self.unwrapped
+    wrapped   : (lens s t a b) this.unwrapped
     unwrapped : t
     unwrapped = t # Default implementation based on inferred type.
 ```
 
 `Wrapper` is an interface implemented implicitly for all typesets, and boils
 down to delegating to the contained members if a given label is not found on
-the top typeset. This delegation only occurs on the self type.
+the top typeset. This delegation only occurs on the this type.
 
 A usage example is as follows:
 
 ```ruby
 type HasName a
-    self:Wrapper # The field 'unwrapped' uses default implementation.
+    this:Wrapper # The field 'unwrapped' uses default implementation.
     type Cons
         name    : String
         wrapped : a
@@ -447,11 +445,11 @@ An example use-case is as follows:
 type Vector a
     type V3 x:a y:a z:a
 
-    self : Convertible String
-    to = 'V3 `self.x` `self.y` `self.z`'
+    this : Convertible String
+    to = 'V3 `this.x` `this.y` `this.z`'
 
-    self : Convertible (a: Semigroup)
-    to = self.x + self.y + self.z
+    this : Convertible (a: Semigroup)
+    to = this.x + this.y + this.z
 
 test: Int -> String
 test i = print 'I got the magic value `i`!'
@@ -532,6 +530,22 @@ the types ascribed to values in Enso are not the be-all and end-all.
 Additionally, as Enso is a dependently-typed language, the expression `b` may
 contain arbitrary Enso expressions. The type-checking of such signatures is
 discussed further in the section on [dependency](#dependency-and-enso).
+
+#### Scoping in Type Ascription
+Enso intends to support some form of mutual scoping between the left and right
+sides of the type ascription operator. This introduces some complexity into the
+typechecker but brings some significant benefits.
+
+- It is common in dependently-typed languages for the signature to balloon
+  significantly as you add more constraints to your program.
+- To this end, Enso wants to support a sharing of scopes between the top-level
+  scope of the type signature's right-hand-side, and the top-level scope of the
+  signature's left hand side.
+- This will allow users to move complexity _out_ of the type signature and into
+  the body of the expression, aiding code clarity.
+- It does, however, introduce some significant complexity around recursive
+  bindings in groups, and the desugaring needs to depend on combinations of
+  `>>=` and `fix`.
 
 ### Projections
 In order to work efficiently with typesets, we need the ability to seamlessly
@@ -646,7 +660,7 @@ signature acts to constrain the function type further than would be inferred.
 > The actionables for this section are:
 >
 > PLEASE NOTE. THIS IS OUT OF DATE.
-> 
+>
 > - Clean it up and work out how it applies in light of the new developments of
 >   typesets.
 
@@ -757,7 +771,7 @@ for usability, as users can write very flexible code that still plays nicely
 with the GUI.
 
 The current implementation of Enso supports single dispatch (dispatch purely on
-the type of `self`), but there are broader visions afoot for the final
+the type of `this`), but there are broader visions afoot for the final
 implementation of dynamic dispatch in Enso.
 
 > The actionables for this section include:
@@ -781,9 +795,9 @@ another.
   2. If not, find all functions with the matching name in the current module and
      all directly imported modules. These functions are the _candidates_.
   3. Eliminate any candidate `X` for which there is another candidate `Y` whose
-     `this` argument type is strictly more specific. That is, `Y` self type is a
-     substitution of `X` self type but not vice versa.
-  4. If not all of the remaining candidates have the same self type, the search
+     `this` argument type is strictly more specific. That is, `Y` this type is a
+     substitution of `X` this type but not vice versa.
+  4. If not all of the remaining candidates have the same this type, the search
      fails.
   5. Eliminate any candidate `X` for which there is another candidate `Y` which
      type signature is strictly more specific. That is, `Y` type signature is a
@@ -791,7 +805,7 @@ another.
   6. If exactly one candidate remains, select it. Otherwise, the search fails.
 
 > The actionables for this section are as follows:
-> 
+>
 > - THE ABOVE VERSION IS OLD. NEEDS UPDATING.
 > - The definition of specificity for dispatch candidates (including how it
 >   interacts with the subsumption relationship on typesets and the ordering of
@@ -800,7 +814,7 @@ another.
 ### Multiple Dispatch
 It is an open question as to whether we want to support proper multiple dispatch
 in Enso. Multiple dispatch refers to the dynamic dispatch target being
-determined based not only on the type of the `self` argument, but the types of
+determined based not only on the type of the `this` argument, but the types of
 the other arguments to the function.
 
 To do multiple dispatch properly, it is very important to get a rigorous
@@ -898,7 +912,7 @@ must be resolved at the source.
 >   they have any, are the impacts of imports on inference and checking?
 
 ## Monadic Contexts
-Coming from a Haskell background, we have found that Monads provide a great 
+Coming from a Haskell background, we have found that Monads provide a great
 abstraction with which to reason about program behaviour, but they have some
 severe usability issues. The main one of these is the lack of automatic lifting,
 requiring users to explicitly lift computations through their monad transformer
@@ -911,7 +925,7 @@ special support in the compiler, and hence can be automatically lifted to aid
 usability. There are three main notes about the syntax of contexts:
 
 1. Monadic contexts are defined using the `in` keyword (e.g. `Int in IO`).
-2. We have a symbol `!`, which is short-hand for putting something into the 
+2. We have a symbol `!`, which is short-hand for putting something into the
    `Exception` monadic context. This is related to broken values.
 3. Contexts can be combined by using the standard typeset operators, or nested
    through repeated uses of `in`.
@@ -933,22 +947,22 @@ to work.
 Contexts can be defined by users.
 
 > The actionables for this section are:
-> 
+>
 > - How, what, when and why?
 
 ### Context Lifting
 > The actionables for this section are:
-> 
+>
 > - Specify and explain how automated lifting of monadic contexts works.
 
 ## Strictness and Suspension
 Enso is a language that has strict semantics by default, but it can still be
 very useful to be able to opt-in to suspended computations (thunks) for the
-design of certain APIs. 
+design of certain APIs.
 
 To that end, Enso provides a mechanism for this through the type system. The
 standard library defines a `Suspend a` type which, when used in explicit type
-signatures, will cause the corresponding expression to be suspended. 
+signatures, will cause the corresponding expression to be suspended.
 
 - The explicit calls to `Suspend` and `force` are inserted automatically by the
   compiler doing demand analysis.
@@ -956,19 +970,19 @@ signatures, will cause the corresponding expression to be suspended.
   chains of suspend and force being inserted to ensure performance.
 
 > The actionables for this section are as follows:
-> 
+>
 > - Specify this much better.
 
 ## Analysing Parallelism
 
 > The actionables for this section are:
-> 
+>
 > - Work out how the type checker can support parallelism analysis.
 
 ## Typed Holes
 
 > The actionables for this section are:
-> 
+>
 > - Determine how we want to support typed holes.
 > - Determine the syntax for typed holes.
 
@@ -978,14 +992,14 @@ model, while the other is a theory of 'broken values' that propagate through
 computations.
 
 > The actionables for this section are:
-> 
+>
 > - Greatly expand on the reasoning and theory behind the two exception models.
 > - Explain why broken values serve the GUI well.
 
 ### Async Exceptions
 
 > The actionables for this section are:
-> 
+>
 > - Formalise the model of async exceptions as implemented.
 
 ### Broken Values
@@ -1024,48 +1038,6 @@ with an automatic propagation mechanism:
 >   exceptions as broken values are very hard to support without a type checker.
 > - Initially not supported for APIs.
 
-## Dynamic
-As Enso can seamlessly interoperate with other programming languages, we need a
-principled way of handling dynamic types that we don't really know anything
-about. This mechanism needs:
-
-- A way to record what properties we _expect_ from the dynamic.
-- A way to turn a dynamic into a well-principled type-system member without
-  having the dynamics pollute the whole type system. This may involve a 'trust
-  me' function, and potentially dynamicness-polymorphic types.
-- A way to understand as much as possible about what a dynamic _does_ provide.
-- A way to try and refine information about dynamics where possible.
-
-```ruby
-obj.model =
-    { atom  : Text
-    , dict  : Map Text Any
-    , info  :
-        { doc  : Text
-        , name : Text
-        , code : Text
-        , loc  : Location
-        }
-    , arg  : # used only when calling like a function
-        { doc     : Text
-        , default : Maybe Any
-        }
-    }
-```
-
-> The actionables for this section are:
->
-> - Work out how to do dynamic properly, keeping in mind that in a dynamic value
->   could self-modify underneath us.
-
-### The Enso Boundary
-Fortunately, we can at least avoid foreign languages modifying memory owned by
-the Enso interpreter. As part of the interop library, Graal lets us mark memory
-as read-only. This means that the majority of data passed out (from a functional
-language like Enso) is not at risk. However, if we _do_ allow data to be worked
-with mutably, when control is returned to Enso it needs to be treated as a
-dynamic as it may have been modified.
-
 ## Type Checking and Inference
 As a statically-typed language, Enso is built with a sophisticated type checker
 capable of reasoning about a fully dependently-typed system. However, a type
@@ -1073,16 +1045,16 @@ checker on its own is quite useless. For Enso to truly be usable, it must also
 have a powerful type inference engine.
 
 > The actionables for this section are:
-> 
+>
 > - Work out how on earth we do inference and how we maximise inference power.
 > - Do we want to provide a way to reason about the _runtime representation_ of
 >   types? This is 'Levity Polymorphism' style.
 > - We want error messages to be as informative as possible, and are willing to
 >   retain significant extra algorithmic state in the typechecker to ensure that
 >   they are. This means both _formatting_ and _useful information_.
-> - It is going to be important to retain as much information as possible in 
->   order to provide informative error messages. This means that the eventual 
->   algorithm is likely to combine techniques from both W and M 
+> - It is going to be important to retain as much information as possible in
+>   order to provide informative error messages. This means that the eventual
+>   algorithm is likely to combine techniques from both W and M
 >   (context-insensitive and context-sensitive respectively).
 
 ### Maximal Inference Power
@@ -1091,14 +1063,14 @@ our users, we want the ability to infer the _maximal subset_ of the types that
 Enso can express.
 
 > The actionables for this section are:
-> 
+>
 > - How do we do inference for higher-rank and impredicative instantiations.
 > - How do we infer contexts, and how do we make that inference granular (e.g.
 >   `IO.Read`, `IO.Write`, rather than just `IO`).
 > - How do we propagate inference information as far as possible?
 > - If it comes to a tension between typechecker speed and inference capability,
->   Enso will err on the side of inference capability in order to promote ease 
->   of use. Speed will be increased by performing incremental type-checking 
+>   Enso will err on the side of inference capability in order to promote ease
+>   of use. Speed will be increased by performing incremental type-checking
 >   where possible on subsequent changes.
 > - Where are we okay requiring annotations? Polymorphic recursion, higher rank
 >   function parameters, constrained data and dependency?
@@ -1166,7 +1138,7 @@ Some notes:
   Theory.
 
 > The actionables for this section are:
-> 
+>
 > - Specify how we want dependency to behave in a _far more rigorous_ fashion.
 
 ### Automating the Proof Burden
@@ -1174,13 +1146,13 @@ Even with as capable and simple a dependently-typed system as that provided by
 Enso, there is still a burden of proof imposed on our users that want to use
 these features. However, the language [F*](https://www.fstar-lang.org/) has
 pioneered the combination of a dependently-typed system with an SMT solver to
-allow the automation of many of the simpler proofs. 
+allow the automation of many of the simpler proofs.
 
 - The Enso typechecker will integrate an aggressive proof rewrite engine to
   automate as much of the proof burden as possible.
 
 > The actionables for this section are:
-> 
+>
 > - What is the impact of wanting this on our underlying type theory?
 > - Where and how can we draw the boundary between manual and automated proof?
 > - How much re-writing can we do (as aggressive as possible) to assist the SMT

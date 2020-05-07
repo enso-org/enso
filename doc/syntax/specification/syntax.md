@@ -22,13 +22,20 @@ dependently-typed world, they are just values.
 - [Naming](#naming)
   - [Localised Naming](#localised-naming)
   - [Operator Naming](#operator-naming)
+  - [Pattern Contexts](#pattern-contexts)
   - [Reserved Names](#reserved-names)
 - [Layout Rules](#layout-rules)
   - [Maximum Line Length](#maximum-line-length)
   - [Indented Blocks](#indented-blocks)
-- [Text Literals](#text-literals)
-  - [Inline Text Literals](#inline-text-literals)
-  - [Text Block Literals](#text-block-literals)
+- [Literals](#literals)
+  - [Numeric Literals](#numeric-literals)
+  - [Text Literals](#text-literals)
+  - [Vector Literals](#vector-literals)
+- [Assignment](#assignment)
+  - [Function Definitions](#function-definitions)
+  - [Pattern Match Bindings](#pattern-match-bindings)
+  - [Extension Methods](#extension-methods)
+  - [Top-Level Assignments](#top-level-assignments)
 - [Types and Type Signatures](#types-and-type-signatures)
   - [Type Signatures](#type-signatures)
   - [Operations on Types](#operations-on-types)
@@ -54,7 +61,6 @@ dependently-typed world, they are just values.
   - [Splats Arguments](#splats-arguments)
   - [Type Applications](#type-applications)
   - [Underscore Arguments](#underscore-arguments)
-- [Scoping Rules](#scoping-rules)
 - [Field Access](#field-access)
   - [Pattern Matching](#pattern-matching)
   - [Projections / Lenses](#projections--lenses)
@@ -95,13 +101,29 @@ following rules around naming:
 
 - All identifiers are named using `snake_case`.
 - This can also be written `Snake_Case`
+- Names of the first form can be colloquially referred to as 'variable
+  names', while names of the second form can be referred to as 'type names'.
+- No mixed-format names are allowed (e.g. `HTTP`, `foO`, `make_New`, or
+  `Make_new`). These will be rejected by the parser.
+- We _strongly encourage_ using capitalised identifiers to refer to atoms.
+
+Name resolution obeys the following rules:
+
 - In contexts where it is _ambiguous_ as to whether a name is fresh or should
   bind an identifier in scope, the second format refers to binding a name in
   scope, while the first refers to a fresh variable.
 - This behaviour _only_ occurs in ambiguous contexts. In all other contexts,
-  both conventions refer to that name already in scope
-- No mixed-format names are allowed.
-- We _strongly encourage_ using capitalised identifiers to refer to atoms.
+  both conventions refer to that name already in scope.
+- Operator names behave as variable names when placed in a prefix position
+  (e.g. `+ a b`).
+- Operator names behave as type names when placed in an infix position (e.g.
+  `a + b`).
+- All literals (e.g. `1` and `"Hello"`) are treated as constructor names.
+
+Identifiers are introduced by:
+
+- Naming them in a binding (assignments and function arguments).
+- Using them in a pattern matching context (free variables).
 
 While, through much of the language's history, we have used `camelCase` (with
 its disambiguating cousin `CamelCase`), this has been decided against for one
@@ -134,6 +156,47 @@ paraphrasing the [Idris wiki](https://github.com/idris-lang/Idris-dev/wiki/Unoff
 
 In essence, while the use of Unicode operators can make code look pretty, a font
 with well-defined ligatures can do the same.
+
+Operator names are those built solely from operator symbols (e.g. `+` or `<*>`).
+Operator symbols are defined as characters in the following set.
+
+```
+!$%&*+-/<>?^~|:\,.()[]{}=
+```
+
+Please note that not every sequence that can be created from the above is a
+_valid_ operator name, as some may collide with built-in language constructs
+(e.g. `[` and `]`, which starts and end a vector literal respectively).
+
+### Pattern Contexts
+A pattern context is a span in the code where variable identifiers (as described
+above) can be used to introduce new identifiers into the scope containing the
+pattern context. The following spans are pattern contexts:
+
+- The left-hand-side of the assignment operator (`=`).
+- The right-hand-side of the ascription operator (`:`).
+- The left-hand-side of the arrow operator (`->`).
+
+The following behaviours occur within a pattern context:
+
+- Variable names are matched against corresponding portions of the expression
+  and are introduced into scope.
+- Type names require that the matched value is of a given structure (be that
+  matching a typeset, atom, or some combination thereof), and allows for
+  matching these fields recursively.
+- Any literals (e.g. numbers) behave as type names.
+- In any place where a variable identifier may be introduced in a pattern
+  context, an `_` (known as an ignore) may be substituted. This does _not_ bind
+  a new name, and hence cannot be used later.
+
+It should be noted that, in the core language, all non-trivial constructs are
+desugared to these constructs, as well as `case ... of` expressions, meaning
+that these are the only constructs which introduce pattern contexts.
+
+> Actionables for this section are:
+>
+> - Clarify exactly what "corresponding portions of the expression" actually
+>   means in a formal sense.
 
 ### Reserved Names
 Even though we do not intend to reserve any names at the level of the lexer or
@@ -266,7 +329,48 @@ validFunc = v -> v2 ->
     print v2
 ```
 
-## Text Literals
+## Literals
+Enso supports a small set of literals that allow the expression of some common
+types in literal form in the source code.
+
+### Numeric Literals
+Enso provides rich support for numeric literals, including literals that use
+different numeric bases. It does, of course, support floating point numerals as
+well.
+
+A numeric literal takes the form:
+
+```ebnf
+digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+hex = "a" | "b" | "c" | "d" | "e" | "f";
+number-digit = digit | hex;
+decimal-point = ".";
+
+float-digit = number-digit | decimal-point;
+
+base-specified = "B" | "H" | "O";
+
+numeric-literal = [base-specifier, "_"], { number-digit };
+```
+
+If no base is specified, it is inferred to be a standard base-10 numeral.
+
+Some examples of numeric literals follow:
+
+```ruby
+decimal          = 12345.39
+decimal_explicit = 10_1029301
+octal            = O_122137
+hex              = H_ae2f14
+binary           = B_10011101010
+```
+
+> Actionables for this section are:
+>
+> - Think about whether we want to support explicit fractional and complex
+>   literals, or whether these should be relegated to type constructors.
+
+### Text Literals
 Enso provides rich support for textual literals in the language, supporting both
 raw and interpolated strings natively.
 
@@ -287,7 +391,7 @@ raw and interpolated strings natively.
   fmt_string = 'Hello, my age is `time.now.year - person.birthday.year`'
   ```
 
-### Inline Text Literals
+#### Inline Text Literals
 In Enso, inline text literals are opened and closed using the corresponding
 quote type for the literal. They may contain escape sequences but may _not_ be
 broken across lines.
@@ -297,7 +401,7 @@ inline_raw = "Foo bar baz"
 inline_interpolated = 'Foo `bar` baz'
 ```
 
-### Text Block Literals
+#### Text Block Literals
 In Enso, text block literals rely on _layout_ to determine the end of the block,
 allowing users to only _open_ the literal. Block literals are opened with three
 of the relevant quote type, and the contents of the block are determined by the
@@ -320,6 +424,124 @@ block_raw = '''
 not_string_expr = foo bar
 ```
 
+### Vector Literals
+Enso also supports vector literals, which allow users to create literal vectors
+of elements.
+
+```ruby
+literal = [elem_1, elem_2, elem_3, ...]
+```
+
+A vector literal works as follows:
+
+- It is begun by the `[` character.
+- It is ended by the `]` character.
+- Elements in vector literals are concatenated using the `,` operator, which
+  acts as `cons` on vectors.
+
+## Assignment
+The assignment operator in Enso is a fairly magical construct, being the
+language's syntax for monadic bind. In essence, it operates as follows:
+
+- The left-hand-side introduces a pattern context.
+- The pattern on the left-hand-side is matched against (unified with) the value
+  that occurs on its right-hand-side.
+- A single line must contain at most one assignment.
+- It does _not_ yield the value that it assigned to it.
+
+The assignment operator has myriad uses, and is used to define variables,
+functions, extension methods, and to perform pattern matching. Each different
+case will see an appropriate desugaring applied (see below).
+
+### Function Definitions
+If the left hand side of an assignment is syntactically a prefix application
+chain, where the left-most name is a _variable_ name, the assignment is
+considered to introduce a _function definition_ (the syntax sugared version).
+
+For a prefix chain `a b c = ...`, this operates as follows:
+
+- The name `a` is bound in the enclosing scope, and is called the 'function
+  name'.
+- The names `b` and `c` (the 'function arguments') are converted into nested
+  lambda arguments in the function body.
+
+In essence, the above example is equivalent to:
+
+```ruby
+a = b -> c -> ...
+```
+
+Please note that by the rules of naming specified previously, if an operator
+occurs in the same position as `a` it will also be defined.
+
+### Pattern Match Bindings
+If the left hand side of an assignment is syntactically a prefix application
+chain, where the left-most name is a _type_ name, the assignment is considered
+to introduce a pattern match binding.
+
+For a prefix chain `A b c = expr`, with trailing code `tail...`, this operates
+as follows:
+
+- A case expression is created with scrutinee `expr`.
+- The matching names `A`, `b`, and `c` are used in a case expression branch's
+  pattern. The branch's expression is `tail...`.
+- A catch-call branch is created that has expression `error`.
+
+This desugaring means that the names `b` and `c` are made visible in the scope
+where the pattern match binding occurs.
+
+This also works for operators in an infix position, where its operands will be
+matched against.
+
+### Extension Methods
+There are two cases where an assignment creates an extension method:
+
+1. **Method Syntax:** If the left-hand-side of an assignment is syntactically a
+   prefix application chain where the left-most expression is an infix
+   application of `.`, this assignment is considered to introduce an extension
+   method.
+2. **Function Syntax:** If the left hand side of an assignment is syntactically
+  a prefix application chain where the left-most expression is a variable
+  identifier and the second expression from the left is a variable named `this`
+  with an explicit type ascription, this is also considered to introduce an
+  extension method.
+
+#### Method Syntax
+This syntax for extension methods works as follows:
+
+- The target of the method syntax (left argument to `.`) defines the type on
+  which the extension method is created.
+- An implicit `this` argument is inserted with that type at the start of the
+  arguments list.
+- All arguments are desugared to lambda arguments.
+
+```ruby
+My_Type.method_name a b c = ...
+```
+
+#### Function Syntax
+This syntax for extension methods works as follows:
+
+- The `this` argument type is used to define the type on which the extension
+  method is created.
+- `this` and all remaining arguments are desugared to lambda arguments.
+
+```ruby
+method_name (this : My_Type) a b c = ...
+```
+
+### Top-Level Assignments
+In order to aid with disambiguation, any binding made in the root scope without
+an explicit target is implicitly defined on a type representing the current
+module. For example, a binding `main = ...` is implicitly `here.main = ...`.
+
+This works as follows:
+
+- All non-extension methods defined at the top level are augmented with an
+  implicit first parameter `here`.
+- They are callable by `name` if not ambiguous, but can be disambiguated by
+  using `here.name` where necessary.
+
 ## Types and Type Signatures
 Enso is a statically typed language, meaning that every variable is associated
 with information about the possible values it can take. In Enso, the type
@@ -332,9 +554,14 @@ document. This is as this document is a specification rather than a guide, and
 it is expected that you have read the above-linked document on the type-system
 design as well.
 
+Additionally, this document will colloquially refer to the left and right hand
+sides of the type ascription operator `:` as the 'term' and 'type' levels,
+respectively. In reality, there is no separation between the two in Enso, but it
+is a useful way of thinking about things when discussing type signatures.
+
 ### Type Signatures
 Enso allows users to provide explicit type signatures for values through use of
-the type attribution operator `:`. The expression `a : b` says that the value
+the type ascription operator `:`. The expression `a : b` says that the value
 `a` has the type `b` attributed to it.
 
 ```ruby
@@ -366,7 +593,29 @@ of a variable. This means that:
 
 - Enso will infer constraints on types that you haven't necessarily written.
 - Type signatures can act as a sanity check in that you can encode your
-  intention as a type
+  intention as a type.
+- If the value is of a (partially) known type, constraints will be introduced
+  on that type.
+- Where the type is known, ascription can be used to constrain that type
+  further.
+- It is legal to add constraints to an identifier using `:` in any scope in
+  which the identifier is visible.
+
+From a syntactic perspective, the type ascription operator `:` has the following
+properties:
+
+- The right hand operand to the operator introduces a pattern context.
+- The right hand side may declare fresh variables that occur in that scope.
+- It is not possible to ascribe a type to an identifier without also assigning
+  to that identifier.
+- Introduced identifiers will always shadow other identifiers in scope.
+- Constraint implication is purely feed-forward. The expression `b:A` only
+  introduces constraints to `b`.
+
+> The actionables for this section are:
+>
+> - How do signatures interact with function bodies in regards to scoping?
+> - Does this differ for root and non-root definitions?
 
 ### Operations on Types
 Enso also provides a set of rich operations on its underlying type-system notion
@@ -606,10 +855,25 @@ before each arrow.
 - If you want to define a multi-argument lambda, you can do it by having a
   lambda return another lambda (e.g. `a -> b -> a + b`).
 
+Additionally, lambdas in Enso have the following properties:
+
+- The left operand introduces a pattern context.
+- The right operand introduces a new scope.
+- If a lambda occurs in a pattern context, its left-hand-side identifiers are
+  introduced into the scope targeted by the outer pattern context. For example,
+  the following is valid `(a -> b) -> a.default + b`.
+- Lambdas cannot currently occur in a matching context.
+
+Please note that if a later lambda in a chain shadows an earlier lambda (e.g.
+`a -> a -> a`), the shadowed arguments by that name are inaccessible. If you
+want to unify later arguments with previous ones, you must employ the scope
+reference rule and write (in this case) `a -> A -> a`.
+
 > The actionables for this section are:
 >
-> - Clarify whether we _really_ want to disallow the `a b -> a + b` multi-arg
->   lambda syntax.
+> - In the future we want to be able to match on function types, so this
+>   restriction should be relaxed.
+> - Do we want any automated unification to take place in the shadowing case?
 
 ### Defining Functions
 A function definition is just syntactic sugar for the definition of a lambda,
@@ -729,6 +993,40 @@ layout of the code has no impact on semantics of the code:
     x.do_thing
   ```
 
+The following rules apply to code blocks:
+
+- Code blocks are desugared into in-order applications of monadic bind (as in
+  keeping with the fact that all blocks are monadic contexts).
+- If an expression that returns a value is not assigned to an identifier, this
+  will issue a warning.
+- To suppress this warning you can assign it to a blank (`_`).
+
+```ruby
+test =
+    _ = expr1
+    expr2
+
+# Becomes
+test =
+    expr1 >>= (_ -> expr2)
+
+# Equivalent to
+test =
+    expr1 >> expr2
+```
+
+- If the trailing line of the block (the return value) is an assignment, it will
+  return `Nothing` as all assignments do.
+
+```ruby
+foo =
+    pat1 = expr1
+
+# Becomes
+foo =
+    expr1 >>= (pat1 -> Nothing)
+```
+
 ### Operators
 In Enso, an operator is a function with a non-alphanumeric name (e.g. `+`). We
 only support binary operators, with left and right arguments.
@@ -767,7 +1065,9 @@ many other programming languages.
 - Precedence of an operator in Enso depends on whether a particular operator is
   surrounded by spaces or not. This means that the precedence of _any_ operator
   not surrounded by spaces is always higher than the precedence of any operator
-  surrounded by spaces.
+  surrounded by spaces. The only exception to this rule is the `,` operator,
+  which retains the same precedence level regardless of whether it is surrounded
+  by spaces or not.
 
 This space-based precedence may seem strange coming from other languages, but
 it allows for writing _far_ cleaner code than other functional languages. This
@@ -942,23 +1242,6 @@ call. It obeys the following rules.
 - When a function is provided multiple `_` arguments, they are desugared left to
   right as the arguments would be applied to the function definition, creating
   nested lambdas.
-
-## Scoping Rules
-Enso's scoping rules should be fairly familiar to most other programming
-languages, as it uses standard lexical scoping with shadowing. However, there
-are a few unique points to keep in mind:
-
-- There is no separation between the type and term levels. This means that, for
-  a given lexical scope, type, function and lambda variables exist in the same
-  name space.
-- This means that if different names are used on the type and value level to
-  refer to the same entity, both names are valid.
-- Name clashes between different entities are not allowed.
-- Shadowing between different lexical scopes occurs as standard.
-- Shadowing in the same lexical scope may only occur in a chain of lambdas, and
-  in such a case the shadowed variables must unify.
-- Variables from the body are accessible in the type signature.
-- Variables from the type signature are accessible in the body.
 
 ## Field Access
 Enso provides multiple ways for users to access data from their types. It has
