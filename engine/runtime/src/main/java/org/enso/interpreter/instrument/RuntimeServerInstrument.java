@@ -5,7 +5,6 @@ import com.oracle.truffle.api.instrumentation.ContextsListener;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 import com.oracle.truffle.api.nodes.LanguageInfo;
-import org.enso.interpeter.instrument.Handler;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.polyglot.*;
 import org.graalvm.options.OptionDescriptor;

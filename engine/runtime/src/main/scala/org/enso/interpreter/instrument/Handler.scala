@@ -1,4 +1,4 @@
-package org.enso.interpeter.instrument
+package org.enso.interpreter.instrument
 
 import java.io.File
 import java.nio.ByteBuffer
@@ -7,8 +7,7 @@ import java.util.function.Consumer
 
 import cats.implicits._
 import com.oracle.truffle.api.TruffleContext
-import org.enso.interpreter.instrument.Cache
-import org.enso.interpeter.instrument.Handler.{
+import org.enso.interpreter.instrument.Handler.{
   EvalFailure,
   EvaluationFailed,
   ModuleNotFound

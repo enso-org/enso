@@ -1,4 +1,4 @@
-package org.enso.interpeter.instrument
+package org.enso.interpreter.instrument
 
 import org.enso.polyglot.runtime.Runtime.Api.{
   ContextId,
