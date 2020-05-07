@@ -9,7 +9,7 @@ use crate::prelude::*;
 use crate::notification;
 
 use data::text::TextChange;
-use file_manager_client as fmc;
+use enso_protocol::language_server;
 use json_rpc::error::RpcError;
 use std::pin::Pin;
 
@@ -20,7 +20,7 @@ use std::pin::Pin;
 // ============
 
 /// Path to a file on disc.
-type Path = Rc<fmc::Path>;
+pub type FilePath = language_server::Path;
 
 
 
@@ -34,7 +34,7 @@ type Path = Rc<fmc::Path>;
 /// Module Controller, the plain text files are handled directly by File Manager Client.
 #[derive(Clone,CloneRef,Debug)]
 enum FileHandle {
-    PlainText {path:Path, file_manager:fmc::Handle},
+    PlainText {path:Rc<FilePath>, language_server:Rc<language_server::Connection>},
     Module    {controller:controller::Module },
 }
 
@@ -49,10 +49,11 @@ pub struct Handle {
 impl Handle {
 
     /// Create controller managing plain text file (which is not a module).
-    pub fn new_for_plain_text(path:fmc::Path, file_manager:fmc::Handle) -> Self {
+    pub fn new_for_plain_text
+    (path:FilePath, language_server:Rc<language_server::Connection>) -> Self {
         let path = Rc::new(path);
         Self {
-            file : FileHandle::PlainText {path,file_manager}
+            file : FileHandle::PlainText {path,language_server}
         }
     }
 
@@ -64,10 +65,10 @@ impl Handle {
     }
 
     /// Get clone of file path handled by this controller.
-    pub fn file_path(&self) -> Path {
+    pub fn file_path(&self) -> &FilePath {
         match &self.file {
-            FileHandle::PlainText{path,..} => path.clone_ref(),
-            FileHandle::Module{controller} => Path::new(controller.location.to_path()),
+            FileHandle::PlainText{path,..} => &*path,
+            FileHandle::Module{controller} => &*controller.path,
         }
     }
 
@@ -75,8 +76,11 @@ impl Handle {
     pub async fn read_content(&self) -> Result<String,RpcError> {
         use FileHandle::*;
         match &self.file {
-            PlainText {path,file_manager} => file_manager.read(path.deref().clone()).await,
-            Module    {controller}        => Ok(controller.code())
+            PlainText {path,language_server} => {
+                let response = language_server.read_file(path.deref().clone()).await;
+                response.map(|response| response.contents)
+            },
+            Module{controller} => Ok(controller.code())
         }
     }
 
@@ -85,8 +89,8 @@ impl Handle {
         let file_handle = self.file.clone_ref();
         async move {
             match file_handle {
-                FileHandle::PlainText {path,file_manager} => {
-                    file_manager.write(path.deref().clone(),content).await?
+                FileHandle::PlainText {path,language_server} => {
+                    language_server.write_file(path.deref().clone(),content).await?
                 },
                 FileHandle::Module {controller} => {
                     controller.check_code_sync(content)?;
@@ -128,11 +132,11 @@ impl Handle {
 
 #[cfg(test)]
 impl Handle {
-    /// Get FileManagerClient handle used by this controller.
-    pub fn file_manager(&self) -> fmc::Handle {
+    /// Get Language Server RPC Client used by this controller.
+    pub fn language_server(&self) -> Rc<language_server::Connection> {
         match &self.file {
-            FileHandle::PlainText {file_manager,..} => file_manager.clone_ref(),
-            FileHandle::Module {controller}         => controller.file_manager.clone_ref()
+            FileHandle::PlainText {language_server,..} => language_server.clone_ref(),
+            FileHandle::Module {controller}            => controller.language_server.clone_ref()
         }
     }
 }
@@ -150,7 +154,6 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
     use data::text::Index;
-    use json_rpc::test_util::transport::mock::MockTransport;
     use parser::Parser;
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -158,12 +161,12 @@ mod test {
     fn passing_notifications_from_module() {
         let mut test  = TestWithLocalPoolExecutor::set_up();
         test.run_task(async move {
-            let fm         = fmc::Handle::new(MockTransport::new());
-            let loc        = controller::module::Location::new("test");
+            let ls         = language_server::Connection::new_mock_rc(default());
+            let path       = FilePath{root_id:default(),segments:vec!["test".into()]};
             let parser     = Parser::new().unwrap();
-            let module_res = controller::Module::new_mock(loc,"main = 2+2",default(),fm,parser);
+            let module_res = controller::Module::new_mock(path,"main = 2+2",default(),ls,parser);
             let module     = module_res.unwrap();
-            let controller = Handle::new_for_module(module.clone_ref());
+            let controller = Handle::new_for_module(module.clone());
             let mut sub    = controller.subscribe();
 
             module.apply_code_change(&TextChange::insert(Index::new(8),"2".to_string())).unwrap();

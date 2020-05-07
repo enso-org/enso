@@ -60,6 +60,9 @@ use crate::transport::web::ConnectingError;
 use crate::transport::web::WebSocket;
 use crate::view::project::ProjectView;
 
+use enso_protocol::language_server;
+use enso_protocol::project_manager;
+
 
 
 // =================
@@ -81,33 +84,34 @@ pub mod constants {
 // === SetupConfig ===
 // ===================
 
-/// Endpoint used by default by a locally run mock file manager server.
-const MOCK_FILE_MANAGER_ENDPOINT:&str = "ws://127.0.0.1:30616";
+/// Endpoint used by default by a locally run Project Manager.
+const PROJECT_MANAGER_ENDPOINT:&str = "ws://127.0.0.1:30535";
 
 /// Configuration data necessary to initialize IDE.
 ///
 /// Eventually we expect it to be passed to IDE from an external source.
 #[derive(Clone,Debug)]
 pub struct SetupConfig {
-    /// WebSocket endpoint of the file manager service.
-    pub file_manager_endpoint:String
+    /// WebSocket endpoint of the project manager service.
+    pub project_manager_endpoint:String
 }
 
 impl SetupConfig {
-    /// Provisional initial configuration that can be used during mock
-    /// deployments (manually run mock file manager server).
-    pub fn new_mock() -> SetupConfig {
+    /// Provisional initial configuration that can be used during local deployments.
+    pub fn new_local() -> SetupConfig {
         SetupConfig {
-            file_manager_endpoint: MOCK_FILE_MANAGER_ENDPOINT.into()
+            project_manager_endpoint:PROJECT_MANAGER_ENDPOINT.into()
         }
     }
 }
 
 
 
-// ==================
+// =================
 // === IDE Setup ===
-// ==================
+// =================
+
+const DEFAULT_PROJECT_NAME:&str = "Project";
 
 /// Creates a new running executor with its own event loop. Registers them
 /// as a global executor.
@@ -121,16 +125,44 @@ pub fn setup_global_executor() -> executor::web::EventLoopExecutor {
 }
 
 /// Establishes connection with file manager server websocket endpoint.
-pub async fn connect_to_file_manager(config:SetupConfig) -> Result<WebSocket,ConnectingError> {
-    WebSocket::new_opened(config.file_manager_endpoint).await
+pub async fn connect_to_project_manager
+(config:SetupConfig) -> Result<project_manager::Client,ConnectingError> {
+    let transport       = WebSocket::new_opened(config.project_manager_endpoint).await?;
+    let project_manager = project_manager::Client::new(transport);
+    executor::global::spawn(project_manager.runner());
+    Ok(project_manager)
+}
+
+/// Connect to language server.
+pub async fn open_project
+(address:project_manager::IpWithSocket) -> FallibleResult<controller::Project> {
+    let endpoint   = format!("ws://{}:{}",address.host,address.port);
+    let transport  = WebSocket::new_opened(endpoint).await?;
+    let client     = language_server::Client::new(transport);
+    crate::executor::global::spawn(client.runner());
+    let connection = language_server::Connection::new(client).await?;
+    Ok(controller::Project::new(connection))
+}
+
+/// Open most recent project or create a new project if none exists.
+pub async fn open_most_recent_project_or_create_new
+(project_manager:&impl project_manager::API) -> FallibleResult<controller::Project> {
+    let mut response = project_manager.list_recent_projects(1).await?;
+    let project_id = if let Some(project) = response.projects.pop() {
+        project.id
+    } else {
+        project_manager.create_project(DEFAULT_PROJECT_NAME.into()).await?.project_id
+    };
+    let address = project_manager.open_project(project_id).await?.language_server_rpc_address;
+    open_project(address).await
 }
 
 /// Sets up the project view, including the controller it uses.
 pub async fn setup_project_view(logger:&Logger,config:SetupConfig)
 -> Result<ProjectView,failure::Error> {
-    let fm_transport = connect_to_file_manager(config).await?;
-    let controller   = controller::Project::new_running(fm_transport);
-    let project_view = ProjectView::new(logger,controller).await?;
+    let pm           = connect_to_project_manager(config).await?;
+    let project      = open_most_recent_project_or_create_new(&pm).await?;
+    let project_view = ProjectView::new(logger,project).await?;
     Ok(project_view)
 }
 
@@ -141,7 +173,7 @@ pub fn run_ide() {
     // We want global executor to live indefinitely.
     std::mem::forget(global_executor);
 
-    let config = SetupConfig::new_mock();
+    let config = SetupConfig::new_local();
     executor::global::spawn(async move {
         let error_msg = "Failed to setup initial project view.";
         // TODO [mwu] Once IDE gets some well-defined mechanism of reporting

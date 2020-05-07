@@ -61,7 +61,10 @@ Enso is distributed both in form of
 [pre-build packages for MacOS, Windows, or Linux](https://github.com/luna/ide/releases),
 as well as the [source code](https://github.com/luna). See the
 [demo scenes](http://TODO), and read the [documentation](http://TODO) to learn
-more.
+more. 
+
+Currently to start IDE you have to run **Enso Project Manager** first. For more 
+information and packages see [Enso repository](https://github.com/luna/enso).
 
 <br/>
 

@@ -12,7 +12,6 @@ use ensogl::display::shape::text::glyph::font::FontRegistry;
 use ensogl::system::web;
 use enso_frp::io::keyboard::Keyboard;
 use enso_frp::io::keyboard;
-use file_manager_client::Path;
 use nalgebra::Vector2;
 use shapely::shared;
 use ensogl::application::Application;
@@ -25,12 +24,15 @@ use ensogl::application::Application;
 
 /// Path of the file that is initially opened in project view.
 ///
+/// Currently this path is hardcoded in the engine services and is populated for each project
+/// created using engine's Project Picker service.
+///
 /// TODO [mwu] Path of the file that will be initially opened in the text editor.
 ///      Provisionally the Project View is hardcoded to open with a single text
 ///      editor and it will be connected with a file under this path.
 ///      To be replaced with better mechanism once we decide how to describe
 ///      default initial layout for the project.
-const INITIAL_FILE_PATH:&str = "Main.enso";
+const INITIAL_FILE_PATH: [&str;2] = ["src","Main.enso"];
 
 /// Name of the main definition.
 ///
@@ -70,16 +72,12 @@ impl ProjectView {
     /// Create a new ProjectView.
     pub async fn new(logger:&Logger, controller:controller::Project)
     -> FallibleResult<Self> {
-        let path                 = Path::new(INITIAL_FILE_PATH);
-        // This touch is to ensure, that our hardcoded module exists (so we don't require
-        // additional user/tester action to run IDE. It will be removed once we will support opening
-        // any module file.
-        controller.file_manager.touch(path.clone()).await?;
-        let location             = controller::module::Location::from_path(&path).unwrap();
-        let text_controller      = controller.text_controller(path).await?;
+        let root_id              = controller.language_server_rpc.content_root();
+        let path                 = controller::module::Path::new(root_id,&INITIAL_FILE_PATH);
+        let text_controller      = controller.text_controller(path.clone()).await?;
         let main_name            = DefinitionName::new_plain(MAIN_DEFINITION_NAME);
         let graph_id             = controller::graph::Id::new_single_crumb(main_name);
-        let module_controller    = controller.module_controller(location).await?;
+        let module_controller    = controller.module_controller(path).await?;
         let graph_controller     = module_controller.graph_controller_unchecked(graph_id);
         let application          = Application::new(&web::get_html_element_by_id("root").unwrap());
         let _world               = &application.display;

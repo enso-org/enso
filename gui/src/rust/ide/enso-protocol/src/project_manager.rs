@@ -128,8 +128,10 @@ pub mod response {
     #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
     #[serde(rename_all = "camelCase")]
     pub struct OpenProject {
-        /// Language server address.
-        pub language_server_address: IpWithSocket
+        /// Address of the endpoint for JSON-RPC communication.
+        pub language_server_rpc_address  : IpWithSocket,
+        /// Address of the endpoint for binary FlatBuffers communication.
+        pub language_server_data_address : IpWithSocket,
     }
 }
 
@@ -171,7 +173,10 @@ mod mock_client_tests {
         let host                    = "localhost".to_string();
         let port                    = 30500;
         let language_server_address = IpWithSocket {host,port};
-        let expected_ip_with_socket = response::OpenProject {language_server_address};
+        let expected_ip_with_socket = response::OpenProject {
+            language_server_rpc_address  : language_server_address.clone(),
+            language_server_data_address : language_server_address,
+        };
         let open_result             = Ok(expected_ip_with_socket.clone());
         mock_client.set_create_project_result("HelloWorld".into(),Ok(creation_response));
         mock_client.set_open_project_result(expected_uuid.clone(),open_result);
@@ -305,12 +310,19 @@ mod remote_client_tests {
         let project_id              = Uuid::default();
         let create_project_response = response::CreateProject { project_id };
         let project_id_json         = json!({"projectId":"00000000-0000-0000-0000-000000000000"});
-        let language_server_address = IpWithSocket{host:"localhost".to_string(),port:27015};
-        let ip_with_address         = response::OpenProject {language_server_address};
-        let ip_with_address_json    = json!({
-            "languageServerAddress" : {
+
+        let language_server_rpc_address  = IpWithSocket{host:"localhost".to_string(),port:27015};
+        let language_server_data_address = IpWithSocket{host:"localhost".to_string(),port:27016};
+        let ip_with_address              = response::OpenProject {language_server_rpc_address,
+            language_server_data_address};
+        let ip_with_address_json = json!({
+            "languageServerRpcAddress" : {
                 "host" : "localhost",
                 "port" : 27015
+            },
+            "languageServerDataAddress" : {
+                "host" : "localhost",
+                "port" : 27016
             }
         });
         let project_name            = String::from("HelloWorld");
