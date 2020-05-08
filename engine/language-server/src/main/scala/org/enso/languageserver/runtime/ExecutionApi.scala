@@ -18,6 +18,7 @@ object ExecutionApi {
   case object ExecutionContextCreate extends Method("executionContext/create") {
 
     case class Result(
+      contextId: ContextId,
       canModify: CapabilityRegistration,
       receivesUpdates: CapabilityRegistration
     )

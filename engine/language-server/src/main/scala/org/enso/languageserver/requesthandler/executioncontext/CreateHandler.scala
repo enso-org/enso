@@ -60,7 +60,8 @@ class CreateHandler(
     case CreateContextResponse(contextId) =>
       val canModify       = CapabilityRegistration(CanModify(contextId))
       val receivesUpdates = CapabilityRegistration(ReceivesUpdates(contextId))
-      val result          = ExecutionContextCreate.Result(canModify, receivesUpdates)
+      val result =
+        ExecutionContextCreate.Result(contextId, canModify, receivesUpdates)
       replyTo ! ResponseResult(ExecutionContextCreate, id, result)
       cancellable.cancel()
       context.stop(self)

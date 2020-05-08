@@ -11,6 +11,7 @@ import org.enso.projectmanager.data.Socket
 class ProjectManagementApiSpec extends BaseServerSpec {
 
   "project/create" must {
+    pending // #652
 
     "check if project name is not empty" in {
       val client = new WsTestClient(address)
@@ -125,6 +126,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
   }
 
   "project/delete" must {
+    pending // #652
 
     "fail when project doesn't exist" in {
       val client = new WsTestClient(address)
@@ -161,7 +163,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/delete",
               "id": 2,
               "params": {
-                "projectId": $projectId 
+                "projectId": $projectId
               }
             }
           """)
@@ -214,6 +216,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
   }
 
   "project/open" must {
+    pending // #652
 
     "fail when project doesn't exist" in {
       val client = new WsTestClient(address)
@@ -222,7 +225,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/open",
               "id": 0,
               "params": {
-                "projectId": ${UUID.randomUUID()} 
+                "projectId": ${UUID.randomUUID()}
               }
             }
           """)
@@ -287,7 +290,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/close",
               "id": 2,
               "params": {
-                "projectId": $projectId 
+                "projectId": $projectId
               }
             }
           """)
@@ -308,6 +311,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
   }
 
   "project/close" must {
+    pending // #652
 
     "fail when project is not open" in {
       val client = new WsTestClient(address)
@@ -316,7 +320,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/close",
               "id": 0,
               "params": {
-                "projectId": ${UUID.randomUUID()} 
+                "projectId": ${UUID.randomUUID()}
               }
             }
           """)
@@ -364,6 +368,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
   }
 
   "project/listRecent" must {
+    pending // #652
 
     "return a list sorted by creation time if none of projects was opened" in {
       implicit val client = new WsTestClient(address)
@@ -467,7 +472,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             "result": {
               "projectId": $projectId
             }
-          } 
+          }
           """)
     projectId
   }

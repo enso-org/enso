@@ -38,13 +38,13 @@ class RuntimeConnector
     senders: Map[Runtime.Api.RequestId, ActorRef]
   ): Receive = {
     case Destroy => context.stop(self)
-    case msg: Runtime.ApiNotification =>
-      context.system.eventStream.publish(msg)
     case msg: Runtime.Api.Request =>
       engine.sendBinary(Runtime.Api.serialize(msg))
       msg.requestId.foreach { id =>
         context.become(initialized(engine, senders + (id -> sender())))
       }
+    case Runtime.Api.Response(None, msg: Runtime.ApiNotification) =>
+      context.system.eventStream.publish(msg)
     case msg: Runtime.Api.Response =>
       msg.correlationId.flatMap(senders.get).foreach(_ ! msg)
       msg.correlationId.foreach { correlationId =>

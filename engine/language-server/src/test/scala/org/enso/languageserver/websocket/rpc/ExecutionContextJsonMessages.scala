@@ -34,6 +34,7 @@ object ExecutionContextJsonMessages {
           { "jsonrpc": "2.0",
             "id": $reqId,
             "result" : {
+              "contextId" : $contextId,
               "canModify" : {
                 "method" : "executionContext/canModify",
                 "registerOptions" : {

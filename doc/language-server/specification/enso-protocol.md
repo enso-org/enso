@@ -2270,6 +2270,213 @@ fine-grained control over program and expression execution to the clients of
 the language server. This is incredibly important for enabling the high levels
 of interactivity required by Enso Studio.
 
+#### Example
+
+Given the default project structure.
+
+``` text
+├── package.yaml
+└── src
+    └── Main.enso
+```
+
+``` bash
+$ cat src/Main.enso
+
+main =
+    x = 6
+    y = x.foo 5
+    z = y + 5
+    z
+
+Number.foo = x ->
+    y = this + 3
+    z = y * x
+    z
+
+
+
+#### METADATA ####
+[[{"index": {"value": 98}, "size": {"value": 5}}, "5fc0c11d-bd83-4ca3-b847-b8e362f7658c"],[{"index": {"value": 81}, "size": {"value": 8}}, "1cda3676-bd62-41f8-b6a1-a1e1b7c73d18"],[{"index": {"value": 42}, "size": {"value": 5}}, "899a11e5-4d2b-43dc-a867-2f2ef2d2ba62"],[{"index": {"value": 26}, "size": {"value": 7}}, "37f284d4-c593-4e65-a4be-4948fbd2adfb"],[{"index": {"value": 16}, "size": {"value": 1}}, "c553533e-a2b9-4305-9f12-b8fe7781f933"]]
+[]
+```
+
+Notice extra newline in the beginning of the `Main.enso` file, it is important
+for the precalculated metadata indexes.
+
+##### Create Execution Context
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "method":"executionContext/create",
+  "id":0,
+  "params":null
+}
+```
+
+Return capabilities together with a newly created `ContextId`.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "id":0,
+  "result":{
+    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "canModify":{
+      "method":"executionContext/canModify",
+      "registerOptions":{
+        "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3"
+      }
+    },
+    "receivesUpdates":{
+      "method":"executionContext/receivesUpdates",
+      "registerOptions":{
+        "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3"
+      }
+    }
+  }
+}
+```
+
+##### Push item
+
+Entering the `main` method. First item on the stack should always be an
+`ExplicitCall`.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "method":"executionContext/push",
+  "id":0,
+  "params":{
+    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "stackItem":{
+      "type":"ExplicitCall",
+      "methodPointer":{
+        "file":{
+          "rootId":"18f642a2-5f69-4fc8-add6-13bf199ca326",
+          "segments":[
+            "src",
+            "Main.enso"
+          ]
+        },
+        "definedOnType":"Main",
+        "name":"main"
+      },
+      "thisArgumentExpression":null,
+      "positionalArgumentsExpressions":[ ]
+    }
+  }
+}
+```
+
+Returns successful reponse.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "id":0,
+  "result":null
+}
+```
+
+And a value update, result of the method `foo` call defined on type `Number`.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "method":"executionContext/expressionValuesComputed",
+  "params":{
+    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "updates":[
+      {
+        "id":"37f284d4-c593-4e65-a4be-4948fbd2adfb",
+        "type":"Number",
+        "shortValue":"45",
+        "methodCall":{
+          "file":{
+            "rootId":"18f642a2-5f69-4fc8-add6-13bf199ca326",
+            "segments":[
+              "src",
+              "Main.enso"
+            ]
+          },
+          "definedOnType":"Number",
+          "name":"foo"
+        }
+      }
+    ]
+  }
+}
+```
+
+We can go deeper and evaluate the method `foo` call by pushing the `LocalCall`
+on the stack. In general, all consequent stack items should be `LocalCall`s.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "method":"executionContext/push",
+  "id":0,
+  "params":{
+    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "stackItem":{
+      "type":"LocalCall",
+      "expressionId":"37f284d4-c593-4e65-a4be-4948fbd2adfb"
+    }
+  }
+}
+```
+
+Returns successful reponse.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "id":0,
+  "result":null
+}
+```
+
+And update of some value inside the function `foo`.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "method":"executionContext/expressionValuesComputed",
+  "params":{
+    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "updates":[
+      {
+        "id":"1cda3676-bd62-41f8-b6a1-a1e1b7c73d18",
+        "type":"Number",
+        "shortValue":"9",
+        "methodCall":null
+      }
+    ]
+  }
+}
+```
+
+##### Pop item
+
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "method":"executionContext/pop",
+  "id":0,
+  "params":{
+    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3"
+  }
+}
+```
+
+Popping one item will return us into the `main` method. Second call will clear
+the stack. Subsequent pop calls will result in an error indicating that the
+stack is empty.
+
 #### Types
 The execution management API exposes a set of common types used by many of its
 messages.
@@ -2337,11 +2544,22 @@ interface ExpressionValueUpdate {
 ```
 
 ##### `VisualisationConfiguration`
+A configuration object for properties of the visualisation.
 
 ```typescript
 interface VisualisationConfiguration {
+  /**
+   * An execution context of the visualisation.
+   */
   executionContextId: UUID;
-  visualisationModule: QualifiedName;
+  /**
+   * A qualified name of the module containing the expression which creates
+   * visualisation.
+   */
+  visualisationModule: String;
+  /**
+   * The expression that creates a visualisation.
+   */
   expression: String;
 }
 ```
@@ -2349,8 +2567,7 @@ interface VisualisationConfiguration {
 #### `executionContext/create`
 Sent from the client to the server to create a new execution context. Return
 capabilities [`executionContext/canModify`](#executioncontextcanmodify) and
-[`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
-containing freshly created [`ContextId`](#contextid)
+[`executionContext/receivesUpdates`](#executioncontextreceivesupdates).
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -2365,6 +2582,7 @@ null
 ##### Result
 ```typescript
 {
+  contextId: ContextId;
   canModify: CapabilityRegistration;
   receivesUpdates: CapabilityRegistration;
 }
@@ -2402,7 +2620,10 @@ null
 
 #### `executionContext/fork`
 Sent from the client to the server to duplicate an execution context, creating
-an independent copy, containing all the data precomputed in the first one.
+an independent copy, containing all the data precomputed in the first
+one. Return capabilities
+[`executionContext/canModify`](#executioncontextcanmodify) and
+[`executionContext/receivesUpdates`](#executioncontextreceivesupdates).
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -2413,13 +2634,13 @@ an independent copy, containing all the data precomputed in the first one.
 ```typescript
 {
   contextId: ContextId;
-  newContextId: ContextId;
 }
 ```
 
 ##### Result
 ```typescript
 {
+  contextId: ContextId;
   canModify: CapabilityRegistration;
   receivesUpdates: CapabilityRegistration;
 }
@@ -2429,8 +2650,10 @@ an independent copy, containing all the data precomputed in the first one.
 No known errors.
 
 #### `executionContext/push`
-Sent from the client to the server move the execution context to a new location
-deeper down the stack.
+Sent from the client to the server execute item and move the execution context
+to a new location deeper down the stack. If a stack item becomes invalid because
+of a text edit (e.g. the root function of the view was removed), it will stop
+executing. If the function reappears, execution should resume as normal.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -2565,9 +2788,9 @@ null
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-the visualisation cannot be found. 
+the visualisation cannot be found.
 - [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
-the expression specified in the `VisualisationConfiguration` cannot be 
+the expression specified in the `VisualisationConfiguration` cannot be
 evaluated.
 
 
@@ -2600,7 +2823,7 @@ null
   `executionContext/canModify` capability for this context.
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
-- [`VisualisationNotFoundError`](#visualisationnotfounderror) when a 
+- [`VisualisationNotFoundError`](#visualisationnotfounderror) when a
 visualisation can not be found.
 
 #### `executionContext/modifyVisualisation`
@@ -2633,11 +2856,11 @@ null
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-the visualisation cannot be found. 
+the visualisation cannot be found.
 - [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
-the expression specified in the `VisualisationConfiguration` cannot be 
+the expression specified in the `VisualisationConfiguration` cannot be
 evaluated.
-- [`VisualisationNotFoundError`](#visualisationnotfounderror) when a 
+- [`VisualisationNotFoundError`](#visualisationnotfounderror) when a
 visualisation can not be found.
 
 #### `executionContext/visualisationUpdate`
@@ -2825,7 +3048,7 @@ It signals that the visualisation cannot be found.
 ```
 
 ##### `VisualisationExpressionError`
-It signals that the expression specified in the `VisualisationConfiguration` 
+It signals that the expression specified in the `VisualisationConfiguration`
 cannot be evaluated.
 
 ```typescript
@@ -2836,7 +3059,7 @@ cannot be evaluated.
 ```
 
 ##### `VisualisationEvaluationError`
-It is a push message. It signals that an evaluation of a code responsible for 
+It is a push message. It signals that an evaluation of a code responsible for
 generating visualisation data failed.
 
 ```typescript

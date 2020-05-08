@@ -118,6 +118,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
       } else null
     })
     .build()
+  context.initialize(LanguageInfo.ID)
 
   lazy val clientControllerFactory = new ServerClientControllerFactory(
     bufferRegistry,
