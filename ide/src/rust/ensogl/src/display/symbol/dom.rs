@@ -87,26 +87,26 @@ impl Drop for DomSymbol {
 // =================
 
 /// A DOM element which is managed by the rendering engine.
-#[derive(Debug)]
+#[derive(Clone,CloneRef,Debug)]
 pub struct DomSymbol {
     display_object : display::object::Instance,
     dom            : HtmlDivElement,
-    size           : Cell<Vector2<f32>>,
-    guard          : Guard,
+    size           : Rc<Cell<Vector2<f32>>>,
+    guard          : Rc<Guard>,
 }
 
 impl DomSymbol {
     /// Constructor.
     pub fn new(content:&web_sys::Node) -> Self {
         let logger = Logger::new("DomSymbol");
-        let size   = Cell::new(Vector2::new(0.0,0.0));
+        let size   = Rc::new(Cell::new(Vector2::new(0.0,0.0)));
         let dom    = web::create_div();
         dom.set_style_or_warn("position", "absolute", &logger);
         dom.set_style_or_warn("width"   , "0px"     , &logger);
         dom.set_style_or_warn("height"  , "0px"     , &logger);
         dom.append_or_panic(content);
         let display_object = display::object::Instance::new(logger);
-        let guard          = Guard::new(&display_object,&dom);
+        let guard          = Rc::new(Guard::new(&display_object,&dom));
         display_object.set_on_updated(enclose!((dom) move |t| {
             let mut transform = t.matrix();
             transform.iter_mut().for_each(|a| *a = eps(*a));

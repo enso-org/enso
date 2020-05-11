@@ -31,27 +31,28 @@ pub mod component;
 /// Common types and functions usable in all modules of this crate.
 pub mod prelude {
     pub use ensogl::prelude::*;
+    pub use ensogl::display::traits::*;
 }
 
-use ensogl::application;
 use ensogl::prelude::*;
 use ensogl::traits::*;
 
 use crate::component::cursor::Cursor;
 use crate::component::node::Node;
 use crate::component::node::WeakNode;
+use crate::component::visualization::Visualization;
+use crate::component::visualization;
+
 use enso_frp as frp;
-use enso_frp::io::keyboard;
 use enso_frp::Position;
+use enso_frp::io::keyboard;
+use ensogl::application;
 use ensogl::display::object::Id;
 use ensogl::display::world::*;
 use ensogl::display;
 use ensogl::system::web::StyleSetter;
 use ensogl::system::web;
-use nalgebra::Vector2;
-
-
-
+use serde_json::json;
 
 #[derive(Clone,CloneRef,Debug,Default)]
 pub struct NodeSet {
@@ -200,17 +201,24 @@ ensogl::def_command_api! { Commands
     remove_selected_nodes,
     /// Remove all nodes from the graph.
     remove_all_nodes,
+    /// Toggle the visibility of the selected visualisations
+    toggle_visualization_visibility,
+    /// Set the data for the selected nodes. // TODO only has dummy functionality at the moment.
+    debug_set_data_for_selected_node,
 }
 
 
 impl Commands {
     pub fn new(network:&frp::Network) -> Self {
         frp::extend! { network
-            def add_node_at_cursor    = source();
-            def remove_selected_nodes = source();
-            def remove_all_nodes      = source();
+            def add_node_at_cursor               = source();
+            def remove_selected_nodes            = source();
+            def remove_all_nodes                 = source();
+            def toggle_visualization_visibility  = source();
+            def debug_set_data_for_selected_node = source();
         }
-        Self {add_node_at_cursor,remove_selected_nodes,remove_all_nodes}
+        Self {add_node_at_cursor,remove_selected_nodes,remove_all_nodes,
+              toggle_visualization_visibility,debug_set_data_for_selected_node}
     }
 }
 
@@ -234,6 +242,11 @@ pub struct FrpInputs {
     pub set_expression_span_tree : frp::Source<Option<(WeakNode, span_tree::SpanTree)>>,
     // Note[ao]: Here I can send `None` sometimes, because node can lose its pattern.
     pub set_pattern_span_tree    : frp::Source<Option<(WeakNode, span_tree::SpanTree)>>,
+
+    /// This event is emitted when the visualisation data for the given node needs to be set.
+    /// TODO[mm] there is no actual data present at the moment in the system. This needs to be
+    /// revisited once there is.
+    pub set_visualization_data   : frp::Source<Node>,
 }
 
 impl FrpInputs {
@@ -248,9 +261,11 @@ impl FrpInputs {
             def remove_connection        = source();
             def set_expression_span_tree = source();
             def set_pattern_span_tree    = source();
+            def set_visualization_data   = source();
         }
         Self {commands,register_node,add_node_at,select_node,translate_selected_nodes,
-            add_connection,remove_connection,set_expression_span_tree,set_pattern_span_tree}
+            add_connection,remove_connection,set_expression_span_tree,set_pattern_span_tree,
+            set_visualization_data}
     }
 
     fn register_node<T: AsRef<Node>>(&self, arg: T) {
@@ -273,6 +288,15 @@ impl FrpInputs {
     }
     pub fn remove_all_nodes(&self) {
         self.remove_all_nodes.emit(());
+    }
+    pub fn toggle_visualization_visibility(&self) {
+        self.toggle_visualization_visibility.emit(());
+    }
+    pub fn set_visualization_data<T: AsRef<Node>>(&self, arg: T) {
+        self.set_visualization_data.emit(arg.as_ref());
+    }
+    pub fn debug_set_data_for_selected_node(&self) {
+        self.debug_set_data_for_selected_node.emit(());
     }
 }
 
@@ -391,8 +415,11 @@ impl application::command::Provider for GraphEditor {
 impl application::shortcut::DefaultShortcutProvider for GraphEditor {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use keyboard::Key;
-        vec! [ Self::self_shortcut(&[Key::Character("n".into())] , "add_node_at_cursor")
-             , Self::self_shortcut(&[Key::Backspace]             , "remove_selected_nodes")
+        vec! [
+        Self::self_shortcut(&[Key::Character("n".into())]  , "add_node_at_cursor")
+      , Self::self_shortcut(&[Key::Backspace]              , "remove_selected_nodes")
+      , Self::self_shortcut(&[Key::Character(" ".into())]  , "toggle_visualization_visibility")
+      , Self::self_shortcut(&[Key::Character("d".into())]  , "debug_set_data_for_selected_node")
         ]
     }
 }
@@ -488,15 +515,42 @@ impl application::View for GraphEditor {
             });
         }));
 
-        def _new_node = inputs.register_node.map(f!((network,nodes,touch,display_object)(node) {
+        def _new_node = inputs.register_node.map(f!((network,nodes,scene,touch,display_object)(node) {
             let weak_node = node.downgrade();
             frp::new_bridge_network! { [network,node.view.events.network]
                 def _node_on_down_tagged = node.view.events.mouse_down.map(f_!((touch) {
                     touch.nodes.down.emit(Some(weak_node.clone_ref()))
                 }));
             }
+
             display_object.add_child(node);
+
+            let dummy_content = visualization::default_content();
+            let dom_layer    = scene.dom.layers.front.clone_ref();
+            dom_layer.manage(&dummy_content);
+
+            let vis:Visualization = dummy_content.into();
+            node.events.set_visualization.emit(Some(vis));
             nodes.set.insert(node.clone_ref());
+
+        }));
+
+
+        // === Vis Update Data ===
+        // TODO remove this once real data is available.
+        let dummy_counter = Rc::new(Cell::new(1.0_f32));
+        def _update_vis_data = inputs.debug_set_data_for_selected_node.map(f!((nodes)(_) {
+            let dc = dummy_counter.get();
+            dummy_counter.set(dc + 0.1);
+            let content = Rc::new(json!(format!("{}", 20.0 + 10.0 * dummy_counter.get().sin())));
+            let dummy_data = Some(visualization::Data::JSON { content });
+            nodes.selected.for_each(move |node| node.visualization_container.frp.set_data.emit(&dummy_data));
+        }));
+
+
+        // === Toggle Visualization Visibility ===
+        def _toggle_selected = inputs.toggle_visualization_visibility.map(f!((nodes)(_) {
+            nodes.selected.for_each(|node| node.visualization_container.toggle_visibility());
         }));
 
 

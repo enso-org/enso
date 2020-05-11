@@ -6,13 +6,12 @@
 
 use ensogl::prelude::*;
 
-use ensogl::display::navigation::navigator::Navigator;
-use ensogl::system::web;
 use ensogl::application::Application;
+use ensogl::display::navigation::navigator::Navigator;
+use ensogl::display::object::ObjectOps;
+use ensogl::system::web;
 use graph_editor::GraphEditor;
 use wasm_bindgen::prelude::*;
-use ensogl::display::object::ObjectOps;
-
 
 
 #[wasm_bindgen]

@@ -5,6 +5,7 @@ pub mod port;
 use crate::prelude::*;
 
 use crate::component::node::port::Registry;
+use crate::component::visualization;
 
 use enso_frp;
 use enso_frp as frp;
@@ -134,9 +135,10 @@ pub mod shape {
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Events {
-    pub network    : frp::Network,
-    pub select     : frp::Source,
-    pub deselect   : frp::Source,
+    pub network           : frp::Network,
+    pub select            : frp::Source,
+    pub deselect          : frp::Source,
+    pub set_visualization : frp::Source<Option<visualization::Visualization>>,
 }
 
 
@@ -198,33 +200,38 @@ impl component::ShapeViewDefinition for NodeView {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct NodeData {
-    pub logger : Logger,
-    pub label  : frp::Source<String>,
-    pub events : Events,
-    pub view   : component::ShapeView<NodeView>,
-    pub ports  : Registry,
+    pub logger                  : Logger,
+    pub label                   : frp::Source<String>,
+    pub events                  : Events,
+    pub view                    : component::ShapeView<NodeView>,
+    pub ports                   : Registry,
+    pub visualization_container : visualization::Container
 }
 
 impl Node {
     /// Constructor.
     pub fn new() -> Self {
         frp::new_network! { node_network
-            def label    = source::<String> ();
-            def select   = source::<()>     ();
-            def deselect = source::<()>     ();
+            def label             = source::<String> ();
+            def select            = source::<()> ();
+            def deselect          = source::<()> ();
+            def set_visualization = source::<Option<visualization::Visualization>> ();
         }
-        let network = node_network;
-        let logger  = Logger::new("node");
-        let view    = component::ShapeView::new(&logger);
-        let events  = Events {network,select,deselect};
-        let ports   = Registry::default() ;
-        let data    = Rc::new(NodeData {logger,label,events,view,ports});
+        let network       = node_network;
+        let logger        = Logger::new("node");
+        let view          = component::ShapeView::new(&logger);
+        let events        = Events {network,select,deselect,set_visualization};
+        let ports         = Registry::default() ;
+        let visualization = default();
+        let data          = Rc::new(NodeData{logger,label,events,view,ports, visualization_container: visualization });
         Self {data} . init()
     }
 
     fn init(self) -> Self {
-        let network = &self.data.events.network;
+        self.data.visualization_container.set_position(Vector3::new(0.0, -50.0, 0.0));
+        self.add_child(&self.data.visualization_container);
 
+        let network = &self.data.events.network;
 
         // FIXME: This is needed now because frp leaks memory.
         let weak_view_data = Rc::downgrade(&self.view.data);
@@ -253,6 +260,13 @@ impl Node {
             let selection_ref = selection.clone_ref();
             def _f_deselect = self.events.deselect.map(move |_| {
                 selection_ref.set_target_position(0.0);
+            });
+
+            let weak_node = self.downgrade();
+            def _f_set_vis = self.events.set_visualization.map(move |content| {
+                if let Some(node) = weak_node.upgrade() {
+                    node.visualization_container.frp.set_visualization.emit(content)
+                }
             });
         }
 
