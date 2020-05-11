@@ -16,10 +16,12 @@ enso-frp             = { version = "0.1.0"  , path = "../frp"                }
 graph-editor         = { version = "0.1.0"  , path = "../graph-editor"       }
 ide                  = { version = "0.1.0"  , path = "../../ide"             }
 
-enso-prelude         = { version = "0.1.0"  , path = "../prelude" }
-wasm-bindgen         = { version = "=0.2.58" , features = ["nightly"] }
-nalgebra             = { version = "0.19.0" }
-js-sys               = { version = "0.3.28" }
+enso-prelude         = { version = "0.1.0"  , path = "../prelude"            }
+
+js-sys               = { version = "0.3.28"                                  }
+nalgebra             = { version = "0.19.0"                                  }
+serde_json           = { version = "1.0.0"                                   }
+wasm-bindgen         = { version = "=0.2.58", features = ["nightly"]         }
 
 im-rc = "14.3.0"
 
