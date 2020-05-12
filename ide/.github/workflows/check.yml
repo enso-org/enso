@@ -51,7 +51,7 @@ jobs:
           node-version: '12.16.1'
 
       - name: Build
-        run: node ./run build --dev
+        run: node ./run build
 
 
   check:
