@@ -38,8 +38,8 @@ pub fn decode_result<Ret:DeserializeOwned>
     match result {
         messages::Result::Success(ret) =>
             Ok(serde_json::from_value::<Ret>(ret.result)?),
-        messages::Result::Error(err) =>
-            Err(RpcError::RemoteError(err)),
+        messages::Result::Error {error} =>
+            Err(RpcError::RemoteError(error)),
     }
 }
 
@@ -291,7 +291,7 @@ impl<Notification> Handler<Notification> {
     /// `Notification` JSON-serialized format. Otherwise, an error is raised.
     pub fn process_incoming_message(&self, message:String)
     where Notification: DeserializeOwned {
-        match messages::decode_incoming_message(message) {
+        match messages::decode_incoming_message(&message) {
             Ok(messages::IncomingMessage::Response(response)) =>
                 self.process_response(response),
             Ok(messages::IncomingMessage::Notification(notification)) =>

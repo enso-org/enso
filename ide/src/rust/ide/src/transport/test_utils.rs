@@ -28,11 +28,26 @@ impl TestWithMockedTransport {
     }
 
     pub fn when_stalled_send_response(&mut self, result:impl Serialize) {
+        let id      = self.next_response_id.generate();
+        let message = json_rpc::messages::Message::new_success(id,result);
+        self.when_stalled_send_message(message);
+    }
+
+    pub fn when_stalled_send_error(&mut self, code:i64, message:impl Into<String>) {
+        let id      = self.next_response_id.generate();
+        let message = json_rpc::messages::Message::<()>::new_error(id,code,message.into(),None);
+        self.when_stalled_send_message(message);
+    }
+
+    pub fn when_stalled_send_text_message(&mut self, message:impl Into<String>) {
         let mut transport = self.transport.clone_ref();
-        let id            = self.next_response_id.generate();
-        let result        = json_rpc::messages::Message::new_success(id,result);
         self.with_executor_fixture.when_stalled(move ||
-            transport.mock_peer_message(result)
+            transport.mock_peer_message_text(message)
         );
+    }
+
+    pub fn when_stalled_send_message(&mut self, message:impl Serialize) {
+        let text = serde_json::to_string(&message).unwrap();
+        self.when_stalled_send_text_message(text);
     }
 }
