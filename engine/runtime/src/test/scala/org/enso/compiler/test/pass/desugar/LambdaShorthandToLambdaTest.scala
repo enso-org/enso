@@ -275,11 +275,11 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
-      val irFn = ir.asInstanceOf[IR.Function.Lambda]
+      val irFn         = ir.asInstanceOf[IR.Function.Lambda]
       val rightArgName = irFn.arguments.head.name
 
       irFn.body shouldBe an[IR.Function.Lambda]
-      val irFn2 = irFn.body.asInstanceOf[IR.Function.Lambda]
+      val irFn2       = irFn.body.asInstanceOf[IR.Function.Lambda]
       val leftArgName = irFn2.arguments.head.name
 
       irFn2.body shouldBe an[IR.Application.Prefix]
@@ -287,11 +287,29 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
 
       app.arguments.length shouldEqual 2
 
-      val appLeftName = app.arguments.head.value.asInstanceOf[IR.Name.Literal]
+      val appLeftName  = app.arguments.head.value.asInstanceOf[IR.Name.Literal]
       val appRightName = app.arguments(1).value.asInstanceOf[IR.Name.Literal]
 
       leftArgName.name shouldEqual appLeftName.name
       rightArgName.name shouldEqual appRightName.name
+    }
+
+    "work for vector literals" in {
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |[1, _, (3 + 4), _]
+          |""".stripMargin.preprocessExpression.get.desugar
+
+      val fun1 = ir.asInstanceOf[IR.Function.Lambda]
+      val fun2 = fun1.body.asInstanceOf[IR.Function.Lambda]
+      val vec  = fun2.body.asInstanceOf[IR.Application.Literal.Sequence]
+
+      fun1.arguments(0).name shouldEqual vec.items(1)
+      fun2.arguments(0).name shouldEqual vec.items(3)
+      vec.items(0) shouldBe an[IR.Literal.Number]
+      vec.items(2) shouldBe an[IR.Application.Prefix]
     }
   }
 

@@ -6,6 +6,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
@@ -15,12 +16,13 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallStrategy;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 @NodeInfo(
-    shortName = "Polyglot.execute1",
-    description = "Executes a one-argument polyglot function.")
-public class Execute1Node extends BuiltinRootNode {
-  private Execute1Node(Language language) {
+    shortName = "Polyglot.execute",
+    description = "Executes a polyglot function object (e.g. a lambda).")
+public class ExecuteNode extends BuiltinRootNode {
+  private ExecuteNode(Language language) {
     super(language);
   }
 
@@ -36,11 +38,11 @@ public class Execute1Node extends BuiltinRootNode {
    */
   public static Function makeFunction(Language language) {
     return Function.fromBuiltinRootNode(
-        new Execute1Node(language),
+        new ExecuteNode(language),
         CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "callable", ArgumentDefinition.ExecutionMode.EXECUTE),
-        new ArgumentDefinition(2, "arg1", ArgumentDefinition.ExecutionMode.EXECUTE));
+        new ArgumentDefinition(2, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
 
   /**
@@ -53,12 +55,15 @@ public class Execute1Node extends BuiltinRootNode {
   public Stateful execute(VirtualFrame frame) {
     Object[] args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
     Object callable = args[1];
-    Object arg1 = args[2];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
-      Object res = library.execute(callable, arg1);
+      Object[] arguments = TypesGen.expectVector(args[2]).getItems();
+      Object res = library.execute(callable, arguments);
       return new Stateful(state, res);
-    } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {
+    } catch (UnsupportedMessageException
+        | ArityException
+        | UnsupportedTypeException
+        | UnexpectedResultException e) {
       err.enter();
       throw new PanicException(e.getMessage(), this);
     }
@@ -71,6 +76,6 @@ public class Execute1Node extends BuiltinRootNode {
    */
   @Override
   public String getName() {
-    return "Polyglot.execute1";
+    return "Polyglot.execute";
   }
 }

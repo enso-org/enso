@@ -98,4 +98,18 @@ class SuspendedArgumentsTest extends InterpreterTest {
 
     eval(code) shouldEqual 1
   }
+
+  subject should "work with vector literals" in {
+    val code =
+      """
+        |main =
+        |    foo = ~x -> [x]
+        |    block =
+        |        IO.println "foo"
+        |        5
+        |    Polyglot.get_array_element (foo block) 0
+        |""".stripMargin
+    eval(code) shouldEqual 5
+    consumeOut shouldEqual List("foo")
+  }
 }

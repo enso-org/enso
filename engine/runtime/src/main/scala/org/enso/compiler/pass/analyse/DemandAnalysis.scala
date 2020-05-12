@@ -62,16 +62,12 @@ case object DemandAnalysis extends IRPass {
   ): IR.Expression =
     analyseExpression(
       expression,
-      isInsideApplication  = false,
       isInsideCallArgument = false
     )
 
   /** Performs demand analysis on an arbitrary program expression.
     *
     * @param expression the expression to perform demand analysis on
-    * @param isInsideApplication whether the current expression occurs _inside_
-    *                            an application (note that this should not be
-    *                            set for the application itself)
     * @param isInsideCallArgument whether the current expression occurs _inside_
     *                             a call argument (note that this should not be
     *                             set for the call argument itself)
@@ -79,32 +75,28 @@ case object DemandAnalysis extends IRPass {
     */
   def analyseExpression(
     expression: IR.Expression,
-    isInsideApplication: Boolean,
     isInsideCallArgument: Boolean
   ): IR.Expression = {
     expression match {
       case empty: IR.Empty => empty
-      case fn: IR.Function => analyseFunction(fn, isInsideApplication)
+      case fn: IR.Function => analyseFunction(fn)
       case name: IR.Name   => analyseName(name, isInsideCallArgument)
       case app: IR.Application =>
-        analyseApplication(app, isInsideApplication, isInsideCallArgument)
+        analyseApplication(app, isInsideCallArgument)
       case typ: IR.Type =>
-        analyseType(typ, isInsideApplication, isInsideCallArgument)
+        analyseType(typ, isInsideCallArgument)
       case cse: IR.Case =>
-        analyseCase(cse, isInsideApplication, isInsideCallArgument)
+        analyseCase(cse, isInsideCallArgument)
       case block @ IR.Expression.Block(expressions, retVal, _, _, _, _) =>
         block.copy(
-          expressions = expressions.map(x =>
-            analyseExpression(x, isInsideApplication, isInsideCallArgument)
-          ),
-          returnValue =
-            analyseExpression(retVal, isInsideApplication, isInsideCallArgument)
+          expressions =
+            expressions.map(x => analyseExpression(x, isInsideCallArgument)),
+          returnValue = analyseExpression(retVal, isInsideCallArgument)
         )
       case binding @ IR.Expression.Binding(_, expression, _, _, _) =>
         binding.copy(expression =
           analyseExpression(
             expression,
-            isInsideApplication,
             isInsideCallArgument = false
           )
         )
@@ -115,7 +107,6 @@ case object DemandAnalysis extends IRPass {
         comment.mapExpressions(x =>
           analyseExpression(
             x,
-            isInsideApplication = false,
             isInsideCallArgument
           )
         )
@@ -125,20 +116,16 @@ case object DemandAnalysis extends IRPass {
   /** Performs demand analysis for a function.
     *
     * @param function the function to perform demand analysis on
-    * @param isInsideApplication whether or not the function occurs inside an
-    *                            application
     * @return `function`, transformed by the demand analysis process
     */
   def analyseFunction(
-    function: IR.Function,
-    isInsideApplication: Boolean
+    function: IR.Function
   ): IR.Function = function match {
     case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
       lam.copy(
         arguments = args.map(analyseDefinitionArgument),
         body = analyseExpression(
           body,
-          isInsideApplication,
           isInsideCallArgument = false
         )
       )
@@ -188,22 +175,18 @@ case object DemandAnalysis extends IRPass {
   /** Performs demand analysis on an application.
     *
     * @param application the function application to perform demand analysis on
-    * @param isInsideApplication whether or not the application is occuring
-    *                            inside another application
     * @param isInsideCallArgument whether or not the application is occurring
     *                             inside a call argument
     * @return `application`, transformed by the demand analysis process
     */
   def analyseApplication(
     application: IR.Application,
-    isInsideApplication: Boolean,
     isInsideCallArgument: Boolean
   ): IR.Application = application match {
     case pref @ IR.Application.Prefix(fn, args, _, _, _, _) =>
       pref.copy(
         function = analyseExpression(
           fn,
-          isInsideApplication  = true,
           isInsideCallArgument = false
         ),
         arguments = args.map(analyseCallArgument)
@@ -212,8 +195,16 @@ case object DemandAnalysis extends IRPass {
       force.copy(target =
         analyseExpression(
           target,
-          isInsideApplication,
           isInsideCallArgument
+        )
+      )
+    case vec @ IR.Application.Literal.Sequence(items, _, _, _) =>
+      vec.copy(items =
+        items.map(
+          analyseExpression(
+            _,
+            isInsideCallArgument = false
+          )
         )
       )
     case _ =>
@@ -274,7 +265,6 @@ case object DemandAnalysis extends IRPass {
         spec.copy(
           value = analyseExpression(
             expr,
-            isInsideApplication  = true,
             isInsideCallArgument = true
           ),
           shouldBeSuspended = Some(!isUsageOfSuspendedTerm(expr))
@@ -296,7 +286,6 @@ case object DemandAnalysis extends IRPass {
           defaultValue = default.map(x =>
             analyseExpression(
               x,
-              isInsideApplication  = false,
               isInsideCallArgument = false
             )
           )
@@ -307,47 +296,37 @@ case object DemandAnalysis extends IRPass {
   /** Performs demand analysis on a typing expression.
     *
     * @param typ the expression to perform demand analysis on
-    * @param isInsideApplication whether the typing expression occurs inside a
-    *                            function application
     * @param isInsideCallArgument whether the typing expression occurs inside a
     *                             function call argument
     * @return `typ`, transformed by the demand analysis process
     */
   def analyseType(
     typ: IR.Type,
-    isInsideApplication: Boolean,
     isInsideCallArgument: Boolean
   ): IR.Type =
-    typ.mapExpressions(x =>
-      analyseExpression(x, isInsideApplication, isInsideCallArgument)
-    )
+    typ.mapExpressions(x => analyseExpression(x, isInsideCallArgument))
 
   /** Performs demand analysis on a case expression.
     *
     * @param cse the case expression to perform demand analysis on
-    * @param isInsideApplication whether the case expression occurs inside a
-    *                            function application
     * @param isInsideCallArgument whether the case expression occurs inside a
     *                             function call argument
     * @return `cse`, transformed by the demand analysis process
     */
   def analyseCase(
     cse: IR.Case,
-    isInsideApplication: Boolean,
     isInsideCallArgument: Boolean
   ): IR.Case = cse match {
     case expr @ IR.Case.Expr(scrutinee, branches, fallback, _, _, _) =>
       expr.copy(
         scrutinee = analyseExpression(
           scrutinee,
-          isInsideApplication,
           isInsideCallArgument
         ),
         branches = branches.map(b => analyseCaseBranch(b)),
         fallback = fallback.map(x =>
           analyseExpression(
             x,
-            isInsideApplication  = false,
             isInsideCallArgument = false
           )
         )
@@ -364,7 +343,6 @@ case object DemandAnalysis extends IRPass {
     branch.copy(
       expression = analyseExpression(
         branch.expression,
-        isInsideApplication  = false,
         isInsideCallArgument = false
       )
     )

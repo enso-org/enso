@@ -205,6 +205,8 @@ object AstToIr {
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
       case AST.Ident.any(inputAST)   => translateIdent(inputAST)
+      case AST.SequenceLiteral.any(inputAST) =>
+        translateSequenceLiteral(inputAST)
       case AstView.Block(lines, retLine) =>
         Expression.Block(
           lines.map(translateExpression),
@@ -286,6 +288,18 @@ object AstToIr {
         }
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
+  }
+
+  /**
+    * Translates a sequence literal into its [[Core]] counterpart.
+    * @param literal the literal to translate
+    * @return the [[Core]] representation of `literal`
+    */
+  def translateSequenceLiteral(literal: AST.SequenceLiteral): Expression = {
+    IR.Application.Literal.Sequence(
+      literal.items.map(translateExpression),
+      getIdentifiedLocation(literal)
+    )
   }
 
   /** Translates an argument definition from [[AST]] into [[Core]].

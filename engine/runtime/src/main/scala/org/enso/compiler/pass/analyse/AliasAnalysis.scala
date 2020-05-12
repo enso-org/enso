@@ -341,6 +341,8 @@ case object AliasAnalysis extends IRPass {
         )
       case app @ IR.Application.Force(expr, _, _, _) =>
         app.copy(target = analyseExpression(expr, graph, scope))
+      case app @ IR.Application.Literal.Sequence(items, _, _, _) =>
+        app.copy(items = items.map(analyseExpression(_, graph, scope)))
       case _: IR.Application.Operator.Binary =>
         throw new CompilerError(
           "Binary operator occurred during Alias Analysis."

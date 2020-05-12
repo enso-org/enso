@@ -4,10 +4,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  OperatorToFunction
-}
+import org.enso.compiler.pass.desugar.{GenerateMethodBodies, OperatorToFunction}
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
@@ -148,6 +145,29 @@ class DemandAnalysisTest extends CompilerTest {
         .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
         .value shouldBe an[IR.Name]
+    }
+
+    "be forced when used in vector literals" in {
+      implicit val ctx: InlineContext = mkContext
+
+      val ir =
+        """
+          |~x -> ~y -> z -> [x, y, z]
+          |""".stripMargin.preprocessExpression.get.analyse
+
+      val vec = ir
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Application.Literal.Sequence]
+
+      vec.items(0) shouldBe an[IR.Application.Force]
+      vec.items(1) shouldBe an[IR.Application.Force]
+      vec.items(2) shouldBe an[IR.Name]
+
     }
 
     "be marked as not to suspend during codegen when passed to a function" in {

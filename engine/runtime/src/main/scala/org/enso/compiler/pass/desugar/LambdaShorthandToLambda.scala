@@ -188,6 +188,32 @@ case object LambdaShorthandToLambda extends IRPass {
         } else appResult
       case f @ IR.Application.Force(tgt, _, _, _) =>
         f.copy(target = desugarExpression(tgt, freshNameSupply))
+      case vector @ IR.Application.Literal.Sequence(items, _, _, _) =>
+        var bindings: List[IR.Name] = List()
+        val newItems = items.map {
+          case blank: IR.Name.Blank =>
+            val name = freshNameSupply
+              .newName()
+              .copy(
+                location    = blank.location,
+                passData    = blank.passData,
+                diagnostics = blank.diagnostics
+              )
+            bindings ::= name
+            name
+          case it => desugarExpression(it, freshNameSupply)
+        }
+        val newVec       = vector.copy(newItems)
+        val locWithoutId = newVec.location.map(_.copy(id = None))
+        bindings.foldLeft(newVec: IR.Expression) { (body, bindingName) =>
+          val defArg = IR.DefinitionArgument.Specified(
+            bindingName,
+            defaultValue = None,
+            suspended    = false,
+            location     = None
+          )
+          IR.Function.Lambda(List(defArg), body, locWithoutId)
+        }
       case _: IR.Application.Operator =>
         throw new CompilerError(
           "Operators should be desugared by the point of underscore " +

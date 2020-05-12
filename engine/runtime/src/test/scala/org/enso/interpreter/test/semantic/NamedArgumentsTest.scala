@@ -236,4 +236,13 @@ class NamedArgumentsTest extends InterpreterTest {
     eval(code) shouldEqual 10
   }
 
+  "Vectors" should "be usable as default argument values" in {
+    val code =
+      """
+        |main =
+        |    lam = (x=[1,3]) -> y -> y + Polyglot.get_array_element x 0 + Polyglot.get_array_element x 1
+        |    lam y=10
+        |""".stripMargin
+    eval(code) shouldEqual 14
+  }
 }

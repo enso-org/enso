@@ -142,20 +142,13 @@ public class Builtins {
 
   private AtomConstructor createPolyglot(Language language) {
     AtomConstructor polyglot = new AtomConstructor("Polyglot", scope).initializeFields();
-    scope.registerMethod(polyglot, "execute0", Execute0Node.makeFunction(language));
-    scope.registerMethod(polyglot, "execute1", Execute1Node.makeFunction(language));
-    scope.registerMethod(polyglot, "execute2", Execute2Node.makeFunction(language));
-
-    scope.registerMethod(polyglot, "instantiate0", Instantiate0Node.makeFunction(language));
-    scope.registerMethod(polyglot, "instantiate1", Instantiate1Node.makeFunction(language));
-    scope.registerMethod(polyglot, "instantiate2", Instantiate2Node.makeFunction(language));
-
+    scope.registerMethod(polyglot, "execute", ExecuteNode.makeFunction(language));
+    scope.registerMethod(polyglot, "invoke", InvokeNode.makeFunction(language));
+    scope.registerMethod(polyglot, "new", InstantiateNode.makeFunction(language));
     scope.registerMethod(polyglot, "get_member", GetMemberNode.makeFunction(language));
     scope.registerMethod(polyglot, "get_members", GetMembersNode.makeFunction(language));
-
     scope.registerMethod(polyglot, "get_array_size", GetArraySizeNode.makeFunction(language));
-    scope.registerMethod(
-        polyglot, "get_array_element", GetArrayElementNode.makeFunction(language));
+    scope.registerMethod(polyglot, "get_array_element", GetArrayElementNode.makeFunction(language));
     return polyglot;
   }
 

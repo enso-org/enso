@@ -9,6 +9,7 @@ import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.error.RuntimeError;
 
 import java.util.Optional;
@@ -30,7 +31,8 @@ import java.util.Optional;
   Atom.class,
   AtomConstructor.class,
   Thunk.class,
-  RuntimeError.class
+  RuntimeError.class,
+  Vector.class
 })
 public class Types {
 
@@ -112,8 +114,7 @@ public class Types {
     } else if (TypesGen.isThunk(value)) {
       return Optional.of("Thunk");
     } else if (TypesGen.isRuntimeError(value)) {
-      return Optional
-        .of("Error " + TypesGen.asRuntimeError(value).getPayload().toString());
+      return Optional.of("Error " + TypesGen.asRuntimeError(value).getPayload().toString());
     } else {
       return Optional.empty();
     }

@@ -10,10 +10,7 @@ import org.enso.compiler.pass.analyse.{
   DemandAnalysis,
   TailCall
 }
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  OperatorToFunction
-}
+import org.enso.compiler.pass.desugar.{GenerateMethodBodies, OperatorToFunction}
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -830,6 +827,34 @@ class DataflowAnalysisTest extends CompilerTest {
       depInfo.getDirect(bindingId) should not be defined
       depInfo.getDirect(bindingNameId) shouldEqual Some(Set(bindingId))
       depInfo.getDirect(bindingExprId) shouldEqual Some(Set(bindingId))
+    }
+
+    "work properly for vector literals" in {
+      implicit val inlineContext: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |x -> [x, y * z + 1, 123]
+          |""".stripMargin.preprocessExpression.get.analyse
+          .asInstanceOf[IR.Function.Lambda]
+
+      val depInfo = ir.getMetadata(DataflowAnalysis).get
+
+      val vector = ir.body
+        .asInstanceOf[IR.Application.Literal.Sequence]
+
+      val xDefId = mkStaticDep(ir.arguments(0).getId)
+      val xUseId = mkStaticDep(vector.items(0).getId)
+      val yId    = mkStaticDep(vector.items(1).getId)
+      val litId  = mkStaticDep(vector.items(2).getId)
+      val vecId  = mkStaticDep(vector.getId)
+      val lamId  = mkStaticDep(ir.getId)
+
+      depInfo.getDirect(xDefId) shouldEqual Some(Set(xUseId))
+      depInfo.getDirect(xUseId) shouldEqual Some(Set(vecId))
+      depInfo.getDirect(yId) shouldEqual Some(Set(vecId))
+      depInfo.getDirect(litId) shouldEqual Some(Set(vecId))
+      depInfo.getDirect(vecId) shouldEqual Some(Set(lamId))
     }
 
     "work properly for case expressions" in {

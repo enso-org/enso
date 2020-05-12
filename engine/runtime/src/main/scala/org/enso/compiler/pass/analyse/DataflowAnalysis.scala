@@ -213,6 +213,11 @@ case object DataflowAnalysis extends IRPass {
         force
           .copy(target = analyseExpression(target, info))
           .updateMetadata(this -->> info)
+      case vector @ IR.Application.Literal.Sequence(items, _, _, _) =>
+        items.foreach(it => info.updateAt(it.getId, Set(vector.getId)))
+        vector
+          .copy(items = items.map(analyseExpression(_, info)))
+          .updateMetadata(this -->> info)
       case _: IR.Application.Operator =>
         throw new CompilerError("Unexpected operator during Dataflow Analysis.")
     }
