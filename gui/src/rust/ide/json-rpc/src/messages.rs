@@ -143,20 +143,21 @@ pub struct Notification<Call>(pub Call);
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Response<Res> {
     /// Identifier, matching the value given in `Request` when call was made.
-    pub id: Id,
+    pub id:Id,
     /// Call result.
     #[serde(flatten)]
-    pub result: Result<Res>
+    pub result:Result<Res>
 }
 
 /// Result of the remote call — either a returned value or en error.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
+#[allow(missing_docs)]
 pub enum Result<Res> {
-    /// Returned value of a successfull call.
+    /// Returned value of a successful call.
     Success(Success<Res>),
     /// Error value from a called that failed on the remote side.
-    Error(Error),
+    Error {error:Error},
 }
 
 impl<Res> Result<Res> {
@@ -168,7 +169,7 @@ impl<Res> Result<Res> {
     /// Construct a failed remote call result value.
     pub fn new_error
     (code:i64, message:String, data:Option<serde_json::Value>) -> Result<Res> {
-        Result::Error(Error{code,message,data})
+        Result::Error{error : Error{code,message,data}}
     }
 
     /// Construct a failed remote call result value that bears no optional data.
@@ -211,7 +212,7 @@ pub enum IncomingMessage {
 /// This checks if has `jsonrpc` version string, and whether it is a
 /// response or a notification.
 pub fn decode_incoming_message
-(message:String) -> serde_json::Result<IncomingMessage> {
+(message:&str) -> serde_json::Result<IncomingMessage> {
     use serde_json::Value;
     use serde_json::from_str;
     use serde_json::from_value;
@@ -358,5 +359,22 @@ mod tests {
 
         let got_value = from_str::<Version>(&expected_json_text).unwrap();
         assert_eq!(got_value, Version::V2);
+    }
+
+    #[test]
+    fn decode_incoming_error_message_text() {
+        let text    = r#"{"jsonrpc":"2.0","id":1,"error":{"code":1,"message":"Service error"}}"#;
+        let decoding_result = decode_incoming_message(text);
+        match decoding_result {
+            Ok(IncomingMessage::Response(Response{
+                 result : Result::Error {error:Error{code,message,data}},
+                 ..
+             })) => {
+                assert_eq!(code,1);
+                assert_eq!(message,"Service error");
+                assert!(data.is_none());
+            },
+            _ => panic!("Invalid decoding result of {}: {:?}", text, decoding_result),
+        }
     }
 }
