@@ -29,7 +29,7 @@ macro_rules! make_rpc_methods {
             $($(#[doc = $doc:expr])+
             #[MethodInput=$method_input:ident,rpc_name=$rpc_name:expr,result=$method_result:ident,
             set_result=$set_result:ident]
-            fn $method:ident(&self $(,$param_name:ident:$param_ty:ty)+) -> $result:ty;
+            fn $method:ident(&self $(,$param_name:ident:$param_ty:ty)*) -> $result:ty;
             )*
         }
     ) => {
@@ -41,7 +41,7 @@ macro_rules! make_rpc_methods {
         pub trait API {
             $(
                 $(#[doc = $doc])+
-                fn $method(&self $(,$param_name:$param_ty)+)
+                fn $method(&self $(,$param_name:$param_ty)*)
                 -> std::pin::Pin<Box<dyn Future<Output=Result<$result>>>>;
             )*
         }
@@ -112,14 +112,14 @@ macro_rules! make_rpc_methods {
         /// Mock used for tests.
         #[derive(Debug,Default)]
         pub struct MockClient {
-            $($method_result : RefCell<HashMap<($($param_ty),+),Result<$result>>>,)*
+            $($method_result : RefCell<HashMap<($($param_ty),*),Result<$result>>>,)*
         }
 
         impl API for MockClient {
-            $(fn $method(&self $(,$param_name:$param_ty)+)
+            $(fn $method(&self $(,$param_name:$param_ty)*)
             -> std::pin::Pin<Box<dyn Future<Output=Result<$result>>>> {
                 let mut result = self.$method_result.borrow_mut();
-                let result     = result.remove(&($($param_name),+)).unwrap();
+                let result     = result.remove(&($($param_name),*)).unwrap();
                 Box::pin(async move { result })
             })*
         }
@@ -127,8 +127,8 @@ macro_rules! make_rpc_methods {
         impl MockClient {
             $(
                 /// Sets `$method`'s result to be returned when it is called.
-                pub fn $set_result(&self $(,$param_name:$param_ty)+, result:Result<$result>) {
-                    self.$method_result.borrow_mut().insert(($($param_name),+),result);
+                pub fn $set_result(&self $(,$param_name:$param_ty)*, result:Result<$result>) {
+                    self.$method_result.borrow_mut().insert(($($param_name),*),result);
                 }
             )*
         }
