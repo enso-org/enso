@@ -115,7 +115,7 @@ object AstView {
         case AST.Ident.Var.any(variable) => Some(variable)
         case AST.Ident.Cons.any(cons)    => Some(cons)
         case AST.Ident.Blank.any(blank)  => Some(blank)
-        case _ => None
+        case _                           => None
       }
     }
   }
