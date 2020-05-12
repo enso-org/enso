@@ -348,7 +348,8 @@ object Shape extends ShapeImplicit {
       with Phantom
   final case class Documented[T](doc: Doc, emptyLinesBetween: Int, ast: T)
       extends SpacelessAST[T]
-  final case class Import[T](path: List1[AST.Cons]) extends SpacelessAST[T]
+  final case class Import[T](path: List1[AST.Cons])      extends SpacelessAST[T]
+  final case class JavaImport[T](path: List1[AST.Ident]) extends SpacelessAST[T]
   final case class Mixfix[T](name: List1[AST.Ident], args: List1[T])
       extends SpacelessAST[T]
   final case class Group[T](body: Option[T])          extends SpacelessAST[T]
@@ -958,6 +959,21 @@ object Shape extends ShapeImplicit {
     implicit def span[T]: HasSpan[Import[T]]   = _ => 0
   }
 
+  object JavaImport {
+    implicit def ftor: Functor[JavaImport]  = semi.functor
+    implicit def fold: Foldable[JavaImport] = semi.foldable
+    implicit def repr[T]: Repr[JavaImport[T]] =
+      t =>
+        R + ("polyglot java import " + t.path
+          .map(_.repr.build())
+          .toList
+          .mkString("."))
+
+    // FIXME: How to make it automatic for non-spaced AST?
+    implicit def ozip[T]: OffsetZip[JavaImport, T] = _.map(Index.Start -> _)
+    implicit def span[T]: HasSpan[JavaImport[T]]   = _ => 0
+  }
+
   object Mixfix {
     implicit def ftor: Functor[Mixfix]  = semi.functor
     implicit def fold: Foldable[Mixfix] = semi.foldable
@@ -1083,6 +1099,7 @@ sealed trait ShapeImplicit {
     case s: Comment[T]         => s.repr
     case s: Documented[T]      => s.repr
     case s: Import[T]          => s.repr
+    case s: JavaImport[T]      => s.repr
     case s: Mixfix[T]          => s.repr
     case s: Group[T]           => s.repr
     case s: SequenceLiteral[T] => s.repr
@@ -1120,6 +1137,7 @@ sealed trait ShapeImplicit {
     case s: Comment[T]         => OffsetZip[Comment, T].zipWithOffset(s)
     case s: Documented[T]      => OffsetZip[Documented, T].zipWithOffset(s)
     case s: Import[T]          => OffsetZip[Import, T].zipWithOffset(s)
+    case s: JavaImport[T]      => OffsetZip[JavaImport, T].zipWithOffset(s)
     case s: Mixfix[T]          => OffsetZip[Mixfix, T].zipWithOffset(s)
     case s: Group[T]           => OffsetZip[Group, T].zipWithOffset(s)
     case s: SequenceLiteral[T] => OffsetZip[SequenceLiteral, T].zipWithOffset(s)
@@ -1158,6 +1176,7 @@ sealed trait ShapeImplicit {
     case s: Comment[T]         => s.span()
     case s: Documented[T]      => s.span()
     case s: Import[T]          => s.span()
+    case s: JavaImport[T]      => s.span()
     case s: Mixfix[T]          => s.span()
     case s: Group[T]           => s.span()
     case s: SequenceLiteral[T] => s.span()
@@ -2271,6 +2290,19 @@ object AST {
     def unapply(t: AST): Option[List1[Cons]] =
       Unapply[Import].run(t => t.path)(t)
     val any = UnapplyByType[Import]
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Java Import /////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type JavaImport = ASTOf[Shape.JavaImport]
+
+  object JavaImport {
+    def apply(path: List1[Ident]): JavaImport = Shape.JavaImport[AST](path)
+    def unapply(t: AST): Option[List1[Ident]] =
+      Unapply[JavaImport].run(t => t.path)(t)
+    val any = UnapplyByType[JavaImport]
   }
 
   //////////////////////////////////////////////////////////////////////////////

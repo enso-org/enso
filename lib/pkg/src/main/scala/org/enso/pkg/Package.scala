@@ -29,9 +29,10 @@ case class SourceFile(qualifiedName: QualifiedName, file: File)
   */
 case class Package(root: File, config: Config) {
 
-  val sourceDir  = new File(root, Package.sourceDirName)
-  val configFile = new File(root, Package.configFileName)
-  val thumbFile  = new File(root, Package.thumbFileName)
+  val sourceDir   = new File(root, Package.sourceDirName)
+  val configFile  = new File(root, Package.configFileName)
+  val thumbFile   = new File(root, Package.thumbFileName)
+  val polyglotDir = new File(root, Package.polyglotExtensionsDirName)
 
   /**
     * Stores the package metadata on the hard drive. If the package does not exist,
@@ -171,6 +172,24 @@ case class Package(root: File, config: Config) {
       SourceFile(moduleNameForFile(path.toFile), path.toFile)
     }
   }
+
+  /**
+    * Lists contents of the polyglot extensions directory for a given language.
+    *
+    * @param languageName the language to list extenstions for
+    * @return a list of files and directories contained in the relevant
+    *         polyglot extensions directory.
+    */
+  def listPolyglotExtensions(languageName: String): List[File] = {
+    val dir = new File(polyglotDir, languageName)
+    if (!dir.isDirectory) return List()
+    Files
+      .list(dir.toPath)
+      .map(_.toFile)
+      .iterator()
+      .asScala
+      .toList
+  }
 }
 
 /**
@@ -185,19 +204,19 @@ case class QualifiedName(path: List[String], module: String) {
     (path :+ module).mkString(qualifiedNameSeparator)
 
   /**
-   * Get the parent of this qualified name.
-   *
-   * @return the parent of this qualified name.
-   */
+    * Get the parent of this qualified name.
+    *
+    * @return the parent of this qualified name.
+    */
   def getParent: Option[QualifiedName] =
     path.lastOption.map(QualifiedName(path.init, _))
 
   /**
-   * Create a child qualified name taking this name as a parent.
-   *
-   * @param name the name of a child node.
-   * @return a new qualified name based on this name.
-   */
+    * Create a child qualified name taking this name as a parent.
+    *
+    * @param name the name of a child node.
+    * @return a new qualified name based on this name.
+    */
   def createChild(name: String): QualifiedName =
     QualifiedName(path :+ module, name)
 }
@@ -231,6 +250,7 @@ object Package {
   val fileExtension               = "enso"
   val configFileName              = "package.yaml"
   val sourceDirName               = "src"
+  val polyglotExtensionsDirName   = "polyglot"
   val mainFileName                = "Main.enso"
   val thumbFileName               = "thumb.png"
   val qualifiedNameSeparator      = "."

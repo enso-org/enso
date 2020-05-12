@@ -10,7 +10,7 @@ import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.pkg.Package
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
-import org.graalvm.polyglot.{PolyglotException, Value}
+import org.graalvm.polyglot.Value
 
 import scala.annotation.unused
 import scala.util.Try
@@ -206,16 +206,9 @@ object Main {
   }
 
   private def runMain(mainModule: Module): Value = {
-    try {
-      val mainCons = mainModule.getAssociatedConstructor
-      val mainFun  = mainModule.getMethod(mainCons, "main")
-      mainFun.execute(mainCons.newInstance())
-    } catch {
-      case e: PolyglotException =>
-        System.err.println(e.getMessage)
-        exitFail()
-        throw new RuntimeException("Impossible to reach here.")
-    }
+    val mainCons = mainModule.getAssociatedConstructor
+    val mainFun  = mainModule.getMethod(mainCons, "main")
+    mainFun.execute(mainCons.newInstance())
   }
 
   /**

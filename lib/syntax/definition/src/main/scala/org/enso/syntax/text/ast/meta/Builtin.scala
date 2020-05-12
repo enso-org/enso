@@ -76,6 +76,30 @@ object Builtin {
       }
     }
 
+    val polyglotJavaImport = {
+      val javaQualName =
+        Pattern.SepList(Pattern.Cons().or(Pattern.Var()), AST.Opr("."))
+      Definition(
+        Var("polyglot") -> Pattern.fromAST(Var("java")),
+        Var("import")   -> javaQualName
+      ) { ctx =>
+        ctx.body match {
+          case List(_, segments) =>
+            val nonDot: List[AST.Ident] =
+              segments.body.toStream.map(_.wrapped).collect {
+                case AST.Ident.Var.any(v)  => v: AST.Ident
+                case AST.Ident.Cons.any(c) => c: AST.Ident
+              }
+            // The optional unwrap is safe by construction - the pattern
+            // guarantees at least one Var or Cons in the match result.
+            AST.JavaImport(
+              List1.fromListOption(nonDot).getOrElse(internalError)
+            )
+          case _ => internalError
+        }
+      }
+    }
+
     val imp = Definition(
       Var("import") -> Pattern
         .SepList(Pattern.Cons(), AST.Opr("."): AST, "expected module name")
@@ -266,6 +290,7 @@ object Builtin {
       case_of,
       if_then,
       if_then_else,
+      polyglotJavaImport,
       imp,
       defn,
       arrow,

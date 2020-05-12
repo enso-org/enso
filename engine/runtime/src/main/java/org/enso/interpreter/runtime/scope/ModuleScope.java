@@ -16,6 +16,7 @@ import org.enso.interpreter.runtime.error.RedefinedMethodException;
 public class ModuleScope {
   private final AtomConstructor associatedType;
   private final Module module;
+  private Map<String, Object> polyglotSymbols = new HashMap<>();
   private Map<String, AtomConstructor> constructors = new HashMap<>();
   private Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
   private Set<ModuleScope> imports = new HashSet<>();
@@ -111,6 +112,26 @@ public class ModuleScope {
     } else {
       methodMap.put(method, function);
     }
+  }
+
+  /**
+   * Registers a new symbol in the polyglot namespace.
+   *
+   * @param name the name of the symbol
+   * @param sym the value being exposed
+   */
+  public void registerPolyglotSymbol(String name, Object sym) {
+    polyglotSymbols.put(name, sym);
+  }
+
+  /**
+   * Looks up a polyglot symbol by name.
+   *
+   * @param name the name of the symbol being looked up
+   * @return the polyglot value registered for {@code name}, if exists.
+   */
+  public Optional<Object> lookupPolyglotSymbol(String name) {
+    return Optional.ofNullable(polyglotSymbols.get(name));
   }
 
   /**

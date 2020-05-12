@@ -30,7 +30,7 @@ public class Context {
   private final Env environment;
   private final Compiler compiler;
   private final PrintStream out;
-  private List<Package> packages;
+  private final List<Package> packages;
 
   /**
    * Creates a new Enso context.
@@ -52,6 +52,16 @@ public class Context {
             .filter(Optional::isPresent)
             .map(Optional::get)
             .collect(Collectors.toList());
+
+    packages.forEach(
+        pkg -> {
+          List<File> classPathItems = ScalaConversions.asJava(pkg.listPolyglotExtensions("java"));
+          classPathItems.forEach(
+              cp -> {
+                TruffleFile f = getTruffleFile(cp);
+                getEnvironment().addToHostClassPath(f);
+              });
+        });
 
     Map<String, Module> knownFiles =
         packages.stream()

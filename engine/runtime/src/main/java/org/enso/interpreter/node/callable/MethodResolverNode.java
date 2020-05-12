@@ -1,11 +1,14 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Builtins;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -75,10 +78,10 @@ public abstract class MethodResolverNode extends Node {
 
   @Specialization(guards = "cachedSymbol == symbol")
   Function resolveStringCached(
-          UnresolvedSymbol symbol,
-          String self,
-          @Cached("symbol") UnresolvedSymbol cachedSymbol,
-          @Cached("resolveMethodOnString(cachedSymbol)") Function function) {
+      UnresolvedSymbol symbol,
+      String self,
+      @Cached("symbol") UnresolvedSymbol cachedSymbol,
+      @Cached("resolveMethodOnString(cachedSymbol)") Function function) {
     return function;
   }
 
@@ -100,6 +103,16 @@ public abstract class MethodResolverNode extends Node {
     return function;
   }
 
+  @Specialization(guards = {"cachedSymbol == symbol", "ctx.getEnvironment().isHostObject(target)"})
+  Function resolveHostCached(
+      UnresolvedSymbol symbol,
+      Object target,
+      @Cached("symbol") UnresolvedSymbol cachedSymbol,
+      @CachedContext(Language.class) Context ctx,
+      @Cached("buildHostResolver(cachedSymbol, ctx)") Function function) {
+    return function;
+  }
+
   private Function ensureMethodExists(Function function, Object target, UnresolvedSymbol symbol) {
     if (function == null) {
       throw new MethodDoesNotExistException(target, symbol.getName(), this);
@@ -118,7 +131,7 @@ public abstract class MethodResolverNode extends Node {
 
   Function resolveMethodOnString(UnresolvedSymbol symbol) {
     return ensureMethodExists(
-            symbol.resolveFor(getBuiltins().text(), getBuiltins().any()), "Text", symbol);
+        symbol.resolveFor(getBuiltins().text(), getBuiltins().any()), "Text", symbol);
   }
 
   Function resolveMethodOnFunction(UnresolvedSymbol symbol) {
@@ -128,6 +141,14 @@ public abstract class MethodResolverNode extends Node {
 
   Function resolveMethodOnError(UnresolvedSymbol symbol) {
     return ensureMethodExists(symbol.resolveFor(getBuiltins().any()), "Error", symbol);
+  }
+
+  Function buildHostResolver(UnresolvedSymbol symbol, Context context) {
+    if (symbol.getName().equals("new")) {
+      return context.getBuiltins().getConstructorDispatch();
+    } else {
+      return context.getBuiltins().buildPolyglotMethodDispatch(symbol.getName());
+    }
   }
 
   boolean isValidAtomCache(

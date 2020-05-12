@@ -267,57 +267,136 @@ object IR {
     }
     object Scope {
 
-      /** An import statement.
-        *
-        * @param name the full `.`-separated path representing the import
-        * @param location the source location that the node corresponds to
-        * @param passData the pass metadata associated with this node
-        * @param diagnostics compiler diagnostics for this node
-        */
-      sealed case class Import(
-        name: String,
-        override val location: Option[IdentifiedLocation],
-        override val passData: MetadataStorage      = MetadataStorage(),
-        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-      ) extends Scope
-          with IRKind.Primitive {
-        override protected var id: Identifier = randomId
+      /** Module-level import statements. */
+      sealed trait Import extends Scope {
+        override def mapExpressions(fn: Expression => Expression): Import
+      }
 
-        /** Creates a copy of `this`.
+      object Import {
+
+        /** An import statement.
           *
           * @param name the full `.`-separated path representing the import
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
-          * @param id the identifier for the new node
-          * @return a copy of `this`, updated with the specified values
           */
-        def copy(
-          name: String                         = name,
-          location: Option[IdentifiedLocation] = location,
-          passData: MetadataStorage            = passData,
-          diagnostics: DiagnosticStorage       = diagnostics,
-          id: Identifier                       = id
-        ): Import = {
-          val res = Import(name, location, passData, diagnostics)
-          res.id = id
-          res
+        sealed case class Module(
+          name: String,
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Import
+            with IRKind.Primitive {
+          override protected var id: Identifier = randomId
+
+          /** Creates a copy of `this`.
+            *
+            * @param name the full `.`-separated path representing the import
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
+          def copy(
+            name: String                         = name,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: Identifier                       = id
+          ): Module = {
+            val res = Module(name, location, passData, diagnostics)
+            res.id = id
+            res
+          }
+
+          override def mapExpressions(
+            fn: Expression => Expression
+          ): Module = this
+
+          override def toString: String =
+            s"""
+            |IR.Module.Scope.Import.Module(
+            |name = $name,
+            |location = $location,
+            |passData = ${this.showPassData},
+            |diagnostics = $diagnostics,
+            |id = $id
+            |)
+            |""".toSingleLine
+
+          override def children: List[IR] = List()
         }
 
-        override def mapExpressions(fn: Expression => Expression): Import = this
+        object Polyglot {
 
-        override def toString: String =
-          s"""
-          |IR.Module.Scope.Import(
-          |name = $name,
-          |location = $location,
-          |passData = ${this.showPassData},
-          |diagnostics = $diagnostics,
-          |id = $id
-          |)
-          |""".toSingleLine
+          /** Represents language-specific polyglot import data. */
+          sealed trait Entity
 
-        override def children: List[IR] = List()
+          /** Represents an import of a Java class.
+            *
+            * @param packageName the name of the package containing the imported
+            *                    class
+            * @param className the class name
+            */
+          case class Java(packageName: String, className: String) extends Entity
+        }
+
+        /** An import of a polyglot class.
+          *
+          * @param entity language-specific information on the imported entity
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          */
+        sealed case class Polyglot(
+          entity: Polyglot.Entity,
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Import
+            with IRKind.Primitive {
+          override protected var id: Identifier = randomId
+
+          /** Creates a copy of `this`.
+            *
+            * @param entity language-specific information on the imported entity
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
+          def copy(
+            entity: Polyglot.Entity,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: Identifier                       = id
+          ): Polyglot = {
+            val res =
+              Polyglot(entity, location, passData, diagnostics)
+            res.id = id
+            res
+          }
+
+          override def mapExpressions(fn: Expression => Expression): Polyglot =
+            this
+
+          override def toString: String =
+            s"""
+            |IR.Module.Scope.Import.Polyglot(
+            |entity = $entity,
+            |location = $location,
+            |passData = ${this.showPassData},
+            |diagnostics = $diagnostics,
+            |id = $id
+            |)
+            |""".toSingleLine
+
+          override def children: List[IR] = List()
+        }
       }
 
       /** A representation of top-level definitions. */
