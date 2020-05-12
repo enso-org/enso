@@ -25,8 +25,8 @@ instrumental for ensuring that we build the right language.
 #### A Note About This Document
 In the aid of precision, this document will use syntax that _may not_ be exposed
 to users. The appearance of a piece of syntax here that is not described in the
-[syntax](../syntax/syntax.md) document makes no promises as to whether said
-syntax will be accessible.
+[syntax](../../syntax/specification/syntax.md) document makes no promises as to
+whether said syntax will be exposed in the surface language.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -42,7 +42,7 @@ syntax will be accessible.
   - [Scoping](#scoping)
   - [Structural Type Shorthand](#structural-type-shorthand)
   - [Function Composition](#function-composition)
-- [Access Modificatiom](#access-modificatiom)
+- [Access Modification](#access-modification)
 - [Pattern Matching](#pattern-matching)
 - [Dynamic Dispatch](#dynamic-dispatch)
   - [Specificity](#specificity)
@@ -677,15 +677,19 @@ computeCoeff = (+) >> (*5)
 doThing = (+) >> (*)
 ```
 
-In addition, we have the standard function composition operator `.`, and its
-backwards chaining cousin `<|`.
+In addition, we have the operator `.`, which acts as standard forward function
+chaining in Enso, and its backwards chaining cousin `<|`.
 
 > The actionables from this section are:
 >
 > - Examples for the more advanced use-cases of `>>` to decide if the type
 >   complexity is worth it.
+> - Otherwise, standardise on using `>>` and `<<` for standard function
+>   composition:
+>   + `<< : (b -> c) -> (a -> b) -> a -> c` - backwards composition (standard)
+>   + `>> : (a -> b) -> (b -> c) -> a -> c` - forwards composition
 
-## Access Modificatiom
+## Access Modification
 While we don't usually like making things private in a programming language, it
 sometimes the case that it is necessary to indicate that certain fields should
 not be touched (as this might break invariants and such like). To this end, we
@@ -1165,6 +1169,8 @@ is as below.
 
 #### Rows
 - [Abstracting Extensible Data Types](http://ittc.ku.edu/~garrett/pubs/morris-popl2019-rows.pdf)
+- [Algebraic Subtyping](https://www.cl.cam.ac.uk/~sd601/thesis.pdf)
+- [Extensible Records with Scoped Labels](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/scopedlabels.pdf)
 
 #### Maximum Inference Power
 - [A Theory of Qualified Types](https://github.com/sdiehl/papers/blob/master/A_Theory_Of_Qualified_Types.pdf)
@@ -1177,15 +1183,42 @@ is as below.
 - [QML: Explicit, First-Class Polymorphism for ML](https://www.microsoft.com/en-us/research/wp-content/uploads/2009/09/QML-Explicit-First-Class-Polymorphism-for-ML.pdf)
 - [Wobbly Types: Type Inference for GADTs](https://www.microsoft.com/en-us/research/publication/wobbly-types-type-inference-for-generalised-algebraic-data-types/)
 
+#### Gradual Typing
+- [Approximate Normalisation for Gradual Dependent Types](https://arxiv.org/abs/1906.06469)
+- [Gradual Type Theory](https://www.ccs.neu.edu/home/amal/papers/gtt.pdf)
+- [Gradual Type-and-Effect Systems](https://pdfs.semanticscholar.org/fedf/ccecaa94d4bc502e9a7557b89a503fcb4b95.pdf)
+
 #### Dependent Types
+- [A Classical Sequent Calculus for Dependent Types](https://hal.inria.fr/hal-01519929/document)
+- [Dependent Information Flow Types](http://ctp.di.fct.unl.pt/~luisal/resources/popl15-paper187.pdf)
+- [Dependent Intersection: A New Way of Defining Records in Type Theory](https://ieeexplore.ieee.org/document/1210048)
+- [Dependent Types and Monadic Effects in F*](https://www.fstar-lang.org/papers/mumon/)
 - [Dependent Types in Haskell: Theory and Practice](https://cs.brynmawr.edu/~rae/papers/2016/thesis/eisenberg-thesis.pdf)
-- [Higher-Order Type-Level Programming in Haskell](https://www.microsoft.com/en-us/research/uploads/prod/2019/03/ho-haskell-5c8bb4918a4de.pdf)
+- [Dynamic Typing with Dependent Types](https://link.springer.com/chapter/10.1007/1-4020-8141-3_34)
+- [Handling Delimited Continuations with Dependent Types](https://dl.acm.org/doi/10.1145/3236764)
+- [Integrating Linear and Dependent Types](https://www.cl.cam.ac.uk/~nk480/dlnl-paper.pdf)
+- [Irrelevance, Heterogeneous Equality, and Call-by-Value Dependent Type Systems](https://www.cis.upenn.edu/~sweirich/papers/msfp12prog.pdf)
+- [Lightweight Invariants with Full Dependent Types](https://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.150.5717)
+- [Normnalisation through Evaluation for Sized Dependent Types](https://core.ac.uk/display/94336601)
 - [Practical Erasure in Dependently-Typed Languages](https://eb.host.cs.st-andrews.ac.uk/drafts/dtp-erasure-draft.pdf)
+- [Resourceful Dependent Types](http://www.cse.chalmers.se/~abela/types18.pdf)
 - [Syntax and Semantics of Quantitative Type Theory](https://bentnib.org/quantitative-type-theory.pdf)
+- [Verifying Higher-Order Programs with the Dijkstra Monad](https://www.microsoft.com/en-us/research/publication/verifying-higher-order-programs-with-the-dijkstra-monad/)
+
+#### Refinement Typing and Compiler Assistance
+- [Abstract Refinement Types](http://goto.ucsd.edu/~rjhala/papers/abstract_refinement_types.pdf)
+- [Liquid Types](https://patrickrondon.com/research/papers/rondon-liquid-types.pdf)
+- [Towards a Provably Correct Encoding from F* to SMT](https://prosecco.gforge.inria.fr/personal/hritcu/students/alejandro/report.pdf)
+
+#### Usability
+- [Explaining Type Errors](https://repository.brynmawr.edu/compsci_pubs/80/)
 
 #### Monadic Contexts
 - [Supermonads](http://eprints.nottingham.ac.uk/36156/1/paper.pdf)
 
 #### Types and Performance
+- [A Lazy Language Needs a Lazy Type System](https://www.researchgate.net/publication/311648324_A_Lazy_Language_Needs_a_Lazy_Type_System_Introducing_Polymorphic_Contexts)
+- [Higher-Order Type-Level Programming in Haskell](https://www.microsoft.com/en-us/research/publication/higher-order-type-level-programming-in-haskell/)
 - [Levity Polymorphism](https://cs.brynmawr.edu/~rae/papers/2017/levity/levity-extended.pdf)
 - [Partial Type-Constructors](https://cs.brynmawr.edu/~rae/papers/2019/partialdata/partialdata.pdf)
+- [Theory and Practice of Demand Analysis in Haskell](https://www.microsoft.com/en-us/research/wp-content/uploads/2017/03/demand-jfp-draft.pdf)

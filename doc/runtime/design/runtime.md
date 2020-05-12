@@ -261,7 +261,7 @@ used by Enso programs.
 The typechecker is the portion of the runtime that handles the type-inference
 and type-checking of Enso code. This is a sophisticated piece of machinery, with
 the primary theory under which it operates being described in the specification
-of [the type-system](../type-system/types.md).
+of [the type-system](../../types/design/types.md).
 
 <!-- TODO
 - A description of the typechecker's architecture as graph transformations.

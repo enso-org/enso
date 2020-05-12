@@ -15,9 +15,11 @@ In order for the Enso runtime to effectively find Java objects for working with
 in a polyglot fashion, it will look in the `polyglot/java` subdirectory of an
 Enso project. This directory has the following requirements placed on it.
 
-- The top level of the `java` directory should contain only `.jar` files.
-- Any subdirectories will not be searched.
-- All `.jar` files at the top level will be added to the runtime class path for
+- The top level of the `java` directory should contain only `.jar` files and
+  directories.
+- Each directory must provide a valid class-path structure, with `.class` files
+  at the appropriate points.
+- Both `.jar` files and directories are added to the runtime class-path for
   Enso, and hence be made available to Enso programs.
 
 > The actionables for this section are:

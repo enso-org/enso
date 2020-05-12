@@ -99,39 +99,36 @@ an occurrence of one already in scope.
 As we still want to have a minimal syntax for such use-cases, Enso enforces the
 following rules around naming:
 
-- All identifiers are named using `snake_case`.
-- This can also be written `Snake_Case`
-- Names of the first form can be colloquially referred to as 'variable
-  names', while names of the second form can be referred to as 'type names'.
+- All identifiers are named as follows. This is known as 'variable' form.
+  + Each 'word' in the identifier must be lower-case or a number.
+  + Words in the identifier are separated using `_`.
+  + Numbers may not occur as the first 'word' in an identifier.
+- An identifier named as above can be referred to by capitalizing the first
+  letter of each 'word' in the identifier. This is known as 'referent' form.
 - No mixed-format names are allowed (e.g. `HTTP`, `foO`, `make_New`, or
-  `Make_new`). These will be rejected by the parser.
+  `Make_new`). These should be rejected by the compiler.
 - We _strongly encourage_ using capitalised identifiers to refer to atoms.
 
 Name resolution obeys the following rules:
 
-- In contexts where it is _ambiguous_ as to whether a name is fresh or should
-  bind an identifier in scope, the second format refers to binding a name in
-  scope, while the first refers to a fresh variable.
-- This behaviour _only_ occurs in ambiguous contexts. In all other contexts,
+- Contexts where it is _ambiguous_ as to whether a name is fresh or should refer
+  to an identifier in scope are known as _pattern contexts_.
+- In a pattern context, an identifier in referent form will _always_ refer to a
+  name in scope, whereas an identifier in variable form is interpreted as the
+  creation of a fresh identifier.
+- This behaviour _only_ occurs in pattern contexts. In all other contexts,
   both conventions refer to that name already in scope.
 - Operator names behave as variable names when placed in a prefix position
   (e.g. `+ a b`).
-- Operator names behave as type names when placed in an infix position (e.g.
+- Operator names behave as referent names when placed in an infix position (e.g.
   `a + b`).
-- All literals (e.g. `1` and `"Hello"`) are treated as constructor names.
+- All literals (e.g. `1` and `"Hello"`) are treated as referent names.
 
 Identifiers are introduced by:
 
 - Naming them in a binding (assignments and function arguments).
 - Using them in a pattern matching context (free variables).
-
-While, through much of the language's history, we have used `camelCase` (with
-its disambiguating cousin `CamelCase`), this has been decided against for one
-primary reason:
-
-- Names using snake case are far easier to read, and optimising code for
-  readability is _overwhelmingly_ important in a context where novice users are
-  involved.
+- Using them in a type ascription (free variables).
 
 ### Localised Naming
 We do, however, recognise that there is sometimes a need for unicode characters
@@ -143,20 +140,6 @@ Special support is provided for providing completions based on these localised
 names in the language server, and in Enso Studio.
 
 ### Operator Naming
-While some languages allow use of unicode characters for naming operators, we
-will not. The reasoning behind this is simple, and is best explained by
-paraphrasing the [Idris wiki](https://github.com/idris-lang/Idris-dev/wiki/Unofficial-FAQ#will-there-be-support-for-unicode-characters-for-operators).
-
-- Unicode operators are hard to type, making it far more difficult to use other
-  peoples' code. Even if some editors provide input methods for such symbols,
-  they do not provide a good UX.
-- Not every piece of software has good support for Unicode. Even though this is
-  changing, it is not there yet, thus raising barriers to entry.
-- Many Unicode characters are hard to distinguish.
-
-In essence, while the use of Unicode operators can make code look pretty, a font
-with well-defined ligatures can do the same.
-
 Operator names are those built solely from operator symbols (e.g. `+` or `<*>`).
 Operator symbols are defined as characters in the following set.
 
@@ -166,7 +149,7 @@ Operator symbols are defined as characters in the following set.
 
 Please note that not every sequence that can be created from the above is a
 _valid_ operator name, as some may collide with built-in language constructs
-(e.g. `[` and `]`, which starts and end a vector literal respectively).
+(e.g. `[` and `]`, which start and end a vector literal respectively).
 
 ### Pattern Contexts
 A pattern context is a span in the code where variable identifiers (as described
@@ -189,9 +172,9 @@ The following behaviours occur within a pattern context:
   context, an `_` (known as an ignore) may be substituted. This does _not_ bind
   a new name, and hence cannot be used later.
 
-It should be noted that, in the core language, all non-trivial constructs are
-desugared to these constructs, as well as `case ... of` expressions, meaning
-that these are the only constructs which introduce pattern contexts.
+In the core language, it should be noted that all non-trivial constructs are
+desugared into the set of above constructs plus `case ... of` expressions. This
+means that these are the _only_ constructs which introduce pattern contexts.
 
 > Actionables for this section are:
 >
@@ -216,7 +199,7 @@ the readability and consistency of Enso code. They are as follows:
 - `=`: This reserved name is the assignment operator, and assigns the value of
   its right operand to the name on its left. Under the hood this desugars to the
   relevant implementation of monadic bind.
-- `.`: This is the standard function composition operator.
+- `.`: This is the forward function chaining operator.
 - `case ... of`: This reserved name is the case expression that is fundamental
   to the operation of control flow in the language.
 - `this`:  This reserved name is the one used to refer to the enclosing type in
@@ -348,7 +331,7 @@ decimal-point = ".";
 
 float-digit = number-digit | decimal-point;
 
-base-specified = "B" | "H" | "O";
+base-specifier = { digit };
 
 numeric-literal = [base-specifier, "_"], { number-digit };
 ```
@@ -360,9 +343,9 @@ Some examples of numeric literals follow:
 ```ruby
 decimal          = 12345.39
 decimal_explicit = 10_1029301
-octal            = O_122137
-hex              = H_ae2f14
-binary           = B_10011101010
+octal            = 8_122137
+hex              = 16_ae2f14
+binary           = 2_10011101010
 ```
 
 > Actionables for this section are:
@@ -443,15 +426,23 @@ A vector literal works as follows:
 The assignment operator in Enso is a fairly magical construct, being the
 language's syntax for monadic bind. In essence, it operates as follows:
 
+- An assignment is an _expression_.
 - The left-hand-side introduces a pattern context.
 - The pattern on the left-hand-side is matched against (unified with) the value
   that occurs on its right-hand-side.
 - A single line must contain at most one assignment.
-- It does _not_ yield the value that it assigned to it.
+- An assignment may only appear as the _root expression_ of a line of code in a
+  file.
+- An assignment returns the value `Nothing`, and does not return the value that
+  is assigned to it.
 
 The assignment operator has myriad uses, and is used to define variables,
 functions, extension methods, and to perform pattern matching. Each different
 case will see an appropriate desugaring applied (see below).
+
+Please note that not _all_ occurrences of the `=` operator are assignments in
+the general sense. The above rules do not apply when using said operator to
+pass arguments by name.
 
 ### Function Definitions
 If the left hand side of an assignment is syntactically a prefix application
@@ -479,16 +470,23 @@ If the left hand side of an assignment is syntactically a prefix application
 chain, where the left-most name is a _type_ name, the assignment is considered
 to introduce a pattern match binding.
 
-For a prefix chain `A b c = expr`, with trailing code `tail...`, this operates
-as follows:
+It operates as follows for code consisting of a prefix chain `A b c = expr` and
+trailing code `tail...`.
+
+```ruby
+A b c = expr
+tail...
+```
 
 - A case expression is created with scrutinee `expr`.
 - The matching names `A`, `b`, and `c` are used in a case expression branch's
   pattern. The branch's expression is `tail...`.
-- A catch-call branch is created that has expression `error`.
+- A catch-all branch is created that has expression `error`.
 
-This desugaring means that the names `b` and `c` are made visible in the scope
-where the pattern match binding occurs.
+As each branch in a case expression has its own scope, this desugaring means
+that the names `b` and `c` are made visible in the scope where the pattern match
+binding occurs. This is due to the fact that pattern match branches are lambda
+expressions, and reuse the same scoping rules.
 
 This also works for operators in an infix position, where its operands will be
 matched against.
@@ -546,8 +544,8 @@ This works as follows:
 Enso is a statically typed language, meaning that every variable is associated
 with information about the possible values it can take. In Enso, the type
 language is the same as the term language, with no artificial separation. For
-more information on the type system, please see the [types](../types/types.md)
-design document.
+more information on the type system, please see the
+[types](../../types/design/types.md) design document.
 
 This section will refer to terminology that has not been defined in _this_
 document. This is as this document is a specification rather than a guide, and
@@ -565,7 +563,7 @@ the type ascription operator `:`. The expression `a : b` says that the value
 `a` has the type `b` attributed to it.
 
 ```ruby
-foo : (m : Monoid) -> m.self
+foo : (m : Monoid) -> m.this
 ```
 
 Type signatures in Enso have some special syntax:
@@ -594,10 +592,10 @@ of a variable. This means that:
 - Enso will infer constraints on types that you haven't necessarily written.
 - Type signatures can act as a sanity check in that you can encode your
   intention as a type.
-- If the value is of a (partially) known type, constraints will be introduced
-  on that type.
-- Where the type is known, ascription can be used to constrain that type
-  further.
+- If the value is of a known type (distinguished from a dynamic type),
+  constraints will be introduced on that type.
+- Where the type of the value is known, ascription can be used to constrain that
+  type further.
 - It is legal to add constraints to an identifier using `:` in any scope in
   which the identifier is visible.
 
@@ -608,7 +606,8 @@ properties:
 - The right hand side may declare fresh variables that occur in that scope.
 - It is not possible to ascribe a type to an identifier without also assigning
   to that identifier.
-- Introduced identifiers will always shadow other identifiers in scope.
+- Introduced identifiers will always shadow other identifiers in scope due to
+  the fact that `:` introduces a new scope on its RHS.
 - Constraint implication is purely feed-forward. The expression `b:A` only
   introduces constraints to `b`.
 
@@ -636,8 +635,8 @@ of typesets. Their syntax is as follows:
 ### Type Definitions
 Types in Enso are defined by using the `type` reserved name. This works in a
 context-dependent manner that is discussed properly in the
-[type system design document](../types/types.md), but is summarised briefly
-below.
+[type system design document](../../types/design/types.md), but is summarised
+briefly below.
 
 - **Name and Fields:** When you provide the keyword with only a name and some
   field names, this creates an atom.
@@ -655,7 +654,7 @@ below.
       Nothing
       type Just (value : a)
 
-      isJust = case self of
+      isJust = case this of
           Nothing -> False
           Just _ -> True
 
@@ -675,15 +674,15 @@ below.
   name: String
   ```
 
-In addition, users may write explicit `self` constraints in a type definition,
+In addition, users may write explicit `this` constraints in a type definition,
 using the standard type-ascription syntax:
 
 ```ruby
 type Semigroup
-    <> : self -> self
+    <> : this -> this
 
 type Monoid
-    self : Semigroup
+    this : Semigroup
     use Nothing
 ```
 
@@ -857,8 +856,8 @@ before each arrow.
 
 Additionally, lambdas in Enso have the following properties:
 
+- The lambda introduces a new scope shared by the left and right operands.
 - The left operand introduces a pattern context.
-- The right operand introduces a new scope.
 - If a lambda occurs in a pattern context, its left-hand-side identifiers are
   introduced into the scope targeted by the outer pattern context. For example,
   the following is valid `(a -> b) -> a.default + b`.
@@ -919,7 +918,7 @@ Methods can be defined in Enso in two ways:
       Nothing
       type Just (value : a)
 
-      isJust = case self of
+      isJust = case this of
           Nothing -> False
           Just _ -> True
   ```
@@ -945,12 +944,6 @@ Methods can be defined in Enso in two ways:
 If the user does not explicitly specify the `this` argument by name when
 defining a method (e.g. they use the `Type.name` syntax), it is implicitly added
 to the start of the argument list.
-
-#### This vs. Self
-Though it varies greatly between programming languages, we have chosen `this` to
-be the name of the 'current type' rather than `self`. This is a purely aesthetic
-decision, and the final clincher was the ability to write `this` and `that`, as
-opposed to `self` and `that`.
 
 ### Calling Functions and UCS
 Calling a function or method is, in general, as simple as applying it to some
@@ -1051,7 +1044,7 @@ parts:
 ```ruby
 @prec  [> *, < $]
 @assoc left
-a ^ n = a * a ^ (n-1)
+^ a n = a * a ^ (n-1)
 ```
 
 #### Precedence
@@ -1076,7 +1069,7 @@ is best demonstrated by example. Consider the following code:
 ```ruby
 list       = 1 .. 100
 randomList = each random list
-headOfList = head 10 randomList
+headOfList = take 10 randomList
 result     = sort headOfList
 ```
 
@@ -1084,9 +1077,9 @@ This could easily be refactored to the following one-liner, and then transformed
 using UCS to an expression that reads left to right:
 
 ```ruby
-result = sort (head 10 (each random (1 .. 100)))
+result = sort (take 10 (each random (1 .. 100)))
 
-result = (((1 .. 100).each random).head 10).sort
+result = (((1 .. 100).each random).take 10).sort
 ```
 
 This is still quite noisy, however, so using the whitespace-sensitive operator
@@ -1094,7 +1087,7 @@ precedence rules, combined with the fact that the operator `.` is a regular
 operator, we get the following.
 
 ```ruby
-result = 1..100 . each random . head 10 . sort
+result = 1..100 . each random . take 10 . sort
 ```
 
 #### Sections
