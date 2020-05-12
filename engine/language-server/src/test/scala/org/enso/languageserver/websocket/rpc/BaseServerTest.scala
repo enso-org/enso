@@ -17,7 +17,7 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.protocol.rpc.{
   JsonRpc,
-  ServerClientControllerFactory
+  RpcConnectionControllerFactory
 }
 import org.enso.languageserver.runtime.ContextRegistry
 import org.enso.languageserver.session.SessionRouter
@@ -66,7 +66,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
     lazy val capabilityRouter =
       system.actorOf(CapabilityRouter.props(bufferRegistry, fileEventRegistry))
 
-    new ServerClientControllerFactory(
+    new RpcConnectionControllerFactory(
       bufferRegistry,
       capabilityRouter,
       fileManager,

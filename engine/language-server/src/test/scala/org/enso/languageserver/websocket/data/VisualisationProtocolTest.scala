@@ -3,9 +3,7 @@ package org.enso.languageserver.websocket.data
 import java.nio.ByteBuffer
 import java.util.UUID
 
-import com.google.flatbuffers.FlatBufferBuilder
 import org.enso.languageserver.protocol.data.envelope.{
-  InboundPayload,
   OutboundMessage,
   OutboundPayload
 }
@@ -13,10 +11,6 @@ import org.enso.languageserver.protocol.data.executioncontext
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualisationContext,
   VisualisationUpdate
-}
-import org.enso.languageserver.websocket.data.factory.{
-  InboundMessageFactory,
-  SessionInitFactory
 }
 import org.scalatest.concurrent.Eventually
 
@@ -72,21 +66,6 @@ class VisualisationProtocolTest extends BaseBinaryServerTest with Eventually {
         .mostSigBits() shouldBe ctx.visualisationId.getMostSignificantBits
     }
 
-  }
-
-  private def createSessionInitCmd(): ByteBuffer = {
-    val clientId         = UUID.randomUUID()
-    val requestId        = UUID.randomUUID()
-    implicit val builder = new FlatBufferBuilder(1024)
-    val cmd              = SessionInitFactory.create(clientId)
-    val inMsg = InboundMessageFactory.create(
-      requestId,
-      None,
-      InboundPayload.SESSION_INIT,
-      cmd
-    )
-    builder.finish(inMsg)
-    builder.dataBuffer()
   }
 
 }

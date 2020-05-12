@@ -7,14 +7,16 @@ import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
   FileSystemFailureMapper
 }
-import org.enso.languageserver.filemanager.FileManagerApi.ReadFile
+import org.enso.languageserver.filemanager.FileManagerApi.WriteFile
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
-class ReadFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
-    extends Actor
+class WriteTextualFileHandler(
+  requestTimeout: FiniteDuration,
+  fileManager: ActorRef
+) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
@@ -23,8 +25,8 @@ class ReadFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case Request(ReadFile, id, params: ReadFile.Params) =>
-      fileManager ! FileManagerProtocol.ReadFile(params.path)
+    case Request(WriteFile, id, params: WriteFile.Params) =>
+      fileManager ! FileManagerProtocol.WriteFile(params.path, params.contents)
       val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -36,7 +38,7 @@ class ReadFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(s"Failure during $ReadFile operation:", ex)
+      log.error(s"Failure during $WriteFile operation:", ex)
       replyTo ! ResponseError(Some(id), ServiceError)
       cancellable.cancel()
       context.stop(self)
@@ -46,7 +48,7 @@ class ReadFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case FileManagerProtocol.ReadFileResult(Left(failure)) =>
+    case FileManagerProtocol.WriteFileResult(Left(failure)) =>
       replyTo ! ResponseError(
         Some(id),
         FileSystemFailureMapper.mapFailure(failure)
@@ -54,16 +56,16 @@ class ReadFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
       cancellable.cancel()
       context.stop(self)
 
-    case FileManagerProtocol.ReadFileResult(Right(file)) =>
-      replyTo ! ResponseResult(ReadFile, id, ReadFile.Result(file.content))
+    case FileManagerProtocol.WriteFileResult(Right(())) =>
+      replyTo ! ResponseResult(WriteFile, id, Unused)
       cancellable.cancel()
       context.stop(self)
   }
 }
 
-object ReadFileHandler {
+object WriteTextualFileHandler {
 
   def props(timeout: FiniteDuration, fileManager: ActorRef): Props =
-    Props(new ReadFileHandler(timeout, fileManager))
+    Props(new WriteTextualFileHandler(timeout, fileManager))
 
 }

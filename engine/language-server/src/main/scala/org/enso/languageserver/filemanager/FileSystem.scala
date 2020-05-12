@@ -34,6 +34,14 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     effectBlocking(FileUtils.write(file, content, "UTF-8"))
       .mapError(errorHandling)
 
+  /** @inheritdoc **/
+  override def writeBinary(
+    file: File,
+    contents: Array[Byte]
+  ): BlockingIO[FileSystemFailure, Unit] =
+    effectBlocking(FileUtils.writeByteArrayToFile(file, contents))
+      .mapError(errorHandling)
+
   /**
     * Reads the contents of a textual file.
     *
@@ -42,6 +50,13 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     */
   override def read(file: File): BlockingIO[FileSystemFailure, String] =
     effectBlocking(FileUtils.readFileToString(file, "UTF-8"))
+      .mapError(errorHandling)
+
+  /** @inheritdoc **/
+  override def readBinary(
+    file: File
+  ): BlockingIO[FileSystemFailure, Array[Byte]] =
+    effectBlocking(FileUtils.readFileToByteArray(file))
       .mapError(errorHandling)
 
   /**

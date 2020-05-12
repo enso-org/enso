@@ -5,7 +5,21 @@ import java.util.UUID
 
 object FileManagerProtocol {
 
-  case class FileContent(path: File, content: String)
+  /**
+    * Transfer object containing textual contents of the file with its path.
+    *
+    * @param path a path to a file
+    * @param content the textual contents
+    */
+  case class TextualFileContent(path: File, content: String)
+
+  /**
+    * Transfer object containing binary contents of the file with its path.
+    *
+    * @param path a path to a file
+    * @param contents the binary contents
+    */
+  case class BinaryFileContent(path: File, contents: Array[Byte])
 
   /**
     * Gets all content roots.
@@ -28,6 +42,14 @@ object FileManagerProtocol {
   case class WriteFile(path: Path, content: String)
 
   /**
+    * Requests the Language Server write binary contents to an arbitrary file.
+    *
+    * @param path a path to a file
+    * @param contents binary contents
+    */
+  case class WriteBinaryFile(path: Path, contents: Array[Byte])
+
+  /**
     * Signals file manipulation status.
     *
     * @param result either file system failure or unit representing success
@@ -42,11 +64,29 @@ object FileManagerProtocol {
   case class ReadFile(path: Path)
 
   /**
+    * Requests the Language Server to read a binary content of a file.
+    *
+    * @param path a path to a file
+    */
+  case class ReadBinaryFile(path: Path)
+
+  /**
     * Returns a result of reading a file.
     *
     * @param result either file system failure or content of a file
     */
-  case class ReadFileResult(result: Either[FileSystemFailure, FileContent])
+  case class ReadTextualFileResult(
+    result: Either[FileSystemFailure, TextualFileContent]
+  )
+
+  /**
+    * Returns a result of reading binary contents of a file.
+    *
+    * @param result either file system failure or content of a file
+    */
+  case class ReadBinaryFileResult(
+    result: Either[FileSystemFailure, BinaryFileContent]
+  )
 
   /**
     * Requests the Language Server create a file system object.

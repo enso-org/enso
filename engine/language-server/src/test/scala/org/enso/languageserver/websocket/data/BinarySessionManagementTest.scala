@@ -29,7 +29,7 @@ class BinarySessionManagementTest extends BaseBinaryServerTest {
       val inMsg = InboundMessageFactory.create(
         requestId,
         None,
-        InboundPayload.SESSION_INIT,
+        InboundPayload.INIT_SESSION_CMD,
         cmd
       )
       builder.finish(inMsg)
@@ -37,7 +37,7 @@ class BinarySessionManagementTest extends BaseBinaryServerTest {
       client.send(builder.dataBuffer())
       val Right(msg) = client.receiveMessage[OutboundMessage]()
       //then
-      msg.payloadType() shouldBe OutboundPayload.SESSION_INIT_RESPONSE
+      msg.payloadType() shouldBe OutboundPayload.SUCCESS
       msg
         .correlationId()
         .leastSigBits() shouldBe requestId.getLeastSignificantBits

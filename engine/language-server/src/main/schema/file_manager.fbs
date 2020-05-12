@@ -1,0 +1,41 @@
+include "util.fbs";
+
+namespace org.enso.languageserver.protocol.data.filemanager;
+
+//A representation of a path relative to a specified content root.
+table Path {
+
+  //a content root id that the path is relative to
+  rootId: org.enso.languageserver.protocol.data.util.EnsoUUID;
+
+  //path segments
+  segments: [string];
+
+}
+
+//A command writing binary contents to a file.
+table WriteFileCommand {
+
+  //A path to a file.
+  path: org.enso.languageserver.protocol.data.filemanager.Path;
+
+  //Binary contents.
+  contents: [ubyte];
+
+}
+
+//A command reading binary contents from a file.
+table ReadFileCommand {
+
+  //A path to a file.
+  path: org.enso.languageserver.protocol.data.filemanager.Path;
+
+}
+
+//A reply for a ReadFileCommand.
+table FileContentsReply {
+
+  //Binary contents.
+  contents: [ubyte];
+
+}

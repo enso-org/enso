@@ -15,8 +15,8 @@ import org.enso.languageserver.event.{
   RpcSessionTerminated
 }
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
-  FileContent,
-  ReadFileResult,
+  ReadTextualFileResult,
+  TextualFileContent,
   WriteFileResult
 }
 import org.enso.languageserver.filemanager.{
@@ -78,12 +78,12 @@ class CollaborativeBuffer(
     replyTo: ActorRef,
     timeoutCancellable: Cancellable
   ): Receive = {
-    case ReadFileResult(Right(content)) =>
+    case ReadTextualFileResult(Right(content)) =>
       handleFileContent(rpcSession, replyTo, content)
       unstashAll()
       timeoutCancellable.cancel(): Unit
 
-    case ReadFileResult(Left(failure)) =>
+    case ReadTextualFileResult(Left(failure)) =>
       replyTo ! OpenFileResponse(Left(failure))
       timeoutCancellable.cancel()
       stop()
@@ -277,7 +277,7 @@ class CollaborativeBuffer(
   private def handleFileContent(
     rpcSession: RpcSession,
     originalSender: ActorRef,
-    file: FileContent
+    file: TextualFileContent
   ): Unit = {
     val buffer = Buffer(file.path, file.content)
     val cap    = CapabilityRegistration(CanEdit(bufferPath))

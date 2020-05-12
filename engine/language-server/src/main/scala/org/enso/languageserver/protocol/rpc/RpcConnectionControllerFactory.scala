@@ -12,7 +12,7 @@ import org.enso.jsonrpc.ClientControllerFactory
   * @param capabilityRouter the capability router actor ref
   * @param system the actor system
   */
-class ServerClientControllerFactory(
+class RpcConnectionControllerFactory(
   bufferRegistry: ActorRef,
   capabilityRouter: ActorRef,
   fileManager: ActorRef,
@@ -28,7 +28,7 @@ class ServerClientControllerFactory(
     */
   override def createClientController(clientId: UUID): ActorRef =
     system.actorOf(
-      ClientController.props(
+      RpcConnectionController.props(
         clientId,
         bufferRegistry,
         capabilityRouter,

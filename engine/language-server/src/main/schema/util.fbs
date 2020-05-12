@@ -11,7 +11,7 @@ struct EnsoUUID {
 
 }
 
-//A generic error object.
+//This message type is used to indicate failure of some operation performed.
 table Error {
 
   //A unique error code identifying error type.
@@ -21,3 +21,6 @@ table Error {
   message: string;
 
 }
+
+//Indicates an operation has succeeded.
+table Success {}

@@ -59,7 +59,7 @@ import scala.concurrent.duration._
   * @param contextRegistry a router that dispatches execution context requests
   * @param requestTimeout a request timeout
   */
-class ClientController(
+class RpcConnectionController(
   val connectionId: UUID,
   val bufferRegistry: ActorRef,
   val capabilityRouter: ActorRef,
@@ -100,6 +100,7 @@ class ClientController(
           _,
           InitProtocolConnection.Params(clientId)
         ) =>
+      log.info(s"RPC session initialized for client: $clientId")
       val session = RpcSession(clientId, self)
       context.system.eventStream.publish(RpcSessionInitialized(session))
       val requestHandlers = createRequestHandlers(session)
@@ -180,8 +181,10 @@ class ClientController(
         .props(bufferRegistry, requestTimeout, rpcSession),
       SaveFile -> SaveFileHandler
         .props(bufferRegistry, requestTimeout, rpcSession),
-      WriteFile  -> file.WriteFileHandler.props(requestTimeout, fileManager),
-      ReadFile   -> file.ReadFileHandler.props(requestTimeout, fileManager),
+      WriteFile -> file.WriteTextualFileHandler
+        .props(requestTimeout, fileManager),
+      ReadFile -> file.ReadTextualFileHandler
+        .props(requestTimeout, fileManager),
       CreateFile -> file.CreateFileHandler.props(requestTimeout, fileManager),
       DeleteFile -> file.DeleteFileHandler.props(requestTimeout, fileManager),
       CopyFile   -> file.CopyFileHandler.props(requestTimeout, fileManager),
@@ -210,10 +213,10 @@ class ClientController(
 
 }
 
-object ClientController {
+object RpcConnectionController {
 
   /**
-    * Creates a configuration object used to create a [[ClientController]].
+    * Creates a configuration object used to create a [[RpcConnectionController]].
     *
     * @param connectionId the internal connection id.
     * @param bufferRegistry a router that dispatches text editing requests
@@ -232,7 +235,7 @@ object ClientController {
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
     Props(
-      new ClientController(
+      new RpcConnectionController(
         connectionId,
         bufferRegistry,
         capabilityRouter,

@@ -9,12 +9,13 @@ import org.enso.languageserver.http.server.ConnectionControllerFactory
   *
   * @param system an actor system that hosts created connection controllers
   */
-class BinaryConnectionControllerFactory()(implicit system: ActorSystem)
-    extends ConnectionControllerFactory {
+class BinaryConnectionControllerFactory(fileManager: ActorRef)(
+  implicit system: ActorSystem
+) extends ConnectionControllerFactory {
 
   /** @inheritdoc **/
   override def createController(clientIp: RemoteAddress.IP): ActorRef = {
-    system.actorOf(Props(new BinaryConnectionController(clientIp)))
+    system.actorOf(Props(new BinaryConnectionController(clientIp, fileManager)))
   }
 
 }
