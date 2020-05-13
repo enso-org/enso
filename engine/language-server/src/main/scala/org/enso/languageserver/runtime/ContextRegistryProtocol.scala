@@ -5,7 +5,7 @@ import java.util.UUID
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.filemanager.FileSystemFailure
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
-import org.enso.languageserver.session.RpcSession
+import org.enso.languageserver.session.JsonSession
 
 object ContextRegistryProtocol {
 
@@ -19,7 +19,7 @@ object ContextRegistryProtocol {
     *
     * @param rpcSession reference to the client
     */
-  case class CreateContextRequest(rpcSession: RpcSession)
+  case class CreateContextRequest(rpcSession: JsonSession)
 
   /**
     * A response about creation of a new execution context.
@@ -33,7 +33,10 @@ object ContextRegistryProtocol {
     *
     * @param rpcSession reference to the client
     */
-  case class DestroyContextRequest(rpcSession: RpcSession, contextId: ContextId)
+  case class DestroyContextRequest(
+    rpcSession: JsonSession,
+    contextId: ContextId
+  )
 
   /**
     * A response about deletion of an execution context.
@@ -51,7 +54,7 @@ object ContextRegistryProtocol {
     * @param stackItem an object representing an item on the stack
     */
   case class PushContextRequest(
-    rpcSession: RpcSession,
+    rpcSession: JsonSession,
     contextId: ContextId,
     stackItem: StackItem
   )
@@ -70,7 +73,7 @@ object ContextRegistryProtocol {
     * @param rpcSession reference to the client
     * @param contextId execution context identifier
     */
-  case class PopContextRequest(rpcSession: RpcSession, contextId: ContextId)
+  case class PopContextRequest(rpcSession: JsonSession, contextId: ContextId)
 
   /**
     * A response about popping the stack.
@@ -87,7 +90,7 @@ object ContextRegistryProtocol {
     * @param invalidatedExpressions the expressions that should be invalidated
     */
   case class RecomputeContextRequest(
-    rpcSession: RpcSession,
+    rpcSession: JsonSession,
     contextId: ContextId,
     invalidatedExpressions: Option[InvalidatedExpressions]
   )

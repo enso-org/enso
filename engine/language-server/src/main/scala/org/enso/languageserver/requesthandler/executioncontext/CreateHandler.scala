@@ -14,7 +14,7 @@ import org.enso.languageserver.runtime.{
   ContextRegistryProtocol,
   RuntimeFailureMapper
 }
-import org.enso.languageserver.session.RpcSession
+import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -29,7 +29,7 @@ import scala.concurrent.duration.FiniteDuration
 class CreateHandler(
   timeout: FiniteDuration,
   contextRegistry: ActorRef,
-  session: RpcSession
+  session: JsonSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -85,7 +85,7 @@ object CreateHandler {
   def props(
     timeout: FiniteDuration,
     contextRegistry: ActorRef,
-    rpcSession: RpcSession
+    rpcSession: JsonSession
   ): Props =
     Props(new CreateHandler(timeout, contextRegistry, rpcSession))
 

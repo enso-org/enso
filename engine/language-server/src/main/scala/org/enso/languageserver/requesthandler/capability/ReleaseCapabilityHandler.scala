@@ -15,7 +15,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 }
 import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.session.RpcSession
+import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -30,7 +30,7 @@ import scala.concurrent.duration.FiniteDuration
 class ReleaseCapabilityHandler(
   capabilityRouter: ActorRef,
   timeout: FiniteDuration,
-  session: RpcSession
+  session: JsonSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -86,7 +86,7 @@ object ReleaseCapabilityHandler {
   def props(
     capabilityRouter: ActorRef,
     requestTimeout: FiniteDuration,
-    rpcSession: RpcSession
+    rpcSession: JsonSession
   ): Props =
     Props(
       new ReleaseCapabilityHandler(capabilityRouter, requestTimeout, rpcSession)

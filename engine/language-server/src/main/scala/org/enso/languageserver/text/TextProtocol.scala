@@ -2,7 +2,7 @@ package org.enso.languageserver.text
 
 import org.enso.languageserver.data.{CapabilityRegistration, ClientId}
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
-import org.enso.languageserver.session.RpcSession
+import org.enso.languageserver.session.JsonSession
 
 object TextProtocol {
 
@@ -11,7 +11,7 @@ object TextProtocol {
     * @param rpcSession the client opening the file.
     * @param path the file path.
     */
-  case class OpenFile(rpcSession: RpcSession, path: Path)
+  case class OpenFile(rpcSession: JsonSession, path: Path)
 
   /** Sent by the server in response to [[OpenFile]]
     *

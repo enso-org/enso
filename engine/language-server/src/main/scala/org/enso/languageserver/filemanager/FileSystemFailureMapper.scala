@@ -9,7 +9,7 @@ import org.enso.languageserver.filemanager.FileManagerApi.{
   OperationTimeoutError
 }
 import org.enso.jsonrpc.Error
-import org.enso.languageserver.protocol.rpc.ErrorApi
+import org.enso.languageserver.protocol.json.ErrorApi
 
 object FileSystemFailureMapper {
 

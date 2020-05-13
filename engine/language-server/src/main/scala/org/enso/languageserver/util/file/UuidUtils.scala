@@ -2,7 +2,7 @@ package org.enso.languageserver.util.file
 
 import java.util.UUID
 
-import org.enso.languageserver.protocol.data.util.EnsoUUID
+import org.enso.languageserver.protocol.binary.EnsoUUID
 
 object UuidUtils {
 

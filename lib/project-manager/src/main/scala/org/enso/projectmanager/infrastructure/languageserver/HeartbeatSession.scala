@@ -3,6 +3,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, Cancellable, Props, Scheduler}
+import akka.stream.SubscriptionWithCancelException.StageWasCompleted
 import io.circe.parser._
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
@@ -121,16 +122,14 @@ class HeartbeatSession(
   }
 
   private def socketClosureStage(cancellable: Cancellable): Receive = {
-    case WebSocketStreamClosed =>
+    case WebSocketStreamClosed | WebSocketStreamFailure(StageWasCompleted) =>
       context.stop(self)
       cancellable.cancel()
-      ()
 
     case WebSocketStreamFailure(th) =>
-      log.error(s"An error occurred during closing web socket", th)
+      log.error(th, s"An error occurred during closing web socket")
       context.stop(self)
       cancellable.cancel()
-      ()
 
     case SocketClosureTimeout =>
       log.error(s"Socket closure timed out")

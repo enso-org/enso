@@ -2,7 +2,7 @@ package org.enso.languageserver.capability
 
 import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.FileSystemFailure
-import org.enso.languageserver.session.RpcSession
+import org.enso.languageserver.session.JsonSession
 
 object CapabilityProtocol {
 
@@ -13,7 +13,7 @@ object CapabilityProtocol {
     * @param registration the capability to grant.
     */
   case class AcquireCapability(
-    rpcSession: RpcSession,
+    rpcSession: JsonSession,
     registration: CapabilityRegistration
   )
 
@@ -47,7 +47,7 @@ object CapabilityProtocol {
     * @param capability the capability being released.
     */
   case class ReleaseCapability(
-    rpcSession: RpcSession,
+    rpcSession: JsonSession,
     capability: CapabilityRegistration
   )
 

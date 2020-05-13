@@ -71,7 +71,7 @@ class ProjectOpenHandler[F[+_, +_]: Exec](
       replyTo ! ResponseResult(
         ProjectOpen,
         id,
-        ProjectOpen.Result(sockets.rpcSocket, sockets.dataSocket)
+        ProjectOpen.Result(sockets.jsonSocket, sockets.binarySocket)
       )
       cancellable.cancel()
       context.stop(self)

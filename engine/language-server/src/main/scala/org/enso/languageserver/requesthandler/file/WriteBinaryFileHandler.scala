@@ -5,13 +5,15 @@ import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
   FileSystemFailureMapper
 }
-import org.enso.languageserver.protocol.data.envelope.InboundMessage
-import org.enso.languageserver.protocol.data.factory.{
+import org.enso.languageserver.protocol.binary.{
+  EnsoUUID,
+  InboundMessage,
+  WriteFileCommand
+}
+import org.enso.languageserver.protocol.binary.factory.{
   ErrorFactory,
   SuccessReplyFactory
 }
-import org.enso.languageserver.protocol.data.filemanager.WriteFileCommand
-import org.enso.languageserver.protocol.data.util.EnsoUUID
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.file.PathUtils
@@ -48,7 +50,7 @@ class WriteBinaryFileHandler(
       fileManager ! FileManagerProtocol.WriteBinaryFile(path, contents)
       val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(msg.requestId(), cancellable))
+      context.become(responseStage(msg.messageId(), cancellable))
   }
 
   private def responseStage(

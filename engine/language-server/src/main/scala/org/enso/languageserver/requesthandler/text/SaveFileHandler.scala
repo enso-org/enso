@@ -5,7 +5,7 @@ import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.session.RpcSession
+import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.text.TextApi.{
   FileNotOpenedError,
   InvalidVersionError,
@@ -28,7 +28,7 @@ import scala.concurrent.duration.FiniteDuration
 class SaveFileHandler(
   bufferRegistry: ActorRef,
   timeout: FiniteDuration,
-  rpcSession: RpcSession
+  rpcSession: JsonSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -105,7 +105,7 @@ object SaveFileHandler {
   def props(
     bufferRegistry: ActorRef,
     requestTimeout: FiniteDuration,
-    rpcSession: RpcSession
+    rpcSession: JsonSession
   ): Props =
     Props(new SaveFileHandler(bufferRegistry, requestTimeout, rpcSession))
 

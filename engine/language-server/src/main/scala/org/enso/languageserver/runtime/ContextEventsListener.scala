@@ -7,8 +7,8 @@ import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualisationUpdate
 }
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
-import org.enso.languageserver.session.RpcSession
-import org.enso.languageserver.session.SessionRouter.DeliverToDataController
+import org.enso.languageserver.session.JsonSession
+import org.enso.languageserver.session.SessionRouter.DeliverToBinaryController
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -24,7 +24,7 @@ import org.enso.polyglot.runtime.Runtime.Api
   */
 final class ContextEventsListener(
   config: Config,
-  rpcSession: RpcSession,
+  rpcSession: JsonSession,
   contextId: ContextId,
   sessionRouter: ActorRef
 ) extends Actor
@@ -49,7 +49,7 @@ final class ContextEventsListener(
           ),
           data
         )
-      sessionRouter ! DeliverToDataController(rpcSession.clientId, payload)
+      sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
 
     case Api.ExpressionValuesComputed(`contextId`, apiUpdates) =>
       val updates = apiUpdates.flatMap { update =>
@@ -121,7 +121,7 @@ object ContextEventsListener {
     */
   def props(
     config: Config,
-    rpcSession: RpcSession,
+    rpcSession: JsonSession,
     contextId: ContextId,
     sessionRouter: ActorRef
   ): Props =

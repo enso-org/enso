@@ -30,11 +30,11 @@ class LanguageServerComponent(config: LanguageServerConfig)
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     for {
-      module      <- Future { new MainModule(config) }
-      rpcBinding  <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
-      dataBinding <- module.dataServer.bind(config.interface, config.dataPort)
+      module        <- Future { new MainModule(config) }
+      jsonBinding   <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
+      binaryBinding <- module.dataServer.bind(config.interface, config.dataPort)
       _ <- Future {
-        maybeServerCtx = Some(ServerContext(module, rpcBinding, dataBinding))
+        maybeServerCtx = Some(ServerContext(module, jsonBinding, binaryBinding))
       }
       _ <- Future {
         logger.info(
@@ -53,8 +53,8 @@ class LanguageServerComponent(config: LanguageServerConfig)
 
       case Some(serverState) =>
         for {
-          _ <- serverState.rpcBinding.terminate(10.seconds)
-          _ <- serverState.dataBinding.terminate(10.seconds)
+          _ <- serverState.jsonBinding.terminate(10.seconds)
+          _ <- serverState.binaryBinding.terminate(10.seconds)
           _ <- serverState.mainModule.system.terminate()
           _ <- Future { serverState.mainModule.context.close(true) }
           _ <- Future { maybeServerCtx = None }
@@ -75,8 +75,8 @@ class LanguageServerComponent(config: LanguageServerConfig)
 
       case Some(serverState) =>
         for {
-          _ <- serverState.rpcBinding.terminate(10.seconds).recover(logError)
-          _ <- serverState.dataBinding.terminate(10.seconds).recover(logError)
+          _ <- serverState.jsonBinding.terminate(10.seconds).recover(logError)
+          _ <- serverState.binaryBinding.terminate(10.seconds).recover(logError)
           _ <- serverState.mainModule.system.terminate().recover(logError)
           _ <- Future { serverState.mainModule.context.close(true) }
             .recover(logError)
@@ -97,13 +97,13 @@ object LanguageServerComponent {
     * A running server context.
     *
     * @param mainModule a main module containing all components of the server
-    * @param rpcBinding a http binding for rpc protocol
-    * @param dataBinding a http binding for data protocol
+    * @param jsonBinding a http binding for rpc protocol
+    * @param binaryBinding a http binding for data protocol
     */
   case class ServerContext(
     mainModule: MainModule,
-    rpcBinding: Http.ServerBinding,
-    dataBinding: Http.ServerBinding
+    jsonBinding: Http.ServerBinding,
+    binaryBinding: Http.ServerBinding
   )
 
 }

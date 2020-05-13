@@ -15,13 +15,13 @@ import org.enso.languageserver.filemanager.{
   ReceivesTreeUpdatesHandler
 }
 import org.enso.languageserver.http.server.BinaryWebSocketServer
-import org.enso.languageserver.protocol.data.{
+import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
 }
-import org.enso.languageserver.protocol.rpc.{
-  JsonRpc,
-  RpcConnectionControllerFactory
+import org.enso.languageserver.protocol.json.{
+  JsonConnectionControllerFactory,
+  JsonRpc
 }
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeConnector}
 import org.enso.languageserver.session.SessionRouter
@@ -120,7 +120,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .build()
   context.initialize(LanguageInfo.ID)
 
-  lazy val clientControllerFactory = new RpcConnectionControllerFactory(
+  lazy val clientControllerFactory = new JsonConnectionControllerFactory(
     bufferRegistry,
     capabilityRouter,
     fileManager,

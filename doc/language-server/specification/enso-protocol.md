@@ -73,7 +73,7 @@ services components, as well as any open questions that may remain.
     - [`WorkspaceEdit`](#workspaceedit)
   - [Connection Management](#connection-management)
     - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
-    - [`session/initDataConnection`](#sessioninitdataconnection)
+    - [`session/initBinaryConnection`](#sessioninitbinaryconnection)
   - [Capability Management](#capability-management)
     - [`capability/acquire`](#capabilityacquire)
     - [`capability/release`](#capabilityrelease)
@@ -87,6 +87,8 @@ services components, as well as any open questions that may remain.
   - [File Management Operations](#file-management-operations)
     - [`file/write`](#filewrite)
     - [`file/read`](#fileread)
+    - [`file/writeBinary`](#filewritebinary)
+    - [`file/readBinary`](#filereadbinary)
     - [`file/create`](#filecreate)
     - [`file/delete`](#filedelete)
     - [`file/copy`](#filecopy)
@@ -592,21 +594,23 @@ requests, each request/response/notification is wrapped in an envelope
 structure. There is a separate envelope for incoming and outgoing messages:
 
 ```idl
-namespace org.enso.languageserver.protocol.data.envelope;
+namespace org.enso.languageserver.protocol.binary;
 
 //A mapping between payload enum and inbound payload types.
 union InboundPayload {
-  SESSION_INIT: org.enso.languageserver.protocol.data.session.SessionInit
+  INIT_SESSION_CMD: InitSessionCommand,
+  WRITE_FILE_CMD: WriteFileCommand,
+  READ_FILE_CMD: ReadFileCommand
 }
 
 //An envelope for inbound requests and commands.
 table InboundMessage {
 
-  //A unique id of the request sent to the server.
-  requestId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+  //A unique id of the message sent to the server.
+  messageId: EnsoUUID (required);
 
   //An optional correlation id used to correlate a response with a request.
-  correlationId: org.enso.languageserver.protocol.data.util.EnsoUUID;
+  correlationId: EnsoUUID;
 
   //A message payload that carries requests sent by a client.
   payload: InboundPayload (required);
@@ -615,21 +619,24 @@ table InboundMessage {
 ```
 
 ```idl
+namespace org.enso.languageserver.protocol.binary;
+
 //A mapping between payload enum and outbound payload types.
 union OutboundPayload {
-  ERROR: org.enso.languageserver.protocol.data.util.Error,
-  SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.data.session.SessionInitResponse,
-  VISUALISATION_UPDATE: org.enso.languageserver.protocol.data.executioncontext.VisualisationUpdate
+  ERROR: Error,
+  SUCCESS: Success,
+  VISUALISATION_UPDATE: VisualisationUpdate,
+  FILE_CONTENTS_REPLY: FileContentsReply
 }
 
 //An envelope for outbound responses.
 table OutboundMessage {
 
-  //A unique id of the request sent to the server.
-  requestId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+  //A unique id of the message sent from the server.
+  messageId: EnsoUUID (required);
 
   //An optional correlation id used to correlate a response with a request.
-  correlationId: org.enso.languageserver.protocol.data.util.EnsoUUID;
+  correlationId: EnsoUUID;
 
   //A message payload that carries responses and notifications sent by a server
   payload: OutboundPayload (required);
@@ -638,9 +645,9 @@ table OutboundMessage {
 ```
 
 ```idl
-namespace org.enso.languageserver.protocol.data.util;
+namespace org.enso.languageserver.protocol.binary;
 
-//A generic error object.
+//This message type is used to indicate failure of some operation performed.
 table Error {
 
   //A unique error code identifying error type.
@@ -650,6 +657,9 @@ table Error {
   message: string;
 
 }
+
+//Indicates an operation has succeeded.
+table Success {}
 ```
 
 ### Binary Protocol Communication Patterns
@@ -770,6 +780,21 @@ interface Path {
 }
 ```
 
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+//A representation of a path relative to a specified content root.
+table Path {
+
+  //a content root id that the path is relative to
+  rootId: EnsoUUID;
+
+  //path segments
+  segments: [string];
+
+}
+```
+
 #### `IPWithSocket`
 A IPWithSocket is an endpoint for communication between machines.
 
@@ -788,11 +813,17 @@ An EnsoUUID is a value object containing 128-bit universally unique identifier.
 ##### Format
 
 ```idl
-namespace org.enso.languageserver.protocol.data.util;
+namespace org.enso.languageserver.protocol.binary;
 
+//A binary representation of universally unique identifiers.
 struct EnsoUUID {
+
+  //The most significant bits of the UUID.
   leastSigBits:uint64;
+
+  //The most significant bits of the UUID.
   mostSigBits:uint64;
+
 }
 ```
 
@@ -850,8 +881,8 @@ interface ProjectOpenRequest {
 
 ```typescript
 interface ProjectOpenResult {
-  languageServerRpcAddress: IPWithSocket;
-  languageServerDataAddress: IPWithSocket;
+  languageServerJsonAddress: IPWithSocket;
+  languageServerBinaryAddress: IPWithSocket;
 }
 ```
 
@@ -1321,7 +1352,7 @@ be correlated between the textual and data connections.
 - [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror) to signal
 that session is already initialised.
 
-#### `session/initDataConnection`
+#### `session/initBinaryConnection`
 This message initialises the data connection used for transferring binary data
 between engine and clients. This initialisation is important such that the
 client identifier can be correlated between the data and textual connections.
@@ -1334,29 +1365,26 @@ client identifier can be correlated between the data and textual connections.
 ##### Parameters
 
 ```idl
-namespace org.enso.languageserver.protocol.data.session;
+namespace org.enso.languageserver.protocol.binary;
 
 //A command initializing a data session.
-table SessionInit {
+table InitSessionCommand {
 
   //A unique identifier of a client initializing the session.
-  identifier: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+  identifier: EnsoUUID (required);
 
 }
 
-//A void response signaling that the session has been initialized.
-table SessionInitResponse {}
-
-root_type SessionInit;
-root_type SessionInitResponse;
+root_type InitSessionCommand;
 ```
 
 ##### Result
 
 ```
-namespace session;
+namespace org.enso.languageserver.protocol.binary;
 
-table InitResponse {}
+//Indicates an operation has succeeded.
+table Success {}
 ```
 
 ##### Errors
@@ -1618,6 +1646,106 @@ return the contents from the in-memory buffer rather than the file on disk.
 - [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have
   access to a resource.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
+
+#### `file/writeBinary`
+This requests that the file manager component write to a specified file with
+the binary contents.
+
+- **Type:** Request
+- **Connection:** Binary
+- **Direction:** Client -> Server
+
+This request is _explicitly_ allowed to write to files that do not exist, and
+will create them under such circumstances. If a file is recorded as 'open' by
+one of the clients, and another client attempts to write to that file, the
+write must fail.
+
+##### Parameters
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+//A command writing binary contents to a file.
+table WriteFileCommand {
+
+  //A path to a file.
+  path: Path;
+
+  //Binary contents.
+  contents: [ubyte];
+
+}
+
+```
+
+##### Result
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+//Indicates an operation has succeeded.
+table Success {}
+```
+
+##### Errors
+
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have
+  access to a resource.
+
+#### `file/readBinary`
+This requests that the file manager component reads the binary contents of a 
+specified file.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Binary
+- **Visibility:** Public
+
+If the file is recorded as open by the language server, then the result will
+return the contents from the in-memory buffer rather than the file on disk.
+
+##### Parameters
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+//A command reading binary contents from a file.
+table ReadFileCommand {
+
+  //A path to a file.
+  path: Path;
+
+}
+```
+
+##### Result
+
+```idl
+namespace org.enso.languageserver.protocol.binary;
+
+//A reply for a ReadFileCommand.
+table FileContentsReply {
+
+  //Binary contents.
+  contents: [ubyte];
+
+}
+```
+
+##### Errors
+
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have
+  access to a resource.
+- [`FileNotFound`](#filenotfound) informs that file cannot be found.
+
 
 #### `file/create`
 This request asks the file manager to create the specified file system object.
@@ -2879,19 +3007,19 @@ transport is concerned, it is just a binary blob.
 ##### Parameters
 
 ```idl
-namespace org.enso.languageserver.protocol.data.executioncontext;
+namespace org.enso.languageserver.protocol.binary;
 
 //A visualisation context identifying a concrete visualisation.
 table VisualisationContext {
 
   //A visualisation identifier.
-  visualisationId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+  visualisationId: EnsoUUID (required);
 
   //A context identifier.
-  contextId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+  contextId: EnsoUUID (required);
 
   //An expression identifier.
-  expressionId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+  expressionId: EnsoUUID (required);
 
 }
 

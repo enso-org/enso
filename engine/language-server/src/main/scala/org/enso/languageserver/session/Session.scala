@@ -7,26 +7,26 @@ import org.enso.languageserver.data.ClientId
   * rpc and data protocol.
   *
   * @param clientId the internal id of this client
-  * @param maybeRpcSession a session for rpc protocol
-  * @param maybeDataSession a session for data protocol
+  * @param maybeJsonSession a session for rpc protocol
+  * @param maybeBinarySession a session for data protocol
   */
 case class Session(
   clientId: ClientId,
-  maybeRpcSession: Option[RpcSession],
-  maybeDataSession: Option[DataSession]
+  maybeJsonSession: Option[JsonSession],
+  maybeBinarySession: Option[BinarySession]
 ) {
 
-  def attachRpcSession(rpcSession: RpcSession): Session =
-    this.copy(maybeRpcSession = Some(rpcSession))
+  def attachJsonSession(rpcSession: JsonSession): Session =
+    this.copy(maybeJsonSession = Some(rpcSession))
 
-  def attachDataSession(dataSession: DataSession): Session =
-    this.copy(maybeDataSession = Some(dataSession))
+  def attachBinarySession(dataSession: BinarySession): Session =
+    this.copy(maybeBinarySession = Some(dataSession))
 
-  def detachRpcSession(): Session = this.copy(maybeRpcSession = None)
+  def detachJsonSession(): Session = this.copy(maybeJsonSession = None)
 
-  def detachDataSession(): Session = this.copy(maybeDataSession = None)
+  def detachBinarySession(): Session = this.copy(maybeBinarySession = None)
 
   def isSessionTerminated: Boolean =
-    maybeRpcSession.isEmpty && maybeDataSession.isEmpty
+    maybeJsonSession.isEmpty && maybeBinarySession.isEmpty
 
 }

@@ -13,7 +13,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.session.RpcSession
+import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -28,7 +28,7 @@ import scala.concurrent.duration.FiniteDuration
 class AcquireCapabilityHandler(
   capabilityRouter: ActorRef,
   timeout: FiniteDuration,
-  session: RpcSession
+  session: JsonSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -91,7 +91,7 @@ object AcquireCapabilityHandler {
   def props(
     capabilityRouter: ActorRef,
     requestTimeout: FiniteDuration,
-    rpcSession: RpcSession
+    rpcSession: JsonSession
   ): Props =
     Props(
       new AcquireCapabilityHandler(capabilityRouter, requestTimeout, rpcSession)

@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.session.RpcSession
+import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.text.TextProtocol.{ApplyEdit => _, _}
@@ -22,7 +22,7 @@ import scala.concurrent.duration.FiniteDuration
 class ApplyEditHandler(
   bufferRegistry: ActorRef,
   timeout: FiniteDuration,
-  rpcSession: RpcSession
+  rpcSession: JsonSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -92,7 +92,7 @@ object ApplyEditHandler {
   def props(
     bufferRegistry: ActorRef,
     requestTimeout: FiniteDuration,
-    rpcSession: RpcSession
+    rpcSession: JsonSession
   ): Props =
     Props(new ApplyEditHandler(bufferRegistry, requestTimeout, rpcSession))
 

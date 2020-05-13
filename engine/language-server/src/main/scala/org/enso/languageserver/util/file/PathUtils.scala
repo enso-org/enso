@@ -1,7 +1,7 @@
 package org.enso.languageserver.util.file
 
 import org.enso.languageserver.filemanager.Path
-import org.enso.languageserver.protocol.data.filemanager.{Path => BinaryPath}
+import org.enso.languageserver.protocol.binary.{Path => BinaryPath}
 
 object PathUtils {
 

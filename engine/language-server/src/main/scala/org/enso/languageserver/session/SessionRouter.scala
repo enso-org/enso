@@ -10,8 +10,8 @@ import org.enso.languageserver.event.{
   SessionEvent
 }
 import org.enso.languageserver.session.SessionRouter.{
-  DeliverToDataController,
-  DeliverToRpcController
+  DeliverToBinaryController,
+  DeliverToJsonController
 }
 
 /**
@@ -28,43 +28,43 @@ class SessionRouter extends Actor {
     running(Map.empty.withDefault(clientId => Session(clientId, None, None)))
 
   private def running(sessions: Map[ClientId, Session]): Receive = {
-    case RpcSessionInitialized(s @ RpcSession(clientId, _)) =>
+    case RpcSessionInitialized(s @ JsonSession(clientId, _)) =>
       context.become(
         running(
-          sessions + (clientId -> sessions(clientId).attachRpcSession(s))
+          sessions + (clientId -> sessions(clientId).attachJsonSession(s))
         )
       )
 
-    case RpcSessionTerminated(RpcSession(clientId, _)) =>
+    case RpcSessionTerminated(JsonSession(clientId, _)) =>
       val updatedSessions =
-        (sessions + (clientId -> sessions(clientId).detachRpcSession()))
+        (sessions + (clientId -> sessions(clientId).detachJsonSession()))
           .filterNot(_._2.isSessionTerminated)
 
       context.become(running(updatedSessions))
 
-    case DataSessionInitialized(s @ DataSession(clientId, _)) =>
+    case DataSessionInitialized(s @ BinarySession(clientId, _)) =>
       context.become(
         running(
-          sessions + (clientId -> sessions(clientId).attachDataSession(s))
+          sessions + (clientId -> sessions(clientId).attachBinarySession(s))
         )
       )
 
-    case DataSessionTerminated(DataSession(clientId, _)) =>
+    case DataSessionTerminated(BinarySession(clientId, _)) =>
       val updatedSessions =
-        (sessions + (clientId -> sessions(clientId).detachDataSession()))
+        (sessions + (clientId -> sessions(clientId).detachBinarySession()))
           .filterNot(_._2.isSessionTerminated)
 
       context.become(running(updatedSessions))
 
-    case DeliverToRpcController(clientId, payload) =>
+    case DeliverToJsonController(clientId, payload) =>
       sessions
         .get(clientId)
-        .foreach(_.maybeRpcSession.foreach(_.rpcController ! payload))
+        .foreach(_.maybeJsonSession.foreach(_.rpcController ! payload))
 
-    case DeliverToDataController(clientId, payload) =>
+    case DeliverToBinaryController(clientId, payload) =>
       sessions
         .get(clientId)
-        .foreach(_.maybeDataSession.foreach(_.dataController ! payload))
+        .foreach(_.maybeBinarySession.foreach(_.dataController ! payload))
   }
 
 }
@@ -79,7 +79,7 @@ object SessionRouter {
     * @param payload a payload that is delivered to the controller
     * @tparam A a type of payload
     */
-  case class DeliverToRpcController[A](clientId: ClientId, payload: A)
+  case class DeliverToJsonController[A](clientId: ClientId, payload: A)
 
   /**
     * A command used to deliver an arbitrary `payload` to a data controller
@@ -89,7 +89,7 @@ object SessionRouter {
     * @param payload a payload that is delivered to the controller
     * @tparam A a type of payload
     */
-  case class DeliverToDataController[A](clientId: ClientId, payload: A)
+  case class DeliverToBinaryController[A](clientId: ClientId, payload: A)
 
   /**
     * Creates configuration object used to create a [[SessionRouter]].

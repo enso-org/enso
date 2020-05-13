@@ -1,7 +1,7 @@
 package org.enso.languageserver.runtime
 
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
-import org.enso.languageserver.protocol.rpc.ErrorApi._
+import org.enso.languageserver.protocol.json.ErrorApi._
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.jsonrpc.Error

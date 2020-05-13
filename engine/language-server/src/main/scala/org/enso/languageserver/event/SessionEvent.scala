@@ -1,6 +1,6 @@
 package org.enso.languageserver.event
 
-import org.enso.languageserver.session.{DataSession, RpcSession}
+import org.enso.languageserver.session.{BinarySession, JsonSession}
 
 /**
   * Base trait for all session events.
@@ -12,7 +12,7 @@ sealed trait SessionEvent extends Event
   *
   * @param session an object representing a client session
   */
-case class RpcSessionInitialized(session: RpcSession) extends SessionEvent
+case class RpcSessionInitialized(session: JsonSession) extends SessionEvent
 
 /**
   * Notifies the Language Server about a client disconnecting rpc session.
@@ -20,14 +20,14 @@ case class RpcSessionInitialized(session: RpcSession) extends SessionEvent
   *
   * @param session an object representing a client session
   */
-case class RpcSessionTerminated(session: RpcSession) extends SessionEvent
+case class RpcSessionTerminated(session: JsonSession) extends SessionEvent
 
 /**
   * Notifies the Language Server about a new data session.
   *
   * @param session an object representing a client session
   */
-case class DataSessionInitialized(session: DataSession) extends SessionEvent
+case class DataSessionInitialized(session: BinarySession) extends SessionEvent
 
 /**
   * Notifies the Language Server about a client disconnecting data session.
@@ -35,4 +35,4 @@ case class DataSessionInitialized(session: DataSession) extends SessionEvent
   *
   * @param session an object representing a client session
   */
-case class DataSessionTerminated(session: DataSession) extends SessionEvent
+case class DataSessionTerminated(session: BinarySession) extends SessionEvent
