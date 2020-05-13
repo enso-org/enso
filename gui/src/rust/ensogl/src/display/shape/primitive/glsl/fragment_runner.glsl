@@ -1,3 +1,9 @@
+/// The threshold used to decide whether a value should be included in the generated ID map. The
+/// threshold is defined as 0.0 because it is failry common to use almost completely transparent
+/// colors (like `Rgba(0.0, 0.0, 0.0, 0.000001)`) for shapes which should just catch mouse events
+/// without providing any visual feedback.
+const float ID_ALPHA_THRESHOLD = 0.0;
+
 /// This code is the body of the fragment shader main function of a GLSL shape.
 
 Env   env        = Env(1);
@@ -13,12 +19,14 @@ float alpha      = shape.color.color.raw.a;
 
 uvec3 chunks = encode(input_symbol_id,input_instance_id);
 
-float alpha_no_aa = alpha > 0.5 ? 1.0 : 0.0;
+float alpha_no_aa = alpha > ID_ALPHA_THRESHOLD ? 1.0 : 0.0;
 
-output_id = vec4(as_float_u8(chunks.x),as_float_u8(chunks.y),as_float_u8(chunks.z),alpha_no_aa);
-output_id.r *= alpha_no_aa;
-output_id.g *= alpha_no_aa;
-output_id.b *= alpha_no_aa;
+if (pointer_events_enabled) {
+    output_id = vec4(as_float_u8(chunks.x), as_float_u8(chunks.y), as_float_u8(chunks.z), alpha_no_aa);
+    output_id.r *= alpha_no_aa;
+    output_id.g *= alpha_no_aa;
+    output_id.b *= alpha_no_aa;
+}
 
 
 

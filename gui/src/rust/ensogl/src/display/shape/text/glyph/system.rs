@@ -10,9 +10,11 @@ use crate::display::shape::text::glyph::msdf::MsdfTexture;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::shader::builder::CodeTemplate;
 use crate::display::world::*;
+use crate::display::scene::Scene;
 use crate::system::gpu::texture::*;
 use crate::system::gpu::types::*;
 use crate::display::object::traits::*;
+use crate::data::color;
 
 use nalgebra::Vector2;
 use nalgebra::Vector4;
@@ -24,16 +26,16 @@ use crate::display;
 // === Glyph ===
 // =============
 
-/// A glyph rendered on screen. The displayed character will be stretched to fit the entire bbox of
+/// A glyph rendered on screen. The displayed character will be stretched to fit the entire size of
 /// underlying sprite.
-#[derive(Debug,Shrinkwrap)]
+#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
 pub struct Glyph {
     #[shrinkwrap(main_field)]
     sprite          : Sprite,
     context         : Context,
-    msdf_index_attr : Attribute<f32>,
-    color_attr      : Attribute<Vector4<f32>>,
     font            : FontHandle,
+    color_attr      : Attribute<Vector4<f32>>,
+    msdf_index_attr : Attribute<f32>,
     msdf_uniform    : Uniform<Texture<GpuOnly,Rgb,u8>>,
 }
 
@@ -44,18 +46,18 @@ impl Glyph {
     }
 
     /// Change the displayed character.
-    pub fn set_glyph(&mut self, ch:char) {
+    pub fn set_glyph(&self, ch:char) {
         let glyph_info = self.font.get_glyph_info(ch);
         self.msdf_index_attr.set(glyph_info.msdf_texture_glyph_id as f32);
         self.update_msdf_texture();
     }
 
-    fn update_msdf_texture(&mut self) {
+    fn update_msdf_texture(&self) {
         let texture_changed = self.msdf_uniform.with_content(|texture| {
             texture.storage().height != self.font.msdf_texture_rows() as i32
         });
         if texture_changed {
-            let width   = MsdfTexture::WIDTH  as i32;
+            let width   = MsdfTexture::WIDTH as i32;
             let height  = self.font.msdf_texture_rows() as i32;
             let texture = Texture::<GpuOnly,Rgb,u8>::new(&self.context,(width,height));
             self.font.with_borrowed_msdf_texture_data(|data| {
@@ -63,6 +65,12 @@ impl Glyph {
             });
             self.msdf_uniform.set(texture);
         }
+    }
+}
+
+impl display::Object for Glyph {
+    fn display_object(&self) -> &display::object::Instance {
+        self.sprite.display_object()
     }
 }
 
@@ -74,88 +82,165 @@ impl Glyph {
 
 /// A structure keeping line of glyphs with proper alignment.
 ///
-/// Not all the glyphs in `glyphs` vector may be actually in use; this structure is meant to keep
+/// Not all the glyphs in `glyphs` vector may be actually in use. This structure is meant to keep
 /// changing text, and for best performance it re-uses the created Glyphs (what means the specific
-/// buffer space). Therefore there is a cap for line length. See also `GlyphSystem::new_empty_line`.
-#[derive(Debug)]
+/// buffer space). Therefore you can set a cap for line length by using the `set_fixed_capacity`
+/// method.
+#[derive(Clone,CloneRef,Debug)]
 pub struct Line {
-    glyphs         : Vec<Glyph>,
-    baseline_start : Vector2<f32>,
-    base_color     : Vector4<f32>,
-    height         : f32,
-    font           : FontHandle,
+    display_object : display::object::Instance,
+    glyph_system   : GlyphSystem,
+    content        : Rc<RefCell<String>>,
+    glyphs         : Rc<RefCell<Vec<Glyph>>>,
+    font_color     : Rc<Cell<color::Rgba>>,
+    font_size      : Rc<Cell<f32>>,
+    fixed_capacity : Rc<Cell<Option<usize>>>,
 }
 
 impl Line {
-    /// Replace currently visible text.
-    ///
-    /// The replacing strings will reuse glyphs which increases performance of rendering text.
-    pub fn replace_text<Chars>(&mut self, chars:Chars)
-    where Chars : Iterator<Item=char> + Clone {
-        let chars_count = chars.clone().count();
-        let font        = self.font.clone_ref();
-        let pen         = PenIterator::new(self.baseline_start,self.height,chars,font);
+    /// Constructor.
+    pub fn new(logger:&Logger, glyph_system:&GlyphSystem) -> Self {
+        let logger         = logger.sub("line");
+        let display_object = display::object::Instance::new(logger);
+        let glyph_system   = glyph_system.clone_ref();
+        let font_size      = Rc::new(Cell::new(11.0));
+        let font_color     = Rc::new(Cell::new(color::Rgba::new(0.0,0.0,0.0,1.0)));
+        let content        = default();
+        let glyphs         = default();
+        let fixed_capacity = default();
+        Line {display_object,glyph_system,glyphs,font_size,font_color,content,fixed_capacity}
+    }
 
-        for (glyph,(ch,position)) in self.glyphs.iter_mut().zip(pen) {
-            let glyph_info = self.font.get_glyph_info(ch);
-            let size       = glyph_info.scale.scale(self.height);
-            let offset     = glyph_info.offset.scale(self.height);
-            let x = position.x + offset.x;
-            let y = position.y + offset.y;
-            glyph.set_position(Vector3::new(x,y,0.0));
-            glyph.set_glyph(ch);
-            glyph.color().set(self.base_color);
-            glyph.size().set(size);
-        }
-        for glyph in self.glyphs.iter_mut().skip(chars_count) {
-            glyph.size().set(Vector2::new(0.0,0.0));
+    /// Replace currently visible text.
+    pub fn set_text<S:Into<String>>(&self, content:S) {
+        *self.content.borrow_mut() = content.into();
+        self.redraw();
+    }
+}
+
+
+// === Setters ===
+
+#[allow(missing_docs)]
+impl Line {
+    pub fn set_font_color<C:Into<color::Rgba>>(&self, color:C) {
+        let color = color.into();
+        self.font_color.set(color);
+        for glyph in &*self.glyphs.borrow() {
+            glyph.color().set(color.into());
         }
     }
 
-    /// Set the baseline start point for this line.
-    pub fn set_baseline_start(&mut self, new_start:Vector2<f32>) {
-        let offset = new_start - self.baseline_start;
-        for glyph in self.glyphs.iter_mut() {
-            glyph.mod_position(|pos| *pos += Vector3::new(offset.x,offset.y,0.0));
-        }
-        self.baseline_start = new_start;
+    pub fn set_font_size(&self, size:f32) {
+        self.font_size.set(size);
+        self.redraw();
+    }
+
+    pub fn change_fixed_capacity(&self, count:Option<usize>) {
+        self.fixed_capacity.set(count);
+        self.resize();
+    }
+
+    pub fn set_fixed_capacity(&self, count:usize) {
+        self.change_fixed_capacity(Some(count));
+    }
+
+    pub fn unset_fixed_capacity(&self) {
+        self.change_fixed_capacity(None);
     }
 }
 
 
 // === Getters ===
 
+#[allow(missing_docs)]
 impl Line {
-    /// The starting point of this line's baseline.
-    pub fn baseline_start(&self) -> &Vector2<f32> {
-        &self.baseline_start
+    pub fn font_size(&self) -> f32 {
+        self.font_size.get()
     }
 
-    /// Line's height in pixels.
-    pub fn height(&self) -> f32 {
-        self.height
-    }
-
-    /// Number of glyphs, giving the maximum length of displayed line.
     pub fn length(&self) -> usize {
-        self.glyphs.len()
+        self.content.borrow().len()
     }
 
-    /// Font used for rendering this line.
     pub fn font(&self) -> FontHandle {
-        self.font.clone_ref()
+        self.glyph_system.font.clone_ref()
+    }
+}
+
+
+// === Internal API ===
+
+impl Line {
+    /// Resizes the line to contain enough glyphs to display the full `content`. In case the
+    /// `fixed_capacity` was set, it will add or remove the glyphs to match it.
+    fn resize(&self) {
+        let content_len        = self.content.borrow().len();
+        let target_glyph_count = self.fixed_capacity.get().unwrap_or(content_len);
+        let glyph_count        = self.glyphs.borrow().len();
+        if target_glyph_count > glyph_count {
+            let new_count  = target_glyph_count - glyph_count;
+            let new_glyphs = (0..new_count).map(|_| {
+                let glyph = self.glyph_system.new_glyph();
+                self.add_child(&glyph);
+                glyph
+            });
+            self.glyphs.borrow_mut().extend(new_glyphs)
+        }
+        if glyph_count > target_glyph_count {
+            self.glyphs.borrow_mut().truncate(target_glyph_count)
+        }
+    }
+
+    /// Updates properties of all glyphs, including characters they display, size, and colors.
+    fn redraw(&self) {
+        self.resize();
+
+        let content     = self.content.borrow();
+        let font        = self.glyph_system.font.clone_ref();
+        let font_size   = self.font_size.get();
+        let chars       = content.chars();
+        let pen         = PenIterator::new(font_size,chars,font);
+        let content_len = content.len();
+        let color       = self.font_color.get().into();
+
+        for (glyph,(chr,x_offset)) in self.glyphs.borrow().iter().zip(pen) {
+            let glyph_info   = self.glyph_system.font.get_glyph_info(chr);
+            let size         = glyph_info.scale.scale(font_size);
+            let glyph_offset = glyph_info.offset.scale(font_size);
+            let glyph_x      = x_offset + glyph_offset.x;
+            let glyph_y      = glyph_offset.y;
+            glyph.set_position(Vector3::new(glyph_x,glyph_y,0.0));
+            glyph.set_glyph(chr);
+            glyph.color().set(color);
+            glyph.size().set(size);
+        }
+
+        for glyph in self.glyphs.borrow().iter().skip(content_len) {
+            glyph.size().set(Vector2::new(0.0,0.0));
+        }
+    }
+}
+
+
+// === Display Object ===
+
+impl display::Object for Line {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.display_object
     }
 }
 
 
 
-/// ===================
-/// === GlyphSystem ===
-/// ===================
+// ===================
+// === GlyphSystem ===
+// ===================
 
 /// A system for displaying glyphs.
-#[derive(Debug)]
+#[derive(Clone,CloneRef,Debug)]
 pub struct GlyphSystem {
+    logger           : Logger,
     context          : Context,
     sprite_system    : SpriteSystem,
     font             : FontHandle,
@@ -166,12 +251,14 @@ pub struct GlyphSystem {
 
 impl GlyphSystem {
     /// Constructor.
-    pub fn new(world:&World, font:FontHandle) -> Self {
+    pub fn new<S>(scene:&S, font:FontHandle) -> Self
+    where for<'t> &'t S : Into<&'t Scene> {
+        let logger        = Logger::new("glyph_system");
         let msdf_width    = MsdfTexture::WIDTH as f32;
         let msdf_height   = MsdfTexture::ONE_GLYPH_HEIGHT as f32;
-        let scene         = world.scene();
+        let scene         = scene.into();
         let context       = scene.context.clone_ref();
-        let sprite_system = SpriteSystem::new(world);
+        let sprite_system = SpriteSystem::new(scene);
         let symbol        = sprite_system.symbol();
         let texture       = Texture::<GpuOnly,Rgb,u8>::new(&context,(0,0));
         let mesh          = symbol.surface();
@@ -180,16 +267,16 @@ impl GlyphSystem {
         sprite_system.set_alignment(HorizontalAlignment::Left,VerticalAlignment::Bottom);
         scene.variables.add("msdf_range",GlyphRenderInfo::MSDF_PARAMS.range as f32);
         scene.variables.add("msdf_size",Vector2::new(msdf_width,msdf_height));
-        Self {context,sprite_system,font,
-            msdf_uniform       : symbol.variables().add_or_panic("msdf_texture",texture),
-            color              : mesh.instance_scope().add_buffer("color"),
-            glyph_msdf_index   : mesh.instance_scope().add_buffer("glyph_msdf_index"),
+        Self {logger,context,sprite_system,font,
+            msdf_uniform     : symbol.variables().add_or_panic("msdf_texture",texture),
+            color            : mesh.instance_scope().add_buffer("color"),
+            glyph_msdf_index : mesh.instance_scope().add_buffer("glyph_msdf_index"),
         }
     }
 
-    /// Create new glyph. In the returned glyph the further parameters (position, bbox, character)
+    /// Create new glyph. In the returned glyph the further parameters (position, size, character)
     /// may be set.
-    pub fn new_glyph(&mut self) -> Glyph {
+    pub fn new_glyph(&self) -> Glyph {
         let context         = self.context.clone();
         let sprite          = self.sprite_system.new_instance();
         let instance_id     = sprite.instance_id;
@@ -199,33 +286,12 @@ impl GlyphSystem {
         let msdf_uniform    = self.msdf_uniform.clone();
         color_attr.set(Vector4::new(0.0,0.0,0.0,0.0));
         msdf_index_attr.set(0.0);
-
         Glyph {context,sprite,msdf_index_attr,color_attr,font,msdf_uniform}
     }
 
-    /// Create an empty "line" structure with defined number of glyphs. In the returned `Line`
-    /// structure you can set specific strings with no more than `length` characters.
-    ///
-    /// For details, see also `Line` structure documentation.
-    pub fn new_empty_line
-    (&mut self, baseline_start:Vector2<f32>, height:f32, length:usize, color:Vector4<f32>)
-    -> Line {
-        let glyphs     = (0..length).map(|_| self.new_glyph()).collect();
-        let base_color = color;
-        let font       = self.font.clone_ref();
-        Line {glyphs,baseline_start,height,base_color,font}
-    }
-
-    /// Create a line of glyphs with proper alignment.
-    ///
-    /// For details, see also `Line` structure documentation.
-    pub fn new_line
-    (&mut self, baseline_start:Vector2<f32>, height:f32, text:&str, color:Vector4<f32>)
-    -> Line {
-        let length   = text.chars().count();
-        let mut line = self.new_empty_line(baseline_start,height,length,color);
-        line.replace_text(text.chars());
-        line
+    /// Create a new `Line` of text.
+    pub fn new_line(&self) -> Line {
+        Line::new(&self.logger,self)
     }
 
     /// Get underlying sprite system.
@@ -260,11 +326,11 @@ impl GlyphSystem {
         // FIXME which will be enabled only if pass of given attachment type was enabled.
         material.add_output("id", Vector4::<f32>::new(0.0,0.0,0.0,0.0));
 
-        let code = CodeTemplate::new(BEFORE_MAIN.to_string(),MAIN.to_string(),"".to_string());
+        let code = CodeTemplate::new(FUNCTIONS,MAIN,"");
         material.set_code(code);
         material
     }
 }
 
-const BEFORE_MAIN : &str = include_str!("glyph.glsl");
-const MAIN        : &str = "output_color = color_from_msdf(); output_id=vec4(0.0,0.0,0.0,0.0);";
+const FUNCTIONS : &str = include_str!("glyph.glsl");
+const MAIN      : &str = "output_color = color_from_msdf(); output_id=vec4(0.0,0.0,0.0,0.0);";

@@ -3,9 +3,6 @@
 use crate::prelude::*;
 
 use crate::data::color;
-use palette::Hue;
-use palette::Saturate;
-use palette::Shade;
 
 
 
@@ -36,10 +33,10 @@ impl From<f32> for Data {
     }
 }
 
-impl<C,T> From<palette::Alpha<C,T>> for Data
-where palette::Alpha<C,T> : Into<color::Lcha> {
-    fn from(t:palette::Alpha<C,T>) -> Data {
-        Data::Color(t.into())
+impl<C> From<color::Color<C>> for Data
+where color::Color<C> : Into<color::Lcha> {
+    fn from(color:color::Color<C>) -> Data {
+        Data::Color(color.into())
     }
 }
 
@@ -58,7 +55,9 @@ impl Display for Data {
 }
 
 
-macro_rules! define_color_transform {
+// FIXME: Make use of this macro and allow themes to modify colors, including:
+// lighten,darken,saturate,desaturate,with_hue,shift_hue, etc.
+macro_rules! _define_color_transform {
     ($($name:ident),*) => {$(
         impl Data {
             /// Transform the color: $name.
@@ -67,7 +66,7 @@ macro_rules! define_color_transform {
                     (Data::Invalid(s) , _)                => Data::Invalid(s.clone()),
                     (_                , Data::Invalid(s)) => Data::Invalid(s.clone()),
                     (Data::Color(t)   , Data::Number(f))  => Data::Color(t.$name(f)),
-                    (this             , t)           => Data::Invalid
+                    (this             , t)                => Data::Invalid
                         (format!(concat!("Cannot apply",stringify!($name),"({}) to {}."),t,this))
                 }
             }
@@ -75,7 +74,7 @@ macro_rules! define_color_transform {
     )*};
 }
 
-define_color_transform!(lighten,darken,saturate,desaturate,with_hue,shift_hue);
+// define_color_transform!(lighten,darken,saturate,desaturate,with_hue,shift_hue);
 
 
 // === Color Getters ===
@@ -87,7 +86,7 @@ macro_rules! define_color_getter {
             pub fn $name(&self) -> Data {
                 match self {
                     Data::Invalid(s) => Data::Invalid(s.clone()),
-                    Data::Color(t)   => Data::Number(palette::$space::from(*t).$name),
+                    Data::Color(t)   => Data::Number(color::$space::from(*t).$name),
                     this             => Data::Invalid (format!
                         (concat!("Cannot access ",stringify!($name)," property of {}."),this))
                 }
@@ -97,7 +96,7 @@ macro_rules! define_color_getter {
 }
 
 define_color_getter!(Lcha::alpha);
-define_color_getter!(LinSrgba::red,LinSrgba::green,LinSrgba::blue);
+define_color_getter!(LinearRgba::red,LinearRgba::green,LinearRgba::blue);
 
 
 // === Operators ===

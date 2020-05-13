@@ -15,6 +15,8 @@ ensogl-system-web    = { version = "0.1.0"  , path = "../system/web"         }
 enso-frp             = { version = "0.1.0"  , path = "../frp"                }
 graph-editor         = { version = "0.1.0"  , path = "../graph-editor"       }
 ide                  = { version = "0.1.0"  , path = "../../ide"             }
+span-tree            = { version = "0.1.0"  , path = "../../ide/span-tree"   }
+ast                  = { version = "0.1.0"  , path = "../../ide/ast/impl"    }
 
 enso-prelude         = { version = "0.1.0"  , path = "../prelude"            }
 

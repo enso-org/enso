@@ -315,7 +315,7 @@ impl SpriteSystem {
         // FIXME intelligent. For example, we could allow defining output shader fragments,
         // FIXME which will be enabled only if pass of given attachment type was enabled.
         material.add_output ("id", Vector4::<f32>::new(0.0,0.0,0.0,0.0));
-        material.set_main("output_color = vec4(0.0,0.0,0.0,1.0); output_id=uvec4(0,0,0,0);");
+        material.set_main("output_color = vec4(0.0,0.0,0.0,1.0); output_id=vec4(0.0,0.0,0.0,0.0);");
         material
     }
 

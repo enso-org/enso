@@ -24,7 +24,7 @@ use nalgebra::Perspective3;
 #[derive(Clone,Copy,Debug)]
 pub struct Screen {
     /// Screen's width.
-    pub width  : f32,
+    pub width : f32,
 
     /// Screen's height.
     pub height : f32,

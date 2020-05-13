@@ -6,13 +6,12 @@ pub mod dom;
 pub use crate::display::symbol::registry::SymbolId;
 
 use crate::prelude::*;
-use crate::display::traits::*;
 
 use crate::control::callback::CallbackMut1Fn;
-use crate::control::callback::DynEvent;
 use crate::control::callback;
 use crate::control::io::mouse::MouseManager;
 use crate::control::io::mouse;
+use crate::data::color;
 use crate::data::dirty::traits::*;
 use crate::data::dirty;
 use crate::debug::stats::Stats;
@@ -31,18 +30,20 @@ use crate::system::gpu::types::*;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
 use crate::system::web;
-use std::any::TypeId;
 
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsValue;
-use web_sys::HtmlElement;
-
+use display::style::data::DataMatch;
 use enso_frp as frp;
+use std::any::TypeId;
+use wasm_bindgen::JsValue;
+use wasm_bindgen::prelude::Closure;
+use web_sys::HtmlElement;
 
 
 
 pub trait MouseTarget : Debug + 'static {
-    fn mouse_down(&self) -> Option<enso_frp::Source> { None }
+    fn mouse_down (&self) -> &enso_frp::Source;
+    fn mouse_over (&self) -> &enso_frp::Source;
+    fn mouse_out  (&self) -> &enso_frp::Source;
 }
 
 
@@ -99,8 +100,15 @@ impl {
         self.mouse_target_map.remove(&(symbol_id,instance_id));
     }
 
-    pub fn get_mouse_target(&mut self, symbol_id:i32, instance_id:usize) -> Option<Rc<dyn MouseTarget>> {
-        self.mouse_target_map.get(&(symbol_id,instance_id)).map(|t| t.clone_ref())
+    pub fn get_mouse_target(&mut self, target:Target) -> Option<Rc<dyn MouseTarget>> {
+        match target {
+            Target::Background => None,
+            Target::Symbol {symbol_id,instance_id} => {
+                let symbol_id   = symbol_id   as i32;
+                let instance_id = instance_id as usize;
+                self.mouse_target_map.get(&(symbol_id,instance_id)).map(|t| t.clone_ref())
+            }
+        }
     }
 }}
 
@@ -285,99 +293,116 @@ fn mouse_event_closure<F:MouseEventFn>(f:F) -> MouseEventClosure {
 }
 
 #[derive(Clone,CloneRef,Debug)]
-pub struct Mouse {
-    pub mouse_manager   : MouseManager,
-    pub position        : Uniform<Vector2<i32>>,
-    pub hover_ids       : Uniform<Vector4<u32>>,
+pub struct MouseButtonState {
     pub button0_pressed : Uniform<bool>,
     pub button1_pressed : Uniform<bool>,
     pub button2_pressed : Uniform<bool>,
     pub button3_pressed : Uniform<bool>,
     pub button4_pressed : Uniform<bool>,
-    pub target          : Rc<Cell<Target>>,
-    pub handles         : Rc<Vec<callback::Handle>>,
-    pub frp             : enso_frp::io::Mouse,
-    pub logger          : Logger
 }
 
-impl Mouse {
-    pub fn new(shape:&web::dom::Shape, variables:&UniformScope, logger:Logger) -> Self {
-
-        let target          = Target::default();
-        let position        = variables.add_or_panic("mouse_position",Vector2::new(0,0));
-        let hover_ids       = variables.add_or_panic("mouse_hover_ids",target.to_internal(&logger));
+impl MouseButtonState {
+    pub fn new(variables:&UniformScope) -> Self {
         let button0_pressed = variables.add_or_panic("mouse_button0_pressed",false);
         let button1_pressed = variables.add_or_panic("mouse_button1_pressed",false);
         let button2_pressed = variables.add_or_panic("mouse_button2_pressed",false);
         let button3_pressed = variables.add_or_panic("mouse_button3_pressed",false);
         let button4_pressed = variables.add_or_panic("mouse_button4_pressed",false);
+        Self {button0_pressed,button1_pressed,button2_pressed,button3_pressed,button4_pressed}
+    }
+}
+
+#[derive(Clone,CloneRef,Debug)]
+pub struct Mouse {
+    pub mouse_manager : MouseManager,
+    pub last_position : Rc<Cell<Vector2<i32>>>,
+    pub position      : Uniform<Vector2<i32>>,
+    pub hover_ids     : Uniform<Vector4<u32>>,
+    pub button_state  : MouseButtonState,
+    pub target        : Rc<Cell<Target>>,
+    pub handles       : Rc<Vec<callback::Handle>>,
+    pub frp           : enso_frp::io::Mouse,
+    pub logger        : Logger
+}
+
+impl Mouse {
+    pub fn new(shape:&web::dom::Shape, variables:&UniformScope, logger:Logger) -> Self {
+        let target          = Target::default();
+        let last_position   = Rc::new(Cell::new(Vector2::new(0,0)));
+        let position        = variables.add_or_panic("mouse_position",Vector2::new(0,0));
+        let hover_ids       = variables.add_or_panic("mouse_hover_ids",target.to_internal(&logger));
+        let button_state    = MouseButtonState::new(variables);
         let target          = Rc::new(Cell::new(target));
         let document        = web::dom::WithKnownShape::new(&web::document().body().unwrap());
         let mouse_manager   = MouseManager::new(&document.into());
+        let frp             = frp::io::Mouse::new();
 
-        let shape_ref       = shape.clone_ref();
-        let position_ref    = position.clone_ref();
-        let on_move_handle  = mouse_manager.on_move.add(move |event:&mouse::event::OnMove| {
-            let pixel_ratio = shape_ref.pixel_ratio() as i32;
-            let screen_x    = event.offset_x();
-            let screen_y    = event.offset_y();
-            let canvas_x    = pixel_ratio * screen_x;
-            let canvas_y    = pixel_ratio * screen_y;
-            position_ref.set(Vector2::new(canvas_x,canvas_y))
-        });
+        let on_move = mouse_manager.on_move.add(f!((frp,shape,position,last_position)(event:&mouse::OnMove) {
+            let pixel_ratio  = shape.pixel_ratio() as i32;
+            let screen_x     = event.offset_x();
+            let screen_y     = event.offset_y();
 
-        let button0_pressed_ref = button0_pressed.clone_ref();
-        let button1_pressed_ref = button1_pressed.clone_ref();
-        let button2_pressed_ref = button2_pressed.clone_ref();
-        let button3_pressed_ref = button3_pressed.clone_ref();
-        let button4_pressed_ref = button4_pressed.clone_ref();
-        let on_down_handle      = mouse_manager.on_down.add(move |event:&mouse::event::OnDown| {
-            match event.button() {
-                mouse::Button0 => button0_pressed_ref.set(true),
-                mouse::Button1 => button1_pressed_ref.set(true),
-                mouse::Button2 => button2_pressed_ref.set(true),
-                mouse::Button3 => button3_pressed_ref.set(true),
-                mouse::Button4 => button4_pressed_ref.set(true),
+            let new_position = Vector2::new(screen_x,screen_y);
+            let pos_changed  = new_position != last_position.get();
+            if pos_changed {
+                last_position.set(new_position);
+                let new_canvas_position = new_position * pixel_ratio;
+                position.set(new_canvas_position);
+                let position = enso_frp::Position::new(new_position.x as f32,new_position.y as f32);
+                frp.position.emit(position);
             }
-        });
+        }));
 
-        let button0_pressed_ref = button0_pressed.clone_ref();
-        let button1_pressed_ref = button1_pressed.clone_ref();
-        let button2_pressed_ref = button2_pressed.clone_ref();
-        let button3_pressed_ref = button3_pressed.clone_ref();
-        let button4_pressed_ref = button4_pressed.clone_ref();
-        let on_up_handle        = mouse_manager.on_up.add(move |event:&mouse::event::OnUp| {
+        let on_down = mouse_manager.on_down.add(f!((frp,button_state)(event:&mouse::OnDown) {
             match event.button() {
-                mouse::Button0 => button0_pressed_ref.set(false),
-                mouse::Button1 => button1_pressed_ref.set(false),
-                mouse::Button2 => button2_pressed_ref.set(false),
-                mouse::Button3 => button3_pressed_ref.set(false),
-                mouse::Button4 => button4_pressed_ref.set(false),
+                mouse::Button0 => button_state.button0_pressed.set(true),
+                mouse::Button1 => button_state.button1_pressed.set(true),
+                mouse::Button2 => button_state.button2_pressed.set(true),
+                mouse::Button3 => button_state.button3_pressed.set(true),
+                mouse::Button4 => button_state.button4_pressed.set(true),
             }
-        });
+            frp.press.emit(());
+        }));
 
-        let handles = Rc::new(vec![on_move_handle,on_down_handle,on_up_handle]);
+        let on_up = mouse_manager.on_up.add(f!((frp,button_state)(event:&mouse::OnUp) {
+            match event.button() {
+                mouse::Button0 => button_state.button0_pressed.set(false),
+                mouse::Button1 => button_state.button1_pressed.set(false),
+                mouse::Button2 => button_state.button2_pressed.set(false),
+                mouse::Button3 => button_state.button3_pressed.set(false),
+                mouse::Button4 => button_state.button4_pressed.set(false),
+            }
+            frp.release.emit(());
+        }));
 
-        let frp = frp::io::Mouse::new();
+        let handles = Rc::new(vec![on_move,on_down,on_up]);
+        Self {mouse_manager,last_position,position,hover_ids,button_state,target,handles,frp,logger}
+    }
 
-        let event = frp.position.clone_ref();
-        mouse_manager.on_move.add(move |e:&mouse::OnMove| {
-            let position = enso_frp::Position::new(e.client_x() as f32,e.client_y() as f32);
-            event.emit(position);
-        }).forget();
-
-        let event = frp.press.clone_ref();
-        mouse_manager.on_down.add(move |_:&mouse::OnDown| {
-            event.emit(());
-        }).forget();
-
-        let event = frp.release.clone_ref();
-        mouse_manager.on_up.add(move |_:&mouse::OnUp| {
-            event.emit(());
-        }).forget();
-
-        Self {mouse_manager,position,hover_ids,button0_pressed,button1_pressed,button2_pressed
-             ,button3_pressed,button4_pressed,target,handles,frp,logger}
+    /// Reemits FRP mouse changed position event with the last mouse position value.
+    ///
+    /// The immediate question that appears is why it is even needed. The reason is tightly coupled
+    /// with how the rendering engine works and it is important to understand it properly. When
+    /// moving a mouse the following events happen:
+    /// - `MouseManager` gets notification and fires callbacks.
+    /// - Callback above is run. The value of `screen_position` uniform changes and FRP events are
+    ///   emitted.
+    /// - FRP events propagate trough the whole system.
+    /// - The rendering engine renders a frame and waits for the pixel read pass to report symbol
+    ///   ID under the cursor. This is normally done the next frame but sometimes could take even
+    ///   few frames.
+    /// - When the new ID are received, we emit `over` and `out` FRP events for appropriate
+    ///   elements.
+    /// - After emitting `over` and `out `events, the `position` event is reemitted.
+    ///
+    /// The idea is that if your FRP network listens on both `position` and `over` or `out` events,
+    /// then you do not need to think about the whole asynchronous mechanisms going under the hood,
+    /// and you can assume that it is synchronous. Whenever mouse moves, it is discovered what
+    /// element it hovers, and its position change event is emitted as well.
+    pub fn reemit_position_event(&self) {
+        let position = self.last_position.get();
+        let position = enso_frp::Position::new(position.x as f32,position.y as f32);
+        self.frp.position.emit(position);
     }
 }
 
@@ -589,9 +614,9 @@ pub struct WeakView {
 
 #[derive(Debug,Clone)]
 pub struct ViewData {
-    logger  : Logger,
-    pub camera  : Camera2d,
-    symbols : RefCell<Vec<SymbolId>>,
+    logger     : Logger,
+    pub camera : Camera2d,
+    symbols    : RefCell<Vec<SymbolId>>,
 }
 
 impl AsRef<ViewData> for View {
@@ -619,6 +644,12 @@ impl Deref for View {
 impl View {
     pub fn new(logger:&Logger, width:f32, height:f32) -> Self {
         let data = ViewData::new(logger,width,height);
+        let data = Rc::new(data);
+        Self {data}
+    }
+
+    pub fn new_with_camera(logger:&Logger, camera:&Camera2d) -> Self {
+        let data = ViewData::new_with_camera(logger,camera);
         let data = Rc::new(data);
         Self {data}
     }
@@ -651,8 +682,15 @@ impl ViewData {
         Self {logger,camera,symbols}
     }
 
-    pub fn symbols(&self) -> Ref<Vec<SymbolId>> {
-        self.symbols.borrow()
+    pub fn new_with_camera(logger:&Logger, camera:&Camera2d) -> Self {
+        let logger  = logger.sub("view");
+        let camera  = camera.clone_ref();
+        let symbols = default();
+        Self {logger,camera,symbols}
+    }
+
+    pub fn symbols(&self) -> Vec<SymbolId> {
+        self.symbols.borrow().clone()
     }
 }
 
@@ -662,21 +700,29 @@ impl ViewData {
 // === Views ===
 // =============
 
+/// Please note that currently the `Views` structure is implemented in a hacky way. It assumes the
+/// existence of `main`, `cursor`, and `label` views, which are needed for the GUI to display shapes
+/// properly. This should be abstracted away in the future.
 #[derive(Clone,CloneRef,Debug)]
 pub struct Views {
-    logger   : Logger,
-    pub main : View,
-    all      : Rc<RefCell<Vec<WeakView>>>,
-    width    : f32,
-    height   : f32,
+    logger     : Logger,
+    pub main   : View,
+    pub cursor : View,
+    pub label  : View,
+    all        : Rc<RefCell<Vec<WeakView>>>,
+    width      : f32,
+    height     : f32,
 }
 
 impl Views {
     pub fn mk(logger:&Logger, width:f32, height:f32) -> Self {
         let logger = logger.sub("views");
         let main   = View::new(&logger,width,height);
-        let all    = Rc::new(RefCell::new(vec![main.downgrade()]));
-        Self {logger,main,all,width,height}
+        let cursor = View::new(&logger,width,height);
+        let label  = View::new_with_camera(&logger,&main.camera);
+        let all    = vec![main.downgrade(),cursor.downgrade(),label.downgrade()];
+        let all    = Rc::new(RefCell::new(all));
+        Self {logger,main,cursor,label,all,width,height}
     }
 
     /// Creates a new view for this scene.
@@ -715,6 +761,8 @@ pub struct SceneData {
     pub renderer       : Renderer,
     pub views          : Views,
     pub style_sheet    : style::Sheet,
+    pub bg_color_var   : style::Var,
+    pub bg_color_change : callback::Handle,
 }
 
 impl SceneData {
@@ -753,11 +801,20 @@ impl SceneData {
         let on_zoom        = views.main.camera.add_zoom_update_callback(on_zoom_cb);
         let on_resize      = dom.root.on_resize(on_resize_cb);
         let callbacks      = Callbacks {on_zoom,on_resize};
-        let style_sheet    = default();
+        let style_sheet    = style::Sheet::new();
+
+        let bg_color_var = style_sheet.var("application.background.color");
+        let bg_color_change = bg_color_var.on_change(f!((dom)(change){
+            change.color().for_each(|color| {
+                let color = color::Rgba::from(color);
+                let color = format!("rgba({},{},{},{})",255.0*color.red,255.0*color.green,255.0*color.blue,255.0*color.alpha);
+                dom.root.set_style_or_panic("background-color",color);
+            })
+        }));
 
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio());
         Self {renderer,display_object,dom,context,symbols,views,dirty,logger,variables
-             ,stats,uniforms,mouse,callbacks,shapes,style_sheet}
+             ,stats,uniforms,mouse,callbacks,shapes,style_sheet,bg_color_var,bg_color_change}
     }
 
     pub fn on_resize<F:CallbackMut1Fn<web::dom::ShapeData>>(&self, callback:F) -> callback::Handle {
@@ -783,18 +840,23 @@ impl SceneData {
     }
 
     fn handle_mouse_events(&self) {
-        let target = Target::from_internal(self.mouse.hover_ids.get());
-        if target != self.mouse.target.get() {
-            self.mouse.target.set(target);
-            match target {
-                Target::Background => {}
-                Target::Symbol {symbol_id,..} => {
-                    let symbol = self.symbols.index(symbol_id as usize);
-                    symbol.dispatch_event(&DynEvent::new(())); // FIXME: currently unused
-                    // println!("{:?}",target);
-                    // TODO: finish events sending, including OnOver and OnOut.
-                }
-            }
+        let new_target     = Target::from_internal(self.mouse.hover_ids.get());
+        let current_target = self.mouse.target.get();
+        if new_target != current_target {
+            self.mouse.target.set(new_target);
+            self.shapes.get_mouse_target(current_target) . for_each(|t| t.mouse_out().emit(()));
+            self.shapes.get_mouse_target(new_target)     . for_each(|t| t.mouse_over().emit(()));
+            self.mouse.reemit_position_event(); // See docs to learn why.
+            // TODO: Inspect the code below and clean the related codebase accordingly.
+//            match target {
+//                Target::Background => {}
+//                Target::Symbol {symbol_id,..} => {
+//                    let symbol = self.symbols.index(symbol_id as usize);
+//                    symbol.dispatch_event(&DynEvent::new(())); // FIXME: currently unused
+//                    // println!("{:?}",target);
+//                    // TODO: finish events sending, including OnOver and OnOut.
+//                }
+//            }
         }
     }
 

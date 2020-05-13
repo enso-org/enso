@@ -44,14 +44,11 @@ impl<T> VarInitializerMarker<Var<T>> for &str    {}
 impl<T> VarInitializerMarker<Var<T>> for  T      {}
 impl<T> VarInitializerMarker<Var<T>> for &T      {}
 
-impl<E1,E2,T> VarInitializerMarker<Var<color::Rgba<E1,T>>> for color::Rgb<E2,T>
-    where E1:color::RgbStandard, E2:color::RgbStandard, T:color::Component {}
+impl VarInitializerMarker<Var<color::Rgba>> for color::Rgb {}
 
-impl<E1,E2,T> VarInitializerMarker<Var<color::Rgba<E1,T>>> for color::Rgba<E2,T>
-    where E1:color::RgbStandard, E2:color::RgbStandard, T:color::Component {}
+impl VarInitializerMarker<Var<color::Rgba>> for color::Rgba {}
 
-impl<E,T,G> VarInitializerMarker<Var<color::Rgba<E,T>>> for color::SdfSampler<G>
-    where E:color::RgbStandard, T:color::Component {}
+impl<G> VarInitializerMarker<Var<color::Rgba>> for color::SdfSampler<G> {}
 
 impl<T,U,V> VarInitializerMarker<Var<Unit<T,Anything,V>>> for Unit<T,U,V> where {}
 
@@ -311,6 +308,7 @@ define_shape_data_operator!      { Mul mul (*)         where [A:RefInto<Glsl>, B
 define_shape_data_operator!      { Div div (/)         where [A:RefInto<Glsl>, B:RefInto<Glsl>] }
 define_shape_data_prim_operator! { Div div (/) for f32 where [A:RefInto<Glsl>] }
 define_shape_data_prim_operator! { Mul mul (*) for f32 where [A:RefInto<Glsl>] }
+define_shape_data_prim_operator! { Sub sub (-) for f32 where [A:RefInto<Glsl>] }
 
 impl<T> Neg for Var<T>
 where T : Neg + RefInto<Glsl> {

@@ -5,7 +5,7 @@ use crate::display::shape::primitive::def::var::Var;
 use crate::system::gpu::shader::glsl::Glsl;
 use crate::math::topology::unit::*;
 use crate::system::gpu::types::*;
-use palette::*;
+use crate::data::color;
 
 
 
@@ -257,7 +257,7 @@ impl Canvas {
     }
 
     /// Fill the shape with the provided color.
-    pub fn fill<Color:Into<Var<Srgba>>>
+    pub fn fill<Color:Into<Var<color::Rgba>>>
     (&mut self, num:usize, s:Shape, color:Color) -> Shape {
         self.if_not_defined(num, |this| {
             let color:Glsl = color.into().glsl();

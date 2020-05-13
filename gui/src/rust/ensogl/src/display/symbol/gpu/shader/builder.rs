@@ -220,7 +220,10 @@ pub struct CodeTemplate {
 
 impl CodeTemplate {
     /// Constructor.
-    pub fn new(before_main:String, main:String, after_main:String) -> Self {
+    pub fn new(before_main:impl Str, main:impl Str, after_main:impl Str) -> Self {
+        let before_main = before_main.into();
+        let main        = main.into();
+        let after_main  = after_main.into();
         Self {before_main,main,after_main}
     }
 

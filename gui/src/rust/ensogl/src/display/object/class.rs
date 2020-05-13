@@ -492,7 +492,7 @@ impl Debug for Instance {
 // === Id ===
 // ==========
 
-#[derive(Clone,Copy,Debug,Display,Eq,From,Hash,Into,PartialEq)]
+#[derive(Clone,Copy,Debug,Default,Display,Eq,From,Hash,Into,PartialEq)]
 pub struct Id(usize);
 
 
@@ -641,11 +641,12 @@ impl Object for Instance {
     }
 }
 
-//impl<T> Object for T where for<'t> &'t T:Into<&'t Instance> {
-//    fn display_object(&self) -> &Instance {
-//        self.into()
-//    }
-//}
+impl<T:Object> Object for &T {
+    fn display_object(&self) -> &Instance {
+        let t : &T = *self;
+        t.display_object()
+    }
+}
 
 
 
@@ -684,6 +685,10 @@ pub trait ObjectOps : Object {
 
     fn transform_matrix(&self) -> Matrix4<f32> {
         self.display_object().rc.matrix()
+    }
+
+    fn global_position(&self) -> Vector3<f32> {
+        self.display_object().rc.global_position()
     }
 
     fn position(&self) -> Vector3<f32> {

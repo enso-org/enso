@@ -39,6 +39,12 @@ impl Sub<&Position> for &Position {
     }
 }
 
+impl From<&Position> for Position {
+    fn from(t:&Position) -> Self {
+        *t
+    }
+}
+
 
 
 // =============
@@ -58,7 +64,7 @@ pub struct Mouse {
     pub up            : frp::Stream<bool>,
     pub position      : frp::Source<Position>,
     pub prev_position : frp::Stream<Position>,
-    pub translation      : frp::Stream<Position>,
+    pub translation   : frp::Stream<Position>,
     pub distance      : frp::Stream<f32>,
 }
 

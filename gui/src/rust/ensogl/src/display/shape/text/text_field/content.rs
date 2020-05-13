@@ -389,6 +389,7 @@ impl TextFieldContent {
 pub(crate) mod test {
     use super::*;
 
+    use crate::data::color;
     use crate::display::shape::text::glyph::font::FontRenderInfo;
 
     use ensogl_core_msdf_sys as msdf_sys;
@@ -595,7 +596,7 @@ pub(crate) mod test {
         TextFieldProperties {
             font       : FontHandle::new(FontRenderInfo::mock_font("Test font".to_string())),
             text_size  : 0.0,
-            base_color : Vector4::new(1.0, 1.0, 1.0, 1.0),
+            base_color : color::Rgba::new(1.0, 1.0, 1.0, 1.0),
             size       : Vector2::new(1.0, 1.0)
         }
     }

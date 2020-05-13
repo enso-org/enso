@@ -151,9 +151,8 @@ impl World {
         let pipeline = RenderPipeline::new()
             .add(SymbolsRenderPass::new(&self.scene.symbols(),&self.scene.views))
             .add(ScreenRenderPass::new(self))
-            .add(pixel_read_pass)
+            .add(pixel_read_pass);
             // FIXME ugly way of rendering top layers:
-            .add(SymbolsRenderPass2::new(&self.scene.symbols(),&self.scene.views));
         self.scene.renderer.set_pipeline(pipeline);
     }
 

@@ -249,6 +249,11 @@ impl<Out:Data>            HasOutput for Stream      <Out> { type Output = Out; }
 impl<Def:HasOutputStatic> HasOutput for Node        <Def> { type Output = Output<Def>; }
 impl<Def:HasOutputStatic> HasOutput for WeakNode    <Def> { type Output = Output<Def>; }
 
+impl<Out:Data>            HasOutput for &OwnedStream <Out> { type Output = Out; }
+impl<Out:Data>            HasOutput for &Stream      <Out> { type Output = Out; }
+impl<Def:HasOutputStatic> HasOutput for &Node        <Def> { type Output = Output<Def>; }
+impl<Def:HasOutputStatic> HasOutput for &WeakNode    <Def> { type Output = Output<Def>; }
+
 
 // === Derefs ===
 
