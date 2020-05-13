@@ -24,6 +24,7 @@ pub struct Path {
     pub root_id:Uuid,
     /// Path's segments.
     pub segments:Vec<String>,
+
 }
 
 impl Display for Path {
@@ -34,12 +35,24 @@ impl Display for Path {
 }
 
 impl Path {
+    /// Returns the file name, i.e. the last segment if exists.
+    pub fn file_name(&self) -> Option<&String> {
+        self.segments.last()
+    }
+
     /// Returns the file extension, i.e. the part of last path segment after the last dot.
     /// Returns `None` is there is no segments or no dot in the last segment.
     pub fn extension(&self) -> Option<&str> {
-        let segment = self.segments.last()?;
-        let last_dot_index = segment.rfind('.')?;
-        Some(&segment[last_dot_index + 1..])
+        let name           = self.file_name()?;
+        let last_dot_index = name.rfind('.')?;
+        Some(&name[last_dot_index + 1..])
+    }
+
+    /// Returns the stem of filename, i.e. part of last segment without extension if present.
+    pub fn file_stem(&self) -> Option<&str> {
+        let name        = self.file_name()?;
+        let name_length = name.rfind('.').unwrap_or_else(|| name.len());
+        Some(&name[..name_length])
     }
 
     /// Constructs a new path from given root ID and segments.

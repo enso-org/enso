@@ -91,15 +91,15 @@ impl ViewLayout {
     ( logger           : &Logger
     , kb_actions       : &mut keyboard::Actions
     , application      : &Application
-    , text_controller  : controller::text::Handle
-    , graph_controller : controller::graph::Handle
+    , text_controller  : controller::Text
+    , graph_controller : controller::ExecutedGraph
     , fonts            : &mut FontRegistry
     ) -> Self {
         let logger        = logger.sub("ViewLayout");
         let world         = &application.display;
         let text_editor   = TextEditor::new(&logger,world,text_controller,kb_actions,fonts);
-        let node_editor   = NodeEditor::new(&logger,application,graph_controller.clone());
-        let node_searcher = NodeSearcher::new(world,&logger,graph_controller,fonts);
+        let node_editor   = NodeEditor::new(&logger,application,graph_controller.clone_ref());
+        let node_searcher = NodeSearcher::new(world,&logger,graph_controller.graph.clone_ref(),fonts);
         world.add_child(&text_editor.display_object());
         world.add_child(&node_editor);
         world.add_child(&node_searcher);

@@ -52,6 +52,7 @@ pub struct OpenTextFile {
 #[serde(rename_all = "camelCase")]
 #[allow(missing_docs)]
 pub struct CreateExecutionContext {
+    pub context_id       : ContextId,
     pub can_modify       : CapabilityRegistration,
     pub receives_updates : CapabilityRegistration
 }

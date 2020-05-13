@@ -5,6 +5,8 @@
 
 use crate::prelude::*;
 
+use crate::controller::FilePath;
+
 use enso_protocol::language_server;
 use parser::Parser;
 
@@ -40,9 +42,8 @@ impl Handle {
     /// Returns a text controller for a given file path.
     ///
     /// It supports both modules and plain text files.
-    pub async fn text_controller
-    (&self, path:language_server::Path) -> FallibleResult<controller::Text> {
-        if is_path_to_module(&path) {
+    pub async fn text_controller(&self, path:FilePath) -> FallibleResult<controller::Text> {
+        if let Some(path) = controller::module::Path::from_file_path(path.clone()) {
             trace!(self.logger,"Obtaining controller for module {path}");
             let module = self.module_controller(path).await?;
             Ok(controller::Text::new_for_module(module))
@@ -77,16 +78,16 @@ impl Handle {
     }
 }
 
-/// Checks if the given path looks like it is referring to module file.
-fn is_path_to_module(path:&language_server::Path) -> bool {
-    path.extension() == Some(constants::LANGUAGE_FILE_EXTENSION)
-}
+
+
+// ============
+// === Test ===
+// ============
 
 #[cfg(test)]
 mod test {
     use super::*;
 
-    use crate::controller::text::FilePath;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
     use language_server::response;
@@ -96,28 +97,20 @@ mod test {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
-
-    #[test]
-    fn is_path_to_module_test() {
-        let path = language_server::Path::new(default(), &["src","Main.enso"]);
-        assert!(is_path_to_module(&path));
-
-        let path = language_server::Path::new(default(), &["src","Main.txt"]);
-        assert_eq!(is_path_to_module(&path), false);
-    }
-
     #[wasm_bindgen_test]
     fn obtain_module_controller() {
         let mut test  = TestWithLocalPoolExecutor::set_up();
         test.run_task(async move {
-            let path         = ModulePath{root_id:default(),segments:vec!["TestLocation".into()]};
-            let another_path = ModulePath{root_id:default(),segments:vec!["TestLocation2".into()]};
+            let path         = ModulePath::from_module_name("TestModule");
+            let another_path = ModulePath::from_module_name("TestModule2");
 
-            let client = language_server::MockClient::default();
-            let contents      = "2+2".to_string();
-            client.set_file_read_result(path.clone(),Ok(response::Read{contents}));
-            let contents      = "2 + 2".to_string();
-            client.set_file_read_result(another_path.clone(),Ok(response::Read{contents}));
+            let client    = language_server::MockClient::default();
+            let contents  = "2+2".to_string();
+            let file_path = path.file_path().clone();
+            client.set_file_read_result(file_path,Ok(response::Read{contents}));
+            let file_path = another_path.file_path().clone();
+            let contents  = "2 + 2".to_string();
+            client.set_file_read_result(file_path,Ok(response::Read{contents}));
             let connection     = language_server::Connection::new_mock(client);
             let project        = controller::Project::new(connection);
             let module         = project.module_controller(path.clone()).await.unwrap();
@@ -136,8 +129,8 @@ mod test {
             let connection   = language_server::Connection::new_mock(default());
             let project_ctrl = controller::Project::new(connection);
             let root_id      = default();
-            let path         = FilePath{root_id,segments:vec!["TestPath".into()]};
-            let another_path = FilePath{root_id,segments:vec!["TestPath2".into()]};
+            let path         = FilePath::new(root_id,&["TestPath"]);
+            let another_path = FilePath::new(root_id,&["TestPath2"]);
 
             let text_ctrl    = project_ctrl.text_controller(path.clone()).await.unwrap();
             let another_ctrl = project_ctrl.text_controller(another_path.clone()).await.unwrap();
@@ -156,7 +149,7 @@ mod test {
         let mut test = TestWithLocalPoolExecutor::set_up();
         test.run_task(async move {
             let file_name    = format!("test.{}",constants::LANGUAGE_FILE_EXTENSION);
-            let path         = ModulePath{root_id:default(),segments:vec![file_name]};
+            let path         = FilePath::new(default(),&[file_name]);
             let contents     = "2 + 2".to_string();
 
             let client       = language_server::MockClient::default();

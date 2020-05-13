@@ -6,21 +6,13 @@
 
 use crate::prelude::*;
 
+use crate::controller::FilePath;
 use crate::notification;
 
 use data::text::TextChange;
 use enso_protocol::language_server;
 use json_rpc::error::RpcError;
 use std::pin::Pin;
-
-
-
-// ============
-// === Path ===
-// ============
-
-/// Path to a file on disc.
-pub type FilePath = language_server::Path;
 
 
 
@@ -68,7 +60,7 @@ impl Handle {
     pub fn file_path(&self) -> &FilePath {
         match &self.file {
             FileHandle::PlainText{path,..} => &*path,
-            FileHandle::Module{controller} => &*controller.path,
+            FileHandle::Module{controller} => controller.path.file_path()
         }
     }
 
@@ -162,7 +154,7 @@ mod test {
         let mut test  = TestWithLocalPoolExecutor::set_up();
         test.run_task(async move {
             let ls         = language_server::Connection::new_mock_rc(default());
-            let path       = FilePath{root_id:default(),segments:vec!["test".into()]};
+            let path       = controller::module::Path::from_module_name("Test");
             let parser     = Parser::new().unwrap();
             let module_res = controller::Module::new_mock(path,"main = 2+2",default(),ls,parser);
             let module     = module_res.unwrap();
