@@ -101,10 +101,10 @@ async fn file_operations() {
     let explicit_call                    = ExplicitCall
         {method_pointer,positional_arguments_expressions,this_argument_expression};
     let stack_item = StackItem::ExplicitCall(explicit_call);
-    let response   = client.push_execution_context(execution_context_id,stack_item).await;
+    let response   = client.push_to_execution_context(execution_context_id,stack_item).await;
     response.expect("Couldn't push execution context.");
 
-    let response = client.pop_execution_context(execution_context_id).await;
+    let response = client.pop_from_execution_context(execution_context_id).await;
     response.expect("Couldn't pop execution context.");
 
     let visualisation_id     = uuid::Uuid::new_v4();

@@ -20,7 +20,17 @@ pub mod module;
 pub mod project;
 pub mod text;
 
-pub use graph::Handle   as Graph;
-pub use module::Handle  as Module;
-pub use project::Handle as Project;
-pub use text::Handle    as Text;
+pub use graph::Handle           as Graph;
+pub use graph::executed::Handle as ExecutedGraph;
+pub use module::Handle          as Module;
+pub use project::Handle         as Project;
+pub use text::Handle            as Text;
+
+
+
+// ============
+// === Path ===
+// ============
+
+/// Path to a file on disc, used across all controllers
+pub type FilePath = enso_protocol::language_server::Path;

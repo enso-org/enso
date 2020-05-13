@@ -322,12 +322,13 @@ fn test_execution_context() {
     let method           = "executionContext/receivesUpdates".to_string();
     let receives_updates = CapabilityRegistration{method,register_options};
     let create_execution_context_response = response::CreateExecutionContext
-    {can_modify,receives_updates};
+    {context_id,can_modify,receives_updates};
     test_request(
         |client| client.create_execution_context(),
         "executionContext/create",
         json!({}),
         json!({
+            "contextId" : "00000000-0000-0000-0000-000000000000",
             "canModify" : {
                 "method"          : "executionContext/canModify",
                 "registerOptions" : {
@@ -354,7 +355,7 @@ fn test_execution_context() {
     let local_call    = LocalCall {expression_id};
     let stack_item    = StackItem::LocalCall(local_call);
     test_request(
-        |client| client.push_execution_context(context_id,stack_item),
+        |client| client.push_to_execution_context(context_id,stack_item),
         "executionContext/push",
         json!({
             "contextId" : "00000000-0000-0000-0000-000000000000",
@@ -367,7 +368,7 @@ fn test_execution_context() {
         ()
     );
     test_request(
-        |client| client.pop_execution_context(context_id),
+        |client| client.pop_from_execution_context(context_id),
         "executionContext/pop",
         json!({"contextId":"00000000-0000-0000-0000-000000000000"}),
         unit_json.clone(),

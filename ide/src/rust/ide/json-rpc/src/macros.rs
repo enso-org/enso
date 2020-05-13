@@ -60,25 +60,25 @@ macro_rules! make_rpc_methods {
         }
 
         impl Client {
-                /// Create a new client that will use given transport.
-                pub fn new(transport:impl json_rpc::Transport + 'static) -> Self {
-                    let handler = RefCell::new(Handler::new(transport));
-                    Self { handler }
-                }
+            /// Create a new client that will use given transport.
+            pub fn new(transport:impl json_rpc::Transport + 'static) -> Self {
+                let handler = RefCell::new(Handler::new(transport));
+                Self { handler }
+            }
 
-                /// Asynchronous event stream with notification and errors.
-                ///
-                /// On a repeated call, previous stream is closed.
-                pub fn events(&self) -> impl Stream<Item = Event> {
-                    self.handler.borrow_mut().handler_event_stream()
-                }
+            /// Asynchronous event stream with notification and errors.
+            ///
+            /// On a repeated call, previous stream is closed.
+            pub fn events(&self) -> impl Stream<Item = Event> {
+                self.handler.borrow_mut().handler_event_stream()
+            }
 
-                /// Returns a future that performs any background, asynchronous work needed
-                /// for this Client to correctly work. Should be continually run while the
-                /// `Client` is used. Will end once `Client` is dropped.
-                pub fn runner(&self) -> impl Future<Output = ()> {
-                    self.handler.borrow_mut().runner()
-                }
+            /// Returns a future that performs any background, asynchronous work needed
+            /// for this Client to correctly work. Should be continually run while the
+            /// `Client` is used. Will end once `Client` is dropped.
+            pub fn runner(&self) -> impl Future<Output = ()> {
+                self.handler.borrow_mut().runner()
+            }
         }
 
         impl API for Client {
@@ -112,15 +112,18 @@ macro_rules! make_rpc_methods {
         /// Mock used for tests.
         #[derive(Debug,Default)]
         pub struct MockClient {
-            $($method_result : RefCell<HashMap<($($param_ty),*),Result<$result>>>,)*
+            expect_all_calls : Cell<bool>,
+            $($method_result : RefCell<HashMap<($($param_ty),*),Vec<Result<$result>>>>,)*
         }
 
         impl API for MockClient {
             $(fn $method(&self $(,$param_name:$param_ty)*)
             -> std::pin::Pin<Box<dyn Future<Output=Result<$result>>>> {
-                let mut result = self.$method_result.borrow_mut();
-                let result     = result.remove(&($($param_name),*)).unwrap();
-                Box::pin(async move { result })
+                let mut results = self.$method_result.borrow_mut();
+                let params      = ($($param_name),*);
+                let result      = results.get_mut(&params).and_then(|res| res.pop());
+                let err         = format!("Unrecognized call {} with params {:?}",$rpc_name,params);
+                Box::pin(futures::future::ready(result.expect(err.as_str())))
             })*
         }
 
@@ -128,9 +131,30 @@ macro_rules! make_rpc_methods {
             $(
                 /// Sets `$method`'s result to be returned when it is called.
                 pub fn $set_result(&self $(,$param_name:$param_ty)*, result:Result<$result>) {
-                    self.$method_result.borrow_mut().insert(($($param_name),*),result);
+                    let mut results = self.$method_result.borrow_mut();
+                    let mut entry   = results.entry(($($param_name),*));
+                    entry.or_default().push(result);
                 }
             )*
+
+            /// Mark all calls defined by `set_$method_result` as required. If client will be
+            /// dropped without calling the test will fail.
+            pub fn expect_all_calls(&self) {
+                self.expect_all_calls.set(true);
+            }
+        }
+
+        impl Drop for MockClient {
+            fn drop(&mut self) {
+                if self.expect_all_calls.get() {
+                    $(
+                        for (params,results) in self.$method_result.borrow().iter() {
+                            assert!(results.is_empty(), "Didn't make expected call {} with \
+                            parameters {:?}",$rpc_name,params);
+                        }
+                    )*
+                }
+            }
         }
     }
 }
