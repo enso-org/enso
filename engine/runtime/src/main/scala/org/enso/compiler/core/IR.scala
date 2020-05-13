@@ -41,6 +41,14 @@ sealed trait IR {
   /** The source location that the node corresponds to. */
   val location: Option[IdentifiedLocation]
 
+  /** Gets the external identifier from an IR node, if it is present.
+    *
+    * @return the external identifier for this IR node
+    */
+  def getExternalId: Option[IR.ExternalId] = {
+    location.flatMap(l => l.id)
+  }
+
   /** Maps the provided function over any expression defined as a child of the
     * node this is called on.
     *
@@ -91,6 +99,9 @@ object IR {
 
   /** The type of identifiers for IR nodes. */
   type Identifier = UUID
+
+  /** The type of external identifiers */
+  type ExternalId = AST.ID
 
   /**
     * Couples a location with a possible source identifier.

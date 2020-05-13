@@ -240,7 +240,7 @@ case object DemandAnalysis extends IRPass {
                   s"Malformed aliasing link with target ${link.target}"
                 )
               ) match {
-              case AliasAnalysis.Graph.Occurrence.Def(_, _, _, isLazy) =>
+              case AliasAnalysis.Graph.Occurrence.Def(_, _, _, _, isLazy) =>
                 if (isLazy) Some(true) else None
               case _ => None
             }

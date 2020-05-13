@@ -212,7 +212,13 @@ case object AliasAnalysis extends IRPass {
           val isSuspended  = expression.isInstanceOf[IR.Expression.Block]
           val occurrenceId = graph.nextId()
           val occurrence =
-            Occurrence.Def(occurrenceId, name.name, binding.getId, isSuspended)
+            Occurrence.Def(
+              occurrenceId,
+              name.name,
+              binding.getId,
+              binding.getExternalId,
+              isSuspended
+            )
 
           parentScope.add(occurrence)
 
@@ -251,7 +257,7 @@ case object AliasAnalysis extends IRPass {
     */
   def analyseType(value: IR.Type, graph: Graph, parentScope: Scope): IR.Type = {
     value match {
-      case member @ IR.Type.Set.Member(lbl, memberType, value, _, _, _) =>
+      case member @ IR.Type.Set.Member(label, memberType, value, _, _, _) =>
         val memberTypeScope = memberType match {
           case _: IR.Literal => parentScope
           case _             => parentScope.addChild()
@@ -262,15 +268,17 @@ case object AliasAnalysis extends IRPass {
           case _             => parentScope.addChild()
         }
 
-        val lblId = graph.nextId()
-        parentScope.add(Occurrence.Def(lblId, lbl.name, lbl.getId))
+        val labelId = graph.nextId()
+        parentScope.add(
+          Occurrence.Def(labelId, label.name, label.getId, label.getExternalId)
+        )
 
         member
           .copy(
             memberType = analyseExpression(memberType, graph, memberTypeScope),
             value      = analyseExpression(value, graph, valueScope)
           )
-          .updateMetadata(this -->> Info.Occurrence(graph, lblId))
+          .updateMetadata(this -->> Info.Occurrence(graph, labelId))
       case x => x.mapExpressions(analyseExpression(_, graph, parentScope))
     }
   }
@@ -307,7 +315,8 @@ case object AliasAnalysis extends IRPass {
 
           val occurrenceId = graph.nextId()
           scope.add(
-            Graph.Occurrence.Def(occurrenceId, name.name, arg.getId, susp)
+            Graph.Occurrence
+              .Def(occurrenceId, name.name, arg.getId, arg.getExternalId, susp)
           )
 
           arg
@@ -426,7 +435,8 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): IR.Name = {
     val occurrenceId = graph.nextId()
-    val occurrence   = Occurrence.Use(occurrenceId, name.name, name.getId)
+    val occurrence =
+      Occurrence.Use(occurrenceId, name.name, name.getId, name.getExternalId)
 
     parentScope.add(occurrence)
     graph.resolveUsage(occurrence)
@@ -646,8 +656,8 @@ case object AliasAnalysis extends IRPass {
       linksFor(id).find { edge =>
         val occ = getOccurrence(edge.target)
         occ match {
-          case Some(Occurrence.Def(_, _, _, _)) => true
-          case _                                => false
+          case Some(Occurrence.Def(_, _, _, _, _)) => true
+          case _                                   => false
         }
       }
     }
@@ -920,8 +930,9 @@ case object AliasAnalysis extends IRPass {
         parentCounter: Int = 0
       ): Option[Graph.Link] = {
         val definition = occurrences.find {
-          case Graph.Occurrence.Def(_, n, _, _) => n == occurrence.symbol
-          case _                                => false
+          case Graph.Occurrence.Def(_, name, _, _, _) =>
+            name == occurrence.symbol
+          case _ => false
         }
 
         definition match {
@@ -1090,12 +1101,15 @@ case object AliasAnalysis extends IRPass {
         * @param id the identifier of the name in the graph
         * @param symbol the text of the name
         * @param identifier the identifier of the symbol
+        * @param externalId the external identifier for the IR node defining
+        *                   the symbol
         * @param isLazy whether or not the symbol is defined as lazy
         */
       sealed case class Def(
         override val id: Id,
         override val symbol: Graph.Symbol,
         identifier: IR.Identifier,
+        externalId: Option[IR.ExternalId],
         isLazy: Boolean = false
       ) extends Occurrence
 
@@ -1108,11 +1122,14 @@ case object AliasAnalysis extends IRPass {
         * @param id the identifier of the name in the graph
         * @param symbol the text of the name
         * @param identifier the identifier of the symbol
+        * @param externalId the external identifier for the IR node defining
+        *                   the symbol
         */
       sealed case class Use(
         override val id: Id,
         override val symbol: Graph.Symbol,
-        identifier: IR.Identifier
+        identifier: IR.Identifier,
+        externalId: Option[IR.ExternalId]
       ) extends Occurrence
 
       // TODO [AA] At some point the analysis should make use of these.

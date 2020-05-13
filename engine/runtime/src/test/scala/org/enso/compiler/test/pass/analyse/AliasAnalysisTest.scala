@@ -92,19 +92,19 @@ class AliasAnalysisTest extends CompilerTest {
     val childOfChildOfChild = childOfChild.addChild()
 
     val aDefId = graph.nextId()
-    val aDef   = Occurrence.Def(aDefId, "a", genId)
+    val aDef   = Occurrence.Def(aDefId, "a", genId, None)
 
     val bDefId = graph.nextId()
-    val bDef   = Occurrence.Def(bDefId, "b", genId)
+    val bDef   = Occurrence.Def(bDefId, "b", genId, None)
 
     val aUseId = graph.nextId()
-    val aUse   = Occurrence.Use(aUseId, "a", genId)
+    val aUse   = Occurrence.Use(aUseId, "a", genId, None)
 
     val bUseId = graph.nextId()
-    val bUse   = Occurrence.Use(bUseId, "b", genId)
+    val bUse   = Occurrence.Use(bUseId, "b", genId, None)
 
     val cUseId = graph.nextId()
-    val cUse   = Occurrence.Use(cUseId, "c", genId)
+    val cUse   = Occurrence.Use(cUseId, "c", genId, None)
 
     // Add occurrences to the scopes
     complexScope.add(aDef)
@@ -219,19 +219,19 @@ class AliasAnalysisTest extends CompilerTest {
     val childScope = rootScope.addChild()
 
     val aDefId = graph.nextId()
-    val aDef   = Occurrence.Def(aDefId, "a", genId)
+    val aDef   = Occurrence.Def(aDefId, "a", genId, None)
 
     val bDefId = graph.nextId()
-    val bDef   = Occurrence.Def(bDefId, "b", genId)
+    val bDef   = Occurrence.Def(bDefId, "b", genId, None)
 
     val aUse1Id = graph.nextId()
-    val aUse1   = Occurrence.Use(aUse1Id, "a", genId)
+    val aUse1   = Occurrence.Use(aUse1Id, "a", genId, None)
 
     val aUse2Id = graph.nextId()
-    val aUse2   = Occurrence.Use(aUse2Id, "a", genId)
+    val aUse2   = Occurrence.Use(aUse2Id, "a", genId, None)
 
     val cUseId = graph.nextId()
-    val cUse   = Occurrence.Use(cUseId, "c", genId)
+    val cUse   = Occurrence.Use(cUseId, "c", genId, None)
 
     rootScope.add(aDef)
     rootScope.add(aUse1)
@@ -341,27 +341,28 @@ class AliasAnalysisTest extends CompilerTest {
       val grandChild = child1.addChild()
 
       val aDefInRootId = graph.nextId()
-      val aDefInRoot   = Occurrence.Def(aDefInRootId, "a", genId)
+      val aDefInRoot   = Occurrence.Def(aDefInRootId, "a", genId, None)
       rootScope.add(aDefInRoot)
 
       val aDefInChild1Id = graph.nextId()
-      val aDefInChild1   = Occurrence.Def(aDefInChild1Id, "a", genId)
+      val aDefInChild1   = Occurrence.Def(aDefInChild1Id, "a", genId, None)
       child1.add(aDefInChild1)
 
       val aDefInChild2Id = graph.nextId()
-      val aDefInChild2   = Occurrence.Def(aDefInChild2Id, "a", genId)
+      val aDefInChild2   = Occurrence.Def(aDefInChild2Id, "a", genId, None)
       child2.add(aDefInChild2)
 
       val aDefInGrandChildId = graph.nextId()
-      val aDefInGrandChild   = Occurrence.Def(aDefInGrandChildId, "a", genId)
+      val aDefInGrandChild =
+        Occurrence.Def(aDefInGrandChildId, "a", genId, None)
       grandChild.add(aDefInGrandChild)
 
       val bDefInRootId = graph.nextId()
-      val bDefInRoot   = Occurrence.Def(bDefInRootId, "b", genId)
+      val bDefInRoot   = Occurrence.Def(bDefInRootId, "b", genId, None)
       rootScope.add(bDefInRoot)
 
       val bDefInChild2Id = graph.nextId()
-      val bDefInChild2   = Occurrence.Def(bDefInChild2Id, "b", genId)
+      val bDefInChild2   = Occurrence.Def(bDefInChild2Id, "b", genId, None)
       child2.add(bDefInChild2)
 
       graph.knownShadowedDefinitions(aDefInGrandChild) shouldEqual Set(

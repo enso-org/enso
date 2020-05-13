@@ -353,7 +353,7 @@ case object LambdaConsolidate extends IRPass {
               .map(link => aliasInfo.graph.getOccurrence(link.source))
               .collect {
                 case Some(
-                    AliasAnalysis.Graph.Occurrence.Use(_, _, identifier)
+                    AliasAnalysis.Graph.Occurrence.Use(_, _, identifier, _)
                     ) =>
                   identifier
               }

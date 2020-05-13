@@ -26,7 +26,7 @@ trait CompilerRunner {
      */
     def toAST: AST = {
       val parser: Parser = Parser()
-      val unresolvedAST  = parser.run(source)
+      val unresolvedAST  = parser.runWithIds(source)
 
       parser.dropMacroMeta(unresolvedAST)
     }
