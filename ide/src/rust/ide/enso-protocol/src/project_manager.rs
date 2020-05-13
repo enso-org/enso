@@ -293,12 +293,12 @@ mod remote_client_tests {
         let mut fixture = setup_fm();
         let mut fut     = Box::pin(make_request(&mut fixture.client));
 
-        let request = fixture.transport.expect_message::<RequestMessage<Value>>();
+        let request = fixture.transport.expect_json_message::<RequestMessage<Value>>();
         assert_eq!(request.method, *expected_method);
         assert_eq!(request.params, *expected_input);
 
         let response = Message::new_success(request.id, result);
-        fixture.transport.mock_peer_message(response);
+        fixture.transport.mock_peer_json_message(response);
         fixture.executor.run_until_stalled();
         let output = poll_future_output(&mut fut).unwrap().unwrap();
         assert_eq!(output, *expected_output);

@@ -42,7 +42,7 @@ impl TestWithMockedTransport {
     pub fn when_stalled_send_text_message(&mut self, message:impl Into<String>) {
         let mut transport = self.transport.clone_ref();
         self.with_executor_fixture.when_stalled(move ||
-            transport.mock_peer_message_text(message)
+            transport.mock_peer_text_message(message)
         );
     }
 

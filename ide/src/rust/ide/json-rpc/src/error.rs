@@ -62,6 +62,10 @@ pub enum HandlingError {
     #[fail(display = "Server generated a response with no matching request: id={:?}.", _0)]
     UnexpectedResponse(Response<serde_json::Value>),
 
+    /// JSON-RPC client does not expect any binary messages, yet it received one.
+    #[fail(display = "Server sent unexpected binary message: {:?}.", _0)]
+    UnexpectedBinaryMessage(Vec<u8>),
+
     /// Server send a message that is notification but client wasn't able to
     /// decode it.
     #[fail(display = "Failed to decode a notification: {}.", _0)]

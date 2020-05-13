@@ -15,6 +15,7 @@ use std::collections::VecDeque;
 use utils::channel;
 
 
+
 // ====================
 // === SendingError ===
 // ====================
@@ -55,8 +56,10 @@ pub enum Status {
 pub struct MockTransportData {
     /// Events sink.
     pub event_transmitter : Option<UnboundedSender<TransportEvent>>,
-    /// Messages sent by the user.
-    pub sent_msgs         : VecDeque<String>,
+    /// Text messages sent by the user.
+    pub sent_text_msgs    : VecDeque<String>,
+    /// Binary messages by the user.
+    pub sent_binary_msgs  : VecDeque<Vec<u8>>,
     /// Transport status.
     pub is_closed         : bool,
 }
@@ -72,15 +75,12 @@ pub struct MockTransportData {
 pub struct MockTransport(Rc<RefCell<MockTransportData>>);
 
 impl Transport for MockTransport {
-    fn send_text(&mut self, text:String) -> Result<(), Error> {
-        self.with_mut_data(|data| {
-            if data.is_closed {
-                Err(SendError::TransportClosed.into())
-            } else {
-                data.sent_msgs.push_back(text.clone());
-                Ok(())
-            }
-        })
+    fn send_text(&mut self, text:&str) -> Result<(), Error> {
+        self.send_helper(move |data| data.sent_text_msgs.push_back(text.into()))
+    }
+
+    fn send_binary(&mut self, message:&[u8]) -> Result<(), Error> {
+        self.send_helper(|data| data.sent_binary_msgs.push_back(message.into()))
     }
 
     fn set_event_transmitter(&mut self, transmitter:UnboundedSender<TransportEvent>) {
@@ -104,7 +104,7 @@ impl MockTransport {
     }
 
     /// Generates event that mocks receiving a text message from a peer.
-    pub fn mock_peer_message_text<S:Into<String>>(&mut self, message:S) {
+    pub fn mock_peer_text_message<S:Into<String>>(&mut self, message:S) {
         let message = message.into();
         if let Some(ref mut transmitter) = self.0.borrow_mut().event_transmitter {
             let event = TransportEvent::TextMessage(message);
@@ -114,10 +114,18 @@ impl MockTransport {
 
     /// Generates event that mocks receiving a text message from a peer with
     /// serialized JSON contents.
-    pub fn mock_peer_message<T:Serialize>(&mut self, message:T) {
+    pub fn mock_peer_json_message<T:Serialize>(&mut self, message:T) {
         let text = serde_json::to_string(&message);
         let text = text.expect("failed to serialize mock message");
-        self.mock_peer_message_text(text)
+        self.mock_peer_text_message(text)
+    }
+
+    /// Generates event that mocks receiving a text message from a peer.
+    pub fn mock_peer_binary_message(&mut self, data:&[u8]) {
+        if let Some(ref mut transmitter) = self.0.borrow_mut().event_transmitter {
+            let event = TransportEvent::BinaryMessage(Vec::from(data));
+            channel::emit(transmitter,event);
+        }
     }
 
     /// Mocks event generated when peer closes the socket (or connection is lost
@@ -131,22 +139,49 @@ impl MockTransport {
         })
     }
 
-    /// Takes the message sent by the client and returns its texts.
+    /// Takes the text message sent by the client and returns its contents.
     ///
-    /// If the client did not sent any messages, panics.
-    /// If the client sent multiple messages, the first one is returned.
+    /// If the client has not sent any text messages, panics.
+    /// If the client sent multiple text messages, the first one is returned.
     /// Further messages can be obtained by subsequent calls.
-    pub fn expect_message_text(&mut self) -> String {
+    pub fn expect_text_message(&mut self) -> String {
         self.with_mut_data(|data| {
-            data.sent_msgs.pop_front().expect("client should have sent request")
+            data.sent_text_msgs.pop_front().expect("client should have sent text message")
         })
     }
 
     /// Similar to `expect_message_text` but deserializes the message into
     /// given type `T` from JSON.
-    pub fn expect_message<T:DeserializeOwned>(&mut self) -> T {
-        let text = self.expect_message_text();
+    pub fn expect_json_message<T:DeserializeOwned>(&mut self) -> T {
+        let text = self.expect_text_message();
         let res  = serde_json::from_str(&text);
         res.expect("failed to deserialize client's message")
+    }
+
+    /// Takes the binary message sent by the client and returns its contents.
+    ///
+    /// If the client has not sent any binary messages, panics.
+    /// If the client sent multiple binary messages, the first one is returned.
+    /// Further messages can be obtained by subsequent calls.
+    pub fn expect_binary_message(&mut self) -> Vec<u8> {
+        self.with_mut_data(|data| {
+            data.sent_binary_msgs.pop_front().expect("client should have sent binary message")
+        })
+    }
+
+    /// Executes a given function with a mutable reference to the transport data.
+    /// The function should realize "sending" (well, mocked) the message through the transport.
+    ///
+    /// Fails if the transport is not open.
+    pub fn send_helper<F>(&mut self, f:F) -> Result<(),Error>
+    where F : FnOnce(&mut MockTransportData) {
+        self.with_mut_data(|data| {
+            if data.is_closed {
+                Err(SendError::TransportClosed.into())
+            } else {
+                f(data);
+                Ok(())
+            }
+        })
     }
 }
