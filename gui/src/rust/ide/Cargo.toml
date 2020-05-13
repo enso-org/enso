@@ -45,6 +45,7 @@ wasm-bindgen-test = { version = "0.3.8" }
 [dependencies.web-sys]
 version = "0.3.22"
 features = [
+  'BinaryType',
   'Blob',
   'console',
   'CloseEvent',

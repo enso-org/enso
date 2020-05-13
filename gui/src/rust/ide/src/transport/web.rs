@@ -9,6 +9,8 @@ use futures::channel::mpsc;
 use json_rpc::Transport;
 use json_rpc::TransportEvent;
 use utils::channel;
+use wasm_bindgen::JsCast;
+use web_sys::BinaryType;
 use web_sys::CloseEvent;
 use web_sys::Event;
 use web_sys::MessageEvent;
@@ -37,13 +39,20 @@ pub enum ConnectingError {
 /// Error that may occur when attempting to send the data over WebSocket
 /// transport.
 #[derive(Clone,Debug,Fail)]
-enum SendingError {
+pub enum SendingError {
     /// Calling `send` method has resulted in an JS exception.
     #[fail(display = "Failed to send message. Exception: {:?}.", _0)]
     FailedToSend(String),
     /// The socket was already closed, even before attempting sending a message.
     #[fail(display = "Failed to send message because socket state is {:?}.", _0)]
     NotOpen(State),
+}
+
+impl SendingError {
+    /// Constructs from the error yielded by one of the JS's WebSocket sending functions.
+    pub fn from_send_error(error:JsValue) -> SendingError {
+        SendingError::FailedToSend(js_to_string(error))
+    }
 }
 
 
@@ -110,6 +119,7 @@ pub struct WebSocket {
 impl WebSocket {
     /// Wraps given WebSocket object.
     pub fn new(ws:web_sys::WebSocket) -> WebSocket {
+        ws.set_binary_type(BinaryType::Arraybuffer);
         WebSocket {
             ws,
             on_message : default(),
@@ -197,10 +207,14 @@ impl WebSocket {
         self.ws.set_onmessage(None);
         self.ws.set_onopen(None);
     }
-}
 
-impl Transport for WebSocket {
-    fn send_text(&mut self, message:String) -> Result<(), Error> {
+    /// Executes a given function with a mutable reference to the socket.
+    /// The function should attempt sending the message through the websocket.
+    ///
+    /// Fails if the socket is not opened or if the sending function failed.
+    /// The error from `F` shall be translated into `SendingError`.
+    pub fn send_with_open_socket<F,R>(&mut self, f:F) -> Result<R,Error>
+    where F : FnOnce(&mut web_sys::WebSocket) -> Result<R,JsValue> {
         // Sending through the closed WebSocket can return Ok() with error only
         // appearing in the log. We explicitly check for this to get failure as
         // early as possible.
@@ -211,10 +225,27 @@ impl Transport for WebSocket {
         if state != State::Open {
             Err(SendingError::NotOpen(state).into())
         } else {
-            self.ws.send_with_str(&message).map_err(|e| {
-                SendingError::FailedToSend(js_to_string(e)).into()
-            })
+            let result = f(&mut self.ws);
+            result.map_err(|e| SendingError::from_send_error(e).into())
         }
+    }
+}
+
+impl Transport for WebSocket {
+    fn send_text(&mut self, message:&str) -> Result<(), Error> {
+        self.send_with_open_socket(|ws| ws.send_with_str(message))
+    }
+
+    fn send_binary(&mut self, message:&[u8]) -> Result<(), Error> {
+        // TODO [mwu]
+        //   Here we workaround issue from wasm-bindgen 0.2.58:
+        //   https://github.com/rustwasm/wasm-bindgen/issues/2014
+        //   The issue has been fixed in 0.2.59, however we can't upgrade, as we rely on fragile
+        //   regexp-based machinery to process wasm-bindgen output.
+        //   When fixed, we should pass `message` directly, without intermediate copy.
+        let mut owned_copy = Vec::from(message);
+        let mut_slice      = owned_copy.as_mut();
+        self.send_with_open_socket(|ws| ws.send_with_u8_array(mut_slice))
     }
 
     fn set_event_transmitter(&mut self, transmitter:mpsc::UnboundedSender<TransportEvent>) {
@@ -223,6 +254,11 @@ impl Transport for WebSocket {
             let data = e.data();
             if let Some(text) = data.as_string() {
                 channel::emit(&transmitter_copy,TransportEvent::TextMessage(text));
+            } else if let Ok(array_buffer) = data.dyn_into::<js_sys::ArrayBuffer>() {
+                let array       = js_sys::Uint8Array::new(&array_buffer);
+                let binary_data = array.to_vec();
+                let event       = TransportEvent::BinaryMessage(binary_data);
+                channel::emit(&transmitter_copy,event);
             }
         });
 

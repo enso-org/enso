@@ -14,7 +14,10 @@ use futures::channel::mpsc::UnboundedSender;
 /// tests.
 pub trait Transport : Debug {
     /// Send a text message.
-    fn send_text(&mut self, message:String) -> Result<(), Error>;
+    fn send_text(&mut self, message:&str) -> Result<(), Error>;
+
+    /// Send a binary data message.
+    fn send_binary(&mut self, message:&[u8]) -> Result<(), Error>;
 
     /// Set up a channel which shall be used to receive events from the `Transport`.
     fn set_event_transmitter(&mut self, transmitter:UnboundedSender<TransportEvent>);
@@ -25,6 +28,8 @@ pub trait Transport : Debug {
 pub enum TransportEvent {
     /// A text message with has been received.
     TextMessage(String),
+    /// A text message with has been received.
+    BinaryMessage(Vec<u8>),
     /// A socket has been opened.
     Opened,
     /// A socket has been closed by the peer.

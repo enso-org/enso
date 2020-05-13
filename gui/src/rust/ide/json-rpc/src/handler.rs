@@ -175,7 +175,7 @@ impl<Notification> {
     }
 
     /// Sends a text message to the peer.
-    pub fn send_text_message(&mut self, text:String) -> std::result::Result<(), failure::Error> {
+    pub fn send_text_message(&mut self, text:&str) -> std::result::Result<(), failure::Error> {
         self.transport.send_text(text)
     }
 
@@ -245,7 +245,7 @@ impl<Notification> Handler<Notification> {
         self.insert_ongoing_request(message.payload.id, sender);
 
         let serialized_message = serde_json::to_string(&message).unwrap();
-        if self.send_text_message(serialized_message).is_err() {
+        if self.send_text_message(&serialized_message).is_err() {
             // If message cannot be send, future ret must be cancelled.
             self.remove_ongoing_request(id);
         }
@@ -315,6 +315,8 @@ impl<Notification> Handler<Notification> {
         match event {
             TransportEvent::TextMessage(msg) =>
                 self.process_incoming_message(msg),
+            TransportEvent::BinaryMessage(data) =>
+                self.error_occurred(HandlingError::UnexpectedBinaryMessage(data)),
             TransportEvent::Opened => {}
             TransportEvent::Closed => {
                 // Dropping all ongoing calls will cancel their futures.

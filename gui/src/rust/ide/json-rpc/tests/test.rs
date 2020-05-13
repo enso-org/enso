@@ -151,7 +151,7 @@ fn test_success_call() {
     let     expected_first_request_id = Id(0);
 
     // validate request sent
-    let req_msg = fixture.transport.expect_message::<MockRequestMessage>();
+    let req_msg = fixture.transport.expect_json_message::<MockRequestMessage>();
     assert_eq!(req_msg.id, expected_first_request_id);
     assert_eq!(req_msg.method, MockRequest::NAME);
     assert_eq!(req_msg.i, call_input);
@@ -161,7 +161,7 @@ fn test_success_call() {
 
     // let's reply
     let reply = pow_impl(req_msg);
-    fixture.transport.mock_peer_message(reply);
+    fixture.transport.mock_peer_json_message(reply);
 
     // before yielding control message should be in buffer and futures should not complete
     assert!(poll_future_output(&mut fut).is_none()); // not ticked
@@ -182,7 +182,7 @@ fn test_error_call() {
     assert!(poll_future_output(&mut fut).is_none()); // no reply
 
     // reply with error
-    let req_msg           = fixture.transport.expect_message::<MockRequestMessage>();
+    let req_msg           = fixture.transport.expect_json_message::<MockRequestMessage>();
     let error_code        = 5;
     let error_description = "wrong!";
     let error_data        = None;
@@ -192,7 +192,7 @@ fn test_error_call() {
         error_description.into(),
         error_data.clone(),
     );
-    fixture.transport.mock_peer_message(error_msg);
+    fixture.transport.mock_peer_json_message(error_msg);
 
     // receive error
     fixture.pool.run_until_stalled();
@@ -214,7 +214,7 @@ fn test_garbage_reply_error() {
     let mut fixture = Fixture::new();
     let mut fut     = Box::pin(fixture.client.pow(8));
     assert!(poll_future_output(&mut fut).is_none()); // no reply
-    fixture.transport.mock_peer_message_text("hello, nice to meet you");
+    fixture.transport.mock_peer_text_message("hello, nice to meet you");
 
     fixture.pool.run_until_stalled();
 
@@ -257,7 +257,7 @@ fn test_notification(mock_notif:MockNotification) {
     let mut fixture = Fixture::new();
     let message     = Message::new(mock_notif.clone());
     assert!(fixture.client.try_get_notification().is_none());
-    fixture.transport.mock_peer_message(message.clone());
+    fixture.transport.mock_peer_json_message(message.clone());
     assert!(fixture.client.try_get_notification().is_none());
 
     fixture.pool.run_until_stalled();
@@ -286,7 +286,7 @@ fn test_handling_invalid_notification() {
 
     let mut fixture = Fixture::new();
     assert!(fixture.client.try_get_notification().is_none());
-    fixture.transport.mock_peer_message_text(other_notification);
+    fixture.transport.mock_peer_text_message(other_notification);
     assert!(fixture.client.try_get_notification().is_none());
 
     fixture.pool.run_until_stalled();
