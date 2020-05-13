@@ -6,14 +6,15 @@ use crate::notification;
 use crate::view::temporary_panel::TemporaryPadding;
 use crate::view::temporary_panel::TemporaryPanel;
 
-use ensogl::display;
+use data::text::TextChange;
+use enso_frp::io::keyboard::KeyMask;
+use enso_frp::io::keyboard;
+use ensogl::data::color;
 use ensogl::display::shape::text::glyph::font::FontRegistry;
 use ensogl::display::shape::text::text_field::TextField;
 use ensogl::display::shape::text::text_field::TextFieldProperties;
 use ensogl::display::world::*;
-use data::text::TextChange;
-use enso_frp::io::keyboard;
-use enso_frp::io::keyboard::KeyMask;
+use ensogl::display;
 use nalgebra::Vector2;
 use nalgebra::zero;
 use utils::channel::process_stream_with_handle;
@@ -78,7 +79,7 @@ impl TextEditor {
         let padding    = default();
         let position   = zero();
         let size       = Vector2::new(screen.width, screen.height / 2.0);
-        let black      = Vector4::new(0.0,0.0,0.0,1.0);
+        let black      = color::Rgba::new(0.0,0.0,0.0,1.0);
         let base_color = black;
         let text_size  = 16.0;
         let properties = TextFieldProperties {font,text_size,base_color,size};

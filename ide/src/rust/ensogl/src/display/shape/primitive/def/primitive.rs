@@ -8,6 +8,7 @@ use crate::prelude::*;
 
 use inflector::Inflector;
 
+use crate::display::shape::primitive::def::class::AnyShape;
 use crate::display::shape::primitive::def::class::ShapeRef;
 use crate::display::shape::primitive::shader::canvas::Canvas;
 use crate::display::shape::primitive::shader::canvas;
@@ -54,14 +55,14 @@ pub trait GlslShapeDefinition {
 /// containing all shapes definitions in one place.
 
 macro_rules! define_sdf_shapes {
-    ( $($name:ident $args:tt $body:tt)* ) => {
+    ( $( $(#$meta:tt)* $name:ident $args:tt $body:tt )* ) => {
 
         /// Contains mutable shapes definitions.
         pub mod mutable {
             use super::*;
             $(_define_sdf_shape_mutable_part! {$name $args $body} )*
         }
-        $(_define_sdf_shape_immutable_part! {$name $args $body} )*
+        $(_define_sdf_shape_immutable_part! {$(#$meta)* $name $args $body} )*
 
         /// GLSL definition of all shapes.
         pub fn all_shapes_glsl_definitions() -> String {
@@ -72,12 +73,14 @@ macro_rules! define_sdf_shapes {
 
 /// See the docs of `define_sdf_shapes`.
 macro_rules! _define_sdf_shape_immutable_part {
-    ( $name:ident ( $($field:ident : $field_type:ty),* $(,)? ) $body:tt ) => {
+    ( $(#$meta:tt)* $name:ident ( $($field:ident : $field_type:ty),* $(,)? ) $body:tt ) => {
 
         /// Smart shape type.
+        $(#$meta)*
         pub type $name = ShapeRef<mutable::$name>;
 
         /// Smart shape constructor.
+        $(#$meta)*
         pub fn $name <$($field:Into<Var<$field_type>>),*> ( $($field : $field),* ) -> $name {
             ShapeRef::new(mutable::$name::new($($field),*))
         }
@@ -102,6 +105,18 @@ macro_rules! _define_sdf_shape_immutable_part {
         }
 
         impl AsOwned for $name { type Owned = $name; }
+
+        impl From<$name> for AnyShape {
+            fn from(t:$name) -> Self {
+                Self::new(t)
+            }
+        }
+
+        impl From<&$name> for AnyShape {
+            fn from(t:&$name) -> Self {
+                Self::new(t.clone())
+            }
+        }
 
         impl $name {$(
             /// Field accessor.
@@ -154,9 +169,34 @@ define_sdf_shapes! {
         return bound_sdf(position.y, bounding_box(0.0,0.0));
     }
 
+    /// Cuts the provided angle from a plane. The angle faces upwards, so the angle of PI is equal
+    /// to the upper half-plane. Negative values and values over 2*PI will cause the shape to flip
+    /// vertically. In case you want a more consistent behavior, use the slightly less efficient
+    /// `PlaneAngle` instead.
+    BottomHalfPlane () {
+        return bound_sdf(-position.y, bounding_box(0.0,0.0));
+    }
+
+    /// Cuts the provided angle from a plane. The angle faces upwards, so the angle of PI is equal
+    /// to the upper half-plane. Negative angle values are displayed the same was as positive ones.
+    /// In case the angle is bigger than 2*PI, the overlapping part of the angle would be treated as
+    /// angle subtraction, so 3*PI is upper half-plane, and angle of 4*PI gives the same result as
+    /// the angle of 0. In case you do not need such behavior, you can use slightly more efficient
+    /// `PlaneAngleFast` instead.
     PlaneAngle (angle:Angle<Radians>) {
+        float pi_2       = 2.0 * PI;
+        float angle_norm = value(angle) / pi_2;
+              angle_norm = abs(mod(angle_norm,2.0)-1.0);
+        float angle_rad  = angle_norm * pi_2;
+        float off        = angle_norm - 0.5; // Fixes artifacts with 0 and 360 degrees.
+        float distance   = abs(position).x*cos(angle_rad/2.0) - position.y*sin(angle_rad/2.0) - off;
+        return bound_sdf(distance,bounding_box(0.0,0.0));
+    }
+
+    PlaneAngleFast (angle:Angle<Radians>) {
         float v_angle  = value(angle);
-        float distance = abs(position).x*cos(v_angle/2.0) + -position.y*sin(v_angle/2.0) + 0.5;
+        float off      = 0.5; // Fixes artifacts with 0 degrees.
+        float distance = abs(position).x*cos(v_angle/2.0) - position.y*sin(v_angle/2.0) + off;
         return bound_sdf(distance,bounding_box(0.0,0.0));
     }
 
@@ -239,6 +279,11 @@ impl Plane {
     /// Cuts angle from the plane.
     pub fn cut_angle<T:Into<Var<Angle<Radians>>>>(&self, t:T) -> PlaneAngle {
         PlaneAngle(t)
+    }
+
+    /// Cuts angle from the plane.
+    pub fn cut_angle_fast<T:Into<Var<Angle<Radians>>>>(&self, t:T) -> PlaneAngleFast {
+        PlaneAngleFast(t)
     }
 }
 

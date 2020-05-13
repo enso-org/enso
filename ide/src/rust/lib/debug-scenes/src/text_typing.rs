@@ -4,13 +4,13 @@ use wasm_bindgen::prelude::*;
 
 use ensogl::traits::*;
 
+use ensogl::data::color;
 use ensogl::display::shape::text::glyph::font::FontRegistry;
 use ensogl::display::shape::text::text_field::TextField;
 use ensogl::display::shape::text::text_field::TextFieldProperties;
 use ensogl::display::world::*;
 use ensogl::system::web;
 use nalgebra::Vector2;
-use nalgebra::Vector4;
 
 
 #[wasm_bindgen]
@@ -26,7 +26,7 @@ pub fn run_example_text_typing() {
         let properties = TextFieldProperties {
             font,
             text_size  : 16.0,
-            base_color : Vector4::new(0.0, 0.0, 0.0, 1.0),
+            base_color : color::Rgba::new(0.0, 0.0, 0.0, 1.0),
             size       : Vector2::new(200.0, 200.0)
         };
 

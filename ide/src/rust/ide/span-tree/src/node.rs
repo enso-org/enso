@@ -39,6 +39,16 @@ pub enum Kind {
     Empty(InsertType),
 }
 
+impl Kind {
+    /// Match the value with `Kind::Empty{..}`.
+    pub fn is_empty(self) -> bool {
+        match self {
+            Self::Empty(_) => true,
+            _              => false
+        }
+    }
+}
+
 /// A helpful information about how the new AST should be inserted during Set action. See `action`
 /// module.
 #[allow(missing_docs)]
@@ -97,10 +107,7 @@ impl Node {
 
     /// Is this node empty?
     pub fn is_empty(&self) -> bool {
-        match self.kind {
-            Kind::Empty(_) => true,
-            _              => false,
-        }
+        self.kind.is_empty()
     }
 }
 
@@ -119,6 +126,9 @@ pub struct Child {
 
 // === Node Reference ===
 
+/// Crumbs specifying this node position related to root.
+pub type Crumbs = Vec<Crumb>;
+
 /// A reference to node inside some specific tree.
 #[derive(Clone,Debug)]
 pub struct Ref<'a> {
@@ -126,7 +136,7 @@ pub struct Ref<'a> {
     pub node       : &'a Node,
     /// Span begin being an index counted from the root expression.
     pub span_begin : Index,
-    /// Crumbs specifying this node position related to root. See `Crumbs` docs.
+    /// Crumbs specifying this node position related to root.
     pub crumbs     : Vec<Crumb>,
     /// Ast crumbs locating associated AST node, related to the root's AST node.
     pub ast_crumbs : ast::Crumbs,
@@ -226,6 +236,13 @@ impl<'a> Ref<'a> {
                 ch.span().contains_span(span).and_option_from(|| ch.find_by_span(&span))
             )
         }
+    }
+}
+
+impl<'a> Deref for Ref<'a> {
+    type Target = Node;
+    fn deref(&self) -> &Self::Target {
+        &self.node
     }
 }
 

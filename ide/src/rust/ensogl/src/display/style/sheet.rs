@@ -713,13 +713,10 @@ pub struct Var {
 /// Internal state of `Var`.
 #[derive(Debug)]
 pub struct VarData {
-    sheet    : Sheet,
-    query_index  : Index<Query>,
-    callbacks : CallbackRegistry,
+    sheet       : Sheet,
+    query_index : Index<Query>,
+    callbacks   : CallbackRegistry,
 }
-
-/// Type of callback used to notify about `Var` value change.
-pub trait VarChangeCallback = 'static + FnMut(&Option<Data>);
 
 impl VarData {
     /// Constructor.
@@ -732,7 +729,8 @@ impl VarData {
 
     /// Adds a new callback used when value changes. Returns handle to the callback. As soon as the
     /// handle is dropped, the callback is removed.
-    pub fn on_change<F:VarChangeCallback>(&self, callback:F) -> callback::Handle {
+    pub fn on_change<F>(&self, callback:F) -> callback::Handle
+    where F:'static+FnMut(&Option<Data>) {
         self.callbacks.add(callback)
     }
 

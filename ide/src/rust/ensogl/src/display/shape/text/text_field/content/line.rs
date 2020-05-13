@@ -152,16 +152,14 @@ impl<'a> LineFullInfo<'a> {
         let new_len        = index + 1;
         let from_index     = self.char_x_positions.len().saturating_sub(1);
         let to_fill        = new_len.saturating_sub(self.char_x_positions.len());
-        let y_position     = baseline_start.y;
         let x_position     = self.char_x_positions.last().cloned().unwrap_or(baseline_start.x);
-        let start_from     = Vector2::new(x_position,y_position);
         let line           = &mut self.line;
         let chars          = line.chars[from_index..].iter().cloned();
         let to_skip        = if line.char_x_positions.is_empty() {0} else {1};
-        let pen            = PenIterator::new(start_from,self.height,chars,self.font.clone_ref());
+        let pen            = PenIterator::new(self.height,chars,self.font.clone_ref());
 
-        for (_,position) in pen.skip(to_skip).take(to_fill) {
-            line.char_x_positions.push(position.x);
+        for (_,x_offset) in pen.skip(to_skip).take(to_fill) {
+            line.char_x_positions.push(x_position + x_offset);
         }
     }
 

@@ -60,7 +60,7 @@ impl GraphEditorIntegration {
                     entry.get().set_position(Self::pos_to_vec3(pos));
                 },
                 Vacant(entry)   => {
-                    let node = self.editor.add_node().upgrade().unwrap();
+                    let node = self.editor.deprecated_add_node().upgrade().unwrap();
                     node.set_position(position.map_or_else(default_pos,Self::pos_to_vec3));
                     entry.insert(node.clone_ref());
                     self.node_to_id.borrow_mut().insert(node,id);
@@ -94,8 +94,8 @@ impl GraphEditorIntegration {
                 let val = val.unchecked_into::<web_sys::KeyboardEvent>();
                 let key = val.key();
                 if key == "Backspace" && val.ctrl_key() {
-                    this.editor.nodes.selected.for_each(|node| {
-                        let id = this.node_to_id.borrow().get(&node.id()).cloned();
+                    this.editor.nodes.selected.for_each(|node_id| {
+                        let id = this.node_to_id.borrow().get(&node_id.0).cloned(); // FIXME .0
                         if let Some(id) = id {
                             if let Err(err) = this.controller.remove_node(id) {
                                 this.logger.error(|| format!("ERR: {:?}", err));
@@ -112,15 +112,15 @@ impl GraphEditorIntegration {
 
     fn setup_mouse_event_handling(this:&Rc<Self>) {
         let weak = Rc::downgrade(this);
-        this.editor.frp.network.map("module_update", &this.editor.frp.node_release, move |node| {
-            let node = node.as_ref().and_then(|n| n.upgrade());
+        let editor = this.editor.clone_ref();
+        this.editor.network.map("module_update", &this.editor.frp.node_release, move |node_id| {
+            let node_pos = editor.get_node_position(*node_id);
             let this = weak.upgrade();
-            if let Some((node,this)) = node.and_then(|n| this.map(|t| (n,t))) {
-                let id = this.node_to_id.borrow().get(&node.id()).cloned();
+            if let Some((node_pos,this)) = node_pos.and_then(|n| this.map(|t| (n,t))) {
+                let id = this.node_to_id.borrow().get(&node_id.0).cloned(); // FIXME .0
                 if let Some(id) = id {
                     this.controller.module.with_node_metadata(id, |md| {
-                        let pos = node.position();
-                        md.position = Some(model::module::Position::new(pos.x, pos.y));
+                        md.position = Some(model::module::Position::new(node_pos.x, node_pos.y));
                     })
                 }
             }
@@ -131,7 +131,7 @@ impl GraphEditorIntegration {
     fn retain_ids(&self, ids:&HashSet<ast::Id>) {
         for (id,node) in self.id_to_node.borrow().iter() {
             if !ids.contains(id) {
-                self.editor.remove_node(node.downgrade())
+                self.editor.deprecated_remove_node(node.downgrade())
             }
         }
     }

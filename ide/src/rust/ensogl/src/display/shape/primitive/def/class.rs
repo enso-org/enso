@@ -9,7 +9,7 @@ use crate::display::shape::primitive::shader::canvas;
 use crate::display::shape::primitive::shader::canvas::Canvas;
 use crate::display::shape::primitive::def::var::Var;
 use crate::system::gpu::types::*;
-use crate::data::color::*;
+use crate::data::color;
 
 
 
@@ -22,7 +22,7 @@ pub trait Shape = 'static + canvas::Draw;
 
 /// Generic 2d shape representation. You can convert any specific shape type to this type and use it
 /// as a generic shape type.
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,CloneRef)]
 pub struct AnyShape {
     rc: Rc<dyn canvas::Draw>
 }
@@ -43,8 +43,6 @@ impl canvas::Draw for AnyShape {
         self.rc.draw(canvas)
     }
 }
-
-impls! { From<&AnyShape> for AnyShape { |t| t.clone() }}
 
 
 
@@ -141,7 +139,7 @@ pub trait ShapeOps : Sized where for<'t> &'t Self : IntoOwned<Owned=Self> {
     }
 
     /// Fill the shape with the provided color.
-    fn fill<Color:Into<Var<Srgba>>>(&self, color:Color) -> Fill<Self> {
+    fn fill<Color:Into<Var<color::Rgba>>>(&self, color:Color) -> Fill<Self> {
         Fill(self,color)
     }
 

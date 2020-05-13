@@ -3,12 +3,14 @@
 
 use crate::prelude::*;
 
-use ensogl::display;
-use ensogl::display::shape::text::text_field::{TextField, TextFieldProperties};
-use ensogl::traits::*;
 use crate::controller::graph::{NewNodeInfo, LocationHint};
-use ensogl::display::world::World;
+use ensogl::data::color;
 use ensogl::display::shape::text::glyph::font::FontRegistry;
+use ensogl::display::shape::text::text_field::{TextField, TextFieldProperties};
+use ensogl::display::world::World;
+use ensogl::display;
+use ensogl::traits::*;
+
 
 #[derive(Clone,Debug)]
 pub struct NodeSearcher {
@@ -30,7 +32,7 @@ impl NodeSearcher {
         let properties     = TextFieldProperties {
             font           : fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap(),
             text_size      : 16.0,
-            base_color     : Vector4::new(0.0,0.0,0.0,1.0),
+            base_color     : color::Rgba::new(0.0,0.0,0.0,1.0),
             size           : Vector2::new(screen.width,16.0),
         };
         let text_field     = TextField::new(world,properties);

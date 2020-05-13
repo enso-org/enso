@@ -170,6 +170,12 @@ impl DomScene {
 
     /// Creates a new instance of DomSymbol and adds it to parent.
     pub fn manage(&self, object:&DomSymbol) {
+        let dom  = object.dom();
+        let data = &self.data;
+        object.display_object().set_on_hide(f!((dom) dom.remove()));
+        object.display_object().set_on_show(f!((data,dom) {
+            data.view_projection_dom.append_or_panic(&dom)
+        }));
         self.data.view_projection_dom.append_or_panic(&object.dom());
     }
 

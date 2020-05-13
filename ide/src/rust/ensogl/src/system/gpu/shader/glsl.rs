@@ -6,7 +6,7 @@
 use crate::prelude::*;
 
 use crate::system::gpu::data::buffer::item::MatrixCtx;
-use crate::data::color::*;
+use crate::data::color;
 
 use code_builder::CodeBuilder;
 use code_builder::HasCodeRepr;
@@ -133,19 +133,19 @@ impls! { [T,R,C] From + &From <MatrixMN<T,R,C>> for Glsl
 
 // === From Colors to Glsl ===
 
-impls! { From + &From <Rgb<encoding::Srgb>> for Glsl {
+impls! { From + &From <color::Rgb> for Glsl {
     |t| iformat!("srgb({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()})").into()
 } }
 
-impls! { From + &From <Rgba<encoding::Srgb>> for Glsl {
+impls! { From + &From <color::Rgba> for Glsl {
     |t| iformat!("srgba({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()},{t.alpha.glsl()})").into()
 } }
 
-impls! { From + &From <Rgb<encoding::Linear<encoding::Srgb>>> for Glsl {
+impls! { From + &From <color::LinearRgb> for Glsl {
     |t| iformat!("rgb({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()})").into()
 } }
 
-impls! { From + &From <Rgba<encoding::Linear<encoding::Srgb>>> for Glsl {
+impls! { From + &From <color::LinearRgba> for Glsl {
     |t| iformat!("rgba({t.red.glsl()},{t.green.glsl()},{t.blue.glsl()},{t.alpha.glsl()})").into()
 } }
 

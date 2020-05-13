@@ -1,0 +1,9 @@
+[package]
+name    = "enso-generics"
+version = "0.1.0"
+authors = ["Enso Team <contact@luna-lang.org>"]
+edition = "2018"
+
+[lib]
+
+[dependencies]

@@ -5,6 +5,7 @@ pub mod selection;
 
 use crate::prelude::*;
 
+use crate::data::color;
 use crate::display;
 use crate::display::object::traits::*;
 use crate::display::shape::text::glyph::font::FontHandle;
@@ -78,9 +79,9 @@ impl TextFieldSprites {
         let window_size       = properties.size;
         let color             = properties.base_color;
         let selection_system  = Self::create_selection_system(world);
-        let cursor_system     = Self::create_cursor_system(world,line_height,&color);
+        let cursor_system     = Self::create_cursor_system(world,line_height,color);
         let cursors           = Vec::new();
-        let mut glyph_system  = GlyphSystem::new(world,font.clone_ref());
+        let glyph_system      = GlyphSystem::new(world,font.clone_ref());
         let display_object    = display::object::Instance::new(Logger::new("RenderedContent"));
         display_object.add_child(&selection_system);
         display_object.add_child(&glyph_system);
@@ -89,21 +90,24 @@ impl TextFieldSprites {
         let assignment        = Self::create_assignment_structure(window_size,line_height,font);
         let glyph_lines_count = assignment.glyph_lines_count();
         let length            = assignment.max_glyphs_in_line;
-        let bsl_start         = Vector2::new(0.0, 0.0);
-
         let indexes     = 0..glyph_lines_count;
         let glyph_lines = indexes.map(|_| {
-            glyph_system.new_empty_line(bsl_start,line_height,length,color)
+            let line = glyph_system.new_line();
+            line.set_font_size(line_height);
+            line.set_font_color(color);
+            line.set_fixed_capacity(length);
+            display_object.add_child(&line);
+            line
         }).collect();
         TextFieldSprites {glyph_system,cursor_system,selection_system,glyph_lines,cursors,
             line_height,display_object,assignment}
     }
 
-    fn create_cursor_system(world:&World,line_height:f32,color:&Vector4<f32>) -> ShapeSystem {
+    fn create_cursor_system(world:&World,line_height:f32,color:color::Rgba) -> ShapeSystem {
         const WIDTH:f32         = 2.0;
         const COLOR_HIDDEN:&str = "vec4(0.0,0.0,0.0,0.0)";
         let color_glsl:Glsl     = color.into();
-        let color_function      = format!("fract(input_time / 1000.0) < 0.5 ? {} : {}",
+        let color_function      = format!("fract(input_time / 1000.0) < 0.5 ? {}.raw : {}",
             color_glsl,COLOR_HIDDEN);
         let cursor_definition     = Rect(Vector2::new(WIDTH.px(),line_height.px()));
         let cursor_definition     = cursor_definition.fill(color_function);
@@ -156,7 +160,7 @@ impl TextFieldSprites {
             if is_glyph_line_dirty || is_line_dirty {
                 match assignment {
                     Some(fragment) => Self::update_glyph_line(glyph_line,fragment,content),
-                    None           => glyph_line.replace_text("".chars()),
+                    None           => glyph_line.set_text(""),
                 }
             }
         }
@@ -184,11 +188,12 @@ impl TextFieldSprites {
 
     fn update_glyph_line
     (glyph_line:&mut GlyphLine, fragment:&LineFragment, content:&mut TextFieldContent) {
-        let bsl_start     = Self::baseline_start_for_fragment(fragment,content);
-        let line          = &content.lines()[fragment.line_index];
-        let chars         = &line.chars()[fragment.chars_range.clone()];
-        glyph_line.set_baseline_start(bsl_start);
-        glyph_line.replace_text(chars.iter().cloned());
+        let bsl_start       = Self::baseline_start_for_fragment(fragment,content);
+        let line            = &content.lines()[fragment.line_index];
+        let chars           = &line.chars()[fragment.chars_range.clone()];
+        let string : String = chars.iter().collect();
+        glyph_line.set_position(Vector3::new(bsl_start.x,bsl_start.y,0.0));
+        glyph_line.set_text(string);
     }
 
     /// The baseline start for given line's fragment.

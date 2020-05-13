@@ -34,18 +34,23 @@ use crate::system::gpu::data::buffer::item::Storable;
 #[derive(Clone,CloneRef,Debug,Shrinkwrap)]
 pub struct ShapeSystem {
     #[shrinkwrap(main_field)]
-    pub sprite_system : SpriteSystem,
-    pub material      : Rc<RefCell<Material>>,
+    pub sprite_system  : SpriteSystem,
+    pub shape          : Rc<RefCell<def::AnyShape>>,
+    pub material       : Rc<RefCell<Material>>,
+    pub pointer_events : Rc<Cell<bool>>,
 }
 
 impl ShapeSystem {
     /// Constructor.
-    pub fn new<'t,S,Sh:def::Shape>(scene:S, shape:&Sh) -> Self
-    where S : Into<&'t Scene> {
-        let sprite_system = SpriteSystem::new(scene);
-        let material      = Rc::new(RefCell::new(Self::surface_material()));
-        let this          = Self {sprite_system,material};
-        this.set_shape(shape);
+    pub fn new<'t,S,Sh>(scene:S, shape:Sh) -> Self
+    where S:Into<&'t Scene>, Sh:Into<def::AnyShape> {
+        let shape          = shape.into();
+        let sprite_system  = SpriteSystem::new(scene);
+        let material       = Rc::new(RefCell::new(Self::surface_material()));
+        let pointer_events = Rc::new(Cell::new(true));
+        let shape          = Rc::new(RefCell::new(shape));
+        let this           = Self {sprite_system,material,pointer_events,shape};
+        this.reload_shape();
         this
     }
 
@@ -64,9 +69,25 @@ impl ShapeSystem {
         material
     }
 
+    /// Enables or disables pointer events on this shape system. All shapes of a shape system which
+    /// has pointer events disabled would be completely transparent for the mouse (they would pass
+    /// through all mouse events).
+    pub fn set_pointer_events(&self, val:bool) {
+        self.pointer_events.set(val);
+        self.reload_shape();
+    }
+
     /// Replaces the shape definition.
-    pub fn set_shape<S:def::Shape>(&self, shape:&S) {
-        let code = shader::builder::Builder::run(shape);
+    pub fn set_shape<S:Into<def::AnyShape>>(&self, shape:S) {
+        let shape = shape.into();
+        *self.shape.borrow_mut() = shape;
+        self.reload_shape();
+    }
+
+    /// Generates the shape again. It is used after some parameters are changed, like setting new
+    /// `pointer_events` value.
+    fn reload_shape(&self) {
+        let code = shader::builder::Builder::run(&*self.shape.borrow(),self.pointer_events.get());
         self.material.borrow_mut().set_code(code);
         self.reload_material();
     }
@@ -117,11 +138,11 @@ pub trait ShapeSystemInstance : 'static + CloneRef {
 
 /// Type for every shape with automatic attribute management. The easiest way to define such a
 /// shape is by using the `define_shape_system` macro.
-pub trait Shape : display::Object + Debug + Sized {
+pub trait Shape : display::Object + CloneRef + Debug + Sized {
     /// The shape system instance this shape belongs to.
     type System : ShapeSystemInstance<Shape=Self>;
-    /// Accessor for the underlying sprite object.
-    fn sprite(&self) -> &Sprite;
+    /// Accessor for the underlying sprites.
+    fn sprites(&self) -> Vec<&Sprite>;
 }
 
 /// Accessor for the `Shape::System` associated type.
@@ -191,6 +212,10 @@ impl StyleWatch {
 /// the required buffer handlers.
 #[macro_export]
 macro_rules! define_shape_system {
+    ( ($style:ident : Style $(,)?) {$($body:tt)*} ) => {
+        $crate::_define_shape_system! { [$style] (){$($body)*} }
+    };
+
     ( ($style:ident : Style, $($gpu_param : ident : $gpu_param_type : ty),* $(,)?) {$($body:tt)*} ) => {
         $crate::_define_shape_system! { [$style] ($($gpu_param : $gpu_param_type),*){$($body)*} }
     };
@@ -214,7 +239,7 @@ macro_rules! _define_shape_system {
         // =============
 
         /// Shape definition.
-        #[derive(Clone,Debug)]
+        #[derive(Clone,CloneRef,Debug)]
         #[allow(missing_docs)]
         pub struct Shape {
             pub sprite : Sprite,
@@ -223,8 +248,8 @@ macro_rules! _define_shape_system {
 
         impl $crate::display::shape::system::Shape for Shape {
             type System = ShapeSystem;
-            fn sprite(&self) -> &Sprite {
-                &self.sprite
+            fn sprites(&self) -> Vec<&Sprite> {
+                vec![&self.sprite]
             }
         }
 

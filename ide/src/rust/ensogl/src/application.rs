@@ -10,6 +10,8 @@ use crate::prelude::*;
 
 use crate::display;
 use crate::display::world::World;
+use crate::display::style::theme;
+
 
 
 // ===================
@@ -26,6 +28,7 @@ pub struct Application {
     pub commands  : command::Registry,
     pub shortcuts : shortcut::Registry,
     pub views     : view::Registry,
+    pub themes    : theme::Manager,
 }
 
 impl Application {
@@ -36,7 +39,8 @@ impl Application {
         let commands  = command::Registry::create(&logger);
         let shortcuts = shortcut::Registry::new(&logger, &commands);
         let views     = view::Registry::create(&logger,&display,&commands,&shortcuts);
-        Self {logger,display,commands,shortcuts,views}
+        let themes    = theme::Manager::from(&display.scene().style_sheet);
+        Self {logger,display,commands,shortcuts,views,themes}
     }
 }
 

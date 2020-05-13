@@ -127,13 +127,34 @@ gen_abs!([f32,f64,i32,i64]);
 
 
 
+// ===========
+// === Pow ===
+// ===========
+
+/// Types which can be raised to the given power.
+#[allow(missing_docs)]
+pub trait Pow<T=Self> {
+    type Output;
+    fn pow(self, t:T) -> Self::Output;
+}
+
+impl Pow<f32> for f32 {
+    type Output = f32;
+    fn pow(self, t:f32) -> Self::Output {
+        self.powf(t)
+    }
+}
+
+
+
+
 // =================
 // === Magnitude ===
 // =================
 
 /// Types which have magnitude value.
+#[allow(missing_docs)]
 pub trait Magnitude {
-    /// Magnitude of the value.
     fn magnitude(&self) -> f32;
 }
 
@@ -145,6 +166,92 @@ impl Magnitude for f32 {
         self.abs()
     }
 }
+
+
+// ==============
+// === Signum ===
+// ==============
+
+/// Computes the signum of the value. Returns +1 if its positive, -1 if its negative, 0 if its zero.
+/// It can also return other values for specific types like `NaN` for `NaN`.
+#[allow(missing_docs)]
+pub trait Signum {
+    type Output;
+    fn signum(self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Signum for f32 {
+    type Output = f32;
+    fn signum(self) -> f32 {
+        f32::signum(self)
+    }
+}
+
+
+// =============
+// === Clamp ===
+// =============
+
+/// Clamps the value to [min..max] range.
+#[allow(missing_docs)]
+pub trait Clamp {
+    type Output;
+    fn clamp(self, min:Self, max:Self) -> Self::Output;
+}
+
+
+// === Impls ===
+
+impl Clamp for f32 {
+    type Output = f32;
+    fn clamp(self, min:f32, max:f32) -> f32 {
+        self.clamp(min,max)
+    }
+}
+
+
+
+// =============
+// === Min ===
+// =============
+
+#[allow(missing_docs)]
+pub trait Min {
+    fn min(self, other:Self) -> Self;
+}
+
+
+// === Impls ===
+
+impl Min for f32 {
+    fn min(self, other:Self) -> Self {
+        self.min(other)
+    }
+}
+
+
+
+// =============
+// === Max ===
+// =============
+
+#[allow(missing_docs)]
+pub trait Max {
+    fn max(self, other:Self) -> Self;
+}
+
+
+// === Impls ===
+
+impl Max for f32 {
+    fn max(self, other:Self) -> Self {
+        self.max(other)
+    }
+}
+
 
 
 
@@ -241,7 +348,7 @@ impl Sin for f32 {
 
 // =============
 // === Asine ===
-// ==============
+// =============
 
 /// Types from which a asin can be calculated
 pub trait Asin {

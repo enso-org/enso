@@ -284,6 +284,7 @@ impl<'a,'b> GlyphLinesAssignmentUpdate<'a,'b> {
 mod tests {
     use super::*;
 
+    use crate::data::color;
     use crate::display::shape::text::glyph::font::FontRenderInfo;
     use crate::display::shape::text::glyph::font::FontHandle;
     use crate::display::shape::text::text_field::content::TextFieldContent;
@@ -297,7 +298,7 @@ mod tests {
         TextFieldProperties {
             font       : mock_font(),
             text_size  : 10.0,
-            base_color : Vector4::new(0.0,0.0,0.0,1.0),
+            base_color : color::Rgba::new(0.0,0.0,0.0,1.0),
             size       : Vector2::new(20.0,35.0),
         }
     }
