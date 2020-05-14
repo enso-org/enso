@@ -474,7 +474,7 @@ impl Node {
         let visualization_container = visualization::Container::new();
         visualization_container.mod_position(|t| {
             t.x = 60.0;
-            t.y = -60.0;
+            t.y = -120.0;
         });
 
         display_object.add_child(&visualization_container);
