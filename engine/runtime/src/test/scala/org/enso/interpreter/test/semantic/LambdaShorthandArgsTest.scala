@@ -127,11 +127,11 @@ class LambdaShorthandArgsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    f = (- _)
+        |    f = (+ _)
         |    f 10 5
         |""".stripMargin
 
-    eval(code) shouldEqual -5
+    eval(code) shouldEqual 15
   }
 
   subject should "work properly with vector literals" in {

@@ -21,6 +21,7 @@ import org.enso.interpreter.node.expression.builtin.number.AddNode;
 import org.enso.interpreter.node.expression.builtin.number.DivideNode;
 import org.enso.interpreter.node.expression.builtin.number.ModNode;
 import org.enso.interpreter.node.expression.builtin.number.MultiplyNode;
+import org.enso.interpreter.node.expression.builtin.number.NegateNode;
 import org.enso.interpreter.node.expression.builtin.number.SubtractNode;
 import org.enso.interpreter.node.expression.builtin.state.GetStateNode;
 import org.enso.interpreter.node.expression.builtin.state.PutStateNode;
@@ -133,6 +134,7 @@ public class Builtins {
     scope.registerMethod(number, "*", MultiplyNode.makeFunction(language));
     scope.registerMethod(number, "/", DivideNode.makeFunction(language));
     scope.registerMethod(number, "%", ModNode.makeFunction(language));
+    scope.registerMethod(number, "negate", NegateNode.makeFunction(language));
 
     scope.registerMethod(state, "get", GetStateNode.makeFunction(language));
     scope.registerMethod(state, "put", PutStateNode.makeFunction(language));

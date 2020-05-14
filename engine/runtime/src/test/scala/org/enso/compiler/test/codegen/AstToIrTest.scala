@@ -3,6 +3,8 @@ package org.enso.compiler.test.codegen
 import org.enso.compiler.core.IR
 import org.enso.compiler.test.CompilerTest
 
+import scala.annotation.unused
+
 class AstToIrTest extends CompilerTest {
 
   "AST translation of lambda definitions" should {
@@ -197,6 +199,44 @@ class AstToIrTest extends CompilerTest {
       val binding = ir.asInstanceOf[IR.Expression.Binding]
 
       binding.name shouldBe an[IR.Name.Blank]
+    }
+  }
+
+  "AST translation of unary minus" should {
+    "work when parenthesised" in {
+      val ir =
+        """
+          |(-1)
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Literal.Number]
+      ir.asInstanceOf[IR.Literal.Number].value shouldEqual "-1"
+    }
+
+    "work when not parenthesised" in {
+      val ir =
+        """
+          |-100
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Literal.Number]
+      ir.asInstanceOf[IR.Literal.Number].value shouldEqual "-100"
+    }
+
+    "work on non-literals" in {
+      val ir =
+        """
+          |-foo
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Application.Prefix]
+
+      val fn = ir.asInstanceOf[IR.Application.Prefix]
+      fn.function shouldEqual IR.Name.Literal("negate", None)
+
+      val fooArg = fn.arguments.head.asInstanceOf[IR.CallArgument.Specified]
+      fooArg.value shouldBe an[IR.Name.Literal]
+      fooArg.value.asInstanceOf[IR.Name.Literal].name shouldEqual "foo"
     }
   }
 }

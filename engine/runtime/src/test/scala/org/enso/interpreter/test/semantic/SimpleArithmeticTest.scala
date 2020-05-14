@@ -22,4 +22,23 @@ class SimpleArithmeticTest extends InterpreterTest {
   "2 * 2 / 2" should "equal 2" in {
     eval("main = 2 * 2 / 2") shouldEqual 2
   }
+
+  "-1" should "equal -1" in {
+    eval("main = -1") shouldEqual -1
+  }
+
+  "1 + -1" should "equal 0" in {
+    eval("main = 1 + -1") shouldEqual 0
+  }
+
+  "negation of expressions" should "work" in {
+    val code =
+      """
+        |main =
+        |    expr = (10 * 3+2) - 1
+        |    -expr
+        |""".stripMargin
+
+    eval(code) shouldEqual -49
+  }
 }

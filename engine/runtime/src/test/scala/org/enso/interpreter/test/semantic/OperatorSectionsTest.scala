@@ -30,10 +30,10 @@ class OperatorSectionsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    f = (- 10)
-        |    f 5
+        |    f = (/ 10)
+        |    f 20
         |""".stripMargin
 
-    eval(code) shouldEqual -5
+    eval(code) shouldEqual 2
   }
 }

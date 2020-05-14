@@ -8,23 +8,23 @@ import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
 import org.enso.syntax.text.AST
 
+import scala.annotation.tailrec
+
 /**
   * This file contains the functionality that translates from the parser's
   * [[AST]] type to the internal representation used by the compiler.
   *
-  * This representation is currently [[Expression]], but this will change as
-  * [[Core]] becomes implemented. Most function docs will refer to [[Core]]
-  * now, as this will become true soon.
+  * The current internal representation is [[IR]].
   */
 object AstToIr {
   private def getIdentifiedLocation(ast: AST): Option[IdentifiedLocation] =
     ast.location.map(IdentifiedLocation(_, ast.id))
 
   /** Translates a program represented in the parser [[AST]] to the compiler's
-    * [[Core]] internal representation.
+    * [[IR]].
     *
     * @param inputAST the [[AST]] representing the program to translate
-    * @return the [[Core]] representation of `inputAST`
+    * @return the [[IR]] representation of `inputAST`
     */
   def translate(inputAST: AST): Module = {
     inputAST match {
@@ -35,14 +35,14 @@ object AstToIr {
   }
 
   /** Translates an inline program expression represented in the parser [[AST]]
-    * into the compiler's [[Core]] representation.
+    * into the compiler's [[IR]] representation.
     *
     * Inline expressions must _only_ be expressions, and may not contain any
     * type of definition.
     *
     * @param inputAST the [[AST]] representing the expression to translate.
-    * @return the [[Core]] representation of `inputAST` if it is valid,
-    *         otherwise [[None]]
+    * @return the [[IR]] representation of `inputAST` if it is valid, otherwise
+    *         [[None]]
     */
   def translateInline(inputAST: AST): Option[Expression] = {
     inputAST match {
@@ -71,14 +71,14 @@ object AstToIr {
     }
   }
 
-  /** Translate a top-level Enso module into [[Core]].
+  /** Translate a top-level Enso module into [[IR]].
     *
     * @param module the [[AST]] representation of the module to translate
-    * @return the [[Core]] representation of `module`
+    * @return the [[IR]] representation of `module`
     */
   def translateModule(module: AST.Module): Module = {
     module match {
-      case AST.Module(blocks) => {
+      case AST.Module(blocks) =>
         val presentBlocks = blocks.collect {
           case t if t.elem.isDefined => t.elem.get
         }
@@ -102,15 +102,14 @@ object AstToIr {
 
         val statements = nonImportBlocks.map(translateModuleSymbol)
         Module(imports, statements, getIdentifiedLocation(module))
-      }
     }
   }
 
   /** Translates a module-level definition from its [[AST]] representation into
-    * [[Core]].
+    * [[IR]].
     *
     * @param inputAST the definition to be translated
-    * @return the [[Core]] representation of `inputAST`
+    * @return the [[IR]] representation of `inputAST`
     */
   def translateModuleSymbol(inputAST: AST): Module.Scope.Definition = {
     inputAST match {
@@ -159,13 +158,39 @@ object AstToIr {
     }
   }
 
-  /** Translates an arbitrary program expression from [[AST]] into [[Core]].
+  /** Translates an arbitrary program expression from [[AST]] into [[IR]].
     *
-    * @param inputAST the expresion to be translated
-    * @return the [[Core]] representation of `inputAST`
+    * @param maybeParensedInput the expresion to be translated
+    * @return the [[IR]] representation of `inputAST`
     */
-  def translateExpression(inputAST: AST): Expression = {
+  def translateExpression(maybeParensedInput: AST): Expression = {
+    val inputAST = AstView.MaybeParensed
+      .unapply(maybeParensedInput)
+      .getOrElse(maybeParensedInput)
+
     inputAST match {
+      case AstView.UnaryMinus(expression) =>
+        expression match {
+          case AST.Literal.Number(base, number) =>
+            translateExpression(
+              AST.Literal
+                .Number(base, s"-$number")
+                .setLocation(inputAST.location)
+            )
+          case _ =>
+            IR.Application.Prefix(
+              IR.Name.Literal("negate", None),
+              List(
+                IR.CallArgument.Specified(
+                  None,
+                  translateExpression(expression),
+                  getIdentifiedLocation(expression)
+                )
+              ),
+              hasDefaultsSuspended = false,
+              getIdentifiedLocation(inputAST)
+            )
+        }
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
         Expression.Binding(
@@ -244,14 +269,14 @@ object AstToIr {
    */
 
   /** Translates a program literal from its [[AST]] representation into
-    * [[Core]].
+    * [[IR]].
     *
     * @param literal the literal to translate
-    * @return the [[Core]] representation of `literal`
+    * @return the [[IR]] representation of `literal`
     */
   def translateLiteral(literal: AST.Literal): Expression = {
     literal match {
-      case AST.Literal.Number(base, number) => {
+      case AST.Literal.Number(base, number) =>
         if (base.isDefined && base.get != "10") {
           Error.Syntax(
             literal,
@@ -260,7 +285,6 @@ object AstToIr {
         } else {
           Literal.Number(number, getIdentifiedLocation(literal))
         }
-      }
       case AST.Literal.Text.any(literal) =>
         literal.shape match {
           case AST.Literal.Text.Line.Raw(segments) =>
@@ -299,9 +323,9 @@ object AstToIr {
   }
 
   /**
-    * Translates a sequence literal into its [[Core]] counterpart.
+    * Translates a sequence literal into its [[IR]] counterpart.
     * @param literal the literal to translate
-    * @return the [[Core]] representation of `literal`
+    * @return the [[IR]] representation of `literal`
     */
   def translateSequenceLiteral(literal: AST.SequenceLiteral): Expression = {
     IR.Application.Literal.Sequence(
@@ -310,13 +334,13 @@ object AstToIr {
     )
   }
 
-  /** Translates an argument definition from [[AST]] into [[Core]].
+  /** Translates an argument definition from [[AST]] into [[IR]].
     *
     * @param arg the argument to translate
     * @param isSuspended `true` if the argument is suspended, otherwise `false`
-    * @return the [[Core]] representation of `arg`
+    * @return the [[IR]] representation of `arg`
     */
-  @scala.annotation.tailrec
+  @tailrec
   def translateArgumentDefinition(
     arg: AST,
     isSuspended: Boolean = false
@@ -366,10 +390,10 @@ object AstToIr {
   }
 
   /** Translates a call-site function argument from its [[AST]] representation
-    * into [[Core]].
+    * into [[IR]].
     *
     * @param arg the argument to translate
-    * @return the [[Core]] representation of `arg`
+    * @return the [[IR]] representation of `arg`
     */
   def translateCallArgument(arg: AST): CallArgument.Specified = arg match {
     case AstView.AssignedArgument(left, right) =>
@@ -407,10 +431,10 @@ object AstToIr {
   }
 
   /** Translates an arbitrary expression that takes the form of a syntactic
-    * application from its [[AST]] representation into [[Core]].
+    * application from its [[AST]] representation into [[IR]].
     *
     * @param callable the callable to translate
-    * @return the [[Core]] representation of `callable`
+    * @return the [[IR]] representation of `callable`
     */
   def translateApplicationLike(callable: AST): Expression = {
     callable match {
@@ -524,10 +548,10 @@ object AstToIr {
   }
 
   /** Translates an arbitrary program identifier from its [[AST]] representation
-    * into [[Core]].
+    * into [[IR]].
     *
     * @param identifier the identifier to translate
-    * @return the [[Core]] representation of `identifier`
+    * @return the [[IR]] representation of `identifier`
     */
   def translateIdent(identifier: AST.Ident): Expression = {
     identifier match {
@@ -559,12 +583,12 @@ object AstToIr {
   }
 
   /** Translates an arbitrary binding operation from its [[AST]] representation
-    * into [[Core]].
+    * into [[IR]].
     *
     * @param location the source location of the binding
     * @param name the name of the binding being assigned to
     * @param expr the expression being assigned to `name`
-    * @return the [[Core]] representation of `expr` being bound to `name`
+    * @return the [[IR]] representation of `expr` being bound to `name`
     */
   def translateBinding(
     location: Option[IdentifiedLocation],
@@ -582,10 +606,10 @@ object AstToIr {
   }
 
   /** Translates the branch of a case expression from its [[AST]] representation
-    * into [[Core]].
+    * into [[IR]].
     *
     * @param branch the case branch to translate
-    * @return the [[Core]] representation of `branch`
+    * @return the [[IR]] representation of `branch`
     */
   def translateCaseBranch(branch: AST): Case.Branch = {
     branch match {
@@ -606,10 +630,10 @@ object AstToIr {
   }
 
   /** Translates the fallback branch of a case expression from its [[AST]]
-    * representation into [[Core]].
+    * representation into [[IR]].
     *
     * @param branch the fallback branch to translate
-    * @return the [[Core]] representation of `branch`
+    * @return the [[IR]] representation of `branch`
     */
   def translateFallbackBranch(branch: AST): Function = {
     branch match {
@@ -625,12 +649,12 @@ object AstToIr {
   }
 
   /** Translates an arbitrary grouped piece of syntax from its [[AST]]
-    * representation into [[Core]].
+    * representation into [[IR]].
     *
     * It is currently an error to have an empty group.
     *
     * @param group the group to translate
-    * @return the [[Core]] representation of the contents of `group`
+    * @return the [[IR]] representation of the contents of `group`
     */
   def translateGroup(group: AST.Group): Expression = {
     group.body match {
@@ -640,10 +664,10 @@ object AstToIr {
   }
 
   /** Translates an import statement from its [[AST]] representation into
-    * [[Core]].
+    * [[IR]].
     *
     * @param imp the import to translate
-    * @return the [[Core]] representation of `imp`
+    * @return the [[IR]] representation of `imp`
     */
   def translateImport(imp: AST.Import): Module.Scope.Import.Module = {
     Module.Scope.Import.Module(
@@ -653,10 +677,10 @@ object AstToIr {
   }
 
   /** Translates an arbitrary invalid expression from the [[AST]] representation
-    * of the program into its [[Core]] representation.
+    * of the program into its [[IR]] representation.
     *
     * @param invalid the invalid entity to translate
-    * @return the [[Core]] representation of `invalid`
+    * @return the [[IR]] representation of `invalid`
     */
   def translateInvalid(invalid: AST.Invalid): Expression = {
     invalid match {
@@ -685,14 +709,14 @@ object AstToIr {
     }
   }
 
-  /** Translates a comment from its [[AST]] representation into its [[Core]]
+  /** Translates a comment from its [[AST]] representation into its [[IR]]
     * representation.
     *
     * Currently this only supports documentation comments, and not standarc
     * types of comments as they can't currently be represented.
     *
     * @param comment the comment to transform
-    * @return the [[Core]] representation of `comment`
+    * @return the [[IR]] representation of `comment`
     */
   def translateComment(comment: AST): Expression = {
     comment match {

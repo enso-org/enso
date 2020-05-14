@@ -184,4 +184,23 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(19, 7, classOf[ApplicationNode]) // 31 * 42
     eval(code)
   }
+
+  "Code locations" should "be correct for negated literals" in
+  withLocationsInstrumenter { instrumenter =>
+    val code = "main = (-1)"
+    instrumenter.assertNodeExists(8, 2, classOf[IntegerLiteralNode])
+    eval(code)
+  }
+
+  "Code locations" should "be correct for negated expressions" in
+  withLocationsInstrumenter { instrumenter =>
+    val code =
+      """
+        |main =
+        |    f = 1
+        |    -f
+        |""".stripMargin
+    instrumenter.assertNodeExists(22, 2, classOf[ApplicationNode])
+    eval(code)
+  }
 }

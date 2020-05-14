@@ -27,7 +27,7 @@ public abstract class NumberBinaryOpMethod extends BuiltinRootNode {
    * Executes this node.
    *
    * @param frame current execution frame
-   * @return the result of performing `op` on
+   * @return the result of performing `op` on the operands
    */
   @Override
   public final Stateful execute(VirtualFrame frame) {
