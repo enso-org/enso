@@ -147,6 +147,15 @@ object ContextRegistryProtocol {
   case class InvalidStackItemError(contextId: ContextId) extends Failure
 
   /**
+    * Signals execution of a context failed.
+    *
+    * @param contextId execution context identifier
+    * @param message the error message
+    */
+  case class ExecutionFailedError(contextId: ContextId, message: String)
+      extends Failure
+
+  /**
     * Requests the language server to attach a visualisation to the expression
     * specified by `expressionId`.
     *

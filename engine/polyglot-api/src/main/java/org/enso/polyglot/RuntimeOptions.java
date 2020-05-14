@@ -1,5 +1,6 @@
 package org.enso.polyglot;
 
+import java.util.logging.Level;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
@@ -18,8 +19,14 @@ public class RuntimeOptions {
   private static final OptionDescriptor STRICT_ERRORS_DESCRIPTOR =
       OptionDescriptor.newBuilder(STRICT_ERRORS_KEY, STRICT_ERRORS).build();
 
+  public static final String LOG_LEVEL = "log.level";
+  public static final OptionKey<String> LOG_LEVEL_KEY = new OptionKey<>(Level.INFO.toString());
+  private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
+      OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
+
   public static final OptionDescriptors OPTION_DESCRIPTORS =
-      OptionDescriptors.create(Arrays.asList(PACKAGES_PATH_DESCRIPTOR, STRICT_ERRORS_DESCRIPTOR));
+      OptionDescriptors.create(
+          Arrays.asList(PACKAGES_PATH_DESCRIPTOR, STRICT_ERRORS_DESCRIPTOR, LOG_LEVEL_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

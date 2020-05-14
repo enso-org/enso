@@ -1,5 +1,6 @@
 package org.enso.interpreter.service;
 
+import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.interop.*;
@@ -15,6 +16,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 
 import java.io.File;
 
+import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
 import org.enso.text.editing.JavaEditorAdapter;
@@ -32,6 +34,7 @@ public class ExecutionService {
   private final Context context;
   private final IdExecutionInstrument idExecutionInstrument;
   private final InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
+  private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID);
 
   /**
    * Creates a new instance of this service.
@@ -48,6 +51,11 @@ public class ExecutionService {
   /** @return the language context. */
   public Context getContext() {
     return context;
+  }
+
+  /** @return the execution service logger. */
+  public TruffleLogger getLogger() {
+    return logger;
   }
 
   private Optional<FunctionCallInstrumentationNode.FunctionCall> prepareFunctionCall(

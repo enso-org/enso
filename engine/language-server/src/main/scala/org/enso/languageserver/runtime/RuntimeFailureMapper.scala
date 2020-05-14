@@ -26,6 +26,8 @@ object RuntimeFailureMapper {
         EmptyStackError
       case ContextRegistryProtocol.InvalidStackItemError(_) =>
         InvalidStackItemError
+      case ContextRegistryProtocol.ExecutionFailedError(_, msg) =>
+        ExecutionFailedError(msg)
       case ContextRegistryProtocol.VisualisationNotFound =>
         VisualisationNotFoundError
       case ContextRegistryProtocol.ModuleNotFound(name) =>
@@ -50,6 +52,8 @@ object RuntimeFailureMapper {
         ContextRegistryProtocol.EmptyStackError(contextId)
       case Api.InvalidStackItemError(contextId) =>
         ContextRegistryProtocol.InvalidStackItemError(contextId)
+      case Api.ExecutionFailed(contextId, message) =>
+        ContextRegistryProtocol.ExecutionFailedError(contextId, message)
       case Api.ModuleNotFound(moduleName: String) =>
         ContextRegistryProtocol.ModuleNotFound(moduleName)
       case Api.VisualisationExpressionFailed(message: String) =>

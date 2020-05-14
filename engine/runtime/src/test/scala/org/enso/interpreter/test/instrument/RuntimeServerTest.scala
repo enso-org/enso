@@ -217,18 +217,6 @@ class RuntimeServerTest
       }
     }
 
-    object Visualisation {
-
-      val code =
-        """
-          |encode = x -> x.to_text
-          |
-          |incAndEncode = x -> here.encode x+1
-          |
-          |""".stripMargin
-
-    }
-
     object Main2 {
 
       val metadata = new Metadata
@@ -287,6 +275,32 @@ class RuntimeServerTest
 
       }
     }
+
+    object MainWithError {
+
+      val metadata = new Metadata
+
+      val idMain = metadata.addItem(8, 6)
+
+      val code = metadata.appendToCode(
+        """
+          |main = 1 + 2L
+          |""".stripMargin
+      )
+    }
+
+    object Visualisation {
+
+      val code =
+        """
+          |encode = x -> x.to_text
+          |
+          |incAndEncode = x -> here.encode x+1
+          |
+          |""".stripMargin
+
+    }
+
   }
 
   override protected def beforeEach(): Unit = {
@@ -485,6 +499,51 @@ class RuntimeServerTest
       Some(context.Main.Update.mainX(contextId)),
       Some(context.Main.Update.mainY(contextId)),
       Some(context.Main.Update.mainZ(contextId)),
+      None
+    )
+  }
+
+  it should "return error when computing erroneous code" in {
+    val mainFile  = context.writeMain(context.MainWithError.code)
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    Set.fill(2)(context.receive) shouldEqual Set(
+      Some(
+        Api.Response(
+          requestId,
+          Api.ExecutionFailed(contextId, "error in function: main")
+        )
+      ),
+      None
+    )
+
+    // recompute
+    context.send(
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+    )
+    Set.fill(2)(context.receive) shouldEqual Set(
+      Some(
+        Api.Response(
+          requestId,
+          Api.ExecutionFailed(contextId, "error in function: main")
+        )
+      ),
       None
     )
   }

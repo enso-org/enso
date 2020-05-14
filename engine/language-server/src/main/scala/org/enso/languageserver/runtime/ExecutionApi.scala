@@ -119,4 +119,6 @@ object ExecutionApi {
   case class VisualisationEvaluationError(msg: String)
       extends Error(2008, s"Evaluation of the visualisation failed [$msg]")
 
+  case class ExecutionFailedError(msg: String)
+      extends Error(2009, s"Execution failed [$msg]")
 }
