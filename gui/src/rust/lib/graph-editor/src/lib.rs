@@ -56,9 +56,9 @@ use ensogl::display::Scene;
 use crate::component::node::port::Expression;
 use crate::component::visualization::Visualization;
 use crate::component::visualization;
-
-use serde_json::json;
-
+use crate::component::visualization::example::js::constructor_sample_js_bubble_chart;
+use crate::component::visualization::MockDataGenerator3D;
+use crate::component::visualization::example::native;
 
 
 // =====================
@@ -241,20 +241,24 @@ ensogl::def_command_api! { Commands
     toggle_visualization_visibility,
     /// Set the data for the selected nodes. // TODO only has dummy functionality at the moment.
     debug_set_data_for_selected_node,
+    /// Cycle the visualization for the selected nodes. TODO only has dummy functionality at the moment.
+    debug_cycle_visualisation_for_selected_node,
 }
 
 impl Commands {
     pub fn new(network:&frp::Network) -> Self {
         frp::extend! { network
-            def add_node                         = source();
-            def add_node_at_cursor               = source();
-            def remove_selected_nodes            = source();
-            def remove_all_nodes                 = source();
-            def toggle_visualization_visibility  = source();
-            def debug_set_data_for_selected_node = source();
+            def add_node                                    = source();
+            def add_node_at_cursor                          = source();
+            def remove_selected_nodes                       = source();
+            def remove_all_nodes                            = source();
+            def toggle_visualization_visibility             = source();
+            def debug_set_data_for_selected_node            = source();
+            def debug_cycle_visualisation_for_selected_node = source();
         }
         Self {add_node,add_node_at_cursor,remove_selected_nodes,remove_all_nodes
-             ,toggle_visualization_visibility,debug_set_data_for_selected_node}
+             ,toggle_visualization_visibility,debug_set_data_for_selected_node
+             ,debug_cycle_visualisation_for_selected_node}
     }
 }
 
@@ -281,6 +285,8 @@ pub struct FrpInputs {
     pub set_node_position              : frp::Source<(NodeId,Position)>,
     pub set_visualization_data         : frp::Source<NodeId>,
     pub translate_selected_nodes       : frp::Source<Position>,
+    pub cycle_visualization            : frp::Source<NodeId>,
+    pub set_visualization              : frp::Source<(NodeId,Option<Visualization>)>,
 }
 
 impl FrpInputs {
@@ -299,12 +305,14 @@ impl FrpInputs {
             def set_node_position              = source();
             def set_visualization_data         = source();
             def translate_selected_nodes       = source();
+            def cycle_visualization            = source();
+            def set_visualization              = source();
         }
         let commands = Commands::new(&network);
         Self {commands,remove_edge,press_node_port,set_visualization_data
              ,connect_detached_edges_to_node,connect_edge_source,connect_edge_target
              ,set_node_position,select_node,translate_selected_nodes,set_node_expression
-             ,connect_nodes,deselect_all_nodes}
+             ,connect_nodes,deselect_all_nodes,cycle_visualization,set_visualization}
     }
 }
 
@@ -721,14 +729,11 @@ impl GraphEditorModelWithNetwork {
             }));
         }
 
-
-
-
-        let dummy_content = visualization::default_content();
+        let chart = constructor_sample_js_bubble_chart();
         let dom_layer    = model.scene.dom.layers.front.clone_ref();
-        dom_layer.manage(&dummy_content);
+        chart.set_dom_layer(&dom_layer);
 
-        let vis:Visualization = dummy_content.into();
+        let vis = Visualization::new(chart);
         node.view.frp.set_visualization.emit(Some(vis));
 
 
@@ -1017,6 +1022,7 @@ impl application::shortcut::DefaultShortcutProvider for GraphEditor {
              , Self::self_shortcut(&[Key::Backspace]             , "remove_selected_nodes")
              , Self::self_shortcut(&[Key::Character(" ".into())] , "toggle_visualization_visibility")
              , Self::self_shortcut(&[Key::Character("d".into())] , "debug_set_data_for_selected_node")
+             , Self::self_shortcut(&[Key::Character("f".into())]  , "debug_cycle_visualisation_for_selected_node")
         ]
     }
 }
@@ -1200,22 +1206,49 @@ impl application::View for GraphEditor {
             })
         }));
 
+         // === Vis Cycling ===
+         def _cycle_vis= inputs.debug_cycle_visualisation_for_selected_node.map(f!((inputs,nodes)(_) {
+            nodes.selected.for_each(|node| inputs.cycle_visualization.emit(node));
+        }));
 
+        // === Vis Set ===
+        def _update_vis_data = inputs.set_visualization.map(f!((nodes)((node_id,vis)) {
+            if let Some(node) = nodes.get_cloned_ref(node_id) {
+                node.view.visualization_container.frp.set_visualization.emit(vis)
+            }
+        }));
 
         // === Vis Update Data ===
 
         // TODO remove this once real data is available.
-        let dummy_counter = Rc::new(Cell::new(1.0_f32));
-        def _update_vis_data = inputs.debug_set_data_for_selected_node.map(f!((nodes)(_) {
-            let dc = dummy_counter.get();
-            dummy_counter.set(dc + 0.1);
-            let content = Rc::new(json!(format!("{}", 20.0 + 10.0 * dummy_counter.get().sin())));
-            let dummy_data = Some(visualization::Data::JSON { content });
+        let dummy_switch  = Rc::new(Cell::new(false));
+        let sample_data_generator = MockDataGenerator3D::default();
+        def _set_dumy_data = inputs.debug_set_data_for_selected_node.map(f!((nodes)(_) {
             nodes.selected.for_each(|node_id| {
-                if let Some(node) = nodes.get_cloned_ref(node_id) {
-                    node.view.visualization_container.frp.set_data.emit(&dummy_data);
+                let data          = Rc::new(sample_data_generator.generate_data());
+                let content       = Rc::new(serde_json::to_value(data).unwrap());
+                let data          = visualization::Data::JSON{ content };
+                if let Some(node) = nodes.get_cloned(node_id) {
+                    node.view.visualization_container.frp.set_data.emit(Some(data));
                 }
             })
+        }));
+
+         def _set_dumy_data = inputs.cycle_visualization.map(f!((scene,nodes)(node_id) {
+            // TODO remove dummy cycling once we have the visualization registry.
+            let dc = dummy_switch.get();
+            dummy_switch.set(!dc);
+            let vis = if dc {
+                Visualization::new(native::BubbleChart::new(&scene))
+            } else {
+                let chart     = constructor_sample_js_bubble_chart();
+                let dom_layer = scene.dom.layers.front.clone_ref();
+                chart.set_dom_layer(&dom_layer);
+                Visualization::new(chart)
+            };
+            if let Some(node) = nodes.get_cloned_ref(node_id) {
+                node.view.visualization_container.frp.set_visualization.emit(Some(vis));
+            }
         }));
 
 
@@ -1224,7 +1257,7 @@ impl application::View for GraphEditor {
         def _toggle_selected = inputs.toggle_visualization_visibility.map(f!((nodes)(_) {
             nodes.selected.for_each(|node_id| {
                 if let Some(node) = nodes.get_cloned_ref(node_id) {
-                    node.view.visualization_container.toggle_visibility();
+                    node.view.visualization_container.frp.toggle_visibility.emit(());
                 }
             });
         }));
