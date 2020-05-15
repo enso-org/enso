@@ -54,11 +54,9 @@ Enso consists of several sub projects, including the
 You can also check out the [Enso Website](https://enso.org) for more
 information.
 
-This repository contains [Enso Engine](engine/), which consists of the compiler,
-type-checker, runtime and language server. These components implement Enso the
-language in its entirety, and are usable in isolation.
-
-<br/>
+This repository contains [Enso Engine](./engine/), which consists of the
+compiler, type-checker, runtime and language server. These components implement
+Enso the language in its entirety, and are usable in isolation.
 
 ### Getting Started
 Enso is distributed as [pre-built packages](https://github.com/luna/enso/releases)
@@ -66,48 +64,40 @@ for MacOS, Linux and Windows, as well as universal `.jar` packages that can run
 anywhere that [GraalVM](https://graalvm.org) can. See the
 [documentation](http://enso.org) for more.
 
-<br/>
+If you want to read more about the internals of Enso, please take a look at the
+developer documentation rendered [here](https://dev.enso.org), or in the
+repository [here](./docs).
 
 ### Building
 The project builds on any platform where [GraalVM](https://graalvm.org) can run.
 You will need the source code, and [`sbt`](https://www.scala-sbt.org/). For more
 information, please read the detailed instructions in
-[CONTRIBUTING.md](CONTRIBUTING.md).
-
-<br/>
+[CONTRIBUTING.md](./docs/CONTRIBUTING.md).
 
 ### Enso's Design
 If you would like to gain a better understanding of the principles on which Enso
 is based, or just delve into the why's and what's of Enso's design, please take
-a look in the [`doc/` folder](./doc/). It is split up into subfolders for each
-component of Enso, and then further subdivided into:
-
-- `specification`: Specification of elements of the language.
-- `design`: Documents detailing the design process and how decisions were made.
-- `implementation`: Documentation detailing complexities, or design decisions
-  made at the implementation level.
+a look in the [`docs/` folder](./docs/). It is split up into subfolders for each
+component of Enso. You can view this same documentation in a rendered form at
+[the developer docs website](https://dev.enso.org).
 
 This folder also contains a document on Enso's
-[design philosophy](./doc/enso-philosophy.md), that details the thought process
+[design philosophy](./docs/enso-philosophy.md), that details the thought process
 that we use when contemplating changes or additions to the language.
 
 This documentation will evolve as Enso does, both to help newcomers to the
 project understand the reasoning behind the code, but also to act as a record of
 the decisions that have been made through Enso's evolution.
 
-<br/>
-
 ### License
 This repository is licensed under the
 [Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
-[LICENSE](https://github.com/luna/luna/blob/master/LICENSE) file.
+[LICENSE](https://github.com/luna/enso/blob/master/LICENSE) file.
 
 This license set was choosen to both provide you with a complete freedom to use
 Enso, create libraries, and release them under any license of your choice, while
 also allowing us to release commercial products on top of the platform,
 including Enso Cloud and Enso Enterprise server managers.
-
-<br/>
 
 ### Contributing to Enso
 Enso is a community-driven open source project which is and will always be open
@@ -118,11 +108,14 @@ implement new features, improve the documentation or spread the word!
 
 If you'd like to help us make this vision a reality, please feel free to join
 our [chat](http://chat.luna-lang.org/), and take a look at our
-[development and contribution guidelines](CONTRIBUTING.md). The latter describes
-all the ways in which you can help out with the project, as well as provides
-detailed instructions for building and hacking on Enso.
+[development and contribution guidelines](./docs/CONTRIBUTING.md). The latter
+describes all the ways in which you can help out with the project, as well as
+provides detailed instructions for building and hacking on Enso.
+
+If you believe that you have found a security vulnerability in Enso, or that
+you have a bug report that poses a security risk to Enso's users, please take
+a look at our [security guidelines](./docs/SECURITY.md) for a course of action.
 
 <a href="https://github.com/luna/enso/graphs/contributors">
   <img src="https://opencollective.com/enso-language/contributors.svg?width=890&button=false">
 </a>
-

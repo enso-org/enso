@@ -14,6 +14,5 @@
 Please include the following checklist in your PR:
 
 - [ ] The documentation has been updated if necessary.
-- [ ] All code conforms to the [Scala](https://github.com/luna/enso/blob/master/doc/style-guides/scala.md), [Java](https://github.com/luna/enso/blob/master/doc/style-guides/java.md), [Rust](https://github.com/luna/enso/blob/master/doc/style-guides/rust.md) or [Haskell](https://github.com/luna/enso/blob/master/doc/style-guides/haskell.md) style guides as appropriate.
+- [ ] All code conforms to the [Scala](https://github.com/luna/enso/blob/master/docs/style-guide/scala.md) and [Java](https://github.com/luna/enso/blob/master/docs/style-guide/java.md) style guides.
 - [ ] All code has been tested where possible.
-
