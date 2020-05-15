@@ -1,6 +1,9 @@
 # Catch All
 * @iamrecursion @kustosz
 
+# Repo Configuration
+/.github/settings.yml @iamrecursion
+
 # Libraries
 /common/flexer @iamrecursion @kustosz
 /common/graph @iamrecursion @kustosz
