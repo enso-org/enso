@@ -50,7 +50,6 @@ class ParserTest extends AnyFlatSpec with Matchers {
     val module = Parser().run(input)
     val idmap1 = module.idMap
     val idmap2 = Parser().run(new Reader(input), idmap1).idMap
-    println(module.zipWithOffset)
     assertSpan(input, module)
     assert(module.show() == new Reader(input).toString())
     assert(idmap1 == idmap2)

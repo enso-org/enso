@@ -14,8 +14,10 @@ import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctio
 import org.enso.interpreter.node.expression.builtin.interop.generic.*;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNode;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
-import org.enso.interpreter.node.expression.builtin.io.NanoTimeNode;
-import org.enso.interpreter.node.expression.builtin.io.PrintNode;
+import org.enso.interpreter.node.expression.builtin.io.PrintErrNode;
+import org.enso.interpreter.node.expression.builtin.io.PrintlnNode;
+import org.enso.interpreter.node.expression.builtin.io.ReadlnNode;
+import org.enso.interpreter.node.expression.builtin.system.NanoTimeNode;
 import org.enso.interpreter.node.expression.builtin.interop.java.*;
 import org.enso.interpreter.node.expression.builtin.number.AddNode;
 import org.enso.interpreter.node.expression.builtin.number.DivideNode;
@@ -94,6 +96,7 @@ public class Builtins {
                 new ArgumentDefinition(0, "head", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "rest", ArgumentDefinition.ExecutionMode.EXECUTE));
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
+    AtomConstructor system = new AtomConstructor("System", scope).initializeFields();
     AtomConstructor panic = new AtomConstructor("Panic", scope).initializeFields();
     AtomConstructor error = new AtomConstructor("Error", scope).initializeFields();
     AtomConstructor state = new AtomConstructor("State", scope).initializeFields();
@@ -120,8 +123,11 @@ public class Builtins {
     scope.registerConstructor(java);
     scope.registerConstructor(createPolyglot(language));
 
-    scope.registerMethod(io, "println", PrintNode.makeFunction(language));
-    scope.registerMethod(io, "nano_time", NanoTimeNode.makeFunction(language));
+    scope.registerMethod(io, "println", PrintlnNode.makeFunction(language));
+    scope.registerMethod(io, "print_err", PrintErrNode.makeFunction(language));
+    scope.registerMethod(io, "readln", ReadlnNode.makeFunction(language));
+
+    scope.registerMethod(system, "nano_time", NanoTimeNode.makeFunction(language));
 
     scope.registerMethod(panic, "throw", PanicNode.makeFunction(language));
     scope.registerMethod(panic, "recover", CatchPanicNode.makeFunction(language));

@@ -3,7 +3,11 @@ package org.enso.interpreter.runtime;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +34,8 @@ public class Context {
   private final Env environment;
   private final Compiler compiler;
   private final PrintStream out;
+  private final PrintStream err;
+  private final BufferedReader in;
   private final List<Package> packages;
 
   /**
@@ -42,6 +48,8 @@ public class Context {
     this.language = language;
     this.environment = environment;
     this.out = new PrintStream(environment.out());
+    this.err = new PrintStream(environment.err());
+    this.in = new BufferedReader(new InputStreamReader(environment.in()));
 
     List<File> packagePaths = OptionsHelper.getPackagesPaths(environment);
 
@@ -123,6 +131,24 @@ public class Context {
    */
   public PrintStream getOut() {
     return out;
+  }
+
+  /**
+   * Returns the standard error stream for this context.
+   *
+   * @return the standard error stream for this context
+   */
+  public PrintStream getErr() {
+    return err;
+  }
+
+  /**
+   * Returns the standard input stream for this context.
+   *
+   * @return the standard input stream for this context
+   */
+  public BufferedReader getIn() {
+    return in;
   }
 
   /**

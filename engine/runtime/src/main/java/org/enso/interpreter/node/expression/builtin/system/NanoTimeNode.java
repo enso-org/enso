@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.io;
+package org.enso.interpreter.node.expression.builtin.system;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
 
-@NodeInfo(shortName = "IO.nano_time", description = "Gets the nanosecond resolution system time.")
+@NodeInfo(shortName = "System.nano_time", description = "Gets the nanosecond resolution system time.")
 public final class NanoTimeNode extends BuiltinRootNode {
   private NanoTimeNode(Language language) {
     super(language);
@@ -47,6 +47,6 @@ public final class NanoTimeNode extends BuiltinRootNode {
    */
   @Override
   public String getName() {
-    return "IO.nano_time";
+    return "System.nano_time";
   }
 }
