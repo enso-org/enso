@@ -48,7 +48,7 @@ impl Connection {
     pub async fn new(client:impl API + 'static) -> FallibleResult<Self> {
         let client_id     = Uuid::new_v4();
         let client        = Box::new(client);
-        let init_response = client.init_protocol_connection(client_id).await;
+        let init_response = client.init_protocol_connection(&client_id).await;
         let init_response = init_response.map_err(|e| FailedToInitializeProtocol(e.into()))?;
         let content_roots = init_response.content_roots;
         if content_roots.is_empty() {

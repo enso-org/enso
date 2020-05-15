@@ -183,25 +183,25 @@ mod mock_client_tests {
         mock_client.set_close_project_result(expected_uuid.clone(),error("Project isn't open."));
         mock_client.set_delete_project_result(expected_uuid.clone(),error("Project doesn't exist."));
 
-        let delete_result = mock_client.delete_project(expected_uuid.clone());
+        let delete_result = mock_client.delete_project(&expected_uuid);
         result(delete_result).expect_err("Project shouldn't exist.");
 
-        let creation_response = mock_client.create_project("HelloWorld".into());
+        let creation_response = mock_client.create_project(&"HelloWorld".to_string());
         let uuid = result(creation_response).expect("Couldn't create project").project_id;
         assert_eq!(uuid, expected_uuid);
 
-        let close_result = result(mock_client.close_project(uuid.clone()));
+        let close_result = result(mock_client.close_project(&uuid));
         close_result.expect_err("Project shouldn't be open.");
 
-        let ip_with_socket = result(mock_client.open_project(uuid.clone()));
+        let ip_with_socket = result(mock_client.open_project(&uuid));
         let ip_with_socket = ip_with_socket.expect("Couldn't open project");
         assert_eq!(ip_with_socket, expected_ip_with_socket);
 
         mock_client.set_close_project_result(expected_uuid.clone(), Ok(()));
-        result(mock_client.close_project(uuid)).expect("Couldn't close project.");
+        result(mock_client.close_project(&uuid)).expect("Couldn't close project.");
 
         mock_client.set_delete_project_result(expected_uuid.clone(), Ok(()));
-        result(mock_client.delete_project(uuid)).expect("Couldn't delete project.");
+        result(mock_client.delete_project(&uuid)).expect("Couldn't delete project.");
     }
 
     #[test]
@@ -234,9 +234,9 @@ mod mock_client_tests {
 
         let list_recent_error = "Couldn't get recent projects.";
         let list_sample_error = "Couldn't get sample projects.";
-        let recent_projects = result(mock_client.list_recent_projects(2)).expect(list_recent_error);
+        let recent_projects = result(mock_client.list_recent_projects(&2)).expect(list_recent_error);
         assert_eq!(recent_projects, expected_recent_projects);
-        let sample_projects = result(mock_client.list_samples(2)).expect(list_sample_error);
+        let sample_projects = result(mock_client.list_samples(&2)).expect(list_sample_error);
         assert_eq!(sample_projects, expected_sample_projects);
     }
 }
@@ -357,42 +357,42 @@ mod remote_client_tests {
         });
 
         test_request(
-            |client| client.list_recent_projects(number_of_projects),
+            |client| client.list_recent_projects(&number_of_projects),
             "project/listRecent",
             &number_of_projects_json,
             &project_list_json,
             &project_list
         );
         test_request(
-            |client| client.list_samples(number_of_projects),
+            |client| client.list_samples(&number_of_projects),
             "project/listSample",
             &num_projects_json,
             &project_list_json,
             &project_list
         );
         test_request(
-            |client| client.open_project(project_id.clone()),
+            |client| client.open_project(&project_id),
             "project/open",
             &project_id_json,
             &ip_with_address_json,
             &ip_with_address
         );
         test_request(
-            |client| client.close_project(project_id.clone()),
+            |client| client.close_project(&project_id),
             "project/close",
             &project_id_json,
             &unit_json,
             &()
         );
         test_request(
-            |client| client.delete_project(project_id.clone()),
+            |client| client.delete_project(&project_id),
             "project/delete",
             &project_id_json,
             &unit_json,
             &()
         );
         test_request(
-            |client| client.create_project(project_name.clone()),
+            |client| client.create_project(&project_name),
             "project/create",
             &project_name_json,
             &project_id_json,

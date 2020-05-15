@@ -69,7 +69,7 @@ impl Handle {
         use FileHandle::*;
         match &self.file {
             PlainText {path,language_server} => {
-                let response = language_server.read_file(path.deref().clone()).await;
+                let response = language_server.read_file(&path).await;
                 response.map(|response| response.contents)
             },
             Module{controller} => Ok(controller.code())
@@ -82,7 +82,7 @@ impl Handle {
         async move {
             match file_handle {
                 FileHandle::PlainText {path,language_server} => {
-                    language_server.write_file(path.deref().clone(),content).await?
+                    language_server.write_file(&path,&content).await?
                 },
                 FileHandle::Module {controller} => {
                     controller.check_code_sync(content)?;

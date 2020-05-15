@@ -1,7 +1,6 @@
 //! Helper macros to generate RemoteClient and MockClient.
 
-// FIXME[dg]: https://github.com/luna/ide/issues/401 We want to make the generated methods to
-// take references instead of ownership.
+// TODO[dg]: Make it possible to create an API which accepts pass both references and ownership.
 /// This macro reads a `trait API` item and generates asynchronous methods for RPCs. Each method
 /// should be signed with `MethodInput`, `rpc_name`, `result` and `set_result` attributes. e.g.:
 /// ```rust,compile_fail
@@ -9,7 +8,7 @@
 ///     trait API {
 ///         #[MethodInput=CallMePleaseInput,camelCase=callMePlease,result=call_me_please_result,
 ///         set_result=set_call_me_please_result]
-///         fn call_me_please(&self, my_number_is:String) -> ();
+///         fn call_me_please<'a>(&'a self, my_number_is:&'a String) -> ();
 ///     }
 /// }
 /// ```
@@ -38,10 +37,11 @@ macro_rules! make_rpc_methods {
         // ===========
 
         $(#[doc = $impl_doc])+
+        #[allow(clippy::ptr_arg)]
         pub trait API {
             $(
                 $(#[doc = $doc])+
-                fn $method(&self $(,$param_name:$param_ty)*)
+                fn $method<'a>(&'a self $(,$param_name:&'a $param_ty)*)
                 -> std::pin::Pin<Box<dyn Future<Output=Result<$result>>>>;
             )*
         }
@@ -82,22 +82,29 @@ macro_rules! make_rpc_methods {
         }
 
         impl API for Client {
-            $(fn $method(&self, $($param_name:$param_ty),*)
+            $(fn $method<'a>(&'a self, $($param_name:&'a $param_ty),*)
             -> std::pin::Pin<Box<dyn Future<Output=Result<$result>>>> {
-                let input = $method_input { $($param_name:$param_name),* };
-                Box::pin(self.handler.borrow().open_request(input))
+                use json_rpc::api::RemoteMethodCall;
+                let phantom    = std::marker::PhantomData;
+                let input      = $method_input { phantom, $($param_name:&$param_name),* };
+                let input_json = serde_json::to_value(input).unwrap();
+                let name       = $method_input::NAME;
+                let result_fut = self.handler.borrow().open_request_with_json(name,&input_json);
+                Box::pin(result_fut)
             })*
         }
 
         $(
             /// Structure transporting method arguments.
-            #[derive(Serialize,Deserialize,Debug,PartialEq)]
+            #[derive(Serialize,Debug,PartialEq)]
             #[serde(rename_all = "camelCase")]
-            struct $method_input {
-                $($param_name : $param_ty),*
+            struct $method_input<'a> {
+                #[serde(skip)]
+                phantom : std::marker::PhantomData<&'a()>,
+                $($param_name : &'a $param_ty),*
             }
 
-            impl json_rpc::RemoteMethodCall for $method_input {
+            impl json_rpc::RemoteMethodCall for $method_input<'_> {
                 const NAME:&'static str = $rpc_name;
                 type Returned = $result;
             }
@@ -117,10 +124,10 @@ macro_rules! make_rpc_methods {
         }
 
         impl API for MockClient {
-            $(fn $method(&self $(,$param_name:$param_ty)*)
+            $(fn $method<'a>(&'a self $(,$param_name:&'a $param_ty)*)
             -> std::pin::Pin<Box<dyn Future<Output=Result<$result>>>> {
                 let mut results = self.$method_result.borrow_mut();
-                let params      = ($($param_name),*);
+                let params      = ($($param_name.clone()),*);
                 let result      = results.get_mut(&params).and_then(|res| res.pop());
                 let err         = format!("Unrecognized call {} with params {:?}",$rpc_name,params);
                 Box::pin(futures::future::ready(result.expect(err.as_str())))
