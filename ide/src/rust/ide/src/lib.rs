@@ -160,7 +160,7 @@ pub async fn open_most_recent_project_or_create_new
     } else {
         project_manager.create_project(&DEFAULT_PROJECT_NAME.to_string()).await?.project_id
     };
-    let address = project_manager.open_project(&project_id).await?.language_server_rpc_address;
+    let address = project_manager.open_project(&project_id).await?.language_server_json_address;
     open_project(address).await
 }
 
