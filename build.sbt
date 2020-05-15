@@ -606,7 +606,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
-    version := "0.1",
+    version := ensoVersion,
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),

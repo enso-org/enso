@@ -63,7 +63,7 @@ The layout of such a distribution is as follows:
 ```
 enso-1.0.0
 ├── bin           # Contains all the executable tools and their dependencies.
-│   └── enso.jar  # Che main executable of the distribution. CLI entry point.
+│   └── enso.jar  # The main executable of the distribution. CLI entry point.
 ├── lib           # Contains all the installed libraries for this compiler version.
 │   ├── Http      # Every library directory may contain multiple versions of the same library.
 │   │   ├── 3.1.0 # Every version sub-directory is just an Enso package containing the library.
@@ -85,9 +85,9 @@ enso-1.0.0
 │               ├── List.enso
 │               ├── Number.enso
 │               └── Text.enso
-└── package_sets # package sets for non-package run modes (described below)
+└── package-sets # package sets for non-package run modes (described below)
     ├── default.yaml
-    └── my_package_set.yaml
+    └── my-package-set.yaml
 ```
 
 ### Package Sets
