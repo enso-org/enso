@@ -11,10 +11,10 @@ object Parse {
   @JSExportTopLevel("parse")
   def parse(program: String, idsJson: String): String = {
     try {
-      val ids = Parser.idMapFromJson(idsJson).left.map { error =>
+      val idmap = Parser.idMapFromJson(idsJson).left.map { error =>
           throw new ParserError("Could not deserialize idmap.", error)
         }.merge
-      new Parser().run(new Reader(program), ids).toJson().noSpacesSortKeys
+      new Parser().run(new Reader(program), idmap).toJson().noSpacesSortKeys
     } catch {
       // FIXME We wrap the error message in JavaScriptException, so that javascript
       //  can display it. This is no longer needed in scalajs 1.0

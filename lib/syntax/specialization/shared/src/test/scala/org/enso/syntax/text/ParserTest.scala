@@ -48,8 +48,12 @@ class ParserTest extends AnyFlatSpec with Matchers {
 
   def assertIdentity(input: String): Assertion = {
     val module = Parser().run(input)
+    val idmap1 = module.idMap
+    val idmap2 = Parser().run(new Reader(input), idmap1).idMap
+    println(module.zipWithOffset)
     assertSpan(input, module)
     assert(module.show() == new Reader(input).toString())
+    assert(idmap1 == idmap2)
   }
 
   implicit class TestString(input: String) {

@@ -2908,6 +2908,10 @@ object IR {
       case object NamedArgInOperator extends Reason {
         override def explanation: String = "Named argument in operator section."
       }
+
+      case object InvalidOperatorName extends Reason {
+        override def explanation: String = "Invalid operator name."
+      }
     }
 
     /** A representation of an invalid piece of IR.

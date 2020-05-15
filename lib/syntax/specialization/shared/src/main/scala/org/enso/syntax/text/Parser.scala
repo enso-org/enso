@@ -2,7 +2,7 @@ package org.enso.syntax.text
 
 import java.util.UUID
 
-import cats.{Foldable, Functor}
+import cats.Foldable
 import org.enso.data.List1
 import org.enso.data.Span
 import org.enso.flexer
@@ -12,7 +12,6 @@ import org.enso.syntax.text.AST.Block.OptLine
 import org.enso.syntax.text.AST.Macro.Match.SegmentOps
 import org.enso.syntax.text.AST.App
 import org.enso.syntax.text.ast.meta.Builtin
-import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.spec.ParserDef
 import cats.implicits._
@@ -230,14 +229,13 @@ class Parser {
   def run(input: Reader, idMap: IDMap): AST.Module = {
     val tokenStream = engine.run(input)
     val spanned     = tokenStream.map(attachModuleLocations)
-    val resolved = spanned.map(Macro.run) match {
+    val resolved    = spanned.map(Macro.run) match {
       case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
         val mod2 = annotateModule(idMap, mod)
         resolveMacros(mod2).asInstanceOf[AST.Module]
       case _ => throw ParsingFailed
     }
-    val withExpressionIds = fillExpressionIds(resolved)
-    withExpressionIds
+    resolved
   }
 
   /**
@@ -335,10 +333,7 @@ class Parser {
           ids = ids.tail
           ast.setID(id)
         case _ =>
-          ast match {
-            case AST.Macro.Match.any(_) => ast.withNewID()
-            case _                      => ast
-          }
+          ast.withNewID()
       }
     }
   }
@@ -363,60 +358,6 @@ class Parser {
         }
       case _ => ast.map(resolveMacros)
     }
-
-  /** All [[AST]] elements that are top-level expressions (i.e. can be nodes in
-    * IDE and are potentially worth of visualizing.
-    */
-  def fillExpressionIds(module: AST.Module): AST.Module = {
-    sealed trait Context
-
-    /** A module block or nested block (e.g. method body). */
-    final case object Block extends Context
-
-    /** Any non-block context */
-    final case object Other extends Context
-
-    /** Goes over AST and for Assignments (either infix or section right) that
-      * are within [[AST.Block]] or [[AST.Module]] node, assigns IDs to the
-      * right hand side. Any other expression in the block gets ID on its root
-      * AST. All other nodes are returned as-is.
-      */
-    implicit class Processor[T[S] <: Shape[S]](ast: AST.ASTOf[T])(
-      implicit
-      functor: Functor[T],
-      fold: Foldable[T],
-      repr: Repr[T[AST]],
-      ozip: OffsetZip[T, AST]
-    ) {
-      def process(context: Context): AST.ASTOf[T] = {
-        def assignmentInBlock(opr: AST.Opr): Boolean =
-          context == Block && opr.name == "="
-
-        ast match {
-          case AST.Module.any(block) => block.map(_.process(Block))
-          case AST.Block.any(block)  => block.map(_.process(Block))
-          case AST.App.Infix.any(infix) if assignmentInBlock(infix.opr) =>
-            val newShape = infix.shape.copy(
-              larg = infix.larg.process(Other),
-              opr  = infix.opr.process(Other),
-              rarg = infix.rarg.process(Other).withNewIDIfMissing()
-            )
-            infix.copy(shape = newShape)
-          case AST.App.Section.Right.any(right)
-              if assignmentInBlock(right.opr) =>
-            val newShape = right.shape.copy(
-              arg = right.arg.process(Other),
-              opr = right.opr.process(Other)
-            )
-            right.copy(shape = newShape)
-          case otherAst if context == Block =>
-            otherAst.process(Other).withNewIDIfMissing()
-          case _ => ast.map(_.process(Other))
-        }
-      }.asInstanceOf[AST.ASTOf[T]] // Note: [Type safety]
-    }
-    module.process(Other)
-  }
 
   /* Note: [Type safety]
    * ~~~~~~~~~~~~~~~~~~~

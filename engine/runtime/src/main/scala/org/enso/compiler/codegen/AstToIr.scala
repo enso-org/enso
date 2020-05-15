@@ -471,17 +471,21 @@ object AstToIr {
         val leftArg  = translateCallArgument(left)
         val rightArg = translateCallArgument(right)
 
-        if (leftArg.name.isDefined) {
-          IR.Error.Syntax(left, IR.Error.Syntax.NamedArgInOperator)
-        } else if (rightArg.name.isDefined) {
-          IR.Error.Syntax(right, IR.Error.Syntax.NamedArgInOperator)
-        } else {
-          Application.Operator.Binary(
-            leftArg,
-            Name.Literal(fn.name, getIdentifiedLocation(fn)),
-            rightArg,
-            getIdentifiedLocation(callable)
-          )
+        fn match {
+          case AST.Ident.Opr.any(fn) =>
+            if (leftArg.name.isDefined) {
+              IR.Error.Syntax(left, IR.Error.Syntax.NamedArgInOperator)
+            } else if (rightArg.name.isDefined) {
+              IR.Error.Syntax(right, IR.Error.Syntax.NamedArgInOperator)
+            } else {
+              Application.Operator.Binary(
+                leftArg,
+                Name.Literal(fn.name, getIdentifiedLocation(fn)),
+                rightArg,
+                getIdentifiedLocation(callable)
+              )
+            }
+          case _ => IR.Error.Syntax(left, IR.Error.Syntax.InvalidOperatorName)
         }
       case AST.App.Prefix(_, _) =>
         throw new UnhandledEntity(callable, "translateCallable")
