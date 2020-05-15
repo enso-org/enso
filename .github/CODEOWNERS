@@ -1,8 +1,8 @@
 # Catch All
 * @iamrecursion @kustosz
 
-# Repo Configuration
-/.github/settings.yml @iamrecursion
+# Distribution
+/distribution @iamrecursion @kustosz
 
 # Libraries
 /common/flexer @iamrecursion @kustosz
@@ -36,3 +36,6 @@ README.md @iamrecursion @kustosz
 /ci @iamrecursion @kustosz
 /project @iamrecursion @kustosz
 /build.sbt @iamrecursion @kustosz @lolczak @4e6
+
+# Repo Configuration
+/.github/settings.yml @iamrecursion
