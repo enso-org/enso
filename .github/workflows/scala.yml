@@ -162,6 +162,10 @@ jobs:
           echo ::set-env name=CLI_DIR::$CLI_DIR
       - name: Build the Parser JS Bundle
         run: sbt -no-colors syntaxJS/fullOptJS
+      - name: Build the Project Manager Uberjar
+        run: |
+          sbt --no-colors runtime/assembly
+          sbt --no-colors project-manager/assembly
 
       # Publish
       - name: Publish the CLI Artifact
@@ -188,6 +192,17 @@ jobs:
         with:
           name: Parser JS Bundle
           path: ./target/scala-parser.js
+      - name: Prepare the Project Manager package
+        run: |
+          mkdir pm-upload
+          cp ./runtime.jar pm-upload
+          cp ./project-manager.jar pm-upload
+          zip -r project-manager.zip ./runtime.jar ./project-manager.jar
+      - name: Publish the Project Manager package
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: The Project Manager Bundle
+          path: ./project-manager.zip
       - name: Prepare AWS Session
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
@@ -202,6 +217,9 @@ jobs:
       - name: Upload FlatBuffers Schemas to S3
         run: |
           aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+      - name: Upload Project Manager to S3
+        run: |
+          aws s3 sync ./pm-upload s3://packages-luna/project-manager/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
       - name: Teardown AWS Session
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1

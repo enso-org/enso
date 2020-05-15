@@ -44,7 +44,8 @@ class LanguageServerRegistry(
       } else {
         val controller = context.actorOf(
           LanguageServerController
-            .props(project, networkConfig, bootloaderConfig, supervisionConfig)
+            .props(project, networkConfig, bootloaderConfig, supervisionConfig),
+          s"language-server-controller-${project.id}"
         )
         context.watch(controller)
         controller.forward(msg)

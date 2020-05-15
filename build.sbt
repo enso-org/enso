@@ -463,6 +463,31 @@ lazy val `project-manager` = (project in file("lib/project-manager"))
       "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     )
   )
+  .settings(
+    assemblyJarName in assembly := "project-manager.jar",
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("project-manager.jar"),
+    assemblyMergeStrategy in assembly := {
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+        MergeStrategy.discard
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+        MergeStrategy.discard
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case "application.conf" => MergeStrategy.concat
+      case "reference.conf"   => MergeStrategy.concat
+      case _                  => MergeStrategy.first
+    },
+    assemblyOption in assembly := (assemblyOption in assembly).value
+      .copy(
+        prependShellScript = Some(
+          defaultUniversalScript(
+            shebang  = false,
+            javaOpts = Seq("-Dtruffle.class.path.append=runtime.jar")
+          )
+        )
+      )
+  )
   .dependsOn(pkg)
   .dependsOn(`language-server`)
   .dependsOn(`json-rpc-server`)
@@ -670,6 +695,20 @@ lazy val runtime = (project in file("engine/runtime"))
       }
     }.evaluated,
     parallelExecution in Benchmark := false
+  )
+  .settings(
+    assemblyJarName in assembly := "runtime.jar",
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("runtime.jar"),
+    assemblyMergeStrategy in assembly := {
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+        MergeStrategy.discard
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+        MergeStrategy.discard
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case _ => MergeStrategy.first
+    }
   )
   .dependsOn(pkg)
   .dependsOn(syntax.jvm)

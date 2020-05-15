@@ -1,5 +1,7 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
+import java.util.UUID
+
 import akka.actor.Status.Failure
 import akka.actor.{
   Actor,
@@ -75,9 +77,9 @@ class LanguageServerSupervisor(
           supervisionConfig.heartbeatTimeout,
           connectionFactory,
           scheduler
-        )
+        ),
+        s"heartbeat-${UUID.randomUUID()}"
       )
-      ()
 
     case ServerUnresponsive =>
       log.info(s"Server is unresponsive [$config]. Restarting it...")

@@ -43,7 +43,7 @@ class ClientController[F[+_, +_]: Exec](
       ProjectOpen -> ProjectOpenHandler
         .props[F](clientId, projectService, config.bootTimeout),
       ProjectClose -> ProjectCloseHandler
-        .props[F](clientId, projectService, config.bootTimeout),
+        .props[F](clientId, projectService, config.requestTimeout),
       ProjectListRecent -> ProjectListRecentHandler
         .props[F](clientId, projectService, config.requestTimeout)
     )
@@ -65,7 +65,10 @@ class ClientController[F[+_, +_]: Exec](
       context.stop(self)
 
     case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
-      val handler = context.actorOf(requestHandlers(method))
+      val handler = context.actorOf(
+        requestHandlers(method),
+        s"request-handler-$method-${UUID.randomUUID()}"
+      )
       handler.forward(r)
   }
 }

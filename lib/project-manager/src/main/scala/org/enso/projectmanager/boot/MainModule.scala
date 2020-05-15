@@ -76,7 +76,7 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
 
   lazy val projectValidator = new MonadicProjectValidator[F]()
 
-  lazy val languageServerController =
+  lazy val languageServerRegistry =
     system.actorOf(
       LanguageServerRegistry
         .props(config.network, config.bootloader, config.supervision),
@@ -84,7 +84,7 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
     )
 
   lazy val languageServerService = new LanguageServerRegistryProxy[F](
-    languageServerController,
+    languageServerRegistry,
     config.timeout
   )
 

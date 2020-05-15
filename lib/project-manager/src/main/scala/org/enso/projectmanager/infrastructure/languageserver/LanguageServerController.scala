@@ -102,12 +102,14 @@ class LanguageServerController(
   ): Receive = {
     case BootTimeout =>
       log.error(s"Booting failed for $descriptor")
-      stop()
+      unstashAll()
+      context.become(bootFailed(LanguageServerProtocol.ServerBootTimedOut))
 
     case ServerBootFailed(th) =>
+      log.error(th, s"Booting failed for $descriptor")
       unstashAll()
       timeoutCancellable.cancel()
-      context.become(bootFailed(th))
+      context.become(bootFailed(LanguageServerProtocol.ServerBootFailed(th)))
 
     case ServerBooted(config, server) =>
       unstashAll()
@@ -129,7 +131,11 @@ class LanguageServerController(
       unstashAll()
       timeoutCancellable.cancel()
       context.become(
-        bootFailed(new Exception("The number of boot retries exceeded"))
+        bootFailed(
+          LanguageServerProtocol.ServerBootFailed(
+            new Exception("The number of boot retries exceeded")
+          )
+        )
       )
 
     case _ => stash()
@@ -180,9 +186,9 @@ class LanguageServerController(
     }
   }
 
-  private def bootFailed(th: Throwable): Receive = {
+  private def bootFailed(failure: ServerStartupFailure): Receive = {
     case StartServer(_, _) =>
-      sender() ! LanguageServerProtocol.ServerBootFailed(th)
+      sender() ! failure
       stop()
   }
 

@@ -27,7 +27,8 @@ class ManagerClientControllerFactory[F[+_, +_]: Exec](
     */
   override def createClientController(clientId: UUID): ActorRef =
     system.actorOf(
-      ClientController.props[F](clientId, projectService, timeoutConfig)
+      ClientController.props[F](clientId, projectService, timeoutConfig),
+      s"jsonrpc-connection-controller-$clientId"
     )
 
 }

@@ -43,18 +43,21 @@ class LanguageServerBootLoader(
   private def findingSocket(retry: Int = 0): Receive = {
     case FindFreeSocket =>
       log.debug("Looking for available socket to bind the language server")
-      val rpcPort  = findPort()
-      var dataPort = findPort()
-      while (dataPort == rpcPort) {
-        dataPort = findPort()
+      val jsonRpcPort = findPort()
+      var binaryPort  = findPort()
+      while (binaryPort == jsonRpcPort) {
+        binaryPort = findPort()
       }
       log.info(
         s"Found sockets for the language server " +
-        s"[rpc:${descriptor.networkConfig.interface}:$rpcPort, " +
-        s"data:${descriptor.networkConfig.interface}:$dataPort]"
+        s"[json:${descriptor.networkConfig.interface}:$jsonRpcPort, " +
+        s"binary:${descriptor.networkConfig.interface}:$binaryPort]"
       )
       self ! Boot
-      context.become(booting(rpcPort, dataPort, retry))
+      context.become(booting(jsonRpcPort, binaryPort, retry))
+
+    case GracefulStop =>
+      context.stop(self)
   }
 
   private def booting(rpcPort: Int, dataPort: Int, retryCount: Int): Receive = {
@@ -92,6 +95,9 @@ class LanguageServerBootLoader(
     case (config: LanguageServerConfig, server: LanguageServerComponent) =>
       log.info(s"Language server booted [$config].")
       context.parent ! ServerBooted(config, server)
+      context.stop(self)
+
+    case GracefulStop =>
       context.stop(self)
   }
 
