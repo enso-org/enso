@@ -67,23 +67,23 @@ async fn file_operations() {
     executor::global::spawn(client.runner());
 
     let client_id = uuid::Uuid::new_v4();
-    let session   = client.init_protocol_connection(client_id).await;
+    let session   = client.init_protocol_connection(&client_id).await;
     let session   = session.expect("Couldn't initialize session.");
     let root_id   = session.content_roots[0];
 
     let file      = Path{root_id,segments:vec!["src".into(),"Main.enso".into()]};
     let contents  = MAIN_CODE.to_string();
-    let result    = client.write_file(file.clone(),contents).await;
+    let result    = client.write_file(&file,&contents).await;
     result.expect("Couldn't write main code file.");
 
     let visualisation_file = Path{root_id,segments:vec!["src".into(),"Visualisation.enso".into()]};
     let contents           = VISUALISATION_CODE.to_string();
-    let response           = client.write_file(visualisation_file,contents).await;
+    let response           = client.write_file(&visualisation_file,&contents).await;
     response.expect("Couldn't write visualisation file.");
 
     let package_file = Path{root_id,segments:vec!["package.yaml".into()]};
     let contents     = PACKAGE_YAML.to_string();
-    let response     = client.write_file(package_file,contents).await;
+    let response     = client.write_file(&package_file,&contents).await;
     response.expect("Couldn't write yaml file.");
 
     let execution_context    = client.create_execution_context().await;
@@ -101,10 +101,10 @@ async fn file_operations() {
     let explicit_call                    = ExplicitCall
         {method_pointer,positional_arguments_expressions,this_argument_expression};
     let stack_item = StackItem::ExplicitCall(explicit_call);
-    let response   = client.push_to_execution_context(execution_context_id,stack_item).await;
+    let response   = client.push_to_execution_context(&execution_context_id,&stack_item).await;
     response.expect("Couldn't push execution context.");
 
-    let response = client.pop_from_execution_context(execution_context_id).await;
+    let response = client.pop_from_execution_context(&execution_context_id).await;
     response.expect("Couldn't pop execution context.");
 
     let visualisation_id     = uuid::Uuid::new_v4();
@@ -115,68 +115,68 @@ async fn file_operations() {
     let visualisation_config = VisualisationConfiguration
     {execution_context_id,expression,visualisation_module};
     let response = client.attach_visualisation
-        (visualisation_id,expression_id.clone(),visualisation_config);
+        (&visualisation_id,&expression_id,&visualisation_config);
     response.await.expect("Couldn't attach visualisation.");
 
     let expression           = "x -> here.incAndEncode".to_string();
     let visualisation_module = "Test.Visualisation".to_string();
     let visualisation_config = VisualisationConfiguration
     {execution_context_id,expression,visualisation_module};
-    let response = client.modify_visualisation(visualisation_id,visualisation_config).await;
+    let response = client.modify_visualisation(&visualisation_id,&visualisation_config).await;
     response.expect("Couldn't modify visualisation.");
 
     let response = client.detach_visualisation
-        (execution_context_id,visualisation_id,expression_id).await;
+        (&execution_context_id,&visualisation_id,&expression_id).await;
     response.expect("Couldn't detach visualisation.");
 
-    let response = client.destroy_execution_context(execution_context_id).await;
+    let response = client.destroy_execution_context(&execution_context_id).await;
     response.expect("Couldn't destroy execution context.");
 
     let path      = Path{root_id, segments:vec!["foo".into()]};
     let name      = "text.txt".into();
     let object    = FileSystemObject::File {name,path};
-    client.create_file(object.clone()).await.expect("Couldn't create file.");
+    client.create_file(&object).await.expect("Couldn't create file.");
 
     let file_path = Path{root_id, segments:vec!["foo".into(),"text.txt".into()]};
     let contents  = "Hello world!".to_string();
-    let result    = client.write_file(file_path.clone(),contents.clone()).await;
+    let result    = client.write_file(&file_path,&contents).await;
     result.expect("Couldn't write file.");
 
-    let response = client.file_info(file_path.clone()).await.expect("Couldn't get status.");
+    let response = client.file_info(&file_path).await.expect("Couldn't get status.");
     assert_eq!(response.attributes.byte_size,12);
     assert_eq!(response.attributes.kind,object);
 
-    let response = client.file_list(Path{root_id,segments:vec!["foo".into()]}).await;
+    let response = client.file_list(&Path{root_id,segments:vec!["foo".into()]}).await;
     let response = response.expect("Couldn't get file list");
     assert!(response.paths.iter().any(|file_system_object| object == *file_system_object));
 
-    let read = client.read_file(file_path.clone()).await.expect("Couldn't read contents.");
+    let read = client.read_file(&file_path).await.expect("Couldn't read contents.");
     assert_eq!(contents,read.contents);
 
     let new_path = Path{root_id,segments:vec!["foo".into(),"new_text.txt".into()]};
-    client.copy_file(file_path,new_path.clone()).await.expect("Couldn't copy file");
-    let read = client.read_file(new_path.clone()).await.expect("Couldn't read contents.");
+    client.copy_file(&file_path,&new_path).await.expect("Couldn't copy file");
+    let read = client.read_file(&new_path).await.expect("Couldn't read contents.");
     assert_eq!(contents,read.contents);
 
     let move_path = Path{root_id,segments:vec!["foo".into(),"moved_text.txt".into()]};
-    let file      = client.file_exists(move_path.clone()).await;
+    let file      = client.file_exists(&move_path).await;
     let file      = file.expect("Couldn't check if file exists.");
     if file.exists {
-        client.delete_file(move_path.clone()).await.expect("Couldn't delete file");
-        let file = client.file_exists(move_path.clone()).await;
+        client.delete_file(&move_path).await.expect("Couldn't delete file");
+        let file = client.file_exists(&move_path).await;
         let file = file.expect("Couldn't check if file exists.");
         assert_eq!(file.exists,false);
     }
 
-    client.move_file(new_path,move_path.clone()).await.expect("Couldn't move file");
-    let read = client.read_file(move_path.clone()).await.expect("Couldn't read contents");
+    client.move_file(&new_path,&move_path).await.expect("Couldn't move file");
+    let read = client.read_file(&move_path).await.expect("Couldn't read contents");
     assert_eq!(contents,read.contents);
 
     let receives_tree_updates   = ReceivesTreeUpdates{path:move_path.clone()};
     let register_options        = RegisterOptions::ReceivesTreeUpdates(receives_tree_updates);
     let method                  = "text/canEdit".to_string();
     let capability_registration = CapabilityRegistration {method,register_options};
-    let response = client.open_text_file(move_path.clone()).await;
+    let response = client.open_text_file(&move_path).await;
     let response = response.expect("Couldn't open text file.");
     assert_eq!(response.content, "Hello world!");
     assert_eq!(response.write_capability, Some(capability_registration));
@@ -191,14 +191,14 @@ async fn file_operations() {
     let new_version = Sha3_224::new(b"Hello, world!");
     let path        = move_path.clone();
     let edit        = FileEdit {path,edits,old_version,new_version:new_version.clone()};
-    client.apply_text_file_edit(edit).await.expect("Couldn't apply edit.");
+    client.apply_text_file_edit(&edit).await.expect("Couldn't apply edit.");
 
-    let future = client.save_text_file(move_path.clone(),new_version).await;
+    let future = client.save_text_file(&move_path,&new_version).await;
     future.expect("Couldn't save file.");
 
-    client.close_text_file(move_path.clone()).await.expect("Couldn't close text file.");
+    client.close_text_file(&move_path).await.expect("Couldn't close text file.");
 
-    let read = client.read_file(move_path.clone()).await.expect("Couldn't read contents.");
+    let read = client.read_file(&move_path).await.expect("Couldn't read contents.");
     assert_eq!("Hello, world!".to_string(),read.contents);
 }
 
@@ -216,16 +216,16 @@ async fn file_events() {
     executor::global::spawn(client.runner());
 
     let client_id = uuid::Uuid::default();
-    let session   = client.init_protocol_connection(client_id).await;
+    let session   = client.init_protocol_connection(&client_id).await;
     let session   = session.expect("Couldn't initialize session.");
     let root_id   = session.content_roots[0];
 
     let path      = Path{root_id,segments:vec!["test.txt".into()]};
-    let file      = client.file_exists(path.clone()).await;
+    let file      = client.file_exists(&path).await;
     let file      = file.expect("Couldn't check if file exists.");
     if file.exists {
-        client.delete_file(path.clone()).await.expect("Couldn't delete file");
-        let file = client.file_exists(path.clone()).await;
+        client.delete_file(&path).await.expect("Couldn't delete file");
+        let file = client.file_exists(&path).await;
         let file = file.expect("Couldn't check if file exists.");
         assert_eq!(file.exists,false);
     }
@@ -233,13 +233,13 @@ async fn file_events() {
     let path       = Path{root_id, segments:vec![]};
     let receives_tree_updates = ReceivesTreeUpdates{path};
     let options    = RegisterOptions::ReceivesTreeUpdates(receives_tree_updates);
-    let capability = client.acquire_capability("receivesTreeUpdates".into(),options).await;
+    let capability = client.acquire_capability(&"receivesTreeUpdates".to_string(),&options).await;
     capability.expect("Couldn't acquire receivesTreeUpdates capability.");
 
     let path      = Path{root_id, segments:vec![]};
     let name      = "test.txt".into();
     let object    = FileSystemObject::File {name,path:path.clone()};
-    client.create_file(object).await.expect("Couldn't create file.");
+    client.create_file(&object).await.expect("Couldn't create file.");
 
     let path         = Path{root_id,segments:vec!["test.txt".into()]};
     let kind         = FileEventKind::Added;

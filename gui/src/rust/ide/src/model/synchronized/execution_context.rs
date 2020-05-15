@@ -56,7 +56,7 @@ impl ExecutionContext {
         let call = language_server::ExplicitCall {method_pointer,this_argument_expression,
             positional_arguments_expressions};
         let frame  = language_server::StackItem::ExplicitCall(call);
-        let result = self.language_server.push_to_execution_context(self.id,frame);
+        let result = self.language_server.push_to_execution_context(&self.id,&frame);
         result.map(|res| res.map_err(|err| err.into()))
     }
 
@@ -66,14 +66,14 @@ impl ExecutionContext {
         let call          = language_server::LocalCall{expression_id};
         let frame         = language_server::StackItem::LocalCall(call);
         self.model.push(stack_item);
-        self.language_server.push_to_execution_context(self.id,frame)
+        self.language_server.push_to_execution_context(&self.id,&frame)
     }
 
     /// Pop the last stack item from this context. It returns error when only root call
     /// remains.
     pub async fn pop(&self) -> FallibleResult<()> {
         self.model.pop()?;
-        self.language_server.pop_from_execution_context(self.id).await?;
+        self.language_server.pop_from_execution_context(&self.id).await?;
         Ok(())
     }
 
@@ -98,7 +98,7 @@ impl Drop for ExecutionContext {
         let ls     = self.language_server.clone_ref();
         let logger = self.logger.clone_ref();
         executor::global::spawn(async move {
-            let result = ls.client.destroy_execution_context(id).await;
+            let result = ls.client.destroy_execution_context(&id).await;
             if result.is_err() {
                 error!(logger,"Error when destroying Execution Context: {result:?}.");
             }
