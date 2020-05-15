@@ -3,6 +3,3 @@ contact_links:
   - name: Issues with the IDE?
     url: https://github.com/luna/ide/issues/new/choose
     about: Please report problems with the IDE here.
-  - name: Found a vulnerability?
-    url: https://github.com/luna/enso/docs/SECURITY.md#reporting-a-vulnerability
-    about: Please report security vulnerabilities here.
