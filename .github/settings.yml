@@ -164,9 +164,9 @@ labels:
 
 # Teams configuration
 teams:
-  - name: Developers
+  - name: developers
     permission: write
-  - name: Project Management
+  - name: project-management
     permission: write
 
 # Branch protection
