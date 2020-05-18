@@ -38,7 +38,7 @@ The various components of Enso's syntax are described below:
 - [**Top-Level Syntax:**](./top-level.md) The syntax at the top-level of an Enso
   file.
 - [**Functions:**](./functions.md) The syntax for writing functions in Enso.
-- [**Function Arguments:**](./function-arguments.ms) The syntax for function
+- [**Function Arguments:**](./function-arguments.md) The syntax for function
   arguments in Enso.
 - [**Field Access:**](./projections.md) The syntax for working with fields of
   data types in Enso.
