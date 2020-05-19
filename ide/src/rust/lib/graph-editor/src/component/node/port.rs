@@ -144,8 +144,8 @@ impl Manager {
                         let hover   = &port.shape.hover;
                         let crumbs  = node.crumbs.clone();
                         frp::new_network! { port_network
-                            def _foo = port.events.mouse_over . map(f_!((hover) { hover.set(1.0); }));
-                            def _foo = port.events.mouse_out  . map(f_!((hover) { hover.set(0.0); }));
+                            def _foo = port.events.mouse_over . map(f_!(hover.set(1.0);));
+                            def _foo = port.events.mouse_out  . map(f_!(hover.set(0.0);));
 
                             def out  = port.events.mouse_out.constant(cursor::Mode::Normal);
                             def over = port.events.mouse_over.constant(cursor::Mode::highlight(&port,Vector2::new(x,0.0),Vector2::new(width2,height)));
@@ -153,9 +153,7 @@ impl Manager {
                             self.frp.cursor_mode_source.attach(&out);
 
                             let press_source = &self.frp.press_source;
-                            def _press = port.events.mouse_down.map(f_!((press_source) {
-                                press_source.emit(&crumbs);
-                            }));
+                            def _press = port.events.mouse_down.map(f_!(press_source.emit(&crumbs)));
                         }
                         ports.push(port);
                         port_networks.push(port_network);

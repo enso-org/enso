@@ -498,21 +498,21 @@ impl Node {
                 selection_ref.set_target_position(0.0);
             });
 
-            def _output_area_size = output_area_size.map(f!((output_area)(size) {
-                output_area.shape.grow.set(*size);
-            }));
+            def _output_area_size = output_area_size.map(f!((size)
+                output_area.shape.grow.set(*size)
+            ));
 
-            def _output_show = output_area.events.mouse_over.map(f_!((output_area_size_setter) {
-                output_area_size_setter.set_target_position(1.0);
-            }));
+            def _output_show = output_area.events.mouse_over.map(f_!(
+                output_area_size_setter.set_target_position(1.0)
+            ));
 
-            def _output_hide = output_area.events.mouse_out.map(f_!((output_area_size_setter) {
-                output_area_size_setter.set_target_position(0.0);
-            }));
+            def _output_hide = output_area.events.mouse_out.map(f_!(
+                output_area_size_setter.set_target_position(0.0)
+            ));
 
-            def _f_set_vis = input.set_visualization.map(f!((visualization_container)(content) {
+            def _f_set_vis = input.set_visualization.map(f!((content)
                 visualization_container.frp.set_visualization.emit(content)
-            }));
+            ));
         }
 
 

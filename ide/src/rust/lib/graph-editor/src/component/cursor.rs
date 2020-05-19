@@ -255,11 +255,11 @@ impl Cursor {
                 frp::Position::new(x,y)
             });
 
-            def _position = position.map(f!((view)(p) {
+            def _position = position.map(f!((p) {
                 view.shape.position.set(Vector2::new(p.x,p.y));
             }));
 
-            def _position = mouse_position.map(f!((anim_pos_x_setter,anim_pos_y_setter)(p) {
+            def _position = mouse_position.map(f!([anim_pos_x_setter,anim_pos_y_setter](p) {
                 anim_pos_x_setter.set_target_position(p.x);
                 anim_pos_y_setter.set_target_position(p.y);
             }));

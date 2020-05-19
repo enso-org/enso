@@ -41,7 +41,7 @@ where T:frp::HasOutput<Output=Out>, T:Into<frp::Stream<Out>>, Out:frp::Data {
         def runner   = source::<()>();
         def switch   = gather();
         switch.attach(&trigger_);
-        def triggered = trigger.map(f_!((runner) runner.emit(())));
+        def triggered = trigger.map(f_!(runner.emit(())));
         switch.attach(&triggered);
         def condition = switch.toggle_true();
     }
@@ -134,12 +134,12 @@ fn init(app:&Application) {
     frp::new_network! { network
         def trigger = source::<()>();
         let (runner,condition) = fence(&network,&trigger);
-        def _eval = runner.map(f_!((graph_editor) {
+        def _eval = runner.map(f_!( {
             graph_editor.frp.connect_nodes.emit((EdgeTarget::new(node1_id,default()),EdgeTarget::new(node2_id,vec![1,0,2])));
         }));
         def _debug = graph_editor.frp.outputs.edge_added.map2(&condition, |id,cond| {
             let owner = if *cond { "GUI" } else { "ME" };
-            println!("Edge [{}] added by {}!",id,owner)
+            println!("Edge {:?} added by {}!",id,owner)
         });
 
     }

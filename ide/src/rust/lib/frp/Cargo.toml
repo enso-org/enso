@@ -10,5 +10,6 @@ edition = "2018"
 enso-callback     = { version = "0.1.0"  , path = "../callback"   }
 enso-prelude      = { version = "0.1.0"  , path = "../prelude"    }
 ensogl-system-web = { version = "0.1.0"  , path = "../system/web" }
+enso-generics     = { version = "0.1.0"  , path = "../generics"   }
 percent-encoding  = { version = "2.1.0"                           }
 keyboard-types    = { version = "0.5.0"                           }

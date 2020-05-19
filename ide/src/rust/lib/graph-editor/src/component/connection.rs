@@ -150,7 +150,7 @@ impl Connection {
         frp::extend! { network
             // input.target_position
             // scene.mouse.frp.position
-            def _tst = input.target_position.map(f!((object,side_line,main_line,corner)(target) {
+            def _tst = input.target_position.map(f!([object,side_line,main_line,corner](target) {
                 let target = Vector2::new(target.x - object.position().x, target.y - object.position().y);
                 let radius = 14.0;
                 let width  = 284.0 / 2.0;

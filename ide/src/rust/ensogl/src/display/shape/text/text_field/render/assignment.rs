@@ -291,7 +291,6 @@ mod tests {
     use crate::display::shape::text::text_field::content::line::Line;
     use crate::display::shape::text::text_field::TextFieldProperties;
 
-    use nalgebra::Vector4;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     fn mock_properties() -> TextFieldProperties {

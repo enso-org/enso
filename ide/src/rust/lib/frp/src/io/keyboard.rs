@@ -136,30 +136,32 @@ impl Default for KeyMaskChange {
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Keyboard {
-    pub network     : frp::Network,
-    pub on_pressed  : frp::Source<Key>,
-    pub on_released : frp::Source<Key>,
-    pub on_defocus  : frp::Source,
-    pub key_mask    : frp::Stream<KeyMask>,
+    pub network           : frp::Network,
+    pub on_pressed        : frp::Source<Key>,
+    pub on_released       : frp::Source<Key>,
+    pub on_defocus        : frp::Source,
+    pub key_mask          : frp::Stream<KeyMask>,
+    pub previous_key_mask : frp::Stream<KeyMask>,
 }
 
 impl Default for Keyboard {
     fn default() -> Self {
         frp::new_network! { keyboard
-            def on_pressed        = source();
-            def on_released       = source();
-            def on_defocus        = source();
-            def change_set        = on_pressed.map(KeyMaskChange::on_pressed);
-            def change_unset      = on_released.map(KeyMaskChange::on_released);
-            def change_clear      = on_defocus.map(|()| KeyMaskChange::on_defocus());
-            def change_set_unset  = change_set.merge(&change_unset);
-            def change            = change_set_unset.merge(&change_clear);
-            def previous_key_mask = gather::<KeyMask>();
-            def key_mask          = change.map2(&previous_key_mask,KeyMaskChange::updated_mask);
+            on_pressed        <- source();
+            on_released       <- source();
+            on_defocus        <- source();
+            change_set        <- on_pressed  . map(KeyMaskChange::on_pressed);
+            change_unset      <- on_released . map(KeyMaskChange::on_released);
+            change_clear      <- on_defocus  . map(|_| KeyMaskChange::on_defocus());
+            change_set_unset  <- [change_set, change_unset];
+            change            <- [change_set_unset, change_clear];
+            prev_key_mask     <- gather::<KeyMask>();
+            key_mask          <- change.map2(&prev_key_mask,KeyMaskChange::updated_mask);
+            prev_key_mask     <+ key_mask;
+            previous_key_mask <- key_mask.previous();
         }
-        previous_key_mask.attach(&key_mask);
         let network = keyboard;
-        Keyboard {network,on_pressed,on_released,on_defocus,key_mask}
+        Keyboard {network,on_pressed,on_released,on_defocus,key_mask,previous_key_mask}
     }
 }
 

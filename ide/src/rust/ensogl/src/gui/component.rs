@@ -186,6 +186,6 @@ pub fn animation2(network:&frp::Network) -> (DynSimulator<f32>, frp::Stream<f32>
     frp::extend! { network
         def target = source::<f32> ();
     }
-    let source = DynSimulator::<f32>::new(Box::new(f!((target)(t) target.emit(t))));
+    let source = DynSimulator::<f32>::new(Box::new(f!((t) target.emit(t))));
     (source,target.into())
 }

@@ -337,7 +337,7 @@ impl Mouse {
         let mouse_manager   = MouseManager::new(&document.into());
         let frp             = frp::io::Mouse::new();
 
-        let on_move = mouse_manager.on_move.add(f!((frp,shape,position,last_position)(event:&mouse::OnMove) {
+        let on_move = mouse_manager.on_move.add(f!([frp,shape,position,last_position](event:&mouse::OnMove) {
             let pixel_ratio  = shape.pixel_ratio() as i32;
             let screen_x     = event.offset_x();
             let screen_y     = event.offset_y();
@@ -353,7 +353,7 @@ impl Mouse {
             }
         }));
 
-        let on_down = mouse_manager.on_down.add(f!((frp,button_state)(event:&mouse::OnDown) {
+        let on_down = mouse_manager.on_down.add(f!([frp,button_state](event:&mouse::OnDown) {
             match event.button() {
                 mouse::Button0 => button_state.button0_pressed.set(true),
                 mouse::Button1 => button_state.button1_pressed.set(true),
@@ -364,7 +364,7 @@ impl Mouse {
             frp.press.emit(());
         }));
 
-        let on_up = mouse_manager.on_up.add(f!((frp,button_state)(event:&mouse::OnUp) {
+        let on_up = mouse_manager.on_up.add(f!([frp,button_state](event:&mouse::OnUp) {
             match event.button() {
                 mouse::Button0 => button_state.button0_pressed.set(false),
                 mouse::Button1 => button_state.button1_pressed.set(false),
@@ -804,7 +804,7 @@ impl SceneData {
         let style_sheet    = style::Sheet::new();
 
         let bg_color_var = style_sheet.var("application.background.color");
-        let bg_color_change = bg_color_var.on_change(f!((dom)(change){
+        let bg_color_change = bg_color_var.on_change(f!([dom](change){
             change.color().for_each(|color| {
                 let color = color::Rgba::from(color);
                 let color = format!("rgba({},{},{},{})",255.0*color.red,255.0*color.green,255.0*color.blue,255.0*color.alpha);
