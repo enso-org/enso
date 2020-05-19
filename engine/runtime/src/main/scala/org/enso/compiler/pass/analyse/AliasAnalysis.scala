@@ -46,6 +46,7 @@ import scala.reflect.ClassTag
   *
   * It must have the following passes run before it:
   *
+  * - [[org.enso.compiler.pass.desugar.FunctionBinding]]
   * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
   * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
   * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
@@ -129,7 +130,8 @@ case object AliasAnalysis extends IRPass {
     val topLevelGraph = new Graph
 
     ir match {
-      case m @ IR.Module.Scope.Definition.Method(_, _, body, _, _, _) =>
+      case m @ IR.Module.Scope.Definition.Method
+            .Explicit(_, _, body, _, _, _) =>
         body match {
           case _: IR.Function =>
             m.copy(
@@ -147,6 +149,10 @@ case object AliasAnalysis extends IRPass {
               "The body of a method should always be a function."
             )
         }
+      case _: IR.Module.Scope.Definition.Method.Binding =>
+        throw new CompilerError(
+          "Method definition sugar should not occur during alias analysis."
+        )
       case a @ IR.Module.Scope.Definition.Atom(_, args, _, _, _) =>
         a.copy(
             arguments =
@@ -419,6 +425,10 @@ case object AliasAnalysis extends IRPass {
             )
           )
           .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
+      case _: IR.Function.Binding =>
+        throw new CompilerError(
+          "Function sugar should not be present during alias analysis."
+        )
     }
   }
 

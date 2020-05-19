@@ -158,6 +158,10 @@ case object LambdaConsolidate extends IRPass {
           canBeTCO  = chainedLambdas.last.canBeTCO,
           passData  = MetadataStorage()
         )
+      case _: IR.Function.Binding =>
+        throw new CompilerError(
+          "Function sugar should not be present during lambda consolidation."
+        )
     }
   }
 

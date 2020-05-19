@@ -18,6 +18,7 @@ import org.enso.compiler.pass.IRPass
   *
   * It must have the following passes run before it:
   *
+  * - [[org.enso.compiler.pass.desugar.FunctionBinding]]
   * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
   * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
   * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
@@ -76,12 +77,18 @@ case object TailCall extends IRPass {
     definition: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     definition match {
-      case method @ IR.Module.Scope.Definition.Method(_, _, body, _, _, _) =>
+      case method @ IR.Module.Scope.Definition.Method
+            .Explicit(_, _, body, _, _, _) =>
         method
           .copy(
             body = analyseExpression(body, isInTailPosition = true)
           )
           .updateMetadata(this -->> TailPosition.Tail)
+      case _: IR.Module.Scope.Definition.Method.Binding =>
+        throw new CompilerError(
+          "Sugared method definitions should not occur during tail call " +
+          "analysis."
+        )
       case atom @ IR.Module.Scope.Definition.Atom(_, args, _, _, _) =>
         atom
           .copy(
@@ -340,6 +347,10 @@ case object TailCall extends IRPass {
         lambda.copy(
           arguments = args.map(analyseDefArgument),
           body      = analyseExpression(body, isInTailPosition = markAsTail)
+        )
+      case _: IR.Function.Binding =>
+        throw new CompilerError(
+          "Function sugar should not be present during tail call analysis."
         )
     }
 

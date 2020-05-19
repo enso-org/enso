@@ -4,7 +4,7 @@ import cats.Foldable
 import cats.implicits._
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR._
-import org.enso.compiler.exception.UnhandledEntity
+import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
 import org.enso.interpreter.Constants
 import org.enso.syntax.text.AST
 
@@ -124,7 +124,7 @@ object AstToIr {
               getIdentifiedLocation(inputAST)
             )
         }
-      case AstView.MethodDefinition(targetPath, name, definition) =>
+      case AstView.MethodDefinition(targetPath, name, args, definition) =>
         val (path, pathLoc) = if (targetPath.nonEmpty) {
           val pathSegments = targetPath.collect {
             case AST.Ident.Cons.any(c) => c
@@ -147,12 +147,15 @@ object AstToIr {
         }
 
         val nameStr = name match { case AST.Ident.Var.any(name) => name }
-        Module.Scope.Definition.Method(
+
+        Module.Scope.Definition.Method.Binding(
           Name.Literal(path, pathLoc.map(IdentifiedLocation(_))),
           Name.Literal(nameStr.name, getIdentifiedLocation(nameStr)),
+          args.map(translateArgumentDefinition(_)),
           translateExpression(definition),
           getIdentifiedLocation(inputAST)
         )
+
       case _ =>
         throw new UnhandledEntity(inputAST, "translateModuleSymbol")
     }
@@ -169,6 +172,9 @@ object AstToIr {
       .getOrElse(maybeParensedInput)
 
     inputAST match {
+      case AST.Def(consName, _, _) =>
+        IR.Error
+          .Syntax(inputAST, IR.Error.Syntax.TypeDefinedInline(consName.name))
       case AstView.UnaryMinus(expression) =>
         expression match {
           case AST.Literal.Number(base, number) =>
@@ -191,6 +197,13 @@ object AstToIr {
               getIdentifiedLocation(inputAST)
             )
         }
+      case AstView.FunctionSugar(name, args, body) =>
+        Function.Binding(
+          translateIdent(name).asInstanceOf[IR.Name.Literal],
+          args.map(translateArgumentDefinition(_)),
+          translateExpression(body),
+          getIdentifiedLocation(inputAST)
+        )
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
         Expression.Binding(
@@ -205,6 +218,11 @@ object AstToIr {
         )
       case AstView.Assignment(name, expr) =>
         translateBinding(getIdentifiedLocation(inputAST), name, expr)
+      case AstView.MethodDefinition(_, name, _, _) =>
+        IR.Error.Syntax(
+          inputAST,
+          IR.Error.Syntax.MethodDefinedInline(name.asInstanceOf[AST.Ident].name)
+        )
       case AstView.MethodCall(target, name, args) =>
         val (validArguments, hasDefaultsSuspended) =
           calculateDefaultsSuspension(args)

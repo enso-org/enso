@@ -2,6 +2,7 @@ package org.enso.compiler.pass.lint
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.resolve.IgnoredBindings
@@ -113,6 +114,10 @@ case object UnusedBindings extends IRPass {
         lam.copy(
           arguments = args.map(lintFunctionArgument(_, context)),
           body      = runExpression(body, context)
+        )
+      case _: IR.Function.Binding =>
+        throw new CompilerError(
+          "Function sugar should not be present during unused bindings linting."
         )
     }
   }

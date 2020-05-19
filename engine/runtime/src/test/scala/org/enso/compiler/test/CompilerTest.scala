@@ -163,7 +163,7 @@ trait CompilerRunner {
       */
     def asMethod: IR.Module.Scope.Definition.Method = {
       IR.Module.Scope.Definition
-        .Method(
+        .Method.Explicit(
           IR.Name.Literal("TestType", None),
           IR.Name.Literal("testMethod", None),
           ir,

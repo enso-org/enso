@@ -216,9 +216,26 @@ public final class Function implements TruffleObject {
   @ExportMessage
   Object invokeMember(String member, Object... args)
       throws ArityException, UnknownIdentifierException, UnsupportedTypeException {
-    if (member.equals(MethodNames.Function.EQUALS)) {
-      Object that = Types.extractArguments(args, Object.class);
-      return this == that;
+    switch (member) {
+      case MethodNames.Function.EQUALS:
+        Object that = Types.extractArguments(args, Object.class);
+        return this == that;
+      case MethodNames.Function.GET_SOURCE_START:
+        {
+          SourceSection sect = getSourceSection();
+          if (sect == null) {
+            return null;
+          }
+          return sect.getCharIndex();
+        }
+      case MethodNames.Function.GET_SOURCE_LENGTH:
+        {
+          SourceSection sect = getSourceSection();
+          if (sect == null) {
+            return null;
+          }
+          return sect.getCharLength();
+        }
     }
     throw UnknownIdentifierException.create(member);
   }

@@ -5,13 +5,8 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
-import org.enso.compiler.pass.desugar.{GenerateMethodBodies, OperatorToFunction}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
+import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies, OperatorToFunction}
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -25,6 +20,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
   /** The passes that must be run before the dataflow analysis pass. */
   val precursorPasses: List[IRPass] = List(
+    FunctionBinding,
     GenerateMethodBodies,
     OperatorToFunction,
     AliasAnalysis,

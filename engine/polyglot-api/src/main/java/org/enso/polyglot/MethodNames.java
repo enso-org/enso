@@ -23,5 +23,7 @@ public class MethodNames {
 
   public static class Function {
     public static final String EQUALS = "equals";
+    public static final String GET_SOURCE_START = "get_source_start";
+    public static final String GET_SOURCE_LENGTH = "get_source_length";
   }
 }

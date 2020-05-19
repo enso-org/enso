@@ -72,8 +72,10 @@ class GatherDiagnosticsTest extends CompilerTest {
             ),
             None
           ),
-          IR.Module.Scope.Definition.Method(typeName, method1Name, lam, None),
-          IR.Module.Scope.Definition.Method(typeName, method2Name, error3, None)
+          IR.Module.Scope.Definition.Method
+            .Explicit(typeName, method1Name, lam, None),
+          IR.Module.Scope.Definition.Method
+            .Explicit(typeName, method2Name, error3, None)
         ),
         None
       )

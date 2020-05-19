@@ -1,15 +1,41 @@
 package org.enso.compiler.test.pass.desugar
 
-import org.enso.compiler.context.ModuleContext
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
-import org.enso.compiler.pass.desugar.GenerateMethodBodies
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies}
 import org.enso.compiler.test.CompilerTest
 
 class GenerateMethodBodiesTest extends CompilerTest {
 
   // === Test Setup ===========================================================
-  val ctx = ModuleContext()
+
+  implicit val ctx: ModuleContext = ModuleContext()
+
+  val precursorPasses: List[IRPass] = List(FunctionBinding)
+  val passConfig: PassConfiguration = PassConfiguration()
+
+  implicit val passManager: PassManager =
+    new PassManager(precursorPasses, passConfig)
+
+  /** Adds an extension method to run method and method body generation on an
+   * [[IR.Module]].
+   *
+   * @param ir the module to run desugaring on
+   */
+  implicit class DesugarModule(ir: IR.Module) {
+
+    /** Runs desugaring on a module.
+     *
+     * @param moduleContext the module context in which desugaring is taking
+     *                      place
+     * @return [[ir]], with any method bodies desugared
+     */
+    def desugar(implicit moduleContext: ModuleContext): IR.Module = {
+      GenerateMethodBodies.runModule(ir, moduleContext)
+    }
+  }
 
   // === The Tests ============================================================
 
@@ -17,10 +43,10 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val ir =
       """
         |Unit.method = a -> b -> c -> a + b + c
-        |""".stripMargin.toIrModule
+        |""".stripMargin.preprocessModule
     val irMethod = ir.bindings.head.asInstanceOf[Method]
 
-    val irResult       = GenerateMethodBodies.runModule(ir, ctx)
+    val irResult       = ir.desugar
     val irResultMethod = irResult.bindings.head.asInstanceOf[Method]
 
     "have the `this` argument prepended to the argument list" in {
@@ -48,10 +74,10 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val ir =
       """
         |Unit.method = 1
-        |""".stripMargin.toIrModule
+        |""".stripMargin.preprocessModule
     val irMethod = ir.bindings.head.asInstanceOf[Method]
 
-    val irResult       = GenerateMethodBodies.runModule(ir, ctx)
+    val irResult       = ir.desugar
     val irResultMethod = irResult.bindings.head.asInstanceOf[Method]
 
     "have the expression converted into a function" in {
@@ -76,6 +102,20 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     "have the body function's location equivalent to the original body" in {
       irMethod.body.location shouldEqual irResultMethod.body.location
+    }
+  }
+
+  "Methods that redefine `this`" should {
+    val ir =
+      """
+        |Unit.method = this -> this + 1
+        |""".stripMargin.preprocessModule.desugar
+
+    val method =
+      ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
+
+    "have their bodies replaced by an error" in {
+      method.body shouldBe an[IR.Error.Redefined.ThisArg]
     }
   }
 }

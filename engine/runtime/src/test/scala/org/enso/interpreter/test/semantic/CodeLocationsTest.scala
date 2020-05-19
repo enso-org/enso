@@ -1,13 +1,15 @@
 package org.enso.interpreter.test.semantic
-import org.enso.interpreter.node.callable.{ApplicationNode, SequenceLiteralNode}
 import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.callable.thunk.ForceNode
+import org.enso.interpreter.node.callable.{ApplicationNode, SequenceLiteralNode}
 import org.enso.interpreter.node.controlflow.MatchNode
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.test.InterpreterTest
+import org.enso.polyglot.MethodNames
 
 class CodeLocationsTest extends InterpreterTest {
+
   def debugPrintCodeLocations(code: String): Unit = {
     var off = 0
     code.linesIterator.toList.foreach { line =>
@@ -201,6 +203,40 @@ class CodeLocationsTest extends InterpreterTest {
         |    -f
         |""".stripMargin
     instrumenter.assertNodeExists(22, 2, classOf[ApplicationNode])
+    eval(code)
+  }
+
+  "Sugared method definitions" should "get the right locations" in
+  withLocationsInstrumenter { instrumenter =>
+    val code =
+      """
+        |Test.foo a b = a * b - a
+        |
+        |main = Test.foo 2 3
+        |""".stripMargin
+
+    val mod    = executionContext.evalModule(code, "Test")
+    val tpe    = mod.getAssociatedConstructor
+    val method = mod.getMethod(tpe, "foo")
+    method.value.invokeMember(MethodNames.Function.GET_SOURCE_START) shouldEqual 1
+    method.value.invokeMember(MethodNames.Function.GET_SOURCE_LENGTH) shouldEqual 24
+
+    instrumenter.assertNodeExists(16, 9, classOf[ApplicationNode])
+
+    eval(code)
+  }
+
+  "Sugared function definitions" should "get the right locations" in
+  withLocationsInstrumenter { instrumenter =>
+    val code =
+      """
+        |main =
+        |    f a b = a - b
+        |    f 10 20
+        |""".stripMargin
+
+    instrumenter.assertNodeExists(12, 13, classOf[AssignmentNode])
+    instrumenter.assertNodeExists(20, 5, classOf[ApplicationNode])
     eval(code)
   }
 }

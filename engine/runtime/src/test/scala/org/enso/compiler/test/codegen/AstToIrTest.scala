@@ -239,4 +239,93 @@ class AstToIrTest extends CompilerTest {
       fooArg.value.asInstanceOf[IR.Name.Literal].name shouldEqual "foo"
     }
   }
+
+  "AST translation of function sugar" should {
+    "work for function definitions" in {
+      val ir =
+        """
+          |f a b = a + b
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Function.Binding]
+    }
+
+    "work for method definitions" in {
+      val ir =
+        """
+          |Foo.bar a b = a + b
+          |""".stripMargin.toIrModule
+
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Binding]
+    }
+
+    "work for method definitions with involved arguments" in {
+      val ir =
+        """
+          |Foo.bar _ (b = 1) ~c = b + c
+          |""".stripMargin.toIrModule
+
+      ir.bindings.head shouldBe an[IR.Module.Scope.Definition.Method.Binding]
+    }
+
+    "not recognise pattern match bindings" in {
+      val ir =
+        """
+          |F a b = a + b
+          |""".stripMargin.toIrExpression.get
+
+      ir should not be an[IR.Function.Binding]
+    }
+
+    "work with ignored arguments" in {
+      val ir =
+        """
+          |f _ b = a + b
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Function.Binding]
+    }
+
+    "work with defaulted arguments" in {
+      val ir =
+        """
+          |f (a = 1) b = a + b
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Function.Binding]
+    }
+
+    "work with lazy arguments" in {
+      val ir =
+        """
+          |f ~a b = a + b
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Function.Binding]
+    }
+  }
+
+  "AST translation for the inline flow" should {
+    "disallow method definitions without exploding" in {
+      val ir =
+        """
+          |Unit.foo a b = a + b
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Error.Syntax]
+      ir.asInstanceOf[IR.Error.Syntax]
+        .reason shouldBe an[IR.Error.Syntax.MethodDefinedInline]
+    }
+
+    "disallow type definitions without explocing" in {
+      val ir =
+        """
+          |type MyAtom a b
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Error.Syntax]
+      ir.asInstanceOf[IR.Error.Syntax]
+        .reason shouldBe an[IR.Error.Syntax.TypeDefinedInline]
+    }
+  }
 }

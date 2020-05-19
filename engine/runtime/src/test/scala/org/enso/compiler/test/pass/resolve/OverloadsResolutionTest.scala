@@ -1,19 +1,18 @@
 package org.enso.compiler.test.pass.resolve
 
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.desugar.GenerateMethodBodies
+import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies}
 import org.enso.compiler.pass.resolve.OverloadsResolution
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
-
-import scala.annotation.unused
 
 class OverloadsResolutionTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
   val passes: List[IRPass] = List(
+    FunctionBinding,
     GenerateMethodBodies
   )
 
@@ -52,15 +51,15 @@ class OverloadsResolutionTest extends CompilerTest {
   "Method overload resolution" should {
     implicit val ctx: ModuleContext = mkModuleContext
 
-    val atomName = "Unit"
+    val atomName   = "Unit"
     val methodName = "foo"
 
     val ir =
       s"""
-        |$atomName.$methodName = x -> x
-        |$atomName.$methodName = x -> y -> x + y
-        |$atomName.$methodName = 10
-        |""".stripMargin.preprocessModule.resolve
+         |$atomName.$methodName = x -> x
+         |$atomName.$methodName = x -> y -> x + y
+         |$atomName.$methodName = 10
+         |""".stripMargin.preprocessModule.resolve
 
     "detect overloads within a given module" in {
       exactly(2, ir.bindings) shouldBe an[IR.Error.Redefined.Method]
@@ -87,10 +86,10 @@ class OverloadsResolutionTest extends CompilerTest {
 
     val ir =
       s"""
-        |type $atomName a b c
-        |type $atomName a b
-        |type $atomName a
-        |""".stripMargin.preprocessModule.resolve
+         |type $atomName a b c
+         |type $atomName a b
+         |type $atomName a
+         |""".stripMargin.preprocessModule.resolve
 
     "detect overloads within a given module" in {
       exactly(2, ir.bindings) shouldBe an[IR.Error.Redefined.Atom]

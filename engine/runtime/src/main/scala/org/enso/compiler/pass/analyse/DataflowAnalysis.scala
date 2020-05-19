@@ -21,6 +21,7 @@ import scala.collection.mutable
   *
   * It must have the following passes run before it:
   *
+  * - [[org.enso.compiler.pass.desugar.FunctionBinding]]
   * - [[AliasAnalysis]]
   * - [[DemandAnalysis]]
   * - [[TailCall]]
@@ -97,7 +98,8 @@ case object DataflowAnalysis extends IRPass {
             arguments = arguments.map(analyseDefinitionArgument(_, info))
           )
           .updateMetadata(this -->> info)
-      case method @ IR.Module.Scope.Definition.Method(_, _, body, _, _, _) =>
+      case method @ IR.Module.Scope.Definition.Method
+            .Explicit(_, _, body, _, _, _) =>
         info.updateAt(asStatic(body), Set(asStatic(method)))
 
         method
@@ -105,6 +107,11 @@ case object DataflowAnalysis extends IRPass {
             body = analyseExpression(body, info)
           )
           .updateMetadata(this -->> info)
+      case _: IR.Module.Scope.Definition.Method.Binding =>
+        throw new CompilerError(
+          "Sugared method definitions should not occur during dataflow " +
+          "analysis."
+        )
       case err: IR.Error.Redefined => err
     }
   }
@@ -187,6 +194,10 @@ case object DataflowAnalysis extends IRPass {
             body      = analyseExpression(body, info)
           )
           .updateMetadata(this -->> info)
+      case _: IR.Function.Binding =>
+        throw new CompilerError(
+          "Function sugar should not be present during alias analysis."
+        )
     }
   }
 

@@ -2,6 +2,8 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Error.Redefined
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
 /** This pass is responsible for ensuring that method bodies are in the correct
@@ -19,7 +21,7 @@ import org.enso.compiler.pass.IRPass
   *
   * It must have the following passes run before it:
   *
-  * - None
+  * - [[FunctionBinding]]
   */
 case object GenerateMethodBodies extends IRPass {
 
@@ -57,12 +59,20 @@ case object GenerateMethodBodies extends IRPass {
   def processMethodDef(
     ir: IR.Module.Scope.Definition.Method
   ): IR.Module.Scope.Definition.Method = {
-    ir.copy(
-      body = ir.body match {
-        case fun: IR.Function => processBodyFunction(fun)
-        case expression       => processBodyExpression(expression)
-      }
-    )
+    ir match {
+      case ir: IR.Module.Scope.Definition.Method.Explicit =>
+        ir.copy(
+          body = ir.body match {
+            case fun: IR.Function => processBodyFunction(fun)
+            case expression       => processBodyExpression(expression)
+          }
+        )
+      case _: IR.Module.Scope.Definition.Method.Binding =>
+        throw new CompilerError(
+          "Method definition sugar should not be present during method body " +
+          "generation."
+        )
+    }
   }
 
   /** Processes the method body if it's a function.
@@ -73,12 +83,25 @@ case object GenerateMethodBodies extends IRPass {
     * @param fun the body function
     * @return the body function with the `this` argument
     */
-  def processBodyFunction(fun: IR.Function): IR.Function = {
-    fun match {
-      case lam @ IR.Function.Lambda(args, _, _, _, _, _) =>
-        lam.copy(
-          arguments = genThisArgument :: args
-        )
+  def processBodyFunction(fun: IR.Function): IR.Expression = {
+    val containsThis = collectChainedFunctionArgs(fun).exists(arg =>
+      arg.name == IR.Name.This(arg.name.location)
+    )
+
+    if (!containsThis) {
+      fun match {
+        case lam @ IR.Function.Lambda(args, _, _, _, _, _) =>
+          lam.copy(
+            arguments = genThisArgument :: args
+          )
+        case _: IR.Function.Binding =>
+          throw new CompilerError(
+            "Function definition sugar should not be present during method " +
+            "body generation."
+          )
+      }
+    } else {
+      IR.Error.Redefined.ThisArg(fun.location)
     }
   }
 
@@ -123,4 +146,20 @@ case object GenerateMethodBodies extends IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = ir
+
+  /** Collects the argument list of a chain of function definitions.
+    *
+    * @param function the function to collect args for
+    * @return the list of arguments for `function`
+    */
+  def collectChainedFunctionArgs(
+    function: IR.Function
+  ): List[IR.DefinitionArgument] = {
+    val bodyArgs = function.body match {
+      case f: IR.Function => (collectChainedFunctionArgs(f))
+      case _              => List()
+    }
+
+    function.arguments ::: bodyArgs
+  }
 }
