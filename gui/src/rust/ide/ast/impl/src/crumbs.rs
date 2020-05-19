@@ -1845,20 +1845,21 @@ mod tests {
     // === Match ===
 
     fn match_() -> Match<Ast> {
+        let var = Ast::var("");
         let pat = Rc::new(MacroPatternRaw::Nothing(MacroPatternRawNothing{}));
         let tok = Rc::new(MacroPatternMatchRaw::Tok(MacroPatternMatchRawTok{
-            pat  : MacroPatternRawTok{spaced:None, ast:Ast::var("")},
-            elem : Shifted{off:0,wrapped:Ast::var("")},
+            pat  : MacroPatternRawTok{spaced:None, ast:var.clone()},
+            elem : Shifted{off:0,wrapped:var.clone()},
         }));
         let body = Rc::new(MacroPatternMatchRaw::Seq(MacroPatternMatchRawSeq{
             pat  : MacroPatternRawSeq{pat1:pat.clone(),pat2:pat.clone()},
             elem : (tok.clone(),tok.clone()),
         }));
         let segs = ShiftedVec1 {
-            head : MacroMatchSegment{head:Ast::var(""),body:body.clone()},
+            head : MacroMatchSegment{head:var.clone(),body:body.clone()},
             tail : vec![]
         };
-        Match{pfx:Some(body),segs,resolved:Ast::var("")}
+        Match{pfx:Some(body),segs,resolved:var.clone()}
     }
 
     #[test]
@@ -1897,21 +1898,22 @@ mod tests {
         let crumb6 = MatchCrumb::Segs{val:SegmentMatchCrumb::Body{val:crumb1},index:0};
         let crumb7 = MatchCrumb::Segs{val:SegmentMatchCrumb::Body{val:crumb2},index:0};
         let match1 = match_();
-        let match2 = match1.set(&crumb3,Ast::var("X")).unwrap();
-        let match3 = match2.set(&crumb5,Ast::var("Y")).unwrap();
-        let match4 = match3.set(&crumb7,Ast::var("Z")).unwrap();
+        let ast    = [match1.resolved.clone(), Ast::var("X"), Ast::var("Y"), Ast::var("Z")];
+        let match2 = match1.set(&crumb3,ast[1].clone()).unwrap();
+        let match3 = match2.set(&crumb5,ast[2].clone()).unwrap();
+        let match4 = match3.set(&crumb7,ast[3].clone()).unwrap();
 
-        assert_eq!(match1.get(&crumb3).unwrap(),&Ast::var(""));
-        assert_eq!(match1.get(&crumb4).unwrap(),&Ast::var(""));
-        assert_eq!(match1.get(&crumb5).unwrap(),&Ast::var(""));
-        assert_eq!(match1.get(&crumb6).unwrap(),&Ast::var(""));
-        assert_eq!(match1.get(&crumb7).unwrap(),&Ast::var(""));
+        assert_eq!(match1.get(&crumb3).unwrap(),&ast[0]);
+        assert_eq!(match1.get(&crumb4).unwrap(),&ast[0]);
+        assert_eq!(match1.get(&crumb5).unwrap(),&ast[0]);
+        assert_eq!(match1.get(&crumb6).unwrap(),&ast[0]);
+        assert_eq!(match1.get(&crumb7).unwrap(),&ast[0]);
 
-        assert_eq!(match4.get(&crumb3).unwrap(),&Ast::var("X"));
-        assert_eq!(match4.get(&crumb4).unwrap(),&Ast::var(""));
-        assert_eq!(match4.get(&crumb5).unwrap(),&Ast::var("Y"));
-        assert_eq!(match4.get(&crumb6).unwrap(),&Ast::var(""));
-        assert_eq!(match4.get(&crumb7).unwrap(),&Ast::var("Z"));
+        assert_eq!(match4.get(&crumb3).unwrap(),&ast[1]);
+        assert_eq!(match4.get(&crumb4).unwrap(),&ast[0]);
+        assert_eq!(match4.get(&crumb5).unwrap(),&ast[2]);
+        assert_eq!(match4.get(&crumb6).unwrap(),&ast[0]);
+        assert_eq!(match4.get(&crumb7).unwrap(),&ast[3]);
 
     }
 

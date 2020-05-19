@@ -231,26 +231,33 @@ impl Ast {
         self
     }
 
-    /// Wraps given shape with an optional ID into Ast.
+    /// Wraps given shape with ID into Ast with random ID if id=None.
     /// Length will ba automatically calculated based on Shape.
+    /// This constructor shouldn't be used for AST that can't have ID because of scala AST design.
+    /// For more info see `Ast::new_no_id`
     pub fn new<S:Into<Shape<Ast>>>(shape:S, id:Option<Id>) -> Ast {
-        let shape: Shape<Ast> = shape.into();
+        let shape  = shape.into();
+        let id     = id.unwrap_or_else(Id::new_v4);
         let length = shape.len();
-        Ast::new_with_length(shape,id,length)
+        Ast::from_ast_id_len(shape,Some(id),length)
+    }
+
+    /// Wraps given shape without ID into Ast.
+    /// Length will ba automatically calculated based on Shape.
+    /// Should be only used on nodes that can't have ID because of scala AST design.
+    /// Example: Module, Section.opr, MacroMatchSegment.head.
+    /// Tracking issue: https://github.com/luna/ide/issues/434
+    pub fn new_no_id<S:Into<Shape<Ast>>>(shape:S) -> Ast {
+        let shape  = shape.into();
+        let length = shape.len();
+        Ast::from_ast_id_len(shape,None,length)
     }
 
     /// Just wraps shape, id and len into Ast node.
-    pub fn from_ast_id_len(shape:Shape<Ast>, id:Option<Id>, len:usize) -> Ast {
+    fn from_ast_id_len(shape:Shape<Ast>, id:Option<Id>, len:usize) -> Ast {
         let with_length = WithLength { wrapped:shape      , len };
         let with_id     = WithID     { wrapped:with_length, id  };
         Ast { wrapped: Rc::new(with_id) }
-    }
-
-    /// As `new` but sets given declared length for the shape.
-    pub fn new_with_length<S:Into<Shape<Ast>>>
-    (shape:S, id:Option<Id>, len:usize) -> Ast {
-        let shape = shape.into();
-        Self::from_ast_id_len(shape,id,len)
     }
 
     /// Iterates over all transitive child nodes (including self).
@@ -260,7 +267,7 @@ impl Ast {
 
     /// Returns this AST node with ID set to given value.
     pub fn with_id(&self, id:Id) -> Ast {
-        Ast::from_ast_id_len(self.shape().clone(), Some(id), self.len())
+        Ast::new(self.shape().clone(), Some(id))
     }
 
     /// Returns this AST node with a newly generated unique ID.
@@ -271,11 +278,6 @@ impl Ast {
     /// Returns this AST node with shape set to given value.
     pub fn with_shape<S:Into<Shape<Ast>>>(&self, shape:S) -> Ast {
         Ast::new(shape.into(),self.id)
-    }
-
-    /// Returns this AST node with removed ID.
-    pub fn without_id(&self) -> Ast {
-        Ast::from_ast_id_len(self.shape().clone(), None, self.len())
     }
 }
 
@@ -348,7 +350,7 @@ impl<'de> Visitor<'de> for AstDeserializationVisitor {
         let shape = shape.ok_or_else(|| serde::de::Error::missing_field(SHAPE))?;
         let id    = id.unwrap_or(None); // allow missing `id` field
         let len   = len.ok_or_else(|| serde::de::Error::missing_field(LENGTH))?;
-        Ok(Ast::new_with_length(shape,id,len))
+        Ok(Ast::from_ast_id_len(shape,id,len))
     }
 }
 
@@ -1366,9 +1368,9 @@ mod tests {
     fn ast_updating_id() {
         let var = Var {name:"foo".into()};
         let ast = Ast::new(var, None);
-        assert!(ast.id.is_none());
+        assert!(ast.id.is_some());
 
-        let id  = Uuid::default();
+        let id  = Id::default();
         let ast = ast.with_id(id);
         assert_eq!(ast.id, Some(id));
     }
@@ -1414,7 +1416,7 @@ mod tests {
         let ident = "foo".to_string();
         let v     = Var{ name: ident.clone() };
         let ast   = Ast::from(v);
-        assert_eq!(ast.wrapped.id, None);
+        assert!(ast.wrapped.id.is_some());
         assert_eq!(ast.wrapped.wrapped.len, ident.len());
     }
 
@@ -1426,7 +1428,7 @@ mod tests {
         let ast_without_id = Ast::new(make_var(), None);
         round_trips(&ast_without_id);
 
-        let id        = Uuid::parse_str("15").ok();
+        let id        = Id::parse_str("15").ok();
         let ast_with_id = Ast::new(make_var(), id);
         round_trips(&ast_with_id);
     }
@@ -1444,7 +1446,7 @@ mod tests {
         let sample_json_text = sample_json.to_string();
         let ast: Ast         = serde_json::from_str(&sample_json_text).unwrap();
 
-        let expected_uuid = Uuid::parse_str(uuid_str).ok();
+        let expected_uuid = Id::parse_str(uuid_str).ok();
         assert_eq!(ast.id, expected_uuid);
 
         let expected_length = 3;

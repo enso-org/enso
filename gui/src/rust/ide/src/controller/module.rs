@@ -274,14 +274,16 @@ mod test {
             let uuid1    = Uuid::new_v4();
             let uuid2    = Uuid::new_v4();
             let uuid3    = Uuid::new_v4();
+            let uuid4    = Uuid::new_v4();
             let module   = "2+2";
             let id_map   = ast::IdMap::new(vec!
-                [ (Span::new(Index::new(0),Size::new(1)),uuid1.clone())
-                , (Span::new(Index::new(2),Size::new(1)),uuid2)
-                , (Span::new(Index::new(0),Size::new(3)),uuid3)
+                [ (Span::new(Index::new(0),Size::new(1)),uuid1)
+                , (Span::new(Index::new(1),Size::new(1)),uuid2)
+                , (Span::new(Index::new(2),Size::new(1)),uuid3)
+                , (Span::new(Index::new(0),Size::new(3)),uuid4)
                 ]);
 
-            let controller   = Handle::new_mock(location,module,id_map,ls,parser).unwrap();
+            let controller = Handle::new_mock(location,module,id_map,ls,parser).unwrap();
 
             let mut text_notifications  = controller.model.subscribe_text_notifications();
             let mut graph_notifications = controller.model.subscribe_graph_notifications();
@@ -289,18 +291,18 @@ mod test {
             // Change code from "2+2" to "22+2"
             let change = TextChange::insert(Index::new(1),"2".to_string());
             controller.apply_code_change(&change).unwrap();
-            let expected_ast = Ast::new(ast::Module {
+            let expected_ast = Ast::new_no_id(ast::Module {
                 lines: vec![BlockLine {
                     elem: Some(Ast::new(ast::Infix {
                         larg : Ast::new(ast::Number{base:None, int:"22".to_string()}, Some(uuid1)),
                         loff : 0,
-                        opr  : Ast::new(ast::Opr {name:"+".to_string()}, None),
+                        opr  : Ast::new(ast::Opr {name:"+".to_string()}, Some(uuid2)),
                         roff : 0,
-                        rarg : Ast::new(ast::Number{base:None, int:"2".to_string()}, Some(uuid2)),
-                    }, Some(uuid3))),
+                        rarg : Ast::new(ast::Number{base:None, int:"2".to_string()}, Some(uuid3)),
+                    }, Some(uuid4))),
                     off: 0
                 }]
-            }, None);
+            });
             assert_eq!(expected_ast, controller.model.ast().into());
 
             // Check emitted notifications

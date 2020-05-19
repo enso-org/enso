@@ -91,9 +91,18 @@ where for<'t> &'t Shape<Ast> : TryInto<&'t T,Error=E> {
 }
 
 impl<T:Into<Shape<Ast>>> KnownAst<T> {
-    /// Creates a new `KnownAst<T>` from `shape`.
+    /// Creates a new `KnownAst<T>` from `shape` with random ID if id=None.
     pub fn new(shape:T, id:Option<crate::Id>) -> KnownAst<T> {
         let ast = Ast::new(shape,id);
+        Self::new_unchecked(ast)
+    }
+
+    /// Creates a new `KnownAst<T>` from `shape` with no ID.
+    /// Should be only used on nodes that can't have ID because of scala AST design.
+    /// Example: Module, Section.opr, MacroMatchSegment.head
+    /// Tracking issue: https://github.com/luna/ide/issues/434
+    pub fn new_no_id(shape:T) -> KnownAst<T> {
+        let ast = Ast::new_no_id(shape);
         Self::new_unchecked(ast)
     }
 }

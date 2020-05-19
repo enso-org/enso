@@ -42,7 +42,7 @@ fn to_json_single_line
 
 impl<M:Metadata> TryFrom<&SourceFile<M>> for String {
     type Error = serde_json::Error;
-    fn try_from(val:&SourceFile<M>) -> std::result::Result<String,Self::Error> {
+    fn try_from(val:&SourceFile<M>) -> std::result::Result<Self,Self::Error> {
         let code = val.ast.repr();
         let ids  = to_json_single_line(&val.ast.id_map())?;
         let meta = to_json_single_line(&val.metadata)?;
