@@ -943,7 +943,7 @@ mod tests {
         let sheet     = Sheet::new();
         let val       = Rc::new(RefCell::new(None));
         let var       = sheet.var("button.size");
-        let handle    = var.on_change(f!((val)(v:&Option<Data>) *val.borrow_mut() = v.clone()));
+        let handle    = var.on_change(f!([val](v:&Option<Data>) *val.borrow_mut() = v.clone()));
         assert_query_sheet_count(&sheet,1,2);
         assert_eq!(var.value(),None);
         sheet.set("size",data(1.0));
@@ -974,7 +974,7 @@ mod tests {
         let sheet   = Sheet::new();
         let val     = Rc::new(RefCell::new(None));
         let var     = sheet.var("button.size");
-        let _handle = var.on_change(f!((val)(v:&Option<Data>) *val.borrow_mut() = v.clone()));
+        let _handle = var.on_change(f!([val](v:&Option<Data>) *val.borrow_mut() = v.clone()));
         assert_query_sheet_count(&sheet,1,2);
         assert_eq!(var.value(),None);
         sheet.set("size",data(1.0));

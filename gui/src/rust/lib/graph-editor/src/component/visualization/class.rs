@@ -126,7 +126,7 @@ impl Visualization {
         let visualization = &self.state;
         let frp           = &self.frp;
         frp::extend! { network
-            def _set_data = self.frp.set_data.map(f!((frp,visualization)(data) {
+            def _set_data = self.frp.set_data.map(f!([frp,visualization](data) {
                 if let Some(data) = data {
                     if visualization.renderer.receive_data(data.clone_ref()).is_err() {
                         frp.invalid_data.emit(())
@@ -138,10 +138,10 @@ impl Visualization {
         let renderer_frp     = self.state.renderer.frp();
         let renderer_network = &renderer_frp.network;
         frp::new_bridge_network! { [network,renderer_network]
-            def _on_changed = renderer_frp.on_change.map(f!((frp)(data) {
+            def _on_changed = renderer_frp.on_change.map(f!([frp](data) {
                 frp.change.emit(data)
             }));
-           def _on_preprocess_change = renderer_frp.on_preprocess_change.map(f!((frp)(data) {
+           def _on_preprocess_change = renderer_frp.on_preprocess_change.map(f!([frp](data) {
                 frp.preprocess_change.emit(data.as_ref().map(|code|code.clone_ref()))
             }));
         }

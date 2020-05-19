@@ -394,7 +394,6 @@ pub(crate) mod test {
 
     use ensogl_core_msdf_sys as msdf_sys;
     use nalgebra::Vector2;
-    use nalgebra::Vector4;
     use wasm_bindgen_test::wasm_bindgen_test;
 
     #[wasm_bindgen_test(async)]

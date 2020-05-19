@@ -166,7 +166,7 @@ impl Connection {
 
 
         frp::new_network! { network
-            def _tst = scene.mouse.frp.position.map(f!((line,src_view,tgt_view,helper1,helper2,helper3,helper4)(pos) {
+            def _tst = scene.mouse.frp.position.map(f!([line,src_view,tgt_view,helper1,helper2,helper3,helper4](pos) {
                 let test_angle = pos.y / 30.0 - 1.0;
 //                println!("test_angle: {}", test_angle*180.0);
                 let test_angle = test_angle * std::f32::consts::PI;

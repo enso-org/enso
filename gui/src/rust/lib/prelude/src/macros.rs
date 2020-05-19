@@ -129,25 +129,45 @@ macro_rules! alias {
 /// ```
 #[macro_export]
 macro_rules! f {
-    (($($name:ident),*) ($($args:tt)*) $($expr:tt)*) => {
+    ([$($name:ident),*] ($($args:tt)*) $($expr:tt)*) => {
         {
             $(let $name = $name.clone_ref();)*
-            move |$($args)*| $($expr)*
+            move |$($args)*| { $($expr)* }
         }
     };
 
-    (($($name:ident),*) $($expr:tt)*) => {
+    ([$($name:ident),*] $($expr:tt)*) => {
         {
             $(let $name = $name.clone_ref();)*
-            move || $($expr)*
+            move || { $($expr)* }
         }
+    };
+
+    (($($args:tt)*) $name:ident . $($toks:tt)*) => {
+        f! { [$name] ($($args)*) $name . $($toks)* }
+    };
+
+    (($($args:tt)*) { $name:ident . $($toks:tt)* }) => {
+        f! { [$name] ($($args)*) { $name . $($toks)* } }
+    };
+
+    ($name:ident . $($toks:tt)*) => {
+        f! { [$name] $name . $($toks)* }
     };
 }
 
 /// Variant of the `f` macro producing a lambda which drops its first argument.
 #[macro_export]
 macro_rules! f_ {
-    (($($name:ident),*) $($expr:tt)*) => {
-        f! { ($($name),*) (_) $($expr)*  }
+    ([$($name:ident),*] $($expr:tt)*) => {
+        f! { [$($name),*] (_) $($expr)*  }
+    };
+
+    ($name:ident . $($toks:tt)*) => {
+        f_! { [$name] $name . $($toks)* }
+    };
+
+    ( { $name:ident . $($toks:tt)* } ) => {
+        f_! { [$name] { $name . $($toks)* } }
     };
 }

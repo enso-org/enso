@@ -6,7 +6,7 @@ use super::command;
 
 use crate::control::io::keyboard::listener::KeyboardFrpBindings;
 use crate::frp::io::keyboard::Keyboard;
-use crate::frp::io::keyboard;
+use crate::frp::io::keyboard::KeyMask;
 use crate::frp;
 
 
@@ -14,6 +14,9 @@ use crate::frp;
 // ================
 // === Registry ===
 // ================
+
+type RuleMap   = HashMap<KeyMask,Vec<WeakHandle>>;
+type ActionMap = HashMap<ActionType,RuleMap>;
 
 /// Keyboard shortcut registry. You can add new shortcuts by using the `add` method and get a
 /// `Handle` back. When `Handle` is dropped, the shortcut will be lazily removed. This is useful
@@ -25,46 +28,66 @@ use crate::frp;
 /// shortcut manager which will own and manage the handles.
 #[derive(Clone,CloneRef,Debug)]
 pub struct Registry {
+    model   : RegistryModel,
+    network : frp::Network,
+}
+
+/// Internal representation of `Registry`.
+#[derive(Clone,CloneRef,Debug)]
+pub struct RegistryModel {
     logger            : Logger,
     keyboard          : Keyboard,
     keyboard_bindings : Rc<KeyboardFrpBindings>,
-    network           : frp::Network,
     command_registry  : command::Registry,
-    rule_map          : Rc<RefCell<HashMap<keyboard::KeyMask,Vec<Instance>>>>
+    action_map        : Rc<RefCell<ActionMap>>
 }
 
-impl Registry {
+impl Deref for Registry {
+    type Target = RegistryModel;
+    fn deref(&self) -> &Self::Target {
+        &self.model
+    }
+}
+
+
+impl RegistryModel {
     /// Constructor.
     pub fn new(logger:&Logger, command_registry:&command::Registry) -> Self {
         let logger            = logger.sub("ShortcutRegistry");
         let keyboard          = Keyboard::default();
         let keyboard_bindings = Rc::new(KeyboardFrpBindings::new(&logger,&keyboard));
         let command_registry  = command_registry.clone_ref();
-        let rule_map          = default();
-        let network           = default();
-        Self {logger,keyboard,keyboard_bindings,network,command_registry,rule_map} . init()
+        let action_map        = default();
+        Self {logger,keyboard,keyboard_bindings,command_registry,action_map}
     }
+}
 
-    fn init(self) -> Self {
-        let network          = &self.network;
-        let logger           = self.logger.clone_ref();
-        let rule_map         = self.rule_map.clone_ref();
-        let command_registry = self.command_registry.clone_ref();
-        frp::extend! { network
-            def _on_key_press = self.keyboard.key_mask.map(move |key_mask| {
-                rule_map.borrow_mut().get_mut(key_mask).map(|rules| {
-                    Self::process_rules(&logger,&command_registry,rules)
-                })
-            });
+impl Registry {
+    /// Constructor.
+    pub fn new(logger:&Logger, command_registry:&command::Registry) -> Self {
+        let model = RegistryModel::new(logger,command_registry);
+        frp::new_network! { network
+            eval model.keyboard.key_mask          ((m) model.process_action(ActionType::Press,m));
+            eval model.keyboard.previous_key_mask ((m) model.process_action(ActionType::Release,m));
         }
-        self
+        Self {model,network}
+    }
+}
+
+impl RegistryModel {
+    fn process_action(&self, action_type:ActionType, key_mask:&KeyMask) {
+        let action_map_mut = &mut self.action_map.borrow_mut();
+        if let Some(rule_map) = action_map_mut.get_mut(&action_type) {
+            if let Some(rules) = rule_map.get_mut(key_mask) {
+                self.process_rules(rules)
+            }
+        }
     }
 
-    fn process_rules
-    (logger:&Logger, command_registry:&command::Registry, rules:&mut Vec<Instance>) {
+    fn process_rules(&self, rules:&mut Vec<WeakHandle>) {
         let mut targets = Vec::new();
         {
-            let borrowed_command_map = command_registry.instances.borrow();
+            let borrowed_command_map = self.command_registry.instances.borrow();
             rules.retain(|weak_rule| {
                 weak_rule.upgrade().map(|rule| {
                     let target = &rule.target;
@@ -74,7 +97,7 @@ impl Registry {
                                 let command_name = &rule.command.name;
                                 match command.command_map.get(command_name){
                                     Some(t) => targets.push(t.frp.clone_ref()),
-                                    None    => warning!(&logger,
+                                    None    => warning!(&self.logger,
                                         "Command {command_name} was not found on {target}."),
                                 }
                             }
@@ -101,9 +124,12 @@ impl Registry {
 impl Add<Shortcut> for &Registry {
     type Output = Handle;
     fn add(self, shortcut:Shortcut) -> Handle {
-        let handle   = Handle::new(shortcut.rule);
-        let instance = handle.downgrade();
-        self.rule_map.borrow_mut().entry(shortcut.key_mask).or_default().push(instance);
+        let handle     = Handle::new(shortcut.rule);
+        let instance   = handle.downgrade();
+        let action_map = &mut self.action_map.borrow_mut();
+        let rule_map   = action_map.entry(shortcut.action.tp).or_default();
+        let rules      = rule_map.entry(shortcut.action.key_mask).or_default();
+        rules.push(instance);
         handle
     }
 }
@@ -128,20 +154,64 @@ impl Handle {
         Self {rule}
     }
 
-    fn downgrade(&self) -> Instance {
+    fn downgrade(&self) -> WeakHandle {
         let rule = Rc::downgrade(&self.rule);
-        Instance {rule}
+        WeakHandle {rule}
     }
 }
 
+/// Weak version of the `Handle`.
 #[derive(Clone,CloneRef,Debug)]
-struct Instance {
+pub struct WeakHandle {
     rule : Weak<Rule>
 }
 
-impl Instance {
+impl WeakHandle {
     fn upgrade(&self) -> Option<Handle> {
         self.rule.upgrade().map(|rule| Handle {rule})
+    }
+}
+
+
+
+// ==============
+// === Action ===
+// ==============
+
+/// A type of a keyboard action.
+#[derive(Clone,Copy,Debug,Eq,Hash,PartialEq)]
+#[allow(missing_docs)]
+pub enum ActionType {
+    Press, Release
+}
+
+/// Keyboard action defined as `ActionType` and `KeyMask`, like "release key 'n'". Please note that
+/// the release action happens as soon as the key mask is no longer valid. So for example, after
+/// pressing key "n", and then pressing key "a" (while holding "n"), the release event of the key
+/// "n" will be emitted.
+#[derive(Clone,Copy,Debug)]
+#[allow(missing_docs)]
+pub struct Action {
+    pub tp       : ActionType,
+    pub key_mask : KeyMask,
+}
+
+impl Action {
+    /// Constructor.
+    pub fn new(tp:impl Into<ActionType>, key_mask:impl Into<KeyMask>) -> Self {
+        let tp       = tp.into();
+        let key_mask = key_mask.into();
+        Self {tp,key_mask}
+    }
+
+    /// Smart constructor for the `Press` action.
+    pub fn press(key_mask:impl Into<KeyMask>) -> Self {
+        Self::new(ActionType::Press,key_mask)
+    }
+
+    /// Smart constructor for the `Release` action.
+    pub fn release(key_mask:impl Into<KeyMask>) -> Self {
+        Self::new(ActionType::Release,key_mask)
     }
 }
 
@@ -151,29 +221,29 @@ impl Instance {
 // === Shortcut ===
 // ================
 
-/// A keyboard shortcut, a `keyboard::KeyMask` associated with a `Rule`.
+/// A keyboard shortcut, an `Action` associated with a `Rule`.
 #[derive(Clone,Debug,Shrinkwrap)]
 pub struct Shortcut {
     #[shrinkwrap(main_field)]
-    rule     : Rule,
-    key_mask : keyboard::KeyMask,
+    rule   : Rule,
+    action : Action,
 }
 
 impl Shortcut {
     /// Constructor. Version without condition checker.
-    pub fn new<M,T,C>(key_mask:M, target:T, command:C) -> Self
-        where M:Into<keyboard::KeyMask>, T:Into<String>, C:Into<Command> {
+    pub fn new<A,T,C>(action:A, target:T, command:C) -> Self
+    where A:Into<Action>, T:Into<String>, C:Into<Command> {
         let rule     = Rule::new(target,command);
-        let key_mask = key_mask.into();
-        Self {rule,key_mask}
+        let action = action.into();
+        Self {rule,action}
     }
 
     /// Constructor.
-    pub fn new_when<M,T,C>(key_mask:M, target:T, command:C, condition:Condition) -> Self
-    where M:Into<keyboard::KeyMask>, T:Into<String>, C:Into<Command> {
+    pub fn new_when<A,T,C>(action:A, target:T, command:C, condition:Condition) -> Self
+    where A:Into<Action>, T:Into<String>, C:Into<Command> {
         let rule     = Rule::new_when(target,command,condition);
-        let key_mask = key_mask.into();
-        Self {rule,key_mask}
+        let action = action.into();
+        Self {rule,action}
     }
 }
 
@@ -196,13 +266,13 @@ pub struct Rule {
 impl Rule {
     /// Constructor. Version without condition checker.
     pub fn new<T,C>(target:T, command:C) -> Self
-        where T:Into<String>, C:Into<Command> {
+    where T:Into<String>, C:Into<Command> {
         Self::new_when(target,command,Condition::Ok)
     }
 
     /// Constructor.
     pub fn new_when<T,C>(target:T, command:C, when:Condition) -> Self
-        where T:Into<String>, C:Into<Command> {
+    where T:Into<String>, C:Into<Command> {
         let target  = target.into();
         let command = command.into();
         Self {target,when,command}
@@ -258,16 +328,16 @@ pub trait DefaultShortcutProvider : command::Provider {
     }
 
     /// Helper for defining shortcut targeting this object.
-    fn self_shortcut_when<M,C>(key_mask:M, command:C, condition:Condition) -> Shortcut
-        where M:Into<keyboard::KeyMask>, C:Into<Command> {
-        Shortcut::new_when(key_mask,Self::label(),command,condition)
+    fn self_shortcut_when<A,C>(action:A, command:C, condition:Condition) -> Shortcut
+    where A:Into<Action>, C:Into<Command> {
+        Shortcut::new_when(action,Self::label(),command,condition)
     }
 
     /// Helper for defining shortcut targeting this object. Version which does not accept
     /// condition checker.
-    fn self_shortcut<M,C>(key_mask:M, command:C) -> Shortcut
-        where M:Into<keyboard::KeyMask>, C:Into<Command> {
-        Shortcut::new(key_mask,Self::label(),command)
+    fn self_shortcut<A,C>(action:A, command:C) -> Shortcut
+    where A:Into<Action>, C:Into<Command> {
+        Shortcut::new(action,Self::label(),command)
     }
 }
 

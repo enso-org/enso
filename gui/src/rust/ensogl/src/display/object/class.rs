@@ -492,7 +492,7 @@ impl Debug for Instance {
 // === Id ===
 // ==========
 
-#[derive(Clone,Copy,Debug,Default,Display,Eq,From,Hash,Into,PartialEq)]
+#[derive(Clone,CloneRef,Copy,Debug,Default,Display,Eq,From,Hash,Into,PartialEq)]
 pub struct Id(usize);
 
 

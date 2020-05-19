@@ -43,6 +43,14 @@ pub trait ToRef<T>        where T:?Sized { fn to_ref(&self) -> &T; }
 impl<T>   ToRef<T> for  T where T:?Sized { fn to_ref(&self) -> &T { self } }
 impl<T>   ToRef<T> for &T where T:?Sized { fn to_ref(&self) -> &T { self } }
 
+// pub trait ToRef = ?Sized + HasRefValue + ToRef__<RefValue<Self>>;
+
+pub trait HasRefValue where                {         type RefValue:?Sized; }
+impl <T> HasRefValue for  T where T:?Sized { default type RefValue=T; }
+impl <T> HasRefValue for &T where T:?Sized {         type RefValue=T; }
+
+pub type RefValue<T> = <T as HasRefValue>::RefValue;
+
 
 
 // =============

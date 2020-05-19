@@ -562,6 +562,7 @@ name = "enso-frp"
 version = "0.1.0"
 dependencies = [
  "enso-callback 0.1.0",
+ "enso-generics 0.1.0",
  "enso-prelude 0.1.0",
  "ensogl-system-web 0.1.0",
  "keyboard-types 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -571,6 +572,9 @@ dependencies = [
 [[package]]
 name = "enso-generics"
 version = "0.1.0"
+dependencies = [
+ "nalgebra 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "enso-prelude"

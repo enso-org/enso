@@ -1,6 +1,7 @@
 //! This module contains implementations of generic operations on tuples.
 
 use crate as hlist;
+use nalgebra::base::dimension::*;
 
 
 
@@ -561,3 +562,61 @@ impl<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11> HasTupleRepr
 for hlist::ty![T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11] {
     type TupleRepr = (T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11);
 }
+
+
+
+// =================
+// === HasItemAt ===
+// =================
+
+macro_rules! gen_has_item_at {
+    ($at:ident $p:tt) => {};
+    ($at:ident [$($p:ident),*] $t:ident $(,$($ts:ident),*)?) => {
+        impl<$($p,)* X $(,$($ts),*)?> $crate::HasItemAt<$at> for ($($p,)*X,$($($ts,)*)?) {
+            type Item = X;
+        }
+        gen_has_item_at! { $at [$($p),*] $($($ts),*)? }
+    }
+}
+
+gen_has_item_at!{U0  [] T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
+gen_has_item_at!{U1  [T0] T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
+gen_has_item_at!{U2  [T0,T1] T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
+gen_has_item_at!{U3  [T0,T1,T2] T3,T4,T5,T6,T7,T8,T9,T10,T11}
+gen_has_item_at!{U4  [T0,T1,T2,T3] T4,T5,T6,T7,T8,T9,T10,T11}
+gen_has_item_at!{U5  [T0,T1,T2,T3,T4] T5,T6,T7,T8,T9,T10,T11}
+gen_has_item_at!{U6  [T0,T1,T2,T3,T4,T5] T6,T7,T8,T9,T10,T11}
+gen_has_item_at!{U7  [T0,T1,T2,T3,T4,T5,T6] T7,T8,T9,T10,T11}
+gen_has_item_at!{U8  [T0,T1,T2,T3,T4,T5,T6,T7] T8,T9,T10,T11}
+gen_has_item_at!{U9  [T0,T1,T2,T3,T4,T5,T6,T7,T8] T9,T10,T11}
+gen_has_item_at!{U10 [T0,T1,T2,T3,T4,T5,T6,T7,T8,T9] T10,T11}
+gen_has_item_at!{U11 [T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10] T11}
+
+
+
+// =================
+// === GetItemAt ===
+// =================
+
+macro_rules! gen_get_item_at {
+    ($at:ident $num:tt $p:tt) => {};
+    ($at:ident $num:tt [$($p:ident),*] $t:ident $(,$($ts:ident),*)?) => {
+        impl<$($p,)* X $(,$($ts),*)?> $crate::GetItemAt<$at> for ($($p,)*X,$($($ts,)*)?) {
+            fn get_item_at(&self) -> &X { &self.$num }
+        }
+        gen_get_item_at! { $at $num [$($p),*] $($($ts),*)? }
+    }
+}
+
+gen_get_item_at!{U0  0  [] T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
+gen_get_item_at!{U1  1  [T0] T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
+gen_get_item_at!{U2  2  [T0,T1] T2,T3,T4,T5,T6,T7,T8,T9,T10,T11}
+gen_get_item_at!{U3  3  [T0,T1,T2] T3,T4,T5,T6,T7,T8,T9,T10,T11}
+gen_get_item_at!{U4  4  [T0,T1,T2,T3] T4,T5,T6,T7,T8,T9,T10,T11}
+gen_get_item_at!{U5  5  [T0,T1,T2,T3,T4] T5,T6,T7,T8,T9,T10,T11}
+gen_get_item_at!{U6  6  [T0,T1,T2,T3,T4,T5] T6,T7,T8,T9,T10,T11}
+gen_get_item_at!{U7  7  [T0,T1,T2,T3,T4,T5,T6] T7,T8,T9,T10,T11}
+gen_get_item_at!{U8  8  [T0,T1,T2,T3,T4,T5,T6,T7] T8,T9,T10,T11}
+gen_get_item_at!{U9  9  [T0,T1,T2,T3,T4,T5,T6,T7,T8] T9,T10,T11}
+gen_get_item_at!{U10 10 [T0,T1,T2,T3,T4,T5,T6,T7,T8,T9] T10,T11}
+gen_get_item_at!{U11 11 [T0,T1,T2,T3,T4,T5,T6,T7,T8,T9,T10] T11}

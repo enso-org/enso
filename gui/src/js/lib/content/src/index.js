@@ -149,8 +149,15 @@ async function windowShowAnimation() {
     await window.showAnimation
 }
 
+function disableContextMenu() {
+    document.body.addEventListener('contextmenu', e => {
+        e.preventDefault()
+    })
+}
+
 /// Main entry point. Loads WASM, initializes it, chooses the scene to run.
 async function main() {
+    disableContextMenu()
     let target = window.location.pathname.split('/')
     target.splice(0,1)
     let cfg = getUrlParams()
