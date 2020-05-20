@@ -1,9 +1,6 @@
 use enso_prelude::*;
 
 use ast::Ast;
-use ast::HasRepr;
-use ast::IdMap;
-use data::text::*;
 use parser::Parser;
 use parser::api::SourceFile;
 

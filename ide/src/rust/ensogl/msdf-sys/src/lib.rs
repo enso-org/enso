@@ -25,10 +25,9 @@ use wasm_bindgen::prelude::Closure;
 // === Initialization ===
 // ======================
 
-/// Add initialization callback
+/// Add initialization callback.
 ///
-/// The callback passed as argument will be called once the msdfgen library
-/// will be initialized.
+/// The callback passed as argument will be called once the msdfgen library is initialized.
 pub fn run_once_initialized<F>(callback:F)
 where F : 'static + FnOnce() {
     if is_emscripten_runtime_initialized() {
@@ -61,6 +60,8 @@ impl Future for MsdfgenJsInitialized {
         }
     }
 }
+
+
 
 // ============
 // === Font ===
@@ -110,6 +111,8 @@ impl Drop for Font {
         msdfgen_free_font(self.handle.clone())
     }
 }
+
+
 
 // =====================================================
 // === Mutlichannel signed distance field generation ===
@@ -203,6 +206,7 @@ impl Drop for MultichannelSignedDistanceField {
         msdfgen_free_result(self.handle.clone());
     }
 }
+
 
 
 // =============

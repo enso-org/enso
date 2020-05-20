@@ -99,15 +99,17 @@ impl AsRef<Connection> for Connection {
 #[derive(Clone,CloneRef,Debug)]
 pub struct InputEvents {
     pub network         : frp::Network,
+    pub source_width    : frp::Source<f32>,
     pub target_position : frp::Source<frp::Position>,
 }
 
 impl InputEvents {
     pub fn new() -> Self {
         frp::new_network! { network
+            def source_width    = source();
             def target_position = source();
         }
-        Self {network,target_position}
+        Self {network,source_width,target_position}
     }
 }
 
@@ -122,12 +124,14 @@ impl Default for InputEvents {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct ConnectionData {
-    pub object    : display::object::Instance,
-    pub logger    : Logger,
-    pub events    : InputEvents,
-    pub corner    : component::ShapeView<shape::Shape>,
-    pub side_line : component::ShapeView<line::Shape>,
-    pub main_line : component::ShapeView<line::Shape>,
+    pub object          : display::object::Instance,
+    pub logger          : Logger,
+    pub events          : InputEvents,
+    pub corner          : component::ShapeView<shape::Shape>,
+    pub side_line       : component::ShapeView<line::Shape>,
+    pub main_line       : component::ShapeView<line::Shape>,
+    pub source_width    : Rc<Cell<f32>>,
+    pub target_position : Rc<Cell<frp::Position>>,
 }
 
 impl Connection {
@@ -147,13 +151,19 @@ impl Connection {
         let input = InputEvents::new();
         let network = &input.network;
 
+        let source_width : Rc<Cell<f32>> = default();
+        let target_position = Rc::new(Cell::new(frp::Position::default()));
+        source_width.set(100.0);
+
         frp::extend! { network
-            // input.target_position
-            // scene.mouse.frp.position
-            def _tst = input.target_position.map(f!([object,side_line,main_line,corner](target) {
+            eval input.target_position ((t) target_position.set(*t));
+            eval input.source_width    ((t) source_width.set(*t));
+            on_change <-_ [input.source_width,input.target_position];
+            eval_ on_change ([source_width,target_position,object,side_line,main_line,corner] {
+                let target = target_position.get();
                 let target = Vector2::new(target.x - object.position().x, target.y - object.position().y);
                 let radius = 14.0;
-                let width  = 284.0 / 2.0;
+                let width  = source_width.get() / 2.0;
 
                 let side_circle_x = width - radius;
                 let side          = target.x.signum();
@@ -193,11 +203,12 @@ impl Connection {
                     p.x = side * target.x;
                     p.y = (target.y + corner_y) / 2.0;
                 });
-            }));
+            });
         }
 
         let events = input;
-        let data = Rc::new(ConnectionData {object,logger,events,corner,side_line,main_line});
+        let data = Rc::new(ConnectionData {object,logger,events,corner,side_line,main_line
+                                          ,source_width,target_position});
         Self {data}
     }
 }

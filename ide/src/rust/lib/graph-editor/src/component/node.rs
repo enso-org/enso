@@ -5,9 +5,9 @@
 
 pub mod port;
 
-use crate::prelude::*;
+pub use port::Expression;
 
-//use crate::component::node::port::Registry;
+use crate::prelude::*;
 
 use enso_frp;
 use enso_frp as frp;
@@ -22,12 +22,15 @@ use ensogl::display;
 use ensogl::gui::component::animation;
 use ensogl::gui::component::animation2;
 use ensogl::gui::component;
-use ensogl::display::shape::text::glyph::font::FontRegistry;
-use ensogl::display::shape::text::glyph::system::GlyphSystem;
 
 use super::connection::Connection;
 use crate::component::visualization;
 
+
+
+// =============
+// === Icons ===
+// =============
 
 /// Icons definitions.
 pub mod icons {
@@ -210,127 +213,33 @@ pub mod drag_area {
 }
 
 
-pub mod label {
-    use super::*;
-
-    #[derive(Clone,CloneRef,Debug)]
-    #[allow(missing_docs)]
-    pub struct Shape {
-        pub lines : Rc<RefCell<Vec<ensogl::display::shape::text::glyph::system::Line>>>,
-        pub obj   : display::object::Instance,
-
-    }
-    impl ensogl::display::shape::system::Shape for Shape {
-        type System = ShapeSystem;
-        fn sprites(&self) -> Vec<&Sprite> {
-            vec![]
-        }
-    }
-    impl display::Object for Shape {
-        fn display_object(&self) -> &display::object::Instance {
-            &self.obj
-        }
-    }
-    #[derive(Clone, CloneRef, Debug)]
-    #[allow(missing_docs)]
-    pub struct ShapeSystem {
-        pub fonts : Rc<FontRegistry>,
-        pub glyph_system: GlyphSystem,
-        style_manager: StyleWatch,
-
-    }
-    impl ShapeSystemInstance for ShapeSystem {
-        type Shape = Shape;
-
-        fn new(scene: &Scene) -> Self {
-            let style_manager = StyleWatch::new(&scene.style_sheet);
-            let mut fonts     = FontRegistry::new();
-            let font          = fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap();
-            let glyph_system  = GlyphSystem::new(scene,font);
-            let fonts         = Rc::new(fonts);
-
-            let symbol = &glyph_system.sprite_system().symbol;
-            scene.views.main.remove(symbol);
-            scene.views.label.add(symbol);
-
-            Self { fonts, glyph_system, style_manager } // .init_refresh_on_style_change()
-        }
-
-        fn new_instance(&self) -> Self::Shape {
-            let color = color::Rgba::new(1.0, 1.0, 1.0, 0.7);
-            let obj   = display::object::Instance::new(Logger::new("test"));
-            let line1 = self.glyph_system.new_line();
-            line1.set_font_size(12.0);
-            line1.set_font_color(color);
-            line1.set_text("draw_maps size (distribution normal)");
-            obj.add_child(&line1);
-
-            // !!! println!(">>> {:?}", line1.font().get_glyph_info('a').advance * 12.0);
-
-
-//            let color = color::Rgba::new(0.18, 0.173, 0.165, 1.0);
-//            let line2 = self.glyph_system.new_line();
-//            line2.set_font_size(12.0);
-//            line2.set_font_color(color);
-//            line2.set_text("size");
-//            obj.add_child(&line2);
-//            line2.mod_position(|t| t.x += 72.0);
-
-//            let lines = Rc::new(RefCell::new(vec![line1,line2]));
-            let lines = Rc::new(RefCell::new(vec![line1]));
-
-            Shape { lines,obj }
-        }
-    }
-    impl ShapeSystem {
-//        fn init_refresh_on_style_change(self) -> Self {
-//            let shape_system = self.shape_system.clone_ref();
-//            let style_manager = self.style_manager.clone_ref();
-//            self.style_manager.set_on_style_change(move || {
-//                shape_system.set_shape(&Self::shape_def(&style_manager));
-//            });
-//            self
-//        }
-
-
-//        pub fn shape_def(__style_watch__: &StyleWatch) -> AnyShape {
-//            use ensogl::display::style::data::DataMatch;
-//
-//            Circle(10.px()).fill(color::Rgba::new(0.97,0.96,0.95)).into()
-//        }
-    }
-}
 
 
 
-// ==============
-// === Events ===
-// ==============
+
+// ===========
+// === Frp ===
+// ===========
 
 /// Node events.
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct InputEvents {
-    pub network           : frp::Network,
     pub select            : frp::Source,
     pub deselect          : frp::Source,
+    pub set_expression    : frp::Source<Expression>,
     pub set_visualization : frp::Source<Option<visualization::Visualization>>,
 }
 
 impl InputEvents {
-    pub fn new() -> Self {
-        frp::new_network! { network
+    pub fn new(network:&frp::Network) -> Self {
+        frp::extend! { network
             def select            = source();
             def deselect          = source();
+            def set_expression    = source();
             def set_visualization = source();
         }
-        Self {network,select,deselect,set_visualization}
-    }
-}
-
-impl Default for InputEvents {
-    fn default() -> Self {
-        Self::new()
+        Self {select,deselect,set_expression,set_visualization}
     }
 }
 
@@ -344,12 +253,12 @@ pub struct OutputPortsEvents {
 
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
-pub struct Events {
+pub struct Frp {
     pub input        : InputEvents,
     pub output_ports : OutputPortsEvents
 }
 
-impl Deref for Events {
+impl Deref for Frp {
     type Target = InputEvents;
     fn deref(&self) -> &Self::Target {
         &self.input
@@ -362,10 +271,12 @@ impl Deref for Events {
 // === Node ===
 // ============
 
+// FIXME: Remove all Weak nodes - no needed anymore
+
 /// Node definition.
 #[derive(AsRef,Clone,CloneRef,Debug,Deref)]
 pub struct Node {
-    data : Rc<NodeData>,
+    data : Rc<NodeModelWithNetwork>,
 }
 
 impl AsRef<Node> for Node {
@@ -377,7 +288,7 @@ impl AsRef<Node> for Node {
 /// Weak version of `Node`.
 #[derive(Clone,CloneRef,Debug)]
 pub struct WeakNode {
-    data : Weak<NodeData>
+    data : Weak<NodeModelWithNetwork>
 }
 
 impl WeakElement for WeakNode {
@@ -402,14 +313,28 @@ impl WeakKey for WeakNode {
 
 
 /// Internal data of `Node`
-#[derive(Debug)]
+#[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
-pub struct NodeData {
+pub struct NodeModelWithNetwork {
+    pub model       : Rc<NodeModel>,
+    pub frp_network : frp::Network,
+}
+
+impl Deref for NodeModelWithNetwork {
+    type Target = NodeModel;
+    fn deref(&self) -> &Self::Target {
+        &self.model
+    }
+}
+
+/// Internal data of `Node`
+#[derive(Clone,CloneRef,Debug)]
+#[allow(missing_docs)]
+pub struct NodeModel {
     pub scene                   : Scene,
     pub display_object          : display::object::Instance,
     pub logger                  : Logger,
-    pub frp                     : Events,
-    pub label_area              : component::ShapeView<label::Shape>,
+    pub frp                     : Frp,
     pub main_area               : component::ShapeView<shape::Shape>,
     pub drag_area               : component::ShapeView<drag_area::Shape>,
     pub output_area             : component::ShapeView<output_area::Shape>,
@@ -417,59 +342,42 @@ pub struct NodeData {
     pub visualization_container : visualization::Container,
 }
 
-pub const NODE_WIDTH : f32 = 284.0;
+//pub const NODE_WIDTH : f32 = 284.0;
 pub const NODE_HEIGHT : f32 = 28.0;
 pub const TEXT_OFF : f32 = 12.0;
 
 impl Node {
-    /// Constructor.
     pub fn new(scene:&Scene) -> Self {
+        let data = Rc::new(NodeModelWithNetwork::new(scene));
+        Self {data}
+    }
+}
 
+
+impl NodeModel {
+    /// Constructor.
+    pub fn new(scene:&Scene, network:&frp::Network) -> Self {
 
         let logger  = Logger::new("node");
         let _connection = Connection::new(scene); // FIXME hack for sorting
 
         let output_area = component::ShapeView::<output_area::Shape>::new(&logger,scene);
-        let main_area    = component::ShapeView::<shape::Shape>::new(&logger,scene);
+        let main_area   = component::ShapeView::<shape::Shape>::new(&logger,scene);
         let drag_area   = component::ShapeView::<drag_area::Shape>::new(&logger,scene);
         port::sort_hack(scene); // FIXME hack for sorting
-        let label_area    = component::ShapeView::<label::Shape>::new(&logger,scene);
+
         let display_object  = display::object::Instance::new(&logger);
         display_object.add_child(&drag_area);
         display_object.add_child(&output_area);
         display_object.add_child(&main_area);
-        display_object.add_child(&label_area);
 
         // FIXME: maybe we can expose shape system from shape?
         let shape_system = scene.shapes.shape_system(PhantomData::<shape::Shape>);
         shape_system.shape_system.set_pointer_events(false);
 
-        let width = NODE_WIDTH;
-        let height = 28.0;
-
-        let size = Vector2::new(width+NODE_SHAPE_PADDING*2.0, height+NODE_SHAPE_PADDING*2.0);
-        main_area.shape.sprite.size().set(size);
-        drag_area.shape.sprite.size().set(size);
-        output_area.shape.sprite.size().set(size);
-        main_area.mod_position(|t| t.x += width/2.0);
-        main_area.mod_position(|t| t.y += height/2.0);
-        drag_area.mod_position(|t| t.x += width/2.0);
-        drag_area.mod_position(|t| t.y += height/2.0);
-        output_area.mod_position(|t| t.x += width/2.0);
-        output_area.mod_position(|t| t.y += height/2.0);
-
-        label_area.mod_position(|t| t.x += TEXT_OFF);
-        label_area.mod_position(|t| t.y += 4.0 + 6.0);
-
         let ports = port::Manager::new(&logger,scene);
         let scene = scene.clone_ref();
-
-        let input = InputEvents::new();
-
-
-
-        let network = &input.network;
-
+        let input = InputEvents::new(&network);
 
         let visualization_container = visualization::Container::new();
         visualization_container.mod_position(|t| {
@@ -478,45 +386,6 @@ impl Node {
         });
 
         display_object.add_child(&visualization_container);
-
-        let view_data = main_area.shape.clone_ref();
-        let selection = animation(network, move |value| {
-            view_data.selection.set(value)
-        });
-
-        let (output_area_size_setter, output_area_size) = animation2(network);
-
-
-        frp::extend! { network
-            let selection_ref = selection.clone_ref();
-            def _select = input.select.map(move |_| {
-                selection_ref.set_target_position(1.0);
-            });
-
-            let selection_ref = selection.clone_ref();
-            def _deselect = input.deselect.map(move |_| {
-                selection_ref.set_target_position(0.0);
-            });
-
-            def _output_area_size = output_area_size.map(f!((size)
-                output_area.shape.grow.set(*size)
-            ));
-
-            def _output_show = output_area.events.mouse_over.map(f_!(
-                output_area_size_setter.set_target_position(1.0)
-            ));
-
-            def _output_hide = output_area.events.mouse_out.map(f_!(
-                output_area_size_setter.set_target_position(0.0)
-            ));
-
-            def _f_set_vis = input.set_visualization.map(f!((content)
-                visualization_container.frp.set_visualization.emit(content)
-            ));
-        }
-
-
-        //////////////////////////////////////////////////////
 
         ports.mod_position(|p| {
             p.x = TEXT_OFF;
@@ -527,15 +396,73 @@ impl Node {
 
         let output_ports = OutputPortsEvents { shape_view_events:output_area.events.clone_ref() };
 
-        let frp = Events{input,output_ports};
+        let frp = Frp{input,output_ports};
 
 
 
-        let data = Rc::new(NodeData {scene,display_object,logger,frp,main_area,drag_area
-            ,output_area,label_area,ports,visualization_container});
-        Self {data}
+        Self {scene,display_object,logger,frp,main_area,drag_area,output_area,ports
+             ,visualization_container}
+    }
+
+    pub fn width(&self) -> f32 {
+        self.ports.width() + TEXT_OFF * 2.0
+    }
+
+    fn set_expression(&self, expr:impl Into<Expression>) {
+        let expr = expr.into();
+        self.ports.set_expression(expr);
+
+        let width = self.width();
+        let height = 28.0;
+
+        let size = Vector2::new(width+NODE_SHAPE_PADDING*2.0, height+NODE_SHAPE_PADDING*2.0);
+        self.main_area.shape.sprite.size().set(size);
+        self.drag_area.shape.sprite.size().set(size);
+        self.output_area.shape.sprite.size().set(size);
+        self.main_area.mod_position(|t| t.x = width/2.0);
+        self.main_area.mod_position(|t| t.y = height/2.0);
+        self.drag_area.mod_position(|t| t.x = width/2.0);
+        self.drag_area.mod_position(|t| t.y = height/2.0);
+        self.output_area.mod_position(|t| t.x = width/2.0);
+        self.output_area.mod_position(|t| t.y = height/2.0);
     }
 }
+
+
+
+impl NodeModelWithNetwork {
+    pub fn new(scene:&Scene) -> Self {
+        let frp_network = frp::Network::new();
+        let model       = Rc::new(NodeModel::new(scene,&frp_network));
+        let inputs      = &model.frp.input;
+        let view_data   = model.main_area.shape.clone_ref();
+        let selection   = animation(&frp_network, move |value| {
+            view_data.selection.set(value)
+        });
+
+        let (output_area_size_setter, output_area_size) = animation2(&frp_network);
+
+        frp::extend! { frp_network
+            eval_ inputs.select   (selection.set_target_position(1.0));
+            eval_ inputs.deselect (selection.set_target_position(0.0));
+
+            eval inputs.set_expression ((expr) model.set_expression(expr));
+
+            eval output_area_size ((size) model.output_area.shape.grow.set(*size));
+
+            eval_ model.output_area.events.mouse_over (output_area_size_setter.set_target_position(1.0));
+            eval_ model.output_area.events.mouse_out  (output_area_size_setter.set_target_position(0.0));
+
+            eval inputs.set_visualization ((content)
+                model.visualization_container.frp.set_visualization.emit(content)
+            );
+        }
+
+        Self {frp_network,model}
+    }
+}
+
+
 
 impl StrongRef for Node {
     type WeakRef = WeakNode;

@@ -562,7 +562,7 @@ mod test {
 
     use ensogl_core_msdf_sys as msdf_sys;
 
-    use crate::display::shape::text::glyph::font::FontRegistry;
+    use crate::display::shape::text::glyph::font;
     use crate::display::shape::text::text_field::content::TextFieldContent;
     use crate::display::shape::text::text_field::content::test::mock_properties;
     use crate::display::shape::text::text_field::TextFieldProperties;
@@ -595,7 +595,7 @@ mod test {
         expected_positions.insert(PageUp,    vec![(0,0),(0,9)]);
         expected_positions.insert(PageDown,  vec![(2,0),(2,9)]);
 
-        let mut fonts       = FontRegistry::new();
+        let mut fonts       = font::Registry::new();
         let mut properties  = TextFieldProperties::default(&mut fonts);
         let two_lines_high  = properties.text_size * 2.0;
         properties.size     = Vector2::new(10.0, two_lines_high);
@@ -624,7 +624,7 @@ mod test {
         let initial_cursors   = vec![initial_cursor];
         let new_position      = TextLocation {line:1,column:10};
 
-        let mut fonts       = FontRegistry::new();
+        let mut fonts       = font::Registry::new();
         let properties      = TextFieldProperties::default(&mut fonts);
         let content         = &mut TextFieldContent::new(text,&properties);
         let selecting       = false;
@@ -644,7 +644,7 @@ mod test {
         let initial_cursors   = vec![initial_cursor];
         let expected_position = TextLocation {line:6,column:0};
 
-        let mut fonts  = FontRegistry::new();
+        let mut fonts  = font::Registry::new();
         let mut properties = TextFieldProperties::default(&mut fonts);
         properties.size = Vector2::new(100.0,100.0);
         let content         = &mut TextFieldContent::new(text,&properties);
@@ -665,7 +665,7 @@ mod test {
         let initial_cursors = vec![Cursor::new(initial_loc)];
         let new_loc         = TextLocation {line:0,column:9};
 
-        let mut fonts       = FontRegistry::new();
+        let mut fonts       = font::Registry::new();
         let properties      = TextFieldProperties::default(&mut fonts);
         let content         = &mut TextFieldContent::new(text,&properties);
         let selecting       = true;

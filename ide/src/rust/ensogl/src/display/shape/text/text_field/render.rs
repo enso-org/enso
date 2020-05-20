@@ -8,7 +8,7 @@ use crate::prelude::*;
 use crate::data::color;
 use crate::display;
 use crate::display::object::traits::*;
-use crate::display::shape::text::glyph::font::FontHandle;
+use crate::display::shape::text::glyph::font;
 use crate::display::shape::text::glyph::system::GlyphSystem;
 use crate::display::shape::text::text_field::content::TextFieldContent;
 use crate::display::shape::text::text_field::cursor::Cursor;
@@ -125,7 +125,7 @@ impl TextFieldSprites {
     fn create_assignment_structure
     ( window_size : Vector2<f32>
     , line_height : f32
-    , font        : FontHandle
+    , font        : font::Handle
     ) -> GlyphLinesAssignment {
         // Display_size.(x/y).floor() makes space for all lines/glyph that fit in space in
         // their full size. But we have 2 more lines/glyph: one clipped from top or left, and one

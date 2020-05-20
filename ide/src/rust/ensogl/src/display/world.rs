@@ -77,7 +77,7 @@ pub struct World {
     uniforms         : Uniforms,
     stats            : Stats,
     stats_monitor    : stats::Monitor,
-    focus_manager    : text_field::FocusManager, // FIXME: Remove it
+    focus_manager    : text_field::FocusManager, // FIXME: Move it to `Application`.
     callback_handles : CallbackHandles,
 }
 
@@ -95,12 +95,10 @@ impl World {
         let stats_monitor   = stats::Monitor::new(&stats);
         let focus_manager   = text_field::FocusManager::new_with_js_handlers();
 
-        let monitor         = stats_monitor.clone_ref();
-        let on_before_frame = main_loop.on_before_frame  (move |_| monitor.begin());
-        let monitor         = stats_monitor.clone_ref();
-        let on_after_frame  = main_loop.on_after_frame (move |_| monitor.end());
+        let on_before_frame = main_loop.on_before_frame (f_!(stats_monitor.begin()));
+        let on_after_frame  = main_loop.on_after_frame  (f_!(stats_monitor.end()));
         let on_frame        = main_loop.on_frame(
-            enclose!((uniforms,scene_dirty,scene) move |t:animation::TimeInfo| {
+            f!([uniforms,scene_dirty,scene] (t:animation::TimeInfo) {
                 uniforms.time.set(t.local);
                 scene_dirty.unset_all();
                 scene.update();

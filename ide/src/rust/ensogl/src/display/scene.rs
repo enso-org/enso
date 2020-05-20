@@ -19,6 +19,7 @@ use crate::display::camera::Camera2d;
 use crate::display::render::RenderComposer;
 use crate::display::render::RenderPipeline;
 use crate::display::scene::dom::DomScene;
+use crate::display::shape::text::glyph::font;
 use crate::display::style;
 use crate::display::symbol::registry::SymbolRegistry;
 use crate::display::symbol::Symbol;
@@ -746,23 +747,24 @@ impl Views {
 
 #[derive(Clone,CloneRef,Debug)]
 pub struct SceneData {
-    pub display_object : display::object::Instance,
-    pub dom            : Dom,
-    pub context        : Context,
-    symbols            : SymbolRegistry,
-    pub variables      : UniformScope,
-    pub mouse          : Mouse,
-    pub uniforms       : Uniforms,
-    pub shapes         : ShapeRegistry,
-    pub stats          : Stats,
-    pub dirty          : Dirty,
-    pub logger         : Logger,
-    pub callbacks      : Callbacks,
-    pub renderer       : Renderer,
-    pub views          : Views,
-    pub style_sheet    : style::Sheet,
-    pub bg_color_var   : style::Var,
+    pub display_object  : display::object::Instance,
+    pub dom             : Dom,
+    pub context         : Context,
+    pub symbols         : SymbolRegistry,
+    pub variables       : UniformScope,
+    pub mouse           : Mouse,
+    pub uniforms        : Uniforms,
+    pub shapes          : ShapeRegistry,
+    pub stats           : Stats,
+    pub dirty           : Dirty,
+    pub logger          : Logger,
+    pub callbacks       : Callbacks,
+    pub renderer        : Renderer,
+    pub views           : Views,
+    pub style_sheet     : style::Sheet,
+    pub bg_color_var    : style::Var,
     pub bg_color_change : callback::Handle,
+    pub fonts           : font::SharedRegistry,
 }
 
 impl SceneData {
@@ -802,6 +804,7 @@ impl SceneData {
         let on_resize      = dom.root.on_resize(on_resize_cb);
         let callbacks      = Callbacks {on_zoom,on_resize};
         let style_sheet    = style::Sheet::new();
+        let fonts          = font::SharedRegistry::new();
 
         let bg_color_var = style_sheet.var("application.background.color");
         let bg_color_change = bg_color_var.on_change(f!([dom](change){
@@ -814,7 +817,7 @@ impl SceneData {
 
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio());
         Self {renderer,display_object,dom,context,symbols,views,dirty,logger,variables
-             ,stats,uniforms,mouse,callbacks,shapes,style_sheet,bg_color_var,bg_color_change}
+             ,stats,uniforms,mouse,callbacks,shapes,style_sheet,bg_color_var,bg_color_change,fonts}
     }
 
     pub fn on_resize<F:CallbackMut1Fn<web::dom::ShapeData>>(&self, callback:F) -> callback::Handle {

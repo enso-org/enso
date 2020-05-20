@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 use crate::display::layout::types::*;
-use crate::display::shape::text::glyph::font::FontHandle;
+use crate::display::shape::text::glyph::font;
 use crate::display::shape::text::glyph::font::GlyphRenderInfo;
 use crate::display::shape::text::glyph::pen::PenIterator;
 use crate::display::shape::text::glyph::msdf::MsdfTexture;
@@ -33,7 +33,7 @@ pub struct Glyph {
     #[shrinkwrap(main_field)]
     sprite          : Sprite,
     context         : Context,
-    font            : FontHandle,
+    font            : font::Handle,
     color_attr      : Attribute<Vector4<f32>>,
     msdf_index_attr : Attribute<f32>,
     msdf_uniform    : Uniform<Texture<GpuOnly,Rgb,u8>>,
@@ -163,7 +163,7 @@ impl Line {
         self.content.borrow().len()
     }
 
-    pub fn font(&self) -> FontHandle {
+    pub fn font(&self) -> font::Handle {
         self.glyph_system.font.clone_ref()
     }
 }
@@ -243,7 +243,7 @@ pub struct GlyphSystem {
     logger           : Logger,
     context          : Context,
     sprite_system    : SpriteSystem,
-    font             : FontHandle,
+    font             : font::Handle,
     color            : Buffer<Vector4<f32>>,
     glyph_msdf_index : Buffer<f32>,
     msdf_uniform     : Uniform<Texture<GpuOnly,Rgb,u8>>,
@@ -251,7 +251,7 @@ pub struct GlyphSystem {
 
 impl GlyphSystem {
     /// Constructor.
-    pub fn new<S>(scene:&S, font:FontHandle) -> Self
+    pub fn new<S>(scene:&S, font:font::Handle) -> Self
     where for<'t> &'t S : Into<&'t Scene> {
         let logger        = Logger::new("glyph_system");
         let msdf_width    = MsdfTexture::WIDTH as f32;

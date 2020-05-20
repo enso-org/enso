@@ -4,22 +4,23 @@ use crate::prelude::*;
 
 //use crate::component::node::port::Registry;
 
-use enso_frp;
 use enso_frp as frp;
+use enso_frp;
 use ensogl::data::color;
 use ensogl::display::Attribute;
 use ensogl::display::Buffer;
-use ensogl::display::Sprite;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
+use ensogl::display::shape::text::glyph::system::GlyphSystem;
+use ensogl::display::Sprite;
 use ensogl::display::traits::*;
 use ensogl::display;
 use ensogl::gui::component;
 
+
 use crate::component::cursor;
 use super::super::node;
 use span_tree::SpanTree;
-
 
 
 
@@ -45,6 +46,60 @@ pub mod shape {
     }
 }
 
+pub mod label {
+    use super::*;
+
+    #[derive(Clone,CloneRef,Debug)]
+    #[allow(missing_docs)]
+    pub struct Shape {
+        pub label : ensogl::display::shape::text::glyph::system::Line,
+        pub obj   : display::object::Instance,
+
+    }
+    impl ensogl::display::shape::system::Shape for Shape {
+        type System = ShapeSystem;
+        fn sprites(&self) -> Vec<&Sprite> {
+            vec![]
+        }
+    }
+    impl display::Object for Shape {
+        fn display_object(&self) -> &display::object::Instance {
+            &self.obj
+        }
+    }
+    #[derive(Clone, CloneRef, Debug)]
+    #[allow(missing_docs)]
+    pub struct ShapeSystem {
+        pub glyph_system: GlyphSystem,
+        style_manager: StyleWatch,
+
+    }
+    impl ShapeSystemInstance for ShapeSystem {
+        type Shape = Shape;
+
+        fn new(scene:&Scene) -> Self {
+            let style_manager = StyleWatch::new(&scene.style_sheet);
+            let font          = scene.fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap();
+            let glyph_system  = GlyphSystem::new(scene,font);
+            let symbol        = &glyph_system.sprite_system().symbol;
+            scene.views.main.remove(symbol);
+            scene.views.label.add(symbol);
+            Self {glyph_system,style_manager} // .init_refresh_on_style_change()
+        }
+
+        fn new_instance(&self) -> Self::Shape {
+            let color = color::Rgba::new(1.0, 1.0, 1.0, 0.7);
+            let obj   = display::object::Instance::new(Logger::new("test"));
+            let label = self.glyph_system.new_line();
+            label.set_font_size(12.0);
+            label.set_font_color(color);
+            label.set_text("");
+            obj.add_child(&label);
+            Shape {label,obj}
+        }
+    }
+}
+
 
 pub fn sort_hack(scene:&Scene) {
     let logger = Logger::new("hack");
@@ -62,15 +117,22 @@ pub struct Events {
 }
 
 
+
 // ==================
 // === Expression ===
 // ==================
 
-#[derive(Clone,Debug,Default)]
+#[derive(Clone,Default)]
 pub struct Expression {
     pub code             : String,
     pub input_span_tree  : SpanTree,
     pub output_span_tree : SpanTree,
+}
+
+impl Debug for Expression {
+    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"Expression({})",self.code)
+    }
 }
 
 impl From<&Expression> for Expression {
@@ -92,7 +154,9 @@ pub struct Manager {
     pub frp        : Events,
     scene          : Scene,
     expression     : Rc<RefCell<Expression>>,
+    label          : component::ShapeView<label::Shape>,
     ports          : Rc<RefCell<Vec<component::ShapeView<shape::Shape>>>>,
+    width          : Rc<Cell<f32>>,
     port_networks  : Rc<RefCell<Vec<frp::Network>>>,
 }
 
@@ -108,15 +172,31 @@ impl Manager {
         let scene          = scene.clone_ref();
         let expression     = default();
         let port_networks  = default();
+        let label          = component::ShapeView::<label::Shape>::new(&logger,&scene);
         let ports          = default();
+        let width          = default();
         let cursor_mode    = (&cursor_mode_source).into();
         let press          = (&press_source).into();
         let frp            = Events {network,cursor_mode,press,cursor_mode_source,press_source};
-        Self {logger,display_object,frp,ports,scene,expression,port_networks}
+
+        label.mod_position(|t| t.y -= 4.0);
+
+        display_object.add_child(&label);
+
+        Self {logger,display_object,frp,label,ports,width,scene,expression,port_networks}
     }
 
-    pub fn set_expression<E:Into<Expression>>(&self, expression:E) {
+    pub fn set_expression(&self, expression:impl Into<Expression>) {
         let     expression    = expression.into();
+
+
+        self.label.shape.label.set_text(&expression.code);
+
+        let glyph_width = 7.224_609_4; // FIXME hardcoded literal
+        let width       = expression.code.len() as f32 * glyph_width;
+        self.width.set(width);
+
+
         let mut to_visit      = vec![expression.input_span_tree.root_ref()];
         let mut ports         = vec![];
         let mut port_networks = vec![];
@@ -178,6 +258,10 @@ impl Manager {
             let x     = width/2.0 + unit * span.index.value as f32;
             Vector2::new(x + node::TEXT_OFF,node::NODE_HEIGHT/2.0) // FIXME
         }).ok()
+    }
+
+    pub fn width(&self) -> f32 {
+        self.width.get()
     }
 }
 

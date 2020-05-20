@@ -3,7 +3,7 @@
 use ensogl::traits::*;
 
 use ensogl::data::color;
-use ensogl::display::shape::text::glyph::font::FontRegistry;
+use ensogl::display::shape::text::glyph::font;
 use ensogl::display::shape::text::glyph::system::GlyphSystem;
 use ensogl::display::world::*;
 use ensogl::system::web;
@@ -22,7 +22,7 @@ pub fn run_example_glyph_system() {
 }
 
 fn init(world:&World) {
-    let mut fonts    = FontRegistry::new();
+    let mut fonts    = font::Registry::new();
     let font         = fonts.get_or_load_embedded_font("DejaVuSans").unwrap();
     let glyph_system = GlyphSystem::new(world,font);
     let height       = 32.0;

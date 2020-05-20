@@ -5,8 +5,9 @@ use crate::prelude::*;
 
 use crate::controller::graph::{NewNodeInfo, LocationHint};
 use ensogl::data::color;
-use ensogl::display::shape::text::glyph::font::FontRegistry;
-use ensogl::display::shape::text::text_field::{TextField, TextFieldProperties};
+use ensogl::display::shape::text::glyph::font;
+use ensogl::display::shape::text::text_field::TextField;
+use ensogl::display::shape::text::text_field::TextFieldProperties;
 use ensogl::display::world::World;
 use ensogl::display;
 use ensogl::traits::*;
@@ -22,7 +23,7 @@ pub struct NodeSearcher {
 
 impl NodeSearcher {
     pub fn new
-    (world:&World, logger:&Logger, controller:controller::graph::Handle, fonts:&mut FontRegistry)
+    (world:&World, logger:&Logger, controller:controller::graph::Handle, fonts:&mut font::Registry)
     -> Self {
         let scene          = world.scene();
         let camera         = scene.camera();

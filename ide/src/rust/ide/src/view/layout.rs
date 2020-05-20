@@ -6,18 +6,18 @@ use crate::prelude::*;
 use crate::view::temporary_panel::TemporaryPadding;
 use crate::view::temporary_panel::TemporaryPanel;
 use crate::view::text_editor::TextEditor;
+use crate::view::node_editor::NodeEditor;
+use crate::view::node_searcher::NodeSearcher;
 
+use enso_frp::io::keyboard;
+use ensogl::application::Application;
+use ensogl::display::shape::text::glyph::font;
 use ensogl::display::traits::*;
 use ensogl::display::world::World;
-use enso_frp::io::keyboard;
-use nalgebra::zero;
 use nalgebra::Vector2;
-use std::rc::Rc;
+use nalgebra::zero;
 use std::cell::RefCell;
-use ensogl::application::Application;
-use crate::view::node_editor::NodeEditor;
-use ensogl::display::shape::text::glyph::font::FontRegistry;
-use crate::view::node_searcher::NodeSearcher;
+use std::rc::Rc;
 
 
 
@@ -93,7 +93,7 @@ impl ViewLayout {
     , application      : &Application
     , text_controller  : controller::Text
     , graph_controller : controller::ExecutedGraph
-    , fonts            : &mut FontRegistry
+    , fonts            : &mut font::Registry
     ) -> Self {
         let logger        = logger.sub("ViewLayout");
         let world         = &application.display;

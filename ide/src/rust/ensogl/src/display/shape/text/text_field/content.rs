@@ -4,7 +4,7 @@ pub mod location;
 
 use crate::prelude::*;
 
-use crate::display::shape::text::glyph::font::FontHandle;
+use crate::display::shape::text::glyph::font;
 use crate::display::shape::text::text_field::content::line::Line;
 use crate::display::shape::text::text_field::content::line::LineFullInfo;
 use crate::display::shape::text::text_field::TextFieldProperties;
@@ -79,6 +79,7 @@ impl DirtyLines {
 }
 
 
+
 // ==============
 // === Change ===
 // ==============
@@ -149,9 +150,9 @@ impl Change {
 
 
 
-// ============================
+// ========================
 // === TextFieldContent ===
-// ============================
+// ========================
 
 /// The content of text component - namely lines of text.
 #[derive(Debug)]
@@ -159,7 +160,7 @@ pub struct TextFieldContent {
     /// A struct which describe which lines are dirty (were modified after last rendering).
     pub dirty_lines: DirtyLines,
     /// Font handle, used to specify character positions.
-    pub font: FontHandle,
+    pub font: font::Handle,
     /// Line height in pixels, being a distance between baselines of consecutive lines.
     pub line_height: f32,
     /// Lines being the actual content.
@@ -390,7 +391,7 @@ pub(crate) mod test {
     use super::*;
 
     use crate::data::color;
-    use crate::display::shape::text::glyph::font::FontRenderInfo;
+    use crate::display::shape::text::glyph::font;
 
     use ensogl_core_msdf_sys as msdf_sys;
     use nalgebra::Vector2;
@@ -593,7 +594,7 @@ pub(crate) mod test {
 
     pub(crate) fn mock_properties()->  TextFieldProperties {
         TextFieldProperties {
-            font       : FontHandle::new(FontRenderInfo::mock_font("Test font".to_string())),
+            font       : font::Handle::new(font::RenderInfo::mock_font("Test font".to_string())),
             text_size  : 0.0,
             base_color : color::Rgba::new(1.0, 1.0, 1.0, 1.0),
             size       : Vector2::new(1.0, 1.0)

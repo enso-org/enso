@@ -4,7 +4,7 @@ use ensogl::traits::*;
 
 use ensogl::data::color;
 use ensogl::display::world::World;
-use ensogl::display::shape::text::glyph::font::FontRegistry;
+use ensogl::display::shape::text::glyph::font;
 use ensogl::display::shape::text::text_field::TextField;
 use ensogl::display::shape::text::text_field::TextFieldProperties;
 use ensogl::display::world::*;
@@ -33,7 +33,7 @@ pub fn run_example_text_field() {
     web::set_stdout();
     ensogl_core_msdf_sys::run_once_initialized(|| {
         let world     = &World::new(&web::get_html_element_by_id("root").unwrap());
-        let mut fonts = FontRegistry::new();
+        let mut fonts = font::Registry::new();
         let font      = fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap();
 
         let properties = TextFieldProperties {
