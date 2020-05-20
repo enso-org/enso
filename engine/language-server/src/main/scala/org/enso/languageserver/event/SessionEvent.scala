@@ -12,7 +12,7 @@ sealed trait SessionEvent extends Event
   *
   * @param session an object representing a client session
   */
-case class RpcSessionInitialized(session: JsonSession) extends SessionEvent
+case class JsonSessionInitialized(session: JsonSession) extends SessionEvent
 
 /**
   * Notifies the Language Server about a client disconnecting rpc session.
@@ -20,14 +20,14 @@ case class RpcSessionInitialized(session: JsonSession) extends SessionEvent
   *
   * @param session an object representing a client session
   */
-case class RpcSessionTerminated(session: JsonSession) extends SessionEvent
+case class JsonSessionTerminated(session: JsonSession) extends SessionEvent
 
 /**
   * Notifies the Language Server about a new data session.
   *
   * @param session an object representing a client session
   */
-case class DataSessionInitialized(session: BinarySession) extends SessionEvent
+case class BinarySessionInitialized(session: BinarySession) extends SessionEvent
 
 /**
   * Notifies the Language Server about a client disconnecting data session.
@@ -35,4 +35,4 @@ case class DataSessionInitialized(session: BinarySession) extends SessionEvent
   *
   * @param session an object representing a client session
   */
-case class DataSessionTerminated(session: BinarySession) extends SessionEvent
+case class BinarySessionTerminated(session: BinarySession) extends SessionEvent

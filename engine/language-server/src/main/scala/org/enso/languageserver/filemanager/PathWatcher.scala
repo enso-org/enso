@@ -17,7 +17,7 @@ import org.enso.languageserver.data.{
   ReceivesTreeUpdates
 }
 import org.enso.languageserver.effect._
-import org.enso.languageserver.event.RpcSessionTerminated
+import org.enso.languageserver.event.JsonSessionTerminated
 import org.enso.languageserver.util.UnhandledLogging
 import zio._
 
@@ -47,7 +47,7 @@ final class PathWatcher(
 
   override def preStart(): Unit = {
     context.system.eventStream
-      .subscribe(self, classOf[RpcSessionTerminated]): Unit
+      .subscribe(self, classOf[JsonSessionTerminated]): Unit
   }
   override def postStop(): Unit = {
     stopWatcher(): Unit
@@ -97,7 +97,7 @@ final class PathWatcher(
       sender() ! CapabilityReleased
       unregisterClient(root, base, clients - client)
 
-    case RpcSessionTerminated(client)
+    case JsonSessionTerminated(client)
         if clients.contains(client.rpcController) =>
       unregisterClient(root, base, clients - client.rpcController)
 

@@ -13,14 +13,24 @@ import org.enso.languageserver.capability.CapabilityApi.{
 }
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.event.{
-  RpcSessionInitialized,
-  RpcSessionTerminated
+  JsonSessionInitialized,
+  JsonSessionTerminated
 }
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.PathWatcherProtocol
+import org.enso.languageserver.io.InputOutputApi._
+import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
+import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
+import org.enso.languageserver.requesthandler.io.{
+  FeedStandardInputHandler,
+  RedirectStdErrHandler,
+  RedirectStdOutHandler,
+  SuppressStdErrHandler,
+  SuppressStdOutHandler
+}
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.requesthandler.text._
@@ -65,6 +75,9 @@ class JsonConnectionController(
   val capabilityRouter: ActorRef,
   val fileManager: ActorRef,
   val contextRegistry: ActorRef,
+  val stdOutController: ActorRef,
+  val stdErrController: ActorRef,
+  val stdInController: ActorRef,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
@@ -102,7 +115,7 @@ class JsonConnectionController(
         ) =>
       log.info(s"RPC session initialized for client: $clientId")
       val session = JsonSession(clientId, self)
-      context.system.eventStream.publish(RpcSessionInitialized(session))
+      context.system.eventStream.publish(JsonSessionInitialized(session))
       val requestHandlers = createRequestHandlers(session)
       val handler = context.actorOf(
         InitProtocolConnectionHandler.props(fileManager, requestTimeout)
@@ -126,7 +139,7 @@ class JsonConnectionController(
       sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
 
     case MessageHandler.Disconnected =>
-      context.system.eventStream.publish(RpcSessionTerminated(rpcSession))
+      context.system.eventStream.publish(JsonSessionTerminated(rpcSession))
       context.stop(self)
 
     case CapabilityProtocol.CapabilityForceReleased(registration) =>
@@ -151,8 +164,30 @@ class JsonConnectionController(
         ExecutionContextExpressionValuesComputed.Params(contextId, updates)
       )
 
+    case InputOutputProtocol.OutputAppended(output, outputKind) =>
+      outputKind match {
+        case StandardOutput =>
+          webActor ! Notification(
+            StandardOutputAppended,
+            StandardOutputAppended.Params(output)
+          )
+
+        case StandardError =>
+          webActor ! Notification(
+            StandardErrorAppended,
+            StandardErrorAppended.Params(output)
+          )
+
+      }
+
+    case InputOutputProtocol.WaitingForStandardInput =>
+      webActor ! Notification(InputOutputApi.WaitingForStandardInput, Unused)
+
     case req @ Request(method, _, _) if (requestHandlers.contains(method)) =>
-      val handler = context.actorOf(requestHandlers(method))
+      val handler = context.actorOf(
+        requestHandlers(method),
+        s"request-handler-$method-${UUID.randomUUID()}"
+      )
       handler.forward(req)
   }
 
@@ -208,7 +243,16 @@ class JsonConnectionController(
       DetachVisualisation -> DetachVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       ModifyVisualisation -> ModifyVisualisationHandler
-        .props(rpcSession.clientId, requestTimeout, contextRegistry)
+        .props(rpcSession.clientId, requestTimeout, contextRegistry),
+      RedirectStandardOutput -> RedirectStdOutHandler
+        .props(stdOutController, rpcSession.clientId),
+      SuppressStandardOutput -> SuppressStdOutHandler
+        .props(stdOutController, rpcSession.clientId),
+      SuppressStandardError -> SuppressStdErrHandler
+        .props(stdErrController, rpcSession.clientId),
+      RedirectStandardError -> RedirectStdErrHandler
+        .props(stdErrController, rpcSession.clientId),
+      FeedStandardInput -> FeedStandardInputHandler.props(stdInController)
     )
 
 }
@@ -232,6 +276,9 @@ object JsonConnectionController {
     capabilityRouter: ActorRef,
     fileManager: ActorRef,
     contextRegistry: ActorRef,
+    stdOutController: ActorRef,
+    stdErrController: ActorRef,
+    stdInController: ActorRef,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
     Props(
@@ -241,6 +288,9 @@ object JsonConnectionController {
         capabilityRouter,
         fileManager,
         contextRegistry,
+        stdOutController,
+        stdErrController,
+        stdInController,
         requestTimeout
       )
     )

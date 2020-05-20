@@ -9,6 +9,16 @@ import org.enso.languageserver.capability.CapabilityApi.{
   ReleaseCapability
 }
 import org.enso.languageserver.filemanager.FileManagerApi._
+import org.enso.languageserver.io.InputOutputApi.{
+  FeedStandardInput,
+  RedirectStandardError,
+  RedirectStandardOutput,
+  StandardErrorAppended,
+  StandardOutputAppended,
+  SuppressStandardError,
+  SuppressStandardOutput,
+  WaitingForStandardInput
+}
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.VisualisationApi._
@@ -39,6 +49,11 @@ object JsonRpc {
     .registerRequest(ListFile)
     .registerRequest(TreeFile)
     .registerRequest(InfoFile)
+    .registerRequest(RedirectStandardOutput)
+    .registerRequest(RedirectStandardError)
+    .registerRequest(SuppressStandardOutput)
+    .registerRequest(SuppressStandardError)
+    .registerRequest(FeedStandardInput)
     .registerRequest(ExecutionContextCreate)
     .registerRequest(ExecutionContextDestroy)
     .registerRequest(ExecutionContextPush)
@@ -52,5 +67,8 @@ object JsonRpc {
     .registerNotification(TextDidChange)
     .registerNotification(EventFile)
     .registerNotification(ExecutionContextExpressionValuesComputed)
+    .registerNotification(StandardOutputAppended)
+    .registerNotification(StandardErrorAppended)
+    .registerNotification(WaitingForStandardInput)
 
 }

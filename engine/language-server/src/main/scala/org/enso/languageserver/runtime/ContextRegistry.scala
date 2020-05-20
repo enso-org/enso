@@ -4,6 +4,10 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.{ClientId, Config}
+import org.enso.languageserver.event.{
+  ExecutionContextCreated,
+  ExecutionContextDestroyed
+}
 import org.enso.languageserver.filemanager.FileSystemFailure
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.runtime.handler._
@@ -80,6 +84,8 @@ final class ContextRegistry(
       context.become(
         withStore(store.addContext(client.clientId, contextId, listener))
       )
+      context.system.eventStream
+        .publish(ExecutionContextCreated(contextId, client.clientId))
 
     case DestroyContextRequest(client, contextId) =>
       if (store.hasContext(client.clientId, contextId)) {
@@ -90,6 +96,8 @@ final class ContextRegistry(
         context.become(
           withStore(store.removeContext(client.clientId, contextId))
         )
+        context.system.eventStream
+          .publish(ExecutionContextDestroyed(contextId, client.clientId))
       } else {
         sender() ! AccessDenied
       }

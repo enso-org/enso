@@ -12,7 +12,7 @@ import org.enso.languageserver.data.{
 import org.enso.languageserver.event.{
   BufferClosed,
   BufferOpened,
-  RpcSessionTerminated
+  JsonSessionTerminated
 }
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
   ReadTextualFileResult,
@@ -61,7 +61,7 @@ class CollaborativeBuffer(
 
   override def preStart(): Unit = {
     context.system.eventStream
-      .subscribe(self, classOf[RpcSessionTerminated]): Unit
+      .subscribe(self, classOf[JsonSessionTerminated]): Unit
   }
 
   override def receive: Receive = uninitialized
@@ -109,7 +109,7 @@ class CollaborativeBuffer(
     case ReleaseCapability(client, CapabilityRegistration(CanEdit(_))) =>
       releaseWriteLock(buffer, clients, lockHolder, client.clientId)
 
-    case RpcSessionTerminated(client) =>
+    case JsonSessionTerminated(client) =>
       if (clients.contains(client.clientId)) {
         removeClient(buffer, clients, lockHolder, client.clientId)
       }

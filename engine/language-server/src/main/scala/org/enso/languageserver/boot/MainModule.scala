@@ -15,6 +15,7 @@ import org.enso.languageserver.filemanager.{
   ReceivesTreeUpdatesHandler
 }
 import org.enso.languageserver.http.server.BinaryWebSocketServer
+import org.enso.languageserver.io._
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
@@ -101,12 +102,20 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "context-registry"
     )
 
+  val stdOut    = new ObservableOutputStream
+  val stdErr    = new ObservableOutputStream
+  val stdInSink = new ObservableOutputStream
+  val stdIn     = new ObservablePipedInputStream(stdInSink)
+
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
+    .out(stdOut)
+    .err(stdErr)
+    .in(stdIn)
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
@@ -120,17 +129,40 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .build()
   context.initialize(LanguageInfo.ID)
 
-  lazy val clientControllerFactory = new JsonConnectionControllerFactory(
+  val stdOutController =
+    system.actorOf(
+      OutputRedirectionController
+        .props(stdOut, OutputKind.StandardOutput, sessionRouter),
+      "std-out-controller"
+    )
+
+  val stdErrController =
+    system.actorOf(
+      OutputRedirectionController
+        .props(stdErr, OutputKind.StandardError, sessionRouter),
+      "std-err-controller"
+    )
+
+  val stdInController =
+    system.actorOf(
+      InputRedirectionController.props(stdIn, stdInSink, sessionRouter),
+      "std-in-controller"
+    )
+
+  lazy val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
     bufferRegistry,
     capabilityRouter,
     fileManager,
-    contextRegistry
+    contextRegistry,
+    stdOutController,
+    stdErrController,
+    stdInController
   )
 
   lazy val jsonRpcServer =
-    new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)
+    new JsonRpcServer(JsonRpc.protocol, jsonRpcControllerFactory)
 
-  lazy val dataServer =
+  lazy val binaryServer =
     new BinaryWebSocketServer(
       InboundMessageDecoder,
       BinaryEncoder.empty,

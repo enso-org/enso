@@ -95,6 +95,15 @@ transport formats, please look [here](./protocol-architecture).
   - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
   - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
   - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
+- [Input/Output Operations](#input-output-operations)
+  - [`io/redirectStandardOutput`](#ioredirectstdardoutput)  
+  - [`io/suppressStandardOutput`](#iosuppressstdardoutput)  
+  - [`io/standardOutputAppended`](#iostandardoutputappended)  
+  - [`io/redirectStandardError`](#ioredirectstdarderror)  
+  - [`io/suppressStandardError`](#iosuppressstdarderror)  
+  - [`io/standardErrorAppended`](#iostandarderrorappended)  
+  - [`io/feedStandardInput`](#iofeedstandardinput)  
+  - [`io/waitingForStandardInput`](#iowaitingforstandardinput)  
 - [Errors](#errors)
   - [`AccessDeniedError`](#accessdeniederror)
   - [`FileSystemError`](#filesystemerror)
@@ -2091,6 +2100,176 @@ root_type VisualisationUpdate;
 
 #### Errors
 N/A
+
+## Input/Output Operations
+The input/output portion of the language server API deals with redirecting
+stdin/stdout/stderr of Enso programs to the clients of the language server. 
+This is incredibly important for enabling the high levels of interactivity 
+required by Enso Studio.
+
+### `io/redirectStandardOutput`
+This message allows a client to redirect the standard output of Enso programs. 
+Once the standard output is redirected, the Language server will notify the 
+client about new output data by emitting `io/standardOutputAppended` messages.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+null
+```
+#### Result
+
+```typescript
+null
+```
+
+#### Errors
+N/A
+
+### `io/suppressStandardOutput`
+This message allows a client to suppress the redirection of the standard output. 
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+null
+```
+#### Result
+
+```typescript
+null
+```
+
+#### Errors
+N/A
+
+### `io/standardOutputAppended`
+Sent from the server to the client to inform that new output data are available 
+for the standard output.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+```typescript
+{
+  output: String;
+}
+```
+
+### `io/redirectStandardError`
+This message allows a client to redirect the standard error of Enso programs. 
+Once the standard error is redirected, the Language server will notify the 
+client about new output data by emitting `io/standardErrorAppended` messages.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+null
+```
+#### Result
+
+```typescript
+null
+```
+
+#### Errors
+N/A
+
+### `io/suppressStandardError`
+This message allows a client to suppress the redirection of the standard error. 
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+null
+```
+#### Result
+
+```typescript
+null
+```
+
+#### Errors
+N/A
+
+### `io/standardErrorAppended`
+Sent from the server to the client to inform that new output data are available 
+for the standard error.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+```typescript
+{
+  output: String;
+}
+```
+
+### `io/feedStandardInput`
+This message allows a client to feed the standard input of Enso programs. 
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+{
+  input: String;
+  isLineTerminated: Boolean;
+}
+```
+#### Result
+
+```typescript
+null
+```
+
+#### Errors
+N/A
+
+### `io/waitingForStandardInput`
+Sent from the server to the client to inform that an Enso program is suspended 
+by `IO.readln`. This message is used to notify a client that she should feed the
+standard input. 
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+```typescript
+null
+```
 
 ## Errors
 The language server component also has its own set of errors. This section is

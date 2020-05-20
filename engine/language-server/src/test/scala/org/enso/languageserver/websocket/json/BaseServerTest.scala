@@ -15,6 +15,13 @@ import org.enso.languageserver.filemanager.{
   FileSystem,
   ReceivesTreeUpdatesHandler
 }
+import org.enso.languageserver.io.{
+  InputRedirectionController,
+  ObservableOutputStream,
+  ObservablePipedInputStream,
+  OutputKind,
+  OutputRedirectionController
+}
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
@@ -41,6 +48,31 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
   override def protocol: Protocol = JsonRpc.protocol
 
+  val stdOut    = new ObservableOutputStream
+  val stdErr    = new ObservableOutputStream
+  val stdInSink = new ObservableOutputStream
+  val stdIn     = new ObservablePipedInputStream(stdInSink)
+
+  val sessionRouter =
+    system.actorOf(SessionRouter.props())
+
+  val stdOutController =
+    system.actorOf(
+      OutputRedirectionController
+        .props(stdOut, OutputKind.StandardOutput, sessionRouter)
+    )
+
+  val stdErrController =
+    system.actorOf(
+      OutputRedirectionController
+        .props(stdErr, OutputKind.StandardError, sessionRouter)
+    )
+
+  val stdInController =
+    system.actorOf(
+      InputRedirectionController.props(stdIn, stdInSink, sessionRouter)
+    )
+
   override def clientControllerFactory: ClientControllerFactory = {
     val zioExec = ZioExec(zio.Runtime.default)
     val fileManager =
@@ -56,9 +88,6 @@ class BaseServerTest extends JsonRpcServerTestKit {
         ReceivesTreeUpdatesHandler.props(config, new FileSystem, zioExec)
       )
 
-    val sessionRouter =
-      system.actorOf(SessionRouter.props())
-
     val contextRegistry =
       system.actorOf(
         ContextRegistry.props(config, runtimeConnectorProbe.ref, sessionRouter)
@@ -70,7 +99,10 @@ class BaseServerTest extends JsonRpcServerTestKit {
       bufferRegistry,
       capabilityRouter,
       fileManager,
-      contextRegistry
+      contextRegistry,
+      stdOutController,
+      stdErrController,
+      stdInController
     )
   }
 

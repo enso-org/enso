@@ -7,8 +7,8 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
 import org.enso.languageserver.event.{
-  DataSessionInitialized,
-  DataSessionTerminated
+  BinarySessionInitialized,
+  BinarySessionTerminated
 }
 import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.{
   ConnectionClosed,
@@ -93,7 +93,7 @@ class BinaryConnectionController(
       val responsePacket = createSessionInitResponsePacket(msg.messageId())
       outboundChannel ! responsePacket
       val session = BinarySession(clientId, self)
-      context.system.eventStream.publish(DataSessionInitialized(session))
+      context.system.eventStream.publish(BinarySessionInitialized(session))
       log.info(s"Data session initialized for client: $clientId [$clientIp]")
       context.become(
         connectionEndHandler(Some(session))
@@ -133,7 +133,7 @@ class BinaryConnectionController(
     case ConnectionClosed =>
       log.info(s"Connection closed [$clientIp]")
       maybeDataSession.foreach(session =>
-        context.system.eventStream.publish(DataSessionTerminated(session))
+        context.system.eventStream.publish(BinarySessionTerminated(session))
       )
       context.stop(self)
 
@@ -143,7 +143,7 @@ class BinaryConnectionController(
         th
       )
       maybeDataSession.foreach(session =>
-        context.system.eventStream.publish(DataSessionTerminated(session))
+        context.system.eventStream.publish(BinarySessionTerminated(session))
       )
       context.stop(self)
   }
