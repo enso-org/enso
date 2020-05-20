@@ -88,12 +88,12 @@ name: My_Package
 version: 1.0.1
 author: "John Doe <john.doe@example.com>"
 maintainer: "Jane Doe <jane.doe@example.com>"
-enso_version: 1.2.0
-dependencies:
-  - name: Base
-    version: "1.2.0"
-  - name: Http
-    version: "4.5.3"
+resolver: lts-1.2.0
+extra-dependencies:
+- name: Base
+  version: "1.2.0"
+- name: Http
+  version: "4.5.3"
 ```
 
 The following is the specification of the manifest fields.
@@ -115,17 +115,21 @@ the author(s) of this library, in the `Name <contact>` or `Name` format.
 of the current maintainer(s) of this library, in the `Name <contact>` or `Name`
 format.
 
-#### enso_version
-**Required** *String*: The version of the Enso compiler this library is created
-for.
+#### resolver
+**Note** This field is not currently implemented.
+**Required** *String*: The resolver name, used to choose compiler version and
+basic libraries set.
 
 > The actionables for this section are:
 >
 > - Extend the compiler version to handle version bounds.
 
-#### dependencies
-**Optional** *List of Library objects*: The list of all libraries this package
-requires to function properly. Defaults to an empty list.
+#### extra-dependencies
+**Note** This field is not currently implemented.
+**Optional** *List of Library objects*: The list of libraries this package
+requires to function properly and that are not included in the resolver.
+Defaults to an empty list.
+
 A library object is of the form:
 
 ```yaml

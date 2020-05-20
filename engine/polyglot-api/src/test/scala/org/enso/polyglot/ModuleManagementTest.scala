@@ -3,15 +3,15 @@ package org.enso.polyglot
 import java.io.File
 import java.nio.file.Files
 
-import org.enso.pkg.Package
+import org.enso.pkg.{Package, PackageManager}
 import org.graalvm.polyglot.{Context, PolyglotException}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 class ModuleManagementTest extends AnyFlatSpec with Matchers {
   class TestContext(packageName: String) {
-    val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
-    val pkg: Package = Package.create(tmpDir, packageName)
+    val tmpDir: File       = Files.createTempDirectory("enso-test-packages").toFile
+    val pkg: Package[File] = PackageManager.Default.create(tmpDir, packageName)
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)

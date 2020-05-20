@@ -10,7 +10,7 @@ import org.enso.interpreter.instrument.{
   RuntimeServerInstrument
 }
 import org.enso.interpreter.test.Metadata
-import org.enso.pkg.Package
+import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot.runtime.Runtime.Api.VisualisationUpdate
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
 import org.enso.polyglot.{
@@ -40,7 +40,8 @@ class RuntimeServerTest
 
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
 
-    val pkg: Package               = Package.create(tmpDir, packageName)
+    val pkg: Package[File] =
+      PackageManager.Default.create(tmpDir, packageName, "0.0.1")
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context

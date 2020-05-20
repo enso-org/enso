@@ -8,7 +8,7 @@ import cats.implicits._
 import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
-import org.enso.pkg.Package
+import org.enso.pkg.PackageManager
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.graalvm.polyglot.Value
 
@@ -154,7 +154,7 @@ object Main {
     * @param path root path of the newly created project
     */
   private def createNew(path: String): Unit = {
-    Package.getOrCreate(new File(path))
+    PackageManager.Default.getOrCreate(new File(path))
     exitSuccess()
   }
 
@@ -181,7 +181,7 @@ object Main {
       strictErrors = true
     )
     if (projectMode) {
-      val pkg  = Package.fromDirectory(file)
+      val pkg  = PackageManager.Default.fromDirectory(file)
       val main = pkg.map(_.mainFile)
       if (!main.exists(_.exists())) {
         println("Main file does not exist.")

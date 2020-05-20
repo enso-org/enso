@@ -53,7 +53,7 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected Context createContext(Env env) {
-    Context context = new Context(this, env);
+    Context context = new Context(this, getLanguageHome(), env);
     InstrumentInfo idValueListenerInstrument =
         env.getInstruments().get(IdExecutionInstrument.INSTRUMENT_ID);
     IdExecutionInstrument idExecutionInstrumentService =

@@ -3,7 +3,7 @@ package org.enso.projectmanager.infrastructure.repository
 import java.io.File
 import java.util.UUID
 
-import org.enso.pkg.Package
+import org.enso.pkg.{Package, PackageManager}
 import org.enso.projectmanager.boot.configuration.StorageConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
@@ -83,9 +83,9 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   private def createProjectStructure(
     project: Project,
     projectPath: File
-  ): F[StorageFailure, Package] =
+  ): F[StorageFailure, Package[File]] =
     Sync[F]
-      .blockingOp { Package.create(projectPath, project.name) }
+      .blockingOp { PackageManager.Default.create(projectPath, project.name) }
       .mapError(th => StorageFailure(th.toString))
 
   /** @inheritdoc **/

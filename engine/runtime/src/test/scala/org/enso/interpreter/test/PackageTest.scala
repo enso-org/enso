@@ -2,7 +2,7 @@ package org.enso.interpreter.test
 
 import java.io.File
 
-import org.enso.pkg.Package
+import org.enso.pkg.PackageManager
 import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -13,7 +13,7 @@ trait PackageTest extends AnyFlatSpec with Matchers with ValueEquality {
   def evalTestProject(name: String): Value = {
     val pkgPath =
       new File(getClass.getClassLoader.getResource(name).getPath)
-    val pkg        = Package.fromDirectory(pkgPath).get
+    val pkg        = PackageManager.Default.fromDirectory(pkgPath).get
     val mainFile   = pkg.mainFile
     val mainModule = pkg.moduleNameForFile(mainFile)
     val context = Context

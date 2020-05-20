@@ -155,10 +155,9 @@ jobs:
         run: |
           CLI_DIR=enso-$(./enso.jar --version --json | jq -r '.version')
           mkdir $CLI_DIR
-          mkdir $CLI_DIR/bin
-          mv enso.jar $CLI_DIR/bin
-          cp -r distribution/lib $CLI_DIR/lib
-          cp -r distribution/package-sets $CLI_DIR/package-sets
+          mkdir $CLI_DIR/component
+          mv enso.jar $CLI_DIR/component
+          cp -r distribution/std-lib $CLI_DIR/std-lib
           echo ::set-env name=CLI_DIR::$CLI_DIR
       - name: Build the Parser JS Bundle
         run: sbt -no-colors syntaxJS/fullOptJS

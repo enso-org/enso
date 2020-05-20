@@ -5,22 +5,21 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
+import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
+import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
+import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.RuntimeOptions;
 
@@ -36,7 +35,7 @@ public class Context {
   private final PrintStream out;
   private final PrintStream err;
   private final BufferedReader in;
-  private final List<Package> packages;
+  private final List<Package<TruffleFile>> packages;
 
   /**
    * Creates a new Enso context.
@@ -44,31 +43,38 @@ public class Context {
    * @param language the language identifier
    * @param environment the execution environment of the {@link TruffleLanguage}
    */
-  public Context(Language language, Env environment) {
+  public Context(Language language, String home, Env environment) {
     this.language = language;
     this.environment = environment;
     this.out = new PrintStream(environment.out());
     this.err = new PrintStream(environment.err());
     this.in = new BufferedReader(new InputStreamReader(environment.in()));
+    TruffleFileSystem fs = new TruffleFileSystem();
 
-    List<File> packagePaths = OptionsHelper.getPackagesPaths(environment);
+    packages = new ArrayList<>();
 
-    packages =
+    if (home != null) {
+      HomeManager<TruffleFile> homeManager =
+          new HomeManager<>(environment.getInternalTruffleFile(home), fs);
+      packages.addAll(homeManager.loadStdLib().collect(Collectors.toList()));
+    }
+
+    PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
+
+    List<TruffleFile> packagePaths = OptionsHelper.getPackagesPaths(environment);
+    packages.addAll(
         packagePaths.stream()
-            .map(Package::fromDirectory)
+            .map(packageManager::fromDirectory)
             .map(ScalaConversions::asJava)
             .filter(Optional::isPresent)
             .map(Optional::get)
-            .collect(Collectors.toList());
+            .collect(Collectors.toList()));
 
     packages.forEach(
         pkg -> {
-          List<File> classPathItems = ScalaConversions.asJava(pkg.listPolyglotExtensions("java"));
-          classPathItems.forEach(
-              cp -> {
-                TruffleFile f = getTruffleFile(cp);
-                getEnvironment().addToHostClassPath(f);
-              });
+          List<TruffleFile> classPathItems =
+              ScalaConversions.asJava(pkg.listPolyglotExtensions("java"));
+          classPathItems.forEach(environment::addToHostClassPath);
         });
 
     Map<String, Module> knownFiles =
@@ -77,11 +83,7 @@ public class Context {
             .collect(
                 Collectors.toMap(
                     srcFile -> srcFile.qualifiedName().toString(),
-                    srcFile ->
-                        new Module(
-                            srcFile.qualifiedName(),
-                            getEnvironment()
-                                .getInternalTruffleFile(srcFile.file().getAbsolutePath()))));
+                    srcFile -> new Module(srcFile.qualifiedName(), srcFile.file())));
     TopLevelScope topLevelScope = new TopLevelScope(new Builtins(this), knownFiles);
 
     this.compiler = new Compiler(this.language, topLevelScope, this);
@@ -193,9 +195,10 @@ public class Context {
    * @return a qualified name of the module corresponding to the file, if exists.
    */
   public Optional<QualifiedName> getModuleNameForFile(File path) {
+    TruffleFile p = getTruffleFile(path);
     return packages.stream()
-        .filter(pkg -> path.getAbsolutePath().startsWith(pkg.sourceDir().getAbsolutePath()))
-        .map(pkg -> pkg.moduleNameForFile(path))
+        .filter(pkg -> p.startsWith(pkg.sourceDir()))
+        .map(pkg -> pkg.moduleNameForFile(p))
         .findFirst();
   }
 

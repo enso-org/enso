@@ -30,15 +30,27 @@ The directory structure is as follows:
 ```
 ~/.enso
 ├── bin
-│   └── enso                  # the universal launcher script, responsible for choosing the appropriate compiler version
-├── dist                      # per-compiler-version distribution directories
-│   ├── default -> enso-1.2.0 # a symlink to the version that should be used when no version is explicitely specified
-│   ├── enso-1.0.0            # a full distribution of given Enso version, described below
+│   └── enso                  # The universal launcher script, responsible for choosing the appropriate compiler version.
+├── dist                      # Per-compiler-version distribution directories.
+│   ├── default -> enso-1.2.0 # A symlink to the version that should be used when no version is explicitely specified.
+│   ├── enso-1.0.0            # A full distribution of given Enso version, described below.
 │   │   └── <truncated>
-│   └── enso-1.2.0            # a full distribution of given Enso version, described below
+│   └── enso-1.2.0            # A full distribution of given Enso version, described below.
 │       └── <truncated>
-└── jvm                       # a directory storing (optional) distributions of the JVM used by the Enso distributions
-    └── graalvm-ce-27.1.1
+├── jvm                       # A directory storing (optional) distributions of the JVM used by the Enso distributions.
+│   └── graalvm-ce-27.1.1
+└── cache                     # A directory storing downloaded libraries and resolvers. Can be removed safely.
+    ├── libraries             # Contains downloaded libraries.
+    │   └── Dataframe         # Each library may be stored in multiple version.
+    │       └── 1.7.0         # Each version contains a standard Enso package.
+    │           ├── package.yaml
+    │           └── src
+    │               ├── List.enso
+    │               ├── Number.enso
+    │               └── Text.enso
+    └── resolvers           # Contains resolver specifications, described below.
+        ├── lts-1.56.7.yaml
+        └── lts-2.0.8.yaml
 ```
 
 > The actionables for this section are:
@@ -67,32 +79,21 @@ The layout of such a distribution is as follows:
 
 ```
 enso-1.0.0
-├── bin           # Contains all the executable tools and their dependencies.
+├── component     # Contains all the executable tools and their dependencies.
 │   └── enso.jar  # The main executable of the distribution. CLI entry point.
-├── lib           # Contains all the installed libraries for this compiler version.
-│   ├── Http      # Every library directory may contain multiple versions of the same library.
-│   │   ├── 3.1.0 # Every version sub-directory is just an Enso package containing the library.
-│   │   │   ├── package.yaml
-│   │   │   ├── polyglot
-│   │   │   └── src
-│   │   │       ├── Http.enso
-│   │   │       └── Socket.enso
-│   │   └── 5.3.5
-│   │       ├── package.yaml
-│   │       ├── polyglot
-│   │       └── src
-│   │           ├── Http.enso
-│   │           └── Socket.enso
-│   └── Base
-│       └── 1.0.0
-│           ├── package.yaml
-│           └── src
-│               ├── List.enso
-│               ├── Number.enso
-│               └── Text.enso
-└── package-sets # package sets for non-package run modes (described below)
-    ├── default.yaml
-    └── my-package-set.yaml
+└── std-lib       # Contains all the pre-installed libraries compiler version.
+    ├── Http      # Every version sub-directory is just an Enso package containing the library.
+    │     ├── package.yaml
+    │     ├── polyglot
+    │     └── src
+    │         ├── Http.enso
+    │         └── Socket.enso
+    └── Base
+          ├── package.yaml
+          └── src
+              ├── List.enso
+              ├── Number.enso
+              └── Text.enso
 ```
 
 > **Implementation Note:**
@@ -102,15 +103,28 @@ enso-1.0.0
 > limit as long as we are building on top of the JVM. The JVM automatically
 > inserts the `\\?\` prefix required to bypass the windows path length limit.
 
-### Package Sets
-A package set is a manifest containing library versions that are made available
-for importing when no `package.yaml` is available (e.g. when using the CLI to
-run a single file). The package set used is `default.yaml` and there is no way
-of changing the behavior currently.
+### Standard Library
+The standard library is a set of libraries shipped with the compiler.
+Whether a given package belongs to standard library can be a bit of an
+arbitrary choice, but the following are some guidelines:
+1. Fundamental packages – basic collections and utilities should be a part
+   of standard library.
+2. Packages relying on the compiler internals (e.g. the internal object
+   representation). An example of such a package would be `Generic`, exposing
+   reflective access to Enso objects.
+3. Packages that the compiler relies on, e.g. compile error definitions, stack
+   traces etc.
 
-Example contents of the `default.yaml` file are as follows:
+### Resolvers
+**Note** This system is not implemented yet.
+
+A resolver is a manifest containing library versions that are automatically
+available for import in any project using the resolver.
+
+Example contents of a resolver file are as follows:
 
 ```yaml
+enso-version: 1.0.7
 libraries:
   - name: Base
     version: 1.0.0
