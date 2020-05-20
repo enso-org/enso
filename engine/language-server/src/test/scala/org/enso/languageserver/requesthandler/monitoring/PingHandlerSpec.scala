@@ -4,6 +4,7 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.enso.jsonrpc.Id.Number
 import org.enso.jsonrpc.{Request, ResponseResult, Unused}
+import org.enso.jsonrpc.test.FlakySpec
 import org.enso.languageserver.monitoring.MonitoringApi
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.scalatest.flatspec.AnyFlatSpecLike
@@ -15,7 +16,8 @@ class PingHandlerSpec
     extends TestKit(ActorSystem("TestSystem"))
     with ImplicitSender
     with AnyFlatSpecLike
-    with Matchers {
+    with Matchers
+    with FlakySpec {
 
   "A PingHandler" must "scatter pings to all subsystems" in {
     //given
@@ -59,7 +61,7 @@ class PingHandlerSpec
     system.stop(actorUnderTest)
   }
 
-  it must "stop without replying when some of subsystems don't reply on time" in {
+  it must "stop without replying when some of subsystems don't reply on time" taggedAs(Flaky) in {
     //given
     val subsystem1 = TestProbe()
     val subsystem2 = TestProbe()

@@ -6,6 +6,7 @@ import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
+import org.enso.jsonrpc.test.FlakySpec
 import org.enso.languageserver.protocol.binary.{
   InboundPayload,
   OutboundMessage,
@@ -21,13 +22,13 @@ import org.enso.languageserver.websocket.binary.factory.{
 
 import scala.io.Source
 
-class BinaryFileManipulationTest extends BaseBinaryServerTest {
+class BinaryFileManipulationTest extends BaseBinaryServerTest with FlakySpec {
 
   implicit private val decoder = OutboundMessageDecoder
 
   "A WriteFileCommand" must {
 
-    "persist binary contents of a file" in {
+    "persist binary contents of a file" taggedAs(Flaky) in {
       //given
       val requestId = UUID.randomUUID()
       val filename  = "foo.bin"

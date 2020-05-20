@@ -3,6 +3,7 @@ package org.enso.languageserver.websocket.binary
 import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
+import org.enso.jsonrpc.test.FlakySpec
 import org.enso.languageserver.protocol.binary.{
   InboundPayload,
   OutboundMessage,
@@ -13,13 +14,13 @@ import org.enso.languageserver.websocket.binary.factory.{
   SessionInitFactory
 }
 
-class BinarySessionManagementTest extends BaseBinaryServerTest {
+class BinarySessionManagementTest extends BaseBinaryServerTest with FlakySpec {
 
   implicit private val decoder = OutboundMessageDecoder
 
   "Session Init cmd" must {
 
-    "return empty SessionInitResponse" in {
+    "return empty SessionInitResponse" taggedAs(Flaky) in {
       //given
       val client           = newWsClient()
       val clientId         = UUID.randomUUID()

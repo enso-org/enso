@@ -6,14 +6,14 @@ import java.util.UUID
 
 import io.circe.literal._
 import io.circe.parser.parse
+import org.enso.jsonrpc.test.FlakySpec
 import org.enso.projectmanager.data.Socket
 
-class ProjectManagementApiSpec extends BaseServerSpec {
+class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
 
   "project/create" must {
-    pending // #652
 
-    "check if project name is not empty" in {
+    "check if project name is not empty" taggedAs(Flaky) in {
       val client = new WsTestClient(address)
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -126,7 +126,6 @@ class ProjectManagementApiSpec extends BaseServerSpec {
   }
 
   "project/delete" must {
-    pending // #652
 
     "fail when project doesn't exist" in {
       val client = new WsTestClient(address)
@@ -152,7 +151,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
 
     }
 
-    "fail when project is running" in {
+    "fail when project is running" taggedAs (Flaky) in {
       //given
       implicit val client = new WsTestClient(address)
       val projectId       = createProject("foo")
@@ -216,7 +215,6 @@ class ProjectManagementApiSpec extends BaseServerSpec {
   }
 
   "project/open" must {
-    pending // #652
 
     "fail when project doesn't exist" in {
       val client = new WsTestClient(address)
@@ -311,7 +309,6 @@ class ProjectManagementApiSpec extends BaseServerSpec {
   }
 
   "project/close" must {
-    pending // #652
 
     "fail when project is not open" in {
       val client = new WsTestClient(address)
@@ -368,7 +365,6 @@ class ProjectManagementApiSpec extends BaseServerSpec {
   }
 
   "project/listRecent" must {
-    pending // #652
 
     "return a list sorted by creation time if none of projects was opened" in {
       implicit val client = new WsTestClient(address)
@@ -492,7 +488,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
     val Right(openReply) = parse(client.expectMessage())
     val socketField = openReply.hcursor
       .downField("result")
-      .downField("languageServerRpcAddress")
+      .downField("languageServerJsonAddress")
     val Right(host) = socketField.downField("host").as[String]
     val Right(port) = socketField.downField("port").as[Int]
     Socket(host, port)

@@ -5,6 +5,7 @@ import java.util.UUID
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.miguno.akka.testing.VirtualTime
+import org.enso.jsonrpc.test.FlakySpec
 import org.enso.languageserver.boot.LifecycleComponent.ComponentRestarted
 import org.enso.languageserver.boot.{LanguageServerConfig, LifecycleComponent}
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
@@ -32,9 +33,10 @@ class LanguageServerSupervisorSpec
     with AnyFlatSpecLike
     with Matchers
     with BeforeAndAfterAll
-    with MockitoSugar {
+    with MockitoSugar
+    with FlakySpec {
 
-  "A language supervisor" should "monitor language server by sending ping requests on regular basis" in new TestCtx {
+  "A language supervisor" should "monitor language server by sending ping requests on regular basis" taggedAs (Flaky) in new TestCtx {
     //given
     val probe = TestProbe()
     fakeServer.withBehaviour {
