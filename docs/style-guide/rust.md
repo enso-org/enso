@@ -441,6 +441,7 @@ pub mod traits {
     // Read the Rust Style Guide to learn more about the used naming.
     pub use super::Object    as TRAIT_Object;
     pub use super::ObjectOps as TRAIT_ObjectOps;
+}
 ```
 
 Once we have such a definition, we can import traits into scope using the simple
@@ -466,6 +467,7 @@ below may provide more rules for use in specific cases.
   type (e.g. `fn head<T>(ts: Vec<T>) -> T`, which fails if the list is empty),
   must be named using the word 'unsafe' (e.g. `unsafeHead`). For more
   information on unsafe function usage, see the section on [safety](#safety).
+- Naming should use American English spelling.
 
 ## Package Structure and Naming
 Enso follows the standard rust convention for structuring crates, as provided

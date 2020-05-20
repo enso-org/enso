@@ -58,6 +58,7 @@ below may provide more rules for use in specific cases.
   there is no other appropriate name, and should _never_ be used to refer to
   temporary data in a function.
 - Names should be descriptive, even if this makes them longer.
+- Naming should use American English spelling.
 
 ## Package Structure and Naming
 Enso follows the

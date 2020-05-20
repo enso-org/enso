@@ -70,6 +70,7 @@ below may provide more rules for use in specific cases.
   information on unsafe function usage, see the section on [safety](#safety).
   The one exception to this rule is for functions which fail intentionally on a
   broken implementation (e.g. "should not happen"-style fatal crashes).
+- Naming should use American English spelling.
 
 ## Package Structure and Naming
 Enso follows the

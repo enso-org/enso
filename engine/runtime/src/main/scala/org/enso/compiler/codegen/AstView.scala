@@ -16,6 +16,35 @@ import org.enso.syntax.text.AST.Ident.{Opr, Var}
   */
 object AstView {
 
+  object Atom {
+
+    /** Matches a primitive atom definition only.
+      *
+      * It will _not_ match a type definition with a body.
+      *
+      * @param ast the structure to try and match on
+      * @return the name of the atom, and the arguments to the atom
+      */
+    def unapply(ast: AST): Option[(AST.Ident, List[AST])] = ast match {
+      case AST.Def(name, args, body) if body.isEmpty => Some((name, args))
+      case _                                         => None
+    }
+  }
+
+  object TypeDef {
+
+    /** Matches a complex type definition.
+      *
+      * @param ast the structure to try and match on
+      * @return the name of the type, the arguments to it, and the type body
+      */
+    def unapply(ast: AST): Option[(AST.Ident, List[AST], AST)] = ast match {
+      case AST.Def(name, args, body) if body.isDefined =>
+        Some((name, args, body.get))
+      case _ => None
+    }
+  }
+
   object Block {
 
     /** Matches an arbitrary block in the program source.
@@ -47,7 +76,7 @@ object AstView {
       */
     def unapply(ast: AST): Option[(AST.Ident, AST.Block)] = {
       ast match {
-        case Assignment(name, AST.Block.any(block)) =>
+        case BasicAssignment(name, AST.Block.any(block)) =>
           Some((name, block))
         case _ => None
       }
@@ -83,7 +112,7 @@ object AstView {
     }
   }
 
-  object Assignment {
+  object BasicAssignment {
     val assignmentOpSym: Opr = AST.Ident.Opr("=")
 
     /** Matches an assignment.
@@ -96,8 +125,9 @@ object AstView {
       */
     def unapply(ast: AST): Option[(AST.Ident, AST)] = {
       ast match {
-        case Binding(MaybeBlankName(left), right) => Some((left, right))
-        case _                                    => None
+        case Binding(AST.Ident.Var.any(left), right)   => Some((left, right))
+        case Binding(AST.Ident.Blank.any(left), right) => Some((left, right))
+        case _                                         => None
       }
     }
   }
@@ -307,7 +337,7 @@ object AstView {
       * @return the variable name and the expression being bound to it
       */
     def unapply(ast: AST): Option[(AST.Ident, AST)] =
-      MaybeParensed.unapply(ast).flatMap(Assignment.unapply)
+      MaybeParensed.unapply(ast).flatMap(BasicAssignment.unapply)
   }
 
   object LazyAssignedArgumentDefinition {

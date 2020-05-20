@@ -4,7 +4,7 @@ import cats.Foldable
 import cats.implicits._
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR._
-import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
+import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
 import org.enso.syntax.text.AST
 
@@ -108,21 +108,38 @@ object AstToIr {
   /** Translates a module-level definition from its [[AST]] representation into
     * [[IR]].
     *
-    * @param inputAST the definition to be translated
+    * @param inputAst the definition to be translated
     * @return the [[IR]] representation of `inputAST`
     */
-  def translateModuleSymbol(inputAST: AST): Module.Scope.Definition = {
-    inputAST match {
-      case AST.Def(consName, args, body) =>
-        if (body.isDefined) {
-          throw new UnhandledEntity(inputAST, "translateModuleSymbol")
+  def translateModuleSymbol(inputAst: AST): Module.Scope.Definition = {
+    inputAst match {
+      case AstView.Atom(consName, args) =>
+        Module.Scope.Definition
+          .Atom(
+            Name.Literal(consName.name, getIdentifiedLocation(consName)),
+            args.map(translateArgumentDefinition(_)),
+            getIdentifiedLocation(inputAst)
+          )
+      case AstView.TypeDef(typeName, args, body) =>
+        val translatedBody = translateTypeBody(body)
+        val containsAtomDefOrInclude = translatedBody.exists {
+          case _: IR.Module.Scope.Definition.Atom => true
+          case _: IR.Name.Literal                 => true
+          case _                                  => false
+        }
+        val hasArgs = args.nonEmpty
+
+        if (containsAtomDefOrInclude && !hasArgs) {
+          Module.Scope.Definition.Type(
+            Name.Literal(typeName.name, getIdentifiedLocation(typeName)),
+            args.map(translateArgumentDefinition(_)),
+            translatedBody,
+            getIdentifiedLocation(inputAst)
+          )
+        } else if (!containsAtomDefOrInclude) {
+          Error.Syntax(inputAst, Error.Syntax.InterfaceDefinition)
         } else {
-          Module.Scope.Definition
-            .Atom(
-              Name.Literal(consName.name, getIdentifiedLocation(consName)),
-              args.map(translateArgumentDefinition(_)),
-              getIdentifiedLocation(inputAST)
-            )
+          Error.Syntax(inputAst, Error.Syntax.InvalidTypeDefinition)
         }
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
         val (path, pathLoc) = if (targetPath.nonEmpty) {
@@ -153,35 +170,84 @@ object AstToIr {
           Name.Literal(nameStr.name, getIdentifiedLocation(nameStr)),
           args.map(translateArgumentDefinition(_)),
           translateExpression(definition),
-          getIdentifiedLocation(inputAST)
+          getIdentifiedLocation(inputAst)
         )
-
+      case AstView.FunctionSugar(name, args, body) =>
+        Module.Scope.Definition.Method.Binding(
+          Name.Here(None),
+          Name.Literal(name.name, getIdentifiedLocation(name)),
+          args.map(translateArgumentDefinition(_)),
+          translateExpression(body),
+          getIdentifiedLocation(inputAst)
+        )
       case _ =>
-        throw new UnhandledEntity(inputAST, "translateModuleSymbol")
+        throw new UnhandledEntity(inputAst, "translateModuleSymbol")
+    }
+  }
+
+  /** Translates the body of a type expression.
+    *
+    * @param body the body to be translated
+    * @return the [[IR]] representation of `body`
+    */
+  def translateTypeBody(body: AST): List[IR] = {
+    body match {
+      case AST.Block.any(block) =>
+        val actualLines: List[AST] =
+          block.firstLine.elem :: block.lines.flatMap(_.elem)
+
+        if (actualLines.nonEmpty) {
+          actualLines.map(translateTypeBodyExpression)
+        } else {
+          List(Error.Syntax(body, Error.Syntax.InvalidTypeDefinition))
+        }
+      case _ => List(Error.Syntax(body, Error.Syntax.InvalidTypeDefinition))
+    }
+  }
+
+  /** Translates any expression that can be found in the body of a type
+    * declaration from [[AST]] into [[IR]].
+    *
+    * @param maybeParensedInput the expression to be translated
+    * @return the [[IR]] representation of `maybeParensedInput`
+    */
+  def translateTypeBodyExpression(maybeParensedInput: AST): IR = {
+    val inputAst = AstView.MaybeParensed
+      .unapply(maybeParensedInput)
+      .getOrElse(maybeParensedInput)
+
+    inputAst match {
+      case AST.Ident.Cons.any(include)         => translateIdent(include)
+      case atom @ AstView.Atom(_, _)           => translateModuleSymbol(atom)
+      case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
+      case assignment @ AstView.BasicAssignment(_, _) =>
+        translateExpression(assignment)
+      case _ =>
+        IR.Error.Syntax(inputAst, IR.Error.Syntax.UnexpectedDeclarationInType)
     }
   }
 
   /** Translates an arbitrary program expression from [[AST]] into [[IR]].
     *
     * @param maybeParensedInput the expresion to be translated
-    * @return the [[IR]] representation of `inputAST`
+    * @return the [[IR]] representation of `maybeParensedInput`
     */
   def translateExpression(maybeParensedInput: AST): Expression = {
-    val inputAST = AstView.MaybeParensed
+    val inputAst = AstView.MaybeParensed
       .unapply(maybeParensedInput)
       .getOrElse(maybeParensedInput)
 
-    inputAST match {
+    inputAst match {
       case AST.Def(consName, _, _) =>
         IR.Error
-          .Syntax(inputAST, IR.Error.Syntax.TypeDefinedInline(consName.name))
+          .Syntax(inputAst, IR.Error.Syntax.TypeDefinedInline(consName.name))
       case AstView.UnaryMinus(expression) =>
         expression match {
           case AST.Literal.Number(base, number) =>
             translateExpression(
               AST.Literal
                 .Number(base, s"-$number")
-                .setLocation(inputAST.location)
+                .setLocation(inputAst.location)
             )
           case _ =>
             IR.Application.Prefix(
@@ -194,7 +260,7 @@ object AstToIr {
                 )
               ),
               hasDefaultsSuspended = false,
-              getIdentifiedLocation(inputAST)
+              getIdentifiedLocation(inputAst)
             )
         }
       case AstView.FunctionSugar(name, args, body) =>
@@ -202,7 +268,7 @@ object AstToIr {
           translateIdent(name).asInstanceOf[IR.Name.Literal],
           args.map(translateArgumentDefinition(_)),
           translateExpression(body),
-          getIdentifiedLocation(inputAST)
+          getIdentifiedLocation(inputAst)
         )
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
@@ -214,13 +280,13 @@ object AstToIr {
             getIdentifiedLocation(block),
             suspended = true
           ),
-          getIdentifiedLocation(inputAST)
+          getIdentifiedLocation(inputAst)
         )
-      case AstView.Assignment(name, expr) =>
-        translateBinding(getIdentifiedLocation(inputAST), name, expr)
+      case AstView.BasicAssignment(name, expr) =>
+        translateBinding(getIdentifiedLocation(inputAst), name, expr)
       case AstView.MethodDefinition(_, name, _, _) =>
         IR.Error.Syntax(
-          inputAST,
+          inputAst,
           IR.Error.Syntax.MethodDefinedInline(name.asInstanceOf[AST.Ident].name)
         )
       case AstView.MethodCall(target, name, args) =>
@@ -232,7 +298,7 @@ object AstToIr {
           translateExpression(name),
           (target :: validArguments).map(translateCallArgument),
           hasDefaultsSuspended = hasDefaultsSuspended,
-          getIdentifiedLocation(inputAST)
+          getIdentifiedLocation(inputAst)
         )
       case AstView.CaseExpression(scrutinee, branches) =>
         val actualScrutinee = translateExpression(scrutinee)
@@ -249,7 +315,7 @@ object AstToIr {
           actualScrutinee,
           nonFallbackBranches,
           potentialFallback,
-          getIdentifiedLocation(inputAST)
+          getIdentifiedLocation(inputAst)
         )
       case AST.App.any(inputAST)     => translateApplicationLike(inputAST)
       case AST.Mixfix.any(inputAST)  => translateApplicationLike(inputAST)
@@ -262,17 +328,17 @@ object AstToIr {
         Expression.Block(
           lines.map(translateExpression),
           translateExpression(retLine),
-          location = getIdentifiedLocation(inputAST)
+          location = getIdentifiedLocation(inputAst)
         )
       case AST.Comment.any(inputAST) => translateComment(inputAST)
       case AST.Invalid.any(inputAST) => translateInvalid(inputAST)
       case AST.Foreign(_, _, _) =>
         Error.Syntax(
-          inputAST,
+          inputAst,
           Error.Syntax.UnsupportedSyntax("foreign blocks")
         )
       case _ =>
-        throw new UnhandledEntity(inputAST, "translateExpression")
+        throw new UnhandledEntity(inputAst, "translateExpression")
     }
   }
 

@@ -328,4 +328,100 @@ class AstToIrTest extends CompilerTest {
         .reason shouldBe an[IR.Error.Syntax.TypeDefinedInline]
     }
   }
+
+  "AST translation for type definitions" should {
+    "translate atoms properly" in {
+      val ir =
+        """
+          |type MyAtom a b
+          |""".stripMargin.toIrModule.bindings.head
+
+      ir shouldBe an[IR.Module.Scope.Definition.Atom]
+    }
+
+    "translate complex type defs properly" in {
+      val ir =
+        """
+          |type Maybe
+          |    Nothing
+          |    type Just a
+          |
+          |    is_just = case this of
+          |        Just _  -> true
+          |        Nothing -> false
+          |
+          |    fn a b = a + b
+          |""".stripMargin.toIrModule.bindings.head
+
+      ir shouldBe an[IR.Module.Scope.Definition.Type]
+
+      val typeDef = ir.asInstanceOf[IR.Module.Scope.Definition.Type]
+
+      typeDef.name.name shouldEqual "Maybe"
+      typeDef.arguments.length shouldEqual 0
+
+      typeDef.body.head shouldBe an[IR.Name.Literal]
+      typeDef.body(1) shouldBe an[IR.Module.Scope.Definition.Atom]
+      typeDef.body(2) shouldBe an[IR.Expression.Binding]
+      typeDef.body(3) shouldBe an[IR.Function.Binding]
+    }
+
+    "disallow unexpected expressions in the type body" in {
+      val ir =
+        """
+          |type Maybe
+          |    Nothing
+          |    type Just a
+          |
+          |    F a b = _
+          |
+          |    case foo of
+          |        X -> 1
+          |
+          |    fn a b = a + b
+          |""".stripMargin.toIrModule.bindings.head
+
+      ir shouldBe an[IR.Module.Scope.Definition.Type]
+
+      val typeDef = ir.asInstanceOf[IR.Module.Scope.Definition.Type]
+
+      typeDef.body(2) shouldBe an[IR.Error.Syntax]
+      typeDef
+        .body(2)
+        .asInstanceOf[IR.Error.Syntax]
+        .reason shouldBe an[IR.Error.Syntax.UnexpectedDeclarationInType.type]
+      typeDef.body(3) shouldBe an[IR.Error.Syntax]
+      typeDef
+        .body(3)
+        .asInstanceOf[IR.Error.Syntax]
+        .reason shouldBe an[IR.Error.Syntax.UnexpectedDeclarationInType.type]
+    }
+
+    "disallow definitions with 'type' arguments" in {
+      val ir =
+        """
+          |type Maybe a
+          |    Nothing
+          |    type Just a
+          |""".stripMargin.toIrModule.bindings.head
+
+      ir shouldBe an[IR.Error.Syntax]
+      ir.asInstanceOf[IR.Error.Syntax]
+        .reason shouldBe an[IR.Error.Syntax.InvalidTypeDefinition.type]
+    }
+
+    "disallow definitions that do not define or include an atom" in {
+      val ir =
+        """
+          |type Maybe
+          |     is_just = case this of
+          |         Just _  -> True
+          |         Nothing -> False
+          |""".stripMargin.toIrModule.bindings.head
+
+      ir shouldBe an[IR.Error.Syntax]
+      ir.asInstanceOf[IR.Error.Syntax]
+        .reason shouldBe an[IR.Error.Syntax.InterfaceDefinition.type]
+    }
+  }
 }

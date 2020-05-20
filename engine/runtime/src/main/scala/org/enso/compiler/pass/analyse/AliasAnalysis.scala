@@ -159,7 +159,12 @@ case object AliasAnalysis extends IRPass {
               analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
           )
           .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
-      case err: IR.Error.Redefined => err
+      case _: IR.Module.Scope.Definition.Type =>
+        throw new CompilerError(
+          "Complex type definitions should not be present during " +
+          "alias analysis."
+        )
+      case err: IR.Error => err
     }
   }
 

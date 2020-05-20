@@ -2,7 +2,6 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Error.Redefined
 import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
@@ -23,7 +22,7 @@ import scala.annotation.unused
   *
   * It must have the following passes run before it:
   *
-  * - None
+  * - [[ComplexType]]
   */
 //noinspection DuplicatedCode
 case object FunctionBinding extends IRPass {
@@ -106,7 +105,12 @@ case object FunctionBinding extends IRPass {
           )
 
         Method.Explicit(typeName, methName, newBody, loc)
-      case e: Redefined => e
+      case _: IR.Module.Scope.Definition.Type =>
+        throw new CompilerError(
+          "Complex type definitions should not be present during " +
+          "alias analysis."
+        )
+      case e: IR.Error => e
     }
   }
 }

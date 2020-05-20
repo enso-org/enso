@@ -4,10 +4,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  OperatorToFunction
-}
+import org.enso.compiler.pass.desugar.{GenerateMethodBodies, OperatorToFunction}
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -271,6 +268,19 @@ class LambdaConsolidateTest extends CompilerTest {
       warnings should not be empty
       warnings.head.shadowedName shouldEqual "x"
       warnings.head.shadower shouldBe ir.arguments(1)
+    }
+
+    "consolidate chained lambdas if the chaining occurs via a single-lined block" in {
+      implicit val inlineContext: InlineContext = mkContext
+
+      val ir =
+        """
+          |x ->
+          |    y -> x + y
+          |""".stripMargin.preprocessExpression.get.optimise
+          .asInstanceOf[IR.Function.Lambda]
+
+      ir.arguments.length shouldEqual 2
     }
   }
 }

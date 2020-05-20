@@ -112,7 +112,12 @@ case object DataflowAnalysis extends IRPass {
           "Sugared method definitions should not occur during dataflow " +
           "analysis."
         )
-      case err: IR.Error.Redefined => err
+      case _: IR.Module.Scope.Definition.Type =>
+        throw new CompilerError(
+          "Complex type definitions should not be present during " +
+          "alias analysis."
+        )
+      case err: IR.Error => err
     }
   }
 

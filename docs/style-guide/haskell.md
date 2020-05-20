@@ -169,6 +169,7 @@ below may provide more rules for use in specific cases.
   function usage, see the section on [safety](#safety). The one exception to
   this rule is for functions which fail intentionally on a broken implementation
   (e.g. "should not happen"-style fatal crashes).
+- Naming should use American English spelling.
 
 ### Imports
 Organising imports properly means that it's easy to find the provenance of a

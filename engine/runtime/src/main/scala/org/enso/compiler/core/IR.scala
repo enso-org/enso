@@ -509,6 +509,82 @@ object IR {
           override def children: List[IR] = name :: arguments
         }
 
+        /** The definition of a complex type definition that may contain
+          * multiple atom and method definitions.
+          *
+          * @param name the name of the complex type
+          * @param arguments the (type) arguments to the complex type
+          * @param body the body of the complex type
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          */
+        sealed case class Type(
+          name: IR.Name,
+          arguments: List[DefinitionArgument],
+          body: List[IR],
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Definition
+            with IRKind.Sugar {
+          override protected var id: Identifier = randomId
+
+          /** Creates a copy of `this`.
+            *
+            * @param name the name of the complex type
+            * @param arguments the (type) arguments to the complex type
+            * @param body the body of the complex type
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
+          def copy(
+            name: IR.Name                        = name,
+            arguments: List[DefinitionArgument]  = arguments,
+            body: List[IR]                       = body,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: Identifier                       = id
+          ): Type = {
+            val res = Type(
+              name,
+              arguments,
+              body,
+              location,
+              passData,
+              diagnostics
+            )
+            res.id = id
+            res
+          }
+
+          override def mapExpressions(fn: Expression => Expression): Type =
+            copy(body = body.map(_.mapExpressions(fn)))
+
+          override def setLocation(
+            location: Option[IdentifiedLocation]
+          ): Type = copy(location = location)
+
+          override def toString: String =
+            s"""
+            |IR.Module.Scope.Definition.Type(
+            |name = $name,
+            |arguments = $arguments,
+            |body = $body,
+            |location = $location,
+            |passData = $passData,
+            |diagnostics = $diagnostics,
+            |id = $id
+            |)
+            |""".toSingleLine
+
+          override def children: List[IR] = (name :: arguments) ::: body
+        }
+
         /** A trait representing method definitions in Enso. */
         sealed trait Method extends Definition {
           val typeName: IR.Name
@@ -3178,6 +3254,7 @@ object IR {
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Error
         with Diagnostic.Kind.Interactive
+        with IR.Module.Scope.Definition
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
@@ -3225,7 +3302,6 @@ object IR {
 
       override def message: String = reason.explanation
     }
-
     object Syntax {
 
       /**
@@ -3248,6 +3324,21 @@ object IR {
         override def explanation: String =
           s"Cannot define $methodName, methods are not supported in the " +
           s"inline flow."
+      }
+
+      case object UnexpectedDeclarationInType extends Reason {
+        override def explanation: String =
+          "Unexpected declaration in the body of a type."
+      }
+
+      case object InvalidTypeDefinition extends Reason {
+        override def explanation: String =
+          "Invalid definition of a type."
+      }
+
+      case object InterfaceDefinition extends Reason {
+        override def explanation: String =
+          "Interface definitions are not supported yet."
       }
 
       case class TypeDefinedInline(typeName: String) extends Reason {

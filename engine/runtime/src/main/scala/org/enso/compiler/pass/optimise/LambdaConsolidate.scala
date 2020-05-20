@@ -217,6 +217,9 @@ case object LambdaConsolidate extends IRPass {
     */
   def gatherChainedLambdas(body: IR.Expression): List[IR.Function.Lambda] = {
     body match {
+      case IR.Expression.Block(expressions, lam: IR.Function.Lambda, _, _, _, _)
+          if expressions.isEmpty =>
+        lam :: gatherChainedLambdas(lam.body)
       case l @ IR.Function.Lambda(_, body, _, _, _, _) =>
         l :: gatherChainedLambdas(body)
       case _ => List()
