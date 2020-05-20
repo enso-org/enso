@@ -10,7 +10,7 @@ use data::text::TextChange;
 use enso_frp::io::keyboard::KeyMask;
 use enso_frp::io::keyboard;
 use ensogl::data::color;
-use ensogl::display::shape::text::glyph::font::FontRegistry;
+use ensogl::display::shape::text::glyph::font;
 use ensogl::display::shape::text::text_field::TextField;
 use ensogl::display::shape::text::text_field::TextFieldProperties;
 use ensogl::display::world::*;
@@ -69,7 +69,7 @@ impl TextEditor {
     , world            : &World
     , controller       : controller::Text
     , keyboard_actions : &mut keyboard::Actions
-    , fonts            : &mut FontRegistry
+    , fonts            : &mut font::Registry
     ) -> Self {
         let logger     = logger.sub("TextEditor");
         let scene      = world.scene();

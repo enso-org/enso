@@ -1,7 +1,7 @@
 //! Structures and methods related to single line of TextField content.
 use crate::prelude::*;
 
-use crate::display::shape::text::glyph::font::FontHandle;
+use crate::display::shape::text::glyph::font;
 use crate::display::shape::text::glyph::pen::PenIterator;
 
 use nalgebra::Vector2;
@@ -93,7 +93,7 @@ pub struct LineFullInfo<'a> {
     #[shrinkwrap(main_field)]
     pub line    : &'a mut Line,
     pub line_id : usize,
-    pub font    : FontHandle,
+    pub font    : font::Handle,
     pub height  : f32,
 }
 
@@ -185,7 +185,7 @@ impl<'a> LineFullInfo<'a> {
 mod test {
     use super::*;
 
-    use crate::display::shape::text::glyph::font::FontRenderInfo;
+    use crate::display::shape::text::glyph::font;
 
     use wasm_bindgen_test::wasm_bindgen_test;
 
@@ -281,8 +281,8 @@ mod test {
         assert_eq!(1.5, after_edit);
     }
 
-    fn prepare_font_with_ab() -> FontHandle {
-        let font   = FontRenderInfo::mock_font("Test font".to_string());
+    fn prepare_font_with_ab() -> font::Handle {
+        let font   = font::RenderInfo::mock_font("Test font".to_string());
         let scale  = Vector2::new(1.0, 1.0);
         let offset = Vector2::new(0.0, 0.0);
         font.mock_char_info('A',scale,offset,1.0);
@@ -291,6 +291,6 @@ mod test {
         font.mock_kerning_info('B', 'A', 0.0);
         font.mock_kerning_info('A', 'A', 0.0);
         font.mock_kerning_info('B', 'B', 0.0);
-        FontHandle::new(font)
+        font::Handle::new(font)
     }
 }

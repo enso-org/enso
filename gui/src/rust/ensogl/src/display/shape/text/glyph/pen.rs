@@ -4,7 +4,7 @@
 
 use crate::prelude::*;
 
-use crate::display::shape::text::glyph::font::FontHandle;
+use crate::display::shape::text::glyph::font;
 
 
 
@@ -24,7 +24,7 @@ pub struct PenIterator<CharIterator> {
     current_char : Option<char>,
     next_chars   : CharIterator,
     next_advance : f32,
-    font         : FontHandle,
+    font         : font::Handle,
 }
 
 impl<CharIterator> Iterator for PenIterator<CharIterator>
@@ -38,7 +38,7 @@ where CharIterator : Iterator<Item=char> {
 impl<I> PenIterator<I>
 where I : Iterator<Item=char> {
     /// Create iterator wrapping `chars`, with pen starting from given position.
-    pub fn new (line_height:f32, next_chars:I, font:FontHandle) -> Self {
+    pub fn new (line_height:f32, next_chars:I, font:font::Handle) -> Self {
         let x_offset     = 0.0;
         let next_advance = 0.0;
         let current_char = None;
@@ -68,7 +68,7 @@ where I : Iterator<Item=char> {
 mod tests {
     use super::*;
 
-    use crate::display::shape::text::glyph::font::FontRenderInfo;
+    use crate::display::shape::text::glyph::font;
     use crate::display::shape::text::glyph::font::GlyphRenderInfo;
 
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -76,7 +76,7 @@ mod tests {
     #[wasm_bindgen_test(async)]
     async fn moving_pen(){
         ensogl_core_msdf_sys::initialized().await;
-        let font = FontHandle::new(FontRenderInfo::mock_font("Test font".to_string()));
+        let font = font::Handle::new(font::RenderInfo::mock_font("Test font".to_string()));
         mock_a_glyph_info(font.clone_ref());
         mock_w_glyph_info(font.clone_ref());
         font.mock_kerning_info('A', 'W', -0.16);
@@ -93,14 +93,14 @@ mod tests {
         assert_eq!(expected,result);
     }
 
-    fn mock_a_glyph_info(font:FontHandle) -> GlyphRenderInfo {
+    fn mock_a_glyph_info(font:font::Handle) -> GlyphRenderInfo {
         let advance = 0.56;
         let scale   = Vector2::new(0.5, 0.8);
         let offset  = Vector2::new(0.1, 0.2);
         font.mock_char_info('A',scale,offset,advance)
     }
 
-    fn mock_w_glyph_info(font:FontHandle) -> GlyphRenderInfo {
+    fn mock_w_glyph_info(font:font::Handle) -> GlyphRenderInfo {
         let advance = 0.7;
         let scale   = Vector2::new(0.6, 0.9);
         let offset  = Vector2::new(0.1, 0.2);

@@ -285,8 +285,7 @@ mod tests {
     use super::*;
 
     use crate::data::color;
-    use crate::display::shape::text::glyph::font::FontRenderInfo;
-    use crate::display::shape::text::glyph::font::FontHandle;
+    use crate::display::shape::text::glyph::font;
     use crate::display::shape::text::text_field::content::TextFieldContent;
     use crate::display::shape::text::text_field::content::line::Line;
     use crate::display::shape::text::text_field::TextFieldProperties;
@@ -302,8 +301,8 @@ mod tests {
         }
     }
 
-    fn mock_font() -> FontHandle {
-        let font   = FontRenderInfo::mock_font("Test".to_string());
+    fn mock_font() -> font::Handle {
+        let font   = font::RenderInfo::mock_font("Test".to_string());
         let scale  = Vector2::new(1.0, 1.0);
         let offset = Vector2::new(0.0, 0.0);
         font.mock_char_info('A',scale,offset,1.0);
@@ -312,7 +311,7 @@ mod tests {
         font.mock_kerning_info('B', 'B', 0.0);
         font.mock_kerning_info('A', 'B', 0.0);
         font.mock_kerning_info('B', 'A', 0.0);
-        FontHandle::new(font)
+        font::Handle::new(font)
     }
 
     #[wasm_bindgen_test(async)]

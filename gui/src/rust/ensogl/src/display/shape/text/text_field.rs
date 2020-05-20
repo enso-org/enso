@@ -12,8 +12,7 @@ use crate::prelude::*;
 
 use crate::data::color;
 use crate::display::object::traits::*;
-use crate::display::shape::text::glyph::font::FontHandle;
-use crate::display::shape::text::glyph::font::FontRegistry;
+use crate::display::shape::text::glyph::font;
 use crate::display::shape::text::text_field::content::location::TextLocationChange;
 use crate::display::shape::text::text_field::content::TextFieldContent;
 use crate::display::shape::text::text_field::cursor::Cursor;
@@ -77,12 +76,11 @@ impl FocusManager {
 /// A display properties of TextField.
 #[derive(Debug)]
 pub struct TextFieldProperties {
-    /// FontHandle used for rendering text.
-    pub font: FontHandle,
+    /// Font handle used for rendering text.
+    pub font: font::Handle,
     /// Text size being a line height in pixels.
     pub text_size: f32,
     /// Base color of displayed text.
-    //TODO: base_color should use definitions in core/data/color
     pub base_color: color::Rgba,
     /// Size of this component.
     pub size: Vector2<f32>,
@@ -92,7 +90,7 @@ impl TextFieldProperties {
     const DEFAULT_FONT_FACE:&'static str = "DejaVuSansMono";
 
     /// A default set of properties.
-    pub fn default(fonts:&mut FontRegistry) -> Self {
+    pub fn default(fonts:&mut font::Registry) -> Self {
         TextFieldProperties {
             font      : fonts.get_or_load_embedded_font(Self::DEFAULT_FONT_FACE).unwrap(),
             text_size : 16.0,

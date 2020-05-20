@@ -15,6 +15,11 @@ use std::collections::hash_map::Entry::Occupied;
 use std::collections::hash_map::Entry::Vacant;
 
 
+
+// =============
+// === Cache ===
+// =============
+
 #[derive(Debug)]
 struct Cache<K:Eq+Hash, V> {
     map: RefCell<HashMap<K,V>>,
@@ -61,6 +66,8 @@ impl<K:Eq+Hash, V> Default for Cache<K,V> {
         Cache { map:default() }
     }
 }
+
+
 
 // ========================
 // === Font render info ===
@@ -142,7 +149,7 @@ impl GlyphRenderInfo {
 /// is _baseline_ and `y` = 1.0 is _ascender_. For explanation of various font-rendering terms, see
 /// [freetype documentation](https://www.freetype.org/freetype2/docs/glyphs/glyphs-3.html#section-1)
 #[derive(Debug)]
-pub struct FontRenderInfo {
+pub struct RenderInfo {
     /// Name of the font.
     pub name      : String,
     msdf_sys_font : msdf_sys::Font,
@@ -151,10 +158,10 @@ pub struct FontRenderInfo {
     kerning       : Cache<(char,char),f32>
 }
 
-impl FontRenderInfo {
+impl RenderInfo {
     /// Create render info based on font data in memory
-    pub fn new(name:String, font_data:&[u8]) -> FontRenderInfo {
-        FontRenderInfo {name,
+    pub fn new(name:String, font_data:&[u8]) -> RenderInfo {
+        RenderInfo {name,
             msdf_sys_font : msdf_sys::Font::load_from_memory(font_data),
             msdf_texture  : default(),
             glyphs        : default(),
@@ -164,9 +171,9 @@ impl FontRenderInfo {
 
     /// Create render info for one of embedded fonts
     pub fn from_embedded(base:&EmbeddedFonts, name:&str)
-    -> Option<FontRenderInfo> {
+    -> Option<RenderInfo> {
         let font_data_opt = base.font_data_by_name.get(name);
-        font_data_opt.map(|data| FontRenderInfo::new(name.to_string(),data))
+        font_data_opt.map(|data| RenderInfo::new(name.to_string(),data))
     }
 
     /// Get render info for one character, generating one if not found
@@ -195,8 +202,8 @@ impl FontRenderInfo {
     }
 
     #[cfg(test)]
-    pub fn mock_font(name : String) -> FontRenderInfo {
-        FontRenderInfo { name,
+    pub fn mock_font(name : String) -> RenderInfo {
+        RenderInfo { name,
             msdf_sys_font : msdf_sys::Font::mock_font(),
             msdf_texture  : default(),
             glyphs        : default(),
@@ -227,24 +234,30 @@ impl FontRenderInfo {
 
 
 
-// ===================
-// === LoadedFonts ===
-// ===================
+// ==============
+// === Handle ===
+// ==============
 
 /// A handle for fonts loaded into memory.
-pub type FontHandle = Rc<FontRenderInfo>;
+pub type Handle = Rc<RenderInfo>;
+
+
+
+// ================
+// === Registry ===
+// ================
 
 /// Structure keeping all fonts loaded from different sources.
 #[derive(Debug)]
-pub struct FontRegistry {
+pub struct Registry {
     embedded : EmbeddedFonts,
-    fonts    : HashMap<String,FontHandle>,
+    fonts    : HashMap<String,Handle>,
 }
 
-impl FontRegistry {
+impl Registry {
     /// Create empty `Fonts` structure (however it contains raw data of embedded fonts).
-    pub fn new() -> FontRegistry {
-        FontRegistry {
+    pub fn new() -> Registry {
+        Registry {
             embedded : EmbeddedFonts::create_and_fill(),
             fonts    : HashMap::new(),
         }
@@ -252,11 +265,11 @@ impl FontRegistry {
 
     /// Get render font info from loaded fonts, and if it does not exists, load data from one of
     /// embedded fonts. Returns None if the name is missing in both loaded and embedded font list.
-    pub fn get_or_load_embedded_font(&mut self, name:&str) -> Option<FontHandle> {
+    pub fn get_or_load_embedded_font(&mut self, name:&str) -> Option<Handle> {
         match self.fonts.entry(name.to_string()) {
             Occupied(entry) => Some(entry.get().clone()),
             Vacant(entry)   => {
-                let font_opt = FontRenderInfo::from_embedded(&self.embedded,name);
+                let font_opt = RenderInfo::from_embedded(&self.embedded,name);
                 font_opt.map(|font| {
                     let rc = Rc::new(font);
                     entry.insert(rc.clone_ref());
@@ -267,18 +280,49 @@ impl FontRegistry {
     }
 
     /// Get handle one of loaded fonts.
-    pub fn get_render_info(&mut self, name:&str) -> Option<FontHandle> {
+    pub fn get_render_info(&mut self, name:&str) -> Option<Handle> {
         self.fonts.get_mut(name).cloned()
     }
 }
 
-impl Default for FontRegistry {
+impl Default for Registry {
     fn default() -> Self {
         Self::new()
     }
 }
 
 
+
+// ======================
+// === SharedRegistry ===
+// ======================
+
+/// Shared version of `Registry`.
+#[derive(Clone,CloneRef,Debug)]
+pub struct SharedRegistry {
+    model : Rc<RefCell<Registry>>
+}
+
+impl SharedRegistry {
+    /// Constructor.
+    #[allow(clippy::new_without_default)] // FIXME rename new to something more explicit
+    pub fn new() -> SharedRegistry {
+        let model = Rc::new(RefCell::new(Registry::new()));
+        Self {model}
+    }
+
+    /// Get render font info from loaded fonts, and if it does not exists, load data from one of
+    /// embedded fonts. Returns None if the name is missing in both loaded and embedded font list.
+    pub fn get_or_load_embedded_font(&self, name:&str) -> Option<Handle> {
+        self.model.borrow_mut().get_or_load_embedded_font(name)
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {
@@ -291,9 +335,9 @@ mod tests {
 
     const TEST_FONT_NAME : &str = "DejaVuSansMono-Bold";
 
-    fn create_test_font_render_info() -> FontRenderInfo {
+    fn create_test_font_render_info() -> RenderInfo {
         let mut embedded_fonts = EmbeddedFonts::create_and_fill();
-        FontRenderInfo::from_embedded(
+        RenderInfo::from_embedded(
             &mut embedded_fonts,
             TEST_FONT_NAME
         ).unwrap()

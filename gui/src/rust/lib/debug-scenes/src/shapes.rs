@@ -129,7 +129,7 @@ fn init(app:&Application) {
     graph_editor.frp.set_node_position.emit((node2_id,Position::new(200.0 ,  50.0)));
 
     graph_editor.frp.set_node_expression.emit((node1_id,expression_mock()));
-    graph_editor.frp.set_node_expression.emit((node2_id,expression_mock()));
+    graph_editor.frp.set_node_expression.emit((node2_id,expression_mock2()));
 
     frp::new_network! { network
         def trigger = source::<()>();
@@ -184,7 +184,33 @@ pub fn expression_mock() -> Expression {
     let pattern_cr       = vec![Seq { right: false }, Or, Or, Build];
     let val              = ast::crumbs::SegmentMatchCrumb::Body {val:pattern_cr};
     let parens_cr        = ast::crumbs::MatchCrumb::Segs {val,index:0};
-    let code             = "draw_maps size (distribution normal)".into();
+    let code             = "open \"data.csv\"".into();
+    let output_span_tree = default();
+    let input_span_tree  = span_tree::builder::TreeBuilder::new(37)
+        .add_child(0,14,span_tree::node::Kind::Chained,PrefixCrumb::Func)
+        .add_leaf(0,9,span_tree::node::Kind::Operation,PrefixCrumb::Func)
+        .add_empty_child(10,span_tree::node::InsertType::BeforeTarget)
+        .add_leaf(10,4,span_tree::node::Kind::Target {is_removable:true},PrefixCrumb::Arg)
+        .add_empty_child(14,span_tree::node::InsertType::Append)
+        .done()
+        .add_child(15,22,span_tree::node::Kind::Argument {is_removable:true},PrefixCrumb::Arg)
+        .add_child(1,20,span_tree::node::Kind::Argument {is_removable:false},parens_cr)
+        .add_leaf(0,12,span_tree::node::Kind::Operation,PrefixCrumb::Func)
+        .add_empty_child(13,span_tree::node::InsertType::BeforeTarget)
+        .add_leaf(13,7,span_tree::node::Kind::Target {is_removable:false},PrefixCrumb::Arg)
+        .add_empty_child(20,span_tree::node::InsertType::Append)
+        .done()
+        .done()
+        .add_empty_child(37,span_tree::node::InsertType::Append)
+        .build();
+    Expression {code,input_span_tree,output_span_tree}
+}
+
+pub fn expression_mock2() -> Expression {
+    let pattern_cr       = vec![Seq { right: false }, Or, Or, Build];
+    let val              = ast::crumbs::SegmentMatchCrumb::Body {val:pattern_cr};
+    let parens_cr        = ast::crumbs::MatchCrumb::Segs {val,index:0};
+    let code             = "make_maps size (distribution normal)".into();
     let output_span_tree = default();
     let input_span_tree  = span_tree::builder::TreeBuilder::new(36)
         .add_child(0,14,span_tree::node::Kind::Chained,PrefixCrumb::Func)

@@ -54,12 +54,12 @@ use ensogl::system::web::StyleSetter;
 use ensogl::system::web;
 use nalgebra::Vector2;
 use ensogl::display::Scene;
-use crate::component::node::port::Expression;
 use crate::component::visualization::Visualization;
 use crate::component::visualization;
 use crate::component::visualization::example::js::constructor_sample_js_bubble_chart;
 use crate::component::visualization::MockDataGenerator3D;
 use crate::component::visualization::example::native;
+
 
 
 // =====================
@@ -352,7 +352,7 @@ pub struct FrpInputs {
     pub remove_all_node_output_edges   : frp::Source<NodeId>,
     pub remove_edge                    : frp::Source<EdgeId>,
     pub select_node                    : frp::Source<NodeId>,
-    pub set_node_expression            : frp::Source<(NodeId,Expression)>,
+    pub set_node_expression            : frp::Source<(NodeId,node::Expression)>,
     pub set_node_position              : frp::Source<(NodeId,Position)>,
     pub set_visualization_data         : frp::Source<NodeId>,
     pub translate_selected_nodes       : frp::Source<Position>,
@@ -458,19 +458,20 @@ macro_rules! generate_frp_outputs {
 
 
 generate_frp_outputs! {
-    node_added         : NodeId,
-    node_removed       : NodeId,
-    node_selected      : NodeId,
-    node_deselected    : NodeId,
-    node_position_set  : (NodeId,Position),
+    node_added          : NodeId,
+    node_removed        : NodeId,
+    node_selected       : NodeId,
+    node_deselected     : NodeId,
+    node_position_set   : (NodeId,Position),
+    node_expression_set : (NodeId,node::Expression),
 
-    edge_added         : EdgeId,
-    edge_removed       : EdgeId,
-    edge_source_set    : (EdgeId,EdgeTarget),
-    edge_target_set    : (EdgeId,EdgeTarget),
+    edge_added          : EdgeId,
+    edge_removed        : EdgeId,
+    edge_source_set     : (EdgeId,EdgeTarget),
+    edge_target_set     : (EdgeId,EdgeTarget),
 
-    connection_added   : EdgeId,
-    connection_removed : EdgeId,
+    connection_added    : EdgeId,
+    connection_removed  : EdgeId,
 }
 
 
@@ -937,11 +938,14 @@ impl GraphEditorModel {
         edges
     }
 
-    fn set_node_expression(&self, node_id:impl Into<NodeId>, expr:impl Into<Expression>) {
+    fn set_node_expression(&self, node_id:impl Into<NodeId>, expr:impl Into<node::Expression>) {
         let node_id = node_id.into();
         let expr    = expr.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            node.view.ports.set_expression(expr);
+            node.view.frp.set_expression.emit(expr);
+        }
+        for edge_id in self.node_out_edges(node_id) {
+            self.refresh_edge_source_width(edge_id);
         }
     }
 
@@ -963,7 +967,9 @@ impl GraphEditorModel {
             if let Some(node) = self.nodes.get_cloned_ref(&target.node_id) {
                 node.out_edges.insert(edge_id);
                 edge.set_source(target.clone());
+                // FIXME: both lines require edge to refresh. Let's make it more efficient.
                 self.refresh_edge_position(edge_id);
+                self.refresh_edge_source_width(edge_id);
             }
         }
     }
@@ -1031,12 +1037,22 @@ impl GraphEditorModel {
         self.refresh_edge_target_position(edge_id);
     }
 
+    pub fn refresh_edge_source_width(&self, edge_id:EdgeId) {
+        if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
+            if let Some(edge_source) = edge.source() {
+                if let Some(node) = self.nodes.get_cloned_ref(&edge_source.node_id) {
+                    edge.view.events.source_width.emit(node.view.width());
+                }
+            }
+        };
+    }
+
     pub fn refresh_edge_source_position(&self, edge_id:EdgeId) {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_source) = edge.source() {
                 if let Some(node) = self.nodes.get_cloned_ref(&edge_source.node_id) {
                     edge.mod_position(|p| {
-                        p.x = node.position().x + node::NODE_WIDTH/2.0;
+                        p.x = node.position().x + node.view.width()/2.0;
                         p.y = node.position().y + node::NODE_HEIGHT/2.0;
                     });
                 }
@@ -1367,7 +1383,7 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     // === Set NodeView Expression ===
     frp::extend! { network
 
-    eval inputs.set_node_expression(((node_id,expr)) model.set_node_expression(node_id,expr));
+    outputs.node_expression_set <+ inputs.set_node_expression;
 
 
     // === Move Nodes ===
@@ -1459,12 +1475,13 @@ fn new_graph_editor(world:&World) -> GraphEditor {
 
     // === OUTPUTS REBIND ===
 
-    eval outputs.edge_source_set (((id,tgt)) model.connect_edge_source(*id,tgt));
-    eval outputs.edge_target_set (((id,tgt)) model.connect_edge_target(*id,tgt));
-    eval outputs.node_selected   ((id) model.select_node(id));
-    eval outputs.node_deselected ((id) model.deselect_node(id));
-    eval outputs.edge_removed    ((id) model.remove_edge(id));
-    eval outputs.node_removed    ((id) model.remove_node(id));
+    eval outputs.edge_source_set     (((id,tgt)) model.connect_edge_source(*id,tgt));
+    eval outputs.edge_target_set     (((id,tgt)) model.connect_edge_target(*id,tgt));
+    eval outputs.node_selected       ((id) model.select_node(id));
+    eval outputs.node_deselected     ((id) model.deselect_node(id));
+    eval outputs.edge_removed        ((id) model.remove_edge(id));
+    eval outputs.node_removed        ((id) model.remove_node(id));
+    eval outputs.node_expression_set (((id,expr)) model.set_node_expression(id,expr));
 
 
 
