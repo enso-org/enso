@@ -32,6 +32,7 @@ It is broken up into categories as follows:
   server, its protocol, and how it integrates with the runtime.
 - [**Polyglot:**](./polyglot) Information on Enso's polyglot functionality, and
   how it is integrated into the surface Enso language.
+- [**RFCs:**](./rfcs) RFCs for Enso's development and evolution.
 - [**Runtime:**](./runtime) Specification and documentation of the way that the
   Enso runtime is designed and implemented.
 - [**Semantics:**](./semantics) A specification of Enso's semantics.

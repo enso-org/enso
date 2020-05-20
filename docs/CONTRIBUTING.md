@@ -28,7 +28,7 @@ sections of this document are linked below:
 <!-- /MarkdownTOC -->
 
 All contributions to Enso should be in keeping with our
-[Code of Conduct](https://github.com/luna/luna/blob/CODE_OF_CONDUCT.md).
+[Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## The Contributor License Agreement
 As part of your first contribution to this repository, you need to accept the
@@ -42,17 +42,28 @@ The CLA you sign applies to all repositories associated with the Enso project,
 so you will only have to sign it once at the start of your contributions.
 
 ## Issues
-If you are looking for somewhere to start, check out the `Help Wanted` tag in
-the following repositories:
-- [Enso](https://github.com/luna/enso/labels/Status%3A%20Help%20Wanted)
-- [Enso Studio](https://github.com/luna/ide/labels/Status%3A%20Help%20Wanted)
+If you're wanting to get involved with Enso's development and are looking for
+somewhere to start, you can check out the following tags in our issues:
+
+- [Good First Issue](https://github.com/luna/enso/labels/Status%3A%20Good%20First%20Issue)
+- [Help Wanted](https://github.com/luna/enso/labels/Status%3A%20Help%20Wanted)
+
+You can use the "Size" and "Difficulty" labels that should be assigned to every
+issue to get a better idea of how much work a given issue might be.
 
 ## Feature Enhancements
 If you feel like you have a suggestion for a change to the way that Enso works
-as a language, please open an issue in our
-[RFCs Repository](https://github.com/luna/luna-rfcs), rather than in this one!
-New features and other significant language changes must go through the RFC
-process so they can be properly discussed.
+as a language, please take a look at the
+[Enso RFC process](./rfcs/README.md) to learn how to file an RFC for the
+project.
+
+In essence, the RFC process provides a way to propose major changes to the
+language, the compiler, and the runtime in a way that ensures that they get
+seen and discussed by all the major stakeholders involved.
+
+If, on the other hand, you're asking for a smaller feature, please feel free to
+submit a [feature request](https://github.com/luna/enso/issues/new?assignees=&labels=Type%3A+Enhancement&template=feature-request.md&title=)
+to the repository.
 
 ## Bug Reports
 While it's never great to find a bug, they are a reality of software and
@@ -61,7 +72,7 @@ about, so report as many bugs as you can! If you're not sure whether something
 is a bug, file it anyway!
 
 **If you are concerned that your bug publicly presents a security risk to the
-users of Enso, please look at our [security guidelines](./security.md).**
+users of Enso, please look at our [security guidelines](./SECURITY.md).**
 
 Even though GitHub search can be a bit hard to use sometimes, we'd appreciate if
 you could
@@ -70,7 +81,8 @@ your issue before filing a bug as it's possible that someone else has already
 reported the issue. We know the search isn't the best, and it can be hard to
 know what to search for, so we really don't mind if you do submit a duplicate!
 
-Opening an issue is as easy as following [this link](https://github.com/luna/enso/issues/new?template=bug-report.md)
+Opening an issue is as easy as following
+[this link](https://github.com/luna/enso/issues/new?template=bug-report.md)
 and filling out the fields. The template is intended to collect all the
 information we need to best diagnose the issue, so please take the time to fill
 it out accurately.
@@ -91,7 +103,7 @@ look at the design documentation for the language. These files explain provide
 both a rigorous specification of Enso's design, but also insight into the _why_
 behind the decisions that have been made.
 
-These can be found in [`doc/design/`](doc/design/), and are organised by the
+These can be found in [`docs/design/`](docs/design/), and are organised by the
 part of the compiler that they relate to.
 
 ### System Requirements
@@ -277,7 +289,7 @@ getting the project into a working state in IntelliJ.
     with an open SBT shell, which can be interacted with as described above. You
     will want to use scalafmt for formatting of Scala code, and install Google
     Java Format for formatting Java code. For more information see the relevant
-    [Style Guides](doc/).
+    [Style Guides](docs/style-guide).
 
 However, as mentioned in the [Troubleshooting](#troubleshooting) section below,
 the forked nature of execution in the SBT shell means that we can't trivially
@@ -381,8 +393,8 @@ Please make all pull requests against the `master` branch.
   the tests yourself locally first! This can be done by running `test` in the
   `enso` project in sbt.
 - Additionally, please ensure that your code conforms to the Enso style guides,
-  particularly the [Scala Style Guide](./doc/scala-style-guide.md) and the
-  [Java Style Guide](./doc/java-style-guide.md).
+  particularly the [Scala Style Guide](./docs/style-guide/scala.md) and the
+  [Java Style Guide](./docs/style-guide/java.md).
 
 Make sure you perform these checks before _every_ pull request. You can even add
 [git hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) before
@@ -403,12 +415,13 @@ please feel free to discuss the suggestions and comments! We can only achieve
 the best results through open collaboration.
 
 ## Documentation
-Documentation improvements are very welcome! The source for the Enso, Book can be
-found in [`luna/luna-book`](https://github.com/luna/luna-book), but most of the
-API documentation is generated directly from the code!
+Documentation improvements are very welcome! For now, the main documentation
+available is the _developer_ documentation for the language, which can be found
+at the [dev docs site](https://dev.enso.org). The source for this documentation
+is found in the [`docs/`](./docs/) folder, and can be altered from there.
 
-Documentation pull requests are reviewed in exactly the same way as normal pull
-requests.
+Documentation pull requests will be reviewed in exactly the same way as normal
+pull requests.
 
 To find documentation-related issues, sort by the
 [Category: Documentation](hhttps://github.com/luna/enso/labels/Category%3A%20Documentation)
@@ -431,7 +444,8 @@ If you're looking for somewhere to start, take a look at the
 [Difficulty: Beginner](https://github.com/luna/enso/labels/Difficulty%3A%20Beginner)
 issue label, as well as the
 [Status: Help Wanted](https://github.com/luna/enso/labels/Status%3A%20Help%20Wanted)
-label.
+and
+[Status: Good First Issue](https://github.com/luna/enso/labels/Status%3A%20Good%20First%20Issue) labels.
 
 ## Out-of-Tree Contributions
 As helpful as contributing to Enso directly is, it can also be just as helpful
@@ -444,5 +458,6 @@ to contribute in other ways outside this repository:
 For people new to Enso, and just starting to contribute, or even for more
 seasoned developers, some useful places to look for information are:
 
-- The [design documentation](doc/design/).
+- The [design documentation](docs/).
 - The community! Don't be afraid to ask questions.
+

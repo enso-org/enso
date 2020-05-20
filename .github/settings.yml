@@ -161,11 +161,35 @@ labels:
   - name: "Type: Question"
     color: "#ede2fe"
     description: A question about Enso
+  - name: "Type: RFC"
+    color: "#ede2fe"
+    description: An RFC proposing a change to Enso
+
+  - name: "RFC: Active"
+    color: "#e4decb"
+    description: An RFC being actively implemented
+  - name: "RFC: Discussion"
+    color: "#e4decb"
+    description: An RFC preliminarily complete
+  - name: "RFC: FCP"
+    color: "#e4decb"
+    description: An RFC in the final comment period
+  - name: "RFC: Accepted"
+    color: "#e4decb"
+    description: An RFC accepted into Enso
+  - name: "RFC: Rejected"
+    color: "#e4decb"
+    description: An RFC rejected for inclusion in Enso
+  - name: "RFC: Postponed"
+    color: "#e4decb"
+    description: An RFC that has been postponed
 
 # Teams configuration
 teams:
   - name: developers
     permission: push
+  - name: moderators
+    permission: maintain
 
 # Branch protection
 branches:
