@@ -1,6 +1,6 @@
 ---
 layout: developer-doc
-title: Enso Developer Documentation
+title: Enso's Philosophy
 category: summary
 tags: [summary, design]
 order: 1
