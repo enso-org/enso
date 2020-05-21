@@ -61,16 +61,6 @@ pub struct SpanTree {
     pub root : Node
 }
 
-impl Default for SpanTree {
-    fn default() -> Self {
-        let kind     = node::Kind::Empty(node::InsertType::Append);
-        let size     = default();
-        let children = default();
-        let root     = Node {kind,size,children};
-        Self {root}
-    }
-}
-
 impl SpanTree {
     /// Create span tree from something that could generate it (usually AST).
     pub fn new(generator:&impl SpanTreeGenerator) -> FallibleResult<Self> {
@@ -91,5 +81,15 @@ impl SpanTree {
     pub fn get_node<'a>
     (&self, crumbs:impl IntoIterator<Item=&'a Crumb>) -> FallibleResult<node::Ref> {
         self.root_ref().get_descendant(crumbs)
+    }
+}
+
+impl Default for SpanTree {
+    fn default() -> Self {
+        let kind     = node::Kind::Root;
+        let size     = default();
+        let children = default();
+        let root     = Node {kind,size,children};
+        Self {root}
     }
 }

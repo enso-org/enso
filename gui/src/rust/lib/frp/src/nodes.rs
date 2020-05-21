@@ -222,7 +222,7 @@ impl Network {
 
     /// On every event from the first input stream, sample all other input streams and run the
     /// provided function on all gathered values. If you want to run the function on event from any
-    /// input stream, use the `apply` function family instead.
+    /// input stream, use the `zip_with` function family instead.
     pub fn map<T,F,Out>(&self, label:Label, source:&T, f:F) -> Stream<Out>
     where T:EventOutput, Out:Data, F:'static+Fn(&Output<T>)->Out {
         self.register(OwnedMap::new(label,source,f))

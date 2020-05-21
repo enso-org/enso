@@ -8,7 +8,9 @@ use crate::view::layout::ViewLayout;
 
 use ensogl::control::callback;
 use ensogl::control::io::keyboard::listener::KeyboardFrpBindings;
+use ensogl::data::color;
 use ensogl::display::shape::text::glyph::font;
+use ensogl::display::style::theme;
 use ensogl::system::web;
 use enso_frp::io::keyboard::Keyboard;
 use enso_frp::io::keyboard;
@@ -81,6 +83,8 @@ impl ProjectView {
         let graph_controller     = module_controller.executed_graph_controller_unchecked(graph_id);
         let graph_controller     = graph_controller.await?;
         let application          = Application::new(&web::get_html_element_by_id("root").unwrap());
+        Self::setup_components(&application);
+        Self::setup_theme(&application);
         let _world               = &application.display;
         // graph::register_shapes(&world);
         let logger               = logger.sub("ProjectView");
@@ -108,6 +112,26 @@ impl ProjectView {
         );
         self.with_borrowed(move |data| data.resize_callback = Some(resize_callback));
         self
+    }
+
+    fn setup_components(app:&Application) {
+        app.views.register::<graph_editor::GraphEditor>();
+    }
+
+    fn setup_theme(app:&Application) {
+        let mut dark = theme::Theme::new();
+        dark.insert("application.background.color", color::Lcha::new(0.13,0.013,0.18,1.0));
+        dark.insert("graph_editor.node.background.color", color::Lcha::new(0.2,0.013,0.18,1.0));
+        dark.insert("graph_editor.node.selection.color", color::Lcha::new(0.72,0.5,0.22,1.0));
+        dark.insert("graph_editor.node.selection.size", 7.0);
+        //    dark.insert("graph_editor.node.selection.color", color::Lcha::new(0.7,0.59,0.18,1.0));
+        dark.insert("animation.duration", 0.5);
+        dark.insert("graph.node.shadow.color", 5.0);
+        dark.insert("graph.node.shadow.size", 5.0);
+        dark.insert("mouse.pointer.color", color::Rgba::new(0.3,0.3,0.3,1.0));
+
+        app.themes.register("dark",dark);
+        app.themes.set_enabled(&["dark"]);
     }
 
     /// Forgets ProjectView, so it won't get dropped when it goes out of scope.
