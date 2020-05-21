@@ -19,7 +19,7 @@ use ensogl::display;
 pub struct DataRendererFrp {
     pub network   : frp::Network,
     /// This is emitted if the state of the renderer has been changed by UI interaction.
-    /// It contains the output data of this visualisation if there is some.
+    /// It contains the output data of this visualization if there is some.
     pub on_change            : frp::Stream<Option<EnsoCode>>,
     /// Will be emitted if the visualization changes it's preprocessor. Transmits the new
     /// preprocessor code.
@@ -53,7 +53,7 @@ impl Default for DataRendererFrp {
 /// producing a `display::Object` that will be shown in the scene. It will create FRP events to
 /// indicate updates to its output data (e.g., through user interaction).
 ///
-/// A DataRenderer can indicate what kind of data it can use to create a visualisation through the
+/// A DataRenderer can indicate what kind of data it can use to create a visualization through the
 /// `valid_input_types` method. This serves as a hint, it will also reject invalid input in the
 /// `set_data` method with a `DataError`. The owner of the `DataRenderer` is in charge of producing
 /// UI feedback to indicate a problem with the data.
@@ -67,7 +67,7 @@ pub trait DataRenderer: display::Object + Debug {
     /// processed by this `DataRenderer`, if the data is of an invalid data type, it violates other
     /// assumptions of this `DataRenderer`, a `DataError` is returned.
     fn receive_data(&self, data:Data) -> Result<(), DataError>;
-    /// Set the size of viewport of the visualization. The visualisation must not render outside of
+    /// Set the size of viewport of the visualization. The visualization must not render outside of
     /// this viewport.
     fn set_size(&self, size:Vector2<f32>);
 

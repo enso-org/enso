@@ -1,4 +1,4 @@
-//! Examples of defining visualisation in Rust using web_sys or ensogl.
+//! Examples of defining visualization in Rust using web_sys or ensogl.
 
 use crate::prelude::*;
 
