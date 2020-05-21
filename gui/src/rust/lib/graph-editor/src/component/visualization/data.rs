@@ -9,13 +9,13 @@ use serde::Deserialize;
 
 
 // ======================================
-// === Wrapper for Visualisation Data ===
+// === Wrapper for Visualization Data ===
 // =======================================
 
 /// Type indicator
 pub type DataType = EnsoType;
 
-/// Wrapper for data that can be consumed by a visualisation.
+/// Wrapper for data that can be consumed by a visualization.
 /// TODO[mm] consider static versus dynamic typing for visualizations and data!
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
@@ -70,7 +70,7 @@ impl Data {
 pub enum DataError {
     /// Indicates that that the provided data type does not match the expected data type.
     InvalidDataType,
-    /// The data caused an error in the computation of the visualisation.
+    /// The data caused an error in the computation of the visualization.
     InternalComputationError,
 }
 
