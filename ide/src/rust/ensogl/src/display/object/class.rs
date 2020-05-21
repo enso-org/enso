@@ -97,7 +97,7 @@ impl Debug for Callbacks {
 // === Types ===
 
 pub type ChildrenDirty   = dirty::SharedSet<usize,Option<Box<dyn Fn()>>>;
-pub type RemovedChildren = dirty::SharedVector<Instance,Option<Box<dyn Fn()>>>;
+pub type RemovedChildren = dirty::SharedVector<WeakNode,Option<Box<dyn Fn()>>>;
 pub type NewParentDirty  = dirty::SharedBool<()>;
 pub type TransformDirty  = dirty::SharedBool<Option<Box<dyn Fn()>>>;
 
@@ -133,11 +133,11 @@ impl DirtyFlags {
         Self {parent,children,removed_children,transform,callback}
     }
 
-    pub fn set_callback<F:'static+Fn()>(&self,f:F) {
+    fn set_callback<F:'static+Fn()>(&self,f:F) {
         *self.callback.borrow_mut() = Box::new(f);
     }
 
-    pub fn unset_callback(&self) {
+    fn unset_callback(&self) {
         *self.callback.borrow_mut() = Box::new(||{});
     }
 }
@@ -203,8 +203,8 @@ impl NodeData {
             self.dirty.children.unset(&index);
             child.upgrade().for_each(|child| {
                 child.raw_unset_parent();
-                self.dirty.removed_children.set(child);
             });
+            self.dirty.removed_children.set(child);
         });
     }
 
@@ -267,10 +267,12 @@ impl NodeData {
         if self.dirty.removed_children.check_all() {
             group!(self.logger, "Updating removed children", {
                 self.dirty.removed_children.take().into_iter().for_each(|child| {
-                    if child.is_orphan() {
-                        child.hide();
-                        if let Some(s) = scene {
-                            child.hide_with(s)
+                    if let Some(child) = child.upgrade() {
+                        if child.is_orphan() {
+                            child.hide();
+                            if let Some(s) = scene {
+                                child.hide_with(s)
+                            }
                         }
                     }
                 });
@@ -380,6 +382,7 @@ impl NodeData {
     }
 }
 
+
 // === Getters ===
 
 impl NodeData {
@@ -408,6 +411,7 @@ impl NodeData {
         self.transform.get().matrix()
     }
 }
+
 
 // === Setters ===
 
@@ -474,18 +478,6 @@ impl NodeData {
     }
 }
 
-impl Display for Instance {
-    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,"Instance")
-    }
-}
-
-impl Debug for Instance {
-    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,"Instance")
-    }
-}
-
 
 
 // ==========
@@ -497,9 +489,9 @@ pub struct Id(usize);
 
 
 
-// ============
+// ================
 // === Instance ===
-// ============
+// ================
 
 #[derive(Clone,CloneRef,Shrinkwrap)]
 pub struct Instance {
@@ -608,6 +600,18 @@ impl PartialEq for Instance {
     }
 }
 
+impl Display for Instance {
+    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"Instance")
+    }
+}
+
+impl Debug for Instance {
+    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"Instance")
+    }
+}
+
 
 
 // ================
@@ -622,6 +626,14 @@ pub struct WeakNode {
 impl WeakNode {
     pub fn upgrade(&self) -> Option<Instance> {
         self.weak.upgrade().map(|rc| Instance {rc})
+    }
+}
+
+// FIXME: This is not a valid implementation as the pointers may alias when one instance was dropped
+//        and other was created in the same location.
+impl PartialEq for WeakNode {
+    fn eq(&self, other:&Self) -> bool {
+        self.weak.ptr_eq(&other.weak)
     }
 }
 

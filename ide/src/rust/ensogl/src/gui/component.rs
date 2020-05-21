@@ -31,17 +31,22 @@ pub struct ShapeViewEvents {
     pub mouse_down : frp::Source,
     pub mouse_over : frp::Source,
     pub mouse_out  : frp::Source,
+    on_drop        : frp::Source,
 }
 
-impl Default for ShapeViewEvents {
-    fn default() -> Self {
-        frp::new_network! { shape_view
-            def mouse_down = source_();
-            def mouse_over = source_();
-            def mouse_out  = source_();
+impl ShapeViewEvents {
+    fn new() -> Self {
+        frp::new_network! { network
+            on_drop    <- source_();
+            mouse_down <- source_();
+            mouse_over <- source_();
+            mouse_out  <- source_();
+
+            is_mouse_over <- [mouse_over,mouse_out].toggle();
+            out_on_drop   <- on_drop.gate(&is_mouse_over);
+            eval_ out_on_drop (mouse_out.emit(()));
         }
-        let network = shape_view;
-        Self {network,mouse_down,mouse_over,mouse_out}
+        Self {network,mouse_down,mouse_over,mouse_out,on_drop}
     }
 }
 
@@ -53,6 +58,8 @@ impl MouseTarget for ShapeViewEvents {
 
 
 
+
+
 // =================
 // === ShapeView ===
 // =================
@@ -60,15 +67,26 @@ impl MouseTarget for ShapeViewEvents {
 /// Automatically managed view of a `Shape`. The view is initially empty and is filled with a
 /// reference to an existing `Shape` as soon as it is placed on the scene and the scene is updated.
 /// As soon as it is removed from the scene, the shape is freed.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone,CloneRef,Debug,Deref)]
 #[clone_ref(bound="Shape:CloneRef")]
 #[allow(missing_docs)]
 pub struct ShapeView<Shape> {
-    pub display_object : display::object::Instance,
-    pub events         : ShapeViewEvents,
-    pub shape          : Shape,
+    model : Rc<ShapeViewModel<Shape>>
 }
 
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct ShapeViewModel<Shape> {
+    pub shape          : Shape,
+    pub display_object : display::object::Instance,
+    pub events         : ShapeViewEvents,
+}
+
+impl<Shape> Drop for ShapeViewModel<Shape> {
+    fn drop(&mut self) {
+        self.events.on_drop.emit(());
+    }
+}
 ///// A structure containing data which is constructed or dropped when the `ShapeView` is added or
 ///// removed from the scene.
 //#[derive(Clone,CloneRef,Debug)]
@@ -85,11 +103,12 @@ pub struct ShapeView<Shape> {
 impl<S:Shape> ShapeView<S> {
     /// Constructor.
     pub fn new(logger:&Logger, scene:&Scene) -> Self {
-        let display_object = display::object::Instance::new(logger);
-        let events         = ShapeViewEvents::default();
+        let logger = logger.sub("shape_view");
+        let display_object = display::object::Instance::new(&logger);
 //        let data           = default();
         let shape_registry: &ShapeRegistry = &scene.shapes;
-        let shape = shape_registry.new_instance::<S>();
+        let shape          = shape_registry.new_instance::<S>();
+        let events         = ShapeViewEvents::new();
         display_object.add_child(&shape);
         for sprite in shape.sprites() {
             let events      = events.clone_ref();
@@ -99,7 +118,9 @@ impl<S:Shape> ShapeView<S> {
         }
 //        let data = T::new(&shape,scene,shape_registry);
 
-        Self {display_object,events,shape} // . init()
+        let model = Rc::new(ShapeViewModel {display_object,events,shape});
+        Self {model}
+
     }
 
 //    fn init(self) -> Self {

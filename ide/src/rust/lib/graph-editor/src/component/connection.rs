@@ -137,12 +137,12 @@ pub struct ConnectionData {
 impl Connection {
     /// Constructor.
     pub fn new(scene:&Scene) -> Self {
-        let logger    = Logger::new("node");
+        let logger    = Logger::new("edge");
         let object    = display::object::Instance::new(&logger);
 
-        let corner    = component::ShapeView::<shape::Shape>::new(&logger,scene);
-        let side_line = component::ShapeView::<line::Shape>::new(&logger,scene);
-        let main_line = component::ShapeView::<line::Shape>::new(&logger,scene);
+        let corner    = component::ShapeView::<shape::Shape>::new(&logger.sub("corner"),scene);
+        let side_line = component::ShapeView::<line::Shape>::new(&logger.sub("side_line"),scene);
+        let main_line = component::ShapeView::<line::Shape>::new(&logger.sub("main_line"),scene);
         object.add_child(&corner);
         object.add_child(&side_line);
         object.add_child(&main_line);

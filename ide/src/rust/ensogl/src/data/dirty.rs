@@ -48,9 +48,9 @@ pub mod traits {
     pub trait SharedHasUnset1 : HasArg { fn unset     (&self, arg:&Self::Arg); }
 
     // === Type Aliases ===
-    pub trait DirtyFlagOps  = Display + HasCheckAll + HasUnsetAll;
+    pub trait DirtyFlagOps  = Debug + HasCheckAll + HasUnsetAll;
     pub trait DirtyFlagOps0 = DirtyFlagOps + HasCheck0 + HasSet0;
-    pub trait DirtyFlagOps1 = DirtyFlagOps + HasCheck1 + HasSet1 where Arg<Self>: Display;
+    pub trait DirtyFlagOps1 = DirtyFlagOps + HasCheck1 + HasSet1 where Arg<Self>: Debug;
 }
 
 pub use traits::*;
@@ -149,7 +149,7 @@ HasSet1 for DirtyFlag<T,OnMut> {
         let is_set    = self.data.check(&arg);
         if !is_set {
             self.data.set(arg);
-            group!(self.logger, "Setting to {self.data}.", {
+            group!(self.logger, "Setting to {self.data:?}.", {
                 if first_set { self.on_set.call() }
             })
         }
