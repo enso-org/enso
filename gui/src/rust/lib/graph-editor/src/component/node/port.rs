@@ -129,6 +129,15 @@ pub struct Expression {
     pub output_span_tree : SpanTree,
 }
 
+impl Expression {
+    pub fn debug_from_str(s:&str) -> Self {
+        let code             = s.into();
+        let input_span_tree  = default();
+        let output_span_tree = default();
+        Self {code,input_span_tree,output_span_tree}
+    }
+}
+
 impl Debug for Expression {
     fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f,"Expression({})",self.code)
@@ -151,13 +160,13 @@ impl From<&Expression> for Expression {
 pub struct Manager {
     logger         : Logger,
     display_object : display::object::Instance,
-    pub frp        : Events,
     scene          : Scene,
     expression     : Rc<RefCell<Expression>>,
     label          : component::ShapeView<label::Shape>,
     ports          : Rc<RefCell<Vec<component::ShapeView<shape::Shape>>>>,
     width          : Rc<Cell<f32>>,
     port_networks  : Rc<RefCell<Vec<frp::Network>>>,
+    pub frp        : Events,
 }
 
 impl Manager {
@@ -209,7 +218,8 @@ impl Manager {
                     let contains_root = span.index.value == 0;
                     let skip          = node.kind.is_empty() || contains_root;
                     if !skip {
-                        let port   = component::ShapeView::<shape::Shape>::new(&self.logger,&self.scene);
+                        let logger = self.logger.sub("port");
+                        let port   = component::ShapeView::<shape::Shape>::new(&logger,&self.scene);
                         let unit   = 7.224_609_4;
                         let width  = unit * span.size.value as f32;
                         let width2  = width + 4.0;
@@ -229,7 +239,10 @@ impl Manager {
 
                             def out  = port.events.mouse_out.constant(cursor::Mode::Normal);
                             def over = port.events.mouse_over.constant(cursor::Mode::highlight(&port,Vector2::new(x,0.0),Vector2::new(width2,height)));
-                            self.frp.cursor_mode_source.attach(&over); // FIXME: It leaks memory in the current FRP implementation
+                            // FIXME: the following lines leak memory in the current FRP
+                            // implementation because self.frp does not belong to this network and
+                            // we are attaching node there. Nothing bad should happen though.
+                            self.frp.cursor_mode_source.attach(&over);
                             self.frp.cursor_mode_source.attach(&out);
 
                             let press_source = &self.frp.press_source;

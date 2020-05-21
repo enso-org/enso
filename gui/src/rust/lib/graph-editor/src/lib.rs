@@ -769,7 +769,7 @@ impl GraphEditorModelWithNetwork {
             def _cursor_mode = node.view.ports.frp.cursor_mode.map(f!((mode)
                 cursor.frp.set_mode.emit(mode)
             ));
-            def edge_id = node.view.frp.output_ports.mouse_down.map(f_!([model] {
+            def new_edge = node.view.frp.output_ports.mouse_down.map(f_!([model] {
                 if let Some(node) = model.nodes.get_cloned_ref(&node_id) {
                     let view = EdgeView::new(&model.scene);
                     model.add_child(&view);
@@ -782,10 +782,15 @@ impl GraphEditorModelWithNetwork {
                 } else { default() }
             }));
 
-            outputs.edge_added.attach(&edge_id);
-            def new_edge_source = edge_id.map(move |id| (*id,EdgeTarget::new(node_id,default())));
-            outputs.edge_source_set.attach(&new_edge_source);
+            outputs.edge_added <+ new_edge;
+            def new_edge_source = new_edge.map(move |id| (*id,EdgeTarget::new(node_id,default())));
+            outputs.edge_source_set <+ new_edge_source;
 
+            def _eval = new_edge.map2(&cursor.frp.position,f!([model](id,position){
+                if let Some(edge) = model.edges.get_cloned_ref(id) {
+                    edge.view.events.target_position.emit(position)
+                }
+            }));
 
             def _press_node_input = node.view.ports.frp.press.map(f!((crumbs)
                 model.frp.press_node_input.emit(EdgeTarget::new(node_id,crumbs.clone()))
@@ -1322,7 +1327,7 @@ fn new_graph_editor(world:&World) -> GraphEditor {
 
     new_node_input          <- [inputs.press_node_input, inputs.connect_detached_edges_to_node];
     detached_targets        <= new_node_input.map(f_!(model.edges.detached_target.mem_take()));
-    new_edge_target         <- new_node_input.map2(&detached_targets, |t,id| (*id,t.clone()));
+    new_edge_target         <- detached_targets.map2(&new_node_input, |id,t| (*id,t.clone()));
     outputs.edge_target_set <+ new_edge_target;
 
     overlapping_edges       <= outputs.edge_target_set._1().map(f!((t) model.overlapping_edges(t)));

@@ -170,9 +170,9 @@ pub struct TextFieldContent {
 }
 
 impl TextFieldContent {
-    /// Create a text component containing `text`
+    /// Create a text component containing `text`.
     ///
-    /// The text will be split to lines by `'\n'` characters.
+    /// The text will be split to lines on the `'\n'` character.
     pub fn new(text:&str, properties:&TextFieldProperties) -> Self {
         TextFieldContent {
             line_height  : properties.text_size,

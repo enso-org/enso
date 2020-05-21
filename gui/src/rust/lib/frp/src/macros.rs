@@ -190,6 +190,18 @@ macro_rules! extend_line1 {
         $crate::extend_line2! { [] $network def $name $($toks)* }
         $crate::extend_line2! { [] $network trace $name }
     };
+    (TRACE $network:ident $name:ident <- $($toks:tt)*) => {
+        $crate::extend_line2! { [] $network $name <- $($toks)* }
+        $crate::extend_line2! { [] $network trace $name }
+    };
+    (TRACE $network:ident $name:ident <= $($toks:tt)*) => {
+        $crate::extend_line2! { [] $network $name <= $($toks)* }
+        $crate::extend_line2! { [] $network trace $name }
+    };
+    (TRACE $network:ident $name:ident <-_ $($toks:tt)*) => {
+        $crate::extend_line2! { [] $network $name <-_ $($toks)* }
+        $crate::extend_line2! { [] $network trace $name }
+    };
     ($trace:ident $($toks:tt)*) => {
         $crate::extend_line2! { [] $($toks)* }
     };
