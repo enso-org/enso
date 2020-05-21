@@ -79,8 +79,7 @@ impl TextEditor {
         let padding    = default();
         let position   = zero();
         let size       = Vector2::new(screen.width, screen.height / 2.0);
-        let black      = color::Rgba::new(0.0,0.0,0.0,1.0);
-        let base_color = black;
+        let base_color = color::Rgba::new(1.0, 1.0, 1.0, 0.7);
         let text_size  = 16.0;
         let properties = TextFieldProperties {font,text_size,base_color,size};
         let text_field = TextField::new(&world,properties);

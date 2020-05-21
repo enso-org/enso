@@ -24,6 +24,7 @@ parser                   = { version = "0.1.0"  , path = "parser"               
 utils                    = { version = "0.1.0"  , path = "utils"                }
 span-tree                = { version = "0.1.0"  , path = "span-tree"            }
 
+bimap                    = { version = "0.4.0"                                               }
 console_error_panic_hook = { version = "0.1.6"                                               }
 failure                  = { version = "0.1.6"                                               }
 flo_stream               = { version = "0.4.0"                                               }

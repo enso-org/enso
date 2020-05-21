@@ -112,7 +112,7 @@ pub type PortRef<'a> = span_tree::node::Ref<'a>;
 
 /// Connection endpoint - a port on a node, described using span-tree crumbs.
 #[allow(missing_docs)]
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,Default,Eq,Hash,PartialEq)]
 pub struct Endpoint {
     pub node : double_representation::node::Id,
     pub port : PortId,
@@ -138,7 +138,7 @@ impl Endpoint {
 
 /// Connection described using span-tree crumbs.
 #[allow(missing_docs)]
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,Default,Eq,Hash,PartialEq)]
 pub struct Connection {
     pub source      : Endpoint,
     pub destination : Endpoint
@@ -149,7 +149,7 @@ pub struct Connection {
 
 /// Stores node's span trees: one for inputs (expression) and optionally another one for inputs
 /// (pattern).
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,Default)]
 pub struct NodeTrees {
     /// Describes node inputs, i.e. its expression.
     pub inputs : SpanTree,

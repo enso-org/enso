@@ -42,7 +42,6 @@ use ensogl::application::shortcut;
 use crate::component::cursor::Cursor;
 use crate::component::node;
 use crate::component::node::Node as NodeView;
-use crate::component::node::WeakNode as WeakNodeView;
 use crate::component::connection::Connection as EdgeView;
 use enso_frp as frp;
 use enso_frp::io::keyboard;
@@ -350,6 +349,7 @@ pub struct FrpInputs {
     pub remove_all_node_output_edges   : frp::Source<NodeId>,
     pub remove_edge                    : frp::Source<EdgeId>,
     pub select_node                    : frp::Source<NodeId>,
+    pub remove_node                    : frp::Source<NodeId>,
     pub set_node_expression            : frp::Source<(NodeId,node::Expression)>,
     pub set_node_position              : frp::Source<(NodeId,Position)>,
     pub set_visualization_data         : frp::Source<NodeId>,
@@ -373,6 +373,7 @@ impl FrpInputs {
             def remove_all_node_output_edges   = source();
             def remove_edge                    = source();
             def select_node                    = source();
+            def remove_node                    = source();
             def set_node_expression            = source();
             def set_node_position              = source();
             def set_visualization_data         = source();
@@ -385,7 +386,7 @@ impl FrpInputs {
         Self {commands,remove_edge,press_node_input,remove_all_node_edges
              ,remove_all_node_input_edges,remove_all_node_output_edges,set_visualization_data
              ,connect_detached_edges_to_node,connect_edge_source,connect_edge_target
-             ,set_node_position,select_node,translate_selected_nodes,set_node_expression
+             ,set_node_position,select_node,remove_node,translate_selected_nodes,set_node_expression
              ,connect_nodes,deselect_all_nodes,cycle_visualization,set_visualization
              ,register_visualization_class
         }
@@ -799,16 +800,6 @@ impl GraphEditorModelWithNetwork {
 
     pub fn get_node_position(&self, node_id:NodeId) -> Option<Vector3<f32>> {
         self.nodes.get_cloned_ref(&node_id).map(|node| node.position())
-    }
-
-    // FIXME: remove
-    pub fn deprecated_add_node(&self) -> WeakNodeView {
-        todo!()
-    }
-
-    // FIXME: remove
-    pub fn deprecated_remove_node(&self, _node:WeakNodeView) {
-        todo!()
     }
 }
 
@@ -1502,6 +1493,9 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     def is_empty_src  = source::<bool>();
     def is_active = is_active_src.sampler();
     def is_empty  = is_empty_src.sampler();
+
+    // === Remove implementation ===
+    outputs.node_removed <+ inputs.remove_node;
 
     }
 

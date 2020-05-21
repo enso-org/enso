@@ -252,4 +252,28 @@ mod dynamic_mode_tests {
         drop(sampler);
         assert!(weak_source.upgrade().is_none());
     }
+
+    #[test]
+    #[ignore] // Issue #427
+    fn test_toggle_true() {
+        frp::new_network! { network
+            def toggle_src = source::<()>();
+            def map_src    = source::<()>();
+            def toggle     = toggle_src.toggle_true();
+            def _map       = map_src.map2(&toggle,|_,value| assert_eq!(*value,true));
+        }
+        map_src.emit(());
+    }
+
+    #[test]
+    fn test_toggle() {
+        frp::new_network! { network
+            def toggle_src = source::<()>();
+            def map_src    = source::<()>();
+            def toggle     = toggle_src.toggle();
+            def _map       = map_src.map2(&toggle,|_,value| assert_eq!(*value,true));
+        }
+        toggle_src.emit(());
+        map_src.emit(());
+    }
 }

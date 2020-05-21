@@ -31,10 +31,10 @@ impl NodeSearcher {
         let logger         = logger.sub("NodeSearcher");
         let display_object = display::object::Instance::new(&logger);
         let properties     = TextFieldProperties {
-            font           : fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap(),
-            text_size      : 16.0,
-            base_color     : color::Rgba::new(0.0,0.0,0.0,1.0),
-            size           : Vector2::new(screen.width,16.0),
+            font        : fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap(),
+            text_size   : 16.0,
+             base_color : color::Rgba::new(1.0, 1.0, 1.0, 0.7),
+            size        : Vector2::new(screen.width,16.0),
         };
         let text_field     = TextField::new(world,properties);
         display_object.add_child(&text_field.display_object());
