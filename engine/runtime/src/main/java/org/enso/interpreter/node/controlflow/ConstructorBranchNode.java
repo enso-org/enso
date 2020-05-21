@@ -15,14 +15,14 @@ import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the case expression specialised to working on constructors. */
 @NodeInfo(shortName = "ConsCaseNode")
-public class ConstructorCaseNode extends CaseNode {
+public class ConstructorBranchNode extends BranchNode {
   @Child private ExpressionNode matcher;
   @Child private ExpressionNode branch;
   @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
   private final ConditionProfile atomTypeProfile = ConditionProfile.createCountingProfile();
 
-  ConstructorCaseNode(ExpressionNode matcher, ExpressionNode branch) {
+  ConstructorBranchNode(ExpressionNode matcher, ExpressionNode branch) {
     this.matcher = matcher;
     this.branch = branch;
   }
@@ -34,8 +34,8 @@ public class ConstructorCaseNode extends CaseNode {
    * @param branch the expression to be executed if (@code matcher} matches
    * @return a node for matching in a case expression
    */
-  public static ConstructorCaseNode build(ExpressionNode matcher, ExpressionNode branch) {
-    return new ConstructorCaseNode(matcher, branch);
+  public static ConstructorBranchNode build(ExpressionNode matcher, ExpressionNode branch) {
+    return new ConstructorBranchNode(matcher, branch);
   }
 
   /**
@@ -46,7 +46,7 @@ public class ConstructorCaseNode extends CaseNode {
    *
    * @param frame the stack frame in which to execute
    * @param target the atom to destructure
-   * @throws UnexpectedResultException
+   * @throws UnexpectedResultException when evaluation fails
    */
   @Override
   public void executeAtom(VirtualFrame frame, Atom target) throws UnexpectedResultException {

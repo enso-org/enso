@@ -2,7 +2,7 @@ package org.enso.interpreter.test.semantic
 import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.callable.thunk.ForceNode
 import org.enso.interpreter.node.callable.{ApplicationNode, SequenceLiteralNode}
-import org.enso.interpreter.node.controlflow.MatchNode
+import org.enso.interpreter.node.controlflow.CaseNode
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.test.InterpreterTest
@@ -113,7 +113,7 @@ class CodeLocationsTest extends InterpreterTest {
         |
         |    foo x + foo y
         |""".stripMargin
-    instrumenter.assertNodeExists(80, 109, classOf[MatchNode])
+    instrumenter.assertNodeExists(80, 109, classOf[CaseNode])
     instrumenter.assertNodeExists(126, 7, classOf[ApplicationNode])
     instrumenter.assertNodeExists(146, 9, classOf[AssignmentNode])
     instrumenter.assertNodeExists(183, 5, classOf[ApplicationNode])

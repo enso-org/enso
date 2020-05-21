@@ -14,7 +14,7 @@ import scala.sys.process._
 // ============================================================================
 
 val scalacVersion = "2.13.2"
-val graalVersion  = "20.0.0"
+val graalVersion  = "20.1.0"
 val ensoVersion   = "0.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion

@@ -445,20 +445,20 @@ class IRToTruffle(
               "Case branch missing tail position information."
             )
 
-            val caseNode = ConstructorCaseNode
+            val caseNode = ConstructorBranchNode
               .build(this.run(branch.pattern), this.run(branch.expression))
             caseNode.setTail(caseIsTail)
 
             caseNode
           })
-          .toArray[CaseNode]
+          .toArray[BranchNode]
 
         // Note [Pattern Match Fallbacks]
         val fallbackNode = fallback
-          .map(fb => FallbackNode.build(this.run(fb)))
-          .getOrElse(DefaultFallbackNode.build())
+          .map(fb => FallbackBranchNode.build(this.run(fb)))
+          .getOrElse(DefaultFallbackBranchNode.build())
 
-        val matchExpr = MatchNode.build(cases, fallbackNode, targetNode)
+        val matchExpr = CaseNode.build(cases, fallbackNode, targetNode)
         setLocation(matchExpr, location)
       case IR.Case.Branch(_, _, _, _, _) =>
         throw new CompilerError("A CaseBranch should never occur here.")

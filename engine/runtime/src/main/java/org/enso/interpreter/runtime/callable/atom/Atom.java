@@ -2,12 +2,16 @@ package org.enso.interpreter.runtime.callable.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /** A runtime representation of an Atom in Enso. */
+@ExportLibrary(InteropLibrary.class)
 public class Atom implements TruffleObject {
   private final AtomConstructor constructor;
   private @CompilationFinal(dimensions = 1) Object[] fields;
@@ -78,5 +82,16 @@ public class Atom implements TruffleObject {
   @CompilerDirectives.TruffleBoundary
   public String toString() {
     return toString(false);
+  }
+
+  /**
+   * Displays a human-readable string representation of this atom.
+   *
+   * @param allowSideEffects whether or not to allow side effects in displaying the string
+   * @return a string representation of this atom
+   */
+  @ExportMessage
+  public Object toDisplayString(boolean allowSideEffects) {
+    return this.toString();
   }
 }
