@@ -371,6 +371,14 @@ hash(applyEdits(origFile, edits)) == newVersion
 
 it's a sanity check to make sure that the diffs are applied consistently.
 
+Consecutive text edits are applied sequentially, every one acting on the result
+of applying previous ones on the original buffer contents. In pseudocode:
+
+```haskell
+applyEdits buffer [] = buffer
+applyEdits buffer (first : rest) = applyEdits (applyTextEdit buffer first) rest
+```
+
 #### Format
 
 ```typescript
