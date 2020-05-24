@@ -2,6 +2,8 @@
 
 #[cfg(test)]
 mod tests {
+    use ide::prelude::*;
+
     use enso_protocol::project_manager::API;
     use enso_protocol::project_manager::Client;
     use ide::*;
@@ -15,7 +17,7 @@ mod tests {
     //#[wasm_bindgen_test::wasm_bindgen_test(async)]
     #[allow(dead_code)]
     async fn project_life_cycle() {
-        let ws        = WebSocket::new_opened("ws://localhost:30535").await;
+        let ws        = WebSocket::new_opened(default(),"ws://localhost:30535").await;
         let ws        = ws.expect("Couldn't connect to WebSocket server.");
         let client    = Client::new(ws);
         let _executor = setup_global_executor();

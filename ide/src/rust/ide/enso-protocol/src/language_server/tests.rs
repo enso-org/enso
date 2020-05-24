@@ -7,7 +7,7 @@ use json_rpc::test_util::transport::mock::MockTransport;
 use serde_json::json;
 use serde_json::Value;
 use std::future::Future;
-use utils::test::poll_future_output;
+use utils::test::poll;
 use utils::test::poll_stream_output;
 
 
@@ -99,7 +99,7 @@ where Fun : FnOnce(&mut Client) -> Fut,
     let response = Message::new_success(request.id, result);
     fixture.transport.mock_peer_json_message(response);
     fixture.executor.run_until_stalled();
-    let output = poll_future_output(&mut request_future).unwrap().unwrap();
+    let output = poll(&mut request_future).unwrap().unwrap();
     assert_eq!(output, expected_output);
 }
 

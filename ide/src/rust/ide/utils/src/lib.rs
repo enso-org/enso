@@ -1,6 +1,7 @@
 //! General purpose functions to be reused between components, not belonging to
 //! any other crate and yet not worth of being split into their own creates.
 
+#![feature(associated_type_bounds)]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
