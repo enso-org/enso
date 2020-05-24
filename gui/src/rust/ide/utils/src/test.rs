@@ -1,7 +1,10 @@
 //! Module with general purpose utilities meant to be used in tests.
 
 use futures::Stream;
+
 use std::future::Future;
+use std::fmt::Debug;
+use std::ops::DerefMut;
 use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
@@ -17,12 +20,39 @@ use std::task::Poll;
 /// If future is complete, returns result. Otherwise, returns control when
 /// stalled.
 /// It is not legal to call this on future that already completed.
-pub fn poll_future_output<F : Future>(f:&mut Pin<Box<F>>) -> Option<F::Output> {
-    let mut ctx = Context::from_waker(futures::task::noop_waker_ref());
-    match f.as_mut().poll(&mut ctx) {
-        Poll::Ready(result) => Some(result),
-        Poll::Pending       => None,
+pub fn poll<F,R>(fut:&mut Pin<F>) -> Option<R>
+where F:DerefMut<Target:Future<Output=R>> {
+    let mut ctx = std::task::Context::from_waker(futures::task::noop_waker_ref());
+    match fut.as_mut().poll(&mut ctx) {
+        std::task::Poll::Ready(result) => Some(result),
+        std::task::Poll::Pending       => None,
     }
+}
+
+/// Polls the future and asserts that the result remains not available yet.
+pub fn expect_not_ready<F,R>(fut:&mut Pin<F>)
+where F:DerefMut<Target:Future<Output=R>> {
+    assert!(poll(fut).is_none(), "expected future to not be ready")
+}
+
+/// Polls the future and asserts that the result is available yet - and returns it.
+pub fn expect_ready<F,R>(fut:&mut Pin<F>) -> R
+where F:DerefMut<Target:Future<Output=R>> {
+    poll(fut).expect("expected future to be ready")
+}
+
+/// Polls the future and asserts that the result is Ok(_) - and returns it after unwrapping.
+pub fn expect_ok<F,R,E>(fut:&mut Pin<F>) -> R
+where F:DerefMut<Target:Future<Output=Result<R,E>>>,
+          E:Debug {
+    expect_ready(fut).expect("expected future to yield an Ok(_) result")
+}
+
+/// Polls the future and asserts that the result is Err(_) - and returns the error after unwrapping.
+pub fn expect_err<F,R,E>(fut:&mut Pin<F>) -> E
+where F:DerefMut<Target:Future<Output=Result<R,E>>>,
+          R:Debug {
+    expect_ready(fut).expect_err("expected future to yield an Err(_) result")
 }
 
 /// Polls the stream, performing any available work. If a new value is

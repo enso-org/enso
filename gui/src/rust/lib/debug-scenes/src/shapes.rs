@@ -181,8 +181,6 @@ use graph_editor::component::node::port::Expression;
 
 
 pub fn expression_mock() -> Expression {
-    let pattern_cr       = vec![Seq { right: false }, Or, Or, Build];
-    let val              = ast::crumbs::SegmentMatchCrumb::Body {val:pattern_cr};
     let code             = "open \"data.csv\"".into();
     let output_span_tree = default();
     let input_span_tree  = span_tree::builder::TreeBuilder::new(15)

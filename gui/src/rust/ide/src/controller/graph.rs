@@ -395,16 +395,17 @@ pub struct Handle {
 impl Handle {
 
     /// Creates a new controller. Does not check if id is valid.
-    pub fn new_unchecked(module:Rc<model::Module>, parser:Parser, id:Id) -> Handle {
+    pub fn new_unchecked(parent:&Logger, module:Rc<model::Module>, parser:Parser, id:Id) -> Handle {
         let id     = Rc::new(id);
-        let logger = Logger::new(format!("Graph Controller {}", id));
+        let logger = parent.sub(format!("Graph Controller {}", id));
         Handle {module,parser,id,logger}
     }
 
     /// Creates a new graph controller. Given ID should uniquely identify a definition in the
     /// module. Fails if ID cannot be resolved.
-    pub fn new(module:Rc<model::Module>, parser:Parser, id:Id) -> FallibleResult<Handle> {
-        let ret = Self::new_unchecked(module,parser,id);
+    pub fn new
+    (parent:&Logger, module:Rc<model::Module>, parser:Parser, id:Id) -> FallibleResult<Handle> {
+        let ret = Self::new_unchecked(parent,module,parser,id);
         // Get and discard definition info, we are just making sure it can be obtained.
         let _ = ret.graph_definition_info()?;
         Ok(ret)
@@ -790,7 +791,7 @@ mod tests {
             let pos    = model::module::Position {vector:Vector2::new(0.0,0.0)};
             let crumbs = vec![DefinitionName::new_plain("main")];
             let id     = Id {crumbs};
-            let graph  = Handle::new(module,parser,id).unwrap();
+            let graph  = Handle::new(&default(),module,parser,id).unwrap();
             let uid    = graph.all_node_infos().unwrap()[0].id();
 
             graph.module.with_node_metadata(uid, |data| data.position = Some(pos));

@@ -8,7 +8,6 @@ members = [
     "ide",
     "ide/ast/impl",
     "ide/ast/macros",
-    "ide/engine-api",
     "ide/enso-protocol",
     "ide/json-rpc",
     "ide/parser",

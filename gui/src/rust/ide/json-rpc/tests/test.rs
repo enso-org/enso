@@ -15,7 +15,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::future::Future;
 use std::pin::Pin;
-use utils::test::poll_future_output;
+use utils::test::poll;
 use utils::test::poll_stream_output;
 use futures::task::LocalSpawnExt;
 
@@ -157,19 +157,19 @@ fn test_success_call() {
     assert_eq!(req_msg.i, call_input);
     assert_eq!(req_msg.jsonrpc, Version::V2);
 
-    assert!(poll_future_output(&mut fut).is_none()); // no reply
+    assert!(poll(&mut fut).is_none()); // no reply
 
     // let's reply
     let reply = pow_impl(req_msg);
     fixture.transport.mock_peer_json_message(reply);
 
     // before yielding control message should be in buffer and futures should not complete
-    assert!(poll_future_output(&mut fut).is_none()); // not ticked
+    assert!(poll(&mut fut).is_none()); // not ticked
 
     // yield control to executor
     fixture.pool.run_until_stalled();
 
-    let result = poll_future_output(&mut fut);
+    let result = poll(&mut fut);
     let result = result.expect("result should be present");
     let result = result.expect("result should be a success");
     assert_eq!(result, 8*8);
@@ -179,7 +179,7 @@ fn test_success_call() {
 fn test_error_call() {
     let mut fixture = Fixture::new();
     let mut fut     = Box::pin(fixture.client.pow(8));
-    assert!(poll_future_output(&mut fut).is_none()); // no reply
+    assert!(poll(&mut fut).is_none()); // no reply
 
     // reply with error
     let req_msg           = fixture.transport.expect_json_message::<MockRequestMessage>();
@@ -197,7 +197,7 @@ fn test_error_call() {
     // receive error
     fixture.pool.run_until_stalled();
 
-    let result = poll_future_output(&mut fut);
+    let result = poll(&mut fut);
     let result = result.expect("result should be present");
     let result = result.expect_err("result should be a failure");
     if let RpcError::RemoteError(e) = result {
@@ -213,12 +213,12 @@ fn test_error_call() {
 fn test_garbage_reply_error() {
     let mut fixture = Fixture::new();
     let mut fut     = Box::pin(fixture.client.pow(8));
-    assert!(poll_future_output(&mut fut).is_none()); // no reply
+    assert!(poll(&mut fut).is_none()); // no reply
     fixture.transport.mock_peer_text_message("hello, nice to meet you");
 
     fixture.pool.run_until_stalled();
 
-    assert!(poll_future_output(&mut fut).is_none()); // no valid reply
+    assert!(poll(&mut fut).is_none()); // no valid reply
     let internal_error = fixture.client.expect_handling_error();
     if let HandlingError::InvalidMessage(_) = internal_error {
     } else {
@@ -230,13 +230,13 @@ fn test_garbage_reply_error() {
 fn test_disconnect_error() {
     let mut fixture = Fixture::new();
     let mut fut     = Box::pin(fixture.client.pow(8));
-    assert!(poll_future_output(&mut fut).is_none()); // no reply nor relevant event
+    assert!(poll(&mut fut).is_none()); // no reply nor relevant event
     fixture.transport.mock_connection_closed();
-    assert!(poll_future_output(&mut fut).is_none()); // closing event not yet processed
+    assert!(poll(&mut fut).is_none()); // closing event not yet processed
 
     fixture.pool.run_until_stalled();
 
-    let result = poll_future_output(&mut fut);
+    let result = poll(&mut fut);
     let result = result.expect("result should be present");
     let result = result.expect_err("result should be a failure");
     if let RpcError::LostConnection = result {} else {
@@ -249,7 +249,7 @@ fn test_sending_while_disconnected() {
     let mut fixture = Fixture::new();
     fixture.transport.mock_connection_closed();
     let mut fut = Box::pin(fixture.client.pow(8));
-    let result  = poll_future_output(&mut fut).unwrap();
+    let result  = poll(&mut fut).unwrap();
     assert!(result.is_err())
 }
 

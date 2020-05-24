@@ -104,6 +104,8 @@ impl State {
 /// Wrapper over JS `WebSocket` object and callbacks to its signals.
 #[derive(Debug)]
 pub struct WebSocket {
+    #[allow(missing_docs)]
+    pub logger     : Logger,
     /// Handle to the JS `WebSocket` object.
     pub ws         : web_sys::WebSocket,
     /// Handle to a closure connected to `WebSocket.onmessage`.
@@ -118,9 +120,10 @@ pub struct WebSocket {
 
 impl WebSocket {
     /// Wraps given WebSocket object.
-    pub fn new(ws:web_sys::WebSocket) -> WebSocket {
+    pub fn new(ws:web_sys::WebSocket, parent:Logger, name:impl Str) -> WebSocket {
         ws.set_binary_type(BinaryType::Arraybuffer);
         WebSocket {
+            logger     : parent.sub(name),
             ws,
             on_message : default(),
             on_close   : default(),
@@ -131,12 +134,11 @@ impl WebSocket {
 
     /// Establish connection with endpoint defined by the given URL and wrap it.
     /// Asynchronous, because it waits until connection is established.
-    pub async fn new_opened(url:impl Str) -> Result<WebSocket,ConnectingError> {
-        let     ws  = web_sys::WebSocket::new(url.as_ref());
-        let mut wst = WebSocket::new(ws.map_err(|e| {
+    pub async fn new_opened(parent:Logger, url:impl Str) -> Result<WebSocket,ConnectingError> {
+        let ws = web_sys::WebSocket::new(url.as_ref()).map_err(|e| {
             ConnectingError::ConstructionError(js_to_string(e))
-        })?);
-
+        })?;
+        let mut wst = WebSocket::new(ws,parent,url);
         wst.wait_until_open().await?;
         Ok(wst)
     }
@@ -161,6 +163,7 @@ impl WebSocket {
         match receiver.next().await {
             Some(Ok(())) => {
                 self.clear_callbacks();
+                info!(self.logger, "Connection opened.");
                 Ok(())
             }
             _ => Err(ConnectingError::FailedToConnect)
@@ -233,10 +236,14 @@ impl WebSocket {
 
 impl Transport for WebSocket {
     fn send_text(&mut self, message:&str) -> Result<(), Error> {
+        info!(self.logger, "Sending text message of length {message.len()}");
+        debug!(self.logger, "Message contents: {message}");
         self.send_with_open_socket(|ws| ws.send_with_str(message))
     }
 
     fn send_binary(&mut self, message:&[u8]) -> Result<(), Error> {
+        info!(self.logger, "Sending binary message of length {message.len()}");
+        self.logger.debug(|| format!("Message contents: {:x?}", message));
         // TODO [mwu]
         //   Here we workaround issue from wasm-bindgen 0.2.58:
         //   https://github.com/rustwasm/wasm-bindgen/issues/2014
@@ -249,25 +256,35 @@ impl Transport for WebSocket {
     }
 
     fn set_event_transmitter(&mut self, transmitter:mpsc::UnboundedSender<TransportEvent>) {
+        info!(self.logger,"Setting event transmitter.");
         let transmitter_copy = transmitter.clone();
+        let logger_copy = self.logger.clone_ref();
         self.set_on_message(move |e| {
             let data = e.data();
             if let Some(text) = data.as_string() {
+                debug!(logger_copy, "Received a text message: {text}");
                 channel::emit(&transmitter_copy,TransportEvent::TextMessage(text));
             } else if let Ok(array_buffer) = data.dyn_into::<js_sys::ArrayBuffer>() {
                 let array       = js_sys::Uint8Array::new(&array_buffer);
                 let binary_data = array.to_vec();
+                logger_copy.debug(|| format!("Received a binary message: {:x?}", binary_data));
                 let event       = TransportEvent::BinaryMessage(binary_data);
                 channel::emit(&transmitter_copy,event);
+            } else {
+                info!(logger_copy,"Received other kind of message: {js_to_string(e.data())}.");
             }
         });
 
         let transmitter_copy = transmitter.clone();
+        let logger_copy = self.logger.clone_ref();
         self.set_on_close(move |_e| {
+            info!(logger_copy,"Connection has been closed.");
             channel::emit(&transmitter_copy,TransportEvent::Closed);
         });
 
+        let logger_copy = self.logger.clone_ref();
         self.set_on_open(move |_e| {
+            info!(logger_copy,"Connection has been opened.");
             channel::emit(&transmitter, TransportEvent::Opened);
         });
     }
