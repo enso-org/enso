@@ -88,10 +88,7 @@ async fn file_operations() {
 
     let execution_context    = client.create_execution_context().await;
     let execution_context    = execution_context.expect("Couldn't create execution context.");
-    let execution_context_id = match execution_context.can_modify.register_options {
-        RegisterOptions::ExecutionContextId{context_id} => Some(context_id),
-        _                                               => None
-    }.expect("Couldn't get context ID.");
+    let execution_context_id = execution_context.context_id;
 
     let defined_on_type = "Main".to_string();
     let name            = "main".to_string();
@@ -172,8 +169,7 @@ async fn file_operations() {
     let read = client.read_file(&move_path).await.expect("Couldn't read contents");
     assert_eq!(contents,read.contents);
 
-    let receives_tree_updates   = ReceivesTreeUpdates{path:move_path.clone()};
-    let register_options        = RegisterOptions::ReceivesTreeUpdates(receives_tree_updates);
+    let register_options        = RegisterOptions::Path{path:move_path.clone()};
     let method                  = "text/canEdit".to_string();
     let capability_registration = CapabilityRegistration {method,register_options};
     let response = client.open_text_file(&move_path).await;
@@ -231,8 +227,7 @@ async fn file_events() {
     }
 
     let path       = Path{root_id, segments:vec![]};
-    let receives_tree_updates = ReceivesTreeUpdates{path};
-    let options    = RegisterOptions::ReceivesTreeUpdates(receives_tree_updates);
+    let options    = RegisterOptions::Path{path};
     let capability = client.acquire_capability(&"receivesTreeUpdates".to_string(),&options).await;
     capability.expect("Couldn't acquire receivesTreeUpdates capability.");
 

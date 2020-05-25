@@ -1,4 +1,5 @@
-//! Module defining registry of module's states.
+//! Module defining registry of models which are loading asynchronously.
+
 
 use crate::prelude::*;
 
@@ -13,12 +14,12 @@ use flo_stream::MessagePublisher;
 // === Error ===
 // =============
 
-/// An error indicating that another task of loading module results in error.
+/// An error indicating that another task of loading item results in error.
 ///
 /// Unfortunately we cannot pass the original error, because it might not implement traits requred
 /// for sending through `Publisher`.
 #[derive(Clone,Debug,Fail)]
-#[fail(display="Error while loading module")]
+#[fail(display="Error while loading item")]
 struct LoadingError {}
 
 
@@ -27,21 +28,22 @@ struct LoadingError {}
 // === Entry ===
 // =============
 
-/// Register entry. It may be handle to the loaded State, or information that module is already
-/// loaded by another task with endpoint for receiving notifications about load finish.
+/// Register entry. It may be handle to the loaded State, or information that the item is currently
+/// loading by another task with endpoint for receiving notifications about loading finish.
 #[derive(Clone)]
 enum Entry<Handle> {
     Loaded(Handle),
     Loading(Subscriber<LoadedNotification>),
 }
 
-/// Notification that module state was loaded.
+/// Notification that item was loaded.
 type LoadedNotification = Result<(), LoadingError>;
-type StrongEntry = Entry<Rc  <model::Module>>;
-type WeakEntry   = Entry<Weak<model::Module>>;
 
-impl WeakElement for WeakEntry {
-    type Strong = StrongEntry;
+type StrongEntry<T> = Entry<Rc  <T>>;
+type WeakEntry<T>   = Entry<Weak<T>>;
+
+impl<T> WeakElement for WeakEntry<T> {
+    type Strong = StrongEntry<T>;
 
     fn new(view: &Self::Strong) -> Self {
         match view {
@@ -73,47 +75,43 @@ impl<Handle:Debug> Debug for Entry<Handle> {
 // === Registry ===
 // ================
 
-/// A path describing module location, used as key in Registry.
-pub type ModulePath = controller::module::Path;
-
-/// Modules' States Registry
+/// Model's Registry
 ///
-/// This is a centralized registry for getting Module's states handles, which ensures that each
-/// module loaded will have only one representation in memory, what is essential to keep all
-/// components synchronized.
+/// This is a centralized registry of asynchronously loaded model instances. When two task will
+/// request for item under same key at the same time, only one will start the actual loading, and
+/// the second will wait for the first.
 ///
-/// It covers the case with modules loaded asynchronously. When two task will request for module
-/// at the same time, only one will start the actual loading, and the second will wait for the
-/// first. So the module will be actually loaded only once.
-///
-/// Of course the registry is meant to being shared between many tasks, so it implements the
+/// Of course the registry is meant to being shared between many places, so it implements the
 /// internal mutability pattern.
-#[derive(Debug,Default)]
-pub struct Registry {
-    registry: RefCell<WeakValueHashMap<ModulePath,WeakEntry>>
+#[derive(Debug,Derivative)]
+#[derivative(Default(bound=""))]
+pub struct Registry<K,V>
+where K : Eq + Hash {
+    registry: RefCell<WeakValueHashMap<K,WeakEntry<V>>>
 }
 
-impl Registry {
+impl<K,V> Registry<K,V>
+where K : Clone + Eq + Hash {
 
-    /// Get module or load.
+    /// Get item under the key, or load it.
     ///
-    /// This functions return handle to module under `path` if it's already loaded. If it is in
+    /// This functions return handle to item under `ket` if it's already loaded. If it is in
     /// loading state (because another task is loading it asynchronously), it will be wait for that
-    /// loading to finish. If it's not present nor loaded, this function will load the module by
-    /// awaiting `loader` parameter. There is guarantee, that loader will be not polled in any other
+    /// loading to finish. If it's not present nor loaded, this function will load item by
+    /// awaiting `loader` parameter. It is guaranteed, that loader will be not polled in any other
     /// case.
     pub async fn get_or_load<F>
-    (&self, path:ModulePath, loader:F) -> FallibleResult<Rc<model::Module>>
-    where F : Future<Output=FallibleResult<Rc<model::Module>>> {
-        match self.get(&path).await? {
+    (&self, key:K, loader:F) -> FallibleResult<Rc<V>>
+    where F : Future<Output=FallibleResult<Rc<V>>> {
+        match self.get(&key).await? {
             Some(state) => Ok(state),
-            None        => Ok(self.load(path,loader).await?)
+            None        => Ok(self.load(key,loader).await?)
         }
     }
 
-    async fn get(&self, path:&ModulePath) -> Result<Option<Rc<model::Module>>,LoadingError> {
+    async fn get(&self, key:&K) -> Result<Option<Rc<V>>,LoadingError> {
         loop {
-            let entry = self.registry.borrow_mut().get(&path);
+            let entry = self.registry.borrow_mut().get(&key);
             match entry {
                 Some(Entry::Loaded(state)) => { break Ok(Some(state)); },
                 Some(Entry::Loading(mut sub)) => {
@@ -126,16 +124,16 @@ impl Registry {
 
     }
 
-    async fn load<F,E>(&self, path:ModulePath, loader:F) -> Result<Rc<model::Module>,E>
-    where F : Future<Output=Result<Rc<model::Module>,E>> {
+    async fn load<F,E>(&self, key:K, loader:F) -> Result<Rc<V>,E>
+    where F : Future<Output=Result<Rc<V>,E>> {
         let mut publisher = Publisher::default();
-        self.registry.borrow_mut().insert(path.clone(), Entry::Loading(publisher.subscribe()));
+        self.registry.borrow_mut().insert(key.clone(), Entry::Loading(publisher.subscribe()));
 
         let result = loader.await;
         with(self.registry.borrow_mut(), |mut registry| {
             match &result {
-                Ok(state) => registry.insert(path, Entry::Loaded(state.clone_ref())),
-                Err(_)    => registry.remove(&path),
+                Ok(state) => registry.insert(key, Entry::Loaded(state.clone_ref())),
+                Err(_)    => registry.remove(&key),
             };
         });
         let message = match &result {
@@ -158,6 +156,9 @@ mod test {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
+
+    type ModulePath = controller::module::Path;
+    type Registry   = super::Registry<ModulePath,model::Module>;
 
     #[test]
     fn getting_module() {

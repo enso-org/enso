@@ -287,9 +287,8 @@ fn test_acquire_capability() {
     let root_id   = root_id.expect("Couldn't parse uuid.");
     let unit_json = json!(null);
 
-    let path                  = Path { root_id, segments: default() };
-    let receives_tree_updates = ReceivesTreeUpdates { path };
-    let options               = RegisterOptions::ReceivesTreeUpdates(receives_tree_updates);
+    let path    = Path { root_id, segments: default() };
+    let options = RegisterOptions::Path{path};
     test_request(
         |client| client.acquire_capability(&"receivesTreeUpdates".to_string(), &options),
         "capability/acquire",
@@ -429,8 +428,7 @@ fn test_execution_context() {
     let current_version       = Sha3_224::new(content);
     let content               = String::from_utf8_lossy(content).to_string();
     let method                = "text/canEdit".to_string();
-    let receives_tree_updates = ReceivesTreeUpdates{path:main.clone()};
-    let register_options      = RegisterOptions::ReceivesTreeUpdates(receives_tree_updates);
+    let register_options      = RegisterOptions::Path{path:main.clone()};
     let write_capability      = Some(CapabilityRegistration{method,register_options});
     let open_text_file_response = response::OpenTextFile
     {content,current_version:current_version.clone(),write_capability};

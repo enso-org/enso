@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::notification;
 use crate::controller::graph::NodeTrees;
 
 use enso_frp as frp;
@@ -146,7 +145,7 @@ impl GraphEditorIntegratedWithController {
         frp::extend! {network
             // Notifications from controller
             let handle_notification = FencedAction::fence(&network,
-                f!((notification:&Option<notification::Graph>)
+                f!((notification:&Option<controller::graph::Notification>)
                     model.handle_controller_notification(*notification);
             ));
 
@@ -164,7 +163,7 @@ impl GraphEditorIntegratedWithController {
 
     fn connect_frp_to_controller_notifications
     ( model        : &Rc<GraphEditorIntegratedWithControllerModel>
-    , frp_endpoint : frp::Source<Option<notification::Graph>>
+    , frp_endpoint : frp::Source<Option<controller::graph::Notification>>
     ) {
         let stream  = model.controller.graph.subscribe();
         let weak    = Rc::downgrade(model);
@@ -332,9 +331,10 @@ impl GraphEditorIntegratedWithControllerModel {
 
 impl GraphEditorIntegratedWithControllerModel {
     /// Handles notification received from controller.
-    pub fn handle_controller_notification(&self, notification:Option<notification::Graph>) {
+    pub fn handle_controller_notification
+    (&self, notification:Option<controller::graph::Notification>) {
         let result = match notification {
-            Some(notification::Graph::Invalidate) => self.update_graph_view(),
+            Some(controller::graph::Notification::Invalidate) => self.update_graph_view(),
             other => {
                 warning!(self.logger,"Handling notification {other:?} is not implemented; \
                     performing full invalidation");

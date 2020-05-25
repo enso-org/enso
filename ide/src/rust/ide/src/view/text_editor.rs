@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::notification;
 use crate::view::temporary_panel::TemporaryPadding;
 use crate::view::temporary_panel::TemporaryPanel;
 
@@ -126,14 +125,14 @@ impl TextEditor {
         }));
     }
 
-    fn handle_controller_notification(&self, notification:notification::Text)
+    fn handle_controller_notification(&self, notification:controller::text::Notification)
     -> impl Future<Output=()> {
         match notification {
-            notification::Text::Invalidate => self.reload_content()
+            controller::text::Notification::Invalidate => self.reload_content()
         }
     }
 
-    fn handle_text_field_notification(&self, change:&TextChange) {
+    fn handle_text_field_notification(&self, change:TextChange) {
         let (logger,controller) = self.with_borrowed(|data|
             (data.logger.clone_ref(),data.controller.clone_ref()));
         let result = controller.apply_text_change(change);

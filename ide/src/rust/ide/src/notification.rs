@@ -5,9 +5,9 @@ use crate::prelude::*;
 
 
 
-// ===============
-// === Commons ===
-// ===============
+// =================
+// === Publisher ===
+// =================
 
 /// A buffer size for notification publisher.
 ///
@@ -42,50 +42,3 @@ impl<Message:Clone> Clone for Publisher<Message> {
         Self(inner.republish())
     }
 }
-
-
-
-// =====================================
-// === Double Representation Changes ===
-// =====================================
-
-// === Text ===
-
-/// A notification about changes of text representation or plain text file content.
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]
-pub enum Text {
-    /// The content should be fully reloaded.
-    Invalidate,
-}
-
-
-// === Graphs ===
-
-/// A notification about changes of graph representation of a module.
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]
-pub enum Graphs {
-    /// The content should be fully reloaded.
-    Invalidate,
-}
-
-
-// === Graph ===
-
-/// A notification about changes of a specific graph in a module.
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]
-pub enum Graph {
-    /// The content should be fully reloaded.
-    Invalidate,
-}
-
-
-// === Node ===
-
-/// A notification about changes of specific node in a graph.
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]
-pub enum Node {
-    /// The content should be fully reloaded.
-    Invalidate,
-}
-
-

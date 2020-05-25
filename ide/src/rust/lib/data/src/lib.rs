@@ -1,5 +1,6 @@
 //! Library of general data structures.
 
+#![feature(associated_type_bounds)]
 #![feature(trait_alias)]
 
 #![warn(unsafe_code)]

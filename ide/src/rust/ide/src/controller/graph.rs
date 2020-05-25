@@ -15,7 +15,6 @@ pub use crate::double_representation::graph::LocationHint;
 use crate::double_representation::node;
 use crate::double_representation::node::NodeInfo;
 use crate::model::module::NodeMetadata;
-use crate::notification;
 
 use parser::Parser;
 use span_tree::action::Actions;
@@ -49,6 +48,20 @@ pub struct FailedToCreateNode;
 pub struct NoPatternOnNode {
     pub node : node::Id,
 }
+
+
+
+// ====================
+// === Notification ===
+// ====================
+
+/// A notification about changes of a specific graph in a module.
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
+pub enum Notification {
+    /// The content should be fully reloaded.
+    Invalidate,
+}
+
 
 
 // ============
@@ -386,7 +399,7 @@ impl EndpointInfo {
 #[derive(Clone,CloneRef,Debug)]
 pub struct Handle {
     /// Model of the module which this graph belongs to.
-    pub module : Rc<model::Module>,
+    pub module : Rc<model::synchronized::Module>,
     parser     : Parser,
     id         : Rc<Id>,
     logger     : Logger,
@@ -395,7 +408,8 @@ pub struct Handle {
 impl Handle {
 
     /// Creates a new controller. Does not check if id is valid.
-    pub fn new_unchecked(parent:&Logger, module:Rc<model::Module>, parser:Parser, id:Id) -> Handle {
+    pub fn new_unchecked
+    (parent:&Logger, module:Rc<model::synchronized::Module>, parser:Parser, id:Id) -> Handle {
         let id     = Rc::new(id);
         let logger = parent.sub(format!("Graph Controller {}", id));
         Handle {module,parser,id,logger}
@@ -404,7 +418,8 @@ impl Handle {
     /// Creates a new graph controller. Given ID should uniquely identify a definition in the
     /// module. Fails if ID cannot be resolved.
     pub fn new
-    (parent:&Logger, module:Rc<model::Module>, parser:Parser, id:Id) -> FallibleResult<Handle> {
+    (parent:&Logger, module:Rc<model::synchronized::Module>, parser:Parser, id:Id)
+    -> FallibleResult<Handle> {
         let ret = Self::new_unchecked(parent,module,parser,id);
         // Get and discard definition info, we are just making sure it can be obtained.
         let _ = ret.graph_definition_info()?;
@@ -704,12 +719,13 @@ impl Handle {
     }
 
     /// Subscribe to updates about changes in this graph.
-    pub fn subscribe(&self) -> impl Stream<Item=notification::Graph> {
-        use notification::*;
-        let module_sub = self.module.subscribe_graph_notifications();
+    pub fn subscribe(&self) -> impl Stream<Item=Notification> {
+        let module_sub = self.module.subscribe();
         module_sub.map(|notification| {
             match notification {
-                Graphs::Invalidate => Graph::Invalidate
+                model::module::Notification::Invalidate      |
+                model::module::Notification::CodeChanged{..} |
+                model::module::Notification::MetadataChanged => Notification::Invalidate,
             }
         })
     }
@@ -723,7 +739,6 @@ mod tests {
     use crate::double_representation::definition::DefinitionName;
     use crate::double_representation::node::NodeInfo;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
-    use crate::notification;
 
     use ast::HasRepr;
     use ast::crumbs;
@@ -786,7 +801,9 @@ mod tests {
     fn node_operations() {
         TestWithLocalPoolExecutor::set_up().run_task(async {
             let code   = "main = Hello World";
-            let module = model::Module::from_code_or_panic(code,default(),default());
+            let path   = controller::module::Path::from_module_name("Test");
+            let model  = model::Module::from_code_or_panic(code,default(),default());
+            let module = model::synchronized::Module::mock(path,model);
             let parser = Parser::new().unwrap();
             let pos    = model::module::Position {vector:Vector2::new(0.0,0.0)};
             let crumbs = vec![DefinitionName::new_plain("main")];
@@ -805,11 +822,11 @@ mod tests {
         let mut test = GraphControllerFixture::set_up();
         test.run_graph_for_main("main = 2 + 2", "main", |module, graph| async move {
             let text_change = TextChange::insert(Index::new(12), "2".into());
-            module.apply_code_change(&text_change).unwrap();
+            module.apply_code_change(text_change).unwrap();
 
             let mut sub = graph.subscribe();
-            module.apply_code_change(&TextChange::insert(Index::new(1),"2".to_string())).unwrap();
-            assert_eq!(Some(notification::Graph::Invalidate), sub.next().await);
+            module.apply_code_change(TextChange::insert(Index::new(1),"2".to_string())).unwrap();
+            assert_eq!(Some(Notification::Invalidate), sub.next().await);
         })
     }
 

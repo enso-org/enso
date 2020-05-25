@@ -6,6 +6,7 @@ pub use std::any::Any;
 pub use std::borrow::Cow;
 pub use std::hash::Hash;
 pub use std::marker::PhantomData;
+pub use std::ops::Range;
 
 
 // === Format ===

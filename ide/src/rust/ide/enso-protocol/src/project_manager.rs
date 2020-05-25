@@ -38,35 +38,29 @@ make_rpc_methods! {
 trait API {
     /// Request the project picker to open a specified project. This operation also
     /// includes spawning an instance of the language server open on the specified project.
-    #[MethodInput=OpenProjectInput,rpc_name="project/open",result=open_project_result,
-    set_result=set_open_project_result]
+    #[MethodInput=OpenProjectInput,rpc_name="project/open"]
     fn open_project(&self, project_id:Uuid) -> response::OpenProject;
 
     /// Request the project picker to close a specified project. This operation
     /// includes shutting down the language server gracefully so that it can persist state to disk
     /// as needed.
-    #[MethodInput=CloseProjectInput,rpc_name="project/close",result=close_project_result,
-    set_result=set_close_project_result]
+    #[MethodInput=CloseProjectInput,rpc_name="project/close"]
     fn close_project(&self, project_id:Uuid) -> ();
 
     /// Request the project picker to list the user's most recently opened projects.
-    #[MethodInput=ListRecentProjectsInput,rpc_name="project/listRecent",
-    result=list_recent_projects_result,set_result=set_list_recent_projects_result]
+    #[MethodInput=ListRecentProjectsInput,rpc_name="project/listRecent"]
     fn list_recent_projects(&self, number_of_projects:u32) -> response::ProjectList;
 
     /// Request the creation of a new project.
-    #[MethodInput=CreateProjectInput,rpc_name="project/create",result=create_project_result,
-    set_result=set_create_project_result]
+    #[MethodInput=CreateProjectInput,rpc_name="project/create"]
     fn create_project(&self, name:String) -> response::CreateProject;
 
     /// Request the deletion of a project.
-    #[MethodInput=DeleteProjectInput,rpc_name="project/delete",result=delete_project_result,
-    set_result=set_delete_project_result]
+    #[MethodInput=DeleteProjectInput,rpc_name="project/delete"]
     fn delete_project(&self, project_id:Uuid) -> ();
 
     /// Request a list of sample projects that are available to the user.
-    #[MethodInput=ListSamplesInput,rpc_name="project/listSample",result=list_samples_result,
-    set_result=set_list_samples_result]
+    #[MethodInput=ListSamplesInput,rpc_name="project/listSample"]
     fn list_samples(&self, num_projects:u32) -> response::ProjectList;
 }}
 
@@ -144,8 +138,10 @@ pub mod response {
 #[cfg(test)]
 mod mock_client_tests {
     use super::*;
+
     use chrono::DateTime;
     use json_rpc::error::RpcError;
+    use json_rpc::expect_call;
     use json_rpc::messages::Error;
     use json_rpc::Result;
     use std::future::Future;
@@ -178,10 +174,10 @@ mod mock_client_tests {
             language_server_binary_address : language_server_address,
         };
         let open_result             = Ok(expected_ip_with_socket.clone());
-        mock_client.set_create_project_result("HelloWorld".into(),Ok(creation_response));
-        mock_client.set_open_project_result(expected_uuid.clone(),open_result);
-        mock_client.set_close_project_result(expected_uuid.clone(),error("Project isn't open."));
-        mock_client.set_delete_project_result(expected_uuid.clone(),error("Project doesn't exist."));
+        expect_call!(mock_client.create_project(name="HelloWorld".to_string()) => Ok(creation_response));
+        expect_call!(mock_client.open_project(expected_uuid) => open_result);
+        expect_call!(mock_client.close_project(expected_uuid) => error("Project isn't open."));
+        expect_call!(mock_client.delete_project(expected_uuid) => error("Project doesn't exist."));
 
         let delete_result = mock_client.delete_project(&expected_uuid);
         result(delete_result).expect_err("Project shouldn't exist.");
@@ -197,10 +193,10 @@ mod mock_client_tests {
         let ip_with_socket = ip_with_socket.expect("Couldn't open project");
         assert_eq!(ip_with_socket, expected_ip_with_socket);
 
-        mock_client.set_close_project_result(expected_uuid.clone(), Ok(()));
+        expect_call!(mock_client.close_project(expected_uuid) => Ok(()));
         result(mock_client.close_project(&uuid)).expect("Couldn't close project.");
 
-        mock_client.set_delete_project_result(expected_uuid.clone(), Ok(()));
+        expect_call!(mock_client.delete_project(expected_uuid) => Ok(()));
         result(mock_client.delete_project(&uuid)).expect("Couldn't delete project.");
     }
 
@@ -229,8 +225,8 @@ mod mock_client_tests {
             last_opened : Some(DateTime::parse_from_rfc3339("2019-12-25T00:10:58Z").unwrap())
         };
         let expected_sample_projects = response::ProjectList { projects : vec![sample1,sample2] };
-        mock_client.set_list_recent_projects_result(2,Ok(expected_recent_projects.clone()));
-        mock_client.set_list_samples_result(2,Ok(expected_sample_projects.clone()));
+        expect_call!(mock_client.list_recent_projects(count=2) => Ok(expected_recent_projects.clone()));
+        expect_call!(mock_client.list_samples(count=2) => Ok(expected_sample_projects.clone()));
 
         let list_recent_error = "Couldn't get recent projects.";
         let list_sample_error = "Couldn't get sample projects.";

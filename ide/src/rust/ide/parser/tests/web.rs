@@ -2,7 +2,7 @@ use enso_prelude::*;
 
 use ast::Ast;
 use parser::Parser;
-use parser::api::SourceFile;
+use parser::api::ParsedSourceFile;
 
 use uuid::Uuid;
 use wasm_bindgen_test::wasm_bindgen_test_configure;
@@ -20,7 +20,7 @@ fn web_test() {
 
     let parse = |input| parser.parse_with_metadata(input).unwrap();
     let file  = |term|
-        SourceFile{metadata:serde_json::json!({}), ast:ast::known::KnownAst::new_no_id(term)};
+        ParsedSourceFile{metadata:serde_json::json!({}), ast:ast::known::KnownAst::new_no_id(term)};
 
 
     let line = |term| {

@@ -1,15 +1,16 @@
 //! This module contains all structures which describes Module state (code, ast, metadata).
-
-pub mod registry;
-
 use crate::prelude::*;
 
 use crate::notification;
 use crate::double_representation::definition::DefinitionInfo;
 
+use data::text::TextChange;
+use data::text::TextLocation;
 use flo_stream::MessagePublisher;
 use flo_stream::Subscriber;
 use parser::api::SourceFile;
+use parser::api::ParsedSourceFile;
+use parser::Parser;
 use serde::Serialize;
 use serde::Deserialize;
 
@@ -26,23 +27,56 @@ pub struct NodeMetadataNotFound(pub ast::Id);
 
 
 
+// ====================
+// === Notification ===
+// ====================
+
+/// Notification about change in module content.
+#[derive(Clone,Debug,Eq,PartialEq)]
+pub enum Notification {
+    /// The whole content is invalidated.
+    Invalidate,
+    /// The code has been edited. That involves also a change in module's id_map.
+    CodeChanged {
+        /// The code change description.
+        change:TextChange,
+        /// Information about line:col position of replaced fragment.
+        replaced_location:Range<TextLocation>
+    },
+    /// The metadata (e.g. some node's position) has been changed.
+    MetadataChanged,
+}
+
+
+
 // ==============
 // == Metadata ==
 // ==============
 
 /// Mapping between ID and metadata.
-#[derive(Debug,Clone,Default,Deserialize,Serialize)]
+#[derive(Debug,Clone,Deserialize,Serialize)]
 pub struct Metadata {
     /// Metadata used within ide.
     #[serde(default="default")]
     pub ide : IdeMetadata,
     #[serde(flatten)]
-    /// Metadata of other users of SourceFile<Metadata> API.
+    /// Metadata of other users of ParsedSourceFile<Metadata> API.
     /// Ide should not modify this part of metadata.
     rest : serde_json::Value,
 }
 
 impl parser::api::Metadata for Metadata {}
+
+impl Default for Metadata {
+    fn default() -> Self {
+        Metadata {
+            ide : default(),
+            // We cannot default to unit, because it cannot be flattened, so calling
+            // `Metadata::default().serialize()` will result in an error.
+            rest : serde_json::Value::Object(default()),
+        }
+    }
+}
 
 /// Metadata that belongs to ide.
 #[derive(Debug,Clone,Default,Deserialize,Serialize)]
@@ -59,7 +93,7 @@ pub struct NodeMetadata {
 }
 
 /// Used for storing node position.
-#[derive(Clone,Copy,Debug,PartialEq,Serialize,Deserialize)]
+#[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
 pub struct Position {
     /// Vector storing coordinates of the visual position.
     pub vector:Vector2<f32>
@@ -80,7 +114,7 @@ impl Position {
 // ==============
 
 /// A type describing content of the module: the ast and metadata.
-pub type Content = SourceFile<Metadata>;
+pub type Content = ParsedSourceFile<Metadata>;
 
 /// A structure describing the module.
 ///
@@ -89,9 +123,8 @@ pub type Content = SourceFile<Metadata>;
 /// (text and graph).
 #[derive(Debug)]
 pub struct Module {
-    content             : RefCell<Content>,
-    text_notifications  : RefCell<notification::Publisher<notification::Text>>,
-    graph_notifications : RefCell<notification::Publisher<notification::Graphs>>,
+    content       : RefCell<Content>,
+    notifications : RefCell<notification::Publisher<Notification>>,
 }
 
 impl Default for Module {
@@ -105,32 +138,38 @@ impl Module {
     /// Create state with given content.
     pub fn new(ast:ast::known::Module, metadata:Metadata) -> Self {
         Module {
-            content             : RefCell::new(SourceFile{ast,metadata}),
-            text_notifications  : default(),
-            graph_notifications : default(),
+            content       : RefCell::new(ParsedSourceFile{ast,metadata}),
+            notifications : default(),
         }
     }
 
-    /// Update whole content of the module.
-    pub fn update_whole(&self, content:Content) {
-        *self.content.borrow_mut() = content;
-        self.notify(notification::Text::Invalidate,notification::Graphs::Invalidate);
+    /// Subscribe for notifications about text representation changes.
+    pub fn subscribe(&self) -> Subscriber<Notification> {
+        self.notifications.borrow_mut().subscribe()
     }
 
+    /// Create module state from given code, id_map and metadata.
+    #[cfg(test)]
+    pub fn from_code_or_panic<S:ToString>
+    (code:S, id_map:ast::IdMap, metadata:Metadata) -> Self {
+        let parser = parser::Parser::new_or_panic();
+        let ast    = parser.parse(code.to_string(),id_map).unwrap().try_into().unwrap();
+        Self::new(ast,metadata)
+    }
+}
+
+
+// === Access to Module Content ===
+
+impl Module {
     /// Get module sources as a string, which contains both code and metadata.
-    pub fn source_as_string(&self) -> FallibleResult<String> {
-        Ok(String::try_from(&*self.content.borrow())?)
+    pub fn serialized_content(&self) -> FallibleResult<SourceFile> {
+        self.content.borrow().serialize().map_err(|e| e.into())
     }
 
     /// Get module's ast.
     pub fn ast(&self) -> ast::known::Module {
         self.content.borrow().ast.clone_ref()
-    }
-
-    /// Update ast in module controller.
-    pub fn update_ast(&self, ast:ast::known::Module) {
-        self.content.borrow_mut().ast  = ast;
-        self.notify(notification::Text::Invalidate,notification::Graphs::Invalidate);
     }
 
     /// Obtains definition information for given graph id.
@@ -145,18 +184,53 @@ impl Module {
         let data = self.content.borrow().metadata.ide.node.get(&id).cloned();
         data.ok_or_else(|| NodeMetadataNotFound(id).into())
     }
+}
+
+
+// === Setters ===
+
+impl Module {
+
+    /// Update whole content of the module.
+    pub fn update_whole(&self, content:Content) {
+        *self.content.borrow_mut() = content;
+        self.notify(Notification::Invalidate);
+    }
+
+    /// Update ast in module controller.
+    pub fn update_ast(&self, ast:ast::known::Module) {
+        self.content.borrow_mut().ast  = ast;
+        self.notify(Notification::Invalidate);
+    }
+
+    /// Updates AST after code change.
+    ///
+    /// May return Error when new code causes parsing errors, or when parsed code does not produce
+    /// Module ast.
+    pub fn apply_code_change
+    (&self, change:TextChange, parser:&Parser, new_id_map:ast::IdMap) -> FallibleResult<()> {
+        let mut code          = self.ast().repr();
+        let replaced_indices  = change.replaced.start.value..change.replaced.end.value;
+        let replaced_location = TextLocation::convert_range(&code,&change.replaced);
+
+        code.replace_range(replaced_indices,&change.inserted);
+        let new_ast = parser.parse(code,new_id_map)?.try_into()?;
+        self.content.borrow_mut().ast = new_ast;
+        self.notify(Notification::CodeChanged {change,replaced_location});
+        Ok(())
+    }
 
     /// Sets metadata for given node.
     pub fn set_node_metadata(&self, id:ast::Id, data:NodeMetadata) {
         self.content.borrow_mut().metadata.ide.node.insert(id, data);
-        self.notify_graph(notification::Graphs::Invalidate);
+        self.notify(Notification::MetadataChanged);
     }
 
     /// Removes metadata of given node and returns them.
     pub fn remove_node_metadata(&self, id:ast::Id) -> FallibleResult<NodeMetadata> {
         let lookup = self.content.borrow_mut().metadata.ide.node.remove(&id);
         let data   = lookup.ok_or_else(|| NodeMetadataNotFound(id))?;
-        self.notify_graph(notification::Graphs::Invalidate);
+        self.notify(Notification::MetadataChanged);
         Ok(data)
     }
 
@@ -170,37 +244,12 @@ impl Module {
         let mut data = lookup.unwrap_or_default();
         fun(&mut data);
         self.content.borrow_mut().metadata.ide.node.insert(id, data);
-        self.notify_graph(notification::Graphs::Invalidate);
+        self.notify(Notification::MetadataChanged);
     }
 
-    /// Subscribe for notifications about text representation changes.
-    pub fn subscribe_text_notifications(&self) -> Subscriber<notification::Text> {
-        self.text_notifications.borrow_mut().subscribe()
-    }
-
-    /// Subscribe for notifications about graph representation changes.
-    pub fn subscribe_graph_notifications(&self) -> Subscriber<notification::Graphs> {
-        self.graph_notifications.borrow_mut().subscribe()
-    }
-
-    fn notify(&self, text_change:notification::Text, graph_change:notification::Graphs) {
-        let code_notify  = self.text_notifications.borrow_mut().publish(text_change);
-        let graph_notify = self.graph_notifications.borrow_mut().publish(graph_change);
-        executor::global::spawn(async move { futures::join!(code_notify,graph_notify); });
-    }
-
-    fn notify_graph(&self, graph_change:notification::Graphs) {
-        let graph_notify = self.graph_notifications.borrow_mut().publish(graph_change);
-        executor::global::spawn(graph_notify);
-    }
-
-    /// Create module state from given code, id_map and metadata.
-    #[cfg(test)]
-    pub fn from_code_or_panic<S:ToString>
-    (code:S, id_map:ast::IdMap, metadata:Metadata) -> Rc<Self> {
-        let parser = parser::Parser::new_or_panic();
-        let ast    = parser.parse(code.to_string(),id_map).unwrap().try_into().unwrap();
-        Rc::new(Self::new(ast,metadata))
+    fn notify(&self, notification:Notification) {
+        let notify  = self.notifications.borrow_mut().publish(notification);
+        executor::global::spawn(notify);
     }
 }
 
@@ -215,45 +264,68 @@ mod test {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
-    use uuid::Uuid;
 
-    #[test]
+    use data::text;
+    use uuid::Uuid;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[wasm_bindgen_test]
+    fn applying_code_change() {
+        let mut test = TestWithLocalPoolExecutor::set_up();
+        test.run_task(async {
+            let module = Module::from_code_or_panic("2 + 2",default(),default());
+            let change = TextChange {
+                replaced: text::Index::new(2)..text::Index::new(5),
+                inserted: "- abc".to_string(),
+            };
+            module.apply_code_change(change,&Parser::new_or_panic(),default()).unwrap();
+            assert_eq!("2 - abc",module.ast().repr());
+        });
+    }
+
+    #[wasm_bindgen_test]
     fn notifying() {
         let mut test = TestWithLocalPoolExecutor::set_up();
         test.run_task(async {
             let module                 = Module::default();
-            let mut text_subscription  = module.subscribe_text_notifications();
-            let mut graph_subscription = module.subscribe_graph_notifications();
+            let mut subscription       = module.subscribe();
 
             // Ast update
             let new_line       = Ast::infix_var("a","+","b");
             let new_module_ast = Ast::one_line_module(new_line);
             let new_module_ast = ast::known::Module::try_new(new_module_ast).unwrap();
             module.update_ast(new_module_ast.clone_ref());
-            assert_eq!(Some(notification::Text::Invalidate),   text_subscription.next().await);
-            assert_eq!(Some(notification::Graphs::Invalidate), graph_subscription.next().await);
+            assert_eq!(Some(Notification::Invalidate), subscription.next().await);
+
+            // Code change
+            let change = TextChange {
+                replaced: text::Index::new(0)..text::Index::new(1),
+                inserted: "foo".to_string(),
+            };
+            module.apply_code_change(change.clone(),&Parser::new_or_panic(),default()).unwrap();
+            let replaced_location = TextLocation{line:0, column:0}..TextLocation{line:0, column:1};
+            let notification      = Notification::CodeChanged {change,replaced_location};
+            assert_eq!(Some(notification), subscription.next().await);
 
             // Metadata update
             let id            = Uuid::new_v4();
             let node_metadata = NodeMetadata {position:Some(Position::new(1.0, 2.0))};
             module.set_node_metadata(id.clone(),node_metadata.clone());
-            assert_eq!(Some(notification::Graphs::Invalidate), graph_subscription.next().await);
+            assert_eq!(Some(Notification::MetadataChanged), subscription.next().await);
             module.remove_node_metadata(id.clone()).unwrap();
-            assert_eq!(Some(notification::Graphs::Invalidate), graph_subscription.next().await);
+            assert_eq!(Some(Notification::MetadataChanged), subscription.next().await);
             module.with_node_metadata(id.clone(),|md| *md = node_metadata.clone());
-            assert_eq!(Some(notification::Graphs::Invalidate), graph_subscription.next().await);
+            assert_eq!(Some(Notification::MetadataChanged), subscription.next().await);
 
             // Whole update
             let mut metadata = Metadata::default();
             metadata.ide.node.insert(id,node_metadata);
-            module.update_whole(SourceFile{ast:new_module_ast, metadata});
-            assert_eq!(Some(notification::Text::Invalidate),   text_subscription.next().await);
-            assert_eq!(Some(notification::Graphs::Invalidate), graph_subscription.next().await);
+            module.update_whole(ParsedSourceFile{ast:new_module_ast, metadata});
+            assert_eq!(Some(Notification::Invalidate), subscription.next().await);
 
             // No more notifications emitted
             drop(module);
-            assert_eq!(None, text_subscription.next().await);
-            assert_eq!(None, graph_subscription.next().await);
+            assert_eq!(None, subscription.next().await);
         });
     }
 
