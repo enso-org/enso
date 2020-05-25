@@ -27,3 +27,5 @@ pub use transport::Transport;
 pub use transport::TransportEvent;
 pub use handler::Event;
 pub use handler::Handler;
+
+#[cfg(test)] pub use utils::test::traits::*;

@@ -1,7 +1,8 @@
-use prelude::*;
+use json_rpc::prelude::*;
 
 use futures::FutureExt;
 use futures::Stream;
+use futures::task::LocalSpawnExt;
 use json_rpc::*;
 use json_rpc::api::RemoteMethodCall;
 use json_rpc::api::Result;
@@ -15,9 +16,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::future::Future;
 use std::pin::Pin;
-use utils::test::poll;
-use utils::test::poll_stream_output;
-use futures::task::LocalSpawnExt;
+use utils::test::traits::*;
 
 type MockEvent = json_rpc::handler::Event<MockNotification>;
 
@@ -93,29 +92,25 @@ impl Client {
         self.handler.runner()
     }
 
-    pub fn try_get_event(&mut self) -> Option<MockEvent> {
-        poll_stream_output(&mut self.events_stream)
-    }
-
-    pub fn try_get_notification(&mut self) -> Option<MockNotification> {
-        let event = self.try_get_event()?;
-        if let MockEvent::Notification(n) = event {
-            Some(n)
-        } else {
-            None
-        }
+    pub fn expect_no_notification_yet(&mut self) {
+        self.events_stream.expect_pending()
     }
 
     pub fn expect_notification(&mut self) -> MockNotification {
-        self.try_get_notification().expect("expected notification event")
+        let event = self.events_stream.expect_next();
+        if let MockEvent::Notification(notification) = event {
+            notification
+        } else {
+            panic!("Expected a notification, got different kind of event: {:?}",event)
+        }
     }
 
     pub fn expect_handling_error(&mut self) -> HandlingError {
-        let event = self.try_get_event().expect("no events, while expected error event");
+        let event = self.events_stream.expect_next();
         if let json_rpc::handler::Event::Error(err) = event {
             err
         } else {
-            panic!("expected error event, encountered: {:?}", event)
+            panic!("Expected an error event, got different kind of event: {:?}", event)
         }
     }
 }
@@ -157,21 +152,19 @@ fn test_success_call() {
     assert_eq!(req_msg.i, call_input);
     assert_eq!(req_msg.jsonrpc, Version::V2);
 
-    assert!(poll(&mut fut).is_none()); // no reply
+    fut.expect_pending(); // no reply
 
     // let's reply
     let reply = pow_impl(req_msg);
     fixture.transport.mock_peer_json_message(reply);
 
     // before yielding control message should be in buffer and futures should not complete
-    assert!(poll(&mut fut).is_none()); // not ticked
+    fut.expect_pending(); // not ticked
 
     // yield control to executor
     fixture.pool.run_until_stalled();
 
-    let result = poll(&mut fut);
-    let result = result.expect("result should be present");
-    let result = result.expect("result should be a success");
+    let result = fut.expect_ok();
     assert_eq!(result, 8*8);
 }
 
@@ -179,7 +172,7 @@ fn test_success_call() {
 fn test_error_call() {
     let mut fixture = Fixture::new();
     let mut fut     = Box::pin(fixture.client.pow(8));
-    assert!(poll(&mut fut).is_none()); // no reply
+    fut.expect_pending(); // no reply
 
     // reply with error
     let req_msg           = fixture.transport.expect_json_message::<MockRequestMessage>();
@@ -197,9 +190,7 @@ fn test_error_call() {
     // receive error
     fixture.pool.run_until_stalled();
 
-    let result = poll(&mut fut);
-    let result = result.expect("result should be present");
-    let result = result.expect_err("result should be a failure");
+    let result = fut.expect_err();
     if let RpcError::RemoteError(e) = result {
         assert_eq!(e.code, error_code);
         assert_eq!(e.data, error_data);
@@ -213,12 +204,12 @@ fn test_error_call() {
 fn test_garbage_reply_error() {
     let mut fixture = Fixture::new();
     let mut fut     = Box::pin(fixture.client.pow(8));
-    assert!(poll(&mut fut).is_none()); // no reply
+    fut.expect_pending(); // no reply
     fixture.transport.mock_peer_text_message("hello, nice to meet you");
 
     fixture.pool.run_until_stalled();
 
-    assert!(poll(&mut fut).is_none()); // no valid reply
+    fut.expect_pending(); // no valid reply
     let internal_error = fixture.client.expect_handling_error();
     if let HandlingError::InvalidMessage(_) = internal_error {
     } else {
@@ -230,15 +221,13 @@ fn test_garbage_reply_error() {
 fn test_disconnect_error() {
     let mut fixture = Fixture::new();
     let mut fut     = Box::pin(fixture.client.pow(8));
-    assert!(poll(&mut fut).is_none()); // no reply nor relevant event
+    fut.expect_pending(); // no reply nor relevant event
     fixture.transport.mock_connection_closed();
-    assert!(poll(&mut fut).is_none()); // closing event not yet processed
+    fut.expect_pending(); // closing event not yet processed
 
     fixture.pool.run_until_stalled();
 
-    let result = poll(&mut fut);
-    let result = result.expect("result should be present");
-    let result = result.expect_err("result should be a failure");
+    let result = fut.expect_err();
     if let RpcError::LostConnection = result {} else {
         panic!("Expected an error to be RemoteError");
     }
@@ -249,22 +238,19 @@ fn test_sending_while_disconnected() {
     let mut fixture = Fixture::new();
     fixture.transport.mock_connection_closed();
     let mut fut = Box::pin(fixture.client.pow(8));
-    let result  = poll(&mut fut).unwrap();
-    assert!(result.is_err())
+    fut.expect_err();
 }
 
 fn test_notification(mock_notif:MockNotification) {
     let mut fixture = Fixture::new();
     let message     = Message::new(mock_notif.clone());
-    assert!(fixture.client.try_get_notification().is_none());
+    fixture.client.events_stream.expect_pending();
     fixture.transport.mock_peer_json_message(message);
-    assert!(fixture.client.try_get_notification().is_none());
-
+    fixture.client.events_stream.expect_pending();
     fixture.pool.run_until_stalled();
 
-    let notification = fixture.client.try_get_notification();
-    assert_eq!(notification.is_none(), false);
-    assert_eq!(notification, Some(mock_notif));
+    let notification = fixture.client.expect_notification();
+    assert_eq!(notification,mock_notif);
 }
 
 #[test]
@@ -285,9 +271,9 @@ fn test_handling_invalid_notification() {
     }"#;
 
     let mut fixture = Fixture::new();
-    assert!(fixture.client.try_get_notification().is_none());
+    fixture.client.expect_no_notification_yet();
     fixture.transport.mock_peer_text_message(other_notification);
-    assert!(fixture.client.try_get_notification().is_none());
+    fixture.client.expect_no_notification_yet();
 
     fixture.pool.run_until_stalled();
 

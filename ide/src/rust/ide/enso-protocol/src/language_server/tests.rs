@@ -7,8 +7,7 @@ use json_rpc::test_util::transport::mock::MockTransport;
 use serde_json::json;
 use serde_json::Value;
 use std::future::Future;
-use utils::test::poll;
-use utils::test::poll_stream_output;
+use utils::test::traits::*;
 
 
 
@@ -40,7 +39,7 @@ fn setup_language_server() -> Fixture {
 fn test_file_event_notification() {
     let mut fixture = setup_language_server();
     let mut events  = Box::pin(fixture.client.events());
-    assert!(poll_stream_output(&mut events).is_none());
+    events.expect_pending();
 
     let root_id        = uuid::Uuid::parse_str("00000000-0000-0000-0000-000000000000");
     let root_id        = root_id.expect("Couldn't parse uuid.");
@@ -62,12 +61,11 @@ fn test_file_event_notification() {
             }
         }"#;
     fixture.transport.mock_peer_text_message(notification_text);
-    assert!(poll_stream_output(&mut events).is_none());
+    events.expect_pending();
 
     fixture.executor.run_until_stalled();
 
-    let event = poll_stream_output(&mut events);
-    if let Some(Event::Notification(n)) = event {
+    if let Event::Notification(n) = events.expect_next() {
         assert_eq!(n, Notification::FileEvent {event:expected_event});
     } else {
         panic!("expected notification event");
@@ -99,8 +97,7 @@ where Fun : FnOnce(&mut Client) -> Fut,
     let response = Message::new_success(request.id, result);
     fixture.transport.mock_peer_json_message(response);
     fixture.executor.run_until_stalled();
-    let output = poll(&mut request_future).unwrap().unwrap();
-    assert_eq!(output, expected_output);
+    assert_eq!(request_future.expect_ok(),expected_output);
 }
 
 #[test]

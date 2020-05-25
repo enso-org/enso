@@ -145,7 +145,6 @@ mod mock_client_tests {
     use json_rpc::messages::Error;
     use json_rpc::Result;
     use std::future::Future;
-    use utils::test::poll;
     use uuid::Uuid;
 
     fn error<T>(message:&str) -> Result<T> {
@@ -158,7 +157,7 @@ mod mock_client_tests {
 
     fn result<T,F:Future<Output = Result<T>>>(fut:F) -> Result<T> {
         let mut fut = Box::pin(fut);
-        poll(&mut fut).expect("Promise isn't ready")
+        fut.expect_ready()
     }
 
     #[test]
@@ -254,7 +253,6 @@ mod remote_client_tests {
     use serde_json::json;
     use serde_json::Value;
     use std::future::Future;
-    use utils::test::poll;
     use futures::task::LocalSpawnExt;
 
     struct Fixture {
@@ -296,7 +294,7 @@ mod remote_client_tests {
         let response = Message::new_success(request.id, result);
         fixture.transport.mock_peer_json_message(response);
         fixture.executor.run_until_stalled();
-        let output = poll(&mut fut).unwrap().unwrap();
+        let output = fut.expect_ok();
         assert_eq!(output, *expected_output);
     }
 

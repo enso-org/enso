@@ -43,6 +43,8 @@ pub mod prelude {
     pub use futures::FutureExt;
     pub use futures::Stream;
     pub use futures::StreamExt;
+
+    #[cfg(test)] pub use utils::test::traits::*;
 }
 
 /// Module gathering all traits which may be used by crate's users.
@@ -57,4 +59,3 @@ pub mod traits {
     pub use crate::language_server::API as TRAIT_LanguageServerAPI;
     pub use crate::project_manager::API as TRAIT_ProjectManagerAPI;
 }
-
