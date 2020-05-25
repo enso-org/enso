@@ -7,12 +7,23 @@
 use crate::prelude::*;
 
 use crate::controller::FilePath;
-use crate::notification;
 
 use data::text::TextChange;
 use enso_protocol::language_server;
 use json_rpc::error::RpcError;
 use std::pin::Pin;
+
+
+// ====================
+// === Notification ===
+// ====================
+
+/// A notification about changes of file content.
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
+pub enum Notification {
+    /// The content should be fully reloaded.
+    Invalidate,
+}
 
 
 
@@ -98,7 +109,7 @@ impl Handle {
     /// This function should be called by view on every user interaction changing the text content
     /// of file. It will e.g. update the Module Controller state and notify other views about
     /// update in case of module files.
-    pub fn apply_text_change(&self, change:&TextChange) -> FallibleResult<()> {
+    pub fn apply_text_change(&self, change:TextChange) -> FallibleResult<()> {
         if let FileHandle::Module {controller} = &self.file {
             controller.apply_code_change(change)
         } else {
@@ -107,13 +118,22 @@ impl Handle {
     }
 
     /// Get a stream of text changes notifications.
-    pub fn subscribe(&self) -> Pin<Box<dyn Stream<Item=notification::Text>>> {
+    pub fn subscribe(&self) -> Pin<Box<dyn Stream<Item=Notification>>> {
         match &self.file {
             FileHandle::PlainText{..}       => StreamExt::boxed(futures::stream::empty()),
             FileHandle::Module {controller} => {
-                let subscriber = controller.model.subscribe_text_notifications();
-                StreamExt::boxed(subscriber)
+                let subscriber = controller.model.subscribe();
+                subscriber.filter_map(Self::map_module_notification).boxed()
             }
+        }
+    }
+
+    async fn map_module_notification
+    (notification:model::module::Notification) -> Option<Notification> {
+        match notification {
+            model::module::Notification::Invalidate      |
+            model::module::Notification::CodeChanged{..} => Some(Notification::Invalidate),
+            model::module::Notification::MetadataChanged => None,
         }
     }
 }
@@ -161,8 +181,8 @@ mod test {
             let controller = Handle::new_for_module(module.clone());
             let mut sub    = controller.subscribe();
 
-            module.apply_code_change(&TextChange::insert(Index::new(8),"2".to_string())).unwrap();
-            assert_eq!(Some(notification::Text::Invalidate), sub.next().await);
+            module.apply_code_change(TextChange::insert(Index::new(8),"2".to_string())).unwrap();
+            assert_eq!(Some(Notification::Invalidate), sub.next().await);
         })
     }
 }

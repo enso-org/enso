@@ -28,6 +28,30 @@ impl Index {
     pub fn new(value:usize) -> Self {
         Index {value}
     }
+
+    /// Create char index from the byte index. It must traverse the content to count chars.
+    pub fn convert_byte_index(content:impl Str, index:ByteIndex) -> Self {
+        let slice = &content.as_ref()[..index.value];
+        Self::new(slice.chars().count())
+    }
+}
+
+
+// === ByteIndex ===
+
+/// Strongly typed index of byte in String (which may differ with analogous character index,
+/// because some chars takes more than one byte).
+//TODO[ao] We should use structures from ensogl::,math::topology to represent different quantities
+// and units.
+#[allow(missing_docs)]
+#[derive(Clone,Copy,Debug,Default,Hash,PartialEq,Eq,PartialOrd,Ord,Serialize,Deserialize)]
+pub struct ByteIndex { pub value:usize }
+
+impl ByteIndex {
+    /// Initializes Index with given value.
+    pub fn new(value:usize) -> Self {
+        ByteIndex {value}
+    }
 }
 
 
@@ -190,7 +214,7 @@ pub struct TextLocation {
 
 impl TextLocation {
     /// Create location at begin of given line.
-    pub fn at_line_begin(line_index:usize) -> TextLocation {
+    pub fn at_line_begin(line_index:usize) -> Self {
         TextLocation {
             line   : line_index,
             column : 0,
@@ -198,10 +222,49 @@ impl TextLocation {
     }
 
     /// Create location at begin of the whole document.
-    pub fn at_document_begin() -> TextLocation {
+    pub fn at_document_begin() -> Self {
         TextLocation {
             line   : 0,
             column : 0,
+        }
+    }
+
+    /// Create location at and of the whole document. It iterates over all the content.
+    pub fn at_document_end(content:impl Str) -> Self {
+        Self::after_chars(content.as_ref().chars())
+    }
+
+    /// Convert from index of document with `content`. It iterates over all characters before
+    /// `index`.
+    pub fn from_index(content:impl Str, index:Index) -> Self {
+        let before = content.as_ref().chars().take(index.value);
+        Self::after_chars(before)
+    }
+
+    /// Converts a range of indices into a range of TextLocation. It iterates over all characters
+    /// before range's end.
+    pub fn convert_range(content:impl Str, range:&Range<Index>) -> Range<Self> {
+        let content = content.as_ref();
+        Self::from_index(content,range.start)..Self::from_index(content,range.end)
+    }
+
+    /// Converts a range in bytes into a range of TextLocation. It iterates over all characters
+    /// before range's end.
+    pub fn convert_byte_range(content:impl Str, range:&Range<ByteIndex>) -> Range<Self> {
+        let start = Index::convert_byte_index(content.as_ref(), range.start);
+        let end   = Index::convert_byte_index(content.as_ref(), range.end);
+        Self::convert_range(content,&(start..end))
+    }
+
+    fn after_chars<IntoCharsIter>(chars:IntoCharsIter) -> Self
+    where IntoCharsIter : IntoIterator<Item=char, IntoIter:Clone> {
+        let iter             = chars.into_iter();
+        let len              = iter.clone().count();
+        let newlines         = iter.enumerate().filter(|(_,c)| *c == '\n');
+        let newlines_indices = newlines.map(|(i,_)| i);
+        TextLocation {
+            line   : newlines_indices.clone().count(),
+            column : len - newlines_indices.last().map_or(0, |i| i + 1),
         }
     }
 }
@@ -217,12 +280,12 @@ impl TextLocation {
 /// This is a generalized template, because we use different representation for both index
 /// (e.g. `Index` or `TextLocation`) and inserted content (it may be just String, but also e.g.
 /// Vec<char>, or Vec<Vec<char>> split by newlines).
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,Eq,Hash,PartialEq)]
 pub struct TextChangeTemplate<Index,Content> {
     /// Text fragment to be replaced. If we don't mean to remove any text, this should be an empty
     /// range with start set at position there `lines` will be inserted
     /// (see `TextChangeTemplate::insert` definition).
-    pub replaced : Range<Index>,
+    pub replaced: Range<Index>,
     /// Text which replaces fragment described in `replaced` field.
     pub inserted: Content,
 }
@@ -278,5 +341,45 @@ fn cut_cr_at_end_of_line(from:&str) -> &str {
         &from[..from.len()-1]
     } else {
         from
+    }
+}
+
+
+
+// ============
+// === Text ===
+// ============
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use super::Index;
+
+    #[test]
+    fn converting_index_to_location() {
+        let str = "first\nsecond\nthird";
+        assert_eq!(TextLocation::from_index(str,Index::new(0)),  TextLocation {line:0, column:0});
+        assert_eq!(TextLocation::from_index(str,Index::new(5)),  TextLocation {line:0, column:5});
+        assert_eq!(TextLocation::from_index(str,Index::new(6)),  TextLocation {line:1, column:0});
+        assert_eq!(TextLocation::from_index(str,Index::new(9)),  TextLocation {line:1, column:3});
+        assert_eq!(TextLocation::from_index(str,Index::new(12)), TextLocation {line:1, column:6});
+        assert_eq!(TextLocation::from_index(str,Index::new(13)), TextLocation {line:2, column:0});
+        assert_eq!(TextLocation::from_index(str,Index::new(18)), TextLocation {line:2, column:5});
+
+        let str = "";
+        assert_eq!(TextLocation {line:0, column:0}, TextLocation::from_index(str,Index::new(0)));
+
+        let str= "\n";
+        assert_eq!(TextLocation {line:0, column:0}, TextLocation::from_index(str,Index::new(0)));
+        assert_eq!(TextLocation {line:1, column:0}, TextLocation::from_index(str,Index::new(1)));
+    }
+
+    #[test]
+    fn text_location_at_end() {
+        let str = "first\nsecond\nthird";
+        assert_eq!(TextLocation::at_document_end(str) , TextLocation {line:2, column:5});
+        assert_eq!(TextLocation::at_document_end("")  , TextLocation {line:0, column:0});
+        assert_eq!(TextLocation::at_document_end("\n"), TextLocation {line:1, column:0});
     }
 }

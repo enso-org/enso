@@ -10,7 +10,7 @@ use websocket::{
 use api::Ast;
 use api::Metadata;
 use api::Error::*;
-use api::SourceFile;
+use api::ParsedSourceFile;
 use ast::IdMap;
 
 use std::fmt::Formatter;
@@ -94,10 +94,10 @@ pub enum Request {
 }
 
 /// All responses that Parser Service might reply with.
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub enum Response<Metadata> {
-    Success { module  : SourceFile<Metadata> },
-    Error   { message : String               },
+    Success { module  : ParsedSourceFile<Metadata> },
+    Error   { message : String                     },
 }
 
 
@@ -206,7 +206,7 @@ impl Client {
     }
 
     pub fn parse_with_metadata<M:Metadata>
-    (&mut self, program:String) -> api::Result<SourceFile<M>> {
+    (&mut self, program:String) -> api::Result<ParsedSourceFile<M>> {
         let request  = Request::ParseRequestWithMetadata {content:program};
         let response = self.rpc_call(request)?;
         match response {

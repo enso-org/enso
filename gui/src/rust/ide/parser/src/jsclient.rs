@@ -70,7 +70,7 @@ impl Client {
     }
 
     pub fn parse_with_metadata<M:api::Metadata>
-    (&self, program:String) -> api::Result<api::SourceFile<M>> {
+    (&self, program:String) -> api::Result<api::ParsedSourceFile<M>> {
         let result = || {
             let json   = &parse_with_metadata(program)?;
             let module = serde_json::from_str(&json)?;

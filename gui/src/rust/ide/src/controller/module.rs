@@ -18,7 +18,7 @@ use double_representation as dr;
 use enso_protocol::language_server;
 use parser::Parser;
 use failure::_core::fmt::Formatter;
-
+use enso_protocol::types::Sha3_224;
 
 
 // ==============
@@ -105,7 +105,7 @@ impl Display for Path {
 #[derive(Clone,CloneRef,Debug)]
 pub struct Handle {
     pub path            : Rc<Path>,
-    pub model           : Rc<model::Module>,
+    pub model           : Rc<model::synchronized::Module>,
     pub language_server : Rc<language_server::Connection>,
     pub parser          : Parser,
     pub logger          : Logger,
@@ -118,7 +118,7 @@ impl Handle {
     pub fn new
     ( parent          : &Logger
     , path            : Path
-    , model           : Rc<model::Module>
+    , model           : Rc<model::synchronized::Module>
     , language_server : Rc<language_server::Connection>
     , parser          : Parser
     ) -> Self {
@@ -127,47 +127,29 @@ impl Handle {
         Handle {path,model,language_server,parser,logger}
     }
 
-    /// Load or reload module content from file.
-    pub async fn load_file(&self) -> FallibleResult<()> {
-        self.logger.info(|| "Loading module file");
-        let path    = self.path.file_path().clone();
-        let content = self.language_server.client.read_file(&path).await?.contents;
-        self.logger.info(|| "Parsing code");
-        // TODO[ao] We should not fail here when metadata are malformed, but discard them and set
-        //  default instead.
-        let parsed = self.parser.parse_with_metadata(content)?;
-        self.logger.info(|| "Code parsed");
-        self.logger.trace(|| format!("The parsed ast is {:?}", parsed.ast));
-        self.model.update_whole(parsed);
-        Ok(())
-    }
 
     /// Save the module to file.
     pub fn save_file(&self) -> impl Future<Output=FallibleResult<()>> {
-        let path    = self.path.file_path().clone();
+        let content = self.model.serialized_content();
+        let path    = self.path.clone_ref();
         let ls      = self.language_server.clone();
-        let content = self.model.source_as_string();
-        async move { Ok(ls.client.write_file(&path,&content?).await?) }
+        async move {
+            let version = Sha3_224::new(content?.content.as_bytes());
+            Ok(ls.client.save_text_file(path.file_path(),&version).await?)
+        }
     }
 
     /// Updates AST after code change.
     ///
     /// May return Error when new code causes parsing errors, or when parsed code does not produce
     /// Module ast.
-    pub fn apply_code_change(&self,change:&TextChange) -> FallibleResult<()> {
-        let mut code         = self.code();
+    pub fn apply_code_change(&self,change:TextChange) -> FallibleResult<()> {
         let mut id_map       = self.model.ast().id_map();
         let replaced_size    = change.replaced.end - change.replaced.start;
         let replaced_span    = Span::new(change.replaced.start,replaced_size);
-        let replaced_indices = change.replaced.start.value..change.replaced.end.value;
 
-        code.replace_range(replaced_indices,&change.inserted);
         apply_code_change_to_id_map(&mut id_map,&replaced_span,&change.inserted);
-        let ast = self.parser.parse(code, id_map)?.try_into()?;
-        self.logger.trace(|| format!("Applied change; Ast is now {:?}", ast));
-        self.model.update_ast(ast);
-
-        Ok(())
+        self.model.apply_code_change(change,&self.parser,id_map)
     }
 
     /// Read module code.
@@ -180,8 +162,8 @@ impl Handle {
     pub fn check_code_sync(&self, code:String) -> FallibleResult<()> {
         let my_code = self.code();
         if code != my_code {
-            self.logger.error(|| format!("The module controller ast was not synchronized with \
-                text editor content!\n >>> Module: {:?}\n >>> Editor: {:?}",my_code,code));
+            error!(self.logger,"The module controller ast was not synchronized with text editor \
+                content!\n >>> Module: {my_code}\n >>> Editor: {code}");
             let actual_ast = self.parser.parse(code,default())?.try_into()?;
             self.model.update_ast(actual_ast);
         }
@@ -225,7 +207,8 @@ impl Handle {
     ) -> FallibleResult<Self> {
         let logger = Logger::new("Mocked Module Controller");
         let ast    = parser.parse(code.to_string(),id_map.clone())?.try_into()?;
-        let model  = Rc::new(model::Module::new(ast, default()));
+        let model  = model::Module::new(ast, default());
+        let model  = model::synchronized::Module::mock(path.clone(),model);
         let path   = Rc::new(path);
         Ok(Handle {path,model,language_server,parser,logger})
     }
@@ -247,7 +230,6 @@ impl Handle {
 mod test {
     use super::*;
 
-    use crate::notification;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
     use ast;
@@ -291,12 +273,9 @@ mod test {
 
             let controller = Handle::new_mock(location,module,id_map,ls,parser).unwrap();
 
-            let mut text_notifications  = controller.model.subscribe_text_notifications();
-            let mut graph_notifications = controller.model.subscribe_graph_notifications();
-
             // Change code from "2+2" to "22+2"
             let change = TextChange::insert(Index::new(1),"2".to_string());
-            controller.apply_code_change(&change).unwrap();
+            controller.apply_code_change(change).unwrap();
             let expected_ast = Ast::new_no_id(ast::Module {
                 lines: vec![BlockLine {
                     elem: Some(Ast::new(ast::Infix {
@@ -310,10 +289,6 @@ mod test {
                 }]
             });
             assert_eq!(expected_ast, controller.model.ast().into());
-
-            // Check emitted notifications
-            assert_eq!(Some(notification::Text::Invalidate ), text_notifications.next().await );
-            assert_eq!(Some(notification::Graphs::Invalidate), graph_notifications.next().await);
         });
     }
 }

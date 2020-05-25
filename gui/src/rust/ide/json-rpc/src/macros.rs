@@ -7,7 +7,7 @@
 /// make_rpc_method!{
 ///     trait API {
 ///         #[MethodInput=CallMePleaseInput,camelCase=callMePlease,result=call_me_please_result,
-///         set_result=set_call_me_please_result]
+///         expect_result=set_call_me_please]
 ///         fn call_me_please<'a>(&'a self, my_number_is:&'a String) -> ();
 ///     }
 /// }
@@ -17,7 +17,7 @@
 /// called `Client`, with the actual RPC methods, and `MockClient`, with mocked methods with
 /// return types setup by:
 /// ```rust,compile_fail
-///     fn set_call_me_please_result
+///     fn expect_call_me_please
 ///     (&mut self, my_number_is:String,result:json_rpc::api::Result<()>) { /* impl */ }
 /// ```
 #[macro_export]
@@ -26,8 +26,7 @@ macro_rules! make_rpc_methods {
         $(#[doc = $impl_doc:expr])+
         trait API {
             $($(#[doc = $doc:expr])+
-            #[MethodInput=$method_input:ident,rpc_name=$rpc_name:expr,result=$method_result:ident,
-            set_result=$set_result:ident]
+            #[MethodInput=$method_input:ident,rpc_name=$rpc_name:expr]
             fn $method:ident(&self $(,$param_name:ident:$param_ty:ty)*) -> $result:ty;
             )*
         }
@@ -116,52 +115,101 @@ macro_rules! make_rpc_methods {
         // === MockClient ===
         // ==================
 
-        /// Mock used for tests.
-        #[derive(Debug,Default)]
-        pub struct MockClient {
-            expect_all_calls : Cell<bool>,
-            $($method_result : RefCell<HashMap<($($param_ty),*),Vec<Result<$result>>>>,)*
-        }
+        /// Utilities for mocking client.
+        // TODO[ao] This whole environment should be replaced with mock-all crate.
+        pub mod mock {
+            use super::*;
 
-        impl API for MockClient {
-            $(fn $method<'a>(&'a self $(,$param_name:&'a $param_ty)*)
-            -> std::pin::Pin<Box<dyn Future<Output=Result<$result>>>> {
-                let mut results = self.$method_result.borrow_mut();
-                let params      = ($($param_name.clone()),*);
-                let result      = results.get_mut(&params).and_then(|res| res.pop());
-                let err         = format!("Unrecognized call {} with params {:?}",$rpc_name,params);
-                Box::pin(futures::future::ready(result.expect(err.as_str())))
-            })*
-        }
-
-        impl MockClient {
-            $(
-                /// Sets `$method`'s result to be returned when it is called.
-                pub fn $set_result(&self $(,$param_name:$param_ty)*, result:Result<$result>) {
-                    let mut results = self.$method_result.borrow_mut();
-                    let mut entry   = results.entry(($($param_name),*));
-                    entry.or_default().push(result);
-                }
-            )*
-
-            /// Mark all calls defined by `set_$method_result` as required. If client will be
-            /// dropped without calling the test will fail.
-            pub fn expect_all_calls(&self) {
-                self.expect_all_calls.set(true);
+            /// Mock used for tests.
+            ///
+            /// You may specify expected calls and their return values by setting appropriate call
+            /// handler as in the following example:
+            /// ```rust,compile_fail
+            ///     let mock = MockClient::default();
+            ///     mock.expect.some_method(|param1, param2| result);
+            /// ```
+            #[derive(Debug,Default)]
+            pub struct Client {
+                require_all_calls : Cell<bool>,
+                /// Expected calls handlers.
+                pub expect        : ExpectedCalls,
             }
-        }
 
-        impl Drop for MockClient {
-            fn drop(&mut self) {
-                if self.expect_all_calls.get() {
-                    $(
-                        for (params,results) in self.$method_result.borrow().iter() {
-                            assert!(results.is_empty(), "Didn't make expected call {} with \
-                            parameters {:?}",$rpc_name,params);
-                        }
-                    )*
+            impl API for Client {
+                $(fn $method<'a>(&'a self $(,$param_name:&'a $param_ty)*)
+                -> std::pin::Pin<Box<dyn Future<Output=Result<$result>>>> {
+                    let mut handlers = self.expect.$method.borrow_mut();
+                    assert!(!handlers.is_empty(),"Unexpected call {}",$rpc_name);
+                    let handler      = handlers.remove(0);
+                    let result       = handler($($param_name),*);
+                    Box::pin(futures::future::ready(result))
+                })*
+            }
+
+            impl Client {
+                /// Mark all calls defined by `expect.$method` as required. If client will be
+                /// dropped without calling the test will fail.
+                pub fn require_all_calls(&self) {
+                    self.require_all_calls.set(true);
                 }
             }
+
+            impl Drop for Client {
+                fn drop(&mut self) {
+                    if self.require_all_calls.get() {
+                        $(assert!(self.expect.$method.borrow().is_empty(), "Didn't make expected call {}");)*
+                    }
+                }
+            }
+
+            /// A set of handlers of expected Mock Client calls. Handlers get call's parameters and
+            /// returns the value to be returned.
+            #[derive(Default)]
+            pub struct ExpectedCalls {
+                $($method : RefCell<Vec<Box<dyn FnOnce($(&$param_ty),*) -> Result<$result>>>>,)*
+            }
+
+            impl ExpectedCalls {
+                $(
+                    /// Adds handler to the next expected call of `$method`. Each handle will be
+                    /// called once and removed. The handlers will be called in the same order as
+                    /// set by this function.
+                    pub fn $method(&self, handler:impl FnOnce($(&$param_ty),*) -> Result<$result> + 'static) {
+                        self.$method.borrow_mut().push(Box::new(handler));
+                    }
+                )*
+            }
+
+            impl Debug for ExpectedCalls {
+                fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                    write!(f, "Expected calls for Mock Client")
+                }
+            }
         }
+        pub use mock::Client as MockClient;
     }
+}
+
+/// A shortcut for creating call's handlers for client mocks; when you want to just check if call's
+/// parameters are equal to some expected values and then return specific value, you can call:
+/// ```rust,compile_fail
+/// expect_call!(client.method(param1=value1,param2=value2) => Ok(result));
+/// ```
+#[macro_export]
+macro_rules! expect_call {
+    ($mock:ident.$method:ident($($param:ident),*) => $result:expr) => {
+        expect_call!($mock.$method($($param=$param),*) => $result)
+    };
+    ($mock:ident.$method:ident($($param:ident=$value:expr),*) => $result:expr) => {
+        let result          = $result;
+        let expected_params = ($($value,)*);
+        $mock.expect.$method(move |$($param),*| {
+            let expected_params_refs = {
+                let ($($param,)*) = &expected_params;
+                ($($param,)*)
+            };
+            assert_eq!(($($param,)*),expected_params_refs);
+            result
+        })
+    };
 }
