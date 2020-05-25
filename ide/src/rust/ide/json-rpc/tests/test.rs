@@ -257,7 +257,7 @@ fn test_notification(mock_notif:MockNotification) {
     let mut fixture = Fixture::new();
     let message     = Message::new(mock_notif.clone());
     assert!(fixture.client.try_get_notification().is_none());
-    fixture.transport.mock_peer_json_message(message.clone());
+    fixture.transport.mock_peer_json_message(message);
     assert!(fixture.client.try_get_notification().is_none());
 
     fixture.pool.run_until_stalled();
