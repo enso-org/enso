@@ -218,10 +218,6 @@ mod tests {
 
     use futures::task::LocalSpawnExt;
     use json_rpc::test_util::transport::mock::MockTransport;
-    use utils::test::expect_err;
-    use utils::test::expect_not_ready;
-    use utils::test::expect_ok;
-    use utils::test::expect_ready;
 
 
 
@@ -265,13 +261,13 @@ mod tests {
         let generated_message = fixture.transport.expect_binary_message();
         let generated_message = MessageToServerOwned::deserialize(&generated_message).unwrap();
         assert_eq!(generated_message.payload,expected_request);
-        expect_not_ready(&mut fut);
+        fut.expect_pending();
 
         let mut mock_reply = MessageFromServer::new(mock_reply);
         mock_reply.correlation_id = Some(generated_message.message_id);
         mock_reply.with_serialized(|data| fixture.transport.mock_peer_binary_message(data));
         fixture.executor.run_until_stalled();
-        assert_eq!(expect_ok(&mut fut),expected_result);
+        assert_eq!(fut.expect_ok(),expected_result);
 
         // Repeat request but now answer with error.
         let mut fut = make_request(&fixture.client);
@@ -287,7 +283,7 @@ mod tests {
         mock_reply.correlation_id = Some(generated_message.message_id);
         mock_reply.with_serialized(|data| fixture.transport.mock_peer_binary_message(data));
         fixture.executor.run_until_stalled();
-        expect_err(&mut fut);
+        fut.expect_err();
     }
 
     #[test]
@@ -339,7 +335,7 @@ mod tests {
 
         let mut event_fut = fixture.client.event_stream().into_future().boxed_local();
         fixture.executor.run_until_stalled();
-        expect_not_ready(&mut event_fut);
+        event_fut.expect_pending();
 
         let context = VisualisationContext {
             visualization_id : Uuid::new_v4(),
@@ -357,11 +353,11 @@ mod tests {
         fixture.executor.run_until_stalled();
 
         let expected_notification = Notification::VisualizationUpdate {context,data};
-        let (event, tail) = expect_ready(&mut event_fut);
+        let (event, tail) = event_fut.expect_ready();
         match event.expect("Expected some notification.") {
             Event::Notification(notification) => assert_eq!(notification,expected_notification),
             event => panic!("Expected notification event, got: {:?}",event),
         }
-        expect_not_ready(&mut tail.into_future().boxed_local());
+        tail.boxed_local().expect_pending();
     }
 }
