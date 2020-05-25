@@ -187,7 +187,7 @@ fn test_file_requests() {
     test_request(
         |client| client.move_file(&main, &target),
         "file/move",
-        from_main_to_target.clone(),
+        from_main_to_target,
         unit_json.clone(),
         ());
 
@@ -237,7 +237,7 @@ fn test_file_requests() {
     test_request(
         |client| client.file_info(&main),
         "file/info",
-        path_main.clone(),
+        path_main,
         sample_attributes_json,
         expected_attributes);
     let create_file_json = json!({
@@ -246,7 +246,7 @@ fn test_file_requests() {
     test_request(
         |client| client.create_file(&file_system_object),
         "file/create",
-        create_file_json.clone(),
+        create_file_json,
         unit_json.clone(),
         ());
     test_request(
@@ -259,7 +259,7 @@ fn test_file_requests() {
             },
             "contents" : "Hello world!"
         }),
-        unit_json.clone(),
+        unit_json,
         ());
 }
 
@@ -301,7 +301,7 @@ fn test_acquire_capability() {
                 }
             }
         }),
-        unit_json.clone(),
+        unit_json,
         ()
     );
 }
@@ -465,7 +465,7 @@ fn test_execution_context() {
     let old_version = Sha3_224::new(b"Hello world!");
     let new_version = Sha3_224::new(b"Hello, world!");
     let path        = main.clone();
-    let edit        = FileEdit {path,edits,old_version,new_version:new_version.clone()};
+    let edit        = FileEdit {path,edits,old_version,new_version:new_version};
     test_request(
         |client| client.apply_text_file_edit(&edit),
         "text/applyEdit",

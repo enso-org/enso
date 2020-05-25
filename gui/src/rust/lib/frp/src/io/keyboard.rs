@@ -258,7 +258,7 @@ mod test {
         let expected_key_mask:KeyMask = [&key1,&key2].iter().cloned().collect();
         assert_eq!(expected_key_mask, sampler.value());
 
-        keyboard.on_released.emit(key1.clone());
+        keyboard.on_released.emit(key1);
         let expected_key_mask:KeyMask = std::iter::once(&key2).collect();
         assert_eq!(expected_key_mask, sampler.value());
     }

@@ -165,7 +165,7 @@ mod mock_client_tests {
     fn project_life_cycle() {
         let mock_client             = MockClient::default();
         let expected_uuid           = Uuid::default();
-        let creation_response       = response::CreateProject {project_id : expected_uuid.clone()};
+        let creation_response       = response::CreateProject {project_id : expected_uuid};
         let host                    = "localhost".to_string();
         let port                    = 30500;
         let language_server_address = IpWithSocket {host,port};
