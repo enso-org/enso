@@ -75,9 +75,7 @@ class JsonRpcServer(
           messageHandler ! MessageHandler.Connected(outActor)
           NotUsed
         }
-        .map(
-          (outMsg: MessageHandler.WebMessage) => TextMessage(outMsg.message)
-        )
+        .map((outMsg: MessageHandler.WebMessage) => TextMessage(outMsg.message))
 
     Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
   }
@@ -123,7 +121,7 @@ object JsonRpcServer {
       * @return a default config.
       */
     def default: Config =
-      Config(outgoingBufferSize = 10, lazyMessageTimeout = 10.seconds)
+      Config(outgoingBufferSize = 1000, lazyMessageTimeout = 10.seconds)
   }
 
   case class WebConnect(webActor: ActorRef)

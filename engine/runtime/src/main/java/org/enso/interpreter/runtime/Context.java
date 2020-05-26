@@ -265,4 +265,12 @@ public class Context {
   public boolean isStrictErrors() {
     return getEnvironment().getOptions().get(RuntimeOptions.STRICT_ERRORS_KEY);
   }
+
+  /**
+   * Creates a new thread that has access to the current language context.
+   */
+  public Thread createThread(Runnable runnable) {
+    return environment.createThread(runnable);
+  }
+
 }
