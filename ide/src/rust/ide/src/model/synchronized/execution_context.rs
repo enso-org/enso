@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::double_representation::definition::DefinitionName;
 use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
+use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::execution_context::VisualizationId;
 
 use enso_protocol::language_server;
@@ -81,11 +82,14 @@ impl ExecutionContext {
     }
 
     /// Attaches a new visualization for current execution context.
-    pub async fn attach_visualization(&self, vis: Visualization) -> FallibleResult<()> {
+    ///
+    /// Returns a stream of visualization update data received from the server.
+    pub async fn attach_visualization
+    (&self, vis: Visualization) -> FallibleResult<impl Stream<Item=VisualizationUpdateData>> {
         let config = vis.config(self.id,self.module_path.module_name().to_string());
         self.language_server.attach_visualisation(&vis.id, &vis.ast_id, &config).await?;
-        self.model.attach_visualization(vis);
-        Ok(())
+        let stream = self.model.attach_visualization(vis);
+        Ok(stream)
     }
 
     /// Detaches visualization from current execution context.
