@@ -167,7 +167,7 @@ class Parser {
   import Parser._
   private val engine = newEngine()
 
-  private def splitMeta(code: String): (String, IDMap, Json) = {
+  def splitMeta(code: String): (String, IDMap, Json) = {
     import SourceFile._
     code.split(METATAG) match {
       case Array(input) => (input, Seq(), Json.obj())

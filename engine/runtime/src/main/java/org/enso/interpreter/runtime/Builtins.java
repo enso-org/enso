@@ -73,7 +73,7 @@ public class Builtins {
   public Builtins(Context context) {
     Language language = context.getLanguage();
     module = Module.empty(QualifiedName.simpleName(MODULE_NAME));
-    scope = module.getScope(context);
+    scope = module.parseScope(context);
     unit = new AtomConstructor("Unit", scope).initializeFields();
     any = new AtomConstructor("Any", scope).initializeFields();
     number = new AtomConstructor("Number", scope).initializeFields();

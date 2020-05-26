@@ -130,7 +130,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final CallTarget entryCallTarget;
     private final Consumer<ExpressionCall> functionCallCallback;
     private final Consumer<ExpressionValue> valueCallback;
-    private final Cache cache;
+    private final RuntimeCache cache;
     private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> calls = new HashMap<>();
 
     /**
@@ -143,7 +143,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
      */
     public IdExecutionEventListener(
         CallTarget entryCallTarget,
-        Cache cache,
+        RuntimeCache cache,
         Consumer<ExpressionCall> functionCallCallback,
         Consumer<ExpressionValue> valueCallback) {
       this.entryCallTarget = entryCallTarget;
@@ -256,7 +256,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       CallTarget entryCallTarget,
       int funSourceStart,
       int funSourceLength,
-      Cache cache,
+      RuntimeCache cache,
       Consumer<ExpressionValue> valueCallback,
       Consumer<ExpressionCall> functionCallCallback) {
     SourceSectionFilter filter =

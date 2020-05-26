@@ -13,6 +13,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import java.io.File;
+import org.enso.compiler.core.IR;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -34,6 +35,7 @@ public class Module implements TruffleObject {
   private TruffleFile sourceFile;
   private Rope literalSource;
   private boolean isParsed = false;
+  private IR ir;
   private final QualifiedName name;
 
   /**
@@ -145,7 +147,7 @@ public class Module implements TruffleObject {
    * @param context context in which the parsing should take place
    * @return the scope defined by this module
    */
-  public ModuleScope getScope(Context context) {
+  public ModuleScope parseScope(Context context) {
     ensureScopeExists(context);
     if (!isParsed) {
       parse(context);
@@ -153,6 +155,11 @@ public class Module implements TruffleObject {
     return scope;
   }
 
+  /**
+   * Create scope if it does not exist.
+   *
+   * @param context the language context.
+   */
   private void ensureScopeExists(Context context) {
     if (scope == null) {
       scope = context.createScope(this);
@@ -167,15 +174,20 @@ public class Module implements TruffleObject {
     if (literalSource != null) {
       Source source =
           Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
-      context.getCompiler().run(source, scope);
+      ir = context.getCompiler().run(source, scope);
     } else if (sourceFile != null) {
-      context.getCompiler().run(sourceFile, scope);
+      ir = context.getCompiler().run(sourceFile, scope);
     }
   }
 
   /** @return the qualified name of this module. */
   public QualifiedName getName() {
     return name;
+  }
+
+  /** @return cached ir of this module. */
+  public IR getIr() {
+    return ir;
   }
 
   /**
@@ -207,7 +219,7 @@ public class Module implements TruffleObject {
 
     private static Module patch(Module module, Object[] args, Context context)
         throws ArityException, UnsupportedTypeException {
-      ModuleScope scope = module.getScope(context);
+      ModuleScope scope = module.parseScope(context);
       String sourceString = Types.extractArguments(args, String.class);
       Source source =
           Source.newBuilder(LanguageInfo.ID, sourceString, scope.getAssociatedType().getName())
@@ -268,7 +280,7 @@ public class Module implements TruffleObject {
         @CachedContext(Language.class) Context context,
         @Cached(value = "build()", allowUncached = true) CallOptimiserNode callOptimiserNode)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
-      ModuleScope scope = module.getScope(context);
+      ModuleScope scope = module.parseScope(context);
       switch (member) {
         case MethodNames.Module.GET_METHOD:
           return getMethod(scope, arguments);

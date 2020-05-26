@@ -1,33 +1,54 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.core.IR
+import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.syntax.text.Location
 import org.enso.text.editing.model.{Position, TextEdit}
 
 import scala.collection.mutable
 
-final class DiffChangeset {
+/**
+  * Compute invalidated expressions.
+  *
+  * @param source the text source.
+  * @param ir the IR node.
+  */
+final class Changeset(val source: CharSequence, ir: IR) {
+
+  /**
+    * Traverses the IR and returns a list of all IR nodes affected by the edit
+    * using the [[DataflowAnalysis]] information.
+    *
+    * @param edit the text edit.
+    * @throws CompilerError if the IR is missing DataflowAnalysis metadata
+    * @return the list of all IR nodes affected by the edit.
+    */
+  @throws[CompilerError]
+  def compute(edit: TextEdit): Seq[IR.ExternalId] = {
+    val metadata = ir
+      .getMetadata(DataflowAnalysis)
+      .getOrElse(throw new CompilerError("Empty dataflow analysis metadata."))
+    invalidated(edit)
+      .map(toDataflowDependencyType)
+      .flatMap(metadata.getExternal)
+      .flatten
+  }
 
   /**
     * Traverses the IR and returns a list of the most specific (the innermost)
-    * IR identifiers affected by the edit by comparing the source locations.
+    * IR nodes directly affected by the edit by comparing the source locations.
     *
     * @param edit the text edit.
-    * @param source the text source.
-    * @param ir the IR node.
-    * @return the list of IR identifiers affected by the edit.
+    * @return the list of IR nodes directly affected by the edit.
     */
-  def compute(
-    edit: TextEdit,
-    source: CharSequence,
-    ir: IR
-  ): Seq[IR.Identifier] = {
+  def invalidated(edit: TextEdit): Seq[Changeset.Node] = {
     @scala.annotation.tailrec
     def go(
       edit: Location,
       queue: mutable.Queue[IR],
-      acc: mutable.Builder[IR.Identifier, Vector[IR.Identifier]]
-    ): Seq[IR.Identifier] =
+      acc: mutable.Builder[Changeset.Node, Vector[Changeset.Node]]
+    ): Seq[Changeset.Node] =
       if (queue.isEmpty) {
         acc.result()
       } else {
@@ -35,7 +56,7 @@ final class DiffChangeset {
         val invalidatedChildren = ir.children.filter(intersect(edit, _))
         if (invalidatedChildren.isEmpty) {
           if (intersect(edit, ir)) {
-            go(edit, queue, acc += ir.getId)
+            go(edit, queue, acc += Changeset.Node(ir))
           } else {
             go(edit, queue ++= ir.children, acc)
           }
@@ -47,7 +68,7 @@ final class DiffChangeset {
     go(
       toLocation(edit, source),
       mutable.Queue(ir),
-      Vector.newBuilder[IR.Identifier]
+      Vector.newBuilder[Changeset.Node]
     )
   }
 
@@ -69,8 +90,12 @@ final class DiffChangeset {
     * @param node location of the node.
     * @return true if the node and edit locations are intersecting.
     */
-  private def intersect(edit: Location, node: Location): Boolean =
-    inside(node.start, edit) || inside(node.end, edit)
+  private def intersect(edit: Location, node: Location): Boolean = {
+    inside(node.start, edit) ||
+    inside(node.end, edit) ||
+    inside(edit.start, node) ||
+    inside(edit.end, node)
+  }
 
   /**
     * Checks if the character position index is inside the location.
@@ -105,7 +130,36 @@ final class DiffChangeset {
     */
   private def toIndex(pos: Position, source: CharSequence): Int = {
     val prefix = source.toString.linesIterator.take(pos.line)
-    prefix.mkString(System.lineSeparator()).length + pos.character
+    prefix.mkString("\n").length + pos.character
+  }
+
+  /**
+    * Converts invalidated node to the dataflow dependency type.
+    *
+    * @param node the invalidated node.
+    * @return the dataflow dependency type.
+    */
+  private def toDataflowDependencyType(
+    node: Changeset.Node
+  ): DataflowAnalysis.DependencyInfo.Type.Static =
+    DataflowAnalysis.DependencyInfo.Type
+      .Static(node.internalId, node.externalId)
+}
+
+object Changeset {
+
+  /**
+    * An invalidated IR node.
+    *
+    * @param internalId internal IR id.
+    * @param externalId external IR id.
+    */
+  case class Node(internalId: IR.Identifier, externalId: Option[IR.ExternalId])
+
+  object Node {
+
+    def apply(ir: IR): Node =
+      new Node(ir.getId, ir.getExternalId)
   }
 
 }

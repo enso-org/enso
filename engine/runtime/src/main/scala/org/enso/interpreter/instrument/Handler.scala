@@ -19,9 +19,9 @@ import scala.concurrent.duration._
 /**
   * A message endpoint implementation used by the
   * [[org.enso.interpreter.instrument.RuntimeServerInstrument]].
-  * @param handler
   */
 class Endpoint(handler: Handler) extends MessageEndpoint {
+
   var client: MessageEndpoint = _
 
   /**
@@ -58,7 +58,6 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
 final class Handler {
   val endpoint       = new Endpoint(this)
   val contextManager = new ExecutionContextManager
-  val cache          = new Cache
 
   var executionService: ExecutionService = _
   var truffleContext: TruffleContext     = _
@@ -94,7 +93,6 @@ final class Handler {
       contextManager,
       endpoint,
       truffleContext,
-      cache,
       commandProcessor
     )
     val future = commandProcessor.invoke(cmd, ctx)

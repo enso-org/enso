@@ -2,7 +2,7 @@ package org.enso.interpreter.instrument
 
 import org.enso.polyglot.runtime.Runtime.Api.StackItem
 
-import scala.collection.mutable.Stack
+import scala.collection.mutable
 
 /**
   * Represents a state of an execution context.
@@ -12,7 +12,7 @@ import scala.collection.mutable.Stack
   *                       execution context
   */
 case class ExecutionContextState(
-  stack: Stack[StackItem],
+  stack: mutable.Stack[InstrumentFrame],
   visualisations: VisualisationHolder
 )
 
@@ -21,6 +21,20 @@ object ExecutionContextState {
   /**
     * Returns empty state.
     */
-  def empty = ExecutionContextState(Stack.empty, VisualisationHolder.empty)
+  def empty: ExecutionContextState =
+    ExecutionContextState(mutable.Stack.empty, VisualisationHolder.empty)
+}
 
+/**
+  * Stack frame of the context.
+  *
+  * @param item the stack item.
+  * @param cache the cache of this stack frame.
+  */
+case class InstrumentFrame(item: StackItem, cache: RuntimeCache)
+
+case object InstrumentFrame {
+
+  def apply(item: StackItem): InstrumentFrame =
+    new InstrumentFrame(item, new RuntimeCache)
 }

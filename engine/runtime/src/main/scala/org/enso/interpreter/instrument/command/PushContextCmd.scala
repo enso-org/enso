@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument.command
 
+import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
@@ -23,7 +24,9 @@ class PushContextCmd(
       val payload = request.stackItem match {
         case call: Api.StackItem.ExplicitCall if stack.isEmpty =>
           ctx.contextManager.push(request.contextId, request.stackItem)
-          withContext(runProgram(request.contextId, List(call))) match {
+          withContext(
+            runProgram(request.contextId, List(InstrumentFrame(call)))
+          ) match {
             case Right(()) => Api.PushContextResponse(request.contextId)
             case Left(e)   => Api.ExecutionFailed(request.contextId, e)
           }

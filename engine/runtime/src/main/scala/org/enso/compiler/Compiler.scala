@@ -26,6 +26,7 @@ import org.enso.interpreter.runtime.scope.{
   TopLevelScope
 }
 import org.enso.polyglot.LanguageInfo
+import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
 /**
@@ -85,13 +86,14 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, scope: ModuleScope): Unit = {
+  def run(source: Source, scope: ModuleScope): IR = {
     val moduleContext  = ModuleContext(Some(freshNameSupply))
     val parsedAST      = parse(source)
     val expr           = generateIR(parsedAST)
     val compilerOutput = runCompilerPhases(expr, moduleContext)
     runErrorHandling(compilerOutput, source, moduleContext)
     truffleCodegen(compilerOutput, source, scope)
+    expr
   }
 
   /**
@@ -103,7 +105,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile, scope: ModuleScope): Unit = {
+  def run(file: TruffleFile, scope: ModuleScope): IR = {
     run(Source.newBuilder(LanguageInfo.ID, file).build, scope)
   }
 
@@ -149,7 +151,7 @@ class Compiler(
   def processImport(qualifiedName: String): ModuleScope = {
     val module = topScope.getModule(qualifiedName)
     if (module.isPresent) {
-      module.get().getScope(context)
+      module.get().parseScope(context)
     } else {
       throw new ModuleDoesNotExistException(qualifiedName)
     }
@@ -163,6 +165,15 @@ class Compiler(
     */
   def parse(source: Source): AST =
     Parser().runWithIds(source.getCharacters.toString)
+
+  /**
+    * Parses the metadata of the provided language sources.
+    *
+    * @param source the code to parse
+    * @return the source metadata
+    */
+  def parseMeta(source: CharSequence): IDMap =
+    Parser().splitMeta(source.toString)._2
 
   /**
     * Lowers the input AST to the compiler's high-level intermediate

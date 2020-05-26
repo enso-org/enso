@@ -5,7 +5,12 @@ import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.interpreter.instrument.Cache;
+import java.io.File;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+import org.enso.compiler.context.Changeset;
+import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.Context;
@@ -13,18 +18,11 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-
-import java.io.File;
-
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
 
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
@@ -60,7 +58,7 @@ public class ExecutionService {
 
   private Optional<FunctionCallInstrumentationNode.FunctionCall> prepareFunctionCall(
       Module module, String consName, String methodName) {
-    ModuleScope scope = module.getScope(context);
+    ModuleScope scope = module.parseScope(context);
     Optional<AtomConstructor> atomConstructorMay = scope.getConstructor(consName);
     if (!atomConstructorMay.isPresent()) {
       return Optional.empty();
@@ -86,7 +84,7 @@ public class ExecutionService {
    */
   public void execute(
       FunctionCallInstrumentationNode.FunctionCall call,
-      Cache cache,
+      RuntimeCache cache,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
@@ -122,7 +120,7 @@ public class ExecutionService {
       File modulePath,
       String consName,
       String methodName,
-      Cache cache,
+      RuntimeCache cache,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
@@ -207,17 +205,20 @@ public class ExecutionService {
    *
    * @param path the module to edit.
    * @param edits the edits to apply.
+   * @return an object for computing the changed IR nodes.
    */
-  public void modifyModuleSources(File path, List<model.TextEdit> edits) {
+  public Optional<Changeset> modifyModuleSources(File path, List<model.TextEdit> edits) {
     Optional<Module> moduleMay = context.getModuleForFile(path);
     if (!moduleMay.isPresent()) {
-      return;
+      return Optional.empty();
     }
     Module module = moduleMay.get();
     if (module.getLiteralSource() == null) {
-      return;
+      return Optional.empty();
     }
+    Changeset dc = new Changeset(module.getLiteralSource().toString(), module.getIr());
     Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);
     editedSource.ifPresent(module::setLiteralSource);
+    return Optional.of(dc);
   }
 }

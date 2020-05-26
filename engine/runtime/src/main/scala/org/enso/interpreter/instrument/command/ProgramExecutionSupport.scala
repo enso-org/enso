@@ -11,7 +11,11 @@ import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionValue
 }
 import org.enso.interpreter.instrument.command.ProgramExecutionSupport.ExecutionItem
-import org.enso.interpreter.instrument.Visualisation
+import org.enso.interpreter.instrument.{
+  InstrumentFrame,
+  RuntimeCache,
+  Visualisation
+}
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.pkg.QualifiedName
@@ -47,13 +51,14 @@ trait ProgramExecutionSupport {
     *
     * @param executionItem an execution item
     * @param callStack a call stack
+    * @param cache the runtime cache
     * @param valueCallback a listener of computed values
-    * @param ctx a runtime context
     */
   @scala.annotation.tailrec
   final def runProgram(
     executionItem: ExecutionItem,
     callStack: List[UUID],
+    cache: RuntimeCache,
     valueCallback: Consumer[ExpressionValue]
   )(implicit ctx: RuntimeContext): Unit = {
     var enterables: Map[UUID, FunctionCall] = Map()
@@ -67,14 +72,14 @@ trait ProgramExecutionSupport {
           file,
           cons,
           function,
-          ctx.cache,
+          cache,
           valsCallback,
           callablesCallback
         )
       case ExecutionItem.CallData(callData) =>
         ctx.executionService.execute(
           callData,
-          ctx.cache,
+          cache,
           valsCallback,
           callablesCallback
         )
@@ -85,7 +90,7 @@ trait ProgramExecutionSupport {
       case item :: tail =>
         enterables.get(item) match {
           case Some(call) =>
-            runProgram(ExecutionItem.CallData(call), tail, valueCallback)
+            runProgram(ExecutionItem.CallData(call), tail, cache, valueCallback)
           case None =>
             ()
         }
@@ -102,28 +107,36 @@ trait ProgramExecutionSupport {
     */
   def runProgram(
     contextId: Api.ContextId,
-    stack: List[Api.StackItem]
+    stack: List[InstrumentFrame]
   )(implicit ctx: RuntimeContext): Either[String, Unit] = {
+    @scala.annotation.tailrec
     def unwind(
-      stack: List[Api.StackItem],
+      stack: List[InstrumentFrame],
       explicitCalls: List[Api.StackItem.ExplicitCall],
-      localCalls: List[UUID]
-    ): (List[Api.StackItem.ExplicitCall], List[UUID]) =
+      localCalls: List[UUID],
+      caches: List[RuntimeCache]
+    ): (Option[Api.StackItem.ExplicitCall], List[UUID], Option[RuntimeCache]) =
       stack match {
         case Nil =>
-          (explicitCalls, localCalls)
-        case List(call: Api.StackItem.ExplicitCall) =>
-          (List(call), localCalls)
-        case Api.StackItem.LocalCall(id) :: xs =>
-          unwind(xs, explicitCalls, id :: localCalls)
+          (explicitCalls.lastOption, localCalls, caches.lastOption)
+        case List(InstrumentFrame(call: Api.StackItem.ExplicitCall, cache)) =>
+          (Some(call), localCalls, Some(cache))
+        case InstrumentFrame(Api.StackItem.LocalCall(id), cache) :: xs =>
+          unwind(xs, explicitCalls, id :: localCalls, cache :: caches)
       }
-    val (explicitCalls, localCalls) = unwind(stack, Nil, Nil)
+    val (explicitCallOpt, localCalls, cacheOpt) = unwind(stack, Nil, Nil, Nil)
     for {
-      stackItem <- Either.fromOption(explicitCalls.headOption, "stack is empty")
+      stackItem <- Either.fromOption(explicitCallOpt, "stack is empty")
+      cache     <- Either.fromOption(cacheOpt, "cache does not exist")
       item = toExecutionItem(stackItem)
       _ <- Either
         .catchNonFatal(
-          runProgram(item, localCalls, onExpressionValueComputed(contextId, _))
+          runProgram(
+            item,
+            localCalls,
+            cache,
+            onExpressionValueComputed(contextId, _)
+          )
         )
         .leftMap { ex =>
           ctx.executionService.getLogger.log(

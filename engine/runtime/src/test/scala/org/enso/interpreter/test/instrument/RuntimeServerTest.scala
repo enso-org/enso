@@ -5,20 +5,12 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
 
-import org.enso.interpreter.instrument.{
-  IdExecutionInstrument,
-  RuntimeServerInstrument
-}
+import org.enso.interpreter.instrument.{IdExecutionInstrument, RuntimeServerInstrument, InstrumentFrame}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot.runtime.Runtime.Api.VisualisationUpdate
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
-import org.enso.polyglot.{
-  LanguageInfo,
-  PolyglotContext,
-  RuntimeOptions,
-  RuntimeServerInfo
-}
+import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions, RuntimeServerInfo}
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -463,7 +455,7 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List()
   }
 
-  it should "recompute expressions" in {
+  it should "recompute expressions without invalidation" in {
     val mainFile  = context.writeMain(context.Main.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
@@ -491,14 +483,120 @@ class RuntimeServerTest
       None
     )
 
+    // override
+    overrideCache(contextId, context.Main.idMainX, 6L)
+    overrideCache(contextId, context.Main.idMainY, 45L)
+    overrideCache(contextId, context.Main.idMainZ, 50L)
+
     // recompute
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+    )
+    Set.fill(2)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
+      None
+    )
+  }
+
+  it should "recompute expressions invalidating all" in {
+    val mainFile  = context.writeMain(context.Main.code)
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    Set.fill(5)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
+      Some(context.Main.Update.mainX(contextId)),
+      Some(context.Main.Update.mainY(contextId)),
+      Some(context.Main.Update.mainZ(contextId)),
+      None
+    )
+
+    // override
+    overrideCache(contextId, context.Main.idMainX, 6L)
+    overrideCache(contextId, context.Main.idMainY, 45L)
+    overrideCache(contextId, context.Main.idMainZ, 50L)
+
+    // recompute
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(Api.InvalidatedExpressions.All())
+        )
+      )
     )
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
       Some(context.Main.Update.mainY(contextId)),
+      Some(context.Main.Update.mainZ(contextId)),
+      None
+    )
+  }
+
+  it should "recompute expressions invalidating some" in {
+    val mainFile  = context.writeMain(context.Main.code)
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    Set.fill(5)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
+      Some(context.Main.Update.mainX(contextId)),
+      Some(context.Main.Update.mainY(contextId)),
+      Some(context.Main.Update.mainZ(contextId)),
+      None
+    )
+
+    // override
+    overrideCache(contextId, context.Main.idMainX, 6L)
+    overrideCache(contextId, context.Main.idMainY, 45L)
+    overrideCache(contextId, context.Main.idMainZ, 50L)
+
+    // recompute
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(
+            Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainZ))
+          )
+        )
+      )
+    )
+    Set.fill(3)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(context.Main.Update.mainZ(contextId)),
       None
     )
@@ -578,8 +676,7 @@ class RuntimeServerTest
     )
 
     // override
-    context.instrument.getHandler.cache
-      .put(context.Main.idMainX, 1L.asInstanceOf[AnyRef])
+    overrideCache(contextId, context.Main.idMainX, 1L.asInstanceOf[AnyRef])
 
     // recompute
     context.send(
@@ -624,10 +721,8 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("I'm expensive!", "I'm more expensive!")
 
     // override
-    context.instrument.getHandler.cache
-      .put(context.Main2.idMainY, 1L.asInstanceOf[AnyRef])
-    context.instrument.getHandler.cache
-      .put(context.Main2.idMainZ, 10L.asInstanceOf[AnyRef])
+    overrideCache(contextId, context.Main2.idMainY, 1L.asInstanceOf[AnyRef])
+    overrideCache(contextId, context.Main2.idMainZ, 10L.asInstanceOf[AnyRef])
 
     // recompute
     context.send(
@@ -911,4 +1006,8 @@ class RuntimeServerTest
   private def send(msg: ApiRequest): Unit =
     context.send(Api.Request(UUID.randomUUID(), msg))
 
+  private def overrideCache(contextId: UUID, key: UUID, value: Any): Unit = {
+    val stack = context.instrument.getHandler.contextManager.getStack(contextId)
+    stack.headOption.foreach(_.cache.put(key, value))
+  }
 }

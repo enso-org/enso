@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument.command
 
+import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
@@ -23,6 +24,10 @@ class RecomputeContextCmd(
       val payload = if (stack.isEmpty) {
         Api.EmptyStackError(request.contextId)
       } else {
+        CacheInvalidation.run(
+          stack,
+          request.expressions.toSeq.map(CacheInvalidation(_))
+        )
         withContext(runProgram(request.contextId, stack.toList)) match {
           case Right(()) => Api.RecomputeContextResponse(request.contextId)
           case Left(e)   => Api.ExecutionFailed(request.contextId, e)

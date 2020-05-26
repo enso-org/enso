@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument.command
 
+import org.enso.interpreter.instrument.InstrumentFrame
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
@@ -20,9 +21,9 @@ class PopContextCmd(
   override def execute(implicit ctx: RuntimeContext): Unit = {
     if (ctx.contextManager.get(request.contextId).isDefined) {
       val payload = ctx.contextManager.pop(request.contextId) match {
-        case Some(_: Api.StackItem.ExplicitCall) =>
+        case Some(InstrumentFrame(_: Api.StackItem.ExplicitCall, _)) =>
           Api.PopContextResponse(request.contextId)
-        case Some(_: Api.StackItem.LocalCall) =>
+        case Some(InstrumentFrame(_: Api.StackItem.LocalCall, _)) =>
           val stack = ctx.contextManager.getStack(request.contextId)
           withContext(runProgram(request.contextId, stack.toList)) match {
             case Right(()) => Api.PopContextResponse(request.contextId)
