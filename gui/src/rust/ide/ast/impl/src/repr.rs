@@ -208,19 +208,6 @@ has_tokens!(DanglingBase , self.base, NUMBER_BASE_SEPARATOR);
 // === Text ===
 // ============
 
-// === Indented ===
-
-/// Helper to represent line with additional spacing prepended.
-struct Indented<T>(usize,T);
-
-has_tokens!(Indented<T>, self.0, self.1);
-
-impl<T> Block<T> {
-    fn indented<'t, U>(&self, t:&'t U) -> Indented<&'t U> {
-        Indented(self.indent,t)
-    }
-}
-
 
 // === Lines ===
 
@@ -303,9 +290,9 @@ impl<T:HasTokens> HasTokens for Block<T> {
         for empty_line_space in &self.empty_lines {
             (empty_line_space,NEWLINE).feed_to(consumer);
         }
-        self.indented(&self.first_line).feed_to(consumer);
+        (self.indent, &self.first_line).feed_to(consumer);
         for line in &self.lines {
-            (NEWLINE,self.indented(line)).feed_to(consumer);
+            (NEWLINE, line.elem.as_ref().map(|_|self.indent), line).feed_to(consumer);
         }
     }
 }

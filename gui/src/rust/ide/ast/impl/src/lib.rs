@@ -1506,7 +1506,7 @@ mod tests {
         ];
         let is_orphan     = false;
         let block         = Block {ty,indent,empty_lines,first_line,lines,is_orphan};
-        let expected_repr = "\n     \n    head   \n    tail0  \n     \n    tail2   ";
+        let expected_repr = "\n     \n    head   \n    tail0  \n \n    tail2   ";
         assert_eq!(block.repr(), expected_repr);
 
         let all_lines = block.all_lines();
