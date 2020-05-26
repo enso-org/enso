@@ -64,6 +64,12 @@ impl Fixture {
 
     // === Test Methods ===
 
+    fn blank_line_round_trip(&mut self) {
+        let program = "main = \n    foo\n   \n    bar";
+        let ast     = self.parser.parse_module(program,default()).unwrap();
+        assert_eq!(ast.repr(),program);
+    }
+
     fn deserialize_metadata(&mut self) {
         let term = ast::Module {lines: vec![ast::BlockLine {elem:None,off:0}]};
         let ast  = known::KnownAst::new_no_id(term);
@@ -374,6 +380,7 @@ impl Fixture {
         // * Opr (doesn't parse on its own, covered by Infix and other)
         // * Module (covered by every single test, as parser wraps everything
         //   into module)
+        self.blank_line_round_trip();
         self.deserialize_metadata();
         self.deserialize_unrecognized();
         self.deserialize_invalid_quote();
