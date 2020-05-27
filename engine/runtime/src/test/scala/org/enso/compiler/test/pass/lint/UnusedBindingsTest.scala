@@ -1,5 +1,6 @@
 package org.enso.compiler.test.pass.lint
 
+import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
@@ -18,20 +19,9 @@ class UnusedBindingsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val passes: List[IRPass] = List(
-    GenerateMethodBodies,
-    SectionsToBinOp,
-    OperatorToFunction,
-    LambdaShorthandToLambda,
-    IgnoredBindings,
-    AliasAnalysis,
-    LambdaConsolidate,
-    AliasAnalysis,
-    DemandAnalysis,
-    ApplicationSaturation,
-    TailCall,
-    DataflowAnalysis
-  )
+  val passes = new Passes
+
+  val precursorPasses: List[IRPass] = passes.getPrecursors(UnusedBindings).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
     ApplicationSaturation -->> ApplicationSaturation.Configuration(),
@@ -39,7 +29,7 @@ class UnusedBindingsTest extends CompilerTest {
   )
 
   implicit val passManager: PassManager =
-    new PassManager(passes, passConfiguration)
+    new PassManager(precursorPasses, passConfiguration)
 
   /** Adds an extension method for running linting on the input IR.
     *

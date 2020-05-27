@@ -1,11 +1,8 @@
 package org.enso.compiler.test.pass.resolve
 
+import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  LambdaShorthandToLambda
-}
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.compiler.pass.resolve.IgnoredBindings.State
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
@@ -15,15 +12,14 @@ class IgnoredBindingsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val passes: List[IRPass] = List(
-    GenerateMethodBodies,
-    LambdaShorthandToLambda
-  )
+  val passes = new Passes
+
+  val precursorPasses: List[IRPass] = passes.getPrecursors(IgnoredBindings).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(passes, passConfiguration)
+    new PassManager(precursorPasses, passConfiguration)
 
   /** Adds an extension method for running desugaring on the input IR.
     *

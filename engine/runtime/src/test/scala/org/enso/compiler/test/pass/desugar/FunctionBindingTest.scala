@@ -1,5 +1,6 @@
 package org.enso.compiler.test.pass.desugar
 
+import org.enso.compiler.Passes
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding}
@@ -10,7 +11,9 @@ class FunctionBindingTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val precursorPasses: List[IRPass] = List(ComplexType)
+  val passes = new Passes
+
+  val precursorPasses: List[IRPass] = passes.getPrecursors(FunctionBinding).get
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =

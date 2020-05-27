@@ -8,6 +8,7 @@ import org.enso.compiler.test.CompilerTest
 import org.enso.syntax.text.AST
 
 class GatherDiagnosticsTest extends CompilerTest {
+
   "Error Gathering" should {
     val error1 = IR.Error.Syntax(
       AST.Invalid.Unrecognized("@@"),

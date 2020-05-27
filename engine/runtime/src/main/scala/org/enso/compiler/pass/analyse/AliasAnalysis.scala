@@ -6,6 +6,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
+import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies, LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
 import org.enso.syntax.text.Debug
 
 import scala.collection.mutable
@@ -43,21 +44,22 @@ import scala.reflect.ClassTag
   * - A [[org.enso.compiler.pass.PassConfiguration]] containing an instance of
   *   [[AliasAnalysis.Configuration]].
   * - A [[org.enso.interpreter.runtime.scope.LocalScope]], where relevant.
-  *
-  * It must have the following passes run before it:
-  *
-  * - [[org.enso.compiler.pass.desugar.FunctionBinding]]
-  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
-  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
-  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
-  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]],
   */
 case object AliasAnalysis extends IRPass {
 
   /** Alias information for the IR. */
   override type Metadata = Info
-
   override type Config = Configuration
+
+  override val precursorPasses: Seq[IRPass] = List(
+    FunctionBinding,
+    GenerateMethodBodies,
+    SectionsToBinOp,
+    OperatorToFunction,
+    LambdaShorthandToLambda,
+  )
+
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Performs alias analysis on a module.
     *

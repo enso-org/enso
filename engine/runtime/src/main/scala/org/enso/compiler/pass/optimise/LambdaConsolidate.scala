@@ -7,6 +7,13 @@ import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
+import org.enso.compiler.pass.desugar.{
+  GenerateMethodBodies,
+  LambdaShorthandToLambda,
+  OperatorToFunction,
+  SectionsToBinOp
+}
+import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.syntax.text.Location
 
 /** This pass consolidates chains of lambdas into multi-argument lambdas
@@ -36,19 +43,22 @@ import org.enso.syntax.text.Location
   * This pass requires the context to provide:
   *
   * - A [[FreshNameSupply]].
-  *
-  * It must have the following passes run before it:
-  *
-  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
-  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
-  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
-  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
-  * - [[org.enso.compiler.pass.resolve.IgnoredBindings]]
-  * - [[AliasAnalysis]], which must be run _directly_ before this pass.
   */
 case object LambdaConsolidate extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
+
+  override val precursorPasses: Seq[IRPass] = List(
+    GenerateMethodBodies,
+    SectionsToBinOp,
+    OperatorToFunction,
+    LambdaShorthandToLambda,
+    IgnoredBindings,
+    AliasAnalysis
+  )
+  override val invalidatedPasses: Seq[IRPass] = List(
+    AliasAnalysis
+  )
 
   /** Performs lambda consolidation on a module.
     *

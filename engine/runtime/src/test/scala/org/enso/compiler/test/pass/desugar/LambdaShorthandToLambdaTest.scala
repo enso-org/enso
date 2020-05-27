@@ -1,13 +1,9 @@
 package org.enso.compiler.test.pass.desugar
 
+import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  LambdaShorthandToLambda,
-  OperatorToFunction,
-  SectionsToBinOp
-}
+import org.enso.compiler.pass.desugar.LambdaShorthandToLambda
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 
@@ -15,16 +11,15 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val passes: List[IRPass] = List(
-    GenerateMethodBodies,
-    SectionsToBinOp,
-    OperatorToFunction
-  )
+  val passes = new Passes
+
+  val precursorPasses: List[IRPass] =
+    passes.getPrecursors(LambdaShorthandToLambda).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(passes, passConfiguration)
+    new PassManager(precursorPasses, passConfiguration)
 
   /** Adds an extension method for running desugaring on the input IR.
     *

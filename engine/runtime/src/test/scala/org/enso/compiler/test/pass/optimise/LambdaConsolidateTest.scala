@@ -1,5 +1,6 @@
 package org.enso.compiler.test.pass.optimise
 
+import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
@@ -13,11 +14,10 @@ class LambdaConsolidateTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val precursorPasses: List[IRPass] = List(
-    GenerateMethodBodies,
-    OperatorToFunction,
-    AliasAnalysis
-  )
+  val passes = new Passes
+
+  val precursorPasses: List[IRPass] =
+    passes.getPrecursors(LambdaConsolidate).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
     AliasAnalysis -->> AliasAnalysis.Configuration()

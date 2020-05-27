@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies, LambdaShorthandToLambda}
 
 /** This pass translates ignored bindings (of the form `_`) into fresh names
   * internally, as well as marks all bindings as whether or not they were
@@ -15,15 +16,17 @@ import org.enso.compiler.pass.IRPass
   * This pass requires the context to provide:
   *
   * - A [[FreshNameSupply]].
-  *
-  * It must have the following passes run before it:
-  *
-  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
-  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
   */
 case object IgnoredBindings extends IRPass {
   override type Metadata = State
   override type Config   = IRPass.Configuration.Default
+
+  override val precursorPasses: Seq[IRPass] = List(
+    ComplexType,
+    GenerateMethodBodies,
+    LambdaShorthandToLambda
+  )
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Desugars ignored bindings for a module.
     *

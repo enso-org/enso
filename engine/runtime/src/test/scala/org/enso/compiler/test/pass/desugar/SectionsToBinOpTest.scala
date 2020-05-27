@@ -1,5 +1,6 @@
 package org.enso.compiler.test.pass.desugar
 
+import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
@@ -10,14 +11,14 @@ class SectionsToBinOpTest extends CompilerTest {
 
   // === Test Configuration ===================================================
 
-  val passes: List[IRPass] = List(
-    GenerateMethodBodies
-  )
+  val passes = new Passes
+
+  val precursorPasses: List[IRPass] = passes.getPrecursors(SectionsToBinOp).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(passes, passConfiguration)
+    new PassManager(precursorPasses, passConfiguration)
 
   /** Adds an extension method for running desugaring on the input IR.
     *

@@ -30,6 +30,12 @@ trait IRPass {
   /** The type of configuration for the pass. */
   type Config <: IRPass.Configuration
 
+  /** The passes that this pass depends _directly_ on to run. */
+  val precursorPasses: Seq[IRPass]
+
+  /** The passes that are invalidated by running this pass. */
+  val invalidatedPasses: Seq[IRPass]
+
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.
     *

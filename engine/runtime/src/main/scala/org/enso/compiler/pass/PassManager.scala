@@ -4,33 +4,69 @@ import java.util.UUID
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.exception.CompilerError
 
+import scala.annotation.unused
 import scala.collection.mutable
+
+// TODO [AA] In the future, the pass ordering should be _computed_ from the list
+//  of available passes, rather than just verified.
 
 /** The pass manager is responsible for executing the provided passes in order.
   *
-  * @param passOrdering the specification of the ordering for the passes
+  * @param passes the specification of the ordering for the passes
   * @param passConfiguration the configuration for the passes
   */
 //noinspection DuplicatedCode
 class PassManager(
-  passOrdering: List[IRPass],
+  passes: List[IRPass],
   passConfiguration: PassConfiguration
 ) {
-  sealed case class PassCount(available: Int = 1, completed: Int = 0)
+  val passOrdering: List[IRPass] = verifyPassOrdering(passes)
+
+  /** Computes a valid pass ordering for the compiler.
+    *
+    * @param passes the input list of passes
+    * @throws CompilerError if a valid pass ordering cannot be computed
+    * @return a valid pass ordering for the compiler, based on `passes`
+    */
+  @throws[CompilerError]
+  def verifyPassOrdering(passes: List[IRPass]): List[IRPass] = {
+    var validPasses: Set[IRPass] = Set()
+
+    passes.foreach(pass => {
+      val prereqsSatisfied =
+        pass.precursorPasses.forall(validPasses.contains(_))
+
+      if (prereqsSatisfied) {
+        validPasses += pass
+      } else {
+        val missingPrereqsStr =
+          pass.precursorPasses.filterNot(validPasses.contains(_)).mkString(", ")
+
+        throw new CompilerError(
+          s"The pass ordering is invalid. $pass is missing valid results " +
+          s"for: $missingPrereqsStr"
+        )
+      }
+
+      pass.invalidatedPasses.foreach(p => validPasses -= p)
+    })
+
+    passes
+  }
 
   /** Calculates the number of times each pass occurs in the pass ordering.
     *
     * @return the a mapping from the pass identifier to the number of times the
-    *         pass occurs
-    */
-  def calculatePassCounts: mutable.Map[UUID, PassCount] = {
+    *         pass occurs */
+  private def calculatePassCounts: mutable.Map[UUID, PassCount] = {
     val passCounts: mutable.Map[UUID, PassCount] = mutable.Map()
 
     for (pass <- passOrdering) {
       passCounts.get(pass.key) match {
         case Some(counts) =>
-          passCounts(pass.key) = counts.copy(available = counts.available + 1)
+          passCounts(pass.key) = counts.copy(expected = counts.expected + 1)
         case None => passCounts(pass.key) = PassCount()
       }
     }
@@ -60,7 +96,7 @@ class PassManager(
         .get(pass)
         .foreach(c =>
           c.shouldWriteToContext =
-            passCount.available - passCount.completed == 1
+            passCount.expected - passCount.completed == 1
         )
 
       val result = pass.runModule(intermediateIR, newContext)
@@ -94,7 +130,7 @@ class PassManager(
         .get(pass)
         .foreach(c =>
           c.shouldWriteToContext =
-            passCount.available - passCount.completed == 1
+            passCount.expected - passCount.completed == 1
         )
 
       val result = pass.runExpression(intermediateIR, newContext)
@@ -104,4 +140,11 @@ class PassManager(
       result
     })
   }
+
+  /** The counts of passes running.
+    *
+    * @param expected how many runs should occur
+    * @param completed how many runs have been completed
+    */
+  sealed private case class PassCount(expected: Int = 1, completed: Int = 0)
 }

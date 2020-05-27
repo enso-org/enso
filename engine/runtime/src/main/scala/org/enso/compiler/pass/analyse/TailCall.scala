@@ -5,6 +5,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.desugar._
 
 /** This pass performs tail call analysis on the Enso IR.
   *
@@ -15,14 +16,6 @@ import org.enso.compiler.pass.IRPass
   * This pass requires the context to provide:
   *
   * - The tail position of its expression, where relevant.
-  *
-  * It must have the following passes run before it:
-  *
-  * - [[org.enso.compiler.pass.desugar.FunctionBinding]]
-  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
-  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
-  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
-  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
   */
 case object TailCall extends IRPass {
 
@@ -30,6 +23,16 @@ case object TailCall extends IRPass {
   override type Metadata = TailPosition
 
   override type Config = IRPass.Configuration.Default
+
+  override val precursorPasses: Seq[IRPass] = List(
+    FunctionBinding,
+    GenerateMethodBodies,
+    SectionsToBinOp,
+    OperatorToFunction,
+    LambdaShorthandToLambda
+  )
+
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Analyses tail call state for expressions in a module.
     *

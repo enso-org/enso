@@ -1,5 +1,6 @@
 package org.enso.compiler.test.pass.analyse
 
+import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.{Atom, Method}
@@ -15,14 +16,10 @@ class AliasAnalysisTest extends CompilerTest {
 
   // === Utilities ============================================================
 
+  val passes = new Passes
+
   /** The passes that need to be run before the alias analysis pass. */
-  val precursorPasses: List[IRPass] = List(
-    FunctionBinding,
-    GenerateMethodBodies,
-    SectionsToBinOp,
-    OperatorToFunction,
-    LambdaShorthandToLambda
-  )
+  val precursorPasses: List[IRPass] = passes.getPrecursors(AliasAnalysis).get
 
   val passConfig: PassConfiguration = PassConfiguration(
     AliasAnalysis -->> AliasAnalysis.Configuration(true)

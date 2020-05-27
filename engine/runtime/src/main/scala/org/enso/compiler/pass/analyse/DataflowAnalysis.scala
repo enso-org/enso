@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
+import org.enso.compiler.pass.desugar.FunctionBinding
 
 import scala.collection.mutable
 
@@ -19,20 +20,21 @@ import scala.collection.mutable
   *
   * - A [[org.enso.interpreter.runtime.scope.LocalScope]], where relevant.
   *
-  * It must have the following passes run before it:
-  *
-  * - [[org.enso.compiler.pass.desugar.FunctionBinding]]
-  * - [[AliasAnalysis]]
-  * - [[DemandAnalysis]]
-  * - [[TailCall]]
-  *
-  * It also requires that all members of [[IR.IRKind.Primitive]] have been
-  * removed from the IR by the time it runs.
+  * It requires that all members of [[IR.IRKind.Primitive]] have been removed
+  * from the IR by the time it runs.
   */
 //noinspection DuplicatedCode
 case object DataflowAnalysis extends IRPass {
   override type Metadata = DependencyInfo
   override type Config   = IRPass.Configuration.Default
+
+  override val precursorPasses: Seq[IRPass] = List(
+    AliasAnalysis,
+    DemandAnalysis,
+    TailCall
+  )
+
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the dataflow analysis process on an Enso module.
     *

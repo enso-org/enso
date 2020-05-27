@@ -1,5 +1,6 @@
 package org.enso.compiler.test.pass.analyse
 
+import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
@@ -13,12 +14,10 @@ class DemandAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
+  val passes = new Passes
+
   /** The passes that must be run before the demand analysis pass. */
-  val precursorPasses: List[IRPass] = List(
-    GenerateMethodBodies,
-    OperatorToFunction,
-    AliasAnalysis
-  )
+  val precursorPasses: List[IRPass] = passes.getPrecursors(DemandAnalysis).get
 
   val passConfig: PassConfiguration = PassConfiguration(
     AliasAnalysis -->> AliasAnalysis.Configuration()
@@ -86,10 +85,6 @@ class DemandAnalysisTest extends CompilerTest {
       val boundX = ir
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Function.Lambda]
-        .body
         .asInstanceOf[IR.Expression.Block]
         .expressions
         .head
@@ -111,10 +106,6 @@ class DemandAnalysisTest extends CompilerTest {
       val xUsage = ir
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Function.Lambda]
-        .body
 
       xUsage shouldBe an[IR.Application.Force]
       xUsage.asInstanceOf[IR.Application.Force].target shouldBe an[IR.Name]
@@ -129,10 +120,6 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       val app = ir
-        .asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Function.Lambda]
-        .body
         .asInstanceOf[IR.Function.Lambda]
         .body
         .asInstanceOf[IR.Application.Prefix]
@@ -158,10 +145,6 @@ class DemandAnalysisTest extends CompilerTest {
       val vec = ir
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Function.Lambda]
-        .body
         .asInstanceOf[IR.Application.Literal.Sequence]
 
       vec.items(0) shouldBe an[IR.Application.Force]
@@ -179,10 +162,6 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.analyse
 
       val app = ir
-        .asInstanceOf[IR.Function.Lambda]
-        .body
-        .asInstanceOf[IR.Function.Lambda]
-        .body
         .asInstanceOf[IR.Function.Lambda]
         .body
         .asInstanceOf[IR.Application.Prefix]
@@ -208,8 +187,6 @@ class DemandAnalysisTest extends CompilerTest {
         |""".stripMargin.preprocessExpression.get.analyse
 
     val body = ir
-      .asInstanceOf[IR.Function.Lambda]
-      .body
       .asInstanceOf[IR.Function.Lambda]
       .body
       .asInstanceOf[IR.Expression.Block]

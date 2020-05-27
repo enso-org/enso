@@ -3,7 +3,7 @@ package org.enso.compiler.test
 import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.PassManager
+import org.enso.compiler.pass.{IRPass, PassManager}
 import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -21,9 +21,9 @@ trait CompilerRunner {
   implicit class ToAST(source: String) {
 
     /** Produces the [[AST]] representation of [[source]].
-     *
-     * @return [[source]] as an AST
-     */
+      *
+      * @return [[source]] as an AST
+      */
     def toAST: AST = {
       val parser: Parser = Parser()
       val unresolvedAST  = parser.runWithIds(source)
@@ -162,13 +162,12 @@ trait CompilerRunner {
       * @return a method containing `ir` as its body
       */
     def asMethod: IR.Module.Scope.Definition.Method = {
-      IR.Module.Scope.Definition
-        .Method.Explicit(
-          IR.Name.Literal("TestType", None),
-          IR.Name.Literal("testMethod", None),
-          ir,
-          None
-        )
+      IR.Module.Scope.Definition.Method.Explicit(
+        IR.Name.Literal("TestType", None),
+        IR.Name.Literal("testMethod", None),
+        ir,
+        None
+      )
     }
 
     /** Hoists the provided expression as the default value of an atom argument.
@@ -195,7 +194,8 @@ trait CompilerRunner {
       * provided expression.
       *
       * The expression is used in the default for an atom argument, as in
-      * [[asAtomDefaultArg()]], and in the body of a method, as in [[asMethod()]].
+      * [[asAtomDefaultArg()]], and in the body of a method, as in
+      * [[asMethod()]].
       *
       * @return a module containing an atom def and method def using `expr`
       */

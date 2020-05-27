@@ -9,13 +9,8 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
-import org.enso.compiler.pass.PassConfiguration._
+import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.desugar._
-import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise._
-import org.enso.compiler.pass.resolve._
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
@@ -40,42 +35,9 @@ class Compiler(
   val context: Context
 ) {
 
-  val freshNameSupply = new FreshNameSupply
-
-  /** A list of the compiler phases, in the order they should be run.
-    *
-    * Please note that these passes _must_ be run in this order. While we
-    * currently can't account for the dependencies between passes in the types,
-    * they nevertheless exist.
-    */
-  val compilerPhaseOrdering: List[IRPass] = List(
-    ComplexType,
-    FunctionBinding,
-    GenerateMethodBodies,
-    SectionsToBinOp,
-    OperatorToFunction,
-    LambdaShorthandToLambda,
-    IgnoredBindings,
-    AliasAnalysis,
-    LambdaConsolidate,
-    OverloadsResolution,
-    AliasAnalysis,
-    DemandAnalysis,
-    ApplicationSaturation,
-    TailCall,
-    DataflowAnalysis,
-    UnusedBindings
-  )
-
-  /** Configuration for the passes. */
-  val passConfig: PassConfiguration = PassConfiguration(
-    ApplicationSaturation -->> ApplicationSaturation.Configuration(),
-    AliasAnalysis         -->> AliasAnalysis.Configuration()
-  )
-
-  /** The pass manager for running compiler passes. */
-  val passManager: PassManager =
-    new PassManager(compilerPhaseOrdering, passConfig)
+  val freshNameSupply: FreshNameSupply = new FreshNameSupply
+  val passes: Passes                   = new Passes
+  val passManager: PassManager         = passes.passManager
 
   /**
     * Processes the provided language sources, registering any bindings in the

@@ -1,5 +1,6 @@
 package org.enso.compiler.test.pass.desugar
 
+import org.enso.compiler.Passes
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
@@ -11,27 +12,30 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
+  val passes = new Passes
+
   implicit val ctx: ModuleContext = ModuleContext()
 
-  val precursorPasses: List[IRPass] = List(FunctionBinding)
+  val precursorPasses: List[IRPass] =
+    passes.getPrecursors(GenerateMethodBodies).get
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
     new PassManager(precursorPasses, passConfig)
 
   /** Adds an extension method to run method and method body generation on an
-   * [[IR.Module]].
-   *
-   * @param ir the module to run desugaring on
-   */
+    * [[IR.Module]].
+    *
+    * @param ir the module to run desugaring on
+    */
   implicit class DesugarModule(ir: IR.Module) {
 
     /** Runs desugaring on a module.
-     *
-     * @param moduleContext the module context in which desugaring is taking
-     *                      place
-     * @return [[ir]], with any method bodies desugared
-     */
+      *
+      * @param moduleContext the module context in which desugaring is taking
+      *                      place
+      * @return [[ir]], with any method bodies desugared
+      */
     def desugar(implicit moduleContext: ModuleContext): IR.Module = {
       GenerateMethodBodies.runModule(ir, moduleContext)
     }

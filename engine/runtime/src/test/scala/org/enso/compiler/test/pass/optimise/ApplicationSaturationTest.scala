@@ -1,12 +1,17 @@
 package org.enso.compiler.test.pass.optimise
 
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.Passes
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
-import org.enso.compiler.pass.optimise.ApplicationSaturation.{CallSaturation, FunctionSpec, Metadata}
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar.OperatorToFunction
 import org.enso.compiler.pass.optimise.ApplicationSaturation
+import org.enso.compiler.pass.optimise.ApplicationSaturation.{
+  CallSaturation,
+  FunctionSpec,
+  Metadata
+}
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.node.ExpressionNode
@@ -51,25 +56,28 @@ class ApplicationSaturationTest extends CompilerTest {
       )
     )
 
-  val passes = List(
-    OperatorToFunction,
-    AliasAnalysis
-  )
+  val passes: Passes = new Passes
+
+  val precursorPasses = passes.getPrecursors(ApplicationSaturation).get
 
   val knownPassConfig: PassConfiguration = PassConfiguration(
     ApplicationSaturation -->> knownFunctions,
     AliasAnalysis         -->> AliasAnalysis.Configuration()
   )
-  val passManagerKnown = new PassManager(passes, knownPassConfig)
+  val passManagerKnown = new PassManager(precursorPasses, knownPassConfig)
 
   val localScope: Option[LocalScope] = Some(LocalScope.root)
 
   val knownCtx = new InlineContext(
     localScope        = localScope,
-    passConfiguration = Some(knownPassConfig)
+    passConfiguration = Some(knownPassConfig),
+    freshNameSupply   = Some(new FreshNameSupply)
   )
 
-  val moduleCtx = new ModuleContext(passConfiguration = Some(knownPassConfig))
+  val moduleCtx = new ModuleContext(
+    passConfiguration = Some(knownPassConfig),
+    freshNameSupply   = Some(new FreshNameSupply)
+  )
 
   // === The Tests ============================================================
 
@@ -259,8 +267,7 @@ class ApplicationSaturationTest extends CompilerTest {
       }
 
       // The inner should be reported as under saturateD
-      result
-        .getInnerMetadata
+      result.getInnerMetadata
         .foreach(t => t shouldEqual expectedInnerMeta)
     }
 
@@ -279,8 +286,7 @@ class ApplicationSaturationTest extends CompilerTest {
       }
 
       // The inner should be reported as under saturateD
-      result
-        .getInnerMetadata
+      result.getInnerMetadata
         .foreach(t => t shouldEqual expectedInnerMeta)
     }
   }

@@ -6,6 +6,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
+import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies, LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.callable.argument.CallArgument
 
@@ -17,22 +18,22 @@ import org.enso.interpreter.runtime.callable.argument.CallArgument
   *
   * - A [[org.enso.compiler.pass.PassConfiguration]] containing an instance of
   *   [[ApplicationSaturation.Configuration]].
-  *
-  * It must have the following passes run before it:
-  *
-  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
-  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
-  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
-  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
-  * - [[org.enso.compiler.pass.resolve.IgnoredBindings]]
-  * - [[LambdaConsolidate]]
   */
 case object ApplicationSaturation extends IRPass {
 
   /** Information on the saturation state of a function. */
   override type Metadata = CallSaturation
-
   override type Config = Configuration
+
+  override val precursorPasses: Seq[IRPass] = List(
+    ComplexType,
+    GenerateMethodBodies,
+    SectionsToBinOp,
+    OperatorToFunction,
+    LambdaShorthandToLambda,
+    LambdaConsolidate
+  )
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the analysis pass, marking functions with information about their
     * argument saturation.

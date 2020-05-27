@@ -1,42 +1,50 @@
 package org.enso.compiler.test.pass.analyse
 
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.Passes
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
-import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies, OperatorToFunction}
+import org.enso.compiler.pass.desugar.{
+  FunctionBinding,
+  GenerateMethodBodies,
+  OperatorToFunction
+}
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.compiler.pass.PassConfiguration._
+import org.enso.compiler.pass.optimise.ApplicationSaturation
 
 class TailCallTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val modCtx: ModuleContext = ModuleContext()
+  val modCtx: ModuleContext = ModuleContext(
+    freshNameSupply = Some(new FreshNameSupply)
+  )
 
   val tailCtx: InlineContext = InlineContext(
     localScope       = Some(LocalScope.root),
-    isInTailPosition = Some(true)
+    isInTailPosition = Some(true),
+    freshNameSupply  = Some(new FreshNameSupply)
   )
 
   val noTailCtx: InlineContext = InlineContext(
     localScope       = Some(LocalScope.root),
-    isInTailPosition = Some(false)
+    isInTailPosition = Some(false),
+    freshNameSupply  = Some(new FreshNameSupply)
   )
 
-  val precursorPasses: List[IRPass] = List(
-    FunctionBinding,
-    GenerateMethodBodies,
-    OperatorToFunction,
-    AliasAnalysis
-  )
+  val passes = new Passes
+
+  val precursorPasses: List[IRPass] = passes.getPrecursors(TailCall).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
-    AliasAnalysis -->> AliasAnalysis.Configuration()
+    AliasAnalysis         -->> AliasAnalysis.Configuration(),
+    ApplicationSaturation -->> ApplicationSaturation.Configuration()
   )
 
   val passManager = new PassManager(precursorPasses, passConfiguration)
@@ -51,9 +59,9 @@ class TailCallTest extends CompilerTest {
       *
       * @return the IR representation of [[code]]
       */
-    def runTCAModule: IR.Module = {
+    def runTCAModule(context: ModuleContext) = {
       val preprocessed = code.toIrModule
-        .runPasses(passManager, ModuleContext())
+        .runPasses(passManager, context)
         .asInstanceOf[IR.Module]
 
       TailCall.runModule(preprocessed, modCtx)
@@ -95,7 +103,7 @@ class TailCallTest extends CompilerTest {
         |      _ -> d
         |
         |type MyAtom a b c
-        |""".stripMargin.runTCAModule
+        |""".stripMargin.runTCAModule(modCtx)
 
     "mark methods as tail" in {
       ir.bindings.head
@@ -138,12 +146,7 @@ class TailCallTest extends CompilerTest {
         .runTCAExpression(tailCtx)
         .asInstanceOf[IR.Function.Lambda]
 
-    val fnBody = ir.body
-      .asInstanceOf[IR.Function.Lambda]
-      .body
-      .asInstanceOf[IR.Function.Lambda]
-      .body
-      .asInstanceOf[IR.Expression.Block]
+    val fnBody = ir.body.asInstanceOf[IR.Expression.Block]
 
     "mark the last expression of the function as tail" in {
       fnBody.returnValue.getMetadata(TailCall) shouldEqual Some(
@@ -169,7 +172,7 @@ class TailCallTest extends CompilerTest {
           |        Lambda fn arg -> fn arg
           |
           |    x
-          |""".stripMargin.runTCAModule
+          |""".stripMargin.runTCAModule(modCtx)
 
       val caseExpr = ir.bindings.head
         .asInstanceOf[Method]
@@ -205,7 +208,7 @@ class TailCallTest extends CompilerTest {
           |Foo.bar = a ->
           |    case a of
           |      Lambda fn arg -> fn arg
-          |""".stripMargin.runTCAModule
+          |""".stripMargin.runTCAModule(modCtx)
 
       val caseExpr = ir.bindings.head
         .asInstanceOf[Method]
@@ -238,7 +241,7 @@ class TailCallTest extends CompilerTest {
       """
         |Foo.bar =
         |   IO.println "AAAAA"
-        |""".stripMargin.runTCAModule.bindings.head.asInstanceOf[Method]
+        |""".stripMargin.runTCAModule(modCtx).bindings.head.asInstanceOf[Method]
     val tailCallBody = tailCall.body
       .asInstanceOf[IR.Function.Lambda]
       .body
@@ -249,7 +252,7 @@ class TailCallTest extends CompilerTest {
         |Foo.bar =
         |    a = b c d
         |    a
-        |""".stripMargin.runTCAModule.bindings.head.asInstanceOf[Method]
+        |""".stripMargin.runTCAModule(modCtx).bindings.head.asInstanceOf[Method]
     val nonTailCallBody = nonTailCall.body
       .asInstanceOf[IR.Function.Lambda]
       .body
@@ -298,13 +301,9 @@ class TailCallTest extends CompilerTest {
         |    d = a + b
         |    mul = a -> b -> a * b
         |    mul c d
-        |""".stripMargin.runTCAModule.bindings.head.asInstanceOf[Method]
+        |""".stripMargin.runTCAModule(modCtx).bindings.head.asInstanceOf[Method]
 
     val block = ir.body
-      .asInstanceOf[IR.Function.Lambda]
-      .body
-      .asInstanceOf[IR.Function.Lambda]
-      .body
       .asInstanceOf[IR.Function.Lambda]
       .body
       .asInstanceOf[IR.Expression.Block]

@@ -1,13 +1,13 @@
 package org.enso.compiler.test.pass.analyse
 
+import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
-import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies, OperatorToFunction}
-import org.enso.compiler.pass.optimise.LambdaConsolidate
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
+import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
@@ -18,20 +18,15 @@ class DataflowAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
+  val passes = new Passes
+
   /** The passes that must be run before the dataflow analysis pass. */
-  val precursorPasses: List[IRPass] = List(
-    FunctionBinding,
-    GenerateMethodBodies,
-    OperatorToFunction,
-    AliasAnalysis,
-    LambdaConsolidate,
-    AliasAnalysis,
-    DemandAnalysis,
-    TailCall
-  )
+  val precursorPasses: List[IRPass] =
+    passes.getPrecursors(DataflowAnalysis).get
 
   val passConfig: PassConfiguration = PassConfiguration(
-    AliasAnalysis -->> AliasAnalysis.Configuration()
+    AliasAnalysis         -->> AliasAnalysis.Configuration(),
+    ApplicationSaturation -->> ApplicationSaturation.Configuration()
   )
 
   implicit val passManager: PassManager =
@@ -780,19 +775,16 @@ class DataflowAnalysisTest extends CompilerTest {
       val lam = ir.asInstanceOf[IR.Function.Lambda]
       val argX =
         lam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
-      val body = lam.body.asInstanceOf[IR.Application.Force]
-      val xUse = body.target.asInstanceOf[IR.Name.Literal]
+      val xUse = lam.body.asInstanceOf[IR.Name.Literal]
 
       // The IDs
       val lamId  = mkStaticDep(lam.getId)
       val argXId = mkStaticDep(argX.getId)
-      val bodyId = mkStaticDep(body.getId)
       val xUseId = mkStaticDep(xUse.getId)
 
       // The Test
       depInfo.getDirect(argXId) shouldEqual Some(Set(xUseId))
-      depInfo.getDirect(xUseId) shouldEqual Some(Set(bodyId))
-      depInfo.getDirect(bodyId) shouldEqual Some(Set(lamId))
+      depInfo.getDirect(xUseId) shouldEqual Some(Set(lamId))
     }
 
     "work properly for blocks" in {

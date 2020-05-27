@@ -5,6 +5,8 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
+import org.enso.compiler.pass.desugar._
+import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.IgnoredBindings
 
 import scala.annotation.unused
@@ -15,19 +17,21 @@ import scala.annotation.unused
   * This pass requires the context to provide:
   *
   * - Nothing
-  *
-  * It must have the following passes run before it:
-  *
-  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
-  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
-  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
-  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
-  * - [[IgnoredBindings]]
-  * - [[org.enso.compiler.pass.optimise.LambdaConsolidate]]
   */
 case object UnusedBindings extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
+
+  override val precursorPasses: Seq[IRPass] = List(
+    ComplexType,
+    GenerateMethodBodies,
+    SectionsToBinOp,
+    OperatorToFunction,
+    LambdaShorthandToLambda,
+    IgnoredBindings,
+    LambdaConsolidate
+  )
+  override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Lints a module.
     *
