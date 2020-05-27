@@ -39,7 +39,7 @@ impl From<&str> for EnsoType {
 }
 
 /// Contains general information about a visualization.
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,PartialEq)]
 #[allow(missing_docs)]
 pub struct Signature {
     pub name        : String,

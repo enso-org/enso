@@ -57,8 +57,6 @@ wasm_bindgen_test_configure!(run_in_browser);
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 async fn file_operations() {
-    ensogl::system::web::set_stdout();
-
     let ws        = WebSocket::new_opened(default(),SERVER_ENDPOINT).await;
     let ws        = ws.expect("Couldn't connect to WebSocket server.");
     let client    = Client::new(ws);
@@ -201,7 +199,6 @@ async fn file_operations() {
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 async fn file_events() {
-    ensogl::system::web::set_stdout();
     let ws         = WebSocket::new_opened(default(),SERVER_ENDPOINT).await;
     let ws         = ws.expect("Couldn't connect to WebSocket server.");
     let client     = Client::new(ws);
@@ -256,7 +253,6 @@ async fn file_events() {
 /// * establishing a binary protocol connection with Language Server
 /// * writing and reading a file using the binary protocol
 async fn binary_protocol_test() {
-    ensogl_system_web::set_stdout();
     // Setup project
     let _guard   = ide::setup_global_executor();
     let logger   = Logger::new("Test");

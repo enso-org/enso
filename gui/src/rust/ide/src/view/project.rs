@@ -87,14 +87,15 @@ impl ProjectView {
         Self::setup_theme(&application);
         let _world               = &application.display;
         // graph::register_shapes(&world);
-        let logger               = logger.sub("ProjectView");
-        let keyboard             = Keyboard::default();
-        let keyboard_bindings    = KeyboardFrpBindings::new(&logger,&keyboard);
-        let mut keyboard_actions = keyboard::Actions::new(&keyboard);
-        let resize_callback      = None;
-        let mut fonts            = font::Registry::new();
-        let layout               = ViewLayout::new(&logger,&mut keyboard_actions,&application,
-            text_controller,graph_controller,&mut fonts);
+        let logger                   = logger.sub("ProjectView");
+        let keyboard                 = Keyboard::default();
+        let keyboard_bindings        = KeyboardFrpBindings::new(&logger,&keyboard);
+        let mut keyboard_actions     = keyboard::Actions::new(&keyboard);
+        let resize_callback          = None;
+        let mut fonts                = font::Registry::new();
+        let visualization_controller = controller.visualization.clone();
+        let layout = ViewLayout::new(&logger,&mut keyboard_actions,&application, text_controller,
+            graph_controller,visualization_controller,&mut fonts).await?;
         let data = ProjectViewData {application,layout,resize_callback,controller,keyboard,
             keyboard_bindings,keyboard_actions};
         Ok(Self::new_from_data(data).init())

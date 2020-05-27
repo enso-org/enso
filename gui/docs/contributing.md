@@ -150,6 +150,6 @@ scripts which maximally automate the process:
     [official source](https://chromedriver.chromium.org/downloads) and ensure it is in your `PATH`.
 
 - **Linting**
-  Please be sure to fix all errors reported by `node ./run line` before creating a pull request to
+  Please be sure to fix all errors reported by `node ./run lint` before creating a pull request to
   this repository.
 
