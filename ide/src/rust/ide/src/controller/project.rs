@@ -6,6 +6,7 @@
 use crate::prelude::*;
 
 use crate::controller::FilePath;
+use crate::controller::Visualization;
 
 use enso_protocol::language_server;
 use enso_protocol::binary;
@@ -24,6 +25,7 @@ type ModulePath = controller::module::Path;
 #[derive(Debug)]
 pub struct Handle {
     pub language_server_rpc : Rc<language_server::Connection>,
+    pub visualization       : Visualization,
     pub language_server_bin : Rc<binary::Connection>,
     pub module_registry     : Rc<model::registry::Registry<ModulePath,model::synchronized::Module>>,
     pub parser              : Parser,
@@ -37,13 +39,15 @@ impl Handle {
     , language_server_client : language_server::Connection
     , language_server_binary : binary::Connection
     ) -> Self {
-        Handle {
-            module_registry     : default(),
-            parser              : Parser::new_or_panic(),
-            language_server_rpc : Rc::new(language_server_client),
-            language_server_bin : Rc::new(language_server_binary),
-            logger              : parent.sub("Project Controller"),
-        }
+        let module_registry         = default();
+        let parser                  = Parser::new_or_panic();
+        let language_server_rpc     = Rc::new(language_server_client);
+        let language_server_bin     = Rc::new(language_server_binary);
+        let logger                  = parent.sub("Project Controller");
+        let embedded_visualizations = default();
+        let language_server         = language_server_rpc.clone();
+        let visualization           = Visualization::new(language_server,embedded_visualizations);
+        Handle {module_registry,parser,language_server_rpc,language_server_bin,logger,visualization}
     }
 
     /// Returns a text controller for a given file path.

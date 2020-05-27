@@ -29,6 +29,18 @@ pub struct Path {
 
 }
 
+impl From<&FileSystemObject> for Path {
+    fn from(file_system_object:&FileSystemObject) -> Path {
+        match file_system_object {
+            FileSystemObject::Directory{name,path}          => path.append_im(name),
+            FileSystemObject::File{name,path}               => path.append_im(name),
+            FileSystemObject::DirectoryTruncated{name,path} => path.append_im(name),
+            FileSystemObject::Other{name,path}              => path.append_im(name),
+            FileSystemObject::SymlinkLoop{name,path,..}     => path.append_im(name)
+        }
+    }
+}
+
 impl Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "//{}/", self.root_id)?;
@@ -37,6 +49,25 @@ impl Display for Path {
 }
 
 impl Path {
+    /// Splits path into name and path to parent directory. e.g.:
+    /// Path{root_id,segments:["foo","bar","qux"]} => ("qux",Path{root_id,segments:["foo","bar"]})
+    pub fn split(mut self) -> Option<(Path,String)> {
+        self.segments.pop().map(|name| (self,name))
+    }
+
+    /// Creates a new clone appending a new `segment`.
+    pub fn append_im(&self, segment:impl Str) -> Self {
+        let mut clone = self.clone();
+        clone.segments.push(segment.into());
+        clone
+    }
+
+    /// Returns the parent `Path` if the current `Path` is not `root`.
+    pub fn parent(&self) -> Option<Self> {
+        let mut parent = self.clone();
+        parent.segments.pop().map(|_| parent)
+    }
+
     /// Returns the file name, i.e. the last segment if exists.
     pub fn file_name(&self) -> Option<&String> {
         self.segments.last()
@@ -172,6 +203,34 @@ pub enum FileSystemObject {
         target: Path,
     }
 }
+
+impl FileSystemObject {
+    /// Creates a new Directory variant.
+    pub fn new_directory(path:Path) -> Option<Self> {
+        path.split().map(|(path,name)| Self::Directory{name,path})
+    }
+
+    /// Creates a new DirectoryTruncated variant.
+    pub fn new_directory_truncated(path:Path) -> Option<Self> {
+        path.split().map(|(path,name)| Self::DirectoryTruncated{name,path})
+    }
+
+    /// Creates a new File variant.
+    pub fn new_file(path:Path) -> Option<Self> {
+        path.split().map(|(path,name)| Self::File{name,path})
+    }
+
+    /// Creates a new Other variant.
+    pub fn new_other(path:Path) -> Option<Self> {
+        path.split().map(|(path,name)| Self::Other{name,path})
+    }
+
+    /// Creates a new SymlinkLoop variant.
+    pub fn new_symlink_loop(path:Path,target:Path) -> Option<Self> {
+        path.split().map(|(path,name)| Self::SymlinkLoop{name,path,target})
+    }
+}
+
 
 
 

@@ -18,6 +18,7 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
+pub mod config;
 pub mod controller;
 pub mod double_representation;
 pub mod executor;

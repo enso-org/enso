@@ -244,7 +244,7 @@ ensogl::def_command_api! { Commands
     remove_selected_nodes,
     /// Remove all nodes from the graph.
     remove_all_nodes,
-    /// Toggle the visibility of the selected visualizations
+    /// Toggle the visibility of the selected visualizations.
     toggle_visualization_visibility,
 
 
