@@ -351,8 +351,11 @@ class IRToTruffle(
         case function: IR.Function          => processFunction(function)
         case binding: IR.Expression.Binding => processBinding(binding)
         case caseExpr: IR.Case              => processCase(caseExpr)
-        case comment: IR.Comment            => processComment(comment)
-        case err: IR.Error                  => processError(err)
+        case _: IR.Comment =>
+          throw new CompilerError(
+            "Comments should not be present during codegen."
+          )
+        case err: IR.Error => processError(err)
         case IR.Foreign.Definition(_, _, _, _, _) =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
@@ -376,18 +379,6 @@ class IRToTruffle(
     }
 
     // === Processing =========================================================
-
-    /** Performs code generation for any comments left in the Enso [[IR]].
-      *
-      * Comments do not exist at execution time as they cannot be reflected upon,
-      * and so this code generation pass just generetes code for the associated
-      * expression.
-      *
-      * @param comment the comment node to generate code for
-      * @return the truffle nodes corresponding to `comment`
-      */
-    def processComment(comment: IR.Comment): RuntimeExpression =
-      this.run(comment.commented)
 
     /** Performs code generation for an Enso block expression.
       *

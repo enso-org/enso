@@ -110,6 +110,8 @@ class MetadataStorage(
     res.metadata = this.metadata
     res
   }
+
+  override def toString: String = metadata.toString()
 }
 object MetadataStorage extends MetadataStorageSyntax {
 

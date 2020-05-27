@@ -223,13 +223,14 @@ class Parser {
   }
 
   /** Parse simple string with empty IdMap into AST. */
-  def run(input: String): AST.Module = run(new Reader(input), Nil)
+  def run(input: String): AST.Module =
+    run(new Reader(new CommentRemover(input).run), Nil)
 
   /** Parse input with provided IdMap into AST */
   def run(input: Reader, idMap: IDMap): AST.Module = {
     val tokenStream = engine.run(input)
     val spanned     = tokenStream.map(attachModuleLocations)
-    val resolved    = spanned.map(Macro.run) match {
+    val resolved = spanned.map(Macro.run) match {
       case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
         val mod2 = annotateModule(idMap, mod)
         resolveMacros(mod2).asInstanceOf[AST.Module]

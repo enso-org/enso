@@ -424,10 +424,6 @@ class ParserTest extends AnyFlatSpec with Matchers {
   """.testIdentity()
 
   """
-  # adults: old population
-  # children: new individuals from crossover
-  # mutation: new individuals from mutation
-    Selects the 'fittest' individuals from population and kills the rest!
   armageddon adults children mutants =
     log '''
       keepBest
@@ -436,7 +432,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
       `pop3`
     unique xs
       = xs.at(0.0) +: [1..length xs -1] . filter (isUnique xs) . map xs.at
-    isUnique xs i ####
+    isUnique xs i
       = xs.at(i).score != xs.at(i-1).score
     adults++children++mutants . sorted . unique . take (length pop1) . pure
   """.testIdentity()

@@ -424,4 +424,37 @@ class AstToIrTest extends CompilerTest {
         .reason shouldBe an[IR.Error.Syntax.InterfaceDefinition.type]
     }
   }
+
+  "Documentation comments" should {
+    "work at the top level" in {
+      val ir =
+        """
+          |## Some documentation for foo
+          |foo a b = a + b
+          |""".stripMargin.toIrModule.bindings.head
+
+      ir shouldBe an[IR.Comment.Documentation]
+      ir.asInstanceOf[IR.Comment.Documentation]
+        .doc shouldEqual " Some documentation for foo"
+    }
+
+    "work within top-level blocks" in {
+      val ir =
+        """
+          |a ->
+          |    ## Some docs for b
+          |    b = 1
+          |    10
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
+
+      val comment = ir.body
+        .asInstanceOf[IR.Expression.Block]
+        .expressions
+        .head
+      comment shouldBe an[IR.Comment.Documentation]
+      comment
+        .asInstanceOf[IR.Comment.Documentation]
+        .doc shouldEqual " Some docs for b"
+    }
+  }
 }

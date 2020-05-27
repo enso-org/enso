@@ -239,4 +239,22 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(20, 5, classOf[ApplicationNode])
     eval(code)
   }
+
+  "Comments" should "not break code locations" in
+  withLocationsInstrumenter { instrumenter =>
+    val code =
+      """
+        |# this is a comment
+        |#this too
+        |## But this is a doc.
+        |main = # define main
+        |    y = 1 # assign one to `y`
+        |    x = 2 # assign two to #x
+        |    # perform the addition
+        |    x + y # the addition is performed here
+        |""".stripMargin.linesIterator.mkString("\n")
+    instrumenter.assertNodeExists(82, 1 , classOf[IntegerLiteralNode])
+    instrumenter.assertNodeExists(164, 5, classOf[ApplicationNode])
+    eval(code) shouldEqual 3
+  }
 }

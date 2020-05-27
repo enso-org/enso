@@ -11,7 +11,6 @@ import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.{AST, Debug, Location}
 
 /** [[IR]] is a temporary and fairly unsophisticated internal representation
@@ -727,8 +726,8 @@ object IR {
               arguments: List[IR.DefinitionArgument] = arguments,
               body: Expression                       = body,
               location: Option[IdentifiedLocation]   = location,
-              passData: MetadataStorage              = MetadataStorage(),
-              diagnostics: DiagnosticStorage         = DiagnosticStorage(),
+              passData: MetadataStorage              = passData,
+              diagnostics: DiagnosticStorage         = diagnostics,
               id: Identifier                         = id
             ): Binding = {
               val res = Binding(
@@ -2985,26 +2984,21 @@ object IR {
   // === Comments =============================================================
 
   /** Enso comment entities. */
-  sealed trait Comment extends Expression {
+  sealed trait Comment extends Expression with Module.Scope.Definition {
     override def mapExpressions(fn: Expression => Expression):      Comment
     override def setLocation(location: Option[IdentifiedLocation]): Comment
-
-    /** The expression being commented. */
-    val commented: Expression
   }
   object Comment {
 
     /** A documentation comment in the Enso source.
       *
-      * @param commented the expression with which the comment is associated
-      * @param doc the documentation of `commented`
+      * @param doc the documentation entity
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Documentation(
-      override val commented: Expression,
-      doc: Doc,
+      doc: String,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -3014,7 +3008,6 @@ object IR {
 
       /** Creates a copy of `this`.
         *
-        * @param commented the expression with which the comment is associated
         * @param doc the documentation of `commented`
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
@@ -3023,14 +3016,13 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        commented: Expression                = commented,
-        doc: Doc                             = doc,
+        doc: String                          = doc,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Documentation = {
-        val res = Documentation(commented, doc, location, passData, diagnostics)
+        val res = Documentation(doc, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -3041,14 +3033,11 @@ object IR {
 
       override def mapExpressions(
         fn: Expression => Expression
-      ): Documentation = {
-        copy(commented = fn(commented))
-      }
+      ): Documentation = this
 
       override def toString: String =
         s"""
         |IR.Comment.Documentation(
-        |commented = $commented,
         |doc = $doc,
         |location = $location,
         |passData = ${this.showPassData},
@@ -3057,7 +3046,7 @@ object IR {
         |)
         |""".toSingleLine
 
-      override def children: List[IR] = List(commented)
+      override def children: List[IR] = List()
 
     }
   }

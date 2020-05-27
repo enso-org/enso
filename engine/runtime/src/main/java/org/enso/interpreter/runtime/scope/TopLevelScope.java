@@ -31,6 +31,7 @@ public class TopLevelScope implements TruffleObject {
   private final Map<String, Module> modules;
   private final Scope scope = Scope.newBuilder("top_scope", this).build();
 
+
   /**
    * Creates a new instance of top scope.
    *

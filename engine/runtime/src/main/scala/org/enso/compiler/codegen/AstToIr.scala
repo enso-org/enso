@@ -180,6 +180,7 @@ object AstToIr {
           translateExpression(body),
           getIdentifiedLocation(inputAst)
         )
+      case AST.Comment.any(comment) => translateComment(comment)
       case _ =>
         throw new UnhandledEntity(inputAst, "translateModuleSymbol")
     }
@@ -220,6 +221,7 @@ object AstToIr {
       case AST.Ident.Cons.any(include)         => translateIdent(include)
       case atom @ AstView.Atom(_, _)           => translateModuleSymbol(atom)
       case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
+      case AST.Comment.any(inputAST)           => translateComment(inputAST)
       case assignment @ AstView.BasicAssignment(_, _) =>
         translateExpression(assignment)
       case _ =>
@@ -806,17 +808,11 @@ object AstToIr {
     * @param comment the comment to transform
     * @return the [[IR]] representation of `comment`
     */
-  def translateComment(comment: AST): Expression = {
+  def translateComment(comment: AST): Comment = {
     comment match {
-      case AST.Comment(_) =>
-        Error.Syntax(
-          comment,
-          Error.Syntax.UnsupportedSyntax("comments")
-        )
-      case AST.Documented(doc, _, ast) =>
+      case AST.Comment(lines) =>
         Comment.Documentation(
-          translateExpression(ast),
-          doc,
+          lines.mkString("\n"),
           getIdentifiedLocation(comment)
         )
       case _ =>

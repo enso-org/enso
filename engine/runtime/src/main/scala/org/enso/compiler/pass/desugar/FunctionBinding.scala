@@ -107,7 +107,12 @@ case object FunctionBinding extends IRPass {
       case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
-          "alias analysis."
+          "function binding desugaring."
+        )
+      case _: IR.Comment.Documentation =>
+        throw new CompilerError(
+          "Documentation should not be present during function binding" +
+          "desugaring."
         )
       case e: IR.Error => e
     }

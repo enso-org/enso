@@ -52,6 +52,17 @@ Such comments are automatically connected to the language construct, and can be
 used both for displaying static documentation as well as providing dynamic help
 to the user in Enso Studio itself.
 
+A documentation comment in Enso is a _block_, and the block is started with a
+double `#` character. The block ends when the indentation returns to the
+baseline indentation for that block (see [blocks](./functions.md#code-blocks)
+for more information). By way of example:
+
+```
+## My documentation comment
+   continues all the way down
+   until I unindent again.
+```
+
 The tool that generates this documentation aims to be fairly robust, and tries
 to assign produce sensible results even if the user makes a mistake. Such
 mistakes will be highlighted to the user.
@@ -77,7 +88,7 @@ accompanied by a description. This description directly follows the tag
 declaration with one space.
 
 ```ruby
-# DEPRECATED Use `seeFoo` instead
+## DEPRECATED Use `seeFoo` instead
 ```
 
 If the user provides an unknown tag the documentation will contain that tag, but

@@ -5,6 +5,7 @@ import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.pass.desugar.ComplexType
+import org.enso.compiler.pass.resolve.DocumentationComments
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 
@@ -15,6 +16,7 @@ class ComplexTypeTest extends CompilerTest {
   val passes = new Passes
 
   val precursorPasses: List[IRPass] = passes.getPrecursors(ComplexType).get
+
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =

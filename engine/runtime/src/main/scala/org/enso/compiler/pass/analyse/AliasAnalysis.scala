@@ -166,6 +166,10 @@ case object AliasAnalysis extends IRPass {
           "Complex type definitions should not be present during " +
           "alias analysis."
         )
+      case _: IR.Comment.Documentation =>
+        throw new CompilerError(
+          "Documentation should not exist as an entity during alias analysis."
+        )
       case err: IR.Error => err
     }
   }
