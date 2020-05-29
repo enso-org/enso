@@ -32,6 +32,11 @@ pub enum RpcError {
     /// Response was deserialized but its type was wrong.
     #[fail(display = "Received a reply of a wrong type.")]
     MismatchedResponseType,
+
+    /// Response timeout.
+    #[allow(missing_docs)]
+    #[fail(display = "Response timed out after {} ms.", millis)]
+    TimeoutError{millis:u128},
 }
 
 impl RpcError {

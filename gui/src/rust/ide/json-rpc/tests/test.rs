@@ -1,5 +1,6 @@
 use json_rpc::prelude::*;
 
+use ensogl_system_web::Duration;
 use futures::FutureExt;
 use futures::Stream;
 use futures::task::LocalSpawnExt;
@@ -17,6 +18,7 @@ use serde::Serialize;
 use std::future::Future;
 use std::pin::Pin;
 use utils::test::traits::*;
+use std::thread::sleep;
 
 type MockEvent = json_rpc::handler::Event<MockNotification>;
 
@@ -214,6 +216,21 @@ fn test_garbage_reply_error() {
     if let HandlingError::InvalidMessage(_) = internal_error {
     } else {
         panic!("Expected an error to be InvalidMessage");
+    }
+}
+
+#[test]
+fn test_timeout_error() {
+    let mut fixture = Fixture::new();
+    let mut fut     = Box::pin(fixture.client.pow(8));
+
+    fut.expect_pending(); // no reply
+    fixture.pool.run_until_stalled();
+    sleep(fixture.client.handler.timeout());
+    sleep(Duration::from_secs(1)); // sleep a little longer than the timeout
+
+    if let RpcError::TimeoutError{..} = fut.expect_err() {} else {
+        panic!("Expected an error to be TimeoutError");
     }
 }
 
