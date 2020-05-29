@@ -146,6 +146,12 @@ shared! { TextField
             self.properties.size
         }
 
+        /// Set size.
+        pub fn set_size(&mut self, size:Vector2<f32>) {
+            self.properties.size = size;
+            self.rendered.update_lines(&self.properties);
+        }
+
         /// Scroll text by given offset in pixels.
         pub fn scroll(&mut self, offset:Vector2<f32>) {
             let scroll_position = self.scroll_position();
