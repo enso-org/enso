@@ -78,6 +78,11 @@ macro_rules! make_rpc_methods {
             pub fn runner(&self) -> impl Future<Output = ()> {
                 self.handler.borrow_mut().runner()
             }
+
+            /// Set new timeout for future requests. Pending requests are not affected.
+            pub fn set_timeout(&mut self, timeout:std::time::Duration) {
+                self.handler.borrow().set_timeout(timeout);
+            }
         }
 
         impl API for Client {

@@ -4,6 +4,8 @@ use crate::prelude::*;
 
 use crate::api;
 use crate::api::Result;
+use crate::ensogl::sleep;
+use crate::ensogl::Duration;
 use crate::error::HandlingError;
 use crate::error::RpcError;
 use crate::messages;
@@ -11,6 +13,7 @@ use crate::messages::Id;
 use crate::transport::Transport;
 use crate::transport::TransportEvent;
 
+use futures::future;
 use futures::FutureExt;
 use futures::StreamExt;
 use futures::Stream;
@@ -131,11 +134,16 @@ pub type OngoingCalls = HashMap<Id,oneshot::Sender<ReplyMessage>>;
 
 pub use shapely::shared;
 
+/// The default timeout for all responses.
+const TIMEOUT:Duration = Duration::from_secs(1);
+
 shared! { Handler
 
 /// Mutable state of the `Handler`.
 #[derive(Debug)]
 pub struct HandlerData<Notification> {
+    /// Timeout for futures.
+    timeout         : Duration,
     /// Ongoing calls.
     ongoing_calls   : OngoingCalls,
     /// Handle to send outgoing events.
@@ -195,6 +203,16 @@ impl<Notification> {
             channel::emit(event_transmitter,event)
         }
     }
+
+    /// A `Duration` after which requests are timed out.
+    pub fn timeout(&self) -> Duration {
+        self.timeout
+    }
+
+    /// Set new timeout for future requests. Pending requests are not affected.
+    pub fn set_timeout(&mut self, timeout:Duration) {
+        self.timeout = timeout;
+    }
 }
 } // shared!
 
@@ -222,6 +240,7 @@ impl<Notification> Handler<Notification> {
     /// `Transport` must be functional (e.g. not in the process of opening).
     pub fn new(transport:impl Transport + 'static) -> Handler<Notification> {
         let data = HandlerData {
+            timeout         : TIMEOUT,
             ongoing_calls   : default(),
             id_generator    : IdGenerator::new(),
             transport       : Box::new(transport),
@@ -276,7 +295,14 @@ impl<Notification> Handler<Notification> {
             // If message cannot be send, future ret must be cancelled.
             self.remove_ongoing_request(id);
         }
-        ret
+
+        let millis = self.timeout().as_millis();
+        future::select(ret, sleep(self.timeout()).boxed_local()).map(move |either|
+            match either {
+                future::Either::Left ((x, _)) => x,
+                future::Either::Right((_, _)) => Err(RpcError::TimeoutError{millis}),
+            }
+        )
     }
 
     /// Deal with `Response` message from the peer.

@@ -10,15 +10,16 @@ edition = "2018"
 default = ["console_error_panic_hook"]
 
 [dependencies]
-data                     = { version = "0.1.0"  , path = "../../data" }
-enso-prelude             = { version = "0.1.0"  , path = "../../prelude" }
-logger                   = { version = "0.1.0"  , path = "../../logger" }
-js-sys                   = { version = "0.3.28" }
+data                     = { version = "0.1.0"   , path = "../../data"    }
+enso-prelude             = { version = "0.1.0"   , path = "../../prelude" }
+logger                   = { version = "0.1.0"   , path = "../../logger"  }
+
+console_error_panic_hook = { version = "0.1.1"   , optional = true        }
+failure                  = { version = "0.1.5"                            }
+gloo-timers              = { version = "0.2.1"   , features = ["futures"] }
+js-sys                   = { version = "0.3.28"                           }
+nalgebra                 = { version = "0.19.0"                           }
 wasm-bindgen             = { version = "=0.2.58" , features = ["nightly"] }
-failure                  = { version = "0.1.5"  }
-nalgebra                 = { version = "0.19.0" }
-wasm-bindgen-futures     = { version = "0.4.8" }
-console_error_panic_hook = { version = "0.1.1", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 async-std = { version = "1.5.0" }
