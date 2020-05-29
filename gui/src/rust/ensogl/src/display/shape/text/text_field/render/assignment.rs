@@ -92,6 +92,19 @@ impl GlyphLinesAssignment {
     }
 }
 
+impl Default for GlyphLinesAssignment {
+    fn default() -> Self {
+        GlyphLinesAssignment {
+            glyph_lines_fragments              : default(),
+            assigned_lines                     : 1..=0,
+            dirty_glyph_lines                  : default(),
+            max_glyphs_in_line                 : default(),
+            x_margin                           : default(),
+            next_glyph_line_to_x_scroll_update : default(),
+        }
+    }
+}
+
 
 // === Assignment update ===
 

@@ -61,7 +61,7 @@ pub struct TextFieldSprites {
     pub cursors: Vec<CursorSprites>,
     /// Current assignment of glyph lines to actual lines of text.
     pub assignment: GlyphLinesAssignment,
-    /// line height in pixels.
+    /// Line height in pixels.
     pub line_height: f32,
     /// Display object of the whole rendered content.
     pub display_object: display::object::Instance,
@@ -76,7 +76,6 @@ impl TextFieldSprites {
     pub fn new(world:&World, properties:&TextFieldProperties) -> Self {
         let font              = properties.font.clone_ref();
         let line_height       = properties.text_size;
-        let window_size       = properties.size;
         let color             = properties.base_color;
         let selection_system  = Self::create_selection_system(world);
         let cursor_system     = Self::create_cursor_system(world,line_height,color);
@@ -87,20 +86,39 @@ impl TextFieldSprites {
         display_object.add_child(&glyph_system);
         display_object.add_child(&cursor_system);
 
-        let assignment        = Self::create_assignment_structure(window_size,line_height,font);
-        let glyph_lines_count = assignment.glyph_lines_count();
-        let length            = assignment.max_glyphs_in_line;
-        let indexes     = 0..glyph_lines_count;
-        let glyph_lines = indexes.map(|_| {
-            let line = glyph_system.new_line();
-            line.set_font_size(line_height);
-            line.set_font_color(color);
-            line.set_fixed_capacity(length);
+        let assignment  = default();
+        let glyph_lines = default();
+        TextFieldSprites {glyph_system,cursor_system,selection_system,glyph_lines,cursors,
+            line_height,display_object,assignment}.initialize(properties)
+    }
+
+    fn initialize(mut self, properties:&TextFieldProperties) -> Self {
+        self.update_lines(properties);
+        self
+    }
+
+    /// Update the count and length of rendered lines according to the given properties.
+    // TODO [ao] This is done in quite uneffective way, as a hot fix for resing TextField.
+    //  See the issue https://github.com/luna/ide/issues/177
+    pub fn update_lines(&mut self, properties:&TextFieldProperties) {
+        let font              = properties.font.clone_ref();
+        let line_height       = properties.text_size;
+        let window_size       = properties.size;
+        self.assignment       = Self::create_assignment_structure(window_size,line_height,font);
+        let glyph_lines_count = self.assignment.glyph_lines_count();
+        let length            = self.assignment.max_glyphs_in_line;
+        let system            = &self.glyph_system;
+        let display_object    = &self.display_object;
+        self.glyph_lines.resize_with(glyph_lines_count,|| {
+            let line = system.new_line();
             display_object.add_child(&line);
             line
-        }).collect();
-        TextFieldSprites {glyph_system,cursor_system,selection_system,glyph_lines,cursors,
-            line_height,display_object,assignment}
+        });
+        for line in &mut self.glyph_lines {
+            line.set_font_size(line_height);
+            line.set_font_color(properties.base_color);
+            line.set_fixed_capacity(length);
+        }
     }
 
     fn create_cursor_system(world:&World,line_height:f32,color:color::Rgba) -> ShapeSystem {
