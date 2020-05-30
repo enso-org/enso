@@ -39,7 +39,7 @@ impl Theme {
     }
 }
 
-impl Semigroup for Theme {
+impl PartialSemigroup<&Theme> for Theme {
     fn concat_mut(&mut self, other:&Self) {
         self.tree.concat_mut(&other.tree);
     }

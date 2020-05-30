@@ -71,21 +71,21 @@
 ///
 /// - Stream merge.
 ///   ```compile_fail
-///   all_nodes <- [selected_nodes,non_selected_nodes];
+///   all_nodes <- any (selected_nodes,non_selected_nodes);
 ///   ```
 ///   Desugars to:
 ///   ```compile_fail
-///   def all_nodes = merge2(&selected_nodes,non_selected_nodes);
+///   def all_nodes = any2 (&selected_nodes,&non_selected_nodes);
 ///   ```
 ///
 ///
 /// - Stream merge dropping input values.
 ///   ```compile_fail
-///   all_nodes <-_ [selected_nodes,non_selected_nodes];
+///   all_nodes <- any_ (selected_nodes,non_selected_nodes);
 ///   ```
 ///   Desugars to:
 ///   ```compile_fail
-///   def all_nodes = merge2_(&selected_nodes,non_selected_nodes);
+///   def all_nodes = any2_ (&selected_nodes,&non_selected_nodes);
 ///   ```
 ///
 ///
@@ -218,15 +218,37 @@ macro_rules! extend_line2 {
     ([$($lines:tt)*] $net:ident def $name:ident $(:$ty:ty)? = $tgt1:ident . $tgt2:ident . $tgt3:ident . $tgt4:ident               . $base:ident$(::<$param:ty>)?($($arg:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [$($lines)* let $name $(:$ty)? = $net.$base$(::<$param>)?(concat!(stringify!($net),".",stringify!($name)),&$tgt1.$tgt2.$tgt3.$tgt4,$($arg)*)       ;] $net def $name = $name $($ts)* } };
     ([$($lines:tt)*] $net:ident def $name:ident $(:$ty:ty)? = $tgt1:ident . $tgt2:ident . $tgt3:ident . $tgt4:ident . $tgt5:ident . $base:ident$(::<$param:ty>)?($($arg:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [$($lines)* let $name $(:$ty)? = $net.$base$(::<$param>)?(concat!(stringify!($net),".",stringify!($name)),&$tgt1.$tgt2.$tgt3.$tgt4.$tgt5,$($arg)*) ;] $net def $name = $name $($ts)* } };
 
-    ([] $net:ident $name:ident <- [ $($arg1:ident).+ ]                                                                     ) => { let $name = $($arg1).+.clone_ref(); };
-    ([] $net:ident $name:ident <- [ $($arg1:ident).+ , $($arg2:ident).+ ]                                       $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = merge2(&$($arg1).+,&$($arg2).+)                         $($ts)* } };
-    ([] $net:ident $name:ident <- [ $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ ]                    $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = merge3(&$($arg1).+,&$($arg2).+,&$($arg3).+)             $($ts)* } };
-    ([] $net:ident $name:ident <- [ $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ , $($arg4:ident).+ ] $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = merge4(&$($arg1).+,&$($arg2).+,&$($arg3).+,&$($arg4).+) $($ts)* } };
+    ([] $net:ident $name:ident <- any (...)                                                                         $($ts:tt)* ) => {$crate::extend_line2! { [] $net $name <- any_mut()                                                  $($ts)* } };
+    ([] $net:ident $name:ident <- any ( $($arg1:ident).+ )                                                                     ) => { let $name = $($arg1).+.clone_ref(); };
+    ([] $net:ident $name:ident <- any ( $($arg1:ident).+ , $($arg2:ident).+ )                                       $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = any2(&$($arg1).+,&$($arg2).+)                           $($ts)* } };
+    ([] $net:ident $name:ident <- any ( $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ )                    $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = any3(&$($arg1).+,&$($arg2).+,&$($arg3).+)               $($ts)* } };
+    ([] $net:ident $name:ident <- any ( $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ , $($arg4:ident).+ ) $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = any4(&$($arg1).+,&$($arg2).+,&$($arg3).+,&$($arg4).+)   $($ts)* } };
 
-    ([] $net:ident $name:ident <-_ [ $($arg1:ident).+ ]                                                                     ) => { let $name = $($arg1).+.constant(()); };
-    ([] $net:ident $name:ident <-_ [ $($arg1:ident).+ , $($arg2:ident).+ ]                                       $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = merge2_(&$($arg1).+,&$($arg2).+)                         $($ts)* } };
-    ([] $net:ident $name:ident <-_ [ $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ ]                    $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = merge3_(&$($arg1).+,&$($arg2).+,&$($arg3).+)             $($ts)* } };
-    ([] $net:ident $name:ident <-_ [ $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ , $($arg4:ident).+ ] $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = merge4_(&$($arg1).+,&$($arg2).+,&$($arg3).+,&$($arg4).+) $($ts)* } };
+    ([] $net:ident $name:ident <- any_ (...)                                                                         $($ts:tt)* ) => {$crate::extend_line2! { [] $net $name <- any_mut_()                                                $($ts)* } };
+    ([] $net:ident $name:ident <- any_ ( $($arg1:ident).+ )                                                                     ) => { let $name = $($arg1).+.constant(()); };
+    ([] $net:ident $name:ident <- any_ ( $($arg1:ident).+ , $($arg2:ident).+ )                                       $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = any2_(&$($arg1).+,&$($arg2).+)                         $($ts)* } };
+    ([] $net:ident $name:ident <- any_ ( $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ )                    $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = any3_(&$($arg1).+,&$($arg2).+,&$($arg3).+)             $($ts)* } };
+    ([] $net:ident $name:ident <- any_ ( $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ , $($arg4:ident).+ ) $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = any4_(&$($arg1).+,&$($arg2).+,&$($arg3).+,&$($arg4).+) $($ts)* } };
+
+
+    ([] $net:ident $name:ident <- all (...)                                                                         $($ts:tt)* ) => {$crate::extend_line2! { [] $net $name <- all_mut()                                                  $($ts)* } };
+    ([] $net:ident $name:ident <- all ( $($arg1:ident).+ )                                                                     ) => { let $name = $($arg1).+.clone_ref(); };
+    ([] $net:ident $name:ident <- all ( $($arg1:ident).+ , $($arg2:ident).+ )                                       $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = all2(&$($arg1).+,&$($arg2).+)                           $($ts)* } };
+    ([] $net:ident $name:ident <- all ( $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ )                    $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = all3(&$($arg1).+,&$($arg2).+,&$($arg3).+)               $($ts)* } };
+    ([] $net:ident $name:ident <- all ( $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ , $($arg4:ident).+ ) $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = all4(&$($arg1).+,&$($arg2).+,&$($arg3).+,&$($arg4).+)   $($ts)* } };
+
+    ([] $net:ident $name:ident <- all [...]                                                                         $($ts:tt)* ) => {$crate::extend_line2! { [] $net $name <- all_mut()                                                  $($ts)* } };
+    ([] $net:ident $name:ident <- all [ $($arg1:ident).+ ]                                                                     ) => { let $name = $($arg1).+.clone_ref(); };
+    ([] $net:ident $name:ident <- all [ $($arg1:ident).+ , $($arg2:ident).+ ]                                       $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = all_vec2(&$($arg1).+,&$($arg2).+)                         $($ts)* } };
+    ([] $net:ident $name:ident <- all [ $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ ]                    $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = all_vec3(&$($arg1).+,&$($arg2).+,&$($arg3).+)             $($ts)* } };
+    ([] $net:ident $name:ident <- all [ $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ , $($arg4:ident).+ ] $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = all_vec4(&$($arg1).+,&$($arg2).+,&$($arg3).+,&$($arg4).+) $($ts)* } };
+
+    ([] $net:ident $name:ident <- all_ (...)                                                                         $($ts:tt)* ) => {$crate::extend_line2! { [] $net $name <- all_mut_()                                                $($ts)* } };
+    ([] $net:ident $name:ident <- all_ ( $($arg1:ident).+ )                                                                     ) => { let $name = $($arg1).+.constant(()); };
+    ([] $net:ident $name:ident <- all_ ( $($arg1:ident).+ , $($arg2:ident).+ )                                       $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = all2_(&$($arg1).+,&$($arg2).+)                         $($ts)* } };
+    ([] $net:ident $name:ident <- all_ ( $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ )                    $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = all3_(&$($arg1).+,&$($arg2).+,&$($arg3).+)             $($ts)* } };
+    ([] $net:ident $name:ident <- all_ ( $($arg1:ident).+ , $($arg2:ident).+ , $($arg3:ident).+ , $($arg4:ident).+ ) $($ts:tt)* ) => {$crate::extend_line2! { [] $net def $name = all4_(&$($arg1).+,&$($arg2).+,&$($arg3).+,&$($arg4).+) $($ts)* } };
+
 
     ([] $net:ident $name:ident <= $($toks:tt)*) => {$crate::extend_line2! { [] $net def $name = $($toks)* . iter()} };
     ([] $net:ident $name:ident <- $($toks:tt)*) => {$crate::extend_line2! { [] $net def $name = $($toks)* } };

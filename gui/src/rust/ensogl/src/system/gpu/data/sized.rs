@@ -1,6 +1,7 @@
 //! This module implements type-level utils for checking the size of values for a given type.
 
 use nalgebra::*;
+use crate::math::types::*;
 use crate::system::gpu::data::buffer::item::MatrixCtx;
 
 
@@ -36,6 +37,21 @@ impl GpuKnownSize for bool { type GpuByteSize = U4; }
 impl GpuKnownSize for i32  { type GpuByteSize = U4; }
 impl GpuKnownSize for u32  { type GpuByteSize = U4; }
 impl GpuKnownSize for f32  { type GpuByteSize = U4; }
+
+impl<T> GpuKnownSize for V2<T>
+where T:GpuKnownSize, U2:DimMul<GpuByteSize<T>>, Mul<U2,GpuByteSize<T>>:DimName {
+    type GpuByteSize = Mul<U2,GpuByteSize<T>>;
+}
+
+impl<T> GpuKnownSize for V3<T>
+where T:GpuKnownSize, U3:DimMul<GpuByteSize<T>>, Mul<U3,GpuByteSize<T>>:DimName {
+    type GpuByteSize = Mul<U3,GpuByteSize<T>>;
+}
+
+impl<T> GpuKnownSize for V4<T>
+where T:GpuKnownSize, U4:DimMul<GpuByteSize<T>>, Mul<U4,GpuByteSize<T>>:DimName {
+    type GpuByteSize = Mul<U4,GpuByteSize<T>>;
+}
 
 type Mul<A,B> = <A as DimMul<B>>::Output;
 impl<T:GpuKnownSize,R:DimName,C:DimName> GpuKnownSize for MatrixMN<T,R,C>

@@ -6,6 +6,7 @@
 
 use crate::prelude::*;
 
+use crate::animation::physics::inertia;
 use crate::animation::physics::inertia::DynSimulator;
 use crate::display::object::traits::*;
 use crate::display::scene::MouseTarget;
@@ -42,7 +43,7 @@ impl ShapeViewEvents {
             mouse_over <- source_();
             mouse_out  <- source_();
 
-            is_mouse_over <- [mouse_over,mouse_out].toggle();
+            is_mouse_over <- any (mouse_over,mouse_out).toggle();
             out_on_drop   <- on_drop.gate(&is_mouse_over);
             eval_ out_on_drop (mouse_out.emit(()));
         }
@@ -208,5 +209,15 @@ pub fn animation2(network:&frp::Network) -> (DynSimulator<f32>, frp::Stream<f32>
         def target = source::<f32> ();
     }
     let source = DynSimulator::<f32>::new(Box::new(f!((t) target.emit(t))));
+    (source,target.into())
+}
+
+
+/// Define a new animation FRP network.
+pub fn animator<T:inertia::Value>(network:&frp::Network) -> (DynSimulator<T>, frp::Stream<T>) {
+    frp::extend! { network
+        def target = source::<T>();
+    }
+    let source = DynSimulator::<T>::new(Box::new(f!((t) target.emit(t))));
     (source,target.into())
 }

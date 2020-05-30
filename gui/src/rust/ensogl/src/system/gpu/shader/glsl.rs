@@ -105,6 +105,51 @@ where [ T1:Into<Glsl>, T2:Into<Glsl>, T3:Into<Glsl>, T4:Into<Glsl> ] { |t| {
 }}}
 
 
+// === From Vectors to Glsl ===
+
+impls! {[T:Into<Glsl>] From <V2<T>> for Glsl { |t| {
+    let x = t.x.into();
+    let y = t.y.into();
+    iformat!("vec2({x},{y})").into()
+}}}
+
+impls! {[T:Into<Glsl>] From <V3<T>> for Glsl { |t| {
+    let x = t.x.into();
+    let y = t.y.into();
+    let z = t.z.into();
+    iformat!("vec2({x},{y},{z})").into()
+}}}
+
+impls! {[T:Into<Glsl>] From <V4<T>> for Glsl { |t| {
+    let x = t.x.into();
+    let y = t.y.into();
+    let z = t.z.into();
+    let w = t.w.into();
+    iformat!("vec2({x},{y},{z},{w})").into()
+}}}
+
+impls! {[T:RefInto<Glsl>] From <&V2<T>> for Glsl { |t| {
+    let x = t.x.glsl();
+    let y = t.y.glsl();
+    iformat!("vec2({x},{y})").into()
+}}}
+
+impls! {[T:RefInto<Glsl>] From <&V3<T>> for Glsl { |t| {
+    let x = t.x.glsl();
+    let y = t.y.glsl();
+    let z = t.z.glsl();
+    iformat!("vec2({x},{y},{z})").into()
+}}}
+
+impls! {[T:RefInto<Glsl>] From <&V4<T>> for Glsl { |t| {
+    let x = t.x.glsl();
+    let y = t.y.glsl();
+    let z = t.z.glsl();
+    let w = t.w.glsl();
+    iformat!("vec2({x},{y},{z},{w})").into()
+}}}
+
+
 // === From Prim Types to Glsl ===
 
 impls! { From + &From <bool> for Glsl { |t| t.to_string().into() } }
@@ -856,6 +901,10 @@ define_glsl_prim_type_conversions! {
     i32            => Int,
     u32            => UInt,
     f32            => Float,
+
+    V2<f32>        => Vec2,
+    V3<f32>        => Vec3,
+    V4<f32>        => Vec4,
 
     Vector2<f32>   => Vec2,
     Vector3<f32>   => Vec3,

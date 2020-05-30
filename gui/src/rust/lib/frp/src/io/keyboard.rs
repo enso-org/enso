@@ -153,9 +153,9 @@ impl Default for Keyboard {
             change_set        <- on_pressed  . map(KeyMaskChange::on_pressed);
             change_unset      <- on_released . map(KeyMaskChange::on_released);
             change_clear      <- on_defocus  . map(|_| KeyMaskChange::on_defocus());
-            change_set_unset  <- [change_set, change_unset];
-            change            <- [change_set_unset, change_clear];
-            prev_key_mask     <- gather::<KeyMask>();
+            change_set_unset  <- any (change_set,change_unset);
+            change            <- any (change_set_unset,change_clear);
+            prev_key_mask     <- any_mut::<KeyMask>();
             key_mask          <- change.map2(&prev_key_mask,KeyMaskChange::updated_mask);
             prev_key_mask     <+ key_mask;
             previous_key_mask <- key_mask.previous();

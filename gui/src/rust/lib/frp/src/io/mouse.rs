@@ -71,18 +71,18 @@ pub struct Mouse {
 impl Default for Mouse {
     fn default() -> Self {
         frp::new_network! { mouse
-            def release       = source_();
-            def press         = source_();
-            def wheel         = source_();
-            def leave         = source_();
-            def position      = source();
-            def down_const    = press.constant(true);
-            def up_const      = release.constant(false);
-            def down          = down_const.merge(&up_const);
-            def up            = down.map(|t| !t);
-            def prev_position = position.previous();
-            def translation   = position.map2(&prev_position,|t,s| t - s);
-            def distance      = translation.map(|t:&Position| t.length());
+            release       <- source_();
+            press         <- source_();
+            wheel         <- source_();
+            leave         <- source_();
+            position      <- source();
+            down_const    <- press.constant(true);
+            up_const      <- release.constant(false);
+            down          <- any (down_const,up_const);
+            up            <- down.map(|t| !t);
+            prev_position <- position.previous();
+            translation   <- position.map2(&prev_position,|t,s| t - s);
+            distance      <- translation.map(|t:&Position| t.length());
         };
         let network = mouse;
         Self {network,release,press,leave,wheel,down,up,position,prev_position,translation,distance}

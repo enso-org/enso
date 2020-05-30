@@ -183,20 +183,31 @@ pub type Distance<Type=Anything,Repr=f32> = Unit<quantity::Distance,Type,Repr>;
 pub struct Pixels;
 
 /// Provides a `px` method to every unit that can be converted to a pixel distance.
+#[allow(missing_docs)]
 pub trait PixelDistance {
+    type Output;
     /// Distance in pixels.
-    fn px(&self) -> Distance<Pixels>;
+    fn px(&self) -> Self::Output;
 }
 
 impl PixelDistance for f32 {
-    fn px(&self) -> Distance<Pixels> {
+    type Output = Distance<Pixels>;
+    fn px(&self) -> Self::Output {
         Distance::new(*self)
     }
 }
 
 impl PixelDistance for i32 {
-    fn px(&self) -> Distance<Pixels> {
+    type Output = Distance<Pixels>;
+    fn px(&self) -> Self::Output {
         Distance::new(*self as f32)
+    }
+}
+
+impl PixelDistance for V2<f32> {
+    type Output = V2<Distance<Pixels>>;
+    fn px(&self) -> Self::Output {
+        V2(Distance::new(self.x),Distance::new(self.y))
     }
 }
 

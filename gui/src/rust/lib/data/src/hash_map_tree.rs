@@ -246,13 +246,23 @@ where K:Eq+Hash {
 
 // === Impls ===
 
-impl<K,V,S> Semigroup for HashMapTree<K,V,S>
+impl<K,V,S> PartialSemigroup<HashMapTree<K,V,S>> for HashMapTree<K,V,S>
+    where K : Eq + Hash + Clone,
+          V : Semigroup,
+          S : BuildHasher + Clone {
+    fn concat_mut(&mut self, other:Self) {
+        self.value.concat_mut(&other.value);
+        PartialSemigroup::concat_mut(&mut self.branches, other.branches);
+    }
+}
+
+impl<K,V,S> PartialSemigroup<&HashMapTree<K,V,S>> for HashMapTree<K,V,S>
     where K : Eq + Hash + Clone,
           V : Semigroup,
           S : BuildHasher + Clone {
     fn concat_mut(&mut self, other:&Self) {
         self.value.concat_mut(&other.value);
-        self.branches.concat_mut(&other.branches);
+        PartialSemigroup::concat_mut(&mut self.branches, &other.branches);
     }
 }
 

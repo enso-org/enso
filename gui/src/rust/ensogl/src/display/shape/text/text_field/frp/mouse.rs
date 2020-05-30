@@ -45,17 +45,17 @@ impl TextFieldMouseFrp {
         let set_cursor_action   = Self::set_cursor_lambda(text_field_ptr.clone());
         let select_action       = Self::select_lambda(text_field_ptr);
         frp::new_network! { text_field
-            def is_inside         = mouse.position.map(is_inside);
-            def click_in          = mouse.press.gate(&is_inside);
-            def click_in_bool     = click_in.constant(true);
-            def mouse_up_bool     = mouse.release.constant(false);
-            def selecting         = click_in_bool.merge(&mouse_up_bool);
-            def multicursor       = keyboard.keyboard.key_mask.map(is_multicursor_mode);
-            def block_selection   = keyboard.keyboard.key_mask.map(is_block_selection);
-            def click_in_pos      = mouse.position.sample(&click_in);
-            def select_pos        = mouse.position.gate(&selecting);
-            def set_cursor_action = click_in_pos.map2(&multicursor,set_cursor_action);
-            def select_action     = select_pos.map2(&block_selection,select_action);
+            is_inside         <- mouse.position.map(is_inside);
+            click_in          <- mouse.press.gate(&is_inside);
+            click_in_bool     <- click_in.constant(true);
+            mouse_up_bool     <- mouse.release.constant(false);
+            selecting         <- any (click_in_bool,mouse_up_bool);
+            multicursor       <- keyboard.keyboard.key_mask.map(is_multicursor_mode);
+            block_selection   <- keyboard.keyboard.key_mask.map(is_block_selection);
+            click_in_pos      <- mouse.position.sample(&click_in);
+            select_pos        <- mouse.position.gate(&selecting);
+            set_cursor_action <- click_in_pos.map2(&multicursor,set_cursor_action);
+            select_action     <- select_pos.map2(&block_selection,select_action);
         }
         let network = text_field;
         Self {mouse,network,click_in,selecting,multicursor,set_cursor_action,select_action}

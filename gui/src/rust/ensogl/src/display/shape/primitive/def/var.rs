@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::data::color;
+use crate::display::shape::primitive::def::unit::PixelDistance;
 use crate::math::algebra::Acos;
 use crate::math::algebra::Asin;
 use crate::math::algebra::Cos;
@@ -19,6 +20,7 @@ use crate::system::gpu::types::*;
 
 use nalgebra::Scalar;
 use std::ops::*;
+
 
 
 // ======================
@@ -54,6 +56,15 @@ impl<T,U,V> VarInitializerMarker<Var<Unit<T,Anything,V>>> for Unit<T,U,V> where 
 
 impl<T,S1,S2> VarInitializerMarker<Var<Vector2<T>>> for (S1,S2)
     where T:Scalar, S1:VarInitializerMarkerNested<Var<T>>, S2:VarInitializerMarkerNested<Var<T>> {}
+
+impl<T:Scalar> VarInitializerMarker<Var<Vector2<T>>> for Var<V2<T>> {}
+impl<T:Scalar> VarInitializerMarker<Var<Vector3<T>>> for Var<V3<T>> {}
+impl<T:Scalar> VarInitializerMarker<Var<Vector4<T>>> for Var<V4<T>> {}
+
+impl<T:Scalar> VarInitializerMarker<Var<Vector2<T>>> for &Var<V2<T>> {}
+impl<T:Scalar> VarInitializerMarker<Var<Vector3<T>>> for &Var<V3<T>> {}
+impl<T:Scalar> VarInitializerMarker<Var<Vector4<T>>> for &Var<V4<T>> {}
+
 
 
 // === Nested ===
@@ -186,6 +197,81 @@ impl<T:Scalar> Dim3 for Var<Vector3<T>> {
         match self {
             Self::Static  (t) => Var::Static(t.z),
             Self::Dynamic (t) => Var::Dynamic(format!("{}.z",t).into())
+        }
+    }
+}
+
+
+
+impl<T:Scalar> HasComponents for Var<V2<T>> {
+    type Component = Var<T>;
+}
+
+impl<T:Scalar> HasComponents for Var<V3<T>> {
+    type Component = Var<T>;
+}
+
+impl<T:Scalar> Dim1 for Var<V2<T>> {
+    fn x(&self) -> Var<T> {
+        match self {
+            Self::Static  (t) => Var::Static(t.x),
+            Self::Dynamic (t) => Var::Dynamic(format!("{}.x",t).into())
+        }
+    }
+}
+
+impl<T:Scalar> Dim2 for Var<V2<T>> {
+    fn y(&self) -> Var<T> {
+        match self {
+            Self::Static  (t) => Var::Static(t.y),
+            Self::Dynamic (t) => Var::Dynamic(format!("{}.y",t).into())
+        }
+    }
+}
+
+impl<T:Scalar> Dim1 for Var<V3<T>> {
+    fn x(&self) -> Var<T> {
+        match self {
+            Self::Static  (t) => Var::Static(t.x),
+            Self::Dynamic (t) => Var::Dynamic(format!("{}.x",t).into())
+        }
+    }
+}
+
+impl<T:Scalar> Dim2 for Var<V3<T>> {
+    fn y(&self) -> Var<T> {
+        match self {
+            Self::Static  (t) => Var::Static(t.y),
+            Self::Dynamic (t) => Var::Dynamic(format!("{}.y",t).into())
+        }
+    }
+}
+
+impl<T:Scalar> Dim3 for Var<V3<T>> {
+    fn z(&self) -> Var<T> {
+        match self {
+            Self::Static  (t) => Var::Static(t.z),
+            Self::Dynamic (t) => Var::Dynamic(format!("{}.z",t).into())
+        }
+    }
+}
+
+impl PixelDistance for Var<V2<f32>> {
+    type Output = Var<V2<Distance<Pixels>>>;
+    fn px(&self) -> Self::Output {
+        match self {
+            Self::Static  (t) => Var::Static(V2(Distance::new(t.x),Distance::new(t.y))),
+            Self::Dynamic (t) => Var::Dynamic(t.clone())
+        }
+    }
+}
+
+impl PixelDistance for Var<V3<f32>> {
+    type Output = Var<V3<Distance<Pixels>>>;
+    fn px(&self) -> Self::Output {
+        match self {
+            Self::Static  (t) => Var::Static(V3(Distance::new(t.x),Distance::new(t.y),Distance::new(t.z))),
+            Self::Dynamic (t) => Var::Dynamic(t.clone())
         }
     }
 }

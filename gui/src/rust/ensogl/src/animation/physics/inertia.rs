@@ -8,14 +8,15 @@ use crate::animation;
 
 
 
-// ================
-// === Position ===
-// ================
+// =============
+// === Value ===
+// =============
 
-/// The type of the position of the simulation. In particular, the Position could be `f32`
-/// (1-dimensional simulation), or `Vector<f32>` (3-dimensional simulation).
-pub trait Position
-    = 'static + Copy + Default + Debug + Magnitude + Normalize
+/// The type of the value of the simulation. In particular, the Value could be `f32`
+/// (1-dimensional simulation), or `Vector3<f32>` (3-dimensional simulation).
+pub trait Value
+    = 'static + Copy + Default + Debug + Normalize
+    + Magnitude <Output=f32>
     + Neg<       Output=Self>
     + Sub<Self , Output=Self>
     + Add<Self , Output=Self>
@@ -93,17 +94,17 @@ impl Thresholds {
 /// A fixed step physics simulator used to simulate `PhysicsState`.
 #[derive(Clone,Copy,Debug,Default)]
 pub struct SimulationData<T> {
-    position        : T,
-    target_position : T,
-    velocity        : T,
-    mass            : Mass,
-    spring          : Spring,
-    drag            : Drag,
-    thresholds      : Thresholds,
-    active          : bool,
+    value        : T,
+    target_value : T,
+    velocity     : T,
+    mass         : Mass,
+    spring       : Spring,
+    drag         : Drag,
+    thresholds   : Thresholds,
+    active       : bool,
 }
 
-impl<T:Position> SimulationData<T> {
+impl<T:Value> SimulationData<T> {
     /// Constructor.
     pub fn new() -> Self {
         default()
@@ -113,30 +114,30 @@ impl<T:Position> SimulationData<T> {
     fn step(&mut self, delta_seconds:f32) {
         if self.active {
             let velocity      = self.velocity.magnitude();
-            let distance      = (self.position - self.target_position).magnitude();
+            let distance      = (self.value - self.target_value).magnitude();
             let snap_velocity = velocity < self.thresholds.speed;
             let snap_distance = distance < self.thresholds.distance;
             let should_snap   = snap_velocity && snap_distance;
             if should_snap {
-                self.position = self.target_position;
+                self.value    = self.target_value;
                 self.velocity = default();
                 self.active   = false;
             } else {
                 let force        = self.spring_force() + self.drag_force();
                 let acceleration = force / self.mass.value;
                 self.velocity    = self.velocity + acceleration  * delta_seconds;
-                self.position    = self.position + self.velocity * delta_seconds;
+                self.value       = self.value + self.velocity * delta_seconds;
             }
         }
     }
 
     /// Compute spring force.
     fn spring_force(&self) -> T {
-        let position_delta = self.target_position - self.position;
-        let distance       = position_delta.magnitude();
+        let value_delta = self.target_value - self.value;
+        let distance       = value_delta.magnitude();
         if distance > 0.0 {
             let coefficient = distance * self.spring.value;
-            position_delta.normalize() * coefficient
+            value_delta.normalize() * coefficient
         } else {
             default()
         }
@@ -152,44 +153,44 @@ impl<T:Position> SimulationData<T> {
 // === Getters ===
 
 #[allow(missing_docs)]
-impl<T:Position> SimulationData<T> {
-    pub fn position        (&self) -> T          { self.position }
-    pub fn target_position (&self) -> T          { self.target_position }
-    pub fn velocity        (&self) -> T          { self.velocity }
-    pub fn mass            (&self) -> Mass       { self.mass }
-    pub fn spring          (&self) -> Spring     { self.spring }
-    pub fn drag            (&self) -> Drag       { self.drag }
-    pub fn thresholds      (&self) -> Thresholds { self.thresholds }
-    pub fn active          (&self) -> bool       { self.active }
+impl<T:Value> SimulationData<T> {
+    pub fn value        (&self) -> T          { self.value }
+    pub fn target_value (&self) -> T          { self.target_value }
+    pub fn velocity     (&self) -> T          { self.velocity }
+    pub fn mass         (&self) -> Mass       { self.mass }
+    pub fn spring       (&self) -> Spring     { self.spring }
+    pub fn drag         (&self) -> Drag       { self.drag }
+    pub fn thresholds   (&self) -> Thresholds { self.thresholds }
+    pub fn active       (&self) -> bool       { self.active }
 }
 
 
 // === Setters ===
 
 #[allow(missing_docs)]
-impl<T:Position> SimulationData<T> {
+impl<T:Value> SimulationData<T> {
     pub fn set_velocity   (&mut self, velocity:T)            { self.velocity   = velocity; }
     pub fn set_mass       (&mut self, mass:Mass)             { self.mass       = mass; }
     pub fn set_spring     (&mut self, spring:Spring)         { self.spring     = spring; }
     pub fn set_drag       (&mut self, drag:Drag)             { self.drag       = drag; }
     pub fn set_thresholds (&mut self, thresholds:Thresholds) { self.thresholds = thresholds; }
 
-    pub fn set_position(&mut self, position:T) {
+    pub fn set_value(&mut self, value:T) {
         self.active = true;
-        self.position = position;
+        self.value = value;
     }
 
-    pub fn set_target_position(&mut self, target_position:T) {
+    pub fn set_target_value(&mut self, target_value:T) {
         self.active = true;
-        self.target_position = target_position;
+        self.target_value = target_value;
     }
 
-    pub fn update_position<F:FnOnce(T)->T>(&mut self, f:F) {
-        self.set_position(f(self.position()));
+    pub fn update_value<F:FnOnce(T)->T>(&mut self, f:F) {
+        self.set_value(f(self.value()));
     }
 
-    pub fn update_target_position<F:FnOnce(T)->T>(&mut self, f:F) {
-        self.set_target_position(f(self.target_position()));
+    pub fn update_target_value<F:FnOnce(T)->T>(&mut self, f:F) {
+        self.set_target_value(f(self.target_value()));
     }
 
     pub fn update_velocity<F:FnOnce(T)->T>(&mut self, f:F) {
@@ -211,6 +212,12 @@ impl<T:Position> SimulationData<T> {
     pub fn update_thresholds<F:FnOnce(Thresholds)->Thresholds>(&mut self, f:F) {
         self.set_thresholds(f(self.thresholds()));
     }
+
+    pub fn skip(&mut self) {
+        self.active   = false;
+        self.value    = self.target_value;
+        self.velocity = default();
+    }
 }
 
 
@@ -226,7 +233,7 @@ pub struct Simulation<T:Copy> {
     data : Rc<Cell<SimulationData<T>>>
 }
 
-impl<T:Position> Simulation<T> {
+impl<T:Value> Simulation<T> {
     /// Constructor.
     pub fn new() -> Self {
         default()
@@ -244,17 +251,17 @@ impl<T:Position> Simulation<T> {
 // === Getters ===
 
 #[allow(missing_docs)]
-impl<T:Position> Simulation<T> {
+impl<T:Value> Simulation<T> {
     pub fn active(&self) -> bool {
         self.data.get().active()
     }
 
-    pub fn position(&self) -> T {
-        self.data.get().position()
+    pub fn value(&self) -> T {
+        self.data.get().value()
     }
 
-    pub fn target_position(&self) -> T {
-        self.data.get().target_position()
+    pub fn target_value(&self) -> T {
+        self.data.get().target_value()
     }
 }
 
@@ -262,7 +269,7 @@ impl<T:Position> Simulation<T> {
 // === Setters ===
 
 #[allow(missing_docs)]
-impl<T:Position> Simulation<T> {
+impl<T:Value> Simulation<T> {
     pub fn set_mass(&self, mass:Mass) {
         self.data.update(|mut sim| {sim.set_mass(mass); sim});
     }
@@ -279,16 +286,20 @@ impl<T:Position> Simulation<T> {
         self.data.update(|mut sim| {sim.set_velocity(velocity); sim});
     }
 
-    pub fn set_position(&self, position:T) {
-        self.data.update(|mut sim| {sim.set_position(position); sim});
+    pub fn set_value(&self, value:T) {
+        self.data.update(|mut sim| {sim.set_value(value); sim});
     }
 
-    pub fn set_target_position(&self, target_position:T) {
-        self.data.update(|mut sim| {sim.set_target_position(target_position); sim});
+    pub fn set_target_value(&self, target_value:T) {
+        self.data.update(|mut sim| {sim.set_target_value(target_value); sim});
     }
 
-    pub fn update_target_position<F:FnOnce(T)->T>(&self, f:F) {
-        self.data.update(|mut sim| {sim.update_target_position(f); sim});
+    pub fn update_target_value<F:FnOnce(T)->T>(&self, f:F) {
+        self.data.update(|mut sim| {sim.update_target_value(f); sim});
+    }
+
+    pub fn skip(&self) {
+        self.data.update(|mut sim| {sim.skip(); sim});
     }
 }
 
@@ -310,7 +321,7 @@ pub type DynSimulator<T> = Simulator<T,Box<dyn Fn(T)>>;
 #[derive(CloneRef,Derivative,Shrinkwrap)]
 #[derivative(Clone(bound=""))]
 #[derivative(Debug(bound=""))]
-pub struct Simulator<T:Position,Cb> {
+pub struct Simulator<T:Value,Cb> {
     #[shrinkwrap(main_field)]
     simulation     : Simulation<T>,
     animation_loop : Rc<CloneCell<Option<FixedFrameRateAnimationStep<T,Cb>>>>,
@@ -319,7 +330,7 @@ pub struct Simulator<T:Position,Cb> {
     callback       : Rc<Cb>,
 }
 
-impl<T:Position,Cb> Simulator<T,Cb>
+impl<T:Value,Cb> Simulator<T,Cb>
 where Cb : Callback<T> {
     /// Constructor.
     pub fn new(callback:Cb) -> Self {
@@ -334,7 +345,7 @@ where Cb : Callback<T> {
 // === Setters ===
 
 #[allow(missing_docs)]
-impl<T:Position,Cb> Simulator<T,Cb>
+impl<T:Value,Cb> Simulator<T,Cb>
 where Cb : Callback<T> {
     pub fn set_callback(&mut self, callback:Cb) {
         let callback = Rc::new(callback);
@@ -343,26 +354,32 @@ where Cb : Callback<T> {
         self.start();
     }
 
-    pub fn set_position(&self, position:T) {
-        self.simulation.set_position(position);
+    pub fn set_value(&self, value:T) {
+        self.simulation.set_value(value);
         self.start();
     }
 
-    pub fn set_target_position(&self, target_position:T) {
-        self.simulation.set_target_position(target_position);
+    pub fn set_target_value(&self, target_value:T) {
+        self.simulation.set_target_value(target_value);
         self.start();
     }
 
-    pub fn update_target_position<F:FnOnce(T)->T>(&self, f:F) {
-        self.simulation.update_target_position(f);
+    pub fn update_target_value<F:FnOnce(T)->T>(&self, f:F) {
+        self.simulation.update_target_value(f);
         self.start();
+    }
+
+    pub fn skip(&self) {
+        self.simulation.skip();
+        self.stop();
+        (self.callback)(self.simulation.value());
     }
 }
 
 
 // === Private API ===
 
-impl<T:Position,Cb> Simulator<T,Cb>
+impl<T:Value,Cb> Simulator<T,Cb>
 where Cb : Callback<T> {
     fn init(self) -> Self {
         self.start();
@@ -388,14 +405,14 @@ where Cb : Callback<T> {
 /// Alias for `FixedFrameRateLoop` with specified step callback.
 pub type FixedFrameRateAnimationStep<T,Cb> = animation::FixedFrameRateLoop<Step<T,Cb>>;
 pub type Step<T,Cb> = impl Fn(animation::TimeInfo);
-fn step<T:Position,Cb>(simulator:&Simulator<T,Cb>) -> Step<T,Cb>
+fn step<T:Value,Cb>(simulator:&Simulator<T,Cb>) -> Step<T,Cb>
 where Cb : Callback<T> {
     let this = simulator.clone_ref();
     move |time:animation::TimeInfo| {
         let delta_seconds = time.frame / 1000.0;
         if this.simulation.active() {
             this.simulation.step(delta_seconds);
-            (this.callback)(this.simulation.position());
+            (this.callback)(this.simulation.value());
         } else {
             this.stop();
         }

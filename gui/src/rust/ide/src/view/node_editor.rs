@@ -74,13 +74,13 @@ impl<Parameter:frp::Data> FencedAction<Parameter> {
     /// Wrap the `action` in `FencedAction`.
     fn fence(network:&frp::Network, action:impl Fn(&Parameter) + 'static) -> Self {
         frp::extend! { network
-            def trigger   = source::<Parameter>();
-            def triggered = trigger.constant(());
-            def switch    = gather();
-            switch.attach(&triggered);
-            def performed = trigger.map(move |param| action(param));
-            switch.attach(&performed);
-            def is_running = switch.toggle();
+            trigger    <- source::<Parameter>();
+            triggered  <- trigger.constant(());
+            switch     <- any(...);
+            switch     <+ triggered;
+            performed  <- trigger.map(move |param| action(param));
+            switch     <+ performed;
+            is_running <- switch.toggle();
         }
         Self {trigger,is_running}
     }
@@ -158,7 +158,7 @@ impl GraphEditorIntegratedWithController {
 
             // Changes in Graph Editor
             let is_handling_notification = handle_notification.is_running;
-            def is_hold = is_handling_notification.zip_with(&invalidate.is_running, |l,r| *l || *r);
+            def is_hold = is_handling_notification.all_with(&invalidate.is_running, |l,r| *l || *r);
             def _action = editor_outs.node_removed      .map2(&is_hold,node_removed);
             def _action = editor_outs.connection_added  .map2(&is_hold,connection_created);
             def _action = editor_outs.connection_removed.map2(&is_hold,connection_removed);

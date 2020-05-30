@@ -186,7 +186,7 @@ define_sdf_shapes! {
     PlaneAngle (angle:Angle<Radians>) {
         float pi_2       = 2.0 * PI;
         float angle_norm = value(angle) / pi_2;
-              angle_norm = abs(mod(angle_norm,2.0)-1.0);
+              angle_norm = 1.0 - abs(mod(angle_norm,2.0)-1.0);
         float angle_rad  = angle_norm * pi_2;
         float off        = angle_norm - 0.5; // Fixes artifacts with 0 and 360 degrees.
         float distance   = abs(position).x*cos(angle_rad/2.0) - position.y*sin(angle_rad/2.0) - off;
@@ -263,8 +263,9 @@ define_sdf_shapes! {
     // === Triangle ===
 
     Triangle (width:f32, height:f32) {
-        vec2  norm = normalize(vec2(height,width/2.0));
-        float dist = max(abs(position).x*norm.x + position.y*norm.y - height*norm.y, -position.y);
+        vec2  norm  = normalize(vec2(height,width/2.0));
+        float pos_y = -position.y - height/2.0;
+        float dist  = max(abs(position).x*norm.x + position.y*norm.y - height/2.0*norm.y, pos_y);
         return bound_sdf(dist,bounding_box(width,height/2.0));
     }
 }

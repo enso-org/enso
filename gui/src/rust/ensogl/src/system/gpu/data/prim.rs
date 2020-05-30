@@ -68,6 +68,7 @@ macro_rules! with_all_prim_types {
              [Matrix2x3 f32] [Matrix2x4 f32]
              [Matrix3x2 f32] [Matrix3x4 f32]
              [Matrix4x2 f32] [Matrix4x3 f32]
+             [V2 f32] [V3 f32] [V4 f32]
             ]
         }
     }

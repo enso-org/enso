@@ -208,12 +208,14 @@ impl<T> From<T> for Value
     }
 }
 
-impl Semigroup for Value {
+impl PartialSemigroup<&Value> for Value {
     fn concat_mut(&mut self, other:&Self) {
         *self = other.clone()
     }
+}
 
-    fn concat_mut_take(&mut self, other:Self) {
+impl PartialSemigroup<Value> for Value {
+    fn concat_mut(&mut self, other:Self) {
         *self = other
     }
 }

@@ -23,74 +23,9 @@ use ensogl::gui::component::animation;
 use ensogl::gui::component::animation2;
 use ensogl::gui::component;
 
-use super::connection::Connection;
+use super::edge;
 use crate::component::visualization;
 
-
-
-// =============
-// === Icons ===
-// =============
-
-/// Icons definitions.
-pub mod icons {
-    use super::*;
-
-    /// History icon.
-    pub fn history() -> AnyShape {
-        let radius_diff    = 0.5.px();
-        let corners_radius = 2.0.px();
-        let width_diff     = &corners_radius * 3.0;
-        let offset         = 2.px();
-        let width          = 32.px();
-        let height         = 16.px();
-        let persp_diff1    = 6.px();
-
-        let width2          = &width  - &width_diff;
-        let width3          = &width2 - &width_diff;
-        let corners_radius2 = &corners_radius  - &radius_diff;
-        let corners_radius3 = &corners_radius2 - &radius_diff;
-        let persp_diff2     = &persp_diff1 * 2.0;
-
-        let rect1 = Rect((&width ,&height)).corners_radius(&corners_radius);
-        let rect2 = Rect((&width2,&height)).corners_radius(&corners_radius2).translate_y(&persp_diff1);
-        let rect3 = Rect((&width3,&height)).corners_radius(&corners_radius3).translate_y(&persp_diff2);
-
-        let rect3 = rect3 - rect2.translate_y(&offset);
-        let rect2 = rect2 - rect1.translate_y(&offset);
-
-        let rect1 = rect1.fill(color::Rgba::new(0.26, 0.69, 0.99, 1.00));
-        let rect2 = rect2.fill(color::Rgba::new(0.26, 0.69, 0.99, 0.6));
-        let rect3 = rect3.fill(color::Rgba::new(0.26, 0.69, 0.99, 0.4));
-
-        let icon = (rect3 + rect2 + rect1).translate_y(-persp_diff2/2.0);
-        icon.into()
-    }
-}
-
-/// Ring angle shape definition.
-pub fn ring_angle<R,W,A>(inner_radius:R, width:W, angle:A) -> AnyShape
-    where R : Into<Var<Distance<Pixels>>>,
-          W : Into<Var<Distance<Pixels>>>,
-          A : Into<Var<Angle<Radians>>> {
-    let inner_radius = inner_radius.into();
-    let width        = width.into();
-    let angle        = angle.into();
-
-    let angle2  = &angle / 2.0;
-    let radius  = &width / 2.0;
-    let inner   = Circle(&inner_radius);
-    let outer   = Circle(&inner_radius + &width);
-    let section = Plane().cut_angle(&angle);
-    let corner1 = Circle(&radius).translate_y(inner_radius + radius);
-    let corner2 = corner1.rotate(&angle2);
-    let corner1 = corner1.rotate(-&angle2);
-    let ring    = &outer - &inner;
-    let pie     = &ring * &section;
-    let out     = &pie + &corner1 + &corner2;
-    let out     = out.fill(color::Rgba::new(0.9,0.9,0.9,1.0));
-    out.into()
-}
 
 
 const NODE_SHAPE_PADDING : f32 = 40.0;
@@ -108,7 +43,7 @@ pub mod shape {
         (style:Style, selection:f32) {
             let bg_color = style.get("graph_editor.node.background.color").color().unwrap_or_else(|| color::Rgba::new(1.0,0.0,0.0,1.0).into());
             let selection_color = style.get("graph_editor.node.selection.color").color().unwrap_or_else(|| color::Rgba::new(1.0,0.0,0.0,1.0).into());
-            let selection_size  = style.get("graph_editor.node.selection.size").number().unwrap_or(8.0);
+            let _selection_size = style.get("graph_editor.node.selection.size").number().unwrap_or(8.0);
 
             let border_size_f = 16.0;
 
@@ -123,7 +58,7 @@ pub mod shape {
 
             // === Shadow ===
 
-            let shadow_size   = 14.px();
+            let shadow_size   = SHADOW_SIZE.px();
             let shadow_width  = &width  + &shadow_size * 2.0;
             let shadow_height = &height + &shadow_size * 2.0;
             let shadow_radius = &shadow_height / 2.0;
@@ -131,17 +66,25 @@ pub mod shape {
             let shadow_color  = color::LinearGradient::new()
                 .add(0.0,color::Rgba::new(0.0,0.0,0.0,0.0).into_linear())
                 .add(1.0,color::Rgba::new(0.0,0.0,0.0,0.20).into_linear());
-            let shadow_color  = color::SdfSampler::new(shadow_color).max_distance(border_size_f).slope(color::Slope::Exponent(4.0));
+            let shadow_color  = color::SdfSampler::new(shadow_color).max_distance(border_size_f).slope(color::Slope::Exponent(2.0));
             let shadow        = shadow.fill(shadow_color);
 
 
             // === Selection ===
 
-            let selection_size = selection_size.px();
-            let select_width   = &width  - 2.px() + &selection_size * 2.0 * &selection;
-            let select_height  = &height - 2.px() + &selection_size * 2.0 * &selection;
+            let selection_offset = 4.px();
+            let selection_size   = 7.px();
+            let select_width   = &width  - 2.px() + &selection_offset * 2.0 * &selection;
+            let select_height  = &height - 2.px() + &selection_offset * 2.0 * &selection;
             let select_radius  = &select_height / 2.0;
-            let select         = Rect((select_width,select_height)).corners_radius(select_radius);
+            let select         = Rect((&select_width,&select_height)).corners_radius(&select_radius);
+
+            let select2_width   = &width  - 2.px() + &selection_size * 2.0 * &selection;
+            let select2_height  = &height - 2.px() + &selection_size * 2.0 * &selection;
+            let select2_radius  = &select2_height / 2.0;
+            let select2         = Rect((&select2_width,&select2_height)).corners_radius(&select2_radius);
+
+            let select         = select2 - select;
             let select         = select.fill(color::Rgba::from(selection_color));
 
             let out = select + shadow + shape;
@@ -271,12 +214,13 @@ impl Deref for Frp {
 // === Node ===
 // ============
 
-// FIXME: Remove all Weak nodes - no needed anymore
 
-/// Node definition.
-#[derive(AsRef,Clone,CloneRef,Debug,Deref)]
+/// Internal data of `Node`
+#[derive(Clone,CloneRef,Debug)]
+#[allow(missing_docs)]
 pub struct Node {
-    data : Rc<NodeModelWithNetwork>,
+    pub model       : Rc<NodeModel>,
+    pub frp_network : frp::Network,
 }
 
 impl AsRef<Node> for Node {
@@ -285,42 +229,8 @@ impl AsRef<Node> for Node {
     }
 }
 
-/// Weak version of `Node`.
-#[derive(Clone,CloneRef,Debug)]
-pub struct WeakNode {
-    data : Weak<NodeModelWithNetwork>
-}
 
-impl WeakElement for WeakNode {
-    type Strong = Node;
-
-    fn new(view: &Self::Strong) -> Self {
-        view.downgrade()
-    }
-
-    fn view(&self) -> Option<Self::Strong> {
-        self.upgrade()
-    }
-}
-
-impl WeakKey for WeakNode {
-    type Key = display::object::Id;
-
-    fn with_key<F, R>(view: &Self::Strong, f: F) -> R where F: FnOnce(&Self::Key) -> R {
-        f(&view.id())
-    }
-}
-
-
-/// Internal data of `Node`
-#[derive(Clone,CloneRef,Debug)]
-#[allow(missing_docs)]
-pub struct NodeModelWithNetwork {
-    pub model       : Rc<NodeModel>,
-    pub frp_network : frp::Network,
-}
-
-impl Deref for NodeModelWithNetwork {
+impl Deref for Node {
     type Target = NodeModel;
     fn deref(&self) -> &Self::Target {
         &self.model
@@ -342,16 +252,9 @@ pub struct NodeModel {
     pub visualization_container : visualization::Container,
 }
 
-//pub const NODE_WIDTH : f32 = 284.0;
 pub const NODE_HEIGHT : f32 = 28.0;
-pub const TEXT_OFF : f32 = 12.0;
-
-impl Node {
-    pub fn new(scene:&Scene) -> Self {
-        let data = Rc::new(NodeModelWithNetwork::new(scene));
-        Self {data}
-    }
-}
+pub const TEXT_OFF : f32 = 10.0;
+pub const SHADOW_SIZE : f32 = 10.0;
 
 
 impl NodeModel {
@@ -359,11 +262,13 @@ impl NodeModel {
     pub fn new(scene:&Scene, network:&frp::Network) -> Self {
 
         let logger  = Logger::new("node");
-        let _connection = Connection::new(scene); // FIXME hack for sorting
+        edge::sort_hack_1(scene);
 
         let output_area = component::ShapeView::<output_area::Shape>::new(&logger.sub("output_area"),scene);
         let main_area   = component::ShapeView::<shape::Shape>::new(&logger.sub("main_area"),scene);
         let drag_area   = component::ShapeView::<drag_area::Shape>::new(&logger.sub("drag_area"),scene);
+        edge::sort_hack_2(scene);
+
         port::sort_hack(scene); // FIXME hack for sorting
 
         let display_object  = display::object::Instance::new(&logger);
@@ -435,7 +340,7 @@ impl NodeModel {
 
 
 
-impl NodeModelWithNetwork {
+impl Node {
     pub fn new(scene:&Scene) -> Self {
         let frp_network = frp::Network::new();
         let model       = Rc::new(NodeModel::new(scene,&frp_network));
@@ -448,15 +353,15 @@ impl NodeModelWithNetwork {
         let (output_area_size_setter, output_area_size) = animation2(&frp_network);
 
         frp::extend! { frp_network
-            eval_ inputs.select   (selection.set_target_position(1.0));
-            eval_ inputs.deselect (selection.set_target_position(0.0));
+            eval_ inputs.select   (selection.set_target_value(1.0));
+            eval_ inputs.deselect (selection.set_target_value(0.0));
 
             eval inputs.set_expression ((expr) model.set_expression(expr));
 
             eval output_area_size ((size) model.output_area.shape.grow.set(*size));
 
-            eval_ model.output_area.events.mouse_over (output_area_size_setter.set_target_position(1.0));
-            eval_ model.output_area.events.mouse_out  (output_area_size_setter.set_target_position(0.0));
+            eval_ model.output_area.events.mouse_over (output_area_size_setter.set_target_value(1.0));
+            eval_ model.output_area.events.mouse_out  (output_area_size_setter.set_target_value(0.0));
 
             eval inputs.set_visualization ((content)
                 model.visualization_container.frp.set_visualization.emit(content)
@@ -468,29 +373,75 @@ impl NodeModelWithNetwork {
 }
 
 
-
-impl StrongRef for Node {
-    type WeakRef = WeakNode;
-    fn downgrade(&self) -> WeakNode {
-        WeakNode {data:Rc::downgrade(&self.data)}
-    }
-}
-
-impl WeakRef for WeakNode {
-    type StrongRef = Node;
-    fn upgrade(&self) -> Option<Node> {
-        self.data.upgrade().map(|data| Node{data})
-    }
-}
-
 impl display::Object for Node {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object
     }
 }
 
-impl display::WeakObject for WeakNode {
-    fn try_display_object(&self) -> Option<display::object::Instance> {
-        self.upgrade().map(|ref t| t.display_object().clone_ref())
-    }
-}
+
+
+//// =============
+//// === Icons ===
+//// =============
+//
+///// Icons definitions.
+//pub mod icons {
+//    use super::*;
+//
+//    /// History icon.
+//    pub fn history() -> AnyShape {
+//        let radius_diff    = 0.5.px();
+//        let corners_radius = 2.0.px();
+//        let width_diff     = &corners_radius * 3.0;
+//        let offset         = 2.px();
+//        let width          = 32.px();
+//        let height         = 16.px();
+//        let persp_diff1    = 6.px();
+//
+//        let width2          = &width  - &width_diff;
+//        let width3          = &width2 - &width_diff;
+//        let corners_radius2 = &corners_radius  - &radius_diff;
+//        let corners_radius3 = &corners_radius2 - &radius_diff;
+//        let persp_diff2     = &persp_diff1 * 2.0;
+//
+//        let rect1 = Rect((&width ,&height)).corners_radius(&corners_radius);
+//        let rect2 = Rect((&width2,&height)).corners_radius(&corners_radius2).translate_y(&persp_diff1);
+//        let rect3 = Rect((&width3,&height)).corners_radius(&corners_radius3).translate_y(&persp_diff2);
+//
+//        let rect3 = rect3 - rect2.translate_y(&offset);
+//        let rect2 = rect2 - rect1.translate_y(&offset);
+//
+//        let rect1 = rect1.fill(color::Rgba::new(0.26, 0.69, 0.99, 1.00));
+//        let rect2 = rect2.fill(color::Rgba::new(0.26, 0.69, 0.99, 0.6));
+//        let rect3 = rect3.fill(color::Rgba::new(0.26, 0.69, 0.99, 0.4));
+//
+//        let icon = (rect3 + rect2 + rect1).translate_y(-persp_diff2/2.0);
+//        icon.into()
+//    }
+//}
+//
+///// Ring angle shape definition.
+//pub fn ring_angle<R,W,A>(inner_radius:R, width:W, angle:A) -> AnyShape
+//    where R : Into<Var<Distance<Pixels>>>,
+//          W : Into<Var<Distance<Pixels>>>,
+//          A : Into<Var<Angle<Radians>>> {
+//    let inner_radius = inner_radius.into();
+//    let width        = width.into();
+//    let angle        = angle.into();
+//
+//    let angle2  = &angle / 2.0;
+//    let radius  = &width / 2.0;
+//    let inner   = Circle(&inner_radius);
+//    let outer   = Circle(&inner_radius + &width);
+//    let section = Plane().cut_angle(&angle);
+//    let corner1 = Circle(&radius).translate_y(inner_radius + radius);
+//    let corner2 = corner1.rotate(&angle2);
+//    let corner1 = corner1.rotate(-&angle2);
+//    let ring    = &outer - &inner;
+//    let pie     = &ring * &section;
+//    let out     = &pie + &corner1 + &corner2;
+//    let out     = out.fill(color::Rgba::new(0.9,0.9,0.9,1.0));
+//    out.into()
+//}
+//

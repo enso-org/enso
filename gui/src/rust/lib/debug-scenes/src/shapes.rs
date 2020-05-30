@@ -9,7 +9,7 @@ use ensogl::prelude::*;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
 use ensogl::application::Application;
-use graph_editor::{GraphEditor, EdgeTarget};
+use graph_editor::GraphEditor;
 use wasm_bindgen::prelude::*;
 use ensogl::display::object::ObjectOps;
 use ensogl_core_msdf_sys::run_once_initialized;
@@ -33,13 +33,13 @@ pub fn run_example_shapes() {
 }
 
 
-fn fence<T,Out>(network:&frp::Network, trigger:T) -> (frp::Stream,frp::Stream<bool>)
+fn _fence<T,Out>(network:&frp::Network, trigger:T) -> (frp::Stream,frp::Stream<bool>)
 where T:frp::HasOutput<Output=Out>, T:Into<frp::Stream<Out>>, Out:frp::Data {
     let trigger = trigger.into();
     frp::extend! { network
         def trigger_ = trigger.constant(());
         def runner   = source::<()>();
-        def switch   = gather();
+        def switch   = any_mut();
         switch.attach(&trigger_);
         def triggered = trigger.map(f_!(runner.emit(())));
         switch.attach(&triggered);
@@ -49,16 +49,6 @@ where T:frp::HasOutput<Output=Out>, T:Into<frp::Stream<Out>>, Out:frp::Data {
     (runner,condition)
 }
 
-//fn fenced_gate<F,T,X>(network:&frp::Network, target:&frp::Stream<X>, f:F) -> frp::Stream<X>
-//where F:'static+Fn()->T, X:frp::Data {
-//    let target = target.clone_ref();
-//    frp::extend! { network
-//        let (trigger,runner,condition) = fence(&network);
-//        def _eval = runner.map(move |_| {f();});
-//        def out   = target.gate(&condition);
-//    }
-//    out
-//}
 
 fn init(app:&Application) {
 
@@ -67,7 +57,6 @@ fn init(app:&Application) {
     dark.insert("graph_editor.node.background.color", color::Lcha::new(0.2,0.013,0.18,1.0));
     dark.insert("graph_editor.node.selection.color", color::Lcha::new(0.72,0.5,0.22,1.0));
     dark.insert("graph_editor.node.selection.size", 7.0);
-//    dark.insert("graph_editor.node.selection.color", color::Lcha::new(0.7,0.59,0.18,1.0));
     dark.insert("animation.duration", 0.5);
     dark.insert("graph.node.shadow.color", 5.0);
     dark.insert("graph.node.shadow.size", 5.0);
@@ -78,39 +67,7 @@ fn init(app:&Application) {
 
     let _bg = app.display.scene().style_sheet.var("application.background.color");
 
-//    println!("{:?}",bg.value());
-//    println!("{:?}",app.display.scene().style_sheet.debug_sheet_nodes_count());
 
-//    let t1 : color::Hsla = color::Hsla::new(0.0,0.0,0.03,1.0);
-//    let t2 : color::Lcha = t1.into();
-//    let t4 : color::Rgba = color::Rgba::from(t2);
-//    println!("{:?}", t2);
-//    println!("{:?}", color::Rgba::from(t1));
-//    println!("{:?}", t4);
-//    println!("{:?}", color::Hsla::from(color::LinearRgba::new(0.2,0.3,0.4,1.0)));
-//
-//    let x = color::Hsla::from(color::Rgba::new(0.031,0.031,0.031,1.0));
-//    let y = color::Rgba::from(x);
-//    println!("{:?}", y);
-//    let xyz = color::Xyz::from(color::Rgb::new(0.2,0.4,0.6));
-//    let lab = color::Lab::from(color::Rgb::new(0.2,0.4,0.6));
-//    let lch = color::Lch::from(color::Rgb::new(0.2,0.4,0.6));
-//    let lch = color::Lch::from(color::Rgb::new(1.0,0.0,0.0));
-//    println!("{:?}", xyz);
-//    println!("{:?}", lab);
-//    println!("{:?}", lch);
-//    println!("-----------");
-//    println!("{:?}", color::Rgb::from(xyz));
-//    println!("{:?}", color::Rgb::from(lab));
-//    println!("{:?}", color::Rgb::from(lch));
-//    println!("{:?}", color::Lab::from(color::Xyz::new(0.1,0.2,0.3)));
-
-//    println!("{:?}", palette::Xyz::from(palette::Srgb::new(0.2,0.4,0.6)));
-//    println!("{:?}", palette::Lab::from(palette::LinSrgb::new(0.2,0.4,0.6)));
-//    println!("{:?}", palette::Lab::from(palette::Xyz::new(0.1,0.2,0.3)));
-
-
-//    color::test();
 
     let world     = &app.display;
     let scene     = world.scene();
@@ -124,27 +81,27 @@ fn init(app:&Application) {
 
     let node1_id = graph_editor.add_node();
     let node2_id = graph_editor.add_node();
-
+//
     graph_editor.frp.set_node_position.emit((node1_id,Position::new(100.0 , 250.0)));
     graph_editor.frp.set_node_position.emit((node2_id,Position::new(200.0 ,  50.0)));
-
+//
     graph_editor.frp.set_node_expression.emit((node1_id,expression_mock()));
     graph_editor.frp.set_node_expression.emit((node2_id,expression_mock2()));
 
-    frp::new_network! { network
-        def trigger = source::<()>();
-        let (runner,condition) = fence(&network,&trigger);
-        def _eval = runner.map(f_!( {
-            graph_editor.frp.connect_nodes.emit((EdgeTarget::new(node1_id,default()),EdgeTarget::new(node2_id,vec![1,0,2])));
-        }));
-        def _debug = graph_editor.frp.outputs.edge_added.map2(&condition, |id,cond| {
-            let owner = if *cond { "GUI" } else { "ME" };
-            println!("Edge {:?} added by {}!",id,owner)
-        });
+//    frp::new_network! { network
+//        def trigger = source::<()>();
+//        let (runner,condition) = fence(&network,&trigger);
+//        def _eval = runner.map(f_!( {
+//            graph_editor.frp.connect_nodes.emit((EdgeTarget::new(node1_id,default()),EdgeTarget::new(node2_id,vec![1,0,2])));
+//        }));
+//        def _debug = graph_editor.frp.outputs.edge_added.map2(&condition, |id,cond| {
+//            let owner = if *cond { "GUI" } else { "ME" };
+//            println!("Edge {:?} added by {}!",id,owner)
+//        });
+//
+//    }
 
-    }
-
-    trigger.emit(());
+//    trigger.emit(());
 
 
     let mut was_rendered = false;
@@ -152,7 +109,7 @@ fn init(app:&Application) {
     world.on_frame(move |_| {
         let _keep_alive = &navigator;
         let _keep_alive = &graph_editor;
-        let _keep_alive = &network;
+//        let _keep_alive = &network;
 
         // Temporary code removing the web-loader instance.
         // To be changed in the future.
@@ -181,8 +138,6 @@ use graph_editor::component::node::port::Expression;
 
 
 pub fn expression_mock() -> Expression {
-    let pattern_crumb    = vec![Seq{right:false },Or,Or,Build];
-    let _val             = ast::crumbs::SegmentMatchCrumb::Body{val:pattern_crumb};
     let code             = "open \"data.csv\"".into();
     let output_span_tree = default();
     let input_span_tree  = span_tree::builder::TreeBuilder::new(15)
