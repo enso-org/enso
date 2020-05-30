@@ -18,13 +18,23 @@ pub use crate::math::topology::unit::Degrees;
 // =====================
 
 /// Provides a `px` method to every unit that can be converted to a pixel distance.
+#[allow(missing_docs)]
 pub trait PixelDistance {
+    type Output;
     /// Distance in pixels.
-    fn px(&self) -> Var<Distance<Pixels>>;
+    fn px(&self) -> Self::Output;
 }
 
-impl<T: unit::PixelDistance> PixelDistance for T {
-    fn px(&self) -> Var<Distance<Pixels>> {
+impl PixelDistance for i32 {
+    type Output = Var<Distance<Pixels>>;
+    fn px(&self) -> Self::Output {
+        unit::PixelDistance::px(self).into()
+    }
+}
+
+impl PixelDistance for f32 {
+    type Output = Var<Distance<Pixels>>;
+    fn px(&self) -> Self::Output {
         unit::PixelDistance::px(self).into()
     }
 }

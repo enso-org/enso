@@ -16,32 +16,101 @@ use ensogl::display::{Sprite, Attribute};
 use ensogl::display;
 use ensogl::gui::component::animation;
 use ensogl::gui::component::animation2;
+use ensogl::gui::component::animator;
 use ensogl::gui::component;
 use ensogl::system::web;
 
 
+
 #[derive(Debug,Clone)]
-pub enum Mode {
-    Normal,
-    Cursor,
-    Highlight {
-        host     : display::object::Instance,
-        position : Vector2<f32>,
-        size     : Vector2<f32>,
-    }
+pub struct StyleParam<T> {
+    pub value   : T,
+    pub animate : bool,
 }
 
-impl Mode {
-    pub fn highlight<H>(host:H, position:Vector2<f32>, size:Vector2<f32>) -> Self
-    where H:display::Object {
-        let host = host.display_object().clone_ref();
-        Self::Highlight {host,position,size}
-    }
-}
-
-impl Default for Mode {
+impl<T:Default> Default for StyleParam<T> {
     fn default() -> Self {
-        Self::Normal
+        let value   = default();
+        let animate = true;
+        Self {value,animate}
+    }
+}
+
+impl<T> StyleParam<T> {
+    pub fn new(value:T) -> Self {
+        let animate = true;
+        Self {value,animate}
+    }
+
+    pub fn new_no_animation(value:T) -> Self {
+        let animate = false;
+        Self {value,animate}
+    }
+}
+
+
+#[derive(Debug,Clone,Default)]
+pub struct Style {
+    host   : Option<display::object::Instance>,
+    size   : Option<StyleParam<Vector2<f32>>>,
+    offset : Option<StyleParam<Vector2<f32>>>,
+    color  : Option<StyleParam<color::Lcha>>,
+    radius : Option<f32>,
+    press  : Option<f32>,
+}
+
+impl Style {
+    pub fn highlight<H>
+    (host:H, size:Vector2<f32>, color:Option<color::Lcha>) -> Self
+    where H:display::Object {
+        let host  = Some(host.display_object().clone_ref());
+        let size  = Some(StyleParam::new(size));
+        let color = color.map(StyleParam::new);
+        Self {host,size,color,..default()}
+    }
+
+    pub fn color(color:color::Lcha) -> Self {
+        let color = Some(StyleParam::new(color));
+        Self {color,..default()}
+    }
+
+    pub fn color_no_animation(color:color::Lcha) -> Self {
+        let color = Some(StyleParam::new_no_animation(color));
+        Self {color,..default()}
+    }
+
+    pub fn selection(size:Vector2<f32>) -> Self {
+        let offset = Some(StyleParam::new_no_animation(-size / 2.0));
+        let size   = Some(StyleParam::new_no_animation(size.abs() + Vector2::new(16.0,16.0)));
+        Self {size,offset,..default()}
+    }
+
+    pub fn pressed() -> Self {
+        let press = Some(1.0);
+        Self {press,..default()}
+    }
+
+    pub fn press(mut self) -> Self {
+        self.press = Some(1.0);
+        self
+    }
+}
+
+impl PartialSemigroup<&Style> for Style {
+    #[allow(clippy::clone_on_copy)]
+    fn concat_mut(&mut self, other:&Self) {
+        if self.host   . is_none() { self.host   = other.host   . clone() }
+        if self.size   . is_none() { self.size   = other.size   . clone() }
+        if self.offset . is_none() { self.offset = other.offset . clone() }
+        if self.color  . is_none() { self.color  = other.color  . clone() }
+        if self.radius . is_none() { self.radius = other.radius . clone() }
+        if self.press  . is_none() { self.press  = other.press  . clone() }
+    }
+}
+
+impl PartialSemigroup<Style> for Style {
+    fn concat_mut(&mut self, other:Self) {
+        self.concat_mut(&other)
     }
 }
 
@@ -56,57 +125,52 @@ pub mod shape {
     use super::*;
 
     ensogl::define_shape_system! {
-        (position:Vector2<f32>, width:f32, height:f32, selection_size:Vector2<f32>, press:f32, radius:f32) {
+        ( position       : Vector2<f32>
+        , dim            : V2
+        , offset         : V2
+        , selection_size : Vector2<f32>
+        , press          : f32
+        , radius         : f32
+        , color          : Vector4<f32>
+        ) {
             let press_diff       = 2.px() * &press;
             let radius           = 1.px() * radius - &press_diff;
-            let selection_width  = 1.px() * &selection_size.x() * &press;
-            let selection_height = 1.px() * &selection_size.y() * &press;
-            let width            = (1.px() * &width  - &press_diff * 2.0) + selection_width.abs();
-            let height           = (1.px() * &height - &press_diff * 2.0) + selection_height.abs();
+            let offset : Var<V2<Distance<Pixels>>>           = offset.px();
+            let selection_width  = 1.px() * &selection_size.x(); // * &press;
+            let selection_height = 1.px() * &selection_size.y(); // * &press;
+            let width            = (1.px() * &dim.x() - &press_diff * 2.0) + selection_width.abs();
+            let height           = (1.px() * &dim.y() - &press_diff * 2.0) + selection_height.abs();
             let cursor = Rect((width,height))
                 .corners_radius(radius)
-                .translate((-&selection_width/2.0, -&selection_height/2.0))
+                .translate(offset)
                 .translate(("input_position.x","input_position.y"))
-                .fill(color::Rgba::new(1.0,1.0,1.0,0.2));
+                .fill("srgba(input_color)");
             cursor.into()
         }
     }
 }
 
-///// Shape view for Cursor.
-//#[derive(Clone,CloneRef,Debug)]
-//#[allow(missing_docs)]
-//pub struct CursorView {}
-//
-//impl component::ShapeViewDefinition for CursorView {
-//    type Shape = shape::Shape;
-//}
 
 
-
-// ==============
+// ===================
 // === InputEvents ===
-// ==============
+// ===================
 
 /// Cursor events.
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct InputEvents {
-    pub network  : frp::Network,
-    pub set_mode : frp::Source<Mode>,
-    pub press    : frp::Source,
-    pub release  : frp::Source,
+    pub network   : frp::Network,
+    pub set_style : frp::Source<Style>,
 }
 
 impl Default for InputEvents {
     fn default() -> Self {
         frp::new_network! { cursor_events
-            def set_mode = source();
-            def press    = source();
-            def release  = source();
+            def set_style = source();
         }
         let network = cursor_events;
-        Self {network,set_mode,press,release}
+        Self {network,set_style}
     }
 }
 
@@ -178,12 +242,6 @@ impl Cursor {
 
         scene.views.main.remove(&shape_system.shape_system.symbol);
         scene.views.cursor.add(&shape_system.shape_system.symbol);
-//        let scene_view = scene.views.new();
-//        scene.views.main.remove(&shape_system.shape_system.symbol);
-//        scene_view.add(&shape_system.shape_system.symbol);
-
-
-
 
         let network = &input.network;
 
@@ -197,95 +255,129 @@ impl Cursor {
             view_data.radius.set(value)
         });
 
-        let view_data = view.shape.clone_ref();
-        let width = animation(network,move |value| {
-            view_data.width.set(value)
-        });
-
-        let view_data = view.shape.clone_ref();
-        let height = animation(network,move |value| {
-            view_data.height.set(value)
-        });
-
+        let (size,current_size) = animator::<V2>(network);
+        let (offset,current_offset) = animator::<V2>(network);
 
         let (anim_use_fixed_pos_setter,anim_use_fixed_pos) = animation2(network);
         let (anim_pos_x_setter,anim_pos_x) = animation2(network);
         let (anim_pos_y_setter,anim_pos_y) = animation2(network);
 
+        let (anim_color_lab_l_setter,anim_color_lab_l) = animation2(network);
+        let (anim_color_lab_a_setter,anim_color_lab_a) = animation2(network);
+        let (anim_color_lab_b_setter,anim_color_lab_b) = animation2(network);
+        let (anim_color_alpha_setter,anim_color_alpha) = animation2(network);
+
+
+        anim_color_lab_l_setter.set_target_value(1.0);
+        anim_color_alpha_setter.set_target_value(0.2);
+
+        radius.set_target_value(8.0);
+        size.set_target_value(V2::new(16.0,16.0));
 
         let mouse = &scene.mouse.frp;
 
 
 
-
         frp::extend! { network
 
-            def anim_position      = anim_pos_x.zip_with(&anim_pos_y,|x,y| frp::Position::new(*x,*y));
+            eval current_size ((v) view.shape.dim.set(*v));
+            eval current_offset ((v) view.shape.offset.set(*v));
 
-            def _t_press = input.press.map(enclose!((press) move |_| {
-                press.set_target_position(1.0);
-            }));
+            def anim_position = anim_pos_x.all_with(&anim_pos_y,|x,y| frp::Position::new(*x,*y));
 
-            def _t_release = input.release.map(enclose!((press) move |_| {
-                press.set_target_position(0.0);
-            }));
+            anim_color <- all_with4(&anim_color_lab_l,&anim_color_lab_a,&anim_color_lab_b,&anim_color_alpha,
+                |l,a,b,alpha| color::Rgba::from(color::Laba::new(*l,*a,*b,*alpha))
+            );
 
-            def fixed_position = input.set_mode.map(enclose!((anim_pos_x_setter,anim_pos_y_setter) move |m| {
-                match m {
-                    Mode::Highlight {host,..} => {
-                        let p = host.global_position();
-                        anim_pos_x_setter.set_target_position(p.x);
-                        anim_pos_y_setter.set_target_position(p.y);
-                        anim_use_fixed_pos_setter.set_target_position(1.0);
-                        Some(p)
-                    }
-                    _ => {
-                        anim_use_fixed_pos_setter.set_target_position(0.0);
-                        None
+            def _ev = input.set_style.map(enclose!((size,anim_pos_x_setter,anim_pos_y_setter) move |style| {
+                match &style.press {
+                    None    => press.set_target_value(0.0),
+                    Some(t) => press.set_target_value(*t),
+                }
+
+                match &style.host {
+                    None       => anim_use_fixed_pos_setter.set_target_value(0.0),
+                    Some(host) => {
+                        let position = host.global_position();
+                        anim_pos_x_setter.set_target_value(position.x);
+                        anim_pos_y_setter.set_target_value(position.y);
+                        anim_use_fixed_pos_setter.set_target_value(1.0);
                     }
                 }
+
+                match &style.color {
+                    None => {
+                        anim_color_lab_l_setter.set_target_value(1.0);
+                        anim_color_lab_a_setter.set_target_value(0.0);
+                        anim_color_lab_b_setter.set_target_value(0.0);
+                        anim_color_alpha_setter.set_target_value(0.2);
+                    }
+                    Some(new_color) => {
+                        let lab = color::Laba::from(new_color.value);
+                        anim_color_lab_l_setter.set_target_value(lab.lightness);
+                        anim_color_lab_a_setter.set_target_value(lab.a);
+                        anim_color_lab_b_setter.set_target_value(lab.b);
+                        anim_color_alpha_setter.set_target_value(lab.alpha);
+                        if !new_color.animate {
+                            anim_color_lab_l_setter.skip();
+                            anim_color_lab_a_setter.skip();
+                            anim_color_lab_b_setter.skip();
+                            anim_color_alpha_setter.skip();
+                        }
+                    }
+                }
+
+                match &style.size {
+                    None => {
+                        size.set_target_value(V2::new(16.0,16.0));
+                    }
+                    Some(new_size) => {
+                        size.set_target_value(V2::new(new_size.value.x,new_size.value.y));
+                        if !new_size.animate { size.skip() }
+                    }
+                }
+
+                match &style.offset {
+                    None => {
+                        offset.set_target_value(V2::new(0.0,0.0));
+                    }
+                    Some(new_offset) => {
+                        offset.set_target_value(V2::new(new_offset.value.x,new_offset.value.y));
+                        if !new_offset.animate { offset.skip() }
+                    }
+                }
+
+                match &style.radius {
+                    None    => radius.set_target_value(8.0),
+                    Some(r) => radius.set_target_value(*r),
+                }
             }));
+
+            def fixed_position = input.set_style.map(|style| style.host.as_ref().map(|t| t.global_position()));
 
             def uses_mouse_position = fixed_position.map(|p| p.is_none());
             def mouse_position = mouse.position.gate(&uses_mouse_position);
 
-            def position = mouse.position.zip_with3(&anim_position,&anim_use_fixed_pos, |p,ap,au| {
+            def position = mouse.position.all_with3(&anim_position,&anim_use_fixed_pos, |p,ap,au| {
                 let x = ap.x * au + p.x * (1.0 - au);
                 let y = ap.y * au + p.y * (1.0 - au);
                 frp::Position::new(x,y)
             });
 
-            def _position = position.map(f!((p) {
-                view.shape.position.set(Vector2::new(p.x,p.y));
-            }));
+            eval anim_color    ((t) view.shape.color.set(Vector4::new(t.red,t.green,t.blue,t.alpha)));
+            eval position ((p) view.shape.position.set(Vector2::new(p.x,p.y)));
 
             def _position = mouse_position.map(f!([anim_pos_x_setter,anim_pos_y_setter](p) {
-                anim_pos_x_setter.set_target_position(p.x);
-                anim_pos_y_setter.set_target_position(p.y);
-            }));
-
-            def _t_mode = input.set_mode.map(enclose!((radius,width,height) move |m| {
-                match m {
-                    Mode::Normal => {
-                        radius.set_target_position(8.0);
-                        width.set_target_position(16.0);
-                        height.set_target_position(16.0);
-                    }
-                    Mode::Highlight {size,..} => {
-                        radius.set_target_position(4.0);
-                        width.set_target_position(size.x);
-                        height.set_target_position(size.y);
-                    }
-                    _ => panic!()
-                };
+                anim_pos_x_setter.set_target_value(p.x);
+                anim_pos_y_setter.set_target_value(p.y);
             }));
         }
 
-        radius.set_target_position(8.0);
-        width.set_target_position(16.0);
-        height.set_target_position(16.0);
 
-        input.set_mode.emit(Mode::Normal);
+
+
+
+        input.set_style.emit(Style::default());
 
 
         let frp    = Events {input,position};
@@ -293,17 +385,6 @@ impl Cursor {
         let data   = Rc::new(data);
 
         Cursor {data}
-
-    }
-
-//    /// Position setter.
-//    pub fn set_position(&self, pos:Vector2<f32>) {
-//        self.view.shape.position.set(pos);
-//    }
-
-    /// Selection size setter.
-    pub fn set_selection_size(&self, pos:Vector2<f32>) {
-        self.view.shape.selection_size.set(pos);
     }
 }
 

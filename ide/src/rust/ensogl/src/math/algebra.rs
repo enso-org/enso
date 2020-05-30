@@ -18,6 +18,13 @@ pub use nalgebra::Matrix4x2;
 pub use nalgebra::Matrix4x3;
 
 use nalgebra;
+use nalgebra::Scalar;
+use nalgebra::Matrix;
+use nalgebra::ComplexField;
+use nalgebra::Dim;
+use nalgebra::storage::Storage;
+
+use std::ops::AddAssign;
 
 
 
@@ -29,6 +36,11 @@ use nalgebra;
 pub trait Zero {
     /// A zero value of this type.
     fn zero() -> Self;
+}
+
+/// Smart constructor for the `Zero` trait.
+pub fn zero<T:Zero>() -> T {
+    <T as Zero>::zero()
 }
 
 
@@ -46,7 +58,7 @@ macro_rules! gen_zero {
 
 macro_rules! gen_zero_nalgebra {
     ([$($ty:ident),*]) => {$(
-        impl<T:nalgebra::Scalar+num_traits::Zero> Zero for $ty<T> {
+        impl<T:Scalar+num_traits::Zero> Zero for $ty<T> {
             fn zero() -> Self {
                 nalgebra::zero()
             }
@@ -155,17 +167,27 @@ impl Pow<f32> for f32 {
 /// Types which have magnitude value.
 #[allow(missing_docs)]
 pub trait Magnitude {
-    fn magnitude(&self) -> f32;
+    type Output;
+    fn magnitude(&self) -> Self::Output;
 }
 
 
 // === Impls ===
 
 impl Magnitude for f32 {
-    fn magnitude(&self) -> f32 {
+    type Output = f32;
+    fn magnitude(&self) -> Self::Output {
         self.abs()
     }
 }
+
+impl<N:ComplexField, R:Dim, C:Dim, S:Storage<N,R,C>> Magnitude for Matrix<N,R,C,S> {
+    type Output = N::RealField;
+    fn magnitude(&self) -> Self::Output {
+        self.norm()
+    }
+}
+
 
 
 // ==============
@@ -273,6 +295,7 @@ impl Normalize for f32 {
         self.signum()
     }
 }
+
 
 
 // ===================
@@ -394,58 +417,191 @@ impl Acos for f32 {
 
 
 
-// =============
-// === Point ===
-// =============
 
-/// A coordinate in space.
-#[derive(Clone,Copy,Debug,Neg,Sub,Add,Div,AddAssign,From,Shrinkwrap)]
-#[shrinkwrap(mutable)]
-pub struct Point3 {
-    /// Underlying representation
-    pub matrix : Vector3<f32>
+macro_rules! define_vector {
+    ($name:ident {$($field:ident),*}) => {
+        /// A coordinate in space.
+        #[derive(Clone,Copy,Debug,Default)]
+        #[repr(C)]
+        pub struct $name<T=f32> {
+            $(
+                /// Vector component.
+                pub $field : T
+            ),*
+        }
+
+        /// Smart constructor.
+        #[allow(non_snake_case)]
+        pub fn $name<T>($($field:T),*) -> $name<T> {
+            $name {$($field),*}
+        }
+
+        impl<T> $name<T> {
+            /// Constructor.
+            pub fn new($($field:T),*) -> Self {
+                Self {$($field),*}
+            }
+
+            /// Converts the struct to slice.
+            ///
+            /// # Safety
+            /// The code is safe as the struct is implemented as `repr(C)`.
+            #[allow(unsafe_code)]
+            #[allow(trivial_casts)]
+            pub fn as_slice(&self) -> &[T] {
+                // Safe, because $name is defined as `#[repr(C)]`.
+                let ptr = self as *const $name<T> as *const T;
+                unsafe {
+                    std::slice::from_raw_parts(ptr, std::mem::size_of::<T>())
+                }
+            }
+        }
+
+        impl Magnitude for $name {
+            type Output = f32;
+            fn magnitude(&self) -> Self::Output {
+                $(let $field = self.$field * self.$field;)*
+                let sum = 0.0 $(+$field)*;
+                sum.sqrt()
+            }
+        }
+
+        impl Normalize for $name {
+            fn normalize(&self) -> Self {
+                let magnitude = self.magnitude();
+                $(let $field = self.$field / magnitude;)*
+                Self {$($field),*}
+            }
+        }
+
+        impl AddAssign<f32> for $name {
+            fn add_assign(&mut self, rhs:f32) {
+                $(self.$field += rhs;)*
+            }
+        }
+
+        impl<T,S> AddAssign<$name<S>> for $name<T>
+        where T:AddAssign<S> {
+            fn add_assign(&mut self, rhs:$name<S>) {
+                $(self.$field += rhs.$field;)*
+            }
+        }
+
+        impl<T,S> Add<$name<S>> for $name<T>
+        where T:Add<S> {
+            type Output = $name<<T as Add<S>>::Output>;
+            fn add(self,rhs:$name<S>) -> Self::Output {
+                $(let $field = self.$field.add(rhs.$field);)*
+                $name {$($field),*}
+            }
+        }
+
+        impl<T,S> Sub<$name<S>> for $name<T>
+        where T:Sub<S> {
+            type Output = $name<<T as Sub<S>>::Output>;
+            fn sub(self,rhs:$name<S>) -> Self::Output {
+                $(let $field = self.$field.sub(rhs.$field);)*
+                $name {$($field),*}
+            }
+        }
+
+        impl<T> Neg for $name<T>
+        where T:Neg {
+            type Output = $name<<T as Neg>::Output>;
+            fn neg(self) -> Self::Output {
+                $(let $field = self.$field.neg();)*
+                $name {$($field),*}
+            }
+        }
+
+        impl Mul<f32> for $name {
+            type Output = $name;
+            fn mul(self, rhs:f32) -> Self::Output {
+                $(let $field = self.$field.mul(rhs);)*
+                Self {$($field),*}
+            }
+        }
+
+        impl Div<f32> for $name {
+            type Output = $name;
+            fn div(self, rhs:f32) -> Self::Output {
+                $(let $field = self.$field.div(rhs);)*
+                Self {$($field),*}
+            }
+        }
+
+        impl Mul<$name> for f32 {
+            type Output = $name;
+            fn mul(self, rhs:$name) -> Self::Output {
+                $(let $field = self.mul(rhs.$field);)*
+                $name {$($field),*}
+            }
+        }
+    };
 }
 
-impl Point3 {
-    /// Constructor.
-    pub fn new(x:f32, y:f32, z:f32) -> Self {
-        let matrix = Vector3::new(x,y,z);
-        Self {matrix}
+define_vector! {V2 {x,y}}
+define_vector! {V3 {x,y,z}}
+define_vector! {V4 {x,y,z,w}}
+
+impl<T:Scalar> From<Vector2<T>> for V2<T> {
+    fn from(t:Vector2<T>) -> Self {
+        V2(t.x,t.y)
     }
 }
 
-impl Default for Point3 {
-    fn default() -> Self {
-        let matrix = nalgebra::zero();
-        Self {matrix}
+impl<T:Scalar> Into<Vector2<T>> for V2<T> {
+    fn into(self) -> Vector2<T> {
+        Vector2::new(self.x,self.y)
     }
 }
 
-impl Magnitude for Point3 {
-    fn magnitude(&self) -> f32 {
-        self.matrix.magnitude()
+impl<T:Scalar> Into<Vector2<T>> for &V2<T> {
+    fn into(self) -> Vector2<T> {
+        Vector2::new(self.x,self.y)
     }
 }
 
-impl Normalize for Point3 {
-    fn normalize(&self) -> Self {
-        Self {matrix:self.matrix.normalize()}
+
+
+impl<T:Scalar> From<Vector3<T>> for V3<T> {
+    fn from(t:Vector3<T>) -> Self {
+        V3(t.x,t.y,t.z)
     }
 }
 
-impl Mul<f32> for Point3 {
-    type Output = Point3;
-    fn mul(self, rhs:f32) -> Self::Output {
-        let matrix = self.matrix * rhs;
-        Self {matrix}
+impl<T:Scalar> Into<Vector3<T>> for V3<T> {
+    fn into(self) -> Vector3<T> {
+        Vector3::new(self.x,self.y,self.z)
     }
 }
 
-impl Into<Vector3<f32>> for Point3 {
-    fn into(self) -> Vector3<f32> {
-        self.matrix
+impl<T:Scalar> Into<Vector3<T>> for &V3<T> {
+    fn into(self) -> Vector3<T> {
+        Vector3::new(self.x,self.y,self.z)
     }
 }
+
+
+
+impl<T:Scalar> From<Vector4<T>> for V4<T> {
+    fn from(t:Vector4<T>) -> Self {
+        V4(t.x,t.y,t.z,t.w)
+    }
+}
+
+impl<T:Scalar> Into<Vector4<T>> for V4<T> {
+    fn into(self) -> Vector4<T> {
+        Vector4::new(self.x,self.y,self.z,self.w)
+    }
+}
+
+impl<T:Scalar> Into<Vector4<T>> for &V4<T> {
+    fn into(self) -> Vector4<T> {
+        Vector4::new(self.x,self.y,self.z,self.w)
+    }
+}
+
 
 
 

@@ -23,7 +23,7 @@ use events::ZoomEvent;
 #[derive(Debug)]
 pub struct Navigator {
     _events         : NavigatorEvents,
-    simulator       : physics::inertia::DynSimulator<Point3>,
+    simulator       : physics::inertia::DynSimulator<V3>,
     resize_callback : callback::Handle
 }
 
@@ -39,12 +39,12 @@ impl Navigator {
         Self {simulator,_events,resize_callback}
     }
 
-    fn create_simulator(camera:&Camera2d) -> physics::inertia::DynSimulator<Point3> {
+    fn create_simulator(camera:&Camera2d) -> physics::inertia::DynSimulator<V3> {
         let camera_ref = camera.clone_ref();
-        let update     = Box::new(move |p:Point3| camera_ref.set_position(p.into()));
+        let update     = Box::new(move |p:V3| camera_ref.set_position(p.into()));
         let simulator  = physics::inertia::DynSimulator::new(update);
-        simulator.set_position(camera.position().into());
-        simulator.set_target_position(camera.position().into());
+        simulator.set_value(camera.position().into());
+        simulator.set_target_value(camera.position().into());
         simulator
     }
 
@@ -54,7 +54,7 @@ impl Navigator {
     , min_zoom   : f32
     , max_zoom   : f32
     , zoom_speed : f32
-    ) -> (physics::inertia::DynSimulator<Point3>,callback::Handle,NavigatorEvents) {
+    ) -> (physics::inertia::DynSimulator<V3>,callback::Handle,NavigatorEvents) {
         let simulator        = Self::create_simulator(&camera);
         let panning_callback = enclose!((dom,camera,mut simulator) move |pan: PanEvent| {
             let fovy_slope                  = camera.half_fovy_slope();
@@ -64,15 +64,15 @@ impl Navigator {
 
             let dx   = pan.movement.x * movement_scale_for_distance;
             let dy   = pan.movement.y * movement_scale_for_distance;
-            let diff = Point3::new(dx,dy,0.0);
-            simulator.update_target_position(|p| p + diff);
+            let diff = V3::new(dx,dy,0.0);
+            simulator.update_target_value(|p| p + diff);
         });
 
         let resize_callback = camera.add_screen_update_callback(
             enclose!((mut simulator,camera) move |_:&Vector2<f32>| {
                 let position = camera.position().into();
-                simulator.set_position(position);
-                simulator.set_target_position(position);
+                simulator.set_value(position);
+                simulator.set_target_value(position);
                 simulator.set_velocity(default());
             })
         );
@@ -87,8 +87,8 @@ impl Navigator {
                 let x              = -normalized.x * camera.screen().aspect();
                 let y              = -normalized.y;
                 let z              = half_height / camera.half_fovy_slope();
-                let direction      = Point3::new(x,y,z).normalize();
-                let mut position   = simulator.target_position();
+                let direction      = V3::new(x,y,z).normalize();
+                let mut position   = simulator.target_value();
                 let min_zoom       = camera.clipping().near + min_zoom;
                 let zoom_amount    = zoom.amount * position.z;
                 let direction      = direction   * zoom_amount;
@@ -100,7 +100,7 @@ impl Navigator {
                                 else if too_close { min_zoom_limit / direction.z }
                                 else              { 1.0 };
                 position          += direction * zoom_factor;
-                simulator.set_target_position(position);
+                simulator.set_target_value(position);
         });
         (simulator,resize_callback, NavigatorEvents::new(&dom, panning_callback, zoom_callback, zoom_speed))
     }

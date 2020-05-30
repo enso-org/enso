@@ -2,7 +2,6 @@
 //! various general-purpose instances.
 
 use super::semigroup::Semigroup;
-use super::semigroup::SemigroupIm;
 
 
 
@@ -24,23 +23,16 @@ pub trait Monoid : Default + Semigroup {
             }
         }
     }
-}
 
-
-/// Immutable Monoid definition.
-pub trait MonoidIm : Default + SemigroupIm {
-    /// Repeat a value n times. Given that this works on a Monoid it will not fail if you request 0
-    /// or fewer repetitions.
     fn times(&self, n:usize) -> Self {
-        std::iter::repeat(self).take(n).fold(Default::default(),|l,r| l.concat(r))
+        std::iter::repeat(self).take(n).fold(Default::default(),|l,r| l.concat_ref(r))
     }
 }
 
 
 // === Default Impls ===
 
-impl<T> Monoid   for T where T : Default + Semigroup   {}
-impl<T> MonoidIm for T where T : Default + SemigroupIm {}
+impl<T> Monoid for T where T : Default + Semigroup {}
 
 
 
@@ -62,3 +54,54 @@ mod tests {
         assert_eq!(vec_1_2.times(3) , vec_1_2_times_3);
     }
 }
+
+
+// TODO: Think what to do with this. It would not be needed if tuples implement Iter. Alternatively
+// we could immplement own tuple type.
+
+//trait Foldable {
+//    type Item : Monoid;
+//    fn fold(self) -> Self::Item;
+//}
+//
+//
+//
+//macro_rules! replace {
+//    ($a:tt,$b:tt) => {$b};
+//}
+//
+//
+//macro_rules! define_foldable_for_tuple {
+//    (0$(,$num:tt)*) => {
+//        impl<T:Monoid> Foldable for (T,$(replace!{$num,T}),*) {
+//            type Item = T;
+//            fn fold(self) -> Self::Item {
+//                self.0$(.concat(self.$num))*
+//            }
+//        }
+//
+//        impl<T:Monoid> Foldable for &(T,$(replace!{$num,T}),*) {
+//            type Item = T;
+//            fn fold(self) -> Self::Item {
+//                self.0.clone()$(.concat(&self.$num))*
+//            }
+//        }
+//    };
+//}
+//
+//define_foldable_for_tuple![0];
+//define_foldable_for_tuple![0,1];
+//define_foldable_for_tuple![0,1,2];
+//define_foldable_for_tuple![0,1,2,3];
+//define_foldable_for_tuple![0,1,2,3,4];
+//define_foldable_for_tuple![0,1,2,3,4,5];
+//define_foldable_for_tuple![0,1,2,3,4,5,6];
+//define_foldable_for_tuple![0,1,2,3,4,5,6,7];
+//define_foldable_for_tuple![0,1,2,3,4,5,6,7,8];
+//define_foldable_for_tuple![0,1,2,3,4,5,6,7,8,9];
+//define_foldable_for_tuple![0,1,2,3,4,5,6,7,8,9,10];
+//define_foldable_for_tuple![0,1,2,3,4,5,6,7,8,9,10,11];
+//define_foldable_for_tuple![0,1,2,3,4,5,6,7,8,9,10,11,12];
+//define_foldable_for_tuple![0,1,2,3,4,5,6,7,8,9,10,11,12,13];
+//define_foldable_for_tuple![0,1,2,3,4,5,6,7,8,9,10,11,12,13,14];
+//define_foldable_for_tuple![0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];

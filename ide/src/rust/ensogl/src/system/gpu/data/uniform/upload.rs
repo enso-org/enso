@@ -6,6 +6,7 @@ use web_sys::WebGlUniformLocation;
 
 use crate::system::gpu::Context;
 use crate::system::gpu::data::prim::*;
+use crate::math::types::*;
 
 
 
@@ -42,6 +43,9 @@ impl UniformUpload for f32 {
         context.uniform1f(Some(location),*self);
     }
 }
+
+
+// === Vector ===
 
 impl UniformUpload for Vector2<f32> {
     fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
@@ -117,6 +121,87 @@ impl UniformUpload for Vector4<bool> {
         context.uniform4iv_with_i32_array(Some(location),&v);
     }
 }
+
+
+// === V ===
+
+impl UniformUpload for V2<f32> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform2fv_with_f32_array(Some(location),self.as_slice());
+    }
+}
+
+impl UniformUpload for V3<f32> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform3fv_with_f32_array(Some(location),self.as_slice());
+    }
+}
+
+impl UniformUpload for V4<f32> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform4fv_with_f32_array(Some(location),self.as_slice());
+    }
+}
+
+impl UniformUpload for V2<i32> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform2iv_with_i32_array(Some(location),self.as_slice());
+    }
+}
+
+impl UniformUpload for V3<i32> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform3iv_with_i32_array(Some(location),self.as_slice());
+    }
+}
+
+impl UniformUpload for V4<i32> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform4iv_with_i32_array(Some(location),self.as_slice());
+    }
+}
+
+impl UniformUpload for V2<u32> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform2uiv_with_u32_array(Some(location),self.as_slice());
+    }
+}
+
+impl UniformUpload for V3<u32> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform3uiv_with_u32_array(Some(location),self.as_slice());
+    }
+}
+
+impl UniformUpload for V4<u32> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        context.uniform4uiv_with_u32_array(Some(location),self.as_slice());
+    }
+}
+
+impl UniformUpload for V2<bool> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        let v:Vec<i32> = self.as_slice().iter().cloned().map(|t| if t {1} else {0}).collect();
+        context.uniform2iv_with_i32_array(Some(location),&v);
+    }
+}
+
+impl UniformUpload for V3<bool> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        let v:Vec<i32> = self.as_slice().iter().cloned().map(|t| if t {1} else {0}).collect();
+        context.uniform3iv_with_i32_array(Some(location),&v);
+    }
+}
+
+impl UniformUpload for V4<bool> {
+    fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
+        let v:Vec<i32> = self.as_slice().iter().cloned().map(|t| if t {1} else {0}).collect();
+        context.uniform4iv_with_i32_array(Some(location),&v);
+    }
+}
+
+
+// === Matrix ===
 
 impl UniformUpload for Matrix2<f32> {
     fn upload_uniform(&self, context:&Context, location:&WebGlUniformLocation) {
