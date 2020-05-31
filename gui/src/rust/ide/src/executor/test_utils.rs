@@ -1,3 +1,4 @@
+//! Utilities for testing executor-dependent code.
 
 use crate::prelude::*;
 
@@ -23,7 +24,7 @@ impl TestWithLocalPoolExecutor {
         let running_task_count = Rc::new(Cell::new(0));
 
         set_spawner(executor.spawner());
-        Self {executor, running_task_count }
+        Self {executor,running_task_count}
     }
 
     /// Spawn new task in executor.
@@ -66,6 +67,6 @@ impl Drop for TestWithLocalPoolExecutor {
     fn drop(&mut self) {
         // We should be able to finish test.
         self.executor.run_until_stalled();
-        assert_eq!(0,self.running_task_count.get());
+        assert_eq!(0,self.running_task_count.get(),"Executor dropped before tasks are complete!");
     }
 }

@@ -157,7 +157,7 @@ mod test {
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
-    type ModulePath = controller::module::Path;
+    type ModulePath = model::module::Path;
     type Registry   = super::Registry<ModulePath,model::Module>;
 
     #[test]
@@ -169,7 +169,7 @@ mod test {
             let state    = Rc::new(model::Module::new(ast.try_into().unwrap(),default()));
             let registry = Rc::new(Registry::default());
             let expected = state.clone_ref();
-            let path     = ModulePath::from_module_name("Test");
+            let path     = ModulePath::from_mock_module_name("Test");
 
             let loader = async move { Ok(state) };
             let module = registry.get_or_load(path.clone(),loader).await.unwrap();
@@ -189,7 +189,7 @@ mod test {
         let state2    = state1.clone_ref();
         let registry1 = Rc::new(Registry::default());
         let registry2 = registry1.clone_ref();
-        let path1     = ModulePath::from_module_name("Test");
+        let path1     = ModulePath::from_mock_module_name("Test");
         let path2     = path1.clone();
 
         let (loaded_send, loaded_recv) = futures::channel::oneshot::channel::<()>();

@@ -4,8 +4,10 @@
 use crate::prelude::*;
 
 use crate::double_representation::definition::DefinitionName;
+use crate::model::module::Path as ModulePath;
 use crate::view::layout::ViewLayout;
 
+use ensogl::application::Application;
 use ensogl::control::callback;
 use ensogl::control::io::keyboard::listener::KeyboardFrpBindings;
 use ensogl::data::color;
@@ -16,7 +18,6 @@ use enso_frp::io::keyboard::Keyboard;
 use enso_frp::io::keyboard;
 use nalgebra::Vector2;
 use shapely::shared;
-use ensogl::application::Application;
 
 
 
@@ -24,22 +25,22 @@ use ensogl::application::Application;
 // === Constants ===
 // =================
 
-/// Path of the file that is initially opened in project view.
+/// The name of the module initially opened in the project view.
 ///
-/// Currently this path is hardcoded in the engine services and is populated for each project
+/// Currently this name is hardcoded in the engine services and is populated for each project
 /// created using engine's Project Picker service.
 ///
-/// TODO [mwu] Path of the file that will be initially opened in the text editor.
+/// TODO [mwu] Name of the moduke that will be initially opened in the text editor.
 ///      Provisionally the Project View is hardcoded to open with a single text
-///      editor and it will be connected with a file under this path.
+///      editor and it will be connected with a file with module of this name.
 ///      To be replaced with better mechanism once we decide how to describe
 ///      default initial layout for the project.
-const INITIAL_FILE_PATH: [&str;2] = ["src","Main.enso"];
+pub const INITIAL_MODULE_NAME:&str = "Main";
 
 /// Name of the main definition.
 ///
 /// This is the definition whose graph will be opened on IDE start.
-const MAIN_DEFINITION_NAME:&str = "main";
+pub const MAIN_DEFINITION_NAME:&str = "main";
 
 
 
@@ -70,17 +71,21 @@ shared! { ProjectView
     }
 }
 
+/// Returns the path to the initially opened module in the given project.
+pub fn initial_module_path(project:&controller::Project) -> FallibleResult<ModulePath> {
+    project.module_path_from_qualified_name(&[INITIAL_MODULE_NAME])
+}
+
 impl ProjectView {
     /// Create a new ProjectView.
     pub async fn new(logger:&Logger, controller:controller::Project)
     -> FallibleResult<Self> {
-        let root_id              = controller.language_server_rpc.content_root();
-        let path                 = controller::FilePath::new(root_id,&INITIAL_FILE_PATH);
-        let text_controller      = controller.text_controller(path.clone()).await?;
+        let module_path          = initial_module_path(&controller)?;
+        let text_controller      = controller.text_controller((*module_path).clone()).await?;
         let main_name            = DefinitionName::new_plain(MAIN_DEFINITION_NAME);
         let graph_id             = controller::graph::Id::new_single_crumb(main_name);
-        let module_controller    = controller.module_controller(path.try_into()?).await?;
-        let graph_controller     = module_controller.executed_graph_controller_unchecked(graph_id);
+        let module_controller    = controller.module_controller(module_path).await?;
+        let graph_controller     = module_controller.executed_graph_controller_unchecked(graph_id,&controller);
         let graph_controller     = graph_controller.await?;
         let application          = Application::new(&web::get_html_element_by_id("root").unwrap());
         Self::setup_components(&application);

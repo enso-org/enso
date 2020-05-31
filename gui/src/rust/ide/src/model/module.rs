@@ -1,8 +1,11 @@
 //! This module contains all structures which describes Module state (code, ast, metadata).
 use crate::prelude::*;
 
-use crate::notification;
+use crate::constants::LANGUAGE_FILE_DOT_EXTENSION;
+use crate::constants::SOURCE_DIRECTORY;
+use crate::controller::FilePath;
 use crate::double_representation::definition::DefinitionInfo;
+use crate::notification;
 
 use data::text::TextChange;
 use data::text::TextLocation;
@@ -24,6 +27,158 @@ use serde::Deserialize;
 #[derive(Debug,Clone,Copy,Fail)]
 #[fail(display="Node with ID {} was not found in metadata.", _0)]
 pub struct NodeMetadataNotFound(pub ast::Id);
+
+/// Failed attempt to tread a file path as a module path.
+#[derive(Clone,Debug,Fail)]
+#[fail(display = "The path `{}` is not a valid module path. {}",path,issue)]
+pub struct InvalidModulePath {
+    /// The path that is not a valid module path.
+    path  : FilePath,
+    /// The reason why the path is not a valid modile path.
+    issue : ModulePathViolation
+}
+
+/// Describes possible reasons why a `FilePath` cannot be recognized as a `ModulePath`.
+#[allow(missing_docs)]
+#[derive(Clone,Copy,Debug,Fail)]
+pub enum ModulePathViolation {
+    #[fail(display="The module filename should be capitalized.")]
+    NonCapitalizedFileName,
+    #[fail(display="The path contains an empty segment which is not allowed.")]
+    ContainsEmptySegment,
+    #[fail(display="The file path does not contain any segments, while it should be non-empty.")]
+    ContainsNoSegments,
+    #[fail(display="The module file path should start with the sources directory.")]
+    NotInSourceDirectory,
+    #[fail(display="The module file must have a proper language extension.")]
+    WrongFileExtension,
+}
+
+/// Happens if an empty segments list is provided as qualified module name.
+#[derive(Clone,Copy,Debug,Fail)]
+#[fail(display="No qualified name segments were provided.")]
+pub struct EmptyQualifiedName;
+
+
+
+// ============
+// === Path ===
+// ============
+
+/// Path identifying module's file in the Language Server.
+///
+/// The `file_path` contains at least two segments:
+/// * the first one is a source directory in the project (see `SOURCE_DIRECTORY`);
+/// * the last one is a source file with the module's contents.
+#[derive(Clone,Debug,Eq,Hash,PartialEq,Shrinkwrap)]
+pub struct Path {
+    file_path:FilePath,
+}
+
+impl Path {
+    /// Create a path from the file path. Returns Err if given path is not a valid module file.
+    pub fn from_file_path(file_path:FilePath) -> Result<Self,InvalidModulePath> {
+        use ModulePathViolation::*;
+        let error             = |issue| {
+            let path = file_path.clone();
+            move || InvalidModulePath {path,issue}
+        };
+        let correct_extension = file_path.extension() == Some(constants::LANGUAGE_FILE_EXTENSION);
+        correct_extension.ok_or_else(error(WrongFileExtension))?;
+        let file_name       = file_path.file_name().ok_or_else(error(ContainsNoSegments))?;
+        let name_first_char = file_name.chars().next().ok_or_else(error(ContainsEmptySegment))?;
+        name_first_char.is_uppercase().ok_or_else(error(NonCapitalizedFileName))?;
+        let is_in_src = file_path.segments.first().contains_if(|name| *name == SOURCE_DIRECTORY);
+        is_in_src.ok_or_else(error(NotInSourceDirectory))?;
+        Ok(Path {file_path})
+    }
+
+    /// Creates a module path from the module's qualified name segments.
+    /// Name segments should only cover the module names, excluding the project name.
+    ///
+    /// E.g. `["Main"]` -> `//root_id/src/Main.enso`
+    pub fn from_name_segments
+    (root_id:Uuid, name_segments:impl IntoIterator<Item:AsRef<str>>) -> FallibleResult<Path> {
+        let mut segments : Vec<String> = vec![SOURCE_DIRECTORY.into()];
+        segments.extend(name_segments.into_iter().map(|segment| segment.as_ref().to_string()));
+        let module_file = segments.last_mut().ok_or(EmptyQualifiedName)?;
+        module_file.push_str(LANGUAGE_FILE_DOT_EXTENSION);
+        let file_path = FilePath {root_id,segments} ;
+        Ok(Path {file_path})
+    }
+
+    /// Get the file path.
+    pub fn file_path(&self) -> &FilePath {
+        &self.file_path
+    }
+
+    /// Gives the file name for the given module name.
+    ///
+    /// E.g. "Main" -> "Main.enso"
+    pub fn name_to_file_name(name:impl Str) -> String {
+        format!("{}.{}",name.as_ref(),constants::LANGUAGE_FILE_EXTENSION)
+    }
+
+    /// Get the module name from path.
+    ///
+    /// The module name is a filename without extension.
+    pub fn module_name(&self) -> &str {
+        // The file stem existence should be checked during construction.
+        self.file_path.file_stem().unwrap()
+    }
+
+    /// Create a module path consisting of a single segment, based on a given module name.
+    /// The `default` is used for a root id.
+    pub fn from_mock_module_name(name:impl Str) -> Self {
+        let file_name   = Self::name_to_file_name(name);
+        let src_dir     = SOURCE_DIRECTORY.to_string();
+        let file_path   = FilePath::new(default(),&[src_dir,file_name]);
+        Self::from_file_path(file_path).unwrap()
+    }
+}
+
+impl TryFrom<FilePath> for Path {
+    type Error = InvalidModulePath;
+
+    fn try_from(value:FilePath) -> Result<Self, Self::Error> {
+        Path::from_file_path(value)
+    }
+}
+
+impl Display for Path {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.file_path, f)
+    }
+}
+
+
+
+// ===========================
+// === ModuleQualifiedName ===
+// ===========================
+
+/// Module's qualified name is used in some of the Language Server's APIs, like
+/// `VisualisationConfiguration`.
+///
+/// Qualified name is constructed as follows:
+/// `ProjectName.<directories_between_src_and_enso_file>.<file_without_ext>`
+///
+/// See https://dev.enso.org/docs/distribution/packaging.html for more information about the
+/// package structure.
+#[derive(Clone,Debug,Shrinkwrap)]
+pub struct QualifiedName(String);
+
+impl QualifiedName {
+    /// Obtains a module's full qualified name from its path and the project name.
+    pub fn from_path(path:&Path, project_name:impl Str) -> QualifiedName {
+        let project_name        = std::iter::once(project_name.as_ref());
+        let non_src_directories = &path.file_path.segments[1..path.file_path.segments.len()-1];
+        let directories_strs    = non_src_directories.iter().map(|string| string.as_str());
+        let module_name         = std::iter::once(path.module_name());
+        let name                = project_name.chain(directories_strs.chain(module_name)).join(".");
+        QualifiedName(name)
+    }
+}
 
 
 
@@ -350,5 +505,37 @@ mod test {
             });
             assert_eq!(Some(new_pos), module.node_metadata(id).unwrap().position);
         });
+    }
+
+    #[test]
+    fn module_path_conversion() {
+        let path = FilePath::new(default(), &["src","Main.enso"]);
+        assert!(Path::from_file_path(path).is_ok());
+
+        let path = FilePath::new(default(), &["src","Main.txt"]);
+        assert!(Path::from_file_path(path).is_err());
+
+        let path = FilePath::new(default(), &["src","main.txt"]);
+        assert!(Path::from_file_path(path).is_err());
+    }
+
+    #[test]
+    fn module_path_validation() {
+        assert!(Path::from_file_path(FilePath::new(default(), &["src", "Main.enso"])).is_ok());
+
+        assert!(Path::from_file_path(FilePath::new(default(), &["surce", "Main.enso"])).is_err());
+        assert!(Path::from_file_path(FilePath::new(default(), &["src", "Main"])).is_err());
+        assert!(Path::from_file_path(FilePath::new(default(), &["src", ""])).is_err());
+        assert!(Path::from_file_path(FilePath::new(default(), &["src", "main.enso"])).is_err());
+    }
+
+    #[test]
+    fn module_qualified_name() {
+        let project_name = "P";
+        let root_id      = default();
+        let file_path    = FilePath::new(root_id, &["src", "Foo", "Bar.enso"]);
+        let module_path  = Path::from_file_path(file_path).unwrap();
+        let qualified    = QualifiedName::from_path(&module_path,project_name);
+        assert_eq!(*qualified, "P.Foo.Bar");
     }
 }

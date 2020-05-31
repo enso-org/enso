@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::model::module::QualifiedName as ModuleQualifiedName;
 use crate::double_representation::definition::DefinitionName;
 
 use enso_protocol::language_server;
@@ -34,7 +35,7 @@ pub type ExpressionId = ast::Id;
 /// Binary data can be accessed through `Deref` or `AsRef` implementations.
 ///
 /// The inner storage is private and users should not make any assumptions about it.
-#[derive(Clone,Debug)]
+#[derive(Clone,Debug,PartialEq)]
 pub struct VisualizationUpdateData(Vec<u8>);
 
 impl VisualizationUpdateData {
@@ -71,8 +72,8 @@ pub struct PopOnEmptyStack();
 
 /// Error when using an Id that does not correspond to any known visualization.
 #[derive(Clone,Copy,Debug,Fail)]
-#[fail(display="Tried to use incorrect visualization Id.")]
-pub struct InvalidVisualizationId();
+#[fail(display="Tried to use incorrect visualization Id: {}.",_0)]
+pub struct InvalidVisualizationId(VisualizationId);
 
 
 
@@ -100,7 +101,7 @@ pub struct LocalCall {
 /// Unique Id for visualization.
 pub type VisualizationId = Uuid;
 
-/// Visualization marker for specific Ast node with preprocessing function.
+/// Description of the visualization setup.
 #[derive(Clone,Debug)]
 pub struct Visualization {
     /// Unique identifier of this visualization.
@@ -109,14 +110,27 @@ pub struct Visualization {
     pub ast_id: ExpressionId,
     /// An enso lambda that will transform the data into expected format, e.g. `a -> a.json`.
     pub expression: String,
+    /// Visualization module - the module in which context the expression should be evaluated.
+    pub visualisation_module:ModuleQualifiedName
 }
 
 impl Visualization {
+    /// Creates a new visualization description. The visualization will get a randomly assigned
+    /// identifier.
+    pub fn new
+    (ast_id:ExpressionId, expression:impl Into<String>, visualisation_module:ModuleQualifiedName)
+    -> Visualization {
+        let id         = VisualizationId::new_v4();
+        let expression = expression.into();
+        Visualization {id,ast_id,expression,visualisation_module}
+    }
+
     /// Creates a `VisualisationConfiguration` that is used in communication with language server.
     pub fn config
-    (&self, execution_context_id:Uuid, visualisation_module:String) -> VisualisationConfiguration {
-        let expression = self.expression.clone();
-        VisualisationConfiguration{execution_context_id,visualisation_module,expression}
+    (&self, execution_context_id:Uuid) -> VisualisationConfiguration {
+        let expression           = self.expression.clone();
+        let visualisation_module = self.visualisation_module.to_string();
+        VisualisationConfiguration {execution_context_id,visualisation_module,expression}
     }
 }
 
@@ -153,6 +167,7 @@ pub struct AttachedVisualization {
 /// controllers.
 #[derive(Debug)]
 pub struct ExecutionContext {
+    logger:Logger,
     /// A name of definition which is a root call of this context.
     pub entry_point:DefinitionName,
     /// Local call stack.
@@ -163,10 +178,11 @@ pub struct ExecutionContext {
 
 impl ExecutionContext {
     /// Create new execution context
-    pub fn new(entry_point:DefinitionName) -> Self {
+    pub fn new(logger:impl Into<Logger>, entry_point:DefinitionName) -> Self {
+        let logger         = logger.into();
         let stack          = default();
         let visualizations = default();
-        Self {entry_point,stack,visualizations}
+        Self {logger,entry_point,stack,visualizations}
     }
 
     /// Push a new stack item to execution context.
@@ -189,13 +205,15 @@ impl ExecutionContext {
         let id                       = visualization.id;
         let (update_sender,receiver) = futures::channel::mpsc::unbounded();
         let visualization            = AttachedVisualization {visualization,update_sender};
+        info!(self.logger,"Inserting to the registry: {id}.");
         self.visualizations.borrow_mut().insert(id,visualization);
         receiver
     }
 
     /// Detaches visualization from current execution context.
     pub fn detach_visualization(&self, id:&VisualizationId) -> FallibleResult<Visualization> {
-        let err = InvalidVisualizationId;
+        let err = || InvalidVisualizationId(*id);
+        info!(self.logger,"Removing from the registry: {id}.");
         Ok(self.visualizations.borrow_mut().remove(id).ok_or_else(err)?.visualization)
     }
 
@@ -210,11 +228,18 @@ impl ExecutionContext {
 
     /// Dispatches the visualization update data (typically received from as LS binary notification)
     /// to the respective's visualization update channel.
-    pub fn dispatch_update(&self, visualization_id:VisualizationId, data:VisualizationUpdateData) {
+    pub fn dispatch_visualization_update
+    (&self, visualization_id:VisualizationId, data:VisualizationUpdateData) -> FallibleResult<()> {
         if let Some(visualization) = self.visualizations.borrow_mut().get(&visualization_id) {
             // TODO [mwu] Should we consider detaching the visualization if the view has dropped the
             //   channel's receiver? Or we need to provide a way to re-establish the channel.
             let _ = visualization.update_sender.unbounded_send(data);
+            debug!(self.logger,"Sending update data to the visualization {visualization_id}.");
+            Ok(())
+        } else {
+            error!(self.logger,"Failed to dispatch update to visualization {visualization_id}. \
+            Failed to found such visualization.");
+            Err(InvalidVisualizationId(visualization_id).into())
         }
     }
 }

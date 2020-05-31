@@ -87,7 +87,7 @@ impl LanguageServerContent {
 /// [https://github.com/luna/enso/blob/master/docs/language-server/protocol-language-server.md].
 #[derive(Debug)]
 pub struct Module {
-    path            : controller::module::Path,
+    path            : model::module::Path,
     /// The module handle.
     pub model       : model::Module,
     language_server : Rc<language_server::Connection>,
@@ -103,7 +103,7 @@ impl Module {
     /// This function will open the module in Language Server and schedule task which will send
     /// updates about module's change to Language Server.
     pub async fn open
-    ( path            : controller::module::Path
+    ( path            : model::module::Path
     , language_server : Rc<language_server::Connection>
     , parser          : Parser
     ) -> FallibleResult<Rc<Self>> {
@@ -111,7 +111,7 @@ impl Module {
         let file_path     = path.file_path().clone();
         info!(logger, "Opening module {file_path}");
         let opened = language_server.client.open_text_file(&file_path).await?;
-        trace!(logger, "Read content of module {path}, digest is {opened.current_version:?}");
+        info!(logger, "Read content of the module {path}, digest is {opened.current_version:?}");
         let end_of_file = TextLocation::at_document_end(&opened.content);
         // TODO[ao] We should not fail here when metadata are malformed, but discard them and set
         //  default instead.
@@ -126,7 +126,7 @@ impl Module {
 
     /// Create a module mock.
     #[cfg(test)]
-    pub fn mock(path:controller::module::Path, model:model::Module) -> Rc<Self> {
+    pub fn mock(path:model::module::Path, model:model::Module) -> Rc<Self> {
         let logger = Logger::new(iformat!("Mocked Module {path}"));
         let client = language_server::MockClient::default();
         client.expect.close_text_file(|_| Ok(()));
@@ -154,6 +154,7 @@ impl Module {
             let this = weak.upgrade();
             match (notification,this) {
                 (Some(notification),Some(this)) => {
+                    debug!(this.logger,"Processing a notification: {notification:?}");
                     let result = this.handle_notification(&ls_content,notification).await;
                     ls_content = this.new_ls_content_info(ls_content.summary().clone(),result)
                 }
@@ -357,7 +358,7 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn handling_notifications() {
-        let path            = controller::module::Path::from_module_name("TestModule");
+        let path            = model::module::Path::from_mock_module_name("TestModule");
         let parser          = Parser::new_or_panic();
         let initial_content = "main =\n    println \"Hello World!\"";
 
@@ -400,7 +401,7 @@ pub mod test {
 
     #[wasm_bindgen_test]
     fn handling_notification_after_failure() {
-        let path            = controller::module::Path::from_module_name("TestModule");
+        let path            = model::module::Path::from_mock_module_name("TestModule");
         let initial_content = "main =\n    println \"Hello World!\"";
 
         let setup           = LsClientSetup::new(path.file_path().clone(),initial_content);

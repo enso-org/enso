@@ -52,6 +52,8 @@ pub mod prelude {
     pub use utils::option::OptionExt;
     pub use utils::vec::VecExt;
 
+    pub use uuid::Uuid;
+
     #[cfg(test)] pub use wasm_bindgen_test::wasm_bindgen_test;
     #[cfg(test)] pub use wasm_bindgen_test::wasm_bindgen_test_configure;
 }
@@ -65,6 +67,8 @@ use crate::view::project::ProjectView;
 use enso_protocol::binary;
 use enso_protocol::language_server;
 use enso_protocol::project_manager;
+use enso_protocol::project_manager::ProjectMetadata;
+use enso_protocol::project_manager::ProjectName;
 use uuid::Uuid;
 
 
@@ -75,10 +79,16 @@ use uuid::Uuid;
 /// Global constants used across whole application.
 pub mod constants {
     /// A name of language this IDE supports
-    pub const LANGUAGE_NAME           : &str = "Enso";
+    pub const LANGUAGE_NAME:&str = "Enso";
 
-    /// A file extension of modules of language this IDE supports
-    pub const LANGUAGE_FILE_EXTENSION : &str = "enso";
+    /// A file extension of modules of language this IDE supports without leading dot.
+    pub const LANGUAGE_FILE_EXTENSION:&str = "enso";
+
+    /// A file extension of modules of language this IDE supports with leading dot.
+    pub const LANGUAGE_FILE_DOT_EXTENSION:&str = ".enso";
+
+    /// The directory in the project that contains all the source files.
+    pub const SOURCE_DIRECTORY:&str = "src";
 }
 
 
@@ -151,9 +161,10 @@ pub async fn new_opened_ws
 
 /// Connect to language server.
 pub async fn open_project
-( logger:&Logger
-, json_endpoint:project_manager::IpWithSocket
-, binary_endpoint:project_manager::IpWithSocket
+( logger          : &Logger
+, json_endpoint   : project_manager::IpWithSocket
+, binary_endpoint : project_manager::IpWithSocket
+, project_name    : impl Str
 ) -> FallibleResult<controller::Project> {
     info!(logger, "Establishing Language Server connections.");
     let client_id     = Uuid::new_v4();
@@ -165,7 +176,20 @@ pub async fn open_project
     crate::executor::global::spawn(client_binary.runner());
     let connection_json   = language_server::Connection::new(client_json,client_id).await?;
     let connection_binary = binary::Connection::new(client_binary,client_id).await?;
-    Ok(controller::Project::new(logger,connection_json,connection_binary))
+    Ok(controller::Project::new(logger,connection_json,connection_binary,project_name))
+}
+
+/// Creates a new project and returns its metadata, so the newly connected project can be opened.
+pub async fn create_project
+(logger:&Logger, project_manager:&impl project_manager::API) -> FallibleResult<ProjectMetadata> {
+    let name = DEFAULT_PROJECT_NAME.to_string();
+    info!(logger, "Creating a new project named `{name}`.");
+    let id = project_manager.create_project(&name).await?.project_id;
+    Ok(ProjectMetadata {
+        id,
+        name        : ProjectName {name},
+        last_opened : None,
+    })
 }
 
 /// Open most recent project or create a new project if none exists.
@@ -173,14 +197,14 @@ pub async fn open_most_recent_project_or_create_new
 (logger:&Logger, project_manager:&impl project_manager::API) -> FallibleResult<controller::Project> {
     let projects_to_list = 1;
     let mut response     = project_manager.list_recent_projects(&projects_to_list).await?;
-    let project_id = if let Some(project) = response.projects.pop() {
-        project.id
+    let project_metadata = if let Some(project) = response.projects.pop() {
+        project
     } else {
-        project_manager.create_project(&DEFAULT_PROJECT_NAME.to_string()).await?.project_id
+        create_project(logger,project_manager).await?
     };
-    let endpoints = project_manager.open_project(&project_id).await?;
+    let endpoints = project_manager.open_project(&project_metadata.id).await?;
     open_project(logger,endpoints.language_server_json_address,
-                 endpoints.language_server_binary_address).await
+                 endpoints.language_server_binary_address,&project_metadata.name.name).await
 }
 
 /// Sets up the project view, including the controller it uses.
