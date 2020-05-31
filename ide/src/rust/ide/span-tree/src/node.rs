@@ -116,11 +116,11 @@ impl Node {
 #[derive(Clone,Debug,Eq,PartialEq)]
 pub struct Child {
     /// A child node.
-    pub node                : Node,
+    pub node       : Node,
     /// An offset counted from the parent node starting index to the start of this node's span.
-    pub offset              : Size,
+    pub offset     : Size,
     /// AST crumbs which lead from parent to child associated AST node.
-    pub ast_crumbs          : ast::Crumbs,
+    pub ast_crumbs : ast::Crumbs,
 }
 
 

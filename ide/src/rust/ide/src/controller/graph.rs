@@ -739,6 +739,7 @@ mod tests {
     use crate::double_representation::definition::DefinitionName;
     use crate::double_representation::node::NodeInfo;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use crate::model::module::Path as ModulePath;
 
     use ast::HasRepr;
     use ast::crumbs;
@@ -763,7 +764,7 @@ mod tests {
               Fut  : Future<Output=()> {
             let code     = code.as_ref();
             let ls       = language_server::Connection::new_mock_rc(default());
-            let path     = controller::module::Path::from_module_name("Main");
+            let path     = ModulePath::from_mock_module_name("Main");
             let parser   = Parser::new_or_panic();
             let module   = controller::Module::new_mock(path,code,default(),ls,parser).unwrap();
             let graph_id = Id::new_single_crumb(DefinitionName::new_plain(function_name.into()));
@@ -778,7 +779,7 @@ mod tests {
                   Fut  : Future<Output=()> {
             let code   = code.as_ref();
             let ls     = language_server::Connection::new_mock_rc(default());
-            let path   = controller::module::Path::from_module_name("Main");
+            let path   = ModulePath::from_mock_module_name("Main");
             let parser = Parser::new_or_panic();
             let module = controller::Module::new_mock(path, code, default(), ls, parser).unwrap();
             let graph  = module.graph_controller(graph_id).unwrap();
@@ -801,7 +802,7 @@ mod tests {
     fn node_operations() {
         TestWithLocalPoolExecutor::set_up().run_task(async {
             let code   = "main = Hello World";
-            let path   = controller::module::Path::from_module_name("Test");
+            let path   = ModulePath::from_mock_module_name("Test");
             let model  = model::Module::from_code_or_panic(code,default(),default());
             let module = model::synchronized::Module::mock(path,model);
             let parser = Parser::new().unwrap();

@@ -23,29 +23,41 @@ use json_rpc::error::RpcError;
 pub struct ExecutionContext {
     id              : model::execution_context::Id,
     model           : model::ExecutionContext,
-    module_path     : Rc<controller::module::Path>,
+    module_path     : Rc<model::module::Path>,
     language_server : Rc<language_server::Connection>,
     logger          : Logger,
 }
 
 impl ExecutionContext {
+    /// The unique identifier of this execution context.
+    pub fn id(&self) -> model::execution_context::Id {
+        self.id
+    }
+
     /// Create new ExecutionContext. It will be created in LanguageServer and the ExplicitCall
     /// stack frame will be pushed.
-    pub async fn create
-    ( parent          : Logger
+    ///
+    /// NOTE: By itself this execution context will not be able to receive any updates from the
+    /// language server.
+    pub fn create
+    ( parent          : &Logger
     , language_server : Rc<language_server::Connection>
-    , module_path     : Rc<controller::module::Path>
+    , module_path     : Rc<model::module::Path>
     , root_definition : DefinitionName
-    ) -> FallibleResult<Self> {
+    ) -> impl Future<Output=FallibleResult<Self>> {
+        let parent = parent.clone();
         let logger = parent.sub("ExecutionContext");
-        let model  = model::ExecutionContext::new(root_definition);
-        info!(logger,"Creating.");
-        let id = language_server.client.create_execution_context().await?.context_id;
-        info!(logger,"Created. Id:{id}");
-        let this  = Self {id,module_path,model,language_server,logger};
-        this.push_root_frame().await?;
-        info!(this.logger,"Pushed root frame");
-        Ok(this)
+        async move {
+            info!(logger, "Creating.");
+            let id     = language_server.client.create_execution_context().await?.context_id;
+            let logger = parent.sub(iformat!{"ExecutionContext {id}"});
+            let model  = model::ExecutionContext::new(&logger,root_definition);
+            info!(logger, "Created. Id:{id}");
+            let this = Self { id, module_path, model, language_server, logger };
+            this.push_root_frame().await?;
+            info!(this.logger, "Pushed root frame");
+            Ok(this)
+        }
     }
 
     fn push_root_frame(&self) -> impl Future<Output=FallibleResult<()>> {
@@ -85,11 +97,20 @@ impl ExecutionContext {
     ///
     /// Returns a stream of visualization update data received from the server.
     pub async fn attach_visualization
-    (&self, vis: Visualization) -> FallibleResult<impl Stream<Item=VisualizationUpdateData>> {
-        let config = vis.config(self.id,self.module_path.module_name().to_string());
-        self.language_server.attach_visualisation(&vis.id, &vis.ast_id, &config).await?;
-        let stream = self.model.attach_visualization(vis);
-        Ok(stream)
+    (&self, vis:Visualization) -> FallibleResult<impl Stream<Item=VisualizationUpdateData>> {
+        // Note: [mwu]
+        //  We must register our visualization in the model first, because Language server can send
+        //  us visualization updates through the binary socket before confirming that visualization
+        //  has been successfully attached.
+        let config = vis.config(self.id);
+        let stream = self.model.attach_visualization(vis.clone());
+        let result = self.language_server.attach_visualisation(&vis.id, &vis.ast_id, &config).await;
+        if let Err(e) = result {
+            self.model.detach_visualization(&vis.id)?;
+            Err(e.into())
+        } else {
+            Ok(stream)
+        }
     }
 
     /// Detaches visualization from current execution context.
@@ -109,11 +130,19 @@ impl ExecutionContext {
         Ok(vis)
     }
 
+    /// Dispatches the visualization update data (typically received from as LS binary notification)
+    /// to the respective's visualization update channel.
+    pub fn dispatch_visualization_update
+    (&self, visualization_id:VisualizationId, data:VisualizationUpdateData) -> FallibleResult<()> {
+        debug!(self.logger, "Dispatching visualization update through the context {self.id()}");
+        self.model.dispatch_visualization_update(visualization_id,data)
+    }
+
     /// Create a mock which does no call on `language_server` during construction.
     #[cfg(test)]
     pub fn new_mock
     ( id              : model::execution_context::Id
-    , path            : controller::module::Path
+    , path            : model::module::Path
     , model           : model::ExecutionContext
     , language_server : language_server::MockClient
     ) -> Self {
@@ -149,16 +178,18 @@ mod test {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use crate::model::module::QualifiedName as ModuleQualifiedName;
 
+    use enso_protocol::language_server::CapabilityRegistration;
     use json_rpc::expect_call;
     use language_server::response;
     use utils::test::ExpectTuple;
-    use enso_protocol::language_server::CapabilityRegistration;
+    use utils::test::stream::StreamTestExt;
 
 
     #[test]
     fn creating_context() {
-        let path       = Rc::new(controller::module::Path::from_module_name("Test"));
+        let path       = Rc::new(model::module::Path::from_mock_module_name("Test"));
         let context_id = model::execution_context::Id::new_v4();
         let root_def   = DefinitionName::new_plain("main");
         let ls_client  = language_server::MockClient::default();
@@ -187,7 +218,7 @@ mod test {
 
         let mut test = TestWithLocalPoolExecutor::set_up();
         test.run_task(async move {
-            let context = ExecutionContext::create(default(),connection,path.clone(),root_def);
+            let context = ExecutionContext::create(&default(),connection,path.clone(),root_def);
             let context = context.await.unwrap();
             assert_eq!(context_id             , context.id);
             assert_eq!(path                   , context.module_path);
@@ -200,9 +231,9 @@ mod test {
         let id                  = model::execution_context::Id::new_v4();
         let definition          = model::execution_context::DefinitionId::new_plain_name("foo");
         let expression_id       = model::execution_context::ExpressionId::new_v4();
-        let path                = controller::module::Path::from_module_name("Test");
+        let path                = model::module::Path::from_mock_module_name("Test");
         let root_def            = DefinitionName::new_plain("main");
-        let model               = model::ExecutionContext::new(root_def);
+        let model               = model::ExecutionContext::new(&default(),root_def);
         let ls                  = language_server::MockClient::default();
         let expected_call_frame = language_server::LocalCall{expression_id};
         let expected_stack_item = language_server::StackItem::LocalCall(expected_call_frame);
@@ -229,10 +260,10 @@ mod test {
             call       : model::execution_context::ExpressionId::new_v4(),
             definition : model::execution_context::DefinitionId::new_plain_name("foo"),
         };
-        let path          = controller::module::Path::from_module_name("Test");
+        let path          = model::module::Path::from_mock_module_name("Test");
         let root_def      = DefinitionName::new_plain("main");
         let ls            = language_server::MockClient::default();
-        let model         = model::ExecutionContext::new(root_def);
+        let model         = model::ExecutionContext::new(&default(),root_def);
         expect_call!(ls.pop_from_execution_context(id) => Ok(()));
         expect_call!(ls.destroy_execution_context(id) => Ok(()));
         model.push(item);
@@ -248,20 +279,21 @@ mod test {
     }
 
     #[test]
-    fn attaching_visualizations() {
+    fn attaching_visualizations_and_notifying() {
         let exe_id   = model::execution_context::Id::new_v4();
-        let path     = controller::module::Path::from_module_name("Test");
+        let path     = model::module::Path::from_mock_module_name("Test");
         let root_def = DefinitionName::new_plain("main");
-        let model    = model::ExecutionContext::new(root_def);
+        let model    = model::ExecutionContext::new(&default(),root_def);
         let ls       = language_server::MockClient::default();
         let vis      = Visualization {
-            id: model::execution_context::VisualizationId::new_v4(),
-            ast_id: model::execution_context::ExpressionId::new_v4(),
-            expression: "".to_string(),
+            id                   : model::execution_context::VisualizationId::new_v4(),
+            ast_id               : model::execution_context::ExpressionId::new_v4(),
+            expression           : "".to_string(),
+            visualisation_module : ModuleQualifiedName::from_path(&path,"PPPP"),
         };
         let vis_id = vis.id;
         let ast_id = vis.ast_id;
-        let config = vis.config(exe_id, path.module_name().to_string());
+        let config = vis.config(exe_id);
 
         expect_call!(ls.attach_visualisation(vis_id,ast_id,config) => Ok(()));
         expect_call!(ls.detach_visualisation(exe_id,vis_id,ast_id) => Ok(()));
@@ -271,11 +303,25 @@ mod test {
 
         let mut test = TestWithLocalPoolExecutor::set_up();
         test.run_task(async move {
-            let wrong_id = model::execution_context::VisualizationId::new_v4();
-            assert!(context.attach_visualization(vis.clone()).await.is_ok());
+            let wrong_id   = model::execution_context::VisualizationId::new_v4();
+            let events     = context.attach_visualization(vis.clone()).await.unwrap();
+            let mut events = events.boxed_local();
+            events.expect_pending();
+
+            let update = VisualizationUpdateData::new(vec![1,2,3]);
+            context.dispatch_visualization_update(vis.id,update.clone()).unwrap();
+            assert_eq!(events.expect_next(),update);
+
+            events.expect_pending();
+            let other_vis_id = VisualizationId::new_v4();
+            context.dispatch_visualization_update(other_vis_id,update.clone()).unwrap_err();
+            events.expect_pending();
             assert!(context.detach_visualization(&wrong_id).await.is_err());
+            events.expect_pending();
             assert!(context.detach_visualization(&vis.id).await.is_ok());
+            events.expect_terminated();
             assert!(context.detach_visualization(&vis.id).await.is_err());
-        })
+            context.dispatch_visualization_update(vis.id,update.clone()).unwrap_err();
+        });
     }
 }

@@ -19,6 +19,9 @@ pub type MessageFromServerOwned = MessageFromServer<FromServerPayloadOwned>;
 /// An owning representation of the message received from a server.
 pub type MessageToServerOwned = MessageToServer<ToServerPayloadOwned>;
 
+/// An non-owning representation of the message received from a server.
+pub type MessageFromServerRef<'a> = MessageFromServer<FromServerPayload<'a>>;
+
 /// An non-owning representation of the message to be sent to the server.
 pub type MessageToServerRef<'a> = MessageToServer<ToServerPayload<'a>>;
 

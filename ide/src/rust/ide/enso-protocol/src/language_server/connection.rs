@@ -89,3 +89,9 @@ impl Deref for Connection {
         self.client.as_ref()
     }
 }
+
+impl DerefMut for Connection {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.client.deref_mut()
+    }
+}

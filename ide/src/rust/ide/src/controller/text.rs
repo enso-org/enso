@@ -174,7 +174,7 @@ mod test {
         let mut test  = TestWithLocalPoolExecutor::set_up();
         test.run_task(async move {
             let ls         = language_server::Connection::new_mock_rc(default());
-            let path       = controller::module::Path::from_module_name("Test");
+            let path       = model::module::Path::from_mock_module_name("Test");
             let parser     = Parser::new().unwrap();
             let module_res = controller::Module::new_mock(path,"main = 2+2",default(),ls,parser);
             let module     = module_res.unwrap();
