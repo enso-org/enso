@@ -111,11 +111,12 @@ struct Camera2dData {
     pub transform          : display::object::Instance,
     screen                 : Screen,
     zoom                   : f32,
-    native_z               : f32,
+    z_zoom_1               : f32,
     alignment              : Alignment,
     projection             : Projection,
     clipping               : Clipping,
     view_matrix            : Matrix4<f32>,
+    inversed_view_matrix   : Matrix4<f32>,
     projection_matrix      : Matrix4<f32>,
     view_projection_matrix : Matrix4<f32>,
     projection_dirty       : ProjectionDirty,
@@ -134,8 +135,9 @@ impl Camera2dData {
         let clipping               = default();
         let alignment              = default();
         let zoom                   = 1.0;
-        let native_z               = 1.0;
+        let z_zoom_1               = 1.0;
         let view_matrix            = Matrix4::identity();
+        let inversed_view_matrix   = Matrix4::identity();
         let projection_matrix      = Matrix4::identity();
         let view_projection_matrix = Matrix4::identity();
         let projection_dirty       = ProjectionDirty::new(logger.sub("projection_dirty"),());
@@ -146,11 +148,14 @@ impl Camera2dData {
         transform.set_on_updated(enclose!((transform_dirty) move |_| transform_dirty.set() ));
         transform.mod_position(|p| p.z = 1.0);
         projection_dirty.set();
-        let mut camera = Self {transform,screen,projection,clipping,alignment,zoom,native_z,
-            view_matrix,projection_matrix,view_projection_matrix, projection_dirty,transform_dirty,
-            zoom_update_registry,screen_update_registry};
-        camera.set_screen(width, height);
-        camera
+        Self {transform,screen,projection,clipping,alignment,zoom,z_zoom_1,view_matrix
+             ,inversed_view_matrix,projection_matrix,view_projection_matrix,projection_dirty
+             ,transform_dirty,zoom_update_registry,screen_update_registry}.init()
+    }
+
+    fn init(mut self) -> Self {
+        self.set_screen(self.screen.width,self.screen.height);
+        self
     }
 
     pub fn add_zoom_update_callback<F:ZoomUpdateFn>(&mut self, f:F) -> callback::Handle {
@@ -178,6 +183,7 @@ impl Camera2dData {
 
         let alignment_transform = Vector3::new(x_offset, y_offset, 0.0);
         transform.append_translation_mut(&alignment_transform);
+        self.inversed_view_matrix = transform;
         self.view_matrix = transform.try_inverse().unwrap()
     }
 
@@ -191,6 +197,18 @@ impl Camera2dData {
             }
             _ => unimplemented!()
         };
+    }
+
+    pub fn inversed_projection_matrix(&self) -> Matrix4<f32> {
+        match &self.projection {
+            Projection::Perspective {..} =>
+                Perspective3::from_matrix_unchecked(self.projection_matrix).inverse(),
+            _ => unimplemented!()
+        }
+    }
+
+    pub fn inversed_view_projection_matrix(&self) -> Matrix4<f32> {
+        self.inversed_projection_matrix() * self.inversed_view_matrix
     }
 
     // https://github.com/rust-lang/rust-clippy/issues/4914
@@ -251,16 +269,21 @@ impl Camera2dData {
 
         match &self.projection {
             Projection::Perspective {fov} => {
-                let zoom       = self.zoom;
-                let alpha      = fov / 2.0;
-                let native_z  = height / (2.0 * alpha.tan());
-                self.native_z = native_z;
-                self.mod_position_keep_zoom(|t| t.z = native_z / zoom);
+                let zoom      = self.zoom;
+                let alpha     = fov / 2.0;
+                let z_zoom_1  = height / (2.0 * alpha.tan());
+                self.z_zoom_1 = z_zoom_1;
+                self.mod_position_keep_zoom(|t| t.z = z_zoom_1 / zoom);
             }
             _ => unimplemented!()
         };
         let dimensions = Vector2::new(width,height);
         self.screen_update_registry.run_all(&dimensions);
+    }
+
+    pub fn reset_zoom(&mut self) {
+        self.zoom = 1.0;
+        self.set_screen(self.screen.width,self.screen.height);
     }
 }
 
@@ -270,7 +293,7 @@ impl Camera2dData {
 impl Camera2dData {
     pub fn mod_position<F:FnOnce(&mut Vector3<f32>)>(&mut self, f:F) {
         self.mod_position_keep_zoom(f);
-        self.zoom = self.native_z / self.transform.position().z;
+        self.zoom = self.z_zoom_1 / self.transform.position().z;
     }
 
     pub fn set_position(&mut self, value:Vector3<f32>) {
@@ -303,7 +326,7 @@ impl Camera2dData {
 /// it has several properties which make sense only in the context of a 2D projection:
 /// - The `zoom` factor which correlates to the final image zoom. When the `zoom` parameter is set
 ///   to `1.0`, the units correspond 1:1 to pixels on the screen.
-/// - The `native_z` value describes the z-axis distance at which the `zoom` value is `1.0`.
+/// - The `z_zoom_1` value describes the z-axis distance at which the `zoom` value is `1.0`.
 /// - When a new screen dimensions are provided, the camera automatically recomputes the z-axis
 ///   position to keep the `zoom` unchanged.
 /// - The `alignment` describes where the origin is placed in the camera frustum. It is used for
@@ -338,7 +361,12 @@ impl Camera2d {
         self.data.borrow_mut().set_screen(width,height)
     }
 
-    /// Update all diry camera parameters and compute updated view-projection matrix.
+    /// Resets the zoom of the camera to the 1.0 value.
+    pub fn reset_zoom(&self) {
+        self.data.borrow_mut().reset_zoom()
+    }
+
+    /// Update all dirty camera parameters and compute updated view-projection matrix.
     pub fn update(&self) -> bool {
         self.data.borrow_mut().update()
     }
@@ -388,9 +416,34 @@ impl Camera2d {
         (self.fovy() / 2.0).tan()
     }
 
+    /// Returns the Z-axis distance at which the elements will have zoom of 1.0.
+    pub fn z_zoom_1(&self) -> f32 {
+        self.data.borrow().z_zoom_1
+    }
+
+    /// Gets projection matrix.
+    pub fn view_matrix(&self) -> Matrix4<f32> {
+        self.data.borrow().view_matrix
+    }
+
     /// Gets projection matrix.
     pub fn projection_matrix(&self) -> Matrix4<f32> {
         self.data.borrow().projection_matrix
+    }
+
+    /// Gets the inversed view matrix.
+    pub fn inversed_view_matrix(&self) -> Matrix4<f32> {
+        self.data.borrow().inversed_view_matrix
+    }
+
+    /// Gets the inversed projection matrix.
+    pub fn inversed_projection_matrix(&self) -> Matrix4<f32> {
+        self.data.borrow().inversed_projection_matrix()
+    }
+
+    /// Gets the inversed view-projection matrix.
+    pub fn inversed_view_projection_matrix(&self) -> Matrix4<f32> {
+        self.data.borrow().inversed_view_projection_matrix()
     }
 
     /// Gets view x projection matrix.

@@ -19,8 +19,7 @@ use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
 use ensogl::display::traits::*;
 use ensogl::display;
-use ensogl::gui::component::animation;
-use ensogl::gui::component::animation2;
+use ensogl::gui::component::Animation;
 use ensogl::gui::component;
 
 use super::edge;
@@ -342,26 +341,23 @@ impl NodeModel {
 
 impl Node {
     pub fn new(scene:&Scene) -> Self {
-        let frp_network = frp::Network::new();
-        let model       = Rc::new(NodeModel::new(scene,&frp_network));
-        let inputs      = &model.frp.input;
-        let view_data   = model.main_area.shape.clone_ref();
-        let selection   = animation(&frp_network, move |value| {
-            view_data.selection.set(value)
-        });
-
-        let (output_area_size_setter, output_area_size) = animation2(&frp_network);
+        let frp_network      = frp::Network::new();
+        let model            = Rc::new(NodeModel::new(scene,&frp_network));
+        let inputs           = &model.frp.input;
+        let selection        = Animation::<f32>::new(&frp_network);
+        let output_area_size = Animation::<f32>::new(&frp_network);
 
         frp::extend! { frp_network
+            eval  selection.value ((v) model.main_area.shape.selection.set(*v));
             eval_ inputs.select   (selection.set_target_value(1.0));
             eval_ inputs.deselect (selection.set_target_value(0.0));
 
             eval inputs.set_expression ((expr) model.set_expression(expr));
 
-            eval output_area_size ((size) model.output_area.shape.grow.set(*size));
+            eval output_area_size.value ((size) model.output_area.shape.grow.set(*size));
 
-            eval_ model.output_area.events.mouse_over (output_area_size_setter.set_target_value(1.0));
-            eval_ model.output_area.events.mouse_out  (output_area_size_setter.set_target_value(0.0));
+            eval_ model.output_area.events.mouse_over (output_area_size.set_target_value(1.0));
+            eval_ model.output_area.events.mouse_out  (output_area_size.set_target_value(0.0));
 
             eval inputs.set_visualization ((content)
                 model.visualization_container.frp.set_visualization.emit(content)

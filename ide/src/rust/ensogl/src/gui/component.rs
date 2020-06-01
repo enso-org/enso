@@ -8,6 +8,7 @@ use crate::prelude::*;
 
 use crate::animation::physics::inertia;
 use crate::animation::physics::inertia::DynSimulator;
+use crate::animation::easing;
 use crate::display::object::traits::*;
 use crate::display::scene::MouseTarget;
 use crate::display::scene::Scene;
@@ -192,32 +193,54 @@ impl<T> display::Object for ShapeView<T> {
 // === Animation ===
 // =================
 
-// TODO: This should grow and then should be refactored somewhere else.
-/// Define a new animation FRP network.
-pub fn animation<F>(network:&frp::Network, f:F) -> DynSimulator<f32>
-where F : Fn(f32) + 'static {
-    frp::extend! { network
-        def target = source::<f32> ();
-        def _eval  = target.map(move |value| f(*value));
-    }
-    DynSimulator::<f32>::new(Box::new(move |t| target.emit(t)))
+/// Smart animation handler. Contains of dynamic simulation and frp endpoint. Whenever a new value
+/// is computed, it is emitted via the endpoint.
+#[derive(CloneRef,Derivative,Debug,Shrinkwrap)]
+#[derivative(Clone(bound=""))]
+#[allow(missing_docs)]
+pub struct Animation<T> {
+    #[shrinkwrap(main_field)]
+    pub simulator : DynSimulator<T>,
+    pub value     : frp::Stream<T>,
 }
 
-/// Define a new animation FRP network. // FIXME: refactor
-pub fn animation2(network:&frp::Network) -> (DynSimulator<f32>, frp::Stream<f32>) {
-    frp::extend! { network
-        def target = source::<f32> ();
+impl<T:inertia::Value> Animation<T> {
+    /// Constructor.
+    pub fn new(network:&frp::Network) -> Self {
+        frp::extend! { network
+            def target = source::<T>();
+        }
+        let simulator = DynSimulator::<T>::new(Box::new(f!((t) target.emit(t))));
+        let value     = target.into();
+        Self {simulator,value}
     }
-    let source = DynSimulator::<f32>::new(Box::new(f!((t) target.emit(t))));
-    (source,target.into())
 }
 
 
-/// Define a new animation FRP network.
-pub fn animator<T:inertia::Value>(network:&frp::Network) -> (DynSimulator<T>, frp::Stream<T>) {
-    frp::extend! { network
-        def target = source::<T>();
+
+// =============
+// === Tween ===
+// =============
+
+/// Smart tween handler. Contains tween animator and frp endpoint. Whenever a new value is computed,
+/// it is emitted via the endpoint.
+#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
+#[allow(missing_docs)]
+pub struct Tween {
+    #[shrinkwrap(main_field)]
+    pub animator : easing::DynAnimator<f32,easing::QuadInOut>,
+    pub value    : frp::Stream<f32>,
+}
+
+impl Tween {
+    /// Constructor.
+    pub fn new(network:&frp::Network) -> Self {
+        frp::extend! { network
+            def target = source::<f32>();
+        }
+        let f        = easing::quad_in_out();
+        let animator = easing::DynAnimator::new(0.0,1.0,f,Box::new(f!((t) target.emit(t))));
+        let value    = target.into();
+        Self {animator,value}
     }
-    let source = DynSimulator::<T>::new(Box::new(f!((t) target.emit(t))));
-    (source,target.into())
 }

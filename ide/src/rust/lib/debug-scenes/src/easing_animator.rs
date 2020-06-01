@@ -127,7 +127,7 @@ impl Canvas {
         self.context.restore();
     }
 
-    /// Draw a 2D graph of the provided FnEasing function.
+    /// Draw a 2D graph of the provided easing function.
     pub fn draw_graph<F:Fn(f32)->f32>(&self, f:F, color:&str, time_ms:f32) {
         let time_ms = time_ms as f64;
         let width   = self.width() - 1.0;
@@ -172,7 +172,7 @@ struct Sampler {
 impl Sampler {
     #[allow(trivial_casts)]
     fn new<F>(color:&'static str, left_canvas:&Canvas, right_canvas:&Canvas, f:F) -> Self
-    where F:FnEasing + Clone {
+    where F:CloneableFnEasing {
         let left_canvas      = left_canvas.clone();
         let right_canvas     = right_canvas.clone();
         let properties       = Rc::new(Cell::new(SpriteData::new(Vector2::new(0.0,0.0),1.0)));
@@ -214,13 +214,12 @@ struct Example {
 
 impl Example {
     #[allow(trivial_casts)]
-    pub fn new<F1, F2, F3>
+    pub fn new
     ( name        : &str
-    , ease_in     : &'static F1
-    , ease_out    : &'static F2
-    , ease_in_out : &'static F3
-    ) -> Self
-    where F1:FnEasing, F2:FnEasing, F3:FnEasing {
+    , ease_in     : impl CloneableFnEasing
+    , ease_out    : impl CloneableFnEasing
+    , ease_in_out : impl CloneableFnEasing
+    ) -> Self {
         let example = web::create_div();
         example.set_attribute_or_panic("id", name);
         example.set_style_or_panic("margin", "10px");
@@ -252,9 +251,9 @@ macro_rules! examples {
     ($($name:ident),*) => {$(
         std::mem::forget(Example::new(
             stringify!($name),
-            &paste::expr!{[<$name _in>]},
-            &paste::expr!{[<$name _out>]},
-            &paste::expr!{[<$name _in_out>]},
+            paste::expr!{[<$name _in>]()},
+            paste::expr!{[<$name _out>]()},
+            paste::expr!{[<$name _in_out>]()},
         ));
     )*};
 }

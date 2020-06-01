@@ -15,7 +15,7 @@ use crate::animation;
 /// The type of the value of the simulation. In particular, the Value could be `f32`
 /// (1-dimensional simulation), or `Vector3<f32>` (3-dimensional simulation).
 pub trait Value
-    = 'static + Copy + Default + Debug + Normalize
+    = 'static + Copy + Default + Debug + Normalize + PartialEq
     + Magnitude <Output=f32>
     + Neg<       Output=Self>
     + Sub<Self , Output=Self>
@@ -227,9 +227,11 @@ impl<T:Value> SimulationData<T> {
 // ==================
 
 /// The main simulation engine. It allows running the simulation by explicitly calling the `step`
-/// function. Refer to `Simulator` for a more aautomated solution.
-#[derive(Clone,CloneRef,Debug,Default)]
-pub struct Simulation<T:Copy> {
+/// function. Refer to `Simulator` for a more automated solution.
+#[derive(Derivative,CloneRef,Default)]
+#[derivative(Clone(bound=""))]
+#[derivative(Debug(bound="T:Copy+Debug"))]
+pub struct Simulation<T> {
     data : Rc<Cell<SimulationData<T>>>
 }
 
@@ -320,13 +322,11 @@ pub type DynSimulator<T> = Simulator<T,Box<dyn Fn(T)>>;
 /// and registers back only when needed.
 #[derive(CloneRef,Derivative,Shrinkwrap)]
 #[derivative(Clone(bound=""))]
-#[derivative(Debug(bound=""))]
-pub struct Simulator<T:Value,Cb> {
+pub struct Simulator<T,Cb> {
     #[shrinkwrap(main_field)]
     simulation     : Simulation<T>,
     animation_loop : Rc<CloneCell<Option<FixedFrameRateAnimationStep<T,Cb>>>>,
     frame_rate     : Rc<Cell<f32>>,
-    #[derivative(Debug="ignore")]
     callback       : Rc<Cb>,
 }
 
@@ -341,6 +341,13 @@ where Cb : Callback<T> {
         Self {simulation,animation_loop,frame_rate,callback} . init()
     }
 }
+
+impl<T,Cb> Debug for Simulator<T,Cb> {
+    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"Simulator")
+    }
+}
+
 
 // === Setters ===
 
@@ -360,13 +367,14 @@ where Cb : Callback<T> {
     }
 
     pub fn set_target_value(&self, target_value:T) {
-        self.simulation.set_target_value(target_value);
-        self.start();
+        if target_value != self.target_value() {
+            self.simulation.set_target_value(target_value);
+            self.start();
+        }
     }
 
     pub fn update_target_value<F:FnOnce(T)->T>(&self, f:F) {
-        self.simulation.update_target_value(f);
-        self.start();
+        self.set_target_value(f(self.target_value()))
     }
 
     pub fn skip(&self) {
