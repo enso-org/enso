@@ -5,9 +5,9 @@ use crate::prelude::*;
 use crate::frp;
 use crate::visualization::*;
 
+use ensogl::display::Scene;
 use ensogl::display::traits::*;
 use ensogl::display;
-
 
 
 // ===========
@@ -84,7 +84,7 @@ impl ContainerData {
     }
 
     /// Indicates whether the visualization is visible.
-    fn is_visible(&self) -> bool {
+    pub fn is_visible(&self) -> bool {
         if let Some(vis) = self.visualization.borrow().as_ref() {
             vis.has_parent()
         } else {
@@ -125,13 +125,15 @@ impl display::Object for ContainerData {
 
 impl Container {
     /// Constructor.
-    pub fn new() -> Self {
+    pub fn new(scene:&Scene) -> Self {
         let logger         = Logger::new("visualization");
         let visualization  = default();
         let size           = Cell::new(Vector2::new(200.0, 200.0));
         let display_object = display::object::Instance::new(&logger);
         let data           = ContainerData {logger,visualization,size,display_object};
         let data           = Rc::new(data);
+        data.set_visualization(Registry::default_visualisation(&scene));
+        data.set_visibility(false);
         let frp            = default();
         Self {data,frp} . init_frp()
     }
@@ -164,12 +166,6 @@ impl Container {
             }));
         }
         self
-    }
-}
-
-impl Default for Container {
-    fn default() -> Self {
-        Container::new()
     }
 }
 

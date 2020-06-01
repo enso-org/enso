@@ -106,4 +106,16 @@ impl Registry {
         let entries       = self.entries.borrow();
         entries.get(dtype).cloned().unwrap_or_else(default)
     }
+
+    /// Return a default visualisation class.
+    pub fn default_visualisation(scene:&Scene) -> Visualization {
+        let class = NativeConstructorClass::new(
+            Signature {
+                name        : "Raw Text Visualization (native)".to_string(),
+                input_types : vec!["[[Float,Float,Float]]".to_string().into()],
+            },
+            |scene:&Scene| Ok(Visualization::new(RawText::new(scene)))
+        );
+        class.instantiate(&scene).expect("Failed to instantiate default visualisation")
+    }
 }
