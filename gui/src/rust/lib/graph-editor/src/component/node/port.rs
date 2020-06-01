@@ -243,7 +243,7 @@ impl Manager {
                             def _foo = port.events.mouse_out  . map(f_!(hover.set(0.0);));
 
                             def out  = port.events.mouse_out.constant(cursor::Style::default());
-                            def over = port.events.mouse_over.constant(cursor::Style::highlight(&port,Vector2::new(width2,height),Some(color::Lcha::new(0.6,0.5,0.76,1.0))));
+                            def over = port.events.mouse_over.constant(cursor::Style::new_highlight(&port,Vector2::new(width2,height),Some(color::Lcha::new(0.6,0.5,0.76,1.0))));
                             // FIXME: the following lines leak memory in the current FRP
                             // implementation because self.frp does not belong to this network and
                             // we are attaching node there. Nothing bad should happen though.

@@ -744,7 +744,7 @@ impl EdgeModelData {
             let side_combined       = side * corner_2_3_side;
             let corner2_radius      = corner2_radius * corner_2_3_scale;
             let corner3_radius      = corner3_radius * corner_2_3_scale;
-            let is_right_side       = (side_combined - 1.0) < std::f32::EPSILON;
+            let is_right_side       = (side_combined - 1.0).abs() < std::f32::EPSILON;
 
 
             // === Corner2 & Corner3 Placement ===

@@ -741,6 +741,38 @@ impl Views {
 
 
 
+// ===========
+// === FRP ===
+// ===========
+
+/// FRP Scene interface.
+#[derive(Clone,CloneRef,Debug)]
+pub struct Frp {
+    pub network        : frp::Network,
+    pub camera_changed : frp::Stream,
+
+    camera_changed_source : frp::Source,
+}
+
+impl Frp {
+    /// Constructor
+    pub fn new() -> Self {
+        frp::new_network! { network
+            camera_changed_source <- source();
+        }
+        let camera_changed = camera_changed_source.clone_ref().into();
+        Self {network,camera_changed,camera_changed_source}
+    }
+}
+
+impl Default for Frp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+
+
 // =================
 // === SceneData ===
 // =================
@@ -765,6 +797,7 @@ pub struct SceneData {
     pub bg_color_var    : style::Var,
     pub bg_color_change : callback::Handle,
     pub fonts           : font::SharedRegistry,
+    pub frp             : Frp,
 }
 
 impl SceneData {
@@ -805,6 +838,7 @@ impl SceneData {
         let callbacks      = Callbacks {on_zoom,on_resize};
         let style_sheet    = style::Sheet::new();
         let fonts          = font::SharedRegistry::new();
+        let frp            = Frp::new();
 
         let bg_color_var = style_sheet.var("application.background.color");
         let bg_color_change = bg_color_var.on_change(f!([dom](change){
@@ -816,8 +850,8 @@ impl SceneData {
         }));
 
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio());
-        Self {renderer,display_object,dom,context,symbols,views,dirty,logger,variables
-             ,stats,uniforms,mouse,callbacks,shapes,style_sheet,bg_color_var,bg_color_change,fonts}
+        Self {renderer,display_object,dom,context,symbols,views,dirty,logger,variables,stats
+             ,uniforms,mouse,callbacks,shapes,style_sheet,bg_color_var,bg_color_change,fonts,frp}
     }
 
     pub fn on_resize<F:CallbackMut1Fn<web::dom::ShapeData>>(&self, callback:F) -> callback::Handle {
@@ -888,6 +922,7 @@ impl SceneData {
         let camera  = self.camera();
         let changed = camera.update();
         if changed {
+            self.frp.camera_changed_source.emit(());
             self.symbols.set_camera(camera);
             self.dom.layers.front.update_view_projection(camera);
             self.dom.layers.back.update_view_projection(camera);
@@ -963,10 +998,12 @@ impl Deref for Scene {
 impl Scene {
     pub fn update(&self) {
         group!(self.logger, "Updating.", {
+            // Please note that `update_camera` is called first as it may trigger FRP events which
+            // may change display objects layout.
+            self.update_camera();
             self.display_object.update_with(self);
             self.update_shape();
             self.update_symbols();
-            self.update_camera();
             self.handle_mouse_events();
         })
     }
