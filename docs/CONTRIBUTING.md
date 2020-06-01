@@ -103,15 +103,17 @@ look at the design documentation for the language. These files explain provide
 both a rigorous specification of Enso's design, but also insight into the _why_
 behind the decisions that have been made.
 
-These can be found in [`docs/design/`](docs/design/), and are organised by the
-part of the compiler that they relate to.
+These can be found in [`docs/`](README.md), and are organised by the part of the
+compiler that they relate to.
 
 ### System Requirements
 In order to build and run Enso you will need the following tools:
 
-- [sbt](https://www.scala-sbt.org/) with version at least 1.3.0.
+- [sbt](https://www.scala-sbt.org/) with the same version as specified in
+  [`project/build.properties`](../project/build.properties).
 - [GraalVM](https://www.graalvm.org/) with version at least that described in
-  the [`build.sbt`](build.sbt) file, and Java 8, configured as your default JVM.
+  the [`build.sbt`](../build.sbt) file, and Java 8, configured as your default
+  JVM.
 - [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version
   1.12.0.
 
@@ -224,7 +226,7 @@ the following flags:
 - `--printAssembly`: Prints the assembly output from the HotSpot JIT tier.
 
 For more information on this sbt command, please see
-[WithDebugCommand.scala](project/WithDebugCommand.scala).
+[WithDebugCommand.scala](../project/WithDebugCommand.scala).
 
 It is used as an addendum to the basic sbt command you want to run (e.g. `test`
 from above). The format is `withDebug COMMAND [OPTIONS...]`, and if you need to
@@ -289,7 +291,7 @@ getting the project into a working state in IntelliJ.
     with an open SBT shell, which can be interacted with as described above. You
     will want to use scalafmt for formatting of Scala code, and install Google
     Java Format for formatting Java code. For more information see the relevant
-    [Style Guides](docs/style-guide).
+    [Style Guides](style-guide/README.md).
 
 However, as mentioned in the [Troubleshooting](#troubleshooting) section below,
 the forked nature of execution in the SBT shell means that we can't trivially
@@ -393,8 +395,8 @@ Please make all pull requests against the `master` branch.
   the tests yourself locally first! This can be done by running `test` in the
   `enso` project in sbt.
 - Additionally, please ensure that your code conforms to the Enso style guides,
-  particularly the [Scala Style Guide](./docs/style-guide/scala.md) and the
-  [Java Style Guide](./docs/style-guide/java.md).
+  particularly the [Scala Style Guide](./style-guide/scala.md) and the
+  [Java Style Guide](./style-guide/java.md).
 
 Make sure you perform these checks before _every_ pull request. You can even add
 [git hooks](https://git-scm.com/book/en/v2/Customizing-Git-Git-Hooks) before
@@ -418,7 +420,7 @@ the best results through open collaboration.
 Documentation improvements are very welcome! For now, the main documentation
 available is the _developer_ documentation for the language, which can be found
 at the [dev docs site](https://dev.enso.org). The source for this documentation
-is found in the [`docs/`](./docs/) folder, and can be altered from there.
+is found in the [`docs/`](.) folder, and can be altered from there.
 
 Documentation pull requests will be reviewed in exactly the same way as normal
 pull requests.
@@ -458,6 +460,6 @@ to contribute in other ways outside this repository:
 For people new to Enso, and just starting to contribute, or even for more
 seasoned developers, some useful places to look for information are:
 
-- The [design documentation](docs/).
+- The [design documentation](./README.md).
 - The community! Don't be afraid to ask questions.
 

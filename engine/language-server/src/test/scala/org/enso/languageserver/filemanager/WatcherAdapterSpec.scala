@@ -4,6 +4,7 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.{Executors, LinkedBlockingQueue, Semaphore}
 
 import org.apache.commons.io.FileUtils
+import org.enso.jsonrpc.test.FlakySpec
 import org.enso.languageserver.effect.Effects
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -11,7 +12,7 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration._
 import scala.util.Try
 
-class WatcherAdapterSpec extends AnyFlatSpec with Matchers with Effects {
+class WatcherAdapterSpec extends AnyFlatSpec with Matchers with Effects with FlakySpec {
 
   import WatcherAdapter._
 
@@ -37,7 +38,7 @@ class WatcherAdapterSpec extends AnyFlatSpec with Matchers with Effects {
     event2 shouldBe WatcherEvent(fileA, EventTypeDelete)
   }
 
-  it should "get modify events" in withWatcher { (path, events) =>
+  it should "get modify events" taggedAs (Flaky) in withWatcher { (path, events) =>
     val fileA = Paths.get(path.toString, "a.txt")
 
     Files.createFile(fileA)
