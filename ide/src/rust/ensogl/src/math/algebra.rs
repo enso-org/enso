@@ -432,7 +432,7 @@ macro_rules! define_vector {
 
         /// Smart constructor.
         #[allow(non_snake_case)]
-        pub fn $name<T>($($field:T),*) -> $name<T> {
+        pub const fn $name<T>($($field:T),*) -> $name<T> {
             $name {$($field),*}
         }
 
