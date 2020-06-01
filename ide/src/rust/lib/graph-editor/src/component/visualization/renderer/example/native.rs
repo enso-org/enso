@@ -5,11 +5,13 @@ use crate::prelude::*;
 use crate::component::visualization::*;
 
 use ensogl::data::color::Rgba;
+use ensogl::display::DomSymbol;
 use ensogl::display::layout::alignment;
 use ensogl::display::scene::Scene;
 use ensogl::display;
 use ensogl::gui::component;
-
+use ensogl::system::web;
+use ensogl::display::object::ObjectOps;
 
 
 // ==========================
@@ -99,5 +101,83 @@ impl DataRenderer for BubbleChart {
 impl display::Object for BubbleChart {
     fn display_object(&self) -> &display::object::Instance {
         &self.display_object.display_object()
+    }
+}
+
+
+
+// ===============================
+// === Native RawText Renderer ===
+// ===============================
+
+/// Sample visualization that renders the given data as text. Useful for debugging and testing.
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct RawText {
+    scene     : Scene,
+    root_node : DomSymbol,
+    size      : Cell<Vector2<f32>>,
+    frp       : DataRendererFrp,
+    logger    : Logger,
+}
+
+impl RawText {
+    /// Constructor.
+    pub fn new(scene:&Scene) -> Self {
+        let logger    = Logger::new("RawText");
+        let div       = web::create_div();
+        let root_node = DomSymbol::new(&div);
+        let frp       = default();
+        let size      = Cell::new(Vector2::zero());
+        let scene     = scene.clone_ref();
+
+        // FIXME It seems by default the text here is mirrored.
+        // FIXME This should be fixed in the DOMSymbol directly and removed here.
+        root_node.set_rotation(Vector3::new(180.0_f32.to_radians(), 0.0, 0.0));
+        scene.dom.layers.front.manage(&root_node);
+
+        RawText{root_node,logger,frp,size,scene}.init()
+    }
+
+    fn init(self) -> Self {
+        self.update_style();
+        self
+    }
+
+    fn update_style(&self) {
+        let mut style = "white-space:pre;".to_string();
+        style += "overflow-y:auto;";
+        style += "overflow-x:auto;";
+        // TODO: Integrate with the global style system and replace constant color.
+        style += "color:white;";
+        style += &format!("height:{}px;", self.size.get().x);
+        style += &format!("width:{}px;", self.size.get().y);
+        style += "pointer-events:auto";
+        self.root_node.dom().set_attribute("style",&style).unwrap();
+    }
+}
+
+impl display::Object for RawText {
+    fn display_object(&self) -> &display::object::Instance {
+        &self.root_node.display_object()
+    }
+}
+
+impl DataRenderer for RawText {
+    fn receive_data(&self, data:Data) -> Result<(),DataError> {
+        let data_inner = data.as_json()?;
+        let data_str   = serde_json::to_string_pretty(&data_inner);
+        let data_str   = data_str.unwrap_or_else(|e| format!("<Cannot render data: {}>", e));
+        self.root_node.dom().set_inner_text(&data_str);
+        Ok(())
+    }
+
+    fn set_size(&self, size:Vector2<f32>) {
+        self.size.set(size);
+        self.update_style();
+    }
+
+    fn frp(&self) -> &DataRendererFrp {
+        &self.frp
     }
 }

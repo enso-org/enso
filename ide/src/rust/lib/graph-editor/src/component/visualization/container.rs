@@ -128,7 +128,7 @@ impl Container {
     pub fn new() -> Self {
         let logger         = Logger::new("visualization");
         let visualization  = default();
-        let size           = Cell::new(Vector2::new(100.0, 100.0));
+        let size           = Cell::new(Vector2::new(200.0, 200.0));
         let display_object = display::object::Instance::new(&logger);
         let data           = ContainerData {logger,visualization,size,display_object};
         let data           = Rc::new(data);
