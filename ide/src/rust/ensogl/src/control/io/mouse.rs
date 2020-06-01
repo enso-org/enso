@@ -101,9 +101,10 @@ macro_rules! define_bindings {
                 let dispatchers = MouseManagerDispatchers::default();
                 let dom         = dom.clone();
                 $(
+                    let shape      = dom.shape().clone_ref();
                     let dispatcher = dispatchers.$name.clone_ref();
-                    let shape      = dom.shape().current();
                     let $name : MouseEventJsClosure = Closure::wrap(Box::new(move |event:JsValue| {
+                        let shape = shape.current();
                         let event = event.unchecked_into::<web_sys::$js_event>();
                         dispatcher.dispatch(&event::$target::new(event,shape))
                     }));
@@ -140,6 +141,7 @@ pub struct MouseFrpCallbackHandles {
 /// Bind FRP graph to MouseManager.
 pub fn bind_frp_to_mouse(frp:&enso_frp::io::Mouse, mouse_manager:&MouseManager)
 -> MouseFrpCallbackHandles {
+    // TODO: This does not seem to be ever used. Can it be removed?
     let on_move = enclose!((frp.position => frp) move |e:&OnMove| {
         frp.emit(Position::new(e.client_x() as f32,e.client_y() as f32));
     });
