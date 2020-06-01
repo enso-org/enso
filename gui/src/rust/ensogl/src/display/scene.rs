@@ -340,8 +340,8 @@ impl Mouse {
 
         let on_move = mouse_manager.on_move.add(f!([frp,shape,position,last_position](event:&mouse::OnMove) {
             let pixel_ratio  = shape.pixel_ratio() as i32;
-            let screen_x     = event.offset_x();
-            let screen_y     = event.offset_y();
+            let screen_x     = event.client_x();
+            let screen_y     = event.client_y();
 
             let new_position = Vector2::new(screen_x,screen_y);
             let pos_changed  = new_position != last_position.get();
