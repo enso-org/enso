@@ -283,7 +283,7 @@ impl NodeModel {
         let scene = scene.clone_ref();
         let input = InputEvents::new(&network);
 
-        let visualization_container = visualization::Container::new();
+        let visualization_container = visualization::Container::new(&scene);
         visualization_container.mod_position(|t| {
             t.x = 60.0;
             t.y = -120.0;

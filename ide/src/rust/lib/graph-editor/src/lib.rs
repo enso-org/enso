@@ -356,12 +356,11 @@ pub struct FrpInputs {
     pub remove_node                  : frp::Source<NodeId>,
     pub set_node_expression          : frp::Source<(NodeId,node::Expression)>,
     pub set_node_position            : frp::Source<(NodeId,Position)>,
-    pub set_visualization_data       : frp::Source<NodeId>,
     pub translate_selected_nodes     : frp::Source<Position>,
     pub cycle_visualization          : frp::Source<NodeId>,
     pub set_visualization            : frp::Source<(NodeId,Option<Visualization>)>,
     pub register_visualization_class : frp::Source<Option<Rc<visualization::Handle>>>,
-
+    pub set_visualization_data       : frp::Source<(NodeId,Option<visualization::Data>)>,
 
     hover_node_input           : frp::Source<Option<EdgeTarget>>,
     some_edge_targets_detached : frp::Source,
@@ -396,6 +395,7 @@ impl FrpInputs {
             def hover_node_input           = source();
             def some_edge_targets_detached = source();
             def all_edge_targets_attached  = source();
+
         }
         let commands = Commands::new(&network);
         Self {commands,remove_edge,press_node_input,remove_all_node_edges
@@ -497,6 +497,9 @@ generate_frp_outputs! {
 
     connection_added    : EdgeId,
     connection_removed  : EdgeId,
+
+    visualization_enabled  : NodeId,
+    visualization_disabled : NodeId,
 }
 
 
@@ -1521,16 +1524,20 @@ fn new_graph_editor(world:&World) -> GraphEditor {
 
     // TODO remove this once real data is available.
     let sample_data_generator = MockDataGenerator3D::default();
-    def _set_dumy_data = inputs.debug_set_data_for_selected_node.map(f!([nodes](_) {
+    def _set_dumy_data = inputs.debug_set_data_for_selected_node.map(f!([nodes,inputs](_) {
         nodes.selected.for_each(|node_id| {
             let data          = Rc::new(sample_data_generator.generate_data());
             let content       = Rc::new(serde_json::to_value(data).unwrap());
             let data          = visualization::Data::JSON{ content };
-            if let Some(node) = nodes.get_cloned(node_id) {
-                node.view.visualization_container.frp.set_data.emit(Some(data));
-            }
+            inputs.set_visualization_data.emit((*node_id,Some(data)));
         })
     }));
+
+    def _set_data = inputs.set_visualization_data.map(f!([nodes]((node_id,data)) {
+         if let Some(node) = nodes.get_cloned(node_id) {
+                node.view.visualization_container.frp.set_data.emit(data);
+         }
+     }));
 
      let cycle_count = Rc::new(Cell::new(0));
      def _cycle_visualization = inputs.cycle_visualization.map(f!([scene,nodes,visualization_registry,logger](node_id) {
@@ -1549,14 +1556,24 @@ fn new_graph_editor(world:&World) -> GraphEditor {
         cycle_count.set(cycle_count.get() + 1);
     }));
 
-    def _toggle_selected = inputs.toggle_visualization_visibility.map(f!([nodes](_) {
+    def on_visualization_enabled  = source();
+    def on_visualization_disabled = source();
+
+    def _toggle_selected = inputs.toggle_visualization_visibility.map(f!([nodes,on_visualization_enabled,on_visualization_disabled](_) {
         nodes.selected.for_each(|node_id| {
             if let Some(node) = nodes.get_cloned_ref(node_id) {
                 node.view.visualization_container.frp.toggle_visibility.emit(());
+                if node.view.visualization_container.is_visible() {
+                    on_visualization_enabled.emit(node_id);
+                } else {
+                    on_visualization_disabled.emit(node_id);
+                }
             }
         });
-
     }));
+
+    outputs.visualization_enabled  <+ on_visualization_enabled;
+    outputs.visualization_disabled <+ on_visualization_disabled;
 
     // === Register Visualization ===
 
