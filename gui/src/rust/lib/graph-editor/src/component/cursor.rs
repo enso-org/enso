@@ -15,6 +15,17 @@ use ensogl::gui::component;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const DEFAULT_SIZE        : V2  = V2(16.0,16.0);
+const DEFAULT_RADIUS      : f32 = 8.0;
+const DEFAULT_COLOR_LAB   : V3  = V3(1.0,0.0,0.0);
+const DEFAULT_COLOR_ALPHA : f32 = 0.2;
+
+
+
 // ==================
 // === StyleValue ===
 // ==================
@@ -58,7 +69,7 @@ impl<T> StyleValue<T> {
 // === Style ===
 // =============
 
-macro_rules! define_style {( $($field:ident : $field_type:ty),* $(,)? ) => {
+macro_rules! define_style {( $( $(#$meta:tt)* $field:ident : $field_type:ty),* $(,)? ) => {
     /// Set of cursor style parameters. You can construct this object in FRP network, merge it using
     /// its `Semigroup` instance, and finally pass to the cursor to apply the style. Please note
     /// that cursor does not implement any complex style management (like pushing or popping a style
@@ -66,7 +77,7 @@ macro_rules! define_style {( $($field:ident : $field_type:ty),* $(,)? ) => {
     /// it in FRP.
     #[derive(Debug,Clone,Default)]
     pub struct Style {
-        $($field : $field_type),*
+        $($(#$meta)? $field : Option<$field_type>),*
     }
 
     impl PartialSemigroup<&Style> for Style {
@@ -84,12 +95,15 @@ macro_rules! define_style {( $($field:ident : $field_type:ty),* $(,)? ) => {
 };}
 
 define_style! {
-    host   : Option<display::object::Instance>,
-    size   : Option<StyleValue<Vector2<f32>>>,
-    offset : Option<StyleValue<Vector2<f32>>>,
-    color  : Option<StyleValue<color::Lcha>>,
-    radius : Option<StyleValue<f32>>,
-    press  : Option<StyleValue<f32>>,
+    /// Host defines an object which the cursor position is bound to. It is used to implement
+    /// label selection. After setting the host to the label, cursor will not follow mouse anymore,
+    /// it will inherit its position from the label instead.
+    host   : display::object::Instance,
+    size   : StyleValue<Vector2<f32>>,
+    offset : StyleValue<Vector2<f32>>,
+    color  : StyleValue<color::Lcha>,
+    radius : StyleValue<f32>,
+    press  : StyleValue<f32>,
 }
 
 
@@ -117,8 +131,9 @@ impl Style {
     }
 
     pub fn new_box_selection(size:Vector2<f32>) -> Self {
-        let offset = Some(StyleValue::new_no_animation(-size / 2.0));
-        let size   = Some(StyleValue::new_no_animation(size.abs() + Vector2::new(16.0,16.0)));
+        let def_size = Vector2::new(DEFAULT_SIZE.x,DEFAULT_SIZE.y);
+        let offset   = Some(StyleValue::new_no_animation(-size / 2.0));
+        let size     = Some(StyleValue::new_no_animation(size.abs() + def_size));
         Self {size,offset,..default()}
     }
 
@@ -166,12 +181,13 @@ pub mod shape {
         ) {
             let width  : Var<Distance<Pixels>> = "input_size.x".into();
             let height : Var<Distance<Pixels>> = "input_size.y".into();
-            let press_diff       = 2.px() * &press;
-            let radius           = 1.px() * radius - &press_diff;
-            let selection_width  = 1.px() * &selection_size.x();
-            let selection_height = 1.px() * &selection_size.y();
-            let width            = (&width  - &press_diff * 2.0) + selection_width.abs();
-            let height           = (&height - &press_diff * 2.0) + selection_height.abs();
+            let press_side_shrink = 2.px();
+            let press_diff        = press_side_shrink * &press;
+            let radius            = 1.px() * radius - &press_diff;
+            let selection_width   = 1.px() * &selection_size.x();
+            let selection_height  = 1.px() * &selection_size.y();
+            let width             = (&width  - &press_diff * 2.0) + selection_width.abs();
+            let height            = (&height - &press_diff * 2.0) + selection_height.abs();
             let cursor = Rect((width,height))
                 .corners_radius(radius)
                 .fill("srgba(input_color)");
@@ -243,7 +259,7 @@ impl CursorModel {
         let logger = Logger::new("cursor");
         let frp    = FrpInputs::new(network);
         let view   = component::ShapeView::<shape::Shape>::new(&logger,&scene);
-        let style  = Rc::new(RefCell::new(Style::default()));
+        let style  = default();
 
         let shape_system = scene.shapes.shape_system(PhantomData::<shape::Shape>);
         shape_system.shape_system.set_pointer_events(false);
@@ -279,16 +295,16 @@ impl Cursor {
 
         // === Animations ===
         //
-        // The following animators are used for smooth cursor transitions. There are two components
+        // The following animators are used for smooth cursor transitions. There are two of them
         // with a non-obvious behavior, namely the `host_follow_weight` and `host_attached_weight`.
-        // The mouse position can be in three stages:
+        // The mouse position is driven by three factors:
         //
         //   - Real-time cursor mode.
         //     Cursor follows the system mouse position.
         //
         //   - Host-follow mode.
-        //     Cursor follows the host using dynamic simulator. The `host_follow_weight` variable is
-        //     a weight between real-time mode and this one.
+        //     Cursor follows the host using dynamic inertia simulator. The `host_follow_weight`
+        //     variable is a weight between real-time mode and this one.
         //
         //   - Host-attached mode.
         //     Cursor follows the host without any delay. The `host_attached_weight` variable is a
@@ -307,17 +323,11 @@ impl Cursor {
         let host_follow_weight   = Animation :: <f32> :: new(&network);
         let host_attached_weight = Tween     :: new(&network);
 
-        let default_size   = V2(16.0,16.0);
-        let default_radius = 8.0;
-        let default_lab    = V3(1.0,0.0,0.0);
-        let default_alpha  = 0.2;
-
         host_attached_weight.set_duration(300.0);
-        color_lab.set_target_value(default_lab);
-        color_alpha.set_target_value(default_alpha);
-        radius.set_target_value(default_radius);
-        size.set_target_value(default_size);
-
+        color_lab.set_target_value(DEFAULT_COLOR_LAB);
+        color_alpha.set_target_value(DEFAULT_COLOR_ALPHA);
+        radius.set_target_value(DEFAULT_RADIUS);
+        size.set_target_value(DEFAULT_SIZE);
 
         frp::extend! { network
             eval press.value  ((v) model.view.shape.press.set(*v));
@@ -344,8 +354,8 @@ impl Cursor {
 
                 match &new_style.color {
                     None => {
-                        color_lab.set_target_value(default_lab);
-                        color_alpha.set_target_value(default_alpha);
+                        color_lab.set_target_value(DEFAULT_COLOR_LAB);
+                        color_alpha.set_target_value(DEFAULT_COLOR_ALPHA);
                     }
                     Some(new_color) => {
                         let lab = color::Laba::from(new_color.value);
@@ -359,7 +369,7 @@ impl Cursor {
                 }
 
                 match &new_style.size {
-                    None => size.set_target_value(default_size),
+                    None => size.set_target_value(DEFAULT_SIZE),
                     Some(new_size) => {
                         size.set_target_value(V2::new(new_size.value.x,new_size.value.y));
                         if !new_size.animate { size.skip() }
@@ -375,7 +385,7 @@ impl Cursor {
                 }
 
                 match &new_style.radius {
-                    None => radius.set_target_value(default_radius),
+                    None => radius.set_target_value(DEFAULT_RADIUS),
                     Some(new_radius) => {
                         radius.set_target_value(new_radius.value);
                         if !new_radius.animate { radius.skip() }

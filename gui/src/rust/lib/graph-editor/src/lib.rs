@@ -211,9 +211,6 @@ impl<K,V,S> SharedHashMap<K,V,S> {
 
 
 
-
-
-
 #[derive(Debug,Clone,CloneRef)]
 pub struct Frp {
     pub inputs  : FrpInputs,
@@ -478,19 +475,20 @@ macro_rules! generate_frp_outputs {
 
 
 generate_frp_outputs! {
-    node_added          : NodeId,
-    node_removed        : NodeId,
-    node_selected       : NodeId,
-    node_deselected     : NodeId,
-    node_position_set   : (NodeId,Position),
-    node_expression_set : (NodeId,node::Expression),
+    node_added                : NodeId,
+    node_removed              : NodeId,
+    node_selected             : NodeId,
+    node_deselected           : NodeId,
+    node_position_set         : (NodeId,Position),
+    node_position_set_batched : (NodeId,Position),
+    node_expression_set       : (NodeId,node::Expression),
 
-    edge_added          : EdgeId,
-    edge_removed        : EdgeId,
-    edge_source_set     : (EdgeId,EdgeTarget),
-    edge_target_set     : (EdgeId,EdgeTarget),
-    edge_source_unset   : EdgeId,
-    edge_target_unset   : EdgeId,
+    edge_added        : EdgeId,
+    edge_removed      : EdgeId,
+    edge_source_set   : (EdgeId,EdgeTarget),
+    edge_target_set   : (EdgeId,EdgeTarget),
+    edge_source_unset : EdgeId,
+    edge_target_unset : EdgeId,
 
     some_edge_targets_detached : (),
     all_edge_targets_attached  : (),
@@ -1042,6 +1040,14 @@ impl GraphEditorModel {
         }
     }
 
+    pub fn node_position(&self, node_id:impl Into<NodeId>) -> Position {
+        let node_id = node_id.into();
+        self.nodes.get_cloned_ref(&node_id).map(|node| {
+            let v_pos = node.position();
+            frp::Position::new(v_pos.x, v_pos.y)
+        }).unwrap_or_default()
+    }
+
     pub fn node_pos_mod
     (&self, node_id:impl Into<NodeId>, pos_diff:impl Into<Position>) -> (NodeId,Position) {
         let node_id      = node_id.into();
@@ -1397,7 +1403,8 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     outputs.node_added <+ new_node;
 
     node_with_position <- add_node_at_cursor.map3(&new_node,&mouse.position,|_,id,pos| (*id,*pos));
-    outputs.node_position_set <+ node_with_position;
+    outputs.node_position_set         <+ node_with_position;
+    outputs.node_position_set_batched <+ node_with_position;
 
     cursor_style <- all
         [ cursor_selection
@@ -1481,16 +1488,26 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     node_drag         <- mouse.translation.gate(&touch.nodes.is_down);
     was_selected      <- touch.nodes.down.map(f!((id) model.nodes.selected.contains(id)));
     tx_sel_nodes      <- any (node_drag, inputs.translate_selected_nodes);
-    non_selected_drag <- tx_sel_nodes.map2(&touch.nodes.down,|_,id|*id).gate_not(&was_selected);
-    selected_drag     <= tx_sel_nodes.map(f_!(model.nodes.selected.keys())).gate(&was_selected);
+    non_selected_drag <- tx_sel_nodes.map2(&touch.nodes.down,|_,id|vec![*id]).gate_not(&was_selected);
+    selected_drag     <- tx_sel_nodes.map(f_!(model.nodes.selected.keys())).gate(&was_selected);
     nodes_to_drag     <- any (non_selected_drag, selected_drag);
-    nodes_new_pos     <- nodes_to_drag.map2(&tx_sel_nodes,f!((id,tx) model.node_pos_mod(id,tx)));
-    outputs.node_position_set <+ nodes_new_pos;
+    node_to_drag      <= nodes_to_drag;
+    node_new_pos      <- node_to_drag.map2(&tx_sel_nodes,f!((id,tx) model.node_pos_mod(id,tx)));
+    outputs.node_position_set <+ node_new_pos;
+
+    was_drag_false        <- touch.nodes.down.constant(false);
+    was_drag_true         <- node_drag.constant(true);
+    was_drag              <- any (was_drag_false,was_drag_true);
+    drag_finish           <- touch.nodes.up.gate(&was_drag);
+    dragged_node          <= nodes_to_drag.sample(&drag_finish);
+    dragged_node_pos      <- dragged_node.map(f!([model] (id) (*id,model.node_position(id))));
+    outputs.node_position_set_batched <+ dragged_node_pos;
 
 
     // === Set Node Position ===
 
-    outputs.node_position_set <+ inputs.set_node_position;
+    outputs.node_position_set         <+ inputs.set_node_position;
+    outputs.node_position_set_batched <+ inputs.set_node_position;
     eval outputs.node_position_set (((id,pos)) model.set_node_position(id,pos));
 
 
