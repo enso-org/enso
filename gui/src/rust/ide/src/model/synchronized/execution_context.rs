@@ -93,7 +93,7 @@ impl ExecutionContext {
         Ok(())
     }
 
-    /// Attaches a new visualization for current execution context.
+    /// Attach a new visualization for current execution context.
     ///
     /// Returns a stream of visualization update data received from the server.
     pub async fn attach_visualization
@@ -113,8 +113,9 @@ impl ExecutionContext {
         }
     }
 
-    /// Detaches visualization from current execution context.
+    /// Detach visualization from current execution context.
     pub async fn detach_visualization(&self, id:&VisualizationId) -> FallibleResult<Visualization> {
+        info!(self.logger,"Scheduling detaching visualization by id: {id}.");
         let vis    = self.model.detach_visualization(id)?;
         let vis_id = *id;
         let exe_id = self.id;
@@ -122,6 +123,7 @@ impl ExecutionContext {
         let ls     = self.language_server.clone_ref();
         let logger = self.logger.clone_ref();
         executor::global::spawn(async move {
+            info!(logger,"About to detach visualization by id: {vis_id}.");
             let result = ls.detach_visualisation(&exe_id,&vis_id,&ast_id).await;
             if result.is_err() {
                 error!(logger,"Error when detaching node: {result:?}.");
@@ -130,7 +132,7 @@ impl ExecutionContext {
         Ok(vis)
     }
 
-    /// Dispatches the visualization update data (typically received from as LS binary notification)
+    /// Dispatch the visualization update data (typically received from as LS binary notification)
     /// to the respective's visualization update channel.
     pub fn dispatch_visualization_update
     (&self, visualization_id:VisualizationId, data:VisualizationUpdateData) -> FallibleResult<()> {

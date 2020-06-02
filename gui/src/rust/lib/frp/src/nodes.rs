@@ -26,13 +26,13 @@ use enso_generics::traits::*;
 
 impl Network {
     /// Begin point in the FRP network. It does not accept inputs, but it is able to emit events.
-    /// Often it is used to indicate that something happened, like a button was pressed. In such a
+    /// Often it is used to indicate that something happened, like a button was pressed. In such
     /// case its type parameter is set to an empty tuple.
     pub fn source<T:Data>(&self, label:Label) -> Source<T> {
         self.register_raw(OwnedSource::new(label))
     }
 
-    /// Begin point in the FRP network. Specialized version of `src`.
+    /// Starting point in the FRP network. Specialized version of `source`.
     pub fn source_(&self, label:Label) -> Source {
         self.register_raw(OwnedSource::new(label))
     }
@@ -48,12 +48,13 @@ impl Network {
         self.register(OwnedTrace::new(label,src))
     }
 
-    /// Emits `true`, `false`, `true`, `false`, ... on every incoming event.
+    /// Emits `true`, `false`, `true`, `false`, ... on every incoming event. Initialized with false
+    /// value.
     pub fn toggle<T:EventOutput>(&self, label:Label, src:&T) -> Stream<bool> {
         self.register(OwnedToggle::new(label,src))
     }
 
-    /// Emits `true`, `false`, `true`, `false`, ... on every incoming event. Initialized with true
+    /// Emits `false`, `true`, `false`, `true`, ... on every incoming event. Initialized with true
     /// value.
     pub fn toggle_true<T:EventOutput>(&self, label:Label, src:&T) -> Stream<bool> {
         self.register(OwnedToggle::new_with(label,src,true))
@@ -81,7 +82,8 @@ impl Network {
         self.register(OwnedSample::new(label,behavior,event))
     }
 
-    /// Passes the incoming event of the fisr stream only if the value of the second stream is true.
+    /// Passes the incoming event of the fisrt stream only if the value of the second stream is
+    /// true.
     pub fn gate<T1,T2>(&self, label:Label, event:&T1, behavior:&T2) -> Stream<Output<T1>>
         where T1:EventOutput, T2:EventOutput<Output=bool> {
         self.register(OwnedGate::new(label,event,behavior))
@@ -301,7 +303,7 @@ impl Network {
         self.register(OwnedAllWith2::new(label,t1,t2,f))
     }
 
-    /// Specialized version `apply`.
+    /// Specialized version `all_with`.
     pub fn all_with3<T1,T2,T3,F,T>
     (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, f:F) -> Stream<T>
     where T1:EventOutput, T2:EventOutput, T3:EventOutput, T:Data,
@@ -309,7 +311,7 @@ impl Network {
         self.register(OwnedAllWith3::new(label,t1,t2,t3,f))
     }
 
-    /// Specialized version `apply`.
+    /// Specialized version `all_with`.
     pub fn all_with4<T1,T2,T3,T4,F,T>
     (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, f:F) -> Stream<T>
     where T1:EventOutput, T2:EventOutput, T3:EventOutput, T4:EventOutput, T:Data,

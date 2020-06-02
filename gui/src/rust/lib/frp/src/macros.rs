@@ -1,4 +1,4 @@
-//! This module defines common macros for FRP netwrok definition.
+//! This module defines common macros for FRP network definition.
 
 /// # Overview
 ///

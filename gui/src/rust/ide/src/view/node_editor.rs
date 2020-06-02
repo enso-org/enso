@@ -3,16 +3,21 @@
 use crate::prelude::*;
 
 use crate::controller::graph::NodeTrees;
+use crate::model::execution_context::Visualization;
+use crate::model::execution_context::VisualizationId;
+use crate::model::execution_context::VisualizationUpdateData;
 
+use bimap::BiMap;
 use enso_frp as frp;
 use enso_frp::stream::EventEmitter;
 use ensogl::display;
 use ensogl::display::traits::*;
 use ensogl::application::Application;
-use graph_editor::GraphEditor;
+use graph_editor::component::visualization;
 use graph_editor::EdgeTarget;
+use graph_editor::GraphEditor;
+use graph_editor::SharedHashMap;
 use utils::channel::process_stream_with_handle;
-use bimap::BiMap;
 
 
 
@@ -36,6 +41,14 @@ enum MissingMappingFor {
 #[derive(Copy,Clone,Debug,Fail)]
 #[fail(display="Discrepancy in a GraphEditor component")]
 struct GraphEditorInconsistency;
+
+#[derive(Copy,Clone,Debug,Fail)]
+#[fail(display="No visualization associated with view node {} found.", _0)]
+struct NoSuchVisualization(graph_editor::NodeId);
+
+#[derive(Copy,Clone,Debug,Fail)]
+#[fail(display="Graph node {} already has visualization attached.", _0)]
+struct VisualizationAlreadyAttached(graph_editor::NodeId);
 
 
 
@@ -122,6 +135,7 @@ struct GraphEditorIntegratedWithControllerModel {
     node_views       : RefCell<BiMap<ast::Id,graph_editor::NodeId>>,
     expression_views : RefCell<HashMap<graph_editor::NodeId,String>>,
     connection_views : RefCell<BiMap<controller::graph::Connection,graph_editor::EdgeId>>,
+    visualizations   : SharedHashMap<graph_editor::NodeId,VisualizationId>,
 }
 
 
@@ -141,14 +155,20 @@ impl GraphEditorIntegratedWithController {
                 }
             }));
         }
-        let node_removed       = Self::ui_action(&model,
+        let node_removed = Self::ui_action(&model,
             GraphEditorIntegratedWithControllerModel::node_removed_in_ui,&invalidate.trigger);
         let connection_created = Self::ui_action(&model,
             GraphEditorIntegratedWithControllerModel::connection_created_in_ui,&invalidate.trigger);
         let connection_removed = Self::ui_action(&model,
             GraphEditorIntegratedWithControllerModel::connection_removed_in_ui,&invalidate.trigger);
-        let node_moved         = Self::ui_action(&model,
+        let node_moved = Self::ui_action(&model,
             GraphEditorIntegratedWithControllerModel::node_moved_in_ui,&invalidate.trigger);
+        let visualization_enabled = Self::ui_action(&model,
+            GraphEditorIntegratedWithControllerModel::visualization_enabled_in_ui,
+            &invalidate.trigger);
+        let visualization_disabled = Self::ui_action(&model,
+            GraphEditorIntegratedWithControllerModel::visualization_disabled_in_ui,
+            &invalidate.trigger);
         frp::extend! {network
             // Notifications from controller
             let handle_notification = FencedAction::fence(&network,
@@ -159,10 +179,12 @@ impl GraphEditorIntegratedWithController {
             // Changes in Graph Editor
             let is_handling_notification = handle_notification.is_running;
             def is_hold = is_handling_notification.all_with(&invalidate.is_running, |l,r| *l || *r);
-            def _action = editor_outs.node_removed      .map2(&is_hold,node_removed);
-            def _action = editor_outs.connection_added  .map2(&is_hold,connection_created);
-            def _action = editor_outs.connection_removed.map2(&is_hold,connection_removed);
-            def _action = editor_outs.node_position_set .map2(&is_hold,node_moved);
+            def _action = editor_outs.node_removed             .map2(&is_hold,node_removed);
+            def _action = editor_outs.connection_added         .map2(&is_hold,connection_created);
+            def _action = editor_outs.visualization_enabled    .map2(&is_hold,visualization_enabled);
+            def _action = editor_outs.visualization_disabled   .map2(&is_hold,visualization_disabled);
+            def _action = editor_outs.connection_removed       .map2(&is_hold,connection_removed);
+            def _action = editor_outs.node_position_set_batched.map2(&is_hold,node_moved);
         }
         Self::connect_frp_to_controller_notifications(&model,handle_notification.trigger);
         Self {model,network}
@@ -181,10 +203,10 @@ impl GraphEditorIntegratedWithController {
         executor::global::spawn(handler);
     }
 
-    /// This function converts function being a method of GraphEditorIntegratedWithControllerModel
-    /// to a closure suitable for connecting to GraphEditor frp network. Returned lambda takes
-    /// `Parameter` and a bool, which indicates if this action is currently on hold (e.g. due to
-    /// performing invalidation).
+    /// Convert a function being a method of GraphEditorIntegratedWithControllerModel to a closure
+    /// suitable for connecting to GraphEditor frp network. Returned lambda takes `Parameter` and a
+    /// bool, which indicates if this action is currently on hold (e.g. due to performing
+    /// invalidation).
     fn ui_action<Action,Parameter>
     ( model      : &Rc<GraphEditorIntegratedWithControllerModel>
     , action     : Action
@@ -211,8 +233,9 @@ impl GraphEditorIntegratedWithControllerModel {
         let node_views       = default();
         let connection_views = default();
         let expression_views = default();
+        let visualizations   = default();
         let this = GraphEditorIntegratedWithControllerModel {editor,controller,node_views,
-            expression_views,connection_views,logger};
+            expression_views,connection_views,logger,visualizations};
 
         if let Err(err) = this.update_graph_view() {
             error!(this.logger,"Error while initializing graph editor: {err}");
@@ -225,7 +248,7 @@ impl GraphEditorIntegratedWithControllerModel {
 // === Updating Graph View ===
 
 impl GraphEditorIntegratedWithControllerModel {
-    /// Reloads whole displayed content to be up to date with module state.
+    /// Reload whole displayed content to be up to date with module state.
     pub fn update_graph_view(&self) -> FallibleResult<()> {
         use controller::graph::Connections;
         let Connections{trees,connections} = self.controller.graph.connections()?;
@@ -275,6 +298,40 @@ impl GraphEditorIntegratedWithControllerModel {
             self.editor.frp.inputs.set_node_position.emit_event(&(displayed_id,default_pos));
         }
         self.node_views.borrow_mut().insert(id, displayed_id);
+    }
+
+    /// Return an asynchronous event processor that routes visualization update to the given's
+    /// visualization respective FRP endpoint.
+    fn visualization_update_handler
+    ( &self
+    , endpoint : frp::Source<(graph_editor::NodeId,Option<visualization::Data>)>
+    , node_id  : graph_editor::NodeId
+    ) -> impl FnMut(VisualizationUpdateData) -> futures::future::Ready<()> {
+        // TODO [mwu]
+        //  For now only JSON visualizations are supported, so we can just assume JSON data in the
+        //  binary package.
+        let logger = self.logger.clone_ref();
+        move |update| {
+            match Self::deserialize_visualization_data(update) {
+                Ok(data) => {
+                    let event = (node_id,Some(data));
+                    endpoint.emit_event(&event);
+                },
+                Err(error) =>
+                    // TODO [mwu]
+                    //  We should consider having the visualization also accept error input.
+                    error!(logger, "Failed to deserialize visualization update. {error}"),
+            }
+            futures::future::ready(())
+        }
+    }
+
+    fn deserialize_visualization_data
+    (data:VisualizationUpdateData) -> FallibleResult<visualization::Data> {
+        let binary  = data.as_ref();
+        let as_text = std::str::from_utf8(binary)?;
+        let as_json = serde_json::from_str(as_text)?;
+        Ok(visualization::Data::new_json(as_json))
     }
 
     fn update_node_view
@@ -337,7 +394,7 @@ impl GraphEditorIntegratedWithControllerModel {
 // === Handling Controller Notifications ===
 
 impl GraphEditorIntegratedWithControllerModel {
-    /// Handles notification received from controller.
+    /// Handle notification received from controller.
     pub fn handle_controller_notification
     (&self, notification:Option<controller::graph::Notification>) {
         let result = match notification {
@@ -397,6 +454,93 @@ impl GraphEditorIntegratedWithControllerModel {
         self.controller.graph.disconnect(&connection)?;
         Ok(())
     }
+
+    /// Create a controller-compatible description of the visualization based on the input received
+    /// from the graph editor endpoints.
+    fn prepare_visualization
+    (&self, node_id:&graph_editor::NodeId) -> FallibleResult<Visualization> {
+        use crate::model::module::QualifiedName;
+
+        // TODO [mwu]
+        //   Currently it is not possible to:
+        //    * use other project name than the default;
+        //    * enter other module than the initial (namely, "Main")
+        //    * describe that visualization's expression wishes to be evaluated in any other
+        //      context.
+        //   Because of that for now we will just hardcode the `visualization_module` using
+        //   fixed defaults. In future this will be changed, then the editor will also get access
+        //   to the customised values.
+        let project_name         = crate::DEFAULT_PROJECT_NAME;
+        let module_name          = crate::view::project::INITIAL_MODULE_NAME;
+        let visualisation_module = QualifiedName::from_module_segments(&[module_name],project_name);
+        let id                   = VisualizationId::new_v4();
+        let expression           = crate::constants::SERIALIZE_TO_JSON_EXPRESSION.into();
+        let ast_id               = self.get_controller_node_id(*node_id)?;
+        Ok(Visualization{ast_id,expression,id,visualisation_module})
+    }
+
+    fn visualization_enabled_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult<()> {
+        // Do nothing if there is already a visualization attached.
+        let err = || VisualizationAlreadyAttached(*node_id);
+        self.get_controller_visualization_id(*node_id).is_err().ok_or_else(err)?;
+
+        debug!(self.logger, "Attaching visualization on {node_id}.");
+        let visualization  = self.prepare_visualization(node_id)?;
+        let id             = visualization.id;
+        let node_id        = *node_id;
+        let controller     = self.controller.clone_ref();
+        let endpoint       = self.editor.frp.inputs.set_visualization_data.clone_ref();
+        let update_handler = self.visualization_update_handler(endpoint,node_id);
+        let logger         = self.logger.clone_ref();
+        let visualizations = self.visualizations.clone_ref();
+
+        // We cannot do this in the async block, as the user may decide to detach before server
+        // confirms that we actually have attached.
+        visualizations.insert(node_id.clone(),id);
+
+        let attach_action  = async move {
+            if let Ok(stream) = controller.attach_visualization(visualization).await {
+                debug!(logger, "Successfully attached visualization {id} for node {node_id}.");
+                let updates_handler = stream.for_each(update_handler);
+                executor::global::spawn(updates_handler);
+            } else {
+                visualizations.remove(&node_id);
+            }
+        };
+        executor::global::spawn(attach_action);
+        Ok(())
+    }
+
+    fn visualization_disabled_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult<()> {
+        debug!(self.logger,"Node editor wants to detach visualization on {node_id}.");
+        let id             = self.get_controller_visualization_id(*node_id)?;
+        let graph          = self.controller.clone_ref();
+        let logger         = self.logger.clone_ref();
+        let visualizations = self.visualizations.clone_ref();
+        let node_id        = *node_id;
+
+        // We first detach to allow re-attaching even before server confirms the operation.
+        visualizations.remove(&node_id);
+
+        let detach_action = async move {
+            if graph.detach_visualization(&id).await.is_ok() {
+                debug!(logger,"Successfully detached visualization {id} from node {node_id}.");
+            } else {
+                error!(logger,"Failed to detach visualization {id} from node {node_id}.");
+                // TODO [mwu]
+                //   We should somehow deal with this but we have really no information, how to.
+                //   If this failed because e.g. the visualization was already removed (or another
+                //   reason to that effect), we should just do nothing.
+                //   But if it is issue like connectivity problem, then we should retry.
+                //   But even if had better error recognition, we won't always know.
+                //   So we should also handle errors like unexpected visualization updates and use
+                //   them to drive cleanups on such discrepancies.
+            }
+        };
+
+        crate::executor::global::spawn(detach_action);
+        Ok(())
+    }
 }
 
 
@@ -432,6 +576,12 @@ impl GraphEditorIntegratedWithControllerModel {
             source      : controller::graph::Endpoint::new(src_node,src.port.deref().clone()),
             destination : controller::graph::Endpoint::new(dst_node,dst.port.deref().clone()),
         })
+    }
+
+    fn get_controller_visualization_id
+    (&self, node_id:graph_editor::NodeId) -> Result<VisualizationId,NoSuchVisualization> {
+        let err = || NoSuchVisualization(node_id);
+        self.visualizations.get_copied(&node_id).ok_or_else(err)
     }
 }
 

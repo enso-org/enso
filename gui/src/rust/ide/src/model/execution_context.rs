@@ -7,7 +7,6 @@ use crate::double_representation::definition::DefinitionName;
 
 use enso_protocol::language_server;
 use enso_protocol::language_server::VisualisationConfiguration;
-
 use std::collections::HashMap;
 use uuid::Uuid;
 

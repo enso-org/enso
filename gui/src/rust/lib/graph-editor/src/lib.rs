@@ -56,7 +56,6 @@ use nalgebra::Vector2;
 
 
 
-
 // =====================
 // === SharedHashSet ===
 // =====================
@@ -174,6 +173,11 @@ impl<K,V,S> SharedHashMap<K,V,S>
 where K:Eq+Hash, S:std::hash::BuildHasher {
     pub fn insert(&self, k:K, v:V) -> Option<V> {
         self.raw.borrow_mut().insert(k,v)
+    }
+
+    pub fn get_copied(&self, k:&K) -> Option<V>
+    where V:Copy {
+        self.raw.borrow().get(k).copied()
     }
 
     pub fn get_cloned(&self, k:&K) -> Option<V>
@@ -1132,6 +1136,7 @@ impl Deref for GraphEditor {
 }
 
 impl GraphEditor {
+    /// Add a new node and returns its ID.
     pub fn add_node(&self) -> NodeId {
         self.frp.add_node.emit(());
         self.frp.outputs.node_added.value()
@@ -1147,21 +1152,21 @@ impl application::command::Provider for GraphEditor {
 impl application::shortcut::DefaultShortcutProvider for GraphEditor {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use keyboard::Key;
-        vec! [ Self::self_shortcut(shortcut::Action::press   (&[Key::Character("n".into())]) , "add_node_at_cursor")
-             , Self::self_shortcut(shortcut::Action::press   (&[Key::Backspace])             , "remove_selected_nodes")
-             , Self::self_shortcut(shortcut::Action::press   (&[Key::Character(" ".into())]) , "toggle_visualization_visibility")
-             , Self::self_shortcut(shortcut::Action::press   (&[Key::Meta])                  , "toggle_node_multi_select")
-             , Self::self_shortcut(shortcut::Action::release (&[Key::Meta])                  , "toggle_node_multi_select")
-             , Self::self_shortcut(shortcut::Action::press   (&[Key::Control])               , "toggle_node_multi_select")
-             , Self::self_shortcut(shortcut::Action::release (&[Key::Control])               , "toggle_node_multi_select")
-             , Self::self_shortcut(shortcut::Action::press   (&[Key::Shift])                 , "toggle_node_merge_select")
-             , Self::self_shortcut(shortcut::Action::release (&[Key::Shift])                 , "toggle_node_merge_select")
-             , Self::self_shortcut(shortcut::Action::press   (&[Key::Alt])                   , "toggle_node_subtract_select")
-             , Self::self_shortcut(shortcut::Action::release (&[Key::Alt])                   , "toggle_node_subtract_select")
-             , Self::self_shortcut(shortcut::Action::press   (&[Key::Shift,Key::Alt])        , "toggle_node_inverse_select")
-             , Self::self_shortcut(shortcut::Action::release (&[Key::Shift,Key::Alt])        , "toggle_node_inverse_select")
-             , Self::self_shortcut(shortcut::Action::press   (&[Key::Character("d".into())]) , "debug_set_data_for_selected_node")
-             , Self::self_shortcut(shortcut::Action::press   (&[Key::Character("f".into())]) , "debug_cycle_visualization_for_selected_node")
+        vec! [ Self::self_shortcut(shortcut::Action::press   (&[Key::Character("n".into())])               , "add_node_at_cursor")
+             , Self::self_shortcut(shortcut::Action::press   (&[Key::Backspace])                           , "remove_selected_nodes")
+             , Self::self_shortcut(shortcut::Action::press   (&[Key::Control, Key::Character(" ".into())]) , "toggle_visualization_visibility")
+             , Self::self_shortcut(shortcut::Action::press   (&[Key::Meta])                                , "toggle_node_multi_select")
+             , Self::self_shortcut(shortcut::Action::release (&[Key::Meta])                                , "toggle_node_multi_select")
+             , Self::self_shortcut(shortcut::Action::press   (&[Key::Control])                             , "toggle_node_multi_select")
+             , Self::self_shortcut(shortcut::Action::release (&[Key::Control])                             , "toggle_node_multi_select")
+             , Self::self_shortcut(shortcut::Action::press   (&[Key::Shift])                               , "toggle_node_merge_select")
+             , Self::self_shortcut(shortcut::Action::release (&[Key::Shift])                               , "toggle_node_merge_select")
+             , Self::self_shortcut(shortcut::Action::press   (&[Key::Alt])                                 , "toggle_node_subtract_select")
+             , Self::self_shortcut(shortcut::Action::release (&[Key::Alt])                                 , "toggle_node_subtract_select")
+             , Self::self_shortcut(shortcut::Action::press   (&[Key::Shift,Key::Alt])                      , "toggle_node_inverse_select")
+             , Self::self_shortcut(shortcut::Action::release (&[Key::Shift,Key::Alt])                      , "toggle_node_inverse_select")
+             , Self::self_shortcut(shortcut::Action::press   (&[Key::Character("d".into())])               , "debug_set_data_for_selected_node")
+             , Self::self_shortcut(shortcut::Action::press   (&[Key::Control, Key::Character("f".into())]) , "debug_cycle_visualization_for_selected_node")
         ]
     }
 }
