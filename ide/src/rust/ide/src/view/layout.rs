@@ -18,7 +18,7 @@ use nalgebra::Vector2;
 use nalgebra::zero;
 use std::cell::RefCell;
 use std::rc::Rc;
-use graph_editor::GraphEditor;
+
 
 
 // ==================
@@ -123,10 +123,5 @@ impl ViewLayout {
         let size   = Vector2::new(screen.width,screen.height);
         self.set_size(size);
         self.init_keyboard(keyboard_actions)
-    }
-
-    /// Get GraphEditor.
-    pub fn graph_editor(&self) -> GraphEditor {
-        self.rc.borrow_mut().node_editor.graph.graph_editor()
     }
 }

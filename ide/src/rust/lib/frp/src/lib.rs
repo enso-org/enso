@@ -136,6 +136,12 @@
 //!     owned_stream_3 -> node_data_3
 //!     stream_3 -> node_data_3 [style=dashed]
 //! }
+//!
+//! ## Design Notes
+//!
+//! Every node is initialized with the `Default` value with exception of `toggle_true`, which starts
+//! with `true` and not `false` (`Default` for `bool`).
+//!
 //! ```
 
 #![warn(missing_copy_implementations)]

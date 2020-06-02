@@ -26,6 +26,12 @@ pub enum Data {
 }
 
 impl Data {
+    /// Wraps the given JSON value into a visualization Data.
+    pub fn new_json(content:serde_json::Value) -> Data {
+        let content = Rc::new(content);
+        Data::JSON {content}
+    }
+
     /// Returns the data as as JSON. If the data cannot be returned as JSON, it will return a
     /// `DataError` instead.
     pub fn as_json(&self) -> Result<Rc<serde_json::Value>, DataError> {
@@ -96,7 +102,7 @@ impl MockDataGenerator3D {
         let delta1 = current_value.sin() * 10.0;
         let delta2 = current_value.cos() * 10.0;
 
-       vec![
+        vec![
             Vector3::new(25.0,                 75.0,          25.0 + delta1),
             Vector3::new(25.0,                 25.0,          25.0 + delta2),
             Vector3::new(75.0 - 12.5,          75.0 + delta1, 5.0          ),

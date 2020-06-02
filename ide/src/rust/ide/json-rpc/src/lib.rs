@@ -30,3 +30,11 @@ pub use handler::Event;
 pub use handler::Handler;
 
 #[cfg(test)] pub use utils::test::traits::*;
+
+#[allow(missing_docs)]
+pub mod constants {
+    use std::time::Duration;
+
+    /// The default timeout for all responses.
+    pub const TIMEOUT:Duration = Duration::from_secs(10);
+}
