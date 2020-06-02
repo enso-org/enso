@@ -61,7 +61,7 @@ impl ShapeSystem {
     fn surface_material() -> Material {
         let mut material = Material::new();
         material.add_input  ("pixel_ratio"  , 1.0);
-        material.add_input  ("zoom"         , 1.0);
+        material.add_input  ("z_zoom_1"     , 1.0);
         material.add_input  ("time"         , 0.0);
         material.add_input  ("symbol_id"    , 0);
         material.add_input  ("display_mode" , 0);

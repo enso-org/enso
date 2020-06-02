@@ -31,13 +31,15 @@ pub type SymbolDirty = dirty::SharedSet<SymbolId,Box<dyn Fn()>>;
 
 // === Definition ===
 
-/// Registry for all the created symbols.
+/// Registry for all the created symbols. The `z_zoom_1` value describes the z-axis distance at
+/// which the `zoom` value is `1.0`.
 #[derive(Clone,CloneRef,Debug)]
 pub struct SymbolRegistry {
     symbols         : Rc<RefCell<OptVec<Symbol>>>,
     symbol_dirty    : SymbolDirty,
     logger          : Logger,
     view_projection : Uniform<Matrix4<f32>>,
+    z_zoom_1        : Uniform<f32>,
     variables       : UniformScope,
     context         : Context,
     stats           : Stats,
@@ -46,7 +48,8 @@ pub struct SymbolRegistry {
 impl SymbolRegistry {
     /// Constructor.
     pub fn mk<OnMut:Fn()+'static>
-    (variables:&UniformScope, stats:&Stats, context:&Context, logger:&Logger, on_mut:OnMut) -> Self {
+    (variables:&UniformScope, stats:&Stats, context:&Context, logger:&Logger, on_mut:OnMut)
+    -> Self {
         let logger = logger.sub("symbol_registry");
         logger.info("Initializing.");
         let symbol_logger   = logger.sub("symbol_dirty");
@@ -54,9 +57,10 @@ impl SymbolRegistry {
         let symbols         = default();
         let variables       = variables.clone();
         let view_projection = variables.add_or_panic("view_projection", Matrix4::<f32>::identity());
+        let z_zoom_1        = variables.add_or_panic("z_zoom_1"       , 1.0);
         let context         = context.clone();
         let stats           = stats.clone_ref();
-        Self {symbols,symbol_dirty,logger,view_projection,variables,context,stats}
+        Self {symbols,symbol_dirty,logger,view_projection,z_zoom_1,variables,context,stats}
     }
 
     /// Creates a new `Symbol` instance and returns its id.
@@ -81,6 +85,7 @@ impl SymbolRegistry {
         self.index(ix)
     }
 
+    /// Get symbol by its index.
     pub fn index(&self, ix:usize) -> Symbol {
         self.symbols.borrow()[ix].clone_ref()
     }
@@ -98,14 +103,17 @@ impl SymbolRegistry {
     /// Updates the view-projection matrix after camera movement.
     pub fn set_camera(&self, camera:&Camera2d) {
         self.view_projection.set(camera.view_projection_matrix());
+        self.z_zoom_1.set(camera.z_zoom_1());
     }
 
-    pub fn render(&self) {
+    /// Rasterize all symbols.
+    pub fn render_all(&self) {
         for symbol in &*self.symbols.borrow() {
             symbol.render()
         }
     }
 
+    /// Rasterize selected symbols.
     pub fn render_by_ids(&self,ids:&[SymbolId]) {
         let symbols = self.symbols.borrow();
         for id in ids {

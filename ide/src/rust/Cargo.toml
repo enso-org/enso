@@ -25,6 +25,7 @@ members = [
     "lib/generics",
     "lib/logger",
     "lib/macro-utils",
+    "lib/math",
     "lib/optics",
     "lib/prelude",
     "lib/shapely/impl",

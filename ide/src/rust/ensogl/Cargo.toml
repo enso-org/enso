@@ -22,6 +22,7 @@ ensogl-system-web          = { version = "0.1.0"  , path = "../lib/system/web"  
 code-builder               = { version = "0.1.0"  , path = "../lib/code-builder" }
 data                       = { version = "0.1.0"  , path = "../lib/data"         }
 enso-frp                   = { version = "0.1.0"  , path = "../lib/frp"          }
+enso-math                  = { version = "0.1.0"  , path = "../lib/math"         }
 eval-tt                    = { version = "0.1.0"  , path = "../lib/eval-tt"      }
 logger                     = { version = "0.1.0"  , path = "../lib/logger"       }
 optics                     = { version = "0.1.0"  , path = "../lib/optics"       }

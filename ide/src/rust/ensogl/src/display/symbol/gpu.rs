@@ -282,24 +282,22 @@ impl Symbol {
             let mat_dirt_logger   = logger.sub("shader_dirty");
             let surface_dirty     = GeometryDirty::new(geo_dirt_logger,Box::new(on_mut2));
             let shader_dirty      = ShaderDirty::new(mat_dirt_logger,Box::new(on_mut));
-            let surface_dirty2    = surface_dirty.clone_ref();
-            let shader_dirty2     = shader_dirty.clone_ref();
-            let surface_on_mut    = Box::new(move || { surface_dirty2.set() });
-            let shader_on_mut     = Box::new(move || { shader_dirty2.set() });
+            let surface_on_mut    = Box::new(f!(surface_dirty.set()));
+            let shader_on_mut     = Box::new(f!(shader_dirty.set()));
             let shader            = Shader::new(shader_logger,&stats,context,shader_on_mut);
             let surface           = Mesh::new(surface_logger,&stats,context,surface_on_mut);
             let variables         = UniformScope::new(logger.sub("uniform_scope"),context);
-            let global_variables  = global_variables.clone();
+            let global_variables  = global_variables.clone_ref();
             let bindings          = default();
             let stats             = SymbolStats::new(stats);
-            let context           = context.clone();
+            let context           = context.clone_ref();
             let symbol_id_uniform = variables.add_or_panic("symbol_id",id);
             let display_object    = display::object::Instance::new(logger.clone());
             let is_hidden         = Rc::new(Cell::new(false));
-            display_object.set_on_hide(enclose!((is_hidden) move || { is_hidden.set(true)  }));
-            display_object.set_on_show(enclose!((is_hidden) move || { is_hidden.set(false) }));
-            Self{id,surface,shader,surface_dirty,shader_dirty,variables,global_variables,logger,context
-                ,bindings,stats,symbol_id_uniform,display_object,is_hidden}
+            display_object.set_on_hide(f!(is_hidden.set(true)));
+            display_object.set_on_show(f!(is_hidden.set(false)));
+            Self{id,surface,shader,surface_dirty,shader_dirty,variables,global_variables,logger
+                ,context,bindings,stats,symbol_id_uniform,display_object,is_hidden}
         })
     }
 
@@ -435,12 +433,9 @@ impl Symbol {
         self.with_program_mut(|this,program|{
             for binding in var_bindings {
                 match binding.scope.as_ref() {
-                    Some(ScopeType::Mesh(s)) =>
-                        this.init_attribute_binding(program,binding,*s),
-                    Some(_) =>
-                        this.init_uniform_binding(program,binding,&mut texture_unit_iter),
-                    None =>
-                        {}
+                    Some(ScopeType::Mesh(s)) => this.init_attribute_binding(program,binding,*s),
+                    Some(_) => this.init_uniform_binding(program,binding,&mut texture_unit_iter),
+                    None    => {}
                 }
             }
         });

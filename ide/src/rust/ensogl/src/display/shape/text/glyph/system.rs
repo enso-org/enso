@@ -317,7 +317,7 @@ impl GlyphSystem {
         material.add_input_def::<Vector2<f32>>("msdf_size");
         material.add_input_def::<f32>         ("glyph_msdf_index");
         material.add_input("pixel_ratio", 1.0);
-        material.add_input("zoom"       , 1.0);
+        material.add_input("z_zoom_1"   , 1.0);
         material.add_input("msdf_range" , GlyphRenderInfo::MSDF_PARAMS.range as f32);
         material.add_input("color"      , Vector4::new(0.0,0.0,0.0,1.0));
         // FIXME We need to use this output, as we need to declare the same amount of shader

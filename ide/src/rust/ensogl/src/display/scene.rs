@@ -493,16 +493,13 @@ impl Layers {
 pub struct Uniforms {
     /// Pixel ratio of the screen used to display the scene.
     pub pixel_ratio : Uniform<f32>,
-    /// Zoom of the camera to objects on the scene. Zoom of 1.0 means that unit distance is 1 px.
-    pub zoom : Uniform<f32>,
 }
 
 impl Uniforms {
     /// Constructor.
     pub fn new(scope:&UniformScope) -> Self {
         let pixel_ratio = scope.add_or_panic("pixel_ratio" , 1.0);
-        let zoom        = scope.add_or_panic("zoom"        , 1.0);
-        Self {pixel_ratio,zoom}
+        Self {pixel_ratio}
     }
 }
 
@@ -529,7 +526,6 @@ pub struct Dirty {
 
 #[derive(Clone,CloneRef,Debug)]
 pub struct Callbacks {
-    on_zoom   : callback::Handle,
     on_resize : callback::Handle,
 }
 
@@ -831,11 +827,9 @@ impl SceneData {
         let uniforms       = Uniforms::new(&variables);
         let dirty          = Dirty {symbols:symbols_dirty,shape:shape_dirty};
         let renderer       = Renderer::new(&logger,&dom,&context,&variables);
-        let on_zoom_cb     = enclose!((uniforms) move |zoom:&f32| uniforms.zoom.set(*zoom));
         let on_resize_cb   = enclose!((dirty) move |_:&web::dom::ShapeData| dirty.shape.set());
-        let on_zoom        = views.main.camera.add_zoom_update_callback(on_zoom_cb);
         let on_resize      = dom.root.on_resize(on_resize_cb);
-        let callbacks      = Callbacks {on_zoom,on_resize};
+        let callbacks      = Callbacks {on_resize};
         let style_sheet    = style::Sheet::new();
         let fonts          = font::SharedRegistry::new();
         let frp            = Frp::new();
