@@ -1,13 +1,16 @@
 //! This module defines an computations related to triangle geometry.
 
-use crate::math::algebra::Acos;
-use crate::math::algebra::Cos;
-use crate::math::algebra::Field;
-use crate::math::algebra::Sin;
-use crate::math::algebra::Sqrt;
+use crate::algebra::Acos;
+use crate::algebra::Cos;
+use crate::algebra::Field;
+use crate::algebra::Sin;
+use crate::algebra::Sqrt;
 
 use core::f32::consts::PI;
-use failure::_core::ops::{Add, Mul, Sub};
+use std::ops::Add;
+use std::ops::Mul;
+use std::ops::Sub;
+
 
 
 /// Represents a triangle through its angles and side lengths. This struct is only meant to be a
@@ -34,7 +37,7 @@ use failure::_core::ops::{Add, Mul, Sub};
 /// -------
 /// ```
 /// # use assert_approx_eq::assert_approx_eq;
-/// # use ensogl::math::geometry::triangle::Triangle;
+/// # use enso_math::geometry::triangle::Triangle;
 /// let result = Triangle::<f32>::from_sides_and_angle(1.0, 1.0 , 60.0_f32.to_radians());
 ///
 /// assert_approx_eq!(result.side_bc(), 1.0);

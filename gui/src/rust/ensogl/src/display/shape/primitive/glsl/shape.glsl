@@ -1,4 +1,3 @@
-
 // ===================
 // === BoundingBox ===
 // ===================
@@ -201,8 +200,12 @@ Color blend(Color bg, Color fg) {
 // === Shape ===
 // =============
 
+float zoom() {
+    return input_z_zoom_1 / input_local.z;
+}
+
 float render(BoundSdf sdf) {
-    return clamp((-sdf.distance * input_pixel_ratio + 0.5) * input_zoom);
+    return clamp((-sdf.distance * input_pixel_ratio + 0.5) * zoom());
 }
 
 // Note: the color is premultiplied.

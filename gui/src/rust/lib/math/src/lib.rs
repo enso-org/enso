@@ -1,4 +1,7 @@
-//! Root module for math-related utilities.
+//! Math utilities with focus on computer graphics.
+
+#![feature(trait_alias)]
+#![feature(clamp)]
 
 pub mod algebra;
 pub mod geometry;

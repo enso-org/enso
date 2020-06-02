@@ -1,7 +1,5 @@
 //! This module gathers common math types which are widely used in this project.
 
-use enso_prelude::*;
-
 pub use nalgebra::Vector2;
 pub use nalgebra::Vector3;
 pub use nalgebra::Vector4;
@@ -24,7 +22,12 @@ use nalgebra::ComplexField;
 use nalgebra::Dim;
 use nalgebra::storage::Storage;
 
+use std::ops::Add;
 use std::ops::AddAssign;
+use std::ops::Div;
+use std::ops::Mul;
+use std::ops::Neg;
+use std::ops::Sub;
 
 
 
@@ -618,19 +621,19 @@ define_vector! {V4 {x,y,z,w}}
 
 impl<T:Default> From<V2<T>> for V3<T> {
     fn from(t:V2<T>) -> Self {
-        V3(t.x,t.y,default())
+        V3(t.x,t.y,Default::default())
     }
 }
 
 impl<T:Default> From<V2<T>> for V4<T> {
     fn from(t:V2<T>) -> Self {
-        V4(t.x,t.y,default(),default())
+        V4(t.x,t.y,Default::default(),Default::default())
     }
 }
 
 impl<T:Default> From<V3<T>> for V4<T> {
     fn from(t:V3<T>) -> Self {
-        V4(t.x,t.y,t.z,default())
+        V4(t.x,t.y,t.z,Default::default())
     }
 }
 

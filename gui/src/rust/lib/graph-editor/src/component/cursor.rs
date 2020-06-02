@@ -19,6 +19,8 @@ use ensogl::gui::component;
 // === Constants ===
 // =================
 
+const PADDING             : f32 = 2.0;
+const SIDES_PADDING       : f32 = PADDING * 2.0;
 const DEFAULT_SIZE        : V2  = V2(16.0,16.0);
 const DEFAULT_RADIUS      : f32 = 8.0;
 const DEFAULT_COLOR_LAB   : V3  = V3(1.0,0.0,0.0);
@@ -174,8 +176,7 @@ impl Style {
 pub mod shape {
     use super::*;
     ensogl::define_shape_system! {
-        ( selection_size : Vector2<f32>
-        , press          : f32
+        ( press          : f32
         , radius         : f32
         , color          : Vector4<f32>
         ) {
@@ -184,13 +185,11 @@ pub mod shape {
             let press_side_shrink = 2.px();
             let press_diff        = press_side_shrink * &press;
             let radius            = 1.px() * radius - &press_diff;
-            let selection_width   = 1.px() * &selection_size.x();
-            let selection_height  = 1.px() * &selection_size.y();
-            let width             = (&width  - &press_diff * 2.0) + selection_width.abs();
-            let height            = (&height - &press_diff * 2.0) + selection_height.abs();
-            let cursor = Rect((width,height))
-                .corners_radius(radius)
-                .fill("srgba(input_color)");
+            let sides_padding     = 1.px() * SIDES_PADDING;
+            let width             = &width  - &press_diff * 2.0 - &sides_padding;
+            let height            = &height - &press_diff * 2.0 - &sides_padding;
+            let cursor            = Rect((width,height)).corners_radius(radius);
+            let cursor            = cursor.fill("srgba(input_color)");
             cursor.into()
         }
     }
@@ -332,7 +331,10 @@ impl Cursor {
         frp::extend! { network
             eval press.value  ((v) model.view.shape.press.set(*v));
             eval radius.value ((v) model.view.shape.radius.set(*v));
-            eval size.value   ((v) model.view.shape.sprite.size().set(Vector2::new(v.x,v.y)));
+            eval size.value   ([model] (v) {
+                let dim = Vector2::new(v.x+SIDES_PADDING,v.y+SIDES_PADDING);
+                model.view.shape.sprite.size().set(dim);
+            });
 
             anim_color <- all_with(&color_lab.value,&color_alpha.value,
                 |lab,alpha| color::Rgba::from(color::Laba::new(lab.x,lab.y,lab.z,*alpha))

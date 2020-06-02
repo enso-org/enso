@@ -1,13 +1,9 @@
 //! Defines unit of measurement abstraction. See: https://en.wikipedia.org/wiki/Unit_of_measurement
 
-use crate::prelude::*;
+use crate::algebra::*;
 
-use crate::system::gpu::shader::glsl;
-use crate::system::gpu::shader::glsl::Glsl;
-use crate::system::gpu::shader::glsl::traits::*;
-
-use nalgebra::*;
 use std::ops::*;
+use std::marker::PhantomData;
 
 
 
@@ -20,7 +16,7 @@ use std::ops::*;
 ///   - Type, like pixels, degrees, or radians.
 ///   - Repr, like f32, or f64.
 #[derive(Clone,Copy,Debug,PartialEq)]
-pub struct Unit<Quantity=Anything,Type=Anything,Repr=f32> {
+pub struct Unit<Quantity,Type,Repr=f32> {
     /// The raw value of this unit.
     pub value : Repr,
     _quantity : PhantomData<Quantity>,
@@ -48,29 +44,38 @@ impl<Quantity,Type,Repr> Abs for Unit<Quantity,Type,Repr> where Repr:Abs {
 
 // === Operators ===
 
-impls! { [Quantity,Type,Repr] From<Repr> for Unit<Quantity,Type,Repr>  { |t| {Self::new(t)} } }
-impls! { [Quantity,Type]      From<Unit<Quantity,Type,f32>> for f32    { |t| {t.value} } }
+impl<Quantity,Type,Repr> From<Repr> for Unit<Quantity,Type,Repr> {
+    fn from(t:Repr) -> Self {
+        Self::new(t)
+    }
+}
+
+impl<Quantity,Type> From<Unit<Quantity,Type,f32>> for f32 {
+    fn from(t:Unit<Quantity,Type,f32>) -> Self {
+        t.value
+    }
+}
 
 macro_rules! impl_operator_for_unit {
-    ( $name:ident $fn:ident <$rhs:ty> for $lhs:ty ) => {
-        impl_operator_for_unit_with_ref_rhs! { $name $fn <$rhs> for $lhs [value] }
-        impl_operator_for_unit_with_ref_lhs! { $name $fn <$rhs> for $lhs }
+    ( $name:ident $fn:ident $ln:ident $rn:ident <$rhs:ty> for $lhs:ty ) => {
+        impl_operator_for_unit_with_ref_rhs! { $name $fn $ln $rn <$rhs> for $lhs [value] }
+        impl_operator_for_unit_with_ref_lhs! { $name $fn $ln $rn <$rhs> for $lhs }
     }
 }
 
 macro_rules! impl_operator_for_unit_with_ref_rhs {
-    ( $name:ident $fn:ident <$rhs:ty> for $lhs:ty $([$rhs_accessor:ident])? ) => {
-        impl<Quantity,Type,Lhs,Rhs> $name<$rhs> for $lhs
-        where Lhs : $name<Rhs> {
-            type Output = Unit<Quantity,Type,<Lhs as $name<Rhs>>::Output>;
+    ( $name:ident $fn:ident $ln:ident $rn:ident <$rhs:ty> for $lhs:ty $([$rhs_accessor:ident])? ) => {
+        impl<Quantity,Type>/*,$ln,$rn>*/ $name<$rhs> for $lhs
+        where $ln : $name<$rn> {
+            type Output = Unit<Quantity,Type,<$ln as $name<$rn>>::Output>;
             fn $fn(self, rhs:$rhs) -> Self::Output {
                 (self.value.$fn(rhs $(.$rhs_accessor)?)).into()
             }
         }
 
-        impl<'t,Quantity,Type,Lhs,Rhs> $name<$rhs> for &'t $lhs
-        where &'t Lhs : $name<Rhs> {
-            type Output = Unit<Quantity,Type,<&'t Lhs as $name<Rhs>>::Output>;
+        impl<'t,Quantity,Type>/*,$ln,$rn>*/ $name<$rhs> for &'t $lhs
+        where &'t $ln : $name<$rn> {
+            type Output = Unit<Quantity,Type,<&'t $ln as $name<$rn>>::Output>;
             fn $fn(self, rhs:$rhs) -> Self::Output {
                 ((&self.value).$fn(rhs $(.$rhs_accessor)?)).into()
             }
@@ -79,18 +84,18 @@ macro_rules! impl_operator_for_unit_with_ref_rhs {
 }
 
 macro_rules! impl_operator_for_unit_with_ref_lhs {
-    ( $name:ident $fn:ident <$rhs:ty> for $lhs:ty ) => {
-        impl<'t,Quantity,Type,Lhs,Rhs> $name<&'t $rhs> for &'t $lhs
-        where &'t Lhs : $name<&'t Rhs> {
-            type Output = Unit<Quantity,Type,<&'t Lhs as $name<&'t Rhs>>::Output>;
+    ( $name:ident $fn:ident $ln:ident $rn:ident <$rhs:ty> for $lhs:ty ) => {
+        impl<'t,Quantity,Type>/*,$ln,$rn>*/ $name<&'t $rhs> for &'t $lhs
+        where &'t $ln : $name<&'t $rn> {
+            type Output = Unit<Quantity,Type,<&'t $ln as $name<&'t $rn>>::Output>;
             fn $fn(self, rhs:&'t $rhs) -> Self::Output {
                 ((&self.value).$fn(&rhs.value)).into()
             }
         }
 
-        impl<'t,Quantity,Type,Lhs,Rhs> $name<&'t $rhs> for $lhs
-            where Lhs : $name<&'t Rhs> {
-            type Output = Unit<Quantity,Type,<Lhs as $name<&'t Rhs>>::Output>;
+        impl<'t,Quantity,Type>/*,$ln,$rn>*/ $name<&'t $rhs> for $lhs
+            where $ln : $name<&'t $rn> {
+            type Output = Unit<Quantity,Type,<$ln as $name<&'t $rn>>::Output>;
             fn $fn(self, rhs:&'t $rhs) -> Self::Output {
                 (self.value.$fn(&rhs.value)).into()
             }
@@ -98,11 +103,48 @@ macro_rules! impl_operator_for_unit_with_ref_lhs {
     }
 }
 
-impl_operator_for_unit! { Add add <Unit<Quantity,Type,Rhs>> for Unit<Quantity,Type,Lhs> }
-impl_operator_for_unit! { Sub sub <Unit<Quantity,Type,Rhs>> for Unit<Quantity,Type,Lhs> }
 
-impl_operator_for_unit_with_ref_rhs! { Mul mul <Rhs> for Unit<Quantity,Type,Lhs> }
-impl_operator_for_unit_with_ref_rhs! { Div div <Rhs> for Unit<Quantity,Type,Lhs> }
+macro_rules! impl_operator_for_prim_type_rhs {
+    ( $name:ident $fn:ident $t:ident ) => {
+        impl<Quantity,Type> $name<$t> for Unit<Quantity,Type,$t> {
+            type Output = Unit<Quantity,Type,$t>;
+            fn $fn(self, rhs:$t) -> Self::Output {
+                (self.value.$fn(rhs)).into()
+            }
+        }
+
+        impl<Quantity,Type> $name<$t> for &Unit<Quantity,Type,$t> {
+            type Output = Unit<Quantity,Type,$t>;
+            fn $fn(self, rhs:$t) -> Self::Output {
+                (self.value.$fn(rhs)).into()
+            }
+        }
+
+        impl<Quantity,Type> $name<&$t> for Unit<Quantity,Type,$t> {
+            type Output = Unit<Quantity,Type,$t>;
+            fn $fn(self, rhs:&$t) -> Self::Output {
+                (self.value.$fn(*rhs)).into()
+            }
+        }
+
+        impl<Quantity,Type> $name<&$t> for &Unit<Quantity,Type,$t> {
+            type Output = Unit<Quantity,Type,$t>;
+            fn $fn(self, rhs:&$t) -> Self::Output {
+                ((&self.value).$fn(*rhs)).into()
+            }
+        }
+    }
+}
+
+impl_operator_for_prim_type_rhs!( Mul mul f32);
+impl_operator_for_prim_type_rhs!( Div div f32);
+
+// TODO: The following line (commented) is more generic, but is likely to introduce infinite
+//       compilation loop rutc bug.
+// impl_operator_for_unit! { Add add Lhs Rhs <Unit<Quantity,Type,Rhs>> for Unit<Quantity,Type,Lhs> }
+impl_operator_for_unit! { Add add f32 f32 <Unit<Quantity,Type,f32>> for Unit<Quantity,Type,f32> }
+impl_operator_for_unit! { Sub sub f32 f32 <Unit<Quantity,Type,f32>> for Unit<Quantity,Type,f32> }
+
 
 impl<Quantity,Type> Mul<Unit<Quantity,Type,f32>> for f32 {
     type Output = Unit<Quantity,Type,f32>;
@@ -149,6 +191,7 @@ impl<'t,Quantity,Type,V> Neg for &'t Unit<Quantity,Type,V>
 }
 
 
+
 // ================
 // === Quantity ===
 // ================
@@ -173,7 +216,7 @@ define_quantities! {Distance,Angle}
 // ================
 
 /// Distance parametrized by the unit type.
-pub type Distance<Type=Anything,Repr=f32> = Unit<quantity::Distance,Type,Repr>;
+pub type Distance<Type,Repr=f32> = Unit<quantity::Distance,Type,Repr>;
 
 
 // === Pixels ===
@@ -211,24 +254,6 @@ impl PixelDistance for V2<f32> {
     }
 }
 
-impls! { From + &From <Distance<Pixels>> for Glsl { |t| { t.value.into() } }}
-
-impls! { From<PhantomData<Distance<Pixels>>> for glsl::PrimType {
-    |_|  { PhantomData::<f32>.into() }
-}}
-
-impls! { From<PhantomData<Vector2<Distance<Pixels>>>> for glsl::PrimType {
-    |_|  { PhantomData::<Vector2<f32>>.into() }
-}}
-
-impls! { From<PhantomData<Vector3<Distance<Pixels>>>> for glsl::PrimType {
-    |_|  { PhantomData::<Vector3<f32>>.into() }
-}}
-
-impls! { From<PhantomData<Vector4<Distance<Pixels>>>> for glsl::PrimType {
-    |_|  { PhantomData::<Vector4<f32>>.into() }
-}}
-
 
 
 // =============
@@ -236,7 +261,7 @@ impls! { From<PhantomData<Vector4<Distance<Pixels>>>> for glsl::PrimType {
 // =============
 
 /// Angle parametrized by the unit type.
-pub type Angle<Type=Anything,Repr=f32> = Unit<quantity::Angle,Type,Repr>;
+pub type Angle<Type,Repr=f32> = Unit<quantity::Angle,Type,Repr>;
 
 /// Degrees angle unit type.
 #[derive(Clone,Copy,Debug,Eq,PartialEq)]
@@ -300,14 +325,6 @@ impl AngleOps for Angle<Radians> {
         *self
     }
 }
-
-impls! { From< Angle<Radians>> for Glsl { |t| { glsl::f32_to_rad(&t.value.glsl()) } }}
-impls! { From<&Angle<Radians>> for Glsl { |t| { glsl::f32_to_rad(&t.value.glsl()) } }}
-impls! { From< Angle<Degrees>> for Glsl { |t| { glsl::deg_to_f32(&glsl::f32_to_deg(&t.value.glsl())) } }}
-impls! { From<&Angle<Degrees>> for Glsl { |t| { glsl::deg_to_f32(&glsl::f32_to_deg(&t.value.glsl())) } }}
-impls! { From<PhantomData<Angle<Radians>>> for glsl::PrimType {
-    |_|  { "Radians".into() }
-}}
 
 
 

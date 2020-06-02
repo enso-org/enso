@@ -197,3 +197,7 @@ uvec3 encode(int value1, int value2) {
 float as_float_u8(uint value) {
     return clamp(float(value) / 255.0);
 }
+
+vec3 as_float_u8(uvec3 v) {
+    return vec3(as_float_u8(v.x),as_float_u8(v.y),as_float_u8(v.z));
+}

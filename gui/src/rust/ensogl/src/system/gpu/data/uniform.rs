@@ -171,42 +171,52 @@ impl UniformScope {
 // === Uniform ===
 // ===============
 
+// TODO: Finish the dirty implementation. After uniform is changed it should be marked dirty. After
+//       each frame, all uniforms should be marked as non-dirty. When rendering an object, it should
+//       check for dirty unforms in its bindigs. There are few interesting cases - when object is
+//       hidden and is shown, its obsolete uniforms need to be updated. This may be realized by
+//       using an int or frame number instead of bool to mark dirty state and checking if the
+//       object uniform was uploaded with the newest version.
+//
+//       Please note that currently a special uniform 'zoom' is modified in the render loop. See
+//       the `scene::View` implementation to learn more.
+
 shared! { Uniform
 
 /// An uniform value.
 #[derive(Debug)]
 pub struct UniformData<Value> {
     value: Value,
-    dirty: bool,
+    // dirty: bool,
 }
 
 impl<Value> {
     /// Constructor.
     pub fn new(value:Value) -> Self {
-        let dirty = true;
-        Self {value,dirty}
+        // let dirty = true;
+        Self {value}
     }
 
     /// Sets the value of this uniform.
     pub fn set(&mut self, value:Value) {
-        self.set_dirty();
+        // self.set_dirty();
         self.value = value;
     }
 
-    /// Checks whether the uniform was changed and not yet updated.
-    pub fn check_dirty(&self) -> bool {
-        self.dirty
-    }
+//    /// Checks whether the uniform was changed and not yet updated.
+//    pub fn check_dirty(&self) -> bool {
+//        self.dirty
+//    }
 
-    /// Sets the dirty flag.
-    pub fn set_dirty(&mut self) {
-        self.dirty = true;
-    }
-
-    /// Clears the dirty flag.
-    pub fn unset_dirty(&mut self) {
-        self.dirty = false;
-    }
+//    /// Sets the dirty flag.
+//    pub fn set_dirty(&mut self) {
+//        self.dirty = true;
+//    }
+//
+//    /// Clears the dirty flag.
+//    pub fn unset_dirty(&mut self) {
+//        self.dirty = false;
+//    }
 }
 
 impl<Value:Clone> {

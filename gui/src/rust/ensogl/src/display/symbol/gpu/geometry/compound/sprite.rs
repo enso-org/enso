@@ -303,6 +303,7 @@ impl SpriteSystem {
                 mat4 model_view_projection = input_view_projection * input_transform;
                 input_local                = vec3((input_uv - input_alignment) * input_size, 0.0);
                 gl_Position                = model_view_projection * vec4(input_local,1.0);
+                input_local.z              = gl_Position.z;
                 input_instance_id          = gl_InstanceID;
                 ");
         material

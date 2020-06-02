@@ -13,7 +13,7 @@ use crate::display::scene;
 // === SymbolsRenderPass ===
 // =========================
 
-/// Pass for rendering all symbols. The results are stored in a `'color'` variable.
+/// Pass for rendering all symbols. The results are stored in the 'color' and 'id' outputs.
 #[derive(Clone,Debug)]
 pub struct SymbolsRenderPass {
     target : SymbolRegistry,
@@ -37,8 +37,8 @@ impl RenderPass for SymbolsRenderPass {
             mag_filter : texture::MagFilter::Nearest,
             ..default()
         };
-        vec![ RenderPassOutput::new("color",texture::Rgba,texture::item_type::u8,color_parameters)
-            , RenderPassOutput::new("id",texture::Rgba,texture::item_type::u8,id_parameters)
+        vec![ RenderPassOutput::new("color" , texture::Rgba,texture::item_type::u8,color_parameters)
+            , RenderPassOutput::new("id"    , texture::Rgba,texture::item_type::u8,id_parameters)
             ]
     }
 

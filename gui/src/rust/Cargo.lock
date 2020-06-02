@@ -580,6 +580,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "enso-math"
+version = "0.1.0"
+dependencies = [
+ "assert_approx_eq 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nalgebra 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-traits 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "enso-prelude"
 version = "0.1.0"
 dependencies = [
@@ -646,6 +655,7 @@ dependencies = [
  "enso-callback 0.1.0",
  "enso-frp 0.1.0",
  "enso-generics 0.1.0",
+ "enso-math 0.1.0",
  "enso-prelude 0.1.0",
  "ensogl-core-embedded-fonts 0.1.0",
  "ensogl-core-msdf-sys 0.1.0",
