@@ -16,6 +16,8 @@ import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
+import java.util.concurrent.locks.Lock;
+
 /** Handles runtime function currying and oversaturated (eta-expanded) calls. */
 @NodeInfo(description = "Handles runtime currying and eta-expansion")
 public class CurryNode extends BaseNode {
@@ -116,11 +118,20 @@ public class CurryNode extends BaseNode {
           keepExecutingProfile.enter();
           if (oversaturatedCallableNode == null) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
-            oversaturatedCallableNode =
-                InvokeCallableNode.build(
-                    new CallArgumentInfo[0],
-                    InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-                    InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
+            Lock lock = getLock();
+            lock.lock();
+            try {
+              if (oversaturatedCallableNode == null) {
+                oversaturatedCallableNode =
+                    insert(
+                        InvokeCallableNode.build(
+                            new CallArgumentInfo[0],
+                            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
+                            InvokeCallableNode.ArgumentsExecutionMode.EXECUTE));
+              }
+            } finally {
+              lock.unlock();
+            }
           }
 
           return oversaturatedCallableNode.execute(

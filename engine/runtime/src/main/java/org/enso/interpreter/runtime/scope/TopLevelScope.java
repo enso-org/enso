@@ -159,6 +159,10 @@ public class TopLevelScope implements TruffleObject {
       return context.getUnit().newInstance();
     }
 
+    private static Object leakContext(Context context) {
+      return context.getEnvironment().asGuestValue(context);
+    }
+
     @Specialization
     static Object doInvoke(
         TopLevelScope scope,
@@ -175,6 +179,8 @@ public class TopLevelScope implements TruffleObject {
           return registerModule(scope, arguments, contextRef.get());
         case MethodNames.TopScope.UNREGISTER_MODULE:
           return unregisterModule(scope, arguments, contextRef.get());
+        case MethodNames.TopScope.LEAK_CONTEXT:
+          return leakContext(contextRef.get());
         default:
           throw UnknownIdentifierException.create(member);
       }

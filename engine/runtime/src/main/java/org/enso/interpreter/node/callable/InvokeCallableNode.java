@@ -19,6 +19,7 @@ import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.state.Stateful;
 
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
 
 /**
  * This class is responsible for performing the actual invocation of a given callable with its
@@ -171,7 +172,15 @@ public abstract class InvokeCallableNode extends BaseNode {
       if (argumentsExecutionMode.shouldExecute()) {
         if (thisExecutor == null) {
           CompilerDirectives.transferToInterpreterAndInvalidate();
-          thisExecutor = insert(ThunkExecutorNode.build(false));
+          Lock lock = getLock();
+          lock.lock();
+          try {
+            if (thisExecutor == null) {
+              thisExecutor = insert(ThunkExecutorNode.build(false));
+            }
+          } finally {
+            lock.unlock();
+          }
         }
         Stateful selfResult = thisExecutor.executeThunk((Thunk) selfArgument, state);
         selfArgument = selfResult.getValue();

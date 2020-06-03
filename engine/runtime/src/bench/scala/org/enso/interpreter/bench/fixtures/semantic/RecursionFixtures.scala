@@ -6,7 +6,7 @@ class RecursionFixtures extends InterpreterRunner {
   val hundredMillion: Long = 100000000
   val million: Long        = 1000000
   val thousand: Long       = 1000
-  val hundred: Long        = 100
+  val hundred: Long        = 99
 
   val sumTCOCode =
     """

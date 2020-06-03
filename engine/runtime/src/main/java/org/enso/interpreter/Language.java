@@ -63,17 +63,6 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /**
-   * Checks if a given object is native to Enso.
-   *
-   * @param object the object to check
-   * @return {@code true} if {@code object} belongs to Enso, {@code false} otherwise
-   */
-  @Override
-  protected boolean isObjectOfLanguage(Object object) {
-    return false;
-  }
-
-  /**
    * Checks if this Enso execution environment is accessible in a multithreaded context.
    *
    * @param thread the thread to check access for
@@ -82,7 +71,7 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected boolean isThreadAccessAllowed(Thread thread, boolean singleThreaded) {
-    return super.isThreadAccessAllowed(thread, singleThreaded);
+    return true;
   }
 
   /**

@@ -8,6 +8,8 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
 
+import java.util.concurrent.locks.Lock;
+
 /**
  * Optimistic version of {@link CallOptimiserNode} for the non tail call recursive case. Tries to
  * just call the function. If that turns out to be a tail call, it replaces itself with a {@link
@@ -47,7 +49,15 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
     } catch (TailCallException e) {
       if (next == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        next = insert(LoopingCallOptimiserNode.build());
+        Lock lock = getLock();
+        lock.lock();
+        try {
+          if (next == null) {
+            next = insert(LoopingCallOptimiserNode.build());
+          }
+        } finally {
+          lock.unlock();
+        }
       }
       return next.executeDispatch(
           e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());

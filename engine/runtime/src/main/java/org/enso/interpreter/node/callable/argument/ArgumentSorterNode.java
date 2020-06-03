@@ -12,6 +12,8 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
+import java.util.concurrent.locks.Lock;
+
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has
  * already been computed.
@@ -54,19 +56,29 @@ public class ArgumentSorterNode extends BaseNode {
   }
 
   private void initArgumentExecutors(Object[] arguments) {
-    CompilerDirectives.transferToInterpreterAndInvalidate();
-    executors = new ThunkExecutorNode[mapping.getArgumentShouldExecute().length];
+    ThunkExecutorNode[] executors =
+        new ThunkExecutorNode[mapping.getArgumentShouldExecute().length];
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (mapping.getArgumentShouldExecute()[i] && TypesGen.isThunk(arguments[i])) {
         executors[i] = insert(ThunkExecutorNode.build(false));
       }
     }
+    this.executors = executors;
   }
 
   @ExplodeLoop
   private Object executeArguments(Object[] arguments, Object state) {
     if (executors == null) {
-      initArgumentExecutors(arguments);
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      Lock lock = getLock();
+      lock.lock();
+      try {
+        if (executors == null) {
+          initArgumentExecutors(arguments);
+        }
+      } finally {
+        lock.unlock();
+      }
     }
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (executors[i] != null) {

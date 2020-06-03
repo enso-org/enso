@@ -31,6 +31,7 @@ import org.enso.interpreter.node.expression.builtin.state.RunStateNode;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.node.expression.builtin.text.ConcatNode;
 import org.enso.interpreter.node.expression.builtin.text.JsonSerializeNode;
+import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -102,6 +103,7 @@ public class Builtins {
     AtomConstructor state = new AtomConstructor("State", scope).initializeFields();
 
     AtomConstructor java = new AtomConstructor("Java", scope).initializeFields();
+    AtomConstructor thread = new AtomConstructor("Thread", scope).initializeFields();
 
     scope.registerConstructor(unit);
     scope.registerConstructor(any);
@@ -121,6 +123,7 @@ public class Builtins {
     scope.registerConstructor(compileError);
 
     scope.registerConstructor(java);
+    scope.registerConstructor(thread);
     scope.registerConstructor(createPolyglot(language));
 
     scope.registerMethod(io, "println", PrintlnNode.makeFunction(language));
@@ -157,6 +160,9 @@ public class Builtins {
 
     scope.registerMethod(java, "add_to_class_path", AddToClassPathNode.makeFunction(language));
     scope.registerMethod(java, "lookup_class", LookupClassNode.makeFunction(language));
+
+    scope.registerMethod(
+        thread, "with_interrupt_handler", WithInterruptHandlerNode.makeFunction(language));
 
     interopDispatchRoot = Truffle.getRuntime().createCallTarget(MethodDispatchNode.build(language));
     interopDispatchSchema =

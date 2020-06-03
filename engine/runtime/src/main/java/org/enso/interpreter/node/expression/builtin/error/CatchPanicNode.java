@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
     shortName = "Panic.catch",
     description = "Root node for the builtin catch panic function.")
 public class CatchPanicNode extends BuiltinRootNode {
-  private ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build(false);
+  private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build(false);
 
   private CatchPanicNode(Language language) {
     super(language);
