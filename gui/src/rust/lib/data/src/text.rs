@@ -11,7 +11,6 @@ use serde::Serialize;
 use serde::Deserialize;
 
 
-
 /// ======================================
 /// === Text Coordinates And Distances ===
 /// ======================================
@@ -210,6 +209,13 @@ pub struct TextLocation {
     pub line: usize,
     /// Column is a index of char in given line.
     pub column: usize,
+}
+
+/// Short pretty print representation in the form of `line:column`.
+impl Display for TextLocation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"{}:{}",self.line,self.column)
+    }
 }
 
 impl TextLocation {

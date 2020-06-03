@@ -155,11 +155,13 @@ impl Change {
 // ========================
 
 /// The content of text component - namely lines of text.
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct TextFieldContent {
     /// A struct which describe which lines are dirty (were modified after last rendering).
     pub dirty_lines: DirtyLines,
     /// Font handle, used to specify character positions.
+    #[derivative(Debug="ignore")]
     pub font: font::Handle,
     /// Line height in pixels, being a distance between baselines of consecutive lines.
     pub line_height: f32,
@@ -240,6 +242,7 @@ impl TextFieldContent {
     /// Replaces content with a new text. This marks all lines as dirty.
     pub fn set_content(&mut self, text:&str) {
         self.lines = split_to_lines(text).map(Line::new).collect();
+        self.line_offsets.clear();
         self.dirty_lines.add_lines_range_from(0..);
     }
 
@@ -514,6 +517,21 @@ pub(crate) mod test {
         assert!( content.dirty_lines.is_dirty(0));
         assert!( content.dirty_lines.is_dirty(1));
         assert!( content.dirty_lines.is_dirty(2));
+    }
+
+    #[wasm_bindgen_test(async)]
+    async fn set_content_doesnt_break_location_conversion() {
+        // Regression test for the issues:
+        // https://github.com/luna/ide/issues/513
+        // https://github.com/luna/ide/issues/516
+        msdf_sys::initialized().await;
+        let text          = "Line a\nLine b\nLine c";
+        let second_text   = "Line new first\nLine b\nLine c";
+        let text_location = TextLocation{line:1, column:1};
+        let mut content   = TextFieldContent::new(text,&mock_properties());
+        assert_eq!(content.convert_location_to_char_index(text_location).value,8);
+        content.set_content(second_text);
+        assert_eq!(content.convert_location_to_char_index(text_location).value,16);
     }
 
     #[wasm_bindgen_test(async)]
