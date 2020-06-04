@@ -5,6 +5,12 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Application.Operator.Section
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
 
 /** This pass converts operator sections to applications of binary operators.
   *
@@ -21,7 +27,12 @@ case object SectionsToBinOp extends IRPass {
   override val precursorPasses: Seq[IRPass] = List(
     GenerateMethodBodies
   )
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override val invalidatedPasses: Seq[IRPass] = List(
+    AliasAnalysis,
+    DataflowAnalysis,
+    DemandAnalysis,
+    TailCall
+  )
 
   /** Performs section to binary operator conversion on an IR module.
     *

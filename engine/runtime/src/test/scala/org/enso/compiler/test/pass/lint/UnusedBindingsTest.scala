@@ -3,17 +3,14 @@ package org.enso.compiler.test.pass.lint
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LambdaShorthandToLambda, OperatorToFunction, SectionsToBinOp}
 import org.enso.compiler.pass.lint.UnusedBindings
-import org.enso.compiler.pass.optimise.{ApplicationSaturation, LambdaConsolidate}
-import org.enso.compiler.pass.resolve.IgnoredBindings
+import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
-
-import scala.annotation.unused
 
 class UnusedBindingsTest extends CompilerTest {
 
@@ -54,9 +51,9 @@ class UnusedBindingsTest extends CompilerTest {
     */
   def mkInlineContext: InlineContext = {
     InlineContext(
-      freshNameSupply  = Some(new FreshNameSupply),
       localScope       = Some(LocalScope.root),
-      isInTailPosition = Some(false)
+      isInTailPosition = Some(false),
+      freshNameSupply  = Some(new FreshNameSupply)
     )
   }
 
@@ -90,7 +87,11 @@ class UnusedBindingsTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.lint
           .asInstanceOf[IR.Function.Lambda]
 
-      ir.arguments.head.diagnostics.toList shouldBe empty
+      val lintMeta = ir.arguments.head.diagnostics.collect {
+        case u: IR.Warning.Unused => u
+      }
+
+      lintMeta shouldBe empty
     }
 
     "attach a warning to an unused binding" in {
@@ -103,7 +104,7 @@ class UnusedBindingsTest extends CompilerTest {
           .asInstanceOf[IR.Expression.Binding]
 
       val lintMeta = ir.diagnostics.collect {
-        case u: IR.Warning.Unused.Binding => u
+        case u: IR.Warning.Unused => u
       }
 
       lintMeta should not be empty
@@ -120,7 +121,41 @@ class UnusedBindingsTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.lint
           .asInstanceOf[IR.Expression.Binding]
 
-      ir.diagnostics.toList shouldBe empty
+      val lintMeta = ir.diagnostics.collect {
+        case u: IR.Warning.Unused => u
+      }
+
+      lintMeta shouldBe empty
+    }
+
+    "warn on unused bindings in patterns" in {
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |case x of
+          |    Cons a _ -> 10
+          |""".stripMargin.preprocessExpression.get.lint
+          .asInstanceOf[IR.Expression.Block]
+          .returnValue
+          .asInstanceOf[IR.Case.Expr]
+
+      val pattern = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
+      val field1  = pattern.fields.head.asInstanceOf[Pattern.Name]
+      val field2  = pattern.fields(1).asInstanceOf[Pattern.Name]
+
+      val lintMeta1 = field1.diagnostics.collect {
+        case u: IR.Warning.Unused => u
+      }
+      val lintMeta2 = field2.diagnostics.collect {
+        case u: IR.Warning.Unused => u
+      }
+
+      lintMeta1 should not be empty
+      lintMeta1.head shouldBe an[IR.Warning.Unused.PatternBinding]
+      lintMeta1.head.name.name shouldEqual "a"
+
+      lintMeta2 shouldBe empty
     }
   }
 }

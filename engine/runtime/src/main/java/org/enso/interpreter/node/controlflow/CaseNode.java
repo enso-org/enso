@@ -1,6 +1,8 @@
 package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -8,114 +10,82 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.BranchProfile;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.RuntimeError;
 import org.enso.interpreter.runtime.error.TypeError;
 
 /**
  * A node representing a pattern match on an arbitrary runtime value.
  *
- * <p>Has a scrutinee node and a collection of {@link BranchNode}s. The case nodes get executed one by
- * one, until one throws an {@link BranchSelectedException}, the value of which becomes the result
- * of this pattern match.
+ * <p>Has a scrutinee node and a collection of {@link BranchNode}s. The case nodes get executed one
+ * by one, until one throws an {@link BranchSelectedException}, the value of which becomes the
+ * result of this pattern match.
  */
 @NodeChild(value = "scrutinee", type = ExpressionNode.class)
 @NodeInfo(shortName = "case_of", description = "The runtime representation of a case expression.")
 public abstract class CaseNode extends ExpressionNode {
+
   @Children private final BranchNode[] cases;
-  @Child private BranchNode fallback;
   private final BranchProfile typeErrorProfile = BranchProfile.create();
 
-  CaseNode(BranchNode[] cases, BranchNode fallback) {
+  CaseNode(BranchNode[] cases) {
     this.cases = cases;
-    this.fallback = fallback;
   }
 
   /**
    * Creates an instance of this node.
    *
-   * @param cases the case branches
-   * @param fallback the fallback branch
    * @param scrutinee the value being scrutinised
+   * @param cases the case branches
    * @return a node representing a pattern match
    */
-  public static CaseNode build(BranchNode[] cases, BranchNode fallback, ExpressionNode scrutinee) {
-    return CaseNodeGen.create(cases, fallback, scrutinee);
+  public static CaseNode build(ExpressionNode scrutinee, BranchNode[] cases) {
+    return CaseNodeGen.create(cases, scrutinee);
   }
 
+  /**
+   * Forwards an error in the case's scrutinee.
+   *
+   * It is important that this is the first specialization.
+   *
+   * @param frame the stack frame in which to execute
+   * @param error the error being matched against
+   * @return the result of executing the case expression on {@code error}
+   */
   @Specialization
-  Object doError(VirtualFrame frame, RuntimeError error) {
+  public Object doError(VirtualFrame frame, RuntimeError error) {
     return error;
   }
 
-  // TODO[MK]: The atom, number and function cases are very repetitive and should be refactored.
-  // It poses some engineering challenge – the approaches tried so far included passing the only
-  // changing line as a lambda and introducing a separate node between this and the CaseNodes.
-  // Both attempts resulted in a performance drop.
-
-  @ExplodeLoop
+  /**
+   * Executes the case expression.
+   *
+   * @param frame the stack frame in which to execute
+   * @param object the object being matched against
+   * @param ctx the language context reference
+   * @return the result of executing the case expression on {@code object}
+   */
   @Specialization
-  Object doAtom(VirtualFrame frame, Atom atom) {
+  @ExplodeLoop
+  public Object doMatch(
+      VirtualFrame frame,
+      Object object,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctx) {
     try {
       for (BranchNode branchNode : cases) {
-        branchNode.executeAtom(frame, atom);
+        branchNode.execute(frame, object);
       }
-      fallback.executeAtom(frame, atom);
       CompilerDirectives.transferToInterpreter();
-      throw new RuntimeException("Impossible behavior.");
-
+      throw new PanicException(
+          ctx.get().getBuiltins().inexhaustivePatternMatchError().newInstance(object), this);
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
       frame.setObject(getStateFrameSlot(), e.getResult().getState());
       return e.getResult().getValue();
-    } catch (UnexpectedResultException e) {
-      typeErrorProfile.enter();
-      throw new TypeError("Expected an Atom, got " + e.getResult(), this);
-    }
-  }
-
-  @ExplodeLoop
-  @Specialization
-  Object doFunction(VirtualFrame frame, Function function) {
-    try {
-      for (BranchNode branchNode : cases) {
-        branchNode.executeFunction(frame, function);
-      }
-      fallback.executeFunction(frame, function);
-      CompilerDirectives.transferToInterpreter();
-      throw new RuntimeException("Impossible behavior.");
-
-    } catch (BranchSelectedException e) {
-      // Note [Branch Selection Control Flow]
-      frame.setObject(getStateFrameSlot(), e.getResult().getState());
-      return e.getResult().getValue();
-    } catch (UnexpectedResultException e) {
-      typeErrorProfile.enter();
-      throw new TypeError("Expected an Atom, got " + e.getResult(), this);
-    }
-  }
-
-  @ExplodeLoop
-  @Specialization
-  Object doNumber(VirtualFrame frame, long number) {
-    try {
-
-      for (BranchNode branchNode : cases) {
-        branchNode.executeNumber(frame, number);
-      }
-      fallback.executeNumber(frame, number);
-      CompilerDirectives.transferToInterpreter();
-      throw new RuntimeException("Impossible behavior.");
-
-    } catch (BranchSelectedException e) {
-      // Note [Branch Selection Control Flow]
-      frame.setObject(getStateFrameSlot(), e.getResult().getState());
-      return e.getResult().getValue();
-    } catch (UnexpectedResultException e) {
-      typeErrorProfile.enter();
-      throw new TypeError("Expected an Atom: " + e.getResult(), this);
     }
   }
 

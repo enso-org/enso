@@ -2,12 +2,11 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.ExternalId
+import org.enso.compiler.core.IR.{ExternalId, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
-import org.enso.compiler.pass.desugar.FunctionBinding
 
 import scala.collection.mutable
 
@@ -412,20 +411,16 @@ case object DataflowAnalysis extends IRPass {
     */
   def analyseCase(cse: IR.Case, info: DependencyInfo): IR.Case = {
     cse match {
-      case expr @ IR.Case.Expr(scrutinee, branches, fallback, _, _, _) =>
+      case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
         info.updateAt(asStatic(scrutinee), Set(asStatic(expr)))
         branches.foreach(branch =>
           info.updateAt(asStatic(branch), Set(asStatic(expr)))
-        )
-        fallback.foreach(fback =>
-          info.updateAt(asStatic(fback), Set(asStatic(expr)))
         )
 
         expr
           .copy(
             scrutinee = analyseExpression(scrutinee, info),
-            branches  = branches.map(analyseCaseBranch(_, info)),
-            fallback  = fallback.map(analyseExpression(_, info))
+            branches  = branches.map(analyseCaseBranch(_, info))
           )
           .updateMetadata(this -->> info)
       case _: IR.Case.Branch =>
@@ -454,10 +449,42 @@ case object DataflowAnalysis extends IRPass {
 
     branch
       .copy(
-        pattern    = analyseExpression(pattern, info),
+        pattern    = analysePattern(pattern, info),
         expression = analyseExpression(expression, info)
       )
       .updateMetadata(this -->> info)
+  }
+
+  /** Performs dataflow analysis on a case branch.
+    *
+    * A case pattern is dependent on its subexpressions only.
+    *
+    * @param pattern the pattern to perform dataflow analysis on
+    * @param info the dependency information for the module
+    * @return `pattern`, with attached dependency information
+    */
+  def analysePattern(
+    pattern: IR.Pattern,
+    info: DependencyInfo
+  ): IR.Pattern = {
+    pattern match {
+      case named @ Pattern.Name(name, _, _, _) =>
+        info.updateAt(asStatic(name), Set(asStatic(pattern)))
+
+        named.updateMetadata(this -->> info)
+      case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
+        info.updateAt(asStatic(constructor), Set(asStatic(pattern)))
+        fields.foreach(field =>
+          info.updateAt(asStatic(field), Set(asStatic(pattern)))
+        )
+
+        cons
+          .copy(
+            constructor = analyseName(constructor, info),
+            fields      = fields.map(analysePattern(_, info))
+          )
+          .updateMetadata(this -->> info)
+    }
   }
 
   /** Performs dataflow analysis on a function definition argument.

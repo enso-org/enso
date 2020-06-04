@@ -4,7 +4,7 @@ import java.io.StringReader
 
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.codegen.{AstToIr, IRToTruffle}
+import org.enso.compiler.codegen.{AstToIr, IrToTruffle}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
@@ -24,20 +24,18 @@ import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
 
-/**
-  * This class encapsulates the static transformation processes that take place
+import scala.annotation.unused
+
+/** This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
   * analysis, and optimisation.
+  *
+  * @param context the language context
   */
-class Compiler(
-  val language: Language,
-  val topScope: TopLevelScope,
-  val context: Context
-) {
-
-  val freshNameSupply: FreshNameSupply = new FreshNameSupply
-  val passes: Passes                   = new Passes
-  val passManager: PassManager         = passes.passManager
+class Compiler(private val context: Context) {
+  private val freshNameSupply: FreshNameSupply = new FreshNameSupply
+  private val passes: Passes                   = new Passes
+  private val passManager: PassManager         = passes.passManager
 
   /**
     * Processes the provided language sources, registering any bindings in the
@@ -49,7 +47,10 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source, scope: ModuleScope): IR = {
-    val moduleContext  = ModuleContext(Some(freshNameSupply))
+    val moduleContext = ModuleContext(
+      moduleScope     = Some(scope),
+      freshNameSupply = Some(freshNameSupply)
+    )
     val parsedAST      = parse(source)
     val expr           = generateIR(parsedAST)
     val compilerOutput = runCompilerPhases(expr, moduleContext)
@@ -111,7 +112,7 @@ class Compiler(
     * @return the scope containing all definitions in the requested module
     */
   def processImport(qualifiedName: String): ModuleScope = {
-    val module = topScope.getModule(qualifiedName)
+    val module = context.getTopScope.getModule(qualifiedName)
     if (module.isPresent) {
       module.get().parseScope(context)
     } else {
@@ -296,7 +297,7 @@ class Compiler(
     source: Source,
     scope: ModuleScope
   ): Unit = {
-    new IRToTruffle(context, source, scope).run(ir)
+    new IrToTruffle(context, source, scope).run(ir)
   }
 
   /** Generates code for the truffle interpreter in an inline context.
@@ -312,7 +313,7 @@ class Compiler(
     source: Source,
     inlineContext: InlineContext
   ): RuntimeExpression = {
-    new IRToTruffle(
+    new IrToTruffle(
       context,
       source,
       inlineContext.moduleScope.getOrElse(

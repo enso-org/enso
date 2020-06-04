@@ -304,19 +304,11 @@ object AstToIr {
         )
       case AstView.CaseExpression(scrutinee, branches) =>
         val actualScrutinee = translateExpression(scrutinee)
-        val nonFallbackBranches =
-          branches
-            .takeWhile(AstView.FallbackCaseBranch.unapply(_).isEmpty)
-            .map(translateCaseBranch)
-        val potentialFallback =
-          branches
-            .drop(nonFallbackBranches.length)
-            .headOption
-            .map(translateFallbackBranch)
+        val allBranches     = branches.map(translateCaseBranch)
+
         Case.Expr(
           actualScrutinee,
-          nonFallbackBranches,
-          potentialFallback,
+          allBranches,
           getIdentifiedLocation(inputAst)
         )
       case AST.App.any(inputAST)     => translateApplicationLike(inputAST)
@@ -339,6 +331,8 @@ object AstToIr {
           inputAst,
           Error.Syntax.UnsupportedSyntax("foreign blocks")
         )
+      case AstView.Pattern(_) =>
+        Error.Syntax(inputAst, Error.Syntax.InvalidPattern)
       case _ =>
         throw new UnhandledEntity(inputAst, "translateExpression")
     }
@@ -703,38 +697,37 @@ object AstToIr {
     */
   def translateCaseBranch(branch: AST): Case.Branch = {
     branch match {
-      case AstView.ConsCaseBranch(cons, args, body) =>
+      case AstView.CaseBranch(pattern, expression) =>
         Case.Branch(
-          translateExpression(cons),
-          Function.Lambda(
-            args.map(translateArgumentDefinition(_)),
-            translateExpression(body),
-            getIdentifiedLocation(body),
-            canBeTCO = false
-          ),
+          translatePattern(pattern),
+          translateExpression(expression),
           getIdentifiedLocation(branch)
         )
-
       case _ => throw new UnhandledEntity(branch, "translateCaseBranch")
     }
   }
 
-  /** Translates the fallback branch of a case expression from its [[AST]]
-    * representation into [[IR]].
+  /** Translates a pattern in a case expression from its [[AST]] representation
+    * into [[IR]].
     *
-    * @param branch the fallback branch to translate
-    * @return the [[IR]] representation of `branch`
+    * @param pattern the case pattern to translate
+    * @return
     */
-  def translateFallbackBranch(branch: AST): Function = {
-    branch match {
-      case AstView.FallbackCaseBranch(body) =>
-        Function.Lambda(
-          List(),
-          translateExpression(body),
-          getIdentifiedLocation(body),
-          canBeTCO = false
+  def translatePattern(pattern: AST): Pattern = {
+    AstView.MaybeParensed.unapply(pattern).getOrElse(pattern) match {
+      case AstView.ConstructorPattern(cons, fields) =>
+        Pattern.Constructor(
+          translateIdent(cons).asInstanceOf[IR.Name],
+          fields.map(translatePattern),
+          getIdentifiedLocation(pattern)
         )
-      case _ => throw new UnhandledEntity(branch, "translateFallbackBranch")
+      case AstView.CatchAllPattern(name) =>
+        Pattern.Name(
+          translateIdent(name).asInstanceOf[IR.Name],
+          getIdentifiedLocation(pattern)
+        )
+      case _ =>
+        throw new UnhandledEntity(pattern, "translatePattern")
     }
   }
 

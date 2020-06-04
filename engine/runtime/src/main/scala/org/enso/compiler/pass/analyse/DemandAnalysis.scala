@@ -320,19 +320,13 @@ case object DemandAnalysis extends IRPass {
     cse: IR.Case,
     isInsideCallArgument: Boolean
   ): IR.Case = cse match {
-    case expr @ IR.Case.Expr(scrutinee, branches, fallback, _, _, _) =>
+    case expr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
       expr.copy(
         scrutinee = analyseExpression(
           scrutinee,
           isInsideCallArgument
         ),
-        branches = branches.map(b => analyseCaseBranch(b)),
-        fallback = fallback.map(x =>
-          analyseExpression(
-            x,
-            isInsideCallArgument = false
-          )
-        )
+        branches = branches.map(b => analyseCaseBranch(b))
       )
     case _ => throw new CompilerError("Unexpected case construct.")
   }

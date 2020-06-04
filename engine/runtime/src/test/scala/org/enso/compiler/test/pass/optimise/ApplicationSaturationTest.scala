@@ -68,11 +68,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
   val localScope: Option[LocalScope] = Some(LocalScope.root)
 
-  val knownCtx = new InlineContext(
-    localScope        = localScope,
-    passConfiguration = Some(knownPassConfig),
-    freshNameSupply   = Some(new FreshNameSupply)
-  )
+  val knownCtx = new InlineContext(localScope        = localScope, freshNameSupply   = Some(new FreshNameSupply), passConfiguration = Some(knownPassConfig))
 
   val moduleCtx = new ModuleContext(
     passConfiguration = Some(knownPassConfig),

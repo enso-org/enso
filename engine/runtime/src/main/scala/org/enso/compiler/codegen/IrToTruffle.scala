@@ -4,8 +4,12 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
-import org.enso.compiler.core.IR.{Error, IdentifiedLocation}
-import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
+import org.enso.compiler.core.IR.{Error, IdentifiedLocation, Pattern}
+import org.enso.compiler.exception.{
+  BadPatternMatch,
+  CompilerError,
+  UnhandledEntity
+}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{
@@ -75,7 +79,7 @@ import scala.jdk.OptionConverters._
   *               is being generated
   * @param moduleScope the scope of the module for which code is being generated
   */
-class IRToTruffle(
+class IrToTruffle(
   val context: Context,
   val source: Source,
   val moduleScope: ModuleScope
@@ -426,33 +430,122 @@ class IRToTruffle(
       * @return the truffle nodes corresponding to `caseExpr`
       */
     def processCase(caseExpr: IR.Case): RuntimeExpression = caseExpr match {
-      case IR.Case.Expr(scrutinee, branches, fallback, location, _, _) =>
-        val targetNode = this.run(scrutinee)
+      case IR.Case.Expr(scrutinee, branches, location, _, _) =>
+        val scrutineeNode = this.run(scrutinee)
 
-        val cases = branches
-          .map(branch => {
-            val caseIsTail = branch.unsafeGetMetadata(
-              TailCall,
-              "Case branch missing tail position information."
-            )
+        val maybeCases = branches.map(processCaseBranch)
+        val allCasesValid = maybeCases.forall(_.isRight)
 
-            val caseNode = ConstructorBranchNode
-              .build(this.run(branch.pattern), this.run(branch.expression))
-            caseNode.setTail(caseIsTail)
+        // TODO [AA] This is until we can resolve this statically in the
+        //  compiler. Doing so requires fixing issues around cyclical imports.
+        if (allCasesValid) {
+          val cases = maybeCases
+            .collect {
+              case Right(x) => x
+            }
+            .toArray[BranchNode]
 
-            caseNode
-          })
-          .toArray[BranchNode]
+          // Note [Pattern Match Fallbacks]
+          val matchExpr = CaseNode.build(scrutineeNode, cases)
+          setLocation(matchExpr, location)
+        } else {
+          val invalidBranches = maybeCases.collect {
+            case Left(x) => x
+          }
 
-        // Note [Pattern Match Fallbacks]
-        val fallbackNode = fallback
-          .map(fb => FallbackBranchNode.build(this.run(fb)))
-          .getOrElse(DefaultFallbackBranchNode.build())
+          val message = invalidBranches.map(_.message).mkString(", ")
 
-        val matchExpr = CaseNode.build(cases, fallbackNode, targetNode)
-        setLocation(matchExpr, location)
+          val error = context.getBuiltins
+            .compileError()
+            .newInstance(message)
+
+          setLocation(ErrorNode.build(error), caseExpr.location)
+        }
       case IR.Case.Branch(_, _, _, _, _) =>
         throw new CompilerError("A CaseBranch should never occur here.")
+    }
+
+    /** Performs code generation for an Enso case branch.
+      *
+      * @param branch the case branch to generate code for
+      * @return the truffle nodes correspondingg to `caseBranch` or an error if
+      *         the match is invalid
+      */
+    def processCaseBranch(
+      branch: IR.Case.Branch
+    ): Either[BadPatternMatch, BranchNode] = {
+      val scopeInfo = branch
+        .unsafeGetMetadata(
+          AliasAnalysis,
+          "No scope information on a case branch."
+        )
+        .unsafeAs[AliasAnalysis.Info.Scope.Child]
+
+      val branchIsTail = branch.unsafeGetMetadata(
+        TailCall,
+        "Case branch is missing tail position information."
+      )
+
+      val childProcessor = this.createChild("case_branch", scopeInfo.scope)
+
+      branch.pattern match {
+        case named @ Pattern.Name(_, _, _, _) =>
+          val arg = List(genArgFromMatchField(named))
+
+          val branchCodeNode = childProcessor.processFunctionBody(
+            arg,
+            branch.expression,
+            branch.location,
+            None
+          )
+
+          val branchNode = CatchAllBranchNode.build(branchCodeNode)
+          branchNode.setTail(branchIsTail)
+
+          Right(branchNode)
+        case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
+          if (!cons.isDesugared) {
+            throw new CompilerError(
+              "Nested patterns desugaring must have taken place by the " +
+              "point of code generation."
+            )
+          }
+
+          val fieldNames   = cons.unsafeFieldsAsNamed
+          val fieldsAsArgs = fieldNames.map(genArgFromMatchField)
+
+          val branchCodeNode = childProcessor.processFunctionBody(
+            fieldsAsArgs,
+            branch.expression,
+            branch.location,
+            None
+          )
+
+          moduleScope.getConstructor(constructor.name).toScala match {
+            case Some(atomCons) =>
+              val numExpectedArgs = atomCons.getArity
+              val numProvidedArgs = fields.length
+
+              if (numProvidedArgs != numExpectedArgs) {
+                Left(
+                  BadPatternMatch.WrongArgCount(
+                    constructor.name,
+                    numExpectedArgs,
+                    numProvidedArgs
+                  )
+                )
+              } else {
+                val branchNode =
+                  ConstructorBranchNode.build(atomCons, branchCodeNode)
+                branchNode.setTail(branchIsTail)
+
+                Right(branchNode)
+              }
+            case None =>
+              Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
+          }
+
+      }
     }
 
     /* Note [Pattern Match Fallbacks]
@@ -463,6 +556,22 @@ class IRToTruffle(
      * catch-all case in a pattern match, the interpreter has to ensure that
      * it has one to catch that error.
      */
+
+    /** Generates an argument from a field of a pattern match.
+      *
+      * @param name the pattern field to generate from
+      * @return `name` as a function definition argument.
+      */
+    def genArgFromMatchField(name: Pattern.Name): IR.DefinitionArgument = {
+      IR.DefinitionArgument.Specified(
+        name.name,
+        None,
+        suspended = false,
+        name.location,
+        passData    = name.name.passData,
+        diagnostics = name.name.diagnostics
+      )
+    }
 
     /** Generates code for an Enso binding expression.
       *

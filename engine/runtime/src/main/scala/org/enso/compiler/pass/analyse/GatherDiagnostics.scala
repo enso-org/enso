@@ -11,16 +11,12 @@ import org.enso.compiler.pass.IRPass
   * This pass requires the context to provide:
   *
   * - Nothing
-  *
-  * It must have the following passes run before it:
-  *
-  * - None
   */
 case object GatherDiagnostics extends IRPass {
   override type Metadata = DiagnosticsMeta
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass] = List()
+  override val precursorPasses: Seq[IRPass]   = List()
   override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
@@ -36,7 +32,7 @@ case object GatherDiagnostics extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module =
-    ir.updateMetadata(this -->> gatherErrors(ir))
+    ir.updateMetadata(this -->> gatherMetadata(ir))
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
     * diagnostics to its metadata storage.
@@ -49,9 +45,14 @@ case object GatherDiagnostics extends IRPass {
   override def runExpression(
     ir: IR.Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir.updateMetadata(this -->> gatherErrors(ir))
+  ): IR.Expression = ir.updateMetadata(this -->> gatherMetadata(ir))
 
-  private def gatherErrors(ir: IR): DiagnosticsMeta = {
+  /** Gathers diagnostics from all children of an IR node.
+    *
+    * @param ir the node to gather diagnostics from
+    * @return `ir`, with all diagnostics from its subtree associated with it
+    */
+  private def gatherMetadata(ir: IR): DiagnosticsMeta = {
     DiagnosticsMeta(ir.preorder.collect {
       case err: IR.Diagnostic => List(err)
       case x                  => x.diagnostics.toList

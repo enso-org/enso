@@ -87,7 +87,7 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /**
-   * Returns the supported options descriptors, for use by Graal's engine. `
+   * Returns the supported options descriptors, for use by Graal's engine.
    *
    * @return The supported options descriptors
    */
@@ -104,6 +104,6 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected Iterable<Scope> findTopScopes(Context context) {
-    return Collections.singleton(context.getCompiler().topScope().getScope());
+    return Collections.singleton(context.getTopScope().getScope());
   }
 }

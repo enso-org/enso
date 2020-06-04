@@ -58,8 +58,6 @@ public abstract class EvalNode extends BaseNode {
 
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
     LocalScope localScope = scope.createChild();
-    Language language = lookupLanguageReference(Language.class).get();
-    Context context = lookupContextReference(Language.class).get();
     InlineContext inlineContext =
         InlineContext.fromJava(
             localScope, moduleScope, isTail());

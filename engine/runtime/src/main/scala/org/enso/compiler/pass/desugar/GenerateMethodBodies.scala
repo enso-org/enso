@@ -5,6 +5,9 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Error.Redefined
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, TailCall}
+import org.enso.compiler.pass.lint.UnusedBindings
+import org.enso.compiler.pass.optimise.LambdaConsolidate
 
 /** This pass is responsible for ensuring that method bodies are in the correct
   * format.
@@ -29,8 +32,16 @@ case object GenerateMethodBodies extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass]   = List()
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override val precursorPasses: Seq[IRPass] =
+    List(ComplexType, FunctionBinding)
+  override val invalidatedPasses: Seq[IRPass] = List(
+    AliasAnalysis,
+    DataflowAnalysis,
+    LambdaConsolidate,
+    NestedPatternMatch,
+    TailCall,
+    UnusedBindings
+  )
 
   /** Generates and consolidates method bodies.
     *

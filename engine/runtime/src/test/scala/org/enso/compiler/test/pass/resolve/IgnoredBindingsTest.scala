@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.compiler.pass.resolve.IgnoredBindings.State
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
@@ -125,6 +126,58 @@ class IgnoredBindingsTest extends CompilerTest {
         bindingBody.expressions.head.asInstanceOf[IR.Expression.Binding]
 
       ignoredInBlock.name shouldBe an[IR.Name.Literal]
+    }
+  }
+
+  "Ignored bindings for patterns" should {
+    implicit val ctx: InlineContext = mkInlineContext
+
+    val ir =
+      """
+        |case x of
+        |    Cons a _ -> case y of
+        |        MyCons a _ -> 10
+        |""".stripMargin.preprocessExpression.get.desugar
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Case.Expr]
+
+    val pattern    = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
+    val aPat       = pattern.fields.head.asInstanceOf[Pattern.Name]
+    val ignoredPat = pattern.fields(1).asInstanceOf[Pattern.Name]
+
+    val nestedCase = ir.branches.head.expression
+      .asInstanceOf[IR.Expression.Block]
+      .returnValue
+      .asInstanceOf[IR.Case.Expr]
+    val nestedPattern =
+      nestedCase.branches.head.pattern.asInstanceOf[Pattern.Constructor]
+    val nestedAPat       = nestedPattern.fields.head.asInstanceOf[Pattern.Name]
+    val nestedIgnoredPat = nestedPattern.fields(1).asInstanceOf[Pattern.Name]
+
+    "replace the ignored binding with a fresh name" in {
+      ignoredPat.name should not be an[IR.Name.Blank]
+    }
+
+    "mark the binding as ignored if it was" in {
+      ignoredPat.name.getMetadata(IgnoredBindings) shouldEqual Some(
+        State.Ignored
+      )
+    }
+
+    "mark the binding as not ignored if it wasn't" in {
+      aPat.name.getMetadata(IgnoredBindings) shouldEqual Some(
+        State.NotIgnored
+      )
+    }
+
+    "work when deeply nested" in {
+      nestedAPat.name.getMetadata(IgnoredBindings) shouldEqual Some(
+        State.NotIgnored
+      )
+      nestedIgnoredPat.name.getMetadata(IgnoredBindings) shouldEqual Some(
+        State.Ignored
+      )
     }
   }
 }

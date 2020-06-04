@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -278,13 +279,12 @@ case object TailCall extends IRPass {
     */
   def analyseCase(caseExpr: IR.Case, isInTailPosition: Boolean): IR.Case = {
     caseExpr match {
-      case caseExpr @ IR.Case.Expr(scrutinee, branches, fallback, _, _, _) =>
+      case caseExpr @ IR.Case.Expr(scrutinee, branches, _, _, _) =>
         caseExpr
           .copy(
             scrutinee = analyseExpression(scrutinee, isInTailPosition = false),
             // Note [Analysing Branches in Case Expressions]
-            branches = branches.map(analyseCaseBranch(_, isInTailPosition)),
-            fallback = fallback.map(analyseExpression(_, isInTailPosition))
+            branches = branches.map(analyseCaseBranch(_, isInTailPosition))
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
       case _: IR.Case.Branch =>
@@ -316,13 +316,38 @@ case object TailCall extends IRPass {
   ): IR.Case.Branch = {
     branch
       .copy(
-        pattern = analyseExpression(branch.pattern, isInTailPosition = false),
+        pattern = analysePattern(branch.pattern),
         expression = analyseExpression(
           branch.expression,
           isInTailPosition
         )
       )
       .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+  }
+
+  /** Performs tail call analysis on a pattern.
+    *
+    * @param pattern the pattern to analyse
+    * @return `pattern`, annotated with tail position metadata
+    */
+  def analysePattern(
+    pattern: IR.Pattern
+  ): IR.Pattern = {
+    pattern match {
+      case namePat @ Pattern.Name(name, _, _, _) =>
+        namePat
+          .copy(
+            name = analyseName(name, isInTailPosition = false)
+          )
+          .updateMetadata(this -->> TailPosition.NotTail)
+      case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
+        cons
+          .copy(
+            constructor = analyseName(constructor, isInTailPosition = false),
+            fields      = fields.map(analysePattern)
+          )
+          .updateMetadata(this -->> TailPosition.NotTail)
+    }
   }
 
   /** Performs tail call analysis on a function definition.

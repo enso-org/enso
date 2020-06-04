@@ -3,24 +3,34 @@ package org.enso.compiler.pass.desugar
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis
+}
+import org.enso.compiler.pass.optimise.LambdaConsolidate
 
 /** This pass converts usages of operators to calls to standard functions.
- *
- * This pass requires the context to provide:
- *
- * - Nothing
- */
+  *
+  * This pass requires the context to provide:
+  *
+  * - Nothing
+  */
 case object OperatorToFunction extends IRPass {
 
   /** A purely desugaring pass has no analysis output. */
   override type Metadata = IRPass.Metadata.Empty
-  override type Config = IRPass.Configuration.Default
+  override type Config   = IRPass.Configuration.Default
 
   override val precursorPasses: Seq[IRPass] = List(
     GenerateMethodBodies,
     SectionsToBinOp
   )
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override val invalidatedPasses: Seq[IRPass] = List(
+    AliasAnalysis,
+    DataflowAnalysis,
+    DemandAnalysis
+  )
 
   /** Executes the conversion pass.
     *
@@ -35,7 +45,7 @@ case object OperatorToFunction extends IRPass {
     moduleContext: ModuleContext
   ): IR.Module =
     ir.transformExpressions({
-      case x => runExpression(x, new InlineContext)
+      case x => runExpression(x, new InlineContext())
     })
 
   /** Executes the conversion pass in an inline context.

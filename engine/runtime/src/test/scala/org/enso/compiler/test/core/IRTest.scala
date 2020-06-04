@@ -65,9 +65,9 @@ class IRTest extends CompilerTest {
       )
 
       val expectedResult = List(
-          mkDiagnostic("aaa"),
-          mkDiagnostic("aaa"),
-          mkDiagnostic("aaa")
+        mkDiagnostic("aaa"),
+        mkDiagnostic("aaa"),
+        mkDiagnostic("aaa")
       )
 
       diagnostics.mapInPlace {
@@ -146,10 +146,12 @@ class IRTest extends CompilerTest {
         )
       )
 
-      diagnostics.foldLeft("")((str, d) => d match {
-        case f: IR.Warning.Shadowed.FunctionParam => str + f.shadowedName
-        case _ => str
-      }) shouldEqual "abcd"
+      diagnostics.foldLeft("")((str, d) =>
+        d match {
+          case f: IR.Warning.Shadowed.FunctionParam => str + f.shadowedName
+          case _                                    => str
+        }
+      ) shouldEqual "abcd"
     }
   }
 }

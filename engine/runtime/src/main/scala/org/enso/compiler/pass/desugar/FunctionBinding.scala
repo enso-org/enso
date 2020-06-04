@@ -6,6 +6,9 @@ import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
+import org.enso.compiler.pass.optimise.LambdaConsolidate
+import org.enso.compiler.pass.resolve.IgnoredBindings
 
 import scala.annotation.unused
 
@@ -25,8 +28,20 @@ case object FunctionBinding extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override val precursorPasses: Seq[IRPass]   = List(ComplexType)
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override val precursorPasses: Seq[IRPass] = List(ComplexType)
+  override val invalidatedPasses: Seq[IRPass] = List(
+    AliasAnalysis,
+    DataflowAnalysis,
+    DemandAnalysis,
+    GenerateMethodBodies,
+    IgnoredBindings,
+    LambdaConsolidate,
+    LambdaShorthandToLambda,
+    NestedPatternMatch,
+    OperatorToFunction,
+    SectionsToBinOp,
+    TailCall
+  )
 
   /** Rusn desugaring of sugared method and function bindings on a module.
     *

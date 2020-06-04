@@ -4,6 +4,22 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
+import org.enso.compiler.pass.lint.UnusedBindings
+import org.enso.compiler.pass.optimise.{
+  ApplicationSaturation,
+  LambdaConsolidate
+}
+import org.enso.compiler.pass.resolve.{
+  DocumentationComments,
+  IgnoredBindings,
+  OverloadsResolution
+}
 
 /** This pass translates `_` arguments at application sites to lambda functions.
   *
@@ -18,11 +34,24 @@ case object LambdaShorthandToLambda extends IRPass {
   override type Config   = IRPass.Configuration.Default
 
   override val precursorPasses: Seq[IRPass] = List(
+    ComplexType,
+    DocumentationComments,
+    FunctionBinding,
     GenerateMethodBodies,
-    SectionsToBinOp,
-    OperatorToFunction
+    OperatorToFunction,
+    SectionsToBinOp
   )
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override val invalidatedPasses: Seq[IRPass] = List(
+    AliasAnalysis,
+    ApplicationSaturation,
+    DataflowAnalysis,
+    DemandAnalysis,
+    IgnoredBindings,
+    LambdaConsolidate,
+    OverloadsResolution,
+    TailCall,
+    UnusedBindings
+  )
 
   /** Desugars underscore arguments to lambdas for a module.
     *
@@ -325,8 +354,6 @@ case object LambdaShorthandToLambda extends IRPass {
     val newBranches = caseExpr.branches.map(
       _.mapExpressions(expr => desugarExpression(expr, freshNameSupply))
     )
-    val newFallback =
-      caseExpr.fallback.map(desugarExpression(_, freshNameSupply))
 
     caseExpr.scrutinee match {
       case IR.Name.Blank(loc, passData, diagnostics) =>
@@ -348,8 +375,7 @@ case object LambdaShorthandToLambda extends IRPass {
 
         val newCaseExpr = caseExpr.copy(
           scrutinee = scrutineeName,
-          branches  = newBranches,
-          fallback  = newFallback
+          branches  = newBranches
         )
 
         IR.Function.Lambda(
@@ -362,8 +388,7 @@ case object LambdaShorthandToLambda extends IRPass {
       case x =>
         caseExpr.copy(
           scrutinee = desugarExpression(x, freshNameSupply),
-          branches  = newBranches,
-          fallback  = newFallback
+          branches  = newBranches
         )
     }
   }

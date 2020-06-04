@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies}
 
 /** Associates doc comments with the commented entities as metadata.
   *
@@ -17,8 +18,11 @@ case object DocumentationComments extends IRPass {
   override type Metadata = Doc
   override type Config   = IRPass.Configuration.Default
 
-  override val invalidatedPasses: Seq[IRPass] = Seq()
-  override val precursorPasses: Seq[IRPass]   = Seq()
+  override val precursorPasses: Seq[IRPass] = Seq()
+  override val invalidatedPasses: Seq[IRPass] = Seq(
+    ComplexType,
+    GenerateMethodBodies
+  )
 
   /** Collects comments for a module and assigns them to the commented
     * entities as metadata.
@@ -49,6 +53,11 @@ case object DocumentationComments extends IRPass {
 
   // === Pass Internals =======================================================
 
+  /** Resolves documentation comments for expressions where it is necessary.
+    *
+    * @param ir the IR node to resolve comments in
+    * @return `ir`, with any doc comments associated with nodes as metadata
+    */
   private def resolveExpression(ir: IR.Expression): IR.Expression =
     ir.transformExpressions({
       case block: IR.Expression.Block =>
@@ -58,6 +67,12 @@ case object DocumentationComments extends IRPass {
         block.copy(expressions = newExpressions, returnValue = newReturn)
     })
 
+  /** Resolves documentation comments in an arbitrary list of IRs.
+    *
+    * @param items the list of IRs
+    * @tparam T the type of IR in the list
+    * @return `items`, with any doc comments associated with nodes as metadata
+    */
   private def resolveList[T <: IR](items: List[T]): List[T] = {
     var lastDoc: Option[IR.Comment.Documentation] = None
     items.flatMap {
@@ -74,6 +89,11 @@ case object DocumentationComments extends IRPass {
     }
   }
 
+  /** Resolves documentation comments in a top-level definition.
+    *
+    * @param ir the definition to resolve comments in
+    * @return `ir`, with any doc comments associated with nodes as metadata
+    */
   private def resolveDefinition(
     ir: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = ir match {
@@ -88,11 +108,21 @@ case object DocumentationComments extends IRPass {
     case err: IR.Error                      => err
   }
 
+  /** Resolves documentation comments in a module.
+    *
+    * @param ir the module to resolve comments in
+    * @return `ir`, with any doc comments associated with nodes as metadata
+    */
   private def resolveModule(ir: IR.Module): IR.Module = {
     val newBindings = resolveList(ir.bindings).map(resolveDefinition)
     ir.copy(bindings = newBindings)
   }
 
+  /** Resolves documentation comments in an arbitrary IR.
+    *
+    * @param ir the ir to resolve comments in
+    * @return `ir`, with any doc comments associated with nodes as metadata
+    */
   private def resolveIr(ir: IR): IR = ir match {
     case module: IR.Module              => resolveModule(module)
     case expr: IR.Expression            => resolveExpression(expr)
@@ -100,10 +130,15 @@ case object DocumentationComments extends IRPass {
     case imp: IR.Module.Scope.Import    => imp
     case arg: IR.CallArgument           => arg
     case arg: IR.DefinitionArgument     => arg
+    case pat: IR.Pattern                => pat
   }
 
   // === Metadata =============================================================
 
+  /** The documentation metadata for a node.
+    *
+    * @param documentation the documentation as a string
+    */
   sealed case class Doc(documentation: String) extends IRPass.Metadata {
     override val metadataName: String = "DocumentationComments.Doc"
   }

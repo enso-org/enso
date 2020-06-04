@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
@@ -884,33 +885,91 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val caseExpr   = ir.asInstanceOf[IR.Case.Expr]
-      val scrutinee  = caseExpr.scrutinee.asInstanceOf[IR.Application.Prefix]
+      val caseBlock = ir.asInstanceOf[IR.Expression.Block]
+      val caseBinding =
+        caseBlock.expressions.head.asInstanceOf[IR.Expression.Binding]
+      val caseBindingExpr =
+        caseBinding.expression.asInstanceOf[IR.Application.Prefix]
+      val caseBindingName = caseBinding.name.asInstanceOf[IR.Name.Literal]
+      val caseExpr   = caseBlock.returnValue.asInstanceOf[IR.Case.Expr]
+      val scrutinee  = caseExpr.scrutinee.asInstanceOf[IR.Name.Literal]
       val consBranch = caseExpr.branches.head
+
       val consBranchPattern =
-        consBranch.pattern.asInstanceOf[IR.Name.Literal]
-      val consBranchExpr =
-        consBranch.expression.asInstanceOf[IR.Function.Lambda]
-      val fallbackBranchExpr =
-        caseExpr.fallback.get.asInstanceOf[IR.Function.Lambda]
+        consBranch.pattern.asInstanceOf[Pattern.Constructor]
+      val consBranchPatternCons = consBranchPattern.constructor
+      val consBranchAPattern =
+        consBranchPattern.fields.head.asInstanceOf[Pattern.Name]
+      val consBranchADef = consBranchAPattern.name
+      val consBranchBPattern =
+        consBranchPattern.fields(1).asInstanceOf[Pattern.Name]
+      val consBranchBDef = consBranchBPattern.name
+
+      val consBranchExpression =
+        consBranch.expression.asInstanceOf[IR.Application.Prefix]
+      val aArg = consBranchExpression.arguments.head
+        .asInstanceOf[IR.CallArgument.Specified]
+      val aUse = aArg.value.asInstanceOf[IR.Name.Literal]
+      val bArg = consBranchExpression
+        .arguments(1)
+        .asInstanceOf[IR.CallArgument.Specified]
+      val bUse = bArg.value.asInstanceOf[IR.Name.Literal]
 
       // The IDs
-      val caseExprId           = mkStaticDep(caseExpr.getId)
-      val scrutineeId          = mkStaticDep(scrutinee.getId)
-      val consBranchId         = mkStaticDep(consBranch.getId)
-      val consBranchPatternId  = mkStaticDep(consBranchPattern.getId)
-      val consBranchExprId     = mkStaticDep(consBranchExpr.getId)
-      val fallbackBranchExprId = mkStaticDep(fallbackBranchExpr.getId)
+      val caseBlockId       = mkStaticDep(caseBlock.getId)
+      val caseBindingId     = mkStaticDep(caseBinding.getId)
+      val caseBindingExprId = mkStaticDep(caseBindingExpr.getId)
+      val caseBindingNameId = mkStaticDep(caseBindingName.getId)
+      val caseExprId        = mkStaticDep(caseExpr.getId)
+      val scrutineeId       = mkStaticDep(scrutinee.getId)
+      val consBranchId      = mkStaticDep(consBranch.getId)
+
+      val consBranchPatternId     = mkStaticDep(consBranchPattern.getId)
+      val consBranchPatternConsId = mkStaticDep(consBranchPatternCons.getId)
+      val consBranchAPatternId    = mkStaticDep(consBranchAPattern.getId)
+      val consBranchADefId        = mkStaticDep(consBranchADef.getId)
+      val consBranchBPatternId    = mkStaticDep(consBranchBPattern.getId)
+      val consBranchBDefId        = mkStaticDep(consBranchBDef.getId)
+
+      val consBranchExpressionId = mkStaticDep(consBranchExpression.getId)
+      val aArgId                 = mkStaticDep(aArg.getId)
+      val aUseId                 = mkStaticDep(aUse.getId)
+      val bArgId                 = mkStaticDep(bArg.getId)
+      val bUseId                 = mkStaticDep(bUse.getId)
 
       // The Test
-      depInfo.getDirect(caseExprId) should not be defined
+      depInfo.getDirect(caseBlockId) should not be defined
+      depInfo.getDirect(caseExprId) shouldEqual Some(Set(caseBlockId))
       depInfo.getDirect(scrutineeId) shouldEqual Some(Set(caseExprId))
+      depInfo.getDirect(caseBindingId) shouldEqual Some(Set(scrutineeId))
+      depInfo.getDirect(caseBindingExprId) shouldEqual Some(Set(caseBindingId))
+      depInfo.getDirect(caseBindingNameId) shouldEqual Some(Set(caseBindingId))
       depInfo.getDirect(consBranchId) shouldEqual Some(Set(caseExprId))
+
       depInfo.getDirect(consBranchPatternId) shouldEqual Some(Set(consBranchId))
-      depInfo.getDirect(consBranchExprId) shouldEqual Some(Set(consBranchId))
-      depInfo.getDirect(fallbackBranchExprId) shouldEqual Some(
-        Set(caseExprId)
+      depInfo.getDirect(consBranchPatternConsId) shouldEqual Some(
+        Set(consBranchPatternId)
       )
+      depInfo.getDirect(consBranchAPatternId) shouldEqual Some(
+        Set(consBranchPatternId)
+      )
+      depInfo.getDirect(consBranchADefId) shouldEqual Some(
+        Set(consBranchAPatternId, aUseId)
+      )
+      depInfo.getDirect(consBranchBPatternId) shouldEqual Some(
+        Set(consBranchPatternId)
+      )
+      depInfo.getDirect(consBranchBDefId) shouldEqual Some(
+        Set(consBranchBPatternId, bUseId)
+      )
+
+      depInfo.getDirect(consBranchExpressionId) shouldEqual Some(
+        Set(consBranchId)
+      )
+      depInfo.getDirect(aArgId) shouldEqual Some(Set(consBranchExpressionId))
+      depInfo.getDirect(aUseId) shouldEqual Some(Set(aArgId))
+      depInfo.getDirect(bArgId) shouldEqual Some(Set(consBranchExpressionId))
+      depInfo.getDirect(bUseId) shouldEqual Some(Set(bArgId))
     }
 
     "have the result data associated with literals" in {

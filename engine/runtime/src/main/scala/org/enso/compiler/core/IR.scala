@@ -13,6 +13,8 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.syntax.text.{AST, Debug, Location}
 
+import scala.annotation.unused
+
 /** [[IR]] is a temporary and fairly unsophisticated internal representation
   * format for Enso programs.
   *
@@ -92,6 +94,25 @@ sealed trait IR {
 
   /** Storage for compiler diagnostics related to the IR node. */
   val diagnostics: DiagnosticStorage
+
+  /** Creates a deep structural copy of `this`, representing the same structure
+    * but with all new identifiers.
+    *
+    * The location, diagnostics and metadata will be empty in the duplicated
+    * node.
+    *
+    * @param keepLocations whether or not locations should be kept in the
+    *                      duplicated IR
+    * @return a deep structural copy of `this`
+    */
+  def duplicate(keepLocations: Boolean = true): IR
+
+  /** Shows the IR as code.
+    *
+    * @param indent the current indentation level
+    * @return a string representation of `this`
+    */
+  def showCode(indent: Int = 0): String
 }
 object IR {
 
@@ -144,6 +165,18 @@ object IR {
       IdentifiedLocation(location, None)
   }
 
+  /** Generates an indent of `n` spaces.
+    *
+    * @param n the number of spaces
+    * @return a string representing an `n`-space indent
+    */
+  def mkIndent(n: Int): String = {
+    " " * n
+  }
+
+  /** The size of a single indentation level. */
+  val indentLevel: Int = 4
+
   // === Basic Shapes =========================================================
 
   /** A node representing an empty IR construct that can be used in any place.
@@ -181,6 +214,14 @@ object IR {
       res
     }
 
+    override def duplicate(keepLocations: Boolean = true): Empty =
+      copy(
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
     override def setLocation(location: Option[IdentifiedLocation]): Empty =
       copy(location = location)
 
@@ -200,6 +241,8 @@ object IR {
 
     override def message: String =
       "Empty IR: Please report this as a compiler bug."
+
+    override def showCode(indent: Int): String = "IR.Empty"
   }
 
   // === Module ===============================================================
@@ -248,6 +291,16 @@ object IR {
       res
     }
 
+    override def duplicate(keepLocations: Boolean = true): Module =
+      copy(
+        imports     = imports.map(_.duplicate(keepLocations)),
+        bindings    = bindings.map(_.duplicate(keepLocations)),
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
     override def setLocation(location: Option[IdentifiedLocation]): Module =
       copy(location = location)
 
@@ -279,6 +332,20 @@ object IR {
       |id = $id
       |)
       |""".toSingleLine
+
+    override def showCode(indent: Int): String = {
+      val importsString = imports.map(_.showCode(indent)).mkString("\n")
+
+      val defsString = bindings.map(_.showCode(indent)).mkString("\n\n")
+
+      if (bindings.nonEmpty && imports.nonEmpty) {
+        s"$importsString\n\n$defsString"
+      } else if (bindings.nonEmpty) {
+        s"$defsString"
+      } else {
+        s"$importsString"
+      }
+    }
   }
   object Module {
 
@@ -288,6 +355,7 @@ object IR {
     sealed trait Scope extends IR {
       override def mapExpressions(fn: Expression => Expression):      Scope
       override def setLocation(location: Option[IdentifiedLocation]): Scope
+      override def duplicate(keepLocations: Boolean = true): Scope
     }
     object Scope {
 
@@ -295,6 +363,7 @@ object IR {
       sealed trait Import extends Scope {
         override def mapExpressions(fn: Expression => Expression):      Import
         override def setLocation(location: Option[IdentifiedLocation]): Import
+        override def duplicate(keepLocations: Boolean = true): Import
       }
 
       object Import {
@@ -336,6 +405,14 @@ object IR {
             res
           }
 
+          override def duplicate(keepLocations: Boolean = true): Module =
+            copy(
+              location    = if (keepLocations) location else None,
+              passData    = MetadataStorage(),
+              diagnostics = DiagnosticStorage(),
+              id          = randomId
+            )
+
           override def setLocation(
             location: Option[IdentifiedLocation]
           ): Module =
@@ -357,12 +434,18 @@ object IR {
             |""".toSingleLine
 
           override def children: List[IR] = List()
+
+          override def showCode(indent: Int): String = s"import $name"
         }
 
         object Polyglot {
 
           /** Represents language-specific polyglot import data. */
-          sealed trait Entity
+          sealed trait Entity {
+            val langName: String
+
+            def showCode(indent: Int = 0): String
+          }
 
           /** Represents an import of a Java class.
             *
@@ -370,7 +453,13 @@ object IR {
             *                    class
             * @param className the class name
             */
-          case class Java(packageName: String, className: String) extends Entity
+          case class Java(packageName: String, className: String)
+              extends Entity {
+            val langName = "java"
+
+            override def showCode(indent: Int): String =
+              s"$packageName.$className"
+          }
         }
 
         /** An import of a polyglot class.
@@ -411,6 +500,14 @@ object IR {
             res
           }
 
+          override def duplicate(keepLocations: Boolean = true): Polyglot =
+            copy(
+              location    = if (keepLocations) location else None,
+              passData    = MetadataStorage(),
+              diagnostics = DiagnosticStorage(),
+              id          = randomId
+            )
+
           override def setLocation(
             location: Option[IdentifiedLocation]
           ): Polyglot = copy(location = location)
@@ -430,6 +527,10 @@ object IR {
             |""".toSingleLine
 
           override def children: List[IR] = List()
+
+          override def showCode(indent: Int): String = {
+            s"polyglot ${entity.langName} import ${entity.showCode(indent)}"
+          }
         }
       }
 
@@ -439,6 +540,7 @@ object IR {
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Definition
+        override def duplicate(keepLocations: Boolean = true): Definition
       }
       object Definition {
 
@@ -483,6 +585,15 @@ object IR {
             res
           }
 
+          override def duplicate(keepLocations: Boolean = true): Atom = copy(
+            name        = name.duplicate(keepLocations),
+            arguments   = arguments.map(_.duplicate(keepLocations)),
+            location    = if (keepLocations) location else None,
+            passData    = MetadataStorage(),
+            diagnostics = DiagnosticStorage(),
+            id          = randomId
+          )
+
           override def setLocation(location: Option[IdentifiedLocation]): Atom =
             copy(location = location)
 
@@ -506,6 +617,12 @@ object IR {
             |""".toSingleLine
 
           override def children: List[IR] = name :: arguments
+
+          override def showCode(indent: Int): String = {
+            val fields = arguments.map(_.showCode(indent)).mkString(" ")
+
+            s"type ${name.showCode(indent)} $fields"
+          }
         }
 
         /** The definition of a complex type definition that may contain
@@ -561,6 +678,17 @@ object IR {
             res
           }
 
+          override def duplicate(keepLocations: Boolean = true): Type =
+            copy(
+              name        = name.duplicate(keepLocations),
+              arguments   = arguments.map(_.duplicate(keepLocations)),
+              body        = body.map(_.duplicate(keepLocations)),
+              location    = if (keepLocations) location else None,
+              passData    = MetadataStorage(),
+              diagnostics = DiagnosticStorage(),
+              id          = randomId
+            )
+
           override def mapExpressions(fn: Expression => Expression): Type =
             copy(body = body.map(_.mapExpressions(fn)))
 
@@ -575,13 +703,24 @@ object IR {
             |arguments = $arguments,
             |body = $body,
             |location = $location,
-            |passData = $passData,
+            |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
             |id = $id
             |)
             |""".toSingleLine
 
           override def children: List[IR] = (name :: arguments) ::: body
+
+          override def showCode(indent: Int): String = {
+            val headerArgs = arguments.map(_.showCode(indent)).mkString(" ")
+            val header     = s"type ${name.name} $headerArgs"
+            val newIndent  = indent + indentLevel
+            val bodyStr = body
+              .map(mkIndent(newIndent) + _.showCode(newIndent))
+              .mkString("\n\n")
+
+            s"$header\n$bodyStr"
+          }
         }
 
         /** A trait representing method definitions in Enso. */
@@ -592,6 +731,7 @@ object IR {
 
           override def setLocation(location: Option[IdentifiedLocation]): Method
           override def mapExpressions(fn: Expression => Expression):      Method
+          override def duplicate(keepLocations: Boolean = true): Method
         }
         object Method {
 
@@ -650,6 +790,17 @@ object IR {
               res
             }
 
+            override def duplicate(keepLocations: Boolean = true): Explicit =
+              copy(
+                typeName    = typeName.duplicate(keepLocations),
+                methodName  = methodName.duplicate(keepLocations),
+                body        = body.duplicate(keepLocations),
+                location    = if (keepLocations) location else None,
+                passData    = MetadataStorage(),
+                diagnostics = DiagnosticStorage(),
+                id          = randomId
+              )
+
             override def setLocation(
               location: Option[IdentifiedLocation]
             ): Explicit =
@@ -679,6 +830,16 @@ object IR {
               |""".toSingleLine
 
             override def children: List[IR] = List(typeName, methodName, body)
+
+            override def showCode(indent: Int): String = {
+              val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
+                s"\n${body.showCode(indent)}"
+              } else {
+                s"${body.showCode(indent)}"
+              }
+
+              s"$typeName.$methodName = $exprStr"
+            }
           }
 
           /** The definition of a method for a given constructor [[typeName]]
@@ -743,6 +904,18 @@ object IR {
               res
             }
 
+            override def duplicate(keepLocations: Boolean = true): Binding =
+              copy(
+                typeName    = typeName.duplicate(keepLocations),
+                methodName  = methodName.duplicate(keepLocations),
+                arguments   = arguments.map(_.duplicate(keepLocations)),
+                body        = body.duplicate(keepLocations),
+                location    = if (keepLocations) location else None,
+                passData    = MetadataStorage(),
+                diagnostics = DiagnosticStorage(),
+                id          = randomId
+              )
+
             override def setLocation(
               location: Option[IdentifiedLocation]
             ): Binding =
@@ -767,7 +940,7 @@ object IR {
               |arguments = $arguments,
               |body = $body,
               |location = $location,
-              |passData = $passData,
+              |passData = ${this.showPassData},
               |diagnostics = $diagnostics,
               |id = $id
               |)
@@ -775,6 +948,18 @@ object IR {
 
             override def children: List[IR] =
               (typeName :: methodName :: arguments) :+ body
+
+            override def showCode(indent: Int): String = {
+              val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
+                s"\n${body.showCode(indent)}"
+              } else {
+                s"${body.showCode(indent)}"
+              }
+
+              val argsStr = arguments.map(_.showCode(indent)).mkString(" ")
+
+              s"${typeName.name}.${methodName.name} $argsStr = $exprStr"
+            }
           }
         }
       }
@@ -803,6 +988,7 @@ object IR {
 
     override def mapExpressions(fn: Expression => Expression):      Expression
     override def setLocation(location: Option[IdentifiedLocation]): Expression
+    override def duplicate(keepLocations: Boolean = true): Expression
   }
   object Expression {
 
@@ -859,6 +1045,16 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Block =
+        copy(
+          expressions = expressions.map(_.duplicate(keepLocations)),
+          returnValue = returnValue.duplicate(keepLocations),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): Block =
         copy(location = location)
 
@@ -883,6 +1079,16 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = expressions :+ returnValue
+
+      override def showCode(indent: Int): String = {
+        val newIndent = indent + indentLevel
+        val expressionsStr = expressions
+          .map(mkIndent(newIndent) + _.showCode(newIndent))
+          .mkString("\n")
+        val returnStr = mkIndent(newIndent) + returnValue.showCode(newIndent)
+
+        s"$expressionsStr\n$returnStr"
+      }
     }
 
     /** A binding expression of the form `name = expr`
@@ -929,6 +1135,16 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Binding =
+        copy(
+          name        = name.duplicate(keepLocations),
+          expression  = expression.duplicate(keepLocations),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): Binding =
         copy(location = location)
 
@@ -949,6 +1165,9 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List(name, expression)
+
+      override def showCode(indent: Int): String =
+        s"${name.showCode(indent)} = ${expression.showCode(indent)}"
     }
   }
 
@@ -958,6 +1177,7 @@ object IR {
   sealed trait Literal extends Expression with IRKind.Primitive {
     override def mapExpressions(fn: Expression => Expression):      Literal
     override def setLocation(location: Option[IdentifiedLocation]): Literal
+    override def duplicate(keepLocations: Boolean = true): Literal
   }
   object Literal {
 
@@ -997,6 +1217,14 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Number =
+        copy(
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): Number =
         copy(location = location)
 
@@ -1013,6 +1241,8 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = value
     }
 
     /** A textual Enso literal.
@@ -1051,6 +1281,14 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Text =
+        copy(
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): Text =
         copy(location = location)
 
@@ -1068,6 +1306,8 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = text
     }
   }
 
@@ -1079,12 +1319,33 @@ object IR {
 
     override def mapExpressions(fn: Expression => Expression):      Name
     override def setLocation(location: Option[IdentifiedLocation]): Name
+    override def duplicate(keepLocations: Boolean = true): Name
+
+    /** Checks whether a name is in referant form.
+      *
+      * Please see the syntax specification for more details on this form.
+      *
+      * @return `true` if `this` is in referant form, otherwise `false`
+      */
+    def isReferant: Boolean = {
+      name.split("_").filterNot(_.isEmpty).forall(_.head.isUpper)
+    }
+
+    /** Checks whether a name is in variable form.
+      *
+      * Please see the syntax specification for more details on this form.
+      *
+      * @return `true` if `this` is in referant form, otherwise `false`
+      */
+    def isVariable: Boolean = !isReferant
+
+    // TODO [AA] toReferant and toVariable for converting forms
   }
   object Name {
 
     /** Represents occurrences of blank (`_`) expressions.
       *
-      * @param location the soure location that the node corresponds to.
+      * @param location the source location that the node corresponds to.
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
@@ -1097,9 +1358,9 @@ object IR {
       override val name: String             = "_"
       override protected var id: Identifier = randomId
 
-      /** Creates a copy of `this`.`
+      /** Creates a copy of `this`.
         *
-        * @param location the soure location that the node corresponds to.
+        * @param location the source location that the node corresponds to.
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the node
@@ -1116,6 +1377,14 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Blank =
+        copy(
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def mapExpressions(fn: Expression => Expression): Blank =
         this
 
@@ -1124,15 +1393,17 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Expression.Blank(
+           |IR.Name.Blank(
            |location = $location,
-           |passData = $passData,
+           |passData = ${this.showPassData},
            |diagnostics = $diagnostics,
            |id = $id
            |)
            |""".stripMargin
 
       override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = "_"
     }
 
     /** The representation of a literal name.
@@ -1171,6 +1442,14 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Literal =
+        copy(
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): Literal =
         copy(location = location)
 
@@ -1188,6 +1467,8 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = name
     }
 
     /** A representation of the name `this`, used to refer to the current type.
@@ -1223,6 +1504,14 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): This =
+        copy(
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): This =
         copy(location = location)
 
@@ -1239,6 +1528,8 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = "this"
     }
 
     /** A representation of the name `here`, used to refer to the current
@@ -1275,6 +1566,14 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Here =
+        copy(
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): Here =
         copy(location = location)
 
@@ -1290,6 +1589,8 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List()
+
+      override def showCode(indent: Int): String = "here"
     }
   }
 
@@ -1299,6 +1600,7 @@ object IR {
   sealed trait Type extends Expression {
     override def mapExpressions(fn: Expression => Expression):      Type
     override def setLocation(location: Option[IdentifiedLocation]): Type
+    override def duplicate(keepLocations: Boolean = true): Type
   }
   object Type {
 
@@ -1348,6 +1650,16 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Ascription =
+        copy(
+          typed       = typed.duplicate(keepLocations),
+          signature   = signature.duplicate(keepLocations),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Ascription = copy(location = location)
@@ -1368,6 +1680,9 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = List(typed, signature)
+
+      override def showCode(indent: Int): String =
+        s"${typed.showCode(indent)} : ${signature.showCode(indent)}"
     }
     object Ascription extends Info {
       override val name: String = ":"
@@ -1415,6 +1730,16 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Context =
+        copy(
+          typed       = typed.duplicate(keepLocations),
+          context     = context.duplicate(keepLocations),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): Context =
         copy(location = location)
 
@@ -1435,6 +1760,8 @@ object IR {
 
       override def children: List[IR] = List(typed, context)
 
+      override def showCode(indent: Int): String =
+        s"${typed.showCode(indent)} in ${context.showCode(indent)}"
     }
     object Context extends Info {
       override val name: String = "in"
@@ -1444,6 +1771,7 @@ object IR {
     sealed trait Set extends Type {
       override def mapExpressions(fn: Expression => Expression):      Set
       override def setLocation(location: Option[IdentifiedLocation]): Set
+      override def duplicate(keepLocations: Boolean = true): Set
     }
     object Set {
 
@@ -1493,6 +1821,16 @@ object IR {
           res
         }
 
+        override def duplicate(keepLocations: Boolean = true): Member = copy(
+          label       = label.duplicate(keepLocations),
+          memberType  = memberType.duplicate(keepLocations),
+          value       = value.duplicate(keepLocations),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(location: Option[IdentifiedLocation]): Member =
           copy(location = location)
 
@@ -1519,6 +1857,11 @@ object IR {
 
         override def children: List[IR] = List(label, memberType, value)
 
+        override def showCode(indent: Int): String = {
+          val typeString  = s" : ${memberType.showCode(indent)}"
+          val valueString = s" = ${value.showCode(indent)}"
+          s"(${label.showCode(indent)}$typeString$valueString)"
+        }
       }
       object Member extends Info {
         override val name: String = "_ : _ = _"
@@ -1565,6 +1908,16 @@ object IR {
           res
         }
 
+        override def duplicate(keepLocations: Boolean = true): Subsumption =
+          copy(
+            left        = left.duplicate(keepLocations),
+            right       = right.duplicate(keepLocations),
+            location    = if (keepLocations) location else None,
+            passData    = MetadataStorage(),
+            diagnostics = DiagnosticStorage(),
+            id          = randomId
+          )
+
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Subsumption = copy(location = location)
@@ -1588,6 +1941,8 @@ object IR {
 
         override def children: List[IR] = List(left, right)
 
+        override def showCode(indent: Int): String =
+          s"(${left.showCode(indent)} <: ${right.showCode(indent)})"
       }
       object Subsumption extends Info {
         override val name: String = "<:"
@@ -1634,6 +1989,15 @@ object IR {
           res
         }
 
+        override def duplicate(keepLocations: Boolean = true): Equality = copy(
+          left        = left.duplicate(keepLocations),
+          right       = right.duplicate(keepLocations),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Equality = copy(location = location)
@@ -1655,6 +2019,8 @@ object IR {
 
         override def children: List[IR] = List(left, right)
 
+        override def showCode(indent: Int): String =
+          s"(${left.showCode(indent)} ~ ${right.showCode(indent)}"
       }
       object Equality extends Info {
         override val name: String = "~"
@@ -1701,6 +2067,15 @@ object IR {
           res
         }
 
+        override def duplicate(keepLocations: Boolean = true): Concat = copy(
+          left        = left.duplicate(keepLocations),
+          right       = right.duplicate(keepLocations),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(location: Option[IdentifiedLocation]): Concat =
           copy(location = location)
 
@@ -1721,9 +2096,11 @@ object IR {
 
         override def children: List[IR] = List(left, right)
 
+        override def showCode(indent: Int): String =
+          s"(${left.showCode(indent)}; ${right.showCode(indent)})"
       }
       object Concat extends Info {
-        override val name: String = ","
+        override val name: String = ";"
       }
 
       /** The typeset union operator `|`.
@@ -1767,6 +2144,15 @@ object IR {
           res
         }
 
+        override def duplicate(keepLocations: Boolean = true): Union = copy(
+          left        = left.duplicate(keepLocations),
+          right       = right.duplicate(keepLocations),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(location: Option[IdentifiedLocation]): Union =
           copy(location = location)
 
@@ -1787,6 +2173,8 @@ object IR {
 
         override def children: List[IR] = List(left, right)
 
+        override def showCode(indent: Int): String =
+          s"(${left.showCode(indent)} | ${right.showCode(indent)})"
       }
       object Union extends Info {
         override val name: String = "|"
@@ -1833,6 +2221,16 @@ object IR {
           res
         }
 
+        override def duplicate(keepLocations: Boolean = true): Intersection =
+          copy(
+            left        = left.duplicate(keepLocations),
+            right       = right.duplicate(keepLocations),
+            location    = if (keepLocations) location else None,
+            passData    = MetadataStorage(),
+            diagnostics = DiagnosticStorage(),
+            id          = randomId
+          )
+
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Intersection = copy(location = location)
@@ -1856,6 +2254,8 @@ object IR {
 
         override def children: List[IR] = List(left, right)
 
+        override def showCode(indent: Int): String =
+          s"(${left.showCode(indent)} & ${right.showCode(indent)})"
       }
       object Intersection extends Info {
         override val name: String = "&"
@@ -1902,6 +2302,16 @@ object IR {
           res
         }
 
+        override def duplicate(keepLocations: Boolean = true): Subtraction =
+          copy(
+            left        = left.duplicate(keepLocations),
+            right       = right.duplicate(keepLocations),
+            location    = if (keepLocations) location else None,
+            passData    = MetadataStorage(),
+            diagnostics = DiagnosticStorage(),
+            id          = randomId
+          )
+
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Subtraction = copy(location = location)
@@ -1925,6 +2335,8 @@ object IR {
 
         override def children: List[IR] = List(left, right)
 
+        override def showCode(indent: Int): String =
+          s"(${left.showCode(indent)} \\ ${right.showCode(indent)})"
       }
       object Subtraction extends Info {
         override val name: String = "\\"
@@ -1956,6 +2368,7 @@ object IR {
 
     override def mapExpressions(fn: Expression => Expression):      Function
     override def setLocation(location: Option[IdentifiedLocation]): Function
+    override def duplicate(keepLocations: Boolean = true): Function
   }
   object Function {
 
@@ -2009,6 +2422,15 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Lambda = copy(
+        arguments   = arguments.map(_.duplicate(keepLocations)),
+        body        = body.duplicate(keepLocations),
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(location: Option[IdentifiedLocation]): Lambda =
         copy(location = location)
 
@@ -2030,6 +2452,17 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = arguments :+ body
+
+      override def showCode(indent: Int): String = {
+        val args = arguments.map(_.showCode(indent)).mkString(" ")
+        val bodyStr = if (body.isInstanceOf[IR.Expression.Block]) {
+          s"\n${body.showCode(indent)}"
+        } else {
+          s"${body.showCode(indent)}"
+        }
+
+        s"$args -> $bodyStr"
+      }
     }
 
     /** A representation of the syntactic sugar for defining functions.
@@ -2090,6 +2523,16 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Binding = copy(
+        name        = name.duplicate(keepLocations),
+        arguments   = arguments.map(_.duplicate(keepLocations)),
+        body        = body.duplicate(keepLocations),
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(location: Option[IdentifiedLocation]): Binding =
         copy(location = location)
 
@@ -2115,6 +2558,17 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = (name :: arguments) :+ body
+
+      override def showCode(indent: Int): String = {
+        val argsStr = arguments.map(_.showCode(indent)).mkString(" ")
+        val bodyStr = if (body.isInstanceOf[IR.Expression.Block]) {
+          s"\n${body.showCode(indent)}"
+        } else {
+          s"${body.showCode(indent)}"
+        }
+
+        s"${name.name} $argsStr = $bodyStr"
+      }
     }
   }
 
@@ -2139,6 +2593,8 @@ object IR {
     override def setLocation(
       location: Option[IdentifiedLocation]
     ): DefinitionArgument
+
+    override def duplicate(keepLocations: Boolean = true): DefinitionArgument
   }
   object DefinitionArgument {
 
@@ -2198,6 +2654,15 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Specified = copy(
+        name         = name.duplicate(keepLocations),
+        defaultValue = defaultValue.map(_.duplicate(keepLocations)),
+        location     = if (keepLocations) location else None,
+        passData     = MetadataStorage(),
+        diagnostics  = DiagnosticStorage(),
+        id           = randomId
+      )
+
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Specified = copy(location = location)
@@ -2223,6 +2688,13 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = name :: defaultValue.toList
+
+      override def showCode(indent: Int): String =
+        if (defaultValue.isDefined) {
+          s"(${name.showCode(indent)} = ${defaultValue.get.showCode(indent)})"
+        } else {
+          s"${name.showCode(indent)}"
+        }
     }
   }
 
@@ -2232,6 +2704,7 @@ object IR {
   sealed trait Application extends Expression {
     override def mapExpressions(fn: Expression => Expression):      Application
     override def setLocation(location: Option[IdentifiedLocation]): Application
+    override def duplicate(keepLocations: Boolean = true): Application
   }
   object Application {
 
@@ -2290,6 +2763,15 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Prefix = copy(
+        function    = function.duplicate(keepLocations),
+        arguments   = arguments.map(_.duplicate(keepLocations)),
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(location: Option[IdentifiedLocation]): Prefix =
         copy(location = location)
 
@@ -2312,6 +2794,11 @@ object IR {
 
       override def children: List[IR] = function :: arguments
 
+      override def showCode(indent: Int): String = {
+        val argStr = arguments.map(_.showCode(indent)).mkString(" ")
+
+        s"((${function.showCode(indent)}) $argStr)"
+      }
     }
 
     /** A representation of a term that is explicitly forced.
@@ -2351,6 +2838,14 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Force = copy(
+        target      = target.duplicate(keepLocations),
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(location: Option[IdentifiedLocation]): Force =
         copy(location = location)
 
@@ -2371,12 +2866,15 @@ object IR {
 
       override def children: List[IR] = List(target)
 
+      override def showCode(indent: Int): String =
+        s"(FORCE ${target.showCode(indent)})"
     }
 
     /** Literal applications in Enso. */
     sealed trait Literal extends Application {
       override def mapExpressions(fn: Expression => Expression):      Literal
       override def setLocation(location: Option[IdentifiedLocation]): Literal
+      override def duplicate(keepLocations: Boolean = true): Literal
     }
 
     object Literal {
@@ -2421,6 +2919,14 @@ object IR {
           res
         }
 
+        override def duplicate(keepLocations: Boolean = true): Sequence = copy(
+          items       = items.map(_.duplicate(keepLocations)),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Sequence = copy(location = location)
@@ -2428,7 +2934,7 @@ object IR {
         override def toString: String =
           s"""
           |IR.Application.Literal.Vector(
-          |text = $items,
+          |items = $items,
           |location = $location,
           |passData = ${this.showPassData},
           |diagnostics = $diagnostics,
@@ -2437,6 +2943,11 @@ object IR {
           |""".toSingleLine
 
         override def children: List[IR] = items
+
+        override def showCode(indent: Int): String = {
+          val itemsStr = items.map(_.showCode(indent)).mkString(", ")
+          s"[$itemsStr]"
+        }
       }
     }
 
@@ -2444,6 +2955,7 @@ object IR {
     sealed trait Operator extends Application {
       override def mapExpressions(fn: Expression => Expression):      Operator
       override def setLocation(location: Option[IdentifiedLocation]): Operator
+      override def duplicate(keepLocations: Boolean = true): Operator
     }
     object Operator {
 
@@ -2493,6 +3005,16 @@ object IR {
           res
         }
 
+        override def duplicate(keepLocations: Boolean = true): Operator = copy(
+          left        = left.duplicate(keepLocations),
+          operator    = operator.duplicate(keepLocations),
+          right       = right.duplicate(keepLocations),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(location: Option[IdentifiedLocation]): Binary =
           copy(location = location)
 
@@ -2515,12 +3037,18 @@ object IR {
 
         override def children: List[IR] = List(left, operator, right)
 
+        override def showCode(indent: Int): String = {
+          val opStr = operator.showCode(indent)
+
+          s"(${left.showCode(indent)} $opStr ${right.showCode(indent)})"
+        }
       }
 
       /** Operator sections. */
       sealed trait Section extends Operator {
         override def mapExpressions(fn: Expression => Expression):      Section
         override def setLocation(location: Option[IdentifiedLocation]): Section
+        override def duplicate(keepLocations: Boolean = true): Section
       }
       object Section {
 
@@ -2565,6 +3093,15 @@ object IR {
             res
           }
 
+          override def duplicate(keepLocations: Boolean = true): Left = copy(
+            arg         = arg.duplicate(keepLocations),
+            operator    = operator.duplicate(keepLocations),
+            location    = if (keepLocations) location else None,
+            passData    = MetadataStorage(),
+            diagnostics = DiagnosticStorage(),
+            id          = randomId
+          )
+
           override def setLocation(location: Option[IdentifiedLocation]): Left =
             copy(location = location)
 
@@ -2580,13 +3117,16 @@ object IR {
             |arg = $arg,
             |operator =  $operator,
             |location = $location,
-            |passData = $passData,
+            |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
             |id = $id
             |)
             |""".toSingleLine
 
           override def children: List[IR] = List(arg, operator)
+
+          override def showCode(indent: Int): String =
+            s"(${arg.showCode(indent)} ${operator.showCode(indent)})"
         }
 
         /** Represents a sides operator section of the form `(op)`
@@ -2626,6 +3166,14 @@ object IR {
             res
           }
 
+          override def duplicate(keepLocations: Boolean = true): Sides = copy(
+            operator    = operator.duplicate(keepLocations),
+            location    = if (keepLocations) location else None,
+            passData    = MetadataStorage(),
+            diagnostics = DiagnosticStorage(),
+            id          = randomId
+          )
+
           override def setLocation(
             location: Option[IdentifiedLocation]
           ): Sides = copy(location = location)
@@ -2638,13 +3186,16 @@ object IR {
             |IR.Application.Operator.Section.Centre(
             |operator =  $operator,
             |location = $location,
-            |passData = $passData,
+            |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
             |id = $id
             |)
             |""".toSingleLine
 
           override def children: List[IR] = List(operator)
+
+          override def showCode(indent: Int): String =
+            s"(${operator.showCode(indent)})"
         }
 
         /** Represents a right operator section of the form `(op arg)`
@@ -2688,6 +3239,15 @@ object IR {
             res
           }
 
+          override def duplicate(keepLocations: Boolean = true): Right = copy(
+            operator    = operator.duplicate(keepLocations),
+            arg         = arg.duplicate(keepLocations),
+            location    = if (keepLocations) location else None,
+            passData    = MetadataStorage(),
+            diagnostics = DiagnosticStorage(),
+            id          = randomId
+          )
+
           override def setLocation(
             location: Option[IdentifiedLocation]
           ): Right = copy(location = location)
@@ -2705,13 +3265,16 @@ object IR {
             |operator =  $operator,
             |arg = $arg,
             |location = $location,
-            |passData = $passData,
+            |passData = ${this.showPassData},
             |diagnostics = $diagnostics,
             |id = $id
             |)
             |""".toSingleLine
 
           override def children: List[IR] = List(operator, arg)
+
+          override def showCode(indent: Int): String =
+            s"(${operator.showCode(indent)} ${arg.showCode(indent)})"
         }
       }
     }
@@ -2739,6 +3302,7 @@ object IR {
 
     override def mapExpressions(fn: Expression => Expression):      CallArgument
     override def setLocation(location: Option[IdentifiedLocation]): CallArgument
+    override def duplicate(keepLocations: Boolean = true): CallArgument
   }
   object CallArgument {
 
@@ -2799,6 +3363,15 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Specified = copy(
+        name        = name.map(_.duplicate(keepLocations)),
+        value       = value.duplicate(keepLocations),
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Specified = copy(location = location)
@@ -2821,6 +3394,14 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = name.toList :+ value
+
+      override def showCode(indent: Int): String = {
+        if (name.isDefined) {
+          s"(${name.get.showCode(indent)} = ${value.showCode(indent)})"
+        } else {
+          s"${value.showCode(indent)}"
+        }
+      }
     }
   }
 
@@ -2830,6 +3411,7 @@ object IR {
   sealed trait Case extends Expression {
     override def mapExpressions(fn: Expression => Expression):      Case
     override def setLocation(location: Option[IdentifiedLocation]): Case
+    override def duplicate(keepLocations: Boolean = true): Case
   }
   object Case {
 
@@ -2837,7 +3419,6 @@ object IR {
       *
       * @param scrutinee the expression whose value is being matched on
       * @param branches the branches of the case expression
-      * @param fallback a fallback branch, if provided explicitly
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
@@ -2845,7 +3426,6 @@ object IR {
     sealed case class Expr(
       scrutinee: Expression,
       branches: Seq[Branch],
-      fallback: Option[Expression],
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -2857,7 +3437,6 @@ object IR {
         *
         * @param scrutinee the expression whose value is being matched on
         * @param branches the branches of the case expression
-        * @param fallback a fallback branch, if provided explicitly
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
@@ -2867,17 +3446,25 @@ object IR {
       def copy(
         scrutinee: Expression                = scrutinee,
         branches: Seq[Branch]                = branches,
-        fallback: Option[Expression]         = fallback,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Expr = {
         val res =
-          Expr(scrutinee, branches, fallback, location, passData, diagnostics)
+          Expr(scrutinee, branches, location, passData, diagnostics)
         res.id = id
         res
       }
+
+      override def duplicate(keepLocations: Boolean = true): Expr = copy(
+        scrutinee   = scrutinee.duplicate(keepLocations),
+        branches    = branches.map(_.duplicate(keepLocations)),
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
 
       override def setLocation(location: Option[IdentifiedLocation]): Expr =
         copy(location = location)
@@ -2885,17 +3472,15 @@ object IR {
       override def mapExpressions(fn: Expression => Expression): Expr = {
         copy(
           scrutinee = fn(scrutinee),
-          branches.map(_.mapExpressions(fn)),
-          fallback.map(fn)
+          branches.map(_.mapExpressions(fn))
         )
       }
 
       override def toString: String =
         s"""
         |IR.Case.Expr(
-        |scutinee = $scrutinee,
+        |scrutinee = $scrutinee,
         |branches = $branches,
-        |fallback = $fallback,
         |location = $location,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
@@ -2903,9 +3488,17 @@ object IR {
         |)
         |""".toSingleLine
 
-      override def children: List[IR] =
-        scrutinee :: branches.toList ++ fallback.toList
+      override def children: List[IR] = scrutinee :: branches.toList
 
+      override def showCode(indent: Int): String = {
+        val newIndent = indent + indentLevel
+        val headerStr = s"case ${scrutinee.showCode(indent)} of"
+        val branchesStr = branches
+          .map(mkIndent(newIndent) + _.showCode(newIndent))
+          .mkString("\n")
+
+        s"$headerStr\n$branchesStr"
+      }
     }
 
     /** A branch in a case statement.
@@ -2917,7 +3510,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Branch(
-      pattern: Expression,
+      pattern: Pattern,
       expression: Expression,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -2937,7 +3530,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        pattern: Expression                  = pattern,
+        pattern: Pattern                     = pattern,
         expression: Expression               = expression,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
@@ -2949,11 +3542,20 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Branch = copy(
+        pattern     = pattern.duplicate(keepLocations),
+        expression  = expression.duplicate(keepLocations),
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(location: Option[IdentifiedLocation]): Branch =
         copy(location = location)
 
       override def mapExpressions(fn: Expression => Expression): Branch = {
-        copy(pattern = fn(pattern), expression = fn(expression))
+        copy(pattern = pattern.mapExpressions(fn), expression = fn(expression))
       }
 
       override def toString: String =
@@ -2970,14 +3572,215 @@ object IR {
 
       override def children: List[IR] = List(pattern, expression)
 
+      override def showCode(indent: Int): String = {
+        val newIndent = indent + indentLevel
+        val bodyStr = if (expression.isInstanceOf[IR.Expression.Block]) {
+          s"\n${mkIndent(newIndent)}${expression.showCode(newIndent)}"
+        } else {
+          s"${expression.showCode(indent)}"
+        }
+        s"${pattern.showCode(indent)} -> $bodyStr"
+      }
+    }
+  }
+
+  // === Patterns =============================================================
+
+  /** The different types of patterns that can occur in a match. */
+  sealed trait Pattern extends IR {
+    override def mapExpressions(fn: Expression => Expression):      Pattern
+    override def setLocation(location: Option[IdentifiedLocation]): Pattern
+    override def duplicate(keepLocations: Boolean = true): Pattern
+  }
+  object Pattern {
+
+    /** A named pattern.
+      *
+      * Named patterns take the form of a single identifier (e.g. `a` or `_`).
+      * As a result they can be used to represent a catch all pattern (e.g.
+      * `_ -> ...` or `a -> ...`).
+      *
+      * @param name the name that constitutes the pattern
+      * @param location the source location for this IR node
+      * @param passData any pass metadata associated with the node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Name(
+      name: IR.Name,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Pattern {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param name the name that constitutes the pattern
+        * @param location the source location for this IR node
+        * @param passData any pass metadata associated with the node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the provided values
+        */
+      def copy(
+        name: IR.Name                        = name,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Name = {
+        val res = Name(name, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def duplicate(keepLocations: Boolean = true): Name = copy(
+        name        = name.duplicate(keepLocations),
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
+      override def mapExpressions(fn: Expression => Expression): Name = {
+        copy(name = name.mapExpressions(fn))
+      }
+
+      override def toString: String =
+        s"""
+        |IR.Case.Pattern.Name(
+        |name = $name,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
+        |id = $id
+        |)
+        |""".toSingleLine
+
+      override def setLocation(location: Option[IdentifiedLocation]): Name =
+        copy(location = location)
+
+      override def children: List[IR] = List(name)
+
+      override def showCode(indent: Int): String = name.showCode(indent)
     }
 
-    /** The different types of patterns that can occur in a match. */
-    sealed trait Pattern extends IR {
-      override def mapExpressions(fn: Expression => Expression): Pattern
-    }
-    object Pattern {
-      // TODO [AA] Better differentiate the types of patterns that can occur
+    /** A pattern that destructures a constructor application.
+      *
+      * The first part of the pattern must be a refferent name. The fields of
+      * the constructor may be any available kind of pattern.
+      *
+      * @param constructor the constructor being matched on
+      * @param fields the asserted fields of the constructor
+      * @param location the source location for this IR node
+      * @param passData any pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Constructor(
+      constructor: IR.Name,
+      fields: List[IR.Pattern],
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Pattern {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param constructor the constructor being matched on
+        * @param fields the asserted fields of the constructor
+        * @param location the source location for this IR node
+        * @param passData any pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the new identifier for this node
+        * @return a copy of `this`, updated with the provided values
+        */
+      def copy(
+        constructor: IR.Name                 = constructor,
+        fields: List[IR.Pattern]             = fields,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Constructor = {
+        val res =
+          Constructor(constructor, fields, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def duplicate(keepLocations: Boolean = true): Constructor = copy(
+        constructor = constructor.duplicate(keepLocations),
+        fields      = fields.map(_.duplicate(keepLocations)),
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
+      /** Checks if the constructor pattern has been desugared.
+        *
+        * A constructor pattern has been desugared if all of its fields are
+        * [[Pattern.Name]].
+        *
+        * @return `true` if the pattern has been desugared, `false` otherwise
+        */
+      def isDesugared: Boolean = {
+        fields.forall {
+          case _: Pattern.Name        => true
+          case _: Pattern.Constructor => false
+        }
+      }
+
+      /** Gets the patterns fields as [[Pattern.Name]] if they are.
+        *
+        * @return the fields from `this`
+        */
+      def fieldsAsNamed: List[Option[Pattern.Name]] = {
+        fields.map {
+          case f: Pattern.Name => Some(f)
+          case _               => None
+        }
+      }
+
+      /** Unsafely gets the pattern's fields as if they are [[Pattern.Name]].
+        *
+        * @return the fields from `this`
+        */
+      def unsafeFieldsAsNamed: List[Pattern.Name] = {
+        fieldsAsNamed.map(_.get)
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Constructor =
+        copy(
+          constructor = constructor.mapExpressions(fn),
+          fields      = fields.map(_.mapExpressions(fn))
+        )
+
+      override def toString: String =
+        s"""
+        |IR.Case.Pattern.Constructor(
+        |constructor = $constructor,
+        |fields = $fields,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
+        |id = $id
+        |)
+        |""".toSingleLine
+
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Constructor = copy(location = location)
+
+      override def children: List[IR] = constructor :: fields
+
+      override def showCode(indent: Int): String = {
+        val fieldsStr =
+          fields.map(f => s"(${f.showCode(indent)})").mkString(" ")
+
+        s"${constructor.name} $fieldsStr"
+      }
     }
   }
 
@@ -2987,6 +3790,7 @@ object IR {
   sealed trait Comment extends Expression with Module.Scope.Definition {
     override def mapExpressions(fn: Expression => Expression):      Comment
     override def setLocation(location: Option[IdentifiedLocation]): Comment
+    override def duplicate(keepLocations: Boolean = true): Comment
   }
   object Comment {
 
@@ -3027,6 +3831,14 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Documentation =
+        copy(
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Documentation = copy(location = location)
@@ -3048,6 +3860,8 @@ object IR {
 
       override def children: List[IR] = List()
 
+      override def showCode(indent: Int): String =
+        s"## $doc"
     }
   }
 
@@ -3057,6 +3871,7 @@ object IR {
   sealed trait Foreign extends Expression {
     override def mapExpressions(fn: Expression => Expression):      Foreign
     override def setLocation(location: Option[IdentifiedLocation]): Foreign
+    override def duplicate(keepLocations: Boolean = true): Foreign
   }
   object Foreign {
 
@@ -3101,6 +3916,13 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): Definition = copy(
+        location    = if (keepLocations) location else None,
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): Definition = copy(location = location)
@@ -3122,6 +3944,7 @@ object IR {
 
       override def children: List[IR] = List()
 
+      override def showCode(indent: Int): String = "FOREIGN DEF"
     }
   }
 
@@ -3181,6 +4004,14 @@ object IR {
         override val location: Option[IdentifiedLocation] = name.location
       }
 
+      sealed case class PatternBinding(override val name: Name) extends Unused {
+        override def message: String = s"Unused pattern binding ${name.name}."
+
+        override def toString: String = s"Unused.PatternBinding(${name.name})"
+
+        override val location: Option[IdentifiedLocation] = name.location
+      }
+
       /** A warning about an unused binding.
         *
         * @param name the name that is unused
@@ -3191,6 +4022,27 @@ object IR {
         override def toString: String = s"Unused.Binding(${name.name})"
 
         override val location: Option[IdentifiedLocation] = name.location
+      }
+    }
+
+    /** Warnings for unreachable code. */
+    sealed trait Unreachable extends Warning {
+      val location: Option[IdentifiedLocation]
+    }
+    object Unreachable {
+
+      /** A warning for unreachable branches in a case expression.
+        *
+        * @param location the location of the unreachable branches
+        */
+      sealed case class Branches(
+        override val location: Option[IdentifiedLocation]
+      ) extends Unreachable {
+        val atLocation =
+          if (location.isDefined) { s" at location ${location.get}" }
+          else                    { "" }
+
+        override def message: String = s"Unreachable case branches$atLocation."
       }
     }
 
@@ -3207,15 +4059,31 @@ object IR {
         *
         * @param shadowedName the name being shadowed
         * @param shadower the expression shadowing `warnedExpr`
+        * @param location the location at which the shadowing takes place
         */
       sealed case class FunctionParam(
         shadowedName: String,
         override val shadower: IR,
         override val location: Option[IdentifiedLocation]
       ) extends Shadowed {
-
         override def message: String =
           s"The argument $shadowedName is shadowed by $shadower."
+      }
+
+      /** A warning that a later-defined pattern variable shadows an
+        * earlier-defined pattern variable.
+        *
+        * @param shadowedName the name being shadowed
+        * @param shadower the expression shadowing `warnedExpr`
+        * @param location the location at which the shadowing takes place
+        */
+      sealed case class PatternBinding(
+        shadowedName: String,
+        override val shadower: IR,
+        override val location: Option[IdentifiedLocation]
+      ) extends Shadowed {
+        override def message: String =
+          s"The pattern field $shadowedName is shadowed by $shadower."
       }
     }
   }
@@ -3226,6 +4094,7 @@ object IR {
   sealed trait Error extends Expression with Diagnostic {
     override def mapExpressions(fn: Expression => Expression):      Error
     override def setLocation(location: Option[IdentifiedLocation]): Error
+    override def duplicate(keepLocations: Boolean = true): Error
   }
   object Error {
 
@@ -3268,6 +4137,13 @@ object IR {
         res
       }
 
+      override def duplicate(@unused keepLocations: Boolean = true): Syntax =
+        copy(
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
       override def setLocation(location: Option[IdentifiedLocation]): Syntax =
         this
 
@@ -3290,6 +4166,8 @@ object IR {
       override def children: List[IR] = List()
 
       override def message: String = reason.explanation
+
+      override def showCode(indent: Int): String = "Syntax_Error"
     }
     object Syntax {
 
@@ -3307,6 +4185,11 @@ object IR {
       case class UnsupportedSyntax(syntaxName: String) extends Reason {
         override def explanation: String =
           s"Syntax is not supported yet: $syntaxName."
+      }
+
+      case object InvalidPattern extends Reason {
+        override def explanation: String =
+          s"Cannot define a pattern outside a pattern context."
       }
 
       case class MethodDefinedInline(methodName: String) extends Reason {
@@ -3403,6 +4286,13 @@ object IR {
         res
       }
 
+      override def duplicate(keepLocations: Boolean = true): InvalidIR = copy(
+        ir          = ir.duplicate(keepLocations),
+        passData    = MetadataStorage(),
+        diagnostics = DiagnosticStorage(),
+        id          = randomId
+      )
+
       override def setLocation(
         location: Option[IdentifiedLocation]
       ): InvalidIR = this
@@ -3428,13 +4318,16 @@ object IR {
       override def message: String =
         "InvalidIR: Please report this as a compiler bug."
 
+      override def showCode(indent: Int): String = "Invalid_Ir"
     }
 
     /** Errors pertaining to the redefinition of language constructs that are
       * not allowed to be.
       */
     sealed trait Redefined extends Error {
+      override def mapExpressions(fn: Expression => Expression):      Redefined
       override def setLocation(location: Option[IdentifiedLocation]): Redefined
+      override def duplicate(keepLocations: Boolean = true): Redefined
     }
     object Redefined {
 
@@ -3463,15 +4356,22 @@ object IR {
           * @return a copy of `this`, with the specified values updated
           */
         def copy(
-          location: Option[IdentifiedLocation],
-          passData: MetadataStorage      = passData,
-          diagnostics: DiagnosticStorage = diagnostics,
-          id: Identifier                 = id
+          location: Option[IdentifiedLocation] = location,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
+          id: Identifier                       = id
         ): ThisArg = {
           val res = ThisArg(location, passData, diagnostics)
           res.id = id
           res
         }
+
+        override def duplicate(keepLocations: Boolean = true): ThisArg = copy(
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
 
         override def setLocation(
           location: Option[IdentifiedLocation]
@@ -3485,6 +4385,8 @@ object IR {
           "it must be the first."
 
         override def children: List[IR] = List()
+
+        override def showCode(indent: Int): String = "(Redefined This_Arg)"
       }
 
       /** An error representing the redefinition of a method in a given module.
@@ -3534,6 +4436,15 @@ object IR {
           res
         }
 
+        override def duplicate(keepLocations: Boolean = true): Method = copy(
+          atomName    = atomName.duplicate(keepLocations),
+          methodName  = methodName.duplicate(keepLocations),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(location: Option[IdentifiedLocation]): Method =
           copy(location = location)
 
@@ -3556,6 +4467,9 @@ object IR {
              |""".stripMargin
 
         override def children: List[IR] = List(atomName, methodName)
+
+        override def showCode(indent: Int): String =
+          s"(Redefined (Method $atomName.$methodName))"
       }
 
       /** An error representing the redefinition of an atom in a given module.
@@ -3601,6 +4515,14 @@ object IR {
           res
         }
 
+        override def duplicate(keepLocations: Boolean = true): Atom = copy(
+          atomName    = atomName.duplicate(keepLocations),
+          location    = if (keepLocations) location else None,
+          passData    = MetadataStorage(),
+          diagnostics = DiagnosticStorage(),
+          id          = randomId
+        )
+
         override def setLocation(location: Option[IdentifiedLocation]): Atom =
           copy(location = location)
 
@@ -3622,6 +4544,9 @@ object IR {
              |""".stripMargin
 
         override def children: List[IR] = List(atomName)
+
+        override def showCode(indent: Int): String =
+          s"(Redefined (Atom $atomName))"
       }
 
       /** An error representing the redefinition of a binding in a given scope.
@@ -3661,6 +4586,13 @@ object IR {
           res
         }
 
+        override def duplicate(keepLocations: Boolean = true): Binding = copy(
+          invalidBinding = invalidBinding.duplicate(keepLocations),
+          passData       = MetadataStorage(),
+          diagnostics    = DiagnosticStorage(),
+          id             = randomId
+        )
+
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Binding = this
@@ -3687,6 +4619,8 @@ object IR {
         override def message: String =
           s"Variable ${invalidBinding.name.name} is being redefined."
 
+        override def showCode(indent: Int): String =
+          s"(Redefined (Binding $invalidBinding))"
       }
     }
   }
@@ -3953,6 +4887,24 @@ object IR {
       msg: String
     ): pass.Metadata = {
       ir.passData.getUnsafe(pass)(msg)
+    }
+  }
+
+  /** Adds extension methods for working with lists of [[IR]].
+    *
+    * @param sequence the list
+    * @tparam T the concrete IR type
+    */
+  implicit class ListAsIr[T <: IR](sequence: List[T]) {
+
+    /** Calls [[IR.duplicate]] on the elemtsn in [[sequence]].
+      *
+      * @param keepLocations whether or not locations should be kept in the
+      *                      duplicated IR
+      * @return a duplicate of [[sequence]]
+      */
+    def duplicate(keepLocations: Boolean = true): List[T] = {
+      sequence.map(_.duplicate(keepLocations)).asInstanceOf[List[T]]
     }
   }
 }

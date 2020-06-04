@@ -435,11 +435,10 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         .branches
         .head
         .asInstanceOf[IR.Case.Branch]
-        .expression
-        .asInstanceOf[IR.Function.Lambda]
 
-      nilBranch.body shouldBe an[IR.Function.Lambda]
-      val nilBody = nilBranch.body.asInstanceOf[IR.Function.Lambda]
+      nilBranch.expression shouldBe an[IR.Function.Lambda]
+      val nilBody = nilBranch.expression.asInstanceOf[IR.Function.Lambda]
+
       val nilBodyArgName =
         nilBody.arguments.head
           .asInstanceOf[IR.DefinitionArgument.Specified]

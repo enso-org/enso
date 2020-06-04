@@ -1,11 +1,13 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.pass.PassConfiguration
+import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 /** A type containing the information about the execution context for an inline
   * expression.
   *
+  * @param ensoContext the Enso language context
   * @param localScope the local scope in which the expression is being executed
   * @param moduleScope the module scope in which the expression is being
   *                    executed
@@ -15,6 +17,7 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
   * @param passConfiguration the pass configuration
   */
 case class InlineContext(
+  ensoContext: Option[Context]                 = None,
   localScope: Option[LocalScope]               = None,
   moduleScope: Option[ModuleScope]             = None,
   isInTailPosition: Option[Boolean]            = None,

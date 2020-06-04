@@ -4,6 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.{Atom, Method}
+import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
@@ -844,8 +845,12 @@ class AliasAnalysisTest extends CompilerTest {
         |    _        -> 0
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[Method]
-    val lambda   = methodWithCase.body.asInstanceOf[IR.Function.Lambda]
-    val caseExpr = lambda.body.asInstanceOf[IR.Case.Expr]
+    val lambda    = methodWithCase.body.asInstanceOf[IR.Function.Lambda]
+    val caseBlock = lambda.body.asInstanceOf[IR.Expression.Block]
+    val scrutBinding =
+      caseBlock.expressions.head.asInstanceOf[IR.Expression.Binding]
+    val scrutBindingExpr = scrutBinding.expression.asInstanceOf[IR.Name.Literal]
+    val caseExpr         = caseBlock.returnValue.asInstanceOf[IR.Case.Expr]
 
     val graph = methodWithCase
       .getMetadata(AliasAnalysis)
@@ -855,6 +860,12 @@ class AliasAnalysisTest extends CompilerTest {
       .graph
 
     "expose the scrutinee in the parent scope" in {
+      val scrutBindingId = scrutBinding
+        .unsafeGetMetadata(AliasAnalysis, "")
+        .unsafeAs[Info.Occurrence]
+        .id
+      graph.rootScope.getOccurrence(scrutBindingId) shouldBe defined
+
       val scrutineeId = caseExpr.scrutinee
         .getMetadata(AliasAnalysis)
         .get
@@ -863,6 +874,14 @@ class AliasAnalysisTest extends CompilerTest {
         .id
       graph.rootScope.getOccurrence(scrutineeId) shouldBe defined
 
+      graph.links should contain(Link(scrutineeId, 0, scrutBindingId))
+
+      val scrutBindingExprId = scrutBindingExpr
+        .unsafeGetMetadata(AliasAnalysis, "")
+        .unsafeAs[Info.Occurrence]
+        .id
+      graph.rootScope.getOccurrence(scrutBindingExprId) shouldBe defined
+
       val aDefId = lambda
         .arguments(1)
         .getMetadata(AliasAnalysis)
@@ -870,12 +889,13 @@ class AliasAnalysisTest extends CompilerTest {
         .as[Info.Occurrence]
         .get
         .id
+      graph.rootScope.getOccurrence(aDefId) shouldBe defined
 
-      graph.links should contain(Link(scrutineeId, 0, aDefId))
+      graph.links should contain(Link(scrutBindingExprId, 0, aDefId))
     }
 
     "create child scopes for the branch function" in {
-      val consBranchScope = caseExpr.branches.head.expression
+      val consBranchScope = caseExpr.branches.head
         .getMetadata(AliasAnalysis)
         .get
         .unsafeAs[Info.Scope.Child]
@@ -883,13 +903,13 @@ class AliasAnalysisTest extends CompilerTest {
       val nilBranchScope =
         caseExpr
           .branches(1)
-          .expression
           .getMetadata(AliasAnalysis)
           .get
           .unsafeAs[Info.Scope.Child]
           .scope
       val fallbackBranchScope =
-        caseExpr.fallback.get
+        caseExpr
+          .branches(2)
           .getMetadata(AliasAnalysis)
           .get
           .unsafeAs[Info.Scope.Child]
@@ -900,6 +920,47 @@ class AliasAnalysisTest extends CompilerTest {
       rootScope.childScopes should contain(consBranchScope)
       rootScope.childScopes should contain(nilBranchScope)
       rootScope.childScopes should contain(fallbackBranchScope)
+    }
+
+    "correctly link to pattern variables" in {
+      val consBranch = caseExpr.branches.head
+      val pattern    = consBranch.pattern.asInstanceOf[Pattern.Constructor]
+      val body       = consBranch.expression.asInstanceOf[IR.Application.Prefix]
+
+      val consBranchADef = pattern.fields.head
+        .asInstanceOf[Pattern.Name]
+        .name
+      val consBranchADefId =
+        consBranchADef
+          .getMetadata(AliasAnalysis)
+          .get
+          .unsafeAs[Info.Occurrence]
+          .id
+
+      val consBranchBDef = pattern.fields(1).asInstanceOf[Pattern.Name].name
+      val consBranchBDefId = consBranchBDef
+        .getMetadata(AliasAnalysis)
+        .get
+        .unsafeAs[Info.Occurrence]
+        .id
+
+      val aUse = body.arguments.head
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name.Literal]
+      val aUseId =
+        aUse.getMetadata(AliasAnalysis).get.unsafeAs[Info.Occurrence].id
+
+      val bUse = body
+        .arguments(1)
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name.Literal]
+      val bUseId =
+        bUse.getMetadata(AliasAnalysis).get.unsafeAs[Info.Occurrence].id
+
+      graph.links should contain(Link(aUseId, 1, consBranchADefId))
+      graph.links should contain(Link(bUseId, 1, consBranchBDefId))
     }
   }
 

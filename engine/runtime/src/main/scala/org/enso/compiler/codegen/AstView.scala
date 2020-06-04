@@ -233,7 +233,6 @@ object AstView {
       case LazyAssignedArgumentDefinition(_, _) => Some(ast)
       case AssignedArgument(_, _)               => Some(ast)
       case DefinitionArgument(_)                => Some(ast)
-      case PatternMatch(_, _)                   => Some(ast)
       case LazyArgument(_)                      => Some(ast)
       case _                                    => None
     }
@@ -641,7 +640,7 @@ object AstView {
       *
       * where:
       * - `<scrutinee>` is an arbitrary non-block program expression
-      * - `<matcher>` is a [[PatternMatch]]
+      * - `<matcher>` is a [[Pattern]]
       * - `<expression>` is an arbirary program expression
       *
       * @param ast the structure to try and match on
@@ -660,7 +659,7 @@ object AstView {
                   val blockLines = firstLine.elem :: restLines.flatMap(_.elem)
 
                   val matchBranches = blockLines.collect {
-                    case b @ CaseBranch(_, _, _) => b
+                    case b @ CaseBranch(_, _) => b
                   }
 
                   if (matchBranches.length == blockLines.length) {
@@ -681,44 +680,6 @@ object AstView {
     }
   }
 
-  object ConsCaseBranch {
-
-    /** Matches a case branch that performas a pattern match on a consctructor.
-      *
-      * A constructor case branch is of the form `<cons> <args..> -> <expr>`
-      * where `<cons>` is the name of a constructor, `<args..>` is the list of
-      * arguments to that constructor, and `<expr>` is the expression to execute
-      * on a successful match.
-      *
-      * @param ast the structure to try and match on
-      * @return the constructor name, the constructor arguments, and the
-      *         expression to be executed
-      */
-    def unapply(ast: AST): Option[(AST, List[AST], AST)] = {
-      CaseBranch.unapply(ast).flatMap {
-        case (cons, args, ast) => cons.map((_, args, ast))
-      }
-    }
-  }
-
-  object FallbackCaseBranch {
-
-    /** Matches on a fallback case branch.
-      *
-      * A fallback case branch is of the form `_ -> <expression>`, where
-      * `<expression>` is an arbitrary Enso expression.
-      *
-      * @param ast the structure to try and match on
-      * @return the expression of the fallback branch
-      */
-    def unapply(ast: AST): Option[AST] = {
-      CaseBranch.unapply(ast).flatMap {
-        case (cons, args, ast) =>
-          if (cons.isEmpty && args.isEmpty) Some(ast) else None
-      }
-    }
-  }
-
   object CaseBranch {
 
     /** Matches on an arbitrary pattern match case branch.
@@ -729,62 +690,85 @@ object AstView {
       * match.
       *
       * @param ast the structure to try and match on
-      * @return the matcher expression, its arguments (if they exist), and the
-      *         body of the case branch
+      * @return the pattern, and the branch expression
       */
-    def unapply(ast: AST): Option[(Option[AST], List[AST], AST)] = {
+    def unapply(ast: AST): Option[(AST, AST)] = {
       ast match {
         case AST.App.Infix(left, AST.Ident.Opr("->"), right) =>
           left match {
-            case PatternMatch(cons, args) => Some((Some(cons), args, right))
-            case MaybeParensed(AST.Ident.Blank.any(_)) =>
-              Some((None, List(), right))
-            case DefinitionArgument(v) => Some((None, List(v), right))
-            case _                     => None
+            case Pattern(pat) => Some((pat, right))
+            case _            => None
           }
         case _ => None
       }
     }
   }
 
-  object PatternMatch {
-    // Cons, args
-    /** Matches an arbitrary pattern match on a constructor.
-      *
-      * A pattern match is of the form `<cons> <args..>` where `<cons>` is the
-      * name of a constructor, and `<args>` are pattern match parameters.
+  object Pattern {
+
+    /** Matches on an arbitrary pattern expression.
       *
       * @param ast the structure to try and match on
-      * @return the name of the constructor, and a list containing its arguments
+      * @return the pattern
       */
-    def unapply(ast: AST): Option[(AST.Ident.Cons, List[AST])] = {
+    def unapply(ast: AST): Option[AST] = {
       ast match {
-        case MaybeParensed(SpacedList(AST.Ident.Cons.any(cons) :: xs)) =>
-          val realArgs: List[AST] = xs.collect { case a @ MatchParam(_) => a }
-
-          if (realArgs.length == xs.length) {
-            Some((cons, xs))
-          } else {
-            None
-          }
-        case AST.Ident.Cons.any(cons) => Some((cons, List()))
-        case _                        => None
+        case ConstructorPattern(_, _)  => Some(ast)
+        case CatchAllPattern(pat)      => Some(pat)
+        case MaybeParensed(Pattern(p)) => Some(p)
+        case _                         => None
       }
     }
   }
 
-  object MatchParam {
+  object ConstructorPattern {
 
-    /** Matches a valid parameter to a pattern match.
+    /** Matches on a constructor pattern.
+      *
+      * Constructor patterns take the form `<ref-name> <fields...>`, where
+      * `<ref-name>` is a referent name, and `<fields>` is a maybe empty list of
+      * patterns.
       *
       * @param ast the structure to try and match on
-      * @return the argument
+      * @return the pattern
       */
-    def unapply(ast: AST): Option[AST] = ast match {
-      case DefinitionArgument(_)  => Some(ast)
-      case PatternMatch(_, _)     => Some(ast)
-      case AST.Ident.Blank.any(b) => Some(b)
-      case _                      => None
+    def unapply(ast: AST): Option[(AST.Ident, List[AST])] = {
+      MaybeParensed.unapply(ast).getOrElse(ast) match {
+        case AST.Ident.Cons.any(cons) => Some((cons, List()))
+        case SpacedList(elems) if elems.nonEmpty =>
+          elems.head match {
+            case AST.Ident.Cons.any(refName) =>
+              val allFieldsValid = elems.tail.forall {
+                case Pattern(_) => true
+                case _          => false
+              }
+
+              if (allFieldsValid) {
+                Some((refName, elems.tail))
+              } else {
+                None
+              }
+            case _ => None
+          }
+        case _ => None
+      }
+    }
+  }
+
+  object CatchAllPattern {
+
+    /** Matches on a catch all pattern.
+      *
+      * A catch all pattern takes the form of a name, which may be blank.
+      *
+      * @param ast the structure to try and match on
+      * @return the pattern
+      */
+    def unapply(ast: AST): Option[AST.Ident] = {
+      MaybeParensed.unapply(ast).getOrElse(ast) match {
+        case AST.Ident.any(ident) => Some(ident)
+        case _                    => None
+      }
     }
   }
 

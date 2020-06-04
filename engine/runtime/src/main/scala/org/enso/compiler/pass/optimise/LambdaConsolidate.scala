@@ -6,13 +6,13 @@ import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.AliasAnalysis
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  LambdaShorthandToLambda,
-  OperatorToFunction,
-  SectionsToBinOp
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
 }
+import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.syntax.text.Location
 
@@ -49,15 +49,20 @@ case object LambdaConsolidate extends IRPass {
   override type Config   = IRPass.Configuration.Default
 
   override val precursorPasses: Seq[IRPass] = List(
+    AliasAnalysis,
+    ComplexType,
+    FunctionBinding,
     GenerateMethodBodies,
-    SectionsToBinOp,
-    OperatorToFunction,
-    LambdaShorthandToLambda,
     IgnoredBindings,
-    AliasAnalysis
+    LambdaShorthandToLambda,
+    OperatorToFunction,
+    SectionsToBinOp
   )
   override val invalidatedPasses: Seq[IRPass] = List(
-    AliasAnalysis
+    AliasAnalysis,
+    DataflowAnalysis,
+    DemandAnalysis,
+    TailCall
   )
 
   /** Performs lambda consolidation on a module.
@@ -75,9 +80,7 @@ case object LambdaConsolidate extends IRPass {
     case x =>
       runExpression(
         x,
-        new InlineContext(
-          freshNameSupply = moduleContext.freshNameSupply
-        )
+        new InlineContext(freshNameSupply = moduleContext.freshNameSupply)
       )
   }
 

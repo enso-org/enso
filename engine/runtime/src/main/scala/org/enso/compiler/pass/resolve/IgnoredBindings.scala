@@ -2,10 +2,22 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.{Case, Pattern}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies, LambdaShorthandToLambda}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
+import org.enso.compiler.pass.desugar.{
+  ComplexType,
+  GenerateMethodBodies,
+  LambdaShorthandToLambda,
+  NestedPatternMatch
+}
 
 /** This pass translates ignored bindings (of the form `_`) into fresh names
   * internally, as well as marks all bindings as whether or not they were
@@ -24,9 +36,15 @@ case object IgnoredBindings extends IRPass {
   override val precursorPasses: Seq[IRPass] = List(
     ComplexType,
     GenerateMethodBodies,
-    LambdaShorthandToLambda
+    LambdaShorthandToLambda,
+    NestedPatternMatch
   )
-  override val invalidatedPasses: Seq[IRPass] = List()
+  override val invalidatedPasses: Seq[IRPass] = List(
+    AliasAnalysis,
+    DataflowAnalysis,
+    DemandAnalysis,
+    TailCall
+  )
 
   /** Desugars ignored bindings for a module.
     *
@@ -68,34 +86,35 @@ case object IgnoredBindings extends IRPass {
       )
     )
 
-    desugarExpression(ir, freshNameSupply)
+    resolveExpression(ir, freshNameSupply)
   }
 
   // === Pass Internals =======================================================
 
-  /** Desugars ignored bindings of the form `_` in an arbitrary expression.
+  /** Resolves ignored bindings of the form `_` in an arbitrary expression.
     *
     * @param expression the expression to perform desugaring on
     * @param supply the compiler's fresh name supply
     * @return `expression`, with any ignored bidings desugared
     */
-  private def desugarExpression(
+  private def resolveExpression(
     expression: IR.Expression,
     supply: FreshNameSupply
   ): IR.Expression = {
     expression.transformExpressions {
-      case binding: IR.Expression.Binding => desugarBinding(binding, supply)
-      case function: IR.Function          => desugarFunction(function, supply)
+      case binding: IR.Expression.Binding => resolveBinding(binding, supply)
+      case function: IR.Function          => resolveFunction(function, supply)
+      case cse: IR.Case                   => resolveCase(cse, supply)
     }
   }
 
-  /** Performs desugaring of ignored bindings for a binding.
+  /** Performs resolution of ignored bindings for a binding.
     *
     * @param binding the binding to desugar
     * @param supply the compiler's supply of fresh names
     * @return `binding`, with any ignored bindings desugared
     */
-  def desugarBinding(
+  def resolveBinding(
     binding: IR.Expression.Binding,
     supply: FreshNameSupply
   ): IR.Expression.Binding = {
@@ -111,25 +130,25 @@ case object IgnoredBindings extends IRPass {
       binding
         .copy(
           name       = newName,
-          expression = desugarExpression(binding.expression, supply)
+          expression = resolveExpression(binding.expression, supply)
         )
         .updateMetadata(this -->> State.Ignored)
     } else {
       binding
         .copy(
-          expression = desugarExpression(binding.expression, supply)
+          expression = resolveExpression(binding.expression, supply)
         )
         .updateMetadata(this -->> State.NotIgnored)
     }
   }
 
-  /** Performs desugaring of ignored function arguments.
+  /** Performs resolution of ignored function arguments.
     *
     * @param function the function to perform desugaring on
     * @param supply the compiler's fresh name supply
     * @return `function`, with any ignores desugared
     */
-  def desugarFunction(
+  def resolveFunction(
     function: IR.Function,
     supply: FreshNameSupply
   ): IR.Function = {
@@ -142,7 +161,7 @@ case object IgnoredBindings extends IRPass {
 
         lam.copy(
           arguments = newArgs,
-          body      = desugarExpression(body, supply)
+          body      = resolveExpression(body, supply)
         )
       case _: IR.Function.Binding =>
         throw new CompilerError(
@@ -181,14 +200,14 @@ case object IgnoredBindings extends IRPass {
             .copy(
               name = newName,
               defaultValue =
-                spec.defaultValue.map(desugarExpression(_, freshNameSupply))
+                spec.defaultValue.map(resolveExpression(_, freshNameSupply))
             )
             .updateMetadata(this -->> State.Ignored)
         } else {
           spec
             .copy(
               defaultValue =
-                spec.defaultValue.map(desugarExpression(_, freshNameSupply))
+                spec.defaultValue.map(resolveExpression(_, freshNameSupply))
             )
             .updateMetadata(this -->> State.NotIgnored)
         }
@@ -207,16 +226,89 @@ case object IgnoredBindings extends IRPass {
     }
   }
 
-  /** Checks if a given name represents an ignored argument.
+  /** Checks if a given name represents an ignored.
     *
     * @param ir the name to check
-    * @return `true` if `ir` represents an ignored argument, otherwise `false`
+    * @return `true` if `ir` represents an ignore, otherwise `false`
     */
   def isIgnore(ir: IR.Name): Boolean = {
     ir match {
       case _: IR.Name.Blank               => true
       case IR.Name.Literal(name, _, _, _) => name == "_"
       case _                              => false
+    }
+  }
+
+  /** Resolves ignored bindings in a case expression.
+    *
+    * @param cse the case expression to resolve ignores in
+    * @param supply the compiler's fresh name supply
+    * @return `cse`, with any ignored bindings resolved
+    */
+  def resolveCase(cse: IR.Case, supply: FreshNameSupply): IR.Case = {
+    cse match {
+      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
+        expr.copy(
+          scrutinee = resolveExpression(scrutinee, supply),
+          branches  = branches.map(resolveCaseBranch(_, supply))
+        )
+      case _: Case.Branch =>
+        throw new CompilerError(
+          "Unexpected case branch while desugaring ignores for case."
+        )
+    }
+  }
+
+  /** Resolves ignored bindings in a case branch.
+    *
+    * @param branch the case branch to resolve ignores in
+    * @param supply the compiler's fresh name supply
+    * @return `branch`, with any ignored bindings resolved
+    */
+  def resolveCaseBranch(
+    branch: Case.Branch,
+    supply: FreshNameSupply
+  ): Case.Branch = {
+    branch.copy(
+      pattern    = resolvePattern(branch.pattern, supply),
+      expression = resolveExpression(branch.expression, supply)
+    )
+  }
+
+  /** Resolves ignored bindings in a pattern.
+    *
+    * @param pattern the pattern to resolve ignores in
+    * @param supply the compiler's fresh name supply
+    * @return `pattern`, with any ignored bindings resolved
+    */
+  def resolvePattern(
+    pattern: IR.Pattern,
+    supply: FreshNameSupply
+  ): IR.Pattern = {
+    pattern match {
+      case named @ Pattern.Name(name, _, _, _) =>
+        if (isIgnore(name)) {
+          val newName = supply
+            .newName()
+            .copy(
+              location    = name.location,
+              passData    = name.passData,
+              diagnostics = name.diagnostics
+            )
+            .updateMetadata(this -->> State.Ignored)
+
+          named.copy(
+            name = newName
+          )
+        } else {
+          named.copy(
+            name = name.updateMetadata(this -->> State.NotIgnored)
+          )
+        }
+      case cons @ Pattern.Constructor(_, fields, _, _, _) =>
+        cons.copy(
+          fields = fields.map(resolvePattern(_, supply))
+        )
     }
   }
 
