@@ -17,8 +17,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
-import org.enso.text.editing.JavaEditorAdapter;
-import org.enso.text.editing.model;
+import org.enso.text.editing.*;
 
 import java.io.File;
 import java.util.List;
@@ -220,7 +219,7 @@ public class ExecutionService {
    * @param edits the edits to apply.
    * @return an object for computing the changed IR nodes.
    */
-  public Optional<Changeset> modifyModuleSources(File path, List<model.TextEdit> edits) {
+  public Optional<Changeset<Rope>> modifyModuleSources(File path, List<model.TextEdit> edits) {
     Optional<Module> moduleMay = context.getModuleForFile(path);
     if (!moduleMay.isPresent()) {
       return Optional.empty();
@@ -229,8 +228,12 @@ public class ExecutionService {
     if (module.getLiteralSource() == null) {
       return Optional.empty();
     }
-    Changeset changeset =
-        new Changeset(module.getLiteralSource().toString(), module.parseIr(context));
+    Changeset<Rope> changeset =
+        new Changeset<>(
+            module.getLiteralSource(),
+            module.parseIr(context),
+            TextEditor.ropeTextEditor(),
+            IndexedSource.RopeIndexedSource());
     Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);
     editedSource.ifPresent(module::setLiteralSource);
     return Optional.of(changeset);

@@ -12,7 +12,6 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
-import org.enso.polyglot.runtime.Runtime.Api.VisualisationUpdate
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
 import org.enso.polyglot.{
   LanguageInfo,

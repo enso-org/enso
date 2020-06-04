@@ -28,7 +28,7 @@ class EditFileCmd(request: Api.EditFileNotification)
       .toScala
     val invalidateExpressionsCommand = changesetOpt.map { changeset =>
       CacheInvalidation.Command.InvalidateKeys(
-        request.edits.flatMap(changeset.compute)
+        changeset.compute(request.edits)
       )
     }
     val invalidateStaleCommand = changesetOpt.map { changeset =>
