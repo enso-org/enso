@@ -1,22 +1,29 @@
-use parser::Parser;
-use enso_prelude::default;
+use parser::prelude::*;
+
 use ast::HasIdMap;
+use parser::Parser;
+use wasm_bindgen_test::wasm_bindgen_test;
+use wasm_bindgen_test::wasm_bindgen_test_configure;
 
+wasm_bindgen_test_configure!(run_in_browser);
 
-
-#[ignore]
-#[test]
-fn parsing_main_with_id_map() {
-    const CASES : &[&str] = &
+#[wasm_bindgen_test]
+fn id_map_round_tripping() {
+    let cases =
         [ "main =\n    2 + 2"
         , "main =   \n \n    2 + 2\n    foo = bar \n    baz"
+        , "main = \n    foo\n\n    bar"
+        , "main = \n    foo\n  \n    bar"
+        , "main = \n    foo\n     \n    bar"
+        , "main = \n    foo\n    baz \n    bar"
         ];
 
-    for case in CASES {
-        let parser = Parser::new().unwrap();
-        let ast1 = parser.parse(case.to_string(),default()).unwrap();
+    let parser = Parser::new().unwrap();
+    for case in cases.iter().copied() {
+        let id_map = default();
+        let ast1 = parser.parse_module(case,id_map).unwrap();
         let id_map = ast1.id_map();
-        let ast2 = parser.parse(case.to_string(),id_map).unwrap();
+        let ast2 = parser.parse_module(case,id_map).unwrap();
         assert_eq!(ast1,ast2)
     }
 }
