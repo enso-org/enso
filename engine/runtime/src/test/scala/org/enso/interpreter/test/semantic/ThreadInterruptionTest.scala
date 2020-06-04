@@ -16,10 +16,12 @@ class ThreadInterruptionTest extends InterpreterTest {
 
     val code =
       """
-        |foo = here.foo
+        |foo x =
+        |    ifZero x (IO.println "Start.") Unit
+        |    here.foo x+1
         |
         |main =
-        |    Thread.with_interrupt_handler here.foo (IO.println "Interrupted.")
+        |    Thread.with_interrupt_handler (here.foo 0) (IO.println "Interrupted.")
         |""".stripMargin
 
     val main = getMain(code)
@@ -34,10 +36,14 @@ class ThreadInterruptionTest extends InterpreterTest {
     }
 
     def runTest(n: Int = 5): Unit = {
-      val expectedOut = List.fill(n)("Interrupted.")
       val threads = 0.until(n).map(_ => new Thread(runnable))
       threads.foreach(_.start())
-      Thread.sleep(200)
+      var reportedCount = 0
+      while (reportedCount < n) {
+        Thread.sleep(100)
+        reportedCount += consumeOut.length
+      }
+      val expectedOut = List.fill(n)("Interrupted.")
       threads.foreach(_.interrupt())
       langCtx.getThreadManager.checkInterrupts()
       threads.foreach(_.join())
