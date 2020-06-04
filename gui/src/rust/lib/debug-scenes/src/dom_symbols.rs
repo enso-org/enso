@@ -52,6 +52,7 @@ pub fn run_example_dom_symbols() {
             let div = web::create_div();
             div.set_style_or_panic("width"  , "100%");
             div.set_style_or_panic("height" , "100%");
+            div.set_inner_html("top-left");
 
             let size       = Vector2::new(width, height);
             let position   = Vector3::new(width / 1.5 * x + width / 2.0, height / 2.0, 0.0);

@@ -5,6 +5,7 @@ use crate::prelude::*;
 
 use crate::display;
 use crate::display::object::traits::*;
+use crate::display::scene::dom::invert_y;
 use crate::system::web;
 use crate::system::web::StyleSetter;
 use crate::system::web::NodeInserter;
@@ -28,7 +29,7 @@ mod js {
 
         export function set_object_transform(dom, matrix_array) {
             let css = arr_to_css_matrix3d(matrix_array);
-            dom.style.transform = 'translate(-50%, -50%)' + css;
+            dom.style.transform = css + 'translate(-50%, -50%)';
         }
     ")]
     extern "C" {
@@ -108,7 +109,8 @@ impl DomSymbol {
         let display_object = display::object::Instance::new(logger);
         let guard          = Rc::new(Guard::new(&display_object,&dom));
         display_object.set_on_updated(enclose!((dom) move |t| {
-            let mut transform = t.matrix();
+            let transform     = t.matrix();
+            let mut transform = invert_y(transform);
             transform.iter_mut().for_each(|a| *a = eps(*a));
             set_object_transform(&dom,&transform);
         }));
