@@ -2,79 +2,167 @@ package org.enso.interpreter.instrument
 
 import java.util.UUID
 
+import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.jdk.CollectionConverters._
 
-/**
-  * Base trait for cache invalidation instructions.
+/** Cache invalidation instruction.
+  *
+  * An instruction describes the stack `elements` selected for invalidation, the
+  * invalidation `command` itself, and the extra set of `indexes` that should also
+  * be cleared with an invalidation `command`.
+  *
+  * @param elements the cache of which stack elements to invalidate
+  * @param command the invalidation command
+  * @param indexes the extra indexes to invalidate
   */
-sealed trait CacheInvalidation
+case class CacheInvalidation(
+  elements: CacheInvalidation.StackSelector,
+  command: CacheInvalidation.Command,
+  indexes: Set[CacheInvalidation.IndexSelector]
+)
 
 object CacheInvalidation {
 
-  /**
-    * Instruction to invalidate all cache entries.
-    */
-  case object InvalidateAll extends CacheInvalidation
+  /** Selector of the cache index. */
+  sealed trait IndexSelector
+  object IndexSelector {
 
-  /**
-    * Instruction to invalidate provided cache keys.
-    *
-    * @param keys a list of keys that should be invalidated.
-    */
-  case class InvalidateKeys(keys: Iterable[UUID]) extends CacheInvalidation
+    /** Invalidate value from indexes. */
+    case object All extends IndexSelector
+  }
 
-  /**
-    * Instruction to invalidate stale entries from the cache.
-    *
-    * @param scope all ids of the source.
+  /** Base trait for cache invalidation commands. Commands describe how the
+    * state of the cache is changed.
     */
-  case class InvalidateStale(scope: Iterable[UUID]) extends CacheInvalidation
+  sealed trait Command
+  object Command {
 
-  /**
-    * Construct invalidation instruction from [[Api.InvalidatedExpressions]].
+    /** A command to invalidate all cache entries. */
+    case object InvalidateAll extends Command
+
+    /** A command to invalidate provided cache keys.
+      *
+      * @param keys a list of keys that should be invalidated
+      */
+    case class InvalidateKeys(keys: Iterable[UUID]) extends Command
+
+    /** A command to invalidate stale entries from the cache.
+      *
+      * @param scope all ids of the source
+      */
+    case class InvalidateStale(scope: Iterable[UUID]) extends Command
+
+    /** A command to set the cache metadata form the compiler pass.
+      *
+      * @param metadata the cache metadata
+      */
+    case class SetMetadata(metadata: CachePreferenceAnalysis.Metadata)
+        extends Command
+
+    /** Create an invalidation command from [[Api.InvalidatedExpressions]].
+      *
+      * @param expressions invalidated expressions
+      * @return an invalidation command
+      */
+    def apply(expressions: Api.InvalidatedExpressions): Command =
+      expressions match {
+        case Api.InvalidatedExpressions.All() =>
+          InvalidateAll
+        case Api.InvalidatedExpressions.Expressions(ids) =>
+          InvalidateKeys(ids)
+      }
+  }
+
+  /** Base trait for selecting stack elements. */
+  sealed trait StackSelector
+  object StackSelector {
+
+    /** Select all stack elements. */
+    case object All extends StackSelector
+
+    /** Select top stack element. */
+    case object Top extends StackSelector
+  }
+
+  /** Create an invalidation instruction using a stack selector and an
+    * invalidation command.
     *
-    * @param expr Api invalidated expressions.
-    * @return an invalidation instruction.
+    * @param elements the stack elements selector.
+    * @param command the invalidation command.
     */
-  def apply(expr: Api.InvalidatedExpressions): CacheInvalidation =
-    expr match {
-      case Api.InvalidatedExpressions.All() =>
-        InvalidateAll
-      case Api.InvalidatedExpressions.Expressions(ids) =>
-        InvalidateKeys(ids)
-    }
+  def apply(elements: StackSelector, command: Command): CacheInvalidation =
+    new CacheInvalidation(elements, command, Set())
 
-  /**
-    * Run cache invalidation.
+  /** Run a sequence of invalidation instructions on an execution stack.
     *
-    * @param stack the stack which cache should be invalidated.
-    * @param rules the list of invalidation instruction.
+    * @param stack the runtime stack
+    * @param instructions the list of cache invalidation instructions
+    */
+  def runAll(
+    stack: Iterable[InstrumentFrame],
+    instructions: Iterable[CacheInvalidation]
+  ): Unit =
+    instructions.foreach(run(stack, _))
+
+  /** Run a cache invalidation instruction on an execution stack.
+    *
+    * @param stack the runtime stack
+    * @param instruction the invalidation instruction
     */
   def run(
     stack: Iterable[InstrumentFrame],
-    rules: Iterable[CacheInvalidation]
+    instruction: CacheInvalidation
   ): Unit = {
-    stack.headOption.map(_.cache).foreach { cache =>
-      rules.foreach(run(cache, _))
+    val frames = instruction.elements match {
+      case StackSelector.All => stack
+      case StackSelector.Top => stack.headOption.toSeq
     }
+    run(frames, instruction.command, instruction.indexes)
   }
 
-  /**
-    * Run cache invalidation.
+  /** Run cache invalidation of a multiple instrument frames.
     *
-    * @param cache the cache which should be invalidated.
-    * @param rule the invalidation instruction.
+    * @param frames stack elements which cache should be invalidated
+    * @param command the invalidation instruction
+    * @param indexes the list of indexes to invalidate
     */
-  def run(cache: RuntimeCache, rule: CacheInvalidation): Unit =
-    rule match {
-      case InvalidateAll =>
+  private def run(
+    frames: Iterable[InstrumentFrame],
+    command: Command,
+    indexes: Set[IndexSelector]
+  ): Unit = {
+    frames.foreach(frame => run(frame.cache, command, indexes))
+  }
+
+  /** Run cache invalidation of a single instrument frame.
+    *
+    * @param cache the cache to invalidate
+    * @param command the invalidation instruction
+    * @param indexes the list of indexes to invalidate
+    */
+  private def run(
+    cache: RuntimeCache,
+    command: Command,
+    indexes: Set[IndexSelector]
+  ): Unit =
+    command match {
+      case Command.InvalidateAll =>
         cache.clear()
-      case InvalidateKeys(keys) =>
-        keys.foreach(cache.remove)
-      case InvalidateStale(scope) =>
+        if (indexes.contains(IndexSelector.All)) cache.clearWeights()
+      case Command.InvalidateKeys(keys) =>
+        keys.foreach { key =>
+          cache.remove(key)
+          if (indexes.contains(IndexSelector.All)) cache.removeWeight(key)
+        }
+      case Command.InvalidateStale(scope) =>
         val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
-        staleKeys.foreach(cache.remove)
+        staleKeys.foreach { key =>
+          cache.remove(key)
+          if (indexes.contains(IndexSelector.All)) cache.removeWeight(key)
+        }
+      case Command.SetMetadata(metadata) =>
+        cache.setWeights(metadata.asJavaWeights)
     }
 }

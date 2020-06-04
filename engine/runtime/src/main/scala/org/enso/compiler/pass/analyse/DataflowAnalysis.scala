@@ -209,7 +209,7 @@ case object DataflowAnalysis extends IRPass {
           .updateMetadata(this -->> info)
       case _: IR.Function.Binding =>
         throw new CompilerError(
-          "Function sugar should not be present during alias analysis."
+          "Function sugar should not be present during dataflow analysis."
         )
     }
   }

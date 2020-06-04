@@ -5,12 +5,21 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
 
-import org.enso.interpreter.instrument.{IdExecutionInstrument, RuntimeServerInstrument, InstrumentFrame}
+import org.enso.interpreter.instrument.{
+  IdExecutionInstrument,
+  InstrumentFrame,
+  RuntimeServerInstrument
+}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.polyglot.runtime.Runtime.Api.VisualisationUpdate
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
-import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions, RuntimeServerInfo}
+import org.enso.polyglot.{
+  LanguageInfo,
+  PolyglotContext,
+  RuntimeOptions,
+  RuntimeServerInfo
+}
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -87,17 +96,10 @@ class RuntimeServerTest
       msg
     }
 
-    def drain(): Unit = {
-      messageQueue = List.empty
-    }
-
-    def drainAndCollectFirstMatching[A](
-      pf: PartialFunction[Api.Response, A]
-    ): A = {
-      val maybeMessage = messageQueue.collectFirst(pf)
-      maybeMessage.isDefined shouldBe true
-      drain()
-      maybeMessage.get
+    def receive(n: Int): List[Api.Response] = {
+      val (messages, tail) = messageQueue.splitAt(n)
+      messageQueue = tail
+      messages
     }
 
     def consumeOut: List[String] = {
@@ -373,9 +375,6 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PopContextResponse(contextId))),
-      Some(context.Main.Update.mainX(contextId)),
-      Some(context.Main.Update.mainY(contextId)),
-      Some(context.Main.Update.mainZ(contextId)),
       None
     )
 
@@ -483,11 +482,6 @@ class RuntimeServerTest
       None
     )
 
-    // override
-    overrideCache(contextId, context.Main.idMainX, 6L)
-    overrideCache(contextId, context.Main.idMainY, 45L)
-    overrideCache(contextId, context.Main.idMainZ, 50L)
-
     // recompute
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
@@ -525,11 +519,6 @@ class RuntimeServerTest
       Some(context.Main.Update.mainZ(contextId)),
       None
     )
-
-    // override
-    overrideCache(contextId, context.Main.idMainX, 6L)
-    overrideCache(contextId, context.Main.idMainY, 45L)
-    overrideCache(contextId, context.Main.idMainZ, 50L)
 
     // recompute
     context.send(
@@ -577,11 +566,6 @@ class RuntimeServerTest
       Some(context.Main.Update.mainZ(contextId)),
       None
     )
-
-    // override
-    overrideCache(contextId, context.Main.idMainX, 6L)
-    overrideCache(contextId, context.Main.idMainY, 45L)
-    overrideCache(contextId, context.Main.idMainZ, 50L)
 
     // recompute
     context.send(
@@ -647,51 +631,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "override expressions" in {
-    val mainFile  = context.writeMain(context.Main.code)
-    val contextId = UUID.randomUUID()
-    val requestId = UUID.randomUUID()
-
-    // create context
-    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.CreateContextResponse(contextId))
-    )
-
-    // push main
-    val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
-      None,
-      Vector()
-    )
-    context.send(
-      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
-    )
-    Set.fill(5)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
-      Some(context.Main.Update.mainX(contextId)),
-      Some(context.Main.Update.mainY(contextId)),
-      Some(context.Main.Update.mainZ(contextId)),
-      None
-    )
-
-    // override
-    overrideCache(contextId, context.Main.idMainX, 1L.asInstanceOf[AnyRef])
-
-    // recompute
-    context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
-    )
-
-    Set.fill(4)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
-      Some(context.Main.Update.mainY(contextId, value = "20")),
-      Some(context.Main.Update.mainZ(contextId, value = "25")),
-      None
-    )
-  }
-
-  it should "skip evaluation of side effects when overriding an expression" in {
+  it should "skip side effects when evaluating cached expression" in {
     val file      = context.writeMain(context.Main2.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
@@ -720,10 +660,6 @@ class RuntimeServerTest
 
     context.consumeOut shouldEqual List("I'm expensive!", "I'm more expensive!")
 
-    // override
-    overrideCache(contextId, context.Main2.idMainY, 1L.asInstanceOf[AnyRef])
-    overrideCache(contextId, context.Main2.idMainZ, 10L.asInstanceOf[AnyRef])
-
     // recompute
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
@@ -742,10 +678,7 @@ class RuntimeServerTest
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
     send(
-      Api.OpenFileNotification(
-        visualisationFile,
-        context.Visualisation.code
-      )
+      Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
     )
 
     val contextId       = UUID.randomUUID()
@@ -768,7 +701,12 @@ class RuntimeServerTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    context.drain()
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId)
+    )
 
     context.send(
       Api.Request(
@@ -784,18 +722,19 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldBe Some(
+    val attachVisualisationResponses = context.receive(2)
+    attachVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationAttached())
     )
-    val expectedExprId = context.Main.idMainX
-    val data = context.drainAndCollectFirstMatching {
+    val expectedExpressionId = context.Main.idMainX
+    val Some(data) = attachVisualisationResponses.collectFirst {
       case Api.Response(
           None,
           Api.VisualisationUpdate(
             Api.VisualisationContext(
               `visualisationId`,
               `contextId`,
-              `expectedExprId`
+              `expectedExpressionId`
             ),
             data
           )
@@ -808,14 +747,35 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    val data2 = context.drainAndCollectFirstMatching {
+    context.receive should contain(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
+    )
+
+    // recompute invalidating x
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(
+            Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainX))
+          )
+        )
+      )
+    )
+    val recomputeResponses2 = context.receive(3)
+    recomputeResponses2 should contain allOf (
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+    )
+    val Some(data2) = recomputeResponses2.collectFirst {
       case Api.Response(
           None,
           Api.VisualisationUpdate(
             Api.VisualisationContext(
               `visualisationId`,
               `contextId`,
-              `expectedExprId`
+              `expectedExpressionId`
             ),
             data
           )
@@ -823,7 +783,6 @@ class RuntimeServerTest
         data
     }
     data2.sameElements("6".getBytes) shouldBe true
-
   }
 
   it should "be able to modify visualisations" in {
@@ -832,10 +791,7 @@ class RuntimeServerTest
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
     send(
-      Api.OpenFileNotification(
-        visualisationFile,
-        context.Visualisation.code
-      )
+      Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
     )
 
     val contextId       = UUID.randomUUID()
@@ -858,7 +814,12 @@ class RuntimeServerTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    context.drain()
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId)
+    )
 
     context.send(
       Api.Request(
@@ -874,18 +835,20 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldBe Some(
+
+    val attachVisualisationResponses = context.receive(2)
+    attachVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationAttached())
     )
-    val expectedExprId = context.Main.idMainX
-    val data = context.drainAndCollectFirstMatching {
+    val expectedExpressionId = context.Main.idMainX
+    val Some(data) = attachVisualisationResponses.collectFirst {
       case Api.Response(
           None,
           Api.VisualisationUpdate(
             Api.VisualisationContext(
               `visualisationId`,
               `contextId`,
-              `expectedExprId`
+              `expectedExpressionId`
             ),
             data
           )
@@ -907,23 +870,25 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldBe Some(
+    val modifyVisualisationResponses = context.receive(2)
+    modifyVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationModified())
     )
-    val dataAfterModification = context.drainAndCollectFirstMatching {
-      case Api.Response(
-          None,
-          Api.VisualisationUpdate(
-            Api.VisualisationContext(
-              `visualisationId`,
-              `contextId`,
-              `expectedExprId`
-            ),
-            data
-          )
-          ) =>
-        data
-    }
+    val Some(dataAfterModification) =
+      modifyVisualisationResponses.collectFirst {
+        case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
+            ) =>
+          data
+      }
     dataAfterModification.sameElements("7".getBytes) shouldBe true
   }
 
@@ -933,10 +898,7 @@ class RuntimeServerTest
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
     send(
-      Api.OpenFileNotification(
-        visualisationFile,
-        context.Visualisation.code
-      )
+      Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
     )
 
     val contextId       = UUID.randomUUID()
@@ -975,7 +937,13 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.drain()
+
+    context.receive(5) should contain allOf (
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+    )
 
     context.send(
       Api.Request(
@@ -990,24 +958,33 @@ class RuntimeServerTest
     context.receive shouldBe Some(
       Api.Response(requestId, Api.VisualisationDetached())
     )
+
     // recompute
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    Set.fill(5)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
-      Some(context.Main.Update.mainX(contextId)),
-      Some(context.Main.Update.mainY(contextId)),
-      Some(context.Main.Update.mainZ(contextId)),
-      None
+    context.receive should contain(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
+    )
+
+    // recompute invalidating x
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(
+            Api.InvalidatedExpressions.Expressions(Vector(context.Main.idMainX))
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      context.Main.Update.mainX(contextId)
     )
   }
 
   private def send(msg: ApiRequest): Unit =
     context.send(Api.Request(UUID.randomUUID(), msg))
-
-  private def overrideCache(contextId: UUID, key: UUID, value: Any): Unit = {
-    val stack = context.instrument.getHandler.contextManager.getStack(contextId)
-    stack.headOption.foreach(_.cache.put(key, value))
-  }
 }

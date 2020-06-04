@@ -14,6 +14,7 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
+  CachePreferenceAnalysis,
   DataflowAnalysis,
   TailCall
 }
@@ -318,7 +319,10 @@ class IrToTruffle(
       scope: AliasScope,
       dataflowInfo: DataflowAnalysis.Metadata
     ) = {
-      this(new LocalScope(None, graph, scope, dataflowInfo), scopeName)
+      this(
+        new LocalScope(None, graph, scope, dataflowInfo),
+        scopeName
+      )
     }
 
     /** Creates an instance of [[ExpressionProcessor]] that operates in a child

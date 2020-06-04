@@ -6,7 +6,7 @@ import org.enso.interpreter.instrument.command.BaseVisualisationCmd.{
   EvaluationFailed,
   ModuleNotFound
 }
-import org.enso.interpreter.instrument.Visualisation
+import org.enso.interpreter.instrument.{CacheInvalidation, Visualisation}
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api.{
   ExpressionId,
@@ -65,7 +65,9 @@ abstract class BaseVisualisationCmd
           Api.Response(requestId, replyWith)
         )
         val stack = ctx.contextManager.getStack(config.executionContextId)
-        withContext(runProgram(config.executionContextId, stack.toList))
+        withContext(
+          runProgram(config.executionContextId, stack.toList, Seq(expressionId))
+        )
     }
   }
 

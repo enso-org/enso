@@ -55,7 +55,7 @@ public class RuntimeCacheBenchmarks {
     keys = new UUID[items];
     for (int i = 0; i < items; i++) {
       keys[i] = UUID.randomUUID();
-      cache.put(keys[i], new Object());
+      cache.offer(keys[i], new Object());
     }
   }
 

@@ -180,14 +180,22 @@ public class Module implements TruffleObject {
     }
   }
 
+  /**
+   * Parses the module sources and returns {@code IR}. The results of this operation are cached.
+   *
+   * @param context context in which the parsing should take place.
+   * @return IR defined by this module.
+   */
+  public IR parseIr(Context context) {
+    if (ir == null) {
+      parseScope(context);
+    }
+    return ir;
+  }
+
   /** @return the qualified name of this module. */
   public QualifiedName getName() {
     return name;
-  }
-
-  /** @return cached ir of this module. */
-  public IR getIr() {
-    return ir;
   }
 
   /**

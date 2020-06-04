@@ -5,13 +5,9 @@ import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
-import java.io.File;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Consumer;
 import org.enso.compiler.context.Changeset;
-import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
+import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
@@ -23,6 +19,12 @@ import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
+
+import java.io.File;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * A service allowing externally-triggered code execution, registered by an instance of the
@@ -79,13 +81,17 @@ public class ExecutionService {
    *
    * @param call the call metadata.
    * @param cache the precomputed expression values.
+   * @param nextExecutionItem the next item scheduled for execution.
    * @param valueCallback the consumer for expression value events.
+   * @param visualisationCallback the consumer of the node visualisation events.
    * @param funCallCallback the consumer for function call events.
    */
   public void execute(
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
+      UUID nextExecutionItem,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
 
@@ -99,7 +105,9 @@ public class ExecutionService {
             src.getCharIndex(),
             src.getCharLength(),
             cache,
+            nextExecutionItem,
             valueCallback,
+            visualisationCallback,
             funCallCallback);
     interopLibrary.execute(call);
     listener.dispose();
@@ -113,7 +121,9 @@ public class ExecutionService {
    * @param consName the name of the constructor the method is defined on.
    * @param methodName the method name.
    * @param cache the precomputed expression values.
+   * @param nextExecutionItem the next item scheduled for execution.
    * @param valueCallback the consumer for expression value events.
+   * @param visualisationCallback the consumer of the node visualisation events.
    * @param funCallCallback the consumer for function call events.
    */
   public void execute(
@@ -121,7 +131,9 @@ public class ExecutionService {
       String consName,
       String methodName,
       RuntimeCache cache,
+      UUID nextExecutionItem,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
     Optional<FunctionCallInstrumentationNode.FunctionCall> callMay =
@@ -131,43 +143,44 @@ public class ExecutionService {
     if (!callMay.isPresent()) {
       return;
     }
-    execute(callMay.get(), cache, valueCallback, funCallCallback);
+    execute(
+        callMay.get(),
+        cache,
+        nextExecutionItem,
+        valueCallback,
+        visualisationCallback,
+        funCallCallback);
   }
 
-    /**
-     * Evaluates an expression in the scope of the provided module.
-     *
-     * @param module the module providing a scope for the expression
-     * @param expression the expression to evluated
-     * @return a result of evaluation
-     */
+  /**
+   * Evaluates an expression in the scope of the provided module.
+   *
+   * @param module the module providing a scope for the expression
+   * @param expression the expression to evluated
+   * @return a result of evaluation
+   */
   public Object evaluateExpression(Module module, String expression)
-        throws UnsupportedMessageException, ArityException,
-        UnknownIdentifierException, UnsupportedTypeException {
-    return interopLibrary.invokeMember(
-            module,
-            MethodNames.Module.EVAL_EXPRESSION,
-            expression
-    );
+      throws UnsupportedMessageException, ArityException, UnknownIdentifierException,
+          UnsupportedTypeException {
+    return interopLibrary.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression);
   }
 
-    /**
-     * Calls a function with the given argument.
-     *
-     * @param fn the function object
-     * @param argument the argument applied to the function
-     * @return the result of calling the function
-     */
+  /**
+   * Calls a function with the given argument.
+   *
+   * @param fn the function object
+   * @param argument the argument applied to the function
+   * @return the result of calling the function
+   */
   public Object callFunction(Object fn, Object argument)
-        throws UnsupportedTypeException, ArityException,
-        UnsupportedMessageException {
+      throws UnsupportedTypeException, ArityException, UnsupportedMessageException {
     return interopLibrary.execute(fn, argument);
   }
 
   /**
    * Sets a module at a given path to use a literal source.
    *
-   * If a module does not exist it will be created.
+   * <p>If a module does not exist it will be created.
    *
    * @param path the module path.
    * @param contents the sources to use for it.
@@ -190,12 +203,12 @@ public class ExecutionService {
     module.ifPresent(Module::unsetLiteralSource);
   }
 
-    /**
-     * Finds a module by qualified name.
-     *
-     * @param moduleName the qualified name of the module
-     * @return the relevant module, if exists
-     */
+  /**
+   * Finds a module by qualified name.
+   *
+   * @param moduleName the qualified name of the module
+   * @return the relevant module, if exists
+   */
   public Optional<Module> findModule(String moduleName) {
     return context.findModule(moduleName);
   }
@@ -216,9 +229,10 @@ public class ExecutionService {
     if (module.getLiteralSource() == null) {
       return Optional.empty();
     }
-    Changeset dc = new Changeset(module.getLiteralSource().toString(), module.getIr());
+    Changeset changeset =
+        new Changeset(module.getLiteralSource().toString(), module.parseIr(context));
     Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);
     editedSource.ifPresent(module::setLiteralSource);
-    return Optional.of(dc);
+    return Optional.of(changeset);
   }
 }
