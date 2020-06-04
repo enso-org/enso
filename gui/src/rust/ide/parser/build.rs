@@ -25,7 +25,7 @@ use std::path::PathBuf;
 const PARSER_PATH: &str = "./pkg/scala-parser.js";
 
 /// Commit from `enso` repository that will be used to obtain parser from.
-const PARSER_COMMIT: &str = "81bde2858900e61fcab4138dc8881757a0787dfa";
+const PARSER_COMMIT: &str = "b105bc1f013f9c262102d8f59869c0a5617085d0";
 
 /// Magic code that needs to be prepended to ScalaJS generated parser due to:
 /// https://github.com/scala-js/scala-js/issues/3677/
@@ -89,7 +89,9 @@ impl ParserProvider {
         let url            = parser_url(&self.version);
         let get_error      = format!("Failed to get response from {}.",    url);
         let download_error = format!("Failed to download contents of {}.", url);
-        let response = reqwest::get(url).await.expect(&get_error);
+        let server_error   = format!("Server replied with error when getting {}.", url);
+        let response       = reqwest::get(url).await.expect(&get_error);
+        let response       = response.error_for_status().expect(&server_error);
         response.bytes().await.expect(&download_error)
     }
 
