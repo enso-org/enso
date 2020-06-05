@@ -1,0 +1,6 @@
+namespace org.enso.polyglot.debugger.protocol;
+
+// Representation of Objects returned by the debugger.
+table ObjectRepresentation {
+  representation: string;
+}
