@@ -19,6 +19,7 @@ for Enso to _feel_ like a dynamic language while still bringing enhanced safety.
   - [Typeset Operators](#typeset-operators)
   - [Typeset Subsumption](#typeset-subsumption)
   - [Unsafe Typeset Field Mutation](#unsafe-typeset-field-mutation)
+- [Dependent Lists](#dependent-lists)
 - [Interfaces](#interfaces)
   - [Special Interfaces](#special-interfaces)
 - [Type Ascription](#type-ascription)
@@ -48,8 +49,8 @@ specificity.
 7 : 7 : Natural : Integer : Number : Any : Any : ...
 ```
 
-A brief note on naming (for more, please see the 
-[naming syntax](../syntax/naming.md):
+A brief note on naming (for more, please see the
+[naming syntax](../syntax/naming.md)):
 
 - Naming in Enso is case-insensitive.
 - In contexts where it is ambiguous as to whether the user would be referring to
@@ -90,34 +91,27 @@ share some similarities with records they are a far more general notion.
 
 - A typeset is an entity that contains one or more labels.
 - Each label has a type, which _may_ be explicitly ascribed to it.
-- Each label may have a default value provided for it.
-- A label may be _duplicated_, as long as the types of the duplicate labels are
-  different.
+- Each label may have a value provided for it.
 
 The other key notion of typesets is that typesets are matched _structurally_,
 subject to the rules for nominal typing of atoms discussed above.
 
-The definition for a typeset member uses the syntax `label : type = val`, where
-the following rules apply:
-
-- If a default is explicitly requested it becomes part of the subsumption
-  judgement (see [below](#typeset-subsumption)).
-- If the type of a label is omitted it is inferred from a default if present,
-  and is otherwise inferred to be `Any`.
-- If only the type is present, auto-generated labels are provided using the
-  index of the member in the typeset (e.g `{ Int, String }.1` has type `Int`).
-  These labels act specially for unification.
-- Labels are syntactically _names_, but internally may be other entities (e.g.
-  types).
-- A typeset member is itself a typeset.
+- Typeset members are themselves typesets.
+- A typeset member _must_ have a label, but may also have a type and a value 
+  (`label : Type := value`)
+- An unspecified type is considered to be a free type variable.
+- The label and the type become part of the typing judgement where present, and
+  will be used for unification and subsumption.
 
 Typesets themselves can be declared in two ways:
 
-1. **Anonymous:** An anonymous typeset can be declared using the curly-braces
-   syntax `{}`. Such a definition must contain zero or more typeset fields (see
-   above).
-2. **Atoms:** An atom definition declares a typeset with a discrete identity,
-   using atom definition syntax. Atom fields must only be names.
+1.  **Anonymous:** An anonymous typeset can be declared using the curly-braces
+    syntax `{}`. Such a definition must contain zero or more typeset fields (see
+    above). Please note that `{}` is necessary as it needs to delimit a pattern
+    context.
+2.  **Atoms:** An atom definition declares a typeset with a discrete identity,
+    using atom definition syntax. Atom fields must only be names.
+3.  **Concatenation:** Combining two typeset values using `;`.
 
 Typesets can be combined using the [typeset operators](#typeset-operators)
 defined below.
@@ -125,10 +119,6 @@ defined below.
 In addition, we provide syntactic sugar for defining typesets as described in
 the syntax document. This syntax has a special desugaring that obeys the
 following rules:
-
-> Actually fill in these rules.
-> Note that because things desugar to functions we can place arbitrary
-  constraints on initialisation (partial type constructors style).
 
 ```ruby
 type Maybe a
@@ -169,30 +159,44 @@ Just.nothing = not isJust
 > The actionables for this section are as follows:
 >
 > - Simplify this definition if we decide _not_ to support multiple dispatch.
+> - Determine how duplicate labels should work, and if it should work.
+> - Note that because things desugar to functions we can place arbitrary
+>   constraints on initialisation (partial type constructors style).
 
 ### Typeset Operators
 Enso defines a set of operations on typesets that can be used to combine and
-manipulate them:
+manipulate them. Any use of these operators introduces typing evidence which 
+may later be discharged through pattern matching. 
 
-- **Subsumption - `<:`:** This operator expresses the relation between typesets
-  defined below in the section on [typeset subsumption](#typeset-subsumption).
-- **Equality - `~`:** This operator expresses the relation that two typesets `a`
-  and `b` are equal (such that `a <: b && b <: a`).
-- **Concatenation - `,`:** This operator combines multiple typesets, and is most
-  often used to combine typeset fields. It expresses product types.
-- **Union - `|`:** This operator creates a typeset that contains all the types
-  in the union of its operand typesets.
-- **Intersection - `&`:** This operator creates a typeset that contains all the
-  types in the intersection of its operand typesets.
-- **Subtraction - `\`:** This operator creates a typeset that contains all the
-  types in its first operand that are _not_ also contained in its second
-  operand.
-- **Function - `->`:** This operator creates a mapping from one typeset to
-  another, and its result is a typeset containing all the possible types of that
-  mapping.
+They are as follows:
 
-Any use of these operators introduces typing evidence which may later be
-discharged through pattern matching.
+- **Type Ascription - `:`:** This operator ascribes the type given by its right
+  operand to the expression of its left operand.
+- **Context Ascription - `in`:** This operator ascribes the monadic context
+  given by its right operand to the expression of its left operand.
+- **Error Ascription - `!`:** This operator combines the type of its left
+  operand with the error type of its right. This is _effectively_ an `Either`,
+  but with `Left` and `Right` reversed, and integrates with the inbuilt
+  mechanism for [broken values](../semantics/errors.md#broken-values).
+- **Function - `->`:** This operator defines a mapping from one expression to
+  another.
+- **Subsumption - `<:`:** This operator asserts that the left hand operand is
+  _structurally subsumed_ by the right-hand operand. For more details on this
+  relationship, see [typeset subsumption](#typeset-subsumption) below.
+- **Equality - `~`:** This operator asserts that the left and right operands are
+  structurally equal.
+- **Concatenation - `;`:** This operator combines multiple typesets, expressing
+  product types.
+- **Union - `|`:** This operator creates a typeset that contains the members in
+  the union of its operands.
+- **Intersection - `|`:** This operator creates a typeset that contains the
+  members in the intersection of its operands.
+- **Subtraction - `\`:** This operator creates a typeset that contains all of
+  the members in the left operand that do not occur in the right operand.
+
+For information on the syntactic usage of these operators, please see the
+section on [type operators](#../syntax/types.md#type-operators) in the syntax
+design documentation.
 
 > The actionables for this section are:
 >
@@ -200,6 +204,7 @@ discharged through pattern matching.
 >   these operators.
 > - When do applications of these constructors create matchable (injective and
 >   generative) types?
+> - Are `<:` and `:` equivalent in the surface syntax?
 
 ### Typeset Subsumption
 For two typesets `a` and `b`, `a` is said to be subsumed by `b` (written using
@@ -271,6 +276,17 @@ themselves, but as atoms are typesets this also applies.
   `any`.
 - In order to prevent this from being used flippantly, this functionality is
   marked `unsafe` (see [access modifiers](./access-modifiers.md) for more).
+
+## Dependent Lists
+The most-specific type of an Enso list is the list of the types of the list's
+elements. By way of example, the following are true:
+
+```ruby
+[1, 1.2, "String"] : List [Integer, Number, String] : List [Number, Number, String] : ...
+[1, 1.2, 3.0f] : List [Integer, Number, Double] : List [Number, Real, Real] : List Number : ...
+```
+
+This means that Enso's lists _fully subsume_ the use cases for standard tuples.
 
 ## Interfaces
 Because typesets can be matched _structurally_, all typesets implicitly define

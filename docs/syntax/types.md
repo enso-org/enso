@@ -26,6 +26,10 @@ is a useful way of thinking about things when discussing type signatures.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Type Signatures](#type-signatures)
+  - [Type Operators](#type-operators)
+  - [Typeset Literals](#typeset-literals)
+  - [Writing Type Signatures](#writing-type-signatures)
+  - [Behaviour of Type Signatures](#behaviour-of-type-signatures)
 - [Operations on Types](#operations-on-types)
 - [Type Definitions](#type-definitions)
   - [Visibility and Access Modifiers](#visibility-and-access-modifiers)
@@ -59,6 +63,150 @@ Type signatures in Enso have some special syntax:
   / : Number -> Number -> Number ! ArithError
   ```
 
+### Type Operators
+Please note that `:`, `in`, and `!` all behave as _standard operators_ in Enso.
+This means that you can section them, which is incredibly useful for programming
+with types. In addition, Enso supports a number of additional operators for
+working with types. These are listed below.
+
+| Operator | Precedence Relations          | Level | Assoc. | Description                                                                 |
+|:--------:|:-----------------------------:|:-----:|:------:|:----------------------------------------------------------------------------|
+| `:`      | `> =`                         |  0    | Left   | Ascribes the type (the right operand) to the value of the left operand.     |
+| `in`     | `> :`, `> !`                  |  3    | Left   | Ascribes the context (the right operand) to the value of the left operand.  |
+| `!`      | `> :`, `> ->`                 |  2    | Left   | Combines the left operand with the right operand as an error value.         |
+| `->`     | `> :`                         |  1    | Left   | Represents a mapping from the left operand to the right operand (function). |
+| `<:`     | `> !`, `< |`, `> in`          |  4    | Left   | Asserts that the left operand is structurally subsumed by the right.        |
+| `~`      | `== <:`                       |  4    | None   | Asserts that the left and right operands are structurally equal.            |
+| `;`      | `< :`, `> =`                  | -2    | Left   | Concatenates the left and right operand typesets to create a new typeset.   |
+| `|`      | `> <:`, `> !`, `> in`, `> :`  |  6    | None   | Computes the union of the left and right operand typesets.                  |
+| `&`      | `= |`                         |  6    | None   | Computes the intersection of the left and right operand typesets.           |
+| `\`      | `< |`, `> <:`                 |  5    | None   | Computes the subtraction of the right typeset from the left typeset.        |
+| `:=`     | `< :`, `> =`, `> ;`           | -1    | Left   | Creates a typeset member by assigning a value to a label.                   |
+
+Solving this set of inequalities produces the _relative_ precedence levels for
+these operators shown in the table above. In order to check this, you can use
+the following formula as an input to an SMTLib compatible solver. For reference,
+bind (`=`) has a relative level of -3 in this ordering.
+
+```lisp
+(declare-fun ascrip () Int)   ; `:`
+(declare-fun bind () Int)     ; `=`
+(declare-fun in () Int)       ; `in`
+(declare-fun err () Int)      ; `!`
+(declare-fun fn () Int)       ; `->`
+(declare-fun sub () Int)      ; `<:`
+(declare-fun eq () Int)       ; `~`
+(declare-fun tsConcat () Int) ; `;`
+(declare-fun tsUnion () Int)  ; `|`
+(declare-fun tsInter () Int)  ; `&`
+(declare-fun minus () Int)    ; `\`
+(declare-fun tsMember () Int) ; `:=`
+
+(assert (> ascrip bind))
+(assert (> in ascrip))
+(assert (> in err))
+(assert (> err ascrip))
+(assert (> err fn))
+(assert (> fn ascrip))
+(assert (> sub err))
+(assert (< sub tsUnion))
+(assert (> sub in))
+(assert (= eq sub))
+(assert (< tsConcat ascrip))
+(assert (> tsConcat bind))
+(assert (> tsUnion sub))
+(assert (> tsUnion err))
+(assert (> tsUnion in))
+(assert (> tsUnion ascrip))
+(assert (= tsInter tsUnion))
+(assert (< minus tsUnion))
+(assert (> minus sub))
+(assert (< tsMember ascrip))
+(assert (> tsMember bind))
+(assert (> tsMember tsConcat))
+
+(check-sat)
+(get-model)
+(exit)
+```
+
+A permalink to the program using an online Z3 console can be found
+[here](https://rise4fun.com/Z3/e99K).
+
+> The actionables for this section are:
+>
+> - Decide which of these should be exposed in the surface syntax.
+
+### Typeset Literals
+Sometimes it is useful or necessary to write a typeset _literal_ in your code.
+These work as follows.
+
+- **Typeset Member:** Syntax for typeset members have three components:
+  + **Label:** The name of the member. This must always be present.
+  + **Type:** The type of the member. This need not be present.
+  + **Value:** A value for the member. This need not be present.
+
+  This looks like the following:
+
+  ```ruby
+  label : Type := value
+  ```
+
+- **Member Concatenation:** Members can be combined into a typeset using the
+  concatenation operator `;`.
+
+  ```ruby
+  x ; y
+  ```
+
+- **Typeset Literals:** A literal can be written using curly braces (`{}`) to
+  delimit the literal.
+
+  ```ruby
+  { x: T ; y: Q }
+  ```
+
+Typeset literals are considered to be a
+[pattern context](./naming.md#pattern-contexts), and hence the standard rules
+apply.
+
+### Writing Type Signatures
+When ascribing a type to a value, there are two main ways in which it can be
+done. Both of these ways are _semantically_ equivalent, and ascribe the type
+given by the signature (to the right of the `:`) to the expression to the left
+of the `:`.
+
+1.  **Inline Ascription:** Using the type ascription operator to associate a
+    type signature with an arbitrary expression.
+
+    ```ruby
+    my_expr : Type
+    ```
+
+2.  **Freestanding Ascription:**  Using the type ascription operator to
+    associate a type with a name. The name must be defined on _the line below_
+    the ascription.
+
+    ```ruby
+    a : Type
+    a = ...
+    ```
+
+3.  **Binding Ascription:** Using the type ascription operator to associate a
+    type with a binding at the binding site.
+
+    ```ruby
+    a : Type = ... # this is equivalent to the above example
+
+    (a : Type) -> ... # use in a lambda
+    ```
+
+> The actionables for this section are:
+>
+> - In the future do we want to support freestanding ascription that isn't
+>   directly adjacent to the ascribed value?
+
+### Behaviour of Type Signatures
 In Enso, a type signature operates to constrain the values that a given variable
 can hold. Type signatures are _always_ checked, but Enso may maintain more
 specific information in the type inference and checking engines about the type
