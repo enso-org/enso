@@ -147,21 +147,21 @@ impl Connection {
 
 
 
-        line.shape.sprite.size().set(Vector2::new(10.0,100.0));
+        line.shape.sprite.size.set(Vector2::new(10.0,100.0));
 
 
 
 
 
-        tgt_view.shape.sprite.size().set(Vector2::new(400.0,400.0));
+        tgt_view.shape.sprite.size.set(Vector2::new(400.0,400.0));
         tgt_view.shape.angle.set(std::f32::consts::PI);
 
 
 
-        helper1.shape.sprite.size().set(Vector2::new(100.0,100.0));
-        helper2.shape.sprite.size().set(Vector2::new(100.0,100.0));
-        helper3.shape.sprite.size().set(Vector2::new(100.0,100.0));
-        helper4.shape.sprite.size().set(Vector2::new(100.0,100.0));
+        helper1.shape.sprite.size.set(Vector2::new(100.0,100.0));
+        helper2.shape.sprite.size.set(Vector2::new(100.0,100.0));
+        helper3.shape.sprite.size.set(Vector2::new(100.0,100.0));
+        helper4.shape.sprite.size.set(Vector2::new(100.0,100.0));
 
 
 
@@ -220,7 +220,7 @@ impl Connection {
 
                 let source_circle_y = source.y;
                 let source_circle = Vector2::new(source_circle_x,source_circle_y);
-                src_view.shape.sprite.size().set(Vector2::new(400.0,400.0));
+                src_view.shape.sprite.size.set(Vector2::new(400.0,400.0));
                 src_view.shape.radius.set(src_circle_radius);
                 src_view.mod_position(|t| t.x = source_circle_x);
                 src_view.mod_position(|t| t.y = source_circle_y);
@@ -289,7 +289,7 @@ impl Connection {
                 let diff  = p2 - p1;
                 let angle = f32::atan2(diff.y,diff.x) + std::f32::consts::PI / 2.0;
                 let dist  = (diff.x*diff.x + diff.y*diff.y).sqrt();
-                line.shape.sprite.size().set(Vector2::new(10.0,dist + 2.0));
+                line.shape.sprite.size.set(Vector2::new(10.0,dist + 2.0));
                 line.mod_rotation(|r| r.z = angle);
 
             }));

@@ -59,7 +59,7 @@ impl Navigator {
         let panning_callback = enclose!((dom,camera,mut simulator) move |pan: PanEvent| {
             let fovy_slope                  = camera.half_fovy_slope();
             let distance                    = camera.position().z;
-            let distance_to_show_full_ui    = dom.shape().height() / 2.0 / fovy_slope;
+            let distance_to_show_full_ui    = dom.shape().height / 2.0 / fovy_slope;
             let movement_scale_for_distance = distance / distance_to_show_full_ui;
 
             let dx   = pan.movement.x * movement_scale_for_distance;

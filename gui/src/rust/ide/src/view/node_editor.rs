@@ -304,7 +304,7 @@ impl GraphEditorIntegratedWithControllerModel {
     /// visualization respective FRP endpoint.
     fn visualization_update_handler
     ( &self
-    , endpoint : frp::Source<(graph_editor::NodeId,Option<visualization::Data>)>
+    , endpoint : frp::Source<(graph_editor::NodeId,visualization::Data)>
     , node_id  : graph_editor::NodeId
     ) -> impl FnMut(VisualizationUpdateData) -> futures::future::Ready<()> {
         // TODO [mwu]
@@ -313,10 +313,7 @@ impl GraphEditorIntegratedWithControllerModel {
         let logger = self.logger.clone_ref();
         move |update| {
             match Self::deserialize_visualization_data(update) {
-                Ok(data) => {
-                    let event = (node_id,Some(data));
-                    endpoint.emit_event(&event);
-                },
+                Ok (data)  => endpoint.emit((node_id,data)),
                 Err(error) =>
                     // TODO [mwu]
                     //  We should consider having the visualization also accept error input.
@@ -330,8 +327,8 @@ impl GraphEditorIntegratedWithControllerModel {
     (data:VisualizationUpdateData) -> FallibleResult<visualization::Data> {
         let binary  = data.as_ref();
         let as_text = std::str::from_utf8(binary)?;
-        let as_json = serde_json::from_str(as_text)?;
-        Ok(visualization::Data::new_json(as_json))
+        let as_json : serde_json::Value = serde_json::from_str(as_text)?;
+        Ok(visualization::Data::from(as_json))
     }
 
     fn update_node_view
@@ -623,8 +620,7 @@ impl NodeEditor {
         for identifier in identifiers {
             let visualization = self.visualization.load_visualization(&identifier).await;
             let visualization = visualization.map(|visualization| {
-                let class_handle = &Some(visualization);
-                graph_editor.frp.register_visualization_class.emit_event(class_handle);
+                graph_editor.frp.register_visualization.emit(Some(visualization));
             });
             visualization?;
         }

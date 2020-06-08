@@ -34,7 +34,11 @@ impl<Message:'static> Debug for Publisher<Message> {
     }
 }
 
-impl<Message:Clone> CloneRef for Publisher<Message> {}
+impl<Message:Clone> CloneRef for Publisher<Message> {
+    fn clone_ref(&self) -> Self {
+        self.clone()
+    }
+}
 
 impl<Message:Clone> Clone for Publisher<Message> {
     fn clone(&self) -> Self {

@@ -5,7 +5,8 @@ use crate::prelude::*;
 
 use crate::data::dirty;
 use crate::display;
-use crate::display::layout::types::*;
+use crate::display::layout::alignment;
+use crate::display::layout::Alignment;
 use crate::data::dirty::traits::*;
 use crate::control::callback;
 
@@ -171,14 +172,14 @@ impl Camera2dData {
         let half_width    = self.screen.width  / 2.0;
         let half_height   = self.screen.height / 2.0;
         let x_offset      = match self.alignment.horizontal {
-            HorizontalAlignment::Left   =>  half_width,
-            HorizontalAlignment::Center =>  0.0,
-            HorizontalAlignment::Right  => -half_width
+            alignment::Horizontal::Left   =>  half_width,
+            alignment::Horizontal::Center =>  0.0,
+            alignment::Horizontal::Right  => -half_width
         };
         let y_offset = match self.alignment.vertical {
-            VerticalAlignment::Bottom =>  half_height,
-            VerticalAlignment::Center =>  0.0,
-            VerticalAlignment::Top    => -half_height
+            alignment::Vertical::Bottom =>  half_height,
+            alignment::Vertical::Center =>  0.0,
+            alignment::Vertical::Top    => -half_height
         };
 
         let alignment_transform = Vector3::new(x_offset, y_offset, 0.0);
@@ -279,6 +280,11 @@ impl Camera2dData {
         };
         let dimensions = Vector2::new(width,height);
         self.screen_update_registry.run_all(&dimensions);
+    }
+
+    pub fn set_alignment(&mut self, alignment:Alignment) {
+        self.alignment = alignment;
+        self.transform_dirty.set();
     }
 
     pub fn reset_zoom(&mut self) {
@@ -455,15 +461,18 @@ impl Camera2d {
 
 // === Setters ===
 
+#[allow(missing_docs)]
 impl Camera2d {
-    /// Modifies position.
     pub fn mod_position<F:FnOnce(&mut Vector3<f32>)>(&self, f:F) {
         self.data.borrow_mut().mod_position(f)
     }
 
-    /// Sets position.
     pub fn set_position(&self, value:Vector3<f32>) {
         self.data.borrow_mut().set_position(value)
+    }
+
+    pub fn set_alignment(&self, alignment:Alignment) {
+        self.data.borrow_mut().set_alignment(alignment)
     }
 }
 

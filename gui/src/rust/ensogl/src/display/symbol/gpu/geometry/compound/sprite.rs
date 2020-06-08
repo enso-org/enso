@@ -7,7 +7,8 @@ use crate::prelude::*;
 use crate::display::traits::*;
 
 use crate::debug::Stats;
-use crate::display::layout::types::*;
+use crate::display::layout::alignment;
+use crate::display::layout::Alignment;
 use crate::display;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::Symbol;
@@ -54,7 +55,7 @@ impl Drop for SpriteStats {
 pub struct SpriteGuard {
     instance_id    : AttributeInstanceIndex,
     symbol         : Symbol,
-    bbox           : Attribute<Vector2<f32>>,
+    size           : Attribute<Vector2<f32>>,
     display_object : display::object::Instance,
 }
 
@@ -62,19 +63,19 @@ impl SpriteGuard {
     fn new
     ( instance_id    : AttributeInstanceIndex
     , symbol         : &Symbol
-    , bbox           : &Attribute<Vector2<f32>>
+    , size           : &Attribute<Vector2<f32>>
     , display_object : &display::object::Instance
     ) -> Self {
-        let symbol         = symbol.clone();
-        let bbox           = bbox.clone();
-        let display_object = display_object.clone();
-        Self {instance_id,symbol,bbox,display_object}
+        let symbol         = symbol.clone_ref();
+        let size           = size.clone_ref();
+        let display_object = display_object.clone_ref();
+        Self {instance_id,symbol,size,display_object}
     }
 }
 
 impl Drop for SpriteGuard {
     fn drop(&mut self) {
-        self.bbox.set(Vector2::new(0.0,0.0));
+        self.size.set(zero());
         self.symbol.surface().instance_scope().dispose(self.instance_id);
         self.display_object.unset_parent();
         // TODO[ao] this is a temporary workaround for problem with dropping and creating sprites
@@ -93,6 +94,54 @@ impl Drop for SpriteGuard {
 
 
 
+// ============
+// === Size ===
+// ============
+
+/// Smart wrapper for size attribute of sprite. The size attribute is set to zero in order to hide
+/// the sprite. This wrapper remembers the real size when the sprite is hidden and allows changing
+/// it without making the sprite appear on the screen.
+#[derive(Debug,Clone,CloneRef)]
+pub struct Size {
+    hidden : Rc<Cell<bool>>,
+    value  : Rc<Cell<Vector2<f32>>>,
+    attr   : Attribute<Vector2<f32>>,
+}
+
+// === Setters ===
+
+#[allow(missing_docs)]
+impl Size {
+    pub fn set(&self, value:Vector2<f32>) {
+        if self.hidden.get() { self.value.set(value) }
+        else                 { self.attr.set(value) }
+    }
+}
+
+
+// === Private API ===
+
+impl Size {
+    fn new(attr:Attribute<Vector2<f32>>) -> Self {
+        let hidden = default();
+        let value  = Rc::new(Cell::new(zero()));
+        Self {hidden,value,attr}
+    }
+
+    fn hide(&self) {
+        self.hidden.set(true);
+        self.value.set(self.attr.get());
+        self.attr.set(zero());
+    }
+
+    fn show(&self) {
+        self.hidden.set(false);
+        self.attr.set(self.value.get());
+    }
+}
+
+
+
 // ==============
 // === Sprite ===
 // ==============
@@ -106,11 +155,10 @@ impl Drop for SpriteGuard {
 pub struct Sprite {
     pub symbol      : Symbol,
     pub instance_id : AttributeInstanceIndex,
+    pub size        : Size,
     display_object  : display::object::Instance,
     transform       : Attribute<Matrix4<f32>>,
-    bbox            : Attribute<Vector2<f32>>,
     stats           : Rc<SpriteStats>,
-    size_backup     : Rc<Cell<Vector2<f32>>>,
     guard           : Rc<SpriteGuard>,
 }
 
@@ -120,49 +168,32 @@ impl Sprite {
     ( symbol      : &Symbol
     , instance_id : AttributeInstanceIndex
     , transform   : Attribute<Matrix4<f32>>
-    , bbox        : Attribute<Vector2<f32>>
+    , size        : Attribute<Vector2<f32>>
     , stats       : &Stats
     ) -> Self {
         let symbol         = symbol.clone_ref();
         let logger         = Logger::new(iformat!("Sprite{instance_id}"));
         let display_object = display::object::Instance::new(logger);
         let stats          = Rc::new(SpriteStats::new(stats));
-        let size_backup    = Rc::new(Cell::new(Vector2::new(0.0, 0.0)));
-        let guard          = Rc::new(SpriteGuard::new(instance_id,&symbol,&bbox,&display_object));
-        Self {symbol,instance_id,display_object,transform,bbox,stats,size_backup,guard}.init()
+        let guard          = Rc::new(SpriteGuard::new(instance_id,&symbol,&size,&display_object));
+        let size           = Size::new(size);
+        Self {symbol,instance_id,display_object,transform,size,stats,guard}.init()
     }
 
     /// Init display object bindings. In particular defines the behavior of the show and hide
     /// callbacks.
     fn init(self) -> Self {
-        let bbox        = &self.bbox;
+        let size        = &self.size;
         let transform   = &self.transform;
-        let size_backup = &self.size_backup;
-
-        self.display_object.set_on_updated(enclose!((transform) move |t| {
-            transform.set(t.matrix())
-        }));
-
-        self.display_object.set_on_hide(enclose!((bbox,size_backup) move || {
-            size_backup.set(bbox.get());
-            bbox.set(Vector2::new(0.0,0.0));
-        }));
-
-        self.display_object.set_on_show(enclose!((bbox,size_backup) move || {
-            bbox.set(size_backup.get());
-        }));
-
+        self.display_object.set_on_updated(f!((t) transform.set(t.matrix())));
+        self.display_object.set_on_hide(f!(size.hide()));
+        self.display_object.set_on_show(f!(size.show()));
         self
     }
 
     /// Get the symbol id.
     pub fn symbol_id(&self) -> i32 {
         self.symbol.id
-    }
-
-    /// Size accessor.
-    pub fn size(&self) -> Attribute<Vector2<f32>> {
-        self.bbox.clone_ref()
     }
 }
 
@@ -204,9 +235,7 @@ impl SpriteSystem {
         let uv                = point_scope.add_buffer("uv");
         let transform         = instance_scope.add_buffer("transform");
         let size              = instance_scope.add_buffer("size");
-        let horizontal        = HorizontalAlignment::Center;
-        let vertical          = VerticalAlignment::Center;
-        let initial_alignment = Self::uv_offset(horizontal,vertical);
+        let initial_alignment = Self::uv_offset(Alignment::center());
         let alignment         = symbol.variables().add_or_panic("alignment",initial_alignment);
 
         stats.inc_sprite_system_count();
@@ -245,8 +274,8 @@ impl SpriteSystem {
     }
 
     /// Set alignment of sprites.
-    pub fn set_alignment(&self, horizontal:HorizontalAlignment, vertical:VerticalAlignment) {
-        self.alignment.set(Self::uv_offset(horizontal,vertical));
+    pub fn set_alignment(&self, alignment:Alignment) {
+        self.alignment.set(Self::uv_offset(alignment));
     }
 
     /// Run the renderer.
@@ -320,18 +349,18 @@ impl SpriteSystem {
         material
     }
 
-    fn uv_offset(horizontal:HorizontalAlignment, vertical:VerticalAlignment) -> Vector2<f32> {
-        let x_alignment = match horizontal {
-            HorizontalAlignment::Left   => 0.0,
-            HorizontalAlignment::Center => 0.5,
-            HorizontalAlignment::Right  => 1.0,
+    fn uv_offset(alignment:Alignment) -> Vector2<f32> {
+        let x = match alignment.horizontal {
+            alignment::Horizontal::Left   => 0.0,
+            alignment::Horizontal::Center => 0.5,
+            alignment::Horizontal::Right  => 1.0,
         };
-        let y_alignment = match vertical {
-            VerticalAlignment::Top    => 1.0,
-            VerticalAlignment::Center => 0.5,
-            VerticalAlignment::Bottom => 0.0,
+        let y = match alignment.vertical {
+            alignment::Vertical::Top    => 1.0,
+            alignment::Vertical::Center => 0.5,
+            alignment::Vertical::Bottom => 0.0,
         };
-        Vector2::new(x_alignment,y_alignment)
+        Vector2::new(x,y)
     }
 }
 

@@ -193,7 +193,7 @@ impl TextFieldSprites {
             let position = Cursor::render_position(&cursor.position,content);
             sprites.cursor.set_position(Vector3::new(position.x,position.y,0.0));
             let size = if focused { Vector2::new(2.0,self.line_height) } else { zero() };
-            sprites.cursor.size().set(size);
+            sprites.cursor.size.set(size);
 
             let selection = cursor.selection_range();
             let line_height   = self.line_height;

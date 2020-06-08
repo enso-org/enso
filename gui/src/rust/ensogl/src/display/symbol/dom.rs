@@ -5,7 +5,6 @@ use crate::prelude::*;
 
 use crate::display;
 use crate::display::object::traits::*;
-use crate::display::scene::dom::invert_y;
 use crate::system::web;
 use crate::system::web::StyleSetter;
 use crate::system::web::NodeInserter;
@@ -29,7 +28,7 @@ mod js {
 
         export function set_object_transform(dom, matrix_array) {
             let css = arr_to_css_matrix3d(matrix_array);
-            dom.style.transform = css + 'translate(-50%, -50%)';
+            dom.style.transform = css + 'translate(-50%, -50%) scale(1.0,-1.0)';
         }
     ")]
     extern "C" {
@@ -88,10 +87,11 @@ impl Drop for Guard {
 // =================
 
 /// A DOM element which is managed by the rendering engine.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone,CloneRef,Debug,Shrinkwrap)]
 pub struct DomSymbol {
-    display_object : display::object::Instance,
+    #[shrinkwrap(main_field)]
     dom            : HtmlDivElement,
+    display_object : display::object::Instance,
     size           : Rc<Cell<Vector2<f32>>>,
     guard          : Rc<Guard>,
 }
@@ -109,8 +109,7 @@ impl DomSymbol {
         let display_object = display::object::Instance::new(logger);
         let guard          = Rc::new(Guard::new(&display_object,&dom));
         display_object.set_on_updated(enclose!((dom) move |t| {
-            let transform     = t.matrix();
-            let mut transform = invert_y(transform);
+            let mut transform = t.matrix();
             transform.iter_mut().for_each(|a| *a = eps(*a));
             set_object_transform(&dom,&transform);
         }));

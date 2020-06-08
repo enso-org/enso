@@ -1,9 +1,12 @@
-//! This module defines copy-on-write String implementation.
+//! This module defines several useful string variants, including copy-on-write and immutable
+//! implementations.
 
 use std::borrow::Cow;
 
 use crate::impls;
+use crate::clone::*;
 use std::ops::Deref;
+use std::rc::Rc;
 use derive_more::*;
 
 
@@ -64,4 +67,163 @@ impl AsRef<str> for CowString {
     fn as_ref(&self) -> &str {
         self.deref()
     }
+}
+
+
+
+// ================
+// === ImString ===
+// ================
+
+/// Immutable string implementation with a fast clone implementation.
+#[derive(Clone,CloneRef,Debug,Default,Eq,Hash,PartialEq)]
+pub struct ImString {
+    content : Rc<String>
+}
+
+impl ImString {
+    /// Constructor.
+    pub fn new(content:impl Into<String>) -> Self {
+        let content = Rc::new(content.into());
+        Self {content}
+    }
+}
+
+impl Deref for ImString {
+    type Target = str;
+    fn deref(&self) -> &Self::Target {
+        &self.content
+    }
+}
+
+impl AsRef<ImString> for ImString {
+    fn as_ref(&self) -> &ImString {
+        self
+    }
+}
+
+impl AsRef<String> for ImString {
+    fn as_ref(&self) -> &String {
+        self.content.as_ref()
+    }
+}
+
+impl AsRef<str> for ImString {
+    fn as_ref(&self) -> &str {
+        self.content.as_ref()
+    }
+}
+
+impl From<String> for ImString {
+    fn from(t:String) -> Self {
+        Self::new(t)
+    }
+}
+
+impl From<&String> for ImString {
+    fn from(t:&String) -> Self {
+        Self::new(t)
+    }
+}
+
+impl From<&&String> for ImString {
+    fn from(t:&&String) -> Self {
+        Self::new(*t)
+    }
+}
+
+impl From<&str> for ImString {
+    fn from(t:&str) -> Self {
+        Self::new(t)
+    }
+}
+
+impl From<&&str> for ImString {
+    fn from(t:&&str) -> Self {
+        Self::new(*t)
+    }
+}
+
+
+// === Macros ===
+
+/// Defines a newtype for `ImString`.
+#[macro_export]
+macro_rules! im_string_newtype {
+    ($($(#$meta:tt)* $name:ident),* $(,)?) => {$(
+        $(#$meta)*
+        #[derive(Clone,CloneRef,Debug,Default,Eq,Hash,PartialEq)]
+        pub struct $name {
+            content : ImString
+        }
+
+        impl $name {
+            /// Constructor.
+            pub fn new(content:impl Into<ImString>) -> Self {
+                let content = content.into();
+                Self {content}
+            }
+        }
+
+        impl Deref for $name {
+            type Target = str;
+            fn deref(&self) -> &Self::Target {
+                &self.content
+            }
+        }
+
+        impl AsRef<$name> for $name {
+            fn as_ref(&self) -> &$name {
+                self
+            }
+        }
+
+        impl AsRef<ImString> for $name {
+            fn as_ref(&self) -> &ImString {
+                self.content.as_ref()
+            }
+        }
+
+        impl AsRef<String> for $name {
+            fn as_ref(&self) -> &String {
+                self.content.as_ref()
+            }
+        }
+
+        impl AsRef<str> for $name {
+            fn as_ref(&self) -> &str {
+                self.content.as_ref()
+            }
+        }
+
+        impl From<String> for $name {
+            fn from(t:String) -> Self {
+                Self::new(t)
+            }
+        }
+
+        impl From<&String> for $name {
+            fn from(t:&String) -> Self {
+                Self::new(t)
+            }
+        }
+
+        impl From<&&String> for $name {
+            fn from(t:&&String) -> Self {
+                Self::new(t)
+            }
+        }
+
+        impl From<&str> for $name {
+            fn from(t:&str) -> Self {
+                Self::new(t)
+            }
+        }
+
+        impl From<&&str> for $name {
+            fn from(t:&&str) -> Self {
+                Self::new(t)
+            }
+        }
+    )*};
 }

@@ -4,10 +4,10 @@
 pub mod dom;
 
 pub use crate::display::symbol::registry::SymbolId;
+pub use crate::system::web::dom::Shape;
 
 use crate::prelude::*;
 
-use crate::control::callback::CallbackMut1Fn;
 use crate::control::callback;
 use crate::control::io::mouse::MouseManager;
 use crate::control::io::mouse;
@@ -31,6 +31,9 @@ use crate::system::gpu::types::*;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
 use crate::system::web;
+use crate::display::shape::ShapeSystemInstance;
+use crate::display::shape::system::ShapeSystemOf;
+use crate::display::layout::Alignment;
 
 use display::style::data::DataMatch;
 use enso_frp as frp;
@@ -46,10 +49,6 @@ pub trait MouseTarget : Debug + 'static {
     fn mouse_over (&self) -> &frp::Source;
     fn mouse_out  (&self) -> &frp::Source;
 }
-
-
-use crate::display::shape::ShapeSystemInstance;
-use crate::display::shape::system::{Shape,ShapeSystemOf};
 
 
 
@@ -83,11 +82,11 @@ impl {
         self.get().unwrap_or_else(|| self.register())
     }
 
-    pub fn shape_system<T:Shape>(&mut self, _phantom:PhantomData<T>) -> ShapeSystemOf<T> {
+    pub fn shape_system<T:display::shape::system::Shape>(&mut self, _phantom:PhantomData<T>) -> ShapeSystemOf<T> {
         self.get_or_register::<ShapeSystemOf<T>>()
     }
 
-    pub fn new_instance<T:Shape>(&mut self) -> T {
+    pub fn new_instance<T:display::shape::system::Shape>(&mut self) -> T {
         let system = self.get_or_register::<ShapeSystemOf<T>>();
         system.new_instance()
     }
@@ -262,22 +261,22 @@ mod target_tests {
 
     #[test]
     fn test_encoding() {
-        let pack   = Target::encode(0,0);
+        let pack = Target::encode(0,0);
         assert_eq!(pack,DecodingResult::Ok(0,0,0));
 
-        let pack   = Target::encode(3,7);
+        let pack = Target::encode(3,7);
         assert_eq!(pack,DecodingResult::Ok(0,48,7));
 
-        let pack   = Target::encode(3,256);
+        let pack = Target::encode(3,256);
         assert_eq!(pack,DecodingResult::Ok(0,49,0));
 
-        let pack   = Target::encode(255,356);
+        let pack = Target::encode(255,356);
         assert_eq!(pack,DecodingResult::Ok(15,241,100));
 
-        let pack   = Target::encode(256,356);
+        let pack = Target::encode(256,356);
         assert_eq!(pack,DecodingResult::Ok(16,1,100));
 
-        let pack   = Target::encode(31256,0);
+        let pack = Target::encode(31256,0);
         assert_eq!(pack,DecodingResult::Truncated(161,128,0));
     }
 }
@@ -327,7 +326,7 @@ pub struct Mouse {
 }
 
 impl Mouse {
-    pub fn new(shape:&web::dom::Shape, variables:&UniformScope, logger:Logger) -> Self {
+    pub fn new(shape:&frp::Sampler<Shape>, variables:&UniformScope, logger:Logger) -> Self {
         let target          = Target::default();
         let last_position   = Rc::new(Cell::new(Vector2::new(0,0)));
         let position        = variables.add_or_panic("mouse_position",Vector2::new(0,0));
@@ -339,7 +338,7 @@ impl Mouse {
         let frp             = frp::io::Mouse::new();
 
         let on_move = mouse_manager.on_move.add(f!([frp,shape,position,last_position](event:&mouse::OnMove) {
-            let pixel_ratio  = shape.pixel_ratio() as i32;
+            let pixel_ratio  = shape.value().pixel_ratio as i32;
             let screen_x     = event.client_x();
             let screen_y     = event.client_y();
 
@@ -435,12 +434,12 @@ impl Dom {
         Self {root,layers}
     }
 
-    pub fn shape(&self) -> &web::dom::Shape {
+    pub fn shape(&self) -> Shape {
         self.root.shape()
     }
 
     pub fn recompute_shape_with_reflow(&self) {
-        self.shape().set_from_element_with_reflow(&self.root);
+        self.root.recompute_shape_with_reflow();
     }
 }
 
@@ -455,30 +454,31 @@ impl Dom {
 /// elements.
 #[derive(Clone,CloneRef,Debug)]
 pub struct Layers {
+    /// Overlay DOM scene layer.
+    pub overlay: DomScene,
     /// Front DOM scene layer.
-    pub front : DomScene,
+    pub main: DomScene,
     /// The WebGL scene layer.
     pub canvas : web_sys::HtmlCanvasElement,
-    /// Back DOM scene layer.
-    pub back : DomScene,
+
 }
 
 impl Layers {
     /// Constructor.
     pub fn new(logger:&Logger, dom:&web_sys::HtmlDivElement) -> Self {
-        let canvas = web::create_canvas();
-        let front  = DomScene::new(&logger);
-        let back   = DomScene::new(&logger);
+        let canvas  = web::create_canvas();
+        let main    = DomScene::new(&logger);
+        let overlay = DomScene::new(&logger);
         canvas.set_style_or_panic("height"  , "100vh");
         canvas.set_style_or_panic("width"   , "100vw");
         canvas.set_style_or_panic("display" , "block");
-        front.dom.set_class_name("front");
-        back.dom.set_class_name("back");
-        dom.append_or_panic(&front.dom);
+        main.dom.set_class_name("front");
+        overlay.dom.set_class_name("back");
+        overlay.set_z_index(-1);
         dom.append_or_panic(&canvas);
-        dom.append_or_panic(&back.dom);
-        back.set_z_index(-1);
-        Self {front,canvas,back}
+        dom.append_or_panic(&main.dom);
+        dom.append_or_panic(&overlay.dom);
+        Self { main,canvas, overlay }
     }
 }
 
@@ -520,17 +520,6 @@ pub struct Dirty {
 
 
 
-// =================
-// === Callbacks ===
-// =================
-
-#[derive(Clone,CloneRef,Debug)]
-pub struct Callbacks {
-    on_resize : callback::Handle,
-}
-
-
-
 // ================
 // === Renderer ===
 // ================
@@ -553,8 +542,9 @@ impl Renderer {
         let context   = context.clone_ref();
         let variables = variables.clone_ref();
         let pipeline  = default();
-        let width     = dom.shape().current().device_pixels().width()  as i32;
-        let height    = dom.shape().current().device_pixels().height() as i32;
+        let shape     = dom.shape().device_pixels();
+        let width     = shape.width  as i32;
+        let height    = shape.height as i32;
         let composer  = RenderComposer::new(&pipeline,&context,&variables,width,height);
         let pipeline  = Rc::new(CloneCell::new(pipeline));
         let composer  = Rc::new(CloneCell::new(composer));
@@ -576,8 +566,9 @@ impl Renderer {
     }
 
     pub fn reload_composer(&self) {
-        let width    = self.dom.shape().current().device_pixels().width()  as i32;
-        let height   = self.dom.shape().current().device_pixels().height() as i32;
+        let shape    = self.dom.shape().device_pixels();
+        let width    = shape.width  as i32;
+        let height   = shape.height as i32;
         let pipeline = self.pipeline.get();
         let composer = RenderComposer::new(&pipeline,&self.context,&self.variables,width,height);
         self.composer.set(composer);
@@ -676,6 +667,7 @@ impl ViewData {
         let logger  = logger.sub("view");
         let camera  = Camera2d::new(&logger,width,height);
         let symbols = default();
+        // camera.set_alignment(Alignment::center());
         Self {logger,camera,symbols}
     }
 
@@ -698,28 +690,38 @@ impl ViewData {
 // =============
 
 /// Please note that currently the `Views` structure is implemented in a hacky way. It assumes the
-/// existence of `main`, `cursor`, and `label` views, which are needed for the GUI to display shapes
-/// properly. This should be abstracted away in the future.
+/// existence of `main`, `overlay`, `cursor`, and `label` views, which are needed for the GUI to
+/// display shapes properly. This should be abstracted away in the future.
 #[derive(Clone,CloneRef,Debug)]
 pub struct Views {
-    logger     : Logger,
-    pub main   : View,
-    pub cursor : View,
-    pub label  : View,
-    all        : Rc<RefCell<Vec<WeakView>>>,
-    width      : f32,
-    height     : f32,
+    logger             : Logger,
+    pub viz            : View,
+    pub main           : View,
+    pub cursor         : View,
+    pub label          : View,
+    pub viz_fullscreen : View,
+    all                : Rc<RefCell<Vec<WeakView>>>,
+    width              : f32,
+    height             : f32,
 }
 
 impl Views {
     pub fn mk(logger:&Logger, width:f32, height:f32) -> Self {
-        let logger = logger.sub("views");
-        let main   = View::new(&logger,width,height);
-        let cursor = View::new(&logger,width,height);
-        let label  = View::new_with_camera(&logger,&main.camera);
-        let all    = vec![main.downgrade(),cursor.downgrade(),label.downgrade()];
-        let all    = Rc::new(RefCell::new(all));
-        Self {logger,main,cursor,label,all,width,height}
+        let logger         = logger.sub("views");
+        let main           = View::new(&logger,width,height);
+        let viz            = View::new_with_camera(&logger,&main.camera);
+        let cursor         = View::new(&logger,width,height);
+        let label          = View::new_with_camera(&logger,&main.camera);
+        let viz_fullscreen = View::new(&logger,width,height);
+        let all            = vec![
+            viz.downgrade(),
+            main.downgrade(),
+            cursor.downgrade(),
+            label.downgrade(),
+            viz_fullscreen.downgrade()
+        ];
+        let all = Rc::new(RefCell::new(all));
+        Self {logger,viz,main,cursor,label,viz_fullscreen,all,width,height}
     }
 
     /// Creates a new view for this scene.
@@ -746,7 +748,6 @@ impl Views {
 pub struct Frp {
     pub network        : frp::Network,
     pub camera_changed : frp::Stream,
-
     camera_changed_source : frp::Source,
 }
 
@@ -786,7 +787,6 @@ pub struct SceneData {
     pub stats           : Stats,
     pub dirty           : Dirty,
     pub logger          : Logger,
-    pub callbacks       : Callbacks,
     pub renderer        : Renderer,
     pub views           : Views,
     pub style_sheet     : style::Sheet,
@@ -806,35 +806,32 @@ impl SceneData {
         parent_dom.append_child(&dom.root).unwrap();
         dom.recompute_shape_with_reflow();
 
-        let display_object = display::object::Instance::new(&logger);
-        let context        = web::get_webgl2_context(&dom.layers.canvas);
-        let sub_logger     = logger.sub("shape_dirty");
-        let shape_dirty    = ShapeDirty::new(sub_logger,Box::new(on_mut.clone()));
-        let sub_logger     = logger.sub("symbols_dirty");
-        let dirty_flag     = SymbolRegistryDirty::new(sub_logger,Box::new(on_mut));
-        let on_change      = enclose!((dirty_flag) move || dirty_flag.set());
-        let variables      = UniformScope::new(logger.sub("global_variables"),&context);
-        let symbols        = SymbolRegistry::mk(&variables,&stats,&context,&logger,on_change);
-        let screen_shape   = dom.shape().current();
-        let width          = screen_shape.width();
-        let height         = screen_shape.height();
-        let symbols_dirty  = dirty_flag;
-        let views          = Views::mk(&logger,width,height);
-        let stats          = stats.clone();
-        let mouse_logger   = logger.sub("mouse");
-        let mouse          = Mouse::new(&dom.shape(),&variables,mouse_logger);
-        let shapes         = ShapeRegistry::default();
-        let uniforms       = Uniforms::new(&variables);
-        let dirty          = Dirty {symbols:symbols_dirty,shape:shape_dirty};
-        let renderer       = Renderer::new(&logger,&dom,&context,&variables);
-        let on_resize_cb   = enclose!((dirty) move |_:&web::dom::ShapeData| dirty.shape.set());
-        let on_resize      = dom.root.on_resize(on_resize_cb);
-        let callbacks      = Callbacks {on_resize};
-        let style_sheet    = style::Sheet::new();
-        let fonts          = font::SharedRegistry::new();
-        let frp            = Frp::new();
-
-        let bg_color_var = style_sheet.var("application.background.color");
+        let display_object  = display::object::Instance::new(&logger);
+        let context         = web::get_webgl2_context(&dom.layers.canvas);
+        let sub_logger      = logger.sub("shape_dirty");
+        let shape_dirty     = ShapeDirty::new(sub_logger,Box::new(on_mut.clone()));
+        let sub_logger      = logger.sub("symbols_dirty");
+        let dirty_flag      = SymbolRegistryDirty::new(sub_logger,Box::new(on_mut));
+        let on_change       = enclose!((dirty_flag) move || dirty_flag.set());
+        let variables       = UniformScope::new(logger.sub("global_variables"),&context);
+        let symbols         = SymbolRegistry::mk(&variables,&stats,&context,&logger,on_change);
+        let screen_shape    = dom.shape();
+        let width           = screen_shape.width;
+        let height          = screen_shape.height;
+        let symbols_dirty   = dirty_flag;
+        let views           = Views::mk(&logger,width,height);
+        let stats           = stats.clone();
+        let mouse_logger    = logger.sub("mouse");
+        let mouse           = Mouse::new(&dom.root.shape,&variables,mouse_logger);
+        let shapes          = ShapeRegistry::default();
+        let uniforms        = Uniforms::new(&variables);
+        let dirty           = Dirty {symbols:symbols_dirty,shape:shape_dirty};
+        let renderer        = Renderer::new(&logger,&dom,&context,&variables);
+        let style_sheet     = style::Sheet::new();
+        let fonts           = font::SharedRegistry::new();
+        let frp             = Frp::new();
+        let network         = &frp.network;
+        let bg_color_var    = style_sheet.var("application.background.color");
         let bg_color_change = bg_color_var.on_change(f!([dom](change){
             change.color().for_each(|color| {
                 let color = color::Rgba::from(color);
@@ -843,17 +840,17 @@ impl SceneData {
             })
         }));
 
-        uniforms.pixel_ratio.set(dom.shape().pixel_ratio());
+        frp::extend! { network
+            eval_ dom.root.shape (dirty.shape.set());
+        }
+
+        uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
         Self {renderer,display_object,dom,context,symbols,views,dirty,logger,variables,stats
-             ,uniforms,mouse,callbacks,shapes,style_sheet,bg_color_var,bg_color_change,fonts,frp}
+             ,uniforms,mouse,shapes,style_sheet,bg_color_var,bg_color_change,fonts,frp}
     }
 
-    pub fn on_resize<F:CallbackMut1Fn<web::dom::ShapeData>>(&self, callback:F) -> callback::Handle {
-        self.dom.root.on_resize(callback)
-    }
-
-    pub fn shape(&self) -> web::dom::ShapeData {
-        self.dom.root.shape().current()
+    pub fn shape(&self) -> &frp::Sampler<Shape> {
+        &self.dom.root.shape
     }
 
     pub fn camera(&self) -> &Camera2d {
@@ -878,25 +875,15 @@ impl SceneData {
             self.shapes.get_mouse_target(current_target) . for_each(|t| t.mouse_out().emit(()));
             self.shapes.get_mouse_target(new_target)     . for_each(|t| t.mouse_over().emit(()));
             self.mouse.reemit_position_event(); // See docs to learn why.
-            // TODO: Inspect the code below and clean the related codebase accordingly.
-//            match target {
-//                Target::Background => {}
-//                Target::Symbol {symbol_id,..} => {
-//                    let symbol = self.symbols.index(symbol_id as usize);
-//                    symbol.dispatch_event(&DynEvent::new(())); // FIXME: currently unused
-//                    // println!("{:?}",target);
-//                    // TODO: finish events sending, including OnOver and OnOut.
-//                }
-//            }
         }
     }
 
     fn update_shape(&self) {
         if self.dirty.shape.check_all() {
-            let screen = self.dom.shape().current();
-            self.resize_canvas(&self.dom.shape());
+            let screen = self.dom.shape();
+            self.resize_canvas(screen);
             for view in &*self.views.all.borrow() {
-                view.upgrade().for_each(|v| v.camera.set_screen(screen.width(), screen.height()))
+                view.upgrade().for_each(|v| v.camera.set_screen(screen.width,screen.height))
             }
             self.renderer.reload_composer();
             self.dirty.shape.unset_all();
@@ -918,8 +905,8 @@ impl SceneData {
         if changed {
             self.frp.camera_changed_source.emit(());
             self.symbols.set_camera(camera);
-            self.dom.layers.front.update_view_projection(camera);
-            self.dom.layers.back.update_view_projection(camera);
+            self.dom.layers.main.update_view_projection(camera);
+            self.dom.layers.overlay.update_view_projection(camera);
         }
 
         // Updating all other cameras (the main camera was already updated, so it will be skipped).
@@ -931,13 +918,12 @@ impl SceneData {
     /// Resize the underlying canvas. This function should rather not be called
     /// directly. If you want to change the canvas size, modify the `shape` and
     /// set the dirty flag.
-    fn resize_canvas(&self, shape:&web::dom::Shape) {
-        let screen = shape.current();
-        let canvas = shape.current().device_pixels();
-        group!(self.logger,"Resized to {screen.width()}px x {screen.height()}px.", {
-            self.dom.layers.canvas.set_attribute("width",  &canvas.width().to_string()).unwrap();
-            self.dom.layers.canvas.set_attribute("height", &canvas.height().to_string()).unwrap();
-            self.context.viewport(0,0,canvas.width() as i32, canvas.height() as i32);
+    fn resize_canvas(&self, screen:Shape) {
+        let canvas = screen.device_pixels();
+        group!(self.logger,"Resized to {screen.width}px x {screen.height}px.", {
+            self.dom.layers.canvas.set_attribute("width",  &canvas.width.to_string()).unwrap();
+            self.dom.layers.canvas.set_attribute("height", &canvas.height.to_string()).unwrap();
+            self.context.viewport(0,0,canvas.width as i32, canvas.height as i32);
         });
     }
 }

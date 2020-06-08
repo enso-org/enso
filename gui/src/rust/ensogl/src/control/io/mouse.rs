@@ -101,10 +101,10 @@ macro_rules! define_bindings {
                 let dispatchers = MouseManagerDispatchers::default();
                 let dom         = dom.clone();
                 $(
-                    let shape      = dom.shape().clone_ref();
+                    let shape      = dom.shape.clone_ref();
                     let dispatcher = dispatchers.$name.clone_ref();
                     let $name : MouseEventJsClosure = Closure::wrap(Box::new(move |event:JsValue| {
-                        let shape = shape.current();
+                        let shape = shape.value();
                         let event = event.unchecked_into::<web_sys::$js_event>();
                         dispatcher.dispatch(&event::$target::new(event,shape))
                     }));

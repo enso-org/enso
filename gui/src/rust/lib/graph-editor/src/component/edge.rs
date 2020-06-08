@@ -173,25 +173,25 @@ impl LayoutLine for component::ShapeView<front::line::Shape> {
     fn layout_v(&self, start:Vector2<f32>, len:f32) {
         let pos  = Vector2::new(start.x, start.y + len/2.0);
         let size = Vector2::new(LINE_SHAPE_WIDTH, len.abs()+LINE_SIDES_OVERLAP);
-        self.shape.sprite.size().set(size);
+        self.shape.sprite.size.set(size);
         self.set_position_xy(pos);
     }
     fn layout_h(&self, start:Vector2<f32>, len:f32) {
         let pos  = Vector2::new(start.x + len/2.0, start.y);
         let size = Vector2::new(LINE_SHAPE_WIDTH, len.abs()+LINE_SIDES_OVERLAP);
-        self.shape.sprite.size().set(size);
+        self.shape.sprite.size.set(size);
         self.set_position_xy(pos);
     }
     fn layout_v_no_overlap(&self, start:Vector2<f32>, len:f32) {
         let pos  = Vector2::new(start.x, start.y + len/2.0);
         let size = Vector2::new(LINE_SHAPE_WIDTH, len.abs());
-        self.shape.sprite.size().set(size);
+        self.shape.sprite.size.set(size);
         self.set_position_xy(pos);
     }
     fn layout_h_no_overlap(&self, start:Vector2<f32>, len:f32) {
         let pos  = Vector2::new(start.x + len/2.0, start.y);
         let size = Vector2::new(LINE_SHAPE_WIDTH, len.abs());
-        self.shape.sprite.size().set(size);
+        self.shape.sprite.size.set(size);
         self.set_position_xy(pos);
     }
 }
@@ -200,25 +200,25 @@ impl LayoutLine for component::ShapeView<back::line::Shape> {
     fn layout_v(&self, start:Vector2<f32>, len:f32) {
         let pos  = Vector2::new(start.x, start.y + len/2.0);
         let size = Vector2::new(LINE_SHAPE_WIDTH, len.abs()+LINE_SIDES_OVERLAP);
-        self.shape.sprite.size().set(size);
+        self.shape.sprite.size.set(size);
         self.set_position_xy(pos);
     }
     fn layout_h(&self, start:Vector2<f32>, len:f32) {
         let pos  = Vector2::new(start.x + len/2.0, start.y);
         let size = Vector2::new(LINE_SHAPE_WIDTH, len.abs()+LINE_SIDES_OVERLAP);
-        self.shape.sprite.size().set(size);
+        self.shape.sprite.size.set(size);
         self.set_position_xy(pos);
     }
     fn layout_v_no_overlap(&self, start:Vector2<f32>, len:f32) {
         let pos  = Vector2::new(start.x, start.y + len/2.0);
         let size = Vector2::new(LINE_SHAPE_WIDTH, len.abs());
-        self.shape.sprite.size().set(size);
+        self.shape.sprite.size.set(size);
         self.set_position_xy(pos);
     }
     fn layout_h_no_overlap(&self, start:Vector2<f32>, len:f32) {
         let pos  = Vector2::new(start.x + len/2.0, start.y);
         let size = Vector2::new(LINE_SHAPE_WIDTH, len.abs());
-        self.shape.sprite.size().set(size);
+        self.shape.sprite.size.set(size);
         self.set_position_xy(pos);
     }
 }
@@ -628,7 +628,7 @@ impl EdgeModelData {
         let corner1_angle       = (angle + angle_overlap) * side;
         let corner1_angle       = if is_down {corner1_angle} else {side_right_angle};
 
-        bg.corner.shape.sprite.size().set(corner1_size);
+        bg.corner.shape.sprite.size.set(corner1_size);
         bg.corner.shape.start_angle.set(corner1_start_angle);
         bg.corner.shape.angle.set(corner1_angle);
         bg.corner.shape.radius.set(corner1_radius);
@@ -636,7 +636,7 @@ impl EdgeModelData {
         bg.corner.set_position_xy(corner1);
         if !target_attached {
             bg.corner.shape.dim.set(Vector2::new(node_half_width,NODE_HALF_HEIGHT));
-            fg.corner.shape.sprite.size().set(corner1_size);
+            fg.corner.shape.sprite.size.set(corner1_size);
             fg.corner.shape.start_angle.set(corner1_start_angle);
             fg.corner.shape.angle.set(corner1_angle);
             fg.corner.shape.radius.set(corner1_radius);
@@ -644,7 +644,7 @@ impl EdgeModelData {
             fg.corner.shape.dim.set(Vector2::new(node_half_width,NODE_HALF_HEIGHT));
             fg.corner.set_position_xy(corner1);
         } else {
-            fg.corner.shape.sprite.size().set(zero());
+            fg.corner.shape.sprite.size.set(zero());
             bg.corner.shape.dim.set(Vector2::new(INFINITE,INFINITE));
         }
 
@@ -666,7 +666,7 @@ impl EdgeModelData {
         let bg_line_start   = Vector2::new(side*bg_line_x,0.0);
         if target_attached {
             let bg_line_len = side*side_line_len;
-            fg.side_line.shape.sprite.size().set(zero());
+            fg.side_line.shape.sprite.size.set(zero());
             bg.side_line.layout_h(bg_line_start,bg_line_len);
         } else {
             let bg_max_len            = NODE_PADDING + side_line_shift;
@@ -709,10 +709,10 @@ impl EdgeModelData {
             } else if target_attached {
                 let main_line_start_y = port_line_start.y + port_line_len;
                 let main_line_start = Vector2::new(port_line_start.x, main_line_start_y);
-                fg.main_line.shape.sprite.size().set(zero());
+                fg.main_line.shape.sprite.size.set(zero());
                 bg.main_line.layout_v(main_line_start, main_line_len - port_line_len);
             } else {
-                bg.main_line.shape.sprite.size().set(zero());
+                bg.main_line.shape.sprite.size.set(zero());
                 fg.main_line.layout_v(port_line_start, main_line_len);
             }
         }
@@ -763,8 +763,8 @@ impl EdgeModelData {
             let corner3_angle = if is_right_side {0.0} else {-RIGHT_ANGLE};
 
             if target_attached {
-                fg.corner3.shape.sprite.size().set(zero());
-                bg.corner3.shape.sprite.size().set(corner3_size);
+                fg.corner3.shape.sprite.size.set(zero());
+                bg.corner3.shape.sprite.size.set(corner3_size);
                 bg.corner3.shape.start_angle.set(corner3_angle);
                 bg.corner3.shape.angle.set(RIGHT_ANGLE);
                 bg.corner3.shape.radius.set(corner3_radius);
@@ -772,8 +772,8 @@ impl EdgeModelData {
                 bg.corner3.shape.dim.set(Vector2::new(INFINITE,INFINITE));
                 bg.corner3.set_position_xy(corner3);
             } else {
-                bg.corner3.shape.sprite.size().set(zero());
-                fg.corner3.shape.sprite.size().set(corner3_size);
+                bg.corner3.shape.sprite.size.set(zero());
+                fg.corner3.shape.sprite.size.set(corner3_size);
                 fg.corner3.shape.start_angle.set(corner3_angle);
                 fg.corner3.shape.angle.set(RIGHT_ANGLE);
                 fg.corner3.shape.radius.set(corner3_radius);
@@ -787,8 +787,8 @@ impl EdgeModelData {
             let corner2_angle = if is_right_side {-RIGHT_ANGLE} else {0.0};
 
             if target_attached {
-                fg.corner2.shape.sprite.size().set(zero());
-                bg.corner2.shape.sprite.size().set(corner1_size);
+                fg.corner2.shape.sprite.size.set(zero());
+                bg.corner2.shape.sprite.size.set(corner1_size);
                 bg.corner2.shape.start_angle.set(corner2_angle);
                 bg.corner2.shape.angle.set(RIGHT_ANGLE);
                 bg.corner2.shape.radius.set(corner2_radius);
@@ -796,8 +796,8 @@ impl EdgeModelData {
                 bg.corner2.shape.dim.set(Vector2::new(INFINITE,INFINITE));
                 bg.corner2.set_position_xy(corner2);
             } else {
-                bg.corner2.shape.sprite.size().set(zero());
-                fg.corner2.shape.sprite.size().set(corner1_size);
+                bg.corner2.shape.sprite.size.set(zero());
+                fg.corner2.shape.sprite.size.set(corner1_size);
                 fg.corner2.shape.start_angle.set(corner2_angle);
                 fg.corner2.shape.angle.set(RIGHT_ANGLE);
                 fg.corner2.shape.radius.set(corner2_radius);
@@ -820,10 +820,10 @@ impl EdgeModelData {
             let main_line_start = Vector2::new(side*corner1_target.x,corner1.y);
 
             if target_attached {
-                fg.main_line.shape.sprite.size().set(zero());
+                fg.main_line.shape.sprite.size.set(zero());
                 bg.main_line.layout_v(main_line_start, main_line_len);
             } else {
-                bg.main_line.shape.sprite.size().set(zero());
+                bg.main_line.shape.sprite.size.set(zero());
                 fg.main_line.layout_v(main_line_start, main_line_len);
             }
 
@@ -832,17 +832,17 @@ impl EdgeModelData {
                 let arrow_pos  = Vector2::new(main_line_start.x, arrow_y);
                 let arrow_size = Vector2::new(20.0,20.0);
                 if target_attached {
-                    fg.arrow.shape.sprite.size().set(zero());
-                    bg.arrow.shape.sprite.size().set(arrow_size);
+                    fg.arrow.shape.sprite.size.set(zero());
+                    bg.arrow.shape.sprite.size.set(arrow_size);
                     bg.arrow.set_position_xy(arrow_pos);
                 } else {
-                    bg.arrow.shape.sprite.size().set(zero());
-                    fg.arrow.shape.sprite.size().set(arrow_size);
+                    bg.arrow.shape.sprite.size.set(zero());
+                    fg.arrow.shape.sprite.size.set(arrow_size);
                     fg.arrow.set_position_xy(arrow_pos);
                 }
             } else {
-                bg.arrow.shape.sprite.size().set(zero());
-                fg.arrow.shape.sprite.size().set(zero());
+                bg.arrow.shape.sprite.size.set(zero());
+                fg.arrow.shape.sprite.size.set(zero());
             }
 
 
@@ -856,23 +856,23 @@ impl EdgeModelData {
             let side_line2_len  = side*(corner3_x - corner2_x);
             let side_line2_start  = Vector2::new(side*corner2_x,corner2_y + corner2_radius);
             if target_attached {
-                fg.side_line2.shape.sprite.size().set(zero());
+                fg.side_line2.shape.sprite.size.set(zero());
                 bg.side_line2.layout_h(side_line2_start,side_line2_len);
             } else {
-                bg.side_line2.shape.sprite.size().set(zero());
+                bg.side_line2.shape.sprite.size.set(zero());
                 fg.side_line2.layout_h(side_line2_start,side_line2_len);
             }
 
             port_line_len = corner3_y - port_line_start.y;
         } else {
-            fg.arrow.shape.sprite.size().set(zero());
-            bg.arrow.shape.sprite.size().set(zero());
-            fg.corner3.shape.sprite.size().set(zero());
-            bg.corner3.shape.sprite.size().set(zero());
-            fg.corner2.shape.sprite.size().set(zero());
-            bg.corner2.shape.sprite.size().set(zero());
-            fg.side_line2.shape.sprite.size().set(zero());
-            bg.side_line2.shape.sprite.size().set(zero());
+            fg.arrow.shape.sprite.size.set(zero());
+            bg.arrow.shape.sprite.size.set(zero());
+            fg.corner3.shape.sprite.size.set(zero());
+            bg.corner3.shape.sprite.size.set(zero());
+            fg.corner2.shape.sprite.size.set(zero());
+            bg.corner2.shape.sprite.size.set(zero());
+            fg.side_line2.shape.sprite.size.set(zero());
+            bg.side_line2.shape.sprite.size.set(zero());
         }
 
 
