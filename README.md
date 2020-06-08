@@ -64,6 +64,9 @@ for MacOS, Linux and Windows, as well as universal `.jar` packages that can run
 anywhere that [GraalVM](https://graalvm.org) can. See the
 [documentation](http://enso.org) for more.
 
+Nightly builds can be obtained from the CI artifacts. Please refer to the
+[documentation](./docs/getting-enso.md).
+
 If you want to read more about the internals of Enso, please take a look at the
 developer documentation rendered [here](https://dev.enso.org), or in the
 repository [here](./docs).

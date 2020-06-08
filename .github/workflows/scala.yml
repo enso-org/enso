@@ -151,27 +151,35 @@ jobs:
       # Build Artifacts
       - name: Build the Uberjar
         run: sbt --no-colors runner/assembly
-      - name: Prepare the CLI Artifact
+      - name: Include CLI in Distribution
         run: |
-          CLI_DIR=enso-$(./enso.jar --version --json | jq -r '.version')
-          mkdir $CLI_DIR
-          mkdir $CLI_DIR/component
-          mv enso.jar $CLI_DIR/component
-          cp -r distribution/std-lib $CLI_DIR/std-lib
-          echo ::set-env name=CLI_DIR::$CLI_DIR
+          DIST_DIR=enso-$(./enso.jar --version --json | jq -r '.version')
+          mkdir $DIST_DIR
+          mkdir $DIST_DIR/component
+          mv enso.jar $DIST_DIR/component
+          cp -r distribution/std-lib $DIST_DIR/std-lib
+          cp -r distribution/bin $DIST_DIR/bin
+          chmod +x $DIST_DIR/bin/enso
+          chmod +x $DIST_DIR/bin/project-manager
+          echo ::set-env name=DIST_DIR::$DIST_DIR
       - name: Build the Parser JS Bundle
         run: sbt -no-colors syntaxJS/fullOptJS
       - name: Build the Project Manager Uberjar
         run: |
           sbt --no-colors runtime/assembly
           sbt --no-colors project-manager/assembly
+      - name: Include Project Manager in Distribution
+        run: |
+          DIST_DIR=${{ env.DIST_DIR }}
+          mv ./runtime.jar $DIST_DIR/component
+          mv ./project-manager.jar $DIST_DIR/component
 
       # Publish
-      - name: Publish the CLI Artifact
+      - name: Publish the Distribution Artifact
         uses: actions/upload-artifact@v1.0.0
         with:
-          name: ${{ env.CLI_DIR }}
-          path: ${{ env.CLI_DIR }}
+          name: ${{ env.DIST_DIR }}
+          path: ${{ env.DIST_DIR }}
       - name: Prepare the FlatBuffers Schemas for Upload
         run: |
           mkdir fbs-upload
@@ -191,17 +199,6 @@ jobs:
         with:
           name: Parser JS Bundle
           path: ./target/scala-parser.js
-      - name: Prepare the Project Manager package
-        run: |
-          mkdir pm-upload
-          cp ./runtime.jar pm-upload
-          cp ./project-manager.jar pm-upload
-          zip -r project-manager.zip ./runtime.jar ./project-manager.jar
-      - name: Publish the Project Manager package
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: The Project Manager Bundle
-          path: ./project-manager.zip
       - name: Prepare AWS Session
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
@@ -216,9 +213,9 @@ jobs:
       - name: Upload FlatBuffers Schemas to S3
         run: |
           aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-      - name: Upload Project Manager to S3
+      - name: Upload Distribution to S3
         run: |
-          aws s3 sync ./pm-upload s3://packages-luna/project-manager/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+          aws s3 sync ${{ env.DIST_DIR }} s3://packages-luna/project-manager/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
       - name: Teardown AWS Session
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
