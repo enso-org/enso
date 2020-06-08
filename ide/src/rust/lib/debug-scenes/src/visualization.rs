@@ -4,8 +4,9 @@ use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
 use ensogl_core_msdf_sys::run_once_initialized;
+use graph_editor::data;
 use graph_editor::component::visualization::Data;
-use graph_editor::component::visualization::JsSourceClass;
+use graph_editor::component::visualization;
 use graph_editor::component::visualization::Registry;
 use js_sys::Math::sin;
 use nalgebra::Vector2;
@@ -24,8 +25,8 @@ fn generate_data(seconds:f64) -> Vec<Vector2<f32>> {
 
 
 
-fn constructor_graph() -> JsSourceClass {
-    let fn_constructor = r#"
+fn constructor_graph() -> visualization::java_script::Definition {
+    let source = r#"
         class Graph {
             static inputTypes = ["[[Float,Float,Float]]"]
 
@@ -66,7 +67,7 @@ fn constructor_graph() -> JsSourceClass {
 
         return Graph;
     "#;
-    JsSourceClass::from_js_source_raw(fn_constructor).unwrap()
+    visualization::java_script::Definition::new(data::builtin_library(),source).unwrap() // FIXME unwrap
 }
 
 #[wasm_bindgen]
@@ -83,19 +84,19 @@ pub fn run_example_visualization() {
 }
 
 fn init(app:&Application) {
-    let world      = &app.display;
-    let scene      = world.scene();
-    let camera     = scene.camera();
-    let navigator  = Navigator::new(&scene,&camera);
-    let registry   = Registry::with_default_visualizations();
+    let world     = &app.display;
+    let scene     = world.scene();
+    let camera    = scene.camera();
+    let navigator = Navigator::new(&scene,&camera);
+    let registry  = Registry::with_default_visualizations();
 
-    registry.register_class(constructor_graph());
+    registry.add(constructor_graph());
 
     let vis_factories = registry.valid_sources(&"[[Float,Float,Float]]".into());
     let vis_class     = vis_factories.iter().find(|class| {
-        class.signature().name == "Graph"
+        &*class.signature.name == "Graph"
     }).expect("Couldn't find Graph class.");
-    let visualization = vis_class.instantiate(&scene).expect("Couldn't create visualiser.");
+    let visualization = vis_class.new_instance(&scene).expect("Couldn't create visualiser.");
 
     let mut was_rendered = false;
     let mut loader_hidden = false;
@@ -104,10 +105,10 @@ fn init(app:&Application) {
 
         let data    = generate_data((time_info.local / 1000.0).into());
         let data    = Rc::new(data);
-        let content = Rc::new(serde_json::to_value(data).unwrap());
-        let data    = Data::JSON{content};
+        let content = serde_json::to_value(data).unwrap();
+        let data    = Data::from(content);
 
-        visualization.frp.set_data.emit(Some(data));
+        visualization.send_data.emit(data);
 
         // Temporary code removing the web-loader instance.
         // To be changed in the future.

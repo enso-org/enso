@@ -2,10 +2,4 @@
 
 pub mod alignment;
 
-/// Commonly used types.
-pub mod types {
-    use super::*;
-    pub use alignment::Alignment;
-    pub use alignment::HorizontalAlignment;
-    pub use alignment::VerticalAlignment;
-}
+pub use alignment::Alignment;

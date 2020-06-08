@@ -5,9 +5,10 @@ use crate::prelude::*;
 use super::command;
 
 use crate::control::io::keyboard::listener::KeyboardFrpBindings;
-use crate::frp::io::keyboard::Keyboard;
 use crate::frp::io::keyboard::KeyMask;
+use crate::frp::io::keyboard::Keyboard;
 use crate::frp;
+use crate::system::web;
 
 
 
@@ -39,7 +40,7 @@ pub struct RegistryModel {
     keyboard          : Keyboard,
     keyboard_bindings : Rc<KeyboardFrpBindings>,
     command_registry  : command::Registry,
-    action_map        : Rc<RefCell<ActionMap>>
+    action_map        : Rc<RefCell<ActionMap>>,
 }
 
 impl Deref for Registry {
@@ -49,7 +50,6 @@ impl Deref for Registry {
     }
 }
 
-
 impl RegistryModel {
     /// Constructor.
     pub fn new(logger:&Logger, command_registry:&command::Registry) -> Self {
@@ -58,6 +58,7 @@ impl RegistryModel {
         let keyboard_bindings = Rc::new(KeyboardFrpBindings::new(&logger,&keyboard));
         let command_registry  = command_registry.clone_ref();
         let action_map        = default();
+
         Self {logger,keyboard,keyboard_bindings,command_registry,action_map}
     }
 }
@@ -66,15 +67,37 @@ impl Registry {
     /// Constructor.
     pub fn new(logger:&Logger, command_registry:&command::Registry) -> Self {
         let model = RegistryModel::new(logger,command_registry);
+
+        // TODO move to theme configuration.
+        let double_press_threshold_ms = 300.0;
         frp::new_network! { network
-            eval model.keyboard.key_mask          ((m) model.process_action(ActionType::Press,m));
-            eval model.keyboard.previous_key_mask ((m) model.process_action(ActionType::Release,m));
+            let key_mask = model.keyboard.key_mask.clone_ref();
+            nothing_pressed      <- key_mask.map(|m| *m == default());
+            nothing_pressed_prev <- nothing_pressed.previous();
+            press                <- key_mask.gate_not(&nothing_pressed);
+            single_press         <- press.gate(&nothing_pressed_prev);
+            eval press ((m) model.process_action(ActionType::Press,m));
+
+            single_press_prev  <- single_press.previous();
+            press_time         <- single_press.map(|_| web::performance().now());
+            press_time_prev    <- press_time.previous();
+            time_delta         <- press_time.map2(&press_time_prev, |t1,t2| (t1-t2));
+            is_double_press    <- time_delta.map4(&press,&single_press_prev,&nothing_pressed_prev,
+                move |delta,t,s,g| *g && *delta < double_press_threshold_ms && t == s);
+            double_press       <- press.gate(&is_double_press);
+            eval double_press ((m) model.process_action(ActionType::DoublePress,m));
+
+            let prev_key = model.keyboard.previous_key_mask.clone_ref();
+            the_same_key       <- prev_key.map2(&key_mask,|t,s| t == s);
+            release            <- prev_key.gate_not(&the_same_key);
+            eval release      ((m) model.process_action(ActionType::Release,m));
         }
         Self {model,network}
     }
 }
 
 impl RegistryModel {
+
     fn process_action(&self, action_type:ActionType, key_mask:&KeyMask) {
         let action_map_mut = &mut self.action_map.borrow_mut();
         if let Some(rule_map) = action_map_mut.get_mut(&action_type) {
@@ -182,7 +205,7 @@ impl WeakHandle {
 #[derive(Clone,Copy,Debug,Eq,Hash,PartialEq)]
 #[allow(missing_docs)]
 pub enum ActionType {
-    Press, Release
+    Press, Release, DoublePress
 }
 
 /// Keyboard action defined as `ActionType` and `KeyMask`, like "release key 'n'". Please note that
@@ -212,6 +235,11 @@ impl Action {
     /// Smart constructor for the `Release` action.
     pub fn release(key_mask:impl Into<KeyMask>) -> Self {
         Self::new(ActionType::Release,key_mask)
+    }
+
+    /// Smart constructor for the `DoublePress` action.
+    pub fn double_press(key_mask:impl Into<KeyMask>) -> Self {
+        Self::new(ActionType::DoublePress,key_mask)
     }
 }
 

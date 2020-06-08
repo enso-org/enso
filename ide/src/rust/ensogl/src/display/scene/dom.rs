@@ -163,6 +163,11 @@ impl DomScene {
         Self {data}
     }
 
+    /// Gets the number of children DomSymbols.
+    pub fn children_number(&self) -> u32 {
+        self.data.dom.children().length()
+    }
+
     /// Sets the z-index of this DOM element.
     pub fn set_z_index(&self, z:i32) {
         self.data.dom.set_style_or_warn("z-index", z.to_string(), &self.logger);
@@ -182,6 +187,8 @@ impl DomScene {
     /// Update the objects to match the new camera's point of view. This function should be called
     /// only after camera position change.
     pub fn update_view_projection(&self, camera:&Camera2d) {
+        if self.children_number() == 0 { return }
+
         let trans_cam  = camera.transform_matrix().try_inverse();
         let trans_cam  = trans_cam.expect("Camera's matrix is not invertible.");
         let trans_cam  = trans_cam.map(eps);

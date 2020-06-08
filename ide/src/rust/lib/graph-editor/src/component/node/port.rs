@@ -230,7 +230,7 @@ impl Manager {
                         let width2  = width + 8.0;
                         let node_height = 28.0;
                         let height = 18.0;
-                        port.shape.sprite.size().set(Vector2::new(width2,node_height));
+                        port.shape.sprite.size.set(Vector2::new(width2,node_height));
                         let x = width/2.0 + unit * span.index.value as f32;
                         port.mod_position(|t| t.x = x);
                         self.add_child(&port);

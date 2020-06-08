@@ -60,7 +60,12 @@ impl<T> WeakElement for WeakEntry<T> {
     }
 }
 
-impl<Handle:CloneRef> CloneRef for Entry<Handle> {}
+impl<Handle:Clone+CloneRef> CloneRef for Entry<Handle> {
+    fn clone_ref(&self) -> Self {
+        self.clone()
+    }
+}
+
 impl<Handle:Debug> Debug for Entry<Handle> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {

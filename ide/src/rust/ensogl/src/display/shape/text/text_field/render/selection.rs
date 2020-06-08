@@ -54,7 +54,7 @@ impl<'a,'b> SelectionSpritesGenerator<'a,'b> {
         let size   = Vector2::new(width,self.line_height);
         let sprite = self.system.new_instance();
         sprite.set_position(Vector3::new(x,y,-1.0));
-        sprite.size().set(size);
+        sprite.size.set(size);
         sprite
     }
 
@@ -66,7 +66,7 @@ impl<'a,'b> SelectionSpritesGenerator<'a,'b> {
         let size   = Vector2::new(width,self.line_height);
         let sprite = self.system.new_instance();
         sprite.set_position(Vector3::new(x,y,-1.0));
-        sprite.size().set(size);
+        sprite.size.set(size);
         sprite
     }
 
@@ -78,7 +78,7 @@ impl<'a,'b> SelectionSpritesGenerator<'a,'b> {
         let size   = Vector2::new(width,self.line_height);
         let sprite = self.system.new_instance();
         sprite.set_position(Vector3::new(x,y,-1.0));
-        sprite.size().set(size);
+        sprite.size.set(size);
         sprite
     }
 
@@ -93,7 +93,7 @@ impl<'a,'b> SelectionSpritesGenerator<'a,'b> {
         let size   = Vector2::new(width,height);
         let sprite = self.system.new_instance();
         sprite.set_position(Vector3::new(x,y,-1.0));
-        sprite.size().set(size);
+        sprite.size.set(size);
         sprite
     }
 }

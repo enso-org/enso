@@ -2,25 +2,30 @@
 // TODO remove once we have proper visualizations or replace with a nice d3 example.
 // These implementations are neither efficient nor pretty, but get the idea across.
 
-use crate::component::visualization::JsSourceClass;
+use crate::data;
+use crate::component::visualization;
 
-/// Return an `JsSourceClass` that creates example Bubble Visualizations implemented in JS.
-pub fn get_bubble_vis_class() -> JsSourceClass {
-    let fn_constructor = r#"
+/// Return a `JavaScript` Bubble visualization.
+pub fn bubble_visualization() -> visualization::java_script::FallibleDefinition {
+    let source = r#"
         class BubbleVisualization {
-            static inputTypes = ["[[Float,Float,Float]]"]
+            static inputType = "Any"
 
             onDataReceived(root, data) {
                 const xmlns = "http://www.w3.org/2000/svg";
                 while (root.firstChild) {
                     root.removeChild(root.lastChild);
                 }
+                const width = root.getAttributeNS(null, "width");
+                const height = root.getAttributeNS(null, "height");
 
                 const svgElem = document.createElementNS(xmlns, "svg");
                 svgElem.setAttributeNS(null, "id"     , "vis-svg");
-                svgElem.setAttributeNS(null, "viewBox", "0 0 " + 100 + " " + 100);
-                svgElem.setAttributeNS(null, "width"  , 100);
-                svgElem.setAttributeNS(null, "height" , 100);
+                svgElem.setAttributeNS(null, "viewBox", 0 + " " + 0 + " " + width + " " + height);
+                svgElem.setAttributeNS(null, "width"  , "100%");
+                svgElem.setAttributeNS(null, "height" , "100%");
+                // svgElem.setAttributeNS(null, "preserveAspectRatio" , "xMaxYMax meet");
+
                 root.appendChild(svgElem);
 
                 data.forEach(data => {
@@ -35,17 +40,23 @@ pub fn get_bubble_vis_class() -> JsSourceClass {
             }
 
             setSize(root, size) {
-                const width   = size[0];
-                const height  = size[1];
-                const svgElem = root.firstChild;
-                svgElem.setAttributeNS(null, "viewBox", "0 0 " + width + " " + height);
-                svgElem.setAttributeNS(null, "width"  , width);
-                svgElem.setAttributeNS(null, "height" , height);
+                root.setAttributeNS(null, "width", size[0]);
+                root.setAttributeNS(null, "height", size[1]);
             }
         }
 
         return BubbleVisualization;
     "#;
 
-    JsSourceClass::from_js_source_raw(fn_constructor).unwrap()
+    visualization::java_script::Definition::new(data::builtin_library(),source)
+}
+
+/// Return an empty minimal `JavaScript` visualization. This should not be used except for testing.
+pub fn empty_visualization() -> visualization::java_script::FallibleDefinition {
+    let source = r#"
+        class EmptyVisualization {}
+        return EmptyVisualization;
+    "#;
+
+    visualization::java_script::Definition::new(data::builtin_library(),source)
 }

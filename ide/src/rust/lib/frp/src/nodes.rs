@@ -65,9 +65,27 @@ impl Network {
         self.register(OwnedCount::new(label,src))
     }
 
-    /// Replaces the incoming event with the predefined value.
+    /// Replace the incoming event with the predefined value.
     pub fn constant<X:Data,T:EventOutput> (&self, label:Label, src:&T, value:X) -> Stream<X> {
         self.register(OwnedConstant::new(label,src,value))
+    }
+
+    /// Replace the incoming event with `true`.
+    pub fn to_true<T:EventOutput> (&self, label:Label, src:&T) -> Stream<bool> {
+        self.constant(label,src,true)
+    }
+
+    /// Replace the incoming event with `false`.
+    pub fn to_false<T:EventOutput> (&self, label:Label, src:&T) -> Stream<bool> {
+        self.constant(label,src,false)
+    }
+
+    /// Replace the incoming event from first input with `false` and from second with `true`.
+    pub fn bool<T1,T2> (&self, label:Label, src1:&T1, src2:&T2) -> Stream<bool>
+    where T1:EventOutput, T2:EventOutput {
+        let false_ = self.to_false (label,src1);
+        let true_  = self.to_true  (label,src2);
+        self.any(label,&false_,&true_)
     }
 
     /// Remembers the value of the input stream and outputs the previously received one.

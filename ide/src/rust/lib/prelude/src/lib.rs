@@ -9,6 +9,7 @@
 #![feature(specialization)]
 #![feature(trait_alias)]
 
+mod clone;
 mod collections;
 mod data;
 mod macros;
@@ -20,6 +21,7 @@ mod string;
 mod tp;
 mod wrapper;
 
+pub use clone::*;
 pub use collections::*;
 pub use data::*;
 pub use macros::*;
@@ -47,8 +49,6 @@ pub use weak_table::traits::WeakKey;
 pub use weak_table::WeakKeyHashMap;
 pub use weak_table::WeakValueHashMap;
 pub use weak_table;
-
-pub use shapely::CloneRef;
 
 use std::cell::UnsafeCell;
 
@@ -112,39 +112,9 @@ impl<T> Deref for Immutable<T> {
 
 
 
-// ================
-// === CloneRef ===
-// ================
-
-/// Clone for internal-mutable structures. This trait can be implemented only if mutating one
-/// structure will be reflected in all of its clones. Please note that it does not mean that all the
-/// fields needs to provide internal mutability as well. For example, a structure can remember it's
-/// creation time and store it as `f32`. As long as it cannot be mutated, the structure can
-/// implement `CloneRef`. In order to guide the auto-deriving mechanism, it is advised to wrap all
-/// immutable fields in the `Immutable` newtype.
-pub trait CloneRef: Sized + Clone {
-    fn clone_ref(&self) -> Self {
-        self.clone()
-    }
-}
-
-impl CloneRef for () {}
-impl CloneRef for f32 {}
-impl CloneRef for f64 {}
-impl CloneRef for i32 {}
-impl CloneRef for i64 {}
-impl CloneRef for usize {}
-impl<T> CloneRef for PhantomData<T> {}
-impl<T:?Sized> CloneRef for Rc<T> {}
-impl<T:?Sized> CloneRef for Weak<T> {}
-
-impl CloneRef for wasm_bindgen::JsValue {}
-impl CloneRef for web_sys::HtmlDivElement {}
-impl CloneRef for web_sys::HtmlElement {}
-impl CloneRef for web_sys::Performance {}
-impl CloneRef for web_sys::WebGl2RenderingContext {}
-impl CloneRef for web_sys::HtmlCanvasElement {}
-impl CloneRef for web_sys::EventTarget {}
+// ==============
+// === ToImpl ===
+// ==============
 
 /// Provides method `to`, which is just like `into` but allows fo superfish syntax.
 pub trait ToImpl: Sized {

@@ -11,7 +11,6 @@ use ensogl::display::symbol::geometry::SpriteSystem;
 use ensogl::display::world::*;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::prelude::*;
-//use ensogl::animation::animator::fixed_step::FixedStepAnimator;
 
 use nalgebra::Vector2;
 use nalgebra::Vector3;
@@ -19,6 +18,7 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 #[allow(dead_code)]
+#[allow(clippy::many_single_char_names)]
 pub fn run_example_dom_symbols() {
     web::forward_panic_hook_to_console();
     web::set_stdout();
@@ -28,8 +28,8 @@ pub fn run_example_dom_symbols() {
     let screen        = camera.screen();
     let navigator     = Navigator::new(scene,camera);
     let sprite_system = SpriteSystem::new(&world);
-    let dom_front_layer = &scene.dom.layers.front;
-    let dom_back_layer  = &scene.dom.layers.back;
+    let dom_front_layer = &scene.dom.layers.main;
+    let dom_back_layer  = &scene.dom.layers.overlay;
     world.add_child(&sprite_system);
 
     let mut sprites: Vec<Sprite> = default();
@@ -39,13 +39,13 @@ pub fn run_example_dom_symbols() {
         let x      = i as f32;
         let width  = screen.width * 1.5 / count as f32;
         let height = screen.height;
+        let y      = height / 2.0;
         if i % 2 == 0 {
             let height     = height * 0.75;
             let size       = Vector2::new(width, height);
-            let y          = screen.height / 2.0;
             let position   = Vector3::new(width / 1.5 * x + width / 2.0, y, 0.0);
             let sprite     = sprite_system.new_instance();
-            sprite.size().set(size);
+            sprite.size.set(size);
             sprite.mod_position(|t| *t = position);
             sprites.push(sprite);
         } else {
@@ -55,7 +55,7 @@ pub fn run_example_dom_symbols() {
             div.set_inner_html("top-left");
 
             let size       = Vector2::new(width, height);
-            let position   = Vector3::new(width / 1.5 * x + width / 2.0, height / 2.0, 0.0);
+            let position   = Vector3::new(width / 1.5 * x + width / 2.0, y, 0.0);
             let object     = DomSymbol::new(&div);
             dom_front_layer.manage(&object);
             world.add_child(&object);

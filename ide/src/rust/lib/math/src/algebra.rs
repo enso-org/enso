@@ -612,6 +612,14 @@ macro_rules! define_vector {
                 $name {$($field),*}
             }
         }
+
+        impl<T:Copy> From<&$name<T>> for $name<T> {
+            fn from(t:&$name<T>) -> Self { *t }
+        }
+
+        impl<T:Copy> From<&&$name<T>> for $name<T> {
+            fn from(t:&&$name<T>) -> Self { **t }
+        }
     };
 }
 

@@ -1,65 +1,59 @@
-//! This module defines the `Data` struct and related functionality.
+//! Definition of data understandable by visualizations.
 
 use crate::prelude::*;
 
-use crate::component::visualization::EnsoType;
-
-use serde::Deserialize;
 
 
+// ============
+// === Json ===
+// ============
 
-// ======================================
-// === Wrapper for Visualization Data ===
-// =======================================
-
-/// Type indicator
-pub type DataType = EnsoType;
-
-/// Wrapper for data that can be consumed by a visualization.
-/// TODO[mm] consider static versus dynamic typing for visualizations and data!
-#[derive(Clone,CloneRef,Debug)]
-#[allow(missing_docs)]
-pub enum Data {
-    JSON   { content : Rc<serde_json::Value> },
-    // TODO replace with actual binary data stream.
-    Binary { content : Rc<dyn Any>           },
+/// Json representation with a fast clone operation. Used for transmitting visualization data via
+/// FRP networks.
+#[derive(Clone,CloneRef,Debug,Default)]
+pub struct Json {
+    rc : Rc<serde_json::Value>
 }
 
-impl Data {
-    /// Wraps the given JSON value into a visualization Data.
-    pub fn new_json(content:serde_json::Value) -> Data {
-        let content = Rc::new(content);
-        Data::JSON {content}
+impl Deref for Json {
+    type Target = serde_json::Value;
+    fn deref(&self) -> &Self::Target {
+        &self.rc
     }
+}
 
-    /// Returns the data as as JSON. If the data cannot be returned as JSON, it will return a
-    /// `DataError` instead.
-    pub fn as_json(&self) -> Result<Rc<serde_json::Value>, DataError> {
-        match &self {
-            Data::JSON { content } => Ok(Rc::clone(content)),
-            _ => { Err(DataError::InvalidDataType{})  },
-        }
+impl From<serde_json::Value> for Json {
+    fn from(t:serde_json::Value) -> Self {
+        let rc = Rc::new(t);
+        Self {rc}
     }
+}
 
-    /// Returns the wrapped data in Rust format. If the data cannot be returned as rust datatype, a
-    /// `DataError` is returned instead.
-    pub fn as_binary<T>(&self) -> Result<Rc<T>, DataError>
-        where for<'de> T:Deserialize<'de> + 'static {
-        match &self {
-            Data::JSON { content } => {
-                // We try to deserialize here. Just in case it works.
-                // This is useful for simple data types where we don't want to care to much about
-                // representation, e.g., a list of numbers.
-                let value : serde_json::Value = content.as_ref().clone();
-                if let Ok(result) = serde_json::from_value(value) {
-                    Ok(Rc::new(result))
-                } else {
-                    Err(DataError::InvalidDataType)
-                }
-            },
-            Data::Binary { content } => { Rc::clone(content).downcast()
-                .or(Err(DataError::InvalidDataType))},
-        }
+
+
+// ============
+// === Data ===
+// ============
+
+/// Wrapper for data that can be consumed by a visualization.
+#[derive(Clone,Debug)]
+#[allow(missing_docs)]
+pub enum Data {
+    Json { content : Json },
+    Binary, // TODO replace with actual binary data stream.
+}
+
+impl Default for Data {
+    fn default() -> Self {
+        let content = default();
+        Self::Json {content}
+    }
+}
+
+impl From<serde_json::Value> for Data {
+    fn from(t:serde_json::Value) -> Self {
+        let content = t.into();
+        Self::Json {content}
     }
 }
 
@@ -71,7 +65,6 @@ impl Data {
 
 /// Indicates a problem with the provided data. That is, the data has the wrong format, or maybe
 /// violates some other assumption of the visualization.
-// TODO[mm] add more information to errors once typing is defined.
 #[derive(Copy,Clone,Debug)]
 pub enum DataError {
     /// Indicates that that the provided data type does not match the expected data type.
@@ -85,17 +78,19 @@ pub enum DataError {
 // =============================
 // === Sample Data Generator ===
 // =============================
-// TODO this will go away once we have real data
 
+/// The `MockDataGenerator3D` creates sample data in the format of `Vec<Vector3<f32>>`. The data
+/// is changing incrementally on every call. The data is meant to be interpreted as a number of
+/// circles defined through x-coordinate, y-coordinate and radius which respectively correspond to
+/// the `Vectors3`s x/y/z values.
 #[derive(Clone,CloneRef,Debug,Default)]
-pub(crate) struct MockDataGenerator3D {
+pub struct MockDataGenerator3D {
     counter: Rc<Cell<f32>>
 }
 
 impl MockDataGenerator3D {
-
+    /// Generate new data set.
     pub fn generate_data(&self) -> Vec<Vector3<f32>> {
-
         let current_value = self.counter.get();
         self.counter.set(current_value + 0.1);
 

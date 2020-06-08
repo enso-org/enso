@@ -46,13 +46,12 @@ impl RenderPass for SymbolsRenderPass {
         let arr = vec![0.0,0.0,0.0,0.0];
         context.clear_bufferfv_with_f32_array(Context::COLOR,0,&arr);
         context.clear_bufferfv_with_f32_array(Context::COLOR,1,&arr);
-        self.target.set_camera(&self.views.main.camera);
-        self.target.render_by_ids(&self.views.main.symbols());
 
-        self.target.set_camera(&self.views.cursor.camera);
-        self.target.render_by_ids(&self.views.cursor.symbols());
-
-        self.target.set_camera(&self.views.label.camera);
-        self.target.render_by_ids(&self.views.label.symbols());
+        for view in self.views.all().iter() {
+            if let Some(view) = view.upgrade() {
+                self.target.set_camera(&view.camera);
+                self.target.render_by_ids(&view.symbols());
+            }
+        }
     }
 }
