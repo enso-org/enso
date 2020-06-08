@@ -665,6 +665,7 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Compile / compile := (Compile / compile)
       .dependsOn(`core-definition` / Compile / packageBin)
+      .dependsOn(FixInstrumentsGeneration.task)
       .value
   )
   .settings(

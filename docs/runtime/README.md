@@ -40,3 +40,5 @@ broken up as follows:
   the features of the Enso runtime.
 - [**Unbounded Recursion:**](./unbounded-recursion.md) An exploration of
   techniques for achieving unbounded recursion on the JVM.
+- [**Instruments:**](./instruments.md) A description of instrumentation in the
+  language runtime.
