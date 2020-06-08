@@ -148,11 +148,6 @@ git clone https://github.com/luna/enso.git
 git clone git@github.com:luna/enso.git
 ```
 
-As we include some binary files in the repository as part of our documentation
-you will need [Git LFS](https://git-lfs.github.com/) to clone these files
-correctly. When adding new binary files to the repository, please make sure that
-they are tracked using Git LFS.
-
 ### Building Enso
 There are multiple projects in this repository, but all can be built, run and
 tested using `sbt`. As long as your configuration is correct, with the correct

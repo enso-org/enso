@@ -76,11 +76,11 @@ working with types. These are listed below.
 | `!`      | `> :`, `> ->`                 |  2    | Left   | Combines the left operand with the right operand as an error value.         |
 | `->`     | `> :`                         |  1    | Left   | Represents a mapping from the left operand to the right operand (function). |
 | `<:`     | `> !`, `< \|`, `> in`         |  4    | Left   | Asserts that the left operand is structurally subsumed by the right.        |
-| `~`      | `== <:`                       |  4    | None   | Asserts that the left and right operands are structurally equal.            |
+| `~`      | `== <:`                       |  4    | Left   | Asserts that the left and right operands are structurally equal.            |
 | `;`      | `< :`, `> =`                  | -2    | Left   | Concatenates the left and right operand typesets to create a new typeset.   |
-| `\|`     | `> <:`, `> !`, `> in`, `> :`  |  6    | None   | Computes the union of the left and right operand typesets.                  |
-| `&`      | `= \|`                        |  6    | None   | Computes the intersection of the left and right operand typesets.           |
-| `\`      | `< \|`, `> <:`                |  5    | None   | Computes the subtraction of the right typeset from the left typeset.        |
+| `\|`     | `> <:`, `> !`, `> in`, `> :`  |  6    | Left   | Computes the union of the left and right operand typesets.                  |
+| `&`      | `= \|`                        |  6    | Left   | Computes the intersection of the left and right operand typesets.           |
+| `\`      | `< \|`, `> <:`                |  5    | Left   | Computes the subtraction of the right typeset from the left typeset.        |
 | `:=`     | `< :`, `> =`, `> ;`           | -1    | Left   | Creates a typeset member by assigning a value to a label.                   |
 
 Solving this set of inequalities produces the _relative_ precedence levels for

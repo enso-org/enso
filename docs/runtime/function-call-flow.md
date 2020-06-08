@@ -110,7 +110,7 @@ This logic is encapsulated in the `ArgumentSorterNode`.
 ## Definition-Site Argument Suspension
 Enso allows functions to define certain arguments as `Suspended`, so that when
 these are passed to a function, the corresponding expressions are not evaluated
-at the call side, but are instead passed to the function as closures for 
+at the call site, but are instead passed to the function as closures for
 evaluation at the function's discretion.
 
 Therefore, all application arguments are actually treated as thunks and only
@@ -151,4 +151,4 @@ The following diagram summarizes all the nodes participating in a function
 call. The entry points to this system are `ApplicationNode` (for in-language
 function calls) and `InteropLibrary<Function>` (for polyglot function calls).
 
-![diagram](resources/function-call-diagram.png)
+![Function Call Flow](https://user-images.githubusercontent.com/5780639/84035237-5c2d9800-a993-11ea-826d-72f3ddffcb54.png)
