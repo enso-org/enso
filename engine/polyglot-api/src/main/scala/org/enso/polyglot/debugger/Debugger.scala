@@ -23,7 +23,9 @@ object Debugger {
     * @param bytes the buffer to deserialize
     * @return the deserialized message, if the byte buffer can be deserialized.
     */
-  def deserializeRequest(bytes: ByteBuffer): Option[Request] =
+  def deserializeRequest(
+    bytes: ByteBuffer
+  ): Either[DeserializationFailedException, Request] =
     try {
       val inMsg = BinaryRequest.getRootAsRequest(bytes)
 
@@ -32,15 +34,22 @@ object Debugger {
           val evaluationRequest = inMsg
             .payload(new protocol.EvaluationRequest())
             .asInstanceOf[protocol.EvaluationRequest]
-          Some(EvaluationRequest(evaluationRequest.expression()))
+          Right(EvaluationRequest(evaluationRequest.expression()))
         case RequestPayload.LIST_BINDINGS =>
-          Some(ListBindingsRequest)
+          Right(ListBindingsRequest)
         case RequestPayload.SESSION_EXIT =>
-          Some(SessionExitRequest)
-        case _ => None
+          Right(SessionExitRequest)
+        case _ =>
+          Left(new DeserializationFailedException("Unknown payload type"))
       }
     } catch {
-      case _: Exception => None
+      case e: Exception =>
+        Left(
+          new DeserializationFailedException(
+            "Deserialization failed with an exception",
+            e
+          )
+        )
     }
 
   /**
@@ -49,7 +58,9 @@ object Debugger {
     * @param bytes the buffer to deserialize
     * @return the deserialized message, if the byte buffer can be deserialized.
     */
-  def deserializeResponse(bytes: ByteBuffer): Option[Response] =
+  def deserializeResponse(
+    bytes: ByteBuffer
+  ): Either[DeserializationFailedException, Response] =
     try {
       val inMsg = BinaryResponse.getRootAsResponse(bytes)
 
@@ -58,12 +69,12 @@ object Debugger {
           val evaluationResult = inMsg
             .payload(new protocol.EvaluationSuccess())
             .asInstanceOf[protocol.EvaluationSuccess]
-          Some(EvaluationSuccess(evaluationResult.result()))
+          Right(EvaluationSuccess(evaluationResult.result()))
         case ResponsePayload.EVALUATION_FAILURE =>
           val evaluationResult = inMsg
             .payload(new protocol.EvaluationFailure())
             .asInstanceOf[protocol.EvaluationFailure]
-          Some(EvaluationFailure(evaluationResult.exception()))
+          Right(EvaluationFailure(evaluationResult.exception()))
         case ResponsePayload.LIST_BINDINGS =>
           val bindingsResult = inMsg
             .payload(new protocol.ListBindingsResult())
@@ -73,15 +84,20 @@ object Debugger {
               val binding = bindingsResult.bindings(i)
               (binding.name(), binding.value())
             }
-          Some(ListBindingsResult(bindings.toMap))
+          Right(ListBindingsResult(bindings.toMap))
         case ResponsePayload.SESSION_START =>
-          Some(SessionStartNotification)
-        case ResponsePayload.SESSION_EXIT =>
-          Some(SessionExitSuccess)
-        case _ => None
+          Right(SessionStartNotification)
+        case _ =>
+          Left(new DeserializationFailedException("Unknown payload type"))
       }
     } catch {
-      case _: Exception => None
+      case e: Exception =>
+        Left(
+          new DeserializationFailedException(
+            "Deserialization failed with an exception",
+            e
+          )
+        )
     }
 
   /**
@@ -208,24 +224,6 @@ object Debugger {
     bindings: java.util.Map[String, Object]
   ): ByteBuffer =
     createListBindingsResult(bindings.asScala.toMap)
-
-  /**
-    * Creates an ExitSuccess message in the form of a ByteBuffer that can be
-    * sent from the debugger.
-    *
-    * @return the serialized message
-    */
-  def createSessionExitSuccess(): ByteBuffer = {
-    implicit val builder: FlatBufferBuilder = new FlatBufferBuilder(64)
-    val replyOffset                         = ResponseFactory.createSessionExitSuccess()
-    val outMsg = BinaryResponse.createResponse(
-      builder,
-      ResponsePayload.SESSION_EXIT,
-      replyOffset
-    )
-    builder.finish(outMsg)
-    builder.dataBuffer()
-  }
 
   /**
     * Creates an SessionStartNotification message in the form of a ByteBuffer

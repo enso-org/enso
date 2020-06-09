@@ -9,6 +9,9 @@ import com.oracle.truffle.api.instrumentation.Instrumenter;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.enso.interpreter.Language;
@@ -19,14 +22,21 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.FramePointer;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.polyglot.debugger.DebugServerInfo;
+import org.graalvm.options.OptionDescriptor;
+import org.graalvm.options.OptionDescriptors;
+import org.graalvm.options.OptionKey;
+import org.graalvm.polyglot.io.MessageEndpoint;
+import org.graalvm.polyglot.io.MessageTransport;
+import scala.util.Either;
+import scala.util.Left;
+import scala.util.Right;
 
 /** The Instrument implementation for the interactive debugger REPL. */
 @TruffleInstrument.Registration(
-    id = ReplDebuggerInstrument.INSTRUMENT_ID,
+    id = DebugServerInfo.INSTRUMENT_NAME,
     services = ReplDebuggerInstrument.class)
 public class ReplDebuggerInstrument extends TruffleInstrument {
-  /** This instrument's registration id. */
-  public static final String INSTRUMENT_ID = "enso-repl";
 
   /**
    * Internal reference type to store session manager and get the current version on each execution
@@ -36,7 +46,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     private SessionManager sessionManager;
 
     /**
-     * Create a new instanc of this class
+     * Create a new instance of this class
      *
      * @param sessionManager the session manager to initially store
      */
@@ -63,7 +73,10 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     }
   }
 
-  /** An object controlling the execution of REPL. */
+  /** An object controlling the execution of REPL.
+   * Deprecated, will be removed in the next version.
+   * Please use org.enso.polyglot.debugger.SessionManager.
+   */
   public interface SessionManager {
     /**
      * Starts a new session with the provided execution node.
@@ -84,11 +97,43 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
   @Override
   protected void onCreate(Env env) {
     SourceSectionFilter filter =
-        SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class).build();
+        SourceSectionFilter.newBuilder().tagIs(DebuggerTags.AlwaysHalt.class)
+            .build();
+    env.registerService(this); // TODO [RW] this seems unnecessary after #791
+
+    DebuggerMessageHandler handler = new DebuggerMessageHandler();
+    try {
+      MessageEndpoint client =
+          env.startServer(URI.create(DebugServerInfo.URI), handler);
+      if (client != null) {
+        handler.setClient(client);
+      } else {
+        env.getLogger(ReplDebuggerInstrument.class)
+            .warning("ReplDebuggerInstrument was initialized, " +
+                "but no client connected");
+      }
+    } catch (MessageTransport.VetoException e) {
+      env.getLogger(ReplDebuggerInstrument.class)
+          .warning("ReplDebuggerInstrument was initialized, " +
+              "but client connection has been vetoed");
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    // TODO [RW] in #791 move this inside try to not initialize the factory if
+    //  there are no clients
     Instrumenter instrumenter = env.getInstrumenter();
-    env.registerService(this);
-    instrumenter.attachExecutionEventFactory(
-        filter, ctx -> new ReplExecutionEventNode(ctx, sessionManagerReference));
+    instrumenter.attachExecutionEventFactory(filter, ctx ->
+        new ReplExecutionEventNode(ctx, sessionManagerReference, handler));
+
+  }
+
+  @Override
+  protected OptionDescriptors getOptionDescriptors() {
+    return OptionDescriptors.create(
+        Collections.singletonList(
+            OptionDescriptor.newBuilder(new OptionKey<>(""), DebugServerInfo.ENABLE_OPTION)
+                .build()));
   }
 
   /**
@@ -110,11 +155,13 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
 
     private EventContext eventContext;
     private SessionManagerReference sessionManagerReference;
+    private DebuggerMessageHandler handler;
 
     private ReplExecutionEventNode(
-        EventContext eventContext, SessionManagerReference sessionManagerReference) {
+        EventContext eventContext, SessionManagerReference sessionManagerReference, DebuggerMessageHandler handler) {
       this.eventContext = eventContext;
       this.sessionManagerReference = sessionManagerReference;
+      this.handler = handler;
     }
 
     private Object getValue(MaterializedFrame frame, FramePointer ptr) {
@@ -147,9 +194,10 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      * Evaluates an arbitrary expression in the current execution context.
      *
      * @param expression the expression to evaluate
-     * @return the result of evaluating the expression
+     * @return the result of evaluating the expression or an exception that
+     *          caused failure
      */
-    public Object evaluate(String expression) {
+    public Either<Exception, Object> evaluate(String expression) {
       try {
         Stateful result = evalNode.execute(lastScope, lastState, expression);
         lastState = result.getState();
@@ -157,9 +205,9 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
             (CaptureResultScopeNode.WithCallerInfo) result.getValue();
         lastScope = payload.getCallerInfo();
         lastReturn = payload.getResult();
-        return lastReturn;
+        return new Right<>(lastReturn);
       } catch (Exception e) {
-        return e;
+        return new Left<>(e);
       }
     }
 
@@ -187,7 +235,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       lastReturn = lookupContextReference(Language.class).get().getUnit().newInstance();
       // Note [Safe Access to State in the Debugger Instrument]
       lastState = Function.ArgumentsHelper.getState(frame.getArguments());
-      sessionManagerReference.get().startSession(this);
+      startSession();
     }
 
     /* Note [Safe Access to State in the Debugger Instrument]
@@ -209,6 +257,14 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     @Override
     protected Object onUnwind(VirtualFrame frame, Object info) {
       return new Stateful(lastState, lastReturn);
+    }
+
+    private void startSession() {
+      if (handler.hasClient()) {
+        handler.startSession(this);
+      } else if (sessionManagerReference.get() != null) {
+        sessionManagerReference.get().startSession(this);
+      }
     }
   }
 }

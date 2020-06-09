@@ -42,8 +42,3 @@ case class ListBindingsResult(bindings: Map[String, ObjectRepresentation])
   * started.
   */
 object SessionStartNotification extends Response
-
-/**
-  * Represents a successful termination of the debugging session.
-  */
-object SessionExitSuccess extends Response

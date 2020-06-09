@@ -16,6 +16,7 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.test.CodeIdsTestInstrument.IdEventListener
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
+import org.enso.polyglot.debugger.DebugServerInfo
 import org.enso.polyglot.{Function, LanguageInfo, PolyglotContext}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.Assertions
@@ -155,9 +156,10 @@ trait InterpreterRunner {
     inOutPrinter.println(string)
   }
 
+  // TODO [RW] remove this for #791
   def getReplInstrument: ReplDebuggerInstrument = {
     ctx.getEngine.getInstruments
-      .get(ReplDebuggerInstrument.INSTRUMENT_ID)
+      .get(DebugServerInfo.INSTRUMENT_NAME)
       .lookup(classOf[ReplDebuggerInstrument])
   }
 

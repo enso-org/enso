@@ -132,7 +132,13 @@ case class Repl(replIO: ReplIO) extends ReplDebuggerInstrument.SessionManager {
             executionNode.exit()
             return
           } else {
-            replIO.println(s">>> ${executionNode.evaluate(line)}")
+            val result = executionNode.evaluate(line)
+            result match {
+              case Left(error) =>
+                replIO.println(s"Evaluation failed with error: $error")
+              case Right(value) =>
+                replIO.println(s">>> $value")
+            }
           }
       }
     }

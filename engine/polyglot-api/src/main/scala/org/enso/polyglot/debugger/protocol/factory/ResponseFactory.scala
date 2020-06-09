@@ -6,7 +6,6 @@ import org.enso.polyglot.debugger.protocol.{
   EvaluationFailure,
   EvaluationSuccess,
   ListBindingsResult,
-  SessionExitSuccess,
   SessionStartNotification
 }
 
@@ -75,19 +74,6 @@ object ResponseFactory {
   ): Int = {
     SessionStartNotification.startSessionStartNotification(builder)
     SessionStartNotification.endSessionStartNotification(builder)
-  }
-
-  /**
-    * Creates SessionExitSuccess inside a [[FlatBufferBuilder]].
-    *
-    * @param builder a class that helps build a FlatBuffer representation of
-    *                complex objects
-    * @return an offset pointing to the FlatBuffer representation of the
-    *         created object
-    */
-  def createSessionExitSuccess()(implicit builder: FlatBufferBuilder): Int = {
-    SessionExitSuccess.startSessionExitSuccess(builder)
-    SessionExitSuccess.endSessionExitSuccess(builder)
   }
 
   private def createBinding(name: String, value: Object)(

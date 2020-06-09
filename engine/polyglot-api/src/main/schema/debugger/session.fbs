@@ -5,6 +5,3 @@ table SessionStartNotification {}
 
 // Request to terminate the current session.
 table SessionExitRequest {}
-
-// Message sent to confirm that the current session has been terminated.
-table SessionExitSuccess {}

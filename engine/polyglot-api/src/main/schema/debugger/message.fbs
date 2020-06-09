@@ -22,7 +22,6 @@ union ResponsePayload {
     EVALUATION_SUCCESS: EvaluationSuccess,
     EVALUATION_FAILURE: EvaluationFailure,
     LIST_BINDINGS: ListBindingsResult,
-    SESSION_EXIT: SessionExitSuccess,
     SESSION_START: SessionStartNotification
 }
 
