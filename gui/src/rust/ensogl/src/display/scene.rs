@@ -33,7 +33,6 @@ use crate::system::web::StyleSetter;
 use crate::system::web;
 use crate::display::shape::ShapeSystemInstance;
 use crate::display::shape::system::ShapeSystemOf;
-use crate::display::layout::Alignment;
 
 use display::style::data::DataMatch;
 use enso_frp as frp;
