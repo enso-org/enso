@@ -8,6 +8,7 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+enso-callback            = { version = "0.1.0"  , path = "../lib/callback"      }
 ensogl                   = { version = "0.1.0"  , path = "../ensogl"            }
 ensogl-core-msdf-sys     = { version = "0.1.0"  , path = "../ensogl/msdf-sys"   }
 ensogl-system-web        = { version = "0.1.0"  , path = "../lib/system/web"    }
