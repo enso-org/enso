@@ -53,13 +53,13 @@ impl Handle {
     ///
     /// This function won't load module from file - it just get the state in `model` argument.
     pub fn new
-    ( parent          : &Logger
+    ( parent          : impl AnyLogger
     , path            : Path
     , model           : Rc<model::synchronized::Module>
     , language_server : Rc<language_server::Connection>
     , parser          : Parser
     ) -> Self {
-        let logger = parent.sub(format!("Module Controller {}", path));
+        let logger = Logger::sub(parent,format!("Module Controller {}", path));
         let path   = Rc::new(path);
         Handle {path,model,language_server,parser,logger}
     }

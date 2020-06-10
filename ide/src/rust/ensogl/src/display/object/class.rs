@@ -117,12 +117,11 @@ pub struct DirtyFlags {
 
 impl DirtyFlags {
     #![allow(trivial_casts)]
-    pub fn new<L:Into<Logger>>(logger:L) -> Self {
-        let logger           = logger.into();
-        let parent           = NewParentDirty  :: new(logger.sub("dirty.parent"),());
-        let children         = ChildrenDirty   :: new(logger.sub("dirty.children"),None);
-        let removed_children = RemovedChildren :: new(logger.sub("dirty.removed_children"),None);
-        let transform        = TransformDirty  :: new(logger.sub("dirty.transform"),None);
+    pub fn new(logger:impl AnyLogger) -> Self {
+        let parent           = NewParentDirty  :: new(Logger::sub(&logger,"dirty.parent"),());
+        let children         = ChildrenDirty   :: new(Logger::sub(&logger,"dirty.children"),None);
+        let removed_children = RemovedChildren :: new(Logger::sub(&logger,"dirty.removed_children"),None);
+        let transform        = TransformDirty  :: new(Logger::sub(&logger,"dirty.transform"),None);
         let callback         = Rc::new(RefCell::new(Box::new(||{}) as Box<dyn Fn()>));
 
         let on_mut = enclose!((callback) move || (callback.borrow())() );
@@ -162,8 +161,8 @@ pub struct NodeData {
 }
 
 impl NodeData {
-    pub fn new<L:Into<Logger>>(logger:L) -> Self {
-        let logger           = logger.into();
+    pub fn new(logger:impl AnyLogger) -> Self {
+        let logger           = Logger::from_logger(logger);
         let parent_bind      = default();
         let children         = default();
         let event_dispatcher = default();
@@ -504,9 +503,8 @@ impl Instance {
     }
 
     /// Constructor.
-    pub fn new<L:Into<Logger>>(logger:L) -> Self {
-        let rc = Rc::new(NodeData::new(logger));
-        Self {rc}
+    pub fn new(logger:impl AnyLogger) -> Self {
+        Self {rc:Rc::new(NodeData::new(logger))}
     }
 
     pub fn downgrade(&self) -> WeakNode {

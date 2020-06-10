@@ -171,7 +171,7 @@ pub struct View {
 impl View {
     /// Constructor.
     pub fn new(logger:&Logger, scene:&Scene) -> Self {
-        let logger         = logger.sub("view");
+        let logger         = Logger::sub(logger,"view");
         let display_object = display::object::Instance::new(&logger);
         let background     = component::ShapeView::<background::Shape>::new(&logger,scene);
         let overlay        = component::ShapeView::<overlay::Shape>::new(&logger,scene);
@@ -211,7 +211,7 @@ pub struct FullscreenView {
 impl FullscreenView {
     /// Constructor.
     pub fn new(logger:&Logger, scene:&Scene) -> Self {
-        let logger         = logger.sub("fullscreen_view");
+        let logger         = Logger::sub(logger,"fullscreen_view");
         let display_object = display::object::Instance::new(&logger);
         let background     = component::ShapeView::<fullscreen_background::Shape>::new(&logger,scene);
         display_object.add_child(&background);
@@ -253,7 +253,7 @@ pub struct ContainerModel {
 impl ContainerModel {
     /// Constructor.
     pub fn new(logger:&Logger, scene:&Scene, network:&frp::Network) -> Self {
-        let logger          = logger.sub("visualization_container");
+        let logger          = Logger::sub(logger,"visualization_container");
         let display_object  = display::object::Instance::new(&logger);
         let visualization   = default();
         let frp             = Frp::new(&network,scene);

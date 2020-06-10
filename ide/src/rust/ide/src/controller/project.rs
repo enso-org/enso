@@ -97,12 +97,12 @@ pub struct Handle {
 impl Handle {
     /// Create a new project controller.
     pub fn new
-    ( parent                     : &Logger
+    ( parent                     : impl AnyLogger
     , language_server_client     : language_server::Connection
     , mut language_server_binary : binary::Connection
     , project_name               : impl Str
     ) -> Self {
-        let logger = parent.sub("Project Controller");
+        let logger = Logger::sub(parent,"Project Controller");
         info!(logger,"Creating a project controller for project {project_name.as_ref()}");
         let binary_protocol_events  = language_server_binary.event_stream();
         let embedded_visualizations = default();
@@ -264,7 +264,7 @@ mod test {
     wasm_bindgen_test_configure!(run_in_browser);
 
     /// Sets up project controller using mock Language Server clients.
-    /// Passed fucntions should be used to setup expectations upon the mock clients.
+    /// Passed functions should be used to setup expectations upon the mock clients.
     /// Additionally, an `event_stream` expectation will be setup for a binary protocol, as
     /// project controller always calls it.
     fn setup_mock_project
@@ -281,7 +281,8 @@ mod test {
         setup_mock_binary(&mut binary_client);
         let json_connection   = language_server::Connection::new_mock(json_client);
         let binary_connection = binary::Connection::new_mock(binary_client);
-        controller::Project::new(&default(),json_connection,binary_connection,DEFAULT_PROJECT_NAME)
+        let logger            = Logger::default();
+        controller::Project::new(logger,json_connection,binary_connection,DEFAULT_PROJECT_NAME)
     }
 
     #[wasm_bindgen_test]

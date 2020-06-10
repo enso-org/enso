@@ -33,12 +33,12 @@ pub struct Listener {
 }
 
 impl Listener {
-    fn new<F:ListenerCallback>(logger:&Logger,event_type:impl Str, f:F) -> Self {
+    fn new<F:ListenerCallback>(logger:impl AnyLogger,event_type:impl Str, f:F) -> Self {
         let closure     = Box::new(f);
         let callback    = ListenerClosure::wrap(closure);
         let element     = web::body();
         let js_function = callback.as_ref().unchecked_ref();
-        let logger      = logger.sub("Listener");
+        let logger      = Logger::sub(logger,"Listener");
         let event_type  = event_type.as_ref();
         if element.add_event_listener_with_callback(event_type,js_function).is_err() {
             logger.warning(|| format!("Couldn't add {} event listener.",event_type));
@@ -48,12 +48,12 @@ impl Listener {
     }
 
     /// Creates a new key down event listener.
-    pub fn new_key_down<F:ListenerCallback>(logger:&Logger, f:F) -> Self {
+    pub fn new_key_down<F:ListenerCallback>(logger:impl AnyLogger, f:F) -> Self {
         Self::new(logger,"keydown",f)
     }
 
     /// Creates a new key up event listener.
-    pub fn new_key_up<F:ListenerCallback>(logger:&Logger, f:F) -> Self {
+    pub fn new_key_up<F:ListenerCallback>(logger:impl AnyLogger, f:F) -> Self {
         Self::new(logger,"keyup",f)
     }
 }
@@ -76,15 +76,15 @@ pub struct KeyboardFrpBindings {
 
 impl KeyboardFrpBindings {
     /// Create new Keyboard and Frp bindings.
-    pub fn new(logger:&Logger, keyboard:&Keyboard) -> Self {
-        let key_down = Listener::new_key_down(logger,enclose!((keyboard.on_pressed => frp)
+    pub fn new(logger:impl AnyLogger, keyboard:&Keyboard) -> Self {
+        let key_down = Listener::new_key_down(&logger,enclose!((keyboard.on_pressed => frp)
             move |event:KeyboardEvent| {
                 if let Ok(key) = event.key().parse::<Key>() {
                     frp.emit(key);
                 }
             }
         ));
-        let key_up = Listener::new_key_up(logger,enclose!((keyboard.on_released => frp)
+        let key_up = Listener::new_key_up(&logger,enclose!((keyboard.on_released => frp)
             move |event:KeyboardEvent| {
                 if let Ok(key) = event.key().parse::<Key>() {
                     frp.emit(key);

@@ -172,14 +172,14 @@ pub struct Manager {
 }
 
 impl Manager {
-    pub fn new(logger:&Logger, scene:&Scene) -> Self {
+    pub fn new(logger:impl AnyLogger, scene:&Scene) -> Self {
         frp::new_network! { network
             cursor_style_source <- any_mut::<cursor::Style>();
             press_source        <- source::<span_tree::Crumbs>();
             hover_source        <- source::<Option<span_tree::Crumbs>>();
         }
 
-        let logger         = logger.sub("port_manager");
+        let logger         = Logger::sub(logger,"port_manager");
         let display_object = display::object::Instance::new(&logger);
         let scene          = scene.clone_ref();
         let expression     = default();
@@ -223,7 +223,7 @@ impl Manager {
                     let contains_root = span.index.value == 0;
                     let skip          = node.kind.is_empty() || contains_root;
                     if !skip {
-                        let logger = self.logger.sub("port");
+                        let logger = Logger::sub(&self.logger,"port");
                         let port   = component::ShapeView::<shape::Shape>::new(&logger,&self.scene);
                         let unit   = 7.224_609_4;
                         let width  = unit * span.size.value as f32;

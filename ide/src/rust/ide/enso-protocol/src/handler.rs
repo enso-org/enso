@@ -9,6 +9,8 @@ use futures::channel::mpsc::UnboundedSender;
 use json_rpc::Transport;
 use json_rpc::TransportEvent;
 use logger::*;
+use logger::AnyLogger;
+use logger::enabled::Logger;
 use std::future::Future;
 use utils::fail::FallibleResult;
 
@@ -218,7 +220,7 @@ where Id           : Copy + Debug + Display + Hash + Eq + Send + Sync + 'static,
     where T : Transport + 'static,
           P : FnMut(TransportEvent) -> Disposition<Id,Reply,Notification> + 'static {
         let state  = Rc::new(RefCell::new(HandlerData::new(transport,&logger,processor)));
-        let logger = logger.sub("handler");
+        let logger = Logger::sub(&logger,"handler");
         Handler {logger,state}
     }
 

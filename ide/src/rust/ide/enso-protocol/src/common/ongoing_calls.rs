@@ -19,9 +19,9 @@ pub struct OngoingCalls<Id,Reply> where Id:Hash+Eq {
 impl<Id,Reply> OngoingCalls<Id,Reply>
 where Id:Copy + Debug + Display + Hash + Eq + Send + Sync + 'static {
     /// Creates a new, empty ongoing request storage.
-    pub fn new(parent_logger:&Logger) -> OngoingCalls<Id,Reply> {
+    pub fn new(parent:impl AnyLogger) -> OngoingCalls<Id,Reply> {
         OngoingCalls {
-            logger        : parent_logger.sub("ongoing_calls"),
+            logger        : Logger::sub(parent,"ongoing_calls"),
             ongoing_calls : HashMap::new(),
         }
     }

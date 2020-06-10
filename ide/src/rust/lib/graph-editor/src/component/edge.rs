@@ -267,7 +267,7 @@ macro_rules! define_components {
             /// Constructor.
             pub fn new(logger:Logger, scene:&Scene) -> Self {
                 let display_object = display::object::Instance::new(&logger);
-                $(let $field = component::ShapeView::new(&logger.sub(stringify!($field)),scene);)*
+                $(let $field = component::ShapeView::new(Logger::sub(&logger,stringify!($field)),scene);)*
                 $(display_object.add_child(&$field);)*
                 Self {logger,display_object,$($field),*}
             }
@@ -480,8 +480,8 @@ impl EdgeModelData {
     pub fn new(scene:&Scene, network:&frp::Network) -> Self {
         let logger         = Logger::new("edge");
         let display_object = display::object::Instance::new(&logger);
-        let front          = Front::new(logger.sub("front"),scene);
-        let back           = Back::new(logger.sub("back"),scene);
+        let front          = Front::new(Logger::sub(&logger,"front"),scene);
+        let back           = Back::new (Logger::sub(&logger,"back"),scene);
 
         display_object.add_child(&front);
         display_object.add_child(&back);

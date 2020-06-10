@@ -65,6 +65,8 @@ pub use enso_math as math;
 pub mod prelude {
     pub use enso_prelude::*;
     pub use logger::*;
+    pub use logger::AnyLogger;
+    pub use logger::disabled::Logger;
     pub use shapely::CloneRef;
     pub use shapely::newtype_copy;
     pub use shapely::shared;

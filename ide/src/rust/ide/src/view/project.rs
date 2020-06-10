@@ -78,7 +78,7 @@ pub fn initial_module_path(project:&controller::Project) -> FallibleResult<Modul
 
 impl ProjectView {
     /// Create a new ProjectView.
-    pub async fn new(logger:&Logger, controller:controller::Project)
+    pub async fn new(logger:impl AnyLogger, controller:controller::Project)
     -> FallibleResult<Self> {
         let module_path          = initial_module_path(&controller)?;
         let text_controller      = controller.text_controller((*module_path).clone()).await?;
@@ -92,7 +92,7 @@ impl ProjectView {
         Self::setup_theme(&application);
         let _world               = &application.display;
         // graph::register_shapes(&world);
-        let logger                   = logger.sub("ProjectView");
+        let logger                   = Logger::sub(logger,"ProjectView");
         let keyboard                 = Keyboard::default();
         let keyboard_bindings        = KeyboardFrpBindings::new(&logger,&keyboard);
         let mut keyboard_actions     = keyboard::Actions::new(&keyboard);

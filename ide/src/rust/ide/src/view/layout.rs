@@ -94,7 +94,7 @@ impl ViewLayoutData {
 impl ViewLayout {
     /// Creates a new ViewLayout with a single TextEditor.
     pub async fn new
-    ( logger                   : &Logger
+    ( logger                   : impl AnyLogger
     , kb_actions               : &mut keyboard::Actions
     , application              : &Application
     , text_controller          : controller::Text
@@ -102,7 +102,7 @@ impl ViewLayout {
     , visualization_controller : controller::Visualization
     , fonts                    : &mut font::Registry
     ) -> FallibleResult<Self> {
-        let logger        = logger.sub("ViewLayout");
+        let logger        = Logger::sub(logger,"ViewLayout");
         let world         = &application.display;
         let text_editor   = TextEditor::new(&logger,world,text_controller,kb_actions,fonts);
         let graph         = graph_controller.graph.clone_ref();

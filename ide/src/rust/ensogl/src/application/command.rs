@@ -167,8 +167,8 @@ pub struct Registry {
 
 impl Registry {
     /// Constructor.
-    pub fn create(logger:&Logger) -> Self {
-        let logger    = logger.sub("views");
+    pub fn create(logger:impl AnyLogger) -> Self {
+        let logger    = Logger::sub(logger,"views");
         let instances = default();
         Self {logger,instances}
     }

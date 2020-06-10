@@ -65,13 +65,13 @@ impl {
 impl TextEditor {
     /// Creates a new TextEditor.
     pub fn new
-    ( logger           : &Logger
+    ( logger           : impl AnyLogger
     , world            : &World
     , controller       : controller::Text
     , keyboard_actions : &mut keyboard::Actions
     , fonts            : &mut font::Registry
     ) -> Self {
-        let logger     = logger.sub("TextEditor");
+        let logger     = Logger::sub(logger,"TextEditor");
         let scene      = world.scene();
         let camera     = scene.camera();
         let screen     = camera.screen();
