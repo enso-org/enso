@@ -57,7 +57,7 @@ jobs:
           graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
       - name: Set Up SBT
         run: |
-          curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
           echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
