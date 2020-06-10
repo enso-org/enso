@@ -31,6 +31,11 @@ pub use keyboard_types::Key;
 pub struct KeyMask(pub BitField256);
 
 impl KeyMask {
+    /// Creates Key::Meta + Key::Character.
+    pub fn meta_plus(character:char) -> Self {
+        Self::from_vec(vec![Key::Meta, Key::Character(character.to_string())])
+    }
+
     /// Creates Key::Control + Key::Character.
     pub fn control_plus(character:char) -> Self {
         Self::from_vec(vec![Key::Control, Key::Character(character.to_string())])

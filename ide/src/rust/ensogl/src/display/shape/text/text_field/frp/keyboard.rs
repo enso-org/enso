@@ -133,16 +133,23 @@ impl TextFieldKeyboardFrp {
         }
     }
 
+    fn enables_writing(mask:&keyboard::KeyMask) -> bool {
+        let modifiers = &[keyboard::Key::Control,keyboard::Key::Alt,keyboard::Key::Meta];
+        let is_modifier  = modifiers.iter().any(|key| mask.contains(key));
+        let is_alt_graph = mask.contains(&keyboard::Key::AltGraph);
+        match Platform::query() {
+            // On Windows AltGraph is emitted as both AltGraph and Ctrl. Therefore we don't
+            // care about modifiers when AltGraph is pressed.
+            Platform::Windows => !is_modifier || is_alt_graph,
+            _                 => !is_modifier
+        }
+    }
+
     fn char_typed_lambda(text_field:WeakTextField) -> impl Fn(&keyboard::Key,&keyboard::KeyMask) {
         move |key,mask| {
             text_field.upgrade().for_each(|text_field| {
                 if let keyboard::Key::Character(string) = key {
-                    let modifiers = &[keyboard::Key::Control,keyboard::Key::Alt];
-                    let is_modifier  = modifiers.iter().any(|key| mask.contains(key));
-                    let is_alt_graph = mask.contains(&keyboard::Key::AltGraph);
-                    // On Windows AltGraph is emitted as both AltGraph and Ctrl. Therefore we don't
-                    // care about modifiers when AltGraph is pressed.
-                    if  !is_modifier || is_alt_graph {
+                    if Self::enables_writing(mask) {
                         text_field.write(string);
                     }
                 }
