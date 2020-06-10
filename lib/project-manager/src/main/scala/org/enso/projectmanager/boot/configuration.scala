@@ -50,7 +50,8 @@ object configuration {
   case class TimeoutConfig(
     ioTimeout: FiniteDuration,
     requestTimeout: FiniteDuration,
-    bootTimeout: FiniteDuration
+    bootTimeout: FiniteDuration,
+    shutdownTimeout: FiniteDuration
   )
 
   /**

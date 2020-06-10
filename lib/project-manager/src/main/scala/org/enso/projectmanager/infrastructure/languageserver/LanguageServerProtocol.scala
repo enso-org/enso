@@ -49,6 +49,11 @@ object LanguageServerProtocol {
   case object ServerBootTimedOut extends ServerStartupFailure
 
   /**
+    * Signals that previous instance of the server hasn't been shut down yet.
+    */
+  case object PreviousInstanceNotShutDown extends ServerStartupFailure
+
+  /**
     * Command to stop a server.
     *
     * @param clientId the requester id
@@ -57,37 +62,42 @@ object LanguageServerProtocol {
   case class StopServer(clientId: UUID, projectId: UUID)
 
   /**
-    * Base trait for server stoppage results.
+    * Base trait for server shutdown results.
     */
-  sealed trait ServerStoppageResult
+  sealed trait ServerShutdownResult
 
   /**
     * Signals that server stopped successfully.
     */
-  case object ServerStopped extends ServerStoppageResult
+  case object ServerStopped extends ServerShutdownResult
 
   /**
-    * Base trait for server stoppage failures.
+    * Base trait for server shutdown failures.
     */
-  sealed trait ServerStoppageFailure extends ServerStoppageResult
+  sealed trait ServerShutdownFailure extends ServerShutdownResult
+
+  /**
+    * Signals that server shutdown timed out.
+    */
+  case object ServerShutdownTimedOut extends ServerShutdownFailure
 
   /**
     * Signals that an exception was thrown during stopping a server.
     *
     * @param th an exception
     */
-  case class FailureDuringStoppage(th: Throwable) extends ServerStoppageFailure
+  case class FailureDuringShutdown(th: Throwable) extends ServerShutdownFailure
 
   /**
     * Signals that server wasn't started.
     */
-  case object ServerNotRunning extends ServerStoppageFailure
+  case object ServerNotRunning extends ServerShutdownFailure
 
   /**
     * Signals that server cannot be stopped, because other clients are connected
     * to the server.
     */
-  case object CannotDisconnectOtherClients extends ServerStoppageFailure
+  case object CannotDisconnectOtherClients extends ServerShutdownFailure
 
   /**
     * Request to check is server is running.

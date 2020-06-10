@@ -6,7 +6,8 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
 import org.enso.projectmanager.boot.configuration.{
   BootloaderConfig,
   NetworkConfig,
-  SupervisionConfig
+  SupervisionConfig,
+  TimeoutConfig
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   CheckIfServerIsRunning,
@@ -24,11 +25,14 @@ import org.enso.projectmanager.util.UnhandledLogging
   *
   * @param networkConfig a net config
   * @param bootloaderConfig a bootloader config
+  * @param supervisionConfig a supervision config
+  * @param timeoutConfig a timeout config
   */
 class LanguageServerRegistry(
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig,
-  supervisionConfig: SupervisionConfig
+  supervisionConfig: SupervisionConfig,
+  timeoutConfig: TimeoutConfig
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -44,7 +48,13 @@ class LanguageServerRegistry(
       } else {
         val controller = context.actorOf(
           LanguageServerController
-            .props(project, networkConfig, bootloaderConfig, supervisionConfig),
+            .props(
+              project,
+              networkConfig,
+              bootloaderConfig,
+              supervisionConfig,
+              timeoutConfig
+            ),
           s"language-server-controller-${project.id}"
         )
         context.watch(controller)
@@ -86,18 +96,22 @@ object LanguageServerRegistry {
     *
     * @param networkConfig a net config
     * @param bootloaderConfig a bootloader config
+    * @param supervisionConfig a supervision config
+    * @param timeoutConfig a timeout config
     * @return
     */
   def props(
     networkConfig: NetworkConfig,
     bootloaderConfig: BootloaderConfig,
-    supervisionConfig: SupervisionConfig
+    supervisionConfig: SupervisionConfig,
+    timeoutConfig: TimeoutConfig
   ): Props =
     Props(
       new LanguageServerRegistry(
         networkConfig,
         bootloaderConfig,
-        supervisionConfig
+        supervisionConfig,
+        timeoutConfig
       )
     )
 

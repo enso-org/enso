@@ -5,8 +5,8 @@ import java.util.UUID
 import org.enso.projectmanager.data.LanguageServerSockets
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   CheckTimeout,
-  ServerStartupFailure,
-  ServerStoppageFailure
+  ServerShutdownFailure,
+  ServerStartupFailure
 }
 import org.enso.projectmanager.model.Project
 
@@ -39,7 +39,7 @@ trait LanguageServerService[F[+_, +_]] {
   def stop(
     clientId: UUID,
     projectId: UUID
-  ): F[ServerStoppageFailure, Unit]
+  ): F[ServerShutdownFailure, Unit]
 
   /**
     * Checks if server is running for project.

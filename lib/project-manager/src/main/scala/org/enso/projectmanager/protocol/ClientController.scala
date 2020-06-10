@@ -16,6 +16,7 @@ import org.enso.projectmanager.service.ProjectServiceApi
 import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.annotation.unused
+import scala.concurrent.duration._
 
 /**
   * An actor handling communications between a single client and the project
@@ -43,7 +44,11 @@ class ClientController[F[+_, +_]: Exec](
       ProjectOpen -> ProjectOpenHandler
         .props[F](clientId, projectService, config.bootTimeout),
       ProjectClose -> ProjectCloseHandler
-        .props[F](clientId, projectService, config.requestTimeout),
+        .props[F](
+          clientId,
+          projectService,
+          config.shutdownTimeout.plus(1.second)
+        ),
       ProjectListRecent -> ProjectListRecentHandler
         .props[F](clientId, projectService, config.requestTimeout)
     )

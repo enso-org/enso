@@ -48,15 +48,15 @@ class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatM
   override def stop(
     clientId: UUID,
     projectId: UUID
-  ): F[ServerStoppageFailure, Unit] =
+  ): F[ServerShutdownFailure, Unit] =
     Async[F]
       .fromFuture { () =>
-        (registry ? StopServer(clientId, projectId)).mapTo[ServerStoppageResult]
+        (registry ? StopServer(clientId, projectId)).mapTo[ServerShutdownResult]
       }
-      .mapError(FailureDuringStoppage)
+      .mapError(FailureDuringShutdown)
       .flatMap {
         case ServerStopped            => CovariantFlatMap[F].pure(())
-        case f: ServerStoppageFailure => ErrorChannel[F].fail(f)
+        case f: ServerShutdownFailure => ErrorChannel[F].fail(f)
       }
 
   /** @inheritdoc **/

@@ -66,7 +66,8 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   lazy val bootloaderConfig = BootloaderConfig(3, 1.second)
 
-  lazy val timeoutConfig = TimeoutConfig(3.seconds, 3.seconds, 3.seconds)
+  lazy val timeoutConfig =
+    TimeoutConfig(3.seconds, 3.seconds, 3.seconds, 5.seconds)
 
   lazy val netConfig = NetworkConfig("127.0.0.1", 40000, 60000)
 
@@ -98,7 +99,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val languageServerRegistry =
     system.actorOf(
       LanguageServerRegistry
-        .props(netConfig, bootloaderConfig, supervisionConfig)
+        .props(netConfig, bootloaderConfig, supervisionConfig, timeoutConfig)
     )
 
   lazy val languageServerService =

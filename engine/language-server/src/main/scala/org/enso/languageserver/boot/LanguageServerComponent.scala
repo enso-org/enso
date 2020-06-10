@@ -9,8 +9,8 @@ import org.enso.languageserver.boot.LifecycleComponent.{
   ComponentStopped
 }
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 /**
   * A lifecycle component used to start and stop a Language Server.
@@ -30,7 +30,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     for {
-      module      <- Future.successful(new MainModule(config))
+      module      <- Future { new MainModule(config) }
       jsonBinding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
       binaryBinding <- module.binaryServer
         .bind(config.interface, config.dataPort)
@@ -52,39 +52,48 @@ class LanguageServerComponent(config: LanguageServerConfig)
       case None =>
         Future.failed(new Exception("Server isn't running"))
 
-      case Some(serverState) =>
+      case Some(serverContext) =>
         for {
-          _ <- serverState.jsonBinding.terminate(10.seconds)
-          _ <- serverState.binaryBinding.terminate(10.seconds)
-          _ <- serverState.mainModule.system.terminate()
-          _ <- Future { serverState.mainModule.context.close(true) }
+          _ <- terminateAkka(serverContext)
+          _ <- terminateTruffle(serverContext)
           _ <- Future { maybeServerCtx = None }
         } yield ComponentStopped
     }
 
+  private def terminateAkka(serverContext: ServerContext): Future[Unit] = {
+    for {
+      _ <- serverContext.jsonBinding.terminate(2.seconds).recover(logError)
+      _ <- Future { logger.info("Terminated json connections") }
+      _ <- serverContext.binaryBinding.terminate(2.seconds).recover(logError)
+      _ <- Future { logger.info("Terminated binary connections") }
+      _ <- Await
+        .ready(
+          serverContext.mainModule.system.terminate().recover(logError),
+          2.seconds
+        )
+        .recover(logError)
+      _ <- Future { logger.info("Terminated actor system") }
+    } yield ()
+  }
+
+  private def terminateTruffle(serverContext: ServerContext): Future[Unit] = {
+    val killFiber =
+      Future {
+        serverContext.mainModule.context.close(true)
+      }
+
+    for {
+      _ <- Await.ready(killFiber, 5.seconds).recover(logError)
+      _ <- Future { logger.info("Terminated truffle context") }
+    } yield ()
+  }
+
   /** @inheritdoc **/
   override def restart(): Future[ComponentRestarted.type] =
     for {
-      _ <- forceStop()
+      _ <- stop()
       _ <- start()
     } yield ComponentRestarted
-
-  private def forceStop(): Future[Unit] = {
-    maybeServerCtx match {
-      case None =>
-        Future.successful(())
-
-      case Some(serverState) =>
-        for {
-          _ <- serverState.jsonBinding.terminate(10.seconds).recover(logError)
-          _ <- serverState.binaryBinding.terminate(10.seconds).recover(logError)
-          _ <- serverState.mainModule.system.terminate().recover(logError)
-          _ <- Future { serverState.mainModule.context.close(true) }
-            .recover(logError)
-          _ <- Future { maybeServerCtx = None }
-        } yield ()
-    }
-  }
 
   private val logError: PartialFunction[Throwable, Unit] = {
     case th => logger.error("An error occurred during stopping server", th)

@@ -23,7 +23,8 @@ import org.enso.languageserver.boot.{
 import org.enso.projectmanager.boot.configuration.{
   BootloaderConfig,
   NetworkConfig,
-  SupervisionConfig
+  SupervisionConfig,
+  TimeoutConfig
 }
 import org.enso.projectmanager.data.{LanguageServerSockets, Socket}
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
@@ -35,7 +36,8 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.{
   Boot,
   BootTimeout,
-  ServerDied
+  ServerDied,
+  ShutdownTimeout
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
@@ -51,12 +53,15 @@ import scala.concurrent.duration._
   * @param project a project open by the server
   * @param networkConfig a net config
   * @param bootloaderConfig a bootloader config
+  * @param supervisionConfig a supervision config
+  * @param timeoutConfig a timeout config
   */
 class LanguageServerController(
   project: Project,
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig,
-  supervisionConfig: SupervisionConfig
+  supervisionConfig: SupervisionConfig,
+  timeoutConfig: TimeoutConfig
 ) extends Actor
     with ActorLogging
     with Stash
@@ -178,8 +183,12 @@ class LanguageServerController(
   ): Unit = {
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
+      context.children.foreach(_ ! GracefulStop)
       server.stop() pipeTo self
-      context.become(stopping(maybeRequester))
+      val cancellable =
+        context.system.scheduler
+          .scheduleOnce(timeoutConfig.shutdownTimeout, self, ShutdownTimeout)
+      context.become(stopping(cancellable, maybeRequester))
     } else {
       sender() ! CannotDisconnectOtherClients
       context.become(supervising(config, server, updatedClients))
@@ -192,19 +201,32 @@ class LanguageServerController(
       stop()
   }
 
-  private def stopping(maybeRequester: Option[ActorRef]): Receive = {
+  private def stopping(
+    cancellable: Cancellable,
+    maybeRequester: Option[ActorRef]
+  ): Receive = {
     case Failure(th) =>
+      cancellable.cancel()
       log.error(
         th,
         s"An error occurred during Language server shutdown [$project]."
       )
-      maybeRequester.foreach(_ ! FailureDuringStoppage(th))
+      maybeRequester.foreach(_ ! FailureDuringShutdown(th))
       stop()
 
     case ComponentStopped =>
+      cancellable.cancel()
       log.info(s"Language server shut down successfully [$project].")
       maybeRequester.foreach(_ ! ServerStopped)
       stop()
+
+    case ShutdownTimeout =>
+      log.error("Language server shutdown timed out")
+      maybeRequester.foreach(_ ! ServerShutdownTimedOut)
+      stop()
+
+    case StartServer(_, _) =>
+      sender() ! PreviousInstanceNotShutDown
   }
 
   private def waitingForChildren(): Receive = {
@@ -235,20 +257,24 @@ object LanguageServerController {
     * @param project a project open by the server
     * @param networkConfig a net config
     * @param bootloaderConfig a bootloader config
+    * @param supervisionConfig a supervision config
+    * @param timeoutConfig a timeout config
     * @return a configuration object
     */
   def props(
     project: Project,
     networkConfig: NetworkConfig,
     bootloaderConfig: BootloaderConfig,
-    supervisionConfig: SupervisionConfig
+    supervisionConfig: SupervisionConfig,
+    timeoutConfig: TimeoutConfig
   ): Props =
     Props(
       new LanguageServerController(
         project,
         networkConfig,
         bootloaderConfig,
-        supervisionConfig
+        supervisionConfig,
+        timeoutConfig
       )
     )
 
@@ -261,6 +287,11 @@ object LanguageServerController {
     * Boot command.
     */
   case object Boot
+
+  /**
+    * Signals shutdown timeout.
+    */
+  case object ShutdownTimeout
 
   case object ServerDied
 
