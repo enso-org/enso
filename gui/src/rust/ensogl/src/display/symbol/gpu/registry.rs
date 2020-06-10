@@ -47,12 +47,12 @@ pub struct SymbolRegistry {
 
 impl SymbolRegistry {
     /// Constructor.
-    pub fn mk<OnMut:Fn()+'static>
-    (variables:&UniformScope, stats:&Stats, context:&Context, logger:&Logger, on_mut:OnMut)
+    pub fn mk<OnMut:Fn()+'static,Log:AnyLogger>
+    (variables:&UniformScope, stats:&Stats, context:&Context, logger:&Log, on_mut:OnMut)
     -> Self {
-        let logger = logger.sub("symbol_registry");
+        let logger          = Logger::sub(logger,"symbol_registry");
         logger.info("Initializing.");
-        let symbol_logger   = logger.sub("symbol_dirty");
+        let symbol_logger   = Logger::sub(&logger,"symbol_dirty");
         let symbol_dirty    = SymbolDirty::new(symbol_logger,Box::new(on_mut));
         let symbols         = default();
         let variables       = variables.clone();
@@ -72,7 +72,7 @@ impl SymbolRegistry {
         let stats        = &self.stats;
         self.symbols.borrow_mut().insert_with_ix(|ix| {
             let on_mut = move || {symbol_dirty.set(ix)};
-            let logger = logger.sub(format!("symbol{}",ix));
+            let logger = Logger::sub(logger,format!("symbol{}",ix));
             let id     = ix as i32;
             Symbol::new(logger,context,stats,id,variables,on_mut)
         })

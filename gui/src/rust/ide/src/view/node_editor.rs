@@ -601,11 +601,11 @@ pub struct NodeEditor {
 impl NodeEditor {
     /// Create Node Editor Panel.
     pub async fn new
-    ( logger        : &Logger
+    ( logger        : impl AnyLogger
     , app           : &Application
     , controller    : controller::ExecutedGraph
     , visualization : controller::Visualization) -> FallibleResult<Self> {
-        let logger         = logger.sub("NodeEditor");
+        let logger         = Logger::sub(logger,"NodeEditor");
         let display_object = display::object::Instance::new(&logger);
         let graph          = GraphEditorIntegratedWithController::new(logger,app,controller.clone_ref());
         let graph          = Rc::new(graph);

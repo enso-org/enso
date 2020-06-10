@@ -141,8 +141,8 @@ impl Camera2dData {
         let inversed_view_matrix   = Matrix4::identity();
         let projection_matrix      = Matrix4::identity();
         let view_projection_matrix = Matrix4::identity();
-        let projection_dirty       = ProjectionDirty::new(logger.sub("projection_dirty"),());
-        let transform_dirty        = TransformDirty::new(logger.sub("transform_dirty"),());
+        let projection_dirty       = ProjectionDirty::new(Logger::sub(&logger,"projection_dirty"),());
+        let transform_dirty        = TransformDirty::new(Logger::sub(&logger,"transform_dirty"),());
         let transform              = transform.clone2();
         let zoom_update_registry   = default();
         let screen_update_registry = default();
@@ -349,8 +349,8 @@ pub struct Camera2d {
 
 impl Camera2d {
     /// Creates new Camera instance.
-    pub fn new(logger:&Logger, width:f32, height:f32) -> Self {
-        let logger         = logger.sub("camera");
+    pub fn new(logger:impl AnyLogger, width:f32, height:f32) -> Self {
+        let logger         = Logger::sub(logger,"camera");
         let display_object = display::object::Instance::new(&logger);
         let data           = Camera2dData::new(logger,&display_object,width,height);
         let data           = Rc::new(RefCell::new(data));

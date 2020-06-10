@@ -137,8 +137,8 @@ pub struct DomScene {
 
 impl DomScene {
     /// Constructor.
-    pub fn new(logger:&Logger) -> Self {
-        let logger              = logger.sub("DomScene");
+    pub fn new(logger:impl AnyLogger) -> Self {
+        let logger              = Logger::sub(logger,"DomScene");
         let dom                 = web::create_div();
         let view_projection_dom = web::create_div();
 

@@ -120,10 +120,10 @@ pub struct WebSocket {
 
 impl WebSocket {
     /// Wraps given WebSocket object.
-    pub fn new(ws:web_sys::WebSocket, parent:Logger, name:impl Str) -> WebSocket {
+    pub fn new(ws:web_sys::WebSocket, parent:impl AnyLogger, name:impl Str) -> WebSocket {
         ws.set_binary_type(BinaryType::Arraybuffer);
         WebSocket {
-            logger     : parent.sub(name),
+            logger     : Logger::sub(parent,name),
             ws,
             on_message : default(),
             on_close   : default(),
@@ -138,7 +138,7 @@ impl WebSocket {
         let ws = web_sys::WebSocket::new(url.as_ref()).map_err(|e| {
             ConnectingError::ConstructionError(js_to_string(e))
         })?;
-        let mut wst = WebSocket::new(ws,parent,url);
+        let mut wst = WebSocket::new(ws,&parent,url);
         wst.wait_until_open().await?;
         Ok(wst)
     }

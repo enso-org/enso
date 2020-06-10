@@ -30,7 +30,7 @@ pub struct NodeSearcher {
 impl NodeSearcher {
     pub fn new
     ( world       : &World
-    , logger      : &Logger
+    , logger      : impl AnyLogger
     , node_editor : NodeEditor
     , controller  : controller::graph::Handle
     , fonts       : &mut font::Registry)
@@ -38,7 +38,7 @@ impl NodeSearcher {
         let scene          = world.scene();
         let camera         = scene.camera();
         let screen         = camera.screen();
-        let logger         = logger.sub("NodeSearcher");
+        let logger         = Logger::sub(logger,"NodeSearcher");
         let display_object = display::object::Instance::new(&logger);
         let properties     = TextFieldProperties {
             font       : fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap(),

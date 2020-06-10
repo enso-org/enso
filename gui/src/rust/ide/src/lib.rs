@@ -30,6 +30,7 @@ pub mod view;
 /// Common types that should be visible across the whole IDE crate.
 pub mod prelude {
     pub use ensogl::prelude::*;
+    pub use ensogl::prelude::enabled::Logger;
     pub use enso_prelude::*;
     pub use ast::prelude::*;
     pub use wasm_bindgen::prelude::*;
@@ -175,7 +176,7 @@ pub async fn open_project
     let json_ws       = new_opened_ws(logger.clone_ref(), json_endpoint).await?;
     let binary_ws     = new_opened_ws(logger.clone_ref(), binary_endpoint).await?;
     let client_json   = language_server::Client::new(json_ws);
-    let client_binary = binary::Client::new(logger.clone_ref(),binary_ws);
+    let client_binary = binary::Client::new(logger,binary_ws);
     crate::executor::global::spawn(client_json.runner());
     crate::executor::global::spawn(client_binary.runner());
     let connection_json   = language_server::Connection::new(client_json,client_id).await?;

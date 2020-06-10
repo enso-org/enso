@@ -30,6 +30,7 @@ pub mod prelude {
 
     pub use crate::traits::*;
     pub use logger::*;
+    pub use logger::enabled::Logger;
 
     pub use std::future::Future;
 

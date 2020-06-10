@@ -87,7 +87,7 @@ impl World {
     pub fn new(dom:&web_sys::HtmlElement) -> World {
         let logger          = Logger::new("world");
         let stats           = default();
-        let scene_dirty     = dirty::SharedBool::new(logger.sub("scene_dirty"),());
+        let scene_dirty     = dirty::SharedBool::new(Logger::sub(&logger,"scene_dirty"),());
         let on_change       = enclose!((scene_dirty) move || scene_dirty.set());
         let scene           = Scene::new(dom,&logger,&stats,on_change);
         let uniforms        = Uniforms::new(&scene.variables);

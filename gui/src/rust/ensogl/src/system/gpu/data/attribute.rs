@@ -61,8 +61,8 @@ impl {
     (logger:Logger, stats:&Stats, context:&Context, on_mut:OnMut) -> Self {
         info!(logger,"Initializing.",{
             let stats           = stats.clone_ref();
-            let buffer_logger   = logger.sub("buffer_dirty");
-            let shape_logger    = logger.sub("shape_dirty");
+            let buffer_logger   = Logger::sub(&logger,"buffer_dirty");
+            let shape_logger    = Logger::sub(&logger,"shape_dirty");
             let buffer_dirty    = BufferDirty::new(buffer_logger,Box::new(on_mut.clone()));
             let shape_dirty     = ShapeDirty::new(shape_logger,Box::new(on_mut));
             let buffers         = default();
@@ -85,7 +85,7 @@ impl {
         group!(self.logger, "Adding buffer '{name}' at index {ix}.", {
             let on_set     = Box::new(move || { buffer_dirty.set(ix) });
             let on_resize  = Box::new(move || { shape_dirty.set() });
-            let logger     = self.logger.sub(&name);
+            let logger     = Logger::sub(&self.logger,&name);
             let buffer     = Buffer::new(logger,&self.stats,&self.context,on_set,on_resize);
             let buffer_ref = buffer.clone();
             self.buffers.set(ix,AnyBuffer::from(buffer));

@@ -276,17 +276,17 @@ impl Symbol {
         let init_logger = logger.clone();
         group!(init_logger, "Initializing.", {
             let on_mut2           = on_mut.clone();
-            let surface_logger    = logger.sub("surface");
-            let shader_logger     = logger.sub("shader");
-            let geo_dirt_logger   = logger.sub("surface_dirty");
-            let mat_dirt_logger   = logger.sub("shader_dirty");
+            let surface_logger    = Logger::sub(&logger,"surface");
+            let shader_logger     = Logger::sub(&logger,"shader");
+            let geo_dirt_logger   = Logger::sub(&logger,"surface_dirty");
+            let mat_dirt_logger   = Logger::sub(&logger,"shader_dirty");
             let surface_dirty     = GeometryDirty::new(geo_dirt_logger,Box::new(on_mut2));
             let shader_dirty      = ShaderDirty::new(mat_dirt_logger,Box::new(on_mut));
             let surface_on_mut    = Box::new(f!(surface_dirty.set()));
             let shader_on_mut     = Box::new(f!(shader_dirty.set()));
             let shader            = Shader::new(shader_logger,&stats,context,shader_on_mut);
             let surface           = Mesh::new(surface_logger,&stats,context,surface_on_mut);
-            let variables         = UniformScope::new(logger.sub("uniform_scope"),context);
+            let variables         = UniformScope::new(Logger::sub(&logger,"uniform_scope"),context);
             let global_variables  = global_variables.clone_ref();
             let bindings          = default();
             let stats             = SymbolStats::new(stats);

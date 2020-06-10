@@ -83,7 +83,7 @@ impl {
         let geometry_material = default();
         let surface_material  = default();
         let program           = default();
-        let dirty_logger      = logger.sub("dirty");
+        let dirty_logger      = Logger::sub(&logger,"dirty");
         let dirty             = Dirty::new(dirty_logger,Box::new(on_mut));
         let context           = context.clone();
         let stats             = stats.clone_ref();

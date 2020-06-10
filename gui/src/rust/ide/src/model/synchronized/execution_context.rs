@@ -40,17 +40,16 @@ impl ExecutionContext {
     /// NOTE: By itself this execution context will not be able to receive any updates from the
     /// language server.
     pub fn create
-    ( parent          : &Logger
+	( parent          : impl AnyLogger
     , language_server : Rc<language_server::Connection>
     , module_path     : Rc<model::module::Path>
     , root_definition : DefinitionName
     ) -> impl Future<Output=FallibleResult<Self>> {
-        let parent = parent.clone();
-        let logger = parent.sub("ExecutionContext");
+        let logger = Logger::sub(&parent,"ExecutionContext");
         async move {
             info!(logger, "Creating.");
             let id     = language_server.client.create_execution_context().await?.context_id;
-            let logger = parent.sub(iformat!{"ExecutionContext {id}"});
+            let logger = Logger::sub(&parent,iformat!{"ExecutionContext {id}"});
             let model  = model::ExecutionContext::new(&logger,root_definition);
             info!(logger, "Created. Id:{id}");
             let this = Self { id, module_path, model, language_server, logger };
@@ -220,7 +219,7 @@ mod test {
 
         let mut test = TestWithLocalPoolExecutor::set_up();
         test.run_task(async move {
-            let context = ExecutionContext::create(&default(),connection,path.clone(),root_def);
+            let context = ExecutionContext::create(Logger::default(),connection,path.clone(),root_def);
             let context = context.await.unwrap();
             assert_eq!(context_id             , context.id);
             assert_eq!(path                   , context.module_path);
@@ -235,7 +234,7 @@ mod test {
         let expression_id       = model::execution_context::ExpressionId::new_v4();
         let path                = model::module::Path::from_mock_module_name("Test");
         let root_def            = DefinitionName::new_plain("main");
-        let model               = model::ExecutionContext::new(&default(),root_def);
+        let model               = model::ExecutionContext::new(Logger::default(),root_def);
         let ls                  = language_server::MockClient::default();
         let expected_call_frame = language_server::LocalCall{expression_id};
         let expected_stack_item = language_server::StackItem::LocalCall(expected_call_frame);
@@ -265,7 +264,7 @@ mod test {
         let path          = model::module::Path::from_mock_module_name("Test");
         let root_def      = DefinitionName::new_plain("main");
         let ls            = language_server::MockClient::default();
-        let model         = model::ExecutionContext::new(&default(),root_def);
+        let model         = model::ExecutionContext::new(Logger::default(),root_def);
         expect_call!(ls.pop_from_execution_context(id) => Ok(()));
         expect_call!(ls.destroy_execution_context(id) => Ok(()));
         model.push(item);
@@ -285,7 +284,7 @@ mod test {
         let exe_id   = model::execution_context::Id::new_v4();
         let path     = model::module::Path::from_mock_module_name("Test");
         let root_def = DefinitionName::new_plain("main");
-        let model    = model::ExecutionContext::new(&default(),root_def);
+        let model    = model::ExecutionContext::new(Logger::default(),root_def);
         let ls       = language_server::MockClient::default();
         let vis      = Visualization {
             id                   : model::execution_context::VisualizationId::new_v4(),
