@@ -16,7 +16,6 @@ use crate::display::shape::Var;
 use crate::math::topology::unit::*;
 use crate::system::gpu::shader::glsl::Glsl;
 use crate::system::gpu::shader::glsl::traits::*;
-use crate::system::gpu::types::*;
 
 
 

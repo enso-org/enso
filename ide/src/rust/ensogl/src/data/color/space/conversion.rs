@@ -32,9 +32,9 @@ macro_rules! color_conversion {
         $(#[$($meta)*])*
         impl $(<$($bounds)*>)? From<Alpha<$src>> for Alpha<$tgt> {
              fn from(src:Alpha<$src>) -> Self {
-                 let alpha = src.alpha;
-                 let color = src.color.into();
-                 Self {alpha,color}
+                 let alpha  = src.alpha;
+                 let opaque = src.opaque.into();
+                 Self {alpha,opaque}
              }
         }
 

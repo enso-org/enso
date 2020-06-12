@@ -1,6 +1,5 @@
 //! Defines abstraction for data types that have a default value when used as GPU values.
 
-use nalgebra::*;
 use crate::math::types::*;
 
 
@@ -39,10 +38,6 @@ define_gpu_defaults! {
     u32            = 0,
     f32            = 0.0,
     bool           = false,
-
-    V2<f32>        = V2::new(0.0,0.0),
-    V3<f32>        = V3::new(0.0,0.0,0.0),
-    V4<f32>        = V4::new(0.0,0.0,0.0,0.0),
 
     Vector2<f32>   = Vector2::new(0.0,0.0),
     Vector3<f32>   = Vector3::new(0.0,0.0,0.0),

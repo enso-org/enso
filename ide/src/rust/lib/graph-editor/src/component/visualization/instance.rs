@@ -21,7 +21,7 @@ use crate::data::EnsoCode;
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct FrpInputs {
-    pub set_size  : frp::Source<V2>,
+    pub set_size  : frp::Source<Vector2>,
     pub send_data : frp::Source<Data>,
 }
 
@@ -31,7 +31,6 @@ pub struct FrpInputs {
 pub struct Frp {
     #[shrinkwrap(main_field)]
     pub inputs                : FrpInputs,
-    pub network               : frp::Network,
 
     pub on_change             : frp::Stream<EnsoCode>,
     pub on_preprocess_change  : frp::Stream<EnsoCode>,
@@ -55,8 +54,8 @@ impl FrpInputs {
 
 impl Frp {
     /// Constructor.
-    pub fn new() -> Self {
-        frp::new_network! { network
+    pub fn new(network:&frp::Network) -> Self {
+        frp::extend! { network
             def change             = source();
             def preprocess_change  = source();
             def data_receive_error = source();
@@ -65,14 +64,8 @@ impl Frp {
         let on_preprocess_change  = preprocess_change.clone_ref().into();
         let on_data_receive_error = data_receive_error.clone_ref().into();
         let inputs                = FrpInputs::new(&network);
-        Self {network,on_change,on_preprocess_change,on_data_receive_error,change,preprocess_change
+        Self {on_change,on_preprocess_change,on_data_receive_error,change,preprocess_change
              ,inputs,data_receive_error}
-    }
-}
-
-impl Default for Frp {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -87,15 +80,18 @@ impl Default for Frp {
 #[allow(missing_docs)]
 pub struct Instance {
     display_object : display::object::Instance,
-    frp            : Frp
+    frp            : Frp,
+    network        : frp::Network,
 }
 
 impl Instance {
     /// Constructor.
-    pub fn new(display_object:impl display::Object, frp:impl Into<Frp>) -> Self {
+    pub fn new(display_object:impl display::Object, frp:impl Into<Frp>,
+               network:impl Into<frp::Network>) -> Self {
         let display_object = display_object.display_object().clone_ref();
         let frp            = frp.into();
-        Self {display_object,frp}
+        let network        = network.into();
+        Self {display_object,frp,network}
     }
 }
 

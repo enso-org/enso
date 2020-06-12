@@ -89,6 +89,12 @@ impl ImString {
     }
 }
 
+impl std::fmt::Display for ImString {
+    fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}",self.content)
+    }
+}
+
 impl Deref for ImString {
     type Target = str;
     fn deref(&self) -> &Self::Target {

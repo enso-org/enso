@@ -239,7 +239,7 @@ impl Tween {
             def target = source::<f32>();
         }
         let f        = easing::quad_in_out();
-        let animator = easing::DynAnimator::new(0.0,1.0,f,Box::new(f!((t) target.emit(t))));
+        let animator = easing::DynAnimator::new_not_started(0.0,1.0,f,Box::new(f!((t) target.emit(t))));
         let value    = target.into();
         Self {animator,value}
     }

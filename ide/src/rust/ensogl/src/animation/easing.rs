@@ -138,7 +138,7 @@ pub fn elastic_in_out_params(t:f32, period:f32, amplitude:f32) -> f32 {
 // ================
 
 /// Easing animator value.
-pub trait Value = Copy + Add<Self,Output=Self> + Mul<f32,Output=Self> + 'static;
+pub trait Value = Copy + Add<Self,Output=Self> + Mul<f32,Output=Self> + PartialEq + 'static;
 
 /// Easing animator callback.
 pub trait Callback<T> = Fn(T) + 'static;
@@ -168,7 +168,8 @@ impl<T,F,Cb> Debug for Animator<T,F,Cb> {
 pub struct AnimatorData<T,F,Cb> {
     pub duration     : Cell<f32>,
     pub start_value  : Cell<T>,
-    pub end_value    : Cell<T>,
+    pub target_value : Cell<T>,
+    pub value        : Cell<T>,
     pub active       : Cell<bool>,
     #[derivative(Debug="ignore")]
     pub tween_fn     : F,
@@ -177,13 +178,22 @@ pub struct AnimatorData<T,F,Cb> {
 }
 
 impl<T:Value,F,Cb> AnimatorData<T,F,Cb>
-    where F  : AnyFnEasing,
-          Cb : Callback<T> {
+where F:AnyFnEasing, Cb:Callback<T> {
+    fn new(start:T, end:T, tween_fn:F, callback:Cb) -> Self {
+        let duration     = Cell::new(1000.0);
+        let value        = Cell::new(start);
+        let start_value  = Cell::new(start);
+        let target_value = Cell::new(end);
+        let active       = default();
+        Self {duration,value,start_value,target_value,active,tween_fn,callback}
+    }
+
     fn step(&self, time:f32) {
         let sample = (time / self.duration.get()).min(1.0);
         let weight = (self.tween_fn)(sample);
-        let value  = self.start_value.get() * (1.0-weight) + self.end_value.get() * weight;
+        let value  = self.start_value.get() * (1.0-weight) + self.target_value.get() * weight;
         (self.callback)(value);
+        self.value.set(value);
         if (sample - 1.0).abs() < std::f32::EPSILON {
             self.active.set(false);
         }
@@ -194,34 +204,27 @@ impl<T:Value,F,Cb> AnimatorData<T,F,Cb>
 pub type AnimationStep<T,F,Cb> = animation::Loop<Step<T,F,Cb>>;
 pub type Step<T,F,Cb> = impl Fn(animation::TimeInfo);
 fn step<T:Value,F,Cb>(easing:&Animator<T,F,Cb>) -> Step<T,F,Cb>
-    where F  : AnyFnEasing,
-          Cb : Callback<T> {
+where F:AnyFnEasing, Cb:Callback<T> {
     let this = easing.clone_ref();
     move |time:animation::TimeInfo| {
-        if this.active() {
-            this.data.step(time.local);
-        } else {
-            this.stop();
-        }
+        if this.active() { this.data.step(time.local) }
+        else             { this.stop() }
     }
 }
 
 impl<T:Value,F,Cb> Animator<T,F,Cb> where F:AnyFnEasing, Cb:Callback<T> {
     /// Constructor.
-    pub fn new(start_value:T, end_value:T, tween_fn:F, callback:Cb) -> Self {
-        let duration       = Cell::new(1000.0);
-        let start_value    = Cell::new(start_value);
-        let end_value      = Cell::new(end_value);
-        let active         = default();
-        let data           = AnimatorData {duration,start_value,end_value,active,tween_fn,callback};
-        let data           = Rc::new(data);
+    pub fn new_not_started(start:T, end:T, tween_fn:F, callback:Cb) -> Self {
+        let data           = Rc::new(AnimatorData::new(start,end,tween_fn,callback));
         let animation_loop = default();
-        Self {data,animation_loop} . init()
+        Self {data,animation_loop}
     }
 
-    fn init(self) -> Self {
-        self.start();
-        self
+    /// Constructor.
+    pub fn new(start:T, end:T, tween_fn:F, callback:Cb) -> Self {
+        let this = Self::new_not_started(start,end,tween_fn,callback);
+        this.start();
+        this
     }
 
     /// Start the animator.
@@ -245,15 +248,49 @@ impl<T:Value,F,Cb> Animator<T,F,Cb> where F:AnyFnEasing, Cb:Callback<T> {
         self.start();
     }
 
-    /// Stop the animation, rewinds it to the initial value and calls the callback.
-    pub fn rewind(&self) {
+    /// Stop the animation, rewind it to the provided value and call the callback.
+    pub fn stop_and_rewind_to(&self, value:T) {
         self.stop();
-        (self.data.callback)(self.start_value());
+        self.set_start_value_no_restart(value);
+        self.data.value.set(value);
+        (self.data.callback)(value);
     }
 
-    /// Checks whether the animator is running.
+    /// Stop the animation, rewind it to the initial value and call the callback.
+    pub fn stop_and_rewind(&self) {
+        self.stop_and_rewind_to(self.start_value());
+    }
+
+    /// Check whether the animator is running.
     pub fn active(&self) -> bool {
         self.data.active.get()
+    }
+
+    /// Restart the animation using the current value as the new start value.
+    pub fn from_now_to(&self, tgt:T) {
+        let current = self.value();
+        self.data.start_value.set(current);
+        self.data.target_value.set(tgt);
+        if current != tgt {
+            (self.data.callback)(self.start_value());
+            self.reset();
+        }
+    }
+
+    /// Set the new target value. In case the target value is different from the current target
+    /// value, the animation will be restarted with the current value being the new start value.
+    pub fn set_target_value(&self, tgt:T) {
+        if self.data.target_value.get() != tgt {
+            self.from_now_to(tgt)
+        }
+    }
+
+    /// Stop the animator and set it to the target value.
+    pub fn skip(&self) {
+        self.stop();
+        let value = self.target_value();
+        self.data.value.set(value);
+        (self.data.callback)(value);
     }
 }
 
@@ -266,18 +303,20 @@ impl<T:Value,F,Cb> Animator<T,F,Cb> where F:AnyFnEasing, Cb:Callback<T> {
         self.data.start_value.get()
     }
 
-    pub fn end_value(&self) -> T {
-        self.data.end_value.get()
+    pub fn value(&self) -> T {
+        self.data.value.get()
     }
 
-    pub fn set_start_value(&self, t:T) {
+    pub fn target_value(&self) -> T {
+        self.data.target_value.get()
+    }
+
+    pub fn set_start_value_no_restart(&self, t:T) {
         self.data.start_value.set(t);
-        self.start();
     }
 
-    pub fn set_end_value(&self, t:T) {
-        self.data.end_value.set(t);
-        self.start();
+    pub fn set_target_value_no_restart(&self, t:T) {
+        self.data.target_value.set(t);
     }
 
     pub fn set_duration(&self, t:f32) {

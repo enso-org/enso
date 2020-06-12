@@ -93,21 +93,18 @@
 //!   area automatically. The `size` parameter contains two fields `width` and `height` expressed in
 //!   pixels.
 
-// FIXME: Make sure the above definition is implemented in the JS API, including the `Visualization`
-//        superclass, its `dom` field and the `setPreprocessor` method (connected to Rust side).
+// TODO: Connect the `setPreprocessor` method on Rust side.
 
 // FIXME: Can we simplify the above definition so its more minimal, yet functional?
-
 
 
 use crate::prelude::*;
 
 use crate::component::visualization::InstantiationError;
 use crate::component::visualization::InstantiationResult;
-use crate::component::visualization::java_script::instance;
 use crate::component::visualization;
 use crate::data::*;
-
+use super::binding;
 use super::instance::Instance;
 
 use ensogl::display::Scene;
@@ -115,14 +112,26 @@ use ensogl::system::web::JsValue;
 use js_sys::JsString;
 use js_sys;
 use wasm_bindgen::JsCast;
+use fmt::Formatter;
+use std::str::FromStr;
 
 
 // =================
 // === Constants ===
 // =================
 
-const LABEL_FIELD      : &str = "label";
-const INPUT_TYPE_FIELD : &str = "inputType";
+#[allow(missing_docs)]
+pub mod field {
+    pub const LABEL        : &str = "label";
+    pub const INPUT_TYPE   : &str = "inputType";
+    pub const INPUT_FORMAT : &str = "inputFormat";
+}
+
+#[allow(missing_docs)]
+pub mod method {
+    pub const ON_DATA_RECEIVED : &str = "onDataReceived";
+    pub const SET_SIZE         : &str = "setSize";
+}
 
 
 
@@ -139,30 +148,32 @@ pub struct Definition {
 }
 
 impl Definition {
+
     /// Create a visualization source from piece of JS source code. Signature needs to be inferred.
     pub fn new (library:impl Into<LibraryName>, source:impl AsRef<str>) -> Result<Self,Error> {
-        let source     = source.as_ref();
-        let context    = JsValue::NULL;
-        let function   = js_sys::Function::new_no_args(source);
-        let class      = function.call0(&context).map_err(Error::InvalidFunction)?;
+        let source       = source.as_ref();
+        let source       = source;
+        let context      = JsValue::NULL;
+        let function     = js_sys::Function::new_with_args(binding::JS_CLASS_NAME,&source);
+        let js_class     = binding::js_class();
+        let class        = function.call1(&context,&js_class).map_err(Error::InvalidFunction)?;
 
-        let library    = library.into();
-        let input_type = try_str_field(&class,INPUT_TYPE_FIELD).unwrap_or_default();
-        let label      = label(&class)?;
-        let path       = visualization::Path::new(library,label);
-        let signature  = visualization::Signature::new(path,input_type);
+        let library      = library.into();
+        let input_type   = try_str_field(&class,field::INPUT_TYPE).unwrap_or_default();
+
+        let input_format = try_str_field(&class,field::INPUT_FORMAT).unwrap_or_default();
+        let input_format = visualization::data::Format::from_str(&input_format).unwrap_or_default();
+
+        let label        = label(&class)?;
+        let path         = visualization::Path::new(library,label);
+        let signature    = visualization::Signature::new(path,input_type,input_format);
 
         Ok(Self{class,signature})
     }
 
     fn new_instance(&self, scene:&Scene) -> InstantiationResult {
-        let js_new   = js_sys::Function::new_with_args("cls", "return new cls()");
-        let context  = JsValue::NULL;
-        let obj      = js_new.call1(&context,&self.class)
-            .map_err(|js_error|instance::Error::ConstructorError{js_error})
+        let instance = Instance::new(&self.class, scene)
             .map_err(InstantiationError::ConstructorError)?;
-        let instance = Instance::new(obj).map_err(InstantiationError::ConstructorError)?;
-        instance.set_dom_layer(&scene.dom.layers.main);
         Ok(instance.into())
     }
 }
@@ -184,7 +195,7 @@ fn try_str_field(obj:&JsValue, field:&str) -> Option<String> {
 
 // TODO: convert camel-case names to nice names
 fn label(class:&JsValue) -> Result<String,Error> {
-    try_str_field(class,LABEL_FIELD).map(Ok).unwrap_or_else(|| {
+    try_str_field(class,field::LABEL).map(Ok).unwrap_or_else(|| {
         let class_name = try_str_field(class,"name").ok_or(Error::InvalidClass(InvalidClass::MissingName))?;
         Ok(class_name)
     })
@@ -205,6 +216,19 @@ pub type FallibleDefinition = Result<Definition,Error>;
 pub enum Error {
     InvalidFunction(JsValue),
     InvalidClass(InvalidClass),
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::InvalidFunction(value)  => {
+                f.write_fmt(format_args!("Provided value is not a valid function: {:?}",value))
+            },
+            Error::InvalidClass(value)  => {
+                f.write_fmt(format_args!("Provided value is not a valid class: {:?}",value))
+            },
+        }
+    }
 }
 
 /// Subset of `Error` related to invalid JavaScript class definition.

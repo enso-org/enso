@@ -26,15 +26,14 @@ macro_rules! define_color_space {
 
         impl $data_name {
             /// Constructor.
-            pub fn new($($comp:impl Into<f32>),*) -> Self {
-                $(let $comp = $comp.into();)*
+            pub const fn new($($comp:f32),*) -> Self {
                 Self {$($comp),*}
             }
         }
 
         impl $name {
             /// Constructor.
-            pub fn new($($comp:impl Into<f32>),*) -> Self {
+            pub const fn new($($comp:f32),*) -> Self {
                 let data = $data_name::new($($comp),*);
                 Self {data}
             }
@@ -42,10 +41,9 @@ macro_rules! define_color_space {
 
         impl $a_name {
             /// Constructor.
-            pub fn new($($comp:impl Into<f32>),*,alpha:impl Into<f32>) -> Self {
-                let alpha = alpha.into();
-                let color = $data_name::new($($comp),*);
-                let data  = Alpha {alpha,color};
+            pub const fn new($($comp:f32),*,alpha:f32) -> Self {
+                let opaque = Color {data : $data_name::new($($comp),*)};
+                let data   = Alpha {alpha,opaque};
                 Self {data}
             }
         }

@@ -9,7 +9,6 @@ use crate::display::world::World;
 
 use enso_frp::io::keyboard;
 use enso_frp::io::Mouse;
-use enso_frp::Position;
 use enso_frp as frp;
 use nalgebra::Vector2;
 
@@ -39,23 +38,25 @@ impl TextFieldMouseFrp {
     -> Self {
         use keyboard::Key::*;
         let mouse               = Mouse::default();
-        let is_inside           = Self::is_inside_text_field_lambda(text_field_ptr.clone());
+        let loc_text_field_ptr  = text_field_ptr.clone();
+        let is_inside           = move |t:Vector2<f32>| Self::is_inside_text_field(&loc_text_field_ptr,t);
         let is_multicursor_mode = |mask:&keyboard::KeyMask| mask == &[Alt,Shift].iter().collect();
         let is_block_selection  = |mask:&keyboard::KeyMask| mask == &[Alt].iter().collect();
-        let set_cursor_action   = Self::set_cursor_lambda(text_field_ptr.clone());
-        let select_action       = Self::select_lambda(text_field_ptr);
+        let loc_text_field_ptr  = text_field_ptr.clone();
+        let set_cursor_action   = move |p,m| Self::set_cursor(&loc_text_field_ptr,p,m);
+        let select_action       = move |p,s| Self::select(&text_field_ptr,p,s);
         frp::new_network! { text_field
-            is_inside         <- mouse.position.map(is_inside);
-            click_in          <- mouse.press.gate(&is_inside);
+            is_inside         <- mouse.position.map(move |t|is_inside(*t));
+            click_in          <- mouse.down.gate(&is_inside);
             click_in_bool     <- click_in.constant(true);
-            mouse_up_bool     <- mouse.release.constant(false);
+            mouse_up_bool     <- mouse.up.constant(false);
             selecting         <- any (click_in_bool,mouse_up_bool);
             multicursor       <- keyboard.keyboard.key_mask.map(is_multicursor_mode);
             block_selection   <- keyboard.keyboard.key_mask.map(is_block_selection);
             click_in_pos      <- mouse.position.sample(&click_in);
             select_pos        <- mouse.position.gate(&selecting);
-            set_cursor_action <- click_in_pos.map2(&multicursor,set_cursor_action);
-            select_action     <- select_pos.map2(&block_selection,select_action);
+            set_cursor_action <- click_in_pos.map2(&multicursor,move|p,m|set_cursor_action(*p,*m));
+            select_action     <- select_pos.map2(&block_selection,move|p,s|select_action(*p,*s));
         }
         let network = text_field;
         Self {mouse,network,click_in,selecting,multicursor,set_cursor_action,select_action}
@@ -71,37 +72,28 @@ impl TextFieldMouseFrp {
 // === Private functions ===
 
 impl TextFieldMouseFrp {
-    fn is_inside_text_field_lambda(text_field:WeakTextField) -> impl Fn(&Position) -> bool {
-        move |position| {
-            let position = Vector2::new(position.x,position.y);
-            text_field.upgrade().map_or(false, |tf| tf.is_inside(position))
-        }
+    fn is_inside_text_field(text_field:&WeakTextField,position:Vector2<f32>) -> bool {
+        text_field.upgrade().map_or(false, |tf| tf.is_inside(position))
     }
 
-    fn set_cursor_lambda(text_field:WeakTextField) -> impl Fn(&Position,&bool) {
-        move |position,multicursor| {
-            let position = Vector2::new(position.x,position.y);
-            if let Some(text_field) = text_field.upgrade() {
-                text_field.set_focus();
-                if *multicursor {
-                    text_field.add_cursor(position);
-                } else {
-                    text_field.set_cursor(position);
-                }
+    fn set_cursor(text_field:&WeakTextField,position:Vector2<f32>,multicursor:bool) {
+        if let Some(text_field) = text_field.upgrade() {
+            text_field.set_focus();
+            if multicursor {
+                text_field.add_cursor(position);
+            } else {
+                text_field.set_cursor(position);
             }
         }
     }
 
-    fn select_lambda(text_field:WeakTextField) -> impl Fn(&Position,&bool) {
-        move |position,block_selection| {
-            let position = Vector2::new(position.x,position.y);
-            if let Some(text_field) = text_field.upgrade() {
-                text_field.set_focus();
-                if *block_selection {
-                    text_field.block_selection(position);
-                } else {
-                    text_field.jump_cursor(position,true);
-                }
+    fn select(text_field:&WeakTextField,position:Vector2<f32>,block_selection:bool) {
+        if let Some(text_field) = text_field.upgrade() {
+            text_field.set_focus();
+            if block_selection {
+                text_field.block_selection(position);
+            } else {
+                text_field.jump_cursor(position,true);
             }
         }
     }

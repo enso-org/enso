@@ -33,7 +33,6 @@ impl Registry {
         let type_map = default();
         let logger   = Logger::new("Registry");
         Registry{path_map,type_map,logger}
-
     }
 
     /// Return a `Registry` pre-populated with default visualizations.
@@ -45,8 +44,7 @@ impl Registry {
         registry
     }
 
-    // FIXME: what does "pre-wrapped in an Rc" mean?
-    /// Register a new visualization class that's pre-wrapped in an `Rc` with the registry.
+    /// Register a new `visualization::Definition`.
     pub fn add(&self, class:impl Into<visualization::Definition>) {
         let class = class.into();
         let sig   = &class.signature;
@@ -54,17 +52,15 @@ impl Registry {
         self.path_map.borrow_mut().entry(sig.path.clone()).insert(class);
     }
 
-    // FIXME: what does "pre-wrapped in an Rc" mean?
-    /// Register a new visualization class that's pre-wrapped in an `Rc` with the registry.
-    // FIXME: please explain the comment below. Is it worth doing now?
-    /// TODO: Consider generalising the FallibleDefinition.
+    /// Register a new `visualization::java_script::Definition`. If creating the class fails, it
+    /// will not be added an warning is emitted.
     pub fn try_add_java_script(&self, class:impl Into<visualization::java_script::FallibleDefinition>) {
         let class = class.into();
         match class {
             Ok(class) => {self.add(class) },
-            Err(e)    => {
-                self.logger.warning(|| format!("Failed to add visualization class to registry due \
-                                                to error: {:?}", e))
+            Err(err)    => {
+                warning!(&self.logger,"Failed to add visualization class to registry due to error: \
+                                       {err}")
             },
         };
     }
@@ -75,11 +71,18 @@ impl Registry {
         type_map.get(tp).cloned().unwrap_or_default()
     }
 
+    /// Return the `visualization::Definition` registered for the given `visualization::Path`.
+    pub fn definition_from_path(&self, path:&visualization::Path)
+                                -> Option<visualization::Definition> {
+        self.path_map.borrow().get(path).cloned()
+    }
+
     /// Return a default visualisation class.
     pub fn default_visualisation(scene:&Scene) -> visualization::Instance {
-        let instance =  builtin::visualization::native::RawText::new(scene);
+        let instance = builtin::visualization::native::RawText::new(scene);
         instance.into()
     }
+
 }
 
 impl Default for Registry {

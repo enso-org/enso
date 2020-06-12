@@ -45,7 +45,6 @@ use crate::component::visualization;
 
 
 use enso_frp as frp;
-use enso_frp::Position;
 use enso_frp::io::keyboard;
 use ensogl::application::shortcut;
 use ensogl::application;
@@ -57,11 +56,18 @@ use ensogl::display;
 use ensogl::prelude::*;
 use ensogl::system::web::StyleSetter;
 use ensogl::system::web;
-use nalgebra::Vector2;
+use ensogl::gui::component::Animation;
+use ensogl::gui::component::Tween;
 
 
 
+// =================
+// === Constants ===
+// =================
+
+const SNAP_DISTANCE_THRESHOLD         : f32 = 10.0;
 const VIZ_PREVIEW_MODE_TOGGLE_TIME_MS : f32 = 300.0;
+
 
 
 #[derive(Clone,CloneRef,Debug,Derivative)]
@@ -428,10 +434,9 @@ pub struct FrpInputs {
     pub select_node                  : frp::Source<NodeId>,
     pub remove_node                  : frp::Source<NodeId>,
     pub set_node_expression          : frp::Source<(NodeId,node::Expression)>,
-    pub set_node_position            : frp::Source<(NodeId,Position)>,
-    pub translate_selected_nodes     : frp::Source<Position>,
+    pub set_node_position            : frp::Source<(NodeId,Vector2)>,
     pub cycle_visualization          : frp::Source<NodeId>,
-    pub set_visualization            : frp::Source<(NodeId,Option<visualization::Instance>)>,
+    pub set_visualization            : frp::Source<(NodeId,Option<visualization::Path>)>,
     pub register_visualization : frp::Source<Option<visualization::Definition>>,
     pub set_visualization_data       : frp::Source<(NodeId,visualization::Data)>,
 
@@ -460,7 +465,6 @@ impl FrpInputs {
             def set_node_expression          = source();
             def set_node_position            = source();
             def set_visualization_data       = source();
-            def translate_selected_nodes     = source();
             def cycle_visualization          = source();
             def set_visualization            = source();
             def register_visualization = source();
@@ -474,7 +478,7 @@ impl FrpInputs {
              ,remove_all_node_input_edges,remove_all_node_output_edges,set_visualization_data
              ,set_detached_edge_targets,set_edge_source,set_edge_target
              ,unset_edge_source,unset_edge_target
-             ,set_node_position,select_node,remove_node,translate_selected_nodes,set_node_expression
+             ,set_node_position,select_node,remove_node,set_node_expression
              ,connect_nodes,deselect_all_nodes,cycle_visualization,set_visualization
              ,register_visualization,some_edge_targets_detached,all_edge_targets_attached
              ,hover_node_input
@@ -554,8 +558,8 @@ generate_frp_outputs! {
     node_removed              : NodeId,
     node_selected             : NodeId,
     node_deselected           : NodeId,
-    node_position_set         : (NodeId,Position),
-    node_position_set_batched : (NodeId,Position),
+    node_position_set         : (NodeId,Vector2),
+    node_position_set_batched : (NodeId,Vector2),
     node_expression_set       : (NodeId,node::Expression),
 
     edge_added        : EdgeId,
@@ -574,6 +578,8 @@ generate_frp_outputs! {
     visualization_enabled  : NodeId,
     visualization_disabled : NodeId,
     visualization_enable_fullscreen : NodeId,
+    visualization_set_preprocessor  : (NodeId,data::EnsoCode),
+
 }
 
 
@@ -701,6 +707,55 @@ impl EdgeTarget {
 
 
 
+// ============
+// === Grid ===
+// ============
+
+/// Defines a snapping grid for nodes. The grid implementation is currently very simple. For each
+/// node, the grid records its position and allows querying for positions close to the recorded
+/// ones.
+#[derive(Debug,Clone,Default)]
+pub struct Grid {
+    sorted_xs : Vec<f32>,
+    sorted_ys : Vec<f32>,
+}
+
+impl Grid {
+    /// Query the grid for a close position to the provided using the provided threshold distance.
+    pub fn close_to(&self, position:Vector2<f32>, threshold:f32) -> Vector2<Option<f32>> {
+        let x = Self::axis_close_to(&self.sorted_xs,position.x,threshold);
+        let y = Self::axis_close_to(&self.sorted_ys,position.y,threshold);
+        Vector2(x,y)
+    }
+
+    fn axis_close_to(axis:&[f32], pos:f32, threshold:f32) -> Option<f32> {
+        match axis.binary_search_by(|t| t.partial_cmp(&pos).unwrap()) {
+            Ok (ix) => Some(axis[ix]),
+            Err(ix) => {
+                let max         = axis.len();
+                let left_pos    = if ix == 0   { None } else { Some(axis[ix-1]) };
+                let right_pos   = if ix == max { None } else { Some(axis[ix]) };
+                let left_dist   = left_pos   . map(|t| (pos - t).abs());
+                let right_dist  = right_pos  . map(|t| (pos - t).abs());
+                let left_check  = left_dist  . map(|t| t < threshold).unwrap_or_default();
+                let right_check = right_dist . map(|t| t < threshold).unwrap_or_default();
+                match (left_check,right_check) {
+                    ( false , false ) => None,
+                    ( true  , false ) => left_pos,
+                    ( false , true  ) => right_pos,
+                    ( true  , true  ) => {
+                        let left_dist  = left_dist.unwrap_or_default();
+                        let right_dist = right_dist.unwrap_or_default();
+                        if left_dist < right_dist { left_pos } else { right_pos }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
 // =============
 // === Nodes ===
 // =============
@@ -710,6 +765,7 @@ pub struct Nodes {
     pub logger   : Logger,
     pub all      : SharedHashMap<NodeId,Node>,
     pub selected : SharedVec<NodeId>,
+    pub grid     : Rc<RefCell<Grid>>,
 }
 
 impl Deref for Nodes {
@@ -724,7 +780,32 @@ impl Nodes {
         let logger   = Logger::sub(logger,"nodes");
         let all      = default();
         let selected = default();
-        Self {logger,all,selected}
+        let grid     = default();
+        Self {logger,all,selected,grid}
+    }
+
+    pub fn insert(&self, node_id:NodeId, node:Node) {
+        self.all.insert(node_id,node);
+        self.recompute_grid(default());
+    }
+
+    fn recompute_grid(&self, blacklist:HashSet<NodeId>) {
+        let mut sorted_xs = Vec::new();
+        let mut sorted_ys = Vec::new();
+        for (id,node) in &*self.all.raw.borrow() {
+            if !blacklist.contains(id) {
+                let position = node.position();
+                sorted_xs.push(position.x);
+                sorted_ys.push(position.y);
+            }
+        }
+        sorted_xs.sort_unstable_by(|a,b|a.partial_cmp(b).unwrap());
+        sorted_ys.sort_unstable_by(|a,b|a.partial_cmp(b).unwrap());
+        *self.grid.borrow_mut() = Grid {sorted_xs,sorted_ys};
+    }
+
+    pub fn check_grid_magnet(&self, position:Vector2<f32>) -> Vector2<Option<f32>> {
+        self.grid.borrow().close_to(position,SNAP_DISTANCE_THRESHOLD)
     }
 }
 
@@ -778,11 +859,9 @@ impl<T:frp::Data> TouchNetwork<T> {
     pub fn new(network:&frp::Network, mouse:&frp::io::Mouse) -> Self {
         frp::extend! { network
             down          <- source::<T> ();
-            down_bool     <- down.map(|_| true);
-            up_bool       <- mouse.release.map(|_| false);
-            is_down       <- any (down_bool,up_bool);
+            is_down       <- bool(&mouse.up,&down);
             was_down      <- is_down.previous();
-            mouse_up      <- mouse.release.gate(&was_down);
+            mouse_up      <- mouse.up.gate(&was_down);
             pos_on_down   <- mouse.position.sample(&down);
             pos_on_up     <- mouse.position.sample(&mouse_up);
             should_select <- pos_on_up.map3(&pos_on_down,&mouse.distance,Self::check);
@@ -793,8 +872,8 @@ impl<T:frp::Data> TouchNetwork<T> {
     }
 
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    fn check(end:&Position, start:&Position, diff:&f32) -> bool {
-        (end-start).length() <= diff * 2.0
+    fn check(end:&Vector2, start:&Vector2, diff:&f32) -> bool {
+        (end-start).norm() <= diff * 2.0
     }
 }
 
@@ -906,7 +985,6 @@ pub struct GraphEditorModel {
     pub cursor         : component::Cursor,
     pub nodes          : Nodes,
     pub edges          : Edges,
-//    pub visualizations : Stage,
     touch_state        : TouchState,
     frp                : FrpInputs,
 }
@@ -1133,9 +1211,8 @@ impl GraphEditorModel {
 // === Position ===
 
 impl GraphEditorModel {
-    pub fn set_node_position(&self, node_id:impl Into<NodeId>, position:impl Into<Position>) {
+    pub fn set_node_position(&self, node_id:impl Into<NodeId>, position:Vector2) {
         let node_id  = node_id.into();
-        let position = position.into();
         if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
             node.mod_position(|t| {
                 t.x = position.x;
@@ -1147,21 +1224,20 @@ impl GraphEditorModel {
         }
     }
 
-    pub fn node_position(&self, node_id:impl Into<NodeId>) -> Position {
+    fn disable_grid_snapping_for(&self, node_ids:&[NodeId]) {
+        self.nodes.recompute_grid(node_ids.iter().cloned().collect());
+    }
+
+    pub fn node_position(&self, node_id:impl Into<NodeId>) -> Vector2<f32> {
         let node_id = node_id.into();
-        self.nodes.get_cloned_ref(&node_id).map(|node| {
-            let v_pos = node.position();
-            frp::Position::new(v_pos.x, v_pos.y)
-        }).unwrap_or_default()
+        self.nodes.get_cloned_ref(&node_id).map(|node| node.position().xy()).unwrap_or_default()
     }
 
     pub fn node_pos_mod
-    (&self, node_id:impl Into<NodeId>, pos_diff:impl Into<Position>) -> (NodeId,Position) {
+    (&self, node_id:impl Into<NodeId>, pos_diff:Vector2) -> (NodeId,Vector2) {
         let node_id      = node_id.into();
-        let pos_diff     = pos_diff.into();
         let new_position = if let Some(node) = self.nodes.get_cloned_ref(&node_id) {
-            let node_pos = node.position();
-            frp::Position::new(node_pos.x + pos_diff.x, node_pos.y + pos_diff.y)
+            node.position().xy() + pos_diff
         } else {
             default()
         };
@@ -1200,9 +1276,8 @@ impl GraphEditorModel {
         if let Some(edge) = self.edges.get_cloned_ref(&edge_id) {
             if let Some(edge_target) = edge.target() {
                 if let Some(node) = self.nodes.get_cloned_ref(&edge_target.node_id) {
-                    let offset = node.ports.get_port_offset(&edge_target.port).unwrap_or_else(|| Vector2::new(0.0,0.0));
-                    let node_position = node.position();
-                    let pos = frp::Position::new(node_position.x + offset.x, node_position.y + offset.y);
+                    let offset = node.ports.get_port_offset(&edge_target.port).unwrap_or_default();
+                    let pos = node.position().xy() + offset;
                     edge.view.frp.target_position.emit(pos);
                 }
             }
@@ -1340,25 +1415,23 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     web::body().set_style_or_panic("cursor","none");
     world.add_child(&cursor);
 
-    let model                  = GraphEditorModelWithNetwork::new(scene,cursor.clone_ref());
-    let network                = &model.network;
-    let nodes                  = &model.nodes;
-    let edges                  = &model.edges;
-    let inputs                 = &model.frp;
-    let mouse                  = &scene.mouse.frp;
-    let touch                  = &model.touch_state;
+    let model          = GraphEditorModelWithNetwork::new(scene,cursor.clone_ref());
+    let network        = &model.network;
+    let nodes          = &model.nodes;
+    let edges          = &model.edges;
+    let inputs         = &model.frp;
+    let mouse          = &scene.mouse.frp;
+    let touch          = &model.touch_state;
     let visualizations = visualization::Registry::with_default_visualizations();
-    let logger                 = &model.logger;
-//    let visualizations         = &model.visualizations;
-
-    let outputs = UnsealedFrpOutputs::new();
+    let logger         = &model.logger;
+    let outputs        = UnsealedFrpOutputs::new();
     let sealed_outputs = outputs.seal(); // Done here to keep right eval order.
 
 
     // === Selection Target Redirection ===
     frp::extend! { network
-    mouse_down_target <- mouse.press.map(f_!(model.scene.mouse.target.get()));
-    mouse_up_target   <- mouse.release.map(f_!(model.scene.mouse.target.get()));
+    mouse_down_target <- mouse.down.map(f_!(model.scene.mouse.target.get()));
+    mouse_up_target   <- mouse.up.map(f_!(model.scene.mouse.target.get()));
     background_up     <- mouse_up_target.map(|t| if t==&display::scene::Target::Background {Some(())} else {None}).unwrap();
 
     eval mouse_down_target([touch,model](target) {
@@ -1377,18 +1450,17 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     // === Cursor Selection ===
     frp::extend! { network
 
-    mouse_on_down_position <- mouse.position.sample(&mouse.press);
+    mouse_on_down_position <- mouse.position.sample(&mouse.down);
     selection_size_down    <- mouse.position.map2(&mouse_on_down_position,|m,n|{m-n});
     selection_size         <- selection_size_down.gate(&touch.background.is_down);
 
-    on_press_style   <- mouse.press   . constant(cursor::Style::new_press());
-    on_release_style <- mouse.release . constant(cursor::Style::default());
+    on_press_style   <- mouse.down . constant(cursor::Style::new_press());
+    on_release_style <- mouse.up   . constant(cursor::Style::default());
 
 
-    cursor_selection_start <- selection_size.map(|p| cursor::Style::new_box_selection(Vector2::new(p.x,p.y)));
-    cursor_selection_end   <- mouse.release . constant(cursor::Style::default());
-
-    cursor_selection <- any (cursor_selection_start, cursor_selection_end);
+    cursor_selection_start <- selection_size.map(|p| cursor::Style::new_with_all_fields_default().press().box_selection(Vector2::new(p.x,p.y)));
+    cursor_selection_end   <- mouse.up . constant(cursor::Style::default());
+    cursor_selection       <- any (cursor_selection_start, cursor_selection_end);
 
     cursor_press     <- any (on_press_style, on_release_style);
 
@@ -1514,14 +1586,7 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     outputs.node_position_set         <+ node_with_position;
     outputs.node_position_set_batched <+ node_with_position;
 
-    cursor_style <- all
-        [ cursor_selection
-        , cursor_press
-        , cursor_style_edge_drag
-        , node_cursor_style
-        ].fold();
 
-    eval cursor_style ((style) cursor.frp.set_style.emit(style));
     }
 
 
@@ -1542,7 +1607,7 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     outputs.edge_target_set <+ new_edge_target;
 
 
-    port_mouse_up <- inputs.hover_node_input.sample(&mouse.release).unwrap();
+    port_mouse_up <- inputs.hover_node_input.sample(&mouse.up).unwrap();
 
     attach_all_edges        <- any (port_mouse_up, inputs.press_node_input, inputs.set_detached_edge_targets);
     detached_edge           <= attach_all_edges.map(f_!(model.take_edges_with_detached_targets()));
@@ -1573,50 +1638,103 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     }
 
 
-    // === Remove Edge ===
-    frp::extend! { network
-
-    rm_input_edges       <- any (inputs.remove_all_node_edges, inputs.remove_all_node_input_edges);
-    rm_output_edges      <- any (inputs.remove_all_node_edges, inputs.remove_all_node_output_edges);
-    input_edges_to_rm    <= rm_input_edges  . map(f!((node_id) model.node_in_edges(node_id)));
-    output_edges_to_rm   <= rm_output_edges . map(f!((node_id) model.node_out_edges(node_id)));
-    edges_to_rm          <- any (inputs.remove_edge, input_edges_to_rm, output_edges_to_rm);
-    outputs.edge_removed <+ edges_to_rm;
-    }
-
-
     // === Set Node Expression ===
     frp::extend! { network
 
     outputs.node_expression_set <+ inputs.set_node_expression;
 
 
+
+    // ==================
     // === Move Nodes ===
+    // ==================
 
-    node_drag         <- mouse.translation.gate(&touch.nodes.is_down);
-    was_selected      <- touch.nodes.down.map(f!((id) model.nodes.selected.contains(id)));
-    tx_sel_nodes      <- any (node_drag, inputs.translate_selected_nodes);
-    non_selected_drag <- tx_sel_nodes.map2(&touch.nodes.down,|_,id|vec![*id]).gate_not(&was_selected);
-    selected_drag     <- tx_sel_nodes.map(f_!(model.nodes.selected.items())).gate(&was_selected);
-    nodes_to_drag     <- any (non_selected_drag, selected_drag);
-    node_to_drag      <= nodes_to_drag;
-    node_new_pos      <- node_to_drag.map2(&tx_sel_nodes,f!((id,tx) model.node_pos_mod(id,tx)));
-    outputs.node_position_set <+ node_new_pos;
+    mouse_pos_fix <- mouse.position.map(|p| Vector2(p.x,p.y));
 
-    was_drag_false        <- touch.nodes.down.constant(false);
-    was_drag_true         <- node_drag.constant(true);
-    was_drag              <- any (was_drag_false,was_drag_true);
-    drag_finish           <- touch.nodes.up.gate(&was_drag);
-    dragged_node          <= nodes_to_drag.sample(&drag_finish);
-    dragged_node_pos      <- dragged_node.map(f!([model] (id) (*id,model.node_position(id))));
-    outputs.node_position_set_batched <+ dragged_node_pos;
+
+    // === Discovering drag targets ===
+
+    let main            = touch.nodes.down.clone_ref();
+    let main_pressed    = touch.nodes.is_down.clone_ref();
+    main_was_sel       <- main.map(f!((id) model.nodes.selected.contains(id)));
+    tgts_if_non_sel    <- main.map(|id|vec![*id]).gate_not(&main_was_sel);
+    tgts_if_sel        <- main.map(f_!(model.nodes.selected.items())).gate(&main_was_sel);
+    tgts               <- any(tgts_if_non_sel,tgts_if_sel);
+    eval tgts ((ids) model.disable_grid_snapping_for(ids));
+
+    main_pos_on_press       <- main.map(f!((id) model.node_position(id)));
+    mouse_pos_on_press      <- mouse_pos_fix.sample(&main);
+    mouse_pos_diff          <- mouse_pos_fix.map2(&mouse_pos_on_press,|t,s|t-s).gate(&main_pressed);
+    main_tgt_pos_rt_changed <- mouse_pos_diff.map2(&main_pos_on_press,|t,s|t+s);
+    just_pressed            <- bool (&main_tgt_pos_rt_changed,&main_pos_on_press);
+    main_tgt_pos_rt         <- any  (&main_tgt_pos_rt_changed,&main_pos_on_press);
+
+
+    // === Snapping ===
+
+    let main_tgt_pos_anim = Animation::<Vector2<f32>>::new(&network);
+    let x_snap_strength     = Tween::new(&network);
+    let y_snap_strength     = Tween::new(&network);
+    x_snap_strength.set_duration(300.0);
+    y_snap_strength.set_duration(300.0);
+
+    _eval <- main_tgt_pos_rt.map2(&just_pressed,
+        f!([model,x_snap_strength,y_snap_strength,main_tgt_pos_anim](pos,just_pressed) {
+            let snapped = model.nodes.check_grid_magnet(*pos);
+            let x = snapped.x.unwrap_or(pos.x);
+            let y = snapped.y.unwrap_or(pos.y);
+            x_snap_strength.set_target_value(if snapped.x.is_none() { 0.0 } else { 1.0 });
+            y_snap_strength.set_target_value(if snapped.y.is_none() { 0.0 } else { 1.0 });
+            main_tgt_pos_anim.set_target_value(Vector2::new(x,y));
+            if *just_pressed {
+                main_tgt_pos_anim.set_target_value(*pos);
+                x_snap_strength.skip();
+                y_snap_strength.skip();
+                main_tgt_pos_anim.skip();
+            }
+    }));
+
+    main_tgt_pos <- all_with4
+        ( &main_tgt_pos_rt
+        , &main_tgt_pos_anim.value
+        , &x_snap_strength.value
+        , &y_snap_strength.value
+        , |rt,snap,xw,yw| {
+            let w     = Vector2(*xw,*yw);
+            let w_inv = Vector2(1.0,1.0) - w;
+            rt.component_mul(&w_inv) + snap.component_mul(&w)
+        });
+
+
+    // === Update All Target Nodes Positions ===
+
+    main_tgt_pos_prev <- main_tgt_pos.previous();
+    main_tgt_pos_diff <- main_tgt_pos.map2(&main_tgt_pos_prev,|t,s|t-s).gate_not(&just_pressed);
+    tgt               <= tgts.sample(&main_tgt_pos_diff);
+    tgt_new_pos       <- tgt.map2(&main_tgt_pos_diff,f!((id,tx) model.node_pos_mod(id,*tx)));
+    outputs.node_position_set <+ tgt_new_pos;
+
+
+    // === Batch Update ===
+
+    after_drag             <- touch.nodes.up.gate_not(&just_pressed);
+    tgt_after_drag         <= tgts.sample(&after_drag);
+    tgt_after_drag_new_pos <- tgt_after_drag.map(f!([model](id)(*id,model.node_position(id))));
+    outputs.node_position_set_batched <+ tgt_after_drag_new_pos;
+
+
+    // === Mouse style ===
+
+    cursor_on_drag_down <- main.map(|_| cursor::Style::new_with_all_fields_default().press());
+    cursor_on_drag_up   <- touch.nodes.up.map(|_| cursor::Style::default());
+    cursor_on_drag      <- any (&cursor_on_drag_down,&cursor_on_drag_up);
 
 
     // === Set Node Position ===
 
     outputs.node_position_set         <+ inputs.set_node_position;
     outputs.node_position_set_batched <+ inputs.set_node_position;
-    eval outputs.node_position_set (((id,pos)) model.set_node_position(id,pos));
+    eval outputs.node_position_set (((id,pos)) model.set_node_position(id,*pos));
 
 
     // === Move Edges ===
@@ -1626,10 +1744,26 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     eval edge_refresh_cursor_pos ([edges](position) {
         edges.detached_target.for_each(|id| {
             if let Some(edge) = edges.get_cloned_ref(id) {
-                edge.view.frp.target_position.emit(frp::Position::new(position.x,position.y))
+                edge.view.frp.target_position.emit(position.xy())
             }
         })
     });
+
+
+
+    // ====================
+    // === Cursor Style ===
+    // ====================
+
+    cursor_style <- all
+        [ cursor_on_drag
+        , cursor_selection
+        , cursor_press
+        , cursor_style_edge_drag
+        , node_cursor_style
+        ].fold();
+
+    eval cursor_style ((style) cursor.frp.set_style.emit(style));
 
 
      // === Activate Visualisation ===
@@ -1661,13 +1795,30 @@ fn new_graph_editor(world:&World) -> GraphEditor {
 //        visualizations.toggle_fullscreen_for_selected_visualization();
 //    }));
 //
-//    // === Vis Set ===
-//
-//    def _update_vis_data = inputs.set_visualization.map(f!([nodes]((node_id,vis)) {
-//        if let Some(node) = nodes.get_cloned_ref(node_id) {
-//            node.visualization.frp.set_visualization.emit(vis)
-//        }
-//    }));
+   // === Vis Set ===
+
+   def _update_vis_data = inputs.set_visualization.map(f!([logger,nodes,scene,visualizations]((node_id,vis_path)) {
+       match (&nodes.get_cloned_ref(node_id), vis_path) {
+            (Some(node), Some(vis_path)) => {
+                let vis_definition = visualizations.definition_from_path(vis_path);
+                if let Some(definition) = vis_definition {
+                    match definition.new_instance(&scene) {
+                        Ok(vis)  => node.visualization.frp.set_visualization.emit(Some(vis)),
+                        Err(err) => {
+                            logger.warning(
+                                || format!("Failed to instantiate visualisation: {:?}",err));
+                        },
+                    };
+                } else {
+                    logger.warning(|| format!("Failed to get visualisation: {:?}",vis_path));
+                }
+            },
+            (Some(node), None) => node.visualization.frp.set_visualization.emit(None),
+             _                 => logger.warning(|| format!("Failed to get node: {:?}",node_id)),
+
+       }
+
+   }));
 
     // === Vis Update Data ===
 
@@ -1795,6 +1946,18 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     // === Remove implementation ===
     outputs.node_removed <+ inputs.remove_node;
 
+    }
+
+
+    // === Remove Edge ===
+    frp::extend! { network
+
+    rm_input_edges       <- any (inputs.remove_all_node_edges, inputs.remove_all_node_input_edges);
+    rm_output_edges      <- any (inputs.remove_all_node_edges, inputs.remove_all_node_output_edges);
+    input_edges_to_rm    <= rm_input_edges  . map(f!((node_id) model.node_in_edges(node_id)));
+    output_edges_to_rm   <= rm_output_edges . map(f!((node_id) model.node_out_edges(node_id)));
+    edges_to_rm          <- any (inputs.remove_edge, input_edges_to_rm, output_edges_to_rm);
+    outputs.edge_removed <+ edges_to_rm;
     }
 
     // FIXME This is a temporary solution. Should be replaced by a real thing once layout

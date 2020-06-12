@@ -61,3 +61,7 @@ impl Default for Alignment {
         Self {horizontal,vertical}
     }
 }
+
+impl From<&Horizontal> for Horizontal { fn from(t:&Horizontal) -> Self { *t } }
+impl From<&Vertical>   for Vertical   { fn from(t:&Vertical)   -> Self { *t } }
+impl From<&Alignment>  for Alignment  { fn from(t:&Alignment)  -> Self { *t } }

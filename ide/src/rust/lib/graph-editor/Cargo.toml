@@ -14,7 +14,7 @@ logger       = { version = "0.1.0"   , path = "../logger"                       
 enso-frp     = { version = "0.1.0"   , path = "../frp"                          }
 
 wasm-bindgen = { version = "=0.2.58" , features = ["nightly","serde-serialize"] }
-nalgebra     = { version = "0.19.0"  , features = ["serde-serialize"]           }
+nalgebra     = { version = "0.21.1"  , features = ["serde-serialize"]           }
 serde_json   = { version = "1.0"                                                }
 serde        = { version = "1.0"     , features = ["derive"]                    }
 js-sys       = { version = "0.3.28"                                             }
