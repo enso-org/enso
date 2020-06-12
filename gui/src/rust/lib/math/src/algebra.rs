@@ -1,8 +1,7 @@
 //! This module gathers common math types which are widely used in this project.
 
-pub use nalgebra::Vector2;
-pub use nalgebra::Vector3;
-pub use nalgebra::Vector4;
+#![allow(non_snake_case)]
+
 
 pub use nalgebra::Matrix2;
 pub use nalgebra::Matrix3;
@@ -14,6 +13,7 @@ pub use nalgebra::Matrix3x2;
 pub use nalgebra::Matrix3x4;
 pub use nalgebra::Matrix4x2;
 pub use nalgebra::Matrix4x3;
+pub use nalgebra::MatrixMN;
 
 use nalgebra;
 use nalgebra::Scalar;
@@ -23,11 +23,23 @@ use nalgebra::Dim;
 use nalgebra::storage::Storage;
 
 use std::ops::Add;
-use std::ops::AddAssign;
 use std::ops::Div;
 use std::ops::Mul;
-use std::ops::Neg;
 use std::ops::Sub;
+
+
+
+// ==========================
+// === Smart Constructors ===
+// ==========================
+
+pub type Vector2<T=f32> = nalgebra::Vector2<T>;
+pub type Vector3<T=f32> = nalgebra::Vector3<T>;
+pub type Vector4<T=f32> = nalgebra::Vector4<T>;
+
+pub fn Vector2<T:Scalar>(t1:T,t2:T)           -> Vector2<T> { Vector2::new(t1,t2) }
+pub fn Vector3<T:Scalar>(t1:T,t2:T,t3:T)      -> Vector3<T> { Vector3::new(t1,t2,t3) }
+pub fn Vector4<T:Scalar>(t1:T,t2:T,t3:T,t4:T) -> Vector4<T> { Vector4::new(t1,t2,t3,t4) }
 
 
 
@@ -61,7 +73,8 @@ macro_rules! gen_zero {
 
 macro_rules! gen_zero_nalgebra {
     ([$($ty:ident),*]) => {$(
-        impl<T:Scalar+num_traits::Zero> Zero for $ty<T> {
+        impl<T:Scalar> Zero for $ty<T>
+        where $ty<T> : num_traits::Zero {
             fn zero() -> Self {
                 nalgebra::zero()
             }
@@ -216,6 +229,7 @@ impl Signum for f32 {
 }
 
 
+
 // =============
 // === Clamp ===
 // =============
@@ -239,9 +253,9 @@ impl Clamp for f32 {
 
 
 
-// =============
+// ===========
 // === Min ===
-// =============
+// ===========
 
 #[allow(missing_docs)]
 pub trait Min {
@@ -259,9 +273,9 @@ impl Min for f32 {
 
 
 
-// =============
+// ===========
 // === Max ===
-// =============
+// ===========
 
 #[allow(missing_docs)]
 pub trait Max {
@@ -279,14 +293,13 @@ impl Max for f32 {
 
 
 
-
 // =================
 // === Normalize ===
 // =================
 
 /// Types which can be normalized.
+#[allow(missing_docs)]
 pub trait Normalize {
-    /// Normalized value.
     fn normalize(&self) -> Self;
 }
 
@@ -299,6 +312,18 @@ impl Normalize for f32 {
     }
 }
 
+impl Normalize for Vector2<f32> {
+    fn normalize(&self) -> Self {
+        self.normalize()
+    }
+}
+
+impl Normalize for Vector3<f32> {
+    fn normalize(&self) -> Self {
+        self.normalize()
+    }
+}
+
 
 
 // ===================
@@ -306,10 +331,9 @@ impl Normalize for f32 {
 // ===================
 
 /// Types from which a square root can be calculated.
+#[allow(missing_docs)]
 pub trait Sqrt {
-    /// The output type of the computation.
     type Output;
-    /// Compute the square root of the given number.
     fn sqrt(&self) -> Self::Output;
 }
 
@@ -324,15 +348,15 @@ impl Sqrt for f32 {
 }
 
 
-// ==============
-// === Cosine ===
-// ==============
+
+// ===========
+// === Cos ===
+// ===========
 
 /// Types from which a cosine can be calculated.
+#[allow(missing_docs)]
 pub trait Cos {
-    /// The output type of the computation.
     type Output;
-    /// Compute the cosine of the given number.
     fn cos(&self) -> Self;
 }
 
@@ -348,15 +372,14 @@ impl Cos for f32 {
 
 
 
-// ============
-// === Sine ===
-// ============
+// ===========
+// === Sin ===
+// ===========
 
 /// Types from which a sine can be calculated
+#[allow(missing_docs)]
 pub trait Sin {
-    /// The output type of the computation.
     type Output;
-    /// Compute the sine of the given number.
     fn sin(&self) -> Self::Output;
 }
 
@@ -372,15 +395,14 @@ impl Sin for f32 {
 
 
 
-// =============
-// === Asine ===
-// =============
+// ============
+// === Asin ===
+// ============
 
 /// Types from which a asin can be calculated
+#[allow(missing_docs)]
 pub trait Asin {
-    /// The output type of the computation.
     type Output;
-    /// Compute the asin of the given number.
     fn asin(&self) -> Self::Output;
 }
 
@@ -396,15 +418,14 @@ impl Asin for f32 {
 
 
 
-// ===============
-// === Acosine ===
-// ===============
+// ============
+// === Acos ===
+// ============
 
 /// Types from which a asin can be calculated
+#[allow(missing_docs)]
 pub trait Acos {
-    /// The output type of the computation.
     type Output;
-    /// Compute the asin of the given number.
     fn acos(&self) -> Self::Output;
 }
 
@@ -417,294 +438,6 @@ impl Acos for f32 {
         f32::acos(*self)
     }
 }
-
-
-
-
-macro_rules! define_vector {
-    ($name:ident {$($field:ident),*}) => {
-        /// A coordinate in space.
-        #[derive(Clone,Copy,Debug,Default,PartialEq)]
-        #[repr(C)]
-        pub struct $name<T=f32> {
-            $(
-                /// Vector component.
-                pub $field : T
-            ),*
-        }
-
-        /// Smart constructor.
-        #[allow(non_snake_case)]
-        pub const fn $name<T>($($field:T),*) -> $name<T> {
-            $name {$($field),*}
-        }
-
-        impl<T> $name<T> {
-            /// Constructor.
-            pub fn new($($field:T),*) -> Self {
-                Self {$($field),*}
-            }
-
-            /// Converts the struct to slice.
-            ///
-            /// # Safety
-            /// The code is safe as the struct is implemented as `repr(C)`.
-            #[allow(unsafe_code)]
-            #[allow(trivial_casts)]
-            pub fn as_slice(&self) -> &[T] {
-                // Safe, because $name is defined as `#[repr(C)]`.
-                let ptr = self as *const $name<T> as *const T;
-                unsafe {
-                    std::slice::from_raw_parts(ptr, std::mem::size_of::<T>())
-                }
-            }
-        }
-
-        impl Magnitude for $name {
-            type Output = f32;
-            fn magnitude(&self) -> Self::Output {
-                $(let $field = self.$field * self.$field;)*
-                let sum = 0.0 $(+$field)*;
-                sum.sqrt()
-            }
-        }
-
-        impl Normalize for $name {
-            fn normalize(&self) -> Self {
-                let magnitude = self.magnitude();
-                $(let $field = self.$field / magnitude;)*
-                Self {$($field),*}
-            }
-        }
-
-        impl AddAssign<f32> for $name {
-            fn add_assign(&mut self, rhs:f32) {
-                $(self.$field += rhs;)*
-            }
-        }
-
-        impl<T,S> AddAssign<$name<S>> for $name<T>
-        where T:AddAssign<S> {
-            fn add_assign(&mut self, rhs:$name<S>) {
-                $(self.$field += rhs.$field;)*
-            }
-        }
-
-        impl<T,S> Add<$name<S>> for $name<T>
-        where T:Add<S> {
-            type Output = $name<<T as Add<S>>::Output>;
-            fn add(self,rhs:$name<S>) -> Self::Output {
-                $(let $field = self.$field.add(rhs.$field);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl<T,S> Sub<$name<S>> for $name<T>
-        where T:Sub<S> {
-            type Output = $name<<T as Sub<S>>::Output>;
-            fn sub(self,rhs:$name<S>) -> Self::Output {
-                $(let $field = self.$field.sub(rhs.$field);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl<T> Neg for $name<T>
-        where T:Neg {
-            type Output = $name<<T as Neg>::Output>;
-            fn neg(self) -> Self::Output {
-                $(let $field = self.$field.neg();)*
-                $name {$($field),*}
-            }
-        }
-
-        impl Mul<f32> for $name {
-            type Output = $name;
-            fn mul(self, rhs:f32) -> Self::Output {
-                $(let $field = self.$field.mul(rhs);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl Mul<&f32> for $name {
-            type Output = $name;
-            fn mul(self, rhs:&f32) -> Self::Output {
-                $(let $field = self.$field.mul(rhs);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl Mul<f32> for &$name {
-            type Output = $name;
-            fn mul(self, rhs:f32) -> Self::Output {
-                $(let $field = self.$field.mul(rhs);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl Mul<&f32> for &$name {
-            type Output = $name;
-            fn mul(self, rhs:&f32) -> Self::Output {
-                $(let $field = self.$field.mul(rhs);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl Div<f32> for $name {
-            type Output = $name;
-            fn div(self, rhs:f32) -> Self::Output {
-                $(let $field = self.$field.div(rhs);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl Div<&f32> for $name {
-            type Output = $name;
-            fn div(self, rhs:&f32) -> Self::Output {
-                $(let $field = self.$field.div(rhs);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl Div<f32> for &$name {
-            type Output = $name;
-            fn div(self, rhs:f32) -> Self::Output {
-                $(let $field = self.$field.div(rhs);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl Div<&f32> for &$name {
-            type Output = $name;
-            fn div(self, rhs:&f32) -> Self::Output {
-                $(let $field = self.$field.div(rhs);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl Mul<$name> for f32 {
-            type Output = $name;
-            fn mul(self, rhs:$name) -> Self::Output {
-                $(let $field = self.mul(rhs.$field);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl Mul<&$name> for f32 {
-            type Output = $name;
-            fn mul(self, rhs:&$name) -> Self::Output {
-                $(let $field = self.mul(rhs.$field);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl Mul<$name> for &f32 {
-            type Output = $name;
-            fn mul(self, rhs:$name) -> Self::Output {
-                $(let $field = self.mul(rhs.$field);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl Mul<&$name> for &f32 {
-            type Output = $name;
-            fn mul(self, rhs:&$name) -> Self::Output {
-                $(let $field = self.mul(rhs.$field);)*
-                $name {$($field),*}
-            }
-        }
-
-        impl<T:Copy> From<&$name<T>> for $name<T> {
-            fn from(t:&$name<T>) -> Self { *t }
-        }
-
-        impl<T:Copy> From<&&$name<T>> for $name<T> {
-            fn from(t:&&$name<T>) -> Self { **t }
-        }
-    };
-}
-
-define_vector! {V2 {x,y}}
-define_vector! {V3 {x,y,z}}
-define_vector! {V4 {x,y,z,w}}
-
-impl<T:Default> From<V2<T>> for V3<T> {
-    fn from(t:V2<T>) -> Self {
-        V3(t.x,t.y,Default::default())
-    }
-}
-
-impl<T:Default> From<V2<T>> for V4<T> {
-    fn from(t:V2<T>) -> Self {
-        V4(t.x,t.y,Default::default(),Default::default())
-    }
-}
-
-impl<T:Default> From<V3<T>> for V4<T> {
-    fn from(t:V3<T>) -> Self {
-        V4(t.x,t.y,t.z,Default::default())
-    }
-}
-
-
-
-impl<T:Scalar> From<Vector2<T>> for V2<T> {
-    fn from(t:Vector2<T>) -> Self {
-        V2(t.x,t.y)
-    }
-}
-
-impl<T:Scalar> Into<Vector2<T>> for V2<T> {
-    fn into(self) -> Vector2<T> {
-        Vector2::new(self.x,self.y)
-    }
-}
-
-impl<T:Scalar> Into<Vector2<T>> for &V2<T> {
-    fn into(self) -> Vector2<T> {
-        Vector2::new(self.x,self.y)
-    }
-}
-
-
-
-impl<T:Scalar> From<Vector3<T>> for V3<T> {
-    fn from(t:Vector3<T>) -> Self {
-        V3(t.x,t.y,t.z)
-    }
-}
-
-impl<T:Scalar> Into<Vector3<T>> for V3<T> {
-    fn into(self) -> Vector3<T> {
-        Vector3::new(self.x,self.y,self.z)
-    }
-}
-
-impl<T:Scalar> Into<Vector3<T>> for &V3<T> {
-    fn into(self) -> Vector3<T> {
-        Vector3::new(self.x,self.y,self.z)
-    }
-}
-
-
-
-impl<T:Scalar> From<Vector4<T>> for V4<T> {
-    fn from(t:Vector4<T>) -> Self {
-        V4(t.x,t.y,t.z,t.w)
-    }
-}
-
-impl<T:Scalar> Into<Vector4<T>> for V4<T> {
-    fn into(self) -> Vector4<T> {
-        Vector4::new(self.x,self.y,self.z,self.w)
-    }
-}
-
-impl<T:Scalar> Into<Vector4<T>> for &V4<T> {
-    fn into(self) -> Vector4<T> {
-        Vector4::new(self.x,self.y,self.z,self.w)
-    }
-}
-
 
 
 

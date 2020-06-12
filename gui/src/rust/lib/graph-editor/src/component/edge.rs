@@ -335,7 +335,7 @@ pub fn sort_hack_2(scene:&Scene) {
 #[allow(missing_docs)]
 pub struct Frp {
     pub source_width    : frp::Source<f32>,
-    pub target_position : frp::Source<frp::Position>,
+    pub target_position : frp::Source<Vector2>,
     pub target_attached : frp::Source<bool>,
 }
 
@@ -471,7 +471,7 @@ pub struct EdgeModelData {
     pub front           : Front,
     pub back            : Back,
     pub source_width    : Rc<Cell<f32>>,
-    pub target_position : Rc<Cell<frp::Position>>,
+    pub target_position : Rc<Cell<Vector2>>,
     pub target_attached : Rc<Cell<bool>>,
 }
 
@@ -493,7 +493,7 @@ impl EdgeModelData {
 
         let frp             = Frp::new(&network);
         let source_width    = Rc::new(Cell::new(100.0));
-        let target_position = Rc::new(Cell::new(frp::Position::default()));
+        let target_position = default();
         let target_attached = Rc::new(Cell::new(false));
 
         Self {display_object,logger,frp,front,back,source_width,target_position,target_attached}

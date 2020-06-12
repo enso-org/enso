@@ -265,7 +265,7 @@ impl GraphEditorIntegratedWithControllerModel {
         for (i,node_info) in nodes.iter().enumerate() {
             let id          = node_info.info.id();
             let node_trees  = trees.remove(&id).unwrap_or_else(default);
-            let default_pos = enso_frp::Position::new(0.0, i as f32 * -DEFAULT_GAP_BETWEEN_NODES);
+            let default_pos = Vector2(0.0, i as f32 * -DEFAULT_GAP_BETWEEN_NODES);
             let displayed   = self.node_views.borrow_mut().get_by_left(&id).cloned();
             match displayed {
                 Some(displayed) => self.update_node_view(displayed,node_info,node_trees),
@@ -289,7 +289,7 @@ impl GraphEditorIntegratedWithControllerModel {
     }
 
     fn create_node_view
-    (&self, info:&controller::graph::Node, trees:NodeTrees, default_pos:frp::Position) {
+    (&self, info:&controller::graph::Node, trees:NodeTrees, default_pos:Vector2) {
         let id           = info.info.id();
         let displayed_id = self.editor.add_node();
         self.update_node_view(displayed_id,info,trees);
@@ -335,8 +335,7 @@ impl GraphEditorIntegratedWithControllerModel {
     (&self, node:graph_editor::NodeId, info:&controller::graph::Node, trees:NodeTrees) {
         let position = info.metadata.and_then(|md| md.position);
         if let Some(pos) = position {
-            let pos = frp::Position::new(pos.vector.x,pos.vector.y);
-            self.editor.frp.inputs.set_node_position.emit_event(&(node,pos));
+            self.editor.frp.inputs.set_node_position.emit_event(&(node,pos.vector));
         }
         let expression = info.info.expression().repr();
         if Some(&expression) != self.expression_views.borrow().get(&node) {
@@ -424,7 +423,7 @@ impl GraphEditorIntegratedWithControllerModel {
         Ok(())
     }
 
-    fn node_moved_in_ui(&self, param:&(graph_editor::NodeId, frp::Position)) -> FallibleResult<()> {
+    fn node_moved_in_ui(&self, param:&(graph_editor::NodeId, Vector2)) -> FallibleResult<()> {
         let (displayed_id,pos) = param;
         let id                 = self.get_controller_node_id(*displayed_id)?;
         self.controller.graph.module.with_node_metadata(id, |md| {

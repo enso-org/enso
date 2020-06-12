@@ -3,7 +3,7 @@
 use enso_prelude::*;
 
 use crate::AnyLogger;
-use crate::LogMsg;
+use crate::Message;
 
 use shapely::CloneRef;
 use std::fmt::Debug;
@@ -23,78 +23,68 @@ use wasm_bindgen::JsValue;
 #[derive(Clone,CloneRef,Debug,Default)]
 pub struct Logger {
     /// Path that is used as an unique identifier of this logger.
-    pub path:Rc<String>,
+    path : ImString,
+    #[cfg(not(target_arch="wasm32"))]
+    indent : Rc<Cell<usize>>,
 }
 
-
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(target_arch="wasm32"))]
 impl Logger {
-    fn format<M:LogMsg>(path:&str, msg:M) -> String {
-        msg.with_log_msg(|s| format!("[{}] {}", path, s))
+    fn format(&self, msg:impl Message) -> String {
+        let indent = " ".repeat(4*self.indent.get());
+        msg.with(|s|iformat!("{indent}[{self.path}] {s}"))
     }
-    /// Log with stacktrace and level:info.
-    pub fn trace<M:LogMsg>(path:&str, msg:M) {
-        println!("{}",Self::format(path,msg));
+
+    fn inc_indent(&self) {
+        self.indent.update(|t|t+1);
     }
-    /// Log with level:debug
-    pub fn debug<M:LogMsg>(path:&str, msg:M) {
-        println!("{}",Self::format(path,msg));
-    }
-    /// Log with level:info.
-    pub fn info<M:LogMsg>(path:&str, msg:M) {
-        println!("{}",Self::format(path,msg));
-    }
-    /// Log with level:warning.
-    pub fn warning<M:LogMsg>(path:&str, msg:M) {
-        println!("[WARNING] {}",Self::format(path,msg));
-    }
-    /// Log with level:error.
-    pub fn error<M:LogMsg>(path:&str, msg:M) {
-        println!("[ERROR] {}",Self::format(path,msg));
-    }
-    /// Visually groups all logs between group_begin and group_end.
-    pub fn group_begin<M:LogMsg>(path:&str, msg:M) {
-        println!(">>> {}",Self::format(path,msg));
-    }
-    /// Visually groups all logs between group_begin and group_end.
-    pub fn group_end() {
-        println!("<<<")
+
+    fn dec_indent(&self) {
+        self.indent.update(|t|t-1);
     }
 }
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(target_arch="wasm32")]
 impl Logger {
-    fn format<M:LogMsg>(path:&str, msg:M) -> JsValue {
-        msg.with_log_msg(|s| format!("[{}] {}", path, s)).into()
+    fn format(&self, msg:impl Message) -> JsValue {
+        msg.with(|s|iformat!("[{self.path}] {s}")).into()
     }
-    /// Log with stacktrace and level:info.
-    pub fn trace<M:LogMsg>(path:&str, msg:M) {
-        console::trace_1(&Self::format(path,msg));
+}
+
+#[cfg(not(target_arch="wasm32"))]
+impl AnyLogger for Logger {
+    type Owned = Self;
+    fn new(path:impl Into<ImString>) -> Self {
+        let path   = path.into();
+        let indent = default();
+        Self {path,indent}
     }
-    /// Log with level:debug
-    pub fn debug<M:LogMsg>(path:&str, msg:M) {
-        console::debug_1(&Self::format(path,msg));
+    fn path        (&self) -> &str { &self.path }
+    fn trace       (&self, msg:impl Message) { println!("{}",self.format(msg)) }
+    fn debug       (&self, msg:impl Message) { println!("{}",self.format(msg)) }
+    fn info        (&self, msg:impl Message) { println!("{}",self.format(msg)) }
+    fn warning     (&self, msg:impl Message) { println!("[WARNING] {}",self.format(msg)) }
+    fn error       (&self, msg:impl Message) { println!("[ERROR] {}",self.format(msg)) }
+    fn group_begin (&self, msg:impl Message) { println!("{}",self.format(msg)); self.inc_indent() }
+    fn group_end   (&self)                  { self.dec_indent() }
+}
+
+
+#[cfg(target_arch="wasm32")]
+impl AnyLogger for Logger {
+    type Owned = Self;
+    fn new(path:impl Into<ImString>) -> Self {
+        let path = path.into();
+        Self {path}
     }
-    /// Log with level:info.
-    pub fn info<M:LogMsg>(path:&str, msg:M) {
-        console::info_1(&Self::format(path,msg));
-    }
-    /// Log with level:warning.
-    pub fn warning<M:LogMsg>(path:&str, msg:M) {
-        console::warn_1(&Self::format(path,msg));
-    }
-    /// Log with level:error.
-    pub fn error<M:LogMsg>(path:&str, msg:M) {
-        console::error_1(&Self::format(path,msg));
-    }
-    /// Visually groups all logs between group_begin and group_end.
-    pub fn group_begin<M:LogMsg>(path:&str, msg:M) {
-        console::group_1(&Self::format(path,msg));
-    }
-    /// Visually groups all logs between group_begin and group_end.
-    pub fn group_end() {
-        console::group_end();
-    }
+    fn path        (&self) -> &str { &self.path }
+    fn trace       (&self, msg:impl Message) { console::trace_1 (&self.format(msg)) }
+    fn debug       (&self, msg:impl Message) { console::debug_1 (&self.format(msg)) }
+    fn info        (&self, msg:impl Message) { console::info_1  (&self.format(msg)) }
+    fn warning     (&self, msg:impl Message) { console::warn_1  (&self.format(msg)) }
+    fn error       (&self, msg:impl Message) { console::error_1 (&self.format(msg)) }
+    fn group_begin (&self, msg:impl Message) { console::group_1 (&self.format(msg)) }
+    fn group_end   (&self)                  { console::group_end() }
 }
 
 
@@ -104,29 +94,3 @@ impl Logger {
 // ===================
 
 impls!{ From + &From <crate::disabled::Logger> for Logger { |logger| Self::new(logger.path()) }}
-
-
-
-// ======================
-// === AnyLogger Impl ===
-// ======================
-
-impl AnyLogger for Logger {
-    type This = Self;
-
-    fn path(&self) -> &str {
-        self.path.as_str()
-    }
-
-    fn new(path:impl Str) -> Self {
-        Self {path:Rc::new(path.into())}
-    }
-
-    fn trace      <M:LogMsg>(&self, msg:M) { Self::trace      (&self.path,msg) }
-    fn debug      <M:LogMsg>(&self, msg:M) { Self::debug      (&self.path,msg) }
-    fn info       <M:LogMsg>(&self, msg:M) { Self::info       (&self.path,msg) }
-    fn warning    <M:LogMsg>(&self, msg:M) { Self::warning    (&self.path,msg) }
-    fn error      <M:LogMsg>(&self, msg:M) { Self::error      (&self.path,msg) }
-    fn group_begin<M:LogMsg>(&self, msg:M) { Self::group_begin(&self.path,msg) }
-    fn group_end            (&self       ) { Self::group_end  (              ) }
-}

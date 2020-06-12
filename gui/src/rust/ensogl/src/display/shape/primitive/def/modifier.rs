@@ -13,7 +13,6 @@ use crate::display::shape::primitive::def::var::Var;
 use crate::display::shape::primitive::shader::canvas::Canvas;
 use crate::display::shape::primitive::shader::canvas;
 use crate::math::topology::unit::*;
-use crate::system::gpu::types::*;
 
 
 

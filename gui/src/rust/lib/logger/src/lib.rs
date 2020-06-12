@@ -1,3 +1,7 @@
+//! This crate contains implementation of logging interface.
+
+#![feature(cell_update)]
+
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -7,8 +11,6 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-//! This crate contains implementation of logging interface.
-
 pub mod disabled;
 pub mod enabled;
 
@@ -17,98 +19,98 @@ use enso_prelude::*;
 
 
 // ==============
-// === LogMsg ===
+// === Message ===
 // ==============
 
 /// Message that can be logged.
-pub trait LogMsg {
+pub trait Message {
     /// Turns message into `&str` and passes it to input function.
-    fn with_log_msg<F: FnOnce(&str) -> T, T>(&self, f:F) -> T;
+    fn with<T,F:FnOnce(&str)->T>(&self, f:F) -> T;
 }
 
-impl LogMsg for &str {
-    fn with_log_msg<F: FnOnce(&str) -> T, T>(&self, f:F) -> T {
+impl Message for &str {
+    fn with<T,F:FnOnce(&str)->T>(&self, f:F) -> T {
         f(self)
     }
 }
 
-impl<F: Fn() -> S, S:Str> LogMsg for F {
-    fn with_log_msg<G: FnOnce(&str) -> T, T>(&self, f:G) -> T {
+impl<G:Fn()->S, S:AsRef<str>> Message for G {
+    fn with<T,F:FnOnce(&str)->T>(&self, f:F) -> T {
         f(self().as_ref())
     }
 }
 
 
 
-// ==============
-// === Logger ===
-// ==============
+// =================
+// === AnyLogger ===
+// =================
 
 /// Interface common to all loggers.
-pub trait AnyLogger : Sized {
-    /// Alias for self.
-    type This;
+pub trait AnyLogger {
+    /// Owned type of the logger.
+    type Owned;
+
+    /// Creates a new logger. Path should be a unique identifier for this logger.
+    fn new(path:impl Into<ImString>) -> Self::Owned;
 
     /// Path that is used as an unique identifier of this logger.
     fn path(&self) -> &str;
 
-    /// Creates a new logger. Path should be a unique identifier for this logger.
-    fn new(path:impl Str) -> Self::This;
-
     /// Creates a new logger with this logger as a parent.
-    fn sub(logger:impl AnyLogger, path:impl Str) -> Self::This {
-        if logger.path().is_empty() {Self::new(path)} else {
-            Self::new(format!("{}.{}", logger.path(), path.as_ref()))
-        }
+    fn sub(logger:impl AnyLogger, path:impl Into<ImString>) -> Self::Owned {
+        let path       = path.into();
+        let super_path = logger.path();
+        if super_path.is_empty() { Self::new(path) }
+        else                     { Self::new(iformat!("{super_path}.{path}")) }
     }
 
     /// Creates a logger from AnyLogger.
-    fn from_logger(logger:impl AnyLogger) -> Self::This {
+    fn from_logger(logger:impl AnyLogger) -> Self::Owned {
         Self::new(logger.path())
     }
 
     /// Evaluates function `f` and visually groups all logs will occur during its execution.
-    fn group<M:LogMsg,T,F:FnOnce() -> T>(&self, msg: M, f:F) -> T {
+    fn group<T,F:FnOnce() -> T>(&self, msg:impl Message, f:F) -> T {
         self.group_begin(msg);
         let out = f();
         self.group_end();
         out
     }
 
-    /// Log with stacktrace and level:info.
-    fn trace<M:LogMsg>(&self, msg:M);
-    /// Log with level:debug
-    fn debug<M:LogMsg>(&self, msg:M);
-    /// Log with level:info.
-    fn info<M:LogMsg>(&self, msg:M);
-    /// Log with level:warning.
-    fn warning<M:LogMsg>(&self, msg:M);
-    /// Log with level:error.
-    fn error<M:LogMsg>(&self, msg:M);
+    /// Log with stacktrace and info level verbosity.
+    fn trace(&self, _msg:impl Message) {}
+
+    /// Log with debug level verbosity
+    fn debug(&self, _msg:impl Message) {}
+
+    /// Log with info level verbosity.
+    fn info(&self, _msg:impl Message) {}
+
+    /// Log with warning level verbosity.
+    fn warning(&self, _msg:impl Message) {}
+
+    /// Log with error level verbosity.
+    fn error(&self, _msg:impl Message) {}
+
     /// Visually groups all logs between group_begin and group_end.
-    fn group_begin<M:LogMsg>(&self, msg:M);
+    fn group_begin(&self, _msg:impl Message) {}
+
     /// Visually groups all logs between group_begin and group_end.
-    fn group_end(&self);
+    fn group_end(&self) {}
 }
 
 impl<T:AnyLogger> AnyLogger for &T {
-    type This = T::This;
-
-    fn path(&self) -> &str {
-        T::path(self)
-    }
-
-    fn new(path:impl Str) -> Self::This {
-        T::new(path)
-    }
-
-    fn trace      <M:LogMsg>(&self, msg:M) { T::trace      (self,msg) }
-    fn debug      <M:LogMsg>(&self, msg:M) { T::debug      (self,msg) }
-    fn info       <M:LogMsg>(&self, msg:M) { T::info       (self,msg) }
-    fn warning    <M:LogMsg>(&self, msg:M) { T::warning    (self,msg) }
-    fn error      <M:LogMsg>(&self, msg:M) { T::error      (self,msg) }
-    fn group_begin<M:LogMsg>(&self, msg:M) { T::group_begin(self,msg) }
-    fn group_end            (&self       ) { T::group_end  (self    ) }
+    type Owned = T::Owned;
+    fn path        (&self) -> &str { T::path(self) }
+    fn new         (path:impl Into<ImString>) -> Self::Owned { T::new(path) }
+    fn trace       (&self, msg:impl Message) { T::trace       (self,msg) }
+    fn debug       (&self, msg:impl Message) { T::debug       (self,msg) }
+    fn info        (&self, msg:impl Message) { T::info        (self,msg) }
+    fn warning     (&self, msg:impl Message) { T::warning     (self,msg) }
+    fn error       (&self, msg:impl Message) { T::error       (self,msg) }
+    fn group_begin (&self, msg:impl Message) { T::group_begin (self,msg) }
+    fn group_end   (&self)                   { T::group_end   (self)     }
 }
 
 

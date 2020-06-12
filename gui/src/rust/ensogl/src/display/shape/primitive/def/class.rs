@@ -8,7 +8,6 @@ use super::modifier::*;
 use crate::display::shape::primitive::shader::canvas;
 use crate::display::shape::primitive::shader::canvas::Canvas;
 use crate::display::shape::primitive::def::var::Var;
-use crate::system::gpu::types::*;
 use crate::data::color;
 
 

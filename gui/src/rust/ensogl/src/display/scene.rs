@@ -8,6 +8,7 @@ pub use crate::system::web::dom::Shape;
 
 use crate::prelude::*;
 
+use crate::animation;
 use crate::control::callback;
 use crate::control::io::mouse::MouseManager;
 use crate::control::io::mouse;
@@ -27,7 +28,6 @@ use crate::display;
 use crate::system::gpu::data::uniform::Uniform;
 use crate::system::gpu::data::uniform::UniformScope;
 use crate::system::gpu::shader::Context;
-use crate::system::gpu::types::*;
 use crate::system::web::NodeInserter;
 use crate::system::web::StyleSetter;
 use crate::system::web;
@@ -280,6 +280,8 @@ mod target_tests {
     }
 }
 
+
+
 // =============
 // === Mouse ===
 // =============
@@ -321,11 +323,13 @@ pub struct Mouse {
     pub target        : Rc<Cell<Target>>,
     pub handles       : Rc<Vec<callback::Handle>>,
     pub frp           : enso_frp::io::Mouse,
+    pub scene_frp     : Frp,
     pub logger        : Logger
 }
 
 impl Mouse {
-    pub fn new(shape:&frp::Sampler<Shape>, variables:&UniformScope, logger:Logger) -> Self {
+    pub fn new(scene_frp:&Frp, variables:&UniformScope, logger:Logger) -> Self {
+        let scene_frp       = scene_frp.clone_ref();
         let target          = Target::default();
         let last_position   = Rc::new(Cell::new(Vector2::new(0,0)));
         let position        = variables.add_or_panic("mouse_position",Vector2::new(0,0));
@@ -336,18 +340,20 @@ impl Mouse {
         let mouse_manager   = MouseManager::new(&document.into());
         let frp             = frp::io::Mouse::new();
 
-        let on_move = mouse_manager.on_move.add(f!([frp,shape,position,last_position](event:&mouse::OnMove) {
-            let pixel_ratio  = shape.value().pixel_ratio as i32;
-            let screen_x     = event.client_x();
-            let screen_y     = event.client_y();
+        let on_move = mouse_manager.on_move.add(f!([frp,scene_frp,position,last_position]
+        (event:&mouse::OnMove) {
+            let shape       = scene_frp.shape.value();
+            let pixel_ratio = shape.pixel_ratio as i32;
+            let screen_x    = event.client_x();
+            let screen_y    = event.client_y();
 
-            let new_position = Vector2::new(screen_x,screen_y);
-            let pos_changed  = new_position != last_position.get();
+            let new_pos     = Vector2::new(screen_x,screen_y);
+            let pos_changed = new_pos != last_position.get();
             if pos_changed {
-                last_position.set(new_position);
-                let new_canvas_position = new_position * pixel_ratio;
+                last_position.set(new_pos);
+                let new_canvas_position = new_pos * pixel_ratio;
                 position.set(new_canvas_position);
-                let position = enso_frp::Position::new(new_position.x as f32,new_position.y as f32);
+                let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
                 frp.position.emit(position);
             }
         }));
@@ -360,7 +366,7 @@ impl Mouse {
                 mouse::Button3 => button_state.button3_pressed.set(true),
                 mouse::Button4 => button_state.button4_pressed.set(true),
             }
-            frp.press.emit(());
+            frp.down.emit(());
         }));
 
         let on_up = mouse_manager.on_up.add(f!([frp,button_state](event:&mouse::OnUp) {
@@ -371,11 +377,12 @@ impl Mouse {
                 mouse::Button3 => button_state.button3_pressed.set(false),
                 mouse::Button4 => button_state.button4_pressed.set(false),
             }
-            frp.release.emit(());
+            frp.up.emit(());
         }));
 
         let handles = Rc::new(vec![on_move,on_down,on_up]);
-        Self {mouse_manager,last_position,position,hover_ids,button_state,target,handles,frp,logger}
+        Self {mouse_manager,last_position,position,hover_ids,button_state,target,handles,frp
+             ,scene_frp,logger}
     }
 
     /// Reemits FRP mouse changed position event with the last mouse position value.
@@ -399,8 +406,9 @@ impl Mouse {
     /// and you can assume that it is synchronous. Whenever mouse moves, it is discovered what
     /// element it hovers, and its position change event is emitted as well.
     pub fn reemit_position_event(&self) {
-        let position = self.last_position.get();
-        let position = enso_frp::Position::new(position.x as f32,position.y as f32);
+        let shape    = self.scene_frp.shape.value();
+        let new_pos  = self.last_position.get();
+        let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
         self.frp.position.emit(position);
     }
 }
@@ -666,7 +674,6 @@ impl ViewData {
         let logger  = Logger::sub(logger,"view");
         let camera  = Camera2d::new(&logger,width,height);
         let symbols = default();
-        // camera.set_alignment(Alignment::center());
         Self {logger,camera,symbols}
     }
 
@@ -746,24 +753,25 @@ impl Views {
 #[derive(Clone,CloneRef,Debug)]
 pub struct Frp {
     pub network        : frp::Network,
+    pub shape          : frp::Sampler<Shape>,
     pub camera_changed : frp::Stream,
+    pub frame_time     : frp::Stream<f32>,
+
     camera_changed_source : frp::Source,
+    frame_time_source     : frp::Source<f32>,
 }
 
 impl Frp {
     /// Constructor
-    pub fn new() -> Self {
+    pub fn new(shape:&frp::Sampler<Shape>) -> Self {
         frp::new_network! { network
             camera_changed_source <- source();
+            frame_time_source     <- source();
         }
+        let shape          = shape.clone_ref();
         let camera_changed = camera_changed_source.clone_ref().into();
-        Self {network,camera_changed,camera_changed_source}
-    }
-}
-
-impl Default for Frp {
-    fn default() -> Self {
-        Self::new()
+        let frame_time     = frame_time_source.clone_ref().into();
+        Self {network,shape,camera_changed,frame_time,camera_changed_source,frame_time_source}
     }
 }
 
@@ -820,15 +828,15 @@ impl SceneData {
         let symbols_dirty   = dirty_flag;
         let views           = Views::mk(&logger,width,height);
         let stats           = stats.clone();
-        let mouse_logger    = Logger::sub(&logger,"mouse");
-        let mouse           = Mouse::new(&dom.root.shape,&variables,mouse_logger);
         let shapes          = ShapeRegistry::default();
         let uniforms        = Uniforms::new(&variables);
         let dirty           = Dirty {symbols:symbols_dirty,shape:shape_dirty};
         let renderer        = Renderer::new(&logger,&dom,&context,&variables);
         let style_sheet     = style::Sheet::new();
         let fonts           = font::SharedRegistry::new();
-        let frp             = Frp::new();
+        let frp             = Frp::new(&dom.root.shape);
+        let mouse_logger    = Logger::sub(&logger,"mouse");
+        let mouse           = Mouse::new(&frp,&variables,mouse_logger);
         let network         = &frp.network;
         let bg_color_var    = style_sheet.var("application.background.color");
         let bg_color_change = bg_color_var.on_change(f!([dom](change){
@@ -840,7 +848,7 @@ impl SceneData {
         }));
 
         frp::extend! { network
-            eval_ dom.root.shape (dirty.shape.set());
+            eval_ frp.shape (dirty.shape.set());
         }
 
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
@@ -975,8 +983,9 @@ impl Deref for Scene {
 }
 
 impl Scene {
-    pub fn update(&self) {
+    pub fn update(&self, t:animation::TimeInfo) {
         group!(self.logger, "Updating.", {
+            self.frp.frame_time_source.emit(t.local);
             // Please note that `update_camera` is called first as it may trigger FRP events which
             // may change display objects layout.
             self.update_camera();

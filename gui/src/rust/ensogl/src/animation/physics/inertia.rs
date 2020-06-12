@@ -29,6 +29,109 @@ pub trait Value
 // === Properties ===
 // ==================
 
+macro_rules! define_f32_opr_mods {
+    ($name:ident $opr:ident $f:ident) => {
+        define_f32_opr_mods_lhs! {$name $opr $f}
+        define_f32_opr_mods_rhs! {$name $opr $f}
+    }
+}
+
+macro_rules! define_f32_opr_mods_lhs {
+    ($name:ident $opr:ident $f:ident) => {
+        impl $opr<$name> for f32 {
+            type Output = $name;
+            fn $f(self, rhs:$name) -> $name {
+                $name{value : self.$f(rhs.value)}
+            }
+        }
+
+        impl $opr<&$name> for f32 {
+            type Output = $name;
+            fn $f(self, rhs:&$name) -> $name {
+                $name{value : self.$f(rhs.value)}
+            }
+        }
+
+        impl $opr<$name> for &f32 {
+            type Output = $name;
+            fn $f(self, rhs:$name) -> $name {
+                $name{value : self.$f(rhs.value)}
+            }
+        }
+
+        impl $opr<&$name> for &f32 {
+            type Output = $name;
+            fn $f(self, rhs:&$name) -> $name {
+                $name{value : self.$f(rhs.value)}
+            }
+        }
+    }
+}
+
+macro_rules! define_f32_opr_mods_rhs {
+    ($name:ident $opr:ident $f:ident) => {
+        impl $opr<f32> for $name {
+            type Output = $name;
+            fn $f(self, rhs:f32) -> $name {
+                $name{value : self.value.$f(rhs)}
+            }
+        }
+
+        impl $opr<&f32> for $name {
+            type Output = $name;
+            fn $f(self, rhs:&f32) -> $name {
+                $name{value : self.value.$f(rhs)}
+            }
+        }
+
+        impl $opr<f32> for &$name {
+            type Output = $name;
+            fn $f(self, rhs:f32) -> $name {
+                $name{value : self.value.$f(rhs)}
+            }
+        }
+
+        impl $opr<&f32> for &$name {
+            type Output = $name;
+            fn $f(self, rhs:&f32) -> $name {
+                $name{value : self.value.$f(rhs)}
+            }
+        }
+    }
+}
+
+macro_rules! define_self_opr_mods {
+    ($name:ident $opr:ident $f:ident) => {
+        impl $opr<$name> for $name {
+            type Output = $name;
+            fn $f(self, rhs:$name) -> $name {
+                $name{value : self.value.$f(rhs.value)}
+            }
+        }
+
+        impl $opr<&$name> for $name {
+            type Output = $name;
+            fn $f(self, rhs:&$name) -> $name {
+                $name{value : self.value.$f(rhs.value)}
+            }
+        }
+
+        impl $opr<$name> for &$name {
+            type Output = $name;
+            fn $f(self, rhs:$name) -> $name {
+                $name{value : self.value.$f(rhs.value)}
+            }
+        }
+
+        impl $opr<&$name> for &$name {
+            type Output = $name;
+            fn $f(self, rhs:&$name) -> $name {
+                $name{value : self.value.$f(rhs.value)}
+            }
+        }
+    }
+}
+
 macro_rules! define_property {
     ($name:ident = $default:expr) => {
         /// Simulation property.
@@ -51,6 +154,11 @@ macro_rules! define_property {
                 Self {value}
             }
         }
+
+        define_self_opr_mods!    {$name Add add}
+        define_self_opr_mods!    {$name Sub sub}
+        define_f32_opr_mods!     {$name Mul mul}
+        define_f32_opr_mods_rhs! {$name Div div}
     };
 }
 
@@ -125,7 +233,7 @@ impl<T:Value> SimulationData<T> {
             } else {
                 let force        = self.spring_force() + self.drag_force();
                 let acceleration = force / self.mass.value;
-                self.velocity    = self.velocity + acceleration  * delta_seconds;
+                self.velocity    = self.velocity + acceleration * delta_seconds;
                 self.value       = self.value + self.velocity * delta_seconds;
             }
         }
@@ -134,7 +242,7 @@ impl<T:Value> SimulationData<T> {
     /// Compute spring force.
     fn spring_force(&self) -> T {
         let value_delta = self.target_value - self.value;
-        let distance       = value_delta.magnitude();
+        let distance    = value_delta.magnitude();
         if distance > 0.0 {
             let coefficient = distance * self.spring.value;
             value_delta.normalize() * coefficient
@@ -201,8 +309,10 @@ impl<T:Value> SimulationData<T> {
         self.set_mass(f(self.mass()));
     }
 
-    pub fn update_spring<F:FnOnce(Spring)->Spring>(&mut self, f:F) {
-        self.set_spring(f(self.spring()));
+    pub fn update_spring<F:FnOnce(Spring)->Spring>(&mut self, f:F) -> Spring {
+        let value = f(self.spring());
+        self.set_spring(value);
+        value
     }
 
     pub fn update_drag<F:FnOnce(Drag)->Drag>(&mut self, f:F) {
@@ -213,6 +323,7 @@ impl<T:Value> SimulationData<T> {
         self.set_thresholds(f(self.thresholds()));
     }
 
+    /// Stop the animator and set it to the target value.
     pub fn skip(&mut self) {
         self.active   = false;
         self.value    = self.target_value;
@@ -265,6 +376,18 @@ impl<T:Value> Simulation<T> {
     pub fn target_value(&self) -> T {
         self.data.get().target_value()
     }
+
+    pub fn drag(&self) -> Drag {
+        self.data.get().drag()
+    }
+
+    pub fn spring(&self) -> Spring {
+        self.data.get().spring()
+    }
+
+    pub fn mass(&self) -> Mass {
+        self.data.get().mass()
+    }
 }
 
 
@@ -272,16 +395,28 @@ impl<T:Value> Simulation<T> {
 
 #[allow(missing_docs)]
 impl<T:Value> Simulation<T> {
-    pub fn set_mass(&self, mass:Mass) {
-        self.data.update(|mut sim| {sim.set_mass(mass); sim});
+    pub fn set_drag(&self, drag:Drag) {
+        self.data.update(|mut sim| {sim.set_drag(drag); sim});
+    }
+
+    pub fn update_drag<F:FnOnce(Drag)->Drag>(&self, f:F) {
+        self.data.update(|mut sim| {sim.update_drag(f); sim});
     }
 
     pub fn set_spring(&self, spring:Spring) {
         self.data.update(|mut sim| {sim.set_spring(spring); sim});
     }
 
-    pub fn set_drag(&self, drag:Drag) {
-        self.data.update(|mut sim| {sim.set_drag(drag); sim});
+    pub fn update_spring<F:FnOnce(Spring)->Spring>(&self, f:F) {
+        self.data.update(|mut sim| {sim.update_spring(f); sim});
+    }
+
+    pub fn set_mass(&self, mass:Mass) {
+        self.data.update(|mut sim| {sim.set_mass(mass); sim});
+    }
+
+    pub fn update_mass<F:FnOnce(Mass)->Mass>(&self, f:F) {
+        self.data.update(|mut sim| {sim.update_mass(f); sim});
     }
 
     pub fn set_velocity(&self, velocity:T) {

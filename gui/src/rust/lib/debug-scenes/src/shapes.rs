@@ -15,7 +15,6 @@ use ensogl::display::object::ObjectOps;
 use ensogl_core_msdf_sys::run_once_initialized;
 use ensogl::display::style::theme;
 use ensogl::data::color;
-use enso_frp::Position;
 use enso_frp as frp;
 
 
@@ -82,8 +81,7 @@ fn init(app:&Application) {
     let node1_id = graph_editor.add_node();
     let node2_id = graph_editor.add_node();
 //
-    graph_editor.frp.set_node_position.emit((node1_id,Position::new(100.0 , 250.0)));
-    graph_editor.frp.set_node_position.emit((node2_id,Position::new(200.0 ,  50.0)));
+    graph_editor.frp.set_node_position.emit((node2_id,Vector2(50.0,50.0)));
 //
     graph_editor.frp.set_node_expression.emit((node1_id,expression_mock()));
     graph_editor.frp.set_node_expression.emit((node2_id,expression_mock2()));

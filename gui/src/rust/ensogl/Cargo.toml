@@ -35,7 +35,7 @@ failure                    = { version = "0.1.5"                                
 Inflector                  = { version = "0.11.4"                                }
 itertools                  = { version = "0.8"                                   }
 js-sys                     = { version = "0.3.28"                                }
-nalgebra                   = { version = "0.19.0"                                }
+nalgebra                   = { version = "0.21.1"                                }
 num_enum                   = { version = "0.4.2"                                 }
 num-traits                 = { version = "0.2"                                   }
 paste                      = { version = "0.1.6"                                 }

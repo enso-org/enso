@@ -247,10 +247,10 @@ impl PixelDistance for i32 {
     }
 }
 
-impl PixelDistance for V2<f32> {
-    type Output = V2<Distance<Pixels>>;
+impl PixelDistance for Vector2<f32> {
+    type Output = Vector2<Distance<Pixels>>;
     fn px(&self) -> Self::Output {
-        V2(Distance::new(self.x),Distance::new(self.y))
+        Vector2(Distance::new(self.x),Distance::new(self.y))
     }
 }
 

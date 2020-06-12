@@ -2,8 +2,10 @@
 //!
 //! Please note that the documentation is provided for methods of `Network`, as this is considered
 //! to be the public API. The same documentation applies to node definitions below.
+
 #![allow(missing_docs)]
 #![allow(clippy::type_complexity)]
+#![allow(clippy::too_many_arguments)]
 
 use crate::prelude::*;
 
@@ -247,6 +249,29 @@ impl Network {
           T3  : EventOutput<Output=Out>,
           T4  : EventOutput<Output=Out> {
         self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4))
+    }
+
+    pub fn all_vec5<Out,T1,T2,T3,T4,T5>
+    (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5) -> Stream<Vec<Out>>
+        where Out : Data,
+              T1  : EventOutput<Output=Out>,
+              T2  : EventOutput<Output=Out>,
+              T3  : EventOutput<Output=Out>,
+              T4  : EventOutput<Output=Out>,
+              T5  : EventOutput<Output=Out> {
+        self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5))
+    }
+
+    pub fn all_vec6<Out,T1,T2,T3,T4,T5,T6>
+    (&self, label:Label, t1:&T1, t2:&T2, t3:&T3, t4:&T4, t5:&T5, t6:&T6) -> Stream<Vec<Out>>
+        where Out : Data,
+              T1  : EventOutput<Output=Out>,
+              T2  : EventOutput<Output=Out>,
+              T3  : EventOutput<Output=Out>,
+              T4  : EventOutput<Output=Out>,
+              T5  : EventOutput<Output=Out>,
+              T6  : EventOutput<Output=Out> {
+        self.register(OwnedAllMut::new(label).with(t1).with(t2).with(t3).with(t4).with(t5).with(t6))
     }
 
     /// Merges input streams into a stream containing values from all of them. On event from any of

@@ -8,25 +8,27 @@ use crate::component::visualization;
 /// Return a `JavaScript` Bubble visualization.
 pub fn bubble_visualization() -> visualization::java_script::FallibleDefinition {
     let source = r#"
-        class BubbleVisualization {
+        class BubbleVisualization extends Visualization {
             static inputType = "Any"
 
-            onDataReceived(root, data) {
+            onDataReceived(data) {
+                this.setPreprocessor("None");
+
                 const xmlns = "http://www.w3.org/2000/svg";
-                while (root.firstChild) {
-                    root.removeChild(root.lastChild);
+                while (this.dom.firstChild) {
+                    this.dom.removeChild(this.dom.lastChild);
                 }
-                const width = root.getAttributeNS(null, "width");
-                const height = root.getAttributeNS(null, "height");
+                const width = this.dom.getAttributeNS(null, "width");
+                const height = this.dom.getAttributeNS(null, "height");
 
                 const svgElem = document.createElementNS(xmlns, "svg");
                 svgElem.setAttributeNS(null, "id"     , "vis-svg");
                 svgElem.setAttributeNS(null, "viewBox", 0 + " " + 0 + " " + width + " " + height);
                 svgElem.setAttributeNS(null, "width"  , "100%");
                 svgElem.setAttributeNS(null, "height" , "100%");
-                // svgElem.setAttributeNS(null, "preserveAspectRatio" , "xMaxYMax meet");
+                svgElem.setAttributeNS(null, "transform", "matrix(1 0 0 -1 0 0)");
 
-                root.appendChild(svgElem);
+                this.dom.appendChild(svgElem);
 
                 data.forEach(data => {
                     const bubble = document.createElementNS(xmlns,"circle");
@@ -39,9 +41,9 @@ pub fn bubble_visualization() -> visualization::java_script::FallibleDefinition 
                 });
             }
 
-            setSize(root, size) {
-                root.setAttributeNS(null, "width", size[0]);
-                root.setAttributeNS(null, "height", size[1]);
+            setSize(size) {
+                this.dom.setAttributeNS(null, "width", size[0]);
+                this.dom.setAttributeNS(null, "height", size[1]);
             }
         }
 
@@ -54,7 +56,7 @@ pub fn bubble_visualization() -> visualization::java_script::FallibleDefinition 
 /// Return an empty minimal `JavaScript` visualization. This should not be used except for testing.
 pub fn empty_visualization() -> visualization::java_script::FallibleDefinition {
     let source = r#"
-        class EmptyVisualization {}
+        class EmptyVisualization extends Visualization {}
         return EmptyVisualization;
     "#;
 

@@ -1,6 +1,6 @@
 //! An example showing usage of GlyphSystem.
 
-use ensogl::traits::*;
+use ensogl::prelude::*;
 
 use ensogl::data::color;
 use ensogl::display::shape::text::glyph::font;

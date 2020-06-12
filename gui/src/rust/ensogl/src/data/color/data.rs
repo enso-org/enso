@@ -185,8 +185,8 @@ define_color_operators!{ Add::add, Sub::sub, Mul::mul, Div::div }
 #[derive(Clone,Copy,Debug,PartialEq)]
 #[allow(missing_docs)]
 pub struct Alpha<C> {
-    pub alpha : f32,
-    pub color : C,
+    pub alpha  : f32,
+    pub opaque : Color<C>,
 }
 
 
@@ -200,7 +200,7 @@ where C:HasComponentsRepr, ComponentsReprOf<C>:PushBack<f32> {
 impl<C> From<Alpha<C>> for ComponentsOf<Alpha<C>>
 where C:HasComponents, ComponentsReprOf<C>:PushBack<f32> {
     fn from(t:Alpha<C>) -> Self {
-        t.color.into().push_back(t.alpha)
+        t.opaque.data.into().push_back(t.alpha)
     }
 }
 
@@ -209,37 +209,38 @@ where C:HasComponents, ComponentsReprOf<C>:PushBack<f32>,
       <ComponentsReprOf<C> as PushBack<f32>>::Output : PopBack<Last=f32,Init=ComponentsReprOf<C>> {
     fn from(components:ComponentsOf<Self>) -> Self {
         let (alpha,init) = components.pop_back();
-        let color        = from_components(init);
-        Self {alpha,color}
+        let opaque        = from_components(init);
+        Self {alpha,opaque}
     }
 }
 
 impl<C:ComponentMap> ComponentMap for Alpha<C> {
     fn map<F:Fn(f32)->f32>(&self, f:F) -> Self {
-        let alpha = f(self.alpha);
-        let color = self.color.map(f);
-        Self {alpha,color}
+        let alpha  = f(self.alpha);
+        let opaque = self.opaque.map(f);
+        Self {alpha,opaque}
     }
 }
 
 impl<C> Deref for Alpha<C> {
     type Target = C;
     fn deref(&self) -> &Self::Target {
-        &self.color
+        &self.opaque
     }
 }
 
 impl<C> From<C> for Alpha<C> {
-    fn from(color:C) -> Self {
-        let alpha = 1.0;
-        Self {alpha,color}
+    fn from(data:C) -> Self {
+        let alpha  = 1.0;
+        let opaque = Color {data};
+        Self {alpha,opaque}
     }
 }
 
 impl<C:Default> Default for Alpha<C> {
     fn default() -> Self {
-        let alpha = 1.0;
-        let color = default();
-        Self {alpha,color}
+        let alpha  = 1.0;
+        let opaque = default();
+        Self {alpha,opaque}
     }
 }

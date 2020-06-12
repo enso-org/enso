@@ -19,12 +19,14 @@ use ensogl::gui::component;
 // === Constants ===
 // =================
 
-const PADDING             : f32 = 2.0;
-const SIDES_PADDING       : f32 = PADDING * 2.0;
-const DEFAULT_SIZE        : V2  = V2(16.0,16.0);
-const DEFAULT_RADIUS      : f32 = 8.0;
-const DEFAULT_COLOR_LAB   : V3  = V3(1.0,0.0,0.0);
-const DEFAULT_COLOR_ALPHA : f32 = 0.2;
+const PADDING        : f32 = 2.0;
+const SIDES_PADDING  : f32 = PADDING * 2.0;
+const DEFAULT_RADIUS : f32 = 8.0;
+const DEFAULT_COLOR  : color::Lcha = color::Lcha::new(1.0,0.0,0.0,0.2);
+const FADE_OUT_TIME  : f32 = 3000.0;
+
+#[allow(non_snake_case)]
+fn DEFAULT_SIZE() -> Vector2<f32> { Vector2(16.0,16.0) }
 
 
 
@@ -32,14 +34,19 @@ const DEFAULT_COLOR_ALPHA : f32 = 0.2;
 // === StyleValue ===
 // ==================
 
-/// Defines a value of the cursor style and also information if the value should be animated.
-/// Sometimes disabling animation is required. A good example is the implementation of a selection
-/// box. When drawing selection box with the mouse, the user wants to see it in real-time, without
-/// it growing over time.
+/// Defines a value of the cursor style.
 #[derive(Debug,Clone)]
 #[allow(missing_docs)]
 pub struct StyleValue<T> {
-    pub value   : T,
+    /// Defines the value of the style. In case it is set to `None`, the default value will be used.
+    /// Please note that setting it to `None` has a different effect than not providing the value
+    /// in the `Style` at all. If the value is provided it can override the existing values when
+    /// used in a semigroup operation.
+    pub value : Option<T>,
+
+    /// Defines if the state transition should be used. Sometimes disabling animation is required.
+    /// A good example is the implementation of a selection box. When drawing selection box with the
+    /// mouse, the user wants to see it in real-time, without it growing over time.
     pub animate : bool,
 }
 
@@ -54,12 +61,23 @@ impl<T:Default> Default for StyleValue<T> {
 impl<T> StyleValue<T> {
     /// Constructor.
     pub fn new(value:T) -> Self {
+        let value   = Some(value);
+        let animate = true;
+        Self {value,animate}
+    }
+
+    /// Constructor for a default value setter. Please note that this is not made a `Default` impl
+    /// on purpose. This method creates a non-empty value setter which sets the target to its
+    /// default value. Read `Style` docs to learn more.
+    pub fn new_default() -> Self {
+        let value   = None;
         let animate = true;
         Self {value,animate}
     }
 
     /// Constructor with disabled animation.
     pub fn new_no_animation(value:T) -> Self {
+        let value   = Some(value);
         let animate = false;
         Self {value,animate}
     }
@@ -79,7 +97,17 @@ macro_rules! define_style {( $( $(#$meta:tt)* $field:ident : $field_type:ty),* $
     /// it in FRP.
     #[derive(Debug,Clone,Default)]
     pub struct Style {
-        $($(#$meta)? $field : Option<$field_type>),*
+        $($(#$meta)? $field : Option<StyleValue<$field_type>>),*
+    }
+
+    impl Style {
+        /// Create a new style with all fields set to default value. Please note that it is
+        /// different than empty style, as this one overrides fields with default values when
+        /// used in a semigroup operation.
+        pub fn new_with_all_fields_default() -> Self {
+            $(let $field = Some(StyleValue::new_default());)*
+            Self {$($field),*}
+        }
     }
 
     impl PartialSemigroup<&Style> for Style {
@@ -101,11 +129,11 @@ define_style! {
     /// label selection. After setting the host to the label, cursor will not follow mouse anymore,
     /// it will inherit its position from the label instead.
     host   : display::object::Instance,
-    size   : StyleValue<Vector2<f32>>,
-    offset : StyleValue<Vector2<f32>>,
-    color  : StyleValue<color::Lcha>,
-    radius : StyleValue<f32>,
-    press  : StyleValue<f32>,
+    size   : Vector2<f32>,
+    offset : Vector2<f32>,
+    color  : color::Lcha,
+    radius : f32,
+    press  : f32,
 }
 
 
@@ -116,7 +144,7 @@ impl Style {
     pub fn new_highlight<H>
     (host:H, size:Vector2<f32>, color:Option<color::Lcha>) -> Self
     where H:display::Object {
-        let host  = Some(host.display_object().clone_ref());
+        let host  = Some(StyleValue::new(host.display_object().clone_ref()));
         let size  = Some(StyleValue::new(size));
         let color = color.map(StyleValue::new);
         Self {host,size,color,..default()}
@@ -130,13 +158,6 @@ impl Style {
     pub fn new_color_no_animation(color:color::Lcha) -> Self {
         let color = Some(StyleValue::new_no_animation(color));
         Self {color,..default()}
-    }
-
-    pub fn new_box_selection(size:Vector2<f32>) -> Self {
-        let def_size = Vector2::new(DEFAULT_SIZE.x,DEFAULT_SIZE.y);
-        let offset   = Some(StyleValue::new_no_animation(-size / 2.0));
-        let size     = Some(StyleValue::new_no_animation(size.abs() + def_size));
-        Self {size,offset,..default()}
     }
 
     pub fn new_press() -> Self {
@@ -154,6 +175,13 @@ impl Style {
         self.press = Some(StyleValue::new(1.0));
         self
     }
+
+    pub fn box_selection(mut self, size:Vector2<f32>) -> Self {
+        let def_size = DEFAULT_SIZE();
+        self.offset  = Some(StyleValue::new_no_animation(-size / 2.0));
+        self.size    = Some(StyleValue::new_no_animation(size.abs() + def_size));
+        self
+    }
 }
 
 
@@ -162,7 +190,7 @@ impl Style {
 #[allow(missing_docs)]
 impl Style {
     pub fn host_position(&self) -> Option<Vector3<f32>> {
-        self.host.as_ref().map(|t| t.position())
+        self.host.as_ref().and_then(|t| t.value.as_ref().map(|t| t.position()))
     }
 }
 
@@ -176,9 +204,9 @@ impl Style {
 pub mod shape {
     use super::*;
     ensogl::define_shape_system! {
-        ( press          : f32
-        , radius         : f32
-        , color          : Vector4<f32>
+        ( press  : f32
+        , radius : f32
+        , color  : Vector4<f32>
         ) {
             let width  : Var<Distance<Pixels>> = "input_size.x".into();
             let height : Var<Distance<Pixels>> = "input_size.y".into();
@@ -207,7 +235,7 @@ pub mod shape {
 pub struct Frp {
     pub network  : frp::Network,
     pub input    : FrpInputs,
-    pub position : frp::Stream<V3>,
+    pub position : frp::Stream<Vector3>,
 }
 
 impl Deref for Frp {
@@ -312,43 +340,51 @@ impl Cursor {
         //     host during the movement. After it is fully attached, cursor moves with the same
         //     speed as the scene when panning.
         //
-        let press                = Animation :: <f32> :: new(&network);
-        let radius               = Animation :: <f32> :: new(&network);
-        let size                 = Animation :: <V2>  :: new(&network);
-        let offset               = Animation :: <V2>  :: new(&network);
-        let color_lab            = Animation :: <V3>  :: new(&network);
-        let color_alpha          = Animation :: <f32> :: new(&network);
-        let host_position        = Animation :: <V3>  :: new(&network);
-        let host_follow_weight   = Animation :: <f32> :: new(&network);
+        let press                = Animation :: <f32>     :: new(&network);
+        let radius               = Animation :: <f32>     :: new(&network);
+        let size                 = Animation :: <Vector2> :: new(&network);
+        let offset               = Animation :: <Vector2> :: new(&network);
+        let color_lab            = Animation :: <Vector3> :: new(&network);
+        let color_alpha          = Animation :: <f32>     :: new(&network);
+        let inactive_fade        = Animation :: <f32>     :: new(&network);
+        let host_position        = Animation :: <Vector3> :: new(&network);
+        let host_follow_weight   = Animation :: <f32>     :: new(&network);
         let host_attached_weight = Tween     :: new(&network);
 
         host_attached_weight.set_duration(300.0);
-        color_lab.set_target_value(DEFAULT_COLOR_LAB);
-        color_alpha.set_target_value(DEFAULT_COLOR_ALPHA);
+        color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
+        color_alpha.set_target_value(DEFAULT_COLOR.alpha);
         radius.set_target_value(DEFAULT_RADIUS);
-        size.set_target_value(DEFAULT_SIZE);
+        size.set_target_value(DEFAULT_SIZE());
+
+        let fade_out_spring = inactive_fade.spring() * 0.2;
+        let fade_in_spring  = inactive_fade.spring();
 
         frp::extend! { network
             eval press.value  ((v) model.view.shape.press.set(*v));
             eval radius.value ((v) model.view.shape.radius.set(*v));
             eval size.value   ([model] (v) {
-                let dim = Vector2::new(v.x+SIDES_PADDING,v.y+SIDES_PADDING);
+                let dim = Vector2(v.x+SIDES_PADDING,v.y+SIDES_PADDING);
                 model.view.shape.sprite.size.set(dim);
             });
 
-            anim_color <- all_with(&color_lab.value,&color_alpha.value,
+            alpha <- all_with(&color_alpha.value,&inactive_fade.value,|s,t| s*t);
+
+            anim_color <- all_with(&color_lab.value,&alpha,
                 |lab,alpha| color::Rgba::from(color::Laba::new(lab.x,lab.y,lab.z,*alpha))
             );
 
             eval input.set_style([host_attached_weight,size,offset,model] (new_style) {
-                host_attached_weight.rewind();
+                host_attached_weight.stop_and_rewind();
                 if new_style.host.is_some() { host_attached_weight.start() }
 
+                let def = 0.0;
                 match &new_style.press {
-                    None => press.set_target_value(0.0),
-                    Some(new_press) => {
-                        press.set_target_value(new_press.value);
-                        if !new_press.animate {
+                    None => press.set_target_value(def),
+                    Some(t) => {
+                        let value = t.value.unwrap_or(def);
+                        press.set_target_value(value);
+                        if !t.animate {
                             press.skip();
                         }
                     }
@@ -356,14 +392,15 @@ impl Cursor {
 
                 match &new_style.color {
                     None => {
-                        color_lab.set_target_value(DEFAULT_COLOR_LAB);
-                        color_alpha.set_target_value(DEFAULT_COLOR_ALPHA);
+                        color_lab.set_target_value(DEFAULT_COLOR.opaque.into());
+                        color_alpha.set_target_value(DEFAULT_COLOR.alpha);
                     }
-                    Some(new_color) => {
-                        let lab = color::Laba::from(new_color.value);
-                        color_lab.set_target_value(V3(lab.lightness,lab.a,lab.b));
+                    Some(t) => {
+                        let value = t.value.unwrap_or(DEFAULT_COLOR);
+                        let lab = color::Laba::from(value);
+                        color_lab.set_target_value(Vector3::new(lab.lightness,lab.a,lab.b));
                         color_alpha.set_target_value(lab.alpha);
-                        if !new_color.animate {
+                        if !t.animate {
                             color_lab.skip();
                             color_alpha.skip();
                         }
@@ -371,26 +408,29 @@ impl Cursor {
                 }
 
                 match &new_style.size {
-                    None => size.set_target_value(DEFAULT_SIZE),
-                    Some(new_size) => {
-                        size.set_target_value(V2::new(new_size.value.x,new_size.value.y));
-                        if !new_size.animate { size.skip() }
+                    None => size.set_target_value(DEFAULT_SIZE()),
+                    Some(t) => {
+                        let value = t.value.unwrap_or_else(DEFAULT_SIZE);
+                        size.set_target_value(Vector2(value.x,value.y));
+                        if !t.animate { size.skip() }
                     }
                 }
 
                 match &new_style.offset {
                     None => offset.set_target_value(default()),
-                    Some(new_offset) => {
-                        offset.set_target_value(V2::new(new_offset.value.x,new_offset.value.y));
-                        if !new_offset.animate { offset.skip() }
+                    Some(t) => {
+                        let value = t.value.unwrap_or_default();
+                        offset.set_target_value(Vector2(value.x,value.y));
+                        if !t.animate { offset.skip() }
                     }
                 }
 
                 match &new_style.radius {
                     None => radius.set_target_value(DEFAULT_RADIUS),
-                    Some(new_radius) => {
-                        radius.set_target_value(new_radius.value);
-                        if !new_radius.animate { radius.skip() }
+                    Some(t) => {
+                        let value = t.value.unwrap_or(DEFAULT_RADIUS);
+                        radius.set_target_value(value);
+                        if !t.animate { radius.skip() }
                     }
                 }
 
@@ -403,7 +443,7 @@ impl Cursor {
             mouse_pos_rt    <- mouse.position.gate(&is_not_hosted);
 
             eval_ host_changed([model,host_position,host_follow_weight] {
-                match &model.style.borrow().host {
+                match model.style.borrow().host.as_ref().and_then(|t|t.value.as_ref()) {
                     None       => host_follow_weight.set_target_value(0.0),
                     Some(host) => {
                         host_follow_weight.set_target_value(1.0);
@@ -412,29 +452,53 @@ impl Cursor {
                         let position = host.global_position();
                         let position = Vector4::new(position.x,position.y,position.z,1.0);
                         let position = m2 * (m1 * position);
-                        host_position.set_target_value(V3(position.x,position.y,position.z));
+                        host_position.set_target_value(Vector3(position.x,position.y,position.z));
                     }
                 }
             });
 
             host_attached <- host_changed.all_with3
                 (&host_attached_weight.value,&host_position.value, f!((_,weight,pos_anim) {
-                    host_position.target_value() * weight + pos_anim * (1.0 - weight)
+                    host_position.target_value() * *weight + pos_anim * (1.0 - weight)
                 })
             );
 
             position <- mouse.position.all_with4
                 (&host_attached,&host_follow_weight.value,&offset.value,
                 |pos_rt,pos_attached,weight,offset| {
-                    let pos_rt : V3 = (V2(pos_rt.x,pos_rt.y) + *offset).into();
-                    pos_attached * weight + pos_rt * (1.0 - weight)
+                    let pos_rt = Vector2(pos_rt.x,pos_rt.y) + *offset;
+                    let pos_rt = Vector3(pos_rt.x,pos_rt.y,0.0);
+                    *pos_attached * *weight + pos_rt * (1.0 - weight)
                 }
             );
 
-            eval mouse_pos_rt ((t) host_position.set_target_value(V3(t.x,t.y,0.0)));
+
+            // === Fade-out when not moved ===
+
+            move_time            <- scene.frp.frame_time.sample(&mouse.position);
+            time_since_last_move <- scene.frp.frame_time.map2(&move_time,|t,s|t-s);
+            check_fade_time      <- time_since_last_move.gate(&is_not_hosted).gate(&mouse.ever_moved);
+            eval check_fade_time ([inactive_fade](time) {
+                if *time > FADE_OUT_TIME {
+                    inactive_fade.set_spring(fade_out_spring);
+                    inactive_fade.set_target_value(0.0)
+                } else {
+                    inactive_fade.set_spring(fade_in_spring);
+                    inactive_fade.set_target_value(1.0)
+                }
+            });
+
+
+            // === Evals ===
+
+            eval mouse_pos_rt ((t) host_position.set_target_value(Vector3(t.x,t.y,0.0)));
             eval anim_color   ((t) model.view.shape.color.set(t.into()));
-            eval position     ((t) model.view.set_position(t.into()));
+            eval position     ((t) model.view.set_position(*t));
         }
+
+        // Hide on init.
+        inactive_fade.set_target_value(0.0);
+        inactive_fade.skip();
 
         input.set_style.emit(Style::default());
         let input = input.clone_ref();

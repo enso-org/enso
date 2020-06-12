@@ -30,7 +30,7 @@ console_error_panic_hook = { version = "0.1.6"                                  
 failure                  = { version = "0.1.6"                                               }
 flo_stream               = { version = "0.4.0"                                               }
 futures                  = { version = "0.3.1"                                               }
-nalgebra                 = { version = "0.19.0" , features = ["serde-serialize"]             }
+nalgebra                 = { version = "0.21.1" , features = ["serde-serialize"]             }
 js-sys                   = { version = "0.3.35"                                              }
 serde                    = { version = "1.0"    , features = ["derive"]                      }
 serde_json               = { version = "1.0"                                                 }

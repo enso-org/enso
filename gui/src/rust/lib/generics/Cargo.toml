@@ -7,4 +7,4 @@ edition = "2018"
 [lib]
 
 [dependencies]
-nalgebra = { version = "0.19.0" }
+nalgebra = { version = "0.21.1" }

@@ -101,7 +101,7 @@ impl World {
             f!([uniforms,scene_dirty,scene] (t:animation::TimeInfo) {
                 uniforms.time.set(t.local);
                 scene_dirty.unset_all();
-                scene.update();
+                scene.update(t);
                 scene.renderer.run();
             })
         );

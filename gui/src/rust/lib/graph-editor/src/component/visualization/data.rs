@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use std::str::FromStr;
 
 
 // ============
@@ -26,6 +27,43 @@ impl From<serde_json::Value> for Json {
     fn from(t:serde_json::Value) -> Self {
         let rc = Rc::new(t);
         Self {rc}
+    }
+}
+
+// ===================
+// === Data Format ===
+// ====================
+
+/// Data formats that can be used in a visualisation.
+#[derive(Clone,Copy,Debug,Eq,Hash,PartialEq)]
+#[allow(missing_docs)]
+pub enum Format {
+    Json,
+    Binary,
+}
+
+/// Error that can occur when parsing a `Format` from a string.
+#[derive(Clone,Debug,Display)]
+pub enum ParseError {
+    /// The given string does not represent a valid Format.
+    NotAValidFormat(String)
+}
+
+impl FromStr for Format {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "json"   => Ok(Format::Json),
+            "binary" => Ok(Format::Binary),
+            _ => Err(ParseError::NotAValidFormat(s.to_string()))
+        }
+    }
+}
+
+impl Default for Format {
+    fn default() -> Self {
+        Format::Json
     }
 }
 

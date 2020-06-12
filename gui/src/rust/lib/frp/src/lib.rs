@@ -159,8 +159,6 @@
 #![feature(unboxed_closures)]
 #![feature(weak_into_raw)]
 
-
-
 pub mod debug;
 pub mod data;
 pub mod io;
@@ -174,8 +172,6 @@ pub use network::*;
 pub use node::*;
 pub use nodes::*;
 
-// FIXME: remove:
-pub use io::mouse::Position;
 pub use enso_prelude as prelude;
 pub use ensogl_system_web as web;
 pub use stream::Stream;

@@ -2,7 +2,7 @@
 
 use wasm_bindgen::prelude::*;
 
-use ensogl::traits::*;
+use ensogl::prelude::*;
 
 use ensogl::data::color;
 use ensogl::display::shape::text::glyph::font;

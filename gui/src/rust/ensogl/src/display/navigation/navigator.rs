@@ -23,28 +23,28 @@ use events::ZoomEvent;
 #[derive(Debug)]
 pub struct Navigator {
     _events         : NavigatorEvents,
-    simulator       : physics::inertia::DynSimulator<V3>,
+    simulator       : physics::inertia::DynSimulator<Vector3>,
     resize_callback : callback::Handle
 }
 
 impl Navigator {
     pub fn new(scene:&Scene, camera:&Camera2d) -> Self {
-        let dom                       = scene.dom.root.clone_ref();
-        let zoom_speed                = 10.0;
-        let min_zoom                  = 10.0;
-        let max_zoom                  = 10000.0;
-        let scaled_down_zoom_speed    = zoom_speed / 1000.0;
+        let dom                    = scene.dom.root.clone_ref();
+        let zoom_speed             = 10.0;
+        let min_zoom               = 10.0;
+        let max_zoom               = 10000.0;
+        let scaled_down_zoom_speed = zoom_speed / 1000.0;
         let (simulator,resize_callback,_events) = Self::start_navigator_events
             (&dom.into(),camera,min_zoom,max_zoom,scaled_down_zoom_speed);
         Self {simulator,_events,resize_callback}
     }
 
-    fn create_simulator(camera:&Camera2d) -> physics::inertia::DynSimulator<V3> {
+    fn create_simulator(camera:&Camera2d) -> physics::inertia::DynSimulator<Vector3> {
         let camera_ref = camera.clone_ref();
-        let update     = Box::new(move |p:V3| camera_ref.set_position(p.into()));
+        let update     = Box::new(move |p:Vector3| camera_ref.set_position(p));
         let simulator  = physics::inertia::DynSimulator::new(update);
-        simulator.set_value(camera.position().into());
-        simulator.set_target_value(camera.position().into());
+        simulator.set_value(camera.position());
+        simulator.set_target_value(camera.position());
         simulator
     }
 
@@ -54,7 +54,7 @@ impl Navigator {
     , min_zoom   : f32
     , max_zoom   : f32
     , zoom_speed : f32
-    ) -> (physics::inertia::DynSimulator<V3>,callback::Handle,NavigatorEvents) {
+    ) -> (physics::inertia::DynSimulator<Vector3>,callback::Handle,NavigatorEvents) {
         let simulator        = Self::create_simulator(&camera);
         let panning_callback = enclose!((dom,camera,mut simulator) move |pan: PanEvent| {
             let fovy_slope                  = camera.half_fovy_slope();
@@ -62,15 +62,17 @@ impl Navigator {
             let distance_to_show_full_ui    = dom.shape().height / 2.0 / fovy_slope;
             let movement_scale_for_distance = distance / distance_to_show_full_ui;
 
-            let dx   = pan.movement.x * movement_scale_for_distance;
-            let dy   = pan.movement.y * movement_scale_for_distance;
-            let diff = V3::new(dx,dy,0.0);
-            simulator.update_target_value(|p| p + diff);
+            // FIXME: Adding - here as panning was accidentally inverted by some recent changes.
+            //        Issue tracked by wdanilo and notdanilo.
+            let dx   = - pan.movement.x * movement_scale_for_distance;
+            let dy   = - pan.movement.y * movement_scale_for_distance;
+            let diff = Vector3::new(dx,dy,0.0);
+            simulator.update_target_value(|p| p - diff);
         });
 
         let resize_callback = camera.add_screen_update_callback(
             enclose!((mut simulator,camera) move |_:&Vector2<f32>| {
-                let position = camera.position().into();
+                let position = camera.position();
                 simulator.set_value(position);
                 simulator.set_target_value(position);
                 simulator.set_velocity(default());
@@ -87,7 +89,7 @@ impl Navigator {
                 let x              = -normalized.x * camera.screen().aspect();
                 let y              = -normalized.y;
                 let z              = half_height / camera.half_fovy_slope();
-                let direction      = V3::new(x,y,z).normalize();
+                let direction      = Vector3(x,y,z).normalize();
                 let mut position   = simulator.target_value();
                 let min_zoom       = camera.clipping().near + min_zoom;
                 let zoom_amount    = zoom.amount * position.z;

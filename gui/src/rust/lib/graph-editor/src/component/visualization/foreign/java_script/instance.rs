@@ -5,22 +5,20 @@
 //!
 //! An `Instance` can be created via `Instance::from_object` where the a JS object is provided that
 //! fullfills the spec described in `java_script/definition.rs
-//!
-//! All methods are optional and if they are not present, will be handled as no-op.
 
-// FIXME: We should not mention in all docs that "all methods are optional etc" - if this changes,
-//        we will have a lot of docs to be fixed. Lets just send the reader to the spec definition
-//        instead!.
 
 use crate::prelude::*;
 
 use crate::component::visualization::*;
+use crate::component::visualization::java_script::binding::JsConsArgs;
+use crate::component::visualization::java_script::method;
 use crate::component::visualization;
 use crate::frp;
 
 use core::result;
 use ensogl::display::DomScene;
 use ensogl::display::DomSymbol;
+use ensogl::display::Scene;
 use ensogl::display;
 use ensogl::system::web::JsValue;
 use ensogl::system::web;
@@ -37,46 +35,33 @@ use std::fmt::Formatter;
 #[derive(Clone,Debug)]
 #[allow(missing_docs)]
 pub enum Error {
-    // FIXME: this error is not specific enough. It should be named `InstanceIsNotAnObject` and used
-    //        only to indicate that the value we used to create instance was not a valid object.
-    //        The error messge below "Not an object: {:?}" is also not very specific about what
-    //        really happened.
-    /// The provided value was expected to be a JS object, but was not.
-    NotAnObject        { object:JsValue },
-    /// An error occurred when calling the class constructor.
-    // FIXME: kets make it more specific - what exactly us constructor error?
-    ConstructorError   { js_error:JsValue },
-    // FIXME: can we remove it? We should handle each error explicitely. When something unknown happens?
-    /// An unknown error occurred on the JS side. Inspect the content for more information.
-    Unknown            { js_error:JsValue }
+    /// The provided `JsValue` was expected to be of type `object`, but was not.
+    ValueIsNotAnObject { object:JsValue },
+    /// The object was expected to have the named property but does not.
+    PropertyNotFoundOnObject { object:JsValue, property:String },
+    /// An error occurred on the javascript side when calling the class constructor.
+    ConstructorError { js_error:JsValue },
 }
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Error::NotAnObject { object: inner }  => {
-                f.write_fmt(format_args!("Not an object: {:?}",inner))
+            Error::ValueIsNotAnObject { object }  => {
+                f.write_fmt(format_args!
+                    ("JsValue was expected to be of type `object`, but was not: {:?}",object))
             },
-            Error::ConstructorError { js_error: inner }      => {
-                f.write_fmt(format_args!("Error while constructing object: {:?}",inner))
+            Error::PropertyNotFoundOnObject  { object, property }  => {
+                f.write_fmt(format_args!
+                    ("Object was expected to have property {:?} but has not: {:?}",property,object))
             },
-            Error::Unknown { js_error: inner }      => {
-                f.write_fmt(format_args!("Unknown error: {:?}",inner))
+            Error::ConstructorError { js_error }  => {
+                f.write_fmt(format_args!("Error while constructing object: {:?}",js_error))
             },
         }
     }
 }
 
 impl std::error::Error for Error {}
-
-// FIXME: this impl encourages to use Unknown value. Using unknown should be always explicit.
-//        do we really need Unknmown error at all?
-impl From<JsValue> for Error {
-    fn from(value:JsValue) -> Self {
-        // TODO add differentiation if we encounter specific errors and return new variants.
-        Error::Unknown { js_error:value}
-    }
-}
 
 /// Internal helper type to propagate results that can fail due to `JsVisualizationError`s.
 pub type Result<T> = result::Result<T, Error>;
@@ -87,39 +72,82 @@ pub type Result<T> = result::Result<T, Error>;
 // === InstanceModel ===
 // =====================
 
+/// Helper type for the callback used to set the preprocessor code.
+pub trait PreprocessorCallback = Fn(String);
+
+/// Internal helper type to store the preprocessor callback.
+type PreprocessorCallbackCell = Rc<RefCell<Option<Box<dyn PreprocessorCallback>>>>;
+
 /// `JsVisualizationGeneric` allows the use of arbitrary javascript to create visualizations. It
 /// takes function definitions as strings and proved those functions with data.
-#[derive(Clone,CloneRef,Debug)]
+#[derive(Clone,CloneRef,Derivative)]
+#[derivative(Debug)]
 #[allow(missing_docs)]
 pub struct InstanceModel {
-    pub root_node        : DomSymbol,
-    pub logger           : Logger,
-        on_data_received : Rc<Option<js_sys::Function>>,
-        set_size         : Rc<Option<js_sys::Function>>,
+    pub root_node           : DomSymbol,
+    pub logger              : Logger,
+        on_data_received    : Rc<Option<js_sys::Function>>,
+        set_size            : Rc<Option<js_sys::Function>>,
+        object              : Rc<js_sys::Object>,
+        #[derivative(Debug="ignore")]
+        preprocessor_change : PreprocessorCallbackCell,
 }
 
 impl InstanceModel {
-    /// Internal helper that tries to convert a JS object into a `Instance`.
-    fn from_object_js(object:js_sys::Object) -> result::Result<Self, Error> {
-        let on_data_received = get_method(&object, "onDataReceived").ok(); // FIXME: literals eveywhere - move them to constants.
-        let on_data_received = Rc::new(on_data_received);
-        let set_size         = get_method(&object, "setSize").ok();
-        let set_size         =  Rc::new(set_size);
 
-        let logger    = Logger::new("Instance");
+    fn create_root() -> result::Result<DomSymbol, Error> {
         let div       = web::create_div();
         let root_node = DomSymbol::new(&div);
-        root_node.dom().set_attribute("id","vis")?;
-
-        Ok(InstanceModel { on_data_received,set_size,root_node,logger })
+        root_node.dom().set_attribute("id","vis")
+            .map_err(|js_error|Error::ConstructorError{js_error})?;
+        Ok(root_node)
     }
 
-    /// Constructor from JavaScript object.
-    pub fn from_object(object:JsValue) -> result::Result<Self, Error> {
+    /// We need to provide a closure to the Visualisation on the JS side, which we then later
+    /// can hook up to the FRP. Here we create a `PreprocessorCallbackCell`, which can hold a
+    /// closure, and a `PreprocessorCallback` which holds a weak reference to the closure inside of
+    /// the `PreprocessorCallbackCell`. This allows us to pass the `PreprocessorCallback` to the
+    /// javascript code, and call from there the closure stored in the `PreprocessorCallbackCell`.
+    /// We will later on set the closure inside of the `PreprocessorCallbackCell` to emit an FRP
+    /// event.
+    fn preprocessor_change_callback
+    () -> (PreprocessorCallbackCell,impl PreprocessorCallback) {
+        let closure_cell      = PreprocessorCallbackCell::default();
+        let weak_closure_cell = Rc::downgrade(&closure_cell);
+        let closure = move |s:String| {
+            if let Some(callback) = weak_closure_cell.upgrade() {
+                callback.borrow().map_ref(|f|f(s));
+            }
+        };
+        (closure_cell,closure)
+    }
+
+    fn instantiate_class_with_args(class:&JsValue, args:JsConsArgs)
+    -> result::Result<js_sys::Object,Error> {
+        let js_new  = js_sys::Function::new_with_args("cls,arg", "return new cls(arg)");
+        let context = JsValue::NULL;
+        let object  = js_new.call2(&context,&class,&args.into())
+            .map_err(|js_error|Error::ConstructorError {js_error})?;
         if !object.is_object() {
-            return Err(Error::NotAnObject { object } )
+            return Err(Error::ValueIsNotAnObject { object } )
         }
-        Self::from_object_js(object.into())
+        let object:js_sys::Object = object.into();
+        Ok(object)
+    }
+
+    /// Tries to create a InstanceModel from the given visualisation class.
+    pub fn from_class(class:&JsValue) -> result::Result<Self, Error> {
+        let root_node                     = Self::create_root()?;
+        let (preprocessor_change,closure) = Self::preprocessor_change_callback();
+        let init_data                     = JsConsArgs::new(root_node.clone_ref(), closure);
+        let object                        = Self::instantiate_class_with_args(class,init_data)?;
+        let on_data_received              = get_method(&object,method::ON_DATA_RECEIVED).ok();
+        let on_data_received              = Rc::new(on_data_received);
+        let set_size                      = get_method(&object,method::SET_SIZE).ok();
+        let set_size                      = Rc::new(set_size);
+        let logger                        = Logger::new("Instance");
+        let object                        = Rc::new(object);
+        Ok(InstanceModel{object,on_data_received,set_size,root_node,logger,preprocessor_change})
     }
 
     /// Hooks the root node into the given scene.
@@ -129,39 +157,39 @@ impl InstanceModel {
         scene.manage(&self.root_node);
     }
 
+    fn set_size(&self, size:Vector2) {
+        let data_json = JsValue::from_serde(&size).unwrap();
+        let _         = self.try_call1(&self.set_size,&data_json);
+        self.root_node.set_size(size);
+    }
+
    fn receive_data(&self, data:&Data) -> result::Result<(),DataError> {
-       if let Some (on_data_received) = &self.on_data_received.deref() {
-           let context   = JsValue::NULL;
-           let data_json = match data {
-               Data::Json {content} => content,
-               _ => todo!() // FIXME
-           };
-           let data_json:&serde_json::Value = data_json.deref();
-           let data_js   = match JsValue::from_serde(data_json) {
-               Ok(value) => value,
-               Err(_)    => return Err(DataError::InvalidDataType),
-           };
-           if let Err(error) = on_data_received.call2(&context, &self.root_node.dom(), &data_js) {
-               self.logger.warning( // FIXME Use `warning!` macro instead. Will be a lot shorter.
-                   || format!("Failed to set data in {:?} with error: {:?}",self,error));
-               return Err(DataError::InternalComputationError)
-           }
-       }
-       Ok(())
+        let data_json = match data {
+           Data::Json {content} => content,
+           _ => todo!() // FIXME
+        };
+        let data_json:&serde_json::Value = data_json.deref();
+        let data_js   = match JsValue::from_serde(data_json) {
+            Ok(value) => value,
+            Err(_)    => return Err(DataError::InvalidDataType),
+        };
+        self.try_call1(&self.on_data_received, &data_js)
+            .map_err(|_| DataError::InternalComputationError)?;
+        Ok(())
    }
 
-   fn set_size(&self, size:V2) {
-       if let Some(set_size) = &self.set_size.deref() {
-           let size          = Vector2::new(size.x,size.y);
-           let context       = JsValue::NULL;
-           let data_json     = JsValue::from_serde(&size).unwrap();
-           if let Err(error) = set_size.call2(&context, &self.root_node.dom(), &data_json) {
-               self.logger.warning(
-                   || format!("Failed to set size in {:?} with error: {:?}", self, error));
-           }
-           self.root_node.set_size(size);
-       }
-   }
+    /// Helper method to call methods on the wrapped javascript object.
+    fn try_call1(&self, method:&Option<js_sys::Function>, arg:&JsValue)
+        ->  result::Result<(),JsValue> {
+        if let Some(method) = method {
+            if let Err(error) = method.call1(&self.object, arg) {
+                self.logger.warning(
+                    || format!("Failed to call method {:?} with error: {:?}",method,error));
+                return Err(error)
+            }
+        }
+        Ok(())
+    }
 }
 
 
@@ -175,25 +203,28 @@ impl InstanceModel {
 #[allow(missing_docs)]
 pub struct Instance {
     #[shrinkwrap(main_field)]
-    model : InstanceModel,
-    frp   : visualization::instance::Frp,
+    model   : InstanceModel,
+    frp     : visualization::instance::Frp,
+    network : frp::Network,
 }
 
 impl Instance {
     /// Constructor.
-    pub fn new(object:JsValue) -> result::Result<Instance, Error>  {
-        let model = InstanceModel::from_object(object)?;
-        let frp   = default();
-        Ok(Instance{model,frp}.init_frp())
+    pub fn new(class:&JsValue, scene:&Scene) -> result::Result<Instance, Error>  {
+        let network = default();
+        let frp     = visualization::instance::Frp::new(&network);
+        let model   = InstanceModel::from_class(class)?;
+        model.set_dom_layer(&scene.dom.layers.main);
+        Ok(Instance{model,frp,network}.init_frp().inti_preprocessor_change_callback())
     }
 
     fn init_frp(self) -> Self {
-        let network = &self.frp.network;
+        let network = &self.network;
         let model   = self.model.clone_ref();
         let frp     = self.frp.clone_ref();
         frp::extend! { network
             eval frp.set_size  ((size) model.set_size(*size));
-            eval frp.send_data ([frp](data) { // FIXME this leaks memory!
+            eval frp.send_data ([frp](data) {
                 if let Err(e) = model.receive_data(data) {
                     frp.data_receive_error.emit(Some(e));
                 }
@@ -201,11 +232,21 @@ impl Instance {
         }
         self
     }
+
+    fn inti_preprocessor_change_callback(self) -> Self {
+        // FIXME Does it leak memory? To be checked.
+        let change   = &self.frp.change;
+        let callback = f!((s:String) change.emit(&s.into()));
+        let callback = Box::new(callback);
+        self.model.preprocessor_change.borrow_mut().replace(callback);
+        self
+    }
+
 }
 
 impl From<Instance> for visualization::Instance {
     fn from(t:Instance) -> Self {
-        Self::new(&t,&t.frp)
+        Self::new(&t,&t.frp,&t.network)
     }
 }
 
@@ -220,8 +261,14 @@ impl display::Object for Instance {
 
 /// Try to return the method specified by the given name on the given object as a
 /// `js_sys::Function`.
-fn get_method(object:&js_sys::Object, name:&str) -> Result<js_sys::Function> {
-    let method_value                     = js_sys::Reflect::get(object,&name.into())?;
+fn get_method(object:&js_sys::Object, property:&str) -> Result<js_sys::Function> {
+    let method_value  = js_sys::Reflect::get(object,&property.into());
+    let method_value  = method_value.map_err(
+        |object| Error::PropertyNotFoundOnObject{object,property:property.to_string()})?;
+    if method_value.is_undefined() {
+        let object:JsValue = object.into();
+        return Err(Error::PropertyNotFoundOnObject{object,property:property.to_string()});
+    }
     let method_function:js_sys::Function = method_value.into();
     Ok(method_function)
 }

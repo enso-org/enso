@@ -2,8 +2,9 @@
 
 use enso_prelude::*;
 
-use crate::LogMsg;
+use crate::Message;
 use crate::AnyLogger;
+use crate::enabled;
 
 use shapely::CloneRef;
 use std::fmt::Debug;
@@ -16,41 +17,19 @@ use std::fmt::Debug;
 
 /// Trivial logger that discards all messages except warnings and errors.
 #[derive(Clone,CloneRef,Debug,Default)]
-pub struct Logger{
-    /// Path that is used as an unique identifier of this logger.
-    pub path:Rc<String>,
+pub struct Logger {
+    enabled : enabled::Logger,
 }
 
 
+// === Impls ===
 
-// ===================
-// === Conversions ===
-// ===================
-
-impls!{ From + &From <crate::enabled::Logger> for Logger { |logger| Self::new(logger.path()) }}
-
-
-
-// ======================
-// === AnyLogger Impl ===
-// ======================
+impls!{ From + &From <enabled::Logger> for Logger { |logger| Self::new(logger.path()) }}
 
 impl AnyLogger for Logger {
-    type This = Self;
-
-    fn path(&self) -> &str {
-        self.path.as_str()
-    }
-
-    fn new(path:impl Str) -> Self {
-        Self {path:Rc::new(path.into())}
-    }
-
-    fn trace      <M: LogMsg>(&self,   _:M) {                                                 }
-    fn debug      <M: LogMsg>(&self,   _:M) {                                                 }
-    fn info       <M: LogMsg>(&self,   _:M) {                                                 }
-    fn warning    <M: LogMsg>(&self, msg:M) { crate::enabled::Logger::warning(&self.path,msg) }
-    fn error      <M: LogMsg>(&self, msg:M) { crate::enabled::Logger::error  (&self.path,msg) }
-    fn group_begin<M: LogMsg>(&self,   _:M) {                                                 }
-    fn group_end             (&self       ) {                                                 }
+    type Owned = Self;
+    fn new     (path:impl Into<ImString>) -> Self { Self {enabled : enabled::Logger::new(path) } }
+    fn path    (&self) -> &str { self.enabled.path() }
+    fn warning (&self, msg:impl Message) { self.enabled.warning (msg) }
+    fn error   (&self, msg:impl Message) { self.enabled.error   (msg) }
 }

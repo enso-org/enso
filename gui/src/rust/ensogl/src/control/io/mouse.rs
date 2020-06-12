@@ -8,7 +8,6 @@ pub mod event;
 use crate::control::callback;
 use crate::system::web;
 
-use enso_frp::Position;
 use std::cell::RefCell;
 use std::rc::Rc;
 use wasm_bindgen::JsCast;
@@ -134,26 +133,23 @@ pub struct MouseFrpCallbackHandles {
     on_move  : callback::Handle,
     on_down  : callback::Handle,
     on_up    : callback::Handle,
-    on_leave : callback::Handle,
     on_wheel : callback::Handle
 }
 
+// FIXME: This is obsolete. Use mouse bindings from scene instead.
 /// Bind FRP graph to MouseManager.
 pub fn bind_frp_to_mouse(frp:&enso_frp::io::Mouse, mouse_manager:&MouseManager)
 -> MouseFrpCallbackHandles {
-    // TODO: This does not seem to be ever used. Can it be removed?
     let on_move = enclose!((frp.position => frp) move |e:&OnMove| {
-        frp.emit(Position::new(e.client_x() as f32,e.client_y() as f32));
+        frp.emit(Vector2(e.client_x() as f32,e.client_y() as f32));
     });
-    let on_down  = enclose!((frp.press   => frp) move |_:&OnDown | frp.emit(()));
-    let on_up    = enclose!((frp.release => frp) move |_:&OnUp   | frp.emit(()));
-    let on_wheel = enclose!((frp.wheel   => frp) move |_:&OnWheel| frp.emit(()));
-    let on_leave = enclose!((frp.leave   => frp) move |_:&OnLeave| frp.emit(()));
+    let on_down  = enclose!((frp.down  => frp) move |_:&OnDown | frp.emit(()));
+    let on_up    = enclose!((frp.up    => frp) move |_:&OnUp   | frp.emit(()));
+    let on_wheel = enclose!((frp.wheel => frp) move |_:&OnWheel| frp.emit(()));
     MouseFrpCallbackHandles {
         on_move  : mouse_manager.on_move.add(on_move),
         on_down  : mouse_manager.on_down.add(on_down),
         on_up    : mouse_manager.on_up.add(on_up),
-        on_leave : mouse_manager.on_leave.add(on_leave),
         on_wheel : mouse_manager.on_wheel.add(on_wheel)
     }
 }

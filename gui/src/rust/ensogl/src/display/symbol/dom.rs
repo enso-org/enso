@@ -28,7 +28,7 @@ mod js {
 
         export function set_object_transform(dom, matrix_array) {
             let css = arr_to_css_matrix3d(matrix_array);
-            dom.style.transform = css + 'translate(-50%, -50%) scale(1.0,-1.0)';
+            dom.style.transform = css + 'translate(-50%,-50%)';
         }
     ")]
     extern "C" {
@@ -109,7 +109,7 @@ impl DomSymbol {
         let display_object = display::object::Instance::new(logger);
         let guard          = Rc::new(Guard::new(&display_object,&dom));
         display_object.set_on_updated(enclose!((dom) move |t| {
-            let mut transform = t.matrix();
+            let mut transform = inverse_y_translation(t.matrix());
             transform.iter_mut().for_each(|a| *a = eps(*a));
             set_object_transform(&dom,&transform);
         }));
@@ -150,4 +150,12 @@ impl display::Object for DomSymbol {
 /// eps is used to round very small values to 0.0 for numerical stability
 pub fn eps(value: f32) -> f32 {
     if value.abs() < 1e-10 { 0.0 } else { value }
+}
+
+/// Inverses y translation of `transform`, i.e., `translation(x,y,z)` becomes `translation(x,-y,z)`.
+pub fn inverse_y_translation(mut transform:Matrix4<f32>) -> Matrix4<f32> {
+    let y_translation_index = (1,3);
+    let y_translation       = transform.index_mut(y_translation_index);
+    *y_translation          = -*y_translation;
+    transform
 }
