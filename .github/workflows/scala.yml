@@ -4,7 +4,7 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
+    branches: [ "*" ]
 
 env:
   # Please ensure that this is in sync with graalAPIVersion in build.sbt
