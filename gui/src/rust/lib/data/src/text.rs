@@ -11,6 +11,7 @@ use serde::Serialize;
 use serde::Deserialize;
 
 
+
 /// ======================================
 /// === Text Coordinates And Distances ===
 /// ======================================
@@ -66,6 +67,16 @@ impl Size {
     pub fn new(value:usize) -> Self {
         Size {value}
     }
+
+    /// Checks if this is a non-empty size (more than zero elements).
+    pub fn non_empty(self) -> bool {
+        self.value > 0
+    }
+
+    /// Checks if this is an empty size (zero elements).
+    pub fn is_empty(self) -> bool {
+        self.value == 0
+    }
 }
 
 impl Add for Size {
@@ -91,6 +102,18 @@ impl Sub for Size {
 impl SubAssign for Size {
     fn sub_assign(&mut self, rhs: Size) {
         *self = *self - rhs;
+    }
+}
+
+impl Display for Size {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"{}",self.value)
+    }
+}
+
+impl From<&str> for Size {
+    fn from(text:&str) -> Self {
+        Size::new(text.len())
     }
 }
 
@@ -147,6 +170,50 @@ impl Span {
         let end   = self.end().value;
         start .. end
     }
+
+    /// Expand the span by moving its left (start) index.
+    pub fn extend_left(&mut self, size:Size) {
+        self.index -= size;
+        self.size += size;
+    }
+
+    /// Expand the span by moving its right (end) index.
+    pub fn extend_right(&mut self, size:Size) {
+        self.size += size;
+    }
+
+    /// Shrink the span by moving its left (start) index.
+    pub fn shrink_left(&mut self, size:Size) {
+        self.index += size;
+        self.size -= size;
+    }
+
+    /// Shrink the span by moving its right (end) index.
+    pub fn shrink_right(&mut self, size:Size) {
+        self.size -= size;
+    }
+
+    /// Move the whole span left, maintaining its size.
+    pub fn move_left(&mut self, size:Size) {
+        self.index -= size;
+    }
+
+    /// Move the whole span right, maintaining its size.
+    pub fn move_right(&mut self, size:Size) {
+        self.index += size;
+    }
+
+    /// Move the start index of the span, adjusting the size.
+    pub fn set_left(&mut self, new_left:Index) {
+        let end = self.end();
+        self.index = new_left;
+        self.size = end - new_left;
+    }
+
+    /// Move the end index of the span, adjusting the size.
+    pub fn set_right(&mut self, new_right:Index) {
+        self.size = new_right - self.index;
+    }
 }
 
 impls! { From + &From <Range<usize>> for Span { |range|
@@ -160,6 +227,34 @@ impls! { Into + &Into <Range<usize>> for Span { |this|
 impl PartialEq<Range<usize>> for Span {
     fn eq(&self, other:&Range<usize>) -> bool {
         &self.range() == other
+    }
+}
+
+impl Display for Span {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"{}..{}",self.index.value,self.end().value)
+    }
+}
+
+impl std::ops::Index<Span> for str {
+    type Output = str;
+
+    fn index(&self, index:Span) -> &Self::Output {
+        &self[index.range()]
+    }
+}
+
+impl std::ops::Index<Span> for String {
+    type Output = str;
+
+    fn index(&self, index:Span) -> &Self::Output {
+        &self.as_str()[index]
+    }
+}
+
+impl From<Range<Index>> for Span {
+    fn from(range:Range<Index>) -> Self {
+        Span::from_indices(range.start,range.end)
     }
 }
 
@@ -317,6 +412,45 @@ impl<Index,Content> TextChangeTemplate<Index,Content> {
     pub fn replace(replaced:Range<Index>, text:Content) -> Self {
         let inserted = text;
         TextChangeTemplate {replaced,inserted}
+    }
+}
+
+impl<Index:Sub+Clone,Content> TextChangeTemplate<Index,Content> {
+    /// Calculate the size of the replaced text.
+    pub fn replaced_size(&self) -> Index::Output {
+        self.replaced.end.clone() - self.replaced.start.clone()
+    }
+}
+
+impl<Content> TextChangeTemplate<Index,Content> {
+    /// Calculate the size of the replaced text.
+    pub fn replaced_span(&self) -> Span {
+        let index = self.replaced.start;
+        let size  = self.replaced_size();
+        Span {index,size}
+    }
+
+    /// Applies the text edit on given `String` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the replaced span is out of the string value bounds.
+    pub fn apply(&self, target:&mut String) where Content:AsRef<str> {
+        //debug!(logger, "change: {change:?}, my code: \n```\n{code}\n```");
+        let replaced_indices  = self.replaced.start.value..self.replaced.end.value;
+        //debug!(logger, "replacing range {replaced_indices:?} with {change.inserted}");
+        target.replace_range(replaced_indices,self.inserted.as_ref());
+    }
+
+    /// Applies the text edit on string and returns the result.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the replaced span is out of the string value bounds.
+    pub fn applied(&self, target:&str) -> String where Content:AsRef<str> {
+        let mut target = target.to_string();
+        self.apply(&mut target);
+        target
     }
 }
 
