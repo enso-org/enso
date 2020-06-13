@@ -394,10 +394,8 @@ impl Module {
     pub fn apply_code_change
     (&self, change:TextChange, parser:&Parser, new_id_map:ast::IdMap) -> FallibleResult<()> {
         let mut code          = self.ast().repr();
-        let replaced_indices  = change.replaced.start.value..change.replaced.end.value;
         let replaced_location = TextLocation::convert_range(&code,&change.replaced);
-
-        code.replace_range(replaced_indices,&change.inserted);
+        change.apply(&mut code);
         let new_ast = parser.parse(code,new_id_map)?.try_into()?;
         self.content.borrow_mut().ast = new_ast;
         self.notify(Notification::CodeChanged {change,replaced_location});

@@ -55,6 +55,14 @@ use serde::Serialize;
 use shapely::*;
 use uuid::Uuid;
 
+/// A sequence of AST nodes, typically the "token soup".
+pub type Stream<T> = Vec<T>;
+
+
+
+// =============
+// === IdMap ===
+// =============
 
 /// A mapping between text position and immutable ID.
 #[derive(Clone,Debug,Default,Deserialize,Eq,PartialEq,Serialize)]
@@ -72,8 +80,6 @@ impl IdMap {
     }
 }
 
-/// A sequence of AST nodes, typically the "token soup".
-pub type Stream<T> = Vec<T>;
 
 
 
@@ -208,9 +214,9 @@ impl<'t> IntoIterator for &'t Ast {
     }
 }
 
-impl ToString for Ast {
-    fn to_string(&self) -> String {
-        self.repr()
+impl Display for Ast {
+    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f,"{}",self.repr())
     }
 }
 
@@ -278,6 +284,21 @@ impl Ast {
     /// Returns this AST node with shape set to given value.
     pub fn with_shape<S:Into<Shape<Ast>>>(&self, shape:S) -> Ast {
         Ast::new(shape.into(),self.id)
+    }
+
+    /// Find a node in the AST with id equal to the given argument.
+    pub fn find_by_id(&self, id:Id) -> Option<&Ast> {
+        self.iter_recursive().find(|ast| ast.id == Some(id))
+    }
+
+    /// Find a node in the AST with text representation equal to given string.
+    ///
+    /// If multiple nodes match, it is unspecified which one of them will be returned.
+    pub fn find_by_repr(&self, repr:&str) -> Option<&Ast> {
+        // TODO: [mwu]
+        //   We could do much better with HasTokens and iterative matching.
+        //   Still, no need at this point.
+        self.iter_recursive().find(|ast| ast.repr() == repr)
     }
 }
 
