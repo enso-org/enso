@@ -60,7 +60,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     for {
       _            <- log.debug(s"Creating project $name.")
       _            <- validateName(name)
-      _            <- validateExists(name)
+      _            <- checkIfNameExists(name)
       creationTime <- clock.nowInUtc()
       projectId    <- gen.randomUUID()
       project       = Project(projectId, name, UserProject, creationTime)
@@ -96,6 +96,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
   ): F[ProjectServiceFailure, Unit] = {
     log.debug(s"Renaming project $projectId to $name.") *>
     checkIfProjectExists(projectId) *>
+    checkIfNameExists(name) *>
     repo.rename(projectId, name).mapError(toServiceFailure) *>
     log.info(s"Project $projectId renamed.")
   }
@@ -194,7 +195,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
         case Some(project) => CovariantFlatMap[F].pure(project)
       }
 
-  private def validateExists(
+  private def checkIfNameExists(
     name: String
   ): F[ProjectServiceFailure, Unit] =
     repo
