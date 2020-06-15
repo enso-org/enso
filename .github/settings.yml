@@ -14,7 +14,7 @@ repository:
   has_projects: true
   has_downloads: true
 
-  default_branch: master
+  default_branch: main
 
   allow_squash_merge: true
   allow_merge_commit: false
@@ -193,7 +193,7 @@ teams:
 
 # Branch protection
 branches:
-  - name: master
+  - name: main
     protection:
       required_pull_request_reviews:
         required_approving_review_count: 1
