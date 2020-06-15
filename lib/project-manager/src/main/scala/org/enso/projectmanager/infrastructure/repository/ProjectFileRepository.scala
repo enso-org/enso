@@ -68,7 +68,8 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   override def save(
     project: Project
   ): F[ProjectRepositoryFailure, Unit] = {
-    val projectPath     = new File(storageConfig.userProjectsPath, project.name)
+    val projectPath =
+      new File(storageConfig.userProjectsPath, project.id.toString)
     val projectWithPath = project.copy(path = Some(projectPath.toString))
 
     createProjectStructure(project, projectPath) *>

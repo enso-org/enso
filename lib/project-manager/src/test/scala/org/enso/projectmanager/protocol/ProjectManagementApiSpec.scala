@@ -13,7 +13,7 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
 
   "project/create" must {
 
-    "check if project name is not empty" taggedAs(Flaky) in {
+    "check if project name is not empty" taggedAs (Flaky) in {
       val client = new WsTestClient(address)
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -97,29 +97,15 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
 
     "create project structure" in {
       val projectName = "foo"
-      val projectDir  = new File(userProjectDir, projectName)
+
+      implicit val client = new WsTestClient(address)
+
+      val projectId = createProject(projectName)
+
+      val projectDir  = new File(userProjectDir, projectId.toString)
       val packageFile = new File(projectDir, "package.yaml")
       val mainEnso    = Paths.get(projectDir.toString, "src", "Main.enso").toFile
 
-      val client = new WsTestClient(address)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 1,
-              "params": {
-                "name": $projectName
-              }
-            }
-          """)
-      client.expectJson(json"""
-          {
-            "jsonrpc" : "2.0",
-            "id" : 1,
-            "result" : {
-              "projectId" : $getGeneratedUUID
-            }
-          }
-          """)
       packageFile shouldBe Symbol("file")
       mainEnso shouldBe Symbol("file")
     }
@@ -186,9 +172,9 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
     "remove project structure" in {
       //given
       val projectName     = "to-remove"
-      val projectDir      = new File(userProjectDir, projectName)
       implicit val client = new WsTestClient(address)
       val projectId       = createProject(projectName)
+      val projectDir      = new File(userProjectDir, projectId.toString)
       projectDir shouldBe Symbol("directory")
       //when
       client.send(json"""
