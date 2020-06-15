@@ -204,7 +204,7 @@ branches:
       required_status_checks:
         # Require branches to be up to date before merging.
         strict: true
-        contexts: ["Test (macOS-latest)", "Test (ubuntu-latest)", "Test (windows-latest)", "license/cla"]
+        contexts: ["Test (macOS-latest)", "Test (ubuntu-latest)", "license/cla"]
       enforce_admins: null
       restrictions: null
 
