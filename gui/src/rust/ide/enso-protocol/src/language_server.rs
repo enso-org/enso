@@ -1,6 +1,6 @@
 //! Client library for the Language Server part of the Enso Protocol.
 //!
-//! Please refer to https://github.com/luna/enso/blob/master/doc/language-server/specification/enso-protocol.md#protocol-message-specification---language-server
+//! Please refer to https://github.com/luna/enso/blob/main/docs/language-server/README.md---language-server
 //! for the full protocol documentation and discussion on the types and terms used here.
 //!
 //! Also, the Enso Protocol specification is source for many names and comments used here.

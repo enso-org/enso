@@ -84,7 +84,7 @@ impl LanguageServerContent {
 /// changes done to it. On drop the module is closed in Language Server.
 ///
 /// See also (enso protocol documentation)
-/// [https://github.com/luna/enso/blob/master/docs/language-server/protocol-language-server.md].
+/// [https://github.com/luna/enso/blob/main/docs/language-server/protocol-language-server.md].
 #[derive(Debug)]
 pub struct Module {
     path            : model::module::Path,
