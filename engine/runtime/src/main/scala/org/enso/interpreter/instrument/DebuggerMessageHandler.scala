@@ -1,6 +1,10 @@
 package org.enso.interpreter.instrument
 
 import java.nio.ByteBuffer
+
+import com.oracle.truffle.api.TruffleStackTrace.LazyStackTrace
+import com.oracle.truffle.api.{TruffleStackTrace, TruffleStackTraceElement}
+import com.oracle.truffle.api.nodes.RootNode
 import org.enso.interpreter.instrument.ReplDebuggerInstrument.ReplExecutionEventNode
 import org.enso.polyglot.debugger.{
   Debugger,
@@ -10,6 +14,8 @@ import org.enso.polyglot.debugger.{
   SessionExitRequest
 }
 import org.graalvm.polyglot.io.MessageEndpoint
+
+import scala.jdk.CollectionConverters._
 
 /**
   * Helper class that handles communication with Debugger client and delegates
@@ -88,8 +94,15 @@ class DebuggerMessageHandler extends MessageEndpoint {
           case EvaluationRequest(expression) =>
             val result = node.evaluate(expression)
             result match {
-              case Left(error) =>
-                sendToClient(Debugger.createEvaluationFailure(error))
+              case Left(exception) =>
+                val exceptionWithTraces =
+                  DebuggerMessageHandler
+                    .fillInTruffleStackTraceForSerialization(
+                      exception
+                    )
+                sendToClient(
+                  Debugger.createEvaluationFailure(exceptionWithTraces)
+                )
               case Right(value) =>
                 sendToClient(Debugger.createEvaluationSuccess(value))
             }
@@ -104,4 +117,56 @@ class DebuggerMessageHandler extends MessageEndpoint {
           "Got a request but no session is running"
         )
     }
+}
+
+object DebuggerMessageHandler {
+
+  /**
+    * Converts the attached Truffle stack trace into StackTraceElements that are
+    * attached to the exception, so that they are preserved by serialization.
+    *
+    * The language stack trace is attached to the last exception in the
+    * exception chain if that exception has empty stack trace. In normal
+    * conditions, if there are Truffle frames attached, the last exception in
+    * the chain will be TruffleStackTrace.LazyStackTrace which has empty Java
+    * stack trace.
+    *
+    * @param exception the exception that was thrown during evaluation
+    * @return returns the original exception which has been possibly modified
+    */
+  private def fillInTruffleStackTraceForSerialization(
+    exception: Exception
+  ): Exception = {
+    val truffleTrace =
+      Option(TruffleStackTrace.getStackTrace(exception))
+        .map(_.asScala)
+        .getOrElse(Nil)
+
+    val javaTrace = truffleTrace.map { elem =>
+      val rootNode = elem.getTarget.getRootNode
+      val language =
+        Option(rootNode.getLanguageInfo).map(_.getId).getOrElse("unknown")
+      val declaringClass = s"<$language>"
+      val methodName = Option(rootNode.getQualifiedName)
+        .getOrElse("?")
+      val sourceLocation = for {
+        sourceSection <- Option(rootNode.getSourceSection)
+        source        <- Option(sourceSection.getSource)
+      } yield (source.getName, sourceSection.getStartLine)
+      val (fileName, lineNumber) = sourceLocation.getOrElse((null, -1))
+      new StackTraceElement(declaringClass, methodName, fileName, lineNumber)
+    }
+
+    if (javaTrace.nonEmpty) {
+      var lastException: Throwable = exception
+      while (lastException.getCause != null) {
+        lastException = lastException.getCause
+      }
+      if (lastException.getStackTrace.isEmpty) {
+        lastException.setStackTrace(javaTrace.toArray)
+      }
+    }
+
+    exception
+  }
 }

@@ -1,13 +1,12 @@
 package org.enso.runner
 
-import java.io.{InputStream, OutputStream, PrintStream}
+import java.io.{InputStream, OutputStream, PrintStream, PrintWriter, Writer}
 import java.util.Scanner
 
-import org.enso.interpreter.instrument.ReplDebuggerInstrument
+import org.enso.polyglot.debugger.{ReplExecutor, SessionManager}
 import org.jline.reader.{LineReader, LineReaderBuilder}
 import org.jline.terminal.{Terminal, TerminalBuilder}
 
-import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 /**
@@ -43,6 +42,28 @@ trait ReplIO {
     * @param contents contents of the line to print
     */
   def println(contents: String): Unit
+
+  /**
+    * Print a stack trace to the REPL.
+    * @param exception which stack trace is to be printed
+    */
+  def printStackTrace(exception: Exception): Unit = {
+    val traceBuilder = new StringBuilder
+    val traceWriter = new Writer() {
+      override def write(
+        cbuf: Array[Char],
+        off: Int,
+        len: Int
+      ): Unit =
+        traceBuilder.append(cbuf.slice(off, off + len).mkString)
+
+      override def flush(): Unit = {}
+
+      override def close(): Unit = {}
+    }
+    exception.printStackTrace(new PrintWriter(traceWriter))
+    println(traceBuilder.toString())
+  }
 }
 
 /**
@@ -101,7 +122,7 @@ case class TerminalIO() extends ReplIO {
   *
   * @param replIO the IO implementation to use with this Repl
   */
-case class Repl(replIO: ReplIO) extends ReplDebuggerInstrument.SessionManager {
+case class Repl(replIO: ReplIO) extends SessionManager {
 
   /**
     * Runs the Repl session by asking for user input and performing
@@ -109,38 +130,41 @@ case class Repl(replIO: ReplIO) extends ReplDebuggerInstrument.SessionManager {
     *
     * End of input causes exit from the Repl.
     *
-    * @param executionNode the execution node capable of performing
-    *                      language-level operations
+    * @param executor the interface for executing commands inside the session
     */
   override def startSession(
-    executionNode: ReplDebuggerInstrument.ReplExecutionEventNode
-  ): Unit = {
-    while (true) {
+    executor: ReplExecutor
+  ): Nothing = {
+    var continueRunning = true
+    while (continueRunning) {
       val input = replIO.readLine("> ")
       input match {
         case EndOfInput =>
-          executionNode.exit()
-          return
+          continueRunning = false
         case Line(line) =>
           if (line == ":list" || line == ":l") {
-            val bindings = executionNode.listBindings().asScala
+            val bindings = executor.listBindings()
             bindings.foreach {
               case (varName, value) =>
                 replIO.println(s"$varName = $value")
             }
           } else if (line == ":quit" || line == ":q") {
-            executionNode.exit()
-            return
+            continueRunning = false
           } else {
-            val result = executionNode.evaluate(line)
+            val result = executor.evaluate(line)
             result match {
-              case Left(error) =>
-                replIO.println(s"Evaluation failed with error: $error")
-              case Right(value) =>
-                replIO.println(s">>> $value")
+              case Left(exception) =>
+                replIO.println(
+                  s"Evaluation failed with: ${exception.getMessage}"
+                )
+                replIO.printStackTrace(exception)
+              case Right(objectRepresentation) =>
+                replIO.println(s">>> $objectRepresentation")
             }
           }
       }
     }
+
+    executor.exit()
   }
 }

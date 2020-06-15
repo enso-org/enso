@@ -19,8 +19,12 @@ object ExceptionRepresentationFactory {
     *         created object
     */
   def create(ex: Throwable)(implicit builder: FlatBufferBuilder): Int = {
-    val messageOffset             = builder.createString(ex.getMessage)
-    val causeOffset               = if (ex.getCause != null) create(ex.getCause) else 0
+    val message       = Option(ex.getMessage).orElse(Option(ex.toString))
+    val messageOffset = message.map(builder.createString).getOrElse(0)
+
+    val causeOffset =
+      if (ex.getCause != null) create(ex.getCause) else 0
+
     val traceElements: Array[Int] = ex.getStackTrace.map(createStackTrace)
     val traceVectorOffset =
       ExceptionRepresentation.createStackTraceVector(builder, traceElements)
@@ -38,8 +42,11 @@ object ExceptionRepresentationFactory {
     val declaringClassOffset: Int =
       builder.createString(traceElement.getClassName)
     val methodNameOffset = builder.createString(traceElement.getMethodName)
-    val fileNameOffset   = builder.createString(traceElement.getFileName)
-    val lineNumber: Int  = traceElement.getLineNumber
+    val fileNameOffset =
+      if (traceElement.getFileName != null)
+        builder.createString(traceElement.getFileName)
+      else 0
+    val lineNumber: Int = traceElement.getLineNumber
     StackTraceElement.createStackTraceElement(
       builder,
       declaringClassOffset,
