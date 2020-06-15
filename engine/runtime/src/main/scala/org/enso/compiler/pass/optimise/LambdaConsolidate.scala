@@ -168,8 +168,7 @@ case object LambdaConsolidate extends IRPass {
           arguments = processedArgList,
           body      = runExpression(newBody, inlineContext),
           location  = newLocation,
-          canBeTCO  = chainedLambdas.last.canBeTCO,
-          passData  = MetadataStorage()
+          canBeTCO  = chainedLambdas.last.canBeTCO
         )
       case _: IR.Function.Binding =>
         throw new CompilerError(
@@ -307,9 +306,10 @@ case object LambdaConsolidate extends IRPass {
               case defSpec: IR.DefinitionArgument.Specified => defSpec.name.name
             }
           )
-        case ths: IR.Name.This    => ths
-        case here: IR.Name.Here   => here
-        case blank: IR.Name.Blank => blank
+        case ths: IR.Name.This            => ths
+        case here: IR.Name.Here           => here
+        case blank: IR.Name.Blank         => blank
+        case ref: IR.Name.MethodReference => ref
       }
     } else {
       name

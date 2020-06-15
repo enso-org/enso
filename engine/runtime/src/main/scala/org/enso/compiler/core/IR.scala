@@ -103,9 +103,17 @@ sealed trait IR {
     *
     * @param keepLocations whether or not locations should be kept in the
     *                      duplicated IR
+    * @param keepMetadata whether or not the pass metadata should be kept in the
+    *                      duplicated IR
+    * @param keepDiagnostics whether or not the diagnostics should be kept in
+    *                        the duplicated IR
     * @return a deep structural copy of `this`
     */
-  def duplicate(keepLocations: Boolean = true): IR
+  def duplicate(
+    keepLocations: Boolean   = true,
+    keepMetadata: Boolean    = true,
+    keepDiagnostics: Boolean = true
+  ): IR
 
   /** Shows the IR as code.
     *
@@ -214,11 +222,15 @@ object IR {
       res
     }
 
-    override def duplicate(keepLocations: Boolean = true): Empty =
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Empty =
       copy(
         location    = if (keepLocations) location else None,
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -291,13 +303,21 @@ object IR {
       res
     }
 
-    override def duplicate(keepLocations: Boolean = true): Module =
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Module =
       copy(
-        imports     = imports.map(_.duplicate(keepLocations)),
-        bindings    = bindings.map(_.duplicate(keepLocations)),
+        imports = imports.map(
+          _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+        ),
+        bindings = bindings.map(
+          _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+        ),
         location    = if (keepLocations) location else None,
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -355,7 +375,11 @@ object IR {
     sealed trait Scope extends IR {
       override def mapExpressions(fn: Expression => Expression):      Scope
       override def setLocation(location: Option[IdentifiedLocation]): Scope
-      override def duplicate(keepLocations: Boolean = true): Scope
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Scope
     }
     object Scope {
 
@@ -363,7 +387,11 @@ object IR {
       sealed trait Import extends Scope {
         override def mapExpressions(fn: Expression => Expression):      Import
         override def setLocation(location: Option[IdentifiedLocation]): Import
-        override def duplicate(keepLocations: Boolean = true): Import
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Import
       }
 
       object Import {
@@ -405,12 +433,17 @@ object IR {
             res
           }
 
-          override def duplicate(keepLocations: Boolean = true): Module =
+          override def duplicate(
+            keepLocations: Boolean   = true,
+            keepMetadata: Boolean    = true,
+            keepDiagnostics: Boolean = true
+          ): Module =
             copy(
-              location    = if (keepLocations) location else None,
-              passData    = MetadataStorage(),
-              diagnostics = DiagnosticStorage(),
-              id          = randomId
+              location = if (keepLocations) location else None,
+              passData = if (keepMetadata) passData else MetadataStorage(),
+              diagnostics =
+                if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+              id = randomId
             )
 
           override def setLocation(
@@ -500,12 +533,17 @@ object IR {
             res
           }
 
-          override def duplicate(keepLocations: Boolean = true): Polyglot =
+          override def duplicate(
+            keepLocations: Boolean   = true,
+            keepMetadata: Boolean    = true,
+            keepDiagnostics: Boolean = true
+          ): Polyglot =
             copy(
-              location    = if (keepLocations) location else None,
-              passData    = MetadataStorage(),
-              diagnostics = DiagnosticStorage(),
-              id          = randomId
+              location = if (keepLocations) location else None,
+              passData = if (keepMetadata) passData else MetadataStorage(),
+              diagnostics =
+                if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+              id = randomId
             )
 
           override def setLocation(
@@ -540,7 +578,11 @@ object IR {
         override def setLocation(
           location: Option[IdentifiedLocation]
         ): Definition
-        override def duplicate(keepLocations: Boolean = true): Definition
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Definition
       }
       object Definition {
 
@@ -585,13 +627,20 @@ object IR {
             res
           }
 
-          override def duplicate(keepLocations: Boolean = true): Atom = copy(
-            name        = name.duplicate(keepLocations),
-            arguments   = arguments.map(_.duplicate(keepLocations)),
-            location    = if (keepLocations) location else None,
-            passData    = MetadataStorage(),
-            diagnostics = DiagnosticStorage(),
-            id          = randomId
+          override def duplicate(
+            keepLocations: Boolean   = true,
+            keepMetadata: Boolean    = true,
+            keepDiagnostics: Boolean = true
+          ): Atom = copy(
+            name = name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            arguments = arguments.map(
+              _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+            ),
+            location = if (keepLocations) location else None,
+            passData = if (keepMetadata) passData else MetadataStorage(),
+            diagnostics =
+              if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+            id = randomId
           )
 
           override def setLocation(location: Option[IdentifiedLocation]): Atom =
@@ -678,15 +727,25 @@ object IR {
             res
           }
 
-          override def duplicate(keepLocations: Boolean = true): Type =
+          override def duplicate(
+            keepLocations: Boolean   = true,
+            keepMetadata: Boolean    = true,
+            keepDiagnostics: Boolean = true
+          ): Type =
             copy(
-              name        = name.duplicate(keepLocations),
-              arguments   = arguments.map(_.duplicate(keepLocations)),
-              body        = body.map(_.duplicate(keepLocations)),
-              location    = if (keepLocations) location else None,
-              passData    = MetadataStorage(),
-              diagnostics = DiagnosticStorage(),
-              id          = randomId
+              name =
+                name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+              arguments = arguments.map(
+                _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+              ),
+              body = body.map(
+                _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+              ),
+              location = if (keepLocations) location else None,
+              passData = if (keepMetadata) passData else MetadataStorage(),
+              diagnostics =
+                if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+              id = randomId
             )
 
           override def mapExpressions(fn: Expression => Expression): Type =
@@ -725,30 +784,32 @@ object IR {
 
         /** A trait representing method definitions in Enso. */
         sealed trait Method extends Definition {
-          val typeName: IR.Name
-          val methodName: IR.Name
+          val methodReference: IR.Name.MethodReference
           val body: Expression
 
           override def setLocation(location: Option[IdentifiedLocation]): Method
           override def mapExpressions(fn: Expression => Expression):      Method
-          override def duplicate(keepLocations: Boolean = true): Method
+          override def duplicate(
+            keepLocations: Boolean   = true,
+            keepMetadata: Boolean    = true,
+            keepDiagnostics: Boolean = true
+          ): Method
+
+          def typeName: IR.Name   = methodReference.typePointerAsName
+          def methodName: IR.Name = methodReference.methodName
         }
         object Method {
 
-          /** The definition of a method for a given constructor [[typeName]].
+          /** The definition of a method for a given constructor.
             *
-            * @param typeName the name of the atom that the method is being
-            *                 defined for
-            * @param methodName the name of the method being defined on
-            *                   `typename`
+            * @param methodReference a reference to the method being defined
             * @param body the body of the method
             * @param location the source location that the node corresponds to
             * @param passData the pass metadata associated with this node
             * @param diagnostics compiler diagnostics for this node
             */
           sealed case class Explicit(
-            override val typeName: IR.Name,
-            override val methodName: IR.Name,
+            override val methodReference: IR.Name.MethodReference,
             override val body: Expression,
             override val location: Option[IdentifiedLocation],
             override val passData: MetadataStorage      = MetadataStorage(),
@@ -759,9 +820,7 @@ object IR {
 
             /** Creates a copy of `this`.
               *
-              * @param typeName the name of the atom that the method is being
-              *                 defined for
-              * @param methodName the name of the method being defined on `typename`
+              * @param methodReference a reference to the method being defined
               * @param body the body of the method
               * @param location the source location that the node corresponds to
               * @param passData the pass metadata associated with this node
@@ -770,17 +829,15 @@ object IR {
               * @return a copy of `this`, updated with the specified values
               */
             def copy(
-              typeName: IR.Name                    = typeName,
-              methodName: IR.Name                  = methodName,
-              body: Expression                     = body,
-              location: Option[IdentifiedLocation] = location,
-              passData: MetadataStorage            = passData,
-              diagnostics: DiagnosticStorage       = diagnostics,
-              id: Identifier                       = id
+              methodReference: IR.Name.MethodReference = methodReference,
+              body: Expression                         = body,
+              location: Option[IdentifiedLocation]     = location,
+              passData: MetadataStorage                = passData,
+              diagnostics: DiagnosticStorage           = diagnostics,
+              id: Identifier                           = id
             ): Explicit = {
               val res = Explicit(
-                typeName,
-                methodName,
+                methodReference,
                 body,
                 location,
                 passData,
@@ -790,15 +847,21 @@ object IR {
               res
             }
 
-            override def duplicate(keepLocations: Boolean = true): Explicit =
+            override def duplicate(
+              keepLocations: Boolean   = true,
+              keepMetadata: Boolean    = true,
+              keepDiagnostics: Boolean = true
+            ): Explicit =
               copy(
-                typeName    = typeName.duplicate(keepLocations),
-                methodName  = methodName.duplicate(keepLocations),
-                body        = body.duplicate(keepLocations),
-                location    = if (keepLocations) location else None,
-                passData    = MetadataStorage(),
-                diagnostics = DiagnosticStorage(),
-                id          = randomId
+                methodReference = methodReference
+                  .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                body =
+                  body.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                location = if (keepLocations) location else None,
+                passData = if (keepMetadata) passData else MetadataStorage(),
+                diagnostics =
+                  if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+                id = randomId
               )
 
             override def setLocation(
@@ -810,17 +873,15 @@ object IR {
               fn: Expression => Expression
             ): Explicit = {
               copy(
-                typeName   = typeName.mapExpressions(fn),
-                methodName = methodName.mapExpressions(fn),
-                body       = fn(body)
+                methodReference = methodReference.mapExpressions(fn),
+                body            = fn(body)
               )
             }
 
             override def toString: String =
               s"""
               |IR.Module.Scope.Definition.Method.Explicit(
-              |typeName = $typeName,
-              |methodName = $methodName,
+              |methodReference = $methodReference,
               |body = $body,
               |location = $location,
               |passData = ${this.showPassData},
@@ -829,7 +890,7 @@ object IR {
               |)
               |""".toSingleLine
 
-            override def children: List[IR] = List(typeName, methodName, body)
+            override def children: List[IR] = List(methodReference, body)
 
             override def showCode(indent: Int): String = {
               val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
@@ -838,17 +899,14 @@ object IR {
                 s"${body.showCode(indent)}"
               }
 
-              s"$typeName.$methodName = $exprStr"
+              s"${methodReference.showCode(indent)} = $exprStr"
             }
           }
 
-          /** The definition of a method for a given constructor [[typeName]]
-            * using sugared syntax.
+          /** The definition of a method for a given constructor using sugared
+            * syntax.
             *
-            * @param typeName the name of the atom that the method is being
-            *                 defined for
-            * @param methodName the name of the method being defined on
-            *                   `typename`
+            * @param methodReference a reference to the method being defined
             * @param arguments the arguments to the method
             * @param body the body of the method
             * @param location the source location that the node corresponds to
@@ -856,8 +914,7 @@ object IR {
             * @param diagnostics compiler diagnostics for this node
             */
           sealed case class Binding(
-            override val typeName: IR.Name,
-            override val methodName: IR.Name,
+            override val methodReference: IR.Name.MethodReference,
             arguments: List[IR.DefinitionArgument],
             override val body: Expression,
             override val location: Option[IdentifiedLocation],
@@ -869,10 +926,7 @@ object IR {
 
             /** Creates a copy of `this`.
               *
-              * @param typeName the name of the atom that the method is being
-              *                 defined for
-              * @param methodName the name of the method being defined on
-              *                   `typename`
+              * @param methodReference a reference to the method being defined
               * @param arguments the arguments to the method
               * @param body the body of the method
               * @param location the source location that the node corresponds to
@@ -882,18 +936,16 @@ object IR {
               * @return a copy of `this`, updated with the specified values
               */
             def copy(
-              typeName: IR.Name                      = typeName,
-              methodName: IR.Name                    = methodName,
-              arguments: List[IR.DefinitionArgument] = arguments,
-              body: Expression                       = body,
-              location: Option[IdentifiedLocation]   = location,
-              passData: MetadataStorage              = passData,
-              diagnostics: DiagnosticStorage         = diagnostics,
-              id: Identifier                         = id
+              methodReference: IR.Name.MethodReference = methodReference,
+              arguments: List[IR.DefinitionArgument]   = arguments,
+              body: Expression                         = body,
+              location: Option[IdentifiedLocation]     = location,
+              passData: MetadataStorage                = passData,
+              diagnostics: DiagnosticStorage           = diagnostics,
+              id: Identifier                           = id
             ): Binding = {
               val res = Binding(
-                typeName,
-                methodName,
+                methodReference,
                 arguments,
                 body,
                 location,
@@ -904,16 +956,24 @@ object IR {
               res
             }
 
-            override def duplicate(keepLocations: Boolean = true): Binding =
+            override def duplicate(
+              keepLocations: Boolean   = true,
+              keepMetadata: Boolean    = true,
+              keepDiagnostics: Boolean = true
+            ): Binding =
               copy(
-                typeName    = typeName.duplicate(keepLocations),
-                methodName  = methodName.duplicate(keepLocations),
-                arguments   = arguments.map(_.duplicate(keepLocations)),
-                body        = body.duplicate(keepLocations),
-                location    = if (keepLocations) location else None,
-                passData    = MetadataStorage(),
-                diagnostics = DiagnosticStorage(),
-                id          = randomId
+                methodReference = methodReference
+                  .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                arguments = arguments.map(
+                  _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+                ),
+                body =
+                  body.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+                location = if (keepLocations) location else None,
+                passData = if (keepMetadata) passData else MetadataStorage(),
+                diagnostics =
+                  if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+                id = randomId
               )
 
             override def setLocation(
@@ -925,18 +985,16 @@ object IR {
               fn: Expression => Expression
             ): Binding = {
               copy(
-                typeName   = typeName.mapExpressions(fn),
-                methodName = methodName.mapExpressions(fn),
-                arguments  = arguments.map(_.mapExpressions(fn)),
-                body       = fn(body)
+                methodReference = methodReference.mapExpressions(fn),
+                arguments       = arguments.map(_.mapExpressions(fn)),
+                body            = fn(body)
               )
             }
 
             override def toString: String =
               s"""
               |IR.Module.Scope.Definition.Method.Binding(
-              |typeName = $typeName,
-              |methodName = $methodName,
+              |methodReference = $methodReference,
               |arguments = $arguments,
               |body = $body,
               |location = $location,
@@ -947,7 +1005,7 @@ object IR {
               |""".toSingleLine
 
             override def children: List[IR] =
-              (typeName :: methodName :: arguments) :+ body
+              (methodReference :: arguments) :+ body
 
             override def showCode(indent: Int): String = {
               val exprStr = if (body.isInstanceOf[IR.Expression.Block]) {
@@ -958,7 +1016,7 @@ object IR {
 
               val argsStr = arguments.map(_.showCode(indent)).mkString(" ")
 
-              s"${typeName.name}.${methodName.name} $argsStr = $exprStr"
+              s"${methodReference.showCode(indent)} $argsStr = $exprStr"
             }
           }
         }
@@ -988,7 +1046,11 @@ object IR {
 
     override def mapExpressions(fn: Expression => Expression):      Expression
     override def setLocation(location: Option[IdentifiedLocation]): Expression
-    override def duplicate(keepLocations: Boolean = true): Expression
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Expression
   }
   object Expression {
 
@@ -1045,14 +1107,22 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Block =
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Block =
         copy(
-          expressions = expressions.map(_.duplicate(keepLocations)),
-          returnValue = returnValue.duplicate(keepLocations),
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+          expressions = expressions.map(
+            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+          ),
+          returnValue =
+            returnValue.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
       override def setLocation(location: Option[IdentifiedLocation]): Block =
@@ -1135,14 +1205,20 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Binding =
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Binding =
         copy(
-          name        = name.duplicate(keepLocations),
-          expression  = expression.duplicate(keepLocations),
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+          name = name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          expression =
+            expression.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
       override def setLocation(location: Option[IdentifiedLocation]): Binding =
@@ -1177,7 +1253,11 @@ object IR {
   sealed trait Literal extends Expression with IRKind.Primitive {
     override def mapExpressions(fn: Expression => Expression):      Literal
     override def setLocation(location: Option[IdentifiedLocation]): Literal
-    override def duplicate(keepLocations: Boolean = true): Literal
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Literal
   }
   object Literal {
 
@@ -1217,12 +1297,17 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Number =
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Number =
         copy(
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
       override def setLocation(location: Option[IdentifiedLocation]): Number =
@@ -1281,12 +1366,17 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Text =
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Text =
         copy(
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
       override def setLocation(location: Option[IdentifiedLocation]): Text =
@@ -1319,7 +1409,11 @@ object IR {
 
     override def mapExpressions(fn: Expression => Expression):      Name
     override def setLocation(location: Option[IdentifiedLocation]): Name
-    override def duplicate(keepLocations: Boolean = true): Name
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Name
 
     /** Checks whether a name is in referant form.
       *
@@ -1342,6 +1436,161 @@ object IR {
     // TODO [AA] toReferant and toVariable for converting forms
   }
   object Name {
+
+    /** A representation of a method reference of the form `Type_Path.method`.
+      *
+      * @param typePointer the type name
+      * @param methodName the method on `typeName`
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class MethodReference(
+      typePointer: List[IR.Name],
+      methodName: IR.Name,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Name
+        with IRKind.Sugar {
+      override val name: String             = showCode()
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param typePointer the type name
+        * @param methodName the method on `typeName`
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        typePointer: List[IR.Name]           = typePointer,
+        methodName: IR.Name                  = methodName,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): MethodReference = {
+        val res =
+          MethodReference(
+            typePointer,
+            methodName,
+            location,
+            passData,
+            diagnostics
+          )
+        res.id = id
+        res
+      }
+
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): MethodReference = copy(
+        typePointer =
+          typePointer.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+        methodName =
+          methodName.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+        location    = if (keepLocations) location else None,
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+        id          = randomId
+      )
+
+      override def mapExpressions(
+        fn: Expression => Expression
+      ): MethodReference = copy(
+        typePointer = typePointer.map(_.mapExpressions(fn)),
+        methodName  = methodName.mapExpressions(fn)
+      )
+
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): MethodReference = {
+        copy(location = location)
+      }
+
+      override def toString: String =
+        s"""
+        |IR.Name.MethodReference(
+        |typePointer = $typePointer,
+        |methodName = $methodName,
+        |location = $location,
+        |passData = $passData,
+        |diagnostics = $diagnostics,
+        |id = $id
+        |)
+        |""".toSingleLine
+
+      override def children: List[IR] = typePointer :+ methodName
+
+      override def showCode(indent: Int): String = {
+        val tPointer = typePointer.map(_.showCode(indent)).mkString(".")
+        s"$tPointer.${methodName.showCode(indent)}"
+      }
+
+      /** Constructs a name literal from the type name segments.
+        *
+        * @return a name literal representing [[typePointer]]
+        */
+      def typePointerAsName: IR.Name = {
+        val nameStr = typePointer.map(_.name).mkString(".")
+        val newLoc  = MethodReference.genLocation(typePointer)
+
+        IR.Name.Literal(
+          nameStr,
+          newLoc
+        )
+      }
+
+      /** Checks whether `this` and `that` reference the same method.
+        *
+        * @param that the other method reference to check against
+        * @return `true`, if `this` and `that` represent the same method,
+        *         otherwise `false`
+        */
+      def isSameReferenceAs(that: MethodReference): Boolean = {
+        if (this.typePointer.length == that.typePointer.length) {
+          val pathsAreSame = this.typePointer.zip(that.typePointer).forall {
+            case (l, r) => l.name == r.name
+          }
+
+          pathsAreSame && (this.methodName.name == that.methodName.name)
+        } else {
+          false
+        }
+      }
+    }
+    object MethodReference {
+
+      /** Generates a location for the reference from the segments.
+        *
+        * @param segments the reference segments
+        * @return a location for the method reference
+        */
+      def genLocation(segments: List[IR.Name]): Option[IdentifiedLocation] = {
+        segments.foldLeft(None: Option[IdentifiedLocation])(
+          (identLoc, segment) => {
+            identLoc.flatMap(loc => {
+              Some(
+                IdentifiedLocation(
+                  Location(
+                    loc.location.start,
+                    segment.location
+                      .flatMap(l => Some(l.location.end))
+                      .getOrElse(loc.location.end)
+                  )
+                )
+              )
+            })
+          }
+        )
+      }
+    }
 
     /** Represents occurrences of blank (`_`) expressions.
       *
@@ -1377,12 +1626,17 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Blank =
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Blank =
         copy(
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
       override def mapExpressions(fn: Expression => Expression): Blank =
@@ -1442,12 +1696,17 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Literal =
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Literal =
         copy(
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
       override def setLocation(location: Option[IdentifiedLocation]): Literal =
@@ -1504,12 +1763,17 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): This =
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): This =
         copy(
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
       override def setLocation(location: Option[IdentifiedLocation]): This =
@@ -1566,12 +1830,17 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Here =
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Here =
         copy(
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
       override def setLocation(location: Option[IdentifiedLocation]): Here =
@@ -1600,7 +1869,11 @@ object IR {
   sealed trait Type extends Expression {
     override def mapExpressions(fn: Expression => Expression):      Type
     override def setLocation(location: Option[IdentifiedLocation]): Type
-    override def duplicate(keepLocations: Boolean = true): Type
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Type
   }
   object Type {
 
@@ -1624,6 +1897,7 @@ object IR {
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Type
+        with Module.Scope.Definition
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
@@ -1650,14 +1924,20 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Ascription =
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Ascription =
         copy(
-          typed       = typed.duplicate(keepLocations),
-          signature   = signature.duplicate(keepLocations),
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+          typed = typed.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          signature =
+            signature.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
       override def setLocation(
@@ -1730,14 +2010,20 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Context =
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Context =
         copy(
-          typed       = typed.duplicate(keepLocations),
-          context     = context.duplicate(keepLocations),
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+          typed = typed.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          context =
+            context.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
       override def setLocation(location: Option[IdentifiedLocation]): Context =
@@ -1767,11 +2053,95 @@ object IR {
       override val name: String = "in"
     }
 
+    /** Represents the ascription of an error context to an expression.
+      *
+      * @param typed the expression being ascribed an error context
+      * @param error the error being ascribed
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Error(
+      typed: Expression,
+      error: Expression,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Type
+        with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param typed the expression being ascribed an error context
+        * @param error the error being ascribed
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        typed: Expression                    = typed,
+        error: Expression                    = error,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Error = {
+        val res = Error(typed, error, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Error = copy(
+        typed       = typed.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+        error       = error.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+        location    = if (keepLocations) location else None,
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+        id          = randomId
+      )
+
+      override def setLocation(location: Option[IdentifiedLocation]): Error =
+        copy(location = location)
+
+      override def mapExpressions(fn: Expression => Expression): Error =
+        copy(typed = fn(typed), error = fn(error))
+
+      override def toString: String =
+        s"""IR.Type.Error(
+        |typed = $typed,
+        |error = $error,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
+        |id = $id
+        |)
+        |""".toSingleLine
+
+      override def children: List[IR] = List(typed, error)
+
+      override def showCode(indent: Int): String =
+        s"(${typed.showCode(indent)} ! ${error.showCode(indent)})"
+    }
+    object Error extends Info {
+      override val name: String = "!"
+    }
+
     /** IR nodes for dealing with typesets. */
     sealed trait Set extends Type {
       override def mapExpressions(fn: Expression => Expression):      Set
       override def setLocation(location: Option[IdentifiedLocation]): Set
-      override def duplicate(keepLocations: Boolean = true): Set
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Set
     }
     object Set {
 
@@ -1821,14 +2191,20 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): Member = copy(
-          label       = label.duplicate(keepLocations),
-          memberType  = memberType.duplicate(keepLocations),
-          value       = value.duplicate(keepLocations),
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Member = copy(
+          label = label.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          memberType =
+            memberType.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          value    = value.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
         override def setLocation(location: Option[IdentifiedLocation]): Member =
@@ -1908,14 +2284,20 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): Subsumption =
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Subsumption =
           copy(
-            left        = left.duplicate(keepLocations),
-            right       = right.duplicate(keepLocations),
-            location    = if (keepLocations) location else None,
-            passData    = MetadataStorage(),
-            diagnostics = DiagnosticStorage(),
-            id          = randomId
+            left = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            right =
+              right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            location = if (keepLocations) location else None,
+            passData = if (keepMetadata) passData else MetadataStorage(),
+            diagnostics =
+              if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+            id = randomId
           )
 
         override def setLocation(
@@ -1989,13 +2371,18 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): Equality = copy(
-          left        = left.duplicate(keepLocations),
-          right       = right.duplicate(keepLocations),
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Equality = copy(
+          left     = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          right    = right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
         override def setLocation(
@@ -2067,13 +2454,18 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): Concat = copy(
-          left        = left.duplicate(keepLocations),
-          right       = right.duplicate(keepLocations),
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Concat = copy(
+          left     = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          right    = right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
         override def setLocation(location: Option[IdentifiedLocation]): Concat =
@@ -2144,13 +2536,18 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): Union = copy(
-          left        = left.duplicate(keepLocations),
-          right       = right.duplicate(keepLocations),
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Union = copy(
+          left     = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          right    = right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
         override def setLocation(location: Option[IdentifiedLocation]): Union =
@@ -2221,14 +2618,20 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): Intersection =
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Intersection =
           copy(
-            left        = left.duplicate(keepLocations),
-            right       = right.duplicate(keepLocations),
-            location    = if (keepLocations) location else None,
-            passData    = MetadataStorage(),
-            diagnostics = DiagnosticStorage(),
-            id          = randomId
+            left = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            right =
+              right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            location = if (keepLocations) location else None,
+            passData = if (keepMetadata) passData else MetadataStorage(),
+            diagnostics =
+              if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+            id = randomId
           )
 
         override def setLocation(
@@ -2302,14 +2705,20 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): Subtraction =
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Subtraction =
           copy(
-            left        = left.duplicate(keepLocations),
-            right       = right.duplicate(keepLocations),
-            location    = if (keepLocations) location else None,
-            passData    = MetadataStorage(),
-            diagnostics = DiagnosticStorage(),
-            id          = randomId
+            left = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            right =
+              right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            location = if (keepLocations) location else None,
+            passData = if (keepMetadata) passData else MetadataStorage(),
+            diagnostics =
+              if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+            id = randomId
           )
 
         override def setLocation(
@@ -2368,7 +2777,11 @@ object IR {
 
     override def mapExpressions(fn: Expression => Expression):      Function
     override def setLocation(location: Option[IdentifiedLocation]): Function
-    override def duplicate(keepLocations: Boolean = true): Function
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Function
   }
   object Function {
 
@@ -2422,12 +2835,18 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Lambda = copy(
-        arguments   = arguments.map(_.duplicate(keepLocations)),
-        body        = body.duplicate(keepLocations),
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Lambda = copy(
+        arguments = arguments.map(
+          _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+        ),
+        body        = body.duplicate(keepLocations, keepMetadata, keepDiagnostics),
         location    = if (keepLocations) location else None,
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -2523,13 +2942,19 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Binding = copy(
-        name        = name.duplicate(keepLocations),
-        arguments   = arguments.map(_.duplicate(keepLocations)),
-        body        = body.duplicate(keepLocations),
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Binding = copy(
+        name = name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+        arguments = arguments.map(
+          _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+        ),
+        body        = body.duplicate(keepLocations, keepMetadata, keepDiagnostics),
         location    = if (keepLocations) location else None,
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -2594,7 +3019,11 @@ object IR {
       location: Option[IdentifiedLocation]
     ): DefinitionArgument
 
-    override def duplicate(keepLocations: Boolean = true): DefinitionArgument
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): DefinitionArgument
   }
   object DefinitionArgument {
 
@@ -2654,13 +3083,19 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Specified = copy(
-        name         = name.duplicate(keepLocations),
-        defaultValue = defaultValue.map(_.duplicate(keepLocations)),
-        location     = if (keepLocations) location else None,
-        passData     = MetadataStorage(),
-        diagnostics  = DiagnosticStorage(),
-        id           = randomId
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Specified = copy(
+        name = name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+        defaultValue = defaultValue.map(
+          _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+        ),
+        location    = if (keepLocations) location else None,
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+        id          = randomId
       )
 
       override def setLocation(
@@ -2704,7 +3139,11 @@ object IR {
   sealed trait Application extends Expression {
     override def mapExpressions(fn: Expression => Expression):      Application
     override def setLocation(location: Option[IdentifiedLocation]): Application
-    override def duplicate(keepLocations: Boolean = true): Application
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Application
   }
   object Application {
 
@@ -2763,12 +3202,19 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Prefix = copy(
-        function    = function.duplicate(keepLocations),
-        arguments   = arguments.map(_.duplicate(keepLocations)),
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Prefix = copy(
+        function =
+          function.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+        arguments = arguments.map(
+          _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+        ),
         location    = if (keepLocations) location else None,
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -2838,11 +3284,15 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Force = copy(
-        target      = target.duplicate(keepLocations),
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Force = copy(
+        target      = target.duplicate(keepLocations, keepMetadata, keepDiagnostics),
         location    = if (keepLocations) location else None,
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -2874,10 +3324,97 @@ object IR {
     sealed trait Literal extends Application {
       override def mapExpressions(fn: Expression => Expression):      Literal
       override def setLocation(location: Option[IdentifiedLocation]): Literal
-      override def duplicate(keepLocations: Boolean = true): Literal
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Literal
     }
 
     object Literal {
+
+      /** A representation of a typeset literal.
+        *
+        * These are necessary as they delimit pattern contexts.
+        *
+        * @param expression the expression of the typeset body
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        */
+      sealed case class Typeset(
+        expression: Option[Expression],
+        override val location: Option[IdentifiedLocation],
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+      ) extends Literal
+          with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        override def mapExpressions(fn: Expression => Expression): Typeset =
+          copy(expression = expression.map(fn))
+
+        /** Creates a copy of `this`.
+          *
+          * @param expression the expression of the typeset body
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updataed with the specified values
+          */
+        def copy(
+          expression: Option[Expression]       = expression,
+          location: Option[IdentifiedLocation] = location,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
+          id: Identifier                       = id
+        ): Typeset = {
+          val res = Typeset(expression, location, passData, diagnostics)
+          res.id = id
+          res
+        }
+
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Typeset = copy(
+          expression = expression.map(
+            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+          ),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
+        )
+
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): Typeset = copy(location = location)
+
+        override def toString: String =
+          s"""IR.Application.Literal.Typeset(
+          |expression = $expression,
+          |location = $location,
+          |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
+          |id = $id
+          |)
+          |""".toSingleLine
+
+        override def children: List[IR] =
+          expression.map(List(_)).getOrElse(List())
+
+        override def showCode(indent: Int): String = {
+          val exprString = if (expression.isDefined) {
+            expression.get.showCode(indent)
+          } else ""
+
+          s"{ $exprString }"
+        }
+      }
 
       /** A representation of a vector literal.
         *
@@ -2919,12 +3456,19 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): Sequence = copy(
-          items       = items.map(_.duplicate(keepLocations)),
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Sequence = copy(
+          items = items.map(
+            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+          ),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
         override def setLocation(
@@ -2955,7 +3499,11 @@ object IR {
     sealed trait Operator extends Application {
       override def mapExpressions(fn: Expression => Expression):      Operator
       override def setLocation(location: Option[IdentifiedLocation]): Operator
-      override def duplicate(keepLocations: Boolean = true): Operator
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Operator
     }
     object Operator {
 
@@ -3005,14 +3553,20 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): Operator = copy(
-          left        = left.duplicate(keepLocations),
-          operator    = operator.duplicate(keepLocations),
-          right       = right.duplicate(keepLocations),
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Binary = copy(
+          left = left.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          operator =
+            operator.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          right    = right.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
         override def setLocation(location: Option[IdentifiedLocation]): Binary =
@@ -3048,7 +3602,11 @@ object IR {
       sealed trait Section extends Operator {
         override def mapExpressions(fn: Expression => Expression):      Section
         override def setLocation(location: Option[IdentifiedLocation]): Section
-        override def duplicate(keepLocations: Boolean = true): Section
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Section
       }
       object Section {
 
@@ -3093,13 +3651,19 @@ object IR {
             res
           }
 
-          override def duplicate(keepLocations: Boolean = true): Left = copy(
-            arg         = arg.duplicate(keepLocations),
-            operator    = operator.duplicate(keepLocations),
-            location    = if (keepLocations) location else None,
-            passData    = MetadataStorage(),
-            diagnostics = DiagnosticStorage(),
-            id          = randomId
+          override def duplicate(
+            keepLocations: Boolean   = true,
+            keepMetadata: Boolean    = true,
+            keepDiagnostics: Boolean = true
+          ): Left = copy(
+            arg = arg.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            operator =
+              operator.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            location = if (keepLocations) location else None,
+            passData = if (keepMetadata) passData else MetadataStorage(),
+            diagnostics =
+              if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+            id = randomId
           )
 
           override def setLocation(location: Option[IdentifiedLocation]): Left =
@@ -3166,12 +3730,18 @@ object IR {
             res
           }
 
-          override def duplicate(keepLocations: Boolean = true): Sides = copy(
-            operator    = operator.duplicate(keepLocations),
-            location    = if (keepLocations) location else None,
-            passData    = MetadataStorage(),
-            diagnostics = DiagnosticStorage(),
-            id          = randomId
+          override def duplicate(
+            keepLocations: Boolean   = true,
+            keepMetadata: Boolean    = true,
+            keepDiagnostics: Boolean = true
+          ): Sides = copy(
+            operator =
+              operator.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            location = if (keepLocations) location else None,
+            passData = if (keepMetadata) passData else MetadataStorage(),
+            diagnostics =
+              if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+            id = randomId
           )
 
           override def setLocation(
@@ -3239,13 +3809,19 @@ object IR {
             res
           }
 
-          override def duplicate(keepLocations: Boolean = true): Right = copy(
-            operator    = operator.duplicate(keepLocations),
-            arg         = arg.duplicate(keepLocations),
-            location    = if (keepLocations) location else None,
-            passData    = MetadataStorage(),
-            diagnostics = DiagnosticStorage(),
-            id          = randomId
+          override def duplicate(
+            keepLocations: Boolean   = true,
+            keepMetadata: Boolean    = true,
+            keepDiagnostics: Boolean = true
+          ): Right = copy(
+            operator =
+              operator.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            arg      = arg.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+            location = if (keepLocations) location else None,
+            passData = if (keepMetadata) passData else MetadataStorage(),
+            diagnostics =
+              if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+            id = randomId
           )
 
           override def setLocation(
@@ -3302,7 +3878,11 @@ object IR {
 
     override def mapExpressions(fn: Expression => Expression):      CallArgument
     override def setLocation(location: Option[IdentifiedLocation]): CallArgument
-    override def duplicate(keepLocations: Boolean = true): CallArgument
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): CallArgument
   }
   object CallArgument {
 
@@ -3363,12 +3943,17 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Specified = copy(
-        name        = name.map(_.duplicate(keepLocations)),
-        value       = value.duplicate(keepLocations),
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Specified = copy(
+        name =
+          name.map(_.duplicate(keepLocations, keepMetadata, keepDiagnostics)),
+        value       = value.duplicate(keepLocations, keepMetadata, keepDiagnostics),
         location    = if (keepLocations) location else None,
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -3411,7 +3996,11 @@ object IR {
   sealed trait Case extends Expression {
     override def mapExpressions(fn: Expression => Expression):      Case
     override def setLocation(location: Option[IdentifiedLocation]): Case
-    override def duplicate(keepLocations: Boolean = true): Case
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Case
   }
   object Case {
 
@@ -3457,12 +4046,18 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Expr = copy(
-        scrutinee   = scrutinee.duplicate(keepLocations),
-        branches    = branches.map(_.duplicate(keepLocations)),
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Expr = copy(
+        scrutinee =
+          scrutinee.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+        branches =
+          branches.map(_.duplicate(keepLocations, keepMetadata, keepDiagnostics)),
         location    = if (keepLocations) location else None,
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -3542,12 +4137,18 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Branch = copy(
-        pattern     = pattern.duplicate(keepLocations),
-        expression  = expression.duplicate(keepLocations),
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Branch = copy(
+        pattern =
+          pattern.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+        expression =
+          expression.duplicate(keepLocations, keepMetadata, keepDiagnostics),
         location    = if (keepLocations) location else None,
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -3590,7 +4191,11 @@ object IR {
   sealed trait Pattern extends IR {
     override def mapExpressions(fn: Expression => Expression):      Pattern
     override def setLocation(location: Option[IdentifiedLocation]): Pattern
-    override def duplicate(keepLocations: Boolean = true): Pattern
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Pattern
   }
   object Pattern {
 
@@ -3634,11 +4239,15 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Name = copy(
-        name        = name.duplicate(keepLocations),
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Name = copy(
+        name        = name.duplicate(keepLocations, keepMetadata, keepDiagnostics),
         location    = if (keepLocations) location else None,
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -3709,12 +4318,18 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Constructor = copy(
-        constructor = constructor.duplicate(keepLocations),
-        fields      = fields.map(_.duplicate(keepLocations)),
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Constructor = copy(
+        constructor =
+          constructor.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+        fields =
+          fields.map(_.duplicate(keepLocations, keepMetadata, keepDiagnostics)),
         location    = if (keepLocations) location else None,
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -3790,7 +4405,11 @@ object IR {
   sealed trait Comment extends Expression with Module.Scope.Definition {
     override def mapExpressions(fn: Expression => Expression):      Comment
     override def setLocation(location: Option[IdentifiedLocation]): Comment
-    override def duplicate(keepLocations: Boolean = true): Comment
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Comment
   }
   object Comment {
 
@@ -3831,12 +4450,17 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Documentation =
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Documentation =
         copy(
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
       override def setLocation(
@@ -3871,7 +4495,11 @@ object IR {
   sealed trait Foreign extends Expression {
     override def mapExpressions(fn: Expression => Expression):      Foreign
     override def setLocation(location: Option[IdentifiedLocation]): Foreign
-    override def duplicate(keepLocations: Boolean = true): Foreign
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Foreign
   }
   object Foreign {
 
@@ -3916,10 +4544,14 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): Definition = copy(
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Definition = copy(
         location    = if (keepLocations) location else None,
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -4094,7 +4726,11 @@ object IR {
   sealed trait Error extends Expression with Diagnostic {
     override def mapExpressions(fn: Expression => Expression):      Error
     override def setLocation(location: Option[IdentifiedLocation]): Error
-    override def duplicate(keepLocations: Boolean = true): Error
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): Error
   }
   object Error {
 
@@ -4137,11 +4773,16 @@ object IR {
         res
       }
 
-      override def duplicate(@unused keepLocations: Boolean = true): Syntax =
+      override def duplicate(
+        @unused keepLocations: Boolean = true,
+        keepMetadata: Boolean          = true,
+        keepDiagnostics: Boolean       = true
+      ): Syntax =
         copy(
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
       override def setLocation(location: Option[IdentifiedLocation]): Syntax =
@@ -4156,6 +4797,7 @@ object IR {
         s"""
         |IR.Error.Syntax(
         |ast = $ast,
+        |reason = $reason,
         |location = $location,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
@@ -4190,6 +4832,11 @@ object IR {
       case object InvalidPattern extends Reason {
         override def explanation: String =
           s"Cannot define a pattern outside a pattern context."
+      }
+
+      case object InvalidStandaloneSignature extends Reason {
+        override def explanation: String =
+          s"Invalid stand-alone signature expression."
       }
 
       case class MethodDefinedInline(methodName: String) extends Reason {
@@ -4286,10 +4933,14 @@ object IR {
         res
       }
 
-      override def duplicate(keepLocations: Boolean = true): InvalidIR = copy(
-        ir          = ir.duplicate(keepLocations),
-        passData    = MetadataStorage(),
-        diagnostics = DiagnosticStorage(),
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): InvalidIR = copy(
+        ir          = ir.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+        passData    = if (keepMetadata) passData else MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnostics else DiagnosticStorage(),
         id          = randomId
       )
 
@@ -4327,7 +4978,11 @@ object IR {
     sealed trait Redefined extends Error {
       override def mapExpressions(fn: Expression => Expression):      Redefined
       override def setLocation(location: Option[IdentifiedLocation]): Redefined
-      override def duplicate(keepLocations: Boolean = true): Redefined
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Redefined
     }
     object Redefined {
 
@@ -4366,11 +5021,16 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): ThisArg = copy(
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): ThisArg = copy(
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
         override def setLocation(
@@ -4436,13 +5096,20 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): Method = copy(
-          atomName    = atomName.duplicate(keepLocations),
-          methodName  = methodName.duplicate(keepLocations),
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Method = copy(
+          atomName =
+            atomName.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          methodName =
+            methodName.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
         override def setLocation(location: Option[IdentifiedLocation]): Method =
@@ -4515,12 +5182,18 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): Atom = copy(
-          atomName    = atomName.duplicate(keepLocations),
-          location    = if (keepLocations) location else None,
-          passData    = MetadataStorage(),
-          diagnostics = DiagnosticStorage(),
-          id          = randomId
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Atom = copy(
+          atomName =
+            atomName.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          location = if (keepLocations) location else None,
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
         override def setLocation(location: Option[IdentifiedLocation]): Atom =
@@ -4586,11 +5259,17 @@ object IR {
           res
         }
 
-        override def duplicate(keepLocations: Boolean = true): Binding = copy(
-          invalidBinding = invalidBinding.duplicate(keepLocations),
-          passData       = MetadataStorage(),
-          diagnostics    = DiagnosticStorage(),
-          id             = randomId
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Binding = copy(
+          invalidBinding = invalidBinding
+            .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
         )
 
         override def setLocation(
@@ -4621,6 +5300,93 @@ object IR {
 
         override def showCode(indent: Int): String =
           s"(Redefined (Binding $invalidBinding))"
+      }
+    }
+
+    /** A trait for errors about unexpected language constructs. */
+    sealed trait Unexpected extends Error {
+
+      /** The unexpected construct. */
+      val ir: IR
+
+      /** The name of the unexpected entity. */
+      val entity: String
+
+      override val location: Option[IdentifiedLocation] = ir.location
+
+      override def message: String = s"Unexpected $entity."
+
+      override def mapExpressions(fn: Expression => Expression):      Unexpected
+      override def setLocation(location: Option[IdentifiedLocation]): Unexpected
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Unexpected
+    }
+    object Unexpected {
+
+      /** An error representing a type signature not associated with a
+        * binding of some kind.
+        *
+        * @param ir the erroneous signature
+        * @param passData any pass metadata associated with this node
+        * @param diagnostics any compiler diagnostics for this node
+        */
+      sealed case class TypeSignature(
+        override val ir: IR,
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+      ) extends Unexpected
+          with IRKind.Primitive
+          with IR.Module.Scope.Definition {
+        override val entity: String = "type signature"
+
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param ir the erroneous signature
+          * @param passData any pass metadata associated with this node
+          * @param diagnostics any compiler diagnostics for this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          ir: IR                         = ir,
+          passData: MetadataStorage      = passData,
+          diagnostics: DiagnosticStorage = diagnostics,
+          id: Identifier                 = id
+        ): TypeSignature = {
+          val res = TypeSignature(ir, passData, diagnostics)
+          res.id = id
+          res
+        }
+
+        override def mapExpressions(
+          fn: Expression => Expression
+        ): TypeSignature = this
+
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): TypeSignature = this
+
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): TypeSignature = copy(
+          ir       = ir.duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          passData = if (keepMetadata) passData else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics else DiagnosticStorage(),
+          id = randomId
+        )
+
+        override def children: List[IR] = List(ir)
+
+        override def showCode(indent: Int): String =
+          s"(Unexpected.TypeSignature ${ir.showCode(indent)})"
       }
     }
   }
@@ -4901,10 +5667,20 @@ object IR {
       *
       * @param keepLocations whether or not locations should be kept in the
       *                      duplicated IR
+      * @param keepMetadata whether or not the pass metadata should be kept in
+      *                     the duplicated IR
+      * @param keepDiagnostics whether or not the diagnostics should be kept in
+      *                        the duplicated IR
       * @return a duplicate of [[sequence]]
       */
-    def duplicate(keepLocations: Boolean = true): List[T] = {
-      sequence.map(_.duplicate(keepLocations)).asInstanceOf[List[T]]
+    def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true
+    ): List[T] = {
+      sequence
+        .map(_.duplicate(keepLocations, keepMetadata, keepDiagnostics))
+        .asInstanceOf[List[T]]
     }
   }
 }

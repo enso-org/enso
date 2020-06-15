@@ -59,11 +59,17 @@ class ComplexTypeTest extends CompilerTest {
         |    Nothing
         |    type Just a
         |
+        |    invalid_sig : Int
+        |
+        |    is_just : this -> Boolean
         |    is_just = case this of
         |        Nothing -> false
         |        Just _  -> true
         |
+        |    f : (a: Monoid) -> a
         |    f a = this + a
+        |
+        |    bad_trailing_sig : Double
         |""".stripMargin.preprocessModule.desugar
 
     "have their atoms desugared to top-level atoms" in {
@@ -80,27 +86,110 @@ class ComplexTypeTest extends CompilerTest {
     }
 
     "have their methods desugared to methods on included atoms" in {
-      ir.bindings(1) shouldBe an[Definition.Method.Binding]
-      val justIsJust = ir.bindings(1).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(3) shouldBe an[Definition.Method.Binding]
+      val justIsJust = ir.bindings(3).asInstanceOf[Definition.Method.Binding]
       justIsJust.methodName.name shouldEqual "is_just"
       justIsJust.typeName.name shouldEqual "Nothing"
 
-      ir.bindings(3) shouldBe an[Definition.Method.Binding]
-      val justF = ir.bindings(3).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(7) shouldBe an[Definition.Method.Binding]
+      val justF = ir.bindings(7).asInstanceOf[Definition.Method.Binding]
       justF.methodName.name shouldEqual "f"
       justF.typeName.name shouldEqual "Nothing"
     }
 
     "have their methods desugared to methods on the defined atoms" in {
-      ir.bindings(2) shouldBe an[Definition.Method.Binding]
-      val justIsJust = ir.bindings(2).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(5) shouldBe an[Definition.Method.Binding]
+      val justIsJust = ir.bindings(5).asInstanceOf[Definition.Method.Binding]
       justIsJust.methodName.name shouldEqual "is_just"
       justIsJust.typeName.name shouldEqual "Just"
 
-      ir.bindings(4) shouldBe an[Definition.Method.Binding]
-      val justF = ir.bindings(4).asInstanceOf[Definition.Method.Binding]
+      ir.bindings(9) shouldBe an[Definition.Method.Binding]
+      val justF = ir.bindings(9).asInstanceOf[Definition.Method.Binding]
       justF.methodName.name shouldEqual "f"
       justF.typeName.name shouldEqual "Just"
+    }
+
+    "have type signatures copied to above each method" in {
+      ir.bindings(2) shouldBe an[IR.Type.Ascription]
+      ir.bindings(6) shouldBe an[IR.Type.Ascription]
+      ir.bindings(4) shouldBe an[IR.Type.Ascription]
+      ir.bindings(8) shouldBe an[IR.Type.Ascription]
+
+      val nothingIsJustSigName = ir
+        .bindings(2)
+        .asInstanceOf[IR.Type.Ascription]
+        .typed
+        .asInstanceOf[IR.Name.MethodReference]
+      val nothingIsJustMethodName = ir
+        .bindings(3)
+        .asInstanceOf[Definition.Method.Binding]
+        .methodReference
+
+      assert(
+        nothingIsJustSigName isSameReferenceAs nothingIsJustMethodName,
+        "The type signature and method did not have the same reference."
+      )
+
+      val nothingFSigName = ir
+        .bindings(6)
+        .asInstanceOf[IR.Type.Ascription]
+        .typed
+        .asInstanceOf[IR.Name.MethodReference]
+      val nothingFMethodName = ir
+        .bindings(7)
+        .asInstanceOf[Definition.Method.Binding]
+        .methodReference
+
+      assert(
+        nothingFSigName isSameReferenceAs nothingFMethodName,
+        "The type signature and method did not have the same reference."
+      )
+
+      val justIsJustSigName = ir
+        .bindings(4)
+        .asInstanceOf[IR.Type.Ascription]
+        .typed
+        .asInstanceOf[IR.Name.MethodReference]
+      val justIsJustMethodName = ir
+        .bindings(5)
+        .asInstanceOf[Definition.Method.Binding]
+        .methodReference
+
+      assert(
+        justIsJustSigName isSameReferenceAs justIsJustMethodName,
+        "The type signature and method did not have the same reference."
+      )
+
+      val justFSigName = ir
+        .bindings(8)
+        .asInstanceOf[IR.Type.Ascription]
+        .typed
+        .asInstanceOf[IR.Name.MethodReference]
+      val justFMethodName = ir
+        .bindings(9)
+        .asInstanceOf[Definition.Method.Binding]
+        .methodReference
+
+      assert(
+        justFSigName isSameReferenceAs justFMethodName,
+        "The type signature and method did not have the same reference."
+      )
+    }
+
+    "leave un-associated signatures intact" in {
+      ir.bindings(1) shouldBe an[IR.Type.Ascription]
+      ir.bindings(1)
+        .asInstanceOf[IR.Type.Ascription]
+        .typed
+        .asInstanceOf[IR.Name.Literal]
+        .name shouldEqual "invalid_sig"
+
+      ir.bindings(10) shouldBe an[IR.Type.Ascription]
+      ir.bindings(10)
+        .asInstanceOf[IR.Type.Ascription]
+        .typed
+        .asInstanceOf[IR.Name.Literal]
+        .name shouldEqual "bad_trailing_sig"
     }
   }
 }

@@ -26,7 +26,7 @@ class IgnoredBindingsTest extends CompilerTest {
     *
     * @param ir the IR to desugar
     */
-  implicit class DesugarExpression(ir: IR.Expression) {
+  implicit class ResolveExpression(ir: IR.Expression) {
 
     /** Runs ignores desugaring on [[ir]].
       *
@@ -34,7 +34,7 @@ class IgnoredBindingsTest extends CompilerTest {
       *                      place
       * @return [[ir]], with all ignores desugared
       */
-    def desugar(implicit inlineContext: InlineContext): IR.Expression = {
+    def resolve(implicit inlineContext: InlineContext): IR.Expression = {
       IgnoredBindings.runExpression(ir, inlineContext)
     }
   }
@@ -55,7 +55,7 @@ class IgnoredBindingsTest extends CompilerTest {
     val ir =
       """
         |_ -> (x = _ -> 1) -> x
-        |""".stripMargin.preprocessExpression.get.desugar
+        |""".stripMargin.preprocessExpression.get.resolve
         .asInstanceOf[IR.Function.Lambda]
     val blankArg =
       ir.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
@@ -98,7 +98,7 @@ class IgnoredBindingsTest extends CompilerTest {
         |    _ = f a b
         |    x = y
         |    10
-        |""".stripMargin.preprocessExpression.get.desugar
+        |""".stripMargin.preprocessExpression.get.resolve
         .asInstanceOf[IR.Expression.Binding]
 
     val bindingName = ir.name
@@ -137,7 +137,7 @@ class IgnoredBindingsTest extends CompilerTest {
         |case x of
         |    Cons a _ -> case y of
         |        MyCons a _ -> 10
-        |""".stripMargin.preprocessExpression.get.desugar
+        |""".stripMargin.preprocessExpression.get.resolve
         .asInstanceOf[IR.Expression.Block]
         .returnValue
         .asInstanceOf[IR.Case.Expr]

@@ -82,7 +82,7 @@ case object TailCall extends IRPass {
   ): IR.Module.Scope.Definition = {
     definition match {
       case method @ IR.Module.Scope.Definition.Method
-            .Explicit(_, _, body, _, _, _) =>
+            .Explicit(_, body, _, _, _) =>
         method
           .copy(
             body = analyseExpression(body, isInTailPosition = true)
@@ -107,6 +107,11 @@ case object TailCall extends IRPass {
       case _: IR.Comment.Documentation =>
         throw new CompilerError(
           "Documentation should not exist as an entity during tail call analysis."
+        )
+      case _: IR.Type.Ascription =>
+        throw new CompilerError(
+          "Type signatures should not exist at the top level during " +
+          "tail call analysis."
         )
       case err: IR.Error => err
     }
@@ -210,6 +215,12 @@ case object TailCall extends IRPass {
         vector
           .copy(items =
             items.map(analyseExpression(_, isInTailPosition = false))
+          )
+          .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
+      case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+        tSet
+          .copy(expression =
+            expr.map(analyseExpression(_, isInTailPosition = false))
           )
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
       case _: IR.Application.Operator =>

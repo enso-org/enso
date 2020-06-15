@@ -75,6 +75,7 @@ pattern context. The following spans are pattern contexts:
 - The left-hand-side of the assignment operator (`=`).
 - The right-hand-side of the ascription operator (`:`).
 - The left-hand-side of the arrow operator (`->`).
+- Within the curly braces `{}` delimiting a typeset literal.
 
 The following behaviours occur within a pattern context:
 

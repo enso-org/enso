@@ -105,6 +105,7 @@ case object DocumentationComments extends IRPass {
       tpe.copy(body = resolveList(tpe.body).map(resolveIr))
     case d: IR.Module.Scope.Definition.Atom => d
     case doc: IR.Comment.Documentation      => doc
+    case tySig: IR.Type.Ascription          => tySig
     case err: IR.Error                      => err
   }
 

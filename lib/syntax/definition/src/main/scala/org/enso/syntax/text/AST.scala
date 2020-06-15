@@ -345,6 +345,8 @@ object Shape extends ShapeImplicit {
       extends SpacelessAST[T]
   final case class Group[T](body: Option[T])          extends SpacelessAST[T]
   final case class SequenceLiteral[T](items: List[T]) extends SpacelessAST[T]
+  final case class TypesetLiteral[T](expression: Option[T])
+      extends SpacelessAST[T]
   final case class Def[T](name: AST.Cons, args: List[T], body: Option[T])
       extends SpacelessAST[T]
   final case class Foreign[T](indent: Int, lang: String, code: List[String])
@@ -1009,6 +1011,15 @@ object Shape extends ShapeImplicit {
 
   }
 
+  object TypesetLiteral {
+    implicit def ftor: Functor[TypesetLiteral] = semi.functor
+    implicit def fold: Foldable[Def]           = semi.foldable
+    implicit def repr[T: Repr]: Repr[TypesetLiteral[T]] =
+      t => s"{ ${t.expression.repr.build()} }"
+    implicit def ozip[T]: OffsetZip[TypesetLiteral, T] = _.map(Index.Start -> _)
+    implicit def span[T]: HasSpan[TypesetLiteral[T]]   = _ => 0
+  }
+
   object Def {
     implicit def ftor: Functor[Def]  = semi.functor
     implicit def fold: Foldable[Def] = semi.foldable
@@ -1103,6 +1114,7 @@ sealed trait ShapeImplicit {
     case s: Mixfix[T]          => s.repr
     case s: Group[T]           => s.repr
     case s: SequenceLiteral[T] => s.repr
+    case s: TypesetLiteral[T]  => s.repr
     case s: Def[T]             => s.repr
     case s: Foreign[T]         => s.repr
   }
@@ -1141,6 +1153,7 @@ sealed trait ShapeImplicit {
     case s: Mixfix[T]          => OffsetZip[Mixfix, T].zipWithOffset(s)
     case s: Group[T]           => OffsetZip[Group, T].zipWithOffset(s)
     case s: SequenceLiteral[T] => OffsetZip[SequenceLiteral, T].zipWithOffset(s)
+    case s: TypesetLiteral[T]  => OffsetZip[TypesetLiteral, T].zipWithOffset(s)
     case s: Def[T]             => OffsetZip[Def, T].zipWithOffset(s)
     case s: Foreign[T]         => OffsetZip[Foreign, T].zipWithOffset(s)
   }
@@ -1180,6 +1193,7 @@ sealed trait ShapeImplicit {
     case s: Mixfix[T]          => s.span()
     case s: Group[T]           => s.span()
     case s: SequenceLiteral[T] => s.span()
+    case s: TypesetLiteral[T]  => s.span()
     case s: Def[T]             => s.span()
     case s: Foreign[T]         => s.span()
   }
@@ -2333,7 +2347,7 @@ object AST {
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  //// SequenceLiteral /////////////////////////////////////////////////////////////
+  //// SequenceLiteral /////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   type SequenceLiteral = ASTOf[Shape.SequenceLiteral]
@@ -2342,6 +2356,19 @@ object AST {
     def unapply(t: AST): Option[List[AST]] =
       Unapply[SequenceLiteral].run(_.items)(t)
     def apply(items: List[AST]): SequenceLiteral = Shape.SequenceLiteral(items)
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Typeset Literal /////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type TypesetLiteral = ASTOf[Shape.TypesetLiteral]
+  object TypesetLiteral {
+    val any = UnapplyByType[TypesetLiteral]
+    def unapply(t: AST): Option[Option[AST]] =
+      Unapply[TypesetLiteral].run(_.expression)(t)
+    def apply(expression: Option[AST]): TypesetLiteral =
+      Shape.TypesetLiteral(expression)
   }
 
   //////////////////////////////////////////////////////////////////////////////

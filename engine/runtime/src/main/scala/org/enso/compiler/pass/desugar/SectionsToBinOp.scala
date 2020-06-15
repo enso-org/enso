@@ -5,12 +5,8 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Application.Operator.Section
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse._
+import org.enso.compiler.pass.lint.UnusedBindings
 
 /** This pass converts operator sections to applications of binary operators.
   *
@@ -29,9 +25,11 @@ case object SectionsToBinOp extends IRPass {
   )
   override val invalidatedPasses: Seq[IRPass] = List(
     AliasAnalysis,
+    CachePreferenceAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
-    TailCall
+    TailCall,
+    UnusedBindings
   )
 
   /** Performs section to binary operator conversion on an IR module.
@@ -94,21 +92,95 @@ case object SectionsToBinOp extends IRPass {
   ): IR.Expression = {
     section match {
       case Section.Left(arg, op, loc, passData, diagnostics) =>
-        IR.Application.Prefix(
-          op,
-          List(arg),
-          hasDefaultsSuspended = false,
-          loc,
-          passData,
-          diagnostics
+        val rightArgName = freshNameSupply.newName()
+        val rightCallArg =
+          IR.CallArgument.Specified(None, rightArgName, None, None)
+        val rightDefArg = IR.DefinitionArgument.Specified(
+          rightArgName.duplicate(
+            keepLocations   = false,
+            keepDiagnostics = false,
+            keepMetadata    = false
+          ),
+          None,
+          suspended = false,
+          None
         )
+
+        if (arg.value.isInstanceOf[IR.Name.Blank]) {
+          val leftArgName = freshNameSupply.newName()
+          val leftCallArg =
+            IR.CallArgument.Specified(None, leftArgName, None, None)
+          val leftDefArg = IR.DefinitionArgument.Specified(
+            leftArgName.duplicate(
+              keepLocations   = false,
+              keepDiagnostics = false,
+              keepMetadata    = false
+            ),
+            None,
+            suspended = false,
+            None
+          )
+          val opCall = IR.Application.Prefix(
+            op,
+            List(leftCallArg, rightCallArg),
+            hasDefaultsSuspended = false,
+            loc,
+            passData,
+            diagnostics
+          )
+
+          val rightLam = IR.Function.Lambda(
+            List(rightDefArg),
+            opCall,
+            None
+          )
+
+          IR.Function.Lambda(
+            List(leftDefArg),
+            rightLam,
+            None
+          )
+
+        } else {
+          val opCall = IR.Application.Prefix(
+            op,
+            List(arg, rightCallArg),
+            hasDefaultsSuspended = false,
+            loc,
+            passData,
+            diagnostics
+          )
+
+          IR.Function.Lambda(
+            List(rightDefArg),
+            opCall,
+            None
+          )
+        }
       case Section.Sides(op, loc, passData, diagnostics) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
           IR.CallArgument.Specified(None, leftArgName, None, None)
         val leftDefArg = IR.DefinitionArgument.Specified(
-          // Ensure it has a different identifier
-          leftArgName.copy(id = IR.randomId),
+          leftArgName.duplicate(
+            keepLocations   = false,
+            keepDiagnostics = false,
+            keepMetadata    = false
+          ),
+          None,
+          suspended = false,
+          None
+        )
+
+        val rightArgName = freshNameSupply.newName()
+        val rightCallArg =
+          IR.CallArgument.Specified(None, rightArgName, None, None)
+        val rightDefArg = IR.DefinitionArgument.Specified(
+          rightArgName.duplicate(
+            keepLocations   = false,
+            keepDiagnostics = false,
+            keepMetadata    = false
+          ),
           None,
           suspended = false,
           None
@@ -116,23 +188,26 @@ case object SectionsToBinOp extends IRPass {
 
         val opCall = IR.Application.Prefix(
           op,
-          List(leftCallArg),
+          List(leftCallArg, rightCallArg),
           hasDefaultsSuspended = false,
           loc,
           passData,
           diagnostics
         )
 
-        IR.Function.Lambda(
-          List(leftDefArg),
+        val rightLambda = IR.Function.Lambda(
+          List(rightDefArg),
           opCall,
-          loc,
-          canBeTCO = true,
-          passData,
-          diagnostics
+          None
         )
 
-      /* Note [Blanks in Right Sections]
+        IR.Function.Lambda(
+          List(leftDefArg),
+          rightLambda,
+          None
+        )
+
+      /* Note [Blanks in Sections]
        * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
        * While the naiive compositional translation of `(- _)` first translates
        * the section into a function applying `-` to two arguments, one of which
@@ -147,6 +222,8 @@ case object SectionsToBinOp extends IRPass {
        * `(- _)` == `x -> (- x)` == `x -> y -> y - x`
        *
        * We implement this special case here.
+       *
+       * The same is true of left sections.
        */
 
       case Section.Right(op, arg, loc, passData, diagnostics) =>
@@ -155,20 +232,27 @@ case object SectionsToBinOp extends IRPass {
           IR.CallArgument.Specified(None, leftArgName, None, None)
         val leftDefArg =
           IR.DefinitionArgument.Specified(
-            // Ensure it has a different identifier
-            leftArgName.copy(id = IR.randomId),
+            leftArgName.duplicate(
+              keepLocations   = false,
+              keepMetadata    = false,
+              keepDiagnostics = false
+            ),
             None,
             suspended = false,
             None
           )
 
         if (arg.value.isInstanceOf[IR.Name.Blank]) {
-          // Note [Blanks in Right Sections]
+          // Note [Blanks in Sections]
           val rightArgName = freshNameSupply.newName()
           val rightCallArg =
             IR.CallArgument.Specified(None, rightArgName, None, None)
           val rightDefArg = IR.DefinitionArgument.Specified(
-            rightArgName.copy(id = IR.randomId),
+            rightArgName.duplicate(
+              keepLocations   = false,
+              keepMetadata    = false,
+              keepDiagnostics = false
+            ),
             None,
             suspended = false,
             None
@@ -192,10 +276,7 @@ case object SectionsToBinOp extends IRPass {
           IR.Function.Lambda(
             List(rightDefArg),
             leftLam,
-            loc,
-            canBeTCO = true,
-            passData,
-            diagnostics
+            None
           )
         } else {
           val opCall = IR.Application.Prefix(
@@ -210,10 +291,7 @@ case object SectionsToBinOp extends IRPass {
           IR.Function.Lambda(
             List(leftDefArg),
             opCall,
-            loc,
-            canBeTCO = true,
-            passData,
-            diagnostics
+            None
           )
         }
     }

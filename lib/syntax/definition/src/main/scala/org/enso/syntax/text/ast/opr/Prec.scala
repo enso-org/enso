@@ -1,18 +1,26 @@
 package org.enso.syntax.text.ast.opr
 
 object Prec {
+  /** The precedence hierarchy, from loosest binding to tightest binding. */
   val hierarchy = List(
     List("=", "#="),
+    List(";"),
+    List(":="),
+    List(":"),
     List("->", "<-"),
     List("~>", "<~"),
+    List("!"),
+    List("in"),
+    List("<:", "~"),
     List("|"),
     List("&"),
-    List("!", "?", "~"),
+    List("\\"),
+    List("?"),
     List("<*", "<*>", "*>", "<$", "<$>", "$>", "<+", "<+>", "+>"),
     List("<", ">"),
-    List(":", ","),
+    List(","),
     List("+", "-"),
-    List("*", "/", "\\", "%"),
+    List("*", "/", "%"),
     List("^"),
     List("."),
     List(" ")

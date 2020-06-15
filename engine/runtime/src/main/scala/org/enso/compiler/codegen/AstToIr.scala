@@ -3,9 +3,9 @@ package org.enso.compiler.codegen
 import cats.Foldable
 import cats.implicits._
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
-import org.enso.interpreter.Constants
 import org.enso.syntax.text.AST
 
 import scala.annotation.tailrec
@@ -142,45 +142,89 @@ object AstToIr {
           Error.Syntax(inputAst, Error.Syntax.InvalidTypeDefinition)
         }
       case AstView.MethodDefinition(targetPath, name, args, definition) =>
-        val (path, pathLoc) = if (targetPath.nonEmpty) {
+        val nameStr = name match { case AST.Ident.Var.any(name) => name }
+
+        val methodRef = if (targetPath.nonEmpty) {
           val pathSegments = targetPath.collect {
             case AST.Ident.Cons.any(c) => c
           }
+          val pathNames = pathSegments.map(c =>
+            IR.Name.Literal(c.name, getIdentifiedLocation(c))
+          )
 
-          val pathStr = pathSegments.map(_.name).mkString(".")
-          val loc = pathSegments.headOption
-            .flatMap(_.location)
-            .flatMap(locationStart =>
-              pathSegments.lastOption
-                .flatMap(_.location)
-                .flatMap(locationEnd =>
-                  Some(locationStart.copy(end = locationEnd.end))
-                )
+          val methodSegments = pathNames :+ Name.Literal(
+              nameStr.name,
+              getIdentifiedLocation(nameStr)
             )
 
-          (pathStr, loc)
+          Name.MethodReference(
+            methodSegments.init,
+            methodSegments.last,
+            MethodReference.genLocation(methodSegments)
+          )
         } else {
-          (Constants.Names.CURRENT_MODULE, None)
+          val methodSegments = List(
+            Name.Here(None),
+            Name.Literal(nameStr.name, getIdentifiedLocation(nameStr))
+          )
+
+          Name.MethodReference(
+            List(methodSegments.head),
+            methodSegments.last,
+            MethodReference.genLocation(methodSegments)
+          )
         }
 
-        val nameStr = name match { case AST.Ident.Var.any(name) => name }
-
         Module.Scope.Definition.Method.Binding(
-          Name.Literal(path, pathLoc.map(IdentifiedLocation(_))),
-          Name.Literal(nameStr.name, getIdentifiedLocation(nameStr)),
+          methodRef,
           args.map(translateArgumentDefinition(_)),
           translateExpression(definition),
           getIdentifiedLocation(inputAst)
         )
       case AstView.FunctionSugar(name, args, body) =>
-        Module.Scope.Definition.Method.Binding(
+        val methodSegments = List(
           Name.Here(None),
-          Name.Literal(name.name, getIdentifiedLocation(name)),
+          Name.Literal(name.name, getIdentifiedLocation(name))
+        )
+        val methodReference = Name.MethodReference(
+          List(methodSegments.head),
+          methodSegments.last,
+          MethodReference.genLocation(methodSegments)
+        )
+
+        Module.Scope.Definition.Method.Binding(
+          methodReference,
           args.map(translateArgumentDefinition(_)),
           translateExpression(body),
           getIdentifiedLocation(inputAst)
         )
       case AST.Comment.any(comment) => translateComment(comment)
+      case AstView.TypeAscription(typed, sig) =>
+        typed match {
+          case AST.Ident.any(ident) =>
+            val methodSegments = List(
+              Name.Here(None),
+              Name.Literal(ident.name, getIdentifiedLocation(ident))
+            )
+            val methodReference = Name.MethodReference(
+              List(methodSegments.head),
+              methodSegments.last,
+              MethodReference.genLocation(methodSegments)
+            )
+
+            IR.Type.Ascription(
+              methodReference,
+              translateExpression(sig),
+              getIdentifiedLocation(inputAst)
+            )
+          case AstView.MethodReference(_, _) =>
+            IR.Type.Ascription(
+              translateMethodReference(typed),
+              translateExpression(sig),
+              getIdentifiedLocation(inputAst)
+            )
+          case _ => Error.Syntax(typed, Error.Syntax.InvalidStandaloneSignature)
+        }
       case _ =>
         throw new UnhandledEntity(inputAst, "translateModuleSymbol")
     }
@@ -222,10 +266,33 @@ object AstToIr {
       case atom @ AstView.Atom(_, _)           => translateModuleSymbol(atom)
       case fs @ AstView.FunctionSugar(_, _, _) => translateExpression(fs)
       case AST.Comment.any(inputAST)           => translateComment(inputAST)
+      case AstView.TypeAscription(typed, sig) =>
+        IR.Type.Ascription(
+          translateExpression(typed),
+          translateExpression(sig),
+          getIdentifiedLocation(inputAst)
+        )
       case assignment @ AstView.BasicAssignment(_, _) =>
         translateExpression(assignment)
       case _ =>
         IR.Error.Syntax(inputAst, IR.Error.Syntax.UnexpectedDeclarationInType)
+    }
+  }
+
+  /** Translates a method reference from [[AST]] into [[IR]].
+    *
+    * @param inputAst the method reference to translate
+    * @return the [[IR]] representation of `inputAst`
+    */
+  def translateMethodReference(inputAst: AST): IR.Name.MethodReference = {
+    inputAst match {
+      case AstView.MethodReference(path, methodName) =>
+        IR.Name.MethodReference(
+          path.map(translateExpression(_).asInstanceOf[IR.Name]),
+          translateExpression(methodName).asInstanceOf[IR.Name],
+          getIdentifiedLocation(inputAst)
+        )
+      case _ => throw new UnhandledEntity(inputAst, "translateMethodReference")
     }
   }
 
@@ -316,6 +383,11 @@ object AstToIr {
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
       case AST.Ident.any(inputAST)   => translateIdent(inputAST)
+      case AST.TypesetLiteral.any(tSet) =>
+        IR.Application.Literal.Typeset(
+          tSet.expression.map(translateExpression),
+          getIdentifiedLocation(tSet)
+        )
       case AST.SequenceLiteral.any(inputAST) =>
         translateSequenceLiteral(inputAST)
       case AstView.Block(lines, retLine) =>
@@ -518,12 +590,6 @@ object AstToIr {
     */
   def translateApplicationLike(callable: AST): Expression = {
     callable match {
-      case AstView.ContextAscription(expr, context) =>
-        Type.Context(
-          translateExpression(expr),
-          translateExpression(context),
-          getIdentifiedLocation(callable)
-        )
       case AstView.Application(name, args) =>
         val (validArguments, hasDefaultsSuspended) =
           calculateDefaultsSuspension(args)

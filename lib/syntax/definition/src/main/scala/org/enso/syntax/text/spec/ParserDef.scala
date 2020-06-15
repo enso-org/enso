@@ -206,7 +206,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       ident.current = Some(opr)
     }
 
-    val char: Pattern     = anyOf("!$%&*+-/<>?^~|:\\")
+    val char: Pattern     = anyOf(";!$%&*+-/<>?^~|:\\")
     val errChar: Pattern  = char | "=" | "," | "."
     val errSfx: Pattern   = errChar.many1
     val body: Pattern     = char.many1

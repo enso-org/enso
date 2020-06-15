@@ -100,7 +100,7 @@ case object DataflowAnalysis extends IRPass {
           )
           .updateMetadata(this -->> info)
       case method @ IR.Module.Scope.Definition.Method
-            .Explicit(_, _, body, _, _, _) =>
+            .Explicit(_, body, _, _, _) =>
         info.updateAt(asStatic(body), Set(asStatic(method)))
 
         method
@@ -121,6 +121,11 @@ case object DataflowAnalysis extends IRPass {
       case _: IR.Comment.Documentation =>
         throw new CompilerError(
           "Documentation should not exist as an entity during dataflow analysis."
+        )
+      case _: IR.Type.Ascription =>
+        throw new CompilerError(
+          "Type signatures should not exist at the top level during " +
+          "dataflow analysis."
         )
       case err: IR.Error => err
     }
@@ -250,6 +255,12 @@ case object DataflowAnalysis extends IRPass {
         vector
           .copy(items = items.map(analyseExpression(_, info)))
           .updateMetadata(this -->> info)
+      case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+        expr.foreach(exp => info.updateAt(asStatic(exp), Set(asStatic(tSet))))
+
+        tSet
+          .copy(expression = expr.map(analyseExpression(_, info)))
+          .updateMetadata(this -->> info)
       case _: IR.Application.Operator =>
         throw new CompilerError("Unexpected operator during Dataflow Analysis.")
     }
@@ -283,6 +294,16 @@ case object DataflowAnalysis extends IRPass {
           .copy(
             typed   = analyseExpression(typed, info),
             context = analyseExpression(context, info)
+          )
+          .updateMetadata(this -->> info)
+      case err @ IR.Type.Error(typed, error, _, _, _) =>
+        info.updateAt(asStatic(typed), Set(asStatic(err)))
+        info.updateAt(asStatic(error), Set(asStatic(err)))
+
+        err
+          .copy(
+            typed = analyseExpression(typed, info),
+            error = analyseExpression(error, info)
           )
           .updateMetadata(this -->> info)
       case member @ IR.Type.Set.Member(_, memberType, value, _, _, _) =>

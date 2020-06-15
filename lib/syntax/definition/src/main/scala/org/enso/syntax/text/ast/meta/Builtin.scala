@@ -49,6 +49,25 @@ object Builtin {
       }
     }
 
+    val typesetLiteral = {
+      val expression = Pattern.Expr(allowBlocks = false).opt
+      Definition(
+        Opr("{") -> expression,
+        Opr("}")
+      ) { ctx =>
+        ctx.body match {
+          case List(seg1, _) =>
+            val body = seg1.body.toStream.map(_.wrapped)
+            body match {
+              case List(expr) =>
+                AST.TypesetLiteral(Some(expr))
+              case _ => AST.TypesetLiteral(None)
+            }
+          case _ => internalError
+        }
+      }
+    }
+
     val defn = Definition(Var("type") -> {
       val head = Pattern.Cons().or("missing name").tag("name")
       val args =
@@ -287,6 +306,7 @@ object Builtin {
     Registry(
       group,
       sequenceLiteral,
+      typesetLiteral,
       case_of,
       if_then,
       if_then_else,

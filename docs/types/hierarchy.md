@@ -97,7 +97,7 @@ The other key notion of typesets is that typesets are matched _structurally_,
 subject to the rules for nominal typing of atoms discussed above.
 
 - Typeset members are themselves typesets.
-- A typeset member _must_ have a label, but may also have a type and a value 
+- A typeset member _must_ have a label, but may also have a type and a value
   (`label : Type := value`)
 - An unspecified type is considered to be a free type variable.
 - The label and the type become part of the typing judgement where present, and
@@ -165,8 +165,8 @@ Just.nothing = not isJust
 
 ### Typeset Operators
 Enso defines a set of operations on typesets that can be used to combine and
-manipulate them. Any use of these operators introduces typing evidence which 
-may later be discharged through pattern matching. 
+manipulate them. Any use of these operators introduces typing evidence which
+may later be discharged through pattern matching.
 
 They are as follows:
 
