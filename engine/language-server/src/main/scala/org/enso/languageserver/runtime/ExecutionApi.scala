@@ -8,7 +8,7 @@ import org.enso.languageserver.data.CapabilityRegistration
 /**
   * The execution JSON RPC API provided by the language server.
   *
-  * @see [[https://github.com/luna/enso/blob/master/doc/design/engine/engine-services.md]]
+  * @see [[https://github.com/luna/enso/blob/main/docs/language-server/README.md]]
   */
 object ExecutionApi {
 

@@ -389,7 +389,7 @@ development. It is as described
 and involves people pushing changes to their own fork and creating pull requests
 to bring those changes into the main Enso repository.
 
-Please make all pull requests against the `master` branch.
+Please make all pull requests against the `main` branch.
 
 - We run CI on all contributions to Enso, but it's still useful for you to run
   the tests yourself locally first! This can be done by running `test` in the

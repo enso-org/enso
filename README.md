@@ -24,14 +24,14 @@
 ### Fluidly Combining Worlds
 <p>
   <a href="https://github.com/luna/ide/actions">
-    <img src="https://github.com/luna/enso/workflows/Enso%20CI/badge.svg?branch=master"
+    <img src="https://github.com/luna/enso/workflows/Enso%20CI/badge.svg?branch=main"
          alt="Actions Status">
   </a>
-  <a href="https://github.com/luna/enso/blob/master/LICENSE">
+  <a href="https://github.com/luna/enso/blob/main/LICENSE">
     <img src="https://img.shields.io/static/v1?label=Compiler%20License&message=Apache%20v2&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
-  <a href="https://github.com/luna/ide/blob/master/LICENSE">
+  <a href="https://github.com/luna/ide/blob/main/LICENSE">
     <img src="https://img.shields.io/static/v1?label=GUI%20License&message=AGPL%20v3&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
@@ -95,7 +95,7 @@ the decisions that have been made through Enso's evolution.
 ### License
 This repository is licensed under the
 [Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
-[LICENSE](https://github.com/luna/enso/blob/master/LICENSE) file.
+[LICENSE](https://github.com/luna/enso/blob/main/LICENSE) file.
 
 This license set was choosen to both provide you with a complete freedom to use
 Enso, create libraries, and release them under any license of your choice, while

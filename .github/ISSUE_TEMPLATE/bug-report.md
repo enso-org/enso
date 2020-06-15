@@ -56,7 +56,7 @@ For example:
 Enso Compiler and Runtime
 Version:    0.0.1
 Built with: scala-2.13.1 for GraalVM 20.0.0
-Built from: master @ ac5a9eb639fd8850b1886e4ea2183977ce2fc1fa
+Built from: main @ ac5a9eb639fd8850b1886e4ea2183977ce2fc1fa
 Running on: Java HotSpot(TM) 64-Bit Server VM GraalVM EE 20.0.0, JDK 1.8.0_241-b07
             Mac OS X 10.15.3 (x86_64)
 ```

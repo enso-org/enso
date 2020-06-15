@@ -7,7 +7,7 @@ import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
 /**
   * The visualisation JSON RPC API provided by the language server.
   *
-  * @see [[https://github.com/luna/enso/blob/master/doc/design/engine/engine-services.md]]
+  * @see [[https://github.com/luna/enso/blob/main/docs/language-server/README.md]]
   */
 object VisualisationApi {
 

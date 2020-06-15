@@ -25,10 +25,10 @@ Security updates for Enso are provided for the versions shown below with a
 :white_check_mark: next to them. No other versions have security updates
 provided.
 
-| Version       | Supported          |
-|---------------|--------------------|
-| `master@HEAD` | :white_check_mark: |
-| `wip/*`       | :x:                |
+| Version     | Supported          |
+|-------------|--------------------|
+| `main@HEAD` | :white_check_mark: |
+| `wip/*`     | :x:                |
 
 ## Reporting a Vulnerability
 If you believe that you've found a security vulnerability in the Enso codebase
@@ -47,7 +47,7 @@ and the timeline works as follows:
 4. We will communicate the planned fix with the person who submitted the
    vulnerability report.
 5. We will fix the bug and communicate with the submitter when the fix has
-   landed on `master`, and when it has been backported to the above supported
+   landed on `main`, and when it has been backported to the above supported
    versions.
 6. The submitted may then disclose the bug publicly.
 

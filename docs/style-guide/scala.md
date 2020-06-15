@@ -405,7 +405,7 @@ In general, we aim for a codebase that is free of warnings and lints, and we do
 this using the following ideas:
 
 #### Warnings
-New code should introduce no new warnings onto master. You may build with
+New code should introduce no new warnings onto main. You may build with
 warnings on your own branch, but the code that is submitted as part of a PR
 should not introduce new warnings. You should also endeavour to fix any warnings
 that you come across during development.

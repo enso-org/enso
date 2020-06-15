@@ -2,11 +2,11 @@ name: Publish Developer Docs
 
 on:
   push:
-    branches: 
-      - master
+    branches:
+      - main
     paths:
       - 'docs/**'
-    
+
 jobs:
   checkout:
     runs-on: ubuntu-latest
@@ -21,11 +21,11 @@ jobs:
     - name: set identity name
       run: git config --global user.name "GitHub Actions"
     - name: Checkout submodules
-      run: git submodule update --init 
+      run: git submodule update --init
     - name: Update submodules
       id: status
       run: |
-        git submodule update --init 
+        git submodule update --init
         git submodule update --remote --merge
         if [ -n "$(git status --porcelain)" ]; then
           echo "::set-output name=has_changes::1"
@@ -36,3 +36,4 @@ jobs:
         git commit -m "Update submodules"
         git push origin sources
       if: steps.status.outputs.has_changes == '1'
+

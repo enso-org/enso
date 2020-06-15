@@ -6,7 +6,7 @@ import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 
 /**
   * The text editing JSON RPC API provided by the language server.
-  * See [[https://github.com/luna/enso/blob/master/doc/design/engine/engine-services.md]]
+  * See [[https://github.com/luna/enso/blob/main/docs/language-server/README.md]]
   * for message specifications.
   */
 object TextApi {
