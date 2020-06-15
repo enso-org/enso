@@ -90,6 +90,13 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
         case true  => ErrorChannel[F].fail(CannotRemoveOpenProject)
       }
 
+  override def renameProject(
+    projectId: UUID,
+    name: String
+  ): F[ProjectServiceFailure, Unit] = {
+    repo.rename(projectId, name).mapError(toServiceFailure)
+  }
+
   /** @inheritdoc **/
   override def openProject(
     clientId: UUID,

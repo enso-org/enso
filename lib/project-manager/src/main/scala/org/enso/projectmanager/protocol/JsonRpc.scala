@@ -2,13 +2,7 @@ package org.enso.projectmanager.protocol
 
 import io.circe.generic.auto._
 import org.enso.jsonrpc.Protocol
-import org.enso.projectmanager.protocol.ProjectManagementApi.{
-  ProjectClose,
-  ProjectCreate,
-  ProjectDelete,
-  ProjectListRecent,
-  ProjectOpen
-}
+import org.enso.projectmanager.protocol.ProjectManagementApi._
 
 object JsonRpc {
 
@@ -22,5 +16,6 @@ object JsonRpc {
       .registerRequest(ProjectOpen)
       .registerRequest(ProjectClose)
       .registerRequest(ProjectListRecent)
+      .registerRequest(ProjectRename)
 
 }

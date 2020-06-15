@@ -50,7 +50,9 @@ class ClientController[F[+_, +_]: Exec](
           config.shutdownTimeout.plus(1.second)
         ),
       ProjectListRecent -> ProjectListRecentHandler
-        .props[F](clientId, projectService, config.requestTimeout)
+        .props[F](clientId, projectService, config.requestTimeout),
+      ProjectRename -> ProjectRenameHandler
+        .props[F](projectService, config.requestTimeout)
     )
 
   override def receive: Receive = {

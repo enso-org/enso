@@ -89,6 +89,50 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .blockingOp { PackageManager.Default.create(projectPath, project.name) }
       .mapError(th => StorageFailure(th.toString))
 
+  override def rename(
+    projectId: UUID,
+    name: String
+  ): F[ProjectRepositoryFailure, Unit] = {
+    updateProjectName(projectId, name) *>
+    updatePackageName(projectId, name)
+  }
+
+  private def updatePackageName(
+    projectId: UUID,
+    name: String
+  ): F[ProjectRepositoryFailure, Unit] = {
+    val projectPath =
+      new File(storageConfig.userProjectsPath, projectId.toString)
+
+    Sync[F]
+      .blockingOp { PackageManager.Default.fromDirectory(projectPath) }
+      .mapError(th => StorageFailure(th.toString))
+      .flatMap {
+        case None =>
+          ErrorChannel[F].fail(
+            InconsistentStorage(s"Cannot find package.yaml at $projectPath")
+          )
+
+        case Some(projectPackage) =>
+          val newName = PackageManager.Default.normalizeName(name)
+          Sync[F]
+            .blockingOp { projectPackage.rename(newName) }
+            .map(_ => ())
+            .mapError(th => StorageFailure(th.toString))
+      }
+  }
+
+  private def updateProjectName(
+    projectId: UUID,
+    name: String
+  ): F[ProjectRepositoryFailure, Unit] =
+    indexStorage
+      .modify { index =>
+        val updated = index.update(projectId)(_.copy(name = name))
+        (updated, ())
+      }
+      .mapError(_.fold(convertFileStorageFailure))
+
   /** @inheritdoc **/
   override def delete(
     projectId: UUID

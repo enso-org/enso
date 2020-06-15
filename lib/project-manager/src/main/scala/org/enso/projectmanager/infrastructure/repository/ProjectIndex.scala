@@ -21,6 +21,9 @@ case class ProjectIndex(projects: Map[UUID, Project] = Map.empty) {
   def add(project: Project): ProjectIndex =
     ProjectIndex(projects + (project.id -> project))
 
+  def update(id: UUID)(f: Project => Project): ProjectIndex =
+    ProjectIndex(projects + (id -> f(projects(id))))
+
   /**
     * Removes a project.
     *

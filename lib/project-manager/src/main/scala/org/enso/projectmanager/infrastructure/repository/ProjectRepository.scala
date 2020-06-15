@@ -37,6 +37,8 @@ trait ProjectRepository[F[+_, +_]] {
     */
   def delete(projectId: UUID): F[ProjectRepositoryFailure, Unit]
 
+  def rename(projectId: UUID, name: String): F[ProjectRepositoryFailure, Unit]
+
   /**
     * Finds a project by project id.
     *
