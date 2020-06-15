@@ -29,11 +29,11 @@
     <img src="https://img.shields.io/discord/401396655599124480?label=Chat&color=2ec352&labelColor=2c3239"
          alt="Chat">
   </a>
-  <a href="https://github.com/luna/enso/blob/master/LICENSE">
+  <a href="https://github.com/luna/enso/blob/main/LICENSE">
     <img src="https://img.shields.io/static/v1?label=Compiler%20License&message=Apache%20v2&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
-  <a href="https://github.com/luna/ide/blob/master/LICENSE">
+  <a href="https://github.com/luna/ide/blob/main/LICENSE">
     <img src="https://img.shields.io/static/v1?label=GUI%20License&message=AGPL%20v3&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
@@ -41,7 +41,7 @@
     <img src="https://github.com/luna/ide/workflows/Build%20%28MacOS%2C%20Linux%2C%20Windows%29/badge.svg"
          alt="Actions Status">
   </a>
-  <a href="https://codecov.io/gh/luna/ide/branch/master">
+  <a href="https://codecov.io/gh/luna/ide/branch/main">
     <img src="https://img.shields.io/codecov/c/github/luna/basegl?label=Coverage&labelColor=2c3239"
          alt="Coverage">
   </a>
@@ -52,7 +52,7 @@ University and NASA as one of 20 most unique technologies worldwide. Enso
 consists of several sub-projects, including the
 [Enso Language Compiler](https://github.com/luna/enso), the
 [Enso Integrated Development Environment (IDE)](https://github.com/luna/ide),
-and [a high performance WebGL UI framework (EnsoGL)](https://github.com/luna/ide/tree/master/src/rust/ensogl).
+and [a high performance WebGL UI framework (EnsoGL)](https://github.com/luna/ide/tree/main/src/rust/ensogl).
 
 <br/>
 
@@ -61,9 +61,9 @@ Enso is distributed both in form of
 [pre-build packages for MacOS, Windows, or Linux](https://github.com/luna/ide/releases),
 as well as the [source code](https://github.com/luna). See the
 [demo scenes](http://TODO), and read the [documentation](http://TODO) to learn
-more. 
+more.
 
-Currently to start IDE you have to run **Enso Project Manager** first. For more 
+Currently to start IDE you have to run **Enso Project Manager** first. For more
 information and packages see [Enso repository](https://github.com/luna/enso).
 
 <br/>
@@ -78,9 +78,9 @@ learn more.
 
 ### License
 The Enso Language Compiler is released under the terms of the
-[Apache v2 License](https://github.com/luna/enso/blob/master/LICENSE). The Enso
+[Apache v2 License](https://github.com/luna/enso/blob/main/LICENSE). The Enso
 Graphical Interface and it's rendering engine are released under the terms of
-the [AGPL v3 License](https://github.com/luna/ide/blob/master/LICENSE).  This
+the [AGPL v3 License](https://github.com/luna/ide/blob/main/LICENSE).  This
 license set was choosen to both provide you with a complete freedom to use Enso,
 create libraries, and release them under any license of your choice, while also
 allowing us to release commercial products on top of the platform, including

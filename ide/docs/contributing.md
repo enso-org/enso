@@ -76,8 +76,8 @@ need the following setup:
 Please note that you should not use a code auto-formatter in this codebase. Please read the
 following documents to learn more about reasons behind this decision and the recommended code style
 guide. Be sure to carefully read the
-[Rust style guide 1](https://github.com/luna/ide/blob/master/docs/style-guide.md)
-and the [Rust style guide 2](https://github.com/luna/enso/blob/master/doc/rust-style-guide.md)
+[Rust style guide 1](https://github.com/luna/ide/blob/main/docs/style-guide.md)
+and the [Rust style guide 2](https://github.com/luna/enso/blob/main/doc/style-guide/rust.md)
 before contributing to the codebase.
 
 ### Setting up Engine Services
@@ -89,7 +89,7 @@ However, it is possible to hack on many components of the IDE without the servic
 and tests will work even without the Project Picker.
 
 To run Project Picker, it must be first built — please follow the Enso Engine [contributing
-guidelines](https://github.com/luna/enso/blob/master/CONTRIBUTING.md) to obtain sources and
+guidelines](https://github.com/luna/enso/blob/main/docs/CONTRIBUTING.md) to obtain sources and
 necessary tools. When they are in place, the service can be built and started by issuing the
 following command in the [enso repository](https://github.com/luna/enso) root:
 ```
@@ -141,12 +141,12 @@ scripts which maximally automate the process:
 - **Testing**
   For the test suite to run you need a current version of Chrome installed.
   Use `node ./run test` run both unit and web-based visual test.
-  
+
   - *Note for Windows users*:
     there is a [known issue with wasm-pack](https://github.com/rustwasm/wasm-pack/issues/611) using the
     wrong version of the chrome driver. There is
-    [a workaround](https://github.com/rustwasm/wasm-pack/issues/611#issuecomment-522093207) described in 
-    the issue: download compatible ChromeDriver from the 
+    [a workaround](https://github.com/rustwasm/wasm-pack/issues/611#issuecomment-522093207) described in
+    the issue: download compatible ChromeDriver from the
     [official source](https://chromedriver.chromium.org/downloads) and ensure it is in your `PATH`.
 
 - **Linting**
