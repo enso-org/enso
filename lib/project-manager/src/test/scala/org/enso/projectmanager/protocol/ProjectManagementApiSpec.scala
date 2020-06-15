@@ -498,6 +498,32 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
       deleteProject(projectId)
     }
 
+    "reply with error when the project doesn't exist" in {
+      //given
+      implicit val client = new WsTestClient(address)
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/rename",
+              "id": 0,
+              "params": {
+                "projectId": ${UUID.randomUUID()},
+                "name": "bar"
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "error":{
+              "code":4004,
+              "message":"Project with the provided id does not exist"
+            }
+          }
+          """)
+    }
+
   }
 
   def createProject(name: String)(implicit client: WsTestClient): UUID = {

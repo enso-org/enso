@@ -94,8 +94,22 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     projectId: UUID,
     name: String
   ): F[ProjectServiceFailure, Unit] = {
-    repo.rename(projectId, name).mapError(toServiceFailure)
+    log.debug(s"Renaming project $projectId to $name.") *>
+    checkIfProjectExists(projectId) *>
+    repo.rename(projectId, name).mapError(toServiceFailure) *>
+    log.info(s"Project $projectId renamed.")
   }
+
+  private def checkIfProjectExists(
+    projectId: UUID
+  ): F[ProjectServiceFailure, Unit] =
+    repo
+      .findById(projectId)
+      .mapError(toServiceFailure)
+      .flatMap {
+        case None    => ErrorChannel[F].fail(ProjectNotFound)
+        case Some(_) => CovariantFlatMap[F].pure(())
+      }
 
   /** @inheritdoc **/
   override def openProject(
