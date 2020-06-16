@@ -3,7 +3,7 @@ layout: developer-doc
 title: Literals
 category: syntax
 tags: [syntax, literals]
-order: 4
+order: 5
 ---
 
 # Literals

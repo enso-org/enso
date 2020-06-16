@@ -96,11 +96,7 @@ case object SectionsToBinOp extends IRPass {
         val rightCallArg =
           IR.CallArgument.Specified(None, rightArgName, None, None)
         val rightDefArg = IR.DefinitionArgument.Specified(
-          rightArgName.duplicate(
-            keepLocations   = false,
-            keepDiagnostics = false,
-            keepMetadata    = false
-          ),
+          rightArgName.duplicate(),
           None,
           suspended = false,
           None
@@ -111,11 +107,7 @@ case object SectionsToBinOp extends IRPass {
           val leftCallArg =
             IR.CallArgument.Specified(None, leftArgName, None, None)
           val leftDefArg = IR.DefinitionArgument.Specified(
-            leftArgName.duplicate(
-              keepLocations   = false,
-              keepDiagnostics = false,
-              keepMetadata    = false
-            ),
+            leftArgName.duplicate(),
             None,
             suspended = false,
             None
@@ -162,11 +154,7 @@ case object SectionsToBinOp extends IRPass {
         val leftCallArg =
           IR.CallArgument.Specified(None, leftArgName, None, None)
         val leftDefArg = IR.DefinitionArgument.Specified(
-          leftArgName.duplicate(
-            keepLocations   = false,
-            keepDiagnostics = false,
-            keepMetadata    = false
-          ),
+          leftArgName.duplicate(),
           None,
           suspended = false,
           None
@@ -176,11 +164,7 @@ case object SectionsToBinOp extends IRPass {
         val rightCallArg =
           IR.CallArgument.Specified(None, rightArgName, None, None)
         val rightDefArg = IR.DefinitionArgument.Specified(
-          rightArgName.duplicate(
-            keepLocations   = false,
-            keepDiagnostics = false,
-            keepMetadata    = false
-          ),
+          rightArgName.duplicate(),
           None,
           suspended = false,
           None
@@ -232,11 +216,7 @@ case object SectionsToBinOp extends IRPass {
           IR.CallArgument.Specified(None, leftArgName, None, None)
         val leftDefArg =
           IR.DefinitionArgument.Specified(
-            leftArgName.duplicate(
-              keepLocations   = false,
-              keepMetadata    = false,
-              keepDiagnostics = false
-            ),
+            leftArgName.duplicate(),
             None,
             suspended = false,
             None
@@ -248,11 +228,7 @@ case object SectionsToBinOp extends IRPass {
           val rightCallArg =
             IR.CallArgument.Specified(None, rightArgName, None, None)
           val rightDefArg = IR.DefinitionArgument.Specified(
-            rightArgName.duplicate(
-              keepLocations   = false,
-              keepMetadata    = false,
-              keepDiagnostics = false
-            ),
+            rightArgName.duplicate(),
             None,
             suspended = false,
             None

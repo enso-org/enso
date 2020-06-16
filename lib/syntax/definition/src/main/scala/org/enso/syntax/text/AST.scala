@@ -339,7 +339,7 @@ object Shape extends ShapeImplicit {
       with Phantom
   final case class Documented[T](doc: Doc, emptyLinesBetween: Int, ast: T)
       extends SpacelessAST[T]
-  final case class Import[T](path: List1[AST.Cons])      extends SpacelessAST[T]
+  final case class Import[T](path: AST) extends SpacelessAST[T]
   final case class JavaImport[T](path: List1[AST.Ident]) extends SpacelessAST[T]
   final case class Mixfix[T](name: List1[AST.Ident], args: List1[T])
       extends SpacelessAST[T]
@@ -350,6 +350,8 @@ object Shape extends ShapeImplicit {
   final case class Def[T](name: AST.Cons, args: List[T], body: Option[T])
       extends SpacelessAST[T]
   final case class Foreign[T](indent: Int, lang: String, code: List[String])
+      extends SpacelessAST[T]
+  final case class Modified[T](modifier: String, definition: T)
       extends SpacelessAST[T]
 
   //////////////////////////////////////////////////////////////////////////////
@@ -954,7 +956,7 @@ object Shape extends ShapeImplicit {
     implicit def ftor: Functor[Import]  = semi.functor
     implicit def fold: Foldable[Import] = semi.foldable
     implicit def repr[T]: Repr[Import[T]] =
-      t => R + ("import " + t.path.map(_.repr.build()).toList.mkString("."))
+      t => R + "import" + t.path.repr.build()
 
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def ozip[T]: OffsetZip[Import, T] = _.map(Index.Start -> _)
@@ -1043,6 +1045,18 @@ object Shape extends ShapeImplicit {
     implicit def ozip[T]: OffsetZip[Foreign, T] = _.map(Index.Start -> _)
     implicit def span[T]: HasSpan[Foreign[T]]   = _ => 0
   }
+
+  object Modified {
+    implicit def ftor: Functor[Modified]  = semi.functor
+    implicit def fold: Foldable[Modified] = semi.foldable
+    implicit def repr[T: Repr]: Repr[Modified[T]] = t => {
+      R + t.modifier + t.definition.repr.build()
+    }
+    // FIXME: How to make it automatic for non-spaced AST?
+    implicit def ozip[T]: OffsetZip[Modified, T] = _.map(Index.Start -> _)
+    implicit def span[T]: HasSpan[Modified[T]]   = _ => 0
+  }
+
   //// Implicits ////
 
   object implicits {
@@ -1117,6 +1131,7 @@ sealed trait ShapeImplicit {
     case s: TypesetLiteral[T]  => s.repr
     case s: Def[T]             => s.repr
     case s: Foreign[T]         => s.repr
+    case s: Modified[T]        => s.repr
   }
   implicit def ozip[T: HasSpan]: OffsetZip[Shape, T] = {
     case s: Unrecognized[T]  => OffsetZip[Unrecognized, T].zipWithOffset(s)
@@ -1156,6 +1171,7 @@ sealed trait ShapeImplicit {
     case s: TypesetLiteral[T]  => OffsetZip[TypesetLiteral, T].zipWithOffset(s)
     case s: Def[T]             => OffsetZip[Def, T].zipWithOffset(s)
     case s: Foreign[T]         => OffsetZip[Foreign, T].zipWithOffset(s)
+    case s: Modified[T]        => OffsetZip[Modified, T].zipWithOffset(s)
   }
 
   implicit def span[T: HasSpan]: HasSpan[Shape[T]] = {
@@ -1196,6 +1212,7 @@ sealed trait ShapeImplicit {
     case s: TypesetLiteral[T]  => s.span()
     case s: Def[T]             => s.span()
     case s: Foreign[T]         => s.span()
+    case s: Modified[T]        => s.span()
   }
 }
 
@@ -2297,11 +2314,9 @@ object AST {
   type Import = ASTOf[Shape.Import]
 
   object Import {
-    def apply(path: List1[Cons]): Import            = Shape.Import[AST](path)
-    def apply(head: Cons): Import                   = Import(head, List())
-    def apply(head: Cons, tail: List[Cons]): Import = Import(List1(head, tail))
-    def apply(head: Cons, tail: Cons*): Import      = Import(head, tail.toList)
-    def unapply(t: AST): Option[List1[Cons]] =
+    def apply(path: AST): Import =
+      Shape.Import[AST](path)
+    def unapply(t: AST): Option[AST] =
       Unapply[Import].run(t => t.path)(t)
     val any = UnapplyByType[Import]
   }
@@ -2398,6 +2413,25 @@ object AST {
       Unapply[Foreign].run(t => (t.indent, t.lang, t.code))(t)
     val any = UnapplyByType[Foreign]
   }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Modified ////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type Modified = ASTOf[Shape.Modified]
+  object Modified {
+    def apply(modifier: String, definition: AST): Modified = {
+      Shape.Modified(modifier, definition)
+    }
+    def unapply(t: AST): Option[(String, AST)] = {
+      Unapply[Modified].run(t => (t.modifier, t.definition))(t)
+    }
+    val any = UnapplyByType[Modified]
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Main ////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   def main(): Unit = {
     val v1 = Ident.Var("foo")

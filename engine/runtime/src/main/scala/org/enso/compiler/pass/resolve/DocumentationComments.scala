@@ -142,5 +142,7 @@ case object DocumentationComments extends IRPass {
     */
   sealed case class Doc(documentation: String) extends IRPass.Metadata {
     override val metadataName: String = "DocumentationComments.Doc"
+
+    override def duplicate: IRPass.Metadata = copy(documentation.map(identity))
   }
 }

@@ -3,7 +3,7 @@ layout: developer-doc
 title: Defining Functions
 category: syntax
 tags: [syntax, functions]
-order: 9
+order: 10
 ---
 
 # Defining Functions

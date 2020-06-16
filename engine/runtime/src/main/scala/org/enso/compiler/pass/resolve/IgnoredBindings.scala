@@ -324,12 +324,16 @@ case object IgnoredBindings extends IRPass {
     case object Ignored extends State {
       override val metadataName: String = "IgnoredBindings.State.Ignored"
       override val isIgnored: Boolean   = true
+
+      override def duplicate: IRPass.Metadata = Ignored
     }
 
     /** States that the binding is not ignored. */
     case object NotIgnored extends State {
       override val metadataName: String = "IgnoredBindings.State.NotIgnored"
       override val isIgnored: Boolean   = false
+
+      override def duplicate: IRPass.Metadata = NotIgnored
     }
   }
 }

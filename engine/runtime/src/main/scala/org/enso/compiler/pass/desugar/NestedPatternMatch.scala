@@ -180,10 +180,7 @@ case object NestedPatternMatch extends IRPass {
         val scrutineeBinding =
           IR.Expression.Binding(scrutineeBindingName, scrutineeExpression, None)
 
-        val caseExprScrutinee = scrutineeBindingName.duplicate(
-          keepDiagnostics = false,
-          keepMetadata    = false
-        )
+        val caseExprScrutinee = scrutineeBindingName.duplicate()
 
         val processedBranches = branches.zipWithIndex.map {
           case (branch, ix) =>
@@ -240,7 +237,8 @@ case object NestedPatternMatch extends IRPass {
           val newName  = freshNameSupply.newName()
           val newField = Pattern.Name(newName, None)
           val nestedScrutinee =
-            newName.duplicate(keepDiagnostics = false, keepMetadata = false)
+            newName.duplicate()
+            newName.duplicate()
 
           val newFields =
             fields.take(nestedPosition) ++ (newField :: fields.drop(
@@ -249,7 +247,7 @@ case object NestedPatternMatch extends IRPass {
 
           val newPattern = cons.copy(
             fields =
-              newFields.duplicate(keepDiagnostics = false, keepMetadata = false)
+              newFields.duplicate()
           )
 
           val newExpression = generateNestedCase(
@@ -261,10 +259,8 @@ case object NestedPatternMatch extends IRPass {
           )
 
           val partDesugaredBranch = IR.Case.Branch(
-            pattern = newPattern
-              .duplicate(keepDiagnostics = false, keepMetadata = false),
-            expression = newExpression
-              .duplicate(keepDiagnostics = false, keepMetadata = false),
+            pattern = newPattern.duplicate(),
+            expression = newExpression.duplicate(),
             None
           )
 
@@ -321,15 +317,15 @@ case object NestedPatternMatch extends IRPass {
     remainingBranches: List[IR.Case.Branch]
   ): IR.Expression = {
     val fallbackCase = IR.Case.Expr(
-      topLevelScrutineeExpr.duplicate(keepDiagnostics = false),
-      remainingBranches.duplicate(keepMetadata        = false),
+      topLevelScrutineeExpr.duplicate(),
+      remainingBranches.duplicate(),
       None
     )
 
     val patternBranch =
       IR.Case.Branch(
-        pattern.duplicate(keepDiagnostics        = false),
-        currentBranchExpr.duplicate(keepMetadata = false),
+        pattern.duplicate(),
+        currentBranchExpr.duplicate(),
         None
       )
     val fallbackBranch = IR.Case.Branch(
@@ -339,7 +335,7 @@ case object NestedPatternMatch extends IRPass {
     )
 
     IR.Case.Expr(
-      nestedScrutinee.duplicate(keepDiagnostics = false, keepMetadata = false),
+      nestedScrutinee.duplicate(),
       List(patternBranch, fallbackBranch),
       None
     )

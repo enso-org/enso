@@ -68,5 +68,8 @@ case object GatherDiagnostics extends IRPass {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "GatherDiagnostics.Diagnostics"
+
+    override def duplicate: IRPass.Metadata =
+      this.copy(diagnostics.map(identity))
   }
 }

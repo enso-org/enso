@@ -3,7 +3,7 @@ layout: developer-doc
 title: The Enso Macro Syntax
 category: syntax
 tags: [syntax, macro]
-order: 7
+order: 8
 ---
 
 # The Enso Macro Syntax

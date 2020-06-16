@@ -726,6 +726,8 @@ case object DataflowAnalysis extends IRPass {
 
       combinedModule
     }
+
+    override def duplicate: IRPass.Metadata = copy()
   }
   object DependencyInfo {
 

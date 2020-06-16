@@ -423,6 +423,8 @@ case object TailCall extends IRPass {
     final case object Tail extends TailPosition {
       override val metadataName: String = "TailCall.TailPosition.Tail"
       override def isTail: Boolean      = true
+
+      override def duplicate: IRPass.Metadata = Tail
     }
 
     /** The expression is not in a tail position and cannot be tail call
@@ -431,6 +433,8 @@ case object TailCall extends IRPass {
     final case object NotTail extends TailPosition {
       override val metadataName: String = "TailCall.TailPosition.NotTail"
       override def isTail: Boolean      = false
+
+      override def duplicate: IRPass.Metadata = NotTail
     }
 
     /** Implicitly converts a boolean to a [[TailPosition]] value.

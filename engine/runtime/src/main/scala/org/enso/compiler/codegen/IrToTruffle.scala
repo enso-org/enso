@@ -147,6 +147,7 @@ class IrToTruffle(
         )
       case i: Import.Module =>
         this.moduleScope.addImport(context.getCompiler.processImport(i.name))
+      case _: Error =>
     }
 
     // Register the atoms and their constructors in scope

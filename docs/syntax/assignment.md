@@ -3,7 +3,7 @@ layout: developer-doc
 title: Assignment Expressions
 category: syntax
 tags: [syntax, assignment]
-order: 5
+order: 6
 ---
 
 # Assignment Expressions

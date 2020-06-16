@@ -1,11 +1,11 @@
-package org.enso.compiler.test.core
+package org.enso.compiler.test.core.ir
 
-import org.enso.compiler.core
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.DiagnosticStorage
 import org.enso.compiler.test.CompilerTest
 import org.enso.syntax.text.AST
 
-class IRTest extends CompilerTest {
+class DiagnosticStorageTest extends CompilerTest {
 
   // === Test Configuration ===================================================
 
@@ -22,14 +22,14 @@ class IRTest extends CompilerTest {
 
   "The IR diagnostics storage" should {
     "allow adding diagnostic results" in {
-      val diagnostics = new IR.DiagnosticStorage
+      val diagnostics = new DiagnosticStorage
 
       diagnostics.add(mkDiagnostic("a"))
       diagnostics.toList should contain(mkDiagnostic("a"))
     }
 
     "allow adding lists of diagnostic results" in {
-      val diagnostics = new IR.DiagnosticStorage
+      val diagnostics = new DiagnosticStorage
 
       diagnostics.add(
         List(
@@ -44,7 +44,7 @@ class IRTest extends CompilerTest {
     }
 
     "mapping across the diagnostics to produce a new sequence" in {
-      val diagnostics = new IR.DiagnosticStorage(
+      val diagnostics = new DiagnosticStorage(
         List(
           mkDiagnostic("a"),
           mkDiagnostic("b"),
@@ -56,7 +56,7 @@ class IRTest extends CompilerTest {
     }
 
     "mapping across the diagnostics in place" in {
-      val diagnostics = new IR.DiagnosticStorage(
+      val diagnostics = new DiagnosticStorage(
         List(
           mkDiagnostic("a"),
           mkDiagnostic("b"),
@@ -83,7 +83,7 @@ class IRTest extends CompilerTest {
       val err =
         IR.Error.Syntax(AST.Blank(), IR.Error.Syntax.UnsupportedSyntax("aa"))
 
-      val diagnostics = new IR.DiagnosticStorage(
+      val diagnostics = new DiagnosticStorage(
         List(
           mkDiagnostic("a"),
           mkDiagnostic("b"),
@@ -98,7 +98,7 @@ class IRTest extends CompilerTest {
     }
 
     "filtering the diagnostics" in {
-      val diagnostics = new IR.DiagnosticStorage(
+      val diagnostics = new DiagnosticStorage(
         List(
           mkDiagnostic("aa"),
           mkDiagnostic("ba"),
@@ -106,7 +106,7 @@ class IRTest extends CompilerTest {
         )
       )
 
-      val result = new core.IR.DiagnosticStorage(
+      val result = new DiagnosticStorage(
         List(mkDiagnostic("aa"), mkDiagnostic("ba"))
       )
 
@@ -118,7 +118,7 @@ class IRTest extends CompilerTest {
     }
 
     "filtering the diagnostics in place" in {
-      val diagnostics = new IR.DiagnosticStorage(
+      val diagnostics = new DiagnosticStorage(
         List(
           mkDiagnostic("aa"),
           mkDiagnostic("ba"),
@@ -138,7 +138,7 @@ class IRTest extends CompilerTest {
     }
 
     "folding over the diagnostics" in {
-      val diagnostics = new IR.DiagnosticStorage(
+      val diagnostics = new DiagnosticStorage(
         List(
           mkDiagnostic("a"),
           mkDiagnostic("b"),

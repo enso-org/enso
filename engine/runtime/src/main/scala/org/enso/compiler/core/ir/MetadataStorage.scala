@@ -13,9 +13,9 @@ import org.enso.compiler.pass.IRPass
 class MetadataStorage(
   startingMeta: Seq[MetadataPair[_]] = Seq()
 ) {
-  private val pairs: Seq[(IRPass, Any)] =
-    startingMeta.map(_.asPair.asInstanceOf[(IRPass, Any)])
-  private var metadata: Map[IRPass, Any] = Map(pairs: _*)
+  private var metadata: Map[IRPass, Any] = Map(
+    startingMeta.map(_.asPair.asInstanceOf[(IRPass, Any)]): _*
+  )
 
   /** Adds a metadata pair to the node metadata.
     *
@@ -112,6 +112,19 @@ class MetadataStorage(
   }
 
   override def toString: String = metadata.toString()
+
+  /** Creates a deep copy of `this`.
+   *
+   * @return a deep copy of `this`
+   */
+  def duplicate: MetadataStorage = {
+    val res = MetadataStorage()
+    res.metadata = this.metadata.map {
+      case (pass, meta) => (pass, meta.asInstanceOf[IRPass.Metadata].duplicate)
+    }
+
+    res
+  }
 }
 object MetadataStorage extends MetadataStorageSyntax {
 

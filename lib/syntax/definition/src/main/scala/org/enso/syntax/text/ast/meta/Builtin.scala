@@ -1,18 +1,17 @@
 package org.enso.syntax.text.ast.meta
 
-import org.enso.data.List1
-import org.enso.data.Shifted
+import org.enso.data.{List1, Shifted}
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Macro.Definition
-import org.enso.syntax.text.AST.Opr
-import org.enso.syntax.text.AST.Var
+import org.enso.syntax.text.AST.{Opr, Var}
 import org.enso.syntax.text.ast.Repr
 
-import scala.annotation.tailrec
+import scala.annotation.{nowarn, tailrec}
 
 /** It contains definitions of built-in macros, like if-then-else or (-). These
   * macros might get moved to stdlib in the future.
   */
+@nowarn("cat=unused")
 object Builtin {
 
   val registry: Registry = {
@@ -119,34 +118,6 @@ object Builtin {
       }
     }
 
-    val imp = Definition(
-      Var("import") -> Pattern
-        .SepList(Pattern.Cons(), AST.Opr("."): AST, "expected module name")
-    ) { ctx =>
-      ctx.body match {
-        case List(s1) =>
-          import Pattern.Match._
-          s1.body match {
-            case Seq(_, (headMatch, Many(_, tailMatch))) =>
-              def unwrapSeg(lseg: Pattern.Match): AST.Cons =
-                lseg.toStream match {
-                  case List(Shifted(_, AST.Cons.any(t))) => t
-                  case _                                 => internalError
-                }
-
-              val head = unwrapSeg(headMatch)
-              val tail = tailMatch.map {
-                case Seq(_, (Tok(_, Shifted(_, AST.Opr("."))), seg)) =>
-                  unwrapSeg(seg)
-                case _ => internalError
-              }
-              AST.Import(head, tail)
-            case _ => internalError
-          }
-        case _ => internalError
-      }
-    }
-
     val if_then = Definition(
       Var("if")   -> Pattern.Expr(allowBlocks = false),
       Var("then") -> Pattern.Expr()
@@ -201,6 +172,8 @@ object Builtin {
 
     val nonSpacedExpr = Pattern.Any(Some(false)).many1.build
 
+    // NOTE: The macro engine currently resolves ahead of all operators, meaning
+    // that `->` doesn't obey the right precedence (e.g. with respect to `:`).
     val arrow = Definition(
       Some(nonSpacedExpr.or(Pattern.ExprUntilOpr("->"))),
       Opr("->") -> Pattern.NonSpacedExpr().or(Pattern.Expr())
@@ -259,7 +232,7 @@ object Builtin {
     }
 
     val freeze = Definition(
-      Var("freeze") -> Pattern.Expr()
+      Var("freeze") -> (Pattern.Var() :: Pattern.Block())
     ) { ctx =>
       ctx.body match {
         case List(s1) =>
@@ -293,6 +266,50 @@ object Builtin {
       }
     }
 
+    val `import` = {
+      Definition(
+        Var("import") -> Pattern.Expr()
+      ) { ctx =>
+        ctx.body match {
+          case List(s1) =>
+            s1.body.toStream match {
+              case List(expr) =>
+                AST.Import(expr.wrapped)
+              case _ => internalError
+            }
+          case _ => internalError
+        }
+      }
+    }
+
+    val privateDef = {
+      Definition(Var("private") -> Pattern.Expr()) { ctx =>
+        ctx.body match {
+          case List(s1) =>
+            s1.body.toStream match {
+              case List(expr) =>
+                AST.Modified("private", expr.wrapped)
+              case _ => internalError
+            }
+          case _ => internalError
+        }
+      }
+    }
+
+    val unsafeDef = {
+      Definition(Var("unsafe") -> Pattern.Expr()) { ctx =>
+        ctx.body match {
+          case List(s1) =>
+            s1.body.toStream match {
+              case List(expr) =>
+                AST.Modified("unsafe", expr.wrapped)
+              case _ => internalError
+            }
+          case _ => internalError
+        }
+      }
+    }
+
     // TODO
     // We may want to better represent empty AST. Moreover, there should be a
     // way to generate multiple top-level entities from macros (like multiple
@@ -304,6 +321,8 @@ object Builtin {
       Definition(Opr("#") -> Pattern.Expr().tag("disable")) { _ => AST.Blank() }
 
     Registry(
+      privateDef,
+      unsafeDef,
       group,
       sequenceLiteral,
       typesetLiteral,
@@ -311,7 +330,7 @@ object Builtin {
       if_then,
       if_then_else,
       polyglotJavaImport,
-      imp,
+      `import`,
       defn,
       arrow,
       foreign,

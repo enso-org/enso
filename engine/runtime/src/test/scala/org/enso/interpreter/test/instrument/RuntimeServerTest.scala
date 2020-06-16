@@ -47,7 +47,7 @@ class RuntimeServerTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, "FINE")
+        .option(RuntimeOptions.LOG_LEVEL, "WARNING")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .out(out)
         .serverTransport { (uri, peer) =>

@@ -608,6 +608,8 @@ case object AliasAnalysis extends IRPass {
         */
       sealed case class Root(override val graph: Graph) extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Root"
+
+        override def duplicate: IRPass.Metadata = this.copy()
       }
 
       /** Aliasing information about a child scope.
@@ -618,6 +620,8 @@ case object AliasAnalysis extends IRPass {
       sealed case class Child(override val graph: Graph, scope: Graph.Scope)
           extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Child"
+
+        override def duplicate: IRPass.Metadata = this.copy()
       }
     }
 
@@ -630,6 +634,8 @@ case object AliasAnalysis extends IRPass {
     sealed case class Occurrence(override val graph: Graph, id: Graph.Id)
         extends Info {
       override val metadataName: String = "AliasAnalysis.Info.Occurrence"
+
+      override def duplicate: IRPass.Metadata = this.copy()
     }
   }
 
