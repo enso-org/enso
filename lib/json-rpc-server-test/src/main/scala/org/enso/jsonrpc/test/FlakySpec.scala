@@ -10,7 +10,7 @@ import org.scalatest._
 trait FlakySpec extends TestSuite {
 
   /** Tags test as _flaky_. */
-  object Flaky extends Tag("flaky")
+  object Flaky extends Tag("org.enso.test.flaky")
 
   override def withFixture(test: NoArgTest): Outcome =
     super.withFixture(test) match {
