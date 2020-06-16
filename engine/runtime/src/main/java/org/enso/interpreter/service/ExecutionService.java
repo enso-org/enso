@@ -231,7 +231,7 @@ public class ExecutionService {
     Changeset<Rope> changeset =
         new Changeset<>(
             module.getLiteralSource(),
-            module.parseIr(context),
+            module.getIr(),
             TextEditor.ropeTextEditor(),
             IndexedSource.RopeIndexedSource());
     Optional<Rope> editedSource = JavaEditorAdapter.applyEdits(module.getLiteralSource(), edits);

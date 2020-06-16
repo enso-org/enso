@@ -1,64 +1,46 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 
-import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
-  * A command that edits a file.
+  * A command that performs edition of a file.
   *
-  * == Caching ==
-  *
-  * Compute invalidated external ids by applying the text edits to the
-  * changeset. Invalidated ids are removed from all stack frames.
-  *
-  * @param request a request for a service
+  * @param request a request for editing
   */
-class EditFileCmd(request: Api.EditFileNotification)
-    extends Command
-    with ProgramExecutionSupport {
+class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
 
-  /** @inheritdoc **/
-  override def execute(implicit ctx: RuntimeContext): Unit = {
-    val changesetOpt = ctx.executionService
-      .modifyModuleSources(request.path, request.edits.asJava)
-      .toScala
-    val invalidateExpressionsCommand = changesetOpt.map { changeset =>
-      CacheInvalidation.Command.InvalidateKeys(
-        changeset.compute(request.edits)
+  /**
+    * Executes a request.
+    *
+    * @param ctx contains suppliers of services to perform a request
+    */
+  override def execute(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    for {
+      _ <- Future { ctx.jobControlPlane.abortAllJobs() }
+      _ <- ctx.jobProcessor.run(
+        new EnsureCompiledJob(request.path, request.edits)
       )
-    }
-    val invalidateStaleCommand = changesetOpt.map { changeset =>
-      val scopeIds = ctx.executionService.getContext.getCompiler
-        .parseMeta(changeset.source.toString)
-        .map(_._2)
-      CacheInvalidation.Command.InvalidateStale(scopeIds)
-    }
-    val cacheInvalidationCommands =
-      (invalidateExpressionsCommand.toSeq ++ invalidateStaleCommand.toSeq)
-        .map(
-          CacheInvalidation(
-            CacheInvalidation.StackSelector.All,
-            _,
-            Set(CacheInvalidation.IndexSelector.All)
-          )
-        )
-    withContext(executeAll(cacheInvalidationCommands))
+      _ <- Future.sequence(executeJobs.map(ctx.jobProcessor.run))
+    } yield ()
   }
 
-  private def executeAll(
-    invalidationCommands: Iterable[CacheInvalidation]
-  )(implicit ctx: RuntimeContext): Unit = {
+  private def executeJobs(
+    implicit ctx: RuntimeContext
+  ): Iterable[ExecuteJob] = {
     ctx.contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
-      .foreach {
+      .map {
         case (contextId, stack) =>
-          CacheInvalidation.runAll(stack, invalidationCommands)
-          runProgram(contextId, stack)
+          new ExecuteJob(contextId, stack, Seq())
       }
   }
+
 }

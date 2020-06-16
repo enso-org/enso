@@ -4,6 +4,8 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
+import scala.concurrent.{ExecutionContext, Future}
+
 /**
   * A command that destroys the specified execution context.
   *
@@ -13,24 +15,34 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 class DestroyContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.DestroyContextRequest
-) extends Command
-    with ProgramExecutionSupport {
+) extends Command(maybeRequestId) {
 
   /** @inheritdoc **/
-  override def execute(implicit ctx: RuntimeContext): Unit = {
-    if (ctx.contextManager.get(request.contextId).isDefined) {
+  override def execute(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] =
+    Future {
+      if (doesContextExist) {
+        removeContext()
+      } else {
+        reply(Api.ContextNotExistError(request.contextId))
+      }
+    }
+
+  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
+    ctx.contextManager.contains(request.contextId)
+  }
+
+  private def removeContext()(implicit ctx: RuntimeContext): Unit = {
+    ctx.jobControlPlane.abortJobs(request.contextId)
+    ctx.locking.acquireContextLock(request.contextId)
+    try {
       ctx.contextManager.destroy(request.contextId)
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          maybeRequestId,
-          Api.DestroyContextResponse(request.contextId)
-        )
-      )
-    } else {
-      ctx.endpoint.sendToClient(
-        Api
-          .Response(maybeRequestId, Api.ContextNotExistError(request.contextId))
-      )
+      reply(Api.DestroyContextResponse(request.contextId))
+    } finally {
+      ctx.locking.releaseContextLock(request.contextId)
+      ctx.locking.removeContextLock(request.contextId)
     }
   }
 

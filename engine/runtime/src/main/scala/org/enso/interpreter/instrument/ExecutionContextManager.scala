@@ -23,14 +23,18 @@ class ExecutionContextManager {
     * @param id the context id.
     */
   def create(id: ContextId): Unit =
-    contexts += id -> ExecutionContextState.empty
+    synchronized {
+      contexts += id -> ExecutionContextState.empty
+    }
 
   /**
     * Destroys a context with a given id.
     * @param id the context id.
     */
   def destroy(id: ContextId): Unit =
-    contexts -= id
+    synchronized {
+      contexts -= id
+    }
 
   /**
     * Gets a context with a given id.
@@ -39,9 +43,11 @@ class ExecutionContextManager {
     * @return the context with the given id, if exists.
     */
   def get(id: ContextId): Option[ContextId] =
-    for {
-      _ <- contexts.get(id)
-    } yield id
+    synchronized {
+      for {
+        _ <- contexts.get(id)
+      } yield id
+    }
 
   /**
     * Gets a stack for a given context id.
@@ -50,7 +56,9 @@ class ExecutionContextManager {
     * @return the stack.
     */
   def getStack(id: ContextId): Stack[InstrumentFrame] =
-    contexts(id).stack
+    synchronized {
+      contexts(id).stack
+    }
 
   /**
     * Gets all execution contexts.
@@ -58,7 +66,9 @@ class ExecutionContextManager {
     * @return all currently available execution contexsts.
     */
   def getAll: collection.MapView[ContextId, Stack[InstrumentFrame]] =
-    contexts.view.mapValues(_.stack)
+    synchronized {
+      contexts.view.mapValues(_.stack)
+    }
 
   /**
     * If the context exists, push the item on the stack.
@@ -68,9 +78,11 @@ class ExecutionContextManager {
     * @return Unit representing success or None if the context does not exist.
     */
   def push(id: ContextId, item: StackItem): Option[Unit] =
-    for {
-      state <- contexts.get(id)
-    } yield state.stack.push(InstrumentFrame(item))
+    synchronized {
+      for {
+        state <- contexts.get(id)
+      } yield state.stack.push(InstrumentFrame(item))
+    }
 
   /**
     * If the context exists and stack not empty, pop the item from the stack.
@@ -79,10 +91,12 @@ class ExecutionContextManager {
     * @return stack frame or None if the stack is empty or not exists.
     */
   def pop(id: ContextId): Option[InstrumentFrame] =
-    for {
-      state <- contexts.get(id)
-      if state.stack.nonEmpty
-    } yield state.stack.pop()
+    synchronized {
+      for {
+        state <- contexts.get(id)
+        if state.stack.nonEmpty
+      } yield state.stack.pop()
+    }
 
   /**
     * Tests if a context specified by its id is stored by the manager.
@@ -90,7 +104,10 @@ class ExecutionContextManager {
     * @param contextId the identifier of the execution context
     * @return true if the context is stored or false otherwise
     */
-  def contains(contextId: ContextId): Boolean = contexts.contains(contextId)
+  def contains(contextId: ContextId): Boolean =
+    synchronized {
+      contexts.contains(contextId)
+    }
 
   /**
     * Upserts a visualisation for the specified context.
@@ -101,10 +118,11 @@ class ExecutionContextManager {
   def upsertVisualisation(
     contextId: ContextId,
     visualisation: Visualisation
-  ): Unit = {
-    val state = contexts(contextId)
-    state.visualisations.upsert(visualisation)
-  }
+  ): Unit =
+    synchronized {
+      val state = contexts(contextId)
+      state.visualisations.upsert(visualisation)
+    }
 
   /**
     * Returns a visualisation with the provided id.
@@ -117,10 +135,12 @@ class ExecutionContextManager {
     contextId: ContextId,
     visualisationId: VisualisationId
   ): Option[Visualisation] =
-    for {
-      state         <- contexts.get(contextId)
-      visualisation <- state.visualisations.getById(visualisationId)
-    } yield visualisation
+    synchronized {
+      for {
+        state         <- contexts.get(contextId)
+        visualisation <- state.visualisations.getById(visualisationId)
+      } yield visualisation
+    }
 
   /**
     * Finds all visualisations attached to an expression.
@@ -133,10 +153,12 @@ class ExecutionContextManager {
     contextId: ContextId,
     expressionId: ExpressionId
   ): List[Visualisation] =
-    for {
-      state         <- contexts.get(contextId).toList
-      visualisation <- state.visualisations.find(expressionId)
-    } yield visualisation
+    synchronized {
+      for {
+        state         <- contexts.get(contextId).toList
+        visualisation <- state.visualisations.find(expressionId)
+      } yield visualisation
+    }
 
   /**
     * Removes a visualisation from the holder.
@@ -150,9 +172,10 @@ class ExecutionContextManager {
     contextId: ContextId,
     expressionId: ExpressionId,
     visualisationId: VisualisationId
-  ): Unit = {
-    val state = contexts(contextId)
-    state.visualisations.remove(visualisationId, expressionId)
-  }
+  ): Unit =
+    synchronized {
+      val state = contexts(contextId)
+      state.visualisations.remove(visualisationId, expressionId)
+    }
 
 }

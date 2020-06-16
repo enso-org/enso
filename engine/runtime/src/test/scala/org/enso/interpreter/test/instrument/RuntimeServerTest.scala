@@ -4,14 +4,11 @@ import java.io.{ByteArrayOutputStream, File}
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
+import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
-import org.enso.interpreter.instrument.{
-  IdExecutionInstrument,
-  InstrumentFrame,
-  RuntimeServerInstrument
-}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
+import org.enso.polyglot.runtime.Runtime.Api.PushContextResponse
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
 import org.enso.polyglot.{
   LanguageInfo,
@@ -35,8 +32,9 @@ class RuntimeServerTest
   var context: TestContext = _
 
   class TestContext(packageName: String) {
-    var endPoint: MessageEndpoint        = _
-    var messageQueue: List[Api.Response] = List()
+    var endPoint: MessageEndpoint = _
+    val messageQueue: LinkedBlockingQueue[Api.Response] =
+      new LinkedBlockingQueue()
 
     val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
 
@@ -49,6 +47,7 @@ class RuntimeServerTest
         .allowExperimentalOptions(true)
         .allowAllAccess(true)
         .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
+        .option(RuntimeOptions.LOG_LEVEL, "FINE")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .out(out)
         .serverTransport { (uri, peer) =>
@@ -58,7 +57,7 @@ class RuntimeServerTest
               override def sendText(text: String): Unit = {}
 
               override def sendBinary(data: ByteBuffer): Unit =
-                messageQueue ++= Api.deserializeResponse(data)
+                Api.deserializeResponse(data).foreach(messageQueue.add)
 
               override def sendPing(data: ByteBuffer): Unit = {}
 
@@ -71,10 +70,6 @@ class RuntimeServerTest
         .build()
     )
     executionContext.context.initialize(LanguageInfo.ID)
-
-    val instrument = executionContext.context.getEngine.getInstruments
-      .get(RuntimeServerInfo.INSTRUMENT_NAME)
-      .lookup(classOf[RuntimeServerInstrument])
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -90,15 +85,11 @@ class RuntimeServerTest
     def send(msg: Api.Request): Unit = endPoint.sendBinary(Api.serialize(msg))
 
     def receive: Option[Api.Response] = {
-      val msg = messageQueue.headOption
-      messageQueue = messageQueue.drop(1)
-      msg
+      Option(messageQueue.poll(3, TimeUnit.SECONDS))
     }
 
     def receive(n: Int): List[Api.Response] = {
-      val (messages, tail) = messageQueue.splitAt(n)
-      messageQueue = tail
-      messages
+      Iterator.continually(receive).take(n).flatten.toList
     }
 
     def consumeOut: List[String] = {
@@ -319,9 +310,8 @@ class RuntimeServerTest
       Api
         .Request(requestId, Api.PushContextRequest(contextId, invalidLocalItem))
     )
-    Set.fill(2)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.InvalidStackItemError(contextId))),
-      None
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.InvalidStackItemError(contextId))
     )
 
     // push main
@@ -333,12 +323,11 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    Set.fill(5)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
-      Some(context.Main.Update.mainX(contextId)),
-      Some(context.Main.Update.mainY(contextId)),
-      Some(context.Main.Update.mainZ(contextId)),
-      None
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId)
     )
 
     // push foo call
@@ -346,11 +335,10 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
-    Set.fill(4)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
-      Some(context.Main.Update.fooY(contextId)),
-      Some(context.Main.Update.fooZ(contextId)),
-      None
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.fooY(contextId),
+      context.Main.Update.fooZ(contextId)
     )
 
     // push method pointer on top of the non-empty stack
@@ -365,30 +353,26 @@ class RuntimeServerTest
         Api.PushContextRequest(contextId, invalidExplicitCall)
       )
     )
-    Set.fill(2)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.InvalidStackItemError(contextId))),
-      None
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.InvalidStackItemError(contextId))
     )
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    Set.fill(5)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.PopContextResponse(contextId))),
-      None
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId))
     )
 
     // pop main
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    Set.fill(2)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.PopContextResponse(contextId))),
-      None
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId))
     )
 
     // pop empty stack
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    Set.fill(2)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.EmptyStackError(contextId))),
-      None
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.EmptyStackError(contextId))
     )
   }
 
@@ -409,6 +393,7 @@ class RuntimeServerTest
         "main = IO.println \"I'm a file!\""
       )
     )
+    context.receive
     context.consumeOut shouldEqual List()
 
     // Push new item on the stack to trigger the re-execution
@@ -423,6 +408,7 @@ class RuntimeServerTest
           )
       )
     )
+    context.receive(2)
     context.consumeOut shouldEqual List("I'm a file!")
 
     // Open the file with contents changed
@@ -432,6 +418,7 @@ class RuntimeServerTest
         "main = IO.println \"I'm an open file!\""
       )
     )
+    context.receive
     context.consumeOut shouldEqual List()
 
     // Modify the file
@@ -446,10 +433,12 @@ class RuntimeServerTest
         )
       )
     )
+    context.receive
     context.consumeOut shouldEqual List("I'm a modified file!")
 
     // Close the file
     send(Api.CloseFileNotification(fooFile))
+    context.receive
     context.consumeOut shouldEqual List()
   }
 
@@ -473,21 +462,19 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    Set.fill(5)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
-      Some(context.Main.Update.mainX(contextId)),
-      Some(context.Main.Update.mainY(contextId)),
-      Some(context.Main.Update.mainZ(contextId)),
-      None
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId)
     )
 
     // recompute
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    Set.fill(2)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
-      None
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
   }
 
@@ -511,12 +498,11 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    Set.fill(5)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
-      Some(context.Main.Update.mainX(contextId)),
-      Some(context.Main.Update.mainY(contextId)),
-      Some(context.Main.Update.mainZ(contextId)),
-      None
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId)
     )
 
     // recompute
@@ -529,12 +515,11 @@ class RuntimeServerTest
         )
       )
     )
-    Set.fill(5)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
-      Some(context.Main.Update.mainX(contextId)),
-      Some(context.Main.Update.mainY(contextId)),
-      Some(context.Main.Update.mainZ(contextId)),
-      None
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId)
     )
   }
 
@@ -558,12 +543,11 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    Set.fill(5)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
-      Some(context.Main.Update.mainX(contextId)),
-      Some(context.Main.Update.mainY(contextId)),
-      Some(context.Main.Update.mainZ(contextId)),
-      None
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId)
     )
 
     // recompute
@@ -578,10 +562,9 @@ class RuntimeServerTest
         )
       )
     )
-    Set.fill(3)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
-      Some(context.Main.Update.mainZ(contextId)),
-      None
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      context.Main.Update.mainZ(contextId)
     )
   }
 
@@ -605,28 +588,18 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    Set.fill(2)(context.receive) shouldEqual Set(
-      Some(
-        Api.Response(
-          requestId,
-          Api.ExecutionFailed(contextId, "error in function: main")
-        )
-      ),
-      None
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, PushContextResponse(contextId)),
+      Api.Response(Api.ExecutionFailed(contextId, "error in function: main"))
     )
 
     // recompute
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    Set.fill(2)(context.receive) shouldEqual Set(
-      Some(
-        Api.Response(
-          requestId,
-          Api.ExecutionFailed(contextId, "error in function: main")
-        )
-      ),
-      None
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      Api.Response(Api.ExecutionFailed(contextId, "error in function: main"))
     )
   }
 
@@ -650,11 +623,10 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    Set.fill(4)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
-      Some(context.Main2.Update.mainY(contextId)),
-      Some(context.Main2.Update.mainZ(contextId)),
-      None
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main2.Update.mainY(contextId),
+      context.Main2.Update.mainZ(contextId)
     )
 
     context.consumeOut shouldEqual List("I'm expensive!", "I'm more expensive!")
@@ -664,9 +636,8 @@ class RuntimeServerTest
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
 
-    Set.fill(2)(context.receive) shouldEqual Set(
-      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
-      None
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
     context.consumeOut shouldEqual List()
   }
@@ -700,7 +671,7 @@ class RuntimeServerTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    context.receive(4) should contain theSameElementsAs Seq(
+    context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -721,7 +692,7 @@ class RuntimeServerTest
         )
       )
     )
-    val attachVisualisationResponses = context.receive(2)
+    val attachVisualisationResponses = context.receive(3)
     attachVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationAttached())
     )
@@ -746,7 +717,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    context.receive should contain(
+    context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
 
@@ -762,7 +733,7 @@ class RuntimeServerTest
         )
       )
     )
-    val recomputeResponses2 = context.receive(3)
+    val recomputeResponses2 = context.receive(4)
     recomputeResponses2 should contain allOf (
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
@@ -813,7 +784,7 @@ class RuntimeServerTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    context.receive(4) should contain theSameElementsAs Seq(
+    context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -835,7 +806,7 @@ class RuntimeServerTest
       )
     )
 
-    val attachVisualisationResponses = context.receive(2)
+    val attachVisualisationResponses = context.receive(3)
     attachVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationAttached())
     )
@@ -869,7 +840,7 @@ class RuntimeServerTest
         )
       )
     )
-    val modifyVisualisationResponses = context.receive(2)
+    val modifyVisualisationResponses = context.receive(3)
     modifyVisualisationResponses should contain(
       Api.Response(requestId, Api.VisualisationModified())
     )
@@ -924,8 +895,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldBe Some(
-      Api.Response(requestId, Api.VisualisationAttached())
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.VisualisationAttached()),
+      Api.Response(Api.ExecutionFailed(contextId, "stack is empty"))
     )
     // push main
     val item1 = Api.StackItem.ExplicitCall(
@@ -937,7 +909,7 @@ class RuntimeServerTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
 
-    context.receive(5) should contain allOf (
+    context.receive(6) should contain allOf (
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
@@ -962,7 +934,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    context.receive should contain(
+    context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
 
@@ -978,7 +950,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.Main.Update.mainX(contextId)
     )

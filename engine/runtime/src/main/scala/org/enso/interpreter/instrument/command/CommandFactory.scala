@@ -42,6 +42,10 @@ object CommandFactory {
       case payload: Api.OpenFileNotification  => new OpenFileCmd(payload)
       case payload: Api.CloseFileNotification => new CloseFileCmd(payload)
       case payload: Api.EditFileNotification  => new EditFileCmd(payload)
+      case Api.ShutDownRuntimeServer() =>
+        throw new IllegalArgumentException(
+          "ShutDownRuntimeServer request is not convertible to command object"
+        )
     }
 
 }

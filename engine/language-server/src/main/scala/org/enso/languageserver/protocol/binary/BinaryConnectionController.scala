@@ -15,18 +15,12 @@ import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.{
   ConnectionFailed,
   OutboundStreamEstablished
 }
+import org.enso.languageserver.protocol.binary.BinaryConnectionController.InboundPayloadType
 import org.enso.languageserver.protocol.binary.InboundPayload.{
   INIT_SESSION_CMD,
   READ_FILE_CMD,
   WRITE_FILE_CMD
 }
-import org.enso.languageserver.protocol.binary.{
-  EnsoUUID,
-  InboundMessage,
-  InitSessionCommand,
-  OutboundPayload
-}
-import org.enso.languageserver.protocol.binary.BinaryConnectionController.InboundPayloadType
 import org.enso.languageserver.protocol.binary.factory.{
   ErrorFactory,
   OutboundMessageFactory,
@@ -37,7 +31,10 @@ import org.enso.languageserver.requesthandler.file.{
   ReadBinaryFileHandler,
   WriteBinaryFileHandler
 }
-import org.enso.languageserver.runtime.ContextRegistryProtocol.VisualisationUpdate
+import org.enso.languageserver.runtime.ContextRegistryProtocol.{
+  VisualisationEvaluationFailed,
+  VisualisationUpdate
+}
 import org.enso.languageserver.session.BinarySession
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.binary.DecodingFailure
@@ -125,6 +122,10 @@ class BinaryConnectionController(
     case update: VisualisationUpdate =>
       val updatePacket = convertVisualisationUpdateToOutPacket(update)
       outboundChannel ! updatePacket
+
+    case VisualisationEvaluationFailed(_, msg) =>
+      val errorPacket = ErrorFactory.createVisualisationEvaluationError(msg)
+      outboundChannel ! errorPacket
   }
 
   private def connectionEndHandler(

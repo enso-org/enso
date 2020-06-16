@@ -1,11 +1,10 @@
-package org.enso.interpreter.instrument.execution
+package org.enso.interpreter.instrument
 
 import com.oracle.truffle.api.TruffleContext
-import org.enso.interpreter.instrument.{Endpoint, ExecutionContextManager}
 import org.enso.interpreter.service.ExecutionService
 
 /**
-  * Contains suppliers of services that provide application specific
+  * Contains suppliers of services that provide interpreter specific
   * functionality.
   *
   * @param executionService a service allowing externally-triggered code
@@ -13,16 +12,10 @@ import org.enso.interpreter.service.ExecutionService
   * @param contextManager a storage for active execution contexts
   * @param endpoint a message endpoint
   * @param truffleContext a context of a set of Truffle languages
-  * @param jobProcessor a processor responsible for executing jobs
-  * @param jobControlPlane a job control plane
-  * @param locking a locking service
   */
-case class RuntimeContext(
+case class InterpreterContext(
   executionService: ExecutionService,
   contextManager: ExecutionContextManager,
   endpoint: Endpoint,
-  truffleContext: TruffleContext,
-  jobProcessor: JobProcessor,
-  jobControlPlane: JobControlPlane,
-  locking: Locking
+  truffleContext: TruffleContext
 )

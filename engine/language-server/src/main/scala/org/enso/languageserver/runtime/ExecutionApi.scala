@@ -97,6 +97,19 @@ object ExecutionApi {
     }
   }
 
+  case object ExecutionContextExecutionFailed
+      extends Method("executionContext/executionFailed") {
+
+    case class Params(
+      contextId: ContextId,
+      message: String
+    )
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecutionContextExecutionFailed.Params
+    }
+  }
+
   case object StackItemNotFoundError extends Error(2001, "Stack item not found")
 
   case object ContextNotFoundError extends Error(2002, "Context not found")
@@ -116,9 +129,5 @@ object ExecutionApi {
         2007,
         s"Evaluation of the visualisation expression failed [$msg]"
       )
-  case class VisualisationEvaluationError(msg: String)
-      extends Error(2008, s"Evaluation of the visualisation failed [$msg]")
 
-  case class ExecutionFailedError(msg: String)
-      extends Error(2009, s"Execution failed [$msg]")
 }

@@ -1,4 +1,4 @@
-package org.enso.interpreter.instrument.command
+package org.enso.interpreter.instrument.job
 
 import java.io.File
 import java.util.UUID
@@ -10,7 +10,8 @@ import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
 }
-import org.enso.interpreter.instrument.command.ProgramExecutionSupport.{
+import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.job.ProgramExecutionSupport.{
   ExecutionFrame,
   ExecutionItem,
   LocalCallFrame
@@ -20,7 +21,6 @@ import org.enso.interpreter.instrument.{
   RuntimeCache,
   Visualisation
 }
-import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
@@ -33,22 +33,6 @@ import scala.jdk.javaapi.OptionConverters
   * run Enso programs in a Truffle context.
   */
 trait ProgramExecutionSupport {
-
-  /**
-    * Executes action in a newly created Truffle context.
-    *
-    * @param action an action
-    * @param ctx a runtime context
-    * @return a result of executing the action
-    */
-  def withContext[A](action: => A)(implicit ctx: RuntimeContext): A = {
-    val token = ctx.truffleContext.enter()
-    try {
-      action
-    } finally {
-      ctx.truffleContext.leave(token)
-    }
-  }
 
   /**
     * Runs an Enso program.
@@ -124,7 +108,7 @@ trait ProgramExecutionSupport {
   final def runProgram(
     contextId: Api.ContextId,
     stack: List[InstrumentFrame],
-    updatedVisualisations: Seq[Api.ExpressionId] = Seq()
+    updatedVisualisations: Seq[Api.ExpressionId]
   )(implicit ctx: RuntimeContext): Either[String, Unit] = {
     @scala.annotation.tailrec
     def unwind(
@@ -150,8 +134,8 @@ trait ProgramExecutionSupport {
       if (updatedVisualisations.contains(value.getExpressionId))
         onVisualisationUpdate(contextId, value)
     }
-    val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
 
+    val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
     for {
       stackItem <- Either.fromOption(explicitCallOpt, "stack is empty")
       _ <- Either
@@ -247,7 +231,7 @@ trait ProgramExecutionSupport {
     errorMsgOrVisualisationData match {
       case Left(msg) =>
         ctx.endpoint.sendToClient(
-          Api.Response(Api.VisualisationEvaluationFailed(msg))
+          Api.Response(Api.VisualisationEvaluationFailed(contextId, msg))
         )
 
       case Right(data) =>
@@ -285,7 +269,6 @@ trait ProgramExecutionSupport {
       typeName.toString,
       functionName.module
     )
-
 }
 
 object ProgramExecutionSupport {
@@ -344,5 +327,4 @@ object ProgramExecutionSupport {
       */
     case class CallData(callData: FunctionCall) extends ExecutionItem
   }
-
 }

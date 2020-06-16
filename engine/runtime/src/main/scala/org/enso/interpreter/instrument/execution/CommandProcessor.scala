@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.command.Command
-import org.enso.interpreter.instrument.execution.CommandProcessor.Done
 
 import scala.concurrent.Future
 
@@ -14,18 +13,13 @@ trait CommandProcessor {
     * Invokes a command with the provided context.
     *
     * @param cmd a command to execute
-    * @param ctx contains suppliers of services to perform a request
     * @return a future signaling the completion of computations
     */
-  def invoke(cmd: Command, ctx: RuntimeContext): Future[Done.type]
-
-}
-
-object CommandProcessor {
+  def invoke(cmd: Command): Future[Completion]
 
   /**
-    * Signals completion of computations.
+    * Stops the command processor.
     */
-  case object Done
+  def stop(): Unit
 
 }
