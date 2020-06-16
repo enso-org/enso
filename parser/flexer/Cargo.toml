@@ -1,0 +1,27 @@
+[package]
+name    = "flexer"
+version = "0.0.1"
+authors = [
+  "Enso Team <enso-dev@enso.org>",
+  "Ara Adkins <ara.adkins@enso.org"
+]
+edition = "2018"
+
+description = "A finite-automata-based lexing engine."
+readme = "README.md"
+homepage = "https://github.com/luna/enso"
+repository = "https://github.com/luna/enso"
+license-file = "../../LICENSE"
+
+keywords = ["lexer", "finite-automata"]
+
+publish = false
+
+[lib]
+name = "flexer"
+crate-type = ["dylib", "rlib"]
+test = true
+bench = true
+
+[dependencies]
+itertools = "0.8"

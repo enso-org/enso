@@ -1,4 +1,4 @@
-name: Enso CI
+name: Engine CI
 
 on:
   push:
@@ -27,7 +27,7 @@ env:
 jobs:
   # This job is responsible for testing the codebase
   test:
-    name: Test
+    name: Test Engine
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -93,7 +93,7 @@ jobs:
 
   # This job is responsible for building the artifacts
   build:
-    name: Build
+    name: Build Engine
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

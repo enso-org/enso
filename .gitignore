@@ -5,15 +5,9 @@
 
 graal_dumps
 
-##########
-## Java ##
-##########
-
-*.class
-
-###########
-## Scala ##
-###########
+#########
+## JVM ##
+#########
 
 graal_dumps/
 target/
@@ -25,6 +19,8 @@ target/
 ##########
 
 Cargo.lock
+**/*.rs.bk
+wasm-pack.log
 
 #############
 ## Haskell ##
@@ -32,28 +28,12 @@ Cargo.lock
 
 dist
 cabal-dev
-*.o
-*.hi
-*.chi
-*.chs.h
-*.dyn_o
-*.dyn_hi
-.hpc
-.hsenv
-.cabal-sandbox/
-cabal.sandbox.config
-*.cabal
-*.prof
-*.aux
-*.hp
-*.DS_Store
 .stack-work/
 
 ############
 ## System ##
 ############
 
-# OSX
 .DS_Store
 
 ############
@@ -70,6 +50,7 @@ cabal.sandbox.config
 ######################
 
 .idea/
+.vscode/
 *.swp
 .projections.json
 
@@ -83,6 +64,7 @@ scaladoc/
 #######################
 ## Benchmark Reports ##
 #######################
+
 bench-report.xml
 
 ##############
@@ -97,10 +79,4 @@ bench-report.xml
 #########
 
 .editorconfig
-.bloop
-
-
-#########
-## NPM ##
-#########
-node_modules/
+.bloop/

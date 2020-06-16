@@ -1,0 +1,25 @@
+[workspace]
+
+members = [
+    "parser/flexer"
+]
+
+[profile.dev]
+opt-level = 0
+lto       = false
+debug     = true
+
+[profile.release]
+opt-level = 3
+lto       = true
+debug     = false
+
+[profile.bench]
+opt-level = 3
+lto       = true
+debug     = false
+
+[profile.test]
+opt-level = 0
+lto       = false
+debug     = true
