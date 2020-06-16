@@ -436,15 +436,14 @@ lazy val `project-manager` = (project in file("lib/project-manager"))
     (Compile / run / fork) := true,
     (Test / fork) := true,
     (Compile / run / connectInput) := true,
-    javaOptions ++= Seq(
-      // Puts the language runtime on the truffle classpath, rather than the
-      // standard classpath. This is the recommended way of handling this and
-      // we should strive to use such structure everywhere. See
-      // https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
-      s"-Dtruffle.class.path.append=${(runtime / Compile / fullClasspath).value
-        .map(_.data)
-        .mkString(File.pathSeparator)}"
-    ),
+    javaOptions ++= {
+      // Note [Classpath Separation]
+      val runtimeClasspath =
+        (runtime / Compile / fullClasspath).value
+          .map(_.data)
+          .mkString(File.pathSeparator)
+      Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
+    },
     libraryDependencies ++= akka,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
@@ -486,12 +485,37 @@ lazy val `project-manager` = (project in file("lib/project-manager"))
             javaOpts = Seq("-Dtruffle.class.path.append=runtime.jar")
           )
         )
-      )
+      ),
+    assembly := assembly
+      .dependsOn(runtime / assembly)
+      .value
   )
   .dependsOn(pkg)
   .dependsOn(`language-server`)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
+
+/* Note [Classpath Separation]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Projects using the language runtime do not depend on it directly, but instead
+ * the language runtime is put on the Truffle classpath, rather than the
+ * standard classpath. This is the recommended way of handling this and we
+ * strive to use such structure everywhere.
+ * See
+ * https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
+ *
+ * Currently the only exception to this are the tests of the runtime project
+ * which have classpath separation disabled, because they need direct access to
+ * the runtime's instruments.
+ *
+ * To ensure correct handling of dependencies by sbt, the classpath appended to
+ * Java options, should be based on `(runtime / Compile / fullClasspath).value`
+ * wherever possible. Using a key from the runtime project enables sbt to see
+ * the dependency.
+ *
+ * Assembly tasks that build JAR files which need `runtime.jar` to run should
+ * also add a dependency on `runtime / assembly`.
+ */
 
 lazy val `json-rpc-server` = project
   .in(file("lib/json-rpc-server"))
@@ -552,9 +576,7 @@ lazy val `core-definition` = (project in file("lib/core-definition"))
 
 val truffleRunOptions = Seq(
   "-Dpolyglot.engine.IterativePartialEscape=true",
-  "-XX:-UseJVMCIClassLoader",
-  "-Dpolyglot.engine.BackgroundCompilation=false",
-  "-Dgraalvm.locatorDisabled=true"
+  "-Dpolyglot.engine.BackgroundCompilation=false"
 )
 
 val truffleRunOptionsSettings = Seq(
@@ -566,15 +588,14 @@ lazy val `polyglot-api` = project
   .in(file("engine/polyglot-api"))
   .settings(
     Test / fork := true,
-    Test / javaOptions ++= Seq(
-      // Puts the language runtime on the truffle classpath, rather than the
-      // standard classpath. This is the recommended way of handling this and
-      // we should strive to use such structure everywhere. See
-      // https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
-      s"-Dtruffle.class.path.append=${(LocalProject("runtime") / Compile / fullClasspath).value
-        .map(_.data)
-        .mkString(File.pathSeparator)}"
-    ),
+    Test / javaOptions ++= {
+      // Note [Classpath Separation]
+      val runtimeClasspath =
+        (LocalProject("runtime") / Compile / fullClasspath).value
+          .map(_.data)
+          .mkString(File.pathSeparator)
+      Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
+    },
     libraryDependencies ++= Seq(
       "org.graalvm.sdk"        % "polyglot-tck"     % graalVersion % "provided",
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
@@ -666,7 +687,12 @@ lazy val runtime = (project in file("engine/runtime"))
     Compile / compile := FixInstrumentsGeneration.patchedCompile
       .dependsOn(`core-definition` / Compile / packageBin)
       .dependsOn(FixInstrumentsGeneration.preCompileTask)
-      .value
+      .value,
+    // Note [Classpath Separation]
+    Test / javaOptions ++= Seq(
+      "-XX:-UseJVMCIClassLoader",
+      "-Dgraalvm.locatorDisabled=true"
+    )
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
@@ -738,6 +764,14 @@ lazy val runtime = (project in file("engine/runtime"))
 lazy val runner = project
   .in(file("engine/runner"))
   .settings(
+    javaOptions ++= {
+      // Note [Classpath Separation]
+      val runtimeClasspath =
+        (runtime / Compile / fullClasspath).value
+          .map(_.data)
+          .mkString(File.pathSeparator)
+      Seq(s"-Dtruffle.class.path.append=$runtimeClasspath")
+    },
     mainClass in (Compile, run) := Some("org.enso.runner.Main"),
     mainClass in assembly := (Compile / run / mainClass).value,
     assemblyJarName in assembly := "enso.jar",
@@ -761,8 +795,9 @@ lazy val runner = project
       .copy(
         prependShellScript = Some(
           defaultUniversalScript(
-            shebang  = false,
-            javaOpts = truffleRunOptions
+            shebang = false,
+            javaOpts = truffleRunOptions ++
+              Seq("-Dtruffle.class.path.append=runtime.jar")
           )
         )
       ),
@@ -798,9 +833,11 @@ lazy val runner = project
       val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
       BuildInfo
         .writeBuildInfoFile(file, ensoVersion, scalacVersion, graalVersion)
-    }.taskValue
+    }.taskValue,
+    assembly := assembly
+      .dependsOn(runtime / assembly)
+      .value
   )
-  .dependsOn(runtime)
   .dependsOn(pkg)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)

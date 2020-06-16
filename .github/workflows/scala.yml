@@ -134,14 +134,20 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Build Artifacts
-      - name: Build the Uberjar
+      - name: Build the Runtime Uberjar
+        run: sbt --no-colors runtime/assembly
+      - name: Build the Runner Uberjar
         run: sbt --no-colors runner/assembly
-      - name: Include CLI in Distribution
+      - name: Build the Project Manager Uberjar
+        run: sbt --no-colors project-manager/assembly
+      - name: Prepare Distribution
         run: |
           DIST_DIR=enso-$(./enso.jar --version --json | jq -r '.version')
           mkdir $DIST_DIR
           mkdir $DIST_DIR/component
+          cp runtime.jar $DIST_DIR/component
           mv enso.jar $DIST_DIR/component
+          mv project-manager.jar $DIST_DIR/component
           cp -r distribution/std-lib $DIST_DIR/std-lib
           cp -r distribution/bin $DIST_DIR/bin
           chmod +x $DIST_DIR/bin/enso
@@ -149,15 +155,6 @@ jobs:
           echo ::set-env name=DIST_DIR::$DIST_DIR
       - name: Build the Parser JS Bundle
         run: sbt -no-colors syntaxJS/fullOptJS
-      - name: Build the Project Manager Uberjar
-        run: |
-          sbt --no-colors runtime/assembly
-          sbt --no-colors project-manager/assembly
-      - name: Include Project Manager in Distribution
-        run: |
-          DIST_DIR=${{ env.DIST_DIR }}
-          mv ./runtime.jar $DIST_DIR/component
-          mv ./project-manager.jar $DIST_DIR/component
 
       # Publish
       - name: Publish the Distribution Artifact
