@@ -29,7 +29,7 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
-            "error": { "code": 4001, "message": "Cannot create project with empty name" }
+            "error": { "code": 4001, "message": "Project name cannot be empty" }
           }
           """)
     }
@@ -554,6 +554,61 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
             }
           }
           """)
+    }
+
+    "check if project name is not empty" in {
+      //given
+      implicit val client = new WsTestClient(address)
+      val projectId       = createProject("foo")
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/rename",
+              "id": 0,
+              "params": {
+                "projectId": $projectId,
+                "name": ""
+              }
+            }
+          """)
+      //then
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "error": { "code": 4001, "message": "Project name cannot be empty" }
+          }
+          """)
+      //teardown
+      deleteProject(projectId)
+    }
+
+    "validate project name" in {
+      //given
+      implicit val client = new WsTestClient(address)
+      val projectId       = createProject("foo")
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/rename",
+              "id": 0,
+              "params": {
+                "projectId": $projectId,
+                "name": "luna-test-project4/#$$%^@!"
+              }
+            }
+          """)
+      //then
+      client.expectJson(json"""
+          {"jsonrpc":"2.0",
+          "id":0,
+          "error":{
+            "code":4001,
+            "message":"Project name contains forbidden characters: %,!,@,#,$$,^,/"
+            }
+          }
+          """)
+      //teardown
+      deleteProject(projectId)
     }
 
   }

@@ -95,6 +95,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     name: String
   ): F[ProjectServiceFailure, Unit] = {
     log.debug(s"Renaming project $projectId to $name.") *>
+    validateName(name) *>
     checkIfProjectExists(projectId) *>
     checkIfNameExists(name) *>
     repo.rename(projectId, name).mapError(toServiceFailure) *>
@@ -226,7 +227,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       .mapError {
         case EmptyName =>
           ProjectServiceFailure.ValidationFailure(
-            "Cannot create project with empty name"
+            "Project name cannot be empty"
           )
         case NameContainsForbiddenCharacter(chars) =>
           ProjectServiceFailure.ValidationFailure(
