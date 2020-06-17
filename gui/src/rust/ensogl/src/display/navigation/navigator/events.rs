@@ -232,8 +232,8 @@ impl NavigatorEvents {
                     let zoom_event = ZoomEvent::new(position,amount,zoom_speed);
                     data.on_zoom(zoom_event);
                 } else {
-                    let x         =  event.delta_x() as f32;
-                    let y         = -event.delta_y() as f32;
+                    let x         = -event.delta_x() as f32;
+                    let y         =  event.delta_y() as f32;
                     let movement  = Vector2::new(x,y);
                     let pan_event = PanEvent::new(movement);
                     data.on_pan(pan_event);
