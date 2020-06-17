@@ -64,7 +64,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       creationTime <- clock.nowInUtc()
       projectId    <- gen.randomUUID()
       project       = Project(projectId, name, UserProject, creationTime)
-      _            <- repo.save(project).mapError(toServiceFailure)
+      _            <- repo.create(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")
     } yield projectId
     // format: on
@@ -125,7 +125,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       project  <- getUserProject(projectId)
       openTime <- clock.nowInUtc()
       updated   = project.copy(lastOpened = Some(openTime))
-      _        <- repo.save(updated).mapError(toServiceFailure)
+      _        <- repo.create(updated).mapError(toServiceFailure)
       sockets  <- startServer(clientId, updated)
     } yield sockets
     // format: on

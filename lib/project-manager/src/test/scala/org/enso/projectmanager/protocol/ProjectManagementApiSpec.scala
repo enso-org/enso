@@ -102,9 +102,9 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
 
       implicit val client = new WsTestClient(address)
 
-      val projectId = createProject(projectName)
+      createProject(projectName)
 
-      val projectDir  = new File(userProjectDir, projectId.toString)
+      val projectDir  = new File(userProjectDir, projectName)
       val packageFile = new File(projectDir, "package.yaml")
       val mainEnso    = Paths.get(projectDir.toString, "src", "Main.enso").toFile
 
@@ -176,7 +176,7 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
       val projectName     = "to-remove"
       implicit val client = new WsTestClient(address)
       val projectId       = createProject(projectName)
-      val projectDir      = new File(userProjectDir, projectId.toString)
+      val projectDir      = new File(userProjectDir, projectName)
       projectDir shouldBe Symbol("directory")
       //when
       client.send(json"""
@@ -468,9 +468,10 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
     }
 
     "change package.yaml" in {
-      implicit val client = new WsTestClient(address)
       //given
-      val projectId = createProject("foo")
+      implicit val client = new WsTestClient(address)
+      val projectName     = "foo"
+      val projectId       = createProject(projectName)
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -490,7 +491,7 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
           }
           """)
       //then
-      val projectDir  = new File(userProjectDir, projectId.toString)
+      val projectDir  = new File(userProjectDir, projectName)
       val packageFile = new File(projectDir, "package.yaml")
       val lines       = Source.fromFile(packageFile).getLines()
       lines.contains("name: Bar") shouldBe true

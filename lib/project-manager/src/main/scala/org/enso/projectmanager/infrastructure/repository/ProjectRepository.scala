@@ -25,7 +25,7 @@ trait ProjectRepository[F[+_, +_]] {
     * @param project the project to insert
     * @return
     */
-  def save(
+  def create(
     project: Project
   ): F[ProjectRepositoryFailure, Unit]
 
