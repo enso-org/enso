@@ -321,6 +321,10 @@ impl NodeModel {
         self.ports.width() + TEXT_OFF * 2.0
     }
 
+    pub fn height(&self) -> f32 {
+        NODE_HEIGHT
+    }
+
     fn set_expression(&self, expr:impl Into<Expression>) {
         let expr = expr.into();
         self.ports.set_expression(expr);

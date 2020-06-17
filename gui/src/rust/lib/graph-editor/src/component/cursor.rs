@@ -19,11 +19,12 @@ use ensogl::gui::component;
 // === Constants ===
 // =================
 
-const PADDING        : f32 = 2.0;
-const SIDES_PADDING  : f32 = PADDING * 2.0;
-const DEFAULT_RADIUS : f32 = 8.0;
-const DEFAULT_COLOR  : color::Lcha = color::Lcha::new(1.0,0.0,0.0,0.2);
-const FADE_OUT_TIME  : f32 = 3000.0;
+/// Default radius of the mouse cursor symbol.
+pub const DEFAULT_RADIUS : f32 = 8.0;
+    const PADDING        : f32 = 2.0;
+    const SIDES_PADDING  : f32 = PADDING * 2.0;
+    const DEFAULT_COLOR  : color::Lcha = color::Lcha::new(1.0,0.0,0.0,0.2);
+    const FADE_OUT_TIME  : f32 = 3000.0;
 
 #[allow(non_snake_case)]
 fn DEFAULT_SIZE() -> Vector2<f32> { Vector2(16.0,16.0) }
