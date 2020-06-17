@@ -37,6 +37,13 @@ trait ProjectRepository[F[+_, +_]] {
     */
   def delete(projectId: UUID): F[ProjectRepositoryFailure, Unit]
 
+  /**
+    * Renames a project.
+    *
+    * @param projectId the project id to rename
+    * @param name the new name
+    * @return either failure or success
+    */
   def rename(projectId: UUID, name: String): F[ProjectRepositoryFailure, Unit]
 
   /**

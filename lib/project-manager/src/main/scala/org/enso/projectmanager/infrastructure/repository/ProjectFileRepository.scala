@@ -89,6 +89,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .blockingOp { PackageManager.Default.create(projectPath, project.name) }
       .mapError(th => StorageFailure(th.toString))
 
+  /** @inheritdoc **/
   override def rename(
     projectId: UUID,
     name: String
