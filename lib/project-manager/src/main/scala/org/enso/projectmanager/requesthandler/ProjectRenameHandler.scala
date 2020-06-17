@@ -27,6 +27,7 @@ class ProjectRenameHandler[F[+_, +_]: Exec](
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
+
   override def receive: Receive = requestStage
 
   import context.dispatcher
