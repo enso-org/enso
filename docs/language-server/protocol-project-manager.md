@@ -24,6 +24,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`project/close`](#projectclose)
   - [`project/listRecent`](#projectlistrecent)
   - [`project/create`](#projectcreate)
+  - [`project/rename`](#projectrename)
   - [`project/delete`](#projectdelete)
   - [`project/listSample`](#projectlistsample)
 - [Language Server Management](#language-server-management)
@@ -192,6 +193,36 @@ interface ProjectOpenResponse {
 - [`ProjectExistsError`](#projectexistserror) to signal that the project
   already exists.
 
+### `project/rename`
+This message requests the renaming of a project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectRenameRequest {
+  projectId: UUID;
+  name: String;
+}
+```
+
+#### Result
+
+```
+null
+```
+
+#### Errors
+- [`ProjectNameValidationError`](#projectnamevalidationerror) to signal
+  validation failures.
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
+- [`ProjectExistsError`](#projectexistserror) to signal that the project with
+  the provided name already exists.
 
 ### `project/delete`
 This message requests the deletion of a project.
