@@ -62,11 +62,7 @@ impl Navigator {
             let distance_to_show_full_ui    = dom.shape().height / 2.0 / fovy_slope;
             let movement_scale_for_distance = distance / distance_to_show_full_ui;
 
-            // FIXME: Adding - here as panning was accidentally inverted by some recent changes.
-            //        Issue tracked by wdanilo and notdanilo.
-            let dx   = - pan.movement.x * movement_scale_for_distance;
-            let dy   = - pan.movement.y * movement_scale_for_distance;
-            let diff = Vector3::new(dx,dy,0.0);
+            let diff = Vector3::new(pan.movement.x,pan.movement.y,0.0)*movement_scale_for_distance;
             simulator.update_target_value(|p| p - diff);
         });
 

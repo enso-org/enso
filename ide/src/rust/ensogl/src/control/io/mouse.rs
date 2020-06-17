@@ -140,8 +140,11 @@ pub struct MouseFrpCallbackHandles {
 /// Bind FRP graph to MouseManager.
 pub fn bind_frp_to_mouse(frp:&enso_frp::io::Mouse, mouse_manager:&MouseManager)
 -> MouseFrpCallbackHandles {
+    let dom_shape = mouse_manager.dom.clone_ref().shape();
     let on_move = enclose!((frp.position => frp) move |e:&OnMove| {
-        frp.emit(Vector2(e.client_x() as f32,e.client_y() as f32));
+        let position = Vector2(e.client_x() as f32,e.client_y() as f32);
+        let position = position - Vector2(dom_shape.width,dom_shape.height) / 2.0;
+        frp.emit(position);
     });
     let on_down  = enclose!((frp.down  => frp) move |_:&OnDown | frp.emit(()));
     let on_up    = enclose!((frp.up    => frp) move |_:&OnUp   | frp.emit(()));
