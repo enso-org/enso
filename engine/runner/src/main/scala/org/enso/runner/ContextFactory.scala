@@ -3,8 +3,10 @@ package org.enso.runner
 import java.io.InputStream
 import java.io.OutputStream
 
-import org.enso.interpreter.instrument.ReplDebuggerInstrument
-import org.enso.polyglot.debugger.DebugServerInfo
+import org.enso.polyglot.debugger.{
+  DebugServerInfo,
+  DebuggerSessionManagerEndpoint
+}
 import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions}
 import org.graalvm.polyglot.Context
 
@@ -35,13 +37,15 @@ class ContextFactory {
       .allowAllAccess(true)
       .option(RuntimeOptions.PACKAGES_PATH, packagesPath)
       .option(RuntimeOptions.STRICT_ERRORS, strictErrors.toString)
+      .option(DebugServerInfo.ENABLE_OPTION, "true")
       .out(out)
-      .in(in) // TODO [RW] will put serverTransport here for #791
+      .in(in)
+      .serverTransport { (uri, peer) =>
+        if (uri.toString == DebugServerInfo.URI) {
+          new DebuggerSessionManagerEndpoint(repl, peer)
+        } else null
+      }
       .build
-    val instrument = context.getEngine.getInstruments
-      .get(DebugServerInfo.INSTRUMENT_NAME)
-      .lookup(classOf[ReplDebuggerInstrument])
-    instrument.setSessionManager(repl)
     new PolyglotContext(context)
   }
 }

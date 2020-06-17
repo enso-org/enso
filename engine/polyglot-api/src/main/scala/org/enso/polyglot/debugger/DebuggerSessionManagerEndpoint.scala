@@ -2,10 +2,6 @@ package org.enso.polyglot.debugger
 
 import java.nio.ByteBuffer
 
-import org.enso.polyglot.debugger.protocol.{
-  ExceptionRepresentation,
-  ObjectRepresentation
-}
 import org.graalvm.polyglot.io.MessageEndpoint
 
 /**
@@ -72,11 +68,10 @@ class DebuggerSessionManagerEndpoint(
     }
 
   private class ReplExecutorImplementation extends ReplExecutor {
-    var evaluationResult
-      : Either[ExceptionRepresentation, ObjectRepresentation] = _
+    var evaluationResult: Either[Exception, ObjectRepresentation] = _
     override def evaluate(
       expression: String
-    ): Either[ExceptionRepresentation, ObjectRepresentation] = {
+    ): Either[Exception, ObjectRepresentation] = {
       ensureUsable()
       evaluationResult = null
       peer.sendBinary(Debugger.createEvaluationRequest(expression))
@@ -131,9 +126,13 @@ class DebuggerSessionManagerEndpoint(
 
     def onResponse(response: Response): Unit = {
       response match {
-        case EvaluationSuccess(result)    => evaluationResult = Right(result)
-        case EvaluationFailure(exception) => evaluationResult = Left(exception)
-        case ListBindingsResult(bindings) => bindingsResult   = bindings
+        case EvaluationSuccess(result) =>
+          evaluationResult = Right(new ObjectRepresentation(result))
+        case EvaluationFailure(exception) =>
+          evaluationResult = Left(Debugger.unwrapSerializedException(exception))
+        case ListBindingsResult(bindings) =>
+          bindingsResult =
+            bindings.view.mapValues(new ObjectRepresentation(_)).toMap
         case SessionStartNotification =>
           throw new IllegalStateException(
             "Session start notification sent while the session is already" +

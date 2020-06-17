@@ -14,7 +14,7 @@ repository:
   has_projects: true
   has_downloads: true
 
-  default_branch: master
+  default_branch: main
 
   allow_squash_merge: true
   allow_merge_commit: false
@@ -193,7 +193,7 @@ teams:
 
 # Branch protection
 branches:
-  - name: master
+  - name: main
     protection:
       required_pull_request_reviews:
         required_approving_review_count: 1
@@ -204,7 +204,7 @@ branches:
       required_status_checks:
         # Require branches to be up to date before merging.
         strict: true
-        contexts: ["Test (macOS-latest)", "Test (ubuntu-latest)", "Test (windows-latest)", "license/cla"]
+        contexts: ["Test Engine (macOS-latest)", "Test Engine (ubuntu-latest)", "Test Parser (macOS-latest)", "Test Parser (ubuntu-latest)", " Test Parser (windows-latest) ", "license/cla"]
       enforce_admins: null
       restrictions: null
 

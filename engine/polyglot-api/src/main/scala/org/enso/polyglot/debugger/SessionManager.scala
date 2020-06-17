@@ -1,10 +1,5 @@
 package org.enso.polyglot.debugger
 
-import org.enso.polyglot.debugger.protocol.{
-  ExceptionRepresentation,
-  ObjectRepresentation
-}
-
 /**
   * Interface for executing Repl commands inside of a Repl session.
   *
@@ -21,7 +16,7 @@ trait ReplExecutor {
     */
   def evaluate(
     expression: String
-  ): Either[ExceptionRepresentation, ObjectRepresentation]
+  ): Either[Exception, ObjectRepresentation]
 
   /**
     * Lists all the bindings available in the current execution scope.

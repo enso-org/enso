@@ -137,7 +137,7 @@ case object AliasAnalysis extends IRPass {
 
     ir match {
       case m @ IR.Module.Scope.Definition.Method
-            .Explicit(_, _, body, _, _, _) =>
+            .Explicit(_, body, _, _, _) =>
         body match {
           case _: IR.Function =>
             m.copy(
@@ -173,6 +173,11 @@ case object AliasAnalysis extends IRPass {
         throw new CompilerError(
           "Documentation should not exist as an entity during alias analysis."
         )
+      case _: IR.Type.Ascription =>
+        throw new CompilerError(
+          "Type signatures should not exist at the top level during " +
+          "alias analysis."
+        )
       case err: IR.Error => err
     }
   }
@@ -196,7 +201,7 @@ case object AliasAnalysis extends IRPass {
     expression: IR.Expression,
     graph: Graph,
     parentScope: Scope,
-    lambdaReuseScope: Boolean = false,
+    lambdaReuseScope: Boolean = false
   ): IR.Expression = {
     expression match {
       case fn: IR.Function =>
@@ -379,6 +384,11 @@ case object AliasAnalysis extends IRPass {
         app.copy(target = analyseExpression(expr, graph, scope))
       case app @ IR.Application.Literal.Sequence(items, _, _, _) =>
         app.copy(items = items.map(analyseExpression(_, graph, scope)))
+      case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+        val newScope = scope.addChild()
+        tSet
+          .copy(expression = expr.map(analyseExpression(_, graph, newScope)))
+          .updateMetadata(this -->> Info.Scope.Child(graph, newScope))
       case _: IR.Application.Operator.Binary =>
         throw new CompilerError(
           "Binary operator occurred during Alias Analysis."
@@ -441,7 +451,7 @@ case object AliasAnalysis extends IRPass {
             body = analyseExpression(
               body,
               graph,
-              currentScope,
+              currentScope
             )
           )
           .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
@@ -527,7 +537,7 @@ case object AliasAnalysis extends IRPass {
         expression = analyseExpression(
           branch.expression,
           graph,
-          currentScope,
+          currentScope
         )
       )
       .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
@@ -598,6 +608,8 @@ case object AliasAnalysis extends IRPass {
         */
       sealed case class Root(override val graph: Graph) extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Root"
+
+        override def duplicate: IRPass.Metadata = this.copy()
       }
 
       /** Aliasing information about a child scope.
@@ -608,6 +620,8 @@ case object AliasAnalysis extends IRPass {
       sealed case class Child(override val graph: Graph, scope: Graph.Scope)
           extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Child"
+
+        override def duplicate: IRPass.Metadata = this.copy()
       }
     }
 
@@ -620,6 +634,8 @@ case object AliasAnalysis extends IRPass {
     sealed case class Occurrence(override val graph: Graph, id: Graph.Id)
         extends Info {
       override val metadataName: String = "AliasAnalysis.Info.Occurrence"
+
+      override def duplicate: IRPass.Metadata = this.copy()
     }
   }
 

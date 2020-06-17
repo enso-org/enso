@@ -128,12 +128,22 @@ object IRPass {
           throw new CompilerError(s"Cannot cast $this to the requested type.")
         )
     }
+
+    /** Creates a duplicate of this metadata.
+      *
+      * This method should employ deep-copy semantics where appropriate.
+      *
+      * @return a duplicate of this metadata.
+      */
+    def duplicate: Metadata
   }
   object Metadata {
 
     /** An empty metadata type for passes that do not create any metadata. */
     sealed case class Empty() extends Metadata {
       override val metadataName: String = "Empty"
+
+      override def duplicate: Empty = Empty()
     }
   }
 }

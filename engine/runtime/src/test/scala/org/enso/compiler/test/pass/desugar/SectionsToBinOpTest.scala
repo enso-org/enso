@@ -56,8 +56,25 @@ class SectionsToBinOpTest extends CompilerTest {
           |(1 +)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Application.Prefix]
-      ir.asInstanceOf[IR.Application.Prefix].arguments.length shouldEqual 1
+      ir shouldBe an[IR.Function.Lambda]
+
+      val irLam = ir.asInstanceOf[IR.Function.Lambda]
+      irLam.arguments.length shouldEqual 1
+
+      val lamArgName =
+        irLam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+
+      val lamBody = irLam.body.asInstanceOf[IR.Application.Prefix]
+      lamBody.arguments.length shouldEqual 2
+      val lamBodyFirstArg =
+        lamBody
+          .arguments(1)
+          .asInstanceOf[IR.CallArgument.Specified]
+          .value
+          .asInstanceOf[IR.Name.Literal]
+
+      lamBodyFirstArg.name shouldEqual lamArgName.name
+      lamBodyFirstArg.getId should not equal lamArgName.getId
     }
 
     "work for sides sections" in {
@@ -70,22 +87,34 @@ class SectionsToBinOpTest extends CompilerTest {
 
       ir shouldBe an[IR.Function.Lambda]
 
-      val irLam = ir.asInstanceOf[IR.Function.Lambda]
-      irLam.arguments.length shouldEqual 1
+      val leftLam = ir.asInstanceOf[IR.Function.Lambda]
+      leftLam.arguments.length shouldEqual 1
+      val leftLamArgName =
+        leftLam.arguments.head
+          .asInstanceOf[IR.DefinitionArgument.Specified]
+          .name
 
-      val lamArgName =
-        irLam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+      val rightLam = leftLam.body.asInstanceOf[IR.Function.Lambda]
+      rightLam.arguments.length shouldEqual 1
+      val rightLamArgName = rightLam.arguments.head
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .name
 
-      val lamBody = irLam.body.asInstanceOf[IR.Application.Prefix]
-      lamBody.arguments.length shouldEqual 1
-      val lamBodyFirstArg =
-        lamBody.arguments.head
-          .asInstanceOf[IR.CallArgument.Specified]
-          .value
-          .asInstanceOf[IR.Name.Literal]
+      val lamBody = rightLam.body.asInstanceOf[IR.Application.Prefix]
+      lamBody.arguments.length shouldEqual 2
+      val lamBodyFirstArg = lamBody.arguments.head
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name.Literal]
+      val lamBodySecondArg = lamBody.arguments(1)
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name.Literal]
 
-      lamBodyFirstArg.name shouldEqual lamArgName.name
-      lamBodyFirstArg.getId should not equal lamArgName.getId
+      lamBodyFirstArg.name shouldEqual leftLamArgName.name
+      lamBodySecondArg.name shouldEqual rightLamArgName.name
+      lamBodyFirstArg.getId should not equal leftLamArgName.getId
+      lamBodySecondArg.getId should not equal rightLamArgName.getId
     }
 
     "work for right sections" in {
@@ -125,8 +154,15 @@ class SectionsToBinOpTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
           .asInstanceOf[IR.Function.Lambda]
 
-      ir.body shouldBe an[IR.Application.Prefix]
-      ir.body.asInstanceOf[IR.Application.Prefix].arguments.length shouldEqual 1
+      ir.body
+        .asInstanceOf[IR.Function.Lambda]
+        .body shouldBe an[IR.Application.Prefix]
+      ir.body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments
+        .length shouldEqual 2
     }
 
     "flip the arguments when a right section's argument is a blank" in {

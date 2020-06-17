@@ -1,12 +1,18 @@
 package org.enso.languageserver.boot
 
 import akka.http.scaladsl.Http
+import akka.pattern.ask
+import akka.util.Timeout
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.boot.LanguageServerComponent.ServerContext
 import org.enso.languageserver.boot.LifecycleComponent.{
   ComponentRestarted,
   ComponentStarted,
   ComponentStopped
+}
+import org.enso.languageserver.runtime.RuntimeKiller.{
+  RuntimeShutdownResult,
+  ShutDownRuntime
 }
 
 import scala.concurrent.duration._
@@ -54,8 +60,8 @@ class LanguageServerComponent(config: LanguageServerConfig)
 
       case Some(serverContext) =>
         for {
-          _ <- terminateAkka(serverContext)
           _ <- terminateTruffle(serverContext)
+          _ <- terminateAkka(serverContext)
           _ <- Future { maybeServerCtx = None }
         } yield ComponentStopped
     }
@@ -77,13 +83,13 @@ class LanguageServerComponent(config: LanguageServerConfig)
   }
 
   private def terminateTruffle(serverContext: ServerContext): Future[Unit] = {
+    implicit val askTimeout = Timeout(12.seconds)
     val killFiber =
-      Future {
-        serverContext.mainModule.context.close(true)
-      }
+      (serverContext.mainModule.runtimeKiller ? ShutDownRuntime)
+        .mapTo[RuntimeShutdownResult]
 
     for {
-      _ <- Await.ready(killFiber, 5.seconds).recover(logError)
+      _ <- killFiber.recover(logError)
       _ <- Future { logger.info("Terminated truffle context") }
     } yield ()
   }

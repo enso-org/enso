@@ -183,25 +183,6 @@ object AstView {
     }
   }
 
-  object ContextAscription {
-
-    /** Matches a usage of the `in` keyword for ascribing a monadic context to
-      * an expression.
-      *
-      * @param ast the ast structure to match on
-      * @return a pair containing the expression and the context
-      */
-    def unapply(ast: AST): Option[(AST, AST)] = {
-      ast match {
-        case MaybeParensed(
-            AST.App.Prefix(expr, AST.App.Prefix(AST.Ident.Var("in"), context))
-            ) =>
-          Some((expr, context))
-        case _ => None
-      }
-    }
-  }
-
   object LazyArgument {
 
     /** Matches on a lazy argument definition or usage.
@@ -420,6 +401,23 @@ object AstView {
         Some((target, ident, List(susp)))
       case OperatorDot(target, ConsOrVar(ident)) =>
         Some((target, ident, List()))
+      case _ => None
+    }
+  }
+
+  object ModulePath {
+
+    /** Matches on a module path of the form `A.B.C...`, as seen in an import.
+     *
+     * @param ast the structure to try and match on
+     * @return the list of segments in the module path
+     */
+    def unapply(ast: AST): Option[List[AST.Ident]] = ast match {
+      case AST.Ident.Cons.any(name) => Some(List(name))
+      case OperatorDot(left, AST.Ident.Cons.any(name)) => left match {
+        case ModulePath(elems) => Some(elems :+ name)
+        case _ => None
+      }
       case _ => None
     }
   }
@@ -788,6 +786,20 @@ object AstView {
           AST.App.Section.Right(AST.Ident.Opr("-"), expression)
           ) =>
         Some(expression)
+      case _ => None
+    }
+  }
+
+  object TypeAscription {
+
+    /** Matches a usage of the type ascription operator `:`.
+      *
+      * @param ast the structure to try and match on
+      * @return the typed expression, and the ascribed type
+      */
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr(":"), sig)) =>
+        Some((typed, sig))
       case _ => None
     }
   }

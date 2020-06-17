@@ -162,6 +162,11 @@ case object DemandAnalysis extends IRPass {
           case lit: IR.Name.Literal => lit.copy(location  = newNameLocation)
           case ths: IR.Name.This    => ths.copy(location  = newNameLocation)
           case here: IR.Name.Here   => here.copy(location = newNameLocation)
+          case _: IR.Name.MethodReference =>
+            throw new CompilerError(
+              "Method references should not be present by the time demand " +
+              "analysis runs."
+            )
           case _: IR.Name.Blank =>
             throw new CompilerError(
               "Blanks should not be present by the time demand analysis runs."
@@ -210,9 +215,14 @@ case object DemandAnalysis extends IRPass {
           )
         )
       )
-    case _ =>
+    case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+      tSet.copy(
+        expression =
+          expr.map(analyseExpression(_, isInsideCallArgument = false))
+      )
+    case _: IR.Application.Operator =>
       throw new CompilerError(
-        "Unexpected application type during demand analysis."
+        "Operators should not be present during demand analysis."
       )
   }
 

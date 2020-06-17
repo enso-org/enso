@@ -9,7 +9,9 @@ class SuspendedArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    lazyId = ~x -> x
+        |    lazyId : Suspended -> a
+        |    lazyId = x -> x
+        |
         |    lazyId (1 + 1)
         |""".stripMargin
 
@@ -20,7 +22,9 @@ class SuspendedArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    foo = i -> ~x -> ~y -> ifZero i x y
+        |    foo : Number -> Suspended -> Suspended -> a
+        |    foo = i -> x -> y -> ifZero i x y
+        |
         |    foo 1 (IO.println 1) (IO.println 2)
         |""".stripMargin
     eval(code)
@@ -42,7 +46,9 @@ class SuspendedArgumentsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    suspInc = ~x -> 1 + x
+        |    suspInc : Suspended -> Number
+        |    suspInc = x -> 1 + x
+        |
         |    suspInc (suspInc 10)
         |""".stripMargin
 

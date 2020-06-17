@@ -152,8 +152,7 @@ object ContextRegistryProtocol {
     * @param contextId execution context identifier
     * @param message the error message
     */
-  case class ExecutionFailedError(contextId: ContextId, message: String)
-      extends Failure
+  case class ExecutionFailedNotification(contextId: ContextId, message: String)
 
   /**
     * Requests the language server to attach a visualisation to the expression
@@ -265,8 +264,9 @@ object ContextRegistryProtocol {
     * Signals that an evaluation of a code responsible for generating
     * visualisation data failed.
     *
+    * @param contextId a context identifier
     * @param message the reason of the failure
     */
-  case class VisualisationEvaluationFailed(message: String) extends Failure
+  case class VisualisationEvaluationFailed(contextId: UUID, message: String)
 
 }

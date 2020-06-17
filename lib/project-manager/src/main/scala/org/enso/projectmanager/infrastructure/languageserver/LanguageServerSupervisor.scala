@@ -100,7 +100,7 @@ class LanguageServerSupervisor(
       ()
 
     case Failure(th) =>
-      log.error(s"An error occurred during restarting the server [$config]", th)
+      log.error(th, s"An error occurred during restarting the server [$config]")
       if (restartCount < supervisionConfig.numberOfRestarts) {
         scheduler.scheduleOnce(
           supervisionConfig.delayBetweenRestarts,

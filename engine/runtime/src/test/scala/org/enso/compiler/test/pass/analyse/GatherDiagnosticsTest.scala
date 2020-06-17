@@ -62,6 +62,9 @@ class GatherDiagnosticsTest extends CompilerTest {
       val method2Name = IR.Name.Literal("baz", None)
       val fooName     = IR.Name.Literal("foo", None)
 
+      val method1Ref = IR.Name.MethodReference(List(typeName), method1Name, None)
+      val method2Ref = IR.Name.MethodReference(List(typeName), method2Name, None)
+
       val module = IR.Module(
         List(),
         List(
@@ -74,9 +77,9 @@ class GatherDiagnosticsTest extends CompilerTest {
             None
           ),
           IR.Module.Scope.Definition.Method
-            .Explicit(typeName, method1Name, lam, None),
+            .Explicit(method1Ref, lam, None),
           IR.Module.Scope.Definition.Method
-            .Explicit(typeName, method2Name, error3, None)
+            .Explicit(method2Ref, error3, None)
         ),
         None
       )

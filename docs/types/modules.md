@@ -37,16 +37,16 @@ most languages, Enso provides an _import_ mechanism for this. Enso has four
 different kinds of imports that may be combined freely, all of which take a
 module path as their first argument.
 
-1. **Unqualified Imports:** These import all symbols from the module into the
-   current scope (`import M`).
-2. **Qualified Imports:** These import all symbols from the module into the
-   current scope with symbols qualified under a name _different_ from the
-   module name (`import M as T`).
-3. **Restricted Imports:** These import only the specific symbols from the
-   module into the current scope (`import M only sym1 sym2`).
-4. **Hiding Imports:** These are the inverse of restricted imports, and import
-   _all_ symbols other than the named ones into the current scope
-   (`import M hiding sym1 sym2`),
+1.  **Unqualified Imports:** These import all symbols from the module into the
+    current scope (`import M`).
+2.  **Qualified Imports:** These import all symbols from the module into the
+    current scope with symbols qualified under a name _different_ from the
+    module name (`import M as T`).
+3.  **Restricted Imports:** These import only the specific symbols from the
+    module into the current scope (`import M only sym1 sym2`).
+4.  **Hiding Imports:** These are the inverse of restricted imports, and import
+    _all_ symbols other than the named ones into the current scope
+    (`import M hiding sym1 sym2`),
 
 Imports may introduce ambiguous symbols, but this is not an error until one of
 the ambiguous symbols is used in user code.
@@ -58,15 +58,15 @@ mechanism. Similarly to imports, this has four kinds, all of which take a module
 path as their first argument, and all of which _may_ introduce the module it
 exports into scope (if it is not already imported).
 
-1. **Unqualified Exports:** These export all symbols from the module as if they
-   were defined in the exporting module (`export X`).
-2. **Qualified Exports:** These export all symbols from the module as if they
-   were defined in another module accessible in the exporting module
-   (`export X as Y`).
-3. **Restricted Exports:** These export only the specified symbols from the
-   module as if they were defined in the exporting module (`export X only sym`)
-4. **Hiding Exports:** These export all symbols from the module except those
-   explicitly specified (`export X hiding sym1 sym2`).
+1.  **Unqualified Exports:** These export all symbols from the module as if they
+    were defined in the exporting module (`export X`).
+2.  **Qualified Exports:** These export all symbols from the module as if they
+    were defined in another module accessible in the exporting module
+    (`export X as Y`).
+3.  **Restricted Exports:** These export only the specified symbols from the
+    module as if they were defined in the exporting module (`export X only sym`)
+4.  **Hiding Exports:** These export all symbols from the module except those
+    explicitly specified (`export X hiding sym1 sym2`).
 
 Exports effectively act to 'paste' the contents of the exported module into the
 module declaring the export. This means that exports that create name clashes

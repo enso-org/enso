@@ -24,7 +24,7 @@ trait CompilerRunner {
       *
       * @return [[source]] as an AST
       */
-    def toAST: AST = {
+    def toAst: AST = {
       val parser: Parser = Parser()
       val unresolvedAST  = parser.runWithIds(source)
 
@@ -44,7 +44,7 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]]
       */
     def toIrModule: IR.Module = {
-      AstToIr.translate(source.toAST)
+      AstToIr.translate(source.toAst)
     }
   }
 
@@ -60,7 +60,7 @@ trait CompilerRunner {
       * @return the [[IR]] representing [[source]], if it is a valid expression
       */
     def toIrExpression: Option[IR.Expression] = {
-      AstToIr.translateInline(source.toAST)
+      AstToIr.translateInline(source.toAst)
     }
   }
 
@@ -163,8 +163,11 @@ trait CompilerRunner {
       */
     def asMethod: IR.Module.Scope.Definition.Method = {
       IR.Module.Scope.Definition.Method.Explicit(
-        IR.Name.Literal("TestType", None),
-        IR.Name.Literal("testMethod", None),
+        IR.Name.MethodReference(
+          List(IR.Name.Literal("TestType", None)),
+          IR.Name.Literal("testMethod", None),
+          None
+        ),
         ir,
         None
       )

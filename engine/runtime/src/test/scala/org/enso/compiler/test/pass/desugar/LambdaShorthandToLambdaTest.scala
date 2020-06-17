@@ -225,15 +225,21 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
-      val irFn    = ir.asInstanceOf[IR.Function.Lambda]
-      val argName = irFn.arguments.head.name
-      val body    = irFn.body.asInstanceOf[IR.Application.Prefix]
+      val underscoreFn      = ir.asInstanceOf[IR.Function.Lambda]
+      val underscoreArgName = underscoreFn.arguments.head.name
 
-      body.arguments.length shouldEqual 1
+      val rightArgLambda = underscoreFn.body.asInstanceOf[IR.Function.Lambda]
+      rightArgLambda.arguments.length shouldEqual 1
+      val rightArgLambdaArgName = rightArgLambda.arguments.head.name
 
-      val leftArgName = body.arguments.head.value.asInstanceOf[IR.Name.Literal]
+      val body = rightArgLambda.body.asInstanceOf[IR.Application.Prefix]
+      body.arguments.length shouldEqual 2
 
-      argName.name shouldEqual leftArgName.name
+      val leftCallArgName = body.arguments.head.value.asInstanceOf[IR.Name.Literal]
+      val rightCallArgName = body.arguments(1).value.asInstanceOf[IR.Name.Literal]
+
+      underscoreArgName.name shouldEqual leftCallArgName.name
+      rightArgLambdaArgName.name shouldEqual rightCallArgName.name
     }
 
     "work correctly for centre operator sections" in {

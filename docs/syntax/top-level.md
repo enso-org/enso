@@ -3,7 +3,7 @@ layout: developer-doc
 title: Enso Top-Level Syntax
 category: syntax
 tags: [syntax, top-level, file]
-order: 8
+order: 9
 ---
 
 # Enso Top-Level Syntax

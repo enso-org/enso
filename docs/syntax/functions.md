@@ -3,7 +3,7 @@ layout: developer-doc
 title: Defining Functions
 category: syntax
 tags: [syntax, functions]
-order: 9
+order: 10
 ---
 
 # Defining Functions
@@ -178,6 +178,17 @@ layout of the code has no impact on semantics of the code:
     x = foo x y z
     x.do_thing
   ```
+
+  Alternatively, it is sufficient to type the binding for the block as
+  `Suspended a` where `a` is the type of the block.
+
+  ```ruby
+  susp : Suspended a =
+    x = foo x y z
+    x.do_thing
+  ```
+
+  It should be noted that this does not yet work.
 
 The following rules apply to code blocks:
 

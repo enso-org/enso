@@ -234,9 +234,11 @@ case object NestedPatternMatch extends IRPass {
           val (lastNestedPattern, nestedPosition) =
             fields.zipWithIndex.findLast { case (pat, _) => isNested(pat) }.get
 
-          val newName         = freshNameSupply.newName()
-          val newField        = Pattern.Name(newName, None)
-          val nestedScrutinee = newName.duplicate()
+          val newName  = freshNameSupply.newName()
+          val newField = Pattern.Name(newName, None)
+          val nestedScrutinee =
+            newName.duplicate()
+            newName.duplicate()
 
           val newFields =
             fields.take(nestedPosition) ++ (newField :: fields.drop(
@@ -244,7 +246,8 @@ case object NestedPatternMatch extends IRPass {
             ))
 
           val newPattern = cons.copy(
-            fields = newFields.duplicate()
+            fields =
+              newFields.duplicate()
           )
 
           val newExpression = generateNestedCase(
@@ -256,7 +259,7 @@ case object NestedPatternMatch extends IRPass {
           )
 
           val partDesugaredBranch = IR.Case.Branch(
-            pattern    = newPattern.duplicate(),
+            pattern = newPattern.duplicate(),
             expression = newExpression.duplicate(),
             None
           )
@@ -320,7 +323,11 @@ case object NestedPatternMatch extends IRPass {
     )
 
     val patternBranch =
-      IR.Case.Branch(pattern.duplicate(), currentBranchExpr.duplicate(), None)
+      IR.Case.Branch(
+        pattern.duplicate(),
+        currentBranchExpr.duplicate(),
+        None
+      )
     val fallbackBranch = IR.Case.Branch(
       IR.Pattern.Name(IR.Name.Blank(None), None),
       fallbackCase,

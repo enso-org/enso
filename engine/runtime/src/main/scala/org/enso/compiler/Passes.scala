@@ -9,11 +9,7 @@ import org.enso.compiler.pass.optimise.{
   LambdaConsolidate,
   UnreachableMatchBranches
 }
-import org.enso.compiler.pass.resolve.{
-  DocumentationComments,
-  IgnoredBindings,
-  OverloadsResolution
-}
+import org.enso.compiler.pass.resolve._
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 
 class Passes(passes: Option[List[IRPass]] = None) {
@@ -37,8 +33,12 @@ class Passes(passes: Option[List[IRPass]] = None) {
       UnreachableMatchBranches,
       NestedPatternMatch,
       IgnoredBindings,
+      TypeFunctions,
+      TypeSignatures,
       AliasAnalysis,
       LambdaConsolidate,
+      AliasAnalysis,
+      SuspendedArguments,
       OverloadsResolution,
       AliasAnalysis,
       DemandAnalysis,

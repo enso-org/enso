@@ -26,7 +26,8 @@ public class RuntimeOptions {
 
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
-          Arrays.asList(PACKAGES_PATH_DESCRIPTOR, STRICT_ERRORS_DESCRIPTOR, LOG_LEVEL_DESCRIPTOR));
+          Arrays.asList(PACKAGES_PATH_DESCRIPTOR, STRICT_ERRORS_DESCRIPTOR,
+                  LOG_LEVEL_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

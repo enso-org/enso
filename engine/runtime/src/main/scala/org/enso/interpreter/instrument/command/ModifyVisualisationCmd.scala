@@ -1,8 +1,15 @@
 package org.enso.interpreter.instrument.command
 
 import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.job.{
+  EnsureCompiledStackJob,
+  ExecuteJob,
+  UpsertVisualisationJob
+}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
+
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * A command that modifies a visualisation.
@@ -13,41 +20,73 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 class ModifyVisualisationCmd(
   maybeRequestId: Option[RequestId],
   request: Api.ModifyVisualisation
-) extends BaseVisualisationCmd {
+) extends Command(maybeRequestId) {
 
   /** @inheritdoc **/
-  override def execute(implicit ctx: RuntimeContext): Unit = {
-    if (ctx.contextManager.contains(
-          request.visualisationConfig.executionContextId
-        )) {
-      val maybeVisualisation = ctx.contextManager.getVisualisationById(
-        request.visualisationConfig.executionContextId,
-        request.visualisationId
-      )
-      maybeVisualisation match {
-        case None =>
+  override def execute(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    if (doesContextExist) {
+      modifyVisualisation()
+    } else {
+      replyWithContextNotExistError()
+    }
+  }
+
+  private def modifyVisualisation()(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    val maybeVisualisation = ctx.contextManager.getVisualisationById(
+      request.visualisationConfig.executionContextId,
+      request.visualisationId
+    )
+    maybeVisualisation match {
+      case None =>
+        Future {
           ctx.endpoint.sendToClient(
             Api.Response(maybeRequestId, Api.VisualisationNotFound())
           )
+        }
 
-        case Some(visualisation) =>
-          upsertVisualisation(
-            maybeRequestId,
-            request.visualisationId,
-            visualisation.expressionId,
-            request.visualisationConfig,
-            Api.VisualisationModified()
+      case Some(visualisation) =>
+        val maybeFutureExecutable =
+          ctx.jobProcessor.run(
+            new UpsertVisualisationJob(
+              maybeRequestId,
+              request.visualisationId,
+              visualisation.expressionId,
+              request.visualisationConfig,
+              Api.VisualisationModified()
+            )
           )
-      }
+        maybeFutureExecutable flatMap {
+          case None =>
+            Future.successful(())
 
-    } else {
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          maybeRequestId,
-          Api.ContextNotExistError(
-            request.visualisationConfig.executionContextId
-          )
-        )
+          case Some(exec) =>
+            for {
+              _ <- ctx.jobProcessor.run(new EnsureCompiledStackJob(exec.stack))
+              _ <- ctx.jobProcessor.run(new ExecuteJob(exec))
+            } yield ()
+        }
+    }
+  }
+
+  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
+    ctx.contextManager.contains(
+      request.visualisationConfig.executionContextId
+    )
+  }
+
+  private def replyWithContextNotExistError()(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    Future {
+      reply(
+        Api.ContextNotExistError(request.visualisationConfig.executionContextId)
       )
     }
   }

@@ -24,7 +24,11 @@ import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
 }
-import org.enso.languageserver.runtime.{ContextRegistry, RuntimeConnector}
+import org.enso.languageserver.runtime.{
+  ContextRegistry,
+  RuntimeConnector,
+  RuntimeKiller
+}
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
@@ -113,6 +117,10 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
+    .option(
+      RuntimeServerInfo.JOB_PARALLELISM_OPTION,
+      Runtime.getRuntime.availableProcessors().toString
+    )
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
@@ -128,6 +136,12 @@ class MainModule(serverConfig: LanguageServerConfig) {
     })
     .build()
   context.initialize(LanguageInfo.ID)
+
+  val runtimeKiller =
+    system.actorOf(
+      RuntimeKiller.props(runtimeConnector, context),
+      "runtime-context"
+    )
 
   val stdOutController =
     system.actorOf(

@@ -1,0 +1,55 @@
+name: Parser CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ "*" ]
+
+env:
+  wasmpackVersion: 0.8.1
+
+jobs:
+  test:
+    name: Test Parser
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
+      fail-fast: false
+    steps:
+      - name: Checkout Parser Sources
+        uses: actions/checkout@v2
+
+      # Install Tooling
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2020-06-09
+          override: true
+      - name: Install wasm-pack
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: wasm-pack --version ${{ env.wasmpackVersion }}
+
+      # Caches
+      - name: Cache Cargo Registry
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-registry
+      - name: Cache Cargo Test
+        uses: actions/cache@v2
+        with:
+          path: ./target/rust
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-build
+
+      # Tests
+      - name: Test Parser
+        uses: actions-rs/cargo@v1
+        with:
+          command: test

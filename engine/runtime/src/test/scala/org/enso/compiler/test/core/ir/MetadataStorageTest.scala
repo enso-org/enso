@@ -32,6 +32,8 @@ class MetadataStorageTest extends CompilerTest {
 
     sealed case class Metadata1() extends IRPass.Metadata {
       override val metadataName: String = "TestPass1.Metadata1"
+
+      override def duplicate: IRPass.Metadata = Metadata1()
     }
   }
 
@@ -54,6 +56,8 @@ class MetadataStorageTest extends CompilerTest {
 
     sealed case class Metadata2() extends IRPass.Metadata {
       override val metadataName: String = "TestPass2.Metadata2"
+
+      override def duplicate: IRPass.Metadata = Metadata2()
     }
   }
 

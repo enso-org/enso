@@ -462,7 +462,7 @@ We have our own exception framework based on `ExceptT` that encodes exception
 usage at the type level. This ensures that all synchronous exceptions must be
 dealt with.
 
-It is defined in [`lib/exception/`](https://github.com/Enso/Enso/tree/master/lib/exception)
+It is defined in [`lib/exception/`](https://github.com/luna/luna/tree/master/lib/exception)
 and contains utilities for declaring that a function throws an exception, as
 well as throwing and catching exceptions.
 
@@ -601,7 +601,7 @@ In general, we aim for a codebase that is free of warnings and lints, and we do
 this using the following ideas:
 
 #### Warnings
-New code should introduce no new warnings onto master. You may build with
+New code should introduce no new warnings onto main. You may build with
 warnings on your own branch, but the code that is submitted as part of a PR
 should not introduce new warnings. You should also endeavour to fix any warnings
 that you come across during development.
@@ -642,7 +642,7 @@ extension (linked from the extension's table below).
 The following language extensions are considered to be so safe, or to have such
 high utility, that they are considered to be Enso's set of default extensions.
 You can find said set of extensions for Enso itself defined in a
-[common configuration file](https://github.com/Enso/Enso/blob/master/config/hpack-common.yaml).
+[common configuration file](https://github.com/luna/luna/blob/master/config/hpack-common.yaml).
 
 #### AllowAmbiguousTypes
 

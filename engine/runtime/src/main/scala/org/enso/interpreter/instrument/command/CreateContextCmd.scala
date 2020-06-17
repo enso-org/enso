@@ -4,6 +4,8 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
+import scala.concurrent.{ExecutionContext, Future}
+
 /**
   * A command that creates an execution context.
   *
@@ -13,14 +15,16 @@ import org.enso.polyglot.runtime.Runtime.Api.RequestId
 class CreateContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.CreateContextRequest
-) extends Command {
+) extends Command(maybeRequestId) {
 
   /** @inheritdoc **/
-  override def execute(implicit ctx: RuntimeContext): Unit = {
-    ctx.contextManager.create(request.contextId)
-    ctx.endpoint.sendToClient(
-      Api.Response(maybeRequestId, Api.CreateContextResponse(request.contextId))
-    )
-  }
+  override def execute(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] =
+    Future {
+      ctx.contextManager.create(request.contextId)
+      reply(Api.CreateContextResponse(request.contextId))
+    }
 
 }

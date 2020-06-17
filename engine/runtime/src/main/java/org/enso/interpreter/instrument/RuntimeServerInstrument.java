@@ -15,6 +15,7 @@ import org.graalvm.polyglot.io.MessageTransport;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
 
 /**
@@ -117,8 +118,10 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   @Override
   protected OptionDescriptors getOptionDescriptors() {
     return OptionDescriptors.create(
-        Collections.singletonList(
+        Arrays.asList(
             OptionDescriptor.newBuilder(new OptionKey<>(""), RuntimeServerInfo.ENABLE_OPTION)
-                .build()));
+                .build(),
+            RuntimeServerInfo.JOB_PARALLELISM_DESCRIPTOR
+        ));
   }
 }

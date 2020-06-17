@@ -142,6 +142,14 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.InitializedNotification],
         name  = "initializedNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ShutDownRuntimeServer],
+        name  = "shutDownRuntimeServer"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.RuntimeServerShutDown],
+        name  = "runtimeServerShutDown"
       )
     )
   )
@@ -466,7 +474,7 @@ object Runtime {
       * @param message the error message.
       */
     case class ExecutionFailed(contextId: ContextId, message: String)
-        extends Error
+        extends ApiNotification
 
     /**
       * Signals that an expression specified in a [[AttachVisualisation]] or
@@ -480,9 +488,13 @@ object Runtime {
       * Signals that an evaluation of a code responsible for generating
       * visualisation data failed.
       *
+      * @param contextId the context's id.
       * @param message the reason of the failure
       */
-    case class VisualisationEvaluationFailed(message: String) extends Error
+    case class VisualisationEvaluationFailed(
+      contextId: ContextId,
+      message: String
+    ) extends ApiNotification
 
     /**
       * Signals that visualisation cannot be found.
@@ -594,6 +606,16 @@ object Runtime {
       * Signals that a visualisation modification has succeeded.
       */
     case class VisualisationModified() extends ApiResponse
+
+    /**
+      * A request to shut down the runtime server.
+      */
+    case class ShutDownRuntimeServer() extends ApiRequest
+
+    /**
+      * Signals that the runtime server has been shut down.
+      */
+    case class RuntimeServerShutDown() extends ApiResponse
 
     private lazy val mapper = {
       val factory = new CBORFactory()

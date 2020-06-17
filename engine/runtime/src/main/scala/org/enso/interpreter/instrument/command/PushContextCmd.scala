@@ -1,12 +1,11 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
-import org.enso.interpreter.instrument.{CacheInvalidation, InstrumentFrame}
-import org.enso.interpreter.instrument.execution.RuntimeContext
+import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
+import org.enso.interpreter.instrument.job.{EnsureCompiledStackJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
-import scala.jdk.OptionConverters._
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
   * A command that pushes an item onto a stack.
@@ -17,76 +16,73 @@ import scala.jdk.OptionConverters._
 class PushContextCmd(
   maybeRequestId: Option[RequestId],
   request: Api.PushContextRequest
-) extends Command
-    with ProgramExecutionSupport {
+) extends Command(maybeRequestId) {
 
   /** @inheritdoc **/
-  override def execute(implicit ctx: RuntimeContext): Unit = {
-    if (ctx.contextManager.get(request.contextId).isDefined) {
-      val stack = ctx.contextManager.getStack(request.contextId)
-      val payload = request.stackItem match {
-        case _: Api.StackItem.ExplicitCall if stack.isEmpty =>
-          ctx.contextManager.push(request.contextId, request.stackItem)
-          getCacheMetadata(stack) match {
-            case Some(metadata) =>
-              CacheInvalidation.run(
-                stack,
-                CacheInvalidation(
-                  CacheInvalidation.StackSelector.Top,
-                  CacheInvalidation.Command.SetMetadata(metadata)
-                )
-              )
-              withContext(runProgram(request.contextId, stack.toList)) match {
-                case Right(()) => Api.PushContextResponse(request.contextId)
-                case Left(e)   => Api.ExecutionFailed(request.contextId, e)
-              }
-            case None =>
-              Api.InvalidStackItemError(request.contextId)
-          }
-        case _: Api.StackItem.LocalCall if stack.nonEmpty =>
-          ctx.contextManager.push(request.contextId, request.stackItem)
-          getCacheMetadata(stack) match {
-            case Some(metadata) =>
-              CacheInvalidation.run(
-                stack,
-                CacheInvalidation(
-                  CacheInvalidation.StackSelector.Top,
-                  CacheInvalidation.Command.SetMetadata(metadata)
-                )
-              )
-              withContext(runProgram(request.contextId, stack.toList)) match {
-                case Right(()) => Api.PushContextResponse(request.contextId)
-                case Left(e)   => Api.ExecutionFailed(request.contextId, e)
-              }
-            case None =>
-              Api.InvalidStackItemError(request.contextId)
-          }
-        case _ =>
-          Api.InvalidStackItemError(request.contextId)
-      }
-      ctx.endpoint.sendToClient(Api.Response(maybeRequestId, payload))
+  override def execute(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] =
+    if (doesContextExist) {
+      pushItemOntoStack() flatMap (scheduleExecutionIfNeeded(_))
     } else {
-      ctx.endpoint.sendToClient(
-        Api
-          .Response(maybeRequestId, Api.ContextNotExistError(request.contextId))
-      )
+      replyWithContextNotExistError()
+    }
+
+  private def doesContextExist(implicit ctx: RuntimeContext): Boolean = {
+    ctx.contextManager.contains(request.contextId)
+  }
+
+  private def replyWithContextNotExistError()(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    Future {
+      reply(Api.ContextNotExistError(request.contextId))
     }
   }
 
-  private def getCacheMetadata(
-    stack: Iterable[InstrumentFrame]
-  )(implicit ctx: RuntimeContext): Option[CachePreferenceAnalysis.Metadata] =
-    stack.lastOption flatMap {
-      case InstrumentFrame(Api.StackItem.ExplicitCall(ptr, _, _), _) =>
-        ctx.executionService.getContext.getModuleForFile(ptr.file).toScala.map {
-          module =>
-            module
-              .parseIr(ctx.executionService.getContext)
-              .unsafeGetMetadata(
-                CachePreferenceAnalysis,
-                "Empty cache preference metadata"
-              )
-        }
-      case _ => None
+  private def pushItemOntoStack()(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Boolean] =
+    Future {
+      ctx.jobControlPlane.abortJobs(request.contextId)
+      val stack = ctx.contextManager.getStack(request.contextId)
+      val pushed = request.stackItem match {
+        case _: Api.StackItem.ExplicitCall if stack.isEmpty =>
+          ctx.contextManager.push(request.contextId, request.stackItem)
+          true
+
+        case _: Api.StackItem.LocalCall if stack.nonEmpty =>
+          ctx.contextManager.push(request.contextId, request.stackItem)
+          true
+
+        case _ =>
+          false
+      }
+      if (pushed) {
+        reply(Api.PushContextResponse(request.contextId))
+      } else {
+        reply(Api.InvalidStackItemError(request.contextId))
+      }
+      pushed
     }
+
+  private def scheduleExecutionIfNeeded(pushed: Boolean)(
+    implicit ctx: RuntimeContext,
+    ec: ExecutionContext
+  ): Future[Unit] = {
+    if (pushed) {
+      val stack      = ctx.contextManager.getStack(request.contextId)
+      val executable = Executable(request.contextId, stack, Seq())
+      for {
+        _ <- ctx.jobProcessor.run(new EnsureCompiledStackJob(executable.stack))
+        _ <- ctx.jobProcessor.run(new ExecuteJob(executable))
+      } yield ()
+    } else {
+      Future.successful(())
+    }
+  }
+
 }

@@ -5,9 +5,8 @@ import java.nio.ByteBuffer
 import com.oracle.truffle.api.TruffleContext
 import org.enso.interpreter.instrument.command.CommandFactory
 import org.enso.interpreter.instrument.execution.{
-  CommandProcessor,
-  PreemptiveCommandProcessor,
-  RuntimeContext
+  CommandExecutionEngine,
+  CommandProcessor
 }
 import org.enso.interpreter.service.ExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
@@ -77,26 +76,34 @@ final class Handler {
     executionService = service
     truffleContext   = context
     endpoint.sendToClient(Api.Response(Api.InitializedNotification()))
-    commandProcessor =
-      new PreemptiveCommandProcessor(1, executionService.getContext)
+    val interpreterCtx =
+      InterpreterContext(
+        executionService,
+        contextManager,
+        endpoint,
+        truffleContext
+      )
+    commandProcessor = new CommandExecutionEngine(interpreterCtx)
   }
 
   /**
     * Handles a message received from the client.
     *
-    * @param msg the message to handle.
+    * @param request the message to handle.
     */
-  def onMessage(msg: Api.Request): Unit = {
-    val cmd = CommandFactory.createCommand(msg)
-    val ctx = RuntimeContext(
-      executionService,
-      contextManager,
-      endpoint,
-      truffleContext,
-      commandProcessor
-    )
-    val future = commandProcessor.invoke(cmd, ctx)
-    Await.result(future, 1.minute)
+  def onMessage(request: Api.Request): Unit = {
+    request.payload match {
+      case Api.ShutDownRuntimeServer() =>
+        commandProcessor.stop()
+        endpoint.sendToClient(
+          Api.Response(request.requestId, Api.RuntimeServerShutDown())
+        )
+
+      case _ =>
+        val cmd = CommandFactory.createCommand(request)
+        commandProcessor.invoke(cmd)
+    }
+
   }
 
 }

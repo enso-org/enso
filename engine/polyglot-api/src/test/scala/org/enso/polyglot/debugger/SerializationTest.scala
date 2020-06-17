@@ -56,38 +56,41 @@ class SerializationTest extends AnyWordSpec with Matchers with EitherValue {
     }
   }
 
-  private def stackTraceElementRepresentationIsConsistent(
+  private def assertStackTraceElementRepresentationIsConsistent(
     stackTraceElement: StackTraceElement,
     repr: protocol.StackTraceElement
-  ): Boolean = {
-    repr.declaringClass() == stackTraceElement.getClassName &&
-    repr.fileName() == stackTraceElement.getFileName &&
-    repr.lineNumber() == stackTraceElement.getLineNumber &&
-    repr.methodName() == stackTraceElement.getMethodName
+  ): Unit = {
+    repr.declaringClass() shouldEqual stackTraceElement.getClassName
+    repr.fileName() shouldEqual stackTraceElement.getFileName
+    repr.lineNumber() shouldEqual stackTraceElement.getLineNumber
+    repr.methodName() shouldEqual stackTraceElement.getMethodName
   }
 
-  private def exceptionRepresentationIsConsistent(
+  private def getExceptionMessageFailsafe(ex: Throwable): String =
+    Option(ex.getMessage).getOrElse(ex.toString)
+
+  private def assertExceptionRepresentationIsConsistent(
     ex: Throwable,
     repr: ExceptionRepresentation
-  ): Boolean = {
-    val causeIsConsistent =
-      (repr.cause() == null && ex.getCause == null) || (exceptionRepresentationIsConsistent(
-        ex.getCause,
-        repr.cause()
-      ))
-    val messageIsConsistent = repr.message() == ex.getMessage
-    val trace               = ex.getStackTrace
-    val traceIsConsistent =
-      (trace.length == repr.stackTraceLength()) &&
-      trace.zipWithIndex.forall({
-        case (traceElement: StackTraceElement, j: Int) =>
-          stackTraceElementRepresentationIsConsistent(
-            traceElement,
-            repr.stackTrace(j)
-          )
-      })
+  ): Unit = {
 
-    causeIsConsistent && messageIsConsistent && traceIsConsistent
+    if (ex.getCause == null) {
+      assert(repr.cause() == null, "cause in representation should be null too")
+    } else {
+      assertExceptionRepresentationIsConsistent(ex.getCause, repr.cause())
+    }
+
+    repr.message() shouldEqual getExceptionMessageFailsafe(ex)
+    val trace = ex.getStackTrace
+
+    repr.stackTraceLength() shouldEqual trace.length
+    trace.zipWithIndex.foreach({
+      case (traceElement: StackTraceElement, j: Int) =>
+        assertStackTraceElementRepresentationIsConsistent(
+          traceElement,
+          repr.stackTrace(j)
+        )
+    })
   }
 
   "EvaluationFailure" should {
@@ -98,10 +101,27 @@ class SerializationTest extends AnyWordSpec with Matchers with EitherValue {
 
       response should matchPattern { case EvaluationFailure(_) => }
       val EvaluationFailure(repr) = response
-      assert(
-        exceptionRepresentationIsConsistent(exception, repr),
-        "exception representation should be consistent"
-      )
+      assertExceptionRepresentationIsConsistent(exception, repr)
+    }
+
+    "handle null in exception message" in {
+      val exception = new RuntimeException(null, null)
+      val bytes     = Debugger.createEvaluationFailure(exception)
+      val response  = Debugger.deserializeResponse(bytes).rightValue
+
+      response should matchPattern { case EvaluationFailure(_) => }
+      val EvaluationFailure(repr) = response
+      assertExceptionRepresentationIsConsistent(exception, repr)
+    }
+
+    "handle nested exceptions" in {
+      val exception = new RuntimeException("test", new RuntimeException)
+      val bytes     = Debugger.createEvaluationFailure(exception)
+      val response  = Debugger.deserializeResponse(bytes).rightValue
+
+      response should matchPattern { case EvaluationFailure(_) => }
+      val EvaluationFailure(repr) = response
+      assertExceptionRepresentationIsConsistent(exception, repr)
     }
   }
 

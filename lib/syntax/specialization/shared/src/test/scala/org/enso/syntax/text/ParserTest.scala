@@ -346,8 +346,6 @@ class ParserTest extends AnyFlatSpec with Matchers {
   "("           ?= amb("(", List(List(")")))
   "(("          ?= amb_group(group_())
 
-  "import Std .  Math  .Vector".stripMargin ?= Import("Std", "Math", "Vector")
-
   """type Maybe a
     |    type Just val:a
     |    type Nothing""".stripMargin ?= {

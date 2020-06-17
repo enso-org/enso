@@ -1,8 +1,8 @@
-name: Enso CI
+name: Engine CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
     branches: [ "*" ]
 
@@ -11,7 +11,7 @@ env:
   graalVersion: 20.1.0
   javaVersion: java8
   # Please ensure that this is in sync with project/build.properties
-  sbtVersion: 1.3.12
+  sbtVersion: 1.3.10
   excludedPaths: |
     .github/PULL_REQUEST_TEMPLATE.md
     .github/CODEOWNERS
@@ -27,12 +27,12 @@ env:
 jobs:
   # This job is responsible for testing the codebase
   test:
-    name: Test
+    name: Test Engine
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
       matrix:
-        os: [windows-latest, macOS-latest, ubuntu-latest]
+        os: [macOS-latest, ubuntu-latest]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
@@ -62,24 +62,15 @@ jobs:
           echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
       # Caches
-      - name: Cache Ivy
-        uses: actions/cache@v1.1.2
-        with:
-          path: ~/.ivy2/cache
-          key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
-          restore-keys: ${{ runner.os }}-ivy-
       - name: Cache SBT
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
-          path: ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
           restore-keys: ${{ runner.os }}-sbt-
-      - name: Cache Coursier and Mill
-        uses: actions/cache@v1.1.2
-        with:
-          path: ~/.cache
-          key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-coursier-
 
       # Build
       - name: Build Enso
@@ -96,10 +87,13 @@ jobs:
         run: sbt -no-colors runner/assembly
       - name: Test the Uberjar
         run: ./enso.jar --run tools/ci/Test.enso
+      - name: Test the Repl in the Uberjar
+        shell: bash
+        run: cat tools/ci/artifact-test/repl/ReplTest.in | ./enso.jar --repl | diff -q tools/ci/artifact-test/repl/ReplTest.out - && echo "Test successful"
 
   # This job is responsible for building the artifacts
   build:
-    name: Build
+    name: Build Engine
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -129,34 +123,31 @@ jobs:
           echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
       # Caches
-      - name: Cache Ivy
-        uses: actions/cache@v1.1.2
-        with:
-          path: ~/.ivy2/cache
-          key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
-          restore-keys: ${{ runner.os }}-ivy-
       - name: Cache SBT
-        uses: actions/cache@v1.1.2
+        uses: actions/cache@v2
         with:
-          path: ~/.sbt
-          key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
           restore-keys: ${{ runner.os }}-sbt-
-      - name: Cache Coursier and Mill
-        uses: actions/cache@v1.1.2
-        with:
-          path: ~/.cache
-          key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-coursier-
 
       # Build Artifacts
-      - name: Build the Uberjar
+      - name: Build the Runtime Uberjar
+        run: sbt --no-colors runtime/assembly
+      - name: Build the Runner Uberjar
         run: sbt --no-colors runner/assembly
-      - name: Include CLI in Distribution
+      - name: Build the Project Manager Uberjar
+        run: sbt --no-colors project-manager/assembly
+      - name: Prepare Distribution
         run: |
           DIST_DIR=enso-$(./enso.jar --version --json | jq -r '.version')
           mkdir $DIST_DIR
           mkdir $DIST_DIR/component
+          cp runtime.jar $DIST_DIR/component
           mv enso.jar $DIST_DIR/component
+          mv project-manager.jar $DIST_DIR/component
           cp -r distribution/std-lib $DIST_DIR/std-lib
           cp -r distribution/bin $DIST_DIR/bin
           chmod +x $DIST_DIR/bin/enso
@@ -164,15 +155,6 @@ jobs:
           echo ::set-env name=DIST_DIR::$DIST_DIR
       - name: Build the Parser JS Bundle
         run: sbt -no-colors syntaxJS/fullOptJS
-      - name: Build the Project Manager Uberjar
-        run: |
-          sbt --no-colors runtime/assembly
-          sbt --no-colors project-manager/assembly
-      - name: Include Project Manager in Distribution
-        run: |
-          DIST_DIR=${{ env.DIST_DIR }}
-          mv ./runtime.jar $DIST_DIR/component
-          mv ./project-manager.jar $DIST_DIR/component
 
       # Publish
       - name: Publish the Distribution Artifact

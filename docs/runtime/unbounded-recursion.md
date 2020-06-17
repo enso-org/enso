@@ -267,7 +267,7 @@ However, such an approach also has some major downsides:
 At the current time there are no apparent alternatives to the three approaches
 discussed above. While it would be ideal for the JVM to have native support for
 stack segmentation on the heap, this would likely be an in-depth and significant
-amount of work to add, with no guarantee that it would be accepted into master.
+amount of work to add, with no guarantee that it would be accepted into main.
 
 ## Open Questions
 The following are questions for which we don't yet have answers:

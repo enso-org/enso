@@ -244,6 +244,8 @@ case object LambdaShorthandToLambda extends IRPass {
           )
           IR.Function.Lambda(List(defArg), body, locWithoutId)
         }
+      case tSet @ IR.Application.Literal.Typeset(expr, _, _, _) =>
+        tSet.copy(expression = expr.map(desugarExpression(_, freshNameSupply)))
       case _: IR.Application.Operator =>
         throw new CompilerError(
           "Operators should be desugared by the point of underscore " +
