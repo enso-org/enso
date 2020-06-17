@@ -1238,6 +1238,14 @@ impl GraphEditorModel {
         edges
     }
 
+    pub fn clear_all_detached_edges(&self) {
+        let edges = self.edges.detached_source.mem_take();
+        edges.iter().for_each(|edge| {self.edges.all.remove(edge);});
+        let edges = self.edges.detached_target.mem_take();
+        edges.iter().for_each(|edge| {self.edges.all.remove(edge);});
+        self.check_edge_attachment_status_and_emit_events();
+    }
+
     fn check_edge_attachment_status_and_emit_events(&self) {
         let no_detached_sources = self.edges.detached_source.is_empty();
         let no_detached_targets = self.edges.detached_target.is_empty();
@@ -1644,6 +1652,13 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     on_connect_drag_mode   <- any(on_output_connect_drag_mode,on_input_connect_drag_mode);
     on_connect_follow_mode <- any(on_output_connect_follow_mode,on_input_connect_follow_mode);
     connect_drag_mode      <- any (on_connect_drag_mode,on_connect_follow_mode);
+
+    on_node_output_touch <- node_output_touch.down.constant(());
+    on_node_input_touch  <- node_input_touch.down.constant(());
+
+    on_new_edge    <- any(&on_node_output_touch, &on_node_input_touch);
+    deselect_edges <- on_new_edge.gate_not(&keep_selection);
+    eval_ deselect_edges ( model.clear_all_detached_edges() );
 
     new_output_edge <- node_output_touch.down.map(f_!(model.new_edge_from_output()));
     new_input_edge  <- node_input_touch.down.map(f_!(model.new_edge_from_input()));
