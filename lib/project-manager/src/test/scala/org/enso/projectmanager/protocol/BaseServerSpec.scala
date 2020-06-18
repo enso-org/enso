@@ -29,6 +29,7 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
   ProjectIndex
 }
+import org.enso.projectmanager.infrastructure.shutdown.ShutdownHookProcessor
 import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
 import org.enso.projectmanager.test.{
   NopLogging,
@@ -108,6 +109,9 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       timeoutConfig
     )
 
+  lazy val shutdownHookProcessor =
+    new ShutdownHookProcessor[ZIO[ZEnv, +*, +*]](new NopLogging[ZEnv])
+
   lazy val projectService =
     new ProjectService[ZIO[ZEnv, +*, +*]](
       projectValidator,
@@ -115,7 +119,8 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       new NopLogging[ZEnv],
       testClock,
       gen,
-      languageServerService
+      languageServerService,
+      shutdownHookProcessor
     )
 
   override def clientControllerFactory: ClientControllerFactory = {

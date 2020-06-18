@@ -1,5 +1,6 @@
 package org.enso.projectmanager.infrastructure.repository
 
+import java.io.File
 import java.util.UUID
 
 import org.enso.projectmanager.model.Project
@@ -72,5 +73,12 @@ trait ProjectRepository[F[+_, +_]] {
     * @return all projects stored in the project index
     */
   def getAll(): F[ProjectRepositoryFailure, List[Project]]
+
+  /**
+    * Moves project to the target dir.
+    *
+    * @param projectId the project id
+    */
+  def moveProjectToTargetDir(projectId: UUID): F[ProjectRepositoryFailure, File]
 
 }

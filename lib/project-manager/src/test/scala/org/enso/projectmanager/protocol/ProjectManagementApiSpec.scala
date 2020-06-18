@@ -9,6 +9,8 @@ import io.circe.parser.parse
 import org.enso.jsonrpc.test.FlakySpec
 import org.enso.projectmanager.data.Socket
 
+import scala.concurrent.Await
+import scala.concurrent.duration._
 import scala.io.Source
 
 class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
@@ -440,7 +442,7 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
 
   "project/rename" must {
 
-    "rename a project" in {
+    "rename a project and move project dir" in {
       implicit val client = new WsTestClient(address)
       //given
       val projectId = createProject("foo")
@@ -463,35 +465,9 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
             "result": null
           }
           """)
-      //teardown
-      deleteProject(projectId)
-    }
-
-    "change package.yaml" in {
-      //given
-      implicit val client = new WsTestClient(address)
-      val projectName     = "foo"
-      val projectId       = createProject(projectName)
-      //when
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/rename",
-              "id": 0,
-              "params": {
-                "projectId": $projectId,
-                "name": "bar"
-              }
-            }
-          """)
-      client.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":0,
-            "result": null
-          }
-          """)
-      //then
-      val projectDir  = new File(userProjectDir, projectName)
+      val future = exec.exec(shutdownHookProcessor.fireShutdownHooks())
+      Await.result(future, 5.seconds)
+      val projectDir  = new File(userProjectDir, "bar")
       val packageFile = new File(projectDir, "package.yaml")
       val lines       = Source.fromFile(packageFile).getLines()
       lines.contains("name: Bar") shouldBe true

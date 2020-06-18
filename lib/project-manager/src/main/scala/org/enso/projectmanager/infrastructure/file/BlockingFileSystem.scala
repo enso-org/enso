@@ -60,6 +60,21 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 
+  /** @inheritdoc **/
+  override def move(from: File, to: File): F[FileSystemFailure, Unit] =
+    Sync[F]
+      .blockingOp {
+        if (to.isDirectory) {
+          val createDestDir = false
+          FileUtils.moveToDirectory(from, to, createDestDir)
+        } else if (from.isDirectory) {
+          FileUtils.moveDirectory(from, to)
+        } else {
+          FileUtils.moveFile(from, to)
+        }
+      }
+      .mapError(toFsFailure)
+
   private val toFsFailure: Throwable => FileSystemFailure = {
     case _: FileNotFoundException => FileNotFound
     case _: NoSuchFileException   => FileNotFound

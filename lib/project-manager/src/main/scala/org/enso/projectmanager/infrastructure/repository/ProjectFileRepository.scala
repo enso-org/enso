@@ -68,8 +68,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   override def create(
     project: Project
   ): F[ProjectRepositoryFailure, Unit] = {
-    val projectPath =
-      new File(storageConfig.userProjectsPath, project.name)
+    val projectPath     = getTargetPath(project)
     val projectWithPath = project.copy(path = Some(projectPath.toString))
 
     createProjectStructure(project, projectPath) *>
@@ -181,5 +180,45 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .mapError[ProjectRepositoryFailure](failure =>
         StorageFailure(failure.toString)
       )
+
+  /** @inheritdoc **/
+  override def moveProjectToTargetDir(
+    projectId: UUID
+  ): F[ProjectRepositoryFailure, File] = {
+    getProject(projectId)
+      .flatMap { project =>
+        val targetPath = getTargetPath(project)
+        if (targetPath.toString == project.path.get) {
+          CovariantFlatMap[F].pure(targetPath)
+        } else {
+          moveProjectDir(project, targetPath) *>
+          updateProjectDir(projectId, targetPath) *>
+          CovariantFlatMap[F].pure(targetPath)
+        }
+      }
+
+  }
+
+  private def updateProjectDir(projectId: UUID, targetPath: File) = {
+    indexStorage
+      .modify { index =>
+        val updated = index.update(projectId)(
+          _.copy(path = Some(targetPath.toString))
+        )
+        (updated, ())
+      }
+      .mapError(_.fold(convertFileStorageFailure))
+  }
+
+  private def moveProjectDir(project: Project, targetPath: File) = {
+    fileSystem
+      .move(new File(project.path.get), targetPath)
+      .mapError[ProjectRepositoryFailure](failure =>
+        StorageFailure(failure.toString)
+      )
+  }
+
+  private def getTargetPath(project: Project): File =
+    new File(storageConfig.userProjectsPath, project.name)
 
 }

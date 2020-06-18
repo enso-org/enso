@@ -5,7 +5,7 @@ import java.util.UUID
 import cats.MonadError
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
-import org.enso.projectmanager.control.effect.ErrorChannel
+import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.data.{LanguageServerSockets, ProjectMetadata}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
@@ -22,6 +22,7 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectRepository,
   ProjectRepositoryFailure
 }
+import org.enso.projectmanager.infrastructure.shutdown.ShutdownHookProcessor
 import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.model.ProjectKind.UserProject
@@ -40,13 +41,14 @@ import org.enso.projectmanager.service.ValidationFailure.{
   * @param clock a clock
   * @param gen a random generator
   */
-class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
+class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   validator: ProjectValidator[F],
   repo: ProjectRepository[F],
   log: Logging[F],
   clock: Clock[F],
   gen: Generator[F],
-  languageServerService: LanguageServerService[F]
+  languageServerService: LanguageServerService[F],
+  shutdownHookProcessor: ShutdownHookProcessor[F]
 )(implicit E: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure])
     extends ProjectServiceApi[F] {
 
@@ -100,6 +102,9 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     checkIfProjectExists(projectId) *>
     checkIfNameExists(name) *>
     repo.rename(projectId, name).mapError(toServiceFailure) *>
+    shutdownHookProcessor.registerShutdownHook(
+      new MoveProjectDirCmd[F](projectId, repo, log)
+    ) *>
     log.info(s"Project $projectId renamed.")
   }
 

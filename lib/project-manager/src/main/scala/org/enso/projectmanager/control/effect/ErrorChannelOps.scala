@@ -15,6 +15,10 @@ class ErrorChannelOps[F[+_, +_]: ErrorChannel, E, A](fa: F[E, A]) {
     ErrorChannel[F].recoverWith[E, A, B, E1](fa)(recovery)
 
   /** @inheritdoc **/
+  def fallbackTo[B >: A, E1](fallback: E => F[E1, B]): F[E1, B] =
+    ErrorChannel[F].fallbackTo[E, A, B, E1](fa)(fallback)
+
+  /** @inheritdoc **/
   def mapError[E1](f: E => E1)(implicit ev: E =:!= Nothing): F[E1, A] =
     ErrorChannel[F].mapError(fa)(f)
 
