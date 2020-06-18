@@ -617,6 +617,65 @@ object Runtime {
       */
     case class RuntimeServerShutDown() extends ApiResponse
 
+    /**
+      * A notification about the change in the suggestions database.
+      */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionsDatabaseUpdate.Add],
+          name  = "suggestionsDatabaseUpdateAdd"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionsDatabaseUpdate.Remove],
+          name  = "suggestionsDatabaseUpdateRemove"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionsDatabaseUpdate.Modify],
+          name  = "suggestionsDatabaseUpdateModify"
+        )
+      )
+    )
+    sealed trait SuggestionsDatabaseUpdate extends ApiNotification
+    object SuggestionsDatabaseUpdate {
+      // TODO: replace with the actual classes
+      sealed trait Suggestion
+      sealed trait Argument
+
+      /** Create or replace the database entry.
+        *
+        * @param id suggestion id
+        * @param suggestion the new suggestion
+        */
+      case class Add(id: Long, suggestion: Suggestion)
+          extends SuggestionsDatabaseUpdate
+
+      /** Remove the database entry.
+        *
+        * @param id the suggestion id
+        */
+      case class Remove(id: Long) extends SuggestionsDatabaseUpdate
+
+      /** Modify the database entry.
+        *
+        * @param id the suggestion id
+        * @param name the new suggestion name
+        * @param arguments the new suggestion arguments
+        * @param selfType the new self type of the suggestion
+        * @param returnType the new return type of the suggestion
+        * @param documentation the new documentation string
+        */
+      case class Modify(
+        id: Long,
+        name: Option[String],
+        arguments: Option[Seq[Argument]],
+        selfType: Option[String],
+        returnType: Option[String],
+        documentation: Option[String]
+      )
+    }
+
     private lazy val mapper = {
       val factory = new CBORFactory()
       val mapper  = new ObjectMapper(factory) with ScalaObjectMapper
