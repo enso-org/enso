@@ -84,7 +84,9 @@ Sdf difference (Sdf a, Sdf b) {
     return intersection(a,inverse(b));
 }
 
-
+Sdf grow (Sdf a, float size) {
+    return Sdf(a.distance - size);
+}
 
 // ================
 // === BoundSdf ===
@@ -133,6 +135,12 @@ BoundSdf resample (BoundSdf a, float multiplier) {
 
 BoundSdf pixel_snap (BoundSdf a) {
     a.distance = floor(a.distance) + 0.5;
+    return a;
+}
+
+BoundSdf grow (BoundSdf a, float size) {
+    a.distance = a.distance - size;
+    a.bounds   = grow(a.bounds,size);
     return a;
 }
 
@@ -239,6 +247,14 @@ Shape resample (Shape s, float multiplier) {
 Shape pixel_snap (Shape s) {
     Id       id    = s.id;
     BoundSdf sdf   = pixel_snap(s.sdf);
+    Srgba    color = unpremultiply(s.color);
+    color.raw.a /= s.alpha;
+    return shape(id,sdf,color);
+}
+
+Shape grow (Shape s, float value) {
+    Id       id    = s.id;
+    BoundSdf sdf   = grow(s.sdf,value);
     Srgba    color = unpremultiply(s.color);
     color.raw.a /= s.alpha;
     return shape(id,sdf,color);
