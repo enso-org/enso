@@ -63,12 +63,20 @@ object Capability {
   import io.circe.syntax._
 
   implicit val encoder: Encoder[Capability] = {
-    case cap: CanEdit             => cap.asJson
-    case cap: ReceivesTreeUpdates => cap.asJson
-    case cap: CanModify           => cap.asJson
-    case cap: ReceivesUpdates     => cap.asJson
+    case cap: CanEdit                            => cap.asJson
+    case cap: ReceivesTreeUpdates                => cap.asJson
+    case cap: CanModify                          => cap.asJson
+    case cap: ReceivesUpdates                    => cap.asJson
+    case cap: ReceivesSuggestionsDatabaseUpdates => cap.asJson
   }
 
+}
+
+case class ReceivesSuggestionsDatabaseUpdates(contextId: ContextId)
+    extends Capability(ReceivesSuggestionsDatabaseUpdates.methodName)
+
+object ReceivesSuggestionsDatabaseUpdates {
+  val methodName = "search/receivesSuggestionsDatabaseUpdates"
 }
 
 /**
@@ -104,6 +112,8 @@ object CapabilityRegistration {
       case ReceivesTreeUpdates.methodName => json.as[ReceivesTreeUpdates]
       case CanModify.methodName           => json.as[CanModify]
       case ReceivesUpdates.methodName     => json.as[ReceivesUpdates]
+      case ReceivesSuggestionsDatabaseUpdates.methodName =>
+        json.as[ReceivesSuggestionsDatabaseUpdates]
       case _ =>
         Left(DecodingFailure("Unrecognized capability method.", List()))
     }

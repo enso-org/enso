@@ -55,7 +55,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`file/receivesTreeUpdates`](#filereceivestreeupdates)
   - [`executionContext/canModify`](#executioncontextcanmodify)
   - [`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
-  - [`search/receivesSuggestionsDatabaseUpdates`](#receivessuggestionsdatabaseupdates)
+  - [`search/receivesSuggestionsDatabaseUpdates`](#searchreceivessuggestionsdatabaseupdates)
 - [File Management Operations](#file-management-operations)
   - [`file/write`](#filewrite)
   - [`file/read`](#fileread)
@@ -2131,7 +2131,7 @@ None
 
 ### `executionContext/executionFailed`
 Sent from the server to the client to inform about a failure during execution of
-an execution context. 
+an execution context.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
