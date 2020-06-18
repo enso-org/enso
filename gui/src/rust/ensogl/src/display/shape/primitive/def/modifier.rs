@@ -123,4 +123,6 @@ define_modifiers! {
     Intersection intersection  (child1,child2) ()
     Fill         fill          (child)         (color:Rgba)
     PixelSnap    pixel_snap    (child)         ()
+    Grow         grow          (child)         (value:f32)
+    Shrink       shrink        (child)         (value:f32)
 }

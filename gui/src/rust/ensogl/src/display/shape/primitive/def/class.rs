@@ -147,6 +147,16 @@ pub trait ShapeOps : Sized where for<'t> &'t Self : IntoOwned<Owned=Self> {
     fn pixel_snap(&self) -> PixelSnap<Self> {
         PixelSnap(self)
     }
+
+    /// Grows the shape by the given amount.
+    fn grow<T:Into<Var<Distance<Pixels>>>>(&self, value:T) -> Grow<Self> {
+        Grow(self, value.into())
+    }
+
+    /// Shrinks the shape by the given amount.
+    fn shrink<T:Into<Var<Distance<Pixels>>>>(&self, value:T) -> Shrink<Self> {
+        Shrink(self, value.into())
+    }
 }
 
 macro_rules! define_shape_operator {

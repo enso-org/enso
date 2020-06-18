@@ -966,7 +966,8 @@ impl GraphEditorModelWithNetwork {
         frp::new_bridge_network! { [self.network, node.main_area.events.network]
             eval_ node.drag_area.events.mouse_down(touch.nodes.down.emit(node_id));
             eval  node.ports.frp.cursor_style ((style) cursor_style.emit(style));
-            eval_ node.frp.output_ports.mouse_down (output_press.emit(node_id));
+            eval_ node.view.output_ports.frp.port_mouse_down (output_press.emit(node_id));
+            eval_ node.view.output_ports.frp.port_mouse_down (output_press.emit(node_id));
             eval  node.ports.frp.press ([input_press](crumbs)
                 let target = EdgeTarget::new(node_id,crumbs.clone());
                 input_press.emit(target);
@@ -977,12 +978,12 @@ impl GraphEditorModelWithNetwork {
                 model.frp.hover_node_input.emit(target);
             });
 
-             eval_ node.frp.output_ports.mouse_over ([model] {
+             eval_ node.view.output_ports.frp.port_mouse_over ([model] {
                 let target = EdgeTarget::new(node_id,default());
                 model.frp.hover_node_output.emit(Some(target));
              });
 
-             eval_ node.frp.output_ports.mouse_out ( model.frp.hover_node_output.emit(None));
+             eval_ node.view.output_ports.frp.port_mouse_out ( model.frp.hover_node_output.emit(None));
         }
 
 //        self.visualizations.push(node.visualization().clone_ref());
