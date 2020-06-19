@@ -15,8 +15,8 @@ import org.enso.interpreter.runtime.type.TypesGen;
 /** The root node for the basic control flow structure of the language. */
 @NodeInfo(shortName = "Number.ifZero", description = "Root node of the Number.ifZero method.")
 public class IfZeroNode extends BuiltinRootNode {
-  private @Child ThunkExecutorNode leftThunkExecutorNode = ThunkExecutorNode.build(true);
-  private @Child ThunkExecutorNode rightThunkExecutorNode = ThunkExecutorNode.build(true);
+  private @Child ThunkExecutorNode leftThunkExecutorNode = ThunkExecutorNode.build();
+  private @Child ThunkExecutorNode rightThunkExecutorNode = ThunkExecutorNode.build();
   private final ConditionProfile condProfile = ConditionProfile.createCountingProfile();
 
   private IfZeroNode(Language language) {
@@ -43,9 +43,9 @@ public class IfZeroNode extends BuiltinRootNode {
         TypesGen.asThunk(Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[2]);
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     if (condProfile.profile(self == 0)) {
-      return leftThunkExecutorNode.executeThunk(ifT, state);
+      return leftThunkExecutorNode.executeThunk(ifT, state, true);
     } else {
-      return rightThunkExecutorNode.executeThunk(ifF, state);
+      return rightThunkExecutorNode.executeThunk(ifF, state, true);
     }
   }
 

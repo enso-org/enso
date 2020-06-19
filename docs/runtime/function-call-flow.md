@@ -25,6 +25,7 @@ framework.
 - [Currying and Eta-Expansion](#currying-and-eta-expansion)
 - [Dynamic Dispatch](#dynamic-dispatch)
 - [Defaulted Arguments and Application](#defaulted-arguments-and-application)
+- [Megamorphic Call Sites](#megamorphic-call-sites)
 - [Flow Diagram](#flow-diagram)
 
 <!-- /MarkdownTOC -->
@@ -145,6 +146,21 @@ arguments) should also be executed.
 To this end, we make sure that the callsite checks if the return value from a
 function is a function, and if it is fully saturated with defaults it will call
 it.
+
+## Megamorphic Call Sites
+In certain situations, such as call sites calling a lot of different functions
+without splitting or intensive use of the same instance of the interop library,
+caching intermediate information about the call-site becomes impossible.
+For such cases, we use nodes with names starting with `Indirect` to perform
+the required operation. These nodes do not perform any caching and instead use
+the most general version of the logic possible for every call. These nodes also
+support the `uncached` mode of operation, which means the node itself may be
+used without adopting them, using a global singleton instance instead.
+As such the indirect nodes are very slow and should only be used after it is
+discovered that the call site cannot afford more specific operations anymore.
+The `uncached` version of these nodes is even slower, as no inlining can happen
+on sites using them. This should be used with care, only when large call
+overhead is acceptable (e.g. rarely-used instances of the interop library).
 
 ## Flow Diagram
 The following diagram summarizes all the nodes participating in a function

@@ -1,6 +1,13 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -17,19 +24,15 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
  */
 @NodeInfo(
     description = "Captures the caller info for use in functions called from this node's scope")
-public class CaptureCallerInfoNode extends Node {
-  private @CompilerDirectives.CompilationFinal LocalScope localScope;
-  private @CompilerDirectives.CompilationFinal ModuleScope moduleScope;
-
-  private CaptureCallerInfoNode() {}
-
+@GenerateUncached
+public abstract class CaptureCallerInfoNode extends Node {
   /**
    * Creates an instance of this node.
    *
    * @return an instance of this node
    */
   public static CaptureCallerInfoNode build() {
-    return new CaptureCallerInfoNode();
+    return CaptureCallerInfoNodeGen.create();
   }
 
   /**
@@ -38,13 +41,43 @@ public class CaptureCallerInfoNode extends Node {
    * @param frame current execution frame
    * @return caller information for the current scope
    */
-  public CallerInfo execute(VirtualFrame frame) {
-    if (localScope == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      EnsoRootNode rootNode = (EnsoRootNode) getRootNode();
-      localScope = rootNode.getLocalScope();
-      moduleScope = rootNode.getModuleScope();
+  public abstract CallerInfo execute(MaterializedFrame frame);
+
+  static class ScopeInfo {
+    private final LocalScope localScope;
+    private final ModuleScope moduleScope;
+
+    public ScopeInfo(LocalScope localScope, ModuleScope moduleScope) {
+      this.localScope = localScope;
+      this.moduleScope = moduleScope;
     }
-    return new CallerInfo(frame.materialize(), localScope, moduleScope);
+
+    public LocalScope getLocalScope() {
+      return localScope;
+    }
+
+    public ModuleScope getModuleScope() {
+      return moduleScope;
+    }
+  }
+
+  ScopeInfo buildScopeInfo() {
+    EnsoRootNode rootNode = (EnsoRootNode) getRootNode();
+    return new ScopeInfo(rootNode.getLocalScope(), rootNode.getModuleScope());
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  ScopeInfo buildUncachedScopeInfo() {
+    RootCallTarget ct = (RootCallTarget) Truffle.getRuntime().getCurrentFrame().getCallTarget();
+    EnsoRootNode rootNode = (EnsoRootNode) ct.getRootNode();
+    return new ScopeInfo(rootNode.getLocalScope(), rootNode.getModuleScope());
+  }
+
+  @Specialization
+  CallerInfo doCapture(
+      MaterializedFrame frame,
+      @Cached(value = "buildScopeInfo()", uncached = "buildUncachedScopeInfo()")
+          ScopeInfo scopeInfo) {
+    return new CallerInfo(frame, scopeInfo.getLocalScope(), scopeInfo.getModuleScope());
   }
 }

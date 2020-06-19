@@ -19,7 +19,7 @@ public class RunStateNode extends BuiltinRootNode {
     super(language);
   }
 
-  private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build(false);
+  private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
   private final ConditionProfile thunksProfile = ConditionProfile.createCountingProfile();
 
   /**
@@ -40,7 +40,7 @@ public class RunStateNode extends BuiltinRootNode {
     if (thunksProfile.profile(TypesGen.isThunk(maybeThunk))) {
       return new Stateful(
           state,
-          thunkExecutorNode.executeThunk(TypesGen.asThunk(maybeThunk), localState).getValue());
+          thunkExecutorNode.executeThunk(TypesGen.asThunk(maybeThunk), localState, false).getValue());
     } else {
       return new Stateful(state, maybeThunk);
     }

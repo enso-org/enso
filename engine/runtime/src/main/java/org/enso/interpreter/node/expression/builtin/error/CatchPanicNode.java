@@ -18,7 +18,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
     shortName = "Panic.catch",
     description = "Root node for the builtin catch panic function.")
 public class CatchPanicNode extends BuiltinRootNode {
-  private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build(false);
+  private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 
   private CatchPanicNode(Language language) {
     super(language);
@@ -39,7 +39,7 @@ public class CatchPanicNode extends BuiltinRootNode {
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     if (TypesGen.isThunk(maybeThunk)) {
       try {
-        return thunkExecutorNode.executeThunk(TypesGen.asThunk(maybeThunk), state);
+        return thunkExecutorNode.executeThunk(TypesGen.asThunk(maybeThunk), state, false);
       } catch (PanicException e) {
         return new Stateful(state, new RuntimeError(e.getExceptionObject()));
       }

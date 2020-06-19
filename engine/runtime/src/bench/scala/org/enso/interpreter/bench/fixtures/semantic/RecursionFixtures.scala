@@ -1,12 +1,12 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
-import org.enso.interpreter.test.InterpreterRunner
+import org.enso.interpreter.test.DefaultInterpreterRunner
 
-class RecursionFixtures extends InterpreterRunner {
+class RecursionFixtures extends DefaultInterpreterRunner {
   val hundredMillion: Long = 100000000
   val million: Long        = 1000000
   val thousand: Long       = 1000
-  val hundred: Long        = 99
+  val hundred: Long        = 100
 
   val sumTCOCode =
     """

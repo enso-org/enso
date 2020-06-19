@@ -1,76 +1,83 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.InterpreterTest
+import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
 
 class LambdaChainingTest extends InterpreterTest {
 
-  "Chains of lambdas" should "evaluate as expected" in {
-    val code =
-      """
-        |main =
-        |    fn = a -> b -> c -> a + b + c
-        |    fn 1 2 3
-        |""".stripMargin
+  override def subject: String = "Chains of Lambdas"
 
-    eval(code) shouldEqual 6
-  }
+  override def specify(
+    implicit interpreterContext: InterpreterContext
+  ): Unit = {
 
-  "Chains of lambdas with shadowed parameters" should "evaluate as expected" in {
-    val code =
-    """
-        |main =
-        |    fn = a -> b -> a -> a + b
-        |    fn 1 2 3
-        |""".stripMargin
+    "evaluate as expected" in {
+      val code =
+        """
+          |main =
+          |    fn = a -> b -> c -> a + b + c
+          |    fn 1 2 3
+          |""".stripMargin
 
-    eval(code) shouldEqual 5
-  }
+      eval(code) shouldEqual 6
+    }
 
-  "Chains of lambdas with defaults" should "evaluate as expected" in {
-    val code =
-      """
-        |main =
-        |    fn = a -> (b = a) -> (c = b + 1) -> b + c
-        |    fn 3
-        |""".stripMargin
+    "evaluate as expected with shadowed parameters" in {
+      val code =
+        """
+          |main =
+          |    fn = a -> b -> a -> a + b
+          |    fn 1 2 3
+          |""".stripMargin
 
-    eval(code) shouldEqual 7
-  }
+      eval(code) shouldEqual 5
+    }
 
-  "Chains of lambdas with defaults and shadowed parameters" should "evaluate as expected" in {
-    val code =
-      """
-        |main =
-        |    fn = a -> (b = a) -> (a = b + 1) -> a + b
-        |    fn 3
-        |""".stripMargin
+    "evaluate as expected with defaults" in {
+      val code =
+        """
+          |main =
+          |    fn = a -> (b = a) -> (c = b + 1) -> b + c
+          |    fn 3
+          |""".stripMargin
 
-    eval(code) shouldEqual 7
-  }
+      eval(code) shouldEqual 7
+    }
 
-  "Chains of lambdas with lazy parameters" should "work properly" in {
-    val code =
-      """
-        |main =
-        |    fn = a -> ~b -> ~c ->
-        |        b
-        |        a
-        |
-        |    fn 10 (IO.println 10) (IO.println 20)
-        |""".stripMargin
+    "evaluate as expected with default and shadowed parameters" in {
+      val code =
+        """
+          |main =
+          |    fn = a -> (b = a) -> (a = b + 1) -> a + b
+          |    fn 3
+          |""".stripMargin
 
-    eval(code) shouldEqual 10
-    consumeOut shouldEqual List("10")
-  }
+      eval(code) shouldEqual 7
+    }
 
-  "Chains of lambdas with complex shadowing" should "work properly" in {
-    val code =
-      """
-        |main =
-        |    fn = x -> (y = x) -> (x = x + 1) -> x + y
-        |    fn 1
-        |""".stripMargin
+    "work properly with lazy parameters" in {
+      val code =
+        """
+          |main =
+          |    fn = a -> ~b -> ~c ->
+          |        b
+          |        a
+          |
+          |    fn 10 (IO.println 10) (IO.println 20)
+          |""".stripMargin
 
-    eval(code) shouldEqual 3
+      eval(code) shouldEqual 10
+      consumeOut shouldEqual List("10")
+    }
+
+    "work properly with complex shadowing" in {
+      val code =
+        """
+          |main =
+          |    fn = x -> (y = x) -> (x = x + 1) -> x + y
+          |    fn 1
+          |""".stripMargin
+
+      eval(code) shouldEqual 3
+    }
   }
 }

@@ -2,7 +2,7 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.util.concurrent.TimeUnit;
 import org.enso.interpreter.bench.fixtures.semantic.NamedDefaultedArgumentFixtures;
-import org.enso.interpreter.test.InterpreterRunner;
+import org.enso.interpreter.test.DefaultInterpreterRunner;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -20,7 +20,7 @@ public class NamedDefaultedArgumentBenchmarks {
   private static NamedDefaultedArgumentFixtures argumentFixtures =
       new NamedDefaultedArgumentFixtures();
 
-  private void runOnHundredMillion(InterpreterRunner.MainMethod main) {
+  private void runOnHundredMillion(DefaultInterpreterRunner.MainMethod main) {
     main.mainFunction().value().execute(main.mainConstructor(), argumentFixtures.hundredMillion());
   }
 

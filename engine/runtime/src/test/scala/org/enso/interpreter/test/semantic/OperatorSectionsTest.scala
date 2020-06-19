@@ -1,39 +1,45 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.InterpreterTest
+import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
 
 class OperatorSectionsTest extends InterpreterTest {
+  override def subject: String = "Operator Sections"
 
-  "Left operator sections" should "work" in {
-    val code =
-      """
-        |main =
-        |    f = (1 +)
-        |    f 9
-        |""".stripMargin
+  override def specify(
+    implicit interpreterContext: InterpreterContext
+  ): Unit = {
 
-    eval(code) shouldEqual 10
-  }
+    "work when left" in {
+      val code =
+        """
+          |main =
+          |    f = (1 +)
+          |    f 9
+          |""".stripMargin
 
-  "Sides operator sections" should "work" in {
-    val code =
-      """
-        |main =
-        |    f = (-)
-        |    f 1 6
-        |""".stripMargin
+      eval(code) shouldEqual 10
+    }
 
-    eval(code) shouldEqual -5
-  }
+    "work when two-sided" in {
+      val code =
+        """
+          |main =
+          |    f = (-)
+          |    f 1 6
+          |""".stripMargin
 
-  "Right operator sections" should "work" in {
-    val code =
-      """
-        |main =
-        |    f = (/ 10)
-        |    f 20
-        |""".stripMargin
+      eval(code) shouldEqual -5
+    }
 
-    eval(code) shouldEqual 2
+    "work when right" in {
+      val code =
+        """
+          |main =
+          |    f = (/ 10)
+          |    f 20
+          |""".stripMargin
+
+      eval(code) shouldEqual 2
+    }
   }
 }

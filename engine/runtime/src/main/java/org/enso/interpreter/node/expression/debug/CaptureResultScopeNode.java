@@ -66,6 +66,6 @@ public class CaptureResultScopeNode extends ExpressionNode {
   @Override
   public WithCallerInfo executeGeneric(VirtualFrame frame) {
     return new WithCallerInfo(
-        captureCallerInfoNode.execute(frame), expression.executeGeneric(frame));
+        captureCallerInfoNode.execute(frame.materialize()), expression.executeGeneric(frame));
   }
 }

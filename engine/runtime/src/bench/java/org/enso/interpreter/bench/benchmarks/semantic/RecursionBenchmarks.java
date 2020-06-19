@@ -2,7 +2,7 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.util.concurrent.TimeUnit;
 import org.enso.interpreter.bench.fixtures.semantic.RecursionFixtures;
-import org.enso.interpreter.test.InterpreterRunner;
+import org.enso.interpreter.test.DefaultInterpreterRunner;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -19,7 +19,7 @@ import org.openjdk.jmh.annotations.Warmup;
 public class RecursionBenchmarks {
   private static RecursionFixtures recursionFixtures = new RecursionFixtures();
 
-  private void runOnHundredMillion(InterpreterRunner.MainMethod main) {
+  private void runOnHundredMillion(DefaultInterpreterRunner.MainMethod main) {
     main.mainFunction().value().execute(main.mainConstructor(), recursionFixtures.hundredMillion());
   }
 
@@ -40,7 +40,7 @@ public class RecursionBenchmarks {
 
   @Benchmark
   public void benchSumRecursive() {
-    InterpreterRunner.MainMethod main = recursionFixtures.sumRecursive();
+    DefaultInterpreterRunner.MainMethod main = recursionFixtures.sumRecursive();
     main.mainFunction().value().execute(main.mainConstructor(), recursionFixtures.hundred());
   }
 

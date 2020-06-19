@@ -88,26 +88,29 @@ public abstract class InvokeCallableNode extends BaseNode {
       CallArgumentInfo[] schema,
       DefaultsExecutionMode defaultsExecutionMode,
       ArgumentsExecutionMode argumentsExecutionMode) {
-    boolean appliesThis = false;
-    int idx = 0;
-    for (; idx < schema.length; idx++) {
-      CallArgumentInfo arg = schema[idx];
+    Integer thisArg = thisArgumentPosition(schema);
 
-      boolean isNamedThis = arg.isNamed() && arg.getName().equals(Constants.Names.THIS_ARGUMENT);
-      if (arg.isPositional() || isNamedThis) {
-        appliesThis = true;
-        break;
-      }
-    }
-
-    this.canApplyThis = appliesThis;
-    this.thisArgumentPosition = idx;
+    this.canApplyThis = thisArg != null;
+    this.thisArgumentPosition = thisArg == null ? 0 : thisArg;
 
     this.argumentsExecutionMode = argumentsExecutionMode;
 
     this.invokeFunctionNode =
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
     this.methodResolverNode = MethodResolverNode.build();
+  }
+
+  public static Integer thisArgumentPosition(CallArgumentInfo[] schema) {
+    int idx = 0;
+    for (; idx < schema.length; idx++) {
+      CallArgumentInfo arg = schema[idx];
+
+      boolean isNamedThis = arg.isNamed() && arg.getName().equals(Constants.Names.THIS_ARGUMENT);
+      if (arg.isPositional() || isNamedThis) {
+        return idx;
+      }
+    }
+    return null;
   }
 
   /**
@@ -176,13 +179,13 @@ public abstract class InvokeCallableNode extends BaseNode {
           lock.lock();
           try {
             if (thisExecutor == null) {
-              thisExecutor = insert(ThunkExecutorNode.build(false));
+              thisExecutor = insert(ThunkExecutorNode.build());
             }
           } finally {
             lock.unlock();
           }
         }
-        Stateful selfResult = thisExecutor.executeThunk((Thunk) selfArgument, state);
+        Stateful selfResult = thisExecutor.executeThunk((Thunk) selfArgument, state, false);
         selfArgument = selfResult.getValue();
         state = selfResult.getState();
         arguments[thisArgumentPosition] = selfArgument;

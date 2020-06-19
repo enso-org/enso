@@ -19,6 +19,11 @@ public class RuntimeOptions {
   private static final OptionDescriptor STRICT_ERRORS_DESCRIPTOR =
       OptionDescriptor.newBuilder(STRICT_ERRORS_KEY, STRICT_ERRORS).build();
 
+  public static final String DISABLE_INLINE_CACHES = optionName("disableInlineCaches");
+  public static final OptionKey<Boolean> DISABLE_INLINE_CACHES_KEY = new OptionKey<>(false);
+  private static final OptionDescriptor DISABLE_INLINE_CACHES_DESCRIPTOR =
+      OptionDescriptor.newBuilder(DISABLE_INLINE_CACHES_KEY, DISABLE_INLINE_CACHES).build();
+
   public static final String LOG_LEVEL = "log.level";
   public static final OptionKey<String> LOG_LEVEL_KEY = new OptionKey<>(Level.INFO.toString());
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
@@ -26,8 +31,11 @@ public class RuntimeOptions {
 
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
-          Arrays.asList(PACKAGES_PATH_DESCRIPTOR, STRICT_ERRORS_DESCRIPTOR,
-                  LOG_LEVEL_DESCRIPTOR));
+          Arrays.asList(
+              PACKAGES_PATH_DESCRIPTOR,
+              STRICT_ERRORS_DESCRIPTOR,
+              LOG_LEVEL_DESCRIPTOR,
+              DISABLE_INLINE_CACHES_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

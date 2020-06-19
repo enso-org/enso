@@ -1,44 +1,52 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.InterpreterTest
+import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
 
 class SimpleArithmeticTest extends InterpreterTest {
-  "1" should "equal 1" in {
-    eval("main = 1") shouldEqual 1
-  }
 
-  "1 + 1" should "equal 2" in {
-    eval("main = 1 + 1") shouldEqual 2
-  }
+  override def subject: String = "Arithmetic"
 
-  "2 + (2 * 2)" should "equal 6" in {
-    eval("main = 2 + (2 * 2)") shouldEqual 6
-  }
+  override def specify(
+    implicit interpreterContext: InterpreterContext
+  ): Unit = {
 
-  "2 + 2 * 3" should "equal 8" in {
-    eval("main = 2 + 2 * 3") shouldEqual 8
-  }
+    "1 = 1" in {
+      eval("main = 1") shouldEqual 1
+    }
 
-  "2 * 2 / 2" should "equal 2" in {
-    eval("main = 2 * 2 / 2") shouldEqual 2
-  }
+    "1 + 1 = 2" in {
+      eval("main = 1 + 1") shouldEqual 2
+    }
 
-  "-1" should "equal -1" in {
-    eval("main = -1") shouldEqual -1
-  }
+    "2 + (2 * 2) = 6" in {
+      eval("main = 2 + (2 * 2)") shouldEqual 6
+    }
 
-  "1 + -1" should "equal 0" in {
-    eval("main = 1 + -1") shouldEqual 0
-  }
+    "2 + 2 * 3 = 8" in {
+      eval("main = 2 + 2 * 3") shouldEqual 8
+    }
 
-  "negation of expressions" should "work" in {
-    val code =
-      """
-        |main =
-        |    expr = (10 * 3+2) - 1
-        |    -expr
-        |""".stripMargin
+    "2 * 2 / 2 = 2" in {
+      eval("main = 2 * 2 / 2") shouldEqual 2
+    }
 
-    eval(code) shouldEqual -49
+    "-1 = -1" in {
+      eval("main = -1") shouldEqual -1
+    }
+
+    "1 + -1 = 0" in {
+      eval("main = 1 + -1") shouldEqual 0
+    }
+
+    "negate expressions" in {
+      val code =
+        """
+          |main =
+          |    expr = (10 * 3+2) - 1
+          |    -expr
+          |""".stripMargin
+
+      eval(code) shouldEqual -49
+    }
   }
 }

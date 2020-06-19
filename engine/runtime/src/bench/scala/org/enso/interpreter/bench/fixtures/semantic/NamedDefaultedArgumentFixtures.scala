@@ -1,8 +1,8 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
-import org.enso.interpreter.test.InterpreterRunner
+import org.enso.interpreter.test.DefaultInterpreterRunner
 
-class NamedDefaultedArgumentFixtures extends InterpreterRunner {
+class NamedDefaultedArgumentFixtures extends DefaultInterpreterRunner {
   val hundredMillion: Long = 100000000
 
   val sumTCOWithNamedArgumentsCode =

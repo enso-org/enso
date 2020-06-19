@@ -40,7 +40,7 @@ public class CurryNode extends BaseNode {
     this.defaultsExecutionMode = defaultsExecutionMode;
     this.preApplicationSchema = originalSchema;
     this.postApplicationSchema = postApplicationSchema;
-    appliesFully = isFunctionFullyApplied(defaultsExecutionMode);
+    appliesFully = postApplicationSchema.isFullyApplied(defaultsExecutionMode);
     initializeCallNodes();
     initializeOversaturatedCallNode(argumentsExecutionMode);
   }
@@ -166,21 +166,5 @@ public class CurryNode extends BaseNode {
     } else {
       return loopingCall.executeDispatch(function, callerInfo, state, arguments);
     }
-  }
-
-  private boolean isFunctionFullyApplied(
-      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode) {
-    boolean functionIsFullyApplied = true;
-    for (int i = 0; i < postApplicationSchema.getArgumentsCount(); i++) {
-      boolean hasValidDefault =
-          postApplicationSchema.hasDefaultAt(i) && !defaultsExecutionMode.isIgnore();
-      boolean hasPreappliedArg = postApplicationSchema.hasPreAppliedAt(i);
-
-      if (!(hasValidDefault || hasPreappliedArg)) {
-        functionIsFullyApplied = false;
-        break;
-      }
-    }
-    return functionIsFullyApplied;
   }
 }

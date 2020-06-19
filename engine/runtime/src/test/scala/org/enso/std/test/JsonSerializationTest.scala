@@ -1,57 +1,64 @@
 package org.enso.std.test
 
-import org.enso.interpreter.test.InterpreterTest
+import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
 
 class JsonSerializationTest extends InterpreterTest {
 
-  "strings" should "be serializable" in {
-    val code =
-      """
-        |main = "it's a \"string\"" . json_serialize
-        |""".stripMargin
-    eval(code) shouldEqual "\"it's a \\\"string\\\"\""
-  }
+  override def subject = "Automatic JSON serialization"
 
-  "nubmers" should "be serializable" in {
-    val code =
-      """
-        |main = 1234 . json_serialize
-        |""".stripMargin
-    eval(code) shouldEqual "1234"
-  }
+  override def specify(
+    implicit interpreterContext: InterpreterContext
+  ): Unit = {
 
-  "atoms" should "be serializable" in {
-    val code =
-      """
-        |type X a b c
-        |
-        |main = X 123 "foo" Unit . json_serialize
-        |""".stripMargin
-    eval(code) shouldEqual """{"type":"X","fields":[123,"foo",{"type":"Unit","fields":[]}]}"""
-  }
+    "support strings" in {
+      val code =
+        """
+          |main = "it's a \"string\"" . json_serialize
+          |""".stripMargin
+      eval(code) shouldEqual "\"it's a \\\"string\\\"\""
+    }
 
-  "functions" should "serialize as a null" in {
-    val code =
-      """
-        |main = (x -> x).json_serialize
-        |""".stripMargin
-    eval(code) shouldEqual "null"
-  }
+    "support nubmers" in {
+      val code =
+        """
+          |main = 1234 . json_serialize
+          |""".stripMargin
+      eval(code) shouldEqual "1234"
+    }
 
-  "nested types" should "serialize recursively" in {
-    val code =
-      """
-        |main =
-        |    test_val = Cons 1 (Cons "\"foo\"" (Cons Unit (Cons (x -> x) Nil)))
-        |    test_val.json_serialize
-        |""".stripMargin
+    "support atoms" in {
+      val code =
+        """
+          |type X a b c
+          |
+          |main = X 123 "foo" Unit . json_serialize
+          |""".stripMargin
+      eval(code) shouldEqual """{"type":"X","fields":[123,"foo",{"type":"Unit","fields":[]}]}"""
+    }
 
-    val expectedResult =
-      """{"type":"Cons","fields":[1,{"type":"Cons","fields":["\"foo\"",{"type":
-        |"Cons","fields":[{"type":"Unit","fields":[]},{"type":"Cons","fields":
-        |[null,{"type":"Nil","fields":[]}]}]}]}]}""".stripMargin.linesIterator
-        .mkString("")
+    "support functions" in {
+      val code =
+        """
+          |main = (x -> x).json_serialize
+          |""".stripMargin
+      eval(code) shouldEqual "null"
+    }
 
-    eval(code) shouldEqual expectedResult
+    "support nested types" in {
+      val code =
+        """
+          |main =
+          |    test_val = Cons 1 (Cons "\"foo\"" (Cons Unit (Cons (x -> x) Nil)))
+          |    test_val.json_serialize
+          |""".stripMargin
+
+      val expectedResult =
+        """{"type":"Cons","fields":[1,{"type":"Cons","fields":["\"foo\"",{"type":
+          |"Cons","fields":[{"type":"Unit","fields":[]},{"type":"Cons","fields":
+          |[null,{"type":"Nil","fields":[]}]}]}]}]}""".stripMargin.linesIterator
+          .mkString("")
+
+      eval(code) shouldEqual expectedResult
+    }
   }
 }
