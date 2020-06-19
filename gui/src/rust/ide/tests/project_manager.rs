@@ -30,7 +30,7 @@ mod tests {
         let _address = client.open_project(&uuid).await.expect("Couldn't open project.");
         client.close_project(&uuid).await.expect("Couldn't close project.");
         client.delete_project(&uuid).await.expect("Couldn't delete project.");
-        client.list_recent_projects(&10).await.expect("Couldn't list recent projects.");
+        client.list_projects(&Some(10)).await.expect("Couldn't list recent projects.");
         // FIXME[dg]: project/listSample isn't implemented on the server-side yet.
         //client.list_samples(10).await.expect("Couldn't list samples.");
     }
