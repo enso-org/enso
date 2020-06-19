@@ -140,7 +140,7 @@ BoundSdf pixel_snap (BoundSdf a) {
 
 BoundSdf grow (BoundSdf a, float size) {
     a.distance = a.distance - size;
-    a.bounds   = grow(a.bounds,size);
+    // a.bounds   = grow(a.bounds,size);
     return a;
 }
 
