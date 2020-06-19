@@ -20,6 +20,8 @@ import org.enso.languageserver.io.InputOutputApi.{
   WaitingForStandardInput
 }
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
+import org.enso.languageserver.refactoring.RefactoringApi
+import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.VisualisationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
@@ -62,6 +64,7 @@ object JsonRpc {
     .registerRequest(AttachVisualisation)
     .registerRequest(DetachVisualisation)
     .registerRequest(ModifyVisualisation)
+    .registerRequest(RenameProject)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)

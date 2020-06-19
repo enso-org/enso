@@ -5,16 +5,9 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.io.File;
-import java.util.Map;
-import java.util.Optional;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.Context;
@@ -22,7 +15,13 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.QualifiedName;
+import org.enso.pkg.QualifiedName$;
 import org.enso.polyglot.MethodNames;
+
+import java.io.File;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)
@@ -76,6 +75,29 @@ public class TopLevelScope implements TruffleObject {
     Module module = new Module(name, sourceFile);
     modules.put(name.toString(), module);
     return module;
+  }
+
+  /**
+   * Renames a project part of the included modules.
+   *
+   * @param oldName the old project name
+   * @param newName the new project name
+   */
+  public void renameProjectInModules(String oldName, String newName) {
+    String separator = QualifiedName$.MODULE$.separator();
+    Stream<String> keys =
+        modules
+            .keySet()
+            .stream()
+            .filter(name -> name.startsWith(oldName + separator));
+
+    Stream<Module> toRename = keys.map(modules::remove);
+
+    toRename
+        .map(module -> module.renameProject(oldName, newName))
+        .forEach(module -> {
+          modules.put(module.getName().toString(), module);
+        });
   }
 
   /**

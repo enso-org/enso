@@ -22,6 +22,8 @@ import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
+import org.enso.languageserver.refactoring.RefactoringApi
+import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.io.{
@@ -32,6 +34,7 @@ import org.enso.languageserver.requesthandler.io.{
   SuppressStdOutHandler
 }
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
+import org.enso.languageserver.requesthandler.refactoring.RenameProjectHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.requesthandler.text._
 import org.enso.languageserver.requesthandler.visualisation.{
@@ -78,6 +81,7 @@ class JsonConnectionController(
   val stdOutController: ActorRef,
   val stdErrController: ActorRef,
   val stdInController: ActorRef,
+  val runtimeConnector: ActorRef,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
@@ -258,7 +262,9 @@ class JsonConnectionController(
         .props(stdErrController, rpcSession.clientId),
       RedirectStandardError -> RedirectStdErrHandler
         .props(stdErrController, rpcSession.clientId),
-      FeedStandardInput -> FeedStandardInputHandler.props(stdInController)
+      FeedStandardInput -> FeedStandardInputHandler.props(stdInController),
+      RenameProject -> RenameProjectHandler
+        .props(requestTimeout, runtimeConnector)
     )
 
 }
@@ -285,6 +291,7 @@ object JsonConnectionController {
     stdOutController: ActorRef,
     stdErrController: ActorRef,
     stdInController: ActorRef,
+    runtimeConnector: ActorRef,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
     Props(
@@ -297,6 +304,7 @@ object JsonConnectionController {
         stdOutController,
         stdErrController,
         stdInController,
+        runtimeConnector,
         requestTimeout
       )
     )

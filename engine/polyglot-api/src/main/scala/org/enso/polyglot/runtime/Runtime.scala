@@ -108,6 +108,14 @@ object Runtime {
         name  = "expressionValuesComputed"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.RenameProject],
+        name  = "renameProject"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ProjectRenamed],
+        name  = "projectRenamed"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.ContextNotExistError],
         name  = "contextNotExistError"
       ),
@@ -616,6 +624,11 @@ object Runtime {
       * Signals that the runtime server has been shut down.
       */
     case class RuntimeServerShutDown() extends ApiResponse
+
+    case class RenameProject(oldName: String, newName: String)
+        extends ApiRequest
+
+    case class ProjectRenamed() extends ApiResponse
 
     private lazy val mapper = {
       val factory = new CBORFactory()
