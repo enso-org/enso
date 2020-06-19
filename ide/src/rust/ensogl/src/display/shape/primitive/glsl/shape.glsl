@@ -52,6 +52,13 @@ BoundingBox difference (BoundingBox a, BoundingBox b) {
     return a;
 }
 
+BoundingBox grow (BoundingBox a, float value) {
+    float min_x = a.min_x-value;
+    float max_x = a.max_x+value;
+    float min_y = a.min_y-value;
+    float max_y = a.max_y+value;
+    return BoundingBox(min_x,max_x,min_y,max_y);
+}
 
 
 // ===========
@@ -140,7 +147,7 @@ BoundSdf pixel_snap (BoundSdf a) {
 
 BoundSdf grow (BoundSdf a, float size) {
     a.distance = a.distance - size;
-    // a.bounds   = grow(a.bounds,size);
+    a.bounds   = grow(a.bounds,size);
     return a;
 }
 
