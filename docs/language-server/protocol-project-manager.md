@@ -22,7 +22,7 @@ transport formats, please look [here](./protocol-architecture).
 - [Project Management Operations](#project-management-operations)
   - [`project/open`](#projectopen)
   - [`project/close`](#projectclose)
-  - [`project/listRecent`](#projectlistrecent)
+  - [`project/list`](#projectlist)
   - [`project/create`](#projectcreate)
   - [`project/delete`](#projectdelete)
   - [`project/listSample`](#projectlistsample)
@@ -131,9 +131,9 @@ interface ProjectCloseRequest {
 - [`ProjectOpenByOtherPeersError`](#projectopenbyotherpeerserror) to signal
   that cannot close a project that is open by other clients.
 
-### `project/listRecent`
-This message requests that the project manager lists the user's most recently
-opened projects.
+### `project/list`
+This message requests that the project manager lists all user's projects. The 
+list of projects is sorted by the open time.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -143,15 +143,15 @@ opened projects.
 #### Parameters
 
 ```typescript
-interface ProjectListRecentRequest {
-  numberOfProjects: Int;
+interface ProjectListRequest {
+  numberOfProjects?: Int;
 }
 ```
 
 #### Result
 
 ```typescript
-interface ProjectListRecentResponse {
+interface ProjectListResponse {
   projects: [ProjectMetadata];
 }
 ```

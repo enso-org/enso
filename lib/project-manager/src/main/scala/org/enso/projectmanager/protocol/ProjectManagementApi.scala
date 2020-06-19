@@ -67,17 +67,17 @@ object ProjectManagementApi {
     }
   }
 
-  case object ProjectListRecent extends Method("project/listRecent") {
+  case object ProjectList extends Method("project/list") {
 
-    case class Params(numberOfProjects: Int)
+    case class Params(numberOfProjects: Option[Int])
 
     case class Result(projects: List[ProjectMetadata])
 
     implicit val hasParams = new HasParams[this.type] {
-      type Params = ProjectListRecent.Params
+      type Params = ProjectList.Params
     }
     implicit val hasResult = new HasResult[this.type] {
-      type Result = ProjectListRecent.Result
+      type Result = ProjectList.Result
     }
   }
 

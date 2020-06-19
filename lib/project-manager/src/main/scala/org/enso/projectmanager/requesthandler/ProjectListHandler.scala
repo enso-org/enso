@@ -8,7 +8,7 @@ import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.data.ProjectMetadata
-import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectListRecent
+import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectList
 import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
 import org.enso.projectmanager.service.{
   ProjectServiceApi,
@@ -20,13 +20,13 @@ import scala.annotation.unused
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for `project/listRecent` commands.
+  * A request handler for `project/list` commands.
   *
   * @param clientId the requester id
   * @param service a project service
   * @param requestTimeout a request timeout
   */
-class ProjectListRecentHandler[F[+_, +_]: Exec](
+class ProjectListHandler[F[+_, +_]: Exec](
   @unused clientId: UUID,
   service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
@@ -39,9 +39,9 @@ class ProjectListRecentHandler[F[+_, +_]: Exec](
   import context.dispatcher
 
   private def requestStage: Receive = {
-    case Request(ProjectListRecent, id, params: ProjectListRecent.Params) =>
+    case Request(ProjectList, id, params: ProjectList.Params) =>
       Exec[F]
-        .exec { service.listRecentProjects(params.numberOfProjects) }
+        .exec { service.listProjects(params.numberOfProjects) }
         .pipeTo(self)
       val cancellable =
         context.system.scheduler
@@ -55,13 +55,13 @@ class ProjectListRecentHandler[F[+_, +_]: Exec](
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(s"Failure during $ProjectListRecent operation:", ex)
+      log.error(s"Failure during $ProjectList operation:", ex)
       replyTo ! ResponseError(Some(id), ServiceError)
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request $ProjectListRecent with $id timed out")
+      log.error(s"Request $ProjectList with $id timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
@@ -77,9 +77,9 @@ class ProjectListRecentHandler[F[+_, +_]: Exec](
       }
 
       replyTo ! ResponseResult(
-        ProjectListRecent,
+        ProjectList,
         id,
-        ProjectListRecent.Result(metadata)
+        ProjectList.Result(metadata)
       )
       cancellable.cancel()
       context.stop(self)
@@ -87,10 +87,10 @@ class ProjectListRecentHandler[F[+_, +_]: Exec](
 
 }
 
-object ProjectListRecentHandler {
+object ProjectListHandler {
 
   /**
-    * Creates a configuration object used to create a [[ProjectListRecentHandler]].
+    * Creates a configuration object used to create a [[ProjectListHandler]].
     *
     * @param clientId the requester id
     * @param service a project service
@@ -102,6 +102,6 @@ object ProjectListRecentHandler {
     service: ProjectServiceApi[F],
     requestTimeout: FiniteDuration
   ): Props =
-    Props(new ProjectListRecentHandler(clientId, service, requestTimeout))
+    Props(new ProjectListHandler(clientId, service, requestTimeout))
 
 }

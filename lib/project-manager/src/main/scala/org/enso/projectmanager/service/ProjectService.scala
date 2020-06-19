@@ -146,12 +146,15 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
   }
 
   /** @inheritdoc **/
-  override def listRecentProjects(
-    size: Int
+  override def listProjects(
+    maybeSize: Option[Int]
   ): F[ProjectServiceFailure, List[ProjectMetadata]] =
     repo
       .getAll()
-      .map(_.sorted(RecentlyUsedProjectsOrdering).take(size))
+      .map(
+        _.sorted(RecentlyUsedProjectsOrdering)
+          .take(maybeSize.getOrElse(Int.MaxValue))
+      )
       .map(_.map(toProjectMetadata))
       .mapError(toServiceFailure)
 

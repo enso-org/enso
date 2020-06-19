@@ -54,11 +54,11 @@ trait ProjectServiceApi[F[+_, +_]] {
   /**
     * Lists the user's most recently opened projects..
     *
-    * @param size the size of result set
+    * @param maybeSize the size of result set
     * @return list of recent projects
     */
-  def listRecentProjects(
-    size: Int
+  def listProjects(
+    maybeSize: Option[Int]
   ): F[ProjectServiceFailure, List[ProjectMetadata]]
 
 }

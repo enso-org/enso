@@ -6,7 +6,7 @@ import org.enso.projectmanager.protocol.ProjectManagementApi.{
   ProjectClose,
   ProjectCreate,
   ProjectDelete,
-  ProjectListRecent,
+  ProjectList,
   ProjectOpen
 }
 
@@ -21,6 +21,6 @@ object JsonRpc {
       .registerRequest(ProjectDelete)
       .registerRequest(ProjectOpen)
       .registerRequest(ProjectClose)
-      .registerRequest(ProjectListRecent)
+      .registerRequest(ProjectList)
 
 }
