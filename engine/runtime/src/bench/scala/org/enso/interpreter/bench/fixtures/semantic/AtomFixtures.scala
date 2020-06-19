@@ -1,7 +1,7 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
-import org.enso.interpreter.runtime.Builtins
 import org.enso.interpreter.test.DefaultInterpreterRunner
+import org.enso.interpreter.runtime.builtin.Builtins
 import org.graalvm.polyglot.Value
 
 class AtomFixtures extends DefaultInterpreterRunner {
@@ -22,7 +22,7 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val generateListCode =
     """
       |main = length ->
-      |    generator = acc -> i -> ifZero i acc (generator (Cons i acc) (i - 1))
+      |    generator = acc -> i -> if i == 0 then acc else generator (Cons i acc) (i - 1)
       |
       |    res = generator Nil length
       |    res

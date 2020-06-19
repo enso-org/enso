@@ -1,16 +1,20 @@
 package org.enso.interpreter.node.expression.constant;
 
+import com.oracle.truffle.api.dsl.CachedContext;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 /** Represents a type constructor definition. */
 @NodeInfo(shortName = "Cons", description = "Represents a constructor definition")
-public class ConstructorNode extends ExpressionNode {
+public abstract class ConstructorNode extends ExpressionNode {
   private final AtomConstructor constructor;
 
-  private ConstructorNode(AtomConstructor constructor) {
+  ConstructorNode(AtomConstructor constructor) {
     this.constructor = constructor;
   }
 
@@ -21,7 +25,7 @@ public class ConstructorNode extends ExpressionNode {
    * @return a truffle node representing {@code constructor}
    */
   public static ConstructorNode build(AtomConstructor constructor) {
-    return new ConstructorNode(constructor);
+    return ConstructorNodeGen.create(constructor);
   }
 
   /**
@@ -30,12 +34,18 @@ public class ConstructorNode extends ExpressionNode {
    * @param frame the frame to execute in
    * @return the constructor of the type defined
    */
-  @Override
-  public Object executeGeneric(VirtualFrame frame) {
+  @Specialization
+  Object doExecute(VirtualFrame frame, @CachedContext(Language.class) Context ctx) {
+    if (constructor == ctx.getBuiltins().bool().getTrue()) {
+      return true;
+    }
+    if (constructor == ctx.getBuiltins().bool().getFalse()) {
+      return false;
+    }
     if (constructor.getArity() == 0) {
       return constructor.newInstance();
-    } else {
-      return constructor;
     }
+    return constructor;
+
   }
 }

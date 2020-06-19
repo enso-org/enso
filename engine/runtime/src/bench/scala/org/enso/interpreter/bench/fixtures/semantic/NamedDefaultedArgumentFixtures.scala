@@ -9,7 +9,7 @@ class NamedDefaultedArgumentFixtures extends DefaultInterpreterRunner {
     """
       |main = sumTo ->
       |    summator = acc -> current ->
-      |        ifZero current acc (summator (current = current - 1) (acc = acc + current))
+      |        if current == 0 then acc else summator (current = current - 1) (acc = acc + current)
       |
       |    res = summator current=sumTo acc=0
       |    res
@@ -20,7 +20,7 @@ class NamedDefaultedArgumentFixtures extends DefaultInterpreterRunner {
     """
       |main = sumTo ->
       |    summator = (acc = 0) -> current ->
-      |        ifZero current acc (summator (current = current - 1) (acc = acc + current))
+      |        if current == 0 then acc else summator (current = current - 1) (acc = acc + current)
       |
       |    res = summator (current = sumTo)
       |    res

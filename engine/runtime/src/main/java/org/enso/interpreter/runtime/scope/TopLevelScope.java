@@ -16,7 +16,7 @@ import java.io.File;
 import java.util.Map;
 import java.util.Optional;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.Builtins;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Vector;

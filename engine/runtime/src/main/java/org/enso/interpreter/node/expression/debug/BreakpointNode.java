@@ -11,7 +11,7 @@ import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.Builtins;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.state.Stateful;
 

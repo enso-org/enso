@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
@@ -8,7 +9,8 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.Builtins;
+import org.enso.interpreter.runtime.builtin.Bool;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -50,7 +52,7 @@ public abstract class MethodResolverNode extends Node {
   public abstract Function execute(UnresolvedSymbol symbol, Object self);
 
   @Specialization(guards = "isValidAtomCache(symbol, cachedSymbol, atom, cachedConstructor)")
-  Function resolveAtomCached(
+  Function resolveAtom(
       UnresolvedSymbol symbol,
       Atom atom,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -62,7 +64,7 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = {"cachedSymbol == symbol", "atomConstructor == cachedConstructor"})
-  Function resolveAtomConstructorCached(
+  Function resolveAtomConstructor(
       UnresolvedSymbol symbol,
       AtomConstructor atomConstructor,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -73,7 +75,7 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = "cachedSymbol == symbol")
-  Function resolveNumberCached(
+  Function resolveNumber(
       UnresolvedSymbol symbol,
       long self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -82,8 +84,51 @@ public abstract class MethodResolverNode extends Node {
     return function;
   }
 
+  @Specialization(guards = {"cachedSymbol == symbol", "function != null"})
+  Function resolveBoolean(
+      UnresolvedSymbol symbol,
+      boolean self,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
+      @Cached(
+              value = "resolveMethodOnPrimBoolean(cachedSymbol, contextReference.get())",
+              allowUncached = true)
+          Function function) {
+    return function;
+  }
+
+  @Specialization(
+      guards = {"cachedSymbol == symbol", "self"},
+      replaces = "resolveBoolean")
+  Function resolveTrue(
+      UnresolvedSymbol symbol,
+      boolean self,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
+      @Cached(
+              value = "resolveMethodOnBool(true, cachedSymbol, contextReference.get())",
+              allowUncached = true)
+          Function function) {
+    return function;
+  }
+
+  @Specialization(
+      guards = {"cachedSymbol == symbol", "!self"},
+      replaces = "resolveBoolean")
+  Function resolveFalse(
+      UnresolvedSymbol symbol,
+      boolean self,
+      @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextReference,
+      @Cached(
+              value = "resolveMethodOnBool(false, cachedSymbol, contextReference.get())",
+              allowUncached = true)
+          Function function) {
+    return function;
+  }
+
   @Specialization(guards = "cachedSymbol == symbol")
-  Function resolveStringCached(
+  Function resolveString(
       UnresolvedSymbol symbol,
       String self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -93,7 +138,7 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = "cachedSymbol == symbol")
-  Function resolveFunctionCached(
+  Function resolveFunction(
       UnresolvedSymbol symbol,
       Function self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -103,7 +148,7 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = "cachedSymbol == symbol")
-  Function resolveErrorCached(
+  Function resolveError(
       UnresolvedSymbol symbol,
       RuntimeError self,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -113,7 +158,7 @@ public abstract class MethodResolverNode extends Node {
   }
 
   @Specialization(guards = {"cachedSymbol == symbol", "ctx.getEnvironment().isHostObject(target)"})
-  Function resolveHostCached(
+  Function resolveHost(
       UnresolvedSymbol symbol,
       Object target,
       @Cached(value = "symbol", allowUncached = true) UnresolvedSymbol cachedSymbol,
@@ -137,6 +182,28 @@ public abstract class MethodResolverNode extends Node {
   Function resolveMethodOnNumber(UnresolvedSymbol symbol) {
     return ensureMethodExists(
         symbol.resolveFor(getBuiltins().number(), getBuiltins().any()), "Number", symbol);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  Function resolveMethodOnPrimBoolean(UnresolvedSymbol symbol, Context context) {
+    Bool bool = context.getBuiltins().bool();
+    if (symbol.resolveFor(bool.getFalse()) != null) {
+      return null;
+    }
+    if (symbol.resolveFor(bool.getTrue()) != null) {
+      return null;
+    }
+    return ensureMethodExists(
+        symbol.resolveFor(bool.getBool(), context.getBuiltins().any()), "Boolean", symbol);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  Function resolveMethodOnBool(boolean self, UnresolvedSymbol symbol, Context context) {
+    Bool bool = context.getBuiltins().bool();
+    AtomConstructor cons = self ? bool.getTrue() : bool.getFalse();
+    String label = self ? "True" : "False";
+    return ensureMethodExists(
+        symbol.resolveFor(cons, bool.getBool(), context.getBuiltins().any()), label, symbol);
   }
 
   Function resolveMethodOnString(UnresolvedSymbol symbol) {
