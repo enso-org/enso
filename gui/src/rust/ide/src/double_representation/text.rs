@@ -18,7 +18,11 @@ pub fn apply_code_change_to_id_map(id_map:&mut IdMap, change:&data::text::TextCh
     //   The initial provisional algorithm received some changes to better behave in our typical
     //   editor use-cases, i.e. to keep node ids when editing its expression. However, this came
     //   at price of not properly keeping other sub-ids on parts of the node line.
-    //   In future, better and cleaner algorithm will need to be provided.
+    //   In future, better and cleaner algorithm will need to be provided, likely with a different
+    //   API. Because of such expected rewrite and deeper restructuring, we don't really want to
+    //   spend much time on refactoring this function right now, even if it could be made nicer.
+
+
     let removed       = change.replaced_span();
     let inserted      = change.inserted.as_str();
     let new_code      = change.applied(code);
@@ -60,6 +64,7 @@ pub fn apply_code_change_to_id_map(id_map:&mut IdMap, change:&data::text::TextCh
     let mut preferred : HashMap<Span,ast::Id> = default();
 
     for (span, id) in vector.iter_mut() {
+        // These
         let mut trim_front = false;
         let mut trim_back  = false;
         let initial_span   = *span;
@@ -89,11 +94,14 @@ pub fn apply_code_change_to_id_map(id_map:&mut IdMap, change:&data::text::TextCh
             span.extend_right(inserted_size);
             trim_front = true;
         } else if span.end() >= removed.index {
+            // AST node starts before the edited region and reaches (or possibly goes past) its end.
             debug!(logger,"Node overlapping with the beginning of the edited region.");
-            // AST node ends in the edited region.
-            span.set_right(removed.index);
+            if span.end() <= removed.end() {
+                trim_back = true;
+            }
+            let removed_chars = (span.end() - removed.index).min(removed.size);
+            span.shrink_right(removed_chars);
             span.extend_right(inserted_size);
-            trim_back = true;
         } else {
             debug!(logger,"Node before the edited region.");
             // If there are only spaces between current AST symbol and insertion, extend the symbol.
@@ -293,6 +301,15 @@ mod test {
 
         // All the cases describe edit to a middle line in three line main definition.
         let cases = [
+            "a = \"«⎀f»foo\"",
+            "a = \"«⎀ »foo\"",
+            "a = \"foo«⎀ »\"",
+            "a = \"foo«⎀f»\"",
+            "a = \"«f»foo\"",
+            "a = \"« »foo\"",
+            "a = \"foo« »\"",
+            "a = \"foo«f»\"",
+            "a = «f»foo",
             "a = «⎀f»foo",
             "a = «f»foo",
             "a = «⎀ »foo",
@@ -306,6 +323,14 @@ mod test {
             "a = foo«⎀j»",
 
             // Same as above but not in an assignment form
+            "\"«⎀f»foo\"",
+            "\"«⎀ »foo\"",
+            "\"foo«⎀ »\"",
+            "\"foo«⎀f»\"",
+            "\"«f»foo\"",
+            "\"« »foo\"",
+            "\"foo« »\"",
+            "\"foo«f»\"",
             "«⎀f»foo",
             "«f»foo",
             // Commented out tests below would fail because of leading whitespace breaking the
