@@ -36,20 +36,21 @@ pub type Event = json_rpc::handler::Event<Notification>;
 make_rpc_methods! {
 /// An interface containing all the available project management operations.
 trait API {
-    /// Request the project picker to open a specified project. This operation also
+    /// Request the project manager to open a specified project. This operation also
     /// includes spawning an instance of the language server open on the specified project.
     #[MethodInput=OpenProjectInput,rpc_name="project/open"]
     fn open_project(&self, project_id:Uuid) -> response::OpenProject;
 
-    /// Request the project picker to close a specified project. This operation
+    /// Request the project manager to close a specified project. This operation
     /// includes shutting down the language server gracefully so that it can persist state to disk
     /// as needed.
     #[MethodInput=CloseProjectInput,rpc_name="project/close"]
     fn close_project(&self, project_id:Uuid) -> ();
 
-    /// Request the project picker to list the user's most recently opened projects.
-    #[MethodInput=ListRecentProjectsInput,rpc_name="project/listRecent"]
-    fn list_recent_projects(&self, number_of_projects:u32) -> response::ProjectList;
+    /// Request the project manager to lists all user's projects. The list of projects is sorted by
+    /// the open time.
+    #[MethodInput=ListRecentProjectsInput,rpc_name="project/list"]
+    fn list_projects(&self, number_of_projects:Option<u32>) -> response::ProjectList;
 
     /// Request the creation of a new project.
     #[MethodInput=CreateProjectInput,rpc_name="project/create"]
@@ -103,7 +104,7 @@ pub struct ProjectMetadata {
 pub mod response {
     use super::*;
 
-    /// Response of `list_recent_projects` and `list_samples`.
+    /// Response of `list_projects` and `list_samples`.
     #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
     pub struct ProjectList {
         /// List of projects.
@@ -200,7 +201,7 @@ mod mock_client_tests {
     }
 
     #[test]
-    fn list_recent_projects() {
+    fn list_projects() {
         let mock_client = MockClient::default();
         let project1    = ProjectMetadata {
             name        : ProjectName { name : "project1".to_string() },
@@ -224,12 +225,15 @@ mod mock_client_tests {
             last_opened : Some(DateTime::parse_from_rfc3339("2019-12-25T00:10:58Z").unwrap())
         };
         let expected_sample_projects = response::ProjectList { projects : vec![sample1,sample2] };
-        expect_call!(mock_client.list_recent_projects(count=2) => Ok(expected_recent_projects.clone()));
+        expect_call!(mock_client.list_projects(count=Some(2)) =>
+           Ok(expected_recent_projects.clone()));
         expect_call!(mock_client.list_samples(count=2) => Ok(expected_sample_projects.clone()));
 
         let list_recent_error = "Couldn't get recent projects.";
         let list_sample_error = "Couldn't get sample projects.";
-        let recent_projects = result(mock_client.list_recent_projects(&2)).expect(list_recent_error);
+        let count_limit       = Some(2);
+        let recent_projects   = result(mock_client.list_projects(&count_limit));
+        let recent_projects   = recent_projects.expect(list_recent_error);
         assert_eq!(recent_projects, expected_recent_projects);
         let sample_projects = result(mock_client.list_samples(&2)).expect(list_sample_error);
         assert_eq!(sample_projects, expected_sample_projects);
@@ -353,8 +357,8 @@ mod remote_client_tests {
         });
 
         test_request(
-            |client| client.list_recent_projects(&number_of_projects),
-            "project/listRecent",
+            |client| client.list_projects(&Some(number_of_projects)),
+            "project/list",
             &number_of_projects_json,
             &project_list_json,
             &project_list
