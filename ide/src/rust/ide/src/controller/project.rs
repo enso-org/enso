@@ -7,7 +7,6 @@ use crate::prelude::*;
 
 use crate::controller::FilePath;
 use crate::controller::Visualization;
-use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::module::QualifiedName as ModuleQualifiedName;
 use crate::model::module::Path          as ModulePath;
@@ -37,8 +36,8 @@ type ExecutionContextId = model::execution_context::Id;
 
 #[allow(missing_docs)]
 #[derive(Clone,Copy,Debug,Fail)]
-#[fail(display="No visualization with id {} was found in the registry.", _0)]
-pub struct NoSuchVisualization(VisualizationId);
+#[fail(display="No execution context with id {} was found in the registry.", _0)]
+pub struct NoSuchExecutionContext(ExecutionContextId);
 
 
 // === Aliases ===
@@ -54,17 +53,34 @@ type ExecutionContextWeakMap = WeakValueHashMap<ExecutionContextId,Weak<Executio
 pub struct ExecutionContextsRegistry(RefCell<ExecutionContextWeakMap>);
 
 impl ExecutionContextsRegistry {
-    /// Routes the visualization update into the appropriate execution context.
+    /// Retrieve the execution context with given Id and calls the given function with it.
+    ///
+    /// Handles the error of context not being present in the registry.
+    pub fn with_context<R>
+    (&self, id:ExecutionContextId, f:impl FnOnce(Rc<ExecutionContext>) -> FallibleResult<R>)
+    -> FallibleResult<R> {
+        let ctx = self.0.borrow_mut().get(&id);
+        let ctx = ctx.ok_or_else(|| NoSuchExecutionContext(id))?;
+        f(ctx)
+    }
+
+    /// Route the visualization update into the appropriate execution context.
     pub fn dispatch_visualization_update
     (&self
     , context : VisualisationContext
     , data    : VisualizationUpdateData
     ) -> FallibleResult<()> {
-        let context_id       = context.context_id;
-        let visualization_id = context.visualization_id;
-        let ctx = self.0.borrow_mut().get(&context_id);
-        let ctx = ctx.ok_or_else(|| NoSuchVisualization(context_id))?;
-        ctx.dispatch_visualization_update(visualization_id,data)
+        self.with_context(context.context_id, |ctx| {
+            ctx.dispatch_visualization_update(context.visualization_id,data)
+        })
+    }
+
+    /// Handles the update about expressions being computed.
+    pub fn handle_expression_values_computed
+    (&self, update:language_server::ExpressionValuesComputed) -> FallibleResult<()> {
+        self.with_context(update.context_id, |ctx| {
+            ctx.handle_expression_values_computed(update)
+        })
     }
 
     /// Registers a new ExecutionContext. It will be eligible for receiving future updates routed
@@ -105,6 +121,7 @@ impl Handle {
         let logger = Logger::sub(parent,"Project Controller");
         info!(logger,"Creating a project controller for project {project_name.as_ref()}");
         let binary_protocol_events  = language_server_binary.event_stream();
+        let json_rpc_events         = language_server_client.events();
         let embedded_visualizations = default();
         let language_server_rpc     = Rc::new(language_server_client);
         let language_server_bin     = Rc::new(language_server_binary);
@@ -120,6 +137,10 @@ impl Handle {
 
         let binary_handler = ret.binary_event_handler();
         crate::executor::global::spawn(binary_protocol_events.for_each(binary_handler));
+
+        let json_rpc_handler = ret.json_event_handler();
+        crate::executor::global::spawn(json_rpc_events.for_each(json_rpc_handler));
+
         ret
     }
 
@@ -153,7 +174,7 @@ impl Handle {
                     }
                 }
                 Event::Closed => {
-                    error!(logger,"Lost binary data connection!");
+                    error!(logger,"Lost binary connection with the Language Server!");
                     // TODO [wmu]
                     //  The problem should be reported to the user and the connection should be
                     //  reestablished, see https://github.com/luna/ide/issues/145
@@ -161,6 +182,51 @@ impl Handle {
                 Event::Error(error) => {
                     error!(logger,"Error emitted by the binary data connection: {error}.");
                 }
+            }
+            futures::future::ready(())
+        }
+    }
+
+    /// Returns a handling function capable of processing updates from the json-rpc protocol.
+    /// Such function will be then typically used to process events stream from the json-rpc
+    /// connection handler.
+    pub fn json_event_handler
+    (&self) -> impl Fn(enso_protocol::language_server::Event) -> futures::future::Ready<()> {
+    // TODO [mwu]
+    //  This handler for JSON-RPC notifications is very similar to the function above that handles
+    //  binary protocol notifications. However, it is not practical to generalize them, as the
+    //  underlying RPC handlers and their types are separate.
+    //  This generalization should be reconsidered once the old JSON-RPC handler is phased out.
+    //  See: https://github.com/luna/ide/issues/587
+        let logger                  = self.logger.clone_ref();
+        let weak_execution_contexts = Rc::downgrade(&self.execution_contexts);
+        move |event| {
+            debug!(logger, "Received an event from the json-rpc protocol: {event:?}");
+            use enso_protocol::language_server::Event;
+            use enso_protocol::language_server::Notification;
+            match event {
+                Event::Notification(Notification::ExpressionValuesComputed(update)) => {
+                    if let Some(execution_contexts) = weak_execution_contexts.upgrade() {
+                        let result = execution_contexts.handle_expression_values_computed(update);
+                        if let Err(error) = result {
+                            error!(logger,"Failed to handle the expression values computed update: \
+                            {error}.");
+                        }
+                    } else {
+                        error!(logger,"Received a `ExpressionValuesComputed` update despite \
+                        execution context being already dropped.");
+                    }
+                }
+                Event::Closed => {
+                    error!(logger,"Lost JSON-RPC connection with the Language Server!");
+                    // TODO [wmu]
+                    //  The problem should be reported to the user and the connection should be
+                    //  reestablished, see https://github.com/luna/ide/issues/145
+                }
+                Event::Error(error) => {
+                    error!(logger,"Error emitted by the binary data connection: {error}.");
+                }
+                _ => {}
             }
             futures::future::ready(())
         }
@@ -258,6 +324,8 @@ mod test {
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
     use enso_protocol::language_server::CapabilityRegistration;
+    use enso_protocol::language_server::Event;
+    use enso_protocol::language_server::Notification;
     use enso_protocol::types::Sha3_224;
 
 
@@ -338,6 +406,56 @@ mod test {
             let content   = text_ctrl.read_content().await.unwrap();
             assert_eq!("2 + 2", content.as_str());
         });
+    }
+
+    /// This tests checks mainly if:
+    /// * project controller correctly creates execution context
+    /// * created execution context appears in the registry
+    /// * project controller correctly dispatches the LS notification with type information
+    /// * the type information is correctly recorded and available in the execution context
+    #[wasm_bindgen_test]
+    fn execution_context_management() {
+        // Setup project controller and mock LS client expectations.
+        let mut test   = TestWithLocalPoolExecutor::set_up();
+        let data       = model::synchronized::execution_context::tests::MockData::new();
+        let mut sender = futures::channel::mpsc::unbounded().0;
+        let project    = setup_mock_project(|mock_json_client| {
+            data.mock_create_push_destroy_calls(mock_json_client);
+            sender = mock_json_client.setup_events();
+            mock_json_client.require_all_calls();
+        }, |_| {});
+
+        // No context present yet.
+        let no_op = |_| Ok(());
+        let result1 = project.execution_contexts.with_context(data.context_id,no_op);
+        assert!(result1.is_err());
+
+        // Create execution context.
+        let module_path = Rc::new(data.module_path.clone());
+        let definition  = data.root_definition.clone();
+        let execution   = project.create_execution_context(module_path,definition);
+        let execution   = test.expect_completion(execution).unwrap();
+
+        // Now context is in registry.
+        let result1 = project.execution_contexts.with_context(data.context_id,no_op);
+        assert!(result1.is_ok());
+
+        // Context has no information about type.
+        let notification   = data.mock_values_computed_update();
+        let value_update   = &notification.updates[0];
+        let expression_id  = value_update.id;
+        let value_registry = execution.computed_value_info_registry();
+        assert!(value_registry.get(&expression_id).is_none());
+
+        // Send notification with type information.
+        let event = Event::Notification(Notification::ExpressionValuesComputed(notification.clone()));
+        sender.unbounded_send(event).unwrap();
+        test.run_until_stalled();
+
+        // Context now has the information about type.
+        let value_info = value_registry.get(&expression_id).unwrap();
+        assert_eq!(value_info.typename,value_update.typename);
+        assert_eq!(value_info.method_call,value_update.method_call);
     }
 
     fn mock_calls_for_opening_text_file

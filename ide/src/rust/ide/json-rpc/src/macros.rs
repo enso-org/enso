@@ -43,6 +43,11 @@ macro_rules! make_rpc_methods {
                 fn $method<'a>(&'a self $(,$param_name:&'a $param_ty)*)
                 -> std::pin::Pin<Box<dyn Future<Output=Result<$result>>>>;
             )*
+
+            /// Asynchronous event stream with notification and errors.
+            ///
+            /// On a repeated call, previous stream is closed.
+            fn events(&self) -> futures::stream::LocalBoxStream<'static,Event>;
         }
 
 
@@ -63,13 +68,6 @@ macro_rules! make_rpc_methods {
             pub fn new(transport:impl json_rpc::Transport + 'static) -> Self {
                 let handler = RefCell::new(Handler::new(transport));
                 Self { handler }
-            }
-
-            /// Asynchronous event stream with notification and errors.
-            ///
-            /// On a repeated call, previous stream is closed.
-            pub fn events(&self) -> impl Stream<Item = Event> {
-                self.handler.borrow_mut().handler_event_stream()
             }
 
             /// Returns a future that performs any background, asynchronous work needed
@@ -96,6 +94,10 @@ macro_rules! make_rpc_methods {
                 let result_fut = self.handler.borrow().open_request_with_json(name,&input_json);
                 Box::pin(result_fut)
             })*
+
+            fn events(&self) -> futures::stream::LocalBoxStream<'static,Event> {
+                self.handler.borrow_mut().handler_event_stream().boxed_local()
+            }
         }
 
         $(
@@ -137,7 +139,8 @@ macro_rules! make_rpc_methods {
             pub struct Client {
                 require_all_calls : Cell<bool>,
                 /// Expected calls handlers.
-                pub expect        : ExpectedCalls,
+                pub expect : ExpectedCalls,
+                events     : RefCell<Option<futures::channel::mpsc::UnboundedReceiver<Event>>>,
             }
 
             impl API for Client {
@@ -149,6 +152,14 @@ macro_rules! make_rpc_methods {
                     let result       = handler($($param_name),*);
                     Box::pin(futures::future::ready(result))
                 })*
+
+                fn events(&self) -> futures::stream::LocalBoxStream<'static,Event> {
+                    if let Some(receiver) = self.events.borrow_mut().take() {
+                        receiver.boxed_local()
+                    } else {
+                        futures::stream::empty().boxed_local()
+                    }
+                }
             }
 
             impl Client {
@@ -156,6 +167,13 @@ macro_rules! make_rpc_methods {
                 /// dropped without calling the test will fail.
                 pub fn require_all_calls(&self) {
                     self.require_all_calls.set(true);
+                }
+
+                /// Set up a channel that will feed `events` stream with events.
+                pub fn setup_events(&self) -> futures::channel::mpsc::UnboundedSender<Event> {
+                    let (sender,receiver) = futures::channel::mpsc::unbounded();
+                    *self.events.borrow_mut() = Some(receiver);
+                    sender
                 }
             }
 
@@ -202,6 +220,10 @@ macro_rules! make_rpc_methods {
 /// ```
 #[macro_export]
 macro_rules! expect_call {
+    ($mock:ident.$method:ident() => $result:expr) => {
+        let result = $result;
+        $mock.expect.$method(move || result)
+    };
     ($mock:ident.$method:ident($($param:ident),*) => $result:expr) => {
         expect_call!($mock.$method($($param=$param),*) => $result)
     };

@@ -9,7 +9,6 @@ use crate::types::UTCDateTime;
 use json_rpc::api::Result;
 use json_rpc::Handler;
 use json_rpc::make_rpc_methods;
-use futures::Stream;
 use serde::Serialize;
 use serde::Deserialize;
 use std::future::Future;

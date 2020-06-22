@@ -751,41 +751,88 @@ mod tests {
     use wasm_bindgen_test::wasm_bindgen_test;
     use ast::test_utils::expect_shape;
 
-    struct GraphControllerFixture(TestWithLocalPoolExecutor);
-    impl GraphControllerFixture {
-        pub fn set_up() -> GraphControllerFixture {
+    /// All the data needed to set up and run the graph controller in mock environment.
+    #[derive(Clone,Debug)]
+    pub struct MockData {
+        pub module_path  : model::module::Path,
+        pub graph_id     : Id,
+        pub project_name : String,
+        pub code         : String,
+    }
+
+    impl MockData {
+        pub fn new(code:impl Str) -> Self {
+            MockData {
+                module_path  : model::module::Path::from_mock_module_name("Main"),
+                graph_id     :  Id::new_plain_name("main"),
+                project_name : "MockProject".to_string(),
+                code         : code.into(),
+            }
+        }
+
+        /// Creates a mock data with the main function being an inline definition.
+        ///
+        /// The single node's expression is taken as the argument.
+        pub fn new_inline(main_body:impl Str) -> Self {
+            Self::new(format!("main = {}", main_body.as_ref()))
+        }
+
+        /// Creates module and graph controllers.
+        pub fn create_controllers(&self) -> (controller::Module,Handle) {
+            let ls = language_server::Connection::new_mock_rc(default());
+            self.create_controllers_with_ls(ls)
+        }
+
+        /// Like `create_controllers`, but allows  passing a custom LS client (e.g. with some
+        /// expectations already set or shared with other controllers).
+        pub fn create_controllers_with_ls
+        (&self, ls:Rc<language_server::Connection>) -> (controller::Module,Handle) {
+            let id     = self.graph_id.clone();
+            let path   = self.module_path.clone();
+            let code   = &self.code;
+            let id_map = default();
+            let parser = Parser::new_or_panic();
+            let module = controller::Module::new_mock(path,code,id_map,ls,parser).unwrap();
+            let graph  = module.graph_controller(id).unwrap();
+            (module,graph)
+        }
+    }
+
+    #[derive(Debug,Shrinkwrap)]
+    #[shrinkwrap(mutable)]
+    pub struct Fixture(pub TestWithLocalPoolExecutor);
+    impl Fixture {
+        pub fn set_up() -> Fixture {
             let nested = TestWithLocalPoolExecutor::set_up();
             Self(nested)
         }
 
-        pub fn run_graph_for_main<Test,Fut>
-        (&mut self, code:impl Str, function_name:impl Str, test:Test)
-        where Test : FnOnce(controller::Module,Handle) -> Fut + 'static,
-              Fut  : Future<Output=()> {
-            let code     = code.as_ref();
-            let ls       = language_server::Connection::new_mock_rc(default());
-            let path     = ModulePath::from_mock_module_name("Main");
-            let parser   = Parser::new_or_panic();
-            let module   = controller::Module::new_mock(path,code,default(),ls,parser).unwrap();
-            let graph_id = Id::new_single_crumb(DefinitionName::new_plain(function_name.into()));
-            let graph    = module.graph_controller(graph_id).unwrap();
-            self.0.run_task(async move {
+        pub fn run<Fut>
+        ( &mut self
+        , data : MockData
+        , test : impl FnOnce(controller::Module,Handle) -> Fut + 'static
+        ) where Fut : Future<Output=()> {
+            let (module,graph) = data.create_controllers();
+            self.run_task(async move {
                 test(module,graph).await
             })
+        }
+
+        pub fn run_graph_for_main<Test,Fut>
+        (&mut self, code:impl Str, test:Test)
+        where Test : FnOnce(controller::Module,Handle) -> Fut + 'static,
+              Fut  : Future<Output=()> {
+            let data = MockData::new(code);
+            self.run(data,test)
         }
 
         pub fn run_graph_for<Test,Fut>(&mut self, code:impl Str, graph_id:Id, test:Test)
             where Test : FnOnce(controller::Module,Handle) -> Fut + 'static,
                   Fut  : Future<Output=()> {
-            let code   = code.as_ref();
-            let ls     = language_server::Connection::new_mock_rc(default());
-            let path   = ModulePath::from_mock_module_name("Main");
-            let parser = Parser::new_or_panic();
-            let module = controller::Module::new_mock(path, code, default(), ls, parser).unwrap();
-            let graph  = module.graph_controller(graph_id).unwrap();
-            self.0.run_task(async move {
-                test(module,graph).await
-            })
+
+            let mut data = MockData::new(code);
+            data.graph_id = graph_id;
+            self.run(data,test);
         }
 
         pub fn run_inline_graph<Test,Fut>(&mut self, definition_body:impl Str, test:Test)
@@ -793,8 +840,7 @@ mod tests {
               Fut  : Future<Output=()> {
             assert_eq!(definition_body.as_ref().contains('\n'), false);
             let code = format!("main = {}", definition_body.as_ref());
-            let name = "main";
-            self.run_graph_for_main(code, name, test)
+            self.run_graph_for_main(code,test)
         }
     }
 
@@ -820,8 +866,8 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn graph_controller_notification_relay() {
-        let mut test = GraphControllerFixture::set_up();
-        test.run_graph_for_main("main = 2 + 2", "main", |module, graph| async move {
+        let mut test = Fixture::set_up();
+        test.run_graph_for_main("main = 2 + 2", |module, graph| async move {
             let text_change = TextChange::insert(Index::new(12), "2".into());
             module.apply_code_change(text_change).unwrap();
 
@@ -833,7 +879,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn graph_controller_inline_definition() {
-        let mut test = GraphControllerFixture::set_up();
+        let mut test = Fixture::set_up();
         const EXPRESSION: &str = "2+2";
         test.run_inline_graph(EXPRESSION, |_,graph| async move {
             let nodes   = graph.nodes().unwrap();
@@ -847,12 +893,12 @@ mod tests {
 
     #[wasm_bindgen_test]
     fn graph_controller_block_definition() {
-        let mut test  = GraphControllerFixture::set_up();
+        let mut test  = Fixture::set_up();
         let program = r"
 main =
     foo = 2
     print foo";
-        test.run_graph_for_main(program, "main", |_, graph| async move {
+        test.run_graph_for_main(program, |_, graph| async move {
             let nodes   = graph.nodes().unwrap();
             let (node1,node2) = nodes.expect_tuple();
             assert_eq!(node1.info.expression().repr(), "2");
@@ -862,9 +908,9 @@ main =
 
     #[wasm_bindgen_test]
     fn graph_controller_parse_expression() {
-        let mut test  = GraphControllerFixture::set_up();
+        let mut test  = Fixture::set_up();
         let program = r"main = 0";
-        test.run_graph_for_main(program, "main", |_, graph| async move {
+        test.run_graph_for_main(program, |_, graph| async move {
             let foo = graph.parse_node_expression("foo").unwrap();
             assert_eq!(expect_shape::<ast::Var>(&foo), &ast::Var {name:"foo".into()});
 
@@ -878,9 +924,9 @@ main =
 
     #[wasm_bindgen_test]
     fn graph_controller_used_names_in_inline_def() {
-        let mut test  = GraphControllerFixture::set_up();
+        let mut test  = Fixture::set_up();
         const PROGRAM:&str = r"main = foo";
-        test.run_graph_for_main(PROGRAM, "main", |_, graph| async move {
+        test.run_graph_for_main(PROGRAM, |_, graph| async move {
             let expected_name = LocatedName::new_root(NormalizedName::new("foo"));
             let used_names    = graph.used_names().unwrap();
             assert_eq!(used_names, vec![expected_name]);
@@ -889,7 +935,7 @@ main =
 
     #[wasm_bindgen_test]
     fn graph_controller_nested_definition() {
-        let mut test  = GraphControllerFixture::set_up();
+        let mut test  = Fixture::set_up();
         const PROGRAM:&str = r"main =
     foo a =
         bar b = 5
@@ -911,7 +957,7 @@ main =
     fn graph_controller_doubly_nested_definition() {
         // Tests editing nested definition that requires transforming inline expression into
         // into a new block.
-        let mut test  = GraphControllerFixture::set_up();
+        let mut test  = Fixture::set_up();
         // Not using multi-line raw string literals, as we don't want IntelliJ to automatically
         // strip the trailing whitespace in the lines.
         const PROGRAM:&str = "main =\n    foo a =\n        bar b = 5\n    print foo";
@@ -927,12 +973,12 @@ main =
 
     #[wasm_bindgen_test]
     fn graph_controller_node_operations_node() {
-        let mut test  = GraphControllerFixture::set_up();
+        let mut test  = Fixture::set_up();
         const PROGRAM:&str = r"
 main =
     foo = 2
     print foo";
-        test.run_graph_for_main(PROGRAM, "main", |module, graph| async move {
+        test.run_graph_for_main(PROGRAM, |module, graph| async move {
             // === Initial nodes ===
             let nodes   = graph.nodes().unwrap();
             let (node1,node2) = nodes.expect_tuple();
@@ -988,7 +1034,7 @@ main =
 
     #[wasm_bindgen_test]
     fn graph_controller_connections_listing() {
-        let mut test  = GraphControllerFixture::set_up();
+        let mut test  = Fixture::set_up();
         const PROGRAM:&str = r"
 main =
     x,y = get_pos
@@ -997,7 +1043,7 @@ main =
     print z
     foo
         print z";
-        test.run_graph_for_main(PROGRAM, "main", |_, graph| async move {
+        test.run_graph_for_main(PROGRAM, |_, graph| async move {
             let connections = graph.connections().unwrap();
 
             let (node0,node1,node2,node3,node4) = graph.nodes().unwrap().expect_tuple();
@@ -1052,7 +1098,7 @@ main =
 
         impl Case {
             fn run(&self) {
-                let mut test    = GraphControllerFixture::set_up();
+                let mut test    = Fixture::set_up();
                 let main_prefix = format!("main = \n    {} = foo\n    ",self.src);
                 let main        = format!("{}{}",main_prefix,self.dst);
                 let expected    = format!("{}{}",main_prefix,self.expected);
@@ -1062,7 +1108,7 @@ main =
                 let src_port = src_port.to_vec();
                 let dst_port = dst_port.to_vec();
 
-                test.run_graph_for_main(main, "main", |_, graph| async move {
+                test.run_graph_for_main(main, |_, graph| async move {
                     let (node0,node1) = graph.nodes().unwrap().expect_tuple();
                     let source        = Endpoint::new(node0.info.id(),src_port.to_vec());
                     let destination   = Endpoint::new(node1.info.id(),dst_port.to_vec());
@@ -1086,7 +1132,7 @@ main =
 
     #[wasm_bindgen_test]
     fn graph_controller_create_connection_reordering() {
-        let mut test  = GraphControllerFixture::set_up();
+        let mut test  = Fixture::set_up();
         const PROGRAM:&str = r"main =
     sum = _ + _
     a = 1
@@ -1095,7 +1141,7 @@ main =
     a = 1
     b = 3
     sum = _ + b";
-        test.run_graph_for_main(PROGRAM, "main", |_, graph| async move {
+        test.run_graph_for_main(PROGRAM,  |_, graph| async move {
             assert!(graph.connections().unwrap().connections.is_empty());
             let (node0,_node1,node2) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
@@ -1118,7 +1164,7 @@ main =
 
     #[wasm_bindgen_test]
     fn graph_controller_create_connection_introducing_var() {
-        let mut test  = GraphControllerFixture::set_up();
+        let mut test  = Fixture::set_up();
         const PROGRAM:&str = r"main =
     calculate
     print _
@@ -1131,7 +1177,7 @@ main =
     print calculate5
     calculate1 = calculate2
     calculate3 calculate5 = calculate5 calculate4";
-        test.run_graph_for_main(PROGRAM, "main", |_, graph| async move {
+        test.run_graph_for_main(PROGRAM, |_, graph| async move {
             assert!(graph.connections().unwrap().connections.is_empty());
             let (node0,node1,_) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
@@ -1187,13 +1233,13 @@ main =
 
         impl Case {
             fn run(&self) {
-                let mut test  = GraphControllerFixture::set_up();
+                let mut test  = Fixture::set_up();
                 const MAIN_PREFIX:&str = "main = \n    in = foo\n    ";
                 let main     = format!("{}{}",MAIN_PREFIX,self.dest_node_expr);
                 let expected = format!("{}{}",MAIN_PREFIX,self.dest_node_expected);
                 let this     = self.clone();
 
-                test.run_graph_for_main(main,"main",|_,graph| async move {
+                test.run_graph_for_main(main,|_,graph| async move {
                     let connections = graph.connections().unwrap();
                     let connection  = connections.connections.first().unwrap();
                     graph.disconnect(connection).unwrap();
