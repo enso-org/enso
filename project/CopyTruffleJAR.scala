@@ -70,7 +70,7 @@ object CopyTruffleJAR {
     libraryUpdates.allFiles.foreach { f =>
       if (f.getName.contains("truffle-api")) {
         truffleInstancesFound += 1
-        val dest = baseDirectory / "target" / "truffle-api.jar"
+        val dest = baseDirectory / "build-cache" / "truffle-api.jar"
         val needsUpdate = if (!dest.exists()) {
           println("truffle-api.jar does not exist in target/")
           true
