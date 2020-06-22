@@ -956,6 +956,37 @@ class RuntimeServerTest
     )
   }
 
+  it should "rename a project" in {
+    val mainFile  = context.writeMain(context.Main.code)
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId)
+    )
+
+    context.send(Api.Request(requestId, Api.RenameProject("Test", "Foo")))
+
+  }
+
   private def send(msg: ApiRequest): Unit =
     context.send(Api.Request(UUID.randomUUID(), msg))
 }

@@ -19,11 +19,14 @@ import org.enso.pkg.QualifiedName$;
 import org.enso.polyglot.MethodNames;
 
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
-/** Represents the top scope of Enso execution, containing all the importable modules. */
+/**
+ * Represents the top scope of Enso execution, containing all the importable modules.
+ */
 @ExportLibrary(InteropLibrary.class)
 public class TopLevelScope implements TruffleObject {
   private final Builtins builtins;
@@ -35,7 +38,7 @@ public class TopLevelScope implements TruffleObject {
    * Creates a new instance of top scope.
    *
    * @param builtins the automatically-imported builtin module.
-   * @param modules the initial modules this scope contains.
+   * @param modules  the initial modules this scope contains.
    */
   public TopLevelScope(Builtins builtins, Map<String, Module> modules) {
     this.builtins = builtins;
@@ -67,7 +70,7 @@ public class TopLevelScope implements TruffleObject {
   /**
    * Creates and registers a new module with given name and source file.
    *
-   * @param name the module name.
+   * @param name       the module name.
    * @param sourceFile the module source file.
    * @return the newly created module.
    */
@@ -85,17 +88,28 @@ public class TopLevelScope implements TruffleObject {
    */
   public void renameProjectInModules(String oldName, String newName) {
     String separator = QualifiedName$.MODULE$.separator();
-    Stream<String> keys =
+    List<String> keys =
         modules
             .keySet()
             .stream()
-            .filter(name -> name.startsWith(oldName + separator));
+            .filter(name -> name.startsWith(oldName + separator))
+            .collect(Collectors.toList());
 
-    Stream<Module> toRename = keys.map(modules::remove);
+    List<Module> toRename =
+        keys
+            .stream()
+            .map(modules::remove)
+            .collect(Collectors.toList());
 
-    toRename
-        .map(module -> module.renameProject(oldName, newName))
+    List<Module> renamed =
+        toRename
+            .stream()
+            .map(module -> module.renameProject(oldName, newName))
+            .collect(Collectors.toList());
+
+    renamed
         .forEach(module -> {
+          System.out.println(module);
           modules.put(module.getName().toString(), module);
         });
   }
@@ -136,7 +150,9 @@ public class TopLevelScope implements TruffleObject {
         MethodNames.TopScope.UNREGISTER_MODULE);
   }
 
-  /** Handles member invocation through the polyglot API. */
+  /**
+   * Handles member invocation through the polyglot API.
+   */
   @ExportMessage
   abstract static class InvokeMember {
     private static Module getModule(
