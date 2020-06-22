@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument.command
 
+import java.util.logging.Level
+
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
@@ -25,9 +27,15 @@ class RenameProjectCmd(
     Future {
       ctx.locking.acquireWriteCompilationLock()
       try {
+        val logger = ctx.executionService.getLogger
+        logger.log(
+          Level.FINE,
+          s"Renaming project [old:${request.oldName},new:${request.newName}]..."
+        )
         val context = ctx.executionService.getContext
         context.renameProject(request.oldName, request.newName)
         reply(Api.ProjectRenamed())
+        logger.log(Level.INFO, s"Project renamed to ${request.newName}")
       } finally {
         ctx.locking.acquireWriteCompilationLock()
       }
