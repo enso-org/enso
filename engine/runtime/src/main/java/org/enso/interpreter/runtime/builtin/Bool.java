@@ -22,9 +22,9 @@ public class Bool {
     scope.registerConstructor(bool);
     scope.registerMethod(bool, "if_then_else", IfThenElseNode.makeFunction(language));
     scope.registerMethod(bool, "to_text", ToTextNode.makeFunction(language));
-    scope.registerMethod(bool, "&&", AndNode.makeFunction(language));
-    scope.registerMethod(bool, "||", OrNode.makeFunction(language));
-    scope.registerMethod(bool, "not", NotNode.makeFunction(language));
+    scope.registerMethod(bool, "&&", AndMethodGen.makeFunction(language));
+    scope.registerMethod(bool, "||", OrMethodGen.makeFunction(language));
+    scope.registerMethod(bool, "not", NotMethodGen.makeFunction(language));
     tru = new AtomConstructor("True", scope).initializeFields();
     scope.registerConstructor(tru);
     fls = new AtomConstructor("False", scope).initializeFields();
