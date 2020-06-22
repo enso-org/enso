@@ -27,6 +27,7 @@ class RenameProjectCmd(
       try {
         val context = ctx.executionService.getContext
         context.renameProject(request.oldName, request.newName)
+        reply(Api.ProjectRenamed())
       } finally {
         ctx.locking.acquireWriteCompilationLock()
       }
