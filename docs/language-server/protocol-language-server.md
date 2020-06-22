@@ -245,10 +245,10 @@ table SuggestionEntryArgument {
   name: string (required);
   // The arguement type. String 'Any' is used to specify genric types
   type: string (required);
-  // Indicates whether the argument is lazy
-  isSuspended: bool (required);
-  // Indicates whether the argument has default value
-  hasDefault: bool (required);
+  // Indicates whether the argument is lazy (required)
+  isSuspended: bool;
+  // Indicates whether the argument has default value (required)
+  hasDefault: bool;
   // Optional default value
   defaultValue: string;
 }
@@ -261,6 +261,16 @@ The language construct that can be returned as a suggestion.
 
 ``` idl
 namespace org.enso.languageserver.protocol.binary;
+
+// The definition scope
+struct SuggestionEntryScope {
+
+  // The start of the definition scope
+  start: uint16;
+
+  // The end of the definition scope
+  end: uint16;
+}
 
 // A type of suggestion entries.
 union SuggestionEntry {
@@ -293,12 +303,13 @@ table SuggestionEntryFunction {
   name: string (required);
   arguments: [SuggestionEntryArgument] (required);
   returnType: string (required);
-  documentation: string;
+  scope: SuggestionEntryScope (required);
 }
 
 table SuggestionEntryLocal {
   name: string (required);
   returnType: string (required);
+  scope: SuggestionEntryScope (required);
 }
 ```
 
@@ -344,34 +355,18 @@ The update of the suggestions database.
 namespace org.enso.languageserver.protocol.binary;
 
 // The kind of the suggestions database update.
-union SuggestionsDatabaseUpdate {
-  // Create or replace the database entry
-  SuggestionsDatabaseUpdateInsert,
-  // Update the entry fields
-  SuggestionsDatabaseUpdateModify,
-  // Remove the database Entry
-  SuggestionsDatabaseUpdateRemove
-}
+enum SuggestionsDatabaseUpdateKind : byte { Add, Update, Delete }
 
-table SuggestionsDatabaseUpdateInsert {
-  // suggestion entry id
-  id: int64 (required);
-  suggestion: SuggestionEntry (required);
-}
-
-table SuggestionsDatabaseUpdateModify {
-  // suggestion entry id
-  id: int64 (required);
+table SuggestionsDatabaseUpdate {
+  // suggestion entry id (required)
+  id: int64;
+  kind: SuggestionsDatabaseUpdateKind;
   name: string;
   arguments: [SuggestionEntryArgument];
   selfType: string;
   returnType: string;
   documentation: string;
-}
-
-table SuggestionsDatabaseUpdateRemove {
-  // suggestion entry id
-  id: int64 (required);
+  scope: SuggestionEntryScope;
 }
 ```
 
@@ -895,7 +890,7 @@ This capability states that the client receives the search database updates for
 a given execution context.
 
 - **method:** `search/receivesSuggestionsDatabaseUpdates`
-- **registerOptions:** `{ contextId: ContextId; }`
+- **registerOptions:** `null`
 
 ### Enables
 - [`search/suggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
