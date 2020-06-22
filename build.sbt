@@ -673,6 +673,9 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
 
+lazy val bootstrap =
+  taskKey[Unit]("Prepares Truffle JARs that are required by the sbt JVM")
+bootstrap := {}
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -705,6 +708,7 @@ lazy val runtime = (project in file("engine/runtime"))
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Compile / compile := FixInstrumentsGeneration.patchedCompile
+        .dependsOn(CopyTruffleJAR.preCompileTask)
         .dependsOn(`core-definition` / Compile / packageBin)
         .dependsOn(FixInstrumentsGeneration.preCompileTask)
         .value,
@@ -712,7 +716,10 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / javaOptions ++= Seq(
         "-XX:-UseJVMCIClassLoader",
         "-Dgraalvm.locatorDisabled=true"
-      )
+      ),
+    bootstrap := {
+      CopyTruffleJAR.bootstrapJARs.value
+    }
   )
   .settings(
     (Compile / javacOptions) ++= Seq(

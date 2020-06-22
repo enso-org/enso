@@ -22,23 +22,24 @@ object FixInstrumentsGeneration {
     val fragileSourcesStore =
       streams.value.cacheStoreFactory.make("instruments_fixer")
 
-    Tracked.diffInputs(fragileSourcesStore, FileInfo.hash)(fragileSources.toSet) {
-      sourcesDiff: ChangeReport[File] =>
-        if (sourcesDiff.modified.nonEmpty) {
-          val others =
-            if (sourcesDiff.modified.size >= 2)
-              s" and ${sourcesDiff.modified.size - 1} others"
-            else ""
-          val firstInstrument = sourcesDiff.modified.head
-          val sourcesMessage  = firstInstrument.toString + others
-          println(
-            s"Instruments sources ($sourcesMessage) have been changed.\n" +
-            s"Forcing recompilation of all instruments to maintain " +
-            s"consistency of generated services files."
-          )
+    Tracked.diffInputs(fragileSourcesStore, FileInfo.hash)(
+      fragileSources.toSet
+    ) { sourcesDiff: ChangeReport[File] =>
+      if (sourcesDiff.modified.nonEmpty) {
+        val others =
+          if (sourcesDiff.modified.size >= 2)
+            s" and ${sourcesDiff.modified.size - 1} others"
+          else ""
+        val firstInstrument = sourcesDiff.modified.head
+        val sourcesMessage  = firstInstrument.toString + others
+        println(
+          s"Instruments sources ($sourcesMessage) have been changed.\n" +
+          s"Forcing recompilation of all instruments to maintain " +
+          s"consistency of generated services files."
+        )
 
-          fragileClassFiles.foreach(_.delete())
-        }
+        fragileClassFiles.foreach(_.delete())
+      }
     }
   }
 

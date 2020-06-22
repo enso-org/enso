@@ -31,21 +31,22 @@ object GenerateFlatbuffers {
       generatedDiff.removed foreach { removedFile => removedFile.delete() }
     }
 
-    Tracked.diffInputs(schemaSourcesStore, FileInfo.lastModified)(schemas.toSet) {
-      schemasDiff: ChangeReport[File] =>
-        val allGeneratedSourcesExist = generatedSources.forall(_.exists())
-        if (schemasDiff.modified.nonEmpty || !allGeneratedSourcesExist) {
-          schemas foreach { schema =>
-            val cmdGenerate =
-              s"$flatcCmd --java -o ${out.getAbsolutePath} $schema"
-            cmdGenerate.!! // Note [flatc Error Reporting]
-          }
-
-          val projectName = name.value
-          println(
-            f"*** Flatbuffers code generation generated ${generatedSources.size} files in project $projectName"
-          )
+    Tracked.diffInputs(schemaSourcesStore, FileInfo.lastModified)(
+      schemas.toSet
+    ) { schemasDiff: ChangeReport[File] =>
+      val allGeneratedSourcesExist = generatedSources.forall(_.exists())
+      if (schemasDiff.modified.nonEmpty || !allGeneratedSourcesExist) {
+        schemas foreach { schema =>
+          val cmdGenerate =
+            s"$flatcCmd --java -o ${out.getAbsolutePath} $schema"
+          cmdGenerate.!! // Note [flatc Error Reporting]
         }
+
+        val projectName = name.value
+        println(
+          f"*** Flatbuffers code generation generated ${generatedSources.size} files in project $projectName"
+        )
+      }
     }
 
     generatedSources.toSeq
