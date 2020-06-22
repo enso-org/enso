@@ -6,6 +6,7 @@
 #![feature(bool_to_option)]
 #![feature(cell_update)]
 #![feature(drain_filter)]
+#![feature(exact_size_is_empty)]
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![recursion_limit="256"]

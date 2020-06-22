@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::controller::graph::NodeTrees;
+use crate::model::execution_context::ExpressionId;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
@@ -172,8 +173,8 @@ impl GraphEditorIntegratedWithController {
         frp::extend! {network
             // Notifications from controller
             let handle_notification = FencedAction::fence(&network,
-                f!((notification:&Option<controller::graph::Notification>)
-                    model.handle_controller_notification(*notification);
+                f!((notification:&Option<controller::graph::executed::Notification>)
+                    model.handle_controller_notification(notification);
             ));
 
             // Changes in Graph Editor
@@ -192,9 +193,9 @@ impl GraphEditorIntegratedWithController {
 
     fn connect_frp_to_controller_notifications
     ( model        : &Rc<GraphEditorIntegratedWithControllerModel>
-    , frp_endpoint : frp::Source<Option<controller::graph::Notification>>
+    , frp_endpoint : frp::Source<Option<controller::graph::executed::Notification>>
     ) {
-        let stream  = model.controller.graph.subscribe();
+        let stream  = model.controller.subscribe();
         let weak    = Rc::downgrade(model);
         let handler = process_stream_with_handle(stream,weak,move |notification,_model| {
             frp_endpoint.emit_event(&Some(notification));
@@ -254,6 +255,12 @@ impl GraphEditorIntegratedWithControllerModel {
         let Connections{trees,connections} = self.controller.graph.connections()?;
         self.update_node_views(trees)?;
         self.update_connection_views(connections)?;
+        Ok(())
+    }
+
+    pub fn update_relevant_type_information
+    (&self, affected_asts:&[ExpressionId]) -> FallibleResult<()> {
+        debug!(self.logger, "Will update type information: {affected_asts:?}");
         Ok(())
     }
 
@@ -392,9 +399,14 @@ impl GraphEditorIntegratedWithControllerModel {
 impl GraphEditorIntegratedWithControllerModel {
     /// Handle notification received from controller.
     pub fn handle_controller_notification
-    (&self, notification:Option<controller::graph::Notification>) {
+    (&self, notification:&Option<controller::graph::executed::Notification>) {
+        use controller::graph::executed::Notification;
+        use controller::graph::Notification::Invalidate;
+
         let result = match notification {
-            Some(controller::graph::Notification::Invalidate) => self.update_graph_view(),
+            Some(Notification::Graph(Invalidate))         => self.update_graph_view(),
+            Some(Notification::ComputedValueInfo(update)) =>
+                self.update_relevant_type_information(update),
             other => {
                 warning!(self.logger,"Handling notification {other:?} is not implemented; \
                     performing full invalidation");
@@ -590,6 +602,7 @@ impl GraphEditorIntegratedWithControllerModel {
 /// Node Editor Panel integrated with Graph Controller.
 #[derive(Clone,CloneRef,Debug)]
 pub struct NodeEditor {
+    logger         : Logger,
     display_object : display::object::Instance,
     #[allow(missing_docs)]
     pub graph     : Rc<GraphEditorIntegratedWithController>,
@@ -605,11 +618,13 @@ impl NodeEditor {
     , controller    : controller::ExecutedGraph
     , visualization : controller::Visualization) -> FallibleResult<Self> {
         let logger         = Logger::sub(logger,"NodeEditor");
+        info!(logger, "Created.");
         let display_object = display::object::Instance::new(&logger);
-        let graph          = GraphEditorIntegratedWithController::new(logger,app,controller.clone_ref());
+        let graph          = GraphEditorIntegratedWithController::new(logger.clone_ref(),app,
+            controller.clone_ref());
         let graph          = Rc::new(graph);
         display_object.add_child(&graph.model.editor);
-        Ok(NodeEditor {display_object,graph,controller,visualization}.init().await?)
+        Ok(NodeEditor {logger,display_object,graph,controller,visualization}.init().await?)
     }
 
     async fn init(self) -> FallibleResult<Self> {
@@ -623,6 +638,7 @@ impl NodeEditor {
             });
             visualization?;
         }
+        info!(self.logger, "Initialized.");
         Ok(self)
     }
 }

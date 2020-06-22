@@ -117,9 +117,35 @@ pub enum Notification {
         /// to address this: https://github.com/luna/enso/issues/707
         // TODO [mwu] Update as the issue is resolved on way or another.
         event:FileEvent,
-    }
+    },
+
+    /// Sent from the server to the client to inform about new information for certain expressions becoming available.
+    #[serde(rename = "executionContext/expressionValuesComputed")]
+    ExpressionValuesComputed(ExpressionValuesComputed),
 }
 
+/// Sent from the server to the client to inform about new information for certain expressions becoming available.
+#[derive(Clone,Debug,PartialEq)]
+#[derive(Serialize,Deserialize)]
+#[allow(missing_docs)]
+#[serde(rename_all = "camelCase")]
+pub struct ExpressionValuesComputed {
+    pub context_id : ContextId,
+    pub updates    : Vec<ExpressionValueUpdate>,
+}
+
+/// The updates from `executionContext/expressionValuesComputed`.
+#[derive(Clone,Debug,PartialEq)]
+#[derive(Serialize,Deserialize)]
+#[allow(missing_docs)]
+#[serde(rename_all = "camelCase")]
+pub struct ExpressionValueUpdate {
+    pub id          : ExpressionId,
+    #[serde(rename = "type")] // To avoid collision with the `type` keyword.
+    pub typename    : Option<String>,
+    pub short_value : Option<String>,
+    pub method_call : Option<MethodPointer>,
+}
 
 
 // =================

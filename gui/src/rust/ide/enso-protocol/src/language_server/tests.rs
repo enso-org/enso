@@ -303,6 +303,52 @@ fn test_acquire_capability() {
     );
 }
 
+
+#[test]
+fn test_computed_value_update() {
+    use utils::test::traits::*;
+    use json_rpc::Event;
+    use crate::language_server::Notification;
+
+    let context_id   = Uuid::parse_str("b36dea0b-b75a-40cf-aaad-5fcdf29a0573").unwrap();
+    let id           = Uuid::parse_str("d4b540c0-3ef5-487c-9453-df9d3efd351c").unwrap();
+    let short_value  = "UnresolvedSymbol<foo>";
+    let typename     = "Number";
+    let notification = json!({
+        "jsonrpc" : "2.0",
+        "method"  : "executionContext/expressionValuesComputed",
+        "params"  :  {
+            "contextId" : context_id,
+            "updates"   : [{
+                "id"         : id,
+                "type"       : typename,
+                "shortValue" : short_value,
+                "methodCall" : null
+            }]
+        }
+    });
+
+    let mut fixture = setup_language_server();
+    let mut stream = fixture.client.events();
+    stream.expect_pending();
+
+    fixture.transport.mock_peer_json_message(notification);
+    fixture.executor.run_until_stalled();
+
+    let notification = stream.expect_next();
+    match notification {
+        Event::Notification(Notification::ExpressionValuesComputed(expression_value_update)) => {
+            assert_eq!(expression_value_update.context_id, context_id);
+            let update = &expression_value_update.updates.first().unwrap();
+            assert_eq!(update.id, id);
+            assert_eq!(update.typename.as_ref().map(|ty| ty.as_str()), Some(typename));
+            assert_eq!(update.short_value.as_ref().map(|ty| ty.as_str()), Some(short_value));
+            assert!(update.method_call.is_none());
+        }
+        _ => panic!("Expected Notification::ExpressionValuesComputed"),
+    }
+}
+
 #[test]
 fn test_execution_context() {
     let root_id   = uuid::Uuid::parse_str("00000000-0000-0000-0000-000000000000");
