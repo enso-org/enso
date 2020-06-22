@@ -30,9 +30,12 @@ section. The task is tracked as issue
 
 ### Build configuration
 Currently, the only modification was the removal of the option
-`-XX:-UseJVMCIClassLoader` that is deprecated in Java 11. Some other
-modifications may be necessary however, to fix the issues described in
-[Problems](#problems).
+`-XX:-UseJVMCIClassLoader` that is deprecated in Java 11. The JVM running sbt
+must have `--upgrade-module-path=lib/truffle-api.jar` added as an option and the
+build tool must ensure that the `truffle-api.jar` is copied from the Maven
+repository to the `lib/` directory before the `runtime` project is compiled. 
+Section [IllegalAccessError](#illegalaccesserror) explains why this is
+necessary.
 
 ### Testing
 After making the build succeed, all runtime tests are passing.
@@ -64,15 +67,30 @@ java.lang.IllegalAccessError: superinterface check failed: class com.oracle.truf
 
 The Truffle API does not export its packages for security reasons and it uses
 some custom mechanisms when loading the language runtime. However zinc is not
-aware of these mechanisms and just directly loads the classfiles, resulting in
-errors.
+aware of these mechanisms and just directly loads the `.class` files, resulting
+in errors.
 
-Some of these errors are expected and instead of failing, simply a warning is
+Some of these errors are caught and instead of failing, simply a warning is
 printed. Others are not detected where zinc expects them, but they fail later,
-crashing the compilation process.
+crashing the compilation process. All of them are problematic though, because
+they mean that zinc is not able to read dependencies of the affected files. This
+harms incremental compilation (as some dependencies are not detected it might be
+necessary to do a clean and full recompilation when changing these files). 
 
-It may be possible to detect and catch those latter by modifying zinc, but this
-would likely negatively impact its ability to detect dependencies for
-incremental compilation.
+#### Solution
+We want to make the ClassLoader read these class files without errors. For that
+we need to ensure it has permissions to load the Truffle modules.
 
-We are currently looking into what can be done to avoid these errors.
+Truffle API is distributed in two ways. The distribution included in the Graal
+runtime (the one that is picked up by sbt by default) exports the required APIs
+only to its own modules, so they are not available for us (thus the errors).
+This is to ensure better security (to disallow language users introspecting the
+VM internals). However, there is a second Truffle distribution on Maven that is
+to be used for development only and that version exports the necessary APIs to
+all packages.
+
+We need to ensure that the sbt process doing the compilation uses the Maven
+version of Truffle, so that it does not complain about the illegal accesses. To
+achieve that, we need to add the option
+`--upgrade-module-path=lib/truffle-api.jar` to the JVM running sbt and ensure
+that the Truffle JAR from maven is copied to the `lib/` directory.
