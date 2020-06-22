@@ -189,6 +189,10 @@ unstable state.
 In order to build a specific component (e.g. `runtime`), please follow the
 following steps.
 
+0. When building the project for the first time or after changing to a new
+   version of Graal, you need to bootstrap the project. To avoid restarting,
+   before launching the sbt shell, run `sbt bootstrap` in the repository root
+   directory.
 1. Enter the sbt shell in the repository root directory by typing `sbt`.
 2. Change to the project you are concerned with (in our case `runtime`) by
    executing `project runtime`.

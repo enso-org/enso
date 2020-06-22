@@ -73,6 +73,8 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Build
+      - name: Bootstrap Enso project
+        run: sbt --no-colors bootstrap
       - name: Build Enso
         run: sbt --no-colors compile
 
@@ -134,6 +136,8 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Build Artifacts
+      - name: Bootstrap the project
+        run: sbt --no-colors bootstrap
       - name: Build the Runtime Uberjar
         run: sbt --no-colors runtime/assembly
       - name: Build the Runner Uberjar
