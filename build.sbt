@@ -714,7 +714,6 @@ lazy val runtime = (project in file("engine/runtime"))
         .value,
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
-        "-XX:-UseJVMCIClassLoader",
         "-Dgraalvm.locatorDisabled=true"
       ),
     bootstrap := {
