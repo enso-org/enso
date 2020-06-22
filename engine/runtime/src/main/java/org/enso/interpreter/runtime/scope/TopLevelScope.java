@@ -95,21 +95,11 @@ public class TopLevelScope implements TruffleObject {
             .filter(name -> name.startsWith(oldName + separator))
             .collect(Collectors.toList());
 
-    List<Module> toRename =
-        keys
-            .stream()
-            .map(modules::remove)
-            .collect(Collectors.toList());
-
-    List<Module> renamed =
-        toRename
-            .stream()
-            .map(module -> module.renameProject(oldName, newName))
-            .collect(Collectors.toList());
-
-    renamed
+    keys
+        .stream()
+        .map(modules::remove)
+        .map(module -> module.renameProject(oldName, newName))
         .forEach(module -> {
-          System.out.println(module);
           modules.put(module.getName().toString(), module);
         });
   }
