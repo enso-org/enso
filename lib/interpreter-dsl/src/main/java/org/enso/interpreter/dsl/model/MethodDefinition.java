@@ -78,7 +78,8 @@ public class MethodDefinition {
     private final String name;
 
     public ArgumentDefinition(TypeMirror type, String name) {
-      this.type = type.toString();
+      String[] typeNameSegments = type.toString().split("\\.");
+      this.type = typeNameSegments[typeNameSegments.length - 1];
       this.name = name;
     }
 

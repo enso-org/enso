@@ -24,6 +24,7 @@ import org.enso.interpreter.node.expression.builtin.state.GetStateNode;
 import org.enso.interpreter.node.expression.builtin.state.PutStateNode;
 import org.enso.interpreter.node.expression.builtin.state.RunStateNode;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
+import org.enso.interpreter.node.expression.builtin.text.ConcatMethodGen;
 import org.enso.interpreter.node.expression.builtin.text.ConcatNode;
 import org.enso.interpreter.node.expression.builtin.text.JsonSerializeNode;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerNode;
@@ -144,13 +145,13 @@ public class Builtins {
     scope.registerMethod(any, "catch", CatchErrorNode.makeFunction(language));
 
     scope.registerMethod(number, "ifZero", IfZeroNode.makeFunction(language));
-    scope.registerMethod(number, "+", AddNode.makeFunction(language));
-    scope.registerMethod(number, "-", SubtractNode.makeFunction(language));
-    scope.registerMethod(number, "*", MultiplyNode.makeFunction(language));
-    scope.registerMethod(number, "/", DivideNode.makeFunction(language));
-    scope.registerMethod(number, "%", ModNode.makeFunction(language));
-    scope.registerMethod(number, "negate", NegateNode.makeFunction(language));
-    scope.registerMethod(number, "==", EqualsNode.makeFunction(language));
+    scope.registerMethod(number, "+", AddMethodGen.makeFunction(language));
+    scope.registerMethod(number, "-", SubtractMethodGen.makeFunction(language));
+    scope.registerMethod(number, "*", MultiplyMethodGen.makeFunction(language));
+    scope.registerMethod(number, "/", DivideMethodGen.makeFunction(language));
+    scope.registerMethod(number, "%", ModMethodGen.makeFunction(language));
+    scope.registerMethod(number, "negate", NegateMethodGen.makeFunction(language));
+    scope.registerMethod(number, "==", EqualsMethodGen.makeFunction(language));
 
     scope.registerMethod(state, "get", GetStateNode.makeFunction(language));
     scope.registerMethod(state, "put", PutStateNode.makeFunction(language));
@@ -161,7 +162,7 @@ public class Builtins {
 
     scope.registerMethod(function, "call", ExplicitCallFunctionNode.makeFunction(language));
 
-    scope.registerMethod(text, "+", ConcatNode.makeFunction(language));
+    scope.registerMethod(text, "+", ConcatMethodGen.makeFunction(language));
     scope.registerMethod(any, "to_text", AnyToTextNode.makeFunction(language));
     scope.registerMethod(any, "json_serialize", JsonSerializeNode.makeFunction(language));
 

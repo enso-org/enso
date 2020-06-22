@@ -21,7 +21,7 @@ public class Bool {
     bool = new AtomConstructor("Boolean", scope).initializeFields();
     scope.registerConstructor(bool);
     scope.registerMethod(bool, "if_then_else", IfThenElseNode.makeFunction(language));
-    scope.registerMethod(bool, "to_text", ToTextNode.makeFunction(language));
+    scope.registerMethod(bool, "to_text", ToTextMethodGen.makeFunction(language));
     scope.registerMethod(bool, "&&", AndMethodGen.makeFunction(language));
     scope.registerMethod(bool, "||", OrMethodGen.makeFunction(language));
     scope.registerMethod(bool, "not", NotMethodGen.makeFunction(language));

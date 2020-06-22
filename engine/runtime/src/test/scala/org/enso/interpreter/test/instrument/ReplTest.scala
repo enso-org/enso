@@ -221,7 +221,7 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
       }
       eval(code)
       val errorMsg =
-        "Unexpected type for `that` operand in Number.+"
+        "Unexpected type provided for argument `that` in Number.+"
       evalResult.left.value.getMessage shouldEqual errorMsg
     }
 
