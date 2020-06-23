@@ -31,17 +31,22 @@ object SuggestionsDatabaseEventsFactory {
   def createSuggestionsDatabaseUpdateKindAdd(
     add: SuggestionsDatabaseUpdate.Add
   )(implicit builder: FlatBufferBuilder): Int = {
-    val argumentsOpt = getSuggestionArguments(add.suggestion).map { args =>
+    val nameOffset = builder.createString(getSuggestionName(add.suggestion))
+    val argsOffsetOpt = getSuggestionArguments(add.suggestion).map { args =>
       val arguments = args.map(createSuggestionArgument).toArray
-      binary.SuggestionsDatabaseUpdate.createArgumentsVector(builder, arguments)
+      binary.SuggestionsDatabaseUpdate.createArgumentsVector(
+        builder,
+        arguments
+      )
     }
-    val selfTypeOpt = getSelfType(add.suggestion).map { selfType =>
+    val returnTypeOffset = builder.createString(getReturnType(add.suggestion))
+    val selfTypeOffsetOpt = getSelfType(add.suggestion).map { selfType =>
       builder.createString(selfType)
     }
-    val documentationOpt = getDocumentation(add.suggestion).map { doc =>
+    val docOffsetOpt = getDocumentation(add.suggestion).map { doc =>
       builder.createString(doc)
     }
-    val scopeOpt = getSuggestionScope(add.suggestion).map(createScope)
+    val scopeOpt = getSuggestionScope(add.suggestion)
 
     binary.SuggestionsDatabaseUpdate
       .startSuggestionsDatabaseUpdate(builder)
@@ -50,25 +55,19 @@ object SuggestionsDatabaseEventsFactory {
       builder,
       SuggestionsDatabaseUpdateKind.Add
     )
-    binary.SuggestionsDatabaseUpdate.addName(
-      builder,
-      builder.createString(getSuggestionName(add.suggestion))
-    )
-    binary.SuggestionsDatabaseUpdate.addReturnType(
-      builder,
-      builder.createString(getReturnType(add.suggestion))
-    )
-    argumentsOpt.foreach { args =>
-      binary.SuggestionsDatabaseUpdate.addArguments(builder, args)
+    binary.SuggestionsDatabaseUpdate.addName(builder, nameOffset)
+    binary.SuggestionsDatabaseUpdate.addReturnType(builder, returnTypeOffset)
+    argsOffsetOpt.foreach { offset =>
+      binary.SuggestionsDatabaseUpdate.addArguments(builder, offset)
     }
-    selfTypeOpt.foreach { selfType =>
-      binary.SuggestionsDatabaseUpdate.addSelfType(builder, selfType)
+    selfTypeOffsetOpt.foreach { offset =>
+      binary.SuggestionsDatabaseUpdate.addSelfType(builder, offset)
     }
-    documentationOpt.foreach { doc =>
-      binary.SuggestionsDatabaseUpdate.addDocumentation(builder, doc)
+    docOffsetOpt.foreach { offset =>
+      binary.SuggestionsDatabaseUpdate.addDocumentation(builder, offset)
     }
     scopeOpt.foreach { scope =>
-      binary.SuggestionsDatabaseUpdate.addScope(builder, scope)
+      binary.SuggestionsDatabaseUpdate.addScope(builder, createScope(scope))
     }
     binary.SuggestionsDatabaseUpdate.endSuggestionsDatabaseUpdate(builder)
   }
@@ -76,15 +75,15 @@ object SuggestionsDatabaseEventsFactory {
   def createSuggestionsDatabaseUpdateKindUpdate(
     modify: SuggestionsDatabaseUpdate.Modify
   )(implicit builder: FlatBufferBuilder): Int = {
-    val nameOpt = modify.name.map(builder.createString)
-    val argumentsOpt = modify.arguments.map { args =>
+    val nameOffsetOpt = modify.name.map(builder.createString)
+    val argsOffsetOpt = modify.arguments.map { args =>
       val arguments = args.map(createSuggestionArgument).toArray
       binary.SuggestionsDatabaseUpdate.createArgumentsVector(builder, arguments)
     }
-    val selfTypeOpt      = modify.selfType.map(builder.createString)
-    val returnTypeOpt    = modify.returnType.map(builder.createString)
-    val documentationOpt = modify.documentation.map(builder.createString)
-    val scopeOpt         = modify.scope.map(createScope)
+    val selfTypeOffsetOpt   = modify.selfType.map(builder.createString)
+    val returnTypeOffsetOpt = modify.returnType.map(builder.createString)
+    val docOffsetOpt        = modify.documentation.map(builder.createString)
+    val scopeOpt            = modify.scope
 
     binary.SuggestionsDatabaseUpdate
       .startSuggestionsDatabaseUpdate(builder)
@@ -93,23 +92,23 @@ object SuggestionsDatabaseEventsFactory {
       builder,
       SuggestionsDatabaseUpdateKind.Update
     )
-    nameOpt.foreach { name =>
-      binary.SuggestionsDatabaseUpdate.addName(builder, name)
+    nameOffsetOpt.foreach { offset =>
+      binary.SuggestionsDatabaseUpdate.addName(builder, offset)
     }
-    argumentsOpt.foreach { args =>
-      binary.SuggestionsDatabaseUpdate.addArguments(builder, args)
+    argsOffsetOpt.foreach { offset =>
+      binary.SuggestionsDatabaseUpdate.addArguments(builder, offset)
     }
-    selfTypeOpt.foreach { selfType =>
-      binary.SuggestionsDatabaseUpdate.addSelfType(builder, selfType)
+    selfTypeOffsetOpt.foreach { offset =>
+      binary.SuggestionsDatabaseUpdate.addSelfType(builder, offset)
     }
-    returnTypeOpt.foreach { returnType =>
-      binary.SuggestionsDatabaseUpdate.addReturnType(builder, returnType)
+    returnTypeOffsetOpt.foreach { offset =>
+      binary.SuggestionsDatabaseUpdate.addReturnType(builder, offset)
     }
-    documentationOpt.foreach { doc =>
-      binary.SuggestionsDatabaseUpdate.addDocumentation(builder, doc)
+    docOffsetOpt.foreach { offset =>
+      binary.SuggestionsDatabaseUpdate.addDocumentation(builder, offset)
     }
     scopeOpt.foreach { scope =>
-      binary.SuggestionsDatabaseUpdate.addScope(builder, scope)
+      binary.SuggestionsDatabaseUpdate.addScope(builder, createScope(scope))
     }
     binary.SuggestionsDatabaseUpdate.endSuggestionsDatabaseUpdate(builder)
   }
@@ -139,57 +138,48 @@ object SuggestionsDatabaseEventsFactory {
   def createSuggestionLocal(
     local: Suggestion.Local
   )(implicit builder: FlatBufferBuilder): Int = {
-    val scope = createScope(local.scope)
+    val nameOffset       = builder.createString(local.name)
+    val returnTypeOffset = builder.createString(local.returnType)
     SuggestionEntryLocal.startSuggestionEntryLocal(builder)
-    SuggestionEntryLocal.addName(builder, builder.createString(local.name))
-    SuggestionEntryLocal.addReturnType(
-      builder,
-      builder.createString(local.returnType)
-    )
-    SuggestionEntryLocal.addScope(builder, scope)
+    SuggestionEntryLocal.addName(builder, nameOffset)
+    SuggestionEntryLocal.addReturnType(builder, returnTypeOffset)
+    SuggestionEntryLocal.addScope(builder, createScope(local.scope))
     SuggestionEntryLocal.endSuggestionEntryLocal(builder)
   }
 
   def createSuggestionFunction(
     function: Suggestion.Function
   )(implicit builder: FlatBufferBuilder): Int = {
-    val scope     = createScope(function.scope)
-    val arguments = function.arguments.map(createSuggestionArgument).toArray
-    val argumentsVector =
+    val nameOffset = builder.createString(function.name)
+    val arguments  = function.arguments.map(createSuggestionArgument).toArray
+    val argumentsOffsest =
       SuggestionEntryFunction.createArgumentsVector(builder, arguments)
+    val returnTypeOffset = builder.createString(function.returnType)
     SuggestionEntryFunction.startSuggestionEntryFunction(builder)
-    SuggestionEntryFunction.addName(
-      builder,
-      builder.createString(function.name)
-    )
-    SuggestionEntryFunction.addArguments(builder, argumentsVector)
-    SuggestionEntryFunction.addReturnType(
-      builder,
-      builder.createString(function.returnType)
-    )
-    SuggestionEntryFunction.addScope(builder, scope)
+    SuggestionEntryFunction.addName(builder, nameOffset)
+    SuggestionEntryFunction.addArguments(builder, argumentsOffsest)
+    SuggestionEntryFunction.addReturnType(builder, returnTypeOffset)
+    SuggestionEntryFunction.addScope(builder, createScope(function.scope))
     SuggestionEntryFunction.endSuggestionEntryFunction(builder)
   }
 
   def createSuggestionMethod(
     method: Suggestion.Method
   )(implicit builder: FlatBufferBuilder): Int = {
-    val arguments = method.arguments.map(createSuggestionArgument).toArray
-    val argumentsVector =
+    val nameOffset = builder.createString(method.name)
+    val arguments  = method.arguments.map(createSuggestionArgument).toArray
+    val argumentsOffset =
       SuggestionEntryMethod.createArgumentsVector(builder, arguments)
+    val selfTypeOffset   = builder.createString(method.selfType)
+    val returnTypeOffset = builder.createString(method.returnType)
+    val docOffsetOpt     = method.documentation.map(builder.createString)
     SuggestionEntryMethod.startSuggestionEntryMethod(builder)
-    SuggestionEntryMethod.addName(builder, builder.createString(method.name))
-    SuggestionEntryMethod.addArguments(builder, argumentsVector)
-    SuggestionEntryMethod.addSelfType(
-      builder,
-      builder.createString(method.selfType)
-    )
-    SuggestionEntryMethod.addReturnType(
-      builder,
-      builder.createString(method.returnType)
-    )
-    method.documentation.foreach { doc =>
-      SuggestionEntryMethod.addDocumentation(builder, builder.createString(doc))
+    SuggestionEntryMethod.addName(builder, nameOffset)
+    SuggestionEntryMethod.addArguments(builder, argumentsOffset)
+    SuggestionEntryMethod.addSelfType(builder, selfTypeOffset)
+    SuggestionEntryMethod.addReturnType(builder, returnTypeOffset)
+    docOffsetOpt.foreach { offset =>
+      SuggestionEntryMethod.addDocumentation(builder, offset)
     }
     SuggestionEntryMethod.endSuggestionEntryMethod(builder)
   }
@@ -197,18 +187,18 @@ object SuggestionsDatabaseEventsFactory {
   def createSuggestionAtom(
     atom: Suggestion.Atom
   )(implicit builder: FlatBufferBuilder): Int = {
-    val arguments = atom.arguments.map(createSuggestionArgument).toArray
-    val argumentsVector =
+    val nameOffsest = builder.createString(atom.name)
+    val arguments   = atom.arguments.map(createSuggestionArgument).toArray
+    val argumentsOffset =
       SuggestionEntryAtom.createArgumentsVector(builder, arguments)
+    val returnTypeOffset = builder.createString(atom.returnType)
+    val docOffsetOpt     = atom.documentation.map(builder.createString)
     SuggestionEntryAtom.startSuggestionEntryAtom(builder)
-    SuggestionEntryAtom.addName(builder, builder.createString(atom.name))
-    SuggestionEntryAtom.addArguments(builder, argumentsVector)
-    SuggestionEntryAtom.addReturnType(
-      builder,
-      builder.createString(atom.returnType)
-    )
-    atom.documentation.foreach { doc =>
-      SuggestionEntryAtom.addDocumentation(builder, builder.createString(doc))
+    SuggestionEntryAtom.addName(builder, nameOffsest)
+    SuggestionEntryAtom.addArguments(builder, argumentsOffset)
+    SuggestionEntryAtom.addReturnType(builder, returnTypeOffset)
+    docOffsetOpt.foreach { offset =>
+      SuggestionEntryAtom.addDocumentation(builder, offset)
     }
     SuggestionEntryAtom.endSuggestionEntryAtom(builder)
   }
@@ -216,17 +206,17 @@ object SuggestionsDatabaseEventsFactory {
   def createSuggestionArgument(
     argument: Suggestion.Argument
   )(implicit builder: FlatBufferBuilder): Int = {
+    val nameOffset            = builder.createString(argument.name)
+    val reprTypeOffset        = builder.createString(argument.reprType)
+    val defaultValueOffsetOpt = argument.defaultValue.map(builder.createString)
     SuggestionEntryArgument.startSuggestionEntryArgument(builder)
-    SuggestionEntryArgument.addName(
-      builder,
-      builder.createString(argument.name)
-    )
-    SuggestionEntryArgument.addType(
-      builder,
-      builder.createString(argument.reprType)
-    )
+    SuggestionEntryArgument.addName(builder, nameOffset)
+    SuggestionEntryArgument.addType(builder, reprTypeOffset)
     SuggestionEntryArgument.addIsSuspended(builder, argument.isSuspended)
     SuggestionEntryArgument.addHasDefault(builder, argument.hasDefault)
+    defaultValueOffsetOpt.foreach { offset =>
+      SuggestionEntryArgument.addDefaultValue(builder, offset)
+    }
     SuggestionEntryArgument.endSuggestionEntryArgument(builder)
   }
 
