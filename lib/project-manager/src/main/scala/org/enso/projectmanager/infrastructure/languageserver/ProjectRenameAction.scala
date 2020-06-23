@@ -34,7 +34,7 @@ class ProjectRenameAction(
   replyTo: ActorRef,
   socket: Socket,
   actionTimeout: FiniteDuration,
-  connectionTimeout: FiniteDuration,
+  socketCloseTimeout: FiniteDuration,
   oldName: String,
   newName: String,
   scheduler: Scheduler
@@ -179,7 +179,7 @@ class ProjectRenameAction(
   private def stop(): Unit = {
     connection.disconnect()
     val closureTimeout =
-      scheduler.scheduleOnce(connectionTimeout, self, SocketClosureTimeout)
+      scheduler.scheduleOnce(socketCloseTimeout, self, SocketClosureTimeout)
     maybeActionTimeoutCancellable.foreach(_.cancel())
     context.become(socketClosureStage(closureTimeout))
   }
@@ -196,7 +196,7 @@ object ProjectRenameAction {
     replyTo: ActorRef,
     socket: Socket,
     actionTimeout: FiniteDuration,
-    connectionTimeout: FiniteDuration,
+    socketCloseTimeout: FiniteDuration,
     oldName: String,
     newName: String,
     scheduler: Scheduler
@@ -206,7 +206,7 @@ object ProjectRenameAction {
         replyTo,
         socket,
         actionTimeout,
-        connectionTimeout,
+        socketCloseTimeout,
         oldName,
         newName,
         scheduler

@@ -52,7 +52,7 @@ object configuration {
     requestTimeout: FiniteDuration,
     bootTimeout: FiniteDuration,
     shutdownTimeout: FiniteDuration,
-    connectionTimeout: FiniteDuration
+    socketCloseTimeout: FiniteDuration
   )
 
   /**

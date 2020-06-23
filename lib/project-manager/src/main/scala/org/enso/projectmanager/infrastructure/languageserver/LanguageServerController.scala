@@ -177,11 +177,12 @@ class LanguageServerController(
             sender(),
             socket,
             timeoutConfig.requestTimeout,
-            timeoutConfig.connectionTimeout,
+            timeoutConfig.socketCloseTimeout,
             oldName,
             newName,
             context.system.scheduler
-          )
+          ),
+        s"project-rename-action-${project.id}"
       )
 
     case ServerDied =>
