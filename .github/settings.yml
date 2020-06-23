@@ -25,6 +25,9 @@ labels:
   - name: "Category: Backend"
     color: "#d1f0fd"
     description: The backend services for the IDE
+  - name: "Category: Codegen"
+    color: "#d1f0fd"
+    description: The code generation stages
   - name: "Category: Compiler"
     color: "#d1f0fd"
     description: The compiler
