@@ -16,7 +16,6 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.must.Matchers
 
-import scala.annotation.unused
 import scala.concurrent.duration._
 
 class ProjectRenameActionSpec
@@ -40,8 +39,8 @@ class ProjectRenameActionSpec
 
     }
     probe.expectNoMessage()
+    val deathWatcher = TestProbe()
     //when
-    @unused
     val actorUnderTest = system.actorOf(
       ProjectRenameAction.props(
         sender.ref,
@@ -53,9 +52,13 @@ class ProjectRenameActionSpec
         virtualTime.scheduler
       )
     )
+    deathWatcher.watch(actorUnderTest)
     //then
     sender.expectMsg(ProjectRenamed)
     probe.expectMsg(OldName -> NewName)
+    deathWatcher.expectTerminated(actorUnderTest)
+    //teardown
+    fakeServer.stop()
   }
 
   it should "reply with an error when renaming fails" in new TestCtx {
@@ -75,7 +78,7 @@ class ProjectRenameActionSpec
 
     }
     //when
-    @unused
+    val deathWatcher = TestProbe()
     val actorUnderTest = system.actorOf(
       ProjectRenameAction.props(
         sender.ref,
@@ -87,8 +90,12 @@ class ProjectRenameActionSpec
         virtualTime.scheduler
       )
     )
+    deathWatcher.watch(actorUnderTest)
     //then
     sender.expectMsg(RenameFailure(100, "Test"))
+    deathWatcher.expectTerminated(actorUnderTest)
+    //teardown
+    fakeServer.stop()
   }
 
   override def afterAll(): Unit = {
