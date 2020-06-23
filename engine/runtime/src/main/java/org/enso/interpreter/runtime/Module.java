@@ -38,9 +38,8 @@ public class Module implements TruffleObject {
   private IR ir;
   private final QualifiedName name;
 
-  private Module(ModuleScope scope, TruffleFile sourceFile, Rope literalSource,
+  private Module(TruffleFile sourceFile, Rope literalSource,
                 boolean isParsed, IR ir, QualifiedName name) {
-    this.scope = scope;
     this.sourceFile = sourceFile;
     this.literalSource = literalSource;
     this.isParsed = isParsed;
@@ -210,7 +209,7 @@ public class Module implements TruffleObject {
   public Module renameProject(String oldName, String newName) {
     if (name.path().head().equals(oldName)) {
       QualifiedName renamed = name.renameProject(oldName, newName);
-      return new Module(scope, sourceFile, literalSource, isParsed, ir, renamed);
+      return new Module(sourceFile, literalSource, false, ir, renamed);
     } else {
       return this;
     }
