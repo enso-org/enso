@@ -2,7 +2,7 @@
 
 # General Repository Configuration
 repository:
-  name: luna
+  name: enso
   description: Hybrid visual and textual functional programming.
   homepage: https://enso.org
   topics: enso, visual, textual, hybrid, functional, language, compiler, interpreter, rts, jit, polyglot
