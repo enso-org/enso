@@ -216,7 +216,8 @@ val jackson = Seq(
 
 val jaxbVersion = "2.3.3"
 val jaxb = Seq(
-  "jakarta.xml.bind" % "jakarta.xml.bind-api" % jaxbVersion % Benchmark
+  "jakarta.xml.bind" % "jakarta.xml.bind-api" % jaxbVersion % Benchmark,
+  "com.sun.xml.bind" % "jaxb-impl"            % jaxbVersion % Benchmark
 )
 
 // === JMH ====================================================================
