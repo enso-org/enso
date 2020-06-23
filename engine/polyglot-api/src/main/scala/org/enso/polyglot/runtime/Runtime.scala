@@ -11,6 +11,7 @@ import com.fasterxml.jackson.module.scala.{
   DefaultScalaModule,
   ScalaObjectMapper
 }
+import org.enso.searcher.Suggestion
 import org.enso.text.editing.model.TextEdit
 
 import scala.util.Try
@@ -639,9 +640,6 @@ object Runtime {
     )
     sealed trait SuggestionsDatabaseUpdate extends ApiNotification
     object SuggestionsDatabaseUpdate {
-      // TODO: replace with the actual classes
-      sealed trait Suggestion
-      sealed trait Argument
 
       /** Create or replace the database entry.
         *
@@ -665,15 +663,17 @@ object Runtime {
         * @param selfType the new self type of the suggestion
         * @param returnType the new return type of the suggestion
         * @param documentation the new documentation string
+        * @param scope the suggestion scope
         */
       case class Modify(
         id: Long,
         name: Option[String],
-        arguments: Option[Seq[Argument]],
+        arguments: Option[Seq[Suggestion.Argument]],
         selfType: Option[String],
         returnType: Option[String],
-        documentation: Option[String]
-      )
+        documentation: Option[String],
+        scope: Option[Suggestion.Scope]
+      ) extends SuggestionsDatabaseUpdate
     }
 
     private lazy val mapper = {

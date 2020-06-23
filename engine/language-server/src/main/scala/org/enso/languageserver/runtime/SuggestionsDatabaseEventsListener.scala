@@ -10,6 +10,7 @@ import org.enso.languageserver.data.{
   ClientId,
   ReceivesSuggestionsDatabaseUpdates
 }
+import org.enso.languageserver.runtime.SuggestionsDatabaseEventsApi.SuggestionsDatabaseUpdate
 import org.enso.languageserver.session.SessionRouter.DeliverToBinaryController
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
@@ -45,13 +46,39 @@ final class SuggestionsDatabaseEventsListener(
         ) =>
       withClients(clients - client.clientId)
 
-    case _: Api.SuggestionsDatabaseUpdate =>
+    case msg: Api.SuggestionsDatabaseUpdate =>
       clients.foreach { clientId =>
-        sessionRouter ! DeliverToBinaryController(clientId, payload)
+        sessionRouter ! DeliverToBinaryController(clientId, toUpdate(msg))
       }
   }
 
-  private def payload: String = ???
+  private def toUpdate(
+    update: Api.SuggestionsDatabaseUpdate
+  ): SuggestionsDatabaseUpdate =
+    update match {
+      case Api.SuggestionsDatabaseUpdate.Add(id, suggestion) =>
+        SuggestionsDatabaseUpdate.Add(id, suggestion)
+      case Api.SuggestionsDatabaseUpdate.Modify(
+            id,
+            name,
+            arguments,
+            selfType,
+            returnType,
+            doc,
+            scope
+          ) =>
+        SuggestionsDatabaseUpdate.Modify(
+          id,
+          name,
+          arguments,
+          selfType,
+          returnType,
+          doc,
+          scope
+        )
+      case Api.SuggestionsDatabaseUpdate.Remove(id) =>
+        SuggestionsDatabaseUpdate.Remove(id)
+    }
 }
 
 object SuggestionsDatabaseEventsListener {
