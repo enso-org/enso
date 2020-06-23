@@ -7,7 +7,8 @@ import org.enso.jsonrpc.test.FlakySpec
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   ProjectRenamed,
-  RenameFailure
+  RenameFailure,
+  RenameTimeout
 }
 import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSocketServer.ReplyWith
 import org.enso.projectmanager.infrastructure.net.Tcp
@@ -93,6 +94,30 @@ class ProjectRenameActionSpec
     deathWatcher.watch(actorUnderTest)
     //then
     sender.expectMsg(RenameFailure(100, "Test"))
+    deathWatcher.expectTerminated(actorUnderTest)
+    //teardown
+    fakeServer.stop()
+  }
+
+  it should "time out when a server doesn't reply on time" in new TestCtx {
+    //when
+    val deathWatcher = TestProbe()
+    val actorUnderTest = system.actorOf(
+      ProjectRenameAction.props(
+        sender.ref,
+        Socket(testHost, testJsonPort),
+        10.seconds,
+        2.seconds,
+        OldName,
+        NewName,
+        virtualTime.scheduler
+      )
+    )
+    deathWatcher.watch(actorUnderTest)
+    virtualTimeAdvances(10.seconds)
+    //then
+    Thread.sleep(5000)
+    sender.expectMsg(RenameTimeout)
     deathWatcher.expectTerminated(actorUnderTest)
     //teardown
     fakeServer.stop()
