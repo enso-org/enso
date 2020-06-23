@@ -571,7 +571,7 @@ lazy val `core-definition` = (project in file("lib/core-definition"))
     parallelExecution in Test := false,
     logBuffered in Test := false,
     scalacOptions += "-Ymacro-annotations",
-    libraryDependencies ++= jmh ++ jaxb ++ Seq(
+    libraryDependencies ++= jmh ++ Seq(
         "com.chuusai"                %% "shapeless"    % shapelessVersion,
         "org.scalacheck"             %% "scalacheck"   % scalacheckVersion % Test,
         "org.scalactic"              %% "scalactic"    % scalacticVersion  % Test,
