@@ -57,7 +57,7 @@ public class MethodProcessor extends AbstractProcessor {
         print(pkgName);
         print(className);
         try {
-          generateCode(new MethodDefinition(pkgName, className, executeMethod, ann));
+          generateCode(new MethodDefinition(pkgName, className, element, executeMethod, ann));
         } catch (IOException e) {
           e.printStackTrace();
         }
@@ -86,11 +86,18 @@ public class MethodProcessor extends AbstractProcessor {
 
     methodDefinition.getArguments().forEach(this::print);
 
+    for (MethodDefinition.ArgumentDefinition def : methodDefinition.getArguments()) {
+      print(def.toString() + " " + def.getType().getKind());
+    }
+
+    Set<String> allImports = new HashSet<>(necessaryImports);
+    allImports.addAll(methodDefinition.getImports());
+
     try (PrintWriter out = new PrintWriter(gen.openWriter())) {
       out.println("package " + methodDefinition.getPackageName() + ";");
       out.println();
 
-      necessaryImports.forEach(pkg -> out.println("import " + pkg + ";"));
+      allImports.forEach(pkg -> out.println("import " + pkg + ";"));
 
       out.println();
 
@@ -101,7 +108,7 @@ public class MethodProcessor extends AbstractProcessor {
 
       out.println("  private " + methodDefinition.getClassName() + "(Language language) {");
       out.println("    super(language);");
-      out.println("    bodyNode = new " + methodDefinition.getOriginalClassName() + "();");
+      out.println("    bodyNode = " + methodDefinition.getConstructorExpression() + ";");
       out.println("  }");
 
       out.println();
@@ -109,16 +116,24 @@ public class MethodProcessor extends AbstractProcessor {
       out.println("  public static Function makeFunction(Language language) {");
       out.println("    return Function.fromBuiltinRootNode(");
       out.println("        new " + methodDefinition.getClassName() + "(language),");
-      out.println("        FunctionSchema.CallStrategy.ALWAYS_DIRECT,");
+      if (methodDefinition.isAlwaysDirect()) {
+        out.println("        FunctionSchema.CallStrategy.ALWAYS_DIRECT,");
+      } else {
+        out.println("        FunctionSchema.CallStrategy.DIRECT_WHEN_TAIL,");
+      }
       List<String> argumentDefs = new ArrayList<>();
-      for (int i = 0; i < methodDefinition.getArguments().size(); i++) {
-        MethodDefinition.ArgumentDefinition arg = methodDefinition.getArguments().get(i);
-        argumentDefs.add(
-            "        new ArgumentDefinition("
-                + i
-                + ", \""
-                + arg.getName()
-                + "\", ArgumentDefinition.ExecutionMode.EXECUTE)");
+      for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
+        if (!arg.isState()) {
+          String executionMode = arg.isSuspended() ? "PASS_THUNK" : "EXECUTE";
+          argumentDefs.add(
+              "        new ArgumentDefinition("
+                  + arg.getPosition()
+                  + ", \""
+                  + arg.getName()
+                  + "\", ArgumentDefinition.ExecutionMode."
+                  + executionMode
+                  + ")");
+        }
       }
       out.println(String.join(",\n", argumentDefs) + ");");
       out.println("  }");
@@ -131,19 +146,21 @@ public class MethodProcessor extends AbstractProcessor {
       out.println(
           "    Object[] arguments = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());");
       List<String> callArgNames = new ArrayList<>();
-      for (int i = 0; i < methodDefinition.getArguments().size(); i++) {
-        callArgNames.add("arg" + i);
-        genArgRead(
-            out,
-            i,
-            methodDefinition.getArguments().get(i),
-            methodDefinition.getDeclaredName(),
-            "arguments");
+      for (MethodDefinition.ArgumentDefinition argumentDefinition :
+          methodDefinition.getArguments()) {
+        if (!argumentDefinition.isState()) {
+          callArgNames.add("arg" + argumentDefinition.getPosition());
+          genArgRead(out, argumentDefinition, methodDefinition.getDeclaredName(), "arguments");
+        } else {
+          callArgNames.add("state");
+        }
       }
-      out.println(
-          "    return new Stateful(state, bodyNode.execute("
-              + String.join(", ", callArgNames)
-              + "));");
+      String executeCall = "bodyNode.execute(" + String.join(", ", callArgNames) + ")";
+      if (methodDefinition.modifiesState()) {
+        out.println("    return " + executeCall + ";");
+      } else {
+        out.println("    return new Stateful(state, " + executeCall + ");");
+      }
       out.println("  }");
 
       out.println();
@@ -161,24 +178,40 @@ public class MethodProcessor extends AbstractProcessor {
 
   private void genArgRead(
       PrintWriter out,
-      int position,
       MethodDefinition.ArgumentDefinition arg,
       String methodName,
       String argsArray) {
-    if (arg.getName().equals("this") && position == 0) {
-      genUncheckedArgRead(out, position, arg, argsArray);
+    if (!arg.requiresCast()) {
+      genUncastedArgRead(out, arg, argsArray);
+    } else if (arg.getName().equals("this") && arg.getPosition() == 0) {
+      genUncheckedArgRead(out, arg, argsArray);
     } else {
-      genCheckedArgRead(out, position, arg, methodName, argsArray);
+      genCheckedArgRead(out, arg, methodName, argsArray);
     }
   }
 
-  private void genUncheckedArgRead(
-      PrintWriter out, int position, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String castName = "TypesGen.as" + capitalize(arg.getType());
-    String varName = "arg" + position;
+  private void genUncastedArgRead(
+      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
+    String varName = "arg" + arg.getPosition();
     out.println(
         "    "
-            + arg.getType()
+            + arg.getTypeName()
+            + " "
+            + varName
+            + " = "
+            + argsArray
+            + "["
+            + arg.getPosition()
+            + "];");
+  }
+
+  private void genUncheckedArgRead(
+      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
+    String castName = "TypesGen.as" + capitalize(arg.getTypeName());
+    String varName = "arg" + arg.getPosition();
+    out.println(
+        "    "
+            + arg.getTypeName()
             + " "
             + varName
             + " = "
@@ -186,22 +219,21 @@ public class MethodProcessor extends AbstractProcessor {
             + "("
             + argsArray
             + "["
-            + position
-            + "]"
-            + ");");
+            + arg.getPosition()
+            + "]);");
   }
 
   private void genCheckedArgRead(
       PrintWriter out,
-      int position,
       MethodDefinition.ArgumentDefinition arg,
       String methodName,
       String argsArray) {
-    String castName = "TypesGen.expect" + capitalize(arg.getType());
-    String varName = "arg" + position;
-    out.println("    " + arg.getType() + " " + varName + ";");
+    String castName = "TypesGen.expect" + capitalize(arg.getTypeName());
+    String varName = "arg" + arg.getPosition();
+    out.println("    " + arg.getTypeName() + " " + varName + ";");
     out.println("    try {");
-    out.println("      " + varName + " = " + castName + "(" + argsArray + "[" + position + "]);");
+    out.println(
+        "      " + varName + " = " + castName + "(" + argsArray + "[" + arg.getPosition() + "]);");
     out.println("    } catch (UnexpectedResultException e) {");
     out.println(
         "      throw new TypeError(\"Unexpected type provided for argument `"

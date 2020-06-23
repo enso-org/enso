@@ -20,7 +20,7 @@ public class Bool {
   public Bool(Language language, ModuleScope scope) {
     bool = new AtomConstructor("Boolean", scope).initializeFields();
     scope.registerConstructor(bool);
-    scope.registerMethod(bool, "if_then_else", IfThenElseNode.makeFunction(language));
+    scope.registerMethod(bool, "if_then_else", IfThenElseMethodGen.makeFunction(language));
     scope.registerMethod(bool, "to_text", ToTextMethodGen.makeFunction(language));
     scope.registerMethod(bool, "&&", AndMethodGen.makeFunction(language));
     scope.registerMethod(bool, "||", OrMethodGen.makeFunction(language));

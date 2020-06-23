@@ -18,15 +18,12 @@ import org.enso.interpreter.node.expression.builtin.io.PrintErrNode;
 import org.enso.interpreter.node.expression.builtin.io.PrintlnNode;
 import org.enso.interpreter.node.expression.builtin.io.ReadlnNode;
 import org.enso.interpreter.node.expression.builtin.number.*;
+import org.enso.interpreter.node.expression.builtin.state.*;
+import org.enso.interpreter.node.expression.builtin.system.NanoTimeMethodGen;
 import org.enso.interpreter.node.expression.builtin.system.NanoTimeNode;
 import org.enso.interpreter.node.expression.builtin.interop.java.*;
-import org.enso.interpreter.node.expression.builtin.state.GetStateNode;
-import org.enso.interpreter.node.expression.builtin.state.PutStateNode;
-import org.enso.interpreter.node.expression.builtin.state.RunStateNode;
-import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
-import org.enso.interpreter.node.expression.builtin.text.ConcatMethodGen;
-import org.enso.interpreter.node.expression.builtin.text.ConcatNode;
-import org.enso.interpreter.node.expression.builtin.text.JsonSerializeNode;
+import org.enso.interpreter.node.expression.builtin.text.*;
+import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
@@ -137,7 +134,7 @@ public class Builtins {
     scope.registerMethod(io, "print_err", PrintErrNode.makeFunction(language));
     scope.registerMethod(io, "readln", ReadlnNode.makeFunction(language));
 
-    scope.registerMethod(system, "nano_time", NanoTimeNode.makeFunction(language));
+    scope.registerMethod(system, "nano_time", NanoTimeMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", PanicNode.makeFunction(language));
     scope.registerMethod(panic, "recover", CatchPanicNode.makeFunction(language));
@@ -153,9 +150,9 @@ public class Builtins {
     scope.registerMethod(number, "negate", NegateMethodGen.makeFunction(language));
     scope.registerMethod(number, "==", EqualsMethodGen.makeFunction(language));
 
-    scope.registerMethod(state, "get", GetStateNode.makeFunction(language));
-    scope.registerMethod(state, "put", PutStateNode.makeFunction(language));
-    scope.registerMethod(state, "run", RunStateNode.makeFunction(language));
+    scope.registerMethod(state, "get", GetStateMethodGen.makeFunction(language));
+    scope.registerMethod(state, "put", PutStateMethodGen.makeFunction(language));
+    scope.registerMethod(state, "run", RunStateMethodGen.makeFunction(language));
 
     scope.registerMethod(debug, MethodNames.Debug.EVAL, DebugEvalNode.makeFunction(language));
     scope.registerMethod(debug, "breakpoint", DebugBreakpointNode.makeFunction(language));
@@ -163,14 +160,14 @@ public class Builtins {
     scope.registerMethod(function, "call", ExplicitCallFunctionNode.makeFunction(language));
 
     scope.registerMethod(text, "+", ConcatMethodGen.makeFunction(language));
-    scope.registerMethod(any, "to_text", AnyToTextNode.makeFunction(language));
-    scope.registerMethod(any, "json_serialize", JsonSerializeNode.makeFunction(language));
+    scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
+    scope.registerMethod(any, "json_serialize", JsonSerializeMethodGen.makeFunction(language));
 
-    scope.registerMethod(java, "add_to_class_path", AddToClassPathNode.makeFunction(language));
-    scope.registerMethod(java, "lookup_class", LookupClassNode.makeFunction(language));
+    scope.registerMethod(java, "add_to_class_path", AddToClassPathMethodGen.makeFunction(language));
+    scope.registerMethod(java, "lookup_class", LookupClassMethodGen.makeFunction(language));
 
     scope.registerMethod(
-        thread, "with_interrupt_handler", WithInterruptHandlerNode.makeFunction(language));
+        thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
 
     interopDispatchRoot = Truffle.getRuntime().createCallTarget(MethodDispatchNode.build(language));
     interopDispatchSchema =
@@ -190,13 +187,14 @@ public class Builtins {
   private void createPolyglot(Language language) {
     AtomConstructor polyglot = new AtomConstructor("Polyglot", scope).initializeFields();
     scope.registerConstructor(polyglot);
-    scope.registerMethod(polyglot, "execute", ExecuteNode.makeFunction(language));
-    scope.registerMethod(polyglot, "invoke", InvokeNode.makeFunction(language));
-    scope.registerMethod(polyglot, "new", InstantiateNode.makeFunction(language));
-    scope.registerMethod(polyglot, "get_member", GetMemberNode.makeFunction(language));
-    scope.registerMethod(polyglot, "get_members", GetMembersNode.makeFunction(language));
-    scope.registerMethod(polyglot, "get_array_size", GetArraySizeNode.makeFunction(language));
-    scope.registerMethod(polyglot, "get_array_element", GetArrayElementNode.makeFunction(language));
+    scope.registerMethod(polyglot, "execute", ExecuteMethodGen.makeFunction(language));
+    scope.registerMethod(polyglot, "invoke", InvokeMethodGen.makeFunction(language));
+    scope.registerMethod(polyglot, "new", InstantiateMethodGen.makeFunction(language));
+    scope.registerMethod(polyglot, "get_member", GetMemberMethodGen.makeFunction(language));
+    scope.registerMethod(polyglot, "get_members", GetMembersMethodGen.makeFunction(language));
+    scope.registerMethod(polyglot, "get_array_size", GetArraySizeMethodGen.makeFunction(language));
+    scope.registerMethod(
+        polyglot, "get_array_element", GetArrayElementMethodGen.makeFunction(language));
   }
 
   /**
