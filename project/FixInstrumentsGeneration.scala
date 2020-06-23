@@ -11,7 +11,7 @@ object FixInstrumentsGeneration {
     * Without that fix, incremental compilation would not register unchanged
     * instruments, leading to runtime errors.
     *
-    * It should be added as a dependency of compilation.
+    * It should be added as a dependency of Compile / compile / compileInputs.
     */
   lazy val preCompileTask = Def.task {
     val root                = baseDirectory.value

@@ -29,20 +29,22 @@ section. The task is tracked as issue
 [#671](https://github.com/enso-org/enso/issues/671).
 
 ### Build configuration
-Currently, the only modification was the removal of the option
-`-XX:-UseJVMCIClassLoader` that is deprecated in Java 11. The JVM running sbt
-must have `--upgrade-module-path=lib/truffle-api.jar` added as an option and the
-build tool must ensure that the `truffle-api.jar` is copied from the Maven
-repository to the `lib/` directory before the `runtime` project is compiled. 
-Section [IllegalAccessError](#illegalaccesserror) explains why this is
-necessary.
+The option `-XX:-UseJVMCIClassLoader` is deprecated in Java 11 and has been
+removed from the test configuration. 
+
+The JVM running sbt must have `--upgrade-module-path=lib/truffle-api.jar` added
+as an option and the build tool must ensure that the `truffle-api.jar` is copied
+from the Maven repository to the `lib/` directory before the `runtime` project
+is compiled. Section [IllegalAccessError](#illegalaccesserror) explains why
+this is necessary and [Bootstrapping](./sbt.md#bootstrapping) explains the tasks
+that help with this process.
 
 ### Testing
-After making the build succeed, all runtime tests are passing.
-This will have to be revisited after fixing a final build configuration.
+All tests are passing.
 
 ### Benchmarks
-Benchmarks have not yet been compared.
+There are some benchmark regressions that will be investigated before completing
+the migration.
 
 ## Problems
 The problems that were encountered when doing the migration.

@@ -32,7 +32,7 @@ object CopyTruffleJAR {
   }
 
   /**
-    * This task should be added as a dependency of compile in the runtime
+    * This task should be added as a dependency of compileInputs in the runtime
     * subproject. It ensures that the compilation will not proceed unless the
     * JARs have not been bootstrapped. If the JARs were out of date, they are
     * updated within this task, so bootstrap does not have to be re-run.

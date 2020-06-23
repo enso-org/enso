@@ -15,6 +15,8 @@ compilation. The build configuration is defined in
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Incremental compilation](#incremental-compilation)
+- [Bootstrapping](#bootstrapping)
+- [Compile hooks](#compile-hooks)
 - [Helper tasks](#helper-tasks)
   - [Benchmarks](#benchmarks)
   - [Build information](#build-information)
@@ -31,6 +33,60 @@ This is handled by sbt which under the hood uses
 [zinc](https://github.com/sbt/zinc) (the incremental compiler for Scala). zinc
 analyses the compiled files and detects dependencies between them to determine
 which files have to be recompiled when something has been changed.
+
+## Bootstrapping
+As described in [Java 11 Migration](./java-11.md#illegalaccesserror) to
+successfully compile the `runtime` project, the JVM running sbt must use the
+overridden JAR for Truffle API. This JAR has to be present during startup of the
+JVM, but it has to be downloaded from the Maven repository.
+
+To fix this chicken-and-egg problem, we have a special `bootstrap` task, that
+has to be ran when setting-up the project (and after a version update of Graal).
+It makes sure the JAR is downloaded and copied to our directory and terminates
+the sbt process to ensure that the user restarts it. Without the full restart,
+the JAR would not be seen by the JVM. So when setting up the project or after
+changing the version of Graal, the before launching the sbt shell, you should
+first run `sbt bootstrap`, to make sure the environment is correctly prepared.
+
+The logic for copying the JAR is implemented in
+[`CopyTruffleJAR`](../../project/CopyTruffleJAR.scala). If the compilation
+proceeds without the bootstrapped JAR it may lead to inconsistent state with
+some dependencies being undetected. So there is a pre-compile task that is
+executed before compiling the `runtime` project which makes sure that the
+Truffle JAR is up-to-date. This is to ensure that the developer did not forget
+about bootstrapping. This pre-compile task will also update the Truffle JAR and
+terminate sbt, to make sure it is restarted for the changes to be applied.
+
+## Compile hooks
+There are some invariants that are specific to our project, so they are not
+tracked by sbt, but we want to ensure that they hold to avoid cryptic errors at
+compilation or runtime.
+
+To check some state before compilation, we add our tasks as dependencies of
+`Compile / compile / compileInputs` by adding
+
+```
+Compile / compile / compileInputs := (Compile / compile / compileInputs)
+        .dependsOn(preCompileHookTask)
+        .value
+```
+
+to settings of a particular project.
+
+Tasks that should be run before compilation, should be attached to the
+`compileInputs` task. That is because the actual compilation process is ran in
+the task `compileIncremental`. `Compile / compile` depends on
+`compileIncremental` but if we add our dependency to `Compile / compile`, it is
+considered as independent with `compileIncremental`, so sbt may schedule it to
+run in parallel with the actual compilation process. To guarantee that our
+pre-flight checks complete *before* the actual compilation, we add them as a
+dependency of `compileInputs` which runs *strictly before* actual compilation.
+
+To check some invariants *after* compilation, we can replace the original
+`Compile / compile` task with a custom one which does its post-compile checks
+and returns the result of `(Compile / compile).value`. An example of such a
+'patched' compile task is implemented in
+[`FixInstrumentsGeneration`](../../project/FixInstrumentsGeneration.scala).
 
 ## Helper tasks
 There are additional tasks defined in the [`project`](../../project) directory.
