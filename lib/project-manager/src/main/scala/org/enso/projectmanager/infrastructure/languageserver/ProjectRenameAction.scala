@@ -53,6 +53,7 @@ class ProjectRenameAction(
   private var maybeActionTimeoutCancellable: Option[Cancellable] = None
 
   override def preStart(): Unit = {
+    log.info(s"Requesting a Language Server to rename project $oldName")
     connection.attachListener(self)
     connection.connect()
     val cancellable =
@@ -133,7 +134,7 @@ class ProjectRenameAction(
 
       case Right(id) =>
         if (id == requestId.toString) {
-          log.debug(s"Received correct reply message from $socket")
+          log.info(s"Project renamed by the Language Server")
           replyTo ! ProjectRenamed
           stop()
         } else {

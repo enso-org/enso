@@ -105,11 +105,11 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
       _          <- checkIfNameExists(name)
       oldPackage <- repo.getPackageName(projectId).mapError(toServiceFailure)
       _          <- repo.rename(projectId, name).mapError(toServiceFailure)
-      newPackage = PackageManager.Default.normalizeName(name)
-      _ <- refactorProjectName(projectId, oldPackage, newPackage)
       _ <- shutdownHookProcessor.registerShutdownHook(
         new MoveProjectDirCmd[F](projectId, repo, log)
       )
+      newPackage = PackageManager.Default.normalizeName(name)
+      _ <- refactorProjectName(projectId, oldPackage, newPackage)
       _ <- log.info(s"Project $projectId renamed.")
     } yield ()
   }
@@ -125,8 +125,11 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
         oldPackage,
         newPackage
       )
+      .recover {
+        case ProjectNotOpened => ()
+      }
       .mapError {
-        case ProjectNotOpened => ProjectNotOpen
+        case ProjectNotOpened => ProjectNotOpen //impossible
         case RenameTimeout    => ProjectOperationTimeout
         case CannotConnectToServer =>
           LanguageServerFailure("Cannot connect to the language server")
