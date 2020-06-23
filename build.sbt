@@ -87,6 +87,11 @@ lazy val Benchmark = config("bench") extend sbt.Test
 lazy val buildNativeImage =
   taskKey[Unit]("Build native image for the Enso executable")
 
+// Bootstrap task
+lazy val bootstrap =
+  taskKey[Unit]("Prepares Truffle JARs that are required by the sbt JVM")
+bootstrap := {}
+
 // ============================================================================
 // === Global Project =========================================================
 // ============================================================================
@@ -205,6 +210,13 @@ val jackson = Seq(
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
   "com.fasterxml.jackson.core"       % "jackson-databind"        % jacksonVersion,
   "com.fasterxml.jackson.module"    %% "jackson-module-scala"    % jacksonVersion
+)
+
+// === JAXB ================================================================
+
+val jaxbVersion = "2.3.3"
+val jaxb = Seq(
+  "jakarta.xml.bind" % "jakarta.xml.bind-api" % jaxbVersion % Benchmark
 )
 
 // === JMH ====================================================================
@@ -558,7 +570,7 @@ lazy val `core-definition` = (project in file("lib/core-definition"))
     parallelExecution in Test := false,
     logBuffered in Test := false,
     scalacOptions += "-Ymacro-annotations",
-    libraryDependencies ++= jmh ++ Seq(
+    libraryDependencies ++= jmh ++ jaxb ++ Seq(
         "com.chuusai"                %% "shapeless"    % shapelessVersion,
         "org.scalacheck"             %% "scalacheck"   % scalacheckVersion % Test,
         "org.scalactic"              %% "scalactic"    % scalacticVersion  % Test,
@@ -673,9 +685,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
 
-lazy val bootstrap =
-  taskKey[Unit]("Prepares Truffle JARs that are required by the sbt JVM")
-bootstrap := {}
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -687,7 +696,7 @@ lazy val runtime = (project in file("engine/runtime"))
     logBuffered in Test := false,
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= circe ++ jmh ++ Seq(
+    libraryDependencies ++= circe ++ jmh ++ jaxb ++ Seq(
         "com.chuusai"        %% "shapeless"             % shapelessVersion,
         "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
         "org.apache.tika"     % "tika-core"             % tikaVersion,
