@@ -23,15 +23,15 @@
 
 ### Fluidly Combining Worlds
 <p>
-  <a href="https://github.com/luna/enso/actions">
-    <img src="https://github.com/luna/enso/workflows/Enso%20CI/badge.svg?branch=main"
+  <a href="https://github.com/enso-org/enso/actions">
+    <img src="https://github.com/enso-org/enso/workflows/Engine%20CI/badge.svg"
          alt="Actions Status">
   </a>
-  <a href="https://github.com/luna/enso/blob/main/LICENSE">
+  <a href="https://github.com/enso-org/enso/blob/main/LICENSE">
     <img src="https://img.shields.io/static/v1?label=Compiler%20License&message=Apache%20v2&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
-  <a href="https://github.com/luna/ide/blob/main/LICENSE">
+  <a href="https://github.com/enso-org/ide/blob/main/LICENSE">
     <img src="https://img.shields.io/static/v1?label=GUI%20License&message=AGPL%20v3&color=2ec352&labelColor=2c3239"
          alt="License">
   </a>
@@ -49,8 +49,8 @@ programs in real-time, creating a moment where the mind is free to let the body
 create.
 
 Enso consists of several sub projects, including the
-[Enso Language Compiler](https://github.com/luna/enso) and the
-[Enso Integrated Development Environment (IDE)](https://github.com/luna/ide).
+[Enso Language Compiler](https://github.com/enso-org/enso) and the
+[Enso Integrated Development Environment (IDE)](https://github.com/enso-org/ide).
 You can also check out the [Enso Website](https://enso.org) for more
 information.
 
@@ -59,7 +59,8 @@ compiler, type-checker, runtime and language server. These components implement
 Enso the language in its entirety, and are usable in isolation.
 
 ### Getting Started
-Enso is distributed as [pre-built packages](https://github.com/luna/enso/releases)
+Enso is distributed as 
+[pre-built packages](https://github.com/enso-org/enso/releases)
 for MacOS, Linux and Windows, as well as universal `.jar` packages that can run
 anywhere that [GraalVM](https://graalvm.org) can. See the
 [documentation](http://enso.org) for more.
