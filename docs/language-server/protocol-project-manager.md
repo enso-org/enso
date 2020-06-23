@@ -223,6 +223,10 @@ null
   underlying data store.
 - [`ProjectExistsError`](#projectexistserror) to signal that the project with
   the provided name already exists.
+- [`ServiceError`](#serviceerror) to signal that the 
+  the operation timed out.
+- [`LanguageServerError`](#languageservererror) to signal generic language
+  server failures.
 
 ### `project/delete`
 This message requests the deletion of a project.
@@ -348,16 +352,6 @@ Signals that the project cannot be open due to boot failures.
 }
 ```
 
-### `ProjectCloseError`
-Signals failures during shutdown of a server.
-
-```typescript
-"error" : {
-  "code" : 4009,
-  "message" : "A shutdown failure."
-}
-```
-
 ### `ProjectNotOpenError`
 Signals that cannot close project that is not open.
 
@@ -385,5 +379,25 @@ Signals that cannot remove open project.
 "error" : {
   "code" : 4008,
   "message" : "Cannot remove open project"
+}
+```
+
+### `ProjectCloseError`
+Signals failures during shutdown of a server.
+
+```typescript
+"error" : {
+  "code" : 4009,
+  "message" : "A shutdown failure."
+}
+```
+
+### `LanguageServerError`
+Signals generic language server errors.
+
+```typescript
+"error" : {
+  "code" : 4010,
+  "message" : "The language server is unresponsive"
 }
 ```
