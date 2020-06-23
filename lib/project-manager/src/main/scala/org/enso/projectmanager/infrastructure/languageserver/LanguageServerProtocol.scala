@@ -111,4 +111,23 @@ object LanguageServerProtocol {
     */
   case object CheckTimeout
 
+  case class RenameProject(projectId: UUID, oldName: String, newName: String)
+
+  sealed trait ProjectRenameResult
+
+  case object ProjectRenamed extends ProjectRenameResult
+
+  sealed trait ProjectRenameFailure extends ProjectRenameResult
+
+  case object ProjectNotOpened extends ProjectRenameFailure
+
+  case object RenameTimeout extends ProjectRenameFailure
+
+  case object CannotConnectToServer extends ProjectRenameFailure
+
+  case class RenameFailure(code: Int, message: String)
+      extends ProjectRenameFailure
+
+  case object ServerUnresponsive extends ProjectRenameFailure
+
 }

@@ -115,10 +115,30 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
         case Some(project) => CovariantFlatMap[F].pure(project)
       }
 
+  /** @inheritdoc **/
+  def getPackageName(projectId: UUID): F[ProjectRepositoryFailure, String] = {
+    for {
+      project        <- getProject(projectId)
+      projectPackage <- getPackage(new File(project.path.get))
+    } yield projectPackage.config.name
+  }
+
   private def changePacketName(
     projectPath: File,
     name: String
   ): F[ProjectRepositoryFailure, Unit] =
+    getPackage(projectPath)
+      .flatMap { projectPackage =>
+        val newName = PackageManager.Default.normalizeName(name)
+        Sync[F]
+          .blockingOp { projectPackage.rename(newName) }
+          .map(_ => ())
+          .mapError(th => StorageFailure(th.toString))
+      }
+
+  private def getPackage(
+    projectPath: File
+  ): F[ProjectRepositoryFailure, Package[File]] =
     Sync[F]
       .blockingOp { PackageManager.Default.fromDirectory(projectPath) }
       .mapError(th => StorageFailure(th.toString))
@@ -128,12 +148,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
             InconsistentStorage(s"Cannot find package.yaml at $projectPath")
           )
 
-        case Some(projectPackage) =>
-          val newName = PackageManager.Default.normalizeName(name)
-          Sync[F]
-            .blockingOp { projectPackage.rename(newName) }
-            .map(_ => ())
-            .mapError(th => StorageFailure(th.toString))
+        case Some(projectPackage) => CovariantFlatMap[F].pure(projectPackage)
       }
 
   private def updateProjectName(

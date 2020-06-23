@@ -68,7 +68,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val bootloaderConfig = BootloaderConfig(3, 1.second)
 
   lazy val timeoutConfig =
-    TimeoutConfig(3.seconds, 3.seconds, 3.seconds, 5.seconds)
+    TimeoutConfig(3.seconds, 3.seconds, 3.seconds, 5.seconds, 2.seconds)
 
   lazy val netConfig = NetworkConfig("127.0.0.1", 40000, 60000)
 

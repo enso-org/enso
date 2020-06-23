@@ -67,4 +67,21 @@ class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatM
       }
       .mapError(_ => CheckTimeout)
 
+  override def renameProject(
+    projectId: UUID,
+    oldName: String,
+    newName: String
+  ): F[ProjectRenameFailure, Unit] = {
+    Async[F]
+      .fromFuture { () =>
+        (registry ? RenameProject(projectId, oldName, newName))
+          .mapTo[ProjectRenameResult]
+      }
+      .mapError(_ => RenameTimeout)
+      .flatMap {
+        case ProjectRenamed          => CovariantFlatMap[F].pure(())
+        case f: ProjectRenameFailure => ErrorChannel[F].fail(f)
+      }
+  }
+
 }

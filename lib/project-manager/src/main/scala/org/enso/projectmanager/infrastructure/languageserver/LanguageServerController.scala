@@ -169,6 +169,21 @@ class LanguageServerController(
     case ClientDisconnected(clientId) =>
       removeClient(config, server, clients, clientId, None)
 
+    case RenameProject(_, oldName, newName) =>
+      val socket = Socket(config.interface, config.rpcPort)
+      context.actorOf(
+        ProjectRenameAction
+          .props(
+            sender(),
+            socket,
+            timeoutConfig.requestTimeout,
+            timeoutConfig.connectionTimeout,
+            oldName,
+            newName,
+            context.system.scheduler
+          )
+      )
+
     case ServerDied =>
       log.error(s"Language server died [$config]")
       context.stop(self)

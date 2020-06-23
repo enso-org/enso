@@ -50,11 +50,6 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
       replyTo ! ResponseResult(RenameProject, id, Unused)
       cancellable.cancel()
       context.stop(self)
-
-    case Api.Response(_, error: Api.Error) =>
-      replyTo ! ResponseError(Some(id), ServiceError)
-      cancellable.cancel()
-      context.stop(self)
   }
 
 }

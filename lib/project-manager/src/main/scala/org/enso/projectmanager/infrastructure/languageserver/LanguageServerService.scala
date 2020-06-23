@@ -5,6 +5,7 @@ import java.util.UUID
 import org.enso.projectmanager.data.LanguageServerSockets
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   CheckTimeout,
+  ProjectRenameFailure,
   ServerShutdownFailure,
   ServerStartupFailure
 }
@@ -48,5 +49,11 @@ trait LanguageServerService[F[+_, +_]] {
     * @return true if project is open
     */
   def isRunning(projectId: UUID): F[CheckTimeout.type, Boolean]
+
+  def renameProject(
+    projectId: UUID,
+    oldName: String,
+    newName: String
+  ): F[ProjectRenameFailure, Unit]
 
 }

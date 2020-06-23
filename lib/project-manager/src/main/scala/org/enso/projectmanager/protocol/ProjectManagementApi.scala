@@ -125,4 +125,6 @@ object ProjectManagementApi {
 
   case class ProjectCloseError(msg: String) extends Error(4009, msg)
 
+  case class LanguageServerError(msg: String) extends Error(4010, msg)
+
 }

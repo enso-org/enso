@@ -81,4 +81,12 @@ trait ProjectRepository[F[+_, +_]] {
     */
   def moveProjectToTargetDir(projectId: UUID): F[ProjectRepositoryFailure, File]
 
+  /**
+    * Gets a package name for the specified project.
+    *
+    * @param projectId the project id
+    * @return either a failure or a package name
+    */
+  def getPackageName(projectId: UUID): F[ProjectRepositoryFailure, String]
+
 }

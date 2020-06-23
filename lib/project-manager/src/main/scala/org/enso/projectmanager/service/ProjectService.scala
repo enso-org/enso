@@ -3,6 +3,7 @@ package org.enso.projectmanager.service
 import java.util.UUID
 
 import cats.MonadError
+import org.enso.pkg.PackageManager
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
@@ -97,16 +98,47 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     projectId: UUID,
     name: String
   ): F[ProjectServiceFailure, Unit] = {
-    log.debug(s"Renaming project $projectId to $name.") *>
-    validateName(name) *>
-    checkIfProjectExists(projectId) *>
-    checkIfNameExists(name) *>
-    repo.rename(projectId, name).mapError(toServiceFailure) *>
-    shutdownHookProcessor.registerShutdownHook(
-      new MoveProjectDirCmd[F](projectId, repo, log)
-    ) *>
-    log.info(s"Project $projectId renamed.")
+    for {
+      _          <- log.debug(s"Renaming project $projectId to $name.")
+      _          <- validateName(name)
+      _          <- checkIfProjectExists(projectId)
+      _          <- checkIfNameExists(name)
+      oldPackage <- repo.getPackageName(projectId).mapError(toServiceFailure)
+      _          <- repo.rename(projectId, name).mapError(toServiceFailure)
+      newPackage = PackageManager.Default.normalizeName(name)
+      _ <- refactorProjectName(projectId, oldPackage, newPackage)
+      _ <- shutdownHookProcessor.registerShutdownHook(
+        new MoveProjectDirCmd[F](projectId, repo, log)
+      )
+      _ <- log.info(s"Project $projectId renamed.")
+    } yield ()
   }
+
+  private def refactorProjectName(
+    projectId: UUID,
+    oldPackage: String,
+    newPackage: String
+  ): F[ProjectServiceFailure, Unit] =
+    languageServerService
+      .renameProject(
+        projectId,
+        oldPackage,
+        newPackage
+      )
+      .mapError {
+        case ProjectNotOpened => ProjectNotOpen
+        case RenameTimeout    => ProjectOperationTimeout
+        case CannotConnectToServer =>
+          LanguageServerFailure("Cannot connect to the language server")
+
+        case RenameFailure(code, msg) =>
+          LanguageServerFailure(
+            s"Failure during renaming [code: $code message: $msg]"
+          )
+
+        case ServerUnresponsive =>
+          LanguageServerFailure("The language server is unresponsive")
+      }
 
   private def checkIfProjectExists(
     projectId: UUID

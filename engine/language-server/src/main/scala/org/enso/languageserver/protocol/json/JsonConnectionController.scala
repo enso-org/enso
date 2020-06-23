@@ -19,20 +19,13 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.io.InputOutputApi._
-import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
+import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
-import org.enso.languageserver.refactoring.RefactoringApi
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
-import org.enso.languageserver.requesthandler.io.{
-  FeedStandardInputHandler,
-  RedirectStdErrHandler,
-  RedirectStdOutHandler,
-  SuppressStdErrHandler,
-  SuppressStdOutHandler
-}
+import org.enso.languageserver.requesthandler.io._
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.requesthandler.refactoring.RenameProjectHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
@@ -109,6 +102,12 @@ class JsonConnectionController(
           ),
           requestTimeout
         )
+      )
+      handler.forward(req)
+
+    case req @ Request(RenameProject, _, _) =>
+      val handler = context.actorOf(
+        RenameProjectHandler.props(requestTimeout, runtimeConnector)
       )
       handler.forward(req)
 
@@ -262,9 +261,7 @@ class JsonConnectionController(
         .props(stdErrController, rpcSession.clientId),
       RedirectStandardError -> RedirectStdErrHandler
         .props(stdErrController, rpcSession.clientId),
-      FeedStandardInput -> FeedStandardInputHandler.props(stdInController),
-      RenameProject -> RenameProjectHandler
-        .props(requestTimeout, runtimeConnector)
+      FeedStandardInput -> FeedStandardInputHandler.props(stdInController)
     )
 
 }
