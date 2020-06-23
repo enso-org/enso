@@ -2,7 +2,7 @@
 
 # General Repository Configuration
 repository:
-  name: enso
+  name: luna
   description: Hybrid visual and textual functional programming.
   homepage: https://enso.org
   topics: enso, visual, textual, hybrid, functional, language, compiler, interpreter, rts, jit, polyglot
@@ -207,6 +207,3 @@ branches:
         contexts: ["Test Engine (macOS-latest)", "Test Engine (ubuntu-latest)", "Test Parser (macOS-latest)", "Test Parser (ubuntu-latest)", " Test Parser (windows-latest) ", "license/cla"]
       enforce_admins: null
       restrictions: null
-
-
-
