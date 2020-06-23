@@ -5,6 +5,10 @@ import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.miguno.akka.testing.VirtualTime
 import org.enso.jsonrpc.test.FlakySpec
 import org.enso.projectmanager.data.Socket
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
+  ProjectRenamed,
+  RenameFailure
+}
 import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSocketServer.ReplyWith
 import org.enso.projectmanager.infrastructure.net.Tcp
 import org.mockito.MockitoSugar
@@ -26,9 +30,7 @@ class ProjectRenameActionSpec
 
   "A project rename action" should "delegate request to the Language Server" in new TestCtx {
     //given
-    val OldName = "Foo"
-    val NewName = "Bar"
-    val probe   = TestProbe()
+    val probe = TestProbe()
     fakeServer.withBehaviour {
       case RenameRequestMatcher(requestId, oldName, newName) =>
         probe.ref ! (oldName -> newName)
@@ -52,8 +54,41 @@ class ProjectRenameActionSpec
       )
     )
     //then
-    sender.expectMsg(LanguageServerProtocol.ProjectRenamed)
+    sender.expectMsg(ProjectRenamed)
     probe.expectMsg(OldName -> NewName)
+  }
+
+  it should "reply with an error when renaming fails" in new TestCtx {
+    //given
+    fakeServer.withBehaviour {
+      case RenameRequestMatcher(requestId, _, _) =>
+        ReplyWith(
+          s"""{ 
+             |  "jsonrpc": "2.0", 
+             |  "id": "$requestId", 
+             |  "error": {
+             |    "code": 100,
+             |    "message": "Test"
+             |  } 
+             |}""".stripMargin
+        )
+
+    }
+    //when
+    @unused
+    val actorUnderTest = system.actorOf(
+      ProjectRenameAction.props(
+        sender.ref,
+        Socket(testHost, testJsonPort),
+        10.seconds,
+        2.seconds,
+        OldName,
+        NewName,
+        virtualTime.scheduler
+      )
+    )
+    //then
+    sender.expectMsg(RenameFailure(100, "Test"))
   }
 
   override def afterAll(): Unit = {
@@ -74,6 +109,10 @@ class ProjectRenameActionSpec
     fakeServer.start()
 
     val sender = TestProbe()
+
+    val OldName = "Foo"
+
+    val NewName = "Bar"
 
     def virtualTimeAdvances(step: FiniteDuration): Unit = {
       //I need to wait some time to give actors time to reply
