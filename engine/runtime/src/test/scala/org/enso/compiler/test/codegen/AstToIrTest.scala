@@ -783,4 +783,25 @@ class AstToIrTest extends CompilerTest {
         .name shouldEqual "!"
     }
   }
+
+  "AST translation" should {
+    "result in syntax error when encountering unbalanced parentheses" in {
+
+      val ir =
+        """type MyAtom
+          |
+          |main =
+          |    f = case _ of
+          |        Cons (Cons MyAtom Nil) Nil -> 100
+          |        _ -> 50
+          |    f (Cons (Cons MyAtom Nil) Nil
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Error.Syntax]
+
+      println(ir.asInstanceOf[IR.Error.Syntax].message)
+      // ir.asInstanceOf[IR.Error.Syntax].message shouldEqual "TODO"
+
+    }
+  }
 }
