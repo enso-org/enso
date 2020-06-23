@@ -13,10 +13,10 @@ import org.enso.polyglot.runtime.Runtime.Api
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for `io/redirectStandardError` commands.
+  * A request handler for `refactoring/renameProject` commands.
   *
-  * @param timeout request timeout
-  * @param runtimeConnector reference to the runtime connector
+  * @param timeout a request timeout
+  * @param runtimeConnector a reference to the runtime connector
   */
 class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
     extends Actor

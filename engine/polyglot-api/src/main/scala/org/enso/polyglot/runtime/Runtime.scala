@@ -625,9 +625,18 @@ object Runtime {
       */
     case class RuntimeServerShutDown() extends ApiResponse
 
+    /**
+      * A request for project renaming.
+      *
+      * @param oldName the old project name
+      * @param newName the new project name
+      */
     case class RenameProject(oldName: String, newName: String)
         extends ApiRequest
 
+    /**
+      * Signals that project has been renamed.
+      */
     case class ProjectRenamed() extends ApiResponse
 
     private lazy val mapper = {
