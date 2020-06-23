@@ -19,6 +19,8 @@ import org.enso.polyglot.runtime.Runtime.Api
   * Event listener listens event stream for the suggestion database
   * notifications from the runtime and sends updates to the client. The listener
   * is a singleton and created per context registry.
+  *
+  * @param sessionRouter the session router
   */
 final class SuggestionsDatabaseEventsListener(
   sessionRouter: ActorRef
@@ -36,13 +38,13 @@ final class SuggestionsDatabaseEventsListener(
   private def withClients(clients: Set[ClientId]): Receive = {
     case AcquireCapability(
           client,
-          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates(_))
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
       withClients(clients + client.clientId)
 
     case ReleaseCapability(
           client,
-          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates(_))
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
       withClients(clients - client.clientId)
 
@@ -86,6 +88,8 @@ object SuggestionsDatabaseEventsListener {
   /**
     * Creates a configuration object used to create a
     * [[SuggestionsDatabaseEventsListener]].
+    *
+    * @param sessionRouter the session router
     */
   def props(sessionRouter: ActorRef): Props =
     Props(new SuggestionsDatabaseEventsListener(sessionRouter))

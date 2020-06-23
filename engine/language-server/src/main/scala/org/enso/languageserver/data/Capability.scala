@@ -72,7 +72,7 @@ object Capability {
 
 }
 
-case class ReceivesSuggestionsDatabaseUpdates(contextId: ContextId)
+case class ReceivesSuggestionsDatabaseUpdates()
     extends Capability(ReceivesSuggestionsDatabaseUpdates.methodName)
 
 object ReceivesSuggestionsDatabaseUpdates {
@@ -107,16 +107,17 @@ object CapabilityRegistration {
     def resolveOptions(
       method: String,
       json: Json
-    ): Decoder.Result[Capability] = method match {
-      case CanEdit.methodName             => json.as[CanEdit]
-      case ReceivesTreeUpdates.methodName => json.as[ReceivesTreeUpdates]
-      case CanModify.methodName           => json.as[CanModify]
-      case ReceivesUpdates.methodName     => json.as[ReceivesUpdates]
-      case ReceivesSuggestionsDatabaseUpdates.methodName =>
-        json.as[ReceivesSuggestionsDatabaseUpdates]
-      case _ =>
-        Left(DecodingFailure("Unrecognized capability method.", List()))
-    }
+    ): Decoder.Result[Capability] =
+      method match {
+        case CanEdit.methodName             => json.as[CanEdit]
+        case ReceivesTreeUpdates.methodName => json.as[ReceivesTreeUpdates]
+        case CanModify.methodName           => json.as[CanModify]
+        case ReceivesUpdates.methodName     => json.as[ReceivesUpdates]
+        case ReceivesSuggestionsDatabaseUpdates.methodName =>
+          json.as[ReceivesSuggestionsDatabaseUpdates]
+        case _ =>
+          Left(DecodingFailure("Unrecognized capability method.", List()))
+      }
 
     for {
       method <- json.downField(methodField).as[String]

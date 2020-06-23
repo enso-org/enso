@@ -56,13 +56,13 @@ class CapabilityRouter(
 
     case msg @ AcquireCapability(
           _,
-          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates(_))
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
       suggestionsDatabaseEventsListener.forward(msg)
 
     case msg @ ReleaseCapability(
           _,
-          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates(_))
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
       suggestionsDatabaseEventsListener.forward(msg)
   }
