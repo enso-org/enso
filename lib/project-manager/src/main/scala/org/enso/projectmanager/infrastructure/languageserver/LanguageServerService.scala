@@ -50,6 +50,14 @@ trait LanguageServerService[F[+_, +_]] {
     */
   def isRunning(projectId: UUID): F[CheckTimeout.type, Boolean]
 
+  /**
+    * Request a language server to rename project.
+    *
+    * @param projectId the project id
+    * @param oldName the old project name
+    * @param newName the new project name
+    * @return either failure or unit signaling success
+    */
   def renameProject(
     projectId: UUID,
     oldName: String,

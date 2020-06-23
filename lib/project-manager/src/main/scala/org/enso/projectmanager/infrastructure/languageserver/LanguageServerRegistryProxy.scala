@@ -67,6 +67,7 @@ class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatM
       }
       .mapError(_ => CheckTimeout)
 
+  /** @inheritdoc **/
   override def renameProject(
     projectId: UUID,
     oldName: String,
