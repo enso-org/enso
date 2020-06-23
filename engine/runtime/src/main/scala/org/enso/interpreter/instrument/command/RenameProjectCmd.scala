@@ -37,7 +37,7 @@ class RenameProjectCmd(
         reply(Api.ProjectRenamed())
         logger.log(Level.INFO, s"Project renamed to ${request.newName}")
       } finally {
-        ctx.locking.acquireWriteCompilationLock()
+        ctx.locking.releaseWriteCompilationLock()
       }
     }
 
