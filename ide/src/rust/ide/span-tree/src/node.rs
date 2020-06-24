@@ -59,7 +59,8 @@ pub enum InsertType {BeforeTarget,AfterTarget,Append}
 // === Errors ===
 
 #[allow(missing_docs)]
-#[fail(display = "The crumb `{}` is invalid, only {} children present. Traversed crumbs: {:?}.", crumb,count,context)]
+#[fail(display = "The crumb `{}` is invalid, only {} children present. Traversed crumbs: {:?}.",
+    crumb,count,context)]
 #[derive(Debug,Fail,Clone)]
 pub struct InvalidCrumb {
     /// Crumb that was attempted.
@@ -90,18 +91,20 @@ pub fn parent_crumbs(crumbs:&[Crumb]) -> Option<&[Crumb]> {
 #[derive(Clone,Debug,Eq,PartialEq)]
 #[allow(missing_docs)]
 pub struct Node {
-    pub kind     : Kind,
-    pub size     : Size,
-    pub children : Vec<Child>,
+    pub kind          : Kind,
+    pub size          : Size,
+    pub children      : Vec<Child>,
+    pub expression_id : Option<ast::Id>,
 }
 
 impl Node {
     /// Create Empty node.
     pub fn new_empty(insert_type:InsertType) -> Self {
         Node {
-            kind     : Kind::Empty(insert_type),
-            size     : Size::new(0),
-            children : Vec::new(),
+            kind          : Kind::Empty(insert_type),
+            size          : Size::new(0),
+            children      : Vec::new(),
+            expression_id : None,
         }
     }
 

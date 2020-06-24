@@ -22,8 +22,9 @@ pub trait Builder : Sized {
     fn add_child
     (self, offset:usize, len:usize, kind:node::Kind, crumbs:impl IntoCrumbs) -> ChildBuilder<Self> {
         let node = Node {kind,
-            size: Size::new(len),
-            children  : vec![]
+            size          : Size::new(len),
+            children      : vec![],
+            expression_id : None,
         };
         let child = node::Child { node,
             offset              : Size::new(offset),
@@ -50,6 +51,12 @@ pub trait Builder : Sized {
         self.node_being_built().children.push(child);
         self
     }
+
+    /// Set expression id for this node.
+    fn set_expression_id(mut self, id:ast::Id) -> Self {
+        self.node_being_built().expression_id = Some(id);
+        self
+    }
 }
 
 
@@ -71,9 +78,10 @@ impl TreeBuilder {
     pub fn new(len:usize) -> Self {
         TreeBuilder {
             built : Node {
-                kind     : node::Kind::Root,
-                size     : Size::new(len),
-                children : vec![],
+                kind          : node::Kind::Root,
+                size          : Size::new(len),
+                children      : vec![],
+                expression_id : None,
             }
         }
     }

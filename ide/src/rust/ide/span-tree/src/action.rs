@@ -130,7 +130,10 @@ impl<'a> Implementation for node::Ref<'a> {
                     infix.into_ast()
                 } else {
                     let mut prefix = ast::prefix::Chain::new_non_strict(ast);
-                    let item       = Shifted{wrapped:new, off:DEFAULT_OFFSET};
+                    let item       = ast::prefix::Argument{
+                        sast      : Shifted{wrapped:new, off:DEFAULT_OFFSET},
+                        prefix_id : None,
+                    };
                     match ins_type {
                         BeforeTarget => prefix.args.insert(0,item),
                         AfterTarget  => prefix.args.insert(1,item),

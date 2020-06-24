@@ -75,11 +75,14 @@ impl IdMap {
         IdMap {vec}
     }
     /// Assigns Span to given ID.
-    pub fn insert(&mut self, span:Span, id:Id) {
-        self.vec.push((span,id));
+    pub fn insert(&mut self, span:impl Into<Span>, id:Id) {
+        self.vec.push((span.into(),id));
+    }
+    /// Generate random Uuid for span.
+    pub fn generate(&mut self, span:impl Into<Span>) {
+        self.vec.push((span.into(),Uuid::new_v4()));
     }
 }
-
 
 
 
