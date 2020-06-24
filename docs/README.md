@@ -23,7 +23,7 @@ the Enso project:
   members of our community, developers and users alike.
 - [**Security Guidelines:**](./SECURITY.md) Security guidelines for the Enso
   project, including supported versions and our vulnerability reporting process.
-- [**Getting Enso](./getting-enso.md) Instructions for how to get and run
+- [**Getting Enso:**](./getting-enso.md) Instructions for how to get and run
   a copy of Enso.
 
 It is broken up into categories as follows:

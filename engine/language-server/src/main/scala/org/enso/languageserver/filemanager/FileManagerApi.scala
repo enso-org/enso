@@ -4,7 +4,7 @@ import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 
 /**
   * The file manager JSON RPC API provided by the language server.
-  * See [[https://github.com/luna/enso/blob/main/docs/language-server/README.md]]
+  * See [[https://github.com/enso-org/enso/blob/main/docs/language-server/README.md]]
   * for message specifications.
   */
 object FileManagerApi {

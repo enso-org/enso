@@ -92,7 +92,7 @@ about cool technology! You will find that people will be eager to assume good
 intent and forgive as long as there is an atmosphere of trust.
 
 The enforcement policies listed above apply to all official Enso venues. This
-includes the official discord and GitHub repositories under `luna`.
+includes the official discord and GitHub repositories under `enso-org`.
 
 > Adapted from the [Node.js Policy on Trolling](http://blog.izs.me/post/30036893703/policy-on-trolling)
 > as well as the [Contributor Covenant v1.3.0](https://www.contributor-covenant.org/version/1/3/0/).

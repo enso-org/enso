@@ -59,7 +59,7 @@ compiler, type-checker, runtime and language server. These components implement
 Enso the language in its entirety, and are usable in isolation.
 
 ### Getting Started
-Enso is distributed as 
+Enso is distributed as
 [pre-built packages](https://github.com/enso-org/enso/releases)
 for MacOS, Linux and Windows, as well as universal `.jar` packages that can run
 anywhere that [GraalVM](https://graalvm.org) can. See the
@@ -96,7 +96,7 @@ the decisions that have been made through Enso's evolution.
 ### License
 This repository is licensed under the
 [Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
-[LICENSE](https://github.com/luna/enso/blob/main/LICENSE) file.
+[LICENSE](https://github.com/enso-org/enso/blob/main/LICENSE) file.
 
 This license set was choosen to both provide you with a complete freedom to use
 Enso, create libraries, and release them under any license of your choice, while
@@ -120,6 +120,6 @@ If you believe that you have found a security vulnerability in Enso, or that
 you have a bug report that poses a security risk to Enso's users, please take
 a look at our [security guidelines](./docs/SECURITY.md) for a course of action.
 
-<a href="https://github.com/luna/enso/graphs/contributors">
+<a href="https://github.com/enso-org/enso/graphs/contributors">
   <img src="https://opencollective.com/enso-language/contributors.svg?width=890&button=false">
 </a>
