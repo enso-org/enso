@@ -66,7 +66,7 @@ class StateTest extends InterpreterTest {
           |    stateSum = n ->
           |        acc = State.get
           |        State.put acc+n
-          |        ifZero n State.get (stateSum n-1)
+          |        if n == 0 then State.get else stateSum n-1
           |
           |    State.run 0 (stateSum 10)
           |""".stripMargin

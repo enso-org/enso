@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.builtin;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.expression.builtin.IfZeroNode;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.*;
@@ -134,7 +133,6 @@ public class Builtins {
     scope.registerMethod(error, "throw", ThrowErrorMethodGen.makeFunction(language));
     scope.registerMethod(any, "catch", CatchErrorMethodGen.makeFunction(language));
 
-    scope.registerMethod(number, "ifZero", IfZeroNode.makeFunction(language));
     scope.registerMethod(number, "+", AddMethodGen.makeFunction(language));
     scope.registerMethod(number, "-", SubtractMethodGen.makeFunction(language));
     scope.registerMethod(number, "*", MultiplyMethodGen.makeFunction(language));
