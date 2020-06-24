@@ -6,9 +6,9 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 @BuiltinMethod(
     type = "Boolean",
     name = "&&",
-    description = "Computes the logical AND of two booleans")
+    description = "Computes the logical conjunction of two booleans")
 public class AndNode extends Node {
-  boolean execute(boolean self, boolean that) {
-    return self && that;
+  boolean execute(boolean _this, boolean that) {
+    return _this && that;
   }
 }

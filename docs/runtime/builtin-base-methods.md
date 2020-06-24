@@ -9,7 +9,7 @@ order: 7
 # Builtin Base Methods
 While we strive to implement most of the Enso standard library in Enso itself,
 it is necessary for certain methods, particularly ones involving operations out
-of reach for the standard language semantics or primitive system calls, to be
+of reach for the standard language semantics, or primitive system calls, to be
 implemented in Java.
 
 To facilitate this process, we have created an annotation-based DSL for easier
@@ -33,7 +33,7 @@ and typechecking of method arguments and wrapping the node in an actual
 `Function` object.
 
 ## `@BuiltinMethod` Annotation
-The `@BuiltinMethod` annotation is applied to a Truffle Node subclass that
+The `@BuiltinMethod` annotation is applied to a Truffle `Node` subclass that
 should be treated as a builtin method. It takes the following arguments:
 
 1. `type` **String** the name of the type the method will be registered on.
@@ -55,11 +55,12 @@ generate a `AndOperatorMethodGen` root node.
 ## Structural Requirements
 The DSL places certain structural requirements on the declaring node.
 
-1. Construction. The node must be constructible using either a paremeterless,
-   static `build` method or a parameterless constructor. If a suitable `build`
-   method is defined, it will be preferred over the constructor.
-2. Execution. The node must declare a single, accessible
-   (i.e. at least package-private), non-void method named `execute`.
+1. **Construction:** The node must be constructible using either
+   a paremeterless, static `build` method or a parameterless constructor.
+   If a suitable `build` method is defined, it will be preferred over the
+   constructor.
+2. **Execution:** The node must declare a single, accessible (i.e. at least
+   package-private), non-void method named `execute`.
    
 ## `Execute` Method Semantics
 The `execute` method defined by the declaring node has the following semantics.
@@ -80,8 +81,8 @@ The `execute` method defined by the declaring node has the following semantics.
    4. All other arguments are treated as positional arguments to the method.
       Note that according to the language specification, any method must take
       an argument named `this`. Because of a naming conflict with Java, this
-      argument is called `self` in the DSL. Please note that it is mandatory
-      to take an argument called `self`, even if it is unused.
+      argument is called `_this` in the DSL. Please note that it is mandatory
+      to take an argument called `_this`, even if it is unused.
    5. The positional arguments can be of any typed specified by the runtime
       type system (see `org.enso.interpreter.runtime.Types`) or `Object`.
       Arguments typed as `Thunk` mark the argument as suspended in the

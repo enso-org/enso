@@ -11,7 +11,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 @BuiltinMethod(
     type = "Debug",
     name = "eval",
-    description = "Evaluates an expression passed as Text argument, in the caller frame.",
+    description = "Evaluates an expression passed as a Text argument, in the caller frame.",
     alwaysDirect = false)
 public class DebugEvalNode extends Node {
   private @Child EvalNode evalNode = EvalNode.build();
@@ -21,7 +21,7 @@ public class DebugEvalNode extends Node {
   }
 
   Stateful execute(
-      CallerInfo callerInfo, @MonadicState Object state, Object self, String expression) {
+      CallerInfo callerInfo, @MonadicState Object state, Object _this, String expression) {
     return evalNode.execute(callerInfo, state, expression);
   }
 }

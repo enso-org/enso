@@ -12,11 +12,11 @@ import org.enso.interpreter.runtime.state.Stateful;
 @BuiltinMethod(
     type = "Panic",
     name = "catch",
-    description = "Root node for the builtin catch panic function.")
+    description = "Executes an action and converts any Panic thrown by it into an Error")
 public class CatchPanicNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 
-  Stateful execute(@MonadicState Object state, Object self, Thunk action) {
+  Stateful execute(@MonadicState Object state, Object _this, Thunk action) {
     try {
       return thunkExecutorNode.executeThunk(action, state, false);
     } catch (PanicException e) {

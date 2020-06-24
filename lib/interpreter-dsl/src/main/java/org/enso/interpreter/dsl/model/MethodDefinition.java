@@ -3,9 +3,11 @@ package org.enso.interpreter.dsl.model;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.tools.Diagnostic;
 import java.util.*;
 
 /** A domain-specific representation of a builtin method. */
@@ -17,6 +19,8 @@ public class MethodDefinition {
   private final String className;
   private final String qualifiedName;
   private final BuiltinMethod annotation;
+  private final TypeElement element;
+  private final ExecutableElement executeMethod;
   private final List<ArgumentDefinition> arguments;
   private final Set<String> imports;
   private final boolean modifiesState;
@@ -31,8 +35,9 @@ public class MethodDefinition {
    * @param execute the element (method) containing the logic.
    */
   public MethodDefinition(String packageName, TypeElement element, ExecutableElement execute) {
-    annotation = element.getAnnotation(BuiltinMethod.class);
-
+    this.annotation = element.getAnnotation(BuiltinMethod.class);
+    this.element = element;
+    this.executeMethod = execute;
     this.originalClassName = element.getSimpleName().toString();
     this.packageName = packageName;
     this.className = generateClassName(originalClassName);
@@ -93,6 +98,28 @@ public class MethodDefinition {
       }
     }
     return args;
+  }
+
+  /**
+   * Checks the validity of this definition with respect to required properties.
+   *
+   * <p>Any invalid elements will be reported as errors.
+   *
+   * @param processingEnvironment the current processing environment.
+   * @return whether the definition is fully valid.
+   */
+  public boolean validate(ProcessingEnvironment processingEnvironment) {
+    boolean definesThis =
+        arguments.stream().anyMatch(arg -> arg.getName().equals("this") && arg.isPositional());
+    if (!definesThis) {
+      processingEnvironment
+          .getMessager()
+          .printMessage(
+              Diagnostic.Kind.ERROR,
+              "The execute method does not take `this` argument. At least one positional argument must be named `_this`.",
+              element);
+    }
+    return definesThis;
   }
 
   /** @return the package name this method was declared in. */
@@ -179,7 +206,7 @@ public class MethodDefinition {
       String[] typeNameSegments = type.toString().split("\\.");
       typeName = typeNameSegments[typeNameSegments.length - 1];
       String originalName = element.getSimpleName().toString();
-      name = originalName.equals("self") ? "this" : originalName;
+      name = originalName.equals("_this") ? "this" : originalName;
       isState = element.getAnnotation(MonadicState.class) != null && type.toString().equals(OBJECT);
       isFrame = type.toString().equals(VIRTUAL_FRAME);
       isCallerInfo = type.toString().equals(CALLER_INFO);

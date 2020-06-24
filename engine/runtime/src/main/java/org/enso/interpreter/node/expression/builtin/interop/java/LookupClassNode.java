@@ -14,9 +14,9 @@ public abstract class LookupClassNode extends Node {
   }
 
   @Specialization
-  Object doExecute(Object self, String name, @CachedContext(Language.class) Context ctx) {
+  Object doExecute(Object _this, String name, @CachedContext(Language.class) Context ctx) {
     return ctx.getEnvironment().lookupHostSymbol(name);
   }
 
-  abstract Object execute(Object self, String name);
+  abstract Object execute(Object _this, String name);
 }

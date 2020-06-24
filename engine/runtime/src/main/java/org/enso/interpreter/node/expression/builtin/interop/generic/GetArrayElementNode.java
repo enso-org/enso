@@ -18,7 +18,7 @@ public class GetArrayElementNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  Object execute(Object self, Object array, long index) {
+  Object execute(Object _this, Object array, long index) {
     try {
       return library.readArrayElement(array, index);
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {

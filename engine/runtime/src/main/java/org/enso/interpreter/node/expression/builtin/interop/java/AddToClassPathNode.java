@@ -20,10 +20,10 @@ public abstract class AddToClassPathNode extends Node {
   }
 
   @Specialization
-  Object doExecute(Object self, String path, @CachedContext(Language.class) Context context) {
+  Object doExecute(Object _this, String path, @CachedContext(Language.class) Context context) {
     context.getEnvironment().addToHostClassPath(context.getTruffleFile(new File(path)));
     return context.getBuiltins().unit();
   }
 
-  abstract Object execute(Object self, String path);
+  abstract Object execute(Object _this, String path);
 }

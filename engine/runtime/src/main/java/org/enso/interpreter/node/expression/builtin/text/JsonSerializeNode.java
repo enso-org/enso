@@ -8,7 +8,7 @@ import org.enso.interpreter.runtime.builtin.LanguageEntitySerializer;
 @BuiltinMethod(type = "Any", name = "json_serialize", description = "Generic JSON serialization.")
 public class JsonSerializeNode extends Node {
   @CompilerDirectives.TruffleBoundary
-  String execute(Object self) {
-    return LanguageEntitySerializer.serialize(self);
+  String execute(Object _this) {
+    return LanguageEntitySerializer.serialize(_this);
   }
 }

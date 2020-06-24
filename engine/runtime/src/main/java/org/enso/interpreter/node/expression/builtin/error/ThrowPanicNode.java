@@ -10,7 +10,7 @@ import org.enso.interpreter.runtime.state.Stateful;
     name = "throw",
     description = "Throws a new Panic with given payload.")
 public class ThrowPanicNode extends Node {
-  Stateful execute(Object self, Object payload) {
+  Stateful execute(Object _this, Object payload) {
     throw new PanicException(payload, this);
   }
 }

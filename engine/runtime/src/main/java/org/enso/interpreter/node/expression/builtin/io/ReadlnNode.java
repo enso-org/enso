@@ -12,13 +12,15 @@ import org.enso.interpreter.runtime.error.RuntimeError;
 
 @BuiltinMethod(type = "IO", name = "readln", description = "Reads a line from standard in.")
 public abstract class ReadlnNode extends Node {
-  static ReadlnNode build() { return ReadlnNodeGen.create(); }
+  static ReadlnNode build() {
+    return ReadlnNodeGen.create();
+  }
 
-  abstract Object execute(Object self);
+  abstract Object execute(Object _this);
 
   @Specialization
   @TruffleBoundary
-  Object doRead(Object self, @CachedContext(Language.class) Context ctx) {
+  Object doRead(Object _this, @CachedContext(Language.class) Context ctx) {
     try {
       return ctx.getIn().readLine();
     } catch (IOException e) {

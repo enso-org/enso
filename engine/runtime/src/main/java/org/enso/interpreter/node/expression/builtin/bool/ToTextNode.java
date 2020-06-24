@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(type = "Boolean", name = "to_text", description = "Boolean to text conversion.")
 public class ToTextNode extends Node {
-  String execute(boolean self) {
-    return self ? "True" : "False";
+  String execute(boolean _this) {
+    return _this ? "True" : "False";
   }
 }

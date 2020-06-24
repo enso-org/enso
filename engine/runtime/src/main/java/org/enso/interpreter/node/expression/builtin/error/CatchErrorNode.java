@@ -29,12 +29,12 @@ public class CatchErrorNode extends Node {
     this.invokeCallableNode.markTail();
   }
 
-  Stateful execute(VirtualFrame frame, @MonadicState Object state, Object self, Object handler) {
-    if (executionProfile.profile(TypesGen.isRuntimeError(self))) {
+  Stateful execute(VirtualFrame frame, @MonadicState Object state, Object _this, Object handler) {
+    if (executionProfile.profile(TypesGen.isRuntimeError(_this))) {
       return invokeCallableNode.execute(
-          handler, frame, state, new Object[] {TypesGen.asRuntimeError(self).getPayload()});
+          handler, frame, state, new Object[] {TypesGen.asRuntimeError(_this).getPayload()});
     } else {
-      return new Stateful(state, self);
+      return new Stateful(state, _this);
     }
   }
 }

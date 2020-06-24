@@ -18,7 +18,7 @@ public abstract class PrintErrNode extends Node {
     return PrintErrNodeGen.create();
   }
 
-  abstract Object execute(Object self, Object message);
+  abstract Object execute(Object _this, Object message);
 
   @Specialization
   @TruffleBoundary

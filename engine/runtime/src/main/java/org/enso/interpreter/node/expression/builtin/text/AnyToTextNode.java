@@ -7,7 +7,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 @BuiltinMethod(type = "Any", name = "to_text", description = "Generic text conversion.")
 public class AnyToTextNode extends Node {
   @CompilerDirectives.TruffleBoundary
-  String execute(Object self) {
-    return self.toString();
+  String execute(Object _this) {
+    return _this.toString();
   }
 }

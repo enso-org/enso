@@ -48,14 +48,18 @@ public class MethodProcessor extends AbstractProcessor {
                     () -> {
                       processingEnv
                           .getMessager()
-                          .printMessage(Diagnostic.Kind.ERROR, "No execute method found.");
+                          .printMessage(Diagnostic.Kind.ERROR, "No execute method found.", element);
                       return null;
                     });
-        if (executeMethod == null) return true;
+        if (executeMethod == null) continue;
         String pkgName =
             processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
+        MethodDefinition def = new MethodDefinition(pkgName, element, executeMethod);
+        if (!def.validate(processingEnv)) {
+          continue;
+        }
         try {
-          generateCode(new MethodDefinition(pkgName, element, executeMethod));
+          generateCode(def);
         } catch (IOException e) {
           e.printStackTrace();
         }

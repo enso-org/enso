@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(type = "Text", name = "+", description = "Text concatenation.")
 public class ConcatNode extends Node {
-  String execute(String self, String that) {
-    return self + that;
+  String execute(String _this, String that) {
+    return _this + that;
   }
 }

@@ -9,7 +9,7 @@ import org.enso.interpreter.dsl.MonadicState;
     name = "get",
     description = "Returns the current value of monadic state.")
 public class GetStateNode extends Node {
-  Object execute(@MonadicState Object state, Object self) {
+  Object execute(@MonadicState Object state, Object _this) {
     return state;
   }
 }

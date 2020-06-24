@@ -26,7 +26,7 @@ public class ExplicitCallFunctionNode extends Node {
     invokeCallableNode.markTail();
   }
 
-  Stateful execute(VirtualFrame frame, @MonadicState Object state, Function self) {
-    return invokeCallableNode.execute(self, frame, state, new Object[0]);
+  Stateful execute(VirtualFrame frame, @MonadicState Object state, Function _this) {
+    return invokeCallableNode.execute(_this, frame, state, new Object[0]);
   }
 }
