@@ -18,6 +18,7 @@ compilation. The build configuration is defined in
 - [Bootstrapping](#bootstrapping)
 - [Compile Hooks](#compile-hooks)
 - [Helper Tasks](#helper-tasks)
+  - [GraalVM version check](#graalvm-version-check)
   - [Benchmarks](#benchmarks)
   - [Build information](#build-information)
   - [Instruments generation](#instruments-generation)
@@ -86,6 +87,14 @@ and returns the result of `(Compile / compile).value`. An example of such a
 There are additional tasks defined in the [`project`](../../project) directory.
 They are used by [`build.sbt`](../../build.sbt) to provide some additional
 functionality.
+
+### GraalVM version check
+[`JVMCheck`](../../project/JVMCheck.scala) defines a helper function that can be
+attached to the default `Global / onLoad` state transition to run a version
+check when loading the sbt project. This helper function compares the version of
+JVM running sbt with GraalVM version defined in [`build.sbt`](../../build.sbt).
+If the versions do not match it reports an error telling the user to change to
+the correct version.
 
 ### Benchmarks
 [`BenchTasks`](../../project/BenchTasks.scala) defines configuration keys for
