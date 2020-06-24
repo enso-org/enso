@@ -150,7 +150,7 @@ public class MethodProcessor extends AbstractProcessor {
           methodDefinition.getArguments()) {
         if (!argumentDefinition.isState()) {
           callArgNames.add("arg" + argumentDefinition.getPosition());
-          genArgRead(out, argumentDefinition, methodDefinition.getDeclaredName(), "arguments");
+          generateArgumentRead(out, argumentDefinition, methodDefinition.getDeclaredName(), "arguments");
         } else {
           callArgNames.add("state");
         }
@@ -176,21 +176,21 @@ public class MethodProcessor extends AbstractProcessor {
     }
   }
 
-  private void genArgRead(
+  private void generateArgumentRead(
       PrintWriter out,
       MethodDefinition.ArgumentDefinition arg,
       String methodName,
       String argsArray) {
     if (!arg.requiresCast()) {
-      genUncastedArgRead(out, arg, argsArray);
+      generateUncastedArgumentRead(out, arg, argsArray);
     } else if (arg.getName().equals("this") && arg.getPosition() == 0) {
-      genUncheckedArgRead(out, arg, argsArray);
+      generateUncheckedArgumentRead(out, arg, argsArray);
     } else {
-      genCheckedArgRead(out, arg, methodName, argsArray);
+      generateCheckedArgumentRead(out, arg, methodName, argsArray);
     }
   }
 
-  private void genUncastedArgRead(
+  private void generateUncastedArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
     String varName = "arg" + arg.getPosition();
     out.println(
@@ -205,7 +205,7 @@ public class MethodProcessor extends AbstractProcessor {
             + "];");
   }
 
-  private void genUncheckedArgRead(
+  private void generateUncheckedArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
     String castName = "TypesGen.as" + capitalize(arg.getTypeName());
     String varName = "arg" + arg.getPosition();
@@ -223,7 +223,7 @@ public class MethodProcessor extends AbstractProcessor {
             + "]);");
   }
 
-  private void genCheckedArgRead(
+  private void generateCheckedArgumentRead(
       PrintWriter out,
       MethodDefinition.ArgumentDefinition arg,
       String methodName,
