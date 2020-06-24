@@ -22,7 +22,7 @@ case class StringMeasure(
     *
     * @return the number of lines.
     */
-  def linesCount: Int = fullLines + (if (endsInNewLine) 0 else 1)
+  def linesCount: Int = fullLines + 1
 }
 
 object StringMeasure {
