@@ -19,7 +19,7 @@ class SuggestionsDatabaseEventsProtocolTest
 
   "A suggestions database events binary protocol" must {
 
-    "add atom" taggedAs Retry() in {
+    "send atom add updates" taggedAs Retry() in {
       //given
       val client = newWsClient()
       client.send(createSessionInitCmd())
@@ -46,7 +46,7 @@ class SuggestionsDatabaseEventsProtocolTest
       payload.scope() shouldBe null
     }
 
-    "add method" taggedAs Retry() in {
+    "send method add updates" taggedAs Retry() in {
       //given
       val client = newWsClient()
       client.send(createSessionInitCmd())
@@ -74,7 +74,7 @@ class SuggestionsDatabaseEventsProtocolTest
       payload.scope() shouldBe null
     }
 
-    "add function" taggedAs Retry() in {
+    "send function add updates" taggedAs Retry() in {
       //given
       val client = newWsClient()
       client.send(createSessionInitCmd())
@@ -100,7 +100,7 @@ class SuggestionsDatabaseEventsProtocolTest
       compareScope(payload.scope(), suggestion.function.scope)
     }
 
-    "add local" taggedAs Retry() in {
+    "send local add updates" taggedAs Retry() in {
       //given
       val client = newWsClient()
       client.send(createSessionInitCmd())
@@ -126,7 +126,7 @@ class SuggestionsDatabaseEventsProtocolTest
       compareScope(payload.scope(), suggestion.local.scope)
     }
 
-    "send updates" taggedAs Retry() in {
+    "send modify updates" taggedAs Retry() in {
       //given
       val client = newWsClient()
       client.send(createSessionInitCmd())
@@ -165,7 +165,7 @@ class SuggestionsDatabaseEventsProtocolTest
       compareScope(payload.scope(), update.scope.get)
     }
 
-    "remove entries" taggedAs Retry() in {
+    "send remove updates" taggedAs Retry() in {
       //given
       val client = newWsClient()
       client.send(createSessionInitCmd())
