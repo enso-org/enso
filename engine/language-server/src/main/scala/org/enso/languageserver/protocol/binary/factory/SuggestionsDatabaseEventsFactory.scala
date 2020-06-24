@@ -16,6 +16,14 @@ import org.enso.searcher.Suggestion
 
 object SuggestionsDatabaseEventsFactory {
 
+  /**
+    * Creates a suggestions database update inside a [[FlatBufferBuilder]].
+    *
+    * @param update a suggestions database update
+    * @param builder a builder of a FlatBuffer object
+    * @return an offset pointing to the FlatBuffer representation of the created
+    *  object
+    */
   def create(
     update: SuggestionsDatabaseUpdate
   )(implicit builder: FlatBufferBuilder): Int =
@@ -28,6 +36,15 @@ object SuggestionsDatabaseEventsFactory {
         createSuggestionsDatabaseUpdateKindDelete(remove)
     }
 
+  /**
+    * Creates an add suggestions database update inside a
+    * [[FlatBufferBuilder]].
+    *
+    * @param add a suggestions database update
+    * @param builder a builder of a FlatBuffer object
+    * @return an offset pointing to the FlatBuffer representation of the created
+    *  object
+    */
   def createSuggestionsDatabaseUpdateKindAdd(
     add: SuggestionsDatabaseUpdate.Add
   )(implicit builder: FlatBufferBuilder): Int = {
@@ -72,6 +89,15 @@ object SuggestionsDatabaseEventsFactory {
     binary.SuggestionsDatabaseUpdate.endSuggestionsDatabaseUpdate(builder)
   }
 
+  /**
+    * Creates a modify suggestions database update inside a
+    * [[FlatBufferBuilder]].
+    *
+    * @param modify a suggestions database update
+    * @param builder a builder of a FlatBuffer object
+    * @return an offset pointing to the FlatBuffer representation of the created
+    *  object
+    */
   def createSuggestionsDatabaseUpdateKindUpdate(
     modify: SuggestionsDatabaseUpdate.Modify
   )(implicit builder: FlatBufferBuilder): Int = {
@@ -113,6 +139,15 @@ object SuggestionsDatabaseEventsFactory {
     binary.SuggestionsDatabaseUpdate.endSuggestionsDatabaseUpdate(builder)
   }
 
+  /**
+    * Creates a remove suggestions database update inside a
+    * [[FlatBufferBuilder]].
+    *
+    * @param remove a suggestions database update
+    * @param builder a builder of a FlatBuffer object
+    * @return an offset pointing to the FlatBuffer representation of the created
+    *  object
+    */
   def createSuggestionsDatabaseUpdateKindDelete(
     remove: SuggestionsDatabaseUpdate.Remove
   )(implicit builder: FlatBufferBuilder): Int = {
@@ -125,6 +160,14 @@ object SuggestionsDatabaseEventsFactory {
     binary.SuggestionsDatabaseUpdate.endSuggestionsDatabaseUpdate(builder)
   }
 
+  /**
+    * Creates a suggestion inside a [[FlatBufferBuilder]].
+    *
+    * @param suggestion a suggestion
+    * @param builder a builder of a FlatBuffer object
+    * @return an offset pointing to the FlatBuffer representation of the created
+    *  object
+    */
   def createSuggestion(
     suggestion: Suggestion
   )(implicit builder: FlatBufferBuilder): Int =
@@ -135,6 +178,14 @@ object SuggestionsDatabaseEventsFactory {
       case local: Suggestion.Local       => createSuggestionLocal(local)
     }
 
+  /**
+    * Creates a suggestion local inside a [[FlatBufferBuilder]].
+    *
+    * @param local a local suggestion
+    * @param builder a builder of a FlatBuffer object
+    * @return an offset pointing to the FlatBuffer representation of the created
+    *  object
+    */
   def createSuggestionLocal(
     local: Suggestion.Local
   )(implicit builder: FlatBufferBuilder): Int = {
@@ -147,6 +198,14 @@ object SuggestionsDatabaseEventsFactory {
     SuggestionEntryLocal.endSuggestionEntryLocal(builder)
   }
 
+  /**
+    * Creates a suggestion function inside a [[FlatBufferBuilder]].
+    *
+    * @param function a function suggestions
+    * @param builder a builder of a FlatBuffer object
+    * @return an offset pointing to the FlatBuffer representation of the created
+    *  object
+    */
   def createSuggestionFunction(
     function: Suggestion.Function
   )(implicit builder: FlatBufferBuilder): Int = {
@@ -163,6 +222,14 @@ object SuggestionsDatabaseEventsFactory {
     SuggestionEntryFunction.endSuggestionEntryFunction(builder)
   }
 
+  /**
+    * Creates a suggestion method inside a [[FlatBufferBuilder]].
+    *
+    * @param method a method suggestion
+    * @param builder a builder of a FlatBuffer object
+    * @return an offset pointing to the FlatBuffer representation of the created
+    *  object
+    */
   def createSuggestionMethod(
     method: Suggestion.Method
   )(implicit builder: FlatBufferBuilder): Int = {
@@ -184,6 +251,14 @@ object SuggestionsDatabaseEventsFactory {
     SuggestionEntryMethod.endSuggestionEntryMethod(builder)
   }
 
+  /**
+    * Creates a suggestion atom inside a [[FlatBufferBuilder]].
+    *
+    * @param atom an atom suggestion
+    * @param builder a builder of a FlatBuffer object
+    * @return an offset pointing to the FlatBuffer representation of the created
+    *  object
+    */
   def createSuggestionAtom(
     atom: Suggestion.Atom
   )(implicit builder: FlatBufferBuilder): Int = {
@@ -203,6 +278,14 @@ object SuggestionsDatabaseEventsFactory {
     SuggestionEntryAtom.endSuggestionEntryAtom(builder)
   }
 
+  /**
+    * Creates a suggestion argument inside a [[FlatBufferBuilder]].
+    *
+    * @param argument a suggestion argument
+    * @param builder a builder of a FlatBuffer object
+    * @return an offset pointing to the FlatBuffer representation of the created
+    *  object
+    */
   def createSuggestionArgument(
     argument: Suggestion.Argument
   )(implicit builder: FlatBufferBuilder): Int = {
@@ -220,6 +303,14 @@ object SuggestionsDatabaseEventsFactory {
     SuggestionEntryArgument.endSuggestionEntryArgument(builder)
   }
 
+  /**
+    * Creates a suggestion scope inside a [[FlatBufferBuilder]].
+    *
+    * @param scope a suggestion scope
+    * @param builder a builder of a FlatBuffer object
+    * @return an offset pointing to the FlatBuffer representation of the created
+    *  object
+    */
   def createScope(
     scope: Suggestion.Scope
   )(implicit builder: FlatBufferBuilder): Int = {

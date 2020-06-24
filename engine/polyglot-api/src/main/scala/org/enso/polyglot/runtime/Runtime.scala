@@ -151,6 +151,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.RuntimeServerShutDown],
         name  = "runtimeServerShutDown"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SuggestionsDatabaseUpdate],
+        name  = "suggestionsDatabaseUpdate"
       )
     )
   )

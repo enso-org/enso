@@ -29,6 +29,7 @@ object SuggestionsDatabaseEventsApi {
       * @param selfType the new self type of the suggestion
       * @param returnType the new return type of the suggestion
       * @param documentation the new documentation string
+      * @param scope the new scope
       */
     case class Modify(
       id: Long,
