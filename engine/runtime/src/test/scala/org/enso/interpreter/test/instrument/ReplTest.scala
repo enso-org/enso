@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.instrument
 
-import org.enso.interpreter.test.{InterpreterRunner, ValueEquality}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 import org.enso.polyglot.debugger.{
   DebugServerInfo,
   DebuggerSessionManagerEndpoint,
@@ -9,53 +9,19 @@ import org.enso.polyglot.debugger.{
   SessionManager
 }
 import org.graalvm.polyglot.Context
-import org.enso.polyglot.{LanguageInfo, PolyglotContext}
 import org.scalatest.{BeforeAndAfter, EitherValues}
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
 
-trait ReplRunner extends InterpreterRunner {
-  class ReplaceableSessionManager extends SessionManager {
-    var currentSessionManager: SessionManager = _
-    def setSessionManager(manager: SessionManager): Unit =
-      currentSessionManager = manager
+class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
 
-    override def startSession(executor: ReplExecutor): Nothing =
-      currentSessionManager.startSession(executor)
-  }
+  override def subject: String = "Repl"
 
-  private val sessionManager = new ReplaceableSessionManager
+  override def contextModifiers: Context#Builder => Context#Builder =
+    _.option(DebugServerInfo.ENABLE_OPTION, "true")
 
-  override val ctx = Context
-    .newBuilder(LanguageInfo.ID)
-    .allowExperimentalOptions(true)
-    .allowAllAccess(true)
-    .option(DebugServerInfo.ENABLE_OPTION, "true")
-    .out(output)
-    .err(err)
-    .in(in)
-    .serverTransport { (uri, peer) =>
-      if (uri.toString == DebugServerInfo.URI) {
-        new DebuggerSessionManagerEndpoint(sessionManager, peer)
-      } else null
-    }
-    .build()
+  override def specify(
+    implicit interpreterContext: InterpreterContext
+  ): Unit = {
 
-  override lazy val executionContext = new PolyglotContext(ctx)
-
-  def setSessionManager(manager: SessionManager): Unit =
-    sessionManager.setSessionManager(manager)
-}
-
-class ReplTest
-    extends AnyWordSpec
-    with Matchers
-    with BeforeAndAfter
-    with ValueEquality
-    with EitherValues
-    with ReplRunner {
-
-  "Repl" should {
     "initialize properly" in {
       val code =
         """

@@ -1,28 +1,34 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.InterpreterTest
+import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
 
 class FunctionSugarTest extends InterpreterTest {
+  override def subject: String = "Function Definition Sugar"
 
-  "Sugared function definitions" should "work" in {
-    val code =
-      """
-        |main =
-        |    f a b = a - b
-        |    f 10 20
-        |""".stripMargin
+  override def specify(
+    implicit interpreterContext: InterpreterContext
+  ): Unit = {
 
-    eval(code) shouldEqual -10
-  }
+    "work for local functions" in {
+      val code =
+        """
+          |main =
+          |    f a b = a - b
+          |    f 10 20
+          |""".stripMargin
 
-  "Sugared method definitions" should "work" in {
-    val code =
-      """
-        |Unit.foo a b = a * b - a
-        |
-        |main = Unit.foo 2 3
-        |""".stripMargin
+      eval(code) shouldEqual -10
+    }
 
-    eval(code) shouldEqual 4
+    "work for methods" in {
+      val code =
+        """
+          |Unit.foo a b = a * b - a
+          |
+          |main = Unit.foo 2 3
+          |""".stripMargin
+
+      eval(code) shouldEqual 4
+    }
   }
 }

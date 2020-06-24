@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.callable.argument;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import java.util.OptionalInt;
@@ -106,6 +107,7 @@ public class CallArgumentInfo {
      * @param callArgs the call site arguments schema
      * @return the generated argument mapping
      */
+    @CompilerDirectives.TruffleBoundary
     public static ArgumentMapping generate(FunctionSchema schema, CallArgumentInfo[] callArgs) {
       ArgumentMappingBuilder mapping = new ArgumentMappingBuilder(schema, callArgs);
       mapping.processArguments();

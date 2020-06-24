@@ -1,19 +1,20 @@
 package org.enso.interpreter.node.callable.dispatch;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.ImportStatic;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Constants;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ArgumentSorterNode;
+import org.enso.interpreter.node.callable.argument.IndirectArgumentSorterNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -27,7 +28,7 @@ import java.util.UUID;
  * positional order expected by the definition of the {@link Function}.
  */
 @NodeInfo(shortName = "ArgumentSorter")
-@ImportStatic({CallArgumentInfo.ArgumentMappingBuilder.class})
+@ImportStatic({CallArgumentInfo.ArgumentMappingBuilder.class, Constants.CacheSizes.class})
 public abstract class InvokeFunctionNode extends BaseNode {
 
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
@@ -62,13 +63,14 @@ public abstract class InvokeFunctionNode extends BaseNode {
   }
 
   @Specialization(
-      guards = "function.getSchema() == cachedSchema",
+      guards = {"!context.isCachingDisabled()", "function.getSchema() == cachedSchema"},
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
   Stateful invokeCached(
       Function function,
       VirtualFrame callerFrame,
       Object state,
       Object[] arguments,
+      @CachedContext(Language.class) Context context,
       @Cached("function.getSchema()") FunctionSchema cachedSchema,
       @Cached("generate(cachedSchema, getSchema())")
           CallArgumentInfo.ArgumentMapping argumentMapping,
@@ -81,7 +83,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
         mappingNode.execute(function, state, arguments);
     CallerInfo callerInfo = null;
     if (cachedSchema.getCallerFrameAccess().shouldFrameBePassed()) {
-      callerInfo = captureCallerInfoNode.execute(callerFrame);
+      callerInfo = captureCallerInfoNode.execute(callerFrame.materialize());
     }
     functionCallInstrumentationNode.execute(
         callerFrame, function, mappedArguments.getState(), mappedArguments.getSortedArguments());
@@ -106,28 +108,45 @@ public abstract class InvokeFunctionNode extends BaseNode {
    */
   @Specialization(replaces = "invokeCached")
   Stateful invokeUncached(
-      Function function, VirtualFrame callerFrame, Object state, Object[] arguments) {
+      Function function,
+      VirtualFrame callerFrame,
+      Object state,
+      Object[] arguments,
+      @Cached IndirectArgumentSorterNode mappingNode,
+      @Cached IndirectCurryNode curryNode) {
     CallArgumentInfo.ArgumentMapping argumentMapping =
         CallArgumentInfo.ArgumentMappingBuilder.generate(function.getSchema(), getSchema());
-    ArgumentSorterNode mappingNode =
-        ArgumentSorterNode.build(
-            function.getSchema(), argumentMapping, getArgumentsExecutionMode());
-    CurryNode curryNode =
-        CurryNode.build(
+
+    ArgumentSorterNode.MappedArguments mappedArguments =
+        mappingNode.execute(
             function.getSchema(),
             argumentMapping,
-            getDefaultsExecutionMode(),
             getArgumentsExecutionMode(),
-            isTail());
-    return invokeCached(
+            function,
+            state,
+            arguments);
+
+    CallerInfo callerInfo = null;
+
+    if (function.getSchema().getCallerFrameAccess().shouldFrameBePassed()) {
+      callerInfo = captureCallerInfoNode.execute(callerFrame.materialize());
+    }
+
+    functionCallInstrumentationNode.execute(
+        callerFrame, function, mappedArguments.getState(), mappedArguments.getSortedArguments());
+
+    return curryNode.execute(
+        callerFrame == null ? null : callerFrame.materialize(),
         function,
-        callerFrame,
-        state,
-        arguments,
+        callerInfo,
+        mappedArguments.getState(),
+        mappedArguments.getSortedArguments(),
+        mappedArguments.getOversaturatedArguments(),
         function.getSchema(),
-        argumentMapping,
-        mappingNode,
-        curryNode);
+        argumentMapping.getPostApplicationSchema(),
+        defaultsExecutionMode,
+        argumentsExecutionMode,
+        isTail());
   }
 
   /**

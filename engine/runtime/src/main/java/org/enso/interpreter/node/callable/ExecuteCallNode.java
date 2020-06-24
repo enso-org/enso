@@ -2,12 +2,15 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -33,15 +36,6 @@ public abstract class ExecuteCallNode extends Node {
   }
 
   /**
-   * Returns the uncached version of this node, for slow-path operations.
-   *
-   * @return the uncached instance of this node.
-   */
-  public static ExecuteCallNode buildUncached() {
-    return ExecuteCallNodeGen.getUncached();
-  }
-
-  /**
    * Calls the function directly.
    *
    * <p>This specialisation comes into play where the call target for the provided function is
@@ -62,7 +56,9 @@ public abstract class ExecuteCallNode extends Node {
       Object state,
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
-      @Cached("create(cachedTarget)") DirectCallNode callNode) {
+      @Cached("create(cachedTarget)") DirectCallNode callNode,
+      @CachedContext(Language.class) Context ctx) {
+    ctx.getThreadManager().poll();
     return (Stateful)
         callNode.call(
             Function.ArgumentsHelper.buildArguments(function, callerInfo, state, arguments));
@@ -87,7 +83,9 @@ public abstract class ExecuteCallNode extends Node {
       CallerInfo callerInfo,
       Object state,
       Object[] arguments,
-      @Cached IndirectCallNode callNode) {
+      @Cached IndirectCallNode callNode,
+      @CachedContext(Language.class) Context ctx) {
+    ctx.getThreadManager().poll();
     return (Stateful)
         callNode.call(
             function.getCallTarget(),

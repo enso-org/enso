@@ -16,6 +16,8 @@ import java.io.File;
 import org.enso.compiler.core.IR;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
+import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -303,7 +305,7 @@ public class Module implements TruffleObject {
         String member,
         Object[] arguments,
         @CachedContext(Language.class) Context context,
-        @Cached(value = "build()", allowUncached = true) CallOptimiserNode callOptimiserNode)
+        @Cached LoopingCallOptimiserNode callOptimiserNode)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       ModuleScope scope = module.parseScope(context);
       switch (member) {

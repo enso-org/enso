@@ -44,3 +44,5 @@ It is broken up into categories as follows:
 - [**Types:**](./types) A specification of Enso's type system and type theory.
 - [**Debugger:**](./debugger) A specification of Enso's debugger.
 - [**Parser:**](./parser) Design and specification of the Enso parser.
+- [**Infrastructure:**](./infrastructure) Description of the infrastructure for
+  building Enso.

@@ -1,15 +1,16 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
-import org.enso.interpreter.runtime.Builtins
-import org.enso.interpreter.test.InterpreterRunner
+import org.enso.interpreter.test.DefaultInterpreterRunner
+import org.enso.interpreter.runtime.builtin.Builtins
 import org.graalvm.polyglot.Value
 
-class AtomFixtures extends InterpreterRunner {
+class AtomFixtures extends DefaultInterpreterRunner {
   val million: Long = 1000000
 
   def buildInputList(length: Long): Value = {
     val builtins =
-      executionContext.getTopScope.getModule(Builtins.MODULE_NAME)
+      interpreterContext.executionContext.getTopScope
+        .getModule(Builtins.MODULE_NAME)
     val nil  = builtins.getConstructor("Nil")
     val cons = builtins.getConstructor("Cons")
     1L.to(length).foldLeft(nil.newInstance()) {
@@ -21,7 +22,7 @@ class AtomFixtures extends InterpreterRunner {
   val generateListCode =
     """
       |main = length ->
-      |    generator = acc -> i -> ifZero i acc (generator (Cons i acc) (i - 1))
+      |    generator = acc -> i -> if i == 0 then acc else generator (Cons i acc) (i - 1)
       |
       |    res = generator Nil length
       |    res

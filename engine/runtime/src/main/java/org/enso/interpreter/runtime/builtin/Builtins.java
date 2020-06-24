@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime;
+package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
@@ -17,14 +17,9 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDi
 import org.enso.interpreter.node.expression.builtin.io.PrintErrNode;
 import org.enso.interpreter.node.expression.builtin.io.PrintlnNode;
 import org.enso.interpreter.node.expression.builtin.io.ReadlnNode;
+import org.enso.interpreter.node.expression.builtin.number.*;
 import org.enso.interpreter.node.expression.builtin.system.NanoTimeNode;
 import org.enso.interpreter.node.expression.builtin.interop.java.*;
-import org.enso.interpreter.node.expression.builtin.number.AddNode;
-import org.enso.interpreter.node.expression.builtin.number.DivideNode;
-import org.enso.interpreter.node.expression.builtin.number.ModNode;
-import org.enso.interpreter.node.expression.builtin.number.MultiplyNode;
-import org.enso.interpreter.node.expression.builtin.number.NegateNode;
-import org.enso.interpreter.node.expression.builtin.number.SubtractNode;
 import org.enso.interpreter.node.expression.builtin.state.GetStateNode;
 import org.enso.interpreter.node.expression.builtin.state.PutStateNode;
 import org.enso.interpreter.node.expression.builtin.state.RunStateNode;
@@ -32,6 +27,8 @@ import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.node.expression.builtin.text.ConcatNode;
 import org.enso.interpreter.node.expression.builtin.text.JsonSerializeNode;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerNode;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
@@ -62,6 +59,7 @@ public class Builtins {
   private final AtomConstructor syntaxError;
   private final AtomConstructor compileError;
   private final AtomConstructor inexhaustivePatternMatchError;
+  private final Bool bool;
 
   private final RootCallTarget interopDispatchRoot;
   private final FunctionSchema interopDispatchSchema;
@@ -80,6 +78,7 @@ public class Builtins {
     unit = new AtomConstructor("Unit", scope).initializeFields();
     any = new AtomConstructor("Any", scope).initializeFields();
     number = new AtomConstructor("Number", scope).initializeFields();
+    bool = new Bool(language, scope);
     function = new AtomConstructor("Function", scope).initializeFields();
     text = new AtomConstructor("Text", scope).initializeFields();
     debug = new AtomConstructor("Debug", scope).initializeFields();
@@ -130,9 +129,10 @@ public class Builtins {
 
     scope.registerConstructor(java);
     scope.registerConstructor(thread);
-    scope.registerConstructor(createPolyglot(language));
 
-    scope.registerMethod(io, "println", PrintlnNode.makeFunction(language));
+    createPolyglot(language);
+
+    scope.registerMethod(io, "println", PrintlnNode.makeFunction(language, scope));
     scope.registerMethod(io, "print_err", PrintErrNode.makeFunction(language));
     scope.registerMethod(io, "readln", ReadlnNode.makeFunction(language));
 
@@ -150,6 +150,7 @@ public class Builtins {
     scope.registerMethod(number, "/", DivideNode.makeFunction(language));
     scope.registerMethod(number, "%", ModNode.makeFunction(language));
     scope.registerMethod(number, "negate", NegateNode.makeFunction(language));
+    scope.registerMethod(number, "==", EqualsNode.makeFunction(language));
 
     scope.registerMethod(state, "get", GetStateNode.makeFunction(language));
     scope.registerMethod(state, "put", PutStateNode.makeFunction(language));
@@ -185,8 +186,9 @@ public class Builtins {
     newInstanceFunction = ConstructorDispatchNode.makeFunction(language);
   }
 
-  private AtomConstructor createPolyglot(Language language) {
+  private void createPolyglot(Language language) {
     AtomConstructor polyglot = new AtomConstructor("Polyglot", scope).initializeFields();
+    scope.registerConstructor(polyglot);
     scope.registerMethod(polyglot, "execute", ExecuteNode.makeFunction(language));
     scope.registerMethod(polyglot, "invoke", InvokeNode.makeFunction(language));
     scope.registerMethod(polyglot, "new", InstantiateNode.makeFunction(language));
@@ -194,7 +196,6 @@ public class Builtins {
     scope.registerMethod(polyglot, "get_members", GetMembersNode.makeFunction(language));
     scope.registerMethod(polyglot, "get_array_size", GetArraySizeNode.makeFunction(language));
     scope.registerMethod(polyglot, "get_array_element", GetArrayElementNode.makeFunction(language));
-    return polyglot;
   }
 
   /**
@@ -231,6 +232,11 @@ public class Builtins {
    */
   public AtomConstructor number() {
     return number;
+  }
+
+  /** @return the Boolean part of builtins. */
+  public Bool bool() {
+    return bool;
   }
 
   /**

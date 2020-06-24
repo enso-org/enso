@@ -1,15 +1,15 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
-import org.enso.interpreter.test.InterpreterRunner
+import org.enso.interpreter.test.DefaultInterpreterRunner
 
-class NamedDefaultedArgumentFixtures extends InterpreterRunner {
+class NamedDefaultedArgumentFixtures extends DefaultInterpreterRunner {
   val hundredMillion: Long = 100000000
 
   val sumTCOWithNamedArgumentsCode =
     """
       |main = sumTo ->
       |    summator = acc -> current ->
-      |        ifZero current acc (summator (current = current - 1) (acc = acc + current))
+      |        if current == 0 then acc else summator (current = current - 1) (acc = acc + current)
       |
       |    res = summator current=sumTo acc=0
       |    res
@@ -20,7 +20,7 @@ class NamedDefaultedArgumentFixtures extends InterpreterRunner {
     """
       |main = sumTo ->
       |    summator = (acc = 0) -> current ->
-      |        ifZero current acc (summator (current = current - 1) (acc = acc + current))
+      |        if current == 0 then acc else summator (current = current - 1) (acc = acc + current)
       |
       |    res = summator (current = sumTo)
       |    res

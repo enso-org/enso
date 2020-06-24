@@ -26,6 +26,7 @@ import java.util.Optional;
  */
 @TypeSystem({
   long.class,
+  boolean.class,
   String.class,
   Function.class,
   Atom.class,

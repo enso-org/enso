@@ -354,7 +354,7 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
 
   }
 
-  "project/listRecent" must {
+  "project/list" must {
 
     "return a list sorted by creation time if none of projects was opened" in {
       implicit val client = new WsTestClient(address)
@@ -367,11 +367,9 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
-              "method": "project/listRecent",
+              "method": "project/list",
               "id": 0,
-              "params": {
-                "numberOfProjects": 5
-              }
+              "params": { }
             }
           """)
       //then
@@ -409,7 +407,7 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
-              "method": "project/listRecent",
+              "method": "project/list",
               "id": 0,
               "params": {
                 "numberOfProjects": 3

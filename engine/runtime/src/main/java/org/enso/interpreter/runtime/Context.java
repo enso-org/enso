@@ -13,6 +13,7 @@ import org.enso.compiler.Compiler;
 import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
@@ -38,6 +39,7 @@ public class Context {
   private final List<Package<TruffleFile>> packages;
   private final TopLevelScope topScope;
   private final ThreadManager threadManager;
+  private final boolean isCachingDisabled;
 
   /**
    * Creates a new Enso context.
@@ -52,6 +54,7 @@ public class Context {
     this.err = new PrintStream(environment.err());
     this.in = new BufferedReader(new InputStreamReader(environment.in()));
     this.threadManager = new ThreadManager();
+    this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     TruffleFileSystem fs = new TruffleFileSystem();
 
     packages = new ArrayList<>();
@@ -242,8 +245,7 @@ public class Context {
    * @return the relevant module, if exists.
    */
   public Optional<Module> getModuleForFile(File path) {
-    return getModuleNameForFile(path)
-        .flatMap(n -> getTopScope().getModule(n.toString()));
+    return getModuleNameForFile(path).flatMap(n -> getTopScope().getModule(n.toString()));
   }
 
   /**
@@ -316,5 +318,10 @@ public class Context {
   /** @return the thread manager for this context. */
   public ThreadManager getThreadManager() {
     return threadManager;
+  }
+
+  /** @return whether inline caches should be disabled for this context. */
+  public boolean isCachingDisabled() {
+    return isCachingDisabled;
   }
 }

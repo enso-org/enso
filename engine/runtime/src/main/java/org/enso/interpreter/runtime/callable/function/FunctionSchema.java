@@ -1,6 +1,8 @@
 package org.enso.interpreter.runtime.callable.function;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 
@@ -236,5 +238,26 @@ public class FunctionSchema {
    */
   public CallerFrameAccess getCallerFrameAccess() {
     return callerFrameAccess;
+  }
+
+  /**
+   * Checks whether the function is already fully applied.
+   *
+   * @param defaultsExecutionMode should defaulted arguments be taken as applied or not.
+   * @return whether or not the function is fully applied.
+   */
+  @CompilerDirectives.TruffleBoundary
+  public boolean isFullyApplied(InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode) {
+    boolean functionIsFullyApplied = true;
+    for (int i = 0; i < getArgumentsCount(); i++) {
+      boolean hasValidDefault = hasDefaultAt(i) && !defaultsExecutionMode.isIgnore();
+      boolean hasPreappliedArg = hasPreAppliedAt(i);
+
+      if (!(hasValidDefault || hasPreappliedArg)) {
+        functionIsFullyApplied = false;
+        break;
+      }
+    }
+    return functionIsFullyApplied;
   }
 }

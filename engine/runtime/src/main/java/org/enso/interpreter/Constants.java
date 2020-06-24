@@ -16,6 +16,6 @@ public class Constants {
     public static final String FUNCTION_INTEROP_LIBRARY = "10";
     public static final String THUNK_EXECUTOR_NODE = "10";
     public static final String EVAL_NODE = "10";
-    public static final int BUILTIN_INTEROP_DISPATCH = 3;
+    public static final int BUILTIN_INTEROP_DISPATCH = 10;
   }
 }

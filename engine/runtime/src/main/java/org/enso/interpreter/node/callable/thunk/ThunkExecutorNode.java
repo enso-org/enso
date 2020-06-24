@@ -1,6 +1,8 @@
 package org.enso.interpreter.node.callable.thunk;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.DirectCallNode;
@@ -14,7 +16,7 @@ import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** Node responsible for executing (forcing) thunks passed to it as runtime values. */
-@NodeField(name = "isTail", type = Boolean.class)
+@GenerateUncached
 public abstract class ThunkExecutorNode extends Node {
 
   ThunkExecutorNode() {}
@@ -22,11 +24,10 @@ public abstract class ThunkExecutorNode extends Node {
   /**
    * Creates an instance of this node.
    *
-   * @param isTail whether or not the thunk is being executed in a tail call position
    * @return an instance of this node
    */
-  public static ThunkExecutorNode build(boolean isTail) {
-    return ThunkExecutorNodeGen.create(isTail);
+  public static ThunkExecutorNode build() {
+    return ThunkExecutorNodeGen.create();
   }
 
   /**
@@ -34,11 +35,10 @@ public abstract class ThunkExecutorNode extends Node {
    *
    * @param thunk the thunk to force
    * @param state the state to pass to the thunk
+   * @param isTail is the execution happening in a tail-call position
    * @return the return value of this thunk
    */
-  public abstract Stateful executeThunk(Thunk thunk, Object state);
-
-  abstract boolean getIsTail();
+  public abstract Stateful executeThunk(Thunk thunk, Object state, boolean isTail);
 
   @Specialization(
       guards = "callNode.getCallTarget() == thunk.getCallTarget()",
@@ -46,10 +46,11 @@ public abstract class ThunkExecutorNode extends Node {
   Stateful doCached(
       Thunk thunk,
       Object state,
+      boolean isTail,
       @Cached("create(thunk.getCallTarget())") DirectCallNode callNode,
-      @Cached("createLoopingOptimizerIfNeeded()")
-          LoopingCallOptimiserNode loopingCallOptimiserNode) {
-    if (getIsTail()) {
+      @Cached LoopingCallOptimiserNode loopingCallOptimiserNode) {
+    CompilerAsserts.partialEvaluationConstant(isTail);
+    if (isTail) {
       return (Stateful) callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
     } else {
       try {
@@ -65,10 +66,10 @@ public abstract class ThunkExecutorNode extends Node {
   Stateful doUncached(
       Thunk thunk,
       Object state,
+      boolean isTail,
       @Cached IndirectCallNode callNode,
-      @Cached("createLoopingOptimizerIfNeeded()")
-          LoopingCallOptimiserNode loopingCallOptimiserNode) {
-    if (getIsTail()) {
+      @Cached LoopingCallOptimiserNode loopingCallOptimiserNode) {
+    if (isTail) {
       return (Stateful)
           callNode.call(
               thunk.getCallTarget(), Function.ArgumentsHelper.buildArguments(thunk, state));
@@ -82,9 +83,5 @@ public abstract class ThunkExecutorNode extends Node {
             e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
       }
     }
-  }
-
-  LoopingCallOptimiserNode createLoopingOptimizerIfNeeded() {
-    return getIsTail() ? null : LoopingCallOptimiserNode.build();
   }
 }

@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.dispatch;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -53,19 +54,41 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
    * @param loopNode a cached instance of the loop node used by this node
    * @return the result of executing {@code function} using {@code arguments}
    */
-  @Specialization
+  // TODO[MK]: Remove the guard when https://github.com/oracle/graal/pull/2567 is released.
+  //           Probably 20.2.
+  @Specialization(guards = "true")
   public Stateful dispatch(
       Object function,
       CallerInfo callerInfo,
       Object state,
       Object[] arguments,
-      @Cached(value = "createLoopNode()", allowUncached = true) LoopNode loopNode) {
+      @Cached(value = "createLoopNode()") LoopNode loopNode) {
     RepeatedCallNode repeatedCallNode = (RepeatedCallNode) loopNode.getRepeatingNode();
     VirtualFrame frame = repeatedCallNode.createFrame();
     repeatedCallNode.setNextCall(frame, function, callerInfo, state, arguments);
     loopNode.execute(frame);
 
     return repeatedCallNode.getResult(frame);
+  }
+
+  @Specialization(replaces = "dispatch")
+  @CompilerDirectives.TruffleBoundary
+  public Stateful uncachedDispatch(
+      Object function,
+      CallerInfo callerInfo,
+      Object state,
+      Object[] arguments,
+      @Cached ExecuteCallNode executeCallNode) {
+    while (true) {
+      try {
+        return executeCallNode.executeCall(function, callerInfo, state, arguments);
+      } catch (TailCallException e) {
+        function = e.getFunction();
+        callerInfo = e.getCallerInfo();
+        state = e.getState();
+        arguments = e.getArguments();
+      }
+    }
   }
 
   /**

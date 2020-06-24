@@ -60,7 +60,7 @@ public class ArgumentSorterNode extends BaseNode {
         new ThunkExecutorNode[mapping.getArgumentShouldExecute().length];
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (mapping.getArgumentShouldExecute()[i] && TypesGen.isThunk(arguments[i])) {
-        executors[i] = insert(ThunkExecutorNode.build(false));
+        executors[i] = insert(ThunkExecutorNode.build());
       }
     }
     this.executors = executors;
@@ -82,7 +82,7 @@ public class ArgumentSorterNode extends BaseNode {
     }
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (executors[i] != null) {
-        Stateful result = executors[i].executeThunk(TypesGen.asThunk(arguments[i]), state);
+        Stateful result = executors[i].executeThunk(TypesGen.asThunk(arguments[i]), state, false);
         arguments[i] = result.getValue();
         state = result.getState();
       }
@@ -108,47 +108,6 @@ public class ArgumentSorterNode extends BaseNode {
       oversaturatedArguments = generateOversaturatedArguments(function, arguments);
     }
     return new MappedArguments(state, mappedAppliedArguments, oversaturatedArguments);
-  }
-
-  public static class MappedArguments {
-    private final Object state;
-    private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] sortedArguments;
-    private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[]
-        oversaturatedArguments;
-
-    private MappedArguments(
-        Object state, Object[] sortedArguments, Object[] oversaturatedArguments) {
-      this.state = state;
-      this.sortedArguments = sortedArguments;
-      this.oversaturatedArguments = oversaturatedArguments;
-    }
-
-    /**
-     * Gets the monadic state resulting from computing the arguments.
-     *
-     * @return the current monadic state.
-     */
-    public Object getState() {
-      return state;
-    }
-
-    /**
-     * Gets the reordered and pre-executed arguments, ready to pass to a function.
-     *
-     * @return the sorted and executed arguments.
-     */
-    public Object[] getSortedArguments() {
-      return sortedArguments;
-    }
-
-    /**
-     * Gets the left over (not expected by the current function) arguments.
-     *
-     * @return a collection of left over arguments.
-     */
-    public Object[] getOversaturatedArguments() {
-      return oversaturatedArguments;
-    }
   }
 
   private Object[] prepareArguments(Function function, Object[] arguments) {
@@ -188,5 +147,46 @@ public class ArgumentSorterNode extends BaseNode {
         arguments, oversaturatedArguments, preApplicationSchema.getOversaturatedArguments().length);
 
     return oversaturatedArguments;
+  }
+
+  public static class MappedArguments {
+    private final Object state;
+    private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] sortedArguments;
+    private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[]
+        oversaturatedArguments;
+
+    public MappedArguments(
+        Object state, Object[] sortedArguments, Object[] oversaturatedArguments) {
+      this.state = state;
+      this.sortedArguments = sortedArguments;
+      this.oversaturatedArguments = oversaturatedArguments;
+    }
+
+    /**
+     * Gets the monadic state resulting from computing the arguments.
+     *
+     * @return the current monadic state.
+     */
+    public Object getState() {
+      return state;
+    }
+
+    /**
+     * Gets the reordered and pre-executed arguments, ready to pass to a function.
+     *
+     * @return the sorted and executed arguments.
+     */
+    public Object[] getSortedArguments() {
+      return sortedArguments;
+    }
+
+    /**
+     * Gets the left over (not expected by the current function) arguments.
+     *
+     * @return a collection of left over arguments.
+     */
+    public Object[] getOversaturatedArguments() {
+      return oversaturatedArguments;
+    }
   }
 }

@@ -22,8 +22,8 @@ public class WithInterruptHandlerNode extends BuiltinRootNode {
     super(language);
   }
 
-  private @Child ThunkExecutorNode actExecutorNode = ThunkExecutorNode.build(false);
-  private @Child ThunkExecutorNode handlerExecutorNode = ThunkExecutorNode.build(false);
+  private @Child ThunkExecutorNode actExecutorNode = ThunkExecutorNode.build();
+  private @Child ThunkExecutorNode handlerExecutorNode = ThunkExecutorNode.build();
 
   /**
    * Executes the function.
@@ -38,9 +38,9 @@ public class WithInterruptHandlerNode extends BuiltinRootNode {
         (Thunk) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[2];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
-      return actExecutorNode.executeThunk(act, state);
+      return actExecutorNode.executeThunk(act, state, false);
     } catch (ThreadInterruptedException e) {
-      handlerExecutorNode.executeThunk(handler, state);
+      handlerExecutorNode.executeThunk(handler, state, false);
       throw e;
     }
   }

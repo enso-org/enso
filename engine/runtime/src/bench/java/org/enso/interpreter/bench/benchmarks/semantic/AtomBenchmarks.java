@@ -2,7 +2,7 @@ package org.enso.interpreter.bench.benchmarks.semantic;
 
 import java.util.concurrent.TimeUnit;
 import org.enso.interpreter.bench.fixtures.semantic.AtomFixtures;
-import org.enso.interpreter.test.InterpreterRunner;
+import org.enso.interpreter.test.DefaultInterpreterRunner;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -21,11 +21,11 @@ public class AtomBenchmarks {
 
   @Benchmark
   public void benchGenerateList() {
-    InterpreterRunner.MainMethod main = fixtures.generateList();
+    DefaultInterpreterRunner.MainMethod main = fixtures.generateList();
     main.mainFunction().value().execute(main.mainConstructor(), fixtures.million());
   }
 
-  private void benchOnList(InterpreterRunner.MainMethod main) {
+  private void benchOnList(DefaultInterpreterRunner.MainMethod main) {
     main.mainFunction().value().execute(main.mainConstructor(), fixtures.millionElementList());
   }
 

@@ -102,9 +102,9 @@ public abstract class EvalNode extends BaseNode {
       @Cached(
               "parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(), expression)")
           RootCallTarget cachedCallTarget,
-      @Cached("build(isTail())") ThunkExecutorNode thunkExecutorNode) {
+      @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     Thunk thunk = new Thunk(cachedCallTarget, callerInfo.getFrame());
-    return thunkExecutorNode.executeThunk(thunk, state);
+    return thunkExecutorNode.executeThunk(thunk, state, isTail());
   }
 
   @Specialization
@@ -112,10 +112,10 @@ public abstract class EvalNode extends BaseNode {
       CallerInfo callerInfo,
       Object state,
       String expression,
-      @Cached("build(isTail())") ThunkExecutorNode thunkExecutorNode) {
+      @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     RootCallTarget callTarget =
         parseExpression(callerInfo.getLocalScope(), callerInfo.getModuleScope(), expression);
     Thunk thunk = new Thunk(callTarget, callerInfo.getFrame());
-    return thunkExecutorNode.executeThunk(thunk, state);
+    return thunkExecutorNode.executeThunk(thunk, state, isTail());
   }
 }

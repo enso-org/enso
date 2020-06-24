@@ -570,6 +570,17 @@ lazy val `core-definition` = (project in file("lib/core-definition"))
   .dependsOn(graph)
   .dependsOn(syntax.jvm)
 
+lazy val searcher = project
+  .in(file("lib/searcher"))
+  .configs(Test)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.typesafe.slick" %% "slick"       % "3.3.2",
+      "org.xerial"          % "sqlite-jdbc" % "3.31.1",
+      "org.scalatest"      %% "scalatest"   % scalatestVersion % Test,
+    )
+  )
+
 // ============================================================================
 // === Sub-Projects ===========================================================
 // ============================================================================
@@ -746,6 +757,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(graph)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
+  .dependsOn(`searcher`)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~

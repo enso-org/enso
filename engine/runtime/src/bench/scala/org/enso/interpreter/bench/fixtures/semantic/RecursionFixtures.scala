@@ -1,18 +1,18 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
-import org.enso.interpreter.test.InterpreterRunner
+import org.enso.interpreter.test.DefaultInterpreterRunner
 
-class RecursionFixtures extends InterpreterRunner {
+class RecursionFixtures extends DefaultInterpreterRunner {
   val hundredMillion: Long = 100000000
   val million: Long        = 1000000
   val thousand: Long       = 1000
-  val hundred: Long        = 99
+  val hundred: Long        = 100
 
   val sumTCOCode =
     """
       |main = sumTo ->
       |    summator = acc -> current ->
-      |        ifZero current acc (summator acc+current current-1)
+      |        if current == 0 then acc else summator acc+current current-1
       |
       |    res = summator 0 sumTo
       |    res
@@ -23,7 +23,7 @@ class RecursionFixtures extends InterpreterRunner {
     """
       |main = sumTo ->
       |    summator = acc -> i -> f ->
-      |        ifZero i acc (summator (f acc i) (i - 1) f)
+      |        if i == 0 then acc else summator (f acc i) (i - 1) f
       |    res = summator 0 sumTo (x -> y -> x + y)
       |    res
       |""".stripMargin
@@ -32,7 +32,7 @@ class RecursionFixtures extends InterpreterRunner {
   val sumRecursiveCode =
     """
       |main = sumTo ->
-      |    summator = i -> ifZero i 0 (i + summator (i - 1))
+      |    summator = i -> if i == 0 then 0 else i + summator (i - 1)
       |    res = summator sumTo
       |    res
     """.stripMargin
@@ -42,7 +42,7 @@ class RecursionFixtures extends InterpreterRunner {
     """
       |main = sumTo ->
       |    summator = acc -> i -> f ->
-      |        ifZero i acc (summator (f acc i) (i - 1) f)
+      |        if i == 0 then acc else summator (f acc i) (i - 1) f
       |    res = summator 0 sumTo (x -> y -> x + y)
       |    res
       |""".stripMargin
@@ -54,7 +54,7 @@ class RecursionFixtures extends InterpreterRunner {
       |    stateSum = n ->
       |        acc = State.get
       |        State.put (acc + n)
-      |        ifZero n State.get (stateSum (n - 1))
+      |        if n == 0 then State.get else stateSum (n - 1)
       |
       |    State.put 0
       |    res = stateSum sumTo
@@ -66,7 +66,7 @@ class RecursionFixtures extends InterpreterRunner {
     """
       |main = sumTo ->
       |    summator = acc -> current ->
-      |        ifZero current acc (Debug.eval "summator (acc + current) (current - 1)")
+      |        if current == 0 then acc else Debug.eval "summator (acc + current) (current - 1)"
       |
       |    res = summator 0 sumTo
       |    res
@@ -78,7 +78,7 @@ class RecursionFixtures extends InterpreterRunner {
       |main = n ->
       |    doNTimes = n -> ~block ->
       |        block
-      |        ifZero n-1 Unit (doNTimes n-1 block)
+      |        if n == 1 then Unit else doNTimes n-1 block
       |
       |    block =
       |        x = State.get

@@ -557,8 +557,15 @@ class IrToTruffle(
                   )
                 )
               } else {
-                val branchNode =
-                  ConstructorBranchNode.build(atomCons, branchCodeNode)
+                val bool = context.getBuiltins.bool()
+                val branchNode: BranchNode =
+                  if (atomCons == bool.getTrue) {
+                    BooleanBranchNode.build(true, branchCodeNode)
+                  } else if (atomCons == bool.getFalse) {
+                    BooleanBranchNode.build(false, branchCodeNode)
+                  } else {
+                    ConstructorBranchNode.build(atomCons, branchCodeNode)
+                  }
                 branchNode.setTail(branchIsTail)
 
                 Right(branchNode)
