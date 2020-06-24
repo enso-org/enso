@@ -70,4 +70,15 @@ class EditorOpsSpec extends AnyFlatSpec with Matchers with EitherValues {
     result.map(_.toString) mustBe Right("foo123")
   }
 
+  it should "be able to insert changes to the empty buffer" in {
+    //given
+    val codeToEdit = Rope("")
+    val range = Range(Position(0,0), Position(0, 0))
+    val diff = TextEdit(range, "foo")
+    //when
+    val result = EditorOps.applyEdits(codeToEdit, Seq(diff))
+    //then
+    result.map(_.toString) mustBe Right("foo")
+  }
+
 }
