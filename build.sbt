@@ -15,6 +15,7 @@ import scala.sys.process._
 
 val scalacVersion = "2.13.3"
 val graalVersion  = "20.1.0"
+val javaVersion   = "11"
 val ensoVersion   = "0.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
@@ -728,9 +729,10 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / javaOptions ++= Seq(
         "-Dgraalvm.locatorDisabled=true"
       ),
-    bootstrap := {
-      CopyTruffleJAR.bootstrapJARs.value
-    }
+    bootstrap := CopyTruffleJAR.bootstrapJARs.value,
+    Global / onLoad := JVMCheck.addVersionCheck(graalVersion, javaVersion)(
+        (Global / onLoad).value
+      )
   )
   .settings(
     (Compile / javacOptions) ++= Seq(

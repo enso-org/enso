@@ -2,8 +2,6 @@ import sbt.Keys._
 import sbt._
 import sbt.internal.util.ManagedLogger
 
-import scala.io.AnsiColor
-
 object CopyTruffleJAR {
 
   /**
@@ -46,8 +44,7 @@ object CopyTruffleJAR {
     * terminated, because a restart is required.
     */
   lazy val preCompileTask = Def.task {
-    val log          = streams.value.log
-    val currentState = state.value
+    val log = streams.value.log
     if (
       ensureTruffleJARUpToDate(
         baseDirectory.value,
@@ -75,7 +72,6 @@ object CopyTruffleJAR {
       System.out.flush()
       System.err.flush()
       System.exit(0)
-      // Command.process("exit", currentState)
     }
   }
 
