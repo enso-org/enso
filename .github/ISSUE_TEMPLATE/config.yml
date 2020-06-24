@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Issues with the IDE?
-    url: https://github.com/luna/ide/issues/new/choose
+    url: https://github.com/enso-org/ide/issues/new/choose
     about: Please report problems with the IDE here.

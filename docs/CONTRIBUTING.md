@@ -45,8 +45,8 @@ so you will only have to sign it once at the start of your contributions.
 If you're wanting to get involved with Enso's development and are looking for
 somewhere to start, you can check out the following tags in our issues:
 
-- [Good First Issue](https://github.com/luna/enso/labels/Status%3A%20Good%20First%20Issue)
-- [Help Wanted](https://github.com/luna/enso/labels/Status%3A%20Help%20Wanted)
+- [Good First Issue](https://github.com/enso-org/enso/labels/Status%3A%20Good%20First%20Issue)
+- [Help Wanted](https://github.com/enso-org/enso/labels/Status%3A%20Help%20Wanted)
 
 You can use the "Size" and "Difficulty" labels that should be assigned to every
 issue to get a better idea of how much work a given issue might be.
@@ -62,7 +62,7 @@ language, the compiler, and the runtime in a way that ensures that they get
 seen and discussed by all the major stakeholders involved.
 
 If, on the other hand, you're asking for a smaller feature, please feel free to
-submit a [feature request](https://github.com/luna/enso/issues/new?assignees=&labels=Type%3A+Enhancement&template=feature-request.md&title=)
+submit a [feature request](https://github.com/enso-org/enso/issues/new?assignees=&labels=Type%3A+Enhancement&template=feature-request.md&title=)
 to the repository.
 
 ## Bug Reports
@@ -76,13 +76,13 @@ users of Enso, please look at our [security guidelines](./SECURITY.md).**
 
 Even though GitHub search can be a bit hard to use sometimes, we'd appreciate if
 you could
-[search](https://github.com/luna/enso/search?q=&type=Issues&utf8=%E2%9C%93) for
+[search](https://github.com/enso-org/enso/search?q=&type=Issues&utf8=%E2%9C%93) for
 your issue before filing a bug as it's possible that someone else has already
 reported the issue. We know the search isn't the best, and it can be hard to
 know what to search for, so we really don't mind if you do submit a duplicate!
 
 Opening an issue is as easy as following
-[this link](https://github.com/luna/enso/issues/new?template=bug-report.md)
+[this link](https://github.com/enso-org/enso/issues/new?template=bug-report.md)
 and filling out the fields. The template is intended to collect all the
 information we need to best diagnose the issue, so please take the time to fill
 it out accurately.
@@ -137,7 +137,7 @@ inkling where to look!. You can clone Enso using two methods:
   read-only.
 
 ```
-git clone https://github.com/luna/enso.git
+git clone https://github.com/enso-org/enso.git
 ```
 
 - **Via SSH:** For those who plan on regularly making direct commits, cloning
@@ -145,7 +145,7 @@ git clone https://github.com/luna/enso.git
   SSH Keys with GitHub).
 
 ```
-git clone git@github.com:luna/enso.git
+git clone git@github.com:enso-org/enso.git
 ```
 
 ### Building Enso
@@ -259,7 +259,7 @@ performance, so it is not part of our roadmap currently.
 If you would like to experiment with it, you can execute the `buildNativeImage`
 command in the sbt shell while inside the `runner` project. Please note
 that while the command is available at the moment, and you are welcome to
-[report an issue](https://github.com/luna/enso/issues/new?assignees=&labels=Type%3A+Bug&template=bug-report.md&title=)
+[report an issue](https://github.com/enso-org/enso/issues/new?assignees=&labels=Type%3A+Bug&template=bug-report.md&title=)
 with the functionality, any bugs you report will _not_ be considered high
 priority.
 
@@ -333,7 +333,7 @@ filing an issue with us.
   above for instructions.
 
 If your problem was not listed above, please
-[file a bug report](https://github.com/luna/enso/issues/new?assignees=&labels=Type%3A+Bug&template=bug-report.md&title=)
+[file a bug report](https://github.com/enso-org/enso/issues/new?assignees=&labels=Type%3A+Bug&template=bug-report.md&title=)
 in our issue tracker and we will get back to you as soon as possible.
 
 ### Running Enso
@@ -426,7 +426,7 @@ Documentation pull requests will be reviewed in exactly the same way as normal
 pull requests.
 
 To find documentation-related issues, sort by the
-[Category: Documentation](hhttps://github.com/luna/enso/labels/Category%3A%20Documentation)
+[Category: Documentation](hhttps://github.com/enso-org/enso/labels/Category%3A%20Documentation)
 label.
 
 ## Issue Triage
@@ -436,25 +436,25 @@ times, a bug might go stale because something has changed in the meantime.
 It can be helpful to go through older bug reports and make sure that they are
 still valid. Load up an older issue, double check that it's still true, and
 leave a comment letting us know if it is or is not. The
-[least recently updated](https://github.com/luna/enso/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-asc)
+[least recently updated](https://github.com/enso-org/enso/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-asc)
 sort is good for finding issues like this.
 
 Contributors with sufficient permissions can help by adding labels to help with
 issue triage.
 
 If you're looking for somewhere to start, take a look at the
-[Difficulty: Beginner](https://github.com/luna/enso/labels/Difficulty%3A%20Beginner)
+[Difficulty: Beginner](https://github.com/enso-org/enso/labels/Difficulty%3A%20Beginner)
 issue label, as well as the
-[Status: Help Wanted](https://github.com/luna/enso/labels/Status%3A%20Help%20Wanted)
+[Status: Help Wanted](https://github.com/enso-org/enso/labels/Status%3A%20Help%20Wanted)
 and
-[Status: Good First Issue](https://github.com/luna/enso/labels/Status%3A%20Good%20First%20Issue) labels.
+[Status: Good First Issue](https://github.com/enso-org/enso/labels/Status%3A%20Good%20First%20Issue) labels.
 
 ## Out-of-Tree Contributions
 As helpful as contributing to Enso directly is, it can also be just as helpful
 to contribute in other ways outside this repository:
 
 - Answer questions in the [Discord](https://chat.luna-lang.org) or on
-  [StackOverflow](https://stackoverflow.com/questions/tagged/luna).
+  [StackOverflow](https://stackoverflow.com/questions/tagged/enso).
 
 ## Helpful Documentation and Links
 For people new to Enso, and just starting to contribute, or even for more

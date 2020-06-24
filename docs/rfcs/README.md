@@ -93,7 +93,7 @@ The process for creating an RFC can be outlined as follows:
    about the drawbacks or alternatives are likely to meet a poor reception. One
    of the key points for considering RFCs is how they fit with the vision for
    Enso as a whole.
-4. Submit a [Pull Request](https://github.com/luna/enso/pulls). Please give
+4. Submit a [Pull Request](https://github.com/enso-org/enso/pulls). Please give
    the PR a descriptive title (`RFC: My Feature`). The Pull Request will be
    open for feedback and discussion from the community and core team, and the
    author should be open to revising it in response to this feedback. The RFC
@@ -160,7 +160,7 @@ and from the old.
 Some accepted RFCs are vital features that need to be implemented as soon as
 possible, while others can wait until a so-inclined developer comes along. Every
 accepted RFC is assigned a tracking issue in the
-[Luna](https://github.com/luna/enso/) repository, and is then assigned a
+[Enso](https://github.com/enso-org/enso/) repository, and is then assigned a
 priority via the Enso repository triage process.
 
 The author of an RFC is not obligated to implement it. Of course, the RFC author
