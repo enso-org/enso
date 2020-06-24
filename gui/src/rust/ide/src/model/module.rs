@@ -1,7 +1,7 @@
 //! This module contains all structures which describes Module state (code, ast, metadata).
 use crate::prelude::*;
 
-use crate::constants::LANGUAGE_FILE_DOT_EXTENSION;
+use crate::constants::LANGUAGE_FILE_EXTENSION;
 use crate::constants::SOURCE_DIRECTORY;
 use crate::controller::FilePath;
 use crate::double_representation::definition::DefinitionInfo;
@@ -83,7 +83,7 @@ impl Path {
             let path = file_path.clone();
             move || InvalidModulePath {path,issue}
         };
-        let correct_extension = file_path.extension() == Some(constants::LANGUAGE_FILE_EXTENSION);
+        let correct_extension = file_path.extension() == Some(LANGUAGE_FILE_EXTENSION);
         correct_extension.ok_or_else(error(WrongFileExtension))?;
         let file_name       = file_path.file_name().ok_or_else(error(ContainsNoSegments))?;
         let name_first_char = file_name.chars().next().ok_or_else(error(ContainsEmptySegment))?;
@@ -102,7 +102,8 @@ impl Path {
         let mut segments : Vec<String> = vec![SOURCE_DIRECTORY.into()];
         segments.extend(name_segments.into_iter().map(|segment| segment.as_ref().to_string()));
         let module_file = segments.last_mut().ok_or(EmptyQualifiedName)?;
-        module_file.push_str(LANGUAGE_FILE_DOT_EXTENSION);
+        module_file.push('.');
+        module_file.push_str(LANGUAGE_FILE_EXTENSION);
         let file_path = FilePath {root_id,segments} ;
         Ok(Path {file_path})
     }
@@ -116,7 +117,7 @@ impl Path {
     ///
     /// E.g. "Main" -> "Main.enso"
     pub fn name_to_file_name(name:impl Str) -> String {
-        format!("{}.{}",name.as_ref(),constants::LANGUAGE_FILE_EXTENSION)
+        format!("{}.{}",name.as_ref(),LANGUAGE_FILE_EXTENSION)
     }
 
     /// Get the module name from path.

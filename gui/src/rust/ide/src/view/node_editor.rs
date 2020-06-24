@@ -130,13 +130,14 @@ impl GraphEditorIntegratedWithController {
 
 #[derive(Debug)]
 struct GraphEditorIntegratedWithControllerModel {
-    logger           : Logger,
-    editor           : GraphEditor,
-    controller       : controller::ExecutedGraph,
-    node_views       : RefCell<BiMap<ast::Id,graph_editor::NodeId>>,
-    expression_views : RefCell<HashMap<graph_editor::NodeId,String>>,
-    connection_views : RefCell<BiMap<controller::graph::Connection,graph_editor::EdgeId>>,
-    visualizations   : SharedHashMap<graph_editor::NodeId,VisualizationId>,
+    logger             : Logger,
+    editor             : GraphEditor,
+    controller         : controller::ExecutedGraph,
+    project_controller : controller::Project,
+    node_views         : RefCell<BiMap<ast::Id,graph_editor::NodeId>>,
+    expression_views   : RefCell<HashMap<graph_editor::NodeId,String>>,
+    connection_views   : RefCell<BiMap<controller::graph::Connection,graph_editor::EdgeId>>,
+    visualizations     : SharedHashMap<graph_editor::NodeId,VisualizationId>,
 }
 
 
@@ -144,8 +145,12 @@ struct GraphEditorIntegratedWithControllerModel {
 
 impl GraphEditorIntegratedWithController {
     /// Constructor. It creates GraphEditor and integrates it with given controller handle.
-    pub fn new(logger:Logger, app:&Application, controller:controller::ExecutedGraph) -> Self {
-        let model       = GraphEditorIntegratedWithControllerModel::new(logger,app,controller);
+    pub fn new
+    ( logger     : Logger
+    , app        : &Application
+    , controller : controller::ExecutedGraph
+    , project    : controller::Project) -> Self {
+        let model = GraphEditorIntegratedWithControllerModel::new(logger,app,controller,project);
         let model       = Rc::new(model);
         let editor_outs = &model.editor.frp.outputs;
         frp::new_network! {network
@@ -229,14 +234,20 @@ impl GraphEditorIntegratedWithController {
 }
 
 impl GraphEditorIntegratedWithControllerModel {
-    fn new(logger:Logger, app:&Application, controller:controller::ExecutedGraph) -> Self {
+    fn new
+    ( logger     : Logger
+    , app        : &Application
+    , controller : controller::ExecutedGraph
+    , project    : controller::Project) -> Self {
         let editor           = app.views.new::<GraphEditor>();
         let node_views       = default();
         let connection_views = default();
         let expression_views = default();
         let visualizations   = default();
         let this = GraphEditorIntegratedWithControllerModel {editor,controller,node_views,
-            expression_views,connection_views,logger,visualizations};
+            expression_views,connection_views,logger,visualizations,
+            project_controller: project
+        };
 
         if let Err(err) = this.update_graph_view() {
             error!(this.logger,"Error while initializing graph editor: {err}");
@@ -496,14 +507,13 @@ impl GraphEditorIntegratedWithControllerModel {
 
         // TODO [mwu]
         //   Currently it is not possible to:
-        //    * use other project name than the default;
         //    * enter other module than the initial (namely, "Main")
         //    * describe that visualization's expression wishes to be evaluated in any other
         //      context.
         //   Because of that for now we will just hardcode the `visualization_module` using
         //   fixed defaults. In future this will be changed, then the editor will also get access
         //   to the customised values.
-        let project_name         = crate::DEFAULT_PROJECT_NAME;
+        let project_name         = self.project_controller.project_name.as_ref();
         let module_name          = crate::view::project::INITIAL_MODULE_NAME;
         let visualisation_module = QualifiedName::from_module_segments(&[module_name],project_name);
         let id                   = VisualizationId::new_v4();
@@ -648,14 +658,15 @@ impl NodeEditor {
     ( logger        : impl AnyLogger
     , app           : &Application
     , controller    : controller::ExecutedGraph
+    , project       : controller::Project
     , visualization : controller::Visualization) -> FallibleResult<Self> {
         let logger         = Logger::sub(logger,"NodeEditor");
-        info!(logger, "Created.");
         let display_object = display::object::Instance::new(&logger);
         let graph          = GraphEditorIntegratedWithController::new(logger.clone_ref(),app,
-            controller.clone_ref());
-        let graph          = Rc::new(graph);
+            controller.clone_ref(),project);
+        let graph = Rc::new(graph);
         display_object.add_child(&graph.model.editor);
+        info!(logger, "Created.");
         Ok(NodeEditor {logger,display_object,graph,controller,visualization}.init().await?)
     }
 

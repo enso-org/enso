@@ -66,7 +66,7 @@ async fn file_operations() {
     let ws        = WebSocket::new_opened(default(),SERVER_ENDPOINT).await;
     let ws        = ws.expect("Couldn't connect to WebSocket server.");
     let client    = Client::new(ws);
-    let _executor = ide::setup_global_executor();
+    let _executor = ide::ide::setup_global_executor();
 
     executor::global::spawn(client.runner());
 
@@ -209,8 +209,7 @@ async fn file_events() {
     let ws         = ws.expect("Couldn't connect to WebSocket server.");
     let client     = Client::new(ws);
     let mut stream = client.events();
-
-    let _executor = ide::setup_global_executor();
+    let _executor  = ide::ide::setup_global_executor();
 
     executor::global::spawn(client.runner());
 
@@ -257,19 +256,23 @@ async fn file_events() {
 /// * establishing a binary protocol connection with Language Server
 async fn setup_project() -> Project {
     ensogl_system_web::set_stdout();
-    let logger   = Logger::new("Test");
+    let logger = Logger::new("Test");
     info!(logger,"Setting up the project.");
-    let endpoint = ide::PROJECT_MANAGER_ENDPOINT;
-    let ws       = WebSocket::new_opened(logger.clone_ref(),endpoint).await.unwrap();
-    let pm       = ide::setup_project_manager(ws);
-    ide::open_most_recent_project_or_create_new(&logger,&pm).await.unwrap()
+    let endpoint         = ide::constants::PROJECT_MANAGER_ENDPOINT;
+    let ws               = WebSocket::new_opened(logger.clone_ref(),endpoint).await.unwrap();
+    let pm               = ide::IdeInitializer::setup_project_manager(ws);
+    let name             = ide::constants::DEFAULT_PROJECT_NAME;
+    let project_metadata = ide::IdeInitializer::get_most_recent_project_or_create_new
+        (&logger,&pm,name).await.expect("Couldn't get most recent or create new project.");
+    let error_msg = "Couldn't open project";
+    ide::IdeInitializer::open_project(&logger,&pm,&project_metadata).await.expect(error_msg)
 }
 
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 /// This integration test covers writing and reading a file using the binary protocol
 async fn binary_protocol_test() {
-    let _guard   = ide::setup_global_executor();
+    let _guard   = ide::ide::setup_global_executor();
     let project  = setup_project().await;
     println!("Got project: {:?}",project);
     let path     = Path::new(project.language_server_rpc.content_root(), &["test_file.txt"]);

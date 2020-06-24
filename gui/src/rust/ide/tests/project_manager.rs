@@ -6,7 +6,7 @@ mod tests {
 
     use enso_protocol::project_manager::API;
     use enso_protocol::project_manager::Client;
-    use ide::*;
+    use ide::ide::*;
     use ide::transport::web::WebSocket;
 
     use wasm_bindgen_test::wasm_bindgen_test_configure;

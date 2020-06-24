@@ -53,6 +53,11 @@ optParser.options('port', {
     describe : `Port to use [${Server.DEFAULT_PORT}]`,
 })
 
+optParser.options('project', {
+    group    : configOptionsGroup,
+    describe : 'Open the specified project on startup',
+})
+
 optParser.options('server', {
     group    : configOptionsGroup,
     describe : 'Run the server [true]',
@@ -342,6 +347,10 @@ function createWindow() {
         desktop      : true,
         dark         : Electron.nativeTheme.shouldUseDarkColors,
         highContrast : Electron.nativeTheme.shouldUseHighContrastColors,
+    }
+
+    if (args.project) {
+        urlCfg.project = args.project;
     }
 
     let params      = urlParamsFromObject(urlCfg)

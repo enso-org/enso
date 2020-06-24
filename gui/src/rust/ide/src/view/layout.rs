@@ -92,6 +92,7 @@ impl ViewLayoutData {
 
 impl ViewLayout {
     /// Creates a new ViewLayout with a single TextEditor.
+    #[allow(clippy::too_many_arguments)]
     pub async fn new
     ( logger                   : impl AnyLogger
     , kb_actions               : &mut keyboard::Actions
@@ -99,6 +100,7 @@ impl ViewLayout {
     , text_controller          : controller::Text
     , graph_controller         : controller::ExecutedGraph
     , visualization_controller : controller::Visualization
+    , project_controller       : controller::Project
     , fonts                    : &mut font::Registry
     ) -> FallibleResult<Self> {
         let logger        = Logger::sub(logger,"ViewLayout");
@@ -106,7 +108,8 @@ impl ViewLayout {
         let text_editor   = TextEditor::new(&logger,world,text_controller,kb_actions,fonts);
         let graph         = graph_controller.graph.clone_ref();
         let node_editor   = NodeEditor::new
-            (&logger,application,graph_controller,visualization_controller).await?;
+            (&logger,application,graph_controller,project_controller,visualization_controller);
+        let node_editor   = node_editor.await?;
         let node_searcher = NodeSearcher::new(world,&logger,node_editor.clone_ref(),graph,fonts);
         world.add_child(&text_editor.display_object());
         world.add_child(&node_editor);

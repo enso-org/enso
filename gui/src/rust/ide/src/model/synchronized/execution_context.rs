@@ -190,7 +190,7 @@ impl Drop for ExecutionContext {
 pub mod tests {
     use super::*;
 
-    use crate::DEFAULT_PROJECT_NAME;
+    use crate::constants::DEFAULT_PROJECT_NAME;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
     use crate::model::module::QualifiedName as ModuleQualifiedName;
 

@@ -5,7 +5,7 @@
 
 use crate::prelude::*;
 
-use crate::config::PROJECT_VISUALIZATION_FOLDER;
+use crate::constants::VISUALIZATION_DIRECTORY;
 
 use enso_protocol::language_server;
 use graph_editor::data;
@@ -91,7 +91,7 @@ impl Handle {
     async fn list_project_specific_visualizations
     (&self) -> FallibleResult<Vec<VisualizationPath>> {
         let root_id   = self.language_server_rpc.content_root();
-        let path      = language_server::Path::new(root_id,&[PROJECT_VISUALIZATION_FOLDER]);
+        let path      = language_server::Path::new(root_id,&[VISUALIZATION_DIRECTORY]);
         let folder    = self.language_server_rpc.file_exists(&path).await?;
         let file_list = if folder.exists {
             self.language_server_rpc.file_list(&path).await?.paths
