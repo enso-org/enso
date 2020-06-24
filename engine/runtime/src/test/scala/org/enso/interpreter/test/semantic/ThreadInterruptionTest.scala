@@ -22,7 +22,7 @@ class ThreadInterruptionTest extends InterpreterTest {
       val code =
         """
           |foo x =
-          |    ifZero x (IO.println "Start.") Unit
+          |    if x == 0 then IO.println "Start." else Unit
           |    here.foo x+1
           |
           |main =

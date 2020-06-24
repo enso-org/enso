@@ -1,26 +1,26 @@
 package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.ConditionProfile;
-import org.enso.interpreter.Language;
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
-import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-/** Root node for the {@code catch} function. */
-@NodeInfo(shortName = "Error.catch", description = "Root node for the catch function.")
-public class CatchErrorNode extends BuiltinRootNode {
+@BuiltinMethod(
+    type = "Any",
+    name = "catch",
+    description =
+        "If called on an error, executes the provided handler on the error's payload. Otherwise acts as identity.",
+    alwaysDirect = false)
+public class CatchErrorNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
   private final ConditionProfile executionProfile = ConditionProfile.createCountingProfile();
 
-  private CatchErrorNode(Language language) {
-    super(language);
+  CatchErrorNode() {
     this.invokeCallableNode =
         InvokeCallableNode.build(
             new CallArgumentInfo[] {new CallArgumentInfo()},
@@ -29,49 +29,12 @@ public class CatchErrorNode extends BuiltinRootNode {
     this.invokeCallableNode.markTail();
   }
 
-  /**
-   * Executes the logic. Assumes the scrutinee is the first argument to the enclosing function and
-   * the handler is the second. If the scrutinee is an error, the function is called with the error
-   * payload. Otherwise, it's a no-op.
-   *
-   * @param frame current execution frame
-   * @return the result of calling the handler function
-   */
-  @Override
-  public Stateful execute(VirtualFrame frame) {
-    Object[] arguments = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
-    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
-    Object scrutinee = arguments[0];
-    Object handler = arguments[1];
-    if (executionProfile.profile(TypesGen.isRuntimeError(scrutinee))) {
+  Stateful execute(VirtualFrame frame, @MonadicState Object state, Object _this, Object handler) {
+    if (executionProfile.profile(TypesGen.isRuntimeError(_this))) {
       return invokeCallableNode.execute(
-          handler, frame, state, new Object[] {TypesGen.asRuntimeError(scrutinee).getPayload()});
+          handler, frame, state, new Object[] {TypesGen.asRuntimeError(_this).getPayload()});
     } else {
-      return new Stateful(state, scrutinee);
+      return new Stateful(state, _this);
     }
-  }
-
-  /**
-   * Creates a two-argument function wrapping this node.
-   *
-   * @param language current language instance
-   * @return a function wrapping this node
-   */
-  public static Function makeFunction(Language language) {
-    return Function.fromBuiltinRootNode(
-        new CatchErrorNode(language),
-        FunctionSchema.CallStrategy.DIRECT_WHEN_TAIL,
-        new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
-        new ArgumentDefinition(1, "handler", ArgumentDefinition.ExecutionMode.EXECUTE));
-  }
-
-  /**
-   * Gets the source-level name of this node.
-   *
-   * @return the source-level name of the node
-   */
-  @Override
-  public String getName() {
-    return "Error.catch";
   }
 }

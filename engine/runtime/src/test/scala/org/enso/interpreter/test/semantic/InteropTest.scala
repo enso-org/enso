@@ -12,7 +12,7 @@ class InteropTest extends InterpreterTest {
       val code =
         """
           |main =
-          |    recurFun = i -> ifZero i 0 (recurFun i-1)
+          |    recurFun = i -> if i == 0 then 0 else recurFun i-1
           |    recurFun
           |""".stripMargin
 

@@ -51,7 +51,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
     "work with mixfix functions" in {
       val code =
         """
-          |Number.if_then_else = ~t -> ~f -> ifZero this t f
+          |Number.if_then_else = ~t -> ~f -> if this == 0 then t else f
           |
           |main =
           |    f = if _ then 10 else 5

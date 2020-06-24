@@ -41,10 +41,10 @@ class ExpressionIdTest extends InterpreterTest {
 
     "be correct in applications and method calls" in
     withIdsInstrumenter { instrumenter =>
-      val code = "main = (2 - 2).ifZero (Cons 5 6) 0"
+      val code = "main = (2-2 == 0).if_then_else (Cons 5 6) 0"
       val meta = new Metadata
-      val id1  = meta.addItem(7, 27)
-      val id2  = meta.addItem(23, 8)
+      val id1  = meta.addItem(7, 36)
+      val id2  = meta.addItem(32, 8)
 
       instrumenter.assertNodeExists(id1, "Cons 5 6")
       instrumenter.assertNodeExists(id2, "Cons 5 6")

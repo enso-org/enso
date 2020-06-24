@@ -61,7 +61,7 @@ class GlobalScopeTest extends InterpreterTest {
           |  Unit.fn1 res
           |
           |Unit.fn1 = number ->
-          |  ifZero (number % 3) number (Unit.decrementCall number)
+          |  if (number % 3) == 0 then number else Unit.decrementCall number
           |
           |main = Unit.fn1 5
         """.stripMargin

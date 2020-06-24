@@ -1,60 +1,77 @@
 package org.enso.interpreter.node.expression.builtin.debug;
 
+import com.oracle.truffle.api.debug.DebuggerTags;
+import com.oracle.truffle.api.dsl.CachedContext;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.NodeInfo;
-import org.enso.interpreter.Constants;
+import com.oracle.truffle.api.instrumentation.GenerateWrapper;
+import com.oracle.truffle.api.instrumentation.InstrumentableNode;
+import com.oracle.truffle.api.instrumentation.ProbeNode;
+import com.oracle.truffle.api.instrumentation.Tag;
+import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
-import org.enso.interpreter.node.expression.debug.BreakpointNode;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.dsl.MonadicState;
+import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.state.Stateful;
 
-/** Root of the builtin Debug.breakpoint function. */
-@NodeInfo(
-    shortName = "Debug.breakpoint",
-    description = "Root of the builtin Debug.breakpoint function.")
-public class DebugBreakpointNode extends BuiltinRootNode {
-  private @Child BreakpointNode instrumentableNode = BreakpointNode.build();
-
-  private DebugBreakpointNode(Language language) {
-    super(language);
+@BuiltinMethod(type = "Debug", name = "breakpoint", description = "Instrumentation marker node.")
+@GenerateWrapper
+public abstract class DebugBreakpointNode extends Node implements InstrumentableNode {
+  /**
+   * Creates a new instance of this node.
+   *
+   * @return a new instance of this node
+   */
+  public static DebugBreakpointNode build() {
+    return DebugBreakpointNodeGen.create();
   }
 
   /**
-   * Executes this node by delegating to its instrumentable child.
+   * Tells Truffle this node is instrumentable.
    *
-   * @param frame current execution frame
-   * @return the result of running the instrumentable node
+   * @return {@code true} – this node is always instrumentable.
    */
   @Override
-  public Stateful execute(VirtualFrame frame) {
-    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
-    return instrumentableNode.execute(frame, state);
+  public boolean isInstrumentable() {
+    return true;
+  }
+
+  abstract Stateful execute(
+      VirtualFrame frame, CallerInfo callerInfo, @MonadicState Object state, Object _this);
+
+  @Specialization
+  Stateful doExecute(
+      VirtualFrame frame,
+      CallerInfo callerInfo,
+      Object state,
+      Object _this,
+      @CachedContext(Language.class) Context context) {
+    return new Stateful(state, context.getUnit().newInstance());
   }
 
   /**
-   * Wraps this node in a 1-argument function.
+   * Informs Truffle about the provided tags.
    *
-   * @param language current language instance
-   * @return the function wrapper for this node
-   */
-  public static Function makeFunction(Language language) {
-    return Function.fromBuiltinRootNodeWithCallerFrameAccess(
-        new DebugBreakpointNode(language),
-        FunctionSchema.CallStrategy.ALWAYS_DIRECT,
-        new ArgumentDefinition(
-            0, Constants.Names.THIS_ARGUMENT, ArgumentDefinition.ExecutionMode.EXECUTE));
-  }
-
-  /**
-   * Gets the source-level name of this node.
+   * <p>This node only provides the {@link DebuggerTags.AlwaysHalt} tag.
    *
-   * @return the source-level name of the node
+   * @param tag the tag to verify
+   * @return {@code true} if the tag is {@link DebuggerTags.AlwaysHalt}, {@code false} otherwise
    */
   @Override
-  public String getName() {
-    return "Debug.breakpoint";
+  public boolean hasTag(Class<? extends Tag> tag) {
+    return tag == DebuggerTags.AlwaysHalt.class;
+  }
+
+  /**
+   * Creates an instrumentable wrapper node for this node.
+   *
+   * @param probeNode the probe node to wrap
+   * @return the wrapper instance wrapping both this and the probe node
+   */
+  @Override
+  public WrapperNode createWrapper(ProbeNode probeNode) {
+    return new DebugBreakpointNodeWrapper(this, probeNode);
   }
 }

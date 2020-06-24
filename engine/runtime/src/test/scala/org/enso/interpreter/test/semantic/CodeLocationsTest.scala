@@ -53,9 +53,9 @@ class CodeLocationsTest extends InterpreterTest {
 
     "be correct in applications and method calls" in
     withLocationsInstrumenter { instrumenter =>
-      val code = "main = (2 - 2).ifZero (Cons 5 6) 0"
-      instrumenter.assertNodeExists(7, 27, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(23, 8, classOf[ApplicationNode])
+      val code = "main = (2-2 == 0).if_then_else (Cons 5 6) 0"
+      instrumenter.assertNodeExists(7, 36, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(32, 8, classOf[ApplicationNode])
       eval(code)
       ()
     }
