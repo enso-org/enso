@@ -8,6 +8,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.util.*;
 
+/** A domain-specific representation of a builtin method. */
 public class MethodDefinition {
   private static final String STATEFUL = "org.enso.interpreter.runtime.state.Stateful";
 
@@ -22,17 +23,20 @@ public class MethodDefinition {
   private final boolean needsCallerInfo;
   private final String constructorExpression;
 
-  public MethodDefinition(
-      String packageName,
-      String originalClassName,
-      TypeElement element,
-      ExecutableElement execute,
-      BuiltinMethod annotation) {
+  /**
+   * Creates a new instance of this class.
+   *
+   * @param packageName the name of the package this method is declared in.
+   * @param element the element (class) declaring this method.
+   * @param execute the element (method) containing the logic.
+   */
+  public MethodDefinition(String packageName, TypeElement element, ExecutableElement execute) {
+    annotation = element.getAnnotation(BuiltinMethod.class);
+
+    this.originalClassName = element.getSimpleName().toString();
     this.packageName = packageName;
-    this.originalClassName = originalClassName;
     this.className = generateClassName(originalClassName);
     this.qualifiedName = packageName + "." + className;
-    this.annotation = annotation;
     this.arguments = initArguments(execute);
     this.imports = initImports();
     this.needsCallerInfo = arguments.stream().anyMatch(ArgumentDefinition::isCallerInfo);
@@ -91,42 +95,52 @@ public class MethodDefinition {
     return args;
   }
 
+  /** @return the package name this method was declared in. */
   public String getPackageName() {
     return packageName;
   }
 
+  /** @return the original class name of this method. */
   public String getOriginalClassName() {
     return originalClassName;
   }
 
+  /** @return the simple class name of generated method wrapper. */
   public String getClassName() {
     return className;
   }
 
+  /** @return full name (with package) of the generated wrapper. */
   public String getQualifiedName() {
     return qualifiedName;
   }
 
+  /** @return the language-level name of this method. */
   public String getDeclaredName() {
     return annotation.type() + "." + annotation.name();
   }
 
+  /** @return the arguments this method declares. */
   public List<ArgumentDefinition> getArguments() {
     return arguments;
   }
 
+  /** @return the additional imports this method definition requires. */
   public Set<String> getImports() {
     return imports;
   }
 
+  /** @return whether this method modifies the monadic state. */
   public boolean modifiesState() {
     return modifiesState;
   }
 
+  /** @return whether this method requires caller info to work properly. */
   public boolean needsCallerInfo() {
     return needsCallerInfo;
   }
 
+  /** @return whether this method can be always safely called directly. */
   public boolean isAlwaysDirect() {
     return annotation.alwaysDirect();
   }
@@ -135,6 +149,7 @@ public class MethodDefinition {
     return constructorExpression;
   }
 
+  /** A domain specific representation of a method argument. */
   public static class ArgumentDefinition {
     private static final String VIRTUAL_FRAME = "com.oracle.truffle.api.frame.VirtualFrame";
     private static final String OBJECT = "java.lang.Object";
@@ -148,6 +163,12 @@ public class MethodDefinition {
     private final boolean isCallerInfo;
     private final int position;
 
+    /**
+     * Creates a new instance of this class.
+     *
+     * @param element the element representing this argument.
+     * @param position the position (0-indexed) of this argument in the arguments list.
+     */
     public ArgumentDefinition(VariableElement element, int position) {
       type = element.asType();
       String[] typeNameSegments = type.toString().split("\\.");
@@ -160,26 +181,32 @@ public class MethodDefinition {
       this.position = position;
     }
 
+    /** @return whether this argument should be passed the monadic state. */
     public boolean isState() {
       return isState;
     }
 
+    /** @return whether this argument should be passed the execution frame. */
     public boolean isFrame() {
       return isFrame;
     }
 
+    /** @return whether this argument should be passed the caller info. */
     public boolean isCallerInfo() {
       return isCallerInfo;
     }
 
+    /** @return whether this argument should be passed the next positional function argument. */
     public boolean isPositional() {
       return !isFrame() && !isState() && !isCallerInfo();
     }
 
+    /** @return the position of this argument in the positional arguments list. */
     public int getPosition() {
       return position;
     }
 
+    /** @return any import this argument requires. */
     public Optional<String> getImport() {
       if (type.getKind() == TypeKind.DECLARED) {
         if (!type.toString().equals(OBJECT)) {
@@ -189,22 +216,27 @@ public class MethodDefinition {
       return Optional.empty();
     }
 
+    /** @return whether this argument needs to be type-casted on read. */
     public boolean requiresCast() {
       return !type.toString().equals(OBJECT);
     }
 
+    /** @return the name of the type of this argument. */
     public String getTypeName() {
       return typeName;
     }
 
+    /** @return the type of this argument. */
     public TypeMirror getType() {
       return type;
     }
 
+    /** @return the name of this argument. */
     public String getName() {
       return name;
     }
 
+    /** @return whether this argument is expected to be passed suspended. */
     public boolean isSuspended() {
       return type.toString().equals(THUNK);
     }

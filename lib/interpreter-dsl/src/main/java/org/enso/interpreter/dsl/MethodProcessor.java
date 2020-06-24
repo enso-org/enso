@@ -52,12 +52,10 @@ public class MethodProcessor extends AbstractProcessor {
                       return null;
                     });
         if (executeMethod == null) return true;
-        BuiltinMethod ann = element.getAnnotation(BuiltinMethod.class);
         String pkgName =
             processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
-        String className = element.getSimpleName().toString();
         try {
-          generateCode(new MethodDefinition(pkgName, className, element, executeMethod, ann));
+          generateCode(new MethodDefinition(pkgName, element, executeMethod));
         } catch (IOException e) {
           e.printStackTrace();
         }
