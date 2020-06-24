@@ -258,12 +258,6 @@ impl GraphEditorIntegratedWithControllerModel {
         Ok(())
     }
 
-    pub fn update_relevant_type_information
-    (&self, affected_asts:&[ExpressionId]) -> FallibleResult<()> {
-        debug!(self.logger, "Will update type information: {affected_asts:?}");
-        Ok(())
-    }
-
     fn update_node_views
     (&self, mut trees:HashMap<double_representation::node::Id,NodeTrees>) -> FallibleResult<()> {
         let nodes = self.controller.graph.nodes()?;
@@ -339,21 +333,52 @@ impl GraphEditorIntegratedWithControllerModel {
     }
 
     fn update_node_view
-    (&self, node:graph_editor::NodeId, info:&controller::graph::Node, trees:NodeTrees) {
-        let position = info.metadata.and_then(|md| md.position);
-        if let Some(pos) = position {
-            self.editor.frp.inputs.set_node_position.emit_event(&(node,pos.vector));
+    (&self, id:graph_editor::NodeId, node:&controller::graph::Node, trees:NodeTrees) {
+        let position = node.metadata.and_then(|md| md.position);
+        if let Some(position) = position {
+            self.editor.frp.inputs.set_node_position.emit_event(&(id,position.vector));
         }
-        let expression = info.info.expression().repr();
-        if Some(&expression) != self.expression_views.borrow().get(&node) {
+        let expression = node.info.expression().repr();
+        if Some(&expression) != self.expression_views.borrow().get(&id) {
             let code_and_trees = graph_editor::component::node::port::Expression {
                 code             : expression.clone(),
                 input_span_tree  : trees.inputs,
                 output_span_tree : trees.outputs.unwrap_or_else(default)
             };
-            self.editor.frp.inputs.set_node_expression.emit_event(&(node,code_and_trees));
-            self.expression_views.borrow_mut().insert(node, expression);
+            self.editor.frp.inputs.set_node_expression.emit_event(&(id,code_and_trees));
+            self.expression_views.borrow_mut().insert(id, expression);
+
+            // Set initially available type information on ports (identifiable expression's
+            // sub-parts).
+            for expression_part in node.info.expression().iter_recursive() {
+                if let Some(id) = expression_part.id {
+                    self.update_type_on(id)
+                }
+            }
         }
+
+    }
+
+    /// Like `update_type_on` but for multiple expressions.
+    fn update_types_on(&self, expressions_to_update:&[ExpressionId]) -> FallibleResult<()> {
+        debug!(self.logger, "Updating type information for IDs: {expressions_to_update:?}.");
+        for id in expressions_to_update {
+            self.update_type_on(*id)
+        }
+        Ok(())
+    }
+
+    /// Look up the typename for the given expression in the execution controller's registry and
+    /// pass the data to the editor view.
+    fn update_type_on(&self, id:ExpressionId) {
+        let typename = self.lookup_typename(&id);
+        self.set_type(id,typename)
+    }
+
+    /// Set given type (or lack of such) on the given sub-expression.
+    fn set_type(&self, id:ExpressionId, typename:graph_editor::OptionalType) {
+        let event = (id,typename);
+        self.editor.frp.inputs.set_expression_type.emit_event(&event);
     }
 
     fn update_connection_views
@@ -406,7 +431,7 @@ impl GraphEditorIntegratedWithControllerModel {
         let result = match notification {
             Some(Notification::Graph(Invalidate))         => self.update_graph_view(),
             Some(Notification::ComputedValueInfo(update)) =>
-                self.update_relevant_type_information(update),
+                self.update_types_on(update),
             other => {
                 warning!(self.logger,"Handling notification {other:?} is not implemented; \
                     performing full invalidation");
@@ -424,7 +449,7 @@ impl GraphEditorIntegratedWithControllerModel {
 // === Passing UI Actions To Controllers ===
 
 // These functions are called with FRP event values as arguments. The FRP values are always provided
-// by reference, even those "trivally-copy" types, To keep code cleaner we take all parameters
+// by reference, even those "trivially-copy" types, To keep code cleaner we take all parameters
 // by reference as well.
 #[allow(clippy::trivially_copy_pass_by_ref)]
 impl GraphEditorIntegratedWithControllerModel {
@@ -590,6 +615,13 @@ impl GraphEditorIntegratedWithControllerModel {
     (&self, node_id:graph_editor::NodeId) -> Result<VisualizationId,NoSuchVisualization> {
         let err = || NoSuchVisualization(node_id);
         self.visualizations.get_copied(&node_id).ok_or_else(err)
+    }
+
+    fn lookup_typename(&self, id:&ExpressionId) -> graph_editor::OptionalType {
+        let registry = self.controller.computed_value_info_registry();
+        let info     = registry.get(id);
+        let typename = info.and_then(|info| info.typename.clone());
+        graph_editor::OptionalType(typename)
     }
 }
 
