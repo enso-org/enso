@@ -18,7 +18,7 @@ public class IfThenElseNode extends Node {
   private @Child ThunkExecutorNode rightThunkExecutorNode = ThunkExecutorNode.build();
   private final ConditionProfile condProfile = ConditionProfile.createCountingProfile();
 
-  public Stateful execute(@MonadicState Object state, boolean self, Thunk if_true, Thunk if_false) {
+  Stateful execute(@MonadicState Object state, boolean self, Thunk if_true, Thunk if_false) {
     if (condProfile.profile(self)) {
       return leftThunkExecutorNode.executeThunk(if_true, state, true);
     } else {

@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(type = "Number", name = "%", description = "Modulo operation for numbers.")
 public class ModNode extends Node {
-  public long execute(long self, long that) {
+  long execute(long self, long that) {
     return self % that;
   }
 }

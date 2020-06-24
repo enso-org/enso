@@ -30,7 +30,7 @@ public class ExecuteNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  public Object execute(Object self, Object callable, Vector arguments) {
+  Object execute(Object self, Object callable, Vector arguments) {
     try {
       return library.execute(callable, arguments.getItems());
     } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {

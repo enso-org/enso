@@ -17,7 +17,7 @@ public class InvokeNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  public Object execute(Object self, Object target, String name, Vector arguments) {
+  Object execute(Object self, Object target, String name, Vector arguments) {
     try {
       return library.invokeMember(target, name, arguments.getItems());
     } catch (UnsupportedMessageException

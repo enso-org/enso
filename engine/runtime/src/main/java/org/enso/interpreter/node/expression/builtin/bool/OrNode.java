@@ -8,7 +8,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
     name = "||",
     description = "Computes the logical OR of two booleans")
 public class OrNode extends Node {
-  public boolean execute(boolean self, boolean that) {
+  boolean execute(boolean self, boolean that) {
     return self || that;
   }
 }

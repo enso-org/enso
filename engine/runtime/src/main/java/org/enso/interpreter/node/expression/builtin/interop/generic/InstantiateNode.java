@@ -21,7 +21,7 @@ public class InstantiateNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  public Object execute(Object self, Object constructor, Vector arguments) {
+  Object execute(Object self, Object constructor, Vector arguments) {
     try {
       return library.instantiate(constructor, arguments.getItems());
     } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {

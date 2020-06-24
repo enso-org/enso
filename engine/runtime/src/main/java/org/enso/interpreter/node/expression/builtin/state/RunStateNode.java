@@ -12,7 +12,7 @@ import org.enso.interpreter.runtime.callable.argument.Thunk;
 public class RunStateNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 
-  public Object execute(Object self, Object local_state, Thunk computation) {
+  Object execute(Object self, Object local_state, Thunk computation) {
     return thunkExecutorNode.executeThunk(computation, local_state, false).getValue();
   }
 }

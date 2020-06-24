@@ -18,7 +18,7 @@ public class GetMemberNode extends Node {
       InteropLibrary.getFactory().createDispatched(Constants.CacheSizes.BUILTIN_INTEROP_DISPATCH);
   private final BranchProfile err = BranchProfile.create();
 
-  public Object execute(Object self, Object object, String member_name) {
+  Object execute(Object self, Object object, String member_name) {
     try {
       return library.readMember(object, member_name);
     } catch (UnsupportedMessageException | UnknownIdentifierException e) {

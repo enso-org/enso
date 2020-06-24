@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(type = "Boolean", name = "not", description = "Negates a boolean value")
 public class NotNode extends Node {
-  public boolean execute(boolean self) {
+  boolean execute(boolean self) {
     return !self;
   }
 }

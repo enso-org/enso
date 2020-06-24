@@ -9,12 +9,8 @@ import org.enso.interpreter.dsl.BuiltinMethod;
     name = "nano_time",
     description = "Gets the nanosecond resolution system time.")
 public final class NanoTimeNode extends Node {
-  public long execute(Object self) {
-    return getNanoTime();
-  }
-
   @CompilerDirectives.TruffleBoundary
-  private long getNanoTime() {
+  long execute(Object self) {
     return System.nanoTime();
   }
 }

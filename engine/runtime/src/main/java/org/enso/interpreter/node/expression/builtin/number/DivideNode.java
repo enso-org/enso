@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 
 @BuiltinMethod(type = "Number", name = "/", description = "Division for numbers.")
 public class DivideNode extends Node {
-  public long execute(long self, long that) {
+  long execute(long self, long that) {
     return self / that;
   }
 }
