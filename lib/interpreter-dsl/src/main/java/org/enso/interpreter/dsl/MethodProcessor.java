@@ -68,15 +68,16 @@ public class MethodProcessor extends AbstractProcessor {
   private final List<String> necessaryImports =
       Arrays.asList(
           "com.oracle.truffle.api.frame.VirtualFrame",
+          "com.oracle.truffle.api.nodes.NodeInfo",
+          "com.oracle.truffle.api.nodes.UnexpectedResultException",
+          "org.enso.interpreter.Language",
           "org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
           "org.enso.interpreter.runtime.callable.argument.ArgumentDefinition",
-          "com.oracle.truffle.api.nodes.UnexpectedResultException",
           "org.enso.interpreter.runtime.callable.function.Function",
           "org.enso.interpreter.runtime.callable.function.FunctionSchema",
-          "org.enso.interpreter.runtime.state.Stateful",
           "org.enso.interpreter.runtime.error.TypeError",
-          "org.enso.interpreter.runtime.type.TypesGen",
-          "org.enso.interpreter.Language");
+          "org.enso.interpreter.runtime.state.Stateful",
+          "org.enso.interpreter.runtime.type.TypesGen");
 
   private void generateCode(MethodDefinition methodDefinition) throws IOException {
     JavaFileObject gen =
@@ -93,6 +94,9 @@ public class MethodProcessor extends AbstractProcessor {
 
       out.println();
 
+      out.println("@NodeInfo(");
+      out.println("  shortName = \"" + methodDefinition.getDeclaredName() + "\",");
+      out.println("  description = \"" + methodDefinition.getDescription() + "\")");
       out.println("public class " + methodDefinition.getClassName() + " extends BuiltinRootNode {");
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
 

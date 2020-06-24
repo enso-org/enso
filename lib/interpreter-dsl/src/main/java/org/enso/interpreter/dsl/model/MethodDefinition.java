@@ -120,6 +120,11 @@ public class MethodDefinition {
     return annotation.type() + "." + annotation.name();
   }
 
+  /** @return get the description of this method. */
+  public String getDescription() {
+    return annotation.description();
+  }
+
   /** @return the arguments this method declares. */
   public List<ArgumentDefinition> getArguments() {
     return arguments;
