@@ -1,9 +1,9 @@
 name:                haskell-benchmark
 version:             0.1.0.0
-github:              "https://github.com/luna/enso"
+github:              "https://github.com/enso-org/enso"
 author:              "Ara Adkins"
-maintainer:          "ara.adkins@luna-lang.org"
-copyright:           "Luna Team 2019"
+maintainer:          "ara.adkins@enso.org"
+copyright:           "Enso Team 2020"
 
 description: A benchmark for comparing Haskell to Enso.
 

@@ -7,10 +7,10 @@ authors = [
 ]
 edition = "2018"
 
-description = "A finite-automata-based lexing engine."
-readme = "README.md"
-homepage = "https://github.com/luna/enso"
-repository = "https://github.com/luna/enso"
+description  = "A finite-automata-based lexing engine."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/enso"
+repository   = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
 keywords = ["lexer", "finite-automata"]
@@ -18,10 +18,10 @@ keywords = ["lexer", "finite-automata"]
 publish = false
 
 [lib]
-name = "flexer"
+name       = "flexer"
 crate-type = ["dylib", "rlib"]
-test = true
-bench = true
+test       = true
+bench      = true
 
 [dependencies]
 itertools = "0.8"
