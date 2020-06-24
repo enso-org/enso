@@ -1,5 +1,7 @@
 import sbt.Keys._
 import sbt._
+import sbt.internal.util.ManagedLogger
+
 import scala.io.AnsiColor
 
 object CopyTruffleJAR {
@@ -15,19 +17,22 @@ object CopyTruffleJAR {
     * restarts the process, it is terminated.
     */
   lazy val bootstrapJARs = Def.task {
+    val log = streams.value.log
     if (
-      ensureTruffleJARUpToDate(baseDirectory.value, (Compile / update).value)
-    ) {
-      println(
-        "Truffle JARs have been updated.\n" +
-        AnsiColor.RED +
-        " You have to restart the sbt JVM before attempting compilation. " +
-        AnsiColor.RESET
+      ensureTruffleJARUpToDate(
+        baseDirectory.value,
+        (Compile / update).value,
+        log
       )
-      System.out.flush()
+    ) {
+      log.info("Truffle JARs have been updated.")
+      System.err.println(
+        "You have to restart the sbt JVM before attempting compilation."
+      )
+      System.err.flush()
       System.exit(0)
     } else {
-      println("Truffle JARs are up to date.")
+      log.info("Truffle JARs are up to date.")
     }
   }
 
@@ -40,17 +45,23 @@ object CopyTruffleJAR {
     * terminated, because a restart is required.
     */
   lazy val preCompileTask = Def.task {
+    val log = streams.value.log
     if (
-      ensureTruffleJARUpToDate(baseDirectory.value, (Compile / update).value)
+      ensureTruffleJARUpToDate(
+        baseDirectory.value,
+        (Compile / update).value,
+        log
+      )
     ) {
-      println(
-        AnsiColor.RED +
-        "JARs that have to be loaded by the sbt JVM at startup have" +
-        " been modified or did not exist.\n" +
-        AnsiColor.RESET +
-        "The sbt process has to be restarted to apply the changes.\n" +
+      log.error(
+        "JARs that have to be loaded by the sbt JVM at startup have been" +
+        " modified or did not exist."
+      )
+      System.err.println(
+        "The sbt JVM has to be restarted to apply the changes.\n" +
         "Please re-launch sbt and re-run the last command."
       )
+      System.err.flush()
       System.exit(0)
     }
   }
@@ -63,7 +74,8 @@ object CopyTruffleJAR {
     */
   private def ensureTruffleJARUpToDate(
     baseDirectory: File,
-    libraryUpdates: UpdateReport
+    libraryUpdates: UpdateReport,
+    log: ManagedLogger
   ): Boolean = {
     var truffleInstancesFound = 0
     var restartRequired       = false
@@ -72,10 +84,10 @@ object CopyTruffleJAR {
         truffleInstancesFound += 1
         val dest = baseDirectory / "build-cache" / "truffle-api.jar"
         val needsUpdate = if (!dest.exists()) {
-          println("truffle-api.jar does not exist in target/")
+          log.debug("truffle-api.jar does not exist in target/")
           true
         } else if (dest.lastModified() < f.lastModified()) {
-          println("truffle-api.jar in target/ is out of date")
+          log.debug("truffle-api.jar in target/ is out of date")
           true
         } else false
 

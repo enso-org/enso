@@ -14,10 +14,10 @@ compilation. The build configuration is defined in
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Incremental compilation](#incremental-compilation)
+- [Incremental Compilation](#incremental-compilation)
 - [Bootstrapping](#bootstrapping)
-- [Compile hooks](#compile-hooks)
-- [Helper tasks](#helper-tasks)
+- [Compile Hooks](#compile-hooks)
+- [Helper Tasks](#helper-tasks)
   - [Benchmarks](#benchmarks)
   - [Build information](#build-information)
   - [Instruments generation](#instruments-generation)
@@ -26,7 +26,7 @@ compilation. The build configuration is defined in
 
 <!-- /MarkdownTOC -->
 
-## Incremental compilation
+## Incremental Compilation
 To help wit build times, we do not want to rebuild the whole project with every
 change, but to only recompile the files that have been affected by the change.
 This is handled by sbt which under the hood uses
@@ -57,21 +57,20 @@ Truffle JAR is up-to-date. This is to ensure that the developer did not forget
 about bootstrapping. This pre-compile task will also update the Truffle JAR and
 terminate sbt, to make sure it is restarted for the changes to be applied.
 
-## Compile hooks
+## Compile Hooks
 There are some invariants that are specific to our project, so they are not
 tracked by sbt, but we want to ensure that they hold to avoid cryptic errors at
 compilation or runtime.
 
 To check some state before compilation, we add our tasks as dependencies of
-`Compile / compile / compileInputs` by adding
+`Compile / compile / compileInputs` by adding the following to the settings of a
+particular project.
 
 ```
 Compile / compile / compileInputs := (Compile / compile / compileInputs)
         .dependsOn(preCompileHookTask)
         .value
 ```
-
-to settings of a particular project.
 
 Tasks that should be run before compilation, should be attached to the
 `compileInputs` task. That is because the actual compilation process is ran in
@@ -88,7 +87,7 @@ and returns the result of `(Compile / compile).value`. An example of such a
 'patched' compile task is implemented in
 [`FixInstrumentsGeneration`](../../project/FixInstrumentsGeneration.scala).
 
-## Helper tasks
+## Helper Tasks
 There are additional tasks defined in the [`project`](../../project) directory.
 They are used by [`build.sbt`](../../build.sbt) to provide some additional
 functionality.

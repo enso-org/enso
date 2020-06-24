@@ -185,14 +185,20 @@ experimental state. This means that while it may function, we are not intending
 to provide work-arounds for building on that platform while it is still in an
 unstable state.
 
+#### Bootstrapping build dependencies
+In order to properly build the `runtime` component, the JVM running sbt needs
+to have some dependency JARs available in its module path at startup. To ensure
+they are available, before running any compilation or other tasks, these
+dependencies should be prepared.
+
+To do so, run `sbt bootstrap` in the repository root directory. It is preferred
+to not run this command from the sbt shell, but in batch mode, because sbt has
+to be launched again anyway to pick up these JARs at startup.
+
 #### Building Enso Components
 In order to build a specific component (e.g. `runtime`), please follow the
 following steps.
 
-0. When building the project for the first time or after changing to a new
-   version of Graal, you need to bootstrap the project. To avoid restarting,
-   before launching the sbt shell, run `sbt bootstrap` in the repository root
-   directory.
 1. Enter the sbt shell in the repository root directory by typing `sbt`.
 2. Change to the project you are concerned with (in our case `runtime`) by
    executing `project runtime`.

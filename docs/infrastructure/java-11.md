@@ -15,7 +15,7 @@ it. Thus, we want to move to using Graal builds for Java 11.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Migration progress](#migration-progress)
-  - [Build configuration](#build-configuration)
+  - [Build Configuration](#build-configuration)
   - [Testing](#testing)
   - [Benchmarks](#benchmarks)
 - [Problems](#problems)
@@ -25,10 +25,9 @@ it. Thus, we want to move to using Graal builds for Java 11.
 
 ## Migration progress
 The overall steps of the migration and their status are outlined in this
-section. The task is tracked as issue
-[#671](https://github.com/enso-org/enso/issues/671).
+section.
 
-### Build configuration
+### Build Configuration
 The option `-XX:-UseJVMCIClassLoader` is deprecated in Java 11 and has been
 removed from the test configuration. 
 
