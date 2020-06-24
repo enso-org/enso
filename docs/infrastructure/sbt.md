@@ -22,6 +22,7 @@ compilation. The build configuration is defined in
   - [Build information](#build-information)
   - [Instruments generation](#instruments-generation)
   - [Flatbuffers generation](#flatbuffers-generation)
+  - [Ensuring JARs were loaded](#ensuring-jars-were-loaded)
   - [Debugging command](#debugging-command)
 
 <!-- /MarkdownTOC -->
@@ -48,14 +49,8 @@ the JAR would not be seen by the JVM. So when setting up the project or after
 changing the version of Graal, before launching the sbt shell, you should first
 run `sbt bootstrap`, to make sure the environment is properly prepared.
 
-The logic for copying the JAR is implemented in
-[`CopyTruffleJAR`](../../project/CopyTruffleJAR.scala). If the compilation
-proceeds without the bootstrapped JAR it may lead to inconsistent state with
-some dependencies being undetected. So there is a pre-compile task that is
-executed before compiling the `runtime` project which makes sure that the
-Truffle JAR is up-to-date. This is to ensure that the developer did not forget
-about bootstrapping. This pre-compile task will also update the Truffle JAR and
-terminate sbt, to make sure it is restarted for the changes to be applied.
+The logic for copying the JAR is implemented in the `bootstrapJARs` task in
+[`CopyTruffleJAR`](../../project/CopyTruffleJAR.scala).
 
 ## Compile Hooks
 There are some invariants that are specific to our project, so they are not
@@ -123,6 +118,31 @@ task that runs the Flatbuffer compiler `flatc` whenever the flatbuffer
 definitions have been changed. It also makes sure that `flatc` is available on
 PATH and that its version matches the version of the library. It reports any
 errors.
+
+### Ensuring JARs were loaded
+As described in [Bootstrapping](#bootstrapping), to successfully compile the
+`runtime` subproject, the JVM running sbt must load some JARs at startup. The
+user should run `sbt bootstrap` to ensure that.
+
+If the compilation proceeds without the bootstrapped JARs it may lead to
+inconsistent state with some dependencies being undetected and weird errors. To
+avoid such situations, [`CopyTruffleJAR`](../../project/CopyTruffleJAR.scala)
+defines is a pre-compile task that is executed before compiling the `runtime` 
+subproject which makes sure that the Truffle JAR is up-to-date. Even if the
+developer forgets about `bootstrap`, this pre-compile task will update the
+Truffle JARs. However, as the JARs are loaded at startup, the JVM has to be
+restarted. To force the user to restart it, the current sbt process is
+terminated.
+
+This pre-compile task runs before compiling `runtime` sources, but some
+dependencies may have started compiling in the meantime (as sbt schedules
+independent tasks in parallel). The fact that these dependencies are up-to-date
+may not be registered by sbt due to the abrupt termination. This does not affect
+consistency of the build state though - as a result these dependencies may be
+recompiled again when the compilation is restarted. This is acceptable as this
+restart is just an additional check to ensure correctness and improve user
+experience. In normal operation, the restart should never be triggered, as the
+user should remember to run `bootstrap` when necessary.
 
 ### Debugging command
 [`WithDebugCommand`](../../project/WithDebugCommand.scala) defines a command
