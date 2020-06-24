@@ -86,10 +86,11 @@ impl SpanTree {
 
 impl Default for SpanTree {
     fn default() -> Self {
-        let kind     = node::Kind::Root;
-        let size     = default();
-        let children = default();
-        let root     = Node {kind,size,children};
+        let expression_id = None;
+        let kind          = node::Kind::Root;
+        let size          = default();
+        let children      = default();
+        let root          = Node {kind,size,children,expression_id};
         Self {root}
     }
 }

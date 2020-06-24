@@ -2,22 +2,49 @@
 
 use crate::prelude::*;
 
-use crate::Ast;
+use crate::{Ast, TokenConsumer};
+use crate::Id;
 use crate::crumbs::Located;
 use crate::crumbs::PrefixCrumb;
+use crate::HasTokens;
 use crate::known;
 use crate::Prefix;
 use crate::Shifted;
 
 use utils::vec::VecExt;
 
+
+
+// ================
+// === Argument ===
+// ================
+
+/// Struct representing an element of a Prefix Chain: an argument applied over the function.
 #[derive(Clone,Debug)]
+pub struct Argument {
+    /// An argument ast with offset between it and previous arg or function.
+    pub sast      : Shifted<Ast>,
+    /// The id of Prefix AST of this argument application.
+    pub prefix_id : Option<Id>,
+}
+
+impl HasTokens for Argument {
+    fn feed_to(&self, consumer: &mut impl TokenConsumer) {
+        self.sast.feed_to(consumer)
+    }
+}
+
+// ====================
+// === Prefix Chain ===
+// ====================
+
 /// Result of flattening a sequence of prefix applications.
+#[derive(Clone,Debug)]
 pub struct Chain {
     /// The function (initial application target)
     pub func : Ast,
     /// Subsequent arguments applied over the function.
-    pub args : Vec<Shifted<Ast>>,
+    pub args : Vec<Argument>,
 }
 
 impl Chain {
@@ -25,12 +52,14 @@ impl Chain {
     /// App(App(a,b),c) into flat list where first element is the function and
     /// then arguments are placed: `{func:a, args:[b,c]}`.
     pub fn new(ast:&known::Prefix) -> Chain {
-        fn run(ast:&known::Prefix, mut acc: &mut Vec<Shifted<Ast>>) -> Ast {
+        fn run(ast:&known::Prefix, mut acc: &mut Vec<Argument>) -> Ast {
             let func = match known::Prefix::try_from(&ast.func) {
                 Ok(lhs_app) => run(&lhs_app, &mut acc),
                 _           => ast.func.clone(),
             };
-            acc.push(Shifted{wrapped:ast.arg.clone(),off:ast.off});
+            let sast      = Shifted{wrapped:ast.arg.clone(),off:ast.off};
+            let prefix_id = ast.id();
+            acc.push(Argument{sast,prefix_id});
             func
         }
 
@@ -52,9 +81,11 @@ impl Chain {
             Self::new(prefix)
         } else if let Ok(ref section) = known::SectionRight::try_from(ast) {
             // Case like `+ a b`
-            let func = section.opr.clone();
+            let func        = section.opr.clone();
             let right_chain = Chain::new_non_strict(&section.arg);
-            let mut args = vec![Shifted{wrapped:right_chain.func, off:section.off}];
+            let sast        = Shifted{wrapped:right_chain.func, off:section.off};
+            let prefix_id   = section.id();
+            let mut args    = vec![Argument{sast,prefix_id}];
             args.extend(right_chain.args);
             Chain {func,args}
         } else {
@@ -87,7 +118,7 @@ impl Chain {
         let mut i = 0;
         self.args.iter().map(move |arg| {
             i += 1;
-            Located::new(&func_crumbs[i..],&arg.wrapped)
+            Located::new(&func_crumbs[i..],&arg.sast.wrapped)
         })
     }
 
@@ -96,11 +127,11 @@ impl Chain {
     pub fn fold_arg(&mut self) {
         if let Some(arg) = self.args.pop_front() {
             let new_prefix = Prefix{
-                arg  : arg.wrapped,
+                arg  : arg.sast.wrapped,
                 func : self.func.clone_ref(),
-                off  : arg.off,
+                off  : arg.sast.off,
             };
-            self.func = new_prefix.into();
+            self.func = Ast::new(new_prefix,arg.prefix_id);
         }
     }
 
@@ -120,6 +151,7 @@ mod tests {
     use super::*;
 
     use utils::test::ExpectTuple;
+    use uuid::Uuid;
 
     #[test]
     fn prefix_chain() {
@@ -127,13 +159,15 @@ mod tests {
         let b = Ast::var("b");
         let c = Ast::var("c");
 
-        let a_b = Ast::prefix(a.clone(),b.clone());
-        let a_b_c = Ast::prefix(a_b.clone(),c.clone());
+        let a_b = Ast::prefix(a.clone(),b.clone()).with_id(Uuid::new_v4());
+        let a_b_c = Ast::prefix(a_b.clone(),c.clone()).with_id(Uuid::new_v4());
 
         let chain = Chain::try_new(&a_b_c).unwrap();
         assert_eq!(chain.func, a);
-        assert_eq!(chain.args[0].wrapped, b);
-        assert_eq!(chain.args[1].wrapped, c);
+        assert_eq!(chain.args[0].sast.wrapped, b);
+        assert_eq!(chain.args[1].sast.wrapped, c);
+        assert_eq!(chain.args[0].prefix_id, a_b.id);
+        assert_eq!(chain.args[1].prefix_id, a_b_c.id);
 
         let (arg1,arg2) = chain.enumerate_args().expect_tuple();
         assert_eq!(arg1.item, &b);

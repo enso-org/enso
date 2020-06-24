@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::Id;
 use crate::Infix;
 use crate::SectionLeft;
 use crate::SectionRight;
@@ -129,6 +130,8 @@ pub struct GeneralizedInfix {
     pub opr   : Operator,
     /// Right operand, if present.
     pub right : Operand,
+    /// Infix id.
+    pub id    : Option<Id>,
 }
 
 /// A structure used for GeneralizedInfix construction which marks operands as _target_ and
@@ -144,23 +147,28 @@ impl GeneralizedInfix {
     /// Tries interpret given AST node as GeneralizedInfix. Returns None, if Ast is not any kind of
     /// application on infix operator.
     pub fn try_new(ast:&Ast) -> Option<GeneralizedInfix> {
+        let id = ast.id;
         match ast.shape().clone() {
             Shape::Infix(infix) => Some(GeneralizedInfix{
+                id,
                 left  : make_operand (infix.larg,infix.loff),
                 opr   : make_operator(&infix.opr)?,
                 right : make_operand (infix.rarg,infix.roff),
             }),
             Shape::SectionLeft(left) => Some(GeneralizedInfix{
+                id,
                 left  : make_operand (left.arg,left.off),
                 opr   : make_operator(&left.opr)?,
                 right : None,
             }),
             Shape::SectionRight(right) => Some(GeneralizedInfix{
+                id,
                 left  : None,
                 opr   : make_operator(&right.opr)?,
                 right : make_operand (right.arg,right.off),
             }),
             Shape::SectionSides(sides) => Some(GeneralizedInfix{
+                id,
                 left  : None,
                 opr   : make_operator(&sides.opr)?,
                 right : None,
@@ -170,13 +178,13 @@ impl GeneralizedInfix {
     }
 
     /// Constructor with operands marked as target and argument.
-    pub fn new_from_operands(operands:MarkedOperands, opr:Operator) -> Self {
+    pub fn new_from_operands(operands:MarkedOperands, opr:Operator, id:Option<Id>) -> Self {
         match assoc(&opr) {
-            Assoc::Left => GeneralizedInfix {opr,
+            Assoc::Left => GeneralizedInfix {opr,id,
                 left  : operands.target,
                 right : operands.argument,
             },
-            Assoc::Right => GeneralizedInfix {opr,
+            Assoc::Right => GeneralizedInfix {opr,id,
                 left  : operands.argument,
                 right : operands.target,
             },
@@ -185,7 +193,7 @@ impl GeneralizedInfix {
 
     /// Convert to AST node.
     pub fn into_ast(self) -> Ast {
-        match (self.left,self.right) {
+        let ast:Ast = match (self.left,self.right) {
             (Some(left),Some(right)) => Infix{
                 larg : left.arg,
                 loff : left.offset,
@@ -206,6 +214,11 @@ impl GeneralizedInfix {
             (None,None) => SectionSides {
                 opr : self.opr.into()
             }.into()
+        };
+        if let Some(id) = self.id{
+            ast.with_id(id)
+        } else {
+            ast
         }
     }
 
@@ -247,6 +260,7 @@ impl GeneralizedInfix {
         let rest   = ChainElement {offset,
             operator : self.opr.clone(),
             operand  : self.argument_operand(),
+            infix_id : self.id,
         };
 
         let target_subtree_infix = target.clone().and_then(|arg| {
@@ -341,15 +355,16 @@ impl Chain {
     /// Indexing does not skip `None` operands. Function panics, if get index greater than operands
     /// count.
     pub fn insert_operand(&mut self, at_index:usize, operand:ArgWithOffset<Ast>) {
-        let offset        = operand.offset;
-        let mut operand   = Some(operand);
-        let operator      = self.operator.clone_ref();
-        let before_target = at_index == 0;
+        let offset              = operand.offset;
+        let mut operand         = Some(operand);
+        let operator            = self.operator.clone_ref();
+        let before_target       = at_index == 0;
+        let infix_id:Option<Id> = None;
         if before_target {
             std::mem::swap(&mut operand, &mut self.target);
-            self.args.insert(0,ChainElement{operator,operand,offset})
+            self.args.insert(0,ChainElement{operator,operand,offset,infix_id})
         } else {
-            self.args.insert(at_index-1,ChainElement{operator,operand,offset})
+            self.args.insert(at_index-1,ChainElement{operator,operand,offset,infix_id})
         }
     }
 
@@ -380,7 +395,8 @@ impl Chain {
             let operator        = element.operator;
             let argument        = element.operand;
             let operands        = MarkedOperands{target,argument};
-            let new_infix       = GeneralizedInfix::new_from_operands(operands,operator);
+            let id              = element.infix_id;
+            let new_infix       = GeneralizedInfix::new_from_operands(operands,operator,id);
             let new_with_offset = ArgWithOffset {
                 arg    : new_infix.into_ast(),
                 offset : element.offset,
@@ -398,8 +414,8 @@ impl Chain {
             self.fold_arg()
         }
         // TODO[ao] the only case when target is none is when chain have None target and empty
-        // arguments list. Such Chain cannot be generated from Ast, but someone could think that
-        // this is still a valid chain. To consider returning error here.
+        //  arguments list. Such Chain cannot be generated from Ast, but someone could think that
+        //  this is still a valid chain. To consider returning error here.
         self.target.unwrap().arg
     }
 
@@ -429,6 +445,8 @@ pub struct ChainElement {
     pub operand : Operand,
     /// Offset between this operand and the next operator.
     pub offset : usize,
+    /// Id of infix AST which applies this operand.
+    pub infix_id : Option<Id>,
 }
 
 impl ChainElement {
