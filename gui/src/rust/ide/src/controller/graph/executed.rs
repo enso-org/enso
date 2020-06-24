@@ -145,8 +145,10 @@ mod tests {
 
         // Observing that notification was relayed.
         let observed_notification = notifications.expect_next();
+        let typename_in_registry  = registry.get(&update.id).unwrap().typename.clone();
+        let expected_typename     = update.typename.clone().map(ImString::new);
         assert_eq!(observed_notification,Notification::ComputedValueInfo(vec![update.id]));
-        assert_eq!(registry.get(&update.id).unwrap().typename, update.typename);
+        assert_eq!(typename_in_registry,expected_typename);
         notifications.expect_pending();
     }
 }
