@@ -15,20 +15,23 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 
+/** The processor used to generate code from the {@link BuiltinMethod} annotation. */
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinMethod")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 @AutoService(Processor.class)
 public class MethodProcessor extends AbstractProcessor {
 
-  void print(Object o) {
-    processingEnv.getMessager().printMessage(Diagnostic.Kind.WARNING, o.toString());
-  }
-
+  /**
+   * Processes annotated elements, generating code for each of them.
+   *
+   * @param annotations annotation being processed this round.
+   * @param roundEnv additional round information.
+   * @return {@code true}
+   */
   @Override
   public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
     for (TypeElement annotation : annotations) {
       Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
-      print(annotatedElements);
       for (Element elt : annotatedElements) {
         TypeElement element = (TypeElement) elt;
         ExecutableElement executeMethod =
@@ -45,17 +48,14 @@ public class MethodProcessor extends AbstractProcessor {
                     () -> {
                       processingEnv
                           .getMessager()
-                          .printMessage(Diagnostic.Kind.ERROR, "No execute method.");
+                          .printMessage(Diagnostic.Kind.ERROR, "No execute method found.");
                       return null;
                     });
         if (executeMethod == null) return true;
         BuiltinMethod ann = element.getAnnotation(BuiltinMethod.class);
-        print(executeMethod);
         String pkgName =
             processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
         String className = element.getSimpleName().toString();
-        print(pkgName);
-        print(className);
         try {
           generateCode(new MethodDefinition(pkgName, className, element, executeMethod, ann));
         } catch (IOException e) {
@@ -84,12 +84,6 @@ public class MethodProcessor extends AbstractProcessor {
     JavaFileObject gen =
         processingEnv.getFiler().createSourceFile(methodDefinition.getQualifiedName());
 
-    methodDefinition.getArguments().forEach(this::print);
-
-    for (MethodDefinition.ArgumentDefinition def : methodDefinition.getArguments()) {
-      print(def.toString() + " " + def.getType().getKind());
-    }
-
     Set<String> allImports = new HashSet<>(necessaryImports);
     allImports.addAll(methodDefinition.getImports());
 
@@ -113,8 +107,13 @@ public class MethodProcessor extends AbstractProcessor {
 
       out.println();
 
+      String functionBuilderMethod =
+          methodDefinition.needsCallerInfo()
+              ? "fromBuiltinRootNodeWithCallerFrameAccess"
+              : "fromBuiltinRootNode";
+
       out.println("  public static Function makeFunction(Language language) {");
-      out.println("    return Function.fromBuiltinRootNode(");
+      out.println("    return Function." + functionBuilderMethod + "(");
       out.println("        new " + methodDefinition.getClassName() + "(language),");
       if (methodDefinition.isAlwaysDirect()) {
         out.println("        FunctionSchema.CallStrategy.ALWAYS_DIRECT,");
@@ -123,7 +122,7 @@ public class MethodProcessor extends AbstractProcessor {
       }
       List<String> argumentDefs = new ArrayList<>();
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
-        if (!arg.isState()) {
+        if (arg.isPositional()) {
           String executionMode = arg.isSuspended() ? "PASS_THUNK" : "EXECUTE";
           argumentDefs.add(
               "        new ArgumentDefinition("
@@ -143,16 +142,25 @@ public class MethodProcessor extends AbstractProcessor {
       out.println("  @Override");
       out.println("  public Stateful execute(VirtualFrame frame) {");
       out.println("    Object state = Function.ArgumentsHelper.getState(frame.getArguments());");
+      if (methodDefinition.needsCallerInfo()) {
+        out.println(
+            "    CallerInfo callerInfo = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());");
+      }
       out.println(
           "    Object[] arguments = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());");
       List<String> callArgNames = new ArrayList<>();
       for (MethodDefinition.ArgumentDefinition argumentDefinition :
           methodDefinition.getArguments()) {
-        if (!argumentDefinition.isState()) {
-          callArgNames.add("arg" + argumentDefinition.getPosition());
-          generateArgumentRead(out, argumentDefinition, methodDefinition.getDeclaredName(), "arguments");
-        } else {
+        if (argumentDefinition.isState()) {
           callArgNames.add("state");
+        } else if (argumentDefinition.isFrame()) {
+          callArgNames.add("frame");
+        } else if (argumentDefinition.isCallerInfo()) {
+          callArgNames.add("callerInfo");
+        } else {
+          callArgNames.add("arg" + argumentDefinition.getPosition());
+          generateArgumentRead(
+              out, argumentDefinition, methodDefinition.getDeclaredName(), "arguments");
         }
       }
       String executeCall = "bodyNode.execute(" + String.join(", ", callArgNames) + ")";

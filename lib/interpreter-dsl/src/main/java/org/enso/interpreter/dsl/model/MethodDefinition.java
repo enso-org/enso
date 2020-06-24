@@ -9,6 +9,8 @@ import javax.lang.model.type.TypeMirror;
 import java.util.*;
 
 public class MethodDefinition {
+  private static final String STATEFUL = "org.enso.interpreter.runtime.state.Stateful";
+
   private final String packageName;
   private final String originalClassName;
   private final String className;
@@ -17,6 +19,7 @@ public class MethodDefinition {
   private final List<ArgumentDefinition> arguments;
   private final Set<String> imports;
   private final boolean modifiesState;
+  private final boolean needsCallerInfo;
   private final String constructorExpression;
 
   public MethodDefinition(
@@ -32,8 +35,8 @@ public class MethodDefinition {
     this.annotation = annotation;
     this.arguments = initArguments(execute);
     this.imports = initImports();
-    this.modifiesState =
-        execute.getReturnType().toString().equals("org.enso.interpreter.runtime.state.Stateful");
+    this.needsCallerInfo = arguments.stream().anyMatch(ArgumentDefinition::isCallerInfo);
+    this.modifiesState = execute.getReturnType().toString().equals(STATEFUL);
     this.constructorExpression = initConstructor(element);
   }
 
@@ -79,11 +82,9 @@ public class MethodDefinition {
     List<? extends VariableElement> params = method.getParameters();
     int position = 0;
     for (VariableElement param : params) {
-      String originalName = param.getSimpleName().toString();
-      String name = originalName.equals("self") ? "this" : originalName;
-      boolean isState = param.getAnnotation(MonadicState.class) != null;
-      args.add(new ArgumentDefinition(param.asType(), name, isState, position));
-      if (!isState) {
+      ArgumentDefinition def = new ArgumentDefinition(param, position);
+      args.add(def);
+      if (def.isPositional()) {
         position++;
       }
     }
@@ -122,6 +123,10 @@ public class MethodDefinition {
     return modifiesState;
   }
 
+  public boolean needsCallerInfo() {
+    return needsCallerInfo;
+  }
+
   public boolean isAlwaysDirect() {
     return annotation.alwaysDirect();
   }
@@ -131,23 +136,44 @@ public class MethodDefinition {
   }
 
   public static class ArgumentDefinition {
+    private static final String VIRTUAL_FRAME = "com.oracle.truffle.api.frame.VirtualFrame";
+    private static final String OBJECT = "java.lang.Object";
+    private static final String THUNK = "org.enso.interpreter.runtime.callable.argument.Thunk";
+    private static final String CALLER_INFO = "org.enso.interpreter.runtime.callable.CallerInfo";
     private final String typeName;
     private final TypeMirror type;
     private final String name;
     private final boolean isState;
+    private final boolean isFrame;
+    private final boolean isCallerInfo;
     private final int position;
 
-    public ArgumentDefinition(TypeMirror type, String name, boolean isState, int position) {
+    public ArgumentDefinition(VariableElement element, int position) {
+      type = element.asType();
       String[] typeNameSegments = type.toString().split("\\.");
-      this.typeName = typeNameSegments[typeNameSegments.length - 1];
-      this.type = type;
-      this.name = name;
-      this.isState = isState;
+      typeName = typeNameSegments[typeNameSegments.length - 1];
+      String originalName = element.getSimpleName().toString();
+      name = originalName.equals("self") ? "this" : originalName;
+      isState = element.getAnnotation(MonadicState.class) != null && type.toString().equals(OBJECT);
+      isFrame = type.toString().equals(VIRTUAL_FRAME);
+      isCallerInfo = type.toString().equals(CALLER_INFO);
       this.position = position;
     }
 
     public boolean isState() {
       return isState;
+    }
+
+    public boolean isFrame() {
+      return isFrame;
+    }
+
+    public boolean isCallerInfo() {
+      return isCallerInfo;
+    }
+
+    public boolean isPositional() {
+      return !isFrame() && !isState() && !isCallerInfo();
     }
 
     public int getPosition() {
@@ -156,7 +182,7 @@ public class MethodDefinition {
 
     public Optional<String> getImport() {
       if (type.getKind() == TypeKind.DECLARED) {
-        if (!type.toString().equals("java.lang.Object")) {
+        if (!type.toString().equals(OBJECT)) {
           return Optional.of(type.toString());
         }
       }
@@ -164,7 +190,7 @@ public class MethodDefinition {
     }
 
     public boolean requiresCast() {
-      return !type.toString().equals("java.lang.Object");
+      return !type.toString().equals(OBJECT);
     }
 
     public String getTypeName() {
@@ -180,12 +206,7 @@ public class MethodDefinition {
     }
 
     public boolean isSuspended() {
-      return type.toString().equals("org.enso.interpreter.runtime.callable.argument.Thunk");
-    }
-
-    @Override
-    public String toString() {
-      return "ArgumentDefinition{" + "type='" + typeName + '\'' + ", name='" + name + '\'' + '}';
+      return type.toString().equals(THUNK);
     }
   }
 }

@@ -4,27 +4,20 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.IfZeroNode;
-import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointNode;
-import org.enso.interpreter.node.expression.builtin.debug.DebugEvalNode;
-import org.enso.interpreter.node.expression.builtin.error.CatchErrorNode;
-import org.enso.interpreter.node.expression.builtin.error.CatchPanicNode;
-import org.enso.interpreter.node.expression.builtin.error.PanicNode;
-import org.enso.interpreter.node.expression.builtin.error.ThrowErrorNode;
-import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionNode;
+import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
+import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
+import org.enso.interpreter.node.expression.builtin.error.*;
+import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.generic.*;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNode;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
-import org.enso.interpreter.node.expression.builtin.io.PrintErrNode;
-import org.enso.interpreter.node.expression.builtin.io.PrintlnNode;
-import org.enso.interpreter.node.expression.builtin.io.ReadlnNode;
+import org.enso.interpreter.node.expression.builtin.io.*;
 import org.enso.interpreter.node.expression.builtin.number.*;
 import org.enso.interpreter.node.expression.builtin.state.*;
 import org.enso.interpreter.node.expression.builtin.system.NanoTimeMethodGen;
-import org.enso.interpreter.node.expression.builtin.system.NanoTimeNode;
 import org.enso.interpreter.node.expression.builtin.interop.java.*;
 import org.enso.interpreter.node.expression.builtin.text.*;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
-import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -130,16 +123,16 @@ public class Builtins {
 
     createPolyglot(language);
 
-    scope.registerMethod(io, "println", PrintlnNode.makeFunction(language, scope));
-    scope.registerMethod(io, "print_err", PrintErrNode.makeFunction(language));
-    scope.registerMethod(io, "readln", ReadlnNode.makeFunction(language));
+    scope.registerMethod(io, "println", PrintlnMethodGen.makeFunction(language));
+    scope.registerMethod(io, "print_err", PrintErrMethodGen.makeFunction(language));
+    scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
 
     scope.registerMethod(system, "nano_time", NanoTimeMethodGen.makeFunction(language));
 
-    scope.registerMethod(panic, "throw", PanicNode.makeFunction(language));
-    scope.registerMethod(panic, "recover", CatchPanicNode.makeFunction(language));
-    scope.registerMethod(error, "throw", ThrowErrorNode.makeFunction(language));
-    scope.registerMethod(any, "catch", CatchErrorNode.makeFunction(language));
+    scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
+    scope.registerMethod(panic, "recover", CatchPanicMethodGen.makeFunction(language));
+    scope.registerMethod(error, "throw", ThrowErrorMethodGen.makeFunction(language));
+    scope.registerMethod(any, "catch", CatchErrorMethodGen.makeFunction(language));
 
     scope.registerMethod(number, "ifZero", IfZeroNode.makeFunction(language));
     scope.registerMethod(number, "+", AddMethodGen.makeFunction(language));
@@ -154,10 +147,10 @@ public class Builtins {
     scope.registerMethod(state, "put", PutStateMethodGen.makeFunction(language));
     scope.registerMethod(state, "run", RunStateMethodGen.makeFunction(language));
 
-    scope.registerMethod(debug, MethodNames.Debug.EVAL, DebugEvalNode.makeFunction(language));
-    scope.registerMethod(debug, "breakpoint", DebugBreakpointNode.makeFunction(language));
+    scope.registerMethod(debug, MethodNames.Debug.EVAL, DebugEvalMethodGen.makeFunction(language));
+    scope.registerMethod(debug, "breakpoint", DebugBreakpointMethodGen.makeFunction(language));
 
-    scope.registerMethod(function, "call", ExplicitCallFunctionNode.makeFunction(language));
+    scope.registerMethod(function, "call", ExplicitCallFunctionMethodGen.makeFunction(language));
 
     scope.registerMethod(text, "+", ConcatMethodGen.makeFunction(language));
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
