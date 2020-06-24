@@ -41,12 +41,12 @@ overridden JAR for Truffle API. This JAR has to be present during startup of the
 JVM, but it has to be downloaded from the Maven repository.
 
 To fix this chicken-and-egg problem, we have a special `bootstrap` task, that
-has to be ran when setting-up the project (and after a version update of Graal).
+has to be ran when setting-up the project (and after a version change of Graal).
 It makes sure the JAR is downloaded and copied to our directory and terminates
 the sbt process to ensure that the user restarts it. Without the full restart,
 the JAR would not be seen by the JVM. So when setting up the project or after
-changing the version of Graal, the before launching the sbt shell, you should
-first run `sbt bootstrap`, to make sure the environment is correctly prepared.
+changing the version of Graal, before launching the sbt shell, you should first
+run `sbt bootstrap`, to make sure the environment is properly prepared.
 
 The logic for copying the JAR is implemented in
 [`CopyTruffleJAR`](../../project/CopyTruffleJAR.scala). If the compilation

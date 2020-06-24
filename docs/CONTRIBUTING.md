@@ -195,6 +195,9 @@ To do so, run `sbt bootstrap` in the repository root directory. It is preferred
 to not run this command from the sbt shell, but in batch mode, because sbt has
 to be launched again anyway to pick up these JARs at startup.
 
+Bootstrap has to be run only when building the project for the first time
+**and** after each change of Graal version.
+
 #### Building Enso Components
 In order to build a specific component (e.g. `runtime`), please follow the
 following steps.

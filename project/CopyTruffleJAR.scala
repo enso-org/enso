@@ -27,8 +27,9 @@ object CopyTruffleJAR {
     ) {
       log.info("Truffle JARs have been updated.")
       System.err.println(
-        "You have to restart the sbt JVM before attempting compilation."
+        "You have to restart the sbt JVM for the changes to take effect."
       )
+      System.out.flush()
       System.err.flush()
       System.exit(0)
     } else {
@@ -45,7 +46,8 @@ object CopyTruffleJAR {
     * terminated, because a restart is required.
     */
   lazy val preCompileTask = Def.task {
-    val log = streams.value.log
+    val log          = streams.value.log
+    val currentState = state.value
     if (
       ensureTruffleJARUpToDate(
         baseDirectory.value,
@@ -55,14 +57,25 @@ object CopyTruffleJAR {
     ) {
       log.error(
         "JARs that have to be loaded by the sbt JVM at startup have been" +
-        " modified or did not exist."
+        " modified or did not exist.\n" +
+        "Did you run bootstrap?"
+      )
+      log.warn(
+        "Bootstrap has been triggered automatically, but the sbt JVM must be" +
+        " restarted to apply the changes, so the compilation had to be stopped."
+      )
+      log.warn(
+        "To avoid disrupting compilation, remember to run bootstrap when " +
+        "setting up the project and after each version change of Graal."
       )
       System.err.println(
         "The sbt JVM has to be restarted to apply the changes.\n" +
         "Please re-launch sbt and re-run the last command."
       )
+      System.out.flush()
       System.err.flush()
       System.exit(0)
+      // Command.process("exit", currentState)
     }
   }
 
