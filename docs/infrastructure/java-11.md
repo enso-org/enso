@@ -26,7 +26,7 @@ it. Thus, we want to move to using Graal builds for Java 11.
 ## Migration progress
 The overall steps of the migration and their status are outlined in this
 section. The task is tracked as issue
-[#671](https://github.com/luna/enso/issues/671).
+[#671](https://github.com/enso-org/enso/issues/671).
 
 ### Build configuration
 Currently, the only modification was the removal of the option

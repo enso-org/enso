@@ -182,7 +182,7 @@ essentially ruling it out in this category.
 
 With GraalVM supporting not only our primary interoperability targets, but also
 the whole JVM ecosystem and any language that targets LLVM, it is an absolute
-dream for ensuring that Luna can seamlessly communicate with a whole host of
+dream for ensuring that Enso can seamlessly communicate with a whole host of
 other programming languages.
 
 ### Implementation Performance
@@ -248,9 +248,8 @@ it has been extended significantly to better support Enso's use-cases.
   (`expandOptionalArgs`, which expands all defaulted arguments in a call with
   the defaults as the values). Needs to account for on-demand opt, metadata
   handling.
-- A description of how a Luna process should manage source files in server mode,
+- A description of how a Enso process should manage source files in server mode,
   including a description of changesets (dual payload, text diff or AST diff).
-- https://github.com/luna/luna/issues/365
 -->
 
 ## Filesystem Driver
@@ -357,8 +356,8 @@ to provide a seamless interface to foreign code from inside Enso.
 <!-- TODO
 - A design for standard, unsafe, C-level FFI using JNI.
 - A design for what types can be exposed across the C-FFI boundary.
-- A design for how to expose foreign languages to Luna in a safe fashion.
-- An analysis of how Luna can minimise the conversions that take place when
+- A design for how to expose foreign languages to Enso in a safe fashion.
+- An analysis of how Enso can minimise the conversions that take place when
   going between languages.
 -->
 
