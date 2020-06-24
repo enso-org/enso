@@ -8,7 +8,7 @@ order: 5
 
 # Getting Enso
 Enso packages can currently be obtained from the per-commit CI builds.
-See [the build workflow on GitHub Actions](https://github.com/luna/enso/actions?query=workflow%3A%22Enso+CI%22).
+See [the build workflow on GitHub Actions](https://github.com/enso-org/enso/actions?query=workflow%3A%22Enso+CI%22).
 The artifact of interest is `enso-<version>` (currently `enso-0.0.1`).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
@@ -26,7 +26,7 @@ GraalVM. You can get the Community Edition pre-built distributions from
 It is important to run Enso with exactly the version specified here. Given that
 Graal is still a relatively young project, even the minor version changes
 introduce breaking API changes. The current version of GraalVM required for
-Enso is `20.1.0`.
+Enso is `20.1.0`, and it must be the Java 8 build.
 
 Before running the Enso packages, make sure that the `JAVA_HOME` environment
 variable points to the correct home location of the Graal distribution.
@@ -35,14 +35,14 @@ variable points to the correct home location of the Graal distribution.
 The distribution contains two main executables of interest:
 
 1. The project manager. This executable is currently used for testing the IDE,
-   though in the future it will rarely be run directly and rather will be 
+   though in the future it will rarely be run directly and rather will be
    launched automatically by the IDE. To run the project manager, run the
    `bin/project-manager` script (Linux and MacOS) or the
    `bin/project-manager.bat` script (Windows).
 2. The Enso CLI. This allows to create and run Enso projects from the command
    line. To launch the Enso CLI, run the `bin/enso` script (Linux and MacOS) or
    the `bin/enso.bat` script (Windows).
-   
+
 Again, it is necessary for you to set the `JAVA_HOME` variable correctly.
 
 ## Troubleshooting

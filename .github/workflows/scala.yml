@@ -184,8 +184,8 @@ jobs:
       - name: Prepare AWS Session
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-          ${{ secrets.PARSER_S3_ACCESS_KEY_ID }}
-          ${{ secrets.PARSER_S3_SECRET_ACCESS_KEY }}
+          ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
+          ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
           us-west-2
           text
           EOF

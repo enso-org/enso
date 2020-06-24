@@ -13,9 +13,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        repository: 'luna/luna.github.io'
+        repository: 'enso-org/enso-org.github.io'
         ref: 'sources'
-        token: ${{ secrets.Enso_PAT }}
+        token: ${{ secrets.ENSO_PAT }}
     - name: set identity email
       run: git config --global user.email "actions@github.com"
     - name: set identity name
