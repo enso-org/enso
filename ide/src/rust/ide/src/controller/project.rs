@@ -316,7 +316,7 @@ impl Handle {
 mod test {
     use super::*;
 
-    use crate::DEFAULT_PROJECT_NAME;
+    use crate::constants::DEFAULT_PROJECT_NAME;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
     use json_rpc::expect_call;

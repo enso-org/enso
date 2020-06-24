@@ -1,9 +1,9 @@
-//! This module defines the entrypoint function for IDE.
+//! This module defines the entry point function for IDE.
 
 use wasm_bindgen::prelude::*;
 
 use ensogl::system::web;
-use ide::run_ide;
+use ide::IdeInitializer;
 
 /// IDE startup function.
 #[wasm_bindgen]
@@ -19,6 +19,6 @@ pub fn run_example_ide() {
                 p.remove_child(&t).unwrap()
             })
         }).ok();
-        run_ide()
+        IdeInitializer::new().start_and_forget();
     });
 }

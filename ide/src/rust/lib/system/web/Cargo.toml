@@ -48,7 +48,8 @@ features = [
   'Event',
   'MouseEvent',
   'EventTarget',
-  'DomRect'
+  'DomRect',
+  'Location'
 ]
 
 [dev-dependencies]
