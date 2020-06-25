@@ -155,7 +155,7 @@ impl GraphEditorIntegratedWithController {
         let editor_outs = &model.editor.frp.outputs;
         frp::new_network! {network
             let invalidate = FencedAction::fence(&network,f!([model](()) {
-                let result = model.update_graph_view();
+                let result = model.refresh_graph_view();
                 if let Err(err) = result {
                     error!(model.logger,"Error while invalidating graph: {err}");
                 }
@@ -252,7 +252,7 @@ impl GraphEditorIntegratedWithControllerModel {
             project_controller: project
         };
 
-        if let Err(err) = this.update_graph_view() {
+        if let Err(err) = this.refresh_graph_view() {
             error!(this.logger,"Error while initializing graph editor: {err}");
         }
         this
@@ -264,15 +264,15 @@ impl GraphEditorIntegratedWithControllerModel {
 
 impl GraphEditorIntegratedWithControllerModel {
     /// Reload whole displayed content to be up to date with module state.
-    pub fn update_graph_view(&self) -> FallibleResult<()> {
+    pub fn refresh_graph_view(&self) -> FallibleResult<()> {
         use controller::graph::Connections;
         let Connections{trees,connections} = self.controller.graph.connections()?;
-        self.update_node_views(trees)?;
-        self.update_connection_views(connections)?;
+        self.refresh_node_views(trees)?;
+        self.refresh_connection_views(connections)?;
         Ok(())
     }
 
-    fn update_node_views
+    fn refresh_node_views
     (&self, mut trees:HashMap<double_representation::node::Id,NodeTrees>) -> FallibleResult<()> {
         let nodes = self.controller.graph.nodes()?;
         let ids   = nodes.iter().map(|node| node.info.id() ).collect();
@@ -283,7 +283,7 @@ impl GraphEditorIntegratedWithControllerModel {
             let default_pos = Vector2(0.0, i as f32 * -DEFAULT_GAP_BETWEEN_NODES);
             let displayed   = self.node_views.borrow_mut().get_by_left(&id).cloned();
             match displayed {
-                Some(displayed) => self.update_node_view(displayed,node_info,node_trees),
+                Some(displayed) => self.refresh_node_view(displayed, node_info, node_trees),
                 None            => self.create_node_view(node_info,node_trees,default_pos),
             }
         }
@@ -307,7 +307,7 @@ impl GraphEditorIntegratedWithControllerModel {
     (&self, info:&controller::graph::Node, trees:NodeTrees, default_pos:Vector2) {
         let id           = info.info.id();
         let displayed_id = self.editor.add_node();
-        self.update_node_view(displayed_id,info,trees);
+        self.refresh_node_view(displayed_id, info, trees);
         // If position wasn't present in metadata, we must initialize it.
         if info.metadata.and_then(|md| md.position).is_none() {
             self.editor.frp.inputs.set_node_position.emit_event(&(displayed_id,default_pos));
@@ -346,7 +346,7 @@ impl GraphEditorIntegratedWithControllerModel {
         Ok(visualization::Data::from(as_json))
     }
 
-    fn update_node_view
+    fn refresh_node_view
     (&self, id:graph_editor::NodeId, node:&controller::graph::Node, trees:NodeTrees) {
         let position = node.metadata.and_then(|md| md.position);
         if let Some(position) = position {
@@ -366,25 +366,25 @@ impl GraphEditorIntegratedWithControllerModel {
             // sub-parts).
             for expression_part in node.info.expression().iter_recursive() {
                 if let Some(id) = expression_part.id {
-                    self.update_type_on(id)
+                    self.refresh_type_on(id)
                 }
             }
         }
 
     }
 
-    /// Like `update_type_on` but for multiple expressions.
-    fn update_types_on(&self, expressions_to_update:&[ExpressionId]) -> FallibleResult<()> {
-        debug!(self.logger, "Updating type information for IDs: {expressions_to_update:?}.");
-        for id in expressions_to_update {
-            self.update_type_on(*id)
+    /// Like `refresh_type_on` but for multiple expressions.
+    fn refresh_types_on(&self, expressions_to_refresh:&[ExpressionId]) -> FallibleResult<()> {
+        debug!(self.logger, "Refreshing type information for IDs: {expressions_to_refresh:?}.");
+        for id in expressions_to_refresh {
+            self.refresh_type_on(*id)
         }
         Ok(())
     }
 
     /// Look up the typename for the given expression in the execution controller's registry and
     /// pass the data to the editor view.
-    fn update_type_on(&self, id:ExpressionId) {
+    fn refresh_type_on(&self, id:ExpressionId) {
         let typename = self.lookup_typename(&id);
         self.set_type(id,typename)
     }
@@ -395,7 +395,7 @@ impl GraphEditorIntegratedWithControllerModel {
         self.editor.frp.inputs.set_expression_type.emit_event(&event);
     }
 
-    fn update_connection_views
+    fn refresh_connection_views
     (&self, connections:Vec<controller::graph::Connection>) -> FallibleResult<()> {
         self.retain_connection_views(&connections);
         for con in connections {
@@ -443,13 +443,13 @@ impl GraphEditorIntegratedWithControllerModel {
         use controller::graph::Notification::Invalidate;
 
         let result = match notification {
-            Some(Notification::Graph(Invalidate))         => self.update_graph_view(),
+            Some(Notification::Graph(Invalidate))         => self.refresh_graph_view(),
             Some(Notification::ComputedValueInfo(update)) =>
-                self.update_types_on(update),
+                self.refresh_types_on(update),
             other => {
                 warning!(self.logger,"Handling notification {other:?} is not implemented; \
                     performing full invalidation");
-                self.update_graph_view()
+                self.refresh_graph_view()
             }
         };
         if let Err(err) = result {
