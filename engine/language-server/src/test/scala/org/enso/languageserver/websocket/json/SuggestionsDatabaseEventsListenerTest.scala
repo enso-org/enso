@@ -215,7 +215,7 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
           "params" : {
             "updates" : [
               {
-                "type" : "Modify",
+                "type" : "Update",
                 "id" : 0,
                 "name" : "foo",
                 "arguments" : [
@@ -265,7 +265,7 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
           "params" : {
             "updates" : [
               {
-                "type" : "Remove",
+                "type" : "Delete",
                 "id" : 101
               }
             ],

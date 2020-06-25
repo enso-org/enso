@@ -69,9 +69,9 @@ object SearchProtocol {
 
       val Add = "Add"
 
-      val Remove = "Remove"
+      val Delete = "Delete"
 
-      val Modify = "Modify"
+      val Update = "Update"
     }
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =
@@ -84,7 +84,7 @@ object SearchProtocol {
                 cursor.downField(CodecField.Suggestion).as[Suggestion]
             } yield SuggestionsDatabaseUpdate.Add(id, suggestion)
 
-          case CodecType.Modify =>
+          case CodecType.Update =>
             for {
               id   <- cursor.downField(CodecField.Id).as[Long]
               name <- cursor.downField(CodecField.Name).as[Option[String]]
@@ -103,7 +103,7 @@ object SearchProtocol {
             } yield SuggestionsDatabaseUpdate
               .Modify(id, name, arguments, selfType, returnType, doc, scope)
 
-          case CodecType.Remove =>
+          case CodecType.Delete =>
             for {
               id <- cursor.downField(CodecField.Id).as[Long]
             } yield SuggestionsDatabaseUpdate.Remove(id)
@@ -130,7 +130,7 @@ object SearchProtocol {
             ) =>
           Json
             .obj(
-              CodecField.Type          -> CodecType.Modify.asJson,
+              CodecField.Type          -> CodecType.Update.asJson,
               CodecField.Id            -> id.asJson,
               CodecField.Name          -> name.asJson,
               CodecField.Arguments     -> arguments.asJson,
@@ -143,7 +143,7 @@ object SearchProtocol {
 
         case SuggestionsDatabaseUpdate.Remove(id) =>
           Json.obj(
-            CodecField.Type -> CodecType.Remove.asJson,
+            CodecField.Type -> CodecType.Delete.asJson,
             CodecField.Id   -> id.asJson
           )
       }
