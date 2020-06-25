@@ -39,7 +39,7 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
               "method": "project/create",
               "id": 1,
               "params": {
-                "name": "luna-test-project4/#$$%^@!"
+                "name": "enso-test-project4/#$$%^@!"
               }
             }
           """)

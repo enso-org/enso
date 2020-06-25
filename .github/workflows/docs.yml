@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        repository: 'luna/luna.github.io'
+        repository: 'enso-org/enso-org.github.io'
         ref: 'sources'
         token: ${{ secrets.ENSO_PAT }}
     - name: set identity email

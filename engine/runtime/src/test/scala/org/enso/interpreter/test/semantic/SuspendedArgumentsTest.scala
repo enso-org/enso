@@ -25,7 +25,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
       val code =
         """
           |main =
-          |    foo = i -> ~x -> ~y -> ifZero i x y
+          |    foo = i -> ~x -> ~y -> if i == 0 then x else y
           |    foo 1 (IO.println 1) (IO.println 2)
           |""".stripMargin
       eval(code)
@@ -36,7 +36,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
       val code =
         """
           |main =
-          |    ifTest = c -> ~ifT -> ~ifF -> ifZero c ifT ifF
+          |    ifTest = c -> ~ifT -> ~ifF -> if c == 0 then ifT else ifF
           |    sum = c -> acc -> ifTest c acc (sum c-1 acc+c)
           |    sum 10000 0
           |""".stripMargin
@@ -77,7 +77,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
       val code =
         """
           |main =
-          |    ifTest = c -> ~ifT -> ~ifF -> ifZero c ifT ifF
+          |    ifTest = c -> ~ifT -> ~ifF -> if c == 0 then ifT else ifF
           |    foo = c -> ifTest c
           |
           |    foo 0 (IO.println 1) (IO.println 2)

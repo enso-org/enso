@@ -462,7 +462,7 @@ We have our own exception framework based on `ExceptT` that encodes exception
 usage at the type level. This ensures that all synchronous exceptions must be
 dealt with.
 
-It is defined in [`lib/exception/`](https://github.com/luna/luna/tree/master/lib/exception)
+It is defined in [`lib/exception/`](https://github.com/enso-org/luna/tree/master/lib/exception)
 and contains utilities for declaring that a function throws an exception, as
 well as throwing and catching exceptions.
 
@@ -642,7 +642,7 @@ extension (linked from the extension's table below).
 The following language extensions are considered to be so safe, or to have such
 high utility, that they are considered to be Enso's set of default extensions.
 You can find said set of extensions for Enso itself defined in a
-[common configuration file](https://github.com/luna/luna/blob/master/config/hpack-common.yaml).
+[common configuration file](https://github.com/enso-org/luna/blob/master/config/hpack-common.yaml).
 
 #### AllowAmbiguousTypes
 

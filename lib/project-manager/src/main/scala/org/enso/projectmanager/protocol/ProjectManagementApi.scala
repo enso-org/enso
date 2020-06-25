@@ -7,7 +7,7 @@ import org.enso.projectmanager.data.{ProjectMetadata, Socket}
 
 /**
   * The project management JSON RPC API provided by the project manager.
-  * See [[https://github.com/luna/enso/blob/main/docs/language-server/README.md]]
+  * See [[https://github.com/enso-org/enso/blob/main/docs/language-server/README.md]]
   * for message specifications.
   */
 object ProjectManagementApi {
