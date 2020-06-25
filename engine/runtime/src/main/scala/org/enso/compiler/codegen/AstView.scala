@@ -2,7 +2,7 @@ package org.enso.compiler.codegen
 
 import org.enso.data
 import org.enso.data.List1
-import org.enso.syntax.text.{AST, Debug}
+import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Ident.{Opr, Var}
 
 /** This object contains view patterns that allow matching on the parser [[AST]]
@@ -296,24 +296,6 @@ object AstView {
     }
   }
 
-  // TODO MaybeParensed single
-
-  object MaybeManyParensed {
-
-    /** Matches on terms that _may_ be surrounded by (an arbitrary amount of)
-      * parentheses.
-      *
-      * @param ast the structure to try and match on
-      * @return the term contained in the parentheses
-      */
-    def unapply(ast: AST): Option[AST] = {
-      ast match {
-        case AST.Group(mExpr) => mExpr.flatMap(unapply)
-        case a                => Some(a)
-      }
-    }
-  }
-
   object Parensed {
 
     /** Matches on terms that is surrounded by parentheses.
@@ -329,6 +311,25 @@ object AstView {
     }
   }
 
+  object MaybeParensed {
+
+    /** Matches on terms that _may_ be surrounded by (an arbitrary amount of)
+      * parentheses.
+      *
+      * It 'peels off' one layer of parentheses, so the returned term may still
+      * be surrounded by more parentheses.
+      *
+      * @param ast the structure to try and match on
+      * @return the term contained in the parentheses
+      */
+    def unapply(ast: AST): Option[AST] = {
+      ast match {
+        case AST.Group(mExpr) => mExpr
+        case a                => Some(a)
+      }
+    }
+  }
+
   object ManyParensed {
 
     /** Matches on terms that is surrounded by an arbitrary (but non-zero)
@@ -339,10 +340,28 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the term contained in the parentheses
       */
-    def unapply(ast: AST): Option[AST] = { // TODO!!!
+    def unapply(ast: AST): Option[AST] = {
+      ast match {
+        case Parensed(MaybeManyParensed(p)) => Some(p)
+        case _                              => None
+      }
+    }
+  }
+
+  object MaybeManyParensed {
+
+    /** Matches on terms that _may_ be surrounded by (an arbitrary amount of)
+      * parentheses.
+      *
+      * The resulting term is not surrounded by any more parentheses.
+      *
+      * @param ast the structure to try and match on
+      * @return the term contained in the parentheses
+      */
+    def unapply(ast: AST): Option[AST] = {
       ast match {
         case AST.Group(mExpr) => mExpr.flatMap(unapply)
-        case _                => None
+        case a                => Some(a)
       }
     }
   }

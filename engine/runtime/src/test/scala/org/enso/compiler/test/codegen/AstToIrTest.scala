@@ -3,9 +3,6 @@ package org.enso.compiler.test.codegen
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Error.Syntax
 import org.enso.compiler.test.CompilerTest
-import org.enso.syntax.text.Debug
-
-import scala.annotation.unused
 
 class AstToIrTest extends CompilerTest {
 
