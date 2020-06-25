@@ -3,11 +3,9 @@ package org.enso.compiler.test.codegen
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Error.Syntax
 import org.enso.compiler.test.CompilerTest
-import org.enso.syntax.text.Debug
+import org.scalatest.Inside
 
-import scala.annotation.unused
-
-class AstToIrTest extends CompilerTest {
+class AstToIrTest extends CompilerTest with Inside {
 
   "AST translation of lambda definitions" should {
     "result in a syntax error when defined with multiple arguments" in {
@@ -781,6 +779,91 @@ class AstToIrTest extends CompilerTest {
       ir.asInstanceOf[IR.Application.Operator.Binary]
         .operator
         .name shouldEqual "!"
+    }
+  }
+
+  "AST translation of erroneous constructs" should {
+    "result in a syntax error when encountering " +
+    "unbalanced parentheses in application" in {
+      val ir =
+        """type MyAtom
+          |
+          |main =
+          |    f = case _ of
+          |        Cons (Cons MyAtom Nil) Nil -> 100
+          |        _ -> 50
+          |    f (Cons (Cons MyAtom Nil) Nil
+          |""".stripMargin.toIrModule
+
+      inside(ir.bindings(1)) {
+        case binding: IR.Module.Scope.Definition.Method.Binding =>
+          inside(binding.body) {
+            case block: IR.Expression.Block =>
+              inside(block.returnValue) {
+                case application: IR.Application.Prefix =>
+                  inside(application.arguments.head) {
+                    case argument: IR.CallArgument.Specified =>
+                      inside(argument.value) {
+                        case error: IR.Error.Syntax =>
+                          error.reason shouldBe
+                          IR.Error.Syntax.AmbiguousExpression
+                      }
+                  }
+              }
+          }
+      }
+    }
+
+    "result in a syntax error when encountering " +
+    "unbalanced parentheses in a type definition" in {
+      val ir =
+        """type Maybe
+          |    type Nothing
+          |    type Just a
+          |    (()
+          |""".stripMargin.toIrModule
+      inside(ir.bindings.head) {
+        case definition: IR.Module.Scope.Definition.Type =>
+          inside(definition.body(2)) {
+            case error: IR.Error.Syntax =>
+              error.reason shouldBe IR.Error.Syntax.UnexpectedDeclarationInType
+          }
+      }
+    }
+
+    "result in a syntax error when encountering " +
+    "unbalanced parentheses in a pattern" in {
+      val ir =
+        """type MyAtom
+          |
+          |main =
+          |    f = case _ of
+          |        (Cons (Cons MyAtom Nil) Nil -> 100
+          |        _ -> 50
+          |""".stripMargin.toIrModule
+      inside(ir.bindings(1)) {
+        case main: IR.Module.Scope.Definition.Method.Binding =>
+          inside(main.body) {
+            case block: IR.Expression.Block =>
+              inside(block.returnValue) {
+                case f: IR.Expression.Binding =>
+                  inside(f.expression) {
+                    case app: IR.Application.Prefix =>
+                      inside(app.arguments(1)) {
+                        case arg: IR.CallArgument.Specified =>
+                          inside(arg.value) {
+                            case argBlock: IR.Expression.Block =>
+                              inside(argBlock.expressions.head) {
+                                case error: IR.Error.Syntax =>
+                                  error.reason shouldBe
+                                  IR.Error.Syntax.AmbiguousExpression
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+      }
     }
   }
 }
