@@ -94,11 +94,7 @@ object ProjectManager extends App with LazyLogging {
     val osArch     = System.getProperty("os.arch")
     val osName     = System.getProperty("os.name")
     val osVersion  = System.getProperty("os.version")
-    val dirtyStr = if (Info.isDirty) {
-      "*"
-    } else {
-      ""
-    }
+    val dirtyStr   = if (Info.isDirty) "*" else ""
     putStrLn(
       s"""
          |Enso Project Manager
