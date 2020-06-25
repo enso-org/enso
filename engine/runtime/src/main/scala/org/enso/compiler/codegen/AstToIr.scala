@@ -407,11 +407,10 @@ object AstToIr {
         )
       case AstView.Pattern(_) =>
         Error.Syntax(inputAst, Error.Syntax.InvalidPattern)
-      // TODO ambiguous
       case Ambiguous(_, _) =>
         Error.Syntax(
           inputAst,
-          Error.Syntax.UnsupportedSyntax("non-closed paren??") // TODO
+          Error.Syntax.AmbiguousExpression
         )
       case _ =>
         throw new UnhandledEntity(inputAst, "translateExpression")

@@ -795,13 +795,21 @@ class AstToIrTest extends CompilerTest {
           |        Cons (Cons MyAtom Nil) Nil -> 100
           |        _ -> 50
           |    f (Cons (Cons MyAtom Nil) Nil
-          |""".stripMargin.toIrExpression.get
+          |""".stripMargin.toIrModule
 
-      ir shouldBe an[IR.Error.Syntax]
-
-      println(ir.asInstanceOf[IR.Error.Syntax].message)
-      // ir.asInstanceOf[IR.Error.Syntax].message shouldEqual "TODO"
-
+      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method.Binding]
+      val binding =
+        ir.bindings(1).asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
+      binding.body shouldBe an[IR.Expression.Block]
+      val block = binding.body.asInstanceOf[IR.Expression.Block]
+      block.returnValue shouldBe an[IR.Application.Prefix]
+      val application = block.returnValue.asInstanceOf[IR.Application.Prefix]
+      application.arguments.head shouldBe an[IR.CallArgument.Specified]
+      val argument =
+        application.arguments.head.asInstanceOf[IR.CallArgument.Specified]
+      argument.value shouldBe an[IR.Error.Syntax]
+      val error = argument.value.asInstanceOf[IR.Error.Syntax]
+      error.reason shouldBe IR.Error.Syntax.AmbiguousExpression
     }
   }
 }
