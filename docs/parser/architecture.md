@@ -21,71 +21,13 @@ the parser are described below.
 - [Operator Resolution](#operator-resolution)
 - [Construct Resolution](#construct-resolution)
 - [Parser Driver](#parser-driver)
-    - [AST](#ast)
+  - [AST](#ast)
 - [JVM Object Generation](#jvm-object-generation)
 
 <!-- /MarkdownTOC -->
 
 ## Overall Architecture
 The overall architecture of the parser subsystem can be visualised as follows.
-
-```
-                               ┌───────────────┐
-                               │  Source Code  │
-                               └───────────────┘
-                                       │
-                                       │
-                                       ▽
-  ┌─────────────────────────────────────────────────────────────────────────┐
-  │ ┌──────────────┐                Parser                                  │
-  │ │ UTF-X Reader │                                                        │
-  │ └──────────────┘                                                        │
-  │         │                                                               │
-  │         │  Character                                                    │
-  │         │   Stream                                                      │
-  │         ▽                                                               │
-  │    ┌────────┐                                                           │
-  │    │ Lexer  │                                                           │
-  │    │┌──────┐│                                                           │
-  │    ││Flexer││                                                           │
-  │    │└──────┘│                                                           │
-  │    └────────┘                                                           │
-  │         │                                                               │
-  │         │  Structured                                                   │
-  │         │ Token Stream                                                  │
-  │         ▽                                                               │
-  │  ┌────────────┐              ┌────────────┐              ┌────────────┐ │
-  │  │            │              │            │              │            │ │
-  │  │   Macro    │   Rust AST   │  Operator  │   Rust AST   │ Construct  │ │
-  │  │ Resolution │─────────────▷│ Resolution │─────────────▷│ Resolution │ │
-  │  │            │              │            │              │            │ │
-  │  └────────────┘              └────────────┘              └────────────┘ │
-  │                                                                 │       │
-  │                                                        Rust AST │       │
-  │                                                                 ▽       │
-  │                                                          ┌────────────┐ │
-  │                                                          │ AST Output │ │
-  │                                                          └────────────┘ │
-  └─────────────────────────────────────────────────────────────────────────┘
-                                       │
-                       ┌───────────────┤ Rust AST
-                       ▽               │
-                ┌────────────┐         │
-                │            │         │
-                │ JVM Object │         └─────────────────┐
-                │ Generator  │                           │
-                │            │                           │
-                └────────────┘                           │
-                       │                                 │
-               JVM AST │                                 │
-                       ▽                                 ▽
-                ┌────────────┐                    ┌────────────┐
-                │            │                    │            │
-                │ Use in JVM │                    │ Direct Use │
-                │    Code    │                    │in Rust Code│
-                │            │                    │            │
-                └────────────┘                    └────────────┘
-```
 
 ## Reader
 
