@@ -19,6 +19,14 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * An actor that shuts all running language servers. It orchestrates all
+  * language server controllers to shut down gracefully servers. When it is not
+  * possible it kills all controller actors.
+  *
+  * @param controllers running controllers
+  * @param shutdownTimeout a shutdown timeout
+  */
 class LanguageServerKiller(
   controllers: List[ActorRef],
   shutdownTimeout: FiniteDuration
@@ -71,8 +79,15 @@ class LanguageServerKiller(
 
 object LanguageServerKiller {
 
-  case object KillTimeout
+  private case object KillTimeout
 
+  /**
+    * Creates configuration object used to create a [[LanguageServerKiller]].
+    *
+    * @param controllers running controllers
+    * @param shutdownTimeout a shutdown timeout
+    * @return a configuration object
+    */
   def props(
     controllers: List[ActorRef],
     shutdownTimeout: FiniteDuration
