@@ -17,7 +17,7 @@ the parser.
 - [Technology Requirements for the Parser](#technology-requirements-for-the-parser)
 - [Issues With the Previous Implementation](#issues-with-the-previous-implementation)
 - [Choosing Rust](#choosing-rust)
-    - [Downsides of Rust](#downsides-of-rust)
+  - [Downsides of Rust](#downsides-of-rust)
 
 <!-- /MarkdownTOC -->
 
