@@ -322,6 +322,8 @@ ensogl::def_command_api! { Commands
     set_test_visualization_data_for_selected_node,
     /// Cycle the visualization for the selected nodes.
     cycle_visualization_for_selected_node,
+    /// Enter the last selected node.
+    enter_selected_node,
 
     /// Enable nodes multi selection mode. It works like inverse mode for single node selection and like merge mode for multi node selection mode.
     enable_node_multi_select,
@@ -392,6 +394,7 @@ impl Commands {
 
             set_test_visualization_data_for_selected_node <- source();
             cycle_visualization_for_selected_node         <- source();
+            enter_selected_node                           <- source();
 
             toggle_fullscreen_for_selected_visualization <- source();
 
@@ -405,7 +408,7 @@ impl Commands {
              ,enable_node_subtract_select,disable_node_subtract_select,toggle_node_subtract_select
              ,enable_node_inverse_select,disable_node_inverse_select,toggle_node_inverse_select
              ,set_test_visualization_data_for_selected_node,cycle_visualization_for_selected_node
-             ,toggle_fullscreen_for_selected_visualization,cancel}
+             ,enter_selected_node,toggle_fullscreen_for_selected_visualization,cancel}
     }
 }
 
@@ -577,6 +580,7 @@ generate_frp_outputs! {
     node_position_set         : (NodeId,Vector2),
     node_position_set_batched : (NodeId,Vector2),
     node_expression_set       : (NodeId,node::Expression),
+    node_entered              : NodeId,
 
     edge_added        : EdgeId,
     edge_removed      : EdgeId,
@@ -1434,7 +1438,8 @@ impl application::shortcut::DefaultShortcutProvider for GraphEditor {
              , Self::self_shortcut(shortcut::Action::press        (&[Key::Shift,Key::Alt])                      , "toggle_node_inverse_select")
              , Self::self_shortcut(shortcut::Action::release      (&[Key::Shift,Key::Alt])                      , "toggle_node_inverse_select")
              , Self::self_shortcut(shortcut::Action::press        (&[Key::Character("d".into())])               , "set_test_visualization_data_for_selected_node")
-             , Self::self_shortcut(shortcut::Action::press        (&[Key::Character("f".into())]) , "cycle_visualization_for_selected_node")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Character("f".into())])               , "cycle_visualization_for_selected_node")
+             , Self::self_shortcut(shortcut::Action::release      (&[Key::Control,Key::Enter])                  , "enter_selected_node")
              ]
     }
 }
@@ -2096,12 +2101,18 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     }));
 
 
+    // === Node Entering ===
+
+    node_to_enter        <= inputs.enter_selected_node.map(f_!(model.last_selected_node()));
+    outputs.node_entered <+ node_to_enter;
+
+
     // === OUTPUTS REBIND ===
 
     outputs.some_edge_targets_detached <+ inputs.some_edge_targets_detached;
     outputs.some_edge_sources_detached <+ inputs.some_edge_sources_detached;
     outputs.all_edge_targets_attached  <+ inputs.all_edge_targets_attached;
-     outputs.all_edges_attached        <+ inputs.all_edges_attached;
+    outputs.all_edges_attached         <+ inputs.all_edges_attached;
 
     eval outputs.edge_source_set        (((id,tgt)) model.set_edge_source(*id,tgt));
     eval outputs.edge_target_set        (((id,tgt)) model.set_edge_target(*id,tgt));
