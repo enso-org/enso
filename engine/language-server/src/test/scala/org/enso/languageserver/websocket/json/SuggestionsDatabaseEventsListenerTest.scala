@@ -38,20 +38,18 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
                 "type" : "Add",
                 "id" : 0,
                 "suggestion" : {
-                  "Atom" : {
-                    "name" : "MyType",
-                    "arguments" : [
-                      {
-                        "name" : "a",
-                        "reprType" : "Any",
-                        "isSuspended" : false,
-                        "hasDefault" : false,
-                        "defaultValue" : null
-                      }
-                    ],
-                    "returnType" : "MyAtom",
-                    "documentation" : null
-                  }
+                  "type" : "atom",
+                  "name" : "MyType",
+                  "arguments" : [
+                    {
+                      "name" : "a",
+                      "reprType" : "Any",
+                      "isSuspended" : false,
+                      "hasDefault" : false,
+                      "defaultValue" : null
+                    }
+                  ],
+                  "returnType" : "MyAtom"
                 }
               }
             ],
@@ -81,28 +79,27 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
                 "type" : "Add",
                 "id" : 0,
                 "suggestion" : {
-                  "Method" : {
-                    "name" : "foo",
-                    "arguments" : [
-                      {
-                        "name" : "this",
-                        "reprType" : "MyType",
-                        "isSuspended" : false,
-                        "hasDefault" : false,
-                        "defaultValue" : null
-                      },
-                      {
-                        "name" : "foo",
-                        "reprType" : "Number",
-                        "isSuspended" : false,
-                        "hasDefault" : true,
-                        "defaultValue" : "42"
-                      }
-                    ],
-                    "selfType" : "MyType",
-                    "returnType" : "Number",
-                    "documentation" : "My doc"
-                  }
+                  "type" : "method",
+                  "name" : "foo",
+                  "arguments" : [
+                    {
+                      "name" : "this",
+                      "reprType" : "MyType",
+                      "isSuspended" : false,
+                      "hasDefault" : false,
+                      "defaultValue" : null
+                    },
+                    {
+                      "name" : "foo",
+                      "reprType" : "Number",
+                      "isSuspended" : false,
+                      "hasDefault" : true,
+                      "defaultValue" : "42"
+                    }
+                  ],
+                  "selfType" : "MyType",
+                  "returnType" : "Number",
+                  "documentation" : "My doc"
                 }
               }
             ],
@@ -132,15 +129,14 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
                 "type" : "Add",
                 "id" : 0,
                 "suggestion" : {
-                  "Function" : {
-                    "name" : "print",
-                    "arguments" : [
-                    ],
-                    "returnType" : "IO",
-                    "scope" : {
-                      "start" : 7,
-                      "end" : 10
-                    }
+                  "type" : "function",
+                  "name" : "print",
+                  "arguments" : [
+                  ],
+                  "returnType" : "IO",
+                  "scope" : {
+                    "start" : 7,
+                    "end" : 10
                   }
                 }
               }
@@ -171,13 +167,12 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
                 "type" : "Add",
                 "id" : 0,
                 "suggestion" : {
-                  "Local" : {
-                    "name" : "x",
-                    "returnType" : "Number",
-                    "scope" : {
-                      "start" : 15,
-                      "end" : 17
-                    }
+                  "type" : "local",
+                  "name" : "x",
+                  "returnType" : "Number",
+                  "scope" : {
+                    "start" : 15,
+                    "end" : 17
                   }
                 }
               }
