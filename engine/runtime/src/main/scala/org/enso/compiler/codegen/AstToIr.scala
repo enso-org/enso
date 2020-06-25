@@ -7,8 +7,6 @@ import org.enso.compiler.core.IR.Name.MethodReference
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.AST.Macro.Ambiguous
-import org.enso.syntax.text.AST.Unapply
 
 import scala.annotation.tailrec
 
@@ -407,11 +405,8 @@ object AstToIr {
         )
       case AstView.Pattern(_) =>
         Error.Syntax(inputAst, Error.Syntax.InvalidPattern)
-      case Ambiguous(_, _) =>
-        Error.Syntax(
-          inputAst,
-          Error.Syntax.AmbiguousExpression
-        )
+      case AST.Macro.Ambiguous(_, _) =>
+        Error.Syntax(inputAst, Error.Syntax.AmbiguousExpression)
       case _ =>
         throw new UnhandledEntity(inputAst, "translateExpression")
     }
@@ -659,6 +654,8 @@ object AstToIr {
           hasDefaultsSuspended = false,
           getIdentifiedLocation(callable)
         )
+      case AST.Macro.Ambiguous(_, _) =>
+        Error.Syntax(callable, Error.Syntax.AmbiguousExpression)
       case _ => throw new UnhandledEntity(callable, "translateCallable")
     }
   }

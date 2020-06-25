@@ -3,8 +3,9 @@ package org.enso.compiler.test.codegen
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Error.Syntax
 import org.enso.compiler.test.CompilerTest
+import org.scalatest.Inside
 
-class AstToIrTest extends CompilerTest {
+class AstToIrTest extends CompilerTest with Inside {
 
   "AST translation of lambda definitions" should {
     "result in a syntax error when defined with multiple arguments" in {
@@ -781,9 +782,9 @@ class AstToIrTest extends CompilerTest {
     }
   }
 
-  "AST translation" should {
-    "result in syntax error when encountering unbalanced parentheses" in {
-
+  "AST translation of erroneous constructs" should {
+    "result in a syntax error when encountering " +
+    "unbalanced parentheses in application" in {
       val ir =
         """type MyAtom
           |
@@ -794,19 +795,75 @@ class AstToIrTest extends CompilerTest {
           |    f (Cons (Cons MyAtom Nil) Nil
           |""".stripMargin.toIrModule
 
-      ir.bindings(1) shouldBe an[IR.Module.Scope.Definition.Method.Binding]
-      val binding =
-        ir.bindings(1).asInstanceOf[IR.Module.Scope.Definition.Method.Binding]
-      binding.body shouldBe an[IR.Expression.Block]
-      val block = binding.body.asInstanceOf[IR.Expression.Block]
-      block.returnValue shouldBe an[IR.Application.Prefix]
-      val application = block.returnValue.asInstanceOf[IR.Application.Prefix]
-      application.arguments.head shouldBe an[IR.CallArgument.Specified]
-      val argument =
-        application.arguments.head.asInstanceOf[IR.CallArgument.Specified]
-      argument.value shouldBe an[IR.Error.Syntax]
-      val error = argument.value.asInstanceOf[IR.Error.Syntax]
-      error.reason shouldBe IR.Error.Syntax.AmbiguousExpression
+      inside(ir.bindings(1)) {
+        case binding: IR.Module.Scope.Definition.Method.Binding =>
+          inside(binding.body) {
+            case block: IR.Expression.Block =>
+              inside(block.returnValue) {
+                case application: IR.Application.Prefix =>
+                  inside(application.arguments.head) {
+                    case argument: IR.CallArgument.Specified =>
+                      inside(argument.value) {
+                        case error: IR.Error.Syntax =>
+                          error.reason shouldBe
+                          IR.Error.Syntax.AmbiguousExpression
+                      }
+                  }
+              }
+          }
+      }
+    }
+
+    "result in a syntax error when encountering " +
+    "unbalanced parentheses in a type definition" in {
+      val ir =
+        """type Maybe
+          |    type Nothing
+          |    type Just a
+          |    (()
+          |""".stripMargin.toIrModule
+      inside(ir.bindings.head) {
+        case definition: IR.Module.Scope.Definition.Type =>
+          inside(definition.body(2)) {
+            case error: IR.Error.Syntax =>
+              error.reason shouldBe IR.Error.Syntax.UnexpectedDeclarationInType
+          }
+      }
+    }
+
+    "result in a syntax error when encountering " +
+    "unbalanced parentheses in a pattern" in {
+      val ir =
+        """type MyAtom
+          |
+          |main =
+          |    f = case _ of
+          |        (Cons (Cons MyAtom Nil) Nil -> 100
+          |        _ -> 50
+          |""".stripMargin.toIrModule
+      inside(ir.bindings(1)) {
+        case main: IR.Module.Scope.Definition.Method.Binding =>
+          inside(main.body) {
+            case block: IR.Expression.Block =>
+              inside(block.returnValue) {
+                case f: IR.Expression.Binding =>
+                  inside(f.expression) {
+                    case app: IR.Application.Prefix =>
+                      inside(app.arguments(1)) {
+                        case arg: IR.CallArgument.Specified =>
+                          inside(arg.value) {
+                            case argBlock: IR.Expression.Block =>
+                              inside(argBlock.expressions.head) {
+                                case error: IR.Error.Syntax =>
+                                  error.reason shouldBe
+                                  IR.Error.Syntax.AmbiguousExpression
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+      }
     }
   }
 }
