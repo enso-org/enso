@@ -4,6 +4,7 @@ import java.io.IOException
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import akka.http.scaladsl.Http
+import buildinfo.Info
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
@@ -27,8 +28,6 @@ import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
   * Project manager runner containing the main method.
   */
 object ProjectManager extends App with LazyLogging {
-
-  logger.info("Starting Project Manager...")
 
   /**
     * A configuration of the project manager.
@@ -76,11 +75,41 @@ object ProjectManager extends App with LazyLogging {
     * The main function of the application, which will be passed the command-line
     * arguments to the program and has to return an `IO` with the errors fully handled.
     */
-  override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] =
-    mainProcess.fold(
-      th => { th.printStackTrace(); FailureExitCode },
-      _ => SuccessExitCode
-    )
+  override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
+    if (args.contains("--version")) {
+      displayVersion()
+    } else {
+      logger.info("Starting Project Manager...")
+      mainProcess.fold(
+        th => { th.printStackTrace(); FailureExitCode },
+        _ => SuccessExitCode
+      )
+    }
+  }
+
+  private def displayVersion(): ZIO[Console, Nothing, Int] = {
+    // Running platform information
+    val vmName     = System.getProperty("java.vm.name")
+    val jreVersion = System.getProperty("java.runtime.version")
+    val osArch     = System.getProperty("os.arch")
+    val osName     = System.getProperty("os.name")
+    val osVersion  = System.getProperty("os.version")
+    val dirtyStr = if (Info.isDirty) {
+      "*"
+    } else {
+      ""
+    }
+    putStrLn(
+      s"""
+         |Enso Project Manager
+         |Version:    ${Info.ensoVersion}
+         |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
+         |Built from: ${Info.branch}$dirtyStr @ ${Info.commit}
+         |Running on: $vmName, JDK $jreVersion
+         |            $osName $osVersion ($osArch)
+         |""".stripMargin
+    ) *> ZIO.succeed(SuccessExitCode)
+  }
 
   private def logServerStartup(): UIO[Unit] =
     effectTotal {

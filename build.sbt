@@ -490,6 +490,13 @@ lazy val `project-manager` = (project in file("lib/project-manager"))
         .dependsOn(runtime / assembly)
         .value
   )
+  .settings(
+    Compile / sourceGenerators += Def.task {
+        val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
+        BuildInfo
+          .writeBuildInfoFile(file, ensoVersion, scalacVersion, graalVersion)
+      }.taskValue
+  )
   .dependsOn(pkg)
   .dependsOn(`language-server`)
   .dependsOn(`json-rpc-server`)
@@ -575,10 +582,10 @@ lazy val searcher = project
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.slick" %% "slick"       % "3.3.2",
-      "org.xerial"          % "sqlite-jdbc" % "3.31.1",
-      "org.scalatest"      %% "scalatest"   % scalatestVersion % Test,
-    )
+        "com.typesafe.slick" %% "slick"       % "3.3.2",
+        "org.xerial"          % "sqlite-jdbc" % "3.31.1",
+        "org.scalatest"      %% "scalatest"   % scalatestVersion % Test
+      )
   )
 
 // ============================================================================
