@@ -26,8 +26,7 @@ union OutboundPayload {
   ERROR: Error,
   SUCCESS: Success,
   VISUALISATION_UPDATE: VisualisationUpdate,
-  FILE_CONTENTS_REPLY: FileContentsReply,
-  SUGGESTIONS_DATABASE_UPDATE: SuggestionsDatabaseUpdate
+  FILE_CONTENTS_REPLY: FileContentsReply
 }
 
 //An envelope for outbound responses.
@@ -140,85 +139,6 @@ table FileContentsReply {
   //Binary contents.
   contents: [ubyte];
 
-}
-
-// The definition scope
-struct SuggestionEntryScope {
-
-  // The start of the definition scope
-  start: uint16;
-
-  // The end of the definition scope
-  end: uint16;
-}
-
-// The argument of an atom, method or function suggestion
-table SuggestionEntryArgument {
-  // The argument name
-  name: string (required);
-  // The arguement type. String 'Any' is used to specify genric types
-  type: string (required);
-  // Indicates whether the argument is lazy (required)
-  isSuspended: bool;
-  // Indicates whether the argument has default value (required)
-  hasDefault: bool;
-  // Optional default value
-  defaultValue: string;
-}
-
-// A type of suggestion entries.
-union SuggestionEntry {
-  // A value constructor
-  SuggestionEntryAtom,
-  // A method defined on a type
-  SuggestionEntryMethod,
-  // A function
-  SuggestionEntryFunction,
-  // A local value
-  SuggestionEntryLocal
-}
-
-table SuggestionEntryAtom {
-  name: string (required);
-  arguments: [SuggestionEntryArgument] (required);
-  returnType: string (required);
-  documentation: string;
-}
-
-table SuggestionEntryMethod {
-  name: string (required);
-  arguments: [SuggestionEntryArgument] (required);
-  selfType: string (required);
-  returnType: string (required);
-  documentation: string;
-}
-
-table SuggestionEntryFunction {
-  name: string (required);
-  arguments: [SuggestionEntryArgument] (required);
-  returnType: string (required);
-  scope: SuggestionEntryScope (required);
-}
-
-table SuggestionEntryLocal {
-  name: string (required);
-  returnType: string (required);
-  scope: SuggestionEntryScope (required);
-}
-
-// The kind of the suggestions database update.
-enum SuggestionsDatabaseUpdateKind : byte { Add, Update, Delete }
-
-table SuggestionsDatabaseUpdate {
-  // suggestion entry id (required)
-  id: int64;
-  kind: SuggestionsDatabaseUpdateKind;
-  name: string;
-  arguments: [SuggestionEntryArgument];
-  selfType: string;
-  returnType: string;
-  documentation: string;
-  scope: SuggestionEntryScope;
 }
 
 //todo Split up the schema once Rust bugs will be resolved.
