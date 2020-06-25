@@ -62,6 +62,16 @@ object LanguageServerProtocol {
   case class StopServer(clientId: UUID, projectId: UUID)
 
   /**
+    * A command that kills all running servers.
+    */
+  case object KillThemAll
+
+  /**
+    * Signals that all servers have been killed.
+    */
+  case object AllServersKilled
+
+  /**
     * Base trait for server shutdown results.
     */
   sealed trait ServerShutdownResult

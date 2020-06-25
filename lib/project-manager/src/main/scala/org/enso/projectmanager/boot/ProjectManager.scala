@@ -67,8 +67,9 @@ object ProjectManager extends App with LazyLogging {
       _       <- logServerStartup()
       _       <- getStrLn
       _       <- effectTotal { logger.info("Stopping server...") }
-      _       <- mainModule.shutdownHookProcessor.fireShutdownHooks()
       _       <- effectTotal { binding.unbind() }
+      _       <- mainModule.languageServerService.killAllServers()
+      _       <- mainModule.shutdownHookProcessor.fireShutdownHooks()
       _       <- effectTotal { mainModule.system.terminate() }
     } yield ()
   }

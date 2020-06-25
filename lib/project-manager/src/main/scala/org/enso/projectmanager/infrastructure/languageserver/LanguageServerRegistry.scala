@@ -11,6 +11,7 @@ import org.enso.projectmanager.boot.configuration.{
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   CheckIfServerIsRunning,
+  KillThemAll,
   ProjectNotOpened,
   RenameProject,
   ServerNotRunning,
@@ -70,6 +71,17 @@ class LanguageServerRegistry(
       } else {
         sender() ! ServerNotRunning
       }
+
+    case msg @ KillThemAll =>
+      val killer = context.actorOf(
+        LanguageServerKiller.props(
+          serverControllers.values.toList,
+          timeoutConfig.shutdownTimeout
+        ),
+        "language-server-killer"
+      )
+      killer.forward(msg)
+      context.become(running())
 
     case ServerShutDown(projectId) =>
       context.become(running(serverControllers - projectId))

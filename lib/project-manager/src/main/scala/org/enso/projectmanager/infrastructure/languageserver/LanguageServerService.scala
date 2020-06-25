@@ -64,4 +64,6 @@ trait LanguageServerService[F[+_, +_]] {
     newName: String
   ): F[ProjectRenameFailure, Unit]
 
+  def killAllServers(): F[Nothing, Boolean]
+
 }
