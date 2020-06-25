@@ -23,3 +23,7 @@ below:
 
 - [**Tech Analysis:**](./tech-analysis.md) A brief overview of the reasons for
   the implementation technologies for the parser.
+- [**Parser Architecture:**](./architecture.md) An overview of the architecture
+  of the parser as a whole.
+- [**Flexer:**](./flexer.md)
+- [**Lexer:**](./lexer.md)
