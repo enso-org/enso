@@ -1,8 +1,17 @@
 # Parser Design
 
-
-
 ## 1. Lexer (Code -> Token Stream)
+
+- Lexer needs to be generic over the input stream encoding to support utf-16
+  coming from the JVM.
+- Is there any use case that requires the lexer to read an actual file?
+- The prelude needs to be released to crates.io otherwise we're going to rapidly
+  get out of sync.
+- I don't think it makes sense to have separate `Var` and `Cons` identifiers. We
+  should instead have `Name`, with functions `is_referrent` and `is_variable`.
+  This better mirrors how the language actually treats names.
+- What actually is the flexer?
+- What should the AST look like?
 
 Lexer reads source file (lazily, line by line) or uses in-memory `&str` and produces token stream of `Var`, `Cons`, `Opr`, `Number`, `Text`, `Invalid`, and `Block`. Please note that `Block` is part of the token stream on purpose. It is important that the source code is easy to parse visually, so if you see a block, it should be a block. Discovering blocks in lexer allows us to prevent all other parts of parser, like macros, from breaking this assumption. Moreover, it makes the design of the following stages a lot simpler.  Enso lexer should always succeed, on any input stream (token stream could contain `Invalid` tokens). 
 
