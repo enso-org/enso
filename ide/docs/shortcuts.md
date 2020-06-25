@@ -1,5 +1,11 @@
 ### Graph Editor
 
+#### Navigation
+
+| Shortcut | Action |
+| -------- | ------ |
+| <kbd>Ctrl+Enter</kbd> | Enter the last selected node.
+
 
 #### Node Selection
 

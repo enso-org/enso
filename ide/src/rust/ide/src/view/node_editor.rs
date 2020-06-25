@@ -163,6 +163,8 @@ impl GraphEditorIntegratedWithController {
         }
         let node_removed = Self::ui_action(&model,
             GraphEditorIntegratedWithControllerModel::node_removed_in_ui,&invalidate.trigger);
+        let node_entered = Self::ui_action(&model,
+           GraphEditorIntegratedWithControllerModel::node_entered_in_ui,&invalidate.trigger);
         let connection_created = Self::ui_action(&model,
             GraphEditorIntegratedWithControllerModel::connection_created_in_ui,&invalidate.trigger);
         let connection_removed = Self::ui_action(&model,
@@ -186,6 +188,7 @@ impl GraphEditorIntegratedWithController {
             let is_handling_notification = handle_notification.is_running;
             def is_hold = is_handling_notification.all_with(&invalidate.is_running, |l,r| *l || *r);
             def _action = editor_outs.node_removed             .map2(&is_hold,node_removed);
+            def _action = editor_outs.node_entered             .map2(&is_hold,node_entered);
             def _action = editor_outs.connection_added         .map2(&is_hold,connection_created);
             def _action = editor_outs.visualization_enabled    .map2(&is_hold,visualization_enabled);
             def _action = editor_outs.visualization_disabled   .map2(&is_hold,visualization_disabled);
@@ -582,6 +585,19 @@ impl GraphEditorIntegratedWithControllerModel {
         };
 
         crate::executor::global::spawn(detach_action);
+        Ok(())
+    }
+
+    fn node_entered_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult<()> {
+        debug!(self.logger,"Requesting entering the node {node_id}.");
+
+        let _id = self.get_controller_node_id(*node_id)?;
+
+        // TODO [mwu]
+        //  Here the logic of entering the given node should be invoked on the controller.
+        //  See tasks of the epic https://github.com/enso-org/ide/issues/588, most notably the
+        //  https://github.com/enso-org/ide/issues/595
+
         Ok(())
     }
 }
