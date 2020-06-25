@@ -6,7 +6,7 @@ import org.enso.languageserver.protocol.binary.{
   OutboundMessage,
   OutboundPayload
 }
-import org.enso.languageserver.runtime.SuggestionsDatabaseEventsApi.SuggestionsDatabaseUpdate
+import org.enso.languageserver.runtime.SearchProtocol.SuggestionsDatabaseUpdate
 import org.enso.searcher.Suggestion
 import org.scalatest.concurrent.Eventually
 

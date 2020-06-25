@@ -3,6 +3,8 @@ package org.enso.languageserver.runtime
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
+  CapabilityAcquired,
+  CapabilityReleased,
   ReleaseCapability
 }
 import org.enso.languageserver.data.{
@@ -10,8 +12,11 @@ import org.enso.languageserver.data.{
   ClientId,
   ReceivesSuggestionsDatabaseUpdates
 }
-import org.enso.languageserver.runtime.SuggestionsDatabaseEventsApi.SuggestionsDatabaseUpdate
-import org.enso.languageserver.session.SessionRouter.DeliverToBinaryController
+import org.enso.languageserver.runtime.SearchProtocol.{
+  SuggestionsDatabaseUpdate,
+  SuggestionsDatabaseUpdateNotification
+}
+import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -30,7 +35,7 @@ final class SuggestionsDatabaseEventsListener(
 
   override def preStart(): Unit = {
     context.system.eventStream
-      .subscribe(self, classOf[Api.SuggestionsDatabaseUpdate])
+      .subscribe(self, classOf[Api.SuggestionsDatabaseUpdateNotification])
   }
 
   override def receive: Receive = withClients(Set())
@@ -40,17 +45,22 @@ final class SuggestionsDatabaseEventsListener(
           client,
           CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
-      withClients(clients + client.clientId)
+      sender() ! CapabilityAcquired
+      context.become(withClients(clients + client.clientId))
 
     case ReleaseCapability(
           client,
           CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
-      withClients(clients - client.clientId)
+      sender() ! CapabilityReleased
+      context.become(withClients(clients - client.clientId))
 
-    case msg: Api.SuggestionsDatabaseUpdate =>
+    case msg: Api.SuggestionsDatabaseUpdateNotification =>
       clients.foreach { clientId =>
-        sessionRouter ! DeliverToBinaryController(clientId, toUpdate(msg))
+        sessionRouter ! DeliverToJsonController(
+          clientId,
+          SuggestionsDatabaseUpdateNotification(msg.updates.map(toUpdate), 0)
+        )
       }
   }
 

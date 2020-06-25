@@ -11,7 +11,7 @@ import org.enso.languageserver.protocol.binary.{
   SuggestionEntryScope,
   SuggestionsDatabaseUpdateKind
 }
-import org.enso.languageserver.runtime.SuggestionsDatabaseEventsApi.SuggestionsDatabaseUpdate
+import org.enso.languageserver.runtime.SearchProtocol.SuggestionsDatabaseUpdate
 import org.enso.searcher.Suggestion
 
 object SuggestionsDatabaseEventsFactory {

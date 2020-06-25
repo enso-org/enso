@@ -890,7 +890,7 @@ This capability states that the client receives the search database updates for
 a given execution context.
 
 - **method:** `search/receivesSuggestionsDatabaseUpdates`
-- **registerOptions:** `null`
+- **registerOptions:** `{}`
 
 ### Enables
 - [`search/suggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
@@ -2508,16 +2508,10 @@ database.
 
 #### Parameters
 
-``` idl
-namespace org.enso.languageserver.protocol.binary;
-
-table SuggestionsDatabaseUpdate {
-  // The context id
-  contextId: EnsoUUID (required);
-  // The list of database updates to apply
-  updates: [SuggestionsDatabaseUpdate] (required);
-  // The version of suggestions database after applying the updates
-  currentVersion: int64 (required);
+```typescript
+{
+  updates: [SuggestionsDatabaseUpdate];
+  currentVersion: number;
 }
 ```
 

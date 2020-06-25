@@ -25,7 +25,6 @@ import org.enso.languageserver.protocol.binary.factory.{
   ErrorFactory,
   OutboundMessageFactory,
   SuccessReplyFactory,
-  SuggestionsDatabaseEventsFactory,
   VisualisationUpdateFactory
 }
 import org.enso.languageserver.requesthandler.file.{
@@ -36,7 +35,6 @@ import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualisationEvaluationFailed,
   VisualisationUpdate
 }
-import org.enso.languageserver.runtime.SuggestionsDatabaseEventsApi.SuggestionsDatabaseUpdate
 import org.enso.languageserver.session.BinarySession
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.binary.DecodingFailure
@@ -128,10 +126,6 @@ class BinaryConnectionController(
     case VisualisationEvaluationFailed(_, msg) =>
       val errorPacket = ErrorFactory.createVisualisationEvaluationError(msg)
       outboundChannel ! errorPacket
-
-    case update: SuggestionsDatabaseUpdate =>
-      val updatePacket = convertSuggestionsDatabaseUpdateToOutPacket(update)
-      outboundChannel ! updatePacket
   }
 
   private def connectionEndHandler(
@@ -202,23 +196,6 @@ class BinaryConnectionController(
     builder.finish(outMsg)
     val responsePacket = builder.dataBuffer()
     responsePacket
-  }
-
-  private def convertSuggestionsDatabaseUpdateToOutPacket(
-    update: SuggestionsDatabaseUpdate
-  ): ByteBuffer = {
-    implicit val builder = new FlatBufferBuilder(1024)
-    val event            = SuggestionsDatabaseEventsFactory.create(update)
-    val msg = OutboundMessageFactory.create(
-      UUID.randomUUID(),
-      None,
-      OutboundPayload.SUGGESTIONS_DATABASE_UPDATE,
-      event
-    )
-
-    builder.finish(msg)
-    val updatePacket = builder.dataBuffer()
-    updatePacket
   }
 
   private def createRequestHandlers(
