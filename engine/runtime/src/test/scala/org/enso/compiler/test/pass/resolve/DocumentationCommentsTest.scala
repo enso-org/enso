@@ -1,12 +1,43 @@
 package org.enso.compiler.test.pass.resolve
 
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.Passes
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.resolve.DocumentationComments
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  CachePreferenceAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
+import org.enso.compiler.pass.desugar.{
+  ComplexType,
+  FunctionBinding,
+  GenerateMethodBodies,
+  LambdaShorthandToLambda,
+  NestedPatternMatch,
+  OperatorToFunction,
+  SectionsToBinOp
+}
+import org.enso.compiler.pass.lint.{ShadowedPatternFields, UnusedBindings}
+import org.enso.compiler.pass.optimise.{
+  ApplicationSaturation,
+  LambdaConsolidate,
+  UnreachableMatchBranches
+}
+import org.enso.compiler.pass.resolve.{
+  DocumentationComments,
+  IgnoredBindings,
+  OverloadsResolution,
+  SuspendedArguments,
+  TypeFunctions,
+  TypeSignatures
+}
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
+import org.scalatest.Inside
 
-class DocumentationCommentsTest extends CompilerTest {
+class DocumentationCommentsTest extends CompilerTest with Inside {
 
   // === Test Setup ===========================================================
 
@@ -65,12 +96,12 @@ class DocumentationCommentsTest extends CompilerTest {
   }
 
   /**
-   * Gets documentation metadata from a node.
-   * Throws an exception if missing.
-   *
-   * @param ir the ir to get the doc from.
-   * @return the doc assigned to `ir`.
-   */
+    * Gets documentation metadata from a node.
+    * Throws an exception if missing.
+    *
+    * @param ir the ir to get the doc from.
+    * @return the doc assigned to `ir`.
+    */
   def getDoc(ir: IR): String = {
     val meta = ir.getMetadata(DocumentationComments)
     meta shouldBe defined
@@ -177,6 +208,94 @@ class DocumentationCommentsTest extends CompilerTest {
       val block = method.body.asInstanceOf[IR.Expression.Block]
       getDoc(block.expressions(0)) shouldEqual " a statement"
       getDoc(block.returnValue) shouldEqual " the return"
+    }
+  }
+
+  "Documentation" should {
+    "be preserved after rewriting" in {
+      implicit val passManager: PassManager =
+        new Passes(
+          Some(
+            List(
+              DocumentationComments, // defined here
+              ComplexType,           // defined after this
+              FunctionBinding /*, // not defined after this
+              GenerateMethodBodies, // not defined after this
+              SectionsToBinOp,
+              OperatorToFunction, // Not defined here
+              LambdaShorthandToLambda,
+              ShadowedPatternFields,
+              UnreachableMatchBranches,
+              NestedPatternMatch,
+              IgnoredBindings,
+              TypeFunctions,
+              TypeSignatures,
+              AliasAnalysis,
+              LambdaConsolidate,
+              AliasAnalysis,
+              SuspendedArguments,
+              OverloadsResolution,
+              AliasAnalysis,
+              DemandAnalysis,
+              AliasAnalysis,
+              ApplicationSaturation,
+              TailCall,
+              AliasAnalysis,
+              DataflowAnalysis,
+              CachePreferenceAnalysis,
+              UnusedBindings*/
+            )
+          )
+        ).passManager
+      implicit val moduleContext: ModuleContext =
+        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+
+      val module =
+        """## The foo
+          |foo = 42""".stripMargin.preprocessModule
+      module.bindings.head.getMetadata(DocumentationComments) shouldBe defined
+    }
+
+    "be preserved after rewriting for all entities" in {
+      implicit val passManager: PassManager =
+        new Passes(
+          Some(
+            List(
+              DocumentationComments, // defined here
+              ComplexType
+            )
+          )
+        ).passManager
+
+      implicit val moduleContext: ModuleContext =
+        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+
+      val ir =
+        """
+          |## the type Foo
+          |type Foo
+          |    ## the constructor Bar
+          |    type Bar
+          |
+          |    ## a method
+          |    foo x =
+          |        ## a statement
+          |        IO.println "foo"
+          |        ## the return
+          |        0
+          |""".stripMargin.preprocessModule
+
+      val t1 = ir.bindings(0)
+      getDoc(t1) shouldEqual " the constructor Bar"
+      inside(ir.bindings(1)) {
+        case method: IR.Module.Scope.Definition.Method.Binding =>
+          getDoc(method) shouldEqual " a method"
+          inside(method.body) {
+            case block: IR.Expression.Block =>
+              getDoc(block.expressions(0)) shouldEqual " a statement"
+              getDoc(block.returnValue) shouldEqual " the return"
+          }
+      }
     }
   }
 }
