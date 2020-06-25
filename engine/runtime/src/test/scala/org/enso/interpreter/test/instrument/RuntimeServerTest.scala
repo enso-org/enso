@@ -699,15 +699,15 @@ class RuntimeServerTest
     val expectedExpressionId = context.Main.idMainX
     val Some(data) = attachVisualisationResponses.collectFirst {
       case Api.Response(
-          None,
-          Api.VisualisationUpdate(
-            Api.VisualisationContext(
-              `visualisationId`,
-              `contextId`,
-              `expectedExpressionId`
-            ),
-            data
-          )
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
           ) =>
         data
     }
@@ -740,15 +740,15 @@ class RuntimeServerTest
     )
     val Some(data2) = recomputeResponses2.collectFirst {
       case Api.Response(
-          None,
-          Api.VisualisationUpdate(
-            Api.VisualisationContext(
-              `visualisationId`,
-              `contextId`,
-              `expectedExpressionId`
-            ),
-            data
-          )
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
           ) =>
         data
     }
@@ -813,15 +813,15 @@ class RuntimeServerTest
     val expectedExpressionId = context.Main.idMainX
     val Some(data) = attachVisualisationResponses.collectFirst {
       case Api.Response(
-          None,
-          Api.VisualisationUpdate(
-            Api.VisualisationContext(
-              `visualisationId`,
-              `contextId`,
-              `expectedExpressionId`
-            ),
-            data
-          )
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
           ) =>
         data
     }
@@ -847,15 +847,15 @@ class RuntimeServerTest
     val Some(dataAfterModification) =
       modifyVisualisationResponses.collectFirst {
         case Api.Response(
-            None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
-                `contextId`,
-                `expectedExpressionId`
-              ),
-              data
-            )
+              None,
+              Api.VisualisationUpdate(
+                Api.VisualisationContext(
+                  `visualisationId`,
+                  `contextId`,
+                  `expectedExpressionId`
+                ),
+                data
+              )
             ) =>
           data
       }
@@ -988,7 +988,16 @@ class RuntimeServerTest
       Api.Response(requestId, Api.ProjectRenamed())
     )
 
-    // recompute
+    // recompute reusing the cache
+    context.send(
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+    )
+
+    context.receive(1) should contain(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
+    )
+
+    // recompute invalidating all
     context.send(
       Api.Request(
         requestId,
