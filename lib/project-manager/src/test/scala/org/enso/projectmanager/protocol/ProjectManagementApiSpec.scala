@@ -5,19 +5,21 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import io.circe.literal._
-import io.circe.parser.parse
 import org.enso.jsonrpc.test.FlakySpec
-import org.enso.projectmanager.data.Socket
+import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.io.Source
 
-class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
+class ProjectManagementApiSpec
+    extends BaseServerSpec
+    with FlakySpec
+    with ProjectManagementOps {
 
   "project/create" must {
 
-    "check if project name is not empty" taggedAs (Flaky) in {
+    "check if project name is not empty" taggedAs Flaky in {
       val client = new WsTestClient(address)
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -141,7 +143,7 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
 
     }
 
-    "fail when project is running" taggedAs (Flaky) in {
+    "fail when project is running" taggedAs Flaky in {
       //given
       implicit val client = new WsTestClient(address)
       val projectId       = createProject("foo")
@@ -586,94 +588,6 @@ class ProjectManagementApiSpec extends BaseServerSpec with FlakySpec {
       deleteProject(projectId)
     }
 
-  }
-
-  def createProject(name: String)(implicit client: WsTestClient): UUID = {
-    client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 0,
-              "params": {
-                "name": $name
-              }
-            }
-          """)
-    val projectId = getGeneratedUUID
-    client.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":0,
-            "result": {
-              "projectId": $projectId
-            }
-          }
-          """)
-    projectId
-  }
-
-  def openProject(
-    projectId: UUID
-  )(implicit client: WsTestClient): Socket = {
-    client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/open",
-              "id": 0,
-              "params": {
-                "projectId": $projectId
-              }
-            }
-          """)
-    val Right(openReply) = parse(client.expectMessage())
-    val socketField = openReply.hcursor
-      .downField("result")
-      .downField("languageServerJsonAddress")
-    val Right(host) = socketField.downField("host").as[String]
-    val Right(port) = socketField.downField("port").as[Int]
-    Socket(host, port)
-  }
-
-  def closeProject(
-    projectId: UUID
-  )(implicit client: WsTestClient): Unit = {
-    client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/close",
-              "id": 0,
-              "params": {
-                "projectId": $projectId
-              }
-            }
-          """)
-    client.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":0,
-            "result": null
-          }
-          """)
-    ()
-  }
-
-  def deleteProject(
-    projectId: UUID
-  )(implicit client: WsTestClient): Unit = {
-    client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/delete",
-              "id": 0,
-              "params": {
-                "projectId": $projectId
-              }
-            }
-          """)
-    client.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":0,
-            "result": null
-          }
-          """)
-    ()
   }
 
 }
