@@ -285,6 +285,7 @@ type SuggestionEntry
 
 interface SuggestionEntryAtom {
   name: string;
+  module: string;
   arguments: [SuggestionEntryArgument];
   returnType: string;
   documentation?: string;
@@ -292,6 +293,7 @@ interface SuggestionEntryAtom {
 
 interface SuggestionEntryMethod {
   name: string;
+  module: string;
   arguments: [SuggestionEntryArgument];
   selfType: string;
   returnType: string;
@@ -300,6 +302,7 @@ interface SuggestionEntryMethod {
 
 interface SuggestionEntryFunction {
   name: string;
+  module: string;
   arguments: [SuggestionEntryArgument];
   returnType: string;
   scope: SuggestionEntryScope;
@@ -307,6 +310,7 @@ interface SuggestionEntryFunction {
 
 interface SuggestionEntryLocal {
   name: string;
+  module: string;
   returnType: string;
   scope: SuggestionEntryScope;
 }
@@ -357,6 +361,7 @@ interface SuggestionsDatabaseUpdate {
   id: number;
   kind: SuggestionsDatabaseUpdateKind;
   name?: string;
+  module?: string;
   arguments?: [SuggestionEntryArgument];
   selfType?: string;
   returnType?: string;
