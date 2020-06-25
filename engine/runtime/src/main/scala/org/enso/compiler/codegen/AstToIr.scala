@@ -257,7 +257,7 @@ object AstToIr {
     * @return the [[IR]] representation of `maybeParensedInput`
     */
   def translateTypeBodyExpression(maybeParensedInput: AST): IR = {
-    val inputAst = AstView.MaybeParensed
+    val inputAst = AstView.MaybeManyParensed
       .unapply(maybeParensedInput)
       .getOrElse(maybeParensedInput)
 
@@ -302,7 +302,7 @@ object AstToIr {
     * @return the [[IR]] representation of `maybeParensedInput`
     */
   def translateExpression(maybeParensedInput: AST): Expression = {
-    val inputAst = AstView.MaybeParensed
+    val inputAst = AstView.MaybeManyParensed
       .unapply(maybeParensedInput)
       .getOrElse(maybeParensedInput)
 
@@ -405,6 +405,8 @@ object AstToIr {
         )
       case AstView.Pattern(_) =>
         Error.Syntax(inputAst, Error.Syntax.InvalidPattern)
+      case AST.Macro.Ambiguous(_, _) =>
+        Error.Syntax(inputAst, Error.Syntax.AmbiguousExpression)
       case _ =>
         throw new UnhandledEntity(inputAst, "translateExpression")
     }
@@ -547,18 +549,19 @@ object AstToIr {
     * @param arg the argument to translate
     * @return the [[IR]] representation of `arg`
     */
-  def translateCallArgument(arg: AST): CallArgument.Specified = arg match {
-    case AstView.AssignedArgument(left, right) =>
-      CallArgument
-        .Specified(
-          Some(Name.Literal(left.name, getIdentifiedLocation(left))),
-          translateExpression(right),
-          getIdentifiedLocation(arg)
-        )
-    case _ =>
-      CallArgument
-        .Specified(None, translateExpression(arg), getIdentifiedLocation(arg))
-  }
+  def translateCallArgument(arg: AST): CallArgument.Specified =
+    arg match {
+      case AstView.AssignedArgument(left, right) =>
+        CallArgument
+          .Specified(
+            Some(Name.Literal(left.name, getIdentifiedLocation(left))),
+            translateExpression(right),
+            getIdentifiedLocation(arg)
+          )
+      case _ =>
+        CallArgument
+          .Specified(None, translateExpression(arg), getIdentifiedLocation(arg))
+    }
 
   /** Calculates whether a set of arguments has its defaults suspended, and
     * processes the argument list to remove that operator.
@@ -651,6 +654,8 @@ object AstToIr {
           hasDefaultsSuspended = false,
           getIdentifiedLocation(callable)
         )
+      case AST.Macro.Ambiguous(_, _) =>
+        Error.Syntax(callable, Error.Syntax.AmbiguousExpression)
       case _ => throw new UnhandledEntity(callable, "translateCallable")
     }
   }
@@ -780,7 +785,7 @@ object AstToIr {
     * @return
     */
   def translatePattern(pattern: AST): Pattern = {
-    AstView.MaybeParensed.unapply(pattern).getOrElse(pattern) match {
+    AstView.MaybeManyParensed.unapply(pattern).getOrElse(pattern) match {
       case AstView.ConstructorPattern(cons, fields) =>
         Pattern.Constructor(
           translateIdent(cons).asInstanceOf[IR.Name],

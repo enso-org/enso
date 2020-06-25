@@ -4972,6 +4972,10 @@ object IR {
         override def explanation: String = "Unexpected expression."
       }
 
+      case object AmbiguousExpression extends Reason {
+        override def explanation: String = "Ambiguous expression."
+      }
+
       case object UnrecognizedToken extends Reason {
         override def explanation: String = "Unrecognized token."
       }
