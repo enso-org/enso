@@ -44,7 +44,7 @@ class LambdaTest extends InterpreterTest {
       val code =
         """
           |main =
-          |    sumTo = x -> ifZero x 0 (x + (sumTo (x-1)))
+          |    sumTo = x -> if x == 0 then 0 else x + (sumTo (x-1))
           |    sumTo 10
       """.stripMargin
 
@@ -105,7 +105,7 @@ class LambdaTest extends InterpreterTest {
         """
           |main =
           |    summator = current ->
-          |        ifZero current 0 ((x -> summator (current - 1)) 0)
+          |        if current == 0 then 0 else (x -> summator (current - 1)) 0
           |    res = summator 0
           |    res
           |""".stripMargin
@@ -132,7 +132,7 @@ class LambdaTest extends InterpreterTest {
     "call fully saturated lambdas returned with TCO" in {
       val code =
         """
-          |Number.if_then_else = ~t -> ~f -> ifZero this t f
+          |Number.if_then_else = ~t -> ~f -> if this == 0 then t else f
           |
           |main =
           |    lam = (x = 10) -> x

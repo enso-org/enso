@@ -123,7 +123,7 @@ class NamedArgumentsTest extends InterpreterTest {
         """
           |Unit.summer = sumTo ->
           |  summator = (acc = 0) -> current ->
-          |      ifZero current acc (summator (current = current - 1) (acc = acc + current))
+          |      if current == 0 then acc else summator (current = current - 1) (acc = acc + current)
           |  res = summator (current = sumTo)
           |  res
           |
@@ -187,7 +187,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |type Nil2
           |
           |main =
-          |    genList = i -> ifZero i Nil2 (Cons2 (rest = genList i-1) head=i)
+          |    genList = i -> if i == 0 then Nil2 else Cons2 (rest = genList i-1) head=i
           |
           |    sum = list -> case list of
           |        Cons2 h t -> h + t.sum
@@ -206,7 +206,7 @@ class NamedArgumentsTest extends InterpreterTest {
           |type Cons2 head (rest = Nil2)
           |
           |main =
-          |    genList = i -> ifZero i Nil2 (Cons2 (rest = genList i-1) head=i)
+          |    genList = i -> if i == 0 then Nil2 else Cons2 (rest = genList i-1) head=i
           |
           |    sum = list -> case list of
           |        Cons2 h t -> h + t.sum

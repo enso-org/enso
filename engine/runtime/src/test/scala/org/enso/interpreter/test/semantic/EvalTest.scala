@@ -65,7 +65,7 @@ class EvalTest extends InterpreterTest {
           |main =
           |    fn = sumTo ->
           |        summator = acc -> current ->
-          |            Debug.eval "ifZero current acc (summator (acc + current) (current - 1))"
+          |            Debug.eval "if current == 0 then acc else summator (acc + current) (current - 1)"
           |        summator 0 sumTo
           |    fn 100
           |""".stripMargin
@@ -78,7 +78,7 @@ class EvalTest extends InterpreterTest {
           |main =
           |    fn = sumTo ->
           |        summator = acc -> current ->
-          |            ifZero current acc (Debug.eval "summator (acc + current) (current - 1)")
+          |            if current == 0 then acc else Debug.eval "summator (acc + current) (current - 1)"
           |
           |        summator 0 sumTo
           |
