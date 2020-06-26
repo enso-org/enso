@@ -95,6 +95,9 @@ lazy val buildNativeImage =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
+    `interpreter-dsl`,
+    `json-rpc-server-test`,
+    `json-rpc-server`,
     `language-server`,
     `parser-service`,
     `polyglot-api`,
@@ -107,6 +110,7 @@ lazy val enso = (project in file("."))
     pkg,
     runner,
     runtime,
+    searcher,
     syntax.jvm
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
@@ -575,10 +579,10 @@ lazy val searcher = project
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.slick" %% "slick"       % "3.3.2",
-      "org.xerial"          % "sqlite-jdbc" % "3.31.1",
-      "org.scalatest"      %% "scalatest"   % scalatestVersion % Test,
-    )
+        "com.typesafe.slick" %% "slick"       % "3.3.2",
+        "org.xerial"          % "sqlite-jdbc" % "3.31.1",
+        "org.scalatest"      %% "scalatest"   % scalatestVersion % Test
+      )
   )
 
 // ============================================================================

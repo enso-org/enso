@@ -328,8 +328,8 @@ case object LambdaShorthandToLambda extends IRPass {
               None,
               suspended = false,
               None,
-              passData,
-              diagnostics
+              passData.duplicate,
+              diagnostics.copy
             )
           )
       }
