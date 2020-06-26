@@ -47,22 +47,6 @@ object SearchProtocol {
     private object CodecField {
 
       val Type = "type"
-
-      val Id = "id"
-
-      val Name = "name"
-
-      val Arguments = "arguments"
-
-      val SelfType = "selfType"
-
-      val ReturnType = "returnType"
-
-      val Documentation = "documentation"
-
-      val Scope = "scope"
-
-      val Suggestion = "suggestion"
     }
 
     private object CodecType {
@@ -78,74 +62,34 @@ object SearchProtocol {
       Decoder.instance { cursor =>
         cursor.downField(CodecField.Type).as[String].flatMap {
           case CodecType.Add =>
-            for {
-              id <- cursor.downField(CodecField.Id).as[Long]
-              suggestion <-
-                cursor.downField(CodecField.Suggestion).as[Suggestion]
-            } yield SuggestionsDatabaseUpdate.Add(id, suggestion)
+            Decoder[SuggestionsDatabaseUpdate.Add].tryDecode(cursor)
 
           case CodecType.Update =>
-            for {
-              id   <- cursor.downField(CodecField.Id).as[Long]
-              name <- cursor.downField(CodecField.Name).as[Option[String]]
-              arguments <-
-                cursor
-                  .downField(CodecField.Arguments)
-                  .as[Option[Seq[Suggestion.Argument]]]
-              selfType <-
-                cursor.downField(CodecField.SelfType).as[Option[String]]
-              returnType <-
-                cursor.downField(CodecField.ReturnType).as[Option[String]]
-              doc <-
-                cursor.downField(CodecField.Documentation).as[Option[String]]
-              scope <-
-                cursor.downField(CodecField.Scope).as[Option[Suggestion.Scope]]
-            } yield SuggestionsDatabaseUpdate
-              .Modify(id, name, arguments, selfType, returnType, doc, scope)
+            Decoder[SuggestionsDatabaseUpdate.Modify].tryDecode(cursor)
 
           case CodecType.Delete =>
-            for {
-              id <- cursor.downField(CodecField.Id).as[Long]
-            } yield SuggestionsDatabaseUpdate.Remove(id)
+            Decoder[SuggestionsDatabaseUpdate.Remove].tryDecode(cursor)
         }
       }
 
     implicit val encoder: Encoder[SuggestionsDatabaseUpdate] =
       Encoder.instance[SuggestionsDatabaseUpdate] {
-        case SuggestionsDatabaseUpdate.Add(id, suggestion) =>
-          Json.obj(
-            CodecField.Type       -> CodecType.Add.asJson,
-            CodecField.Id         -> id.asJson,
-            CodecField.Suggestion -> suggestion.asJson
-          )
-
-        case SuggestionsDatabaseUpdate.Modify(
-              id,
-              name,
-              arguments,
-              selfType,
-              returnType,
-              doc,
-              scope
-            ) =>
-          Json
-            .obj(
-              CodecField.Type          -> CodecType.Update.asJson,
-              CodecField.Id            -> id.asJson,
-              CodecField.Name          -> name.asJson,
-              CodecField.Arguments     -> arguments.asJson,
-              CodecField.SelfType      -> selfType.asJson,
-              CodecField.ReturnType    -> returnType.asJson,
-              CodecField.Documentation -> doc.asJson,
-              CodecField.Scope         -> scope.asJson
-            )
+        case add: SuggestionsDatabaseUpdate.Add =>
+          Encoder[SuggestionsDatabaseUpdate.Add]
+            .apply(add)
+            .deepMerge(Json.obj(CodecField.Type -> CodecType.Add.asJson))
             .dropNullValues
 
-        case SuggestionsDatabaseUpdate.Remove(id) =>
-          Json.obj(
-            CodecField.Type -> CodecType.Delete.asJson,
-            CodecField.Id   -> id.asJson
-          )
+        case modify: SuggestionsDatabaseUpdate.Modify =>
+          Encoder[SuggestionsDatabaseUpdate.Modify]
+            .apply(modify)
+            .deepMerge(Json.obj(CodecField.Type -> CodecType.Update.asJson))
+            .dropNullValues
+
+        case remove: SuggestionsDatabaseUpdate.Remove =>
+          Encoder[SuggestionsDatabaseUpdate.Remove]
+            .apply(remove)
+            .deepMerge(Json.obj(CodecField.Type -> CodecType.Delete.asJson))
       }
 
     private object SuggestionType {
@@ -161,48 +105,32 @@ object SearchProtocol {
 
     implicit val suggestionEncoder: Encoder[Suggestion] =
       Encoder.instance[Suggestion] {
-        case Suggestion.Atom(name, arguments, returnType, doc) =>
-          Json
-            .obj(
-              CodecField.Type          -> SuggestionType.Atom.asJson,
-              CodecField.Name          -> name.asJson,
-              CodecField.Arguments     -> arguments.asJson,
-              CodecField.ReturnType    -> returnType.asJson,
-              CodecField.Documentation -> doc.asJson
+        case atom: Suggestion.Atom =>
+          Encoder[Suggestion.Atom]
+            .apply(atom)
+            .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Atom.asJson))
+            .dropNullValues
+
+        case method: Suggestion.Method =>
+          Encoder[Suggestion.Method]
+            .apply(method)
+            .deepMerge(
+              Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
             )
             .dropNullValues
 
-        case Suggestion.Method(name, args, selfType, returnType, doc) =>
-          Json
-            .obj(
-              CodecField.Type          -> SuggestionType.Method.asJson,
-              CodecField.Name          -> name.asJson,
-              CodecField.Arguments     -> args.asJson,
-              CodecField.SelfType      -> selfType.asJson,
-              CodecField.ReturnType    -> returnType.asJson,
-              CodecField.Documentation -> doc.asJson
+        case function: Suggestion.Function =>
+          Encoder[Suggestion.Function]
+            .apply(function)
+            .deepMerge(
+              Json.obj(CodecField.Type -> SuggestionType.Function.asJson)
             )
             .dropNullValues
 
-        case Suggestion.Function(name, args, returnType, scope) =>
-          Json
-            .obj(
-              CodecField.Type       -> SuggestionType.Function.asJson,
-              CodecField.Name       -> name.asJson,
-              CodecField.Arguments  -> args.asJson,
-              CodecField.ReturnType -> returnType.asJson,
-              CodecField.Scope      -> scope.asJson
-            )
-            .dropNullValues
-
-        case Suggestion.Local(name, returnType, scope) =>
-          Json
-            .obj(
-              CodecField.Type       -> SuggestionType.Local.asJson,
-              CodecField.Name       -> name.asJson,
-              CodecField.ReturnType -> returnType.asJson,
-              CodecField.Scope      -> scope.asJson
-            )
+        case local: Suggestion.Local =>
+          Encoder[Suggestion.Local]
+            .apply(local)
+            .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Local.asJson))
             .dropNullValues
       }
 
@@ -210,47 +138,16 @@ object SearchProtocol {
       Decoder.instance { cursor =>
         cursor.downField(CodecField.Type).as[String].flatMap {
           case SuggestionType.Atom =>
-            for {
-              name <- cursor.downField(CodecField.Name).as[String]
-              args <-
-                cursor
-                  .downField(CodecField.Arguments)
-                  .as[Seq[Suggestion.Argument]]
-              returnType <- cursor.downField(CodecField.ReturnType).as[String]
-              doc <-
-                cursor.downField(CodecField.Documentation).as[Option[String]]
-            } yield Suggestion.Atom(name, args, returnType, doc)
+            Decoder[Suggestion.Atom].tryDecode(cursor)
 
           case SuggestionType.Method =>
-            for {
-              name <- cursor.downField(CodecField.Name).as[String]
-              args <-
-                cursor
-                  .downField(CodecField.Arguments)
-                  .as[Seq[Suggestion.Argument]]
-              selfType   <- cursor.downField(CodecField.SelfType).as[String]
-              returnType <- cursor.downField(CodecField.ReturnType).as[String]
-              doc <-
-                cursor.downField(CodecField.Documentation).as[Option[String]]
-            } yield Suggestion.Method(name, args, selfType, returnType, doc)
+            Decoder[Suggestion.Method].tryDecode(cursor)
 
           case SuggestionType.Function =>
-            for {
-              name <- cursor.downField(CodecField.Name).as[String]
-              args <-
-                cursor
-                  .downField(CodecField.Arguments)
-                  .as[Seq[Suggestion.Argument]]
-              returnType <- cursor.downField(CodecField.ReturnType).as[String]
-              scope      <- cursor.downField(CodecField.Scope).as[Suggestion.Scope]
-            } yield Suggestion.Function(name, args, returnType, scope)
+            Decoder[Suggestion.Function].tryDecode(cursor)
 
           case SuggestionType.Local =>
-            for {
-              name       <- cursor.downField(CodecField.Name).as[String]
-              returnType <- cursor.downField(CodecField.ReturnType).as[String]
-              scope      <- cursor.downField(CodecField.Scope).as[Suggestion.Scope]
-            } yield Suggestion.Local(name, returnType, scope)
+            Decoder[Suggestion.Local].tryDecode(cursor)
         }
       }
   }
