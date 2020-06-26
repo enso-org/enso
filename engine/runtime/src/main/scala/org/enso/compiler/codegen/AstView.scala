@@ -726,6 +726,7 @@ object AstView {
 
                   val matchBranches = blockLines.collect {
                     case b @ CaseBranch(_, _) => b
+                    case c @ AST.Comment(_)   => c
                   }
 
                   if (matchBranches.length == blockLines.length) {

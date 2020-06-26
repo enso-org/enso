@@ -774,6 +774,14 @@ object AstToIr {
           translateExpression(expression),
           getIdentifiedLocation(branch)
         )
+      case c @ AST.Comment(lines) =>
+        val doc      = lines.mkString("\n")
+        val location = getIdentifiedLocation(c)
+        Case.Branch(
+          Pattern.Doc(doc, location),
+          IR.Empty(None),
+          location
+        )
       case _ => throw new UnhandledEntity(branch, "translateCaseBranch")
     }
   }

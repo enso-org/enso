@@ -246,9 +246,9 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |        0
           |        
           |    f = case _ of
-          |        # case 1
+          |        ## case 1
           |        Bar -> 100
-          |        # catchall
+          |        ## catchall
           |        _ -> 50
           |""".stripMargin.preprocessModule
 

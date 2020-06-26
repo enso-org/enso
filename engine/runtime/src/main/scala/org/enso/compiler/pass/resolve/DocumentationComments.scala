@@ -2,6 +2,7 @@ package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Case.Branch
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{ComplexType, GenerateMethodBodies}
@@ -65,6 +66,10 @@ case object DocumentationComments extends IRPass {
         val newExpressions = newLines.init.map(resolveExpression)
         val newReturn      = resolveExpression(newLines.last)
         block.copy(expressions = newExpressions, returnValue = newReturn)
+      case caseExpr: IR.Case.Expr =>
+        val newScrutinee = resolveExpression(caseExpr.scrutinee)
+        val newBranches  = resolveBranches(caseExpr.branches)
+        caseExpr.copy(scrutinee = newScrutinee, branches = newBranches)
     })
 
   /** Resolves documentation comments in an arbitrary list of IRs.
@@ -83,6 +88,33 @@ case object DocumentationComments extends IRPass {
         val res = lastDoc match {
           case Some(doc) => other.updateMetadata(this -->> Doc(doc.doc))
           case None      => other
+        }
+        lastDoc = None
+        Some(res)
+    }
+  }
+
+  /** Resolves documentation comments in a list of branches, potentially
+    * containing the dummy documentation branches.
+    *
+    * @param items the list of branches
+    * @return `items`, with any doc comments associated with nodes as metadata
+    */
+  private def resolveBranches(items: Seq[Branch]): Seq[Branch] = {
+    var lastDoc: Option[String] = None
+    items.flatMap {
+      case Branch(IR.Pattern.Doc(doc, _, _, _), _, _, _, _) =>
+        lastDoc = Some(doc)
+        None
+      case branch @ Branch(pattern, expression, _, _, _) =>
+        val resolved =
+          branch.copy(
+            pattern    = pattern.mapExpressions(resolveExpression),
+            expression = resolveExpression(expression)
+          )
+        val res = lastDoc match {
+          case Some(doc) => resolved.updateMetadata(this -->> Doc(doc))
+          case None      => resolved
         }
         lastDoc = None
         Some(res)
@@ -143,7 +175,8 @@ case object DocumentationComments extends IRPass {
     * @param documentation the documentation as a string
     */
   sealed case class Doc(documentation: String) extends IRPass.Metadata {
-    override val metadataName: String = "DocumentationComments.Doc"
+    override val metadataName: String =
+      "DocumentationComments.Doc(\"" + documentation + "\")"
 
     override def duplicate(): Option[IRPass.Metadata] = Some(this)
   }
