@@ -1,6 +1,6 @@
 package org.enso.searcher.sql
 
-import org.enso.searcher.Suggestion
+import org.enso.searcher.{Suggestion, SuggestionsRepo}
 import slick.jdbc.SQLiteProfile.api._
 
 import scala.concurrent.ExecutionContext
@@ -20,25 +20,30 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
       .joinRight(suggestions)
       .on(_.suggestionId === _.id)
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
+  override def getAll: DBIO[Seq[Suggestion]] = {
+    joined.result.map(joinedToSuggestions)
+  }
+
+  /** @inheritdoc */
   override def findBy(returnType: String): DBIO[Seq[Suggestion]] = {
     val query = for {
       (argument, suggestion) <- joined
       if suggestion.returnType === returnType
     } yield (argument, suggestion)
-    query.result.map(joinedToSuggestion)
+    query.result.map(joinedToSuggestions)
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def select(id: Long): DBIO[Option[Suggestion]] = {
     val query = for {
       (argument, suggestion) <- joined
       if suggestion.id === id
     } yield (argument, suggestion)
-    query.result.map(coll => joinedToSuggestion(coll).headOption)
+    query.result.map(coll => joinedToSuggestions(coll).headOption)
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def insert(suggestion: Suggestion): DBIO[Long] = {
     val (suggestionRow, args) = toSuggestionRow(suggestion)
     for {
@@ -47,7 +52,7 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
     } yield id
   }
 
-  private def joinedToSuggestion(
+  private def joinedToSuggestions(
     coll: Seq[(Option[ArgumentRow], SuggestionRow)]
   ): Seq[Suggestion] = {
     coll

@@ -157,4 +157,13 @@ object SearchProtocol {
     currentVersion: Long
   )
 
+  case object GetSuggestionsDatabase
+
+  case class GetSuggestionsDatabaseResult(
+    entries: Seq[SuggestionsDatabaseUpdate],
+    currentVersion: Long
+  )
+
+  case class SuggestionsDatabaseFailure()
+
 }

@@ -1,9 +1,10 @@
-package org.enso.searcher.sql
-
-import org.enso.searcher.Suggestion
+package org.enso.searcher
 
 /** The object for accessing the suggestions database. */
 trait SuggestionsRepo[F[_]] {
+
+  /** Get all suggestions. */
+  def getAll: F[Seq[Suggestion]]
 
   /** Find suggestions by the return type.
     *
