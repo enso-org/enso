@@ -217,12 +217,12 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
         new Passes(
           Some(
             List(
-              DocumentationComments, // defined here
-              ComplexType,           // defined after this
-              FunctionBinding /*, // not defined after this
-              GenerateMethodBodies, // not defined after this
+              DocumentationComments,
+              ComplexType,
+              FunctionBinding,
+              GenerateMethodBodies,
               SectionsToBinOp,
-              OperatorToFunction, // Not defined here
+              OperatorToFunction,
               LambdaShorthandToLambda,
               ShadowedPatternFields,
               UnreachableMatchBranches,
@@ -243,7 +243,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
               AliasAnalysis,
               DataflowAnalysis,
               CachePreferenceAnalysis,
-              UnusedBindings*/
+              UnusedBindings
             )
           )
         ).passManager
@@ -258,14 +258,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
 
     "be preserved after rewriting for all entities" in {
       implicit val passManager: PassManager =
-        new Passes(
-          Some(
-            List(
-              DocumentationComments, // defined here
-              ComplexType
-            )
-          )
-        ).passManager
+        new Passes().passManager
 
       implicit val moduleContext: ModuleContext =
         ModuleContext(freshNameSupply = Some(new FreshNameSupply))
@@ -283,17 +276,26 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |        IO.println "foo"
           |        ## the return
           |        0
+          |        
+          |    f = case _ of
+          |        # case 1
+          |        Bar -> 100
+          |        # catchall
+          |        _ -> 50
           |""".stripMargin.preprocessModule
 
       val t1 = ir.bindings(0)
       getDoc(t1) shouldEqual " the constructor Bar"
       inside(ir.bindings(1)) {
-        case method: IR.Module.Scope.Definition.Method.Binding =>
+        case method: IR.Module.Scope.Definition.Method.Explicit =>
           getDoc(method) shouldEqual " a method"
           inside(method.body) {
-            case block: IR.Expression.Block =>
-              getDoc(block.expressions(0)) shouldEqual " a statement"
-              getDoc(block.returnValue) shouldEqual " the return"
+            case lambda: IR.Function.Lambda =>
+              inside(lambda.body) {
+                case block: IR.Expression.Block =>
+                  getDoc(block.expressions(0)) shouldEqual " a statement"
+                  getDoc(block.returnValue) shouldEqual " the return"
+              }
           }
       }
     }

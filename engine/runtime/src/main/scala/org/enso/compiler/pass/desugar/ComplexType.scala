@@ -269,8 +269,8 @@ case object ComplexType extends IRPass {
       args,
       body.duplicate(),
       location,
-      passData,
-      diagnostics
+      passData.duplicate,
+      diagnostics.copy
     )
 
     newSig.toList :+ binding

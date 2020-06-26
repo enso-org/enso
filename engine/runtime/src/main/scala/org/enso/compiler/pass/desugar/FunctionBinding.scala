@@ -137,7 +137,7 @@ case object FunctionBinding extends IRPass {
           loc,
           passData,
           diagnostics
-        ) // TODO continue from here - discuss with ara the details
+        )
       case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
