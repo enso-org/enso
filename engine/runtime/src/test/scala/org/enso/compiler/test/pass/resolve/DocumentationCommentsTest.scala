@@ -214,39 +214,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
   "Documentation" should {
     "be preserved after rewriting" in {
       implicit val passManager: PassManager =
-        new Passes(
-          Some(
-            List(
-              DocumentationComments,
-              ComplexType,
-              FunctionBinding,
-              GenerateMethodBodies,
-              SectionsToBinOp,
-              OperatorToFunction,
-              LambdaShorthandToLambda,
-              ShadowedPatternFields,
-              UnreachableMatchBranches,
-              NestedPatternMatch,
-              IgnoredBindings,
-              TypeFunctions,
-              TypeSignatures,
-              AliasAnalysis,
-              LambdaConsolidate,
-              AliasAnalysis,
-              SuspendedArguments,
-              OverloadsResolution,
-              AliasAnalysis,
-              DemandAnalysis,
-              AliasAnalysis,
-              ApplicationSaturation,
-              TailCall,
-              AliasAnalysis,
-              DataflowAnalysis,
-              CachePreferenceAnalysis,
-              UnusedBindings
-            )
-          )
-        ).passManager
+        new Passes().passManager
       implicit val moduleContext: ModuleContext =
         ModuleContext(freshNameSupply = Some(new FreshNameSupply))
 
@@ -295,6 +263,22 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
                 case block: IR.Expression.Block =>
                   getDoc(block.expressions(0)) shouldEqual " a statement"
                   getDoc(block.returnValue) shouldEqual " the return"
+              }
+          }
+      }
+
+      inside(ir.bindings(2)) {
+        case method: IR.Module.Scope.Definition.Method.Explicit =>
+          inside(method.body) {
+            case lambda: IR.Function.Lambda =>
+              inside(lambda.body) {
+                case block: IR.Expression.Block =>
+                  inside(block.returnValue) {
+                    case caseExpr: IR.Case.Expr =>
+                      caseExpr.branches should have length 2
+                      getDoc(caseExpr.branches(0)) shouldEqual " case 1"
+                      getDoc(caseExpr.branches(1)) shouldEqual " catchall"
+                  }
               }
           }
       }

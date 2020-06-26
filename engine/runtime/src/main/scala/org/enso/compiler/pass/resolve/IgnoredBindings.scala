@@ -310,6 +310,10 @@ case object IgnoredBindings extends IRPass {
         cons.copy(
           fields = fields.map(resolvePattern(_, supply))
         )
+      case _: Pattern.Doc =>
+        throw new CompilerError(
+          "Branch documentation should be desugared at an earlier stage"
+        )
     }
   }
 

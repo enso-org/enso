@@ -4431,6 +4431,7 @@ object IR {
         fields.forall {
           case _: Pattern.Name        => true
           case _: Pattern.Constructor => false
+          case _: Pattern.Doc         => false
         }
       }
 
@@ -4483,6 +4484,87 @@ object IR {
 
         s"${constructor.name} $fieldsStr"
       }
+    }
+
+    /**
+      * TODO [RW] comment!!! special case for handling branch comments
+      * @param doc
+      * @param location
+      * @param passData
+      * @param diagnostics
+      */
+    final case class Doc(
+      doc: String,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Pattern {
+      override protected var id: Identifier = randomId
+
+      override def mapExpressions(fn: Expression => Expression): Doc = this
+
+      override def setLocation(location: Option[IdentifiedLocation]): Doc =
+        copy(location = location)
+
+      /** Creates a copy of `this`.
+        *
+        * @param doc TODO [RW]
+        * @param location the source location for this IR node
+        * @param passData any pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the new identifier for this node
+        * @return a copy of `this`, updated with the provided values
+        */
+      def copy(
+        doc: String                          = doc,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Doc = {
+        val res = Doc(doc, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def duplicate(
+        keepLocations: Boolean,
+        keepMetadata: Boolean,
+        keepDiagnostics: Boolean
+      ): Doc =
+        copy(
+          doc,
+          location = if (keepLocations) location else None,
+          passData =
+            if (keepMetadata) passData.duplicate else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          id = randomId
+        )
+
+      /** Gets the list of all children IR nodes of this node.
+        *
+        * @return this node's children.
+        */
+      override def children: List[IR] = Nil
+
+      override def toString: String =
+        s"""
+           |IR.Case.Pattern.Doc(
+           |doc = $doc,
+           |location = $location,
+           |passData = ${this.showPassData},
+           |diagnostics = $diagnostics,
+           |id = $id
+           |)
+           |""".toSingleLine
+
+      /** Shows the IR as code.
+        *
+        * @param indent the current indentation level
+        * @return a string representation of `this`
+        */
+      override def showCode(indent: Int): String = s"## $doc"
     }
   }
 

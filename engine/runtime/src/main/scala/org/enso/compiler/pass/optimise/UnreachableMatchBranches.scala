@@ -178,6 +178,7 @@ case object UnreachableMatchBranches extends IRPass {
     branch.pattern match {
       case _: Pattern.Name        => true
       case _: Pattern.Constructor => false
+      case _: Pattern.Doc         => false
     }
   }
 }
