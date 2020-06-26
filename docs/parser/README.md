@@ -31,6 +31,8 @@ below:
   stream of source code.
 - [**Macro Resolution:**](./macro-resolution.md) The system for defining and
   resolving macros on the token stream.
+- [**Operator Resolution:**](./operator-resolution.md) The system for resolving
+  operator applications properly.
 - [**Construct Resolution:**](./construct-resolution.md) The system for
   resolving higher-level language constructs in the AST to produce a useful
   output.
