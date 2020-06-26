@@ -21,6 +21,7 @@ import org.enso.languageserver.io.InputOutputApi.{
 }
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.runtime.SearchApi._
 import org.enso.languageserver.runtime.VisualisationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
@@ -71,5 +72,6 @@ object JsonRpc {
     .registerNotification(StandardOutputAppended)
     .registerNotification(StandardErrorAppended)
     .registerNotification(WaitingForStandardInput)
+    .registerNotification(SuggestionsDatabaseUpdates)
 
 }

@@ -11,6 +11,7 @@ import com.fasterxml.jackson.module.scala.{
   DefaultScalaModule,
   ScalaObjectMapper
 }
+import org.enso.searcher.Suggestion
 import org.enso.text.editing.model.TextEdit
 
 import scala.util.Try
@@ -150,6 +151,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.RuntimeServerShutDown],
         name  = "runtimeServerShutDown"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SuggestionsDatabaseUpdateNotification],
+        name  = "suggestionsDatabaseUpdateNotification"
       )
     )
   )
@@ -296,6 +301,62 @@ object Runtime {
       visualisationModule: String,
       expression: String
     )
+
+    /** A change in the suggestions database. */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionsDatabaseUpdate.Add],
+          name  = "suggestionsDatabaseUpdateAdd"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionsDatabaseUpdate.Remove],
+          name  = "suggestionsDatabaseUpdateRemove"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[SuggestionsDatabaseUpdate.Modify],
+          name  = "suggestionsDatabaseUpdateModify"
+        )
+      )
+    )
+    sealed trait SuggestionsDatabaseUpdate
+    object SuggestionsDatabaseUpdate {
+
+      /** Create or replace the database entry.
+        *
+        * @param id suggestion id
+        * @param suggestion the new suggestion
+        */
+      case class Add(id: Long, suggestion: Suggestion)
+          extends SuggestionsDatabaseUpdate
+
+      /** Remove the database entry.
+        *
+        * @param id the suggestion id
+        */
+      case class Remove(id: Long) extends SuggestionsDatabaseUpdate
+
+      /** Modify the database entry.
+        *
+        * @param id the suggestion id
+        * @param name the new suggestion name
+        * @param arguments the new suggestion arguments
+        * @param selfType the new self type of the suggestion
+        * @param returnType the new return type of the suggestion
+        * @param documentation the new documentation string
+        * @param scope the suggestion scope
+        */
+      case class Modify(
+        id: Long,
+        name: Option[String],
+        arguments: Option[Seq[Suggestion.Argument]],
+        selfType: Option[String],
+        returnType: Option[String],
+        documentation: Option[String],
+        scope: Option[Suggestion.Scope]
+      ) extends SuggestionsDatabaseUpdate
+    }
 
     /**
       * An event signaling a visualisation update.
@@ -616,6 +677,15 @@ object Runtime {
       * Signals that the runtime server has been shut down.
       */
     case class RuntimeServerShutDown() extends ApiResponse
+
+    /**
+      * A notification about the change in the suggestions database.
+      *
+      * @param updates the list of database updates
+      */
+    case class SuggestionsDatabaseUpdateNotification(
+      updates: Seq[SuggestionsDatabaseUpdate]
+    ) extends ApiNotification
 
     private lazy val mapper = {
       val factory = new CBORFactory()

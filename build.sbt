@@ -626,6 +626,7 @@ lazy val `polyglot-api` = project
   )
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
+  .dependsOn(`searcher`)
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
@@ -663,6 +664,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(`text-buffer`)
+  .dependsOn(`searcher`)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
