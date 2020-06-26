@@ -57,15 +57,16 @@ case object IgnoredBindings extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module = ir.transformExpressions {
-    case x =>
-      x.mapExpressions(
-        runExpression(
-          _,
-          InlineContext(freshNameSupply = moduleContext.freshNameSupply)
+  ): IR.Module =
+    ir.transformExpressions {
+      case x =>
+        x.mapExpressions(
+          runExpression(
+            _,
+            InlineContext(freshNameSupply = moduleContext.freshNameSupply)
+          )
         )
-      )
-  }
+    }
 
   /** Desugars ignored bindings for an arbitrary expression.
     *
@@ -325,7 +326,7 @@ case object IgnoredBindings extends IRPass {
       override val metadataName: String = "IgnoredBindings.State.Ignored"
       override val isIgnored: Boolean   = true
 
-      override def duplicate: IRPass.Metadata = Ignored
+      override def duplicate(): Option[IRPass.Metadata] = Some(Ignored)
     }
 
     /** States that the binding is not ignored. */
@@ -333,7 +334,7 @@ case object IgnoredBindings extends IRPass {
       override val metadataName: String = "IgnoredBindings.State.NotIgnored"
       override val isIgnored: Boolean   = false
 
-      override def duplicate: IRPass.Metadata = NotIgnored
+      override def duplicate(): Option[IRPass.Metadata] = Some(NotIgnored)
     }
   }
 }

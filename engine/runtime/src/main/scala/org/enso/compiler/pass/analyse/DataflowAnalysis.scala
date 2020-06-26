@@ -49,9 +49,8 @@ case object DataflowAnalysis extends IRPass {
   ): IR.Module = {
     val dependencyInfo = new DependencyInfo
     ir.copy(
-        bindings = ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))
-      )
-      .updateMetadata(this -->> dependencyInfo)
+      bindings = ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))
+    ).updateMetadata(this -->> dependencyInfo)
   }
 
   /** Performs dataflow analysis on an inline expression.
@@ -331,10 +330,9 @@ case object DataflowAnalysis extends IRPass {
         info.updateAt(asStatic(right), Set(asStatic(eq)))
 
         eq.copy(
-            left  = analyseExpression(left, info),
-            right = analyseExpression(right, info)
-          )
-          .updateMetadata(this -->> info)
+          left  = analyseExpression(left, info),
+          right = analyseExpression(right, info)
+        ).updateMetadata(this -->> info)
       case intersect @ IR.Type.Set.Intersection(left, right, _, _, _) =>
         info.updateAt(asStatic(left), Set(asStatic(intersect)))
         info.updateAt(asStatic(right), Set(asStatic(intersect)))
@@ -727,7 +725,7 @@ case object DataflowAnalysis extends IRPass {
       combinedModule
     }
 
-    override def duplicate: IRPass.Metadata = copy()
+    override def duplicate(): Option[IRPass.Metadata] = None // TODO [RW] copy()
   }
   object DependencyInfo {
 
