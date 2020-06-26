@@ -132,8 +132,8 @@ object IRPass {
     /** Creates a duplicate of this metadata if applicable.
       *
       * This method should employ deep-copy semantics where appropriate. It may
-      * return None to indicate that this metadata should not be preserved in
-      * copy.
+      * return None to indicate that this metadata should not be preserved
+      * during duplication.
       *
       * @return Some duplicate of this metadata or None if this metadata should
       *         not be preserved

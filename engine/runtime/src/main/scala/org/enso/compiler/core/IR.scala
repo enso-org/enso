@@ -4487,11 +4487,17 @@ object IR {
     }
 
     /**
-      * TODO [RW] comment!!! special case for handling branch comments
-      * @param doc
-      * @param location
-      * @param passData
-      * @param diagnostics
+      * A dummy pattern used for storing documentation comments between branches
+      * in a pattern match.
+      *
+      * To store a documentation comment next to a branch, a dummy branch is
+      * created with its pattern being an instance of this Doc and expression
+      * being empty.
+      *
+      * @param doc the documentation entity
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     final case class Doc(
       doc: String,
@@ -4508,7 +4514,7 @@ object IR {
 
       /** Creates a copy of `this`.
         *
-        * @param doc TODO [RW]
+        * @param doc the documentation entity
         * @param location the source location for this IR node
         * @param passData any pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
@@ -4542,10 +4548,6 @@ object IR {
           id = randomId
         )
 
-      /** Gets the list of all children IR nodes of this node.
-        *
-        * @return this node's children.
-        */
       override def children: List[IR] = Nil
 
       override def toString: String =
@@ -4559,11 +4561,6 @@ object IR {
            |)
            |""".toSingleLine
 
-      /** Shows the IR as code.
-        *
-        * @param indent the current indentation level
-        * @return a string representation of `this`
-        */
       override def showCode(indent: Int): String = s"## $doc"
     }
   }

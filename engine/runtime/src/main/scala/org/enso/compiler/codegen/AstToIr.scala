@@ -761,9 +761,14 @@ object AstToIr {
   }
 
   /** Translates the branch of a case expression from its [[AST]] representation
-    * into [[IR]].
+    * into [[IR]], also handling the documentation comments in between branches.
     *
-    * @param branch the case branch to translate
+    * The documentation comments are translated to dummy branches that contain
+    * an empty expression and a dummy [[IR.Pattern.Doc]] pattern containing the
+    * comment. These dummy branches are removed in the DocumentationComments
+    * pass where the comments are attached to the actual branches.
+    *
+    * @param branch the case branch or comment to translate
     * @return the [[IR]] representation of `branch`
     */
   def translateCaseBranch(branch: AST): Case.Branch = {
