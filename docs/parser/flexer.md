@@ -72,7 +72,7 @@ specialised lexer. This translation process works as follows:
     properties hold:
     - Patterns are matched in the order that they are defined.
     - The associated code chunks are maintained properly.
-    - Lexing is
+    - Lexing is `O(n)`, where `n` is the size of the input.
 3.  The DFA is used to generate the code for a lexer `Engine` struct, containing
     the `Lexer` definition.
 
