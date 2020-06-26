@@ -25,10 +25,11 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the name of the atom, and the arguments to the atom
       */
-    def unapply(ast: AST): Option[(AST.Ident, List[AST])] = ast match {
-      case AST.Def(name, args, body) if body.isEmpty => Some((name, args))
-      case _                                         => None
-    }
+    def unapply(ast: AST): Option[(AST.Ident, List[AST])] =
+      ast match {
+        case AST.Def(name, args, body) if body.isEmpty => Some((name, args))
+        case _                                         => None
+      }
   }
 
   object TypeDef {
@@ -38,11 +39,12 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the name of the type, the arguments to it, and the type body
       */
-    def unapply(ast: AST): Option[(AST.Ident, List[AST], AST)] = ast match {
-      case AST.Def(name, args, body) if body.isDefined =>
-        Some((name, args, body.get))
-      case _ => None
-    }
+    def unapply(ast: AST): Option[(AST.Ident, List[AST], AST)] =
+      ast match {
+        case AST.Def(name, args, body) if body.isDefined =>
+          Some((name, args, body.get))
+        case _ => None
+      }
   }
 
   object Block {
@@ -53,16 +55,17 @@ object AstView {
       * @return a list of expressions in the block, and the final expression
       *         separately
       */
-    def unapply(ast: AST): Option[(List[AST], AST)] = ast match {
-      case AST.Block(_, _, firstLine, lines) =>
-        val actualLines = firstLine.elem :: lines.flatMap(_.elem)
-        if (actualLines.nonEmpty) {
-          Some((actualLines.dropRight(1), actualLines.last))
-        } else {
-          None
-        }
-      case _ => None
-    }
+    def unapply(ast: AST): Option[(List[AST], AST)] =
+      ast match {
+        case AST.Block(_, _, firstLine, lines) =>
+          val actualLines = firstLine.elem :: lines.flatMap(_.elem)
+          if (actualLines.nonEmpty) {
+            Some((actualLines.dropRight(1), actualLines.last))
+          } else {
+            None
+          }
+        case _ => None
+      }
   }
 
   object SuspendedBlock {
@@ -194,13 +197,14 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the term being forced
       */
-    def unapply(ast: AST): Option[AST] = ast match {
-      case MaybeParensed(
-          AST.App.Section.Right(AST.Ident.Opr("~"), FunctionParam(arg))
-          ) =>
-        Some(arg)
-      case _ => None
-    }
+    def unapply(ast: AST): Option[AST] =
+      ast match {
+        case MaybeManyParensed(
+              AST.App.Section.Right(AST.Ident.Opr("~"), FunctionParam(arg))
+            ) =>
+          Some(arg)
+        case _ => None
+      }
   }
 
   object FunctionParam {
@@ -210,13 +214,14 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the parameter definition
       */
-    def unapply(ast: AST): Option[AST] = ast match {
-      case LazyAssignedArgumentDefinition(_, _) => Some(ast)
-      case AssignedArgument(_, _)               => Some(ast)
-      case DefinitionArgument(_)                => Some(ast)
-      case LazyArgument(_)                      => Some(ast)
-      case _                                    => None
-    }
+    def unapply(ast: AST): Option[AST] =
+      ast match {
+        case LazyAssignedArgumentDefinition(_, _) => Some(ast)
+        case AssignedArgument(_, _)               => Some(ast)
+        case DefinitionArgument(_)                => Some(ast)
+        case LazyArgument(_)                      => Some(ast)
+        case _                                    => None
+      }
   }
 
   object FunctionParamList {
@@ -252,11 +257,12 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the term and the type ascribed to it
       */
-    def unapply(ast: AST): Option[(AST, AST)] = ast match {
-      case AST.App.Infix(entity, AST.Ident.Opr(":"), signature) =>
-        Some((entity, signature))
-      case _ => None
-    }
+    def unapply(ast: AST): Option[(AST, AST)] =
+      ast match {
+        case AST.App.Infix(entity, AST.Ident.Opr(":"), signature) =>
+          Some((entity, signature))
+        case _ => None
+      }
   }
 
   object FunctionSugar {
@@ -290,9 +296,64 @@ object AstView {
     }
   }
 
+  object Parensed {
+
+    /** Matches on terms that is surrounded by parentheses.
+      *
+      * It 'peels off' one layer of parentheses, so the returned term may still
+      * be surrounded by more parentheses.
+      *
+      * @param ast the structure to try and match on
+      * @return the term contained in the parentheses
+      */
+    def unapply(ast: AST): Option[AST] = {
+      AST.Group.unapply(ast).flatten
+    }
+  }
+
   object MaybeParensed {
 
-    /** Matches on terms that _may_ be surrounded by parentheses.
+    /** Matches on terms that _may_ be surrounded by (an arbitrary amount of)
+      * parentheses.
+      *
+      * It 'peels off' one layer of parentheses, so the returned term may still
+      * be surrounded by more parentheses.
+      *
+      * @param ast the structure to try and match on
+      * @return the term contained in the parentheses
+      */
+    def unapply(ast: AST): Option[AST] = {
+      ast match {
+        case AST.Group(mExpr) => mExpr
+        case a                => Some(a)
+      }
+    }
+  }
+
+  object ManyParensed {
+
+    /** Matches on terms that is surrounded by an arbitrary (but non-zero)
+      * amount of parentheses.
+      *
+      * The resulting term is not surrounded by any more parentheses.
+      *
+      * @param ast the structure to try and match on
+      * @return the term contained in the parentheses
+      */
+    def unapply(ast: AST): Option[AST] = {
+      ast match {
+        case Parensed(MaybeManyParensed(p)) => Some(p)
+        case _                              => None
+      }
+    }
+  }
+
+  object MaybeManyParensed {
+
+    /** Matches on terms that _may_ be surrounded by (an arbitrary amount of)
+      * parentheses.
+      *
+      * The resulting term is not surrounded by any more parentheses.
       *
       * @param ast the structure to try and match on
       * @return the term contained in the parentheses
@@ -317,7 +378,7 @@ object AstView {
       * @return the variable name and the expression being bound to it
       */
     def unapply(ast: AST): Option[(AST.Ident, AST)] =
-      MaybeParensed.unapply(ast).flatMap(BasicAssignment.unapply)
+      MaybeManyParensed.unapply(ast).flatMap(BasicAssignment.unapply)
   }
 
   object LazyAssignedArgumentDefinition {
@@ -331,11 +392,11 @@ object AstView {
       */
     def unapply(ast: AST): Option[(AST.Ident, AST)] = {
       ast match {
-        case MaybeParensed(
-            Binding(
-              AST.App.Section.Right(AST.Ident.Opr("~"), AST.Ident.Var.any(v)),
-              r
-            )
+        case MaybeManyParensed(
+              Binding(
+                AST.App.Section.Right(AST.Ident.Opr("~"), AST.Ident.Var.any(v)),
+                r
+              )
             ) =>
           Some((v, r))
         case _ => None
@@ -351,10 +412,11 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the name of the argument
       */
-    def unapply(ast: AST): Option[AST.Ident] = ast match {
-      case MaybeParensed(MaybeBlankName(ast)) => Some(ast)
-      case _                                  => None
-    }
+    def unapply(ast: AST): Option[AST.Ident] =
+      ast match {
+        case MaybeManyParensed(MaybeBlankName(ast)) => Some(ast)
+        case _                                      => None
+      }
   }
 
   object Application {
@@ -391,35 +453,38 @@ object AstView {
       * @return the `self` expression, the function name, and the arguments to
       *         the function
       */
-    def unapply(ast: AST): Option[(AST, AST.Ident, List[AST])] = ast match {
-      case OperatorDot(target, Application(ConsOrVar(ident), args)) =>
-        Some((target, ident, args))
-      case AST.App.Section.Left(
-          MethodCall(target, ident, List()),
-          susp @ SuspendDefaultsOperator(_)
-          ) =>
-        Some((target, ident, List(susp)))
-      case OperatorDot(target, ConsOrVar(ident)) =>
-        Some((target, ident, List()))
-      case _ => None
-    }
+    def unapply(ast: AST): Option[(AST, AST.Ident, List[AST])] =
+      ast match {
+        case OperatorDot(target, Application(ConsOrVar(ident), args)) =>
+          Some((target, ident, args))
+        case AST.App.Section.Left(
+              MethodCall(target, ident, List()),
+              susp @ SuspendDefaultsOperator(_)
+            ) =>
+          Some((target, ident, List(susp)))
+        case OperatorDot(target, ConsOrVar(ident)) =>
+          Some((target, ident, List()))
+        case _ => None
+      }
   }
 
   object ModulePath {
 
     /** Matches on a module path of the form `A.B.C...`, as seen in an import.
-     *
-     * @param ast the structure to try and match on
-     * @return the list of segments in the module path
-     */
-    def unapply(ast: AST): Option[List[AST.Ident]] = ast match {
-      case AST.Ident.Cons.any(name) => Some(List(name))
-      case OperatorDot(left, AST.Ident.Cons.any(name)) => left match {
-        case ModulePath(elems) => Some(elems :+ name)
+      *
+      * @param ast the structure to try and match on
+      * @return the list of segments in the module path
+      */
+    def unapply(ast: AST): Option[List[AST.Ident]] =
+      ast match {
+        case AST.Ident.Cons.any(name) => Some(List(name))
+        case OperatorDot(left, AST.Ident.Cons.any(name)) =>
+          left match {
+            case ModulePath(elems) => Some(elems :+ name)
+            case _                 => None
+          }
         case _ => None
       }
-      case _ => None
-    }
   }
 
   object SuspendDefaultsOperator {
@@ -451,15 +516,15 @@ object AstView {
 
     private[this] def matchSpacedList(ast: AST): Option[List[AST]] = {
       ast match {
-        case MaybeParensed(AST.App.Prefix(fn, arg)) =>
+        case MaybeManyParensed(AST.App.Prefix(fn, arg)) =>
           val fnRecurse = matchSpacedList(fn)
 
           fnRecurse match {
             case Some(headItems) => Some(headItems :+ arg)
             case None            => Some(List(fn, arg))
           }
-        case MaybeParensed(
-            AST.App.Section.Left(ast, SuspendDefaultsOperator(suspend))
+        case MaybeManyParensed(
+              AST.App.Section.Left(ast, SuspendDefaultsOperator(suspend))
             ) =>
           ast match {
             case ConsOrVar(_) => Some(List(ast, suspend))
@@ -537,11 +602,12 @@ object AstView {
       * @param arg the structure to try and match on
       * @return the identifier matched on
       */
-    def unapply(arg: AST): Option[AST.Ident] = arg match {
-      case AST.Ident.Var.any(arg)  => Some(arg)
-      case AST.Ident.Cons.any(arg) => Some(arg)
-      case _                       => None
-    }
+    def unapply(arg: AST): Option[AST.Ident] =
+      arg match {
+        case AST.Ident.Var.any(arg)  => Some(arg)
+        case AST.Ident.Cons.any(arg) => Some(arg)
+        case _                       => None
+      }
   }
 
   object OperatorDot {
@@ -552,11 +618,13 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the left- and right-hand sides of the operator
       */
-    def unapply(ast: AST): Option[(AST, AST)] = ast match {
-      case AST.App.Infix(left, AST.Ident.Opr("."), right) => Some((left, right))
-      case _ =>
-        None
-    }
+    def unapply(ast: AST): Option[(AST, AST)] =
+      ast match {
+        case AST.App.Infix(left, AST.Ident.Opr("."), right) =>
+          Some((left, right))
+        case _ =>
+          None
+      }
   }
 
   object DotChain {
@@ -711,10 +779,23 @@ object AstView {
       */
     def unapply(ast: AST): Option[AST] = {
       ast match {
-        case ConstructorPattern(_, _)  => Some(ast)
-        case CatchAllPattern(pat)      => Some(pat)
-        case MaybeParensed(Pattern(p)) => Some(p)
-        case _                         => None
+        case ConstructorPattern(_, _) => Some(ast)
+        case CatchAllPattern(pat)     => Some(pat)
+        /*        case Parensed(parensed) =>
+          if (parensed.toString == ast.toString) {
+            println("Reached a fixpoint")
+            println(Debug.pretty(ast.toString))
+            throw new RuntimeException("cycle")
+          }
+
+          parensed match {
+            case Pattern(p) => Some(p)
+            case _          => None
+          }*/
+        case Parensed(Pattern(p)) =>
+          println(p)
+          Some(p)
+        case _ => None
       }
     }
   }
@@ -731,7 +812,7 @@ object AstView {
       * @return the pattern
       */
     def unapply(ast: AST): Option[(AST.Ident, List[AST])] = {
-      MaybeParensed.unapply(ast).getOrElse(ast) match {
+      MaybeManyParensed.unapply(ast).getOrElse(ast) match {
         case AST.Ident.Cons.any(cons) => Some((cons, List()))
         case SpacedList(elems) if elems.nonEmpty =>
           elems.head match {
@@ -763,7 +844,7 @@ object AstView {
       * @return the pattern
       */
     def unapply(ast: AST): Option[AST.Ident] = {
-      MaybeParensed.unapply(ast).getOrElse(ast) match {
+      MaybeManyParensed.unapply(ast).getOrElse(ast) match {
         case AST.Ident.any(ident) => Some(ident)
         case _                    => None
       }
@@ -781,13 +862,14 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the negated expression
       */
-    def unapply(ast: AST): Option[AST] = ast match {
-      case MaybeParensed(
-          AST.App.Section.Right(AST.Ident.Opr("-"), expression)
-          ) =>
-        Some(expression)
-      case _ => None
-    }
+    def unapply(ast: AST): Option[AST] =
+      ast match {
+        case MaybeManyParensed(
+              AST.App.Section.Right(AST.Ident.Opr("-"), expression)
+            ) =>
+          Some(expression)
+        case _ => None
+      }
   }
 
   object TypeAscription {
@@ -797,10 +879,11 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the typed expression, and the ascribed type
       */
-    def unapply(ast: AST): Option[(AST, AST)] = ast match {
-      case MaybeParensed(AST.App.Infix(typed, AST.Ident.Opr(":"), sig)) =>
-        Some((typed, sig))
-      case _ => None
-    }
+    def unapply(ast: AST): Option[(AST, AST)] =
+      ast match {
+        case MaybeManyParensed(AST.App.Infix(typed, AST.Ident.Opr(":"), sig)) =>
+          Some((typed, sig))
+        case _ => None
+      }
   }
 }
