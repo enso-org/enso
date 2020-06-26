@@ -164,6 +164,7 @@ object SearchProtocol {
     currentVersion: Long
   )
 
-  case class SuggestionsDatabaseFailure()
+  case object GetSuggestionsDatabaseVersion
 
+  case class GetSuggestionsDatabaseVersionResult(version: Long)
 }

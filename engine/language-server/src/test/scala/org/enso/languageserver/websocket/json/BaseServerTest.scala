@@ -28,10 +28,12 @@ import org.enso.languageserver.protocol.json.{
 }
 import org.enso.languageserver.runtime.{
   ContextRegistry,
-  SuggestionsDatabaseEventsListener
+  SuggestionsDatabaseEventsListener,
+  SuggestionsHandler
 }
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 
 import scala.concurrent.duration._
 
@@ -108,11 +110,20 @@ class BaseServerTest extends JsonRpcServerTestKit {
         )
       )
 
+    val suggestionsHandler =
+      system.actorOf(
+        SuggestionsHandler.props(
+          new SqlSuggestionsRepo()(system.dispatcher),
+          new SqlDatabase("searcher.db")
+        )
+      )
+
     new JsonConnectionControllerFactory(
       bufferRegistry,
       capabilityRouter,
       fileManager,
       contextRegistry,
+      suggestionsHandler,
       stdOutController,
       stdErrController,
       stdInController

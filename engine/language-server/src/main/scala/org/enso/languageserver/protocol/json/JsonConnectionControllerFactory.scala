@@ -17,6 +17,7 @@ class JsonConnectionControllerFactory(
   capabilityRouter: ActorRef,
   fileManager: ActorRef,
   contextRegistry: ActorRef,
+  suggestionsHandler: ActorRef,
   stdOutController: ActorRef,
   stdErrController: ActorRef,
   stdInController: ActorRef
@@ -37,6 +38,7 @@ class JsonConnectionControllerFactory(
         capabilityRouter,
         fileManager,
         contextRegistry,
+        suggestionsHandler,
         stdOutController,
         stdErrController,
         stdInController

@@ -1,6 +1,6 @@
 package org.enso.searcher.sql
 
-import org.enso.searcher.{Suggestion, SuggestionsRepo}
+import org.enso.searcher.{Suggestion, SuggestionEntry, SuggestionsRepo}
 import slick.jdbc.SQLiteProfile.api._
 
 import scala.concurrent.ExecutionContext
@@ -21,8 +21,8 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
       .on(_.suggestionId === _.id)
 
   /** @inheritdoc */
-  override def getAll: DBIO[Seq[Suggestion]] = {
-    joined.result.map(joinedToSuggestions)
+  override def getAll: DBIO[Seq[SuggestionEntry]] = {
+    joined.result.map(joinedToSuggestionEntries)
   }
 
   /** @inheritdoc */
@@ -49,7 +49,23 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
     for {
       id <- suggestions.returning(suggestions.map(_.id)) += suggestionRow
       _  <- arguments ++= args.map(toArgumentRow(id, _))
+      _  <- incrementVersion
     } yield id
+  }
+
+  /** @inheritdoc */
+  override def currentVersion: DBIO[Long] = {
+    for {
+      versionOpt <- versions.result.headOption
+    } yield versionOpt.flatMap(_.id).getOrElse(0L)
+  }
+
+  def incrementVersion: DBIO[Long] = {
+    val increment = for {
+      version <- versions.returning(versions.map(_.id)) += VersionRow(None)
+      _       <- versions.filterNot(_.id === version).delete
+    } yield version
+    increment.transactionally
   }
 
   private def joinedToSuggestions(
@@ -60,6 +76,17 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
       .view
       .mapValues(_.flatMap(_._1))
       .map(Function.tupled(toSuggestion))
+      .toSeq
+  }
+
+  private def joinedToSuggestionEntries(
+    coll: Seq[(Option[ArgumentRow], SuggestionRow)]
+  ): Seq[SuggestionEntry] = {
+    coll
+      .groupBy(_._2)
+      .view
+      .mapValues(_.flatMap(_._1))
+      .map(Function.tupled(toSuggestionEntry))
       .toSeq
   }
 
@@ -130,6 +157,12 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
       hasDefault   = argument.hasDefault,
       defaultValue = argument.defaultValue
     )
+
+  private def toSuggestionEntry(
+    suggestion: SuggestionRow,
+    arguments: Seq[ArgumentRow]
+  ): SuggestionEntry =
+    SuggestionEntry(suggestion.id.get, toSuggestion(suggestion, arguments))
 
   private def toSuggestion(
     suggestion: SuggestionRow,

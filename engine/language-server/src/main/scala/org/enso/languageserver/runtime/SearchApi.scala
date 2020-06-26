@@ -39,6 +39,19 @@ object SearchApi {
     }
   }
 
+  case object GetSuggestionsDatabaseVersion
+      extends Method("search/getSuggestionsDatabaseVersion") {
+
+    case class Result(version: Long)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = GetSuggestionsDatabaseVersion.Result
+    }
+  }
+
   case object SuggestionsDatabaseError
       extends Error(7001, "Suggestions database error")
 }

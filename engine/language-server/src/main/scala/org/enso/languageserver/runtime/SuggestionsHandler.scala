@@ -1,29 +1,50 @@
 package org.enso.languageserver.runtime
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, Props}
+import akka.pattern.pipe
 import org.enso.languageserver.runtime.SearchApi.GetSuggestionsDatabase
+import org.enso.languageserver.runtime.SearchProtocol.{
+  GetSuggestionsDatabaseResult,
+  SuggestionsDatabaseUpdate
+}
 import org.enso.languageserver.util.UnhandledLogging
-import org.enso.searcher.sql.SqlSuggestionsRepo
-
-import scala.annotation.unused
+import org.enso.searcher.SuggestionEntry
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 
 /**
   * Event listener listens event stream for the suggestion database
   * notifications from the runtime and sends updates to the client. The listener
   * is a singleton and created per context registry.
-  *
-  * @param sessionRouter the session router
   */
 final class SuggestionsHandler(
-  @unused sessionRouter: ActorRef,
-  @unused repo: SqlSuggestionsRepo
+  repo: SqlSuggestionsRepo,
+  db: SqlDatabase
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
+  import context.dispatcher
+
   override def receive: Receive = {
     case GetSuggestionsDatabase =>
-      ???
+      val query = for {
+        entries <- repo.getAll
+        version <- repo.currentVersion
+      } yield (entries, version)
+      db
+        .run(query)
+        .map(Function.tupled(toGetSuggestionsDatabaseResult))
+        .pipeTo(sender())
+  }
+
+  private def toGetSuggestionsDatabaseResult(
+    entries: Seq[SuggestionEntry],
+    version: Long
+  ): GetSuggestionsDatabaseResult = {
+    val updates = entries.map(entry =>
+      SuggestionsDatabaseUpdate.Add(entry.id, entry.suggestion)
+    )
+    GetSuggestionsDatabaseResult(updates, version)
   }
 }
 
@@ -31,10 +52,11 @@ object SuggestionsHandler {
 
   /**
     * Creates a configuration object used to create a [[SuggestionsHandler]].
-    *
-    * @param sessionRouter the session router
     */
-  def props(sessionRouter: ActorRef, repo: SqlSuggestionsRepo): Props =
-    Props(new SuggestionsHandler(sessionRouter, repo))
+  def props(
+    repo: SqlSuggestionsRepo,
+    db: SqlDatabase
+  ): Props =
+    Props(new SuggestionsHandler(repo, db))
 
 }

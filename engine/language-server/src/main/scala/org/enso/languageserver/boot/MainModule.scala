@@ -28,12 +28,14 @@ import org.enso.languageserver.runtime.{
   ContextRegistry,
   RuntimeConnector,
   RuntimeKiller,
-  SuggestionsDatabaseEventsListener
+  SuggestionsDatabaseEventsListener,
+  SuggestionsHandler
 }
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 
@@ -114,6 +116,13 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "context-registry"
     )
 
+  val suggestionsRepo     = new SqlSuggestionsRepo()(system.dispatcher)
+  val suggestionsDatabase = new SqlDatabase("searcher.db")
+  val suggestionsHandler =
+    system.actorOf(
+      SuggestionsHandler.props(suggestionsRepo, suggestionsDatabase)
+    )
+
   val stdOut    = new ObservableOutputStream
   val stdErr    = new ObservableOutputStream
   val stdInSink = new ObservableOutputStream
@@ -176,6 +185,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     capabilityRouter,
     fileManager,
     contextRegistry,
+    suggestionsHandler,
     stdOutController,
     stdErrController,
     stdInController

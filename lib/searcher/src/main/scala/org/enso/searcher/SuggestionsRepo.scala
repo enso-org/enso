@@ -3,8 +3,11 @@ package org.enso.searcher
 /** The object for accessing the suggestions database. */
 trait SuggestionsRepo[F[_]] {
 
+  /** Get current version of the repo. */
+  def currentVersion: F[Long]
+
   /** Get all suggestions. */
-  def getAll: F[Seq[Suggestion]]
+  def getAll: F[Seq[SuggestionEntry]]
 
   /** Find suggestions by the return type.
     *
@@ -26,4 +29,5 @@ trait SuggestionsRepo[F[_]] {
     * @return the id of an inserted suggestion
     */
   def insert(suggestion: Suggestion): F[Long]
+
 }

@@ -141,6 +141,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`CapabilityNotAcquired`](#capabilitynotacquired)
   - [`SessionNotInitialisedError`](#sessionnotinitialisederror)
   - [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror)
+  - [`SuggestionsDatabaseError`](#suggestionsdatabaseerror)
 
 <!-- /MarkdownTOC -->
 
@@ -2938,5 +2939,15 @@ Signals that session is already initialised.
 "error" : {
   "code" : 6002,
   "message" : "Session already initialised"
+}
+```
+
+### `SuggestionsDatabaseError`
+Signals about an error accessing the suggestions database.
+
+```typescript
+"error" : {
+  "code" : 7001,
+  "message" : "Suggestions database error"
 }
 ```

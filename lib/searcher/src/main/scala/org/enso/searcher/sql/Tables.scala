@@ -46,6 +46,8 @@ case class SuggestionRow(
   scopeEnd: Option[Int]
 )
 
+case class VersionRow(id: Option[Long])
+
 /** The type of a suggestion. */
 object SuggestionKind {
 
@@ -109,6 +111,15 @@ final class SuggestionsTable(tag: Tag)
   def returnTypeIdx = index("return_type_idx", name)
 }
 
+final class VersionsTable(tag: Tag) extends Table[VersionRow](tag, "version") {
+
+  def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
+
+  def * = id.? <> (VersionRow.apply, VersionRow.unapply)
+}
+
 object arguments extends TableQuery(new ArgumentsTable(_))
 
 object suggestions extends TableQuery(new SuggestionsTable(_))
+
+object versions extends TableQuery(new VersionsTable(_))

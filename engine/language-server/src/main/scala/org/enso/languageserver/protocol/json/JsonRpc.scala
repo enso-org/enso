@@ -63,6 +63,8 @@ object JsonRpc {
     .registerRequest(AttachVisualisation)
     .registerRequest(DetachVisualisation)
     .registerRequest(ModifyVisualisation)
+    .registerRequest(GetSuggestionsDatabase)
+    .registerRequest(GetSuggestionsDatabaseVersion)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)
