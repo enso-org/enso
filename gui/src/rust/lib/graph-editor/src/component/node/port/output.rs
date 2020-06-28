@@ -46,6 +46,7 @@ const HIDE_DELAY_DURATION   : f32 = 150.0;
 const SHAPE_HOVER_AREA_SIZE : f32 = 20.0;
 const SHAPE_MAX_WIDTH       : f32 = 4.0;
 
+const INFINITE              : f32 = 99999.0;
 
 
 // ==================
@@ -370,8 +371,8 @@ impl ShapeView {
                     shape.padding_left.set(gap_width * 0.5);
                     shape.padding_right.set(-gap_width * 0.5);
                 }
-                views[0]              .shape.padding_left .set(0.0);
-                views[views.len() - 1].shape.padding_right.set(0.0);
+                views[0]              .shape.padding_left.set(-INFINITE);
+                views[views.len() - 1].shape.padding_right.set(INFINITE);
             }
         }
     }
