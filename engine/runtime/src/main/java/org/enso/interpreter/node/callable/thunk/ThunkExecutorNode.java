@@ -1,10 +1,7 @@
 package org.enso.interpreter.node.callable.thunk;
 
 import com.oracle.truffle.api.CompilerAsserts;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.GenerateUncached;
-import com.oracle.truffle.api.dsl.NodeField;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
@@ -17,6 +14,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 
 /** Node responsible for executing (forcing) thunks passed to it as runtime values. */
 @GenerateUncached
+@ReportPolymorphism
 public abstract class ThunkExecutorNode extends Node {
 
   ThunkExecutorNode() {}

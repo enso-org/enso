@@ -128,4 +128,14 @@ public abstract class EnsoRootNode extends RootNode {
   protected boolean isInstrumentable() {
     return true;
   }
+
+  /**
+   * Marks the node as cloneable for runtime splitting purposes.
+   *
+   * @return always true
+   */
+  @Override
+  public boolean isCloningAllowed() {
+    return true;
+  }
 }

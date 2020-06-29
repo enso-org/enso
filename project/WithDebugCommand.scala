@@ -29,7 +29,7 @@ object WithDebugCommand {
     "-Dpolyglot.engine.TraceCompilation=true",
     "-Dpolyglot.engine.TraceCompilationCallTree=true",
     "-Dpolyglot.engine.TraceInlining=true",
-    "-Dpolyglot.engine.TracePerformanceWarnings=true"
+    "-Dpolyglot.engine.TracePerformanceWarnings=all"
   )
 
   val trufflePrintAssemblyOptions = Seq(

@@ -113,6 +113,7 @@ public class Builtins {
     scope.registerConstructor(error);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
+    scope.registerConstructor(system);
 
     scope.registerConstructor(syntaxError);
     scope.registerConstructor(compileError);
