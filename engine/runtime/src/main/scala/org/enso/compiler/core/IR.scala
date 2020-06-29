@@ -4431,7 +4431,11 @@ object IR {
         fields.forall {
           case _: Pattern.Name        => true
           case _: Pattern.Constructor => false
-          case _: Pattern.Doc         => false
+          case _: Pattern.Doc =>
+            throw new CompilerError(
+              "Branch documentation should not be present " +
+              "inside a constructor pattern."
+            )
         }
       }
 

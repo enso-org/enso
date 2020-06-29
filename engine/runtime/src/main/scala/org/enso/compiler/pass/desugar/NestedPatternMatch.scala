@@ -276,7 +276,7 @@ case object NestedPatternMatch extends IRPass {
           )
         case Pattern.Doc(_, _, _, _) =>
           throw new CompilerError(
-            "Branch documentation should be desugared at an earlier stage"
+            "Branch documentation should be desugared at an earlier stage."
           )
       }
     } else {
@@ -356,9 +356,15 @@ case object NestedPatternMatch extends IRPass {
         fields.exists {
           case _: Pattern.Constructor => true
           case _: Pattern.Name        => false
-          case _: Pattern.Doc         => false
+          case _: Pattern.Doc =>
+            throw new CompilerError(
+              "Branch documentation should be desugared at an earlier stage."
+            )
         }
-      case _: Pattern.Doc => false
+      case _: Pattern.Doc =>
+        throw new CompilerError(
+          "Branch documentation should be desugared at an earlier stage."
+        )
     }
 
   /** Checks if a given pattern is a nested pattern when called on a
@@ -371,7 +377,10 @@ case object NestedPatternMatch extends IRPass {
     pattern match {
       case _: Pattern.Name        => false
       case _: Pattern.Constructor => true
-      case _: Pattern.Doc         => false
+      case _: Pattern.Doc =>
+        throw new CompilerError(
+          "Branch documentation should be desugared at an earlier stage."
+        )
     }
 
   /** Checks if a given pattern is a catch all branch.
@@ -383,6 +392,9 @@ case object NestedPatternMatch extends IRPass {
     pattern match {
       case _: Pattern.Name        => true
       case _: Pattern.Constructor => false
-      case _: Pattern.Doc         => false
+      case _: Pattern.Doc =>
+        throw new CompilerError(
+          "Branch documentation should be desugared at an earlier stage."
+        )
     }
 }

@@ -70,7 +70,6 @@ case object GatherDiagnostics extends IRPass {
     override val metadataName: String = "GatherDiagnostics.Diagnostics"
 
     override def duplicate(): Option[IRPass.Metadata] =
-      // TODO [RW] maybe returning None here would avoid diag duplication? check later
       Some(this)
   }
 }

@@ -360,7 +360,7 @@ case object TailCall extends IRPass {
           .updateMetadata(this -->> TailPosition.NotTail)
       case _: Pattern.Doc =>
         throw new CompilerError(
-          "Branch documentation should be desugared at an earlier stage"
+          "Branch documentation should be desugared at an earlier stage."
         )
     }
   }

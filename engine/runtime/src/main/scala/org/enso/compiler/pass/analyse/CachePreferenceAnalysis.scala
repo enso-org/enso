@@ -204,7 +204,7 @@ case object CachePreferenceAnalysis extends IRPass {
     def asJavaWeights: util.Map[IR.ExternalId, java.lang.Double] =
       weights.asJava.asInstanceOf[util.Map[IR.ExternalId, java.lang.Double]]
 
-    override def duplicate(): Option[IRPass.Metadata] = None // TODO [RW] copy()
+    override def duplicate(): Option[IRPass.Metadata] = None
   }
 
   /** Weight constants */

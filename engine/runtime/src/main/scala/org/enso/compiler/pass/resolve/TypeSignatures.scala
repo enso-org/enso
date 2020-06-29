@@ -207,7 +207,6 @@ case object TypeSignatures extends IRPass {
     override val metadataName: String = "TypeSignatures.Signature"
 
     override def duplicate(): Option[IRPass.Metadata] =
-      // TODO [RW] this duplicate() call may not conform to the caller's settings of keep[]
       Some(this.copy(signature = signature.duplicate()))
   }
 }

@@ -146,7 +146,7 @@ object IRPass {
     sealed case class Empty() extends Metadata {
       override val metadataName: String = "Empty"
 
-      override def duplicate(): Option[Metadata] = None // TODO [RW]
+      override def duplicate(): Option[Metadata] = Some(this)
     }
   }
 }

@@ -193,7 +193,6 @@ case object ApplicationSaturation extends IRPass {
 
   /** Describes the saturation state of a function application. */
   sealed trait CallSaturation extends IRPass.Metadata {
-    // TODO [RW] CallSaturation is immutable, right?
     override def duplicate(): Option[IRPass.Metadata] = Some(this)
   }
   object CallSaturation {

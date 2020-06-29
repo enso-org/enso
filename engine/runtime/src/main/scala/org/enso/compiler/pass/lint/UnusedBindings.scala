@@ -243,7 +243,7 @@ case object UnusedBindings extends IRPass {
         )
       case _: Pattern.Doc =>
         throw new CompilerError(
-          "Branch documentation should be desugared at an earlier stage"
+          "Branch documentation should be desugared at an earlier stage."
         )
     }
   }
