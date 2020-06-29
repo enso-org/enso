@@ -73,11 +73,17 @@ abstract class JsonRpcServerTestKit
     private val sink: Sink[Message, NotUsed] = Flow[Message]
       .map {
         case TextMessage.Strict(s) => s
-        case _ => throw new RuntimeException("Unexpected message type.")
+        case _                     => throw new RuntimeException("Unexpected message type.")
       }
-      .to(Sink.actorRef[String](outActor.ref, PoisonPill, { _: Any =>
-        PoisonPill
-      }))
+      .to(
+        Sink.actorRef[String](
+          outActor.ref,
+          PoisonPill,
+          { _: Any =>
+            PoisonPill
+          }
+        )
+      )
     private val flow = Flow.fromSinkAndSource(sink, source)
 
     Http()
@@ -89,8 +95,8 @@ abstract class JsonRpcServerTestKit
 
     def send(json: Json): Unit = send(json.noSpaces)
 
-    def expectMessage(): String =
-      outActor.expectMsgClass[String](classOf[String])
+    def expectMessage(timeout: FiniteDuration = 3.seconds): String =
+      outActor.expectMsgClass[String](timeout, classOf[String])
 
     def expectJson(json: Json): Assertion = {
       val parsed = parse(expectMessage())

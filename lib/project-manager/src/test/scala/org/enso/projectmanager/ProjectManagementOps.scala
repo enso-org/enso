@@ -6,6 +6,8 @@ import io.circe.literal._
 import io.circe.parser.parse
 import org.enso.projectmanager.data.Socket
 
+import scala.concurrent.duration._
+
 trait ProjectManagementOps { this: BaseServerSpec =>
 
   def createProject(name: String)(implicit client: WsTestClient): UUID = {
@@ -43,7 +45,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
               }
             }
           """)
-    val Right(openReply) = parse(client.expectMessage())
+    val Right(openReply) = parse(client.expectMessage(10.seconds))
     val socketField = openReply.hcursor
       .downField("result")
       .downField("languageServerJsonAddress")
