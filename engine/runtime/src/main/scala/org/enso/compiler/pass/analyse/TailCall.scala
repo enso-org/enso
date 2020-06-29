@@ -358,6 +358,10 @@ case object TailCall extends IRPass {
             fields      = fields.map(analysePattern)
           )
           .updateMetadata(this -->> TailPosition.NotTail)
+      case _: Pattern.Documentation =>
+        throw new CompilerError(
+          "Branch documentation should be desugared at an earlier stage."
+        )
     }
   }
 
@@ -424,7 +428,7 @@ case object TailCall extends IRPass {
       override val metadataName: String = "TailCall.TailPosition.Tail"
       override def isTail: Boolean      = true
 
-      override def duplicate: IRPass.Metadata = Tail
+      override def duplicate(): Option[IRPass.Metadata] = Some(Tail)
     }
 
     /** The expression is not in a tail position and cannot be tail call
@@ -434,7 +438,7 @@ case object TailCall extends IRPass {
       override val metadataName: String = "TailCall.TailPosition.NotTail"
       override def isTail: Boolean      = false
 
-      override def duplicate: IRPass.Metadata = NotTail
+      override def duplicate(): Option[IRPass.Metadata] = Some(NotTail)
     }
 
     /** Implicitly converts a boolean to a [[TailPosition]] value.

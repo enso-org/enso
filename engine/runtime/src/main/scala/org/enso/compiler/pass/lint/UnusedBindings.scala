@@ -5,7 +5,11 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Case, Pattern}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, TailCall}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  TailCall
+}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings}
@@ -46,9 +50,10 @@ case object UnusedBindings extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module = ir.transformExpressions {
-    case x => x.mapExpressions(runExpression(_, InlineContext()))
-  }
+  ): IR.Module =
+    ir.transformExpressions {
+      case x => x.mapExpressions(runExpression(_, InlineContext()))
+    }
 
   /** Lints an arbitrary expression.
     *
@@ -61,11 +66,12 @@ case object UnusedBindings extends IRPass {
   override def runExpression(
     ir: IR.Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir.transformExpressions {
-    case binding: IR.Expression.Binding => lintBinding(binding, inlineContext)
-    case function: IR.Function          => lintFunction(function, inlineContext)
-    case cse: IR.Case                   => lintCase(cse, inlineContext)
-  }
+  ): IR.Expression =
+    ir.transformExpressions {
+      case binding: IR.Expression.Binding => lintBinding(binding, inlineContext)
+      case function: IR.Function          => lintFunction(function, inlineContext)
+      case cse: IR.Case                   => lintCase(cse, inlineContext)
+    }
 
   // === Pass Internals =======================================================
 
@@ -159,9 +165,8 @@ case object UnusedBindings extends IRPass {
       case s @ IR.DefinitionArgument.Specified(name, default, _, _, _, _) =>
         if (!isIgnored && !isUsed) {
           s.copy(
-              defaultValue = default.map(runExpression(_, context))
-            )
-            .addDiagnostic(IR.Warning.Unused.FunctionArgument(name))
+            defaultValue = default.map(runExpression(_, context))
+          ).addDiagnostic(IR.Warning.Unused.FunctionArgument(name))
         } else s
     }
   }
@@ -235,6 +240,10 @@ case object UnusedBindings extends IRPass {
 
         cons.copy(
           fields = fields.map(lintPattern)
+        )
+      case _: Pattern.Documentation =>
+        throw new CompilerError(
+          "Branch documentation should be desugared at an earlier stage."
         )
     }
   }

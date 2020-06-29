@@ -700,6 +700,7 @@ object AstView {
       *
       * {{{
       *   case <scrutinee> of
+      *     ## <comment>
       *     <matcher> -> <expression>
       *     <...>
       * }}}
@@ -708,9 +709,10 @@ object AstView {
       * - `<scrutinee>` is an arbitrary non-block program expression
       * - `<matcher>` is a [[Pattern]]
       * - `<expression>` is an arbirary program expression
+      * - `<comment>` is an optional documentation comment
       *
       * @param ast the structure to try and match on
-      * @return the scrutinee and a list of the case branches
+      * @return the scrutinee and a list of the case branches and comments
       */
     def unapply(ast: AST): Option[(AST, List[AST])] = {
       ast match {
@@ -726,6 +728,7 @@ object AstView {
 
                   val matchBranches = blockLines.collect {
                     case b @ CaseBranch(_, _) => b
+                    case c @ AST.Comment(_)   => c
                   }
 
                   if (matchBranches.length == blockLines.length) {
@@ -781,17 +784,6 @@ object AstView {
       ast match {
         case ConstructorPattern(_, _) => Some(ast)
         case CatchAllPattern(pat)     => Some(pat)
-        /*        case Parensed(parensed) =>
-          if (parensed.toString == ast.toString) {
-            println("Reached a fixpoint")
-            println(Debug.pretty(ast.toString))
-            throw new RuntimeException("cycle")
-          }
-
-          parensed match {
-            case Pattern(p) => Some(p)
-            case _          => None
-          }*/
         case Parensed(Pattern(p)) =>
           println(p)
           Some(p)
