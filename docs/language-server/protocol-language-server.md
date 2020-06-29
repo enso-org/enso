@@ -27,7 +27,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
-  - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
   - [`SuggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
   - [`File`](#file)
   - [`DirectoryTree`](#directorytree)
@@ -329,20 +328,6 @@ type SuggestionEntryType
   | Method
   | Function
   | Local;
-```
-
-### `SuggestionsDatabaseEntry`
-The entry in the suggestions database.
-
-#### Format
-
-```typescript
-// The suggestions database entry.
-interface SuggestionsDatabaseEntry {
-  // suggestion entry id;
-  id: number;
-  suggestion: Suggestion;
-}
 ```
 
 ### `SuggestionsDatabaseUpdate`
@@ -2452,7 +2437,7 @@ null
 ```typescript
 {
   // The list of suggestions database entries
-  entries: [SuggestionsDatabaseEntry];
+  entries: [SuggestionsDatabaseUpdate];
   // The version of received suggestions database
   currentVersion: number;
 }
