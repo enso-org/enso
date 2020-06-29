@@ -2,9 +2,11 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.pipe
-import org.enso.languageserver.runtime.SearchApi.GetSuggestionsDatabase
 import org.enso.languageserver.runtime.SearchProtocol.{
+  GetSuggestionsDatabase,
   GetSuggestionsDatabaseResult,
+  GetSuggestionsDatabaseVersion,
+  GetSuggestionsDatabaseVersionResult,
   SuggestionsDatabaseUpdate
 }
 import org.enso.languageserver.util.UnhandledLogging
@@ -25,7 +27,21 @@ final class SuggestionsHandler(
 
   import context.dispatcher
 
+  override def preStart(): Unit = {
+    db.run(repo.init)
+  }
+
+  override def postStop(): Unit = {
+    db.close()
+  }
+
   override def receive: Receive = {
+    case GetSuggestionsDatabaseVersion =>
+      db
+        .run(repo.currentVersion)
+        .map(GetSuggestionsDatabaseVersionResult)
+        .pipeTo(sender())
+
     case GetSuggestionsDatabase =>
       val query = for {
         entries <- repo.getAll

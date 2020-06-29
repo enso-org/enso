@@ -32,7 +32,6 @@ import org.enso.languageserver.requesthandler.io.{
   SuppressStdOutHandler
 }
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
-import org.enso.languageserver.requesthandler.search.GetSuggestionsDatabaseHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.requesthandler.text._
 import org.enso.languageserver.requesthandler.visualisation.{
@@ -46,7 +45,10 @@ import org.enso.languageserver.runtime.{
   SearchProtocol
 }
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.SearchApi.GetSuggestionsDatabase
+import org.enso.languageserver.runtime.SearchApi.{
+  GetSuggestionsDatabase,
+  GetSuggestionsDatabaseVersion
+}
 import org.enso.languageserver.runtime.VisualisationApi.{
   AttachVisualisation,
   DetachVisualisation,
@@ -260,14 +262,16 @@ class JsonConnectionController(
         .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextRecompute -> executioncontext.RecomputeHandler
         .props(requestTimeout, contextRegistry, rpcSession),
+      GetSuggestionsDatabaseVersion -> search.GetSuggestionsDatabaseVersionHandler
+        .props(requestTimeout, suggestionsHandler),
+      GetSuggestionsDatabase -> search.GetSuggestionsDatabaseHandler
+        .props(requestTimeout, suggestionsHandler),
       AttachVisualisation -> AttachVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       DetachVisualisation -> DetachVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       ModifyVisualisation -> ModifyVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
-      GetSuggestionsDatabase -> GetSuggestionsDatabaseHandler
-        .props(requestTimeout, suggestionsHandler),
       RedirectStandardOutput -> RedirectStdOutHandler
         .props(stdOutController, rpcSession.clientId),
       SuppressStandardOutput -> SuppressStdOutHandler

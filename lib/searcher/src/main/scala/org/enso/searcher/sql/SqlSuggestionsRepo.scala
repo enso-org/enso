@@ -20,6 +20,9 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
       .joinRight(suggestions)
       .on(_.suggestionId === _.id)
 
+  override def init: DBIO[Unit] =
+    (suggestions.schema ++ arguments.schema ++ versions.schema).createIfNotExists
+
   /** @inheritdoc */
   override def getAll: DBIO[Seq[SuggestionEntry]] = {
     joined.result.map(joinedToSuggestionEntries)

@@ -18,7 +18,7 @@ class SuggestionsRepoTest
 
   val Timeout: FiniteDuration = 3.seconds
 
-  val db   = Database.forConfig("searcher.db")
+  val db   = new SqlDatabase()
   val repo = new SqlSuggestionsRepo()
 
   def clean: Future[Unit] =
@@ -27,12 +27,7 @@ class SuggestionsRepoTest
     } yield ()
 
   override def beforeAll(): Unit = {
-    Await.ready(
-      db.run(
-        (suggestions.schema ++ arguments.schema ++ versions.schema).createIfNotExists
-      ),
-      Timeout
-    )
+    Await.ready(db.run(repo.init), Timeout)
   }
 
   override def afterAll(): Unit = {

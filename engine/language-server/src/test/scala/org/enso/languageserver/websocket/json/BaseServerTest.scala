@@ -45,7 +45,8 @@ class BaseServerTest extends JsonRpcServerTestKit {
     Map(testContentRootId -> testContentRoot.toFile),
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
-    ExecutionContextConfig(requestTimeout = 3.seconds)
+    ExecutionContextConfig(requestTimeout = 3.seconds),
+    SuggestionsConfig(testContentRoot.toString)
   )
   val runtimeConnectorProbe = TestProbe()
 
@@ -114,7 +115,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       system.actorOf(
         SuggestionsHandler.props(
           new SqlSuggestionsRepo()(system.dispatcher),
-          new SqlDatabase("searcher.db")
+          new SqlDatabase()
         )
       )
 

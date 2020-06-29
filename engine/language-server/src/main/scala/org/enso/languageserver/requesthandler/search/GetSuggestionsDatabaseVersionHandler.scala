@@ -5,7 +5,6 @@ import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.SearchApi.{
-  GetSuggestionsDatabase,
   GetSuggestionsDatabaseVersion,
   SuggestionsDatabaseError
 }
@@ -32,7 +31,7 @@ class GetSuggestionsDatabaseVersionHandler(
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case Request(GetSuggestionsDatabase, id, _) =>
+    case Request(GetSuggestionsDatabaseVersion, id, _) =>
       suggestionsHandler ! SearchProtocol.GetSuggestionsDatabaseVersion
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)

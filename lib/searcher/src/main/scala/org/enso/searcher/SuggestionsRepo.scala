@@ -3,6 +3,9 @@ package org.enso.searcher
 /** The object for accessing the suggestions database. */
 trait SuggestionsRepo[F[_]] {
 
+  /** Initialize the repo. */
+  def init: F[Unit]
+
   /** Get current version of the repo. */
   def currentVersion: F[Long]
 
