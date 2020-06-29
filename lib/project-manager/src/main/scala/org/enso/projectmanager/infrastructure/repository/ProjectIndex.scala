@@ -13,12 +13,12 @@ import org.enso.projectmanager.model.Project
 case class ProjectIndex(projects: Map[UUID, Project] = Map.empty) {
 
   /**
-    * Adds a project to the index.
+    * Upserts a project to the index.
     *
     * @param project the project to add
     * @return an updated project
     */
-  def add(project: Project): ProjectIndex =
+  def upsert(project: Project): ProjectIndex =
     ProjectIndex(projects + (project.id -> project))
 
   /**

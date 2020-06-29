@@ -21,14 +21,20 @@ trait ProjectRepository[F[+_, +_]] {
   def exists(name: String): F[ProjectRepositoryFailure, Boolean]
 
   /**
-    * Saves the provided user project in the storage.
+    * Creates the provided user project in the storage.
     *
     * @param project the project to insert
     * @return
     */
-  def create(
-    project: Project
-  ): F[ProjectRepositoryFailure, Unit]
+  def create(project: Project): F[ProjectRepositoryFailure, Unit]
+
+  /**
+    * Saves the provided user project in the index.
+    *
+    * @param project the project to update
+    * @return
+    */
+  def update(project: Project): F[ProjectRepositoryFailure, Unit]
 
   /**
     * Removes the provided project from the storage.

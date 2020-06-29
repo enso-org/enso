@@ -30,7 +30,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   indexStorage: FileStorage[ProjectIndex, F]
 ) extends ProjectRepository[F] {
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def exists(
     name: String
   ): F[ProjectRepositoryFailure, Boolean] =
@@ -39,7 +39,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .map(_.exists(name))
       .mapError(_.fold(convertFileStorageFailure))
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def find(
     predicate: Project => Boolean
   ): F[ProjectRepositoryFailure, List[Project]] =
@@ -48,14 +48,14 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .map(_.find(predicate))
       .mapError(_.fold(convertFileStorageFailure))
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def getAll(): F[ProjectRepositoryFailure, List[Project]] =
     indexStorage
       .load()
       .map(_.projects.values.toList)
       .mapError(_.fold(convertFileStorageFailure))
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def findById(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Option[Project]] =
@@ -64,7 +64,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .map(_.findById(projectId))
       .mapError(_.fold(convertFileStorageFailure))
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def create(
     project: Project
   ): F[ProjectRepositoryFailure, Unit] = {
@@ -72,13 +72,17 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     val projectWithPath = project.copy(path = Some(projectPath.toString))
 
     createProjectStructure(project, projectPath) *>
+    update(projectWithPath)
+  }
+
+  /** @inheritdoc * */
+  override def update(project: Project): F[ProjectRepositoryFailure, Unit] =
     indexStorage
       .modify { index =>
-        val updated = index.add(projectWithPath)
+        val updated = index.upsert(project)
         (updated, ())
       }
       .mapError(_.fold(convertFileStorageFailure))
-  }
 
   private def createProjectStructure(
     project: Project,
@@ -88,7 +92,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .blockingOp { PackageManager.Default.create(projectPath, project.name) }
       .mapError(th => StorageFailure(th.toString))
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def rename(
     projectId: UUID,
     name: String
@@ -115,7 +119,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
         case Some(project) => CovariantFlatMap[F].pure(project)
       }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   def getPackageName(projectId: UUID): F[ProjectRepositoryFailure, String] = {
     for {
       project        <- getProject(projectId)
@@ -162,7 +166,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       }
       .mapError(_.fold(convertFileStorageFailure))
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def delete(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Unit] =
@@ -196,7 +200,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
         StorageFailure(failure.toString)
       )
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def moveProjectToTargetDir(
     projectId: UUID
   ): F[ProjectRepositoryFailure, File] = {

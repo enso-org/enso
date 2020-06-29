@@ -55,7 +55,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
 
   import E._
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def createUserProject(
     name: String
   ): F[ProjectServiceFailure, UUID] = {
@@ -73,7 +73,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     // format: on
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def deleteUserProject(
     projectId: UUID
   ): F[ProjectServiceFailure, Unit] =
@@ -93,7 +93,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
         case true  => ErrorChannel[F].fail(CannotRemoveOpenProject)
       }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def renameProject(
     projectId: UUID,
     name: String
@@ -154,7 +154,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
         case Some(_) => CovariantFlatMap[F].pure(())
       }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def openProject(
     clientId: UUID,
     projectId: UUID
@@ -165,7 +165,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
       project  <- getUserProject(projectId)
       openTime <- clock.nowInUtc()
       updated   = project.copy(lastOpened = Some(openTime))
-      _        <- repo.create(updated).mapError(toServiceFailure)
+      _        <- repo.update(updated).mapError(toServiceFailure)
       sockets  <- startServer(clientId, updated)
     } yield sockets
     // format: on
@@ -193,7 +193,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
           )
       }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def closeProject(
     clientId: UUID,
     projectId: UUID
@@ -209,7 +209,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     }
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def listProjects(
     maybeSize: Option[Int]
   ): F[ProjectServiceFailure, List[ProjectMetadata]] =
