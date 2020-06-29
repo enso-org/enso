@@ -8,9 +8,8 @@ import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.test.CompilerTest
 import org.enso.syntax.text.AST
-import org.scalatest.Inside
 
-class GatherDiagnosticsTest extends CompilerTest with Inside {
+class GatherDiagnosticsTest extends CompilerTest {
 
   "Error Gathering" should {
     val error1 = IR.Error.Syntax(
