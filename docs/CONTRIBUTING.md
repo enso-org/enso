@@ -321,8 +321,8 @@ getting the project into a working state in IntelliJ.
     both 'for imports' and 'for builds'.
 8.  Disallow the overriding of the sbt version.
 9.  Under the 'Project JDK' setting, please ensure that it is set up to use a
-    GraalVM version as described in [Requirements](#requirements). You may need
-    to add it using the 'New' button if it isn't already set up.
+    GraalVM version as described in [System requirements](#system-requirements).
+    You may need to add it using the 'New' button if it isn't already set up.
 10. Click 'Finish'. This will prompt you as to whether you want to overwrite the
     `project` folder. Select 'Yes' to continue. The Enso project will load up
     with an open SBT shell, which can be interacted with as described above. You
