@@ -451,41 +451,42 @@ class IrToTruffle(
       * @param caseExpr the case expression to generate code for
       * @return the truffle nodes corresponding to `caseExpr`
       */
-    def processCase(caseExpr: IR.Case): RuntimeExpression = caseExpr match {
-      case IR.Case.Expr(scrutinee, branches, location, _, _) =>
-        val scrutineeNode = this.run(scrutinee)
+    def processCase(caseExpr: IR.Case): RuntimeExpression =
+      caseExpr match {
+        case IR.Case.Expr(scrutinee, branches, location, _, _) =>
+          val scrutineeNode = this.run(scrutinee)
 
-        val maybeCases    = branches.map(processCaseBranch)
-        val allCasesValid = maybeCases.forall(_.isRight)
+          val maybeCases    = branches.map(processCaseBranch)
+          val allCasesValid = maybeCases.forall(_.isRight)
 
-        // TODO [AA] This is until we can resolve this statically in the
-        //  compiler. Doing so requires fixing issues around cyclical imports.
-        if (allCasesValid) {
-          val cases = maybeCases
-            .collect {
-              case Right(x) => x
+          // TODO [AA] This is until we can resolve this statically in the
+          //  compiler. Doing so requires fixing issues around cyclical imports.
+          if (allCasesValid) {
+            val cases = maybeCases
+              .collect {
+                case Right(x) => x
+              }
+              .toArray[BranchNode]
+
+            // Note [Pattern Match Fallbacks]
+            val matchExpr = CaseNode.build(scrutineeNode, cases)
+            setLocation(matchExpr, location)
+          } else {
+            val invalidBranches = maybeCases.collect {
+              case Left(x) => x
             }
-            .toArray[BranchNode]
 
-          // Note [Pattern Match Fallbacks]
-          val matchExpr = CaseNode.build(scrutineeNode, cases)
-          setLocation(matchExpr, location)
-        } else {
-          val invalidBranches = maybeCases.collect {
-            case Left(x) => x
+            val message = invalidBranches.map(_.message).mkString(", ")
+
+            val error = context.getBuiltins
+              .compileError()
+              .newInstance(message)
+
+            setLocation(ErrorNode.build(error), caseExpr.location)
           }
-
-          val message = invalidBranches.map(_.message).mkString(", ")
-
-          val error = context.getBuiltins
-            .compileError()
-            .newInstance(message)
-
-          setLocation(ErrorNode.build(error), caseExpr.location)
-        }
-      case IR.Case.Branch(_, _, _, _, _) =>
-        throw new CompilerError("A CaseBranch should never occur here.")
-    }
+        case IR.Case.Branch(_, _, _, _, _) =>
+          throw new CompilerError("A CaseBranch should never occur here.")
+      }
 
     /** Performs code generation for an Enso case branch.
       *
@@ -573,7 +574,10 @@ class IrToTruffle(
             case None =>
               Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
           }
-
+        case _: Pattern.Documentation =>
+          throw new CompilerError(
+            "Branch documentation should be desugared at an earlier stage."
+          )
       }
     }
 
@@ -874,7 +878,7 @@ class IrToTruffle(
 
           val appNode = application.getMetadata(ApplicationSaturation) match {
             case Some(
-                ApplicationSaturation.CallSaturation.Exact(createOptimised)
+                  ApplicationSaturation.CallSaturation.Exact(createOptimised)
                 ) =>
               createOptimised(callArgs.toList)
             case _ =>
@@ -937,64 +941,72 @@ class IrToTruffle(
       * @return a truffle construct corresponding to the argument definition
       *         `arg`
       */
-    def run(arg: IR.CallArgument, position: Int): CallArgument = arg match {
-      case IR.CallArgument.Specified(name, value, _, shouldBeSuspended, _, _) =>
-        val scopeInfo = arg
-          .unsafeGetMetadata(
-            AliasAnalysis,
-            "No scope attached to a call argument."
-          )
-          .unsafeAs[AliasAnalysis.Info.Scope.Child]
+    def run(arg: IR.CallArgument, position: Int): CallArgument =
+      arg match {
+        case IR.CallArgument.Specified(
+              name,
+              value,
+              _,
+              shouldBeSuspended,
+              _,
+              _
+            ) =>
+          val scopeInfo = arg
+            .unsafeGetMetadata(
+              AliasAnalysis,
+              "No scope attached to a call argument."
+            )
+            .unsafeAs[AliasAnalysis.Info.Scope.Child]
 
-        val shouldSuspend = shouldBeSuspended.getOrElse(
-          throw new CompilerError(
-            "Demand analysis information missing from call argument."
-          )
-        )
-
-        val childScope = if (shouldSuspend) {
-          scope.createChild(scopeInfo.scope)
-        } else {
-          // Note [Scope Flattening]
-          scope.createChild(scopeInfo.scope, flattenToParent = true)
-        }
-        val argumentExpression =
-          new ExpressionProcessor(childScope, scopeName).run(value)
-
-        val result = if (!shouldSuspend) {
-          argumentExpression
-        } else {
-          val argExpressionIsTail = value.unsafeGetMetadata(
-            TailCall,
-            "Argument with missing tail call information."
-          )
-
-          argumentExpression.setTail(argExpressionIsTail)
-
-          val displayName =
-            s"call_argument<${name.getOrElse(String.valueOf(position))}>"
-
-          val section = value.location
-            .map(loc => source.createSection(loc.start, loc.end))
-            .orNull
-
-          val callTarget = Truffle.getRuntime.createCallTarget(
-            ClosureRootNode.build(
-              language,
-              childScope,
-              moduleScope,
-              argumentExpression,
-              section,
-              displayName,
-              null
+          val shouldSuspend = shouldBeSuspended.getOrElse(
+            throw new CompilerError(
+              "Demand analysis information missing from call argument."
             )
           )
 
-          CreateThunkNode.build(callTarget)
-        }
+          val childScope = if (shouldSuspend) {
+            scope.createChild(scopeInfo.scope)
+          } else {
+            // Note [Scope Flattening]
+            scope.createChild(scopeInfo.scope, flattenToParent = true)
+          }
+          val argumentExpression =
+            new ExpressionProcessor(childScope, scopeName).run(value)
 
-        new CallArgument(name.map(_.name).orNull, result)
-    }
+          val result = if (!shouldSuspend) {
+            argumentExpression
+          } else {
+            val argExpressionIsTail = value.unsafeGetMetadata(
+              TailCall,
+              "Argument with missing tail call information."
+            )
+
+            argumentExpression.setTail(argExpressionIsTail)
+
+            val displayName =
+              s"call_argument<${name.getOrElse(String.valueOf(position))}>"
+
+            val section = value.location
+              .map(loc => source.createSection(loc.start, loc.end))
+              .orNull
+
+            val callTarget = Truffle.getRuntime.createCallTarget(
+              ClosureRootNode.build(
+                language,
+                childScope,
+                moduleScope,
+                argumentExpression,
+                section,
+                displayName,
+                null
+              )
+            )
+
+            CreateThunkNode.build(callTarget)
+          }
+
+          new CallArgument(name.map(_.name).orNull, result)
+      }
   }
 
   /* Note [Scope Flattening]
@@ -1047,43 +1059,44 @@ class IrToTruffle(
     def run(
       inputArg: IR.DefinitionArgument,
       position: Int
-    ): ArgumentDefinition = inputArg match {
-      case arg: IR.DefinitionArgument.Specified =>
-        val defaultExpression = arg.defaultValue
-          .map(new ExpressionProcessor(scope, scopeName).run(_))
-          .orNull
+    ): ArgumentDefinition =
+      inputArg match {
+        case arg: IR.DefinitionArgument.Specified =>
+          val defaultExpression = arg.defaultValue
+            .map(new ExpressionProcessor(scope, scopeName).run(_))
+            .orNull
 
-        // Note [Handling Suspended Defaults]
-        val defaultedValue = if (arg.suspended && defaultExpression != null) {
-          val defaultRootNode = ClosureRootNode.build(
-            language,
-            scope,
-            moduleScope,
-            defaultExpression,
-            null,
-            s"default::$scopeName::${arg.name}",
-            null
+          // Note [Handling Suspended Defaults]
+          val defaultedValue = if (arg.suspended && defaultExpression != null) {
+            val defaultRootNode = ClosureRootNode.build(
+              language,
+              scope,
+              moduleScope,
+              defaultExpression,
+              null,
+              s"default::$scopeName::${arg.name}",
+              null
+            )
+
+            CreateThunkNode.build(
+              Truffle.getRuntime.createCallTarget(defaultRootNode)
+            )
+          } else {
+            defaultExpression
+          }
+
+          val executionMode = if (arg.suspended) {
+            ArgumentDefinition.ExecutionMode.PASS_THUNK
+          } else {
+            ArgumentDefinition.ExecutionMode.EXECUTE
+          }
+
+          new ArgumentDefinition(
+            position,
+            arg.name.name,
+            defaultedValue,
+            executionMode
           )
-
-          CreateThunkNode.build(
-            Truffle.getRuntime.createCallTarget(defaultRootNode)
-          )
-        } else {
-          defaultExpression
-        }
-
-        val executionMode = if (arg.suspended) {
-          ArgumentDefinition.ExecutionMode.PASS_THUNK
-        } else {
-          ArgumentDefinition.ExecutionMode.EXECUTE
-        }
-
-        new ArgumentDefinition(
-          position,
-          arg.name.name,
-          defaultedValue,
-          executionMode
-        )
-    }
+      }
   }
 }

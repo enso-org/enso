@@ -34,7 +34,7 @@ case object ApplicationSaturation extends IRPass {
     LambdaShorthandToLambda,
     NestedPatternMatch,
     OperatorToFunction,
-    SectionsToBinOp,
+    SectionsToBinOp
   )
   override val invalidatedPasses: Seq[IRPass] = List()
 
@@ -192,37 +192,29 @@ case object ApplicationSaturation extends IRPass {
   type KnownFunctionsMapping = Map[String, FunctionSpec]
 
   /** Describes the saturation state of a function application. */
-  sealed trait CallSaturation extends IRPass.Metadata
+  sealed trait CallSaturation extends IRPass.Metadata {
+    override def duplicate(): Option[IRPass.Metadata] = Some(this)
+  }
   object CallSaturation {
     sealed case class Over(additionalArgCount: Int) extends CallSaturation {
       override val metadataName: String =
         "ApplicationSaturation.CallSaturation.Over"
-
-      override def duplicate: IRPass.Metadata = copy()
     }
     sealed case class Exact(helper: CodegenHelper) extends CallSaturation {
       override val metadataName: String =
         "ApplicationSaturation.CallSaturation.Exact"
-
-      override def duplicate: IRPass.Metadata = copy()
     }
     sealed case class ExactButByName() extends CallSaturation {
       override val metadataName: String =
         "ApplicationSaturation.CallSaturation.ExactButByName"
-
-      override def duplicate: IRPass.Metadata = ExactButByName()
     }
     sealed case class Partial(unappliedArgCount: Int) extends CallSaturation {
       override val metadataName: String =
         "ApplicationSaturation.CallSaturation.Partial"
-
-      override def duplicate: IRPass.Metadata = copy()
     }
     sealed case class Unknown() extends CallSaturation {
       override val metadataName: String =
         "ApplicationSaturation.CallSaturation.Unknown"
-
-      override def duplicate: IRPass.Metadata = Unknown()
     }
   }
 

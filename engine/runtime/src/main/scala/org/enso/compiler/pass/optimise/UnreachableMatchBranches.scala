@@ -176,8 +176,9 @@ case object UnreachableMatchBranches extends IRPass {
     */
   def isCatchAll(branch: IR.Case.Branch): Boolean = {
     branch.pattern match {
-      case _: Pattern.Name        => true
-      case _: Pattern.Constructor => false
+      case _: Pattern.Name          => true
+      case _: Pattern.Constructor   => false
+      case _: Pattern.Documentation => false
     }
   }
 }

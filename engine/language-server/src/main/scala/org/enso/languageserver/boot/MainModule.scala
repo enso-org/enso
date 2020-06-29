@@ -27,7 +27,8 @@ import org.enso.languageserver.protocol.json.{
 import org.enso.languageserver.runtime.{
   ContextRegistry,
   RuntimeConnector,
-  RuntimeKiller
+  RuntimeKiller,
+  SuggestionsDatabaseEventsListener
 }
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
@@ -93,9 +94,16 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "file-event-registry"
     )
 
+  lazy val suggestionsDatabaseEventsListener =
+    system.actorOf(SuggestionsDatabaseEventsListener.props(sessionRouter))
+
   lazy val capabilityRouter =
     system.actorOf(
-      CapabilityRouter.props(bufferRegistry, receivesTreeUpdatesHandler),
+      CapabilityRouter.props(
+        bufferRegistry,
+        receivesTreeUpdatesHandler,
+        suggestionsDatabaseEventsListener
+      ),
       "capability-router"
     )
 

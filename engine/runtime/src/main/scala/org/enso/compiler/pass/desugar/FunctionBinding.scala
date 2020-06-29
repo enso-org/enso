@@ -83,7 +83,15 @@ case object FunctionBinding extends IRPass {
     */
   def desugarExpression(ir: IR.Expression): IR.Expression = {
     ir.transformExpressions {
-      case IR.Function.Binding(name, args, body, location, canBeTCO, _, _) =>
+      case IR.Function.Binding(
+            name,
+            args,
+            body,
+            location,
+            canBeTCO,
+            passData,
+            diagnostics
+          ) =>
         if (args.isEmpty) {
           throw new CompilerError("The arguments list should not be empty.")
         }
@@ -96,7 +104,7 @@ case object FunctionBinding extends IRPass {
           .asInstanceOf[IR.Function.Lambda]
           .copy(canBeTCO = canBeTCO, location = location)
 
-        IR.Expression.Binding(name, lambda, location)
+        IR.Expression.Binding(name, lambda, location, passData, diagnostics)
     }
   }
 
@@ -116,14 +124,20 @@ case object FunctionBinding extends IRPass {
           "Explicit method definitions should not exist during function " +
           "binding desugaring."
         )
-      case Method.Binding(methRef, args, body, loc, _, _) =>
+      case Method.Binding(methRef, args, body, loc, passData, diagnostics) =>
         val newBody = args
           .map(_.mapExpressions(desugarExpression))
           .foldRight(desugarExpression(body))((arg, body) =>
             IR.Function.Lambda(List(arg), body, None)
           )
 
-        Method.Explicit(methRef, newBody, loc)
+        Method.Explicit(
+          methRef,
+          newBody,
+          loc,
+          passData,
+          diagnostics
+        )
       case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +

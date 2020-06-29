@@ -102,8 +102,8 @@ object IRPass {
       * @tparam T the type to cast to
       * @return `ev`, cast to `T` if it is a `T`
       */
-    def as[T <: Metadata: ClassTag](
-      implicit @unused ev: T =:!= Metadata
+    def as[T <: Metadata: ClassTag](implicit
+      @unused ev: T =:!= Metadata
     ): Option[T] = {
       this match {
         case p: T => Some(p)
@@ -119,8 +119,8 @@ object IRPass {
       * @return `this` as a `T`
       */
     @throws[CompilerError]
-    def unsafeAs[T <: Metadata: ClassTag](
-      implicit @unused ev: T =:!= Metadata
+    def unsafeAs[T <: Metadata: ClassTag](implicit
+      @unused ev: T =:!= Metadata
     ): T = {
       this
         .as[T]
@@ -129,13 +129,16 @@ object IRPass {
         )
     }
 
-    /** Creates a duplicate of this metadata.
+    /** Creates a duplicate of this metadata if applicable.
       *
-      * This method should employ deep-copy semantics where appropriate.
+      * This method should employ deep-copy semantics where appropriate. It may
+      * return None to indicate that this metadata should not be preserved
+      * during duplication.
       *
-      * @return a duplicate of this metadata.
+      * @return Some duplicate of this metadata or None if this metadata should
+      *         not be preserved
       */
-    def duplicate: Metadata
+    def duplicate(): Option[Metadata]
   }
   object Metadata {
 
@@ -143,7 +146,7 @@ object IRPass {
     sealed case class Empty() extends Metadata {
       override val metadataName: String = "Empty"
 
-      override def duplicate: Empty = Empty()
+      override def duplicate(): Option[Metadata] = Some(this)
     }
   }
 }
