@@ -12,6 +12,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatc
 import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
 import org.enso.interpreter.node.expression.builtin.io.*;
 import org.enso.interpreter.node.expression.builtin.number.*;
+import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.*;
 import org.enso.interpreter.node.expression.builtin.system.NanoTimeMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.*;
@@ -93,6 +94,7 @@ public class Builtins {
                 new ArgumentDefinition(1, "rest", ArgumentDefinition.ExecutionMode.EXECUTE));
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
     AtomConstructor system = new AtomConstructor("System", scope).initializeFields();
+    AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
     AtomConstructor panic = new AtomConstructor("Panic", scope).initializeFields();
     AtomConstructor error = new AtomConstructor("Error", scope).initializeFields();
     AtomConstructor state = new AtomConstructor("State", scope).initializeFields();
@@ -114,6 +116,7 @@ public class Builtins {
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
     scope.registerConstructor(system);
+    scope.registerConstructor(runtime);
 
     scope.registerConstructor(syntaxError);
     scope.registerConstructor(compileError);
@@ -128,6 +131,7 @@ public class Builtins {
     scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
 
     scope.registerMethod(system, "nano_time", NanoTimeMethodGen.makeFunction(language));
+    scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
     scope.registerMethod(panic, "recover", CatchPanicMethodGen.makeFunction(language));
