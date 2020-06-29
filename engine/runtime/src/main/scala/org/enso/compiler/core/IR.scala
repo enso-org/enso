@@ -124,13 +124,17 @@ sealed trait IR {
 /* Note [IR Equality and hashing]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * As the IRs are implemented as case classes, their equality is determined by
- * the values included in the constructor. These include the [[MetadataStorage]]
- * and [[DiagnosticStorage]]. These two storages break the contract of
- * `hashCode` by overriding the `equals` method to compare for equality by their
- * contents, but not `hashCode` (because it would have to be mutable). As the
- * case classes of IR use that to implement their own equality and hashing,
- * their implementation is also troubled by this. Instances of IR that are equal
- * by the `equals` function, may still return different `hashCode`.
+ * the values included in the constructor. These include the MetadataStorage and
+ * DiagnosticStorage. These two storages break the contract of `hashCode` by
+ * overriding the `equals` method to compare for equality by their contents, but
+ * not `hashCode` (because it would have to be mutable). As the case classes of
+ * the IR use that to implement their own equality and hashing, their
+ * implementation is also troubled by this. Instances of IR that are equal by
+ * the `equals` function, may still return different `hashCode`.
+ *
+ * The MetadataStorage and DiagnosticStorage should not be used for checking
+ * equality of the IR. This should be addressed when the IR is refactored to be
+ * properly mutable.
  */
 
 object IR {
