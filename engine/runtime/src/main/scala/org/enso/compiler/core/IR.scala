@@ -27,6 +27,8 @@ import scala.annotation.unused
   * way to set the id for the copy, but should default to being copied. Care
   * must be taken to not end up with two nodes with the same ID. When using
   * `copy` to duplicate nodes, please ensure that a new ID is provided.
+  *
+  * See also: Note [IR Equality and hashing]
   */
 sealed trait IR {
 
@@ -118,6 +120,19 @@ sealed trait IR {
     */
   def showCode(indent: Int = 0): String
 }
+
+/* Note [IR Equality and hashing]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * As the IRs are implemented as case classes, their equality is determined by
+ * the values included in the constructor. These include the [[MetadataStorage]]
+ * and [[DiagnosticStorage]]. These two storages break the contract of
+ * `hashCode` by overriding the `equals` method to compare for equality by their
+ * contents, but not `hashCode` (because it would have to be mutable). As the
+ * case classes of IR use that to implement their own equality and hashing,
+ * their implementation is also troubled by this. Instances of IR that are equal
+ * by the `equals` function, may still return different `hashCode`.
+ */
+
 object IR {
 
   /** Creates a random identifier.
