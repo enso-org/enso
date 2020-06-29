@@ -574,7 +574,7 @@ class IrToTruffle(
             case None =>
               Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
           }
-        case _: Pattern.Doc =>
+        case _: Pattern.Documentation =>
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )

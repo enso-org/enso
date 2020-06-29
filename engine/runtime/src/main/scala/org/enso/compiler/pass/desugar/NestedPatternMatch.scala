@@ -274,7 +274,7 @@ case object NestedPatternMatch extends IRPass {
           throw new CompilerError(
             "Name patterns cannot be nested. This should be unreachable."
           )
-        case Pattern.Doc(_, _, _, _) =>
+        case Pattern.Documentation(_, _, _, _) =>
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
@@ -356,12 +356,12 @@ case object NestedPatternMatch extends IRPass {
         fields.exists {
           case _: Pattern.Constructor => true
           case _: Pattern.Name        => false
-          case _: Pattern.Doc =>
+          case _: Pattern.Documentation =>
             throw new CompilerError(
               "Branch documentation should be desugared at an earlier stage."
             )
         }
-      case _: Pattern.Doc =>
+      case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
         )
@@ -377,7 +377,7 @@ case object NestedPatternMatch extends IRPass {
     pattern match {
       case _: Pattern.Name        => false
       case _: Pattern.Constructor => true
-      case _: Pattern.Doc =>
+      case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
         )
@@ -392,7 +392,7 @@ case object NestedPatternMatch extends IRPass {
     pattern match {
       case _: Pattern.Name        => true
       case _: Pattern.Constructor => false
-      case _: Pattern.Doc =>
+      case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
         )

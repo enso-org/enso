@@ -4450,7 +4450,7 @@ object IR {
         fields.forall {
           case _: Pattern.Name        => true
           case _: Pattern.Constructor => false
-          case _: Pattern.Doc =>
+          case _: Pattern.Documentation =>
             throw new CompilerError(
               "Branch documentation should not be present " +
               "inside a constructor pattern."
@@ -4522,7 +4522,7 @@ object IR {
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
-    final case class Doc(
+    final case class Documentation(
       doc: String,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -4530,9 +4530,12 @@ object IR {
     ) extends Pattern {
       override protected var id: Identifier = randomId
 
-      override def mapExpressions(fn: Expression => Expression): Doc = this
+      override def mapExpressions(fn: Expression => Expression): Documentation =
+        this
 
-      override def setLocation(location: Option[IdentifiedLocation]): Doc =
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Documentation =
         copy(location = location)
 
       /** Creates a copy of `this`.
@@ -4550,8 +4553,8 @@ object IR {
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
-      ): Doc = {
-        val res = Doc(doc, location, passData, diagnostics)
+      ): Documentation = {
+        val res = Documentation(doc, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -4560,7 +4563,7 @@ object IR {
         keepLocations: Boolean,
         keepMetadata: Boolean,
         keepDiagnostics: Boolean
-      ): Doc =
+      ): Documentation =
         copy(
           doc,
           location = if (keepLocations) location else None,

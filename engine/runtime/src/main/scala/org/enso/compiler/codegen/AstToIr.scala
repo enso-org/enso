@@ -764,9 +764,10 @@ object AstToIr {
     * into [[IR]], also handling the documentation comments in between branches.
     *
     * The documentation comments are translated to dummy branches that contain
-    * an empty expression and a dummy [[IR.Pattern.Doc]] pattern containing the
-    * comment. These dummy branches are removed in the DocumentationComments
-    * pass where the comments are attached to the actual branches.
+    * an empty expression and a dummy [[IR.Pattern.Documentation]] pattern
+    * containing the comment. These dummy branches are removed in the
+    * DocumentationComments pass where the comments are attached to the actual
+    * branches.
     *
     * @param branch the case branch or comment to translate
     * @return the [[IR]] representation of `branch`
@@ -783,7 +784,7 @@ object AstToIr {
         val doc      = lines.mkString("\n")
         val location = getIdentifiedLocation(c)
         Case.Branch(
-          Pattern.Doc(doc, location),
+          Pattern.Documentation(doc, location),
           IR.Empty(None),
           location
         )
