@@ -14,7 +14,7 @@ it. Thus, we have moved to using Graal builds for Java 11.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Migration progress](#migration-progress)
+- [Migration Progress](#migration-progress)
   - [Build Configuration](#build-configuration)
   - [Testing](#testing)
   - [Benchmarks](#benchmarks)
@@ -23,7 +23,7 @@ it. Thus, we have moved to using Graal builds for Java 11.
 
 <!-- /MarkdownTOC -->
 
-## Migration progress
+## Migration Progress
 The overall steps of the migration and their status are outlined in this
 section.
 

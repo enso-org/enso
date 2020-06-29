@@ -18,13 +18,13 @@ compilation. The build configuration is defined in
 - [Bootstrapping](#bootstrapping)
 - [Compile Hooks](#compile-hooks)
 - [Helper Tasks](#helper-tasks)
-  - [GraalVM version check](#graalvm-version-check)
+  - [GraalVM Version Check](#graalvm-version-check)
   - [Benchmarks](#benchmarks)
-  - [Build information](#build-information)
-  - [Instruments generation](#instruments-generation)
-  - [Flatbuffers generation](#flatbuffers-generation)
-  - [Ensuring JARs were loaded](#ensuring-jars-were-loaded)
-  - [Debugging command](#debugging-command)
+  - [Build Information](#build-information)
+  - [Instruments Generation](#instruments-generation)
+  - [Flatbuffers Generation](#flatbuffers-generation)
+  - [Ensuring JARs Were Loaded](#ensuring-jars-were-loaded)
+  - [Debugging Command](#debugging-command)
 
 <!-- /MarkdownTOC -->
 
@@ -88,7 +88,7 @@ There are additional tasks defined in the [`project`](../../project) directory.
 They are used by [`build.sbt`](../../build.sbt) to provide some additional
 functionality.
 
-### GraalVM version check
+### GraalVM Version Check
 [`JVMCheck`](../../project/JVMCheck.scala) defines a helper function that can be
 attached to the default `Global / onLoad` state transition to run a version
 check when loading the sbt project. This helper function compares the version of
@@ -100,12 +100,12 @@ the correct version.
 [`BenchTasks`](../../project/BenchTasks.scala) defines configuration keys for
 benchmarking.
 
-### Build information
+### Build Information
 [`BenchTasks`](../../project/BuildInfo.scala) records version information
 including what git commit has been used for compiling the project. This
 information is used by `enso --version`.
 
-### Instruments generation
+### Instruments Generation
 Truffle annotation processor generates a file that registers instruments
 provided by the runtime. Unfortunately, with incremental compilation, only the
 changed instruments are recompiled and the annotation processor does not detect
@@ -121,14 +121,14 @@ place. As it also cannot restart compilation, to preserve consistency it stops
 the compilation and asks the user to restart it, to allow it to force
 recompilation of instruments.
 
-### Flatbuffers generation
+### Flatbuffers Generation
 [`GenerateFlatbuffers`](../../project/GenerateFlatbuffers.scala) defines the
 task that runs the Flatbuffer compiler `flatc` whenever the flatbuffer
 definitions have been changed. It also makes sure that `flatc` is available on
 PATH and that its version matches the version of the library. It reports any
 errors.
 
-### Ensuring JARs were loaded
+### Ensuring JARs Were Loaded
 As described in [Bootstrapping](#bootstrapping), to successfully compile the
 `runtime` subproject, the JVM running sbt must load some JARs at startup. The
 user should run `sbt bootstrap` to ensure that.
@@ -153,6 +153,6 @@ restart is just an additional check to ensure correctness and improve user
 experience. In normal operation, the restart should never be triggered, as the
 user should remember to run `bootstrap` when necessary.
 
-### Debugging command
+### Debugging Command
 [`WithDebugCommand`](../../project/WithDebugCommand.scala) defines a command
 that allows to run a task with additional JVM-level flags.
