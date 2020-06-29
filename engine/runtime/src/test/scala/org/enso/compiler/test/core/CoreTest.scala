@@ -42,7 +42,7 @@ class CoreTest extends CompilerTest {
     val bindingsList = Utility.ListOps.from(binding1)
 
     val block =
-      Node.New.Block(bindingsList, binding2, dummyLocation).getOrElse(fail)
+      Node.New.Block(bindingsList, binding2, dummyLocation).getOrElse(fail())
 
     "have multiple parents for the node at the bottom of the diamond" in {
       fnName.parents.size shouldEqual 2
@@ -135,10 +135,10 @@ class CoreTest extends CompilerTest {
     val empty = Node.New.Empty()
 
     val tempNil = Node.New.MetaNil()
-    val cons4   = Node.New.MetaList(empty, tempNil).getOrElse(fail)
-    val cons3   = Node.New.MetaList(empty, cons4).getOrElse(fail)
-    val cons2   = Node.New.MetaList(empty, cons3).getOrElse(fail)
-    val cons1   = Node.New.MetaList(empty, cons2).getOrElse(fail)
+    val cons4   = Node.New.MetaList(empty, tempNil).getOrElse(fail())
+    val cons3   = Node.New.MetaList(empty, cons4).getOrElse(fail())
+    val cons2   = Node.New.MetaList(empty, cons3).getOrElse(fail())
+    val cons1   = Node.New.MetaList(empty, cons2).getOrElse(fail())
 
     // Link the nodes in a loop
     val loopLink = Link.New.Connected(cons4, cons1)
@@ -200,7 +200,7 @@ class CoreTest extends CompilerTest {
 
     "be able to contain complex structures" in {
       val bindingRef =
-        Utility.ListOps.at(list, 0).getOrElse(fail).unsafeAs[NodeShape.Binding]
+        Utility.ListOps.at(list, 0).getOrElse(fail()).unsafeAs[NodeShape.Binding]
 
       bindingRef shouldEqual myBinding
 
@@ -224,7 +224,7 @@ class CoreTest extends CompilerTest {
           .componentRefFromIndex[Links](listEnd.parents.head)
           .source
           .as[NodeShape.MetaList]
-          .getOrElse(fail)
+          .getOrElse(fail())
       cons3ref.head.target.is[NodeShape.Name] shouldEqual true
       cons3ref.head.target shouldEqual myFnName
 

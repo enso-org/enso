@@ -37,5 +37,8 @@ README.md @iamrecursion @kustosz
 /project @iamrecursion @kustosz
 /build.sbt @iamrecursion @kustosz @lolczak @4e6
 
+# Parser
+/parser @iamrecursion @wdanilo
+
 # Repo Configuration
 /.github/settings.yml @iamrecursion

@@ -5,7 +5,6 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
-import org.enso.compiler.pass.desugar.{GenerateMethodBodies, OperatorToFunction}
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
@@ -63,7 +62,10 @@ class DemandAnalysisTest extends CompilerTest {
     * @return a new inline context
     */
   def mkContext: InlineContext = {
-    InlineContext(localScope      = Some(LocalScope.root), freshNameSupply = Some(new FreshNameSupply))
+    InlineContext(
+      localScope      = Some(LocalScope.root),
+      freshNameSupply = Some(new FreshNameSupply)
+    )
   }
 
   // === The Tests ============================================================

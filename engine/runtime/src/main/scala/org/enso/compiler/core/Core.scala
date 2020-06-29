@@ -1828,7 +1828,7 @@ object Core {
           *         empty list.
           */
         def ofLength(length: Int)(implicit core: Core): Node = {
-          val nil = Node.New.MetaNil
+          val nil = Node.New.MetaNil()
 
           @tailrec
           def go(tail: Node, remainingLength: Int): Node = {

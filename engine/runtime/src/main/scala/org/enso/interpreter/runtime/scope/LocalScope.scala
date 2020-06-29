@@ -1,16 +1,12 @@
 package org.enso.interpreter.runtime.scope
 
 import com.oracle.truffle.api.frame.{FrameDescriptor, FrameSlot}
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  CachePreferenceAnalysis,
-  DataflowAnalysis
-}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
   Occurrence,
   Scope => AliasScope
 }
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
@@ -127,9 +123,9 @@ class LocalScope(
     scope.occurrences.foreach {
       case x: Occurrence.Def =>
         parentResult += x.symbol -> new FramePointer(
-          level,
-          frameSlots(x.id)
-        )
+            level,
+            frameSlots(x.id)
+          )
       case _ =>
     }
     parentResult

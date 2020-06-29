@@ -12,13 +12,19 @@ through community involvement can Enso be the best it can be! There are a whole
 host of ways to contribute, and every single one is appreciated. The major
 sections of this document are linked below:
 
-<!-- MarkdownTOC levels="2" autolink="true" -->
+<!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [The Contributor License Agreement](#the-contributor-license-agreement)
 - [Issues](#issues)
 - [Feature Enhancements](#feature-enhancements)
 - [Bug Reports](#bug-reports)
 - [Hacking on Enso](#hacking-on-enso)
+  - [Design Documentation](#design-documentation)
+  - [System Requirements](#system-requirements)
+  - [Getting the Sources](#getting-the-sources)
+  - [Getting Set Up \(Rust\)](#getting-set-up-rust)
+  - [Building Enso](#building-enso)
+  - [Running Enso](#running-enso)
 - [Pull Requests](#pull-requests)
 - [Documentation](#documentation)
 - [Issue Triage](#issue-triage)
@@ -116,6 +122,9 @@ In order to build and run Enso you will need the following tools:
   JVM.
 - [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version
   1.12.0.
+- [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html),
+  the rust build tool.
+- [Rustup](https://rustup.rs), the rust toolchain management utility.
 
 Managing multiple JVM installations can be a pain, so some of the team use
 [Jenv](http://www.jenv.be/): A useful tool for managing multiple JVMs.
@@ -147,6 +156,20 @@ git clone https://github.com/enso-org/enso.git
 ```
 git clone git@github.com:enso-org/enso.git
 ```
+
+### Getting Set Up (Rust)
+This project currently requires a specific nightly rust toolchain, as well as a
+special set-up step in SBT. To get this project set up, you can run the
+following commands:
+
+```bash
+rustup toolchain install nightly-2019-11-04
+rustup override set nightly-2019-11-04
+rustup component add clippy
+```
+
+Please note that once the parser is integrated into the SBT build, the
+rust-related commands will be automatically performed for you.
 
 ### Building Enso
 There are multiple projects in this repository, but all can be built, run and

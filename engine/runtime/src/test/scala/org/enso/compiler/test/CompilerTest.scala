@@ -3,7 +3,7 @@ package org.enso.compiler.test
 import org.enso.compiler.codegen.AstToIr
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.{IRPass, PassManager}
+import org.enso.compiler.pass.PassManager
 import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -110,8 +110,8 @@ trait CompilerRunner {
     *
     * @param source the source code to preprocess
     */
-  implicit class Preprocess(source: String)(
-    implicit passManager: PassManager
+  implicit class Preprocess(source: String)(implicit
+    passManager: PassManager
   ) {
 
     /** Translates the source code into appropriate IR for testing this pass.
@@ -127,8 +127,8 @@ trait CompilerRunner {
       * @return IR appropriate for testing the alias analysis pass as an
       *         expression
       */
-    def preprocessExpression(
-      implicit inlineContext: InlineContext
+    def preprocessExpression(implicit
+      inlineContext: InlineContext
     ): Option[IR.Expression] = {
       source.toIrExpression.map(_.runPasses(passManager, inlineContext))
     }

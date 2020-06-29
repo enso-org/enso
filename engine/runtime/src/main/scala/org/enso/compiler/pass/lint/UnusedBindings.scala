@@ -5,14 +5,10 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Case, Pattern}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.optimise.LambdaConsolidate
-import org.enso.compiler.pass.resolve.{DocumentationComments, IgnoredBindings}
+import org.enso.compiler.pass.resolve.IgnoredBindings
 
 import scala.annotation.unused
 

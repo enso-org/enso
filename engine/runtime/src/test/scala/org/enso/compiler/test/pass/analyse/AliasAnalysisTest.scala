@@ -9,7 +9,6 @@ import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
-import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 

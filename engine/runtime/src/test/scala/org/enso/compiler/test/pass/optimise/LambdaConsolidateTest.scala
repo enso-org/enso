@@ -5,7 +5,6 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
-import org.enso.compiler.pass.desugar.{GenerateMethodBodies, OperatorToFunction}
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -67,7 +66,11 @@ class LambdaConsolidateTest extends CompilerTest {
     * @return a default inline context
     */
   def mkContext: InlineContext = {
-    InlineContext(localScope        = Some(LocalScope.root), freshNameSupply   = Some(new FreshNameSupply), passConfiguration = Some(passConfiguration))
+    InlineContext(
+      localScope        = Some(LocalScope.root),
+      freshNameSupply   = Some(new FreshNameSupply),
+      passConfiguration = Some(passConfiguration)
+    )
   }
 
   // === The Tests ============================================================

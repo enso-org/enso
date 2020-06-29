@@ -10,7 +10,7 @@ order: 4
 This document outlines the security policy for Enso and its libraries.
 
 > **If you believe that you have found a vulnerability in Enso or one of its
-> libraries, please see the section on 
+> libraries, please see the section on
 > [reporting a vulnerability](#reporting-a-vulnerability) below.**
 
 <!-- MarkdownTOC levels="2" autolink="true" -->

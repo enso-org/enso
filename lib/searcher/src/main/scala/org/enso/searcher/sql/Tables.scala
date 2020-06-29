@@ -2,6 +2,8 @@ package org.enso.searcher.sql
 
 import slick.jdbc.SQLiteProfile.api._
 
+import scala.annotation.nowarn
+
 /** A row in the arguments table.
   *
   * @param id the id of an argument
@@ -54,6 +56,7 @@ object SuggestionKind {
 }
 
 /** The schema of the arguments table. */
+@nowarn("msg=multiarg infix syntax")
 final class ArgumentsTable(tag: Tag)
     extends Table[ArgumentRow](tag, "arguments") {
 
@@ -77,6 +80,7 @@ final class ArgumentsTable(tag: Tag)
 }
 
 /** The schema of the suggestions table. */
+@nowarn("msg=multiarg infix syntax")
 final class SuggestionsTable(tag: Tag)
     extends Table[SuggestionRow](tag, "suggestions") {
 

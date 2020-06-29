@@ -5,7 +5,6 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
-import org.enso.compiler.pass.desugar.OperatorToFunction
 import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.optimise.ApplicationSaturation.{
   CallSaturation,
@@ -68,7 +67,11 @@ class ApplicationSaturationTest extends CompilerTest {
 
   val localScope: Option[LocalScope] = Some(LocalScope.root)
 
-  val knownCtx = new InlineContext(localScope        = localScope, freshNameSupply   = Some(new FreshNameSupply), passConfiguration = Some(knownPassConfig))
+  val knownCtx = new InlineContext(
+    localScope        = localScope,
+    freshNameSupply   = Some(new FreshNameSupply),
+    passConfiguration = Some(knownPassConfig)
+  )
 
   val moduleCtx = new ModuleContext(
     passConfiguration = Some(knownPassConfig),
@@ -124,7 +127,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
       resultIR.getMetadata(ApplicationSaturation).foreach {
         case _: CallSaturation.Exact => succeed
-        case _                       => fail
+        case _                       => fail()
       }
     }
 
@@ -238,13 +241,13 @@ class ApplicationSaturationTest extends CompilerTest {
       // The outer should be reported as fully saturated
       result.getMetadata(ApplicationSaturation).foreach {
         case _: CallSaturation.Exact => succeed
-        case _                       => fail
+        case _                       => fail()
       }
 
       // The inner should be reported as fully saturated
       result.getInnerMetadata.foreach {
         case _: CallSaturation.Exact => succeed
-        case _                       => fail
+        case _                       => fail()
       }
     }
 
@@ -259,7 +262,7 @@ class ApplicationSaturationTest extends CompilerTest {
       // The outer should be reported as fully saturated
       result.getMetadata(ApplicationSaturation).foreach {
         case _: CallSaturation.Exact => succeed
-        case _                       => fail
+        case _                       => fail()
       }
 
       // The inner should be reported as under saturateD
@@ -278,7 +281,7 @@ class ApplicationSaturationTest extends CompilerTest {
       // The outer should be reported as fully saturated
       result.getMetadata(ApplicationSaturation).foreach {
         case _: CallSaturation.Exact => succeed
-        case _                       => fail
+        case _                       => fail()
       }
 
       // The inner should be reported as under saturateD
@@ -312,7 +315,7 @@ class ApplicationSaturationTest extends CompilerTest {
         .getMetadata(ApplicationSaturation)
         .foreach {
           case _: CallSaturation.Unknown => succeed
-          case _                         => fail
+          case _                         => fail()
         }
     }
   }

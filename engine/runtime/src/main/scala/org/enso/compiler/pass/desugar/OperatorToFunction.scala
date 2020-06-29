@@ -8,7 +8,6 @@ import org.enso.compiler.pass.analyse.{
   DataflowAnalysis,
   DemandAnalysis
 }
-import org.enso.compiler.pass.optimise.LambdaConsolidate
 
 /** This pass converts usages of operators to calls to standard functions.
   *

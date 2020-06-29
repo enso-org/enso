@@ -38,7 +38,8 @@ case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
       val listener = binding.getElement
       if (!listener.isSuccessful) {
         Assertions.fail(
-          s"Node of type ${listener.getType.getSimpleName} at position ${listener.getStart} with length ${listener.getLength} was not found."
+          s"Node of type ${listener.getType.getSimpleName} at position " +
+          s"${listener.getStart} with length ${listener.getLength} was not found."
         )
       }
     }
