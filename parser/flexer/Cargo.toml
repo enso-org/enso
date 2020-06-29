@@ -1,6 +1,6 @@
 [package]
 name    = "flexer"
-version = "0.0.1"
+version = "0.1.0"
 authors = [
   "Enso Team <enso-dev@enso.org>",
   "Ara Adkins <ara.adkins@enso.org"
@@ -13,7 +13,7 @@ homepage     = "https://github.com/enso-org/enso"
 repository   = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
-keywords = ["lexer", "finite-automata"]
+keywords = ["parsing", "algorithms"]
 
 publish = false
 
@@ -25,3 +25,4 @@ bench      = true
 
 [dependencies]
 itertools = "0.8"
+
