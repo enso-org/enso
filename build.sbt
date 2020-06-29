@@ -275,6 +275,8 @@ val scalameterVersion           = "0.19"
 val scalatagsVersion            = "0.9.1"
 val scalatestVersion            = "3.3.0-SNAP2"
 val shapelessVersion            = "2.4.0-M1"
+val slickVersion                = "3.3.2"
+val sqliteVersion               = "3.31.1"
 val tikaVersion                 = "1.24.1"
 val typesafeConfigVersion       = "1.4.0"
 
@@ -580,8 +582,8 @@ lazy val searcher = project
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
-        "com.typesafe.slick" %% "slick"       % "3.3.2",
-        "org.xerial"          % "sqlite-jdbc" % "3.31.1",
+        "com.typesafe.slick" %% "slick"       % slickVersion,
+        "org.xerial"          % "sqlite-jdbc" % sqliteVersion,
         "org.scalatest"      %% "scalatest"   % scalatestVersion % Test
       )
   )

@@ -206,7 +206,7 @@ case object TypeSignatures extends IRPass {
   case class Signature(signature: IR.Expression) extends IRPass.Metadata {
     override val metadataName: String = "TypeSignatures.Signature"
 
-    override def duplicate: IRPass.Metadata =
-      this.copy(signature = signature.duplicate())
+    override def duplicate(): Option[IRPass.Metadata] =
+      Some(this.copy(signature = signature.duplicate()))
   }
 }

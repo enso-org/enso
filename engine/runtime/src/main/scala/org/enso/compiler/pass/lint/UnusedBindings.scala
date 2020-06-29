@@ -237,6 +237,10 @@ case object UnusedBindings extends IRPass {
         cons.copy(
           fields = fields.map(lintPattern)
         )
+      case _: Pattern.Documentation =>
+        throw new CompilerError(
+          "Branch documentation should be desugared at an earlier stage."
+        )
     }
   }
 }

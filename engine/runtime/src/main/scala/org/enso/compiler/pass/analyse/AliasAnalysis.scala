@@ -582,6 +582,10 @@ case object AliasAnalysis extends IRPass {
           ),
           fields = fields.map(analysePattern(_, graph, parentScope))
         )
+      case _: Pattern.Documentation =>
+        throw new CompilerError(
+          "Branch documentation should be desugared at an earlier stage."
+        )
     }
   }
 
@@ -606,7 +610,7 @@ case object AliasAnalysis extends IRPass {
       sealed case class Root(override val graph: Graph) extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Root"
 
-        override def duplicate: IRPass.Metadata = this.copy()
+        override def duplicate(): Option[IRPass.Metadata] = None
       }
 
       /** Aliasing information about a child scope.
@@ -618,7 +622,7 @@ case object AliasAnalysis extends IRPass {
           extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Child"
 
-        override def duplicate: IRPass.Metadata = this.copy()
+        override def duplicate(): Option[IRPass.Metadata] = None
       }
     }
 
@@ -632,7 +636,7 @@ case object AliasAnalysis extends IRPass {
         extends Info {
       override val metadataName: String = "AliasAnalysis.Info.Occurrence"
 
-      override def duplicate: IRPass.Metadata = this.copy()
+      override def duplicate(): Option[IRPass.Metadata] = None
     }
   }
 
