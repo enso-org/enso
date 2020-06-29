@@ -94,6 +94,10 @@ lazy val buildNativeImage =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
+    `core-definition`,
+    `interpreter-dsl`,
+    `json-rpc-server-test`,
+    `json-rpc-server`,
     `language-server`,
     `parser-service`,
     `polyglot-api`,
@@ -106,6 +110,7 @@ lazy val enso = (project in file("."))
     pkg,
     runner,
     runtime,
+    searcher,
     syntax.jvm
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
@@ -138,8 +143,8 @@ lazy val enso = (project in file("."))
 def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name" % akkaVersion
 def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name" % akkaHTTPVersion
 val akkaURL                   = "com.typesafe.akka"
-val akkaVersion               = "2.6.4"
-val akkaHTTPVersion           = "10.2.0-M1"
+val akkaVersion               = "2.6.6"
+val akkaHTTPVersion           = "10.2.0-RC1"
 val akkaMockSchedulerVersion  = "0.5.5"
 val akkaActor                 = akkaPkg("actor")
 val akkaStream                = akkaPkg("stream")
@@ -154,7 +159,7 @@ val akka =
 
 // === Cats ===================================================================
 
-val catsVersion    = "2.2.0-M1"
+val catsVersion    = "2.2.0-M3"
 val kittensVersion = "2.1.0"
 val cats = {
   Seq(
@@ -168,9 +173,10 @@ val cats = {
 
 // === Circe ==================================================================
 
-val circeVersion           = "0.13.0"
-val circeYamlVersion       = "0.12.0"
-val enumeratumCirceVersion = "1.5.23"
+val circeVersion              = "0.14.0-M1"
+val circeYamlVersion          = "0.13.1"
+val enumeratumCirceVersion    = "1.6.1"
+val circeGenericExtrasVersion = "0.13.0"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
 
@@ -178,7 +184,7 @@ val circe = Seq("circe-core", "circe-generic", "circe-parser")
 
 val commonsCollectionsVersion = "4.4"
 val commonsLangVersion        = "3.10"
-val commonsIoVersion          = "2.6"
+val commonsIoVersion          = "2.7"
 val commonsTextVersion        = "1.8"
 val commonsMathVersion        = "3.6.1"
 val commonsCompressVersion    = "1.20"
@@ -194,7 +200,7 @@ val commons = Seq(
 
 // === Jackson ================================================================
 
-val jacksonVersion = "2.10.3"
+val jacksonVersion = "2.11.1"
 val jackson = Seq(
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
   "com.fasterxml.jackson.core"       % "jackson-databind"        % jacksonVersion,
@@ -211,7 +217,7 @@ val jmh = Seq(
 
 // === Monocle ================================================================
 
-val monocleVersion = "2.0.4"
+val monocleVersion = "2.0.5"
 val monocle = {
   Seq(
     "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
@@ -250,23 +256,23 @@ val zio = Seq(
 
 val bcpkixJdk15Version          = "1.65"
 val declineVersion              = "1.2.0"
-val directoryWatcherVersion     = "0.9.9"
+val directoryWatcherVersion     = "0.9.10"
 val flatbuffersVersion          = "1.12.0"
 val guavaVersion                = "29.0-jre"
-val jlineVersion                = "3.14.1"
+val jlineVersion                = "3.15.0"
 val jupyterJvmBasekernelVersion = "2.3.0"
 val kindProjectorVersion        = "0.11.0"
 val logbackClassicVersion       = "1.2.3"
-val mockitoScalaVersion         = "1.14.0"
-val newtypeVersion              = "0.4.3"
+val mockitoScalaVersion         = "1.14.8"
+val newtypeVersion              = "0.4.4"
 val pprintVersion               = "0.5.9"
-val pureconfigVersion           = "0.12.2"
+val pureconfigVersion           = "0.13.0"
 val refinedVersion              = "0.9.14"
 val scalacheckVersion           = "1.14.3"
 val scalacticVersion            = "3.3.0-SNAP2"
 val scalaLoggingVersion         = "3.9.2"
 val scalameterVersion           = "0.19"
-val scalatagsVersion            = "0.9.0"
+val scalatagsVersion            = "0.9.1"
 val scalatestVersion            = "3.3.0-SNAP2"
 val shapelessVersion            = "2.4.0-M1"
 val tikaVersion                 = "1.24.1"
@@ -574,10 +580,10 @@ lazy val searcher = project
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
-      "com.typesafe.slick" %% "slick"       % "3.3.2",
-      "org.xerial"          % "sqlite-jdbc" % "3.31.1",
-      "org.scalatest"      %% "scalatest"   % scalatestVersion % Test,
-    )
+        "com.typesafe.slick" %% "slick"       % "3.3.2",
+        "org.xerial"          % "sqlite-jdbc" % "3.31.1",
+        "org.scalatest"      %% "scalatest"   % scalatestVersion % Test
+      )
   )
 
 // ============================================================================
@@ -632,7 +638,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     libraryDependencies ++= akka ++ circe ++ Seq(
         "ch.qos.logback"              % "logback-classic"      % logbackClassicVersion,
         "com.typesafe.scala-logging" %% "scala-logging"        % scalaLoggingVersion,
-        "io.circe"                   %% "circe-generic-extras" % circeVersion,
+        "io.circe"                   %% "circe-generic-extras" % circeGenericExtrasVersion,
         "io.circe"                   %% "circe-literal"        % circeVersion,
         "org.bouncycastle"            % "bcpkix-jdk15on"       % bcpkixJdk15Version,
         "dev.zio"                    %% "zio"                  % zioVersion,
