@@ -43,7 +43,7 @@ case class CharView(rope: Rope) extends CharSequence {
     * @return a substring of this rope.
     */
   def substring(startOffset: Int, endOffset: Int): Rope =
-    take(startOffset).characters.drop(endOffset)
+    drop(startOffset).characters.take(endOffset - startOffset)
 
   /**
     * Gets the number of characters in this rope.
