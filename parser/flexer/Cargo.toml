@@ -13,7 +13,8 @@ homepage     = "https://github.com/enso-org/enso"
 repository   = "https://github.com/enso-org/enso"
 license-file = "../../LICENSE"
 
-keywords = ["parsing", "algorithms"]
+keywords = ["lexer", "finite-automata"]
+categories = ["parsing"]
 
 publish = false
 
@@ -25,4 +26,3 @@ bench      = true
 
 [dependencies]
 itertools = "0.8"
-
