@@ -28,11 +28,11 @@ jobs:
         with:
           toolchain: nightly-2020-06-09
           override: true
-      - name: Install wasm-pack
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: wasm-pack --version ${{ env.wasmpackVersion }}
+#      - name: Install wasm-pack
+#        uses: actions-rs/cargo@v1
+#        with:
+#          command: install
+#          args: wasm-pack --version ${{ env.wasmpackVersion }}
 
       # Caches
       - name: Cache Cargo Registry
