@@ -20,9 +20,13 @@ publish = false
 
 [lib]
 name       = "flexer"
-crate-type = ["dylib", "rlib"]
+crate-type = ["cdylib", "rlib"]
 test       = true
 bench      = true
 
 [dependencies]
 itertools = "0.8"
+wasm-bindgen = "0.2"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.2"

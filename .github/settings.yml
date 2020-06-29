@@ -212,9 +212,11 @@ branches:
         - "Test Engine (ubuntu-latest)"
         - "Test Engine (windows-latest)"
         - "Build Engine"
-        - "Test Parser (macOS-latest)"
-        - "Test Parser (ubuntu-latest)"
-        - "Test Parser (windows-latest)"
+        - "Rust Test Native (macOS-latest)"
+        - "Rust Test Native (ubuntu-latest)"
+        - "Rust Test Native (windows-latest)"
+        - "Rust Test WASM"
+        - "Rust Lint"
         - "license/cla"
       enforce_admins: null
       restrictions: null
