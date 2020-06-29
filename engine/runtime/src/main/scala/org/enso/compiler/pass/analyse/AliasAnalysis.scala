@@ -141,14 +141,13 @@ case object AliasAnalysis extends IRPass {
         body match {
           case _: IR.Function =>
             m.copy(
-                body = analyseExpression(
-                  body,
-                  topLevelGraph,
-                  topLevelGraph.rootScope,
-                  lambdaReuseScope = true
-                )
+              body = analyseExpression(
+                body,
+                topLevelGraph,
+                topLevelGraph.rootScope,
+                lambdaReuseScope = true
               )
-              .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+            ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
           case _ =>
             throw new CompilerError(
               "The body of a method should always be a function."
@@ -160,10 +159,9 @@ case object AliasAnalysis extends IRPass {
         )
       case a @ IR.Module.Scope.Definition.Atom(_, args, _, _, _) =>
         a.copy(
-            arguments =
-              analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
-          )
-          .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+          arguments =
+            analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
+        ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
       case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
@@ -585,6 +583,10 @@ case object AliasAnalysis extends IRPass {
           ),
           fields = fields.map(analysePattern(_, graph, parentScope))
         )
+      case _: Pattern.Documentation =>
+        throw new CompilerError(
+          "Branch documentation should be desugared at an earlier stage."
+        )
     }
   }
 
@@ -609,7 +611,7 @@ case object AliasAnalysis extends IRPass {
       sealed case class Root(override val graph: Graph) extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Root"
 
-        override def duplicate: IRPass.Metadata = this.copy()
+        override def duplicate(): Option[IRPass.Metadata] = None
       }
 
       /** Aliasing information about a child scope.
@@ -621,7 +623,7 @@ case object AliasAnalysis extends IRPass {
           extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Child"
 
-        override def duplicate: IRPass.Metadata = this.copy()
+        override def duplicate(): Option[IRPass.Metadata] = None
       }
     }
 
@@ -635,7 +637,7 @@ case object AliasAnalysis extends IRPass {
         extends Info {
       override val metadataName: String = "AliasAnalysis.Info.Occurrence"
 
-      override def duplicate: IRPass.Metadata = this.copy()
+      override def duplicate(): Option[IRPass.Metadata] = None
     }
   }
 
@@ -675,11 +677,12 @@ case object AliasAnalysis extends IRPass {
       * @param obj the object to compare against.
       * @return `true` if `this == obj`, otherwise `false`
       */
-    override def equals(obj: Any): Boolean = obj match {
-      case that: Graph =>
-        (this.links == that.links) && (this.rootScope == that.rootScope)
-      case _ => false
-    }
+    override def equals(obj: Any): Boolean =
+      obj match {
+        case that: Graph =>
+          (this.links == that.links) && (this.rootScope == that.rootScope)
+        case _ => false
+      }
 
     /** Generates a new identifier for a node in the graph.
       *
@@ -953,19 +956,20 @@ case object AliasAnalysis extends IRPass {
         * @param obj the object to compare `this` against
         * @return `true` if `this == obj`, otherwise `false`
         */
-      override def equals(obj: Any): Boolean = obj match {
-        case that: Scope =>
-          if (this.childScopes.length == that.childScopes.length) {
-            val childScopesEqual =
-              this.childScopes.zip(that.childScopes).forall(t => t._1 == t._2)
-            val occurrencesEqual = this.occurrences == that.occurrences
+      override def equals(obj: Any): Boolean =
+        obj match {
+          case that: Scope =>
+            if (this.childScopes.length == that.childScopes.length) {
+              val childScopesEqual =
+                this.childScopes.zip(that.childScopes).forall(t => t._1 == t._2)
+              val occurrencesEqual = this.occurrences == that.occurrences
 
-            childScopesEqual && occurrencesEqual
-          } else {
-            false
-          }
-        case _ => false
-      }
+              childScopesEqual && occurrencesEqual
+            } else {
+              false
+            }
+          case _ => false
+        }
 
       /** Creates and returns a scope that is a child of this one.
         *

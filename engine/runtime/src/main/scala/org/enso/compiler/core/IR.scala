@@ -27,6 +27,8 @@ import scala.annotation.unused
   * way to set the id for the copy, but should default to being copied. Care
   * must be taken to not end up with two nodes with the same ID. When using
   * `copy` to duplicate nodes, please ensure that a new ID is provided.
+  *
+  * See also: Note [IR Equality and hashing]
   */
 sealed trait IR {
 
@@ -118,6 +120,23 @@ sealed trait IR {
     */
   def showCode(indent: Int = 0): String
 }
+
+/* Note [IR Equality and hashing]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * As the IRs are implemented as case classes, their equality is determined by
+ * the values included in the constructor. These include the MetadataStorage and
+ * DiagnosticStorage. These two storages break the contract of `hashCode` by
+ * overriding the `equals` method to compare for equality by their contents, but
+ * not `hashCode` (because it would have to be mutable). As the case classes of
+ * the IR use that to implement their own equality and hashing, their
+ * implementation is also troubled by this. Instances of IR that are equal by
+ * the `equals` function, may still return different `hashCode`.
+ *
+ * The MetadataStorage and DiagnosticStorage should not be used for checking
+ * equality of the IR. This should be addressed when the IR is refactored to be
+ * properly mutable.
+ */
+
 object IR {
 
   /** Creates a random identifier.
@@ -4431,6 +4450,11 @@ object IR {
         fields.forall {
           case _: Pattern.Name        => true
           case _: Pattern.Constructor => false
+          case _: Pattern.Documentation =>
+            throw new CompilerError(
+              "Branch documentation should not be present " +
+              "inside a constructor pattern."
+            )
         }
       }
 
@@ -4483,6 +4507,87 @@ object IR {
 
         s"${constructor.name} $fieldsStr"
       }
+    }
+
+    /**
+      * A dummy pattern used for storing documentation comments between branches
+      * in a pattern match.
+      *
+      * To store a documentation comment next to a branch, a dummy branch is
+      * created with its pattern being an instance of this Doc and expression
+      * being empty.
+      *
+      * @param doc the documentation entity
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    final case class Documentation(
+      doc: String,
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Pattern {
+      override protected var id: Identifier = randomId
+
+      override def mapExpressions(fn: Expression => Expression): Documentation =
+        this
+
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Documentation =
+        copy(location = location)
+
+      /** Creates a copy of `this`.
+        *
+        * @param doc the documentation entity
+        * @param location the source location for this IR node
+        * @param passData any pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the new identifier for this node
+        * @return a copy of `this`, updated with the provided values
+        */
+      def copy(
+        doc: String                          = doc,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Documentation = {
+        val res = Documentation(doc, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def duplicate(
+        keepLocations: Boolean,
+        keepMetadata: Boolean,
+        keepDiagnostics: Boolean
+      ): Documentation =
+        copy(
+          doc,
+          location = if (keepLocations) location else None,
+          passData =
+            if (keepMetadata) passData.duplicate else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          id = randomId
+        )
+
+      override def children: List[IR] = Nil
+
+      override def toString: String =
+        s"""
+           |IR.Case.Pattern.Doc(
+           |doc = $doc,
+           |location = $location,
+           |passData = ${this.showPassData},
+           |diagnostics = $diagnostics,
+           |id = $id
+           |)
+           |""".toSingleLine
+
+      override def showCode(indent: Int): String = s"## $doc"
     }
   }
 

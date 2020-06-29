@@ -85,10 +85,11 @@ class MetadataStorage(
     * @param obj the object to compare against
     * @return `true` if `this == obj`, otherwise `false`
     */
-  override def equals(obj: Any): Boolean = obj match {
-    case that: MetadataStorage => this.metadata == that.metadata
-    case _                     => false
-  }
+  override def equals(obj: Any): Boolean =
+    obj match {
+      case that: MetadataStorage => this.metadata == that.metadata
+      case _                     => false
+    }
 
   /** Maps across the stored metadata, transforming it to an output map.
     *
@@ -114,14 +115,15 @@ class MetadataStorage(
   override def toString: String = metadata.toString()
 
   /** Creates a deep copy of `this`.
-   *
-   * @return a deep copy of `this`
-   */
+    *
+    * @return a deep copy of `this`
+    */
   def duplicate: MetadataStorage = {
     val res = MetadataStorage()
-    res.metadata = this.metadata.map {
-      case (pass, meta) => (pass, meta.asInstanceOf[IRPass.Metadata].duplicate)
-    }
+    res.metadata = for {
+      (pass, meta) <- this.metadata
+      duplicated   <- meta.asInstanceOf[IRPass.Metadata].duplicate()
+    } yield (pass, duplicated)
 
     res
   }
@@ -161,11 +163,12 @@ object MetadataStorage extends MetadataStorageSyntax {
       * @param obj the object to check for equality against `this`
       * @return `true` if `this == obj`, otherwise `false`
       */
-    override def equals(obj: Any): Boolean = obj match {
-      case that: MetadataPair[_] =>
-        (this.pass == that.pass) && (this.metadata == that.metadata)
-      case _ => false
-    }
+    override def equals(obj: Any): Boolean =
+      obj match {
+        case that: MetadataPair[_] =>
+          (this.pass == that.pass) && (this.metadata == that.metadata)
+        case _ => false
+      }
 
     /** Converts the dependent pair into a standard pair ([[Tuple2]]).
       *

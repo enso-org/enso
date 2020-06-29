@@ -161,6 +161,10 @@ case object ShadowedPatternFields extends IRPass {
           cons.copy(
             fields = newFields
           )
+        case _: Pattern.Documentation =>
+          throw new CompilerError(
+            "Branch documentation should be desugared at an earlier stage."
+          )
       }
     }
 
