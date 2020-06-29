@@ -10,7 +10,7 @@ order: 2
 JDK 11 will be supported longer than JDK 8 that we currently use and it adds new
 features that could improve performance. Moreover, we want to be compliant to
 the Java Platform Module System, as all future versions of the JDK will rely on
-it. Thus, we move to using Graal builds for Java 11.
+it. Thus, we have moved to using Graal builds for Java 11.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
