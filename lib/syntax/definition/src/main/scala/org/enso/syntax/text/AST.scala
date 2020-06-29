@@ -441,7 +441,7 @@ object Shape extends ShapeImplicit {
     implicit def repr[T]: Repr[InvalidSuffix[T]] =
       t => R + t.elem.repr + t.suffix
     implicit def span[T]: HasSpan[InvalidSuffix[T]] =
-      t => t.elem.span + t.suffix.length
+      t => t.elem.span() + t.suffix.length
   }
   object Literal extends IntermediateTrait[Literal] {
     implicit def ftor: Functor[Literal]  = semi.functor
@@ -708,10 +708,10 @@ object Shape extends ShapeImplicit {
       t =>
         t.copy(
           func = (Index.Start, t.func),
-          arg  = (Index(t.func.span + t.off), t.arg)
+          arg  = (Index(t.func.span() + t.off), t.arg)
         )
     implicit def span[T: HasSpan]: HasSpan[Prefix[T]] =
-      t => t.func.span + t.off + t.arg.span
+      t => t.func.span() + t.off + t.arg.span()
 
   }
   object Infix {
@@ -722,12 +722,12 @@ object Shape extends ShapeImplicit {
     implicit def ozip[T: HasSpan]: OffsetZip[Infix, T] =
       t => {
         val larg = Index.Start                                       -> t.larg
-        val opr  = Index(t.larg.span + t.loff)                       -> t.opr
-        val rarg = Index(t.larg.span + t.loff + t.opr.span + t.roff) -> t.rarg
+        val opr  = Index(t.larg.span() + t.loff)                       -> t.opr
+        val rarg = Index(t.larg.span() + t.loff + t.opr.span() + t.roff) -> t.rarg
         t.copy(larg = larg, opr = opr, rarg = rarg)
       }
     implicit def span[T: HasSpan]: HasSpan[Infix[T]] =
-      t => t.larg.span + t.loff + t.opr.span + t.roff + t.rarg.span
+      t => t.larg.span() + t.loff + t.opr.span() + t.roff + t.rarg.span()
   }
 
   object Section extends IntermediateTrait[Section] {
@@ -744,7 +744,7 @@ object Shape extends ShapeImplicit {
     implicit def ozip[T]: OffsetZip[SectionLeft, T] =
       t => t.copy(arg = (Index.Start, t.arg))
     implicit def span[T: HasSpan]: HasSpan[SectionLeft[T]] =
-      t => t.arg.span + t.off + t.opr.span
+      t => t.arg.span() + t.off + t.opr.span
   }
   object SectionRight {
     implicit def ftor: Functor[SectionRight]  = semi.functor
@@ -754,7 +754,7 @@ object Shape extends ShapeImplicit {
     implicit def ozip[T]: OffsetZip[SectionRight, T] =
       t => t.copy(arg = (Index(t.opr.span + t.off), t.arg))
     implicit def span[T: HasSpan]: HasSpan[SectionRight[T]] =
-      t => t.opr.span + t.off + t.arg.span
+      t => t.opr.span + t.off + t.arg.span()
   }
   object SectionSides {
     implicit def ftor: Functor[SectionSides]          = semi.functor
@@ -785,13 +785,13 @@ object Shape extends ShapeImplicit {
         index += t.emptyLines.map(_ + 1).sum
         index += t.indent
         val line = t.firstLine.copy(elem = (Index(index), t.firstLine.elem))
-        index += t.firstLine.span + newline.span
+        index += t.firstLine.span() + newline.span
         val lines = for (line <- t.lines) yield {
           val elem = line.elem.map(elem => {
             index += t.indent
             (Index(index), elem)
           })
-          index += line.span + newline.span
+          index += line.span() + newline.span
           line.copy(elem = elem)
         }
         t.copy(firstLine = line, lines = lines)
@@ -825,7 +825,7 @@ object Shape extends ShapeImplicit {
       implicit def fold: Foldable[Line]         = semi.foldable
       implicit def repr[T: Repr]: Repr[Line[T]] = t => R + t.elem + t.off
       implicit def span[T: HasSpan]: HasSpan[Line[T]] =
-        t => t.elem.span + t.off
+        t => t.elem.span() + t.off
       implicit def spanOpt[T: HasSpan]: HasSpan[OptLine[T]] =
         t => t.elem.map(_.span()).getOrElse(0) + t.off
     }
@@ -839,7 +839,7 @@ object Shape extends ShapeImplicit {
         var index = 0
         val lines = t.lines.map { line =>
           val elem = line.elem.map((Index(index), _))
-          index += line.span + newline.span
+          index += line.span() + newline.span
           line.copy(elem = elem)
         }
         t.copy(lines = lines)
@@ -909,7 +909,7 @@ object Shape extends ShapeImplicit {
           })
         }
       implicit def span[T: HasSpan]: HasSpan[Segment[T]] =
-        t => t.head.span + t.body.span
+        t => t.head.span + t.body.span()
 
       def apply[T](head: AST.Ident): Shape.Match.Segment[T] =
         Shape.Match.Segment(head, Pattern.Match.Nothing())
@@ -952,7 +952,7 @@ object Shape extends ShapeImplicit {
       t => {
         val symbolRepr = R + symbol + symbol
         val betweenDocAstRepr =
-          R + newline + newline.build * t.emptyLinesBetween
+          R + newline + newline.build() * t.emptyLinesBetween
         R + symbolRepr + t.doc + betweenDocAstRepr + t.ast
       }
     implicit def offsetZip[T]: OffsetZip[Documented, T] =

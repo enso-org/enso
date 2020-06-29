@@ -13,7 +13,7 @@ import scala.sys.process._
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion = "2.13.2"
+val scalacVersion = "2.13.3"
 val graalVersion  = "20.1.0"
 val ensoVersion   = "0.0.1"
 organization in ThisBuild := "org.enso"
@@ -51,7 +51,6 @@ scalacOptions in ThisBuild ++= Seq(
     "-Xlint:inaccessible",                // Warn about inaccessible types in method signatures.
     "-Xlint:infer-any",                   // Warn when a type argument is inferred to be `Any`.
     "-Xlint:missing-interpolator",        // A string literal appears to be missing an interpolator id.
-    "-Xlint:nullary-override",            // Warn when non-nullary `def f()' overrides nullary `def f'.
     "-Xlint:nullary-unit",                // Warn when nullary methods return Unit.
     "-Xlint:option-implicit",             // Option.apply used implicit view.
     "-Xlint:package-object-classes",      // Class or object defined in package object.
@@ -230,7 +229,7 @@ val scalaCompiler = Seq(
 
 // === Splain =================================================================
 
-val splainVersion = "0.5.4"
+val splainVersion = "0.5.7"
 val splainOptions = Seq(
   "-P:splain:infix:true",
   "-P:splain:foundreq:true",

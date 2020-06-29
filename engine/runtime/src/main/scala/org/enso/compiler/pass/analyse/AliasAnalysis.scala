@@ -11,7 +11,6 @@ import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.syntax.text.Debug
 
-import scala.annotation.unused
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -141,14 +140,13 @@ case object AliasAnalysis extends IRPass {
         body match {
           case _: IR.Function =>
             m.copy(
-                body = analyseExpression(
-                  body,
-                  topLevelGraph,
-                  topLevelGraph.rootScope,
-                  lambdaReuseScope = true
-                )
+              body = analyseExpression(
+                body,
+                topLevelGraph,
+                topLevelGraph.rootScope,
+                lambdaReuseScope = true
               )
-              .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+            ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
           case _ =>
             throw new CompilerError(
               "The body of a method should always be a function."
@@ -160,10 +158,9 @@ case object AliasAnalysis extends IRPass {
         )
       case a @ IR.Module.Scope.Definition.Atom(_, args, _, _, _) =>
         a.copy(
-            arguments =
-              analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
-          )
-          .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+          arguments =
+            analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
+        ).updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
       case _: IR.Module.Scope.Definition.Type =>
         throw new CompilerError(
           "Complex type definitions should not be present during " +
@@ -675,11 +672,12 @@ case object AliasAnalysis extends IRPass {
       * @param obj the object to compare against.
       * @return `true` if `this == obj`, otherwise `false`
       */
-    override def equals(obj: Any): Boolean = obj match {
-      case that: Graph =>
-        (this.links == that.links) && (this.rootScope == that.rootScope)
-      case _ => false
-    }
+    override def equals(obj: Any): Boolean =
+      obj match {
+        case that: Graph =>
+          (this.links == that.links) && (this.rootScope == that.rootScope)
+        case _ => false
+      }
 
     /** Generates a new identifier for a node in the graph.
       *
@@ -953,19 +951,20 @@ case object AliasAnalysis extends IRPass {
         * @param obj the object to compare `this` against
         * @return `true` if `this == obj`, otherwise `false`
         */
-      override def equals(obj: Any): Boolean = obj match {
-        case that: Scope =>
-          if (this.childScopes.length == that.childScopes.length) {
-            val childScopesEqual =
-              this.childScopes.zip(that.childScopes).forall(t => t._1 == t._2)
-            val occurrencesEqual = this.occurrences == that.occurrences
+      override def equals(obj: Any): Boolean =
+        obj match {
+          case that: Scope =>
+            if (this.childScopes.length == that.childScopes.length) {
+              val childScopesEqual =
+                this.childScopes.zip(that.childScopes).forall(t => t._1 == t._2)
+              val occurrencesEqual = this.occurrences == that.occurrences
 
-            childScopesEqual && occurrencesEqual
-          } else {
-            false
-          }
-        case _ => false
-      }
+              childScopesEqual && occurrencesEqual
+            } else {
+              false
+            }
+          case _ => false
+        }
 
       /** Creates and returns a scope that is a child of this one.
         *

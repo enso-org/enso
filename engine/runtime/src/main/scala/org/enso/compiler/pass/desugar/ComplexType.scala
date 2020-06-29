@@ -14,7 +14,6 @@ import org.enso.compiler.pass.analyse.{
   DemandAnalysis,
   TailCall
 }
-import org.enso.compiler.pass.desugar.ComplexType.genMethodDef
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.{
   ApplicationSaturation,
@@ -71,12 +70,13 @@ case object ComplexType extends IRPass {
   override def runModule(
     ir: IR.Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module = ir.copy(
-    bindings = ir.bindings.flatMap {
-      case typ: Definition.Type => desugarComplexType(typ)
-      case b                    => List(b)
-    }
-  )
+  ): IR.Module =
+    ir.copy(
+      bindings = ir.bindings.flatMap {
+        case typ: Definition.Type => desugarComplexType(typ)
+        case b                    => List(b)
+      }
+    )
 
   /** An identity operation on an arbitrary expression.
     *
