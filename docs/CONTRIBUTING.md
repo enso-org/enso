@@ -22,7 +22,7 @@ sections of this document are linked below:
   - [Design Documentation](#design-documentation)
   - [System Requirements](#system-requirements)
   - [Getting the Sources](#getting-the-sources)
-  - [Getting Set Up](#getting-set-up)
+  - [Getting Set Up \(Rust\)](#getting-set-up-rust)
   - [Building Enso](#building-enso)
   - [Running Enso](#running-enso)
 - [Pull Requests](#pull-requests)
@@ -157,7 +157,7 @@ git clone https://github.com/enso-org/enso.git
 git clone git@github.com:enso-org/enso.git
 ```
 
-### Getting Set Up
+### Getting Set Up (Rust)
 This project currently requires a specific nightly rust toolchain, as well as a
 special set-up step in SBT. To get this project set up, you can run the
 following commands:
