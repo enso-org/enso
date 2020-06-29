@@ -85,6 +85,8 @@ jobs:
         run: sbt -no-colors syntax/bench
       - name: Check Runtime Benchmark Compilation
         run: sbt -no-colors runtime/Benchmark/compile
+      - name: Check Language Server Benchmark Compilation
+        run: sbt -no-colors language-server/Benchmark/compile
       - name: Build the Uberjar
         run: sbt -no-colors runner/assembly
       - name: Test the Uberjar

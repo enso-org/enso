@@ -109,13 +109,20 @@ object CopyTruffleJAR {
 
     if (truffleInstancesFound == 0) {
       throw new IllegalStateException(
-        "Truffle API has not been found in the dependencies! " +
-        "Compilation may fail"
+        "Truffle API has not been found in the dependencies!\n" +
+        "If dependencies have been changed in build.sbt, make sure " +
+        "the algorithm locating truffle-api.jar in" +
+        " project/CopyTruffleJAR.scala has been updated accordingly.\n" +
+        "Please report this as a bug."
       )
     } else if (truffleInstancesFound > 1) {
       throw new IllegalStateException(
         "More than one version of Truffle API has been found in the " +
-        "dependencies. Please make sure everything is configured properly."
+        "dependencies.\n" +
+        "If dependencies have been changed in build.sbt, make sure " +
+        "the algorithm locating truffle-api.jar in" +
+        " project/CopyTruffleJAR.scala has been updated accordingly.\n" +
+        "Please report this as a bug."
       )
     }
 
