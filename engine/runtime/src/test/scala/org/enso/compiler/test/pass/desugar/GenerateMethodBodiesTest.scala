@@ -1,11 +1,11 @@
 package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.pass.desugar.GenerateMethodBodies
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
-import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies}
 import org.enso.compiler.test.CompilerTest
 
 class GenerateMethodBodiesTest extends CompilerTest {

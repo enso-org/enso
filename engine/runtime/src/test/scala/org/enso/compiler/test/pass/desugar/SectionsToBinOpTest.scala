@@ -1,10 +1,10 @@
 package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.pass.desugar.SectionsToBinOp
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
-import org.enso.compiler.pass.desugar.{GenerateMethodBodies, SectionsToBinOp}
 import org.enso.compiler.test.CompilerTest
 
 class SectionsToBinOpTest extends CompilerTest {
@@ -106,7 +106,8 @@ class SectionsToBinOpTest extends CompilerTest {
         .asInstanceOf[IR.CallArgument.Specified]
         .value
         .asInstanceOf[IR.Name.Literal]
-      val lamBodySecondArg = lamBody.arguments(1)
+      val lamBodySecondArg = lamBody
+        .arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
         .value
         .asInstanceOf[IR.Name.Literal]

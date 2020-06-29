@@ -7,6 +7,8 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.annotation.nowarn
+
 /** This file tests the primitive, low-level operations on core.
   *
   * It does _not_ utilise the high-level API, and instead works directly with
@@ -15,6 +17,7 @@ import org.scalatest.matchers.should.Matchers
   * PLEASE NOTE: Many of these tests will be removed once the smart constructors
   * exist.
   */
+@nowarn("cat=deprecation")
 class CorePrimTest extends AnyFlatSpec with Matchers with BeforeAndAfterEach {
 
   // === Test Setup ===========================================================
