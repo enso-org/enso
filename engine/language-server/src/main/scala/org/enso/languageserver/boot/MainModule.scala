@@ -52,8 +52,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
-    ExecutionContextConfig(),
-    SuggestionsConfig(serverConfig.contentRootPath)
+    ExecutionContextConfig()
   )
 
   val zioExec = ZioExec(zio.Runtime.default)

@@ -78,21 +78,6 @@ object ExecutionContextConfig {
     )
 }
 
-case class SuggestionsConfig(database: File)
-
-object SuggestionsConfig {
-
-  def configBase = ".enso"
-
-  def databaseName = "searcher.db"
-
-  def apply(contentRootPath: String): SuggestionsConfig = {
-    SuggestionsConfig(
-      new File(new File(contentRootPath, configBase), databaseName)
-    )
-  }
-}
-
 /**
   * The config of the running Language Server instance.
   *
@@ -103,8 +88,7 @@ case class Config(
   contentRoots: Map[UUID, File],
   fileManager: FileManagerConfig,
   pathWatcher: PathWatcherConfig,
-  executionContext: ExecutionContextConfig,
-  suggestionsConfig: SuggestionsConfig
+  executionContext: ExecutionContextConfig
 ) {
 
   def findContentRoot(rootId: UUID): Either[FileSystemFailure, File] =

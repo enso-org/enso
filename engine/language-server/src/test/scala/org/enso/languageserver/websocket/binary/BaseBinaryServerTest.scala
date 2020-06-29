@@ -10,8 +10,7 @@ import org.enso.languageserver.data.{
   Config,
   ExecutionContextConfig,
   FileManagerConfig,
-  PathWatcherConfig,
-  SuggestionsConfig
+  PathWatcherConfig
 }
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{FileManager, FileSystem}
@@ -33,8 +32,7 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
     Map(testContentRootId -> testContentRoot.toFile),
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
-    ExecutionContextConfig(requestTimeout = 3.seconds),
-    SuggestionsConfig(testContentRoot.toString)
+    ExecutionContextConfig(requestTimeout = 3.seconds)
   )
 
   testContentRoot.toFile.deleteOnExit()

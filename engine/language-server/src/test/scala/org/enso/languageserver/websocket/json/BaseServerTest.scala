@@ -45,8 +45,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
     Map(testContentRootId -> testContentRoot.toFile),
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
-    ExecutionContextConfig(requestTimeout = 3.seconds),
-    SuggestionsConfig(testContentRoot.toString)
+    ExecutionContextConfig(requestTimeout = 3.seconds)
   )
   val runtimeConnectorProbe = TestProbe()
 
