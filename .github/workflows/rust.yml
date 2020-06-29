@@ -26,7 +26,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2020-06-09
+          toolchain: nightly
           override: true
 #      - name: Install wasm-pack
 #        uses: actions-rs/cargo@v1
