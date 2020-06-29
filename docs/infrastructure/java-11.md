@@ -10,7 +10,7 @@ order: 2
 JDK 11 will be supported longer than JDK 8 that we currently use and it adds new
 features that could improve performance. Moreover, we want to be compliant to
 the Java Platform Module System, as all future versions of the JDK will rely on
-it. Thus, we want to move to using Graal builds for Java 11.
+it. Thus, we move to using Graal builds for Java 11.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -42,8 +42,13 @@ that help with this process.
 All tests are passing.
 
 ### Benchmarks
-There are some benchmark regressions that will be investigated before completing
-the migration.
+Initially there were some regressions found in the benchmarks, but further
+investigation revealed this was caused by some issues in the methodology of how
+the JMH benchmarks were implemented. There are plans to rewrite these
+benchmarks.
+
+Benchmarks in pure Enso are currently more meaningful. They yield comparable
+results with Java 11 being slightly faster.
 
 ## Problems
 The problems that were encountered when doing the migration.
