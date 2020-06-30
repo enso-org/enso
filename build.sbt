@@ -582,9 +582,9 @@ lazy val searcher = project
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
-        "com.typesafe.slick" %% "slick"          % slickVersion,
-        "org.xerial"          % "sqlite-jdbc"    % sqliteVersion,
-        "org.scalatest"      %% "scalatest"      % scalatestVersion % Test
+        "com.typesafe.slick" %% "slick"       % slickVersion,
+        "org.xerial"          % "sqlite-jdbc" % sqliteVersion,
+        "org.scalatest"      %% "scalatest"   % scalatestVersion % Test
       )
   )
 
