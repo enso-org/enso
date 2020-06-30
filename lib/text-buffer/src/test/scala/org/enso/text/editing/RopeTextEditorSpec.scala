@@ -48,13 +48,14 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
     //when
     val result = RopeTextEditor.edit(testSnippet, resultReplacement)
     //then
-    result.toString mustBe """
-                             |main =
-                             |    apply = v f -> f v
-                             |    adder = a b -> a + b
-                             |    plusOne = apply (f = adder 1)
-                             |    sum = plusOne 5
-                             |    sum""".stripMargin
+    val expected = """
+                     |main =
+                     |    apply = v f -> f v
+                     |    adder = a b -> a + b
+                     |    plusOne = apply (f = adder 1)
+                     |    sum = plusOne 5
+                     |    sum""".stripMargin.linesIterator.mkString("\n")
+    result.toString mustBe expected
   }
 
   it should "be able to insert change at the end of file" in {
@@ -64,14 +65,16 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
     //when
     val result = RopeTextEditor.edit(testSnippet, insertion)
     //then
-    result.toString mustBe """
-                             |main =
-                             |    apply = v f -> f v
-                             |    adder = a b -> a + b
-                             |    plusOne = apply (f = adder 1)
-                             |    result = plusOne 10
-                             |    result
-                             |    return result""".stripMargin
+    val expected =
+      """
+        |main =
+        |    apply = v f -> f v
+        |    adder = a b -> a + b
+        |    plusOne = apply (f = adder 1)
+        |    result = plusOne 10
+        |    result
+        |    return result""".stripMargin.linesIterator.mkString("\n")
+    result.toString mustBe expected
   }
 
   it should "support code points above 0xFFFF" in {
