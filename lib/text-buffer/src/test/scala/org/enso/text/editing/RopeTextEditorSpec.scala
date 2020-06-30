@@ -42,39 +42,40 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
 
   it should "replace a multiline substring" in {
     //given
-    val resultPosition    = Range(Position(5, 4), Position(6, 10))
-    val change            = s"sum = plusOne 5\n    sum"
+    val resultPosition = Range(Position(5, 4), Position(6, 10))
+    val change =
+      """sum = plusOne 5
+        |    sum""".stripMargin
     val resultReplacement = TextEdit(resultPosition, change)
     //when
     val result = RopeTextEditor.edit(testSnippet, resultReplacement)
     //then
-    val expected = """
-                     |main =
-                     |    apply = v f -> f v
-                     |    adder = a b -> a + b
-                     |    plusOne = apply (f = adder 1)
-                     |    sum = plusOne 5
-                     |    sum""".stripMargin.linesIterator.mkString("\n")
-    result.toString mustBe expected
+    result.toString mustBe """
+                             |main =
+                             |    apply = v f -> f v
+                             |    adder = a b -> a + b
+                             |    plusOne = apply (f = adder 1)
+                             |    sum = plusOne 5
+                             |    sum""".stripMargin
   }
 
   it should "be able to insert change at the end of file" in {
     //given
-    val eof       = Range(Position(6, 10), Position(6, 10))
-    val insertion = TextEdit(eof, s"\n    return result")
+    val eof          = Range(Position(6, 10), Position(6, 10))
+    val insertedText = """
+                         |    return result""".stripMargin
+    val insertion    = TextEdit(eof, insertedText)
     //when
     val result = RopeTextEditor.edit(testSnippet, insertion)
     //then
-    val expected =
-      """
-        |main =
-        |    apply = v f -> f v
-        |    adder = a b -> a + b
-        |    plusOne = apply (f = adder 1)
-        |    result = plusOne 10
-        |    result
-        |    return result""".stripMargin.linesIterator.mkString("\n")
-    result.toString mustBe expected
+    result.toString mustBe """
+                             |main =
+                             |    apply = v f -> f v
+                             |    adder = a b -> a + b
+                             |    plusOne = apply (f = adder 1)
+                             |    result = plusOne 10
+                             |    result
+                             |    return result""".stripMargin
   }
 
   it should "support code points above 0xFFFF" in {
