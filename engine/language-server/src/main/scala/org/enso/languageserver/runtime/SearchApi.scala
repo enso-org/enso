@@ -57,7 +57,7 @@ object SearchApi {
     }
   }
 
-  case object Complete extends Method("search/complete") {
+  case object Completion extends Method("search/completion") {
 
     case class Params(
       module: String,
@@ -70,10 +70,10 @@ object SearchApi {
     case class Result(results: Seq[SuggestionId], currentVersion: Long)
 
     implicit val hasParams = new HasParams[this.type] {
-      type Params = Complete.Params
+      type Params = Completion.Params
     }
     implicit val hasResult = new HasResult[this.type] {
-      type Result = Complete.Result
+      type Result = Completion.Result
     }
   }
 

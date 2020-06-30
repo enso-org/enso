@@ -76,7 +76,7 @@ class SuggestionsHandlerTest extends BaseServerTest {
     def complete(reqId: Long) =
       json"""
         { "jsonrpc": "2.0",
-          "method": "search/complete",
+          "method": "search/completion",
           "id": $reqId,
           "params": {
             "module": "Test.Main",

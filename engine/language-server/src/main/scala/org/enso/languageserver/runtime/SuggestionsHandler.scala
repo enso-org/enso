@@ -3,8 +3,8 @@ package org.enso.languageserver.runtime
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.runtime.SearchProtocol.{
-  Complete,
-  CompleteResult,
+  Completion,
+  CompletionResult,
   GetSuggestionsDatabase,
   GetSuggestionsDatabaseResult,
   GetSuggestionsDatabaseVersion,
@@ -17,9 +17,12 @@ import org.enso.searcher.SuggestionEntry
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 
 /**
-  * Event listener listens event stream for the suggestion database
-  * notifications from the runtime and sends updates to the client. The listener
-  * is a singleton and created per context registry.
+  * The handler of search requests.
+  *
+  * Handler initializes the database and responds to the search requests.
+  *
+  * @param repo the suggestions repo
+  * @param db the database runner
   */
 final class SuggestionsHandler(
   repo: SqlSuggestionsRepo,
@@ -55,7 +58,7 @@ final class SuggestionsHandler(
         .map(Function.tupled(toGetSuggestionsDatabaseResult))
         .pipeTo(sender())
 
-    case Complete(_, _, selfType, returnType, tags) =>
+    case Completion(_, _, selfType, returnType, tags) =>
       val kinds = tags.map(_.map(SuggestionKind.toSuggestion))
       val query = for {
         entries <- repo.search(selfType, returnType, kinds)
@@ -63,7 +66,7 @@ final class SuggestionsHandler(
       } yield (entries, version)
       db
         .run(query)
-        .map(CompleteResult.tupled)
+        .map(CompletionResult.tupled)
         .pipeTo(sender())
   }
 
@@ -82,6 +85,9 @@ object SuggestionsHandler {
 
   /**
     * Creates a configuration object used to create a [[SuggestionsHandler]].
+    *
+    * @param repo the suggestions repo
+    * @param db the database runner
     */
   def props(
     repo: SqlSuggestionsRepo,

@@ -5,7 +5,7 @@ import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.SearchApi.{
-  Complete,
+  Completion,
   SuggestionsDatabaseError
 }
 import org.enso.languageserver.runtime.SearchProtocol
@@ -32,11 +32,11 @@ class CompleteHandler(
 
   private def requestStage: Receive = {
     case Request(
-          Complete,
+          Completion,
           id,
-          Complete.Params(module, pos, selfType, returnType, tags)
+          Completion.Params(module, pos, selfType, returnType, tags)
         ) =>
-      suggestionsHandler ! SearchProtocol.Complete(
+      suggestionsHandler ! SearchProtocol.Completion(
         module,
         pos,
         selfType,
@@ -64,11 +64,11 @@ class CompleteHandler(
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case SearchProtocol.CompleteResult(results, version) =>
+    case SearchProtocol.CompletionResult(results, version) =>
       replyTo ! ResponseResult(
-        Complete,
+        Completion,
         id,
-        Complete.Result(results, version)
+        Completion.Result(results, version)
       )
       cancellable.cancel()
       context.stop(self)

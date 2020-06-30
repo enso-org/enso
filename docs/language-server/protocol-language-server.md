@@ -2504,7 +2504,7 @@ Sent from client to the server to receive the autocomplete suggestion.
 
 ```typescript
 {
-  // The edited file
+  // The edited module
   module: string;
   // The cursor position
   position: Position;

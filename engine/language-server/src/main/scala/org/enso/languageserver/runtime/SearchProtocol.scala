@@ -193,23 +193,47 @@ object SearchProtocol {
       }
   }
 
+  /** A notification about changes in the suggestions database.
+    *
+    * @param updates the list of database updates
+    * @param currentVersion current version of the suggestions database
+    */
   case class SuggestionsDatabaseUpdateNotification(
     updates: Seq[SuggestionsDatabaseUpdate],
     currentVersion: Long
   )
 
+  /** The request to receive contents of the suggestions database. */
   case object GetSuggestionsDatabase
 
+  /** The reply to the [[GetSuggestionsDatabase]] request.
+    *
+    * @param entries the entries of the suggestion database
+    * @param currentVersion current version of the suggestions database
+    */
   case class GetSuggestionsDatabaseResult(
     entries: Seq[SuggestionsDatabaseUpdate],
     currentVersion: Long
   )
 
+  /** The request to receive the current version of the suggestions database. */
   case object GetSuggestionsDatabaseVersion
 
+  /** The reply to the [[GetSuggestionsDatabaseVersion]] request.
+    *
+    * @param version current version of the suggestions database
+    */
   case class GetSuggestionsDatabaseVersionResult(version: Long)
 
-  case class Complete(
+  /** The completion request.
+    *
+    * @param module the edited module
+    * @param position the cursor position
+    * @param selfType filter entries matching the self type
+    * @param returnType filter entries matching the reutrn type
+    * @param tags filter entries by suggestion type
+    */
+  case class Completion(
     module: String,
     position: Position,
     selfType: Option[String],
@@ -217,6 +241,11 @@ object SearchProtocol {
     tags: Option[Seq[SuggestionKind]]
   )
 
-  case class CompleteResult(results: Seq[SuggestionId], currentVersion: Long)
+  /** Te reply to the [[Completion]] request.
+    *
+    * @param results the list of suggestion ids matched the search query
+    * @param currentVersion current version of the suggestions database
+    */
+  case class CompletionResult(results: Seq[SuggestionId], currentVersion: Long)
 
 }
