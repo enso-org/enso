@@ -113,15 +113,24 @@ provided by the runtime. Unfortunately, with incremental compilation, only the
 changed instruments are recompiled and the annotation processor does not detect
 this, so un-changed instruments get un-registered.
 
-To fix this, the task defined in
+To fix this, the pre-compile task defined in
 [`FixInstrumentsGeneration`](../../project/FixInstrumentsGeneration.scala)
 detects changes to instruments and if only one of them should be recompiled, it
 forces recompilation of all of them, to ensure consistency.
 
+For unclear reasons, if this task is attached to
+`Compile / compile / compileInputs`, while it runs strictly *before*
+compilation, the deleted class files are not always all recompiled. So instead,
+it is attached directly to `Compile / compile`. This technically could allow for
+a data race between this task and the actual compilation that happens in
+`compileIncremental`, but in practice it seems to be a stable solution.
+
 Sometimes it is unable to detect the need for recompilation before it takes
-place. As it also cannot restart compilation, to preserve consistency it stops
-the compilation and asks the user to restart it, to allow it to force
-recompilation of instruments.
+place. To help that, there is another task that replaces the default `compile`
+task, which executes the default compilation task and after it, verifies the
+consistency of instruments files. As it cannot restart compilation, to preserve
+consistency it ensures the instruments will be recompiled the next time and
+stops the current compilation task, asking the user to restart it.
 
 ### Flatbuffers Generation
 [`GenerateFlatbuffers`](../../project/GenerateFlatbuffers.scala) defines the

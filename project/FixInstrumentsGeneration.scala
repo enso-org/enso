@@ -26,14 +26,14 @@ object FixInstrumentsGeneration {
     Tracked.diffInputs(fragileSourcesStore, FileInfo.hash)(
       fragileSources.toSet
     ) { sourcesDiff: ChangeReport[File] =>
-      if (sourcesDiff.modified.nonEmpty) {
+      if (sourcesDiff.modified.nonEmpty && sourcesDiff.unmodified.nonEmpty) {
         val others =
           if (sourcesDiff.modified.size >= 2)
             s" and ${sourcesDiff.modified.size - 1} others"
           else ""
         val firstInstrument = sourcesDiff.modified.head
         val sourcesMessage  = firstInstrument.toString + others
-        log.info(
+        log.warn(
           s"Instruments sources ($sourcesMessage) have been changed.\n" +
           s"Forcing recompilation of all instruments to maintain " +
           s"consistency of generated services files."

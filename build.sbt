@@ -720,9 +720,9 @@ lazy val runtime = (project in file("engine/runtime"))
     Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
         .dependsOn(CopyTruffleJAR.preCompileTask)
-        .dependsOn(FixInstrumentsGeneration.preCompileTask)
         .value,
     Compile / compile := FixInstrumentsGeneration.patchedCompile
+        .dependsOn(FixInstrumentsGeneration.preCompileTask)
         .dependsOn(`core-definition` / Compile / packageBin)
         .value,
     // Note [Classpath Separation]

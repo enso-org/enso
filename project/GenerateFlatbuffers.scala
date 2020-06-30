@@ -86,25 +86,21 @@ object GenerateFlatbuffers {
     */
   def verifyFlatcVersion(expectedVersion: String): Either[String, Unit] = {
     val cmd = f"$flatcCmd --version"
-    val versionStr =
-      try {
-        cmd.!!.trim
-      } catch {
-        case _ @(_: RuntimeException | _: IOException) =>
-          return Left(
-            "flatc version check failed. Make sure flatc is in your PATH"
-          )
-      }
-
-    val expectedVersionStr = s"flatc version $expectedVersion"
-    if (expectedVersionStr != versionStr) {
-      return Left(
-        s"flatc version mismatch. $expectedVersionStr is expected, " +
-        s"but it seems $versionStr is installed"
-      )
+    try {
+      val versionStr         = cmd.!!.trim
+      val expectedVersionStr = s"flatc version $expectedVersion"
+      if (expectedVersionStr != versionStr) {
+        Left(
+          s"flatc version mismatch. $expectedVersionStr is expected, " +
+          s"but it seems $versionStr is installed"
+        )
+      } else Right(())
+    } catch {
+      case _ @(_: RuntimeException | _: IOException) =>
+        Left(
+          "flatc version check failed. Make sure flatc is in your PATH"
+        )
     }
-
-    Right(())
   }
 
   /** Parses the Make rules returned by flatc to get a list of affected files.
