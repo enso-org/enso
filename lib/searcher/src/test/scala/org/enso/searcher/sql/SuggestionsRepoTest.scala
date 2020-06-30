@@ -16,7 +16,7 @@ class SuggestionsRepoTest
     with BeforeAndAfter
     with BeforeAndAfterAll {
 
-  val Timeout: FiniteDuration = 3.seconds
+  val Timeout: FiniteDuration = 10.seconds
 
   val db   = new SqlDatabase()
   val repo = new SqlSuggestionsRepo()
