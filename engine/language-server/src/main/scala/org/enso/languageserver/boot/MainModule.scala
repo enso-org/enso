@@ -117,7 +117,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     )
 
   val suggestionsRepo     = new SqlSuggestionsRepo()(system.dispatcher)
-  val suggestionsDatabase = new SqlDatabase("searcher.db")
+  val suggestionsDatabase = new SqlDatabase()
   val suggestionsHandler =
     system.actorOf(
       SuggestionsHandler.props(suggestionsRepo, suggestionsDatabase)
