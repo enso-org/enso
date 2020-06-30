@@ -172,6 +172,23 @@ rustup component add clippy
 Please note that once the parser is integrated into the SBT build, the
 rust-related commands will be automatically performed for you.
 
+#### Getting Set Up (JVM)
+In order to properly build the `runtime` component, the JVM running SBT needs
+to have some dependency JARs available in its module path at startup. To ensure
+they are available, before running any compilation or other tasks, these
+dependencies should be prepared. To do so, run the following command in the
+repository root directory:
+
+```bash
+sbt bootstrap
+```
+
+It is preferred to not run this command from the sbt shell, but in batch mode,
+because SBT has to be launched again anyway to pick up these JARs at startup.
+
+Bootstrap has to be run only when building the project for the first time
+**and** after each change of Graal version.
+
 ### Building Enso
 There are multiple projects in this repository, but all can be built, run and
 tested using `sbt`. As long as your configuration is correct, with the correct
@@ -185,19 +202,6 @@ that you don't need to handle any of this manually.
 experimental state. This means that while it may function, we are not intending
 to provide work-arounds for building on that platform while it is still in an
 unstable state.
-
-#### Bootstrapping build dependencies
-In order to properly build the `runtime` component, the JVM running sbt needs
-to have some dependency JARs available in its module path at startup. To ensure
-they are available, before running any compilation or other tasks, these
-dependencies should be prepared.
-
-To do so, run `sbt bootstrap` in the repository root directory. It is preferred
-to not run this command from the sbt shell, but in batch mode, because sbt has
-to be launched again anyway to pick up these JARs at startup.
-
-Bootstrap has to be run only when building the project for the first time
-**and** after each change of Graal version.
 
 #### Building Enso Components
 In order to build a specific component (e.g. `runtime`), please follow the
