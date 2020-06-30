@@ -124,7 +124,7 @@ final class VersionsTable(tag: Tag) extends Table[VersionRow](tag, "version") {
 
   def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
 
-  def * = id.? <> (VersionRow.apply, VersionRow.unapply)
+  def * = id.?.<>(VersionRow.apply, VersionRow.unapply)
 }
 
 object arguments extends TableQuery(new ArgumentsTable(_))
