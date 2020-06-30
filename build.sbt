@@ -601,6 +601,7 @@ lazy val searcher = project
         "org.scalatest"      %% "scalatest"   % scalatestVersion % Test
       )
   )
+  .dependsOn(`json-rpc-server-test` % Test)
 
 // ============================================================================
 // === Sub-Projects ===========================================================
