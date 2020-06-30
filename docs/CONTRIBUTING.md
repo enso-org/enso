@@ -22,7 +22,8 @@ sections of this document are linked below:
   - [Design Documentation](#design-documentation)
   - [System Requirements](#system-requirements)
   - [Getting the Sources](#getting-the-sources)
-  - [Getting Set Up \(Rust\)](#getting-set-up-rust)
+  - [Getting Set Up (Rust)](#getting-set-up-rust)
+  - [Getting Set Up (JVM)](#getting-set-up-jvm)
   - [Building Enso](#building-enso)
   - [Running Enso](#running-enso)
 - [Pull Requests](#pull-requests)
@@ -30,6 +31,7 @@ sections of this document are linked below:
 - [Issue Triage](#issue-triage)
 - [Out-of-Tree Contributions](#out-of-tree-contributions)
 - [Helpful Documentation and Links](#helpful-documentation-and-links)
+
 
 <!-- /MarkdownTOC -->
 
@@ -172,7 +174,7 @@ rustup component add clippy
 Please note that once the parser is integrated into the SBT build, the
 rust-related commands will be automatically performed for you.
 
-#### Getting Set Up (JVM)
+### Getting Set Up (JVM)
 In order to properly build the `runtime` component, the JVM running SBT needs
 to have some dependency JARs available in its module path at startup. To ensure
 they are available, before running any compilation or other tasks, these
