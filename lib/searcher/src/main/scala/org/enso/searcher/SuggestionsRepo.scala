@@ -12,6 +12,19 @@ trait SuggestionsRepo[F[_]] {
   /** Get all suggestions. */
   def getAll: F[Seq[SuggestionEntry]]
 
+  /** Search suggestion by various parameters.
+    *
+    * @param selfType the selfType search parameter
+    * @param returnType the returnType search parameter
+    * @param kinds the list suggestion kinds to search
+    * @return
+    */
+  def search(
+    selfType: Option[String],
+    returnType: Option[String],
+    kinds: Option[Seq[Suggestion.Kind]]
+  ): F[Seq[Long]]
+
   /** Find suggestions by the return type.
     *
     * @param returnType the return type of a suggestion

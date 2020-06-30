@@ -5,7 +5,7 @@ import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.SearchApi.{
-  GetSuggestionsDatabase,
+  Complete,
   SuggestionsDatabaseError
 }
 import org.enso.languageserver.runtime.SearchProtocol
@@ -14,12 +14,12 @@ import org.enso.languageserver.util.UnhandledLogging
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for `search/getSuggestionsDatabase` command.
+  * A request handler for `search/getSuggestionsDatabaseVersion` command.
   *
   * @param timeout request timeout
   * @param suggestionsHandler a reference to the suggestions handler
   */
-class GetSuggestionsDatabaseHandler(
+class CompleteHandler(
   timeout: FiniteDuration,
   suggestionsHandler: ActorRef
 ) extends Actor
@@ -31,8 +31,18 @@ class GetSuggestionsDatabaseHandler(
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case Request(GetSuggestionsDatabase, id, _) =>
-      suggestionsHandler ! SearchProtocol.GetSuggestionsDatabase
+    case Request(
+          Complete,
+          id,
+          Complete.Params(module, pos, selfType, returnType, tags)
+        ) =>
+      suggestionsHandler ! SearchProtocol.Complete(
+        module,
+        pos,
+        selfType,
+        returnType,
+        tags
+      )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -44,7 +54,7 @@ class GetSuggestionsDatabaseHandler(
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(ex, "GetSuggestionsDatabase error")
+      log.error(ex, "Complete error")
       replyTo ! ResponseError(Some(id), SuggestionsDatabaseError)
       cancellable.cancel()
       context.stop(self)
@@ -54,22 +64,21 @@ class GetSuggestionsDatabaseHandler(
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case SearchProtocol.GetSuggestionsDatabaseResult(updates, version) =>
+    case SearchProtocol.CompleteResult(results, version) =>
       replyTo ! ResponseResult(
-        GetSuggestionsDatabase,
+        Complete,
         id,
-        GetSuggestionsDatabase.Result(updates, version)
+        Complete.Result(results, version)
       )
       cancellable.cancel()
       context.stop(self)
   }
 }
 
-object GetSuggestionsDatabaseHandler {
+object CompleteHandler {
 
   /**
-    * Creates configuration object used to create a
-    * [[GetSuggestionsDatabaseHandler]].
+    * Creates configuration object used to create a [[CompleteHandler]].
     *
     * @param timeout request timeout
     * @param suggestionsHandler a reference to the suggestions handler
@@ -78,6 +87,6 @@ object GetSuggestionsDatabaseHandler {
     timeout: FiniteDuration,
     suggestionsHandler: ActorRef
   ): Props =
-    Props(new GetSuggestionsDatabaseHandler(timeout, suggestionsHandler))
+    Props(new CompleteHandler(timeout, suggestionsHandler))
 
 }

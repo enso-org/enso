@@ -1,11 +1,15 @@
 package org.enso.languageserver.runtime
 
+import enumeratum._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import org.enso.searcher.Suggestion
+import org.enso.text.editing.model.Position
 
 object SearchProtocol {
+
+  type SuggestionId = Long
 
   sealed trait SuggestionsDatabaseUpdate
   object SuggestionsDatabaseUpdate {
@@ -15,14 +19,14 @@ object SearchProtocol {
       * @param id suggestion id
       * @param suggestion the new suggestion
       */
-    case class Add(id: Long, suggestion: Suggestion)
+    case class Add(id: SuggestionId, suggestion: Suggestion)
         extends SuggestionsDatabaseUpdate
 
     /** Remove the database entry.
       *
       * @param id the suggestion id
       */
-    case class Remove(id: Long) extends SuggestionsDatabaseUpdate
+    case class Remove(id: SuggestionId) extends SuggestionsDatabaseUpdate
 
     /** Modify the database entry.
       *
@@ -35,7 +39,7 @@ object SearchProtocol {
       * @param scope the suggestion scope
       */
     case class Modify(
-      id: Long,
+      id: SuggestionId,
       name: Option[String],
       arguments: Option[Seq[Suggestion.Argument]],
       selfType: Option[String],
@@ -152,6 +156,43 @@ object SearchProtocol {
       }
   }
 
+  /** The type of a suggestion. */
+  sealed trait SuggestionKind extends EnumEntry
+  object SuggestionKind
+      extends Enum[SuggestionKind]
+      with CirceEnum[SuggestionKind] {
+
+    /** An atom suggestion. */
+    case object Atom extends SuggestionKind
+
+    /** A method suggestion. */
+    case object Method extends SuggestionKind
+
+    /** A function suggestion. */
+    case object Function extends SuggestionKind
+
+    /** Local binding suggestion. */
+    case object Local extends SuggestionKind
+
+    override val values = findValues
+
+    def apply(kind: Suggestion.Kind): SuggestionKind =
+      kind match {
+        case Suggestion.Kind.Atom     => Atom
+        case Suggestion.Kind.Method   => Method
+        case Suggestion.Kind.Function => Function
+        case Suggestion.Kind.Local    => Local
+      }
+
+    def toSuggestion(kind: SuggestionKind): Suggestion.Kind =
+      kind match {
+        case Atom     => Suggestion.Kind.Atom
+        case Method   => Suggestion.Kind.Method
+        case Function => Suggestion.Kind.Function
+        case Local    => Suggestion.Kind.Local
+      }
+  }
+
   case class SuggestionsDatabaseUpdateNotification(
     updates: Seq[SuggestionsDatabaseUpdate],
     currentVersion: Long
@@ -167,4 +208,15 @@ object SearchProtocol {
   case object GetSuggestionsDatabaseVersion
 
   case class GetSuggestionsDatabaseVersionResult(version: Long)
+
+  case class Complete(
+    module: String,
+    position: Position,
+    selfType: Option[String],
+    returnType: Option[String],
+    tags: Option[Seq[SuggestionKind]]
+  )
+
+  case class CompleteResult(results: Seq[SuggestionId], currentVersion: Long)
+
 }

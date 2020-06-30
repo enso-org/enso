@@ -4,6 +4,15 @@ package org.enso.searcher
 sealed trait Suggestion
 object Suggestion {
 
+  sealed trait Kind
+  object Kind {
+
+    case object Atom     extends Kind
+    case object Method   extends Kind
+    case object Function extends Kind
+    case object Local    extends Kind
+  }
+
   /** An argument of an atom or a function.
     *
     * @param name the argument name

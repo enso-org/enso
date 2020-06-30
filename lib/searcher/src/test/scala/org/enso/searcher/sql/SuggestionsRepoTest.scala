@@ -103,6 +103,86 @@ class SuggestionsRepoTest
       val (v1, v2) = Await.result(action, Timeout)
       v1 should not equal v2
     }
+
+    "search suggestion by empty query" in {
+      val action = for {
+        _   <- db.run(repo.insert(suggestion.atom))
+        _   <- db.run(repo.insert(suggestion.method))
+        _   <- db.run(repo.insert(suggestion.function))
+        _   <- db.run(repo.insert(suggestion.local))
+        res <- db.run(repo.search(None, None, None))
+      } yield res
+
+      val res = Await.result(action, Timeout)
+      res.isEmpty shouldEqual true
+    }
+
+    "search suggestion by self type" in {
+      val action = for {
+        _   <- db.run(repo.insert(suggestion.atom))
+        id2 <- db.run(repo.insert(suggestion.method))
+        _   <- db.run(repo.insert(suggestion.function))
+        _   <- db.run(repo.insert(suggestion.local))
+        res <- db.run(repo.search(Some("Main"), None, None))
+      } yield (id2, res)
+
+      val (id, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(id)
+    }
+
+    "search suggestion by return type" in {
+      val action = for {
+        _   <- db.run(repo.insert(suggestion.atom))
+        _   <- db.run(repo.insert(suggestion.method))
+        id3 <- db.run(repo.insert(suggestion.function))
+        id4 <- db.run(repo.insert(suggestion.local))
+        res <- db.run(repo.search(None, Some("MyType"), None))
+      } yield (id3, id4, res)
+
+      val (id1, id2, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(id1, id2)
+    }
+
+    "search suggestion by kind" in {
+      val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
+      val action = for {
+        id1 <- db.run(repo.insert(suggestion.atom))
+        _   <- db.run(repo.insert(suggestion.method))
+        _   <- db.run(repo.insert(suggestion.function))
+        id4 <- db.run(repo.insert(suggestion.local))
+        res <- db.run(repo.search(None, None, Some(kinds)))
+      } yield (id1, id4, res)
+
+      val (id1, id2, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(id1, id2)
+    }
+
+    "search suggestion by return type and kind" in {
+      val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
+      val action = for {
+        _   <- db.run(repo.insert(suggestion.atom))
+        _   <- db.run(repo.insert(suggestion.method))
+        _   <- db.run(repo.insert(suggestion.function))
+        id4 <- db.run(repo.insert(suggestion.local))
+        res <- db.run(repo.search(None, Some("MyType"), Some(kinds)))
+      } yield (id4, res)
+
+      val (id, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(id)
+    }
+
+    "search suggestion by self and return types" in {
+      val action = for {
+        _   <- db.run(repo.insert(suggestion.atom))
+        _   <- db.run(repo.insert(suggestion.method))
+        _   <- db.run(repo.insert(suggestion.function))
+        _   <- db.run(repo.insert(suggestion.local))
+        res <- db.run(repo.search(Some("Main"), Some("MyType"), None))
+      } yield res
+
+      val res = Await.result(action, Timeout)
+      res.isEmpty shouldEqual true
+    }
   }
 
   object suggestion {

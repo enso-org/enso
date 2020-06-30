@@ -1,5 +1,6 @@
 package org.enso.searcher.sql
 
+import org.enso.searcher.Suggestion
 import slick.jdbc.SQLiteProfile.api._
 
 import scala.annotation.nowarn
@@ -55,6 +56,14 @@ object SuggestionKind {
   val METHOD: Byte   = 1
   val FUNCTION: Byte = 2
   val LOCAL: Byte    = 3
+
+  def apply(kind: Suggestion.Kind): Byte =
+    kind match {
+      case Suggestion.Kind.Atom     => ATOM
+      case Suggestion.Kind.Method   => METHOD
+      case Suggestion.Kind.Function => FUNCTION
+      case Suggestion.Kind.Local    => LOCAL
+    }
 }
 
 /** The schema of the arguments table. */

@@ -44,7 +44,7 @@ class GetSuggestionsDatabaseVersionHandler(
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(s"GetSuggestionsDatabaseVersion error", ex)
+      log.error(ex, "GetSuggestionsDatabaseVersion error")
       replyTo ! ResponseError(Some(id), SuggestionsDatabaseError)
       cancellable.cancel()
       context.stop(self)

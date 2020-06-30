@@ -35,6 +35,22 @@ class SuggestionsHandlerTest extends BaseServerTest {
           }
       """)
     }
+
+    "reply to completions request" in {
+      val client = getInitialisedWsClient()
+
+      client.send(json.complete(0))
+      client.expectJson(json"""
+          { "jsonrpc" : "2.0",
+            "id" : 0,
+            "result" : {
+              "results" : [
+              ],
+              "currentVersion" : 0
+            }
+          }
+      """)
+    }
   }
 
   object json {
@@ -54,6 +70,21 @@ class SuggestionsHandlerTest extends BaseServerTest {
           "method": "search/getSuggestionsDatabase",
           "id": $reqId,
           "params": null
+        }
+      """
+
+    def complete(reqId: Long) =
+      json"""
+        { "jsonrpc": "2.0",
+          "method": "search/complete",
+          "id": $reqId,
+          "params": {
+            "module": "Test.Main",
+            "position": {
+              "line": 0,
+              "character": 0
+            }
+          }
         }
       """
 

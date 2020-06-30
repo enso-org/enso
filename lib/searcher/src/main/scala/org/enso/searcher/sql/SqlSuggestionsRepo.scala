@@ -29,6 +29,22 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
   }
 
   /** @inheritdoc */
+  override def search(
+    selfType: Option[String],
+    returnType: Option[String],
+    kinds: Option[Seq[Suggestion.Kind]]
+  ): DBIO[Seq[Long]] = {
+    if (selfType.isEmpty && returnType.isEmpty && kinds.isEmpty) {
+      DBIO.successful(Seq())
+    } else {
+      val query = searchQuery(selfType, returnType, kinds)
+        .map(_._2.id)
+        .distinct
+      query.result
+    }
+  }
+
+  /** @inheritdoc */
   override def findBy(returnType: String): DBIO[Seq[Suggestion]] = {
     val query = for {
       (argument, suggestion) <- joined
@@ -63,12 +79,33 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
     } yield versionOpt.flatMap(_.id).getOrElse(0L)
   }
 
-  def incrementVersion: DBIO[Long] = {
+  private def incrementVersion: DBIO[Long] = {
     val increment = for {
       version <- versions.returning(versions.map(_.id)) += VersionRow(None)
       _       <- versions.filterNot(_.id === version).delete
     } yield version
     increment.transactionally
+  }
+
+  private def searchQuery(
+    selfType: Option[String],
+    returnType: Option[String],
+    kinds: Option[Seq[Suggestion.Kind]]
+  ): Query[
+    (Rep[Option[ArgumentsTable]], SuggestionsTable),
+    (Option[ArgumentRow], SuggestionRow),
+    Seq
+  ] = {
+    joined
+      .filterOpt(selfType) {
+        case (row, value) => row._2.selfType === value
+      }
+      .filterOpt(returnType) {
+        case (row, value) => row._2.returnType === value
+      }
+      .filterOpt(kinds) {
+        case (row, value) => row._2.kind inSet value.map(SuggestionKind(_))
+      }
   }
 
   private def joinedToSuggestions(

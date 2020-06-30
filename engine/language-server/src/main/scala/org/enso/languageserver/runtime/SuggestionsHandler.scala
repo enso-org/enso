@@ -3,10 +3,13 @@ package org.enso.languageserver.runtime
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.runtime.SearchProtocol.{
+  Complete,
+  CompleteResult,
   GetSuggestionsDatabase,
   GetSuggestionsDatabaseResult,
   GetSuggestionsDatabaseVersion,
   GetSuggestionsDatabaseVersionResult,
+  SuggestionKind,
   SuggestionsDatabaseUpdate
 }
 import org.enso.languageserver.util.UnhandledLogging
@@ -50,6 +53,17 @@ final class SuggestionsHandler(
       db
         .run(query)
         .map(Function.tupled(toGetSuggestionsDatabaseResult))
+        .pipeTo(sender())
+
+    case Complete(_, _, selfType, returnType, tags) =>
+      val kinds = tags.map(_.map(SuggestionKind.toSuggestion))
+      val query = for {
+        entries <- repo.search(selfType, returnType, kinds)
+        version <- repo.currentVersion
+      } yield (entries, version)
+      db
+        .run(query)
+        .map(CompleteResult.tupled)
         .pipeTo(sender())
   }
 
