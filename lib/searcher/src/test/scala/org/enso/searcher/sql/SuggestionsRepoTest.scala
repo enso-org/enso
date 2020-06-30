@@ -38,7 +38,7 @@ class SuggestionsRepoTest
     Await.ready(clean, Timeout)
   }
 
-  "SuggestionsDBIO" should {
+  "SuggestionsRepo" should {
 
     "get all suggestions" in {
       val action =
