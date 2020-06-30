@@ -3,36 +3,7 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  CachePreferenceAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
-import org.enso.compiler.pass.desugar.{
-  ComplexType,
-  FunctionBinding,
-  GenerateMethodBodies,
-  LambdaShorthandToLambda,
-  NestedPatternMatch,
-  OperatorToFunction,
-  SectionsToBinOp
-}
-import org.enso.compiler.pass.lint.{ShadowedPatternFields, UnusedBindings}
-import org.enso.compiler.pass.optimise.{
-  ApplicationSaturation,
-  LambdaConsolidate,
-  UnreachableMatchBranches
-}
-import org.enso.compiler.pass.resolve.{
-  DocumentationComments,
-  IgnoredBindings,
-  OverloadsResolution,
-  SuspendedArguments,
-  TypeFunctions,
-  TypeSignatures
-}
+import org.enso.compiler.pass.resolve.DocumentationComments
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.scalatest.Inside

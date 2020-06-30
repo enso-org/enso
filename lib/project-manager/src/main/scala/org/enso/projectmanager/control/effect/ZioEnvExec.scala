@@ -12,7 +12,7 @@ import scala.concurrent.{Future, Promise}
 class ZioEnvExec(runtime: Runtime[ZEnv]) extends Exec[ZIO[ZEnv, *, *]] {
 
   override def exec[E, A](op: ZIO[ZEnv, E, A]): Future[Either[E, A]] = {
-    val promise = Promise[Either[E, A]]
+    val promise = Promise[Either[E, A]]()
     runtime.unsafeRunAsync(op) {
       _.fold(
         { cause =>

@@ -307,7 +307,7 @@ class CollaborativeBuffer(
         Some(CapabilityRegistration(CanEdit(bufferPath)))
       else
         None
-    sender ! OpenFileResponse(Right(OpenFileResult(buffer, writeCapability)))
+    sender() ! OpenFileResponse(Right(OpenFileResult(buffer, writeCapability)))
     context.become(
       collaborativeEditing(
         buffer,

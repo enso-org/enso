@@ -1,4 +1,4 @@
-name: Parser CI
+name: Rust CI
 
 on:
   push:
@@ -8,31 +8,27 @@ on:
 
 env:
   wasmpackVersion: 0.8.1
+  nodeVersion: 12.18.0
 
 jobs:
   test:
-    name: Test Parser
+    name: Rust Test Native
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 30
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
       fail-fast: false
     steps:
-      - name: Checkout Parser Sources
+      - name: Checkout Library Sources
         uses: actions/checkout@v2
 
       # Install Tooling
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2020-06-09
+          toolchain: nightly-2019-11-04
           override: true
-      - name: Install wasm-pack
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: wasm-pack --version ${{ env.wasmpackVersion }}
 
       # Caches
       - name: Cache Cargo Registry
@@ -49,7 +45,104 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-build
 
       # Tests
-      - name: Test Parser
+      - name: Test Native
         uses: actions-rs/cargo@v1
         with:
           command: test
+
+  test-wasm:
+    name: Rust Test WASM
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Library Sources
+        uses: actions/checkout@v2
+
+      # Install Tooling
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ env.nodeVersion }}
+      - name: Install wasm-pack
+        # We could use cargo install wasm-pack, but that takes 3.5 minutes
+        # compared to a few seconds.
+        env:
+          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v${{ env.wasmpackVersion }}
+          WASMPACKDIR: wasm-pack-v${{ env.wasmpackVersion }}-x86_64-unknown-linux-musl
+        shell: bash
+        run: |
+          curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
+          mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
+          rm -r $WASMPACKDIR
+
+      # Caches
+      - name: Cache Cargo Registry
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-registry
+      - name: Cache Cargo Test
+        uses: actions/cache@v2
+        with:
+          path: ./target/rust
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-build
+
+      # Tests
+      - name: Test WASM
+        shell: bash
+        run: |
+          cd parser
+          for dir in `ls`; do
+              cd $dir;
+              wasm-pack test --node;
+              cd ..;
+          done;
+          cd ..
+
+  lint:
+    name: Rust Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout Library Sources
+        uses: actions/checkout@v2
+
+      # Install Tooling
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2019-11-04
+          override: true
+      - name: Install Clippy
+        run: rustup component add clippy
+
+      # Caches
+      - name: Cache Cargo Registry
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-registry
+      - name: Cache Cargo Test
+        uses: actions/cache@v2
+        with:
+          path: ./target/rust
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-build
+
+      # Lint
+      - name: Lint Code
+        shell: bash
+        run: |
+          cargo clippy

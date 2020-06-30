@@ -3,7 +3,6 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.desugar.{FunctionBinding, GenerateMethodBodies}
 import org.enso.compiler.pass.resolve.OverloadsResolution
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest

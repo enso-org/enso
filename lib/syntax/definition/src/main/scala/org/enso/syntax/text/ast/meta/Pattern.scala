@@ -271,48 +271,58 @@ object Pattern {
     implicit def travMatch: Traverse[MatchOf] = _MatchOf.travMatch
     implicit def foldMatch: Foldable[MatchOf] = _MatchOf.foldMatch
 
-    implicit def offZipMatch[T: HasSpan]: OffsetZip[MatchOf, T] = t => {
-      val s  = t.map(Shifted(0, _))
-      val s2 = mapWithOff(s) { case (i, el) => Shifted(i, el.wrapped) }
-      val s3 = s2.map(t => (Index(t.off), t.wrapped))
-      s3
-    }
+    implicit def offZipMatch[T: HasSpan]: OffsetZip[MatchOf, T] =
+      t => {
+        val s  = t.map(Shifted(0, _))
+        val s2 = mapWithOff(s) { case (i, el) => Shifted(i, el.wrapped) }
+        val s3 = s2.map(t => (Index(t.off), t.wrapped))
+        s3
+      }
 
     import HasSpan.implicits._
-    implicit def span[T: HasSpan]: HasSpan[MatchOf[T]] = t => {
-      t.toStream.span()
-    }
+    implicit def span[T: HasSpan]: HasSpan[MatchOf[T]] =
+      t => {
+        t.toStream.span()
+      }
 
     val M = Match
-    // format: off
-    def mapWithOff[T:HasSpan](self:MatchOf[T])(f: (Int,T) => T): MatchOf[T] =
-      mapWithOff_(self)(f,0)._1
+    def mapWithOff[T: HasSpan](self: MatchOf[T])(f: (Int, T) => T): MatchOf[T] =
+      mapWithOff_(self)(f, 0)._1
 
-    def mapWithOff_[T:HasSpan](self:MatchOf[T])(f: (Int,T) => T, off:Int): (MatchOf[T], Int) = self match {
-      // TODO: [MWU] code below could likely be cleaned up with macro usage
-      case m: M.Build[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: M.Err[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: M.Tok[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: M.Blank[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: M.Var[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: M.Cons[T]    => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: M.Opr[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: M.Mod[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: M.Num[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: M.Text[T]    => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: M.Block[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: M.Macro[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: M.Invalid[T] => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
-      case m: Pattern.MatchOf[T] =>
-        var loff = off
-        val out  = m.mapStructShallow {p =>
-          val (nmatch, noff) = mapWithOff_(p)(f, loff)
-          loff = noff
-          nmatch
-        }
-        (out, loff)
-    }
-    // format: on
+    def mapWithOff_[T: HasSpan](
+      self: MatchOf[T]
+    )(f: (Int, T) => T, off: Int): (MatchOf[T], Int) =
+      self match {
+        // TODO: [MWU] code below could likely be cleaned up with macro usage
+        case m: M.Build[T] =>
+          (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Err[T] => (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Tok[T] => (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Blank[T] =>
+          (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Var[T] => (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Cons[T] =>
+          (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Opr[T] => (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Mod[T] => (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Num[T] => (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Text[T] =>
+          (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Block[T] =>
+          (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Macro[T] =>
+          (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: M.Invalid[T] =>
+          (m.copy(elem = f(off, m.elem)), off + m.elem.span())
+        case m: Pattern.MatchOf[T] =>
+          var loff = off
+          val out = m.mapStructShallow { p =>
+            val (nmatch, noff) = mapWithOff_(p)(f, loff)
+            loff = noff
+            nmatch
+          }
+          (out, loff)
+      }
   }
   object _MatchOf {
     def ftorMatch: Functor[MatchOf]  = semi.functor

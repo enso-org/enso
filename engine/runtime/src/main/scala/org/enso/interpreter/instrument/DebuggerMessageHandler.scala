@@ -2,17 +2,9 @@ package org.enso.interpreter.instrument
 
 import java.nio.ByteBuffer
 
-import com.oracle.truffle.api.TruffleStackTrace.LazyStackTrace
-import com.oracle.truffle.api.{TruffleStackTrace, TruffleStackTraceElement}
-import com.oracle.truffle.api.nodes.RootNode
+import com.oracle.truffle.api.TruffleStackTrace
 import org.enso.interpreter.instrument.ReplDebuggerInstrument.ReplExecutionEventNode
-import org.enso.polyglot.debugger.{
-  Debugger,
-  EvaluationRequest,
-  ListBindingsRequest,
-  Request,
-  SessionExitRequest
-}
+import org.enso.polyglot.debugger._
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import scala.jdk.CollectionConverters._

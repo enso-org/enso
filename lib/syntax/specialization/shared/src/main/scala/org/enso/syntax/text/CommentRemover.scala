@@ -14,7 +14,7 @@ class CommentRemover(input: String) {
     val result                             = new StringBuilder(input.length)
 
     while (it.hasNext) {
-      val char: Char = it.next
+      val char: Char = it.next()
       if (char != '\n' && currentState == CommentRemover.InComment) {
         result.addOne(' ')
       } else if (currentState == CommentRemover.Base && char == '#') {

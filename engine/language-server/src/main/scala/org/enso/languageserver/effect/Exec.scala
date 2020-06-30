@@ -55,7 +55,7 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     * @return a future containing either a failure or a result
     */
   override def exec[E, A](op: ZIO[ZEnv, E, A]): Future[Either[E, A]] = {
-    val promise = Promise[Either[E, A]]
+    val promise = Promise[Either[E, A]]()
     runtime.unsafeRunAsync(op) {
       _.fold(
         ZioExec.completeFailure(promise, _),
@@ -77,7 +77,7 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     timeout: FiniteDuration,
     op: ZIO[ZEnv, E, A]
   ): Future[Either[E, A]] = {
-    val promise = Promise[Either[E, A]]
+    val promise = Promise[Either[E, A]]()
     runtime.unsafeRunAsync(
       op.disconnect.timeout(zio.duration.Duration.fromScala(timeout))
     ) {

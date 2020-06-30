@@ -15,6 +15,7 @@ import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 
+import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext
 import scala.util.Failure
 import scala.util.Success
@@ -65,6 +66,7 @@ trait Server {
     *
     * The request's URI is not checked.
     */
+  @nowarn("cat=deprecation")
   val handleRequest: HttpRequest => HttpResponse = {
     case req @ HttpRequest(GET, _, _, _, _) =>
       req.header[UpgradeToWebSocket] match {

@@ -1,13 +1,13 @@
 package org.enso.interpreter.instrument.execution
 
 import java.util.UUID
-import java.util.concurrent.{Callable, Executors}
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.{Callable, Executors}
 import java.util.logging.Level
 
 import org.enso.interpreter.instrument.InterpreterContext
 import org.enso.interpreter.instrument.job.Job
-import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
+import org.enso.polyglot.RuntimeServerInfo
 
 import scala.concurrent.{Future, Promise}
 import scala.util.control.NonFatal
@@ -52,7 +52,7 @@ class JobExecutionEngine(
       locking          = locking
     )
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def run[A](job: Job[A]): Future[A] = {
     val jobId   = UUID.randomUUID()
     val promise = Promise[A]()
@@ -78,7 +78,7 @@ class JobExecutionEngine(
     promise.future
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def abortAllJobs(): Unit = {
     val allJobs         = runningJobsRef.get()
     val cancellableJobs = allJobs.filter(_.job.isCancellable)
@@ -89,7 +89,7 @@ class JobExecutionEngine(
       .checkInterrupts()
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def abortJobs(contextId: UUID): Unit = {
     val allJobs     = runningJobsRef.get()
     val contextJobs = allJobs.filter(_.job.contextIds.contains(contextId))
@@ -102,7 +102,7 @@ class JobExecutionEngine(
       .checkInterrupts()
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def stop(): Unit = {
     val allJobs = runningJobsRef.get()
     allJobs.foreach(_.future.cancel(true))
