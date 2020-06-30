@@ -18,7 +18,7 @@ class FreshNameSupplyTest extends CompilerTest {
         val newName = fns.newName()
 
         if (seenNames contains newName) {
-          fail
+          fail()
         }
 
         succeed

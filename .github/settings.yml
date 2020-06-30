@@ -207,6 +207,16 @@ branches:
       required_status_checks:
         # Require branches to be up to date before merging.
         strict: true
-        contexts: ["Test Engine (macOS-latest)", "Test Engine (ubuntu-latest)", "Build Engine", "Test Parser (macOS-latest)", "Test Parser (ubuntu-latest)", " Test Parser (windows-latest) ", "license/cla"]
+        contexts:
+        - "Test Engine (macOS-latest)"
+        - "Test Engine (ubuntu-latest)"
+        - "Test Engine (windows-latest)"
+        - "Build Engine"
+        - "Rust Test Native (macOS-latest)"
+        - "Rust Test Native (ubuntu-latest)"
+        - "Rust Test Native (windows-latest)"
+        - "Rust Test WASM"
+        - "Rust Lint"
+        - "license/cla"
       enforce_admins: null
       restrictions: null

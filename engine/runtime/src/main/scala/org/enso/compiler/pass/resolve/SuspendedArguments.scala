@@ -13,7 +13,7 @@ import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.TypeSignatures.Signature
 
-import scala.annotation.{nowarn, unused}
+import scala.annotation.unused
 
 /** This pass is responsible for analysing type signatures to determine which
   * arguments in a function definition are suspended.
@@ -70,9 +70,10 @@ case object SuspendedArguments extends IRPass {
   override def runModule(
     ir: IR.Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module = ir.copy(
-    bindings = ir.bindings.map(resolveModuleBinding)
-  )
+  ): IR.Module =
+    ir.copy(
+      bindings = ir.bindings.map(resolveModuleBinding)
+    )
 
   /** Resolves suspended arguments in an arbitrary expression.
     *
@@ -187,12 +188,12 @@ case object SuspendedArguments extends IRPass {
   def toSegments(signature: IR.Expression): List[IR.Expression] = {
     signature match {
       case IR.Application.Operator.Binary(
-          l,
-          IR.Name.Literal("->", _, _, _),
-          r,
-          _,
-          _,
-          _
+            l,
+            IR.Name.Literal("->", _, _, _),
+            r,
+            _,
+            _,
+            _
           ) =>
         l.value :: toSegments(r.value)
       case IR.Function.Lambda(args, body, _, _, _, _) =>
@@ -222,15 +223,16 @@ case object SuspendedArguments extends IRPass {
     */
   def markSuspended(
     pair: (IR.DefinitionArgument, IR.Expression)
-  ): IR.DefinitionArgument = pair match {
-    case (arg, typ) =>
-      arg match {
-        case spec: IR.DefinitionArgument.Specified =>
-          if (representsSuspended(typ)) {
-            spec.copy(suspended = true)
-          } else spec.copy(suspended = false)
-      }
-  }
+  ): IR.DefinitionArgument =
+    pair match {
+      case (arg, typ) =>
+        arg match {
+          case spec: IR.DefinitionArgument.Specified =>
+            if (representsSuspended(typ)) {
+              spec.copy(suspended = true)
+            } else spec.copy(suspended = false)
+        }
+    }
 
   /** Computes the suspensions for the arguments list of a function.
     *

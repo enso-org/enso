@@ -12,9 +12,6 @@ import org.enso.interpreter.service.ExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.graalvm.polyglot.io.MessageEndpoint
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
-
 /**
   * A message endpoint implementation used by the
   * [[org.enso.interpreter.instrument.RuntimeServerInstrument]].
