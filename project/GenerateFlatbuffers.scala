@@ -2,6 +2,7 @@ import java.io.IOException
 
 import sbt.Keys._
 import sbt._
+import sbt.internal.util.ManagedLogger
 import sbt.util.FilesInfo
 
 import scala.sys.process._
@@ -12,7 +13,13 @@ object GenerateFlatbuffers {
   private val flatcCmd = "flatc"
 
   lazy val task = Def.task {
-    verifyFlatcVersion(flatcVersion.value)
+    val log = state.value.log
+    verifyFlatcVersion(flatcVersion.value) match {
+      case Left(explanation) =>
+        log.error(explanation)
+        throw new RuntimeException("flatc version check failed.")
+      case Right(_) =>
+    }
 
     val root = baseDirectory.value
     val schemas =
@@ -23,7 +30,7 @@ object GenerateFlatbuffers {
     val schemaSourcesStore =
       streams.value.cacheStoreFactory.make("flatc_schemas")
     val out              = (sourceManaged in Compile).value
-    val generatedSources = gatherGeneratedSources(schemas, out)
+    val generatedSources = gatherGeneratedSources(schemas, out, log)
 
     Tracked.diffOutputs(generatedSourcesStore, FileInfo.exists)(
       generatedSources
@@ -43,8 +50,9 @@ object GenerateFlatbuffers {
         }
 
         val projectName = name.value
-        println(
-          f"*** Flatbuffers code generation generated ${generatedSources.size} files in project $projectName"
+        log.info(
+          "*** Flatbuffers code generation generated " +
+          s"${generatedSources.size} files in project $projectName"
         )
       }
     }
@@ -73,26 +81,30 @@ object GenerateFlatbuffers {
     *
     * @param expectedVersion flatc version that is expected to be installed,
     *                        should be based on project settings
+    * @return either an error message explaining what is wrong with the flatc
+    *         version or Unit meaning it is correct
     */
-  private def verifyFlatcVersion(expectedVersion: String): Unit = {
+  def verifyFlatcVersion(expectedVersion: String): Either[String, Unit] = {
     val cmd = f"$flatcCmd --version"
     val versionStr =
       try {
         cmd.!!.trim
       } catch {
-        case ex @ (_: RuntimeException | _: IOException) =>
-          println("flatc version check failed. Make sure flatc is in your PATH")
-          throw new RuntimeException("Could not check flatc version", ex)
+        case _ @(_: RuntimeException | _: IOException) =>
+          return Left(
+            "flatc version check failed. Make sure flatc is in your PATH"
+          )
       }
 
     val expectedVersionStr = s"flatc version $expectedVersion"
     if (expectedVersionStr != versionStr) {
-      println("flatc version mismatch.")
-      println(
-        s"$expectedVersionStr is expected, but it seems $versionStr is installed"
+      return Left(
+        s"flatc version mismatch. $expectedVersionStr is expected, " +
+        s"but it seems $versionStr is installed"
       )
-      throw new RuntimeException("flatc version mismatch")
     }
+
+    Right(())
   }
 
   /** Parses the Make rules returned by flatc to get a list of affected files.
@@ -149,7 +161,8 @@ object GenerateFlatbuffers {
     */
   private def gatherGeneratedSources(
     schemas: Seq[File],
-    out: File
+    out: File,
+    log: ManagedLogger
   ): Set[File] = {
     val affectedSources =
       schemas.flatMap { schema =>
@@ -161,7 +174,7 @@ object GenerateFlatbuffers {
           } catch {
             case ex: RuntimeException =>
               val exitCode = cmdMakeRules.! // Note [flatc Error Reporting]
-              println(
+              log.error(
                 s"flatc on ${schema.getAbsolutePath} failed with exit code $exitCode"
               )
               throw ex
@@ -171,8 +184,8 @@ object GenerateFlatbuffers {
           case Left(errorMessage) =>
             val exceptionMessage =
               s"Cannot parse flatc Make rules, flatc command: $cmdMakeRules"
-            println(exceptionMessage)
-            println(errorMessage)
+            log.error(exceptionMessage)
+            log.error(errorMessage)
             throw new RuntimeException(exceptionMessage)
           case Right(affectedSources) => affectedSources
         }

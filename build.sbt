@@ -730,9 +730,11 @@ lazy val runtime = (project in file("engine/runtime"))
         "-Dgraalvm.locatorDisabled=true"
       ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
-    Global / onLoad := JVMCheck.addVersionCheck(graalVersion, javaVersion)(
-        (Global / onLoad).value
-      )
+    Global / onLoad := EnvironmentCheck.addVersionCheck(
+        graalVersion,
+        javaVersion,
+        flatbuffersVersion
+      )((Global / onLoad).value)
   )
   .settings(
     (Compile / javacOptions) ++= Seq(

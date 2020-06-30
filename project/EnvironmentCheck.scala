@@ -1,7 +1,7 @@
 import sbt._
 import sbt.internal.util.ManagedLogger
 
-object JVMCheck {
+object EnvironmentCheck {
 
   /** Compares the version of JVM running sbt with the GraalVM versions defined
     * in project configuration and reports errors if the versions do not match.
@@ -15,6 +15,7 @@ object JVMCheck {
   def checkVersions(
     expectedGraalVersion: String,
     expectedJavaVersion: String,
+    expectedFlatbuffersVersion: String,
     log: ManagedLogger
   ): Unit = {
     val javaSpecificationVersion =
@@ -55,6 +56,16 @@ object JVMCheck {
         " GraalVM before attempting compilation ==="
       )
     }
+
+    GenerateFlatbuffers.verifyFlatcVersion(expectedFlatbuffersVersion) match {
+      case Left(explanation) =>
+        log.error(explanation)
+        log.error(
+          "=== Please make sure to install a correct version of" +
+          " flatc before attempting compilation ==="
+        )
+      case Right(_) =>
+    }
   }
 
   /**
@@ -62,17 +73,22 @@ object JVMCheck {
     *
     * @param graalVersion the GraalVM version that should be used for
     *                     building this project
-    * @param javaVersion  the Java version of the used GraalVM distribution
+    * @param javaVersion the Java version of the used GraalVM distribution
+    * @param flatbuffersVersion the Flatbuffers library version
     * @param oldTransition the state transition to be augmented
     * @return an augmented state transition that does all the state changes of
     *         oldTransition but also runs the GraalVM version check
     */
-  def addVersionCheck(graalVersion: String, javaVersion: String)(
+  def addVersionCheck(
+    graalVersion: String,
+    javaVersion: String,
+    flatbuffersVersion: String
+  )(
     oldTransition: State => State
   ): State => State =
     (state: State) => {
       val newState = oldTransition(state)
-      checkVersions(graalVersion, javaVersion, newState.log)
+      checkVersions(graalVersion, javaVersion, flatbuffersVersion, newState.log)
       newState
     }
 }
