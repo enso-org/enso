@@ -146,12 +146,13 @@ lazy val enso = (project in file("."))
 
 // === Akka ===================================================================
 
-def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name" % akkaVersion
-def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name" % akkaHTTPVersion
+def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name"  % akkaVersion
+def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name"  % akkaHTTPVersion
 val akkaURL                   = "com.typesafe.akka"
 val akkaVersion               = "2.6.6"
 val akkaHTTPVersion           = "10.2.0-RC1"
 val akkaMockSchedulerVersion  = "0.5.5"
+val slf4jVersion              = "1.7.30"
 val akkaActor                 = akkaPkg("actor")
 val akkaStream                = akkaPkg("stream")
 val akkaTyped                 = akkaPkg("actor-typed")
@@ -160,8 +161,16 @@ val akkaSLF4J                 = akkaPkg("slf4j")
 val akkaTestkitTyped          = akkaPkg("actor-testkit-typed") % Test
 val akkaHttp                  = akkaHTTPPkg("http")
 val akkaSpray                 = akkaHTTPPkg("http-spray-json")
+val slf4jImplementation       = "org.slf4j"                    % "slf4j-simple" % slf4jVersion
 val akka =
-  Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
+  Seq(
+    akkaActor,
+    akkaStream,
+    akkaHttp,
+    akkaSpray,
+    akkaTyped,
+    slf4jImplementation
+  )
 
 // === Cats ===================================================================
 
