@@ -176,6 +176,11 @@ object SearchProtocol {
 
     override val values = findValues
 
+    /** Create API kind from the [[Suggestion.Kind]]
+      *
+      * @param kind the suggestion kind
+      * @return the API kind
+      */
     def apply(kind: Suggestion.Kind): SuggestionKind =
       kind match {
         case Suggestion.Kind.Atom     => Atom
@@ -184,6 +189,11 @@ object SearchProtocol {
         case Suggestion.Kind.Local    => Local
       }
 
+    /** Convert from API kind to [[Suggestion.Kind]]
+      *
+      * @param kind the API kind
+      * @return the suggestion kind
+      */
     def toSuggestion(kind: SuggestionKind): Suggestion.Kind =
       kind match {
         case Atom     => Suggestion.Kind.Atom
@@ -230,7 +240,7 @@ object SearchProtocol {
     * @param module the edited module
     * @param position the cursor position
     * @param selfType filter entries matching the self type
-    * @param returnType filter entries matching the reutrn type
+    * @param returnType filter entries matching the return type
     * @param tags filter entries by suggestion type
     */
   case class Completion(

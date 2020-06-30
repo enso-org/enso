@@ -47,6 +47,10 @@ case class SuggestionRow(
   scopeEnd: Option[Int]
 )
 
+/** A row in the versions table.
+  *
+  * @param id the row id
+  */
 case class VersionRow(id: Option[Long])
 
 /** The type of a suggestion. */
@@ -57,6 +61,11 @@ object SuggestionKind {
   val FUNCTION: Byte = 2
   val LOCAL: Byte    = 3
 
+  /** Create a database suggestion kind.
+    *
+    * @param kind the suggestion kind
+    * @return the representation of the suggestion kind in the database
+    */
   def apply(kind: Suggestion.Kind): Byte =
     kind match {
       case Suggestion.Kind.Atom     => ATOM
@@ -120,11 +129,13 @@ final class SuggestionsTable(tag: Tag)
   def returnTypeIdx = index("return_type_idx", name)
 }
 
+/** The schema of the versions table. */
+@nowarn("msg=multiarg infix syntax")
 final class VersionsTable(tag: Tag) extends Table[VersionRow](tag, "version") {
 
   def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
 
-  def * = id.?.<>(VersionRow.apply, VersionRow.unapply)
+  def * = id.? <> (VersionRow.apply, VersionRow.unapply)
 }
 
 object arguments extends TableQuery(new ArgumentsTable(_))
