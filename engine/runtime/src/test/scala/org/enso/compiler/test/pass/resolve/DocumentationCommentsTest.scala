@@ -215,7 +215,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |        IO.println "foo"
           |        ## the return
           |        0
-          |        
+          |
           |    f = case _ of
           |        ## case 1
           |        Bar -> 100
@@ -223,7 +223,6 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |        _ -> 50
           |""".stripMargin.preprocessModule
 
-      println(ir)
       val t1 = ir.bindings(0)
       getDoc(t1) shouldEqual " the constructor Bar"
       inside(ir.bindings(1)) {
