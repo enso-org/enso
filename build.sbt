@@ -161,16 +161,16 @@ val akkaSLF4J                 = akkaPkg("slf4j")
 val akkaTestkitTyped          = akkaPkg("actor-testkit-typed") % Test
 val akkaHttp                  = akkaHTTPPkg("http")
 val akkaSpray                 = akkaHTTPPkg("http-spray-json")
-val slf4jImplementation       = "org.slf4j"                    % "slf4j-simple" % slf4jVersion
+val slf4jImplementation       = "org.slf4j"                    % "slf4j-simple" % slf4jVersion % Test
+val akkaTest                  = Seq(slf4jImplementation)
 val akka =
   Seq(
     akkaActor,
     akkaStream,
     akkaHttp,
     akkaSpray,
-    akkaTyped,
-    slf4jImplementation
-  )
+    akkaTyped
+  ) ++ akkaTest
 
 // === Cats ===================================================================
 
@@ -604,7 +604,7 @@ lazy val searcher = project
   .in(file("lib/searcher"))
   .configs(Test)
   .settings(
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= akkaTest ++ Seq(
         "com.typesafe.slick" %% "slick"       % slickVersion,
         "org.xerial"          % "sqlite-jdbc" % sqliteVersion,
         "org.scalatest"      %% "scalatest"   % scalatestVersion % Test
@@ -686,6 +686,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     inConfig(Benchmark)(Defaults.testSettings),
     bench := (test in Benchmark).value,
+    libraryDependencies ++= akkaTest,
     libraryDependencies += "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
     testFrameworks ++= List(
         new TestFramework("org.scalameter.ScalaMeterFramework")
