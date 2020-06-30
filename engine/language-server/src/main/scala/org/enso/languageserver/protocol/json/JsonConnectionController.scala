@@ -267,7 +267,7 @@ class JsonConnectionController(
         .props(requestTimeout, suggestionsHandler),
       GetSuggestionsDatabase -> search.GetSuggestionsDatabaseHandler
         .props(requestTimeout, suggestionsHandler),
-      Completion -> search.CompleteHandler
+      Completion -> search.CompletionHandler
         .props(requestTimeout, suggestionsHandler),
       AttachVisualisation -> AttachVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),

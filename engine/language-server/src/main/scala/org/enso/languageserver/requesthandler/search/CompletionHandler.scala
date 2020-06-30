@@ -14,12 +14,12 @@ import org.enso.languageserver.util.UnhandledLogging
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for `search/getSuggestionsDatabaseVersion` command.
+  * A request handler for `search/completion` command.
   *
   * @param timeout request timeout
   * @param suggestionsHandler a reference to the suggestions handler
   */
-class CompleteHandler(
+class CompletionHandler(
   timeout: FiniteDuration,
   suggestionsHandler: ActorRef
 ) extends Actor
@@ -54,7 +54,7 @@ class CompleteHandler(
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(ex, "Complete error")
+      log.error(ex, "Search completion error")
       replyTo ! ResponseError(Some(id), SuggestionsDatabaseError)
       cancellable.cancel()
       context.stop(self)
@@ -75,10 +75,10 @@ class CompleteHandler(
   }
 }
 
-object CompleteHandler {
+object CompletionHandler {
 
   /**
-    * Creates configuration object used to create a [[CompleteHandler]].
+    * Creates configuration object used to create a [[CompletionHandler]].
     *
     * @param timeout request timeout
     * @param suggestionsHandler a reference to the suggestions handler
@@ -87,6 +87,6 @@ object CompleteHandler {
     timeout: FiniteDuration,
     suggestionsHandler: ActorRef
   ): Props =
-    Props(new CompleteHandler(timeout, suggestionsHandler))
+    Props(new CompletionHandler(timeout, suggestionsHandler))
 
 }
