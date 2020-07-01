@@ -469,8 +469,10 @@ class ProjectManagementApiSpec
       Await.result(future, 5.seconds)
       val projectDir  = new File(userProjectDir, "bar")
       val packageFile = new File(projectDir, "package.yaml")
-      val lines       = Source.fromFile(packageFile).getLines()
+      val buffer      = Source.fromFile(packageFile)
+      val lines       = buffer.getLines()
       lines.contains("name: Bar") shouldBe true
+      buffer.close()
       //teardown
       deleteProject(projectId)
     }
