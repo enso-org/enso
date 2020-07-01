@@ -14,3 +14,5 @@ dependencies, and Enso projects for use by our users.
   to our users, and for use by the [IDE](https://github.com/enso-org/ide).
 - [**Packaging:**](./packaging.md) Information on the structure of an Enso
   project/package.
+- [**Release Policy:**](./release-policy.md) Information on the release policy
+  for Enso and this repository.

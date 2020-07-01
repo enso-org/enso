@@ -212,11 +212,37 @@ branches:
         - "Test Engine (ubuntu-latest)"
         - "Test Engine (windows-latest)"
         - "Build Engine"
+        - "Rust Check"
+        - "Rust Lint"
         - "Rust Test Native (macOS-latest)"
         - "Rust Test Native (ubuntu-latest)"
         - "Rust Test Native (windows-latest)"
         - "Rust Test WASM"
+        - "license/cla"
+      enforce_admins: null
+      restrictions: null
+  - name: "release/*"
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: false
+        require_code_owner_reviews: true
+        dismissal_restrictions: {}
+
+      required_status_checks:
+        # Require branches to be up to date before merging.
+        strict: true
+        contexts:
+        - "Test Engine (macOS-latest)"
+        - "Test Engine (ubuntu-latest)"
+        - "Test Engine (windows-latest)"
+        - "Build Engine"
+        - "Rust Check"
         - "Rust Lint"
+        - "Rust Test Native (macOS-latest)"
+        - "Rust Test Native (ubuntu-latest)"
+        - "Rust Test Native (windows-latest)"
+        - "Rust Test WASM"
         - "license/cla"
       enforce_admins: null
       restrictions: null
