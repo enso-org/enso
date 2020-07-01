@@ -2,16 +2,7 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.pipe
-import org.enso.languageserver.runtime.SearchProtocol.{
-  Completion,
-  CompletionResult,
-  GetSuggestionsDatabase,
-  GetSuggestionsDatabaseResult,
-  GetSuggestionsDatabaseVersion,
-  GetSuggestionsDatabaseVersionResult,
-  SuggestionKind,
-  SuggestionsDatabaseUpdate
-}
+import org.enso.languageserver.runtime.SearchProtocol._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
 
@@ -24,17 +15,12 @@ import scala.concurrent.Future
   *
   * @param repo the suggestions repo
   */
-final class SuggestionsHandler(
-  repo: SuggestionsRepo[Future]
-) extends Actor
+final class SuggestionsHandler(repo: SuggestionsRepo[Future])
+    extends Actor
     with ActorLogging
     with UnhandledLogging {
 
   import context.dispatcher
-
-  override def preStart(): Unit = {
-    repo.init
-  }
 
   override def receive: Receive = {
     case GetSuggestionsDatabaseVersion =>

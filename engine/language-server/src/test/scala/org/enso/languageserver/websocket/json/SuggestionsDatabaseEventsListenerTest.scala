@@ -3,8 +3,11 @@ package org.enso.languageserver.websocket.json
 import io.circe.literal._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.Suggestion
+import org.scalatest.BeforeAndAfter
 
-class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
+class SuggestionsDatabaseEventsListenerTest
+    extends BaseServerTest
+    with BeforeAndAfter {
 
   "SuggestionsDatabaseEventListener" must {
 
@@ -35,8 +38,8 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
           "params" : {
             "updates" : [
               {
-                "type" : "Add",
-                "id" : 0,
+                "type" : "SuggestionsDatabaseUpdateAdd",
+                "id" : 1,
                 "suggestion" : {
                   "type" : "atom",
                   "name" : "MyType",
@@ -53,7 +56,7 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
                 }
               }
             ],
-            "currentVersion" : 0
+            "currentVersion" : 1
           }
         }
         """)
@@ -76,8 +79,8 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
           "params" : {
             "updates" : [
               {
-                "type" : "Add",
-                "id" : 0,
+                "type" : "SuggestionsDatabaseUpdateAdd",
+                "id" : 1,
                 "suggestion" : {
                   "type" : "method",
                   "name" : "foo",
@@ -103,7 +106,7 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
                 }
               }
             ],
-            "currentVersion" : 0
+            "currentVersion" : 1
           }
         }
         """)
@@ -126,8 +129,8 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
           "params" : {
             "updates" : [
               {
-                "type" : "Add",
-                "id" : 0,
+                "type" : "SuggestionsDatabaseUpdateAdd",
+                "id" : 1,
                 "suggestion" : {
                   "type" : "function",
                   "name" : "print",
@@ -141,7 +144,7 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
                 }
               }
             ],
-            "currentVersion" : 0
+            "currentVersion" : 1
           }
         }
       """)
@@ -164,8 +167,8 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
           "params" : {
             "updates" : [
               {
-                "type" : "Add",
-                "id" : 0,
+                "type" : "SuggestionsDatabaseUpdateAdd",
+                "id" : 1,
                 "suggestion" : {
                   "type" : "local",
                   "name" : "x",
@@ -177,7 +180,7 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
                 }
               }
             ],
-            "currentVersion" : 0
+            "currentVersion" : 1
           }
         }
         """)
@@ -189,9 +192,11 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
       client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
       client.expectJson(json.ok(0))
 
+      val item = suggestion.local.copy(name = "y")
+
       system.eventStream.publish(
         Api.SuggestionsDatabaseUpdateNotification(
-          Seq(Api.SuggestionsDatabaseUpdate.Remove(suggestion.atom))
+          Seq(Api.SuggestionsDatabaseUpdate.Add(item))
         )
       )
       client.expectJson(json"""
@@ -200,11 +205,40 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
           "params" : {
             "updates" : [
               {
-                "type" : "Delete",
-                "id" : 101
+                "type" : "SuggestionsDatabaseUpdateAdd",
+                "id" : 1,
+                "suggestion" : {
+                  "type" : "local",
+                  "name" : "y",
+                  "returnType" : "Number",
+                  "scope" : {
+                    "start" : 15,
+                    "end" : 17
+                  }
+                }
               }
             ],
-            "currentVersion" : 0
+            "currentVersion" : 1
+          }
+        }
+        """)
+
+      system.eventStream.publish(
+        Api.SuggestionsDatabaseUpdateNotification(
+          Seq(Api.SuggestionsDatabaseUpdate.Remove(item))
+        )
+      )
+      client.expectJson(json"""
+        { "jsonrpc" : "2.0",
+          "method" : "search/suggestionsDatabaseUpdates",
+          "params" : {
+            "updates" : [
+              {
+                "type" : "SuggestionsDatabaseUpdateRemove",
+                "id" : 1
+              }
+            ],
+            "currentVersion" : 2
           }
         }
         """)

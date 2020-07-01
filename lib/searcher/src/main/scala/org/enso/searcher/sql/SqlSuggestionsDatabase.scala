@@ -12,8 +12,13 @@ final class SqlSuggestionsDatabase(
   repo: SqlSuggestionsRepo
 ) extends SuggestionsRepo[Future] {
 
+  /** @inheritdoc */
   override def init: Future[Unit] =
     db.run(repo.init)
+
+  /** @inheritdoc */
+  override def clean: Future[Unit] =
+    db.run(repo.clean)
 
   /** @inheritdoc */
   override def getAll: Future[Seq[SuggestionEntry]] =
@@ -64,15 +69,12 @@ object SqlSuggestionsDatabase {
 
   /** Create the suggestions database.
     *
-    * @param filename the database filename
     * @param ec the execution context
     * @return new instance of suggestions database.
     */
-  def apply(
-    filename: String = SqlDatabase.InMemory
-  )(implicit ec: ExecutionContext): SqlSuggestionsDatabase =
+  def apply()(implicit ec: ExecutionContext): SqlSuggestionsDatabase =
     new SqlSuggestionsDatabase(
-      new SqlDatabase(filename),
+      new SqlDatabase(),
       new SqlSuggestionsRepo()
     )
 }

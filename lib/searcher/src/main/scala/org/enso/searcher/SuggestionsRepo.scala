@@ -6,6 +6,9 @@ trait SuggestionsRepo[F[_]] {
   /** Initialize the repo. */
   def init: F[Unit]
 
+  /** Clean the repo. */
+  def clean: F[Unit]
+
   /** Get current version of the repo. */
   def currentVersion: F[Long]
 

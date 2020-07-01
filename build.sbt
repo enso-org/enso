@@ -462,6 +462,7 @@ lazy val `project-manager` = (project in file("lib/project-manager"))
         "dev.zio"                    %% "zio-interop-cats"    % zioInteropCatsVersion,
         "commons-io"                  % "commons-io"          % commonsIoVersion,
         "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
+        "com.typesafe.slick"         %% "slick-hikaricp"      % slickVersion             % Runtime,
         "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
         "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion      % Test
       ),
@@ -582,9 +583,10 @@ lazy val searcher = project
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
-        "com.typesafe.slick" %% "slick"       % slickVersion,
-        "org.xerial"          % "sqlite-jdbc" % sqliteVersion,
-        "org.scalatest"      %% "scalatest"   % scalatestVersion % Test
+        "com.typesafe.slick" %% "slick"          % slickVersion,
+        "org.xerial"          % "sqlite-jdbc"    % sqliteVersion,
+        "com.typesafe.slick" %% "slick-hikaricp" % slickVersion     % Runtime,
+        "org.scalatest"      %% "scalatest"      % scalatestVersion % Test
       )
   )
 
@@ -647,8 +649,9 @@ lazy val `language-server` = (project in file("engine/language-server"))
         "io.methvin"                  % "directory-watcher"    % directoryWatcherVersion,
         "com.beachape"               %% "enumeratum-circe"     % enumeratumCirceVersion,
         "com.google.flatbuffers"      % "flatbuffers-java"     % flatbuffersVersion,
-        akkaTestkit                   % Test,
         "commons-io"                  % "commons-io"           % commonsIoVersion,
+        akkaTestkit                   % Test,
+        "com.typesafe.slick"         %% "slick-hikaricp"       % slickVersion      % Runtime,
         "org.scalatest"              %% "scalatest"            % scalatestVersion  % Test,
         "org.scalacheck"             %% "scalacheck"           % scalacheckVersion % Test,
         "org.graalvm.sdk"             % "polyglot-tck"         % graalVersion      % "provided"
@@ -832,7 +835,8 @@ lazy val runner = project
         "com.monovore"         %% "decline"                % declineVersion,
         "io.github.spencerpark" % "jupyter-jvm-basekernel" % jupyterJvmBasekernelVersion,
         "org.jline"             % "jline"                  % jlineVersion,
-        "org.typelevel"        %% "cats-core"              % catsVersion
+        "org.typelevel"        %% "cats-core"              % catsVersion,
+        "com.typesafe.slick"   %% "slick-hikaricp"         % slickVersion % Runtime
       ),
     connectInput in run := true
   )

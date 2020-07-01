@@ -1,5 +1,6 @@
 package org.enso.searcher.sql
 
+import com.typesafe.config.{Config, ConfigFactory}
 import org.enso.searcher.Database
 import slick.dbio.DBIO
 import slick.jdbc.SQLiteProfile
@@ -8,16 +9,13 @@ import scala.concurrent.Future
 
 /** Ths SQL database that runs Slick [[DBIO]] queries resulting in a [[Future]].
   *
-  * @param filename the database filename
+  * @param config the configuration
   */
-final class SqlDatabase(filename: String = SqlDatabase.InMemory)
+final class SqlDatabase(config: Option[Config] = None)
     extends Database[DBIO, Future] {
 
-  private val db = SQLiteProfile.api.Database.forURL(
-    url    = s"jdbc:sqlite:file:$filename",
-    driver = "org.sqlite.JDBC"
-    //keepAliveConnection = true
-  )
+  val db = SQLiteProfile.backend.Database
+    .forConfig(SqlDatabase.configPath, config.orNull)
 
   /** @inheritdoc */
   override def run[A](query: DBIO[A]): Future[A] =
@@ -30,5 +28,13 @@ final class SqlDatabase(filename: String = SqlDatabase.InMemory)
 
 object SqlDatabase {
 
-  val InMemory = ":memory:?cache=shared"
+  val configPath: String =
+    "searcher.db"
+
+  def apply(filename: String): SqlDatabase = {
+    val config = ConfigFactory
+      .parseString(s"$configPath.filename = $filename")
+      .withFallback(ConfigFactory.load())
+    new SqlDatabase(Some(config))
+  }
 }

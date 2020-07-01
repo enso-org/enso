@@ -67,11 +67,17 @@ final class SuggestionsDatabaseEventsListener(
       applyDatabaseUpdates(msg)
         .onComplete {
           case Success(notification) =>
-            clients.foreach { clientId =>
-              sessionRouter ! DeliverToJsonController(clientId, notification)
+            if (notification.updates.nonEmpty) {
+              clients.foreach { clientId =>
+                sessionRouter ! DeliverToJsonController(clientId, notification)
+              }
             }
           case Failure(ex) =>
-            log.error(ex, "Error applying suggestion database updates")
+            log.error(
+              ex,
+              "Error applying suggestion database updates: {}",
+              msg.updates
+            )
         }
   }
 

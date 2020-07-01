@@ -24,6 +24,13 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
   override def init: DBIO[Unit] =
     (Suggestions.schema ++ Arguments.schema ++ Versions.schema).createIfNotExists
 
+  override def clean: DBIO[Unit] =
+    for {
+      _ <- Suggestions.delete
+      _ <- Arguments.delete
+      _ <- Versions.delete
+    } yield ()
+
   /** @inheritdoc */
   override def getAll: DBIO[Seq[SuggestionEntry]] = {
     joined.result.map(joinedToSuggestionEntries)

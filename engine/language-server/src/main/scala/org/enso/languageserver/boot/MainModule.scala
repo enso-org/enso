@@ -39,6 +39,7 @@ import org.enso.searcher.sql.SqlSuggestionsDatabase
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
@@ -72,7 +73,11 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   implicit val materializer = SystemMaterializer.get(system)
 
-  val suggestionsDatabase = SqlSuggestionsDatabase()(system.dispatcher)
+  val suggestionsDatabase = {
+    val db = SqlSuggestionsDatabase()(system.dispatcher)
+    Await.ready(db.init, 3.seconds)
+    db
+  }
 
   lazy val sessionRouter =
     system.actorOf(SessionRouter.props(), "session-router")
