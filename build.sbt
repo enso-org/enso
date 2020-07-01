@@ -387,6 +387,9 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
         .value,
     (Test / compile) := (Test / compile)
         .dependsOn(recompileParser)
+        .value,
+    (Benchmark / compile) := (Benchmark / compile)
+        .dependsOn(recompileParser)
         .value
   )
   .jvmSettings(
