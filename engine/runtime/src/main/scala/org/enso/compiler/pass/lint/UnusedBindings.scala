@@ -46,11 +46,8 @@ case object UnusedBindings extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module = {
-    println("runModule")
-    System.out.flush()
+  ): IR.Module =
     ir.mapExpressions(runExpression(_, InlineContext()))
-  }
 
   /** Lints an arbitrary expression.
     *
@@ -63,15 +60,12 @@ case object UnusedBindings extends IRPass {
   override def runExpression(
     ir: IR.Expression,
     inlineContext: InlineContext
-  ): IR.Expression = {
-    println(s"runExpression ${ir.showCode(0)}")
-    System.out.flush()
+  ): IR.Expression =
     ir.transformExpressions {
       case binding: IR.Expression.Binding => lintBinding(binding, inlineContext)
       case function: IR.Function          => lintFunction(function, inlineContext)
       case cse: IR.Case                   => lintCase(cse, inlineContext)
     }
-  }
 
   // === Pass Internals =======================================================
 
@@ -85,8 +79,6 @@ case object UnusedBindings extends IRPass {
     binding: IR.Expression.Binding,
     context: InlineContext
   ): IR.Expression.Binding = {
-    println("BIDNING")
-    System.out.flush()
     val isIgnored = binding
       .unsafeGetMetadata(
         IgnoredBindings,
@@ -123,12 +115,8 @@ case object UnusedBindings extends IRPass {
     function: IR.Function,
     @unused context: InlineContext
   ): IR.Function = {
-    println("HUH")
-    System.out.flush()
     function match {
       case lam @ IR.Function.Lambda(args, body, _, _, _, _) =>
-        println(lam)
-        System.out.flush()
         lam.copy(
           arguments = args.map(lintFunctionArgument(_, context)),
           body      = runExpression(body, context)
@@ -166,8 +154,6 @@ case object UnusedBindings extends IRPass {
       .unsafeAs[AliasAnalysis.Info.Occurrence]
     val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
 
-    println((isUsed, isIgnored, argument))
-    System.out.flush()
     argument match {
       case s @ IR.DefinitionArgument.Specified(name, default, _, _, _, _) =>
         if (!isIgnored && !isUsed) {

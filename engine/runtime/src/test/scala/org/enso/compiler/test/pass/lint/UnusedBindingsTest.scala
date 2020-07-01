@@ -112,24 +112,13 @@ class UnusedBindingsTest extends CompilerTest with Inside {
           |f = x -> 10
           |main =
           |    f 0
-          |""".stripMargin.preprocessModule
+          |""".stripMargin.preprocessModule.lint
 
-      println("Before lint:")
-      println(ir)
-      System.out.flush()
-      val linted = ir.lint
-      System.out.flush()
-      println("After lint:")
-      println(linted)
-      System.out.flush()
-
-      println("Testing stuff")
-
-      inside(linted.bindings.head) {
+      inside(ir.bindings.head) {
         case definition: IR.Module.Scope.Definition.Method.Explicit =>
           inside(definition.body) {
             case f: IR.Function.Lambda =>
-              val lintMeta = f.arguments.head.diagnostics.collect {
+              val lintMeta = f.arguments(1).diagnostics.collect {
                 case u: IR.Warning.Unused.FunctionArgument => u
               }
 
