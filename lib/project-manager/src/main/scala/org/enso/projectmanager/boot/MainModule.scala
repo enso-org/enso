@@ -22,6 +22,7 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
   ProjectIndex
 }
+import org.enso.projectmanager.infrastructure.shutdown.ShutdownHookProcessor
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.protocol.{
   JsonRpc,
@@ -72,6 +73,8 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
       indexStorage
     )
 
+  lazy val shutdownHookProcessor = new ShutdownHookProcessor[F](logging)
+
   lazy val gen = new SystemGenerator[F]
 
   lazy val projectValidator = new MonadicProjectValidator[F]()
@@ -100,7 +103,8 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
       logging,
       clock,
       gen,
-      languageServerService
+      languageServerService,
+      shutdownHookProcessor
     )
 
   lazy val clientControllerFactory =

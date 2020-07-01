@@ -178,7 +178,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
     contextRegistry,
     stdOutController,
     stdErrController,
-    stdInController
+    stdInController,
+    runtimeConnector
   )
 
   lazy val jsonRpcServer =

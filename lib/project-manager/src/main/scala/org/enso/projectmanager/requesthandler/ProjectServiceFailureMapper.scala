@@ -16,16 +16,17 @@ object ProjectServiceFailureMapper {
     * Maps project service failures to JSON RPC errors.
     */
   val mapFailure: ProjectServiceFailure => Error = {
-    case ValidationFailure(msg)  => ProjectNameValidationError(msg)
-    case DataStoreFailure(msg)   => ProjectDataStoreError(msg)
-    case ProjectExists           => ProjectExistsError
-    case ProjectNotFound         => ProjectNotFoundError
-    case ProjectOpenFailed(msg)  => ProjectOpenError(msg)
-    case ProjectCloseFailed(msg) => ProjectCloseError(msg)
-    case ProjectNotOpen          => ProjectNotOpenError
-    case ProjectOpenByOtherPeers => ProjectOpenByOtherPeersError
-    case CannotRemoveOpenProject => CannotRemoveOpenProjectError
-    case ProjectOperationTimeout => ServiceError
+    case ValidationFailure(msg)     => ProjectNameValidationError(msg)
+    case DataStoreFailure(msg)      => ProjectDataStoreError(msg)
+    case ProjectExists              => ProjectExistsError
+    case ProjectNotFound            => ProjectNotFoundError
+    case ProjectOpenFailed(msg)     => ProjectOpenError(msg)
+    case ProjectCloseFailed(msg)    => ProjectCloseError(msg)
+    case ProjectNotOpen             => ProjectNotOpenError
+    case ProjectOpenByOtherPeers    => ProjectOpenByOtherPeersError
+    case CannotRemoveOpenProject    => CannotRemoveOpenProjectError
+    case ProjectOperationTimeout    => ServiceError
+    case LanguageServerFailure(msg) => LanguageServerError(msg)
   }
 
 }

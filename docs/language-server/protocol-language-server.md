@@ -1719,6 +1719,37 @@ null
 #### Errors
 None
 
+## Refactoring
+The language server also provides refactoring operations to restructure an 
+internal body of code.
+
+### `refactoring/renameProject`
+This request is sent from the project manager to the server to refactor project 
+name in an interpreter runtime.
+
+- **Type:** Request
+- **Direction:** Project Manager -> Server
+- **Connection:** Protocol
+- **Visibility:** Private
+
+#### Parameters
+
+```typescript
+{
+  oldName: String;
+  newName: String;
+}
+```
+
+#### Result
+
+```typescript
+null
+```
+
+#### Errors
+None
+
 ## Execution Management Operations
 The execution management portion of the language server API deals with exposing
 fine-grained control over program and expression execution to the clients of

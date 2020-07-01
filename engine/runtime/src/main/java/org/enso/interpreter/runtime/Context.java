@@ -209,6 +209,36 @@ public class Context {
   }
 
   /**
+   * Renames project in packages and modules.
+   *
+   * @param oldName the old project name
+   * @param newName the new project name
+   */
+  public void renameProject(String oldName, String newName) {
+    renamePackages(oldName, newName);
+    topScope.renameProjectInModules(oldName, newName);
+  }
+
+
+  private void renamePackages(String oldName, String newName) {
+    List<Package<TruffleFile>> toChange =
+      packages
+        .stream()
+        .filter(p -> p.config().name().equals(oldName))
+        .collect(Collectors.toList());
+
+    packages.removeAll(toChange);
+
+    List<Package<TruffleFile>> renamed =
+     toChange
+       .stream()
+       .map(p -> p.setPackageName(newName))
+       .collect(Collectors.toList());
+
+    packages.addAll(renamed);
+  }
+
+  /**
    * Fetches a module associated with a given file.
    *
    * @param path the module path to lookup.

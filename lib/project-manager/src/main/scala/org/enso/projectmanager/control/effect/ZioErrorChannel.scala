@@ -34,6 +34,15 @@ class ZioErrorChannel[R] extends ErrorChannel[ZIO[R, +*, +*]] {
     )
 
   /** @inheritdoc **/
+  override def fallbackTo[E, A, B >: A, E1](fa: ZIO[R, E, A])(
+    fallback: E => ZIO[R, E1, B]
+  ): ZIO[R, E1, B] =
+    fa.foldM(
+      failure = { error => fallback(error) },
+      success = ZIO.succeed(_)
+    )
+
+  /** @inheritdoc **/
   override def liftEither[E, A](either: Either[E, A]): ZIO[R, E, A] =
     ZIO.fromEither(either)
 

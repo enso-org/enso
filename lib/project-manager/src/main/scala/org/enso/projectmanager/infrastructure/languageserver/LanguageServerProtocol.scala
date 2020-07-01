@@ -62,6 +62,16 @@ object LanguageServerProtocol {
   case class StopServer(clientId: UUID, projectId: UUID)
 
   /**
+    * A command that kills all running servers.
+    */
+  case object KillThemAll
+
+  /**
+    * Signals that all servers have been killed.
+    */
+  case object AllServersKilled
+
+  /**
     * Base trait for server shutdown results.
     */
   sealed trait ServerShutdownResult
@@ -110,5 +120,58 @@ object LanguageServerProtocol {
     * Signals that check timed out.
     */
   case object CheckTimeout
+
+  /**
+    * A command requesting for project renaming.
+    *
+    * @param projectId the project id
+    * @param oldName the old project name
+    * @param newName the new project name
+    */
+  case class RenameProject(projectId: UUID, oldName: String, newName: String)
+
+  /**
+    * Base trait for project rename results.
+    */
+  sealed trait ProjectRenameResult
+
+  /**
+    * Signals that a project has been renamed successfully.
+    */
+  case object ProjectRenamed extends ProjectRenameResult
+
+  /**
+    * Base trait for project rename failures.
+    */
+  sealed trait ProjectRenameFailure extends ProjectRenameResult
+
+  /**
+    * Signals that a project is not opened.
+    */
+  case object ProjectNotOpened extends ProjectRenameFailure
+
+  /**
+    * Signals that renaming operation timed out.
+    */
+  case object RenameTimeout extends ProjectRenameFailure
+
+  /**
+    * Signals that cannot connect to a language server.
+    */
+  case object CannotConnectToServer extends ProjectRenameFailure
+
+  /**
+    * Signals a failure during project renaming.
+    *
+    * @param code a failure code
+    * @param message a failure message
+    */
+  case class RenameFailure(code: Int, message: String)
+      extends ProjectRenameFailure
+
+  /**
+    * Signals that a language server is unresponsive.
+    */
+  case object ServerUnresponsive extends ProjectRenameFailure
 
 }
