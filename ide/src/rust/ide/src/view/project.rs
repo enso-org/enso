@@ -17,7 +17,7 @@ use ensogl::system::web;
 use enso_frp::io::keyboard::Keyboard;
 use enso_frp::io::keyboard;
 use nalgebra::Vector2;
-use shapely::shared;
+use enso_shapely::shared;
 
 
 

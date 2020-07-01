@@ -28,6 +28,6 @@ pub trait StorageRelation<InternalFormat,ElemType>: Storage {
     type Storage: Debug;
 }
 
-shapely::define_singleton_enum! {
+enso_shapely::define_singleton_enum! {
     AnyStorage {RemoteImage,GpuOnly,Owned}
 }

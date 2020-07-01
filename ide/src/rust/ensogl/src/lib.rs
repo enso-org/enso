@@ -67,9 +67,9 @@ pub mod prelude {
     pub use logger::*;
     pub use logger::AnyLogger;
     pub use logger::disabled::Logger;
-    pub use shapely::CloneRef;
-    pub use shapely::newtype_copy;
-    pub use shapely::shared;
+    pub use enso_shapely::CloneRef;
+    pub use enso_shapely::newtype_copy;
+    pub use enso_shapely::shared;
     pub use super::display::traits::*;
     pub use super::data::container::AddMut;
     pub use super::math::types::*;

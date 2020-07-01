@@ -19,3 +19,4 @@ wasm-pack.log
 
 # JavaScript
 node_modules
+.nvmrc

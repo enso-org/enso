@@ -49,7 +49,7 @@ macro_rules! define_color_space {
         }
 
         impl HasComponentsRepr for $data_name{
-            type ComponentsRepr = ($(shapely::replace!($comp,f32)),*,);
+            type ComponentsRepr = ($(enso_shapely::replace!($comp,f32)),*,);
         }
 
         impl From<$data_name> for ComponentsOf<$data_name> {

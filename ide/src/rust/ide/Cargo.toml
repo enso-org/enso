@@ -8,23 +8,23 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-enso-callback            = { version = "0.1.0"  , path = "../lib/callback"      }
-ensogl                   = { version = "0.1.0"  , path = "../ensogl"            }
-ensogl-core-msdf-sys     = { version = "0.1.0"  , path = "../ensogl/msdf-sys"   }
-ensogl-system-web        = { version = "0.1.0"  , path = "../lib/system/web"    }
-data                     = { version = "0.1.0"  , path = "../lib/data"          }
-enso-frp                 = { version = "0.1.0"  , path = "../lib/frp"           }
-enso-prelude             = { version = "0.1.0"  , path = "../lib/prelude"       }
-graph-editor             = { version = "0.1.0"  , path = "../lib/graph-editor"  }
-logger                   = { version = "0.1.0"  , path = "../lib/logger"        }
-shapely                  = { version = "0.1.0"  , path = "../lib/shapely/impl"  }
+enso-callback            = { version = "0.1.0"  , path = "../lib/callback"     }
+ensogl                   = { version = "0.1.0"  , path = "../ensogl"           }
+ensogl-core-msdf-sys     = { version = "0.1.0"  , path = "../ensogl/msdf-sys"  }
+ensogl-system-web        = { version = "0.1.0"  , path = "../lib/system/web"   }
+data                     = { version = "0.1.0"  , path = "../lib/data"         }
+enso-frp                 = { version = "0.1.0"  , path = "../lib/frp"          }
+enso-prelude             = { version = "0.1.0"                                 }
+graph-editor             = { version = "0.1.0"  , path = "../lib/graph-editor" }
+logger                   = { version = "0.1.0"  , path = "../lib/logger"       }
+enso-shapely             = { version = "0.1.0"                                 }
 
-ast                      = { version = "0.1.0"  , path = "ast/impl"             }
-enso-protocol            = { version = "0.1.0"  , path = "enso-protocol"        }
-json-rpc                 = { version = "0.1.0"  , path = "json-rpc"             }
-parser                   = { version = "0.1.0"  , path = "parser"               }
-utils                    = { version = "0.1.0"  , path = "utils"                }
-span-tree                = { version = "0.1.0"  , path = "span-tree"            }
+ast                      = { version = "0.1.0"  , path = "ast/impl"            }
+enso-protocol            = { version = "0.1.0"  , path = "enso-protocol"       }
+json-rpc                 = { version = "0.1.0"  , path = "json-rpc"            }
+parser                   = { version = "0.1.0"  , path = "parser"              }
+utils                    = { version = "0.1.0"  , path = "utils"               }
+span-tree                = { version = "0.1.0"  , path = "span-tree"           }
 
 bimap                    = { version = "0.4.0"                                               }
 console_error_panic_hook = { version = "0.1.6"                                               }

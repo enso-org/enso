@@ -20,16 +20,11 @@ members = [
     "lib/debug-scenes",
     "lib/graph-editor",
     "lib/eval-tt",
-    "lib/flexer",
     "lib/frp",
     "lib/generics",
     "lib/logger",
-    "lib/macro-utils",
     "lib/math",
     "lib/optics",
-    "lib/prelude",
-    "lib/shapely/impl",
-    "lib/shapely/macros",
     "lib/system/web",
 ]
 

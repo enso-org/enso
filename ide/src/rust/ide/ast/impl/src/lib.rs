@@ -52,7 +52,7 @@ use serde::Deserialize;
 use serde::ser::Serializer;
 use serde::ser::SerializeStruct;
 use serde::Serialize;
-use shapely::*;
+use enso_shapely::*;
 use uuid::Uuid;
 
 /// A sequence of AST nodes, typically the "token soup".

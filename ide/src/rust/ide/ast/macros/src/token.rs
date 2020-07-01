@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-use macro_utils::path_segment_generic_args;
+use enso_macro_utils::path_segment_generic_args;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Expr;

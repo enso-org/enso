@@ -43,6 +43,7 @@ pub mod prelude {
     pub use utils::fail::FallibleResult;
 }
 
+use traits::*;
 use prelude::*;
 
 
