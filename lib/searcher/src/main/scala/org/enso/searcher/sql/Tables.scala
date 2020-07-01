@@ -43,8 +43,8 @@ case class SuggestionRow(
   selfType: Option[String],
   returnType: String,
   documentation: Option[String],
-  scopeStart: Option[Int],
-  scopeEnd: Option[Int]
+  scopeStart: Int,
+  scopeEnd: Int
 )
 
 /** A row in the versions table.
@@ -75,6 +75,11 @@ object SuggestionKind {
     }
 }
 
+object ScopeColumn {
+
+  val EMPTY: Int = -1
+}
+
 /** The schema of the arguments table. */
 @nowarn("msg=multiarg infix syntax")
 final class ArgumentsTable(tag: Tag)
@@ -92,7 +97,7 @@ final class ArgumentsTable(tag: Tag)
     (ArgumentRow.tupled, ArgumentRow.unapply)
 
   def suggestion =
-    foreignKey("suggestion_fk", suggestionId, suggestions)(
+    foreignKey("suggestion_fk", suggestionId, Suggestions)(
       _.id,
       onUpdate = ForeignKeyAction.Restrict,
       onDelete = ForeignKeyAction.Cascade
@@ -110,8 +115,8 @@ final class SuggestionsTable(tag: Tag)
   def selfType      = column[Option[String]]("self_type")
   def returnType    = column[String]("return_type")
   def documentation = column[Option[String]]("documentation")
-  def scopeStart    = column[Option[Int]]("scope_start")
-  def scopeEnd      = column[Option[Int]]("scope_end")
+  def scopeStart    = column[Int]("scope_start", O.Default(ScopeColumn.EMPTY))
+  def scopeEnd      = column[Int]("scope_end", O.Default(ScopeColumn.EMPTY))
   def * =
     (
       id.?,
@@ -127,6 +132,12 @@ final class SuggestionsTable(tag: Tag)
 
   def selfTypeIdx   = index("self_type_idx", selfType)
   def returnTypeIdx = index("return_type_idx", name)
+  def uniqueIdx =
+    index(
+      "suggestion_unique_idx",
+      (kind, name, scopeStart, scopeEnd),
+      unique = true
+    )
 }
 
 /** The schema of the versions table. */
@@ -138,8 +149,8 @@ final class VersionsTable(tag: Tag) extends Table[VersionRow](tag, "version") {
   def * = id.? <> (VersionRow.apply, VersionRow.unapply)
 }
 
-object arguments extends TableQuery(new ArgumentsTable(_))
+object Arguments extends TableQuery(new ArgumentsTable(_))
 
-object suggestions extends TableQuery(new SuggestionsTable(_))
+object Suggestions extends TableQuery(new SuggestionsTable(_))
 
-object versions extends TableQuery(new VersionsTable(_))
+object Versions extends TableQuery(new VersionsTable(_))

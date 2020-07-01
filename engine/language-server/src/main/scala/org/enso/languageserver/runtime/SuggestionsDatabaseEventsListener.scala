@@ -19,6 +19,10 @@ import org.enso.languageserver.runtime.SearchProtocol.{
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.searcher.{Suggestion, SuggestionsRepo}
+
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 /**
   * Event listener listens event stream for the suggestion database
@@ -26,12 +30,16 @@ import org.enso.polyglot.runtime.Runtime.Api
   * is a singleton and created per context registry.
   *
   * @param sessionRouter the session router
+  * @param repo the suggestions repo
   */
 final class SuggestionsDatabaseEventsListener(
-  sessionRouter: ActorRef
+  sessionRouter: ActorRef,
+  repo: SuggestionsRepo[Future]
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
+
+  import context.dispatcher
 
   override def preStart(): Unit = {
     context.system.eventStream
@@ -56,41 +64,50 @@ final class SuggestionsDatabaseEventsListener(
       context.become(withClients(clients - client.clientId))
 
     case msg: Api.SuggestionsDatabaseUpdateNotification =>
-      clients.foreach { clientId =>
-        sessionRouter ! DeliverToJsonController(
-          clientId,
-          SuggestionsDatabaseUpdateNotification(msg.updates.map(toUpdate), 0)
-        )
-      }
+      applyDatabaseUpdates(msg)
+        .onComplete {
+          case Success(notification) =>
+            clients.foreach { clientId =>
+              sessionRouter ! DeliverToJsonController(clientId, notification)
+            }
+          case Failure(ex) =>
+            log.error(ex, "Error applying suggestion database updates")
+        }
   }
 
-  private def toUpdate(
-    update: Api.SuggestionsDatabaseUpdate
-  ): SuggestionsDatabaseUpdate =
-    update match {
-      case Api.SuggestionsDatabaseUpdate.Add(id, suggestion) =>
-        SuggestionsDatabaseUpdate.Add(id, suggestion)
-      case Api.SuggestionsDatabaseUpdate.Modify(
-            id,
-            name,
-            arguments,
-            selfType,
-            returnType,
-            doc,
-            scope
-          ) =>
-        SuggestionsDatabaseUpdate.Modify(
-          id,
-          name,
-          arguments,
-          selfType,
-          returnType,
-          doc,
-          scope
-        )
-      case Api.SuggestionsDatabaseUpdate.Remove(id) =>
-        SuggestionsDatabaseUpdate.Remove(id)
+  private def applyDatabaseUpdates(
+    msg: Api.SuggestionsDatabaseUpdateNotification
+  ): Future[SuggestionsDatabaseUpdateNotification] = {
+    val (added, removed) = msg.updates
+      .foldLeft((Seq[Suggestion](), Seq[Suggestion]())) {
+        case ((add, remove), msg: Api.SuggestionsDatabaseUpdate.Add) =>
+          (add :+ msg.suggestion, remove)
+        case ((add, remove), msg: Api.SuggestionsDatabaseUpdate.Remove) =>
+          (add, remove :+ msg.suggestion)
+      }
+
+    for {
+      addedIds   <- repo.insertAll(added)
+      removedIds <- repo.removeAll(removed)
+      version    <- repo.currentVersion
+    } yield {
+      val updatesAdded =
+        (addedIds zip added).flatMap {
+          case (Some(id), suggestion) =>
+            Some(SuggestionsDatabaseUpdate.Add(id, suggestion))
+          case (None, suggestion) =>
+            log.error("failed to insert suggestion: {}", suggestion)
+            None
+        }
+      val updatesRemoved = removedIds.collect {
+        case Some(id) => SuggestionsDatabaseUpdate.Remove(id)
+      }
+      SuggestionsDatabaseUpdateNotification(
+        updatesAdded ++ updatesRemoved,
+        version
+      )
     }
+  }
 }
 
 object SuggestionsDatabaseEventsListener {
@@ -100,8 +117,9 @@ object SuggestionsDatabaseEventsListener {
     * [[SuggestionsDatabaseEventsListener]].
     *
     * @param sessionRouter the session router
+    * @param repo the suggestions repo
     */
-  def props(sessionRouter: ActorRef): Props =
-    Props(new SuggestionsDatabaseEventsListener(sessionRouter))
+  def props(sessionRouter: ActorRef, repo: SuggestionsRepo[Future]): Props =
+    Props(new SuggestionsDatabaseEventsListener(sessionRouter, repo))
 
 }

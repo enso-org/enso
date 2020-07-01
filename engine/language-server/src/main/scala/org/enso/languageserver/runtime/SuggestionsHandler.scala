@@ -13,8 +13,9 @@ import org.enso.languageserver.runtime.SearchProtocol.{
   SuggestionsDatabaseUpdate
 }
 import org.enso.languageserver.util.UnhandledLogging
-import org.enso.searcher.SuggestionEntry
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
+
+import scala.concurrent.Future
 
 /**
   * The handler of search requests.
@@ -22,11 +23,9 @@ import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
   * Handler initializes the database and responds to the search requests.
   *
   * @param repo the suggestions repo
-  * @param db the database runner
   */
 final class SuggestionsHandler(
-  repo: SqlSuggestionsRepo,
-  db: SqlDatabase
+  repo: SuggestionsRepo[Future]
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -34,17 +33,12 @@ final class SuggestionsHandler(
   import context.dispatcher
 
   override def preStart(): Unit = {
-    db.run(repo.init)
-  }
-
-  override def postStop(): Unit = {
-    db.close()
+    repo.init
   }
 
   override def receive: Receive = {
     case GetSuggestionsDatabaseVersion =>
-      db
-        .run(repo.currentVersion)
+      repo.currentVersion
         .map(GetSuggestionsDatabaseVersionResult)
         .pipeTo(sender())
 
@@ -53,8 +47,7 @@ final class SuggestionsHandler(
         entries <- repo.getAll
         version <- repo.currentVersion
       } yield (entries, version)
-      db
-        .run(query)
+      query
         .map(Function.tupled(toGetSuggestionsDatabaseResult))
         .pipeTo(sender())
 
@@ -64,8 +57,7 @@ final class SuggestionsHandler(
         entries <- repo.search(selfType, returnType, kinds)
         version <- repo.currentVersion
       } yield (entries, version)
-      db
-        .run(query)
+      query
         .map(CompletionResult.tupled)
         .pipeTo(sender())
   }
@@ -87,12 +79,8 @@ object SuggestionsHandler {
     * Creates a configuration object used to create a [[SuggestionsHandler]].
     *
     * @param repo the suggestions repo
-    * @param db the database runner
     */
-  def props(
-    repo: SqlSuggestionsRepo,
-    db: SqlDatabase
-  ): Props =
-    Props(new SuggestionsHandler(repo, db))
+  def props(repo: SuggestionsRepo[Future]): Props =
+    Props(new SuggestionsHandler(repo))
 
 }

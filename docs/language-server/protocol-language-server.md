@@ -337,22 +337,22 @@ The update of the suggestions database.
 
 ```typescript
 // The kind of the suggestions database update.
-type SuggestionsDatabaseUpdateKind
-  = Add
-  | Update
-  | Delete
+type SuggestionsDatabaseUpdate
+  = SuggestionsDatabaseUpdateAdd
+  | SuggestionsDatabaseUpdateRemove
 
-interface SuggestionsDatabaseUpdate {
+interface SuggestionsDatabaseUpdateAdd {
   // suggestion entry id
   id: number;
-  kind: SuggestionsDatabaseUpdateKind;
-  name?: string;
-  module?: string;
-  arguments?: [SuggestionEntryArgument];
-  selfType?: string;
-  returnType?: string;
-  documentation?: string;
-  scope?: SuggestionEntryScope;
+  // suggestion entry
+  suggestion: SuggestionEntry;
+}
+
+interface SuggestionsDatabaseUpdateRemove {
+  // suggestion entry id
+  id: number;
+  // suggestion entry
+  suggestion: SuggestionEntry;
 }
 ```
 

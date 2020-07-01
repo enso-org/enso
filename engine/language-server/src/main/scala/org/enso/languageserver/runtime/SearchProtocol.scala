@@ -16,7 +16,7 @@ object SearchProtocol {
 
     /** Create or replace the database entry.
       *
-      * @param id suggestion id
+      * @param id the suggestion id
       * @param suggestion the new suggestion
       */
     case class Add(id: SuggestionId, suggestion: Suggestion)
@@ -46,7 +46,7 @@ object SearchProtocol {
       returnType: Option[String],
       documentation: Option[String],
       scope: Option[Suggestion.Scope]
-    ) extends SuggestionsDatabaseUpdate
+    )
 
     private object CodecField {
 
@@ -55,11 +55,9 @@ object SearchProtocol {
 
     private object CodecType {
 
-      val Add = "Add"
+      val Add = "SuggestionsDatabaseUpdateAdd"
 
-      val Delete = "Delete"
-
-      val Update = "Update"
+      val Remove = "SuggestionsDatabaseUpdateRemove"
     }
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =
@@ -68,10 +66,7 @@ object SearchProtocol {
           case CodecType.Add =>
             Decoder[SuggestionsDatabaseUpdate.Add].tryDecode(cursor)
 
-          case CodecType.Update =>
-            Decoder[SuggestionsDatabaseUpdate.Modify].tryDecode(cursor)
-
-          case CodecType.Delete =>
+          case CodecType.Remove =>
             Decoder[SuggestionsDatabaseUpdate.Remove].tryDecode(cursor)
         }
       }
@@ -84,16 +79,10 @@ object SearchProtocol {
             .deepMerge(Json.obj(CodecField.Type -> CodecType.Add.asJson))
             .dropNullValues
 
-        case modify: SuggestionsDatabaseUpdate.Modify =>
-          Encoder[SuggestionsDatabaseUpdate.Modify]
-            .apply(modify)
-            .deepMerge(Json.obj(CodecField.Type -> CodecType.Update.asJson))
-            .dropNullValues
-
         case remove: SuggestionsDatabaseUpdate.Remove =>
           Encoder[SuggestionsDatabaseUpdate.Remove]
             .apply(remove)
-            .deepMerge(Json.obj(CodecField.Type -> CodecType.Delete.asJson))
+            .deepMerge(Json.obj(CodecField.Type -> CodecType.Remove.asJson))
       }
 
     private object SuggestionType {

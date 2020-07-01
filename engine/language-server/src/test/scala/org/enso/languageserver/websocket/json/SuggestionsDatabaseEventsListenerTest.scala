@@ -26,7 +26,7 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
 
       system.eventStream.publish(
         Api.SuggestionsDatabaseUpdateNotification(
-          Seq(Api.SuggestionsDatabaseUpdate.Add(0, suggestion.atom))
+          Seq(Api.SuggestionsDatabaseUpdate.Add(suggestion.atom))
         )
       )
       client.expectJson(json"""
@@ -67,7 +67,7 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
 
       system.eventStream.publish(
         Api.SuggestionsDatabaseUpdateNotification(
-          Seq(Api.SuggestionsDatabaseUpdate.Add(0, suggestion.method))
+          Seq(Api.SuggestionsDatabaseUpdate.Add(suggestion.method))
         )
       )
       client.expectJson(json"""
@@ -117,7 +117,7 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
 
       system.eventStream.publish(
         Api.SuggestionsDatabaseUpdateNotification(
-          Seq(Api.SuggestionsDatabaseUpdate.Add(0, suggestion.function))
+          Seq(Api.SuggestionsDatabaseUpdate.Add(suggestion.function))
         )
       )
       client.expectJson(json"""
@@ -155,7 +155,7 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
 
       system.eventStream.publish(
         Api.SuggestionsDatabaseUpdateNotification(
-          Seq(Api.SuggestionsDatabaseUpdate.Add(0, suggestion.local))
+          Seq(Api.SuggestionsDatabaseUpdate.Add(suggestion.local))
         )
       )
       client.expectJson(json"""
@@ -183,71 +183,6 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
         """)
     }
 
-    "send suggestions database modify notifications" in {
-      val client = getInitialisedWsClient()
-
-      client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
-      client.expectJson(json.ok(0))
-
-      system.eventStream.publish(
-        Api.SuggestionsDatabaseUpdateNotification(
-          Seq(
-            Api.SuggestionsDatabaseUpdate.Modify(
-              id   = 0,
-              name = Some("foo"),
-              arguments = Some(
-                Seq(
-                  Suggestion.Argument("a", "Any", true, false, None),
-                  Suggestion.Argument("b", "Any", false, true, Some("77"))
-                )
-              ),
-              selfType      = Some("MyType"),
-              returnType    = Some("IO"),
-              documentation = None,
-              scope         = Some(Suggestion.Scope(12, 24))
-            )
-          )
-        )
-      )
-      client.expectJson(json"""
-        { "jsonrpc" : "2.0",
-          "method" : "search/suggestionsDatabaseUpdates",
-          "params" : {
-            "updates" : [
-              {
-                "type" : "Update",
-                "id" : 0,
-                "name" : "foo",
-                "arguments" : [
-                  {
-                    "name" : "a",
-                    "reprType" : "Any",
-                    "isSuspended" : true,
-                    "hasDefault" : false,
-                    "defaultValue" : null
-                  },
-                  {
-                    "name" : "b",
-                    "reprType" : "Any",
-                    "isSuspended" : false,
-                    "hasDefault" : true,
-                    "defaultValue" : "77"
-                  }
-                ],
-                "selfType" : "MyType",
-                "returnType" : "IO",
-                "scope" : {
-                  "start" : 12,
-                  "end" : 24
-                }
-              }
-            ],
-            "currentVersion" : 0
-          }
-        }
-        """)
-    }
-
     "send suggestions database remove notifications" in {
       val client = getInitialisedWsClient()
 
@@ -256,7 +191,7 @@ class SuggestionsDatabaseEventsListenerTest extends BaseServerTest {
 
       system.eventStream.publish(
         Api.SuggestionsDatabaseUpdateNotification(
-          Seq(Api.SuggestionsDatabaseUpdate.Remove(101))
+          Seq(Api.SuggestionsDatabaseUpdate.Remove(suggestion.atom))
         )
       )
       client.expectJson(json"""

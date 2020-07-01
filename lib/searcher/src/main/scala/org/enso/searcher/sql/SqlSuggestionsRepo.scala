@@ -4,6 +4,7 @@ import org.enso.searcher.{Suggestion, SuggestionEntry, SuggestionsRepo}
 import slick.jdbc.SQLiteProfile.api._
 
 import scala.concurrent.ExecutionContext
+import scala.util.{Failure, Success}
 
 /** The object for accessing the suggestions database. */
 final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
@@ -16,12 +17,12 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
     (Option[ArgumentRow], SuggestionRow),
     Seq
   ] =
-    arguments
-      .joinRight(suggestions)
+    Arguments
+      .joinRight(Suggestions)
       .on(_.suggestionId === _.id)
 
   override def init: DBIO[Unit] =
-    (suggestions.schema ++ arguments.schema ++ versions.schema).createIfNotExists
+    (Suggestions.schema ++ Arguments.schema ++ Versions.schema).createIfNotExists
 
   /** @inheritdoc */
   override def getAll: DBIO[Seq[SuggestionEntry]] = {
@@ -45,15 +46,6 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
   }
 
   /** @inheritdoc */
-  override def findBy(returnType: String): DBIO[Seq[Suggestion]] = {
-    val query = for {
-      (argument, suggestion) <- joined
-      if suggestion.returnType === returnType
-    } yield (argument, suggestion)
-    query.result.map(joinedToSuggestions)
-  }
-
-  /** @inheritdoc */
   override def select(id: Long): DBIO[Option[Suggestion]] = {
     val query = for {
       (argument, suggestion) <- joined
@@ -63,26 +55,60 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
   }
 
   /** @inheritdoc */
-  override def insert(suggestion: Suggestion): DBIO[Long] = {
+  override def insert(suggestion: Suggestion): DBIO[Option[Long]] = {
     val (suggestionRow, args) = toSuggestionRow(suggestion)
-    for {
-      id <- suggestions.returning(suggestions.map(_.id)) += suggestionRow
-      _  <- arguments ++= args.map(toArgumentRow(id, _))
+    val query = for {
+      id <- Suggestions.returning(Suggestions.map(_.id)) += suggestionRow
+      _  <- Arguments ++= args.map(toArgumentRow(id, _))
       _  <- incrementVersion
     } yield id
+    query.transactionally.asTry.map {
+      case Failure(_)  => None
+      case Success(id) => Some(id)
+    }
+  }
+
+  /** @inheritdoc */
+  override def insertAll(
+    suggestions: Seq[Suggestion]
+  ): DBIO[Seq[Option[Long]]] = {
+    DBIO.sequence(suggestions.map(insert))
+  }
+
+  /** @inheritdoc */
+  override def remove(suggestion: Suggestion): DBIO[Option[Long]] = {
+    val (raw, _) = toSuggestionRow(suggestion)
+    val selectQuery = Suggestions
+      .filter(_.kind === raw.kind)
+      .filter(_.name === raw.name)
+      .filter(_.scopeStart === raw.scopeStart)
+      .filter(_.scopeEnd === raw.scopeEnd)
+    val deleteQuery = for {
+      rows <- selectQuery.result
+      n    <- selectQuery.delete
+      _    <- if (n > 0) incrementVersion else DBIO.successful(())
+    } yield rows.flatMap(_.id).headOption
+    deleteQuery.transactionally
+  }
+
+  /** @inheritdoc */
+  override def removeAll(
+    suggestions: Seq[Suggestion]
+  ): DBIO[Seq[Option[Long]]] = {
+    DBIO.sequence(suggestions.map(remove))
   }
 
   /** @inheritdoc */
   override def currentVersion: DBIO[Long] = {
     for {
-      versionOpt <- versions.result.headOption
+      versionOpt <- Versions.result.headOption
     } yield versionOpt.flatMap(_.id).getOrElse(0L)
   }
 
   private def incrementVersion: DBIO[Long] = {
     val increment = for {
-      version <- versions.returning(versions.map(_.id)) += VersionRow(None)
-      _       <- versions.filterNot(_.id === version).delete
+      version <- Versions.returning(Versions.map(_.id)) += VersionRow(None)
+      _       <- Versions.filterNot(_.id === version).delete
     } yield version
     increment.transactionally
   }
@@ -142,8 +168,8 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
           selfType      = None,
           returnType    = returnType,
           documentation = doc,
-          scopeStart    = None,
-          scopeEnd      = None
+          scopeStart    = ScopeColumn.EMPTY,
+          scopeEnd      = ScopeColumn.EMPTY
         )
         row -> args
       case Suggestion.Method(name, args, selfType, returnType, doc) =>
@@ -154,8 +180,8 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
           selfType      = Some(selfType),
           returnType    = returnType,
           documentation = doc,
-          scopeStart    = None,
-          scopeEnd      = None
+          scopeStart    = ScopeColumn.EMPTY,
+          scopeEnd      = ScopeColumn.EMPTY
         )
         row -> args
       case Suggestion.Function(name, args, returnType, scope) =>
@@ -166,8 +192,8 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
           selfType      = None,
           returnType    = returnType,
           documentation = None,
-          scopeStart    = Some(scope.start),
-          scopeEnd      = Some(scope.end)
+          scopeStart    = scope.start,
+          scopeEnd      = scope.end
         )
         row -> args
       case Suggestion.Local(name, returnType, scope) =>
@@ -178,8 +204,8 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
           selfType      = None,
           returnType    = returnType,
           documentation = None,
-          scopeStart    = Some(scope.start),
-          scopeEnd      = Some(scope.end)
+          scopeStart    = scope.start,
+          scopeEnd      = scope.end
         )
         row -> Seq()
     }
@@ -229,15 +255,13 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
           name       = suggestion.name,
           arguments  = arguments.map(toArgument),
           returnType = suggestion.returnType,
-          scope =
-            Suggestion.Scope(suggestion.scopeStart.get, suggestion.scopeEnd.get)
+          scope      = Suggestion.Scope(suggestion.scopeStart, suggestion.scopeEnd)
         )
       case SuggestionKind.LOCAL =>
         Suggestion.Local(
           name       = suggestion.name,
           returnType = suggestion.returnType,
-          scope =
-            Suggestion.Scope(suggestion.scopeStart.get, suggestion.scopeEnd.get)
+          scope      = Suggestion.Scope(suggestion.scopeStart, suggestion.scopeEnd)
         )
 
       case k =>

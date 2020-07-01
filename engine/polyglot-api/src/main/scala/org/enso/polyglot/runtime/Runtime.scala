@@ -325,17 +325,16 @@ object Runtime {
 
       /** Create or replace the database entry.
         *
-        * @param id suggestion id
         * @param suggestion the new suggestion
         */
-      case class Add(id: Long, suggestion: Suggestion)
-          extends SuggestionsDatabaseUpdate
+      case class Add(suggestion: Suggestion) extends SuggestionsDatabaseUpdate
 
       /** Remove the database entry.
         *
-        * @param id the suggestion id
+        * @param suggestion the suggestion to remove
         */
-      case class Remove(id: Long) extends SuggestionsDatabaseUpdate
+      case class Remove(suggestion: Suggestion)
+          extends SuggestionsDatabaseUpdate
 
       /** Modify the database entry.
         *
@@ -355,7 +354,7 @@ object Runtime {
         returnType: Option[String],
         documentation: Option[String],
         scope: Option[Suggestion.Scope]
-      ) extends SuggestionsDatabaseUpdate
+      )
     }
 
     /**

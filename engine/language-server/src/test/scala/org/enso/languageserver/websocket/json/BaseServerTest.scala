@@ -15,13 +15,7 @@ import org.enso.languageserver.filemanager.{
   FileSystem,
   ReceivesTreeUpdatesHandler
 }
-import org.enso.languageserver.io.{
-  InputRedirectionController,
-  ObservableOutputStream,
-  ObservablePipedInputStream,
-  OutputKind,
-  OutputRedirectionController
-}
+import org.enso.languageserver.io._
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
@@ -33,12 +27,13 @@ import org.enso.languageserver.runtime.{
 }
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.sql.SqlSuggestionsDatabase
 
 import scala.concurrent.duration._
 
 class BaseServerTest extends JsonRpcServerTestKit {
 
+  val testSuggestionsDb = Files.createTempFile("suggestion", "db")
   val testContentRoot   = Files.createTempDirectory(null).toRealPath()
   val testContentRootId = UUID.randomUUID()
   val config = Config(
@@ -50,6 +45,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
   val runtimeConnectorProbe = TestProbe()
 
   testContentRoot.toFile.deleteOnExit()
+  testSuggestionsDb.toFile.deleteOnExit()
 
   override def protocol: Protocol = JsonRpc.protocol
 
@@ -82,6 +78,9 @@ class BaseServerTest extends JsonRpcServerTestKit {
     val zioExec = ZioExec(zio.Runtime.default)
     val fileManager =
       system.actorOf(FileManager.props(config, new FileSystem, zioExec))
+    val suggestionsDatabase =
+      SqlSuggestionsDatabase(testSuggestionsDb.toString)(system.dispatcher)
+
     val bufferRegistry =
       system.actorOf(
         BufferRegistry.props(fileManager, runtimeConnectorProbe.ref)(
@@ -99,7 +98,12 @@ class BaseServerTest extends JsonRpcServerTestKit {
       )
 
     val suggestionsDatabaseEventsListener =
-      system.actorOf(SuggestionsDatabaseEventsListener.props(sessionRouter))
+      system.actorOf(
+        SuggestionsDatabaseEventsListener.props(
+          sessionRouter,
+          suggestionsDatabase
+        )
+      )
 
     val capabilityRouter =
       system.actorOf(
@@ -111,12 +115,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       )
 
     val suggestionsHandler =
-      system.actorOf(
-        SuggestionsHandler.props(
-          new SqlSuggestionsRepo()(system.dispatcher),
-          new SqlDatabase()
-        )
-      )
+      system.actorOf(SuggestionsHandler.props(suggestionsDatabase))
 
     new JsonConnectionControllerFactory(
       bufferRegistry,

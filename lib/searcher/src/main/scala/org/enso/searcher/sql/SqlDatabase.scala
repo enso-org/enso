@@ -10,13 +10,13 @@ import scala.concurrent.Future
   *
   * @param filename the database filename
   */
-class SqlDatabase(filename: String = ":memory:?cache=shared")
+final class SqlDatabase(filename: String = SqlDatabase.InMemory)
     extends Database[DBIO, Future] {
 
   private val db = SQLiteProfile.api.Database.forURL(
-    url                 = s"jdbc:sqlite:file:$filename",
-    driver              = "org.sqlite.JDBC",
-    keepAliveConnection = true
+    url    = s"jdbc:sqlite:file:$filename",
+    driver = "org.sqlite.JDBC"
+    //keepAliveConnection = true
   )
 
   /** @inheritdoc */
@@ -26,4 +26,9 @@ class SqlDatabase(filename: String = ":memory:?cache=shared")
   /** @inheritdoc */
   override def close(): Unit =
     db.close()
+}
+
+object SqlDatabase {
+
+  val InMemory = ":memory:?cache=shared"
 }

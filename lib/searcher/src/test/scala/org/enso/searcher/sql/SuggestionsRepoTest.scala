@@ -23,7 +23,7 @@ class SuggestionsRepoTest
 
   def clean: Future[Unit] =
     for {
-      _ <- db.run(suggestions.delete >> arguments.delete >> versions.delete)
+      _ <- db.run(Suggestions.delete >> Arguments.delete >> Versions.delete)
     } yield ()
 
   override def beforeAll(): Unit = {
@@ -47,7 +47,6 @@ class SuggestionsRepoTest
           _   <- db.run(repo.insert(suggestion.method))
           _   <- db.run(repo.insert(suggestion.function))
           _   <- db.run(repo.insert(suggestion.local))
-          _   <- db.run(repo.insert(suggestion.local))
           all <- db.run(repo.getAll)
         } yield all
 
@@ -56,7 +55,45 @@ class SuggestionsRepoTest
         suggestion.atom,
         suggestion.method,
         suggestion.function,
-        suggestion.local,
+        suggestion.local
+      )
+    }
+
+    "fail to insert duplicate suggestion" in {
+      val action =
+        for {
+          id1 <- db.run(repo.insert(suggestion.atom))
+          id2 <- db.run(repo.insert(suggestion.atom))
+          _   <- db.run(repo.insert(suggestion.method))
+          _   <- db.run(repo.insert(suggestion.method))
+          _   <- db.run(repo.insert(suggestion.function))
+          _   <- db.run(repo.insert(suggestion.function))
+          _   <- db.run(repo.insert(suggestion.local))
+          _   <- db.run(repo.insert(suggestion.local))
+          all <- db.run(repo.getAll)
+        } yield (id1, id2, all)
+
+      val (id1, id2, all) = Await.result(action, Timeout)
+      id1 shouldBe a[Some[_]]
+      id2 shouldBe a[None.type]
+      all.map(_.suggestion) should contain theSameElementsAs Seq(
+        suggestion.atom,
+        suggestion.method,
+        suggestion.function,
+        suggestion.local
+      )
+    }
+
+    "fail to insertAll duplicate suggestion" in {
+      val action =
+        for {
+          ids <- db.run(repo.insertAll(Seq(suggestion.local, suggestion.local)))
+          all <- db.run(repo.getAll)
+        } yield (ids, all)
+
+      val (ids, all) = Await.result(action, Timeout)
+      ids.flatten.length shouldEqual 1
+      all.map(_.suggestion) should contain theSameElementsAs Seq(
         suggestion.local
       )
     }
@@ -64,26 +101,22 @@ class SuggestionsRepoTest
     "select suggestion by id" in {
       val action =
         for {
-          id  <- db.run(repo.insert(suggestion.atom))
-          res <- db.run(repo.select(id))
+          Some(id) <- db.run(repo.insert(suggestion.atom))
+          res      <- db.run(repo.select(id))
         } yield res
 
       Await.result(action, Timeout) shouldEqual Some(suggestion.atom)
     }
 
-    "find suggestion by returnType" in {
+    "remove suggestion" in {
       val action =
         for {
-          _   <- db.run(repo.insert(suggestion.local))
-          _   <- db.run(repo.insert(suggestion.method))
-          _   <- db.run(repo.insert(suggestion.function))
-          res <- db.run(repo.findBy("MyType"))
-        } yield res
+          id1 <- db.run(repo.insert(suggestion.atom))
+          id2 <- db.run(repo.remove(suggestion.atom))
+        } yield (id1, id2)
 
-      Await.result(action, Timeout) should contain theSameElementsAs Seq(
-        suggestion.local,
-        suggestion.function
-      )
+      val (id1, id2) = Await.result(action, Timeout)
+      id1 shouldEqual id2
     }
 
     "get version" in {
@@ -102,6 +135,51 @@ class SuggestionsRepoTest
 
       val (v1, v2) = Await.result(action, Timeout)
       v1 should not equal v2
+    }
+
+    "not change version after failed insert" in {
+      val action = for {
+        v1 <- db.run(repo.currentVersion)
+        _  <- db.run(repo.insert(suggestion.atom))
+        v2 <- db.run(repo.currentVersion)
+        _  <- db.run(repo.insert(suggestion.atom))
+        v3 <- db.run(repo.currentVersion)
+      } yield (v1, v2, v3)
+
+      val (v1, v2, v3) = Await.result(action, Timeout)
+      v1 should not equal v2
+      v2 shouldEqual v3
+    }
+
+    "change version after remove" in {
+      val action = for {
+        v1 <- db.run(repo.currentVersion)
+        _  <- db.run(repo.insert(suggestion.local))
+        v2 <- db.run(repo.currentVersion)
+        _  <- db.run(repo.remove(suggestion.local))
+        v3 <- db.run(repo.currentVersion)
+      } yield (v1, v2, v3)
+
+      val (v1, v2, v3) = Await.result(action, Timeout)
+      v1 should not equal v2
+      v2 should not equal v3
+    }
+
+    "not change version after failed remove" in {
+      val action = for {
+        v1 <- db.run(repo.currentVersion)
+        _  <- db.run(repo.insert(suggestion.local))
+        v2 <- db.run(repo.currentVersion)
+        _  <- db.run(repo.remove(suggestion.local))
+        v3 <- db.run(repo.currentVersion)
+        _  <- db.run(repo.remove(suggestion.local))
+        v4 <- db.run(repo.currentVersion)
+      } yield (v1, v2, v3, v4)
+
+      val (v1, v2, v3, v4) = Await.result(action, Timeout)
+      v1 should not equal v2
+      v2 should not equal v3
+      v3 shouldEqual v4
     }
 
     "search suggestion by empty query" in {
@@ -127,7 +205,7 @@ class SuggestionsRepoTest
       } yield (id2, res)
 
       val (id, res) = Await.result(action, Timeout)
-      res should contain theSameElementsAs Seq(id)
+      res should contain theSameElementsAs Seq(id).flatten
     }
 
     "search suggestion by return type" in {
@@ -140,7 +218,7 @@ class SuggestionsRepoTest
       } yield (id3, id4, res)
 
       val (id1, id2, res) = Await.result(action, Timeout)
-      res should contain theSameElementsAs Seq(id1, id2)
+      res should contain theSameElementsAs Seq(id1, id2).flatten
     }
 
     "search suggestion by kind" in {
@@ -154,7 +232,7 @@ class SuggestionsRepoTest
       } yield (id1, id4, res)
 
       val (id1, id2, res) = Await.result(action, Timeout)
-      res should contain theSameElementsAs Seq(id1, id2)
+      res should contain theSameElementsAs Seq(id1, id2).flatten
     }
 
     "search suggestion by return type and kind" in {
@@ -168,7 +246,7 @@ class SuggestionsRepoTest
       } yield (id4, res)
 
       val (id, res) = Await.result(action, Timeout)
-      res should contain theSameElementsAs Seq(id)
+      res should contain theSameElementsAs Seq(id).flatten
     }
 
     "search suggestion by self and return types" in {

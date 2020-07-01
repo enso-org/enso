@@ -25,13 +25,6 @@ trait SuggestionsRepo[F[_]] {
     kinds: Option[Seq[Suggestion.Kind]]
   ): F[Seq[Long]]
 
-  /** Find suggestions by the return type.
-    *
-    * @param returnType the return type of a suggestion
-    * @return the list of suggestions
-    */
-  def findBy(returnType: String): F[Seq[Suggestion]]
-
   /** Select the suggestion by id.
     *
     * @param id the id of a suggestion
@@ -44,6 +37,24 @@ trait SuggestionsRepo[F[_]] {
     * @param suggestion the suggestion to insert
     * @return the id of an inserted suggestion
     */
-  def insert(suggestion: Suggestion): F[Long]
+  def insert(suggestion: Suggestion): F[Option[Long]]
 
+  /** Insert a list of suggestions
+    *
+    * @param suggestions the suggestions to insert
+    * @return the list of inserted suggestion ids
+    */
+  def insertAll(suggestions: Seq[Suggestion]): F[Seq[Option[Long]]]
+
+  /** Remove the suggestion.
+    *
+    * @param suggestion the suggestion to remove
+    * @return the id of removed suggestion */
+  def remove(suggestion: Suggestion): F[Option[Long]]
+
+  /** Remove a list of suggestions.
+    *
+    * @param suggestions the suggestions to remove
+    * @return the list of removed suggestion ids */
+  def removeAll(suggestions: Seq[Suggestion]): F[Seq[Option[Long]]]
 }
