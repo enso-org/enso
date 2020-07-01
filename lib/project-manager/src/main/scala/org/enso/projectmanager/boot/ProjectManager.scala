@@ -77,7 +77,7 @@ object ProjectManager extends App with LazyLogging {
     */
   override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
     if (args.contains("--version")) {
-      displayVersion()
+      displayVersion(args.contains("--json"))
     } else {
       logger.info("Starting Project Manager...")
       mainProcess.fold(
@@ -87,7 +87,7 @@ object ProjectManager extends App with LazyLogging {
     }
   }
 
-  private def displayVersion(): ZIO[Console, Nothing, Int] = {
+  private def displayVersion(useJson: Boolean): ZIO[Console, Nothing, Int] = {
     // Running platform information
     val vmName     = System.getProperty("java.vm.name")
     val jreVersion = System.getProperty("java.runtime.version")
@@ -95,16 +95,33 @@ object ProjectManager extends App with LazyLogging {
     val osName     = System.getProperty("os.name")
     val osVersion  = System.getProperty("os.version")
     val dirtyStr   = if (Info.isDirty) "*" else ""
-    putStrLn(
-      s"""
-         |Enso Project Manager
-         |Version:    ${Info.ensoVersion}
-         |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
-         |Built from: ${Info.branch}$dirtyStr @ ${Info.commit}
-         |Running on: $vmName, JDK $jreVersion
-         |            $osName $osVersion ($osArch)
-         |""".stripMargin
-    ) *> ZIO.succeed(SuccessExitCode)
+
+    val versionOutput =
+      if (useJson) {
+        s"""{ "version": "${Info.ensoVersion}",
+           |  "scalaVersion": "${Info.scalacVersion}",
+           |  "graalVersion": "${Info.graalVersion}",
+           |  "branch": "${Info.branch}",
+           |  "dirty": ${Info.isDirty},
+           |  "commit": "${Info.commit}",
+           |  "vmName": "$vmName",
+           |  "jreVersion": "$jreVersion",
+           |  "osName": "$osName",
+           |  "osVersion": "$osVersion",
+           |  "osArch": "$osArch"
+           |}""".stripMargin
+      } else {
+        s"""
+           |Enso Project Manager
+           |Version:    ${Info.ensoVersion}
+           |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
+           |Built from: ${Info.branch}$dirtyStr @ ${Info.commit}
+           |Running on: $vmName, JDK $jreVersion
+           |            $osName $osVersion ($osArch)
+           |""".stripMargin
+      }
+
+    putStrLn(versionOutput) *> ZIO.succeed(SuccessExitCode)
   }
 
   private def logServerStartup(): UIO[Unit] =
