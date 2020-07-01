@@ -465,7 +465,6 @@ class ProjectManagementApiSpec
             "result": null
           }
           """)
-      closeProject(projectId)
       val future = exec.exec(shutdownHookProcessor.fireShutdownHooks())
       Await.result(future, 5.seconds)
       val projectDir  = new File(userProjectDir, "bar")
