@@ -13,7 +13,7 @@ import scala.concurrent.duration._
 
 class SuggestionsRepoTest
     extends AnyWordSpec
-    with RetrySpec
+    with FlakySpec
     with Matchers
     with BeforeAndAfterAll {
 
@@ -35,7 +35,7 @@ class SuggestionsRepoTest
 
   "SuggestionsDBIO" should {
 
-    "select suggestion by id" in {
+    "select suggestion by id" taggedAs Flaky in {
       val action =
         for {
           id  <- db.run(repo.insert(suggestion.atom))
@@ -45,7 +45,7 @@ class SuggestionsRepoTest
       Await.result(action, Timeout) shouldEqual Some(suggestion.atom)
     }
 
-    "find suggestion by returnType" taggedAs Retry() in {
+    "find suggestion by returnType" taggedAs Flaky in {
       val action =
         for {
           _   <- db.run(repo.insert(suggestion.local))
