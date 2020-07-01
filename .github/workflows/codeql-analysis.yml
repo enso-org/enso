@@ -1,15 +1,13 @@
-name: "Vulnerability Scan"
+name: "CodeQL"
 
 on:
-  push:
   pull_request:
     branches:
-      - main
-  schedule:
-    - cron: '0 19 * * 0'
+      - "*"
 
 jobs:
-  codeql-build:
+  vuln-scan:
+    name: Vulnerability Scan
     runs-on: ubuntu-latest
 
     steps:
@@ -31,8 +29,34 @@ jobs:
       with:
         languages: java
 
-    - name: Build Code
+    # Set Up Environment
+    - name: Install FlatBuffers Compiler
+      run: conda install --freeze-installed flatbuffers=1.12.0
+    - name: Setup GraalVM Environment
+      uses: DeLaGuardo/setup-graalvm@2.0
+      with:
+          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+    - name: Set Up SBT
+      run: |
+          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+          tar -xzf sbt.tgz
+          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+          
+    # Caches
+    - name: Cache SBT
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.sbt
+          ~/.ivy2/cache
+          ~/.cache
+        key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+        restore-keys: ${{ runner.os }}-sbt-
+
+    # Build
+    - name: Build Enso
       run: sbt compile
 
+    # Analyse the Code
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1
