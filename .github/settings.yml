@@ -244,5 +244,6 @@ branches:
         - "Rust Test Native (windows-latest)"
         - "Rust Test WASM"
         - "license/cla"
+        - "Vulnerability Scan"
       enforce_admins: null
       restrictions: null
