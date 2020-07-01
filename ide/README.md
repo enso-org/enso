@@ -71,7 +71,7 @@ information and packages see [Enso repository](https://github.com/luna/enso).
 ### Building
 The project builds on MacOS, Linux, and Windows. Simply run `node ./run build`
 to build it and use `node ./run --help` to learn about other available commands
-and options. Read the detailed [development guide](docs/contributing.md) to
+and options. Read the detailed [development guide](docs/CONTRIBUTING.md) to
 learn more.
 
 <br/>
@@ -95,7 +95,7 @@ highly appreciate every contribution. If you love the vision behind Enso and you
 want to redefine the data processing world, join us and help us track down bugs,
 implement new features, improve the documentation or spread the word! Join our
 community on a [Discord chat](http://chat.luna-lang.org) and read the
-[development and contributing guidelines](docs/contributing.md).
+[development and contributing guidelines](docs/CONTRIBUTING.md).
 
 <a href="https://github.com/luna/ide/graphs/contributors">
   <img src="https://opencollective.com/enso-language/contributors.svg?width=890&button=false" />

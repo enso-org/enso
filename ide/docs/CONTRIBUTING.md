@@ -76,8 +76,8 @@ need the following setup:
 Please note that you should not use a code auto-formatter in this codebase. Please read the
 following documents to learn more about reasons behind this decision and the recommended code style
 guide. Be sure to carefully read the
-[Rust style guide 1](https://github.com/luna/ide/blob/main/docs/style-guide.md)
-and the [Rust style guide 2](https://github.com/luna/enso/blob/main/doc/style-guide/rust.md)
+[Rust style guide 1](./contributing/style-guide.md)
+and the [Rust style guide 2](https://dev.enso.org/docs/style-guide/rust.html)
 before contributing to the codebase.
 
 ### Setting up Engine Services
