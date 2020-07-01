@@ -6,11 +6,12 @@ import java.util.UUID
 
 import io.circe.literal._
 import org.apache.commons.io.FileUtils
+import org.enso.jsonrpc.test.RetrySpec
 
-class FileManagerTest extends BaseServerTest {
+class FileManagerTest extends BaseServerTest with RetrySpec {
   "File Server" must {
 
-    "write textual content to a file" in {
+    "write textual content to a file" taggedAs Retry() in {
       val client = getInitialisedWsClient()
       client.send(json"""
           { "jsonrpc": "2.0",

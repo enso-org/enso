@@ -15,6 +15,7 @@ import scala.sys.process._
 
 val scalacVersion = "2.13.3"
 val graalVersion  = "20.1.0"
+val javaVersion   = "11"
 val ensoVersion   = "0.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
@@ -87,6 +88,11 @@ lazy val Benchmark = config("bench") extend sbt.Test
 lazy val buildNativeImage =
   taskKey[Unit]("Build native image for the Enso executable")
 
+// Bootstrap task
+lazy val bootstrap =
+  taskKey[Unit]("Prepares Truffle JARs that are required by the sbt JVM")
+bootstrap := {}
+
 // ============================================================================
 // === Global Project =========================================================
 // ============================================================================
@@ -140,12 +146,13 @@ lazy val enso = (project in file("."))
 
 // === Akka ===================================================================
 
-def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name" % akkaVersion
-def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name" % akkaHTTPVersion
+def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name"  % akkaVersion
+def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name"  % akkaHTTPVersion
 val akkaURL                   = "com.typesafe.akka"
 val akkaVersion               = "2.6.6"
 val akkaHTTPVersion           = "10.2.0-RC1"
 val akkaMockSchedulerVersion  = "0.5.5"
+val slf4jVersion              = "1.7.30"
 val akkaActor                 = akkaPkg("actor")
 val akkaStream                = akkaPkg("stream")
 val akkaTyped                 = akkaPkg("actor-typed")
@@ -154,8 +161,16 @@ val akkaSLF4J                 = akkaPkg("slf4j")
 val akkaTestkitTyped          = akkaPkg("actor-testkit-typed") % Test
 val akkaHttp                  = akkaHTTPPkg("http")
 val akkaSpray                 = akkaHTTPPkg("http-spray-json")
+val slf4jImplementation       = "org.slf4j"                    % "slf4j-simple" % slf4jVersion % Test
+val akkaTest                  = Seq(slf4jImplementation)
 val akka =
-  Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
+  Seq(
+    akkaActor,
+    akkaStream,
+    akkaHttp,
+    akkaSpray,
+    akkaTyped
+  ) ++ akkaTest
 
 // === Cats ===================================================================
 
@@ -205,6 +220,14 @@ val jackson = Seq(
   "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
   "com.fasterxml.jackson.core"       % "jackson-databind"        % jacksonVersion,
   "com.fasterxml.jackson.module"    %% "jackson-module-scala"    % jacksonVersion
+)
+
+// === JAXB ================================================================
+
+val jaxbVersion = "2.3.3"
+val jaxb = Seq(
+  "jakarta.xml.bind" % "jakarta.xml.bind-api" % jaxbVersion % Benchmark,
+  "com.sun.xml.bind" % "jaxb-impl"            % jaxbVersion % Benchmark
 )
 
 // === JMH ====================================================================
@@ -348,17 +371,14 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
         "io.circe"      %%% "circe-generic" % circeVersion,
         "io.circe"      %%% "circe-parser"  % circeVersion
       ),
-    compile := (Compile / compile)
-        .dependsOn(Def.taskDyn {
-          val parserCompile =
-            (`syntax-definition`.jvm / Compile / compileIncremental).value
-          if (parserCompile.hasModified) {
-            Def.task {
-              streams.value.log.info("Parser changed, forcing recompilation.")
-              clean.value
-            }
-          } else Def.task {}
-        })
+    (Compile / compile) := (Compile / compile)
+        .dependsOn(RecompileParser.run(`syntax-definition`))
+        .value,
+    (Test / compile) := (Test / compile)
+        .dependsOn(RecompileParser.run(`syntax-definition`))
+        .value,
+    (Benchmark / compile) := (Benchmark / compile)
+        .dependsOn(RecompileParser.run(`syntax-definition`))
         .value
   )
   .jvmSettings(
@@ -581,12 +601,13 @@ lazy val searcher = project
   .in(file("lib/searcher"))
   .configs(Test)
   .settings(
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= akkaTest ++ Seq(
         "com.typesafe.slick" %% "slick"       % slickVersion,
         "org.xerial"          % "sqlite-jdbc" % sqliteVersion,
         "org.scalatest"      %% "scalatest"   % scalatestVersion % Test
       )
   )
+  .dependsOn(`json-rpc-server-test` % Test)
 
 // ============================================================================
 // === Sub-Projects ===========================================================
@@ -662,6 +683,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     inConfig(Benchmark)(Defaults.testSettings),
     bench := (test in Benchmark).value,
+    libraryDependencies ++= akkaTest,
     libraryDependencies += "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
     testFrameworks ++= List(
         new TestFramework("org.scalameter.ScalaMeterFramework")
@@ -684,7 +706,7 @@ lazy val runtime = (project in file("engine/runtime"))
     logBuffered in Test := false,
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= circe ++ jmh ++ Seq(
+    libraryDependencies ++= circe ++ jmh ++ jaxb ++ Seq(
         "com.chuusai"        %% "shapeless"             % shapelessVersion,
         "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
         "org.apache.tika"     % "tika-core"             % tikaVersion,
@@ -704,15 +726,23 @@ lazy val runtime = (project in file("engine/runtime"))
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+        .dependsOn(CopyTruffleJAR.preCompileTask)
+        .value,
     Compile / compile := FixInstrumentsGeneration.patchedCompile
-        .dependsOn(`core-definition` / Compile / packageBin)
         .dependsOn(FixInstrumentsGeneration.preCompileTask)
+        .dependsOn(`core-definition` / Compile / packageBin)
         .value,
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
-        "-XX:-UseJVMCIClassLoader",
         "-Dgraalvm.locatorDisabled=true"
-      )
+      ),
+    bootstrap := CopyTruffleJAR.bootstrapJARs.value,
+    Global / onLoad := EnvironmentCheck.addVersionCheck(
+        graalVersion,
+        javaVersion,
+        flatbuffersVersion
+      )((Global / onLoad).value)
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
