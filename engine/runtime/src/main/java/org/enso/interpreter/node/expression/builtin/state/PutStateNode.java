@@ -40,7 +40,7 @@ public abstract class PutStateNode extends Node {
       @Cached("key.toString()") String keyStr,
       @Cached("state.getShape()") Shape cachedShape,
       @Cached("getLocation(keyStr, cachedShape, new_state)") Location location) {
-    DynamicObject changedState = state;//.copy(cachedShape);
+    DynamicObject changedState = state.copy(cachedShape);
     try {
       location.set(changedState, new_state, cachedShape);
     } catch (IncompatibleLocationException | FinalLocationException e) {
