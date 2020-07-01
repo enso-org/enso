@@ -2,7 +2,7 @@ name: Rust CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, "release/*" ]
   pull_request:
     branches: [ "*" ]
 

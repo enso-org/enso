@@ -30,7 +30,7 @@ Where `a.b.c-tag` is the version string, `a` is the major version, `b`, is the
 minor version, `c` is the patch version, and `tag` is additional metadata, the
 following hold:
 
-- Breaking changes to language behaviour or the public API will result in a 
+- Breaking changes to language behaviour or the public API will result in a
   major version increase.
 - Addition of functionality in a backwards-compatible manner will result in a
   minor version increase.
@@ -140,7 +140,7 @@ release and the current release. They should follow the template given below:
 ```
 
 If there are no changes for a section, the section should contain a bullet point
-that reads `Nothing`.
+that reads "Nothing".
 
 The changelog file is an ongoing record of changes, and may diverge between
 `main` and the various release branches.
@@ -151,18 +151,20 @@ next major version. For a detailed breakdown of the major versions that are
 supported, please see the [security](../security.md) document.
 
 ## Working on the Current Release
-TBC
+When working on the current release, development should take place against the
+`main` branch. When it is time to cut a release, the new commits on the main
+branch are cherry-picked onto the current release branch. From there, the
+release proceeds as described in [release workflow](#release-workflow) above.
 
 ## Backporting Fixes
 Supporting a major version for some time after the release of the next major
 version will sometimes require backporting a fix to the previous major version
-from the current version or from `main`. 
+from the current version or from `main`.
 
 Backporting should only be used for applying _fixes_, not the addition of new
-features
+features.
 
-The process for performing such a
-backport is as follows:
+The process for performing such a backport is as follows:
 
 1.  Create a new branch called `backport/version/fix-name`, where `version`
     matches the version string of the corresponding release branch. This branch
@@ -174,6 +176,5 @@ backport is as follows:
       progression of the codebase).
 3.  Submit your `backport/version/fix-name` branch for review as a pull-request
     into the `release/version` branch.
-
-
-Cherry picking, PRs
+4.  Once the PR has passed CI and been approved by the appropriate reviewers, it
+    can be merged into the release branch.
