@@ -146,9 +146,10 @@ The changelog file is an ongoing record of changes, and may diverge between
 `main` and the various release branches.
 
 ## Version Support
-We aim to support a given major version for two years after the release of the
-next major version. For a detailed breakdown of the major versions that are
-supported, please see the [security](../security.md) document.
+We aim to support a given major version for some period of time after the
+release of the next major version. For a detailed breakdown of the major
+versions that are currently supported, please see the [security](./security.md)
+document.
 
 ## Working on the Current Release
 When working on the current release, development should take place against the
