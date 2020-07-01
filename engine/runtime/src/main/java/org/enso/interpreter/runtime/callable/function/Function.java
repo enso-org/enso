@@ -198,7 +198,8 @@ public final class Function implements TruffleObject {
         Object[] arguments,
         @Cached InteropApplicationNode interopApplicationNode,
         @CachedContext(Language.class) Context context) {
-      return interopApplicationNode.execute(function, context.getBuiltins().unit(), arguments);
+      return interopApplicationNode.execute(
+          function, context.getEmptyShape().newInstance(), arguments);
     }
   }
 

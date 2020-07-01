@@ -9,6 +9,10 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import com.oracle.truffle.api.object.Layout;
+import com.oracle.truffle.api.object.ObjectType;
+import com.oracle.truffle.api.object.Shape;
 import org.enso.compiler.Compiler;
 import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
@@ -40,6 +44,8 @@ public class Context {
   private final TopLevelScope topScope;
   private final ThreadManager threadManager;
   private final boolean isCachingDisabled;
+  private final Layout layout = Layout.createLayout();
+  private final Shape emptyShape = layout.createShape(new ObjectType());
 
   /**
    * Creates a new Enso context.
@@ -293,5 +299,9 @@ public class Context {
   /** @return whether inline caches should be disabled for this context. */
   public boolean isCachingDisabled() {
     return isCachingDisabled;
+  }
+
+  public Shape getEmptyShape() {
+    return emptyShape;
   }
 }

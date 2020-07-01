@@ -52,15 +52,17 @@ class RecursionFixtures extends DefaultInterpreterRunner {
     """
       |main = sumTo ->
       |    stateSum = n ->
-      |        acc = State.get
-      |        State.put (acc + n)
-      |        if n == 0 then State.get else stateSum (n - 1)
+      |        acc = State.get Number
+      |        State.put Number (acc + n)
+      |        if n == 0 then State.get Number else stateSum (n - 1)
       |
-      |    State.put 0
+      |    State.put Number 0
       |    res = stateSum sumTo
       |    res
       |""".stripMargin
   val sumStateTCO = getMain(sumStateTCOCode)
+
+  println("EXECUTE: " + sumStateTCO.execute(100L.asInstanceOf[AnyRef]))
 
   val sumTCOWithEvalCode =
     """

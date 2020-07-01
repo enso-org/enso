@@ -74,6 +74,7 @@ public class MethodProcessor extends AbstractProcessor {
           "com.oracle.truffle.api.frame.VirtualFrame",
           "com.oracle.truffle.api.nodes.NodeInfo",
           "com.oracle.truffle.api.nodes.RootNode",
+          "com.oracle.truffle.api.object.DynamicObject",
           "com.oracle.truffle.api.nodes.UnexpectedResultException",
           "org.enso.interpreter.Language",
           "org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
@@ -148,7 +149,7 @@ public class MethodProcessor extends AbstractProcessor {
 
       out.println("  @Override");
       out.println("  public Stateful execute(VirtualFrame frame) {");
-      out.println("    Object state = Function.ArgumentsHelper.getState(frame.getArguments());");
+      out.println("    DynamicObject state = (DynamicObject) Function.ArgumentsHelper.getState(frame.getArguments());");
       if (methodDefinition.needsCallerInfo()) {
         out.println(
             "    CallerInfo callerInfo = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());");
