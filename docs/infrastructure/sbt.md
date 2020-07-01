@@ -167,3 +167,9 @@ user should remember to run `bootstrap` when necessary.
 ### Debugging Command
 [`WithDebugCommand`](../../project/WithDebugCommand.scala) defines a command
 that allows to run a task with additional JVM-level flags.
+
+### Recompile Parser
+[`RecompileParser`](../../project/RecompileParser.scala) defines a task that can
+be attached to the `compile` task in configurations of the `syntax` project.
+This task ensures that the `syntax` project is recompiled whenever
+`syntax-definition` changes.
