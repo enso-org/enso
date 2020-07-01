@@ -1,4 +1,4 @@
-package org.enso.projectmanager.protocol
+package org.enso.projectmanager
 
 import java.io.File
 import java.nio.file.Files
@@ -9,13 +9,7 @@ import io.circe.generic.auto._
 import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
-import org.enso.projectmanager.boot.configuration.{
-  BootloaderConfig,
-  NetworkConfig,
-  StorageConfig,
-  SupervisionConfig,
-  TimeoutConfig
-}
+import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.control.effect.ZioEnvExec
 import org.enso.projectmanager.infrastructure.file.{
   BlockingFileSystem,
@@ -28,6 +22,11 @@ import org.enso.projectmanager.infrastructure.languageserver.{
 import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
   ProjectIndex
+}
+import org.enso.projectmanager.infrastructure.shutdown.ShutdownHookProcessor
+import org.enso.projectmanager.protocol.{
+  JsonRpc,
+  ManagerClientControllerFactory
 }
 import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
 import org.enso.projectmanager.test.{
@@ -67,7 +66,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val bootloaderConfig = BootloaderConfig(3, 1.second)
 
   lazy val timeoutConfig =
-    TimeoutConfig(3.seconds, 3.seconds, 3.seconds, 5.seconds)
+    TimeoutConfig(3.seconds, 3.seconds, 3.seconds, 5.seconds, 2.seconds)
 
   lazy val netConfig = NetworkConfig("127.0.0.1", 40000, 60000)
 
@@ -108,6 +107,9 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       timeoutConfig
     )
 
+  lazy val shutdownHookProcessor =
+    new ShutdownHookProcessor[ZIO[ZEnv, +*, +*]](new NopLogging[ZEnv])
+
   lazy val projectService =
     new ProjectService[ZIO[ZEnv, +*, +*]](
       projectValidator,
@@ -115,7 +117,8 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       new NopLogging[ZEnv],
       testClock,
       gen,
-      languageServerService
+      languageServerService,
+      shutdownHookProcessor
     )
 
   override def clientControllerFactory: ClientControllerFactory = {

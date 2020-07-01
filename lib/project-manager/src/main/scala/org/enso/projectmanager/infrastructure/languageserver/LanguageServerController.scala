@@ -37,6 +37,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerContr
   Boot,
   BootTimeout,
   ServerDied,
+  ShutDownServer,
   ShutdownTimeout
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
@@ -77,9 +78,10 @@ class LanguageServerController(
       networkConfig = networkConfig
     )
 
-  override def supervisorStrategy: SupervisorStrategy = OneForOneStrategy(10) {
-    case _ => SupervisorStrategy.Restart
-  }
+  override def supervisorStrategy: SupervisorStrategy =
+    OneForOneStrategy(10) {
+      case _ => SupervisorStrategy.Restart
+    }
 
   override def preStart(): Unit = {
     context.system.eventStream.subscribe(self, classOf[ClientDisconnected])
@@ -166,8 +168,27 @@ class LanguageServerController(
     case StopServer(clientId, _) =>
       removeClient(config, server, clients, clientId, Some(sender()))
 
+    case ShutDownServer =>
+      shutDownServer(server, None)
+
     case ClientDisconnected(clientId) =>
       removeClient(config, server, clients, clientId, None)
+
+    case RenameProject(_, oldName, newName) =>
+      val socket = Socket(config.interface, config.rpcPort)
+      context.actorOf(
+        ProjectRenameAction
+          .props(
+            sender(),
+            socket,
+            timeoutConfig.requestTimeout,
+            timeoutConfig.socketCloseTimeout,
+            oldName,
+            newName,
+            context.system.scheduler
+          ),
+        s"project-rename-action-${project.id}"
+      )
 
     case ServerDied =>
       log.error(s"Language server died [$config]")
@@ -183,16 +204,24 @@ class LanguageServerController(
   ): Unit = {
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
-      context.children.foreach(_ ! GracefulStop)
-      server.stop() pipeTo self
-      val cancellable =
-        context.system.scheduler
-          .scheduleOnce(timeoutConfig.shutdownTimeout, self, ShutdownTimeout)
-      context.become(stopping(cancellable, maybeRequester))
+      shutDownServer(server, maybeRequester)
     } else {
       sender() ! CannotDisconnectOtherClients
       context.become(supervising(config, server, updatedClients))
     }
+  }
+
+  private def shutDownServer(
+    server: LanguageServerComponent,
+    maybeRequester: Option[ActorRef]
+  ): Unit = {
+    log.debug(s"Shutting down a language server for project ${project.id}")
+    context.children.foreach(_ ! GracefulStop)
+    server.stop() pipeTo self
+    val cancellable =
+      context.system.scheduler
+        .scheduleOnce(timeoutConfig.shutdownTimeout, self, ShutdownTimeout)
+    context.become(stopping(cancellable, maybeRequester))
   }
 
   private def bootFailed(failure: ServerStartupFailure): Receive = {
@@ -277,6 +306,8 @@ object LanguageServerController {
         timeoutConfig
       )
     )
+
+  case object ShutDownServer
 
   /**
     * Signals boot timeout.

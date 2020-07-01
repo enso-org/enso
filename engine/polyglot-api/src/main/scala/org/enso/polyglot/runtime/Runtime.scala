@@ -109,6 +109,14 @@ object Runtime {
         name  = "expressionValuesComputed"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.RenameProject],
+        name  = "renameProject"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ProjectRenamed],
+        name  = "projectRenamed"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.ContextNotExistError],
         name  = "contextNotExistError"
       ),
@@ -677,6 +685,20 @@ object Runtime {
       * Signals that the runtime server has been shut down.
       */
     case class RuntimeServerShutDown() extends ApiResponse
+
+    /**
+      * A request for project renaming.
+      *
+      * @param oldName the old project name
+      * @param newName the new project name
+      */
+    case class RenameProject(oldName: String, newName: String)
+        extends ApiRequest
+
+    /**
+      * Signals that project has been renamed.
+      */
+    case class ProjectRenamed() extends ApiResponse
 
     /**
       * A notification about the change in the suggestions database.

@@ -11,7 +11,7 @@ import zio.ZIO
 trait ErrorChannel[F[+_, +_]] {
 
   /**
-    * Recovers from error matched by recovery function.
+    * Recovers from an error matched by recovery function.
     *
     * @param fa an effectful computation
     * @param recovery a recovery function
@@ -22,7 +22,7 @@ trait ErrorChannel[F[+_, +_]] {
   ): F[E, B]
 
   /**
-    * Recover from error by executing effectful computation.
+    * Recovers from an error by executing effectful computation.
     *
     * @param fa an effectful computation
     * @param recovery a recovery function
@@ -30,6 +30,16 @@ trait ErrorChannel[F[+_, +_]] {
     */
   def recoverWith[E, A, B >: A, E1 >: E](fa: F[E, A])(
     recovery: PartialFunction[E, F[E1, B]]
+  ): F[E1, B]
+
+  /**
+    * Recovers from an error by mapping it to fallback computations.
+    *
+    * @param fa an effectful computation
+    * @param fallback a fallback function
+    */
+  def fallbackTo[E, A, B >: A, E1](fa: F[E, A])(
+    fallback: E => F[E1, B]
   ): F[E1, B]
 
   /**

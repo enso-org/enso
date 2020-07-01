@@ -27,6 +27,22 @@ case class QualifiedName(path: List[String], module: String) {
     */
   def createChild(name: String): QualifiedName =
     QualifiedName(path :+ module, name)
+
+  /**
+    * Renames a project part of this [[QualifiedName]].
+    *
+    * @param oldName the old project name
+    * @param newName the new project name
+    * @return a [[QualifiedName]] with the updated project name
+    */
+  def renameProject(oldName: String, newName: String): QualifiedName = {
+    if (path.head == oldName) {
+      this.copy(path = newName :: path.tail)
+    } else {
+      this
+    }
+  }
+
 }
 
 object QualifiedName {

@@ -51,7 +51,8 @@ object configuration {
     ioTimeout: FiniteDuration,
     requestTimeout: FiniteDuration,
     bootTimeout: FiniteDuration,
-    shutdownTimeout: FiniteDuration
+    shutdownTimeout: FiniteDuration,
+    socketCloseTimeout: FiniteDuration
   )
 
   /**

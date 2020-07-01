@@ -30,7 +30,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   indexStorage: FileStorage[ProjectIndex, F]
 ) extends ProjectRepository[F] {
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def exists(
     name: String
   ): F[ProjectRepositoryFailure, Boolean] =
@@ -39,7 +39,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .map(_.exists(name))
       .mapError(_.fold(convertFileStorageFailure))
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def find(
     predicate: Project => Boolean
   ): F[ProjectRepositoryFailure, List[Project]] =
@@ -48,14 +48,14 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .map(_.find(predicate))
       .mapError(_.fold(convertFileStorageFailure))
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def getAll(): F[ProjectRepositoryFailure, List[Project]] =
     indexStorage
       .load()
       .map(_.projects.values.toList)
       .mapError(_.fold(convertFileStorageFailure))
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def findById(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Option[Project]] =
@@ -64,21 +64,25 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .map(_.findById(projectId))
       .mapError(_.fold(convertFileStorageFailure))
 
-  /** @inheritdoc **/
-  override def save(
+  /** @inheritdoc * */
+  override def create(
     project: Project
   ): F[ProjectRepositoryFailure, Unit] = {
-    val projectPath     = new File(storageConfig.userProjectsPath, project.name)
+    val projectPath     = getTargetPath(project)
     val projectWithPath = project.copy(path = Some(projectPath.toString))
 
     createProjectStructure(project, projectPath) *>
+    update(projectWithPath)
+  }
+
+  /** @inheritdoc * */
+  override def update(project: Project): F[ProjectRepositoryFailure, Unit] =
     indexStorage
       .modify { index =>
-        val updated = index.add(projectWithPath)
+        val updated = index.upsert(project)
         (updated, ())
       }
       .mapError(_.fold(convertFileStorageFailure))
-  }
 
   private def createProjectStructure(
     project: Project,
@@ -88,7 +92,81 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .blockingOp { PackageManager.Default.create(projectPath, project.name) }
       .mapError(th => StorageFailure(th.toString))
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
+  override def rename(
+    projectId: UUID,
+    name: String
+  ): F[ProjectRepositoryFailure, Unit] = {
+    updateProjectName(projectId, name) *>
+    updatePackageName(projectId, name)
+  }
+
+  private def updatePackageName(
+    projectId: UUID,
+    name: String
+  ): F[ProjectRepositoryFailure, Unit] =
+    for {
+      project <- getProject(projectId)
+      _       <- changePacketName(new File(project.path.get), name)
+    } yield ()
+
+  private def getProject(
+    projectId: UUID
+  ): F[ProjectRepositoryFailure, Project] =
+    findById(projectId)
+      .flatMap {
+        case None          => ErrorChannel[F].fail(ProjectNotFoundInIndex)
+        case Some(project) => CovariantFlatMap[F].pure(project)
+      }
+
+  /** @inheritdoc * */
+  def getPackageName(projectId: UUID): F[ProjectRepositoryFailure, String] = {
+    for {
+      project        <- getProject(projectId)
+      projectPackage <- getPackage(new File(project.path.get))
+    } yield projectPackage.config.name
+  }
+
+  private def changePacketName(
+    projectPath: File,
+    name: String
+  ): F[ProjectRepositoryFailure, Unit] =
+    getPackage(projectPath)
+      .flatMap { projectPackage =>
+        val newName = PackageManager.Default.normalizeName(name)
+        Sync[F]
+          .blockingOp { projectPackage.rename(newName) }
+          .map(_ => ())
+          .mapError(th => StorageFailure(th.toString))
+      }
+
+  private def getPackage(
+    projectPath: File
+  ): F[ProjectRepositoryFailure, Package[File]] =
+    Sync[F]
+      .blockingOp { PackageManager.Default.fromDirectory(projectPath) }
+      .mapError(th => StorageFailure(th.toString))
+      .flatMap {
+        case None =>
+          ErrorChannel[F].fail(
+            InconsistentStorage(s"Cannot find package.yaml at $projectPath")
+          )
+
+        case Some(projectPackage) => CovariantFlatMap[F].pure(projectPackage)
+      }
+
+  private def updateProjectName(
+    projectId: UUID,
+    name: String
+  ): F[ProjectRepositoryFailure, Unit] =
+    indexStorage
+      .modify { index =>
+        val updated = index.update(projectId)(_.copy(name = name))
+        (updated, ())
+      }
+      .mapError(_.fold(convertFileStorageFailure))
+
+  /** @inheritdoc * */
   override def delete(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Unit] =
@@ -121,5 +199,45 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .mapError[ProjectRepositoryFailure](failure =>
         StorageFailure(failure.toString)
       )
+
+  /** @inheritdoc * */
+  override def moveProjectToTargetDir(
+    projectId: UUID
+  ): F[ProjectRepositoryFailure, File] = {
+    getProject(projectId)
+      .flatMap { project =>
+        val targetPath = getTargetPath(project)
+        if (targetPath.toString == project.path.get) {
+          CovariantFlatMap[F].pure(targetPath)
+        } else {
+          moveProjectDir(project, targetPath) *>
+          updateProjectDir(projectId, targetPath) *>
+          CovariantFlatMap[F].pure(targetPath)
+        }
+      }
+
+  }
+
+  private def updateProjectDir(projectId: UUID, targetPath: File) = {
+    indexStorage
+      .modify { index =>
+        val updated = index.update(projectId)(
+          _.copy(path = Some(targetPath.toString))
+        )
+        (updated, ())
+      }
+      .mapError(_.fold(convertFileStorageFailure))
+  }
+
+  private def moveProjectDir(project: Project, targetPath: File) = {
+    fileSystem
+      .move(new File(project.path.get), targetPath)
+      .mapError[ProjectRepositoryFailure](failure =>
+        StorageFailure(failure.toString)
+      )
+  }
+
+  private def getTargetPath(project: Project): File =
+    new File(storageConfig.userProjectsPath, project.name)
 
 }

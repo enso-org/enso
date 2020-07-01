@@ -5,16 +5,9 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import java.io.File;
-import java.util.Map;
-import java.util.Optional;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.Context;
@@ -22,9 +15,18 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.QualifiedName;
+import org.enso.pkg.QualifiedName$;
 import org.enso.polyglot.MethodNames;
 
-/** Represents the top scope of Enso execution, containing all the importable modules. */
+import java.io.File;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+/**
+ * Represents the top scope of Enso execution, containing all the importable modules.
+ */
 @ExportLibrary(InteropLibrary.class)
 public class TopLevelScope implements TruffleObject {
   private final Builtins builtins;
@@ -36,7 +38,7 @@ public class TopLevelScope implements TruffleObject {
    * Creates a new instance of top scope.
    *
    * @param builtins the automatically-imported builtin module.
-   * @param modules the initial modules this scope contains.
+   * @param modules  the initial modules this scope contains.
    */
   public TopLevelScope(Builtins builtins, Map<String, Module> modules) {
     this.builtins = builtins;
@@ -68,7 +70,7 @@ public class TopLevelScope implements TruffleObject {
   /**
    * Creates and registers a new module with given name and source file.
    *
-   * @param name the module name.
+   * @param name       the module name.
    * @param sourceFile the module source file.
    * @return the newly created module.
    */
@@ -76,6 +78,30 @@ public class TopLevelScope implements TruffleObject {
     Module module = new Module(name, sourceFile);
     modules.put(name.toString(), module);
     return module;
+  }
+
+  /**
+   * Renames a project part of the included modules.
+   *
+   * @param oldName the old project name
+   * @param newName the new project name
+   */
+  public void renameProjectInModules(String oldName, String newName) {
+    String separator = QualifiedName$.MODULE$.separator();
+    List<String> keys =
+        modules
+            .keySet()
+            .stream()
+            .filter(name -> name.startsWith(oldName + separator))
+            .collect(Collectors.toList());
+
+    keys
+        .stream()
+        .map(modules::remove)
+        .map(module -> module.renameProject(oldName, newName))
+        .forEach(module -> {
+          modules.put(module.getName().toString(), module);
+        });
   }
 
   /**
@@ -114,7 +140,9 @@ public class TopLevelScope implements TruffleObject {
         MethodNames.TopScope.UNREGISTER_MODULE);
   }
 
-  /** Handles member invocation through the polyglot API. */
+  /**
+   * Handles member invocation through the polyglot API.
+   */
   @ExportMessage
   abstract static class InvokeMember {
     private static Module getModule(

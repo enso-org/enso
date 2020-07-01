@@ -38,6 +38,15 @@ case class Package[F](
   val polyglotDir = root.getChild(Package.polyglotExtensionsDirName)
 
   /**
+    * Sets the package name.
+    *
+    * @param newName the new package name
+    * @return a packge with the updated name
+    */
+  def setPackageName(newName: String): Package[F] =
+    this.copy(config = config.copy(name = newName))
+
+  /**
     * Stores the package metadata on the hard drive. If the package does not exist,
     * creates the required directory structure.
     */

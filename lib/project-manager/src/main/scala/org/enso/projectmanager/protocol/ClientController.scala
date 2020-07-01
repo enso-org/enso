@@ -6,10 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.effect.Exec
-import org.enso.projectmanager.event.ClientEvent.{
-  ClientConnected,
-  ClientDisconnected
-}
+import org.enso.projectmanager.event.ClientEvent.{ClientConnected, ClientDisconnected}
 import org.enso.projectmanager.protocol.ProjectManagementApi._
 import org.enso.projectmanager.requesthandler._
 import org.enso.projectmanager.service.ProjectServiceApi
@@ -24,7 +21,7 @@ import scala.concurrent.duration._
   *
   * @param clientId the internal client id.
   * @param projectService a project service
-  * @param config a request timeout cofig
+  * @param config a request timeout config
   */
 class ClientController[F[+_, +_]: Exec](
   clientId: UUID,
@@ -50,7 +47,9 @@ class ClientController[F[+_, +_]: Exec](
           config.shutdownTimeout.plus(1.second)
         ),
       ProjectList -> ProjectListHandler
-        .props[F](clientId, projectService, config.requestTimeout)
+        .props[F](clientId, projectService, config.requestTimeout),
+      ProjectRename -> ProjectRenameHandler
+        .props[F](projectService, config.requestTimeout)
     )
 
   override def receive: Receive = {

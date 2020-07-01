@@ -67,7 +67,7 @@ class HeartbeatSession(
       context.become(pongStage(cancellable))
 
     case WebSocketStreamFailure(th) =>
-      log.error(s"An error occurred during connecting to websocket $socket", th)
+      log.error(th, s"An error occurred during connecting to websocket $socket")
       context.parent ! ServerUnresponsive
       stop()
 
@@ -82,7 +82,7 @@ class HeartbeatSession(
 
       maybeJson match {
         case Left(error) =>
-          log.error("An error occurred during parsing pong reply", error)
+          log.error(error, "An error occurred during parsing pong reply")
 
         case Right(id) =>
           if (id == requestId.toString) {
@@ -110,7 +110,7 @@ class HeartbeatSession(
       context.stop(self)
 
     case WebSocketStreamFailure(th) =>
-      log.error(s"An error occurred during waiting for Pong message", th)
+      log.error(th, s"An error occurred during waiting for Pong message")
       context.parent ! ServerUnresponsive
       cancellable.cancel()
       connection.disconnect()
