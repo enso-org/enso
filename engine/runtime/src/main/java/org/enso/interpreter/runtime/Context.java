@@ -21,6 +21,7 @@ import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
+import org.enso.interpreter.runtime.state.StateObjectType;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
@@ -45,7 +46,7 @@ public class Context {
   private final ThreadManager threadManager;
   private final boolean isCachingDisabled;
   private final Layout layout = Layout.createLayout();
-  private final Shape emptyShape = layout.createShape(new ObjectType());
+  private final Shape emptyShape = layout.createShape(StateObjectType.SINGLETON);
 
   /**
    * Creates a new Enso context.

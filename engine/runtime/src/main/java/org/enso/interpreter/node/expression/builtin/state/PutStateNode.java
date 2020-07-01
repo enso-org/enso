@@ -1,7 +1,9 @@
 package org.enso.interpreter.node.expression.builtin.state;
 
 import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -35,9 +37,10 @@ public abstract class PutStateNode extends Node {
       Object key,
       Object new_state,
       @Cached("key") Object cachedKey,
+      @Cached("key.toString()") String keyStr,
       @Cached("state.getShape()") Shape cachedShape,
-      @Cached("getLocation(key, cachedShape, new_state)") Location location) {
-    DynamicObject changedState = state.copy(cachedShape);
+      @Cached("getLocation(keyStr, cachedShape, new_state)") Location location) {
+    DynamicObject changedState = state;//.copy(cachedShape);
     try {
       location.set(changedState, new_state, cachedShape);
     } catch (IncompatibleLocationException | FinalLocationException e) {
@@ -60,10 +63,11 @@ public abstract class PutStateNode extends Node {
       Object key,
       Object new_state,
       @Cached("key") Object cachedKey,
+      @Cached("key.toString()") String keyStr,
       @Cached("state.getShape()") Shape cachedShape,
-      @Cached("getLocation(key, cachedShape, new_state)") Location oldLocation,
-      @Cached("defineProp(cachedShape, key, new_state)") Shape nextShape,
-      @Cached("getLocation(key, nextShape)") Location newLocation) {
+      @Cached("getLocation(keyStr, cachedShape, new_state)") Location oldLocation,
+      @Cached("defineProp(cachedShape, keyStr, new_state)") Shape nextShape,
+      @Cached("getLocation(keyStr, nextShape)") Location newLocation) {
     DynamicObject changedState = state.copy(cachedShape);
     try {
       newLocation.set(changedState, new_state, cachedShape, nextShape);
@@ -73,14 +77,21 @@ public abstract class PutStateNode extends Node {
     return new Stateful(changedState, new_state);
   }
 
-  Location getLocation(Object key, Shape shape) {
+  @Specialization
+  Stateful doFall(DynamicObject state, Object _this, Object key, Object new_state) {
+    throw new RuntimeException("That's unexpected...");
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  Location getLocation(String key, Shape shape) {
     CompilerAsserts.neverPartOfCompilation();
     Property property = shape.getProperty(key);
     if (property == null) return null;
     return property.getLocation();
   }
 
-  Location getLocation(Object key, Shape shape, Object value) {
+  @CompilerDirectives.TruffleBoundary
+  Location getLocation(String key, Shape shape, Object value) {
     Location loc = getLocation(key, shape);
     if (loc == null || !loc.canSet(value)) {
       return null;
@@ -88,7 +99,8 @@ public abstract class PutStateNode extends Node {
     return loc;
   }
 
-  Shape defineProp(Shape shape, Object key, Object value) {
+  @CompilerDirectives.TruffleBoundary
+  Shape defineProp(Shape shape, String key, Object value) {
     return shape.defineProperty(key, value, 0);
   }
 }
