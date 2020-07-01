@@ -1,0 +1,76 @@
+name: "CodeQL"
+
+on:
+  pull_request:
+    branches:
+      - "*"
+
+env:
+  # Please ensure that this is in sync with graalAPIVersion in build.sbt
+  graalVersion: 20.1.0
+  javaVersion: java11
+  # Please ensure that this is in sync with project/build.properties
+  sbtVersion: 1.3.13
+
+jobs:
+  vuln-scan:
+    name: Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        # We must fetch at least the immediate parents so that if this is
+        # a pull request then we can checkout the head.
+        fetch-depth: 2
+
+    # If this run was triggered by a pull request event, then checkout
+    # the head of the pull request instead of the merge commit.
+    - run: git checkout HEAD^2
+      if: ${{ github.event_name == 'pull_request' }}
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v1
+      with:
+        languages: java
+
+    # Set Up Environment
+    - name: Setup conda
+      uses: s-weigand/setup-conda@v1
+      with:
+        update-conda: false
+        conda-channels: anaconda, conda-forge
+    - name: Install FlatBuffers Compiler
+      run: conda install --freeze-installed flatbuffers=1.12.0
+    - name: Setup GraalVM Environment
+      uses: DeLaGuardo/setup-graalvm@2.0
+      with:
+          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+    - name: Set Up SBT
+      run: |
+          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+          tar -xzf sbt.tgz
+          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+
+    # Caches
+    - name: Cache SBT
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.sbt
+          ~/.ivy2/cache
+          ~/.cache
+        key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+        restore-keys: ${{ runner.os }}-sbt-
+
+    # Build
+    - name: Bootstrap Enso project
+      run: sbt --no-colors bootstrap
+    - name: Build Enso
+      run: sbt --no-colors compile
+
+    # Analyse the Code
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v1
