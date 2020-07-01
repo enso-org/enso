@@ -735,7 +735,8 @@ lazy val runtime = (project in file("engine/runtime"))
         .value,
     // Note [Classpath Separation]
     Test / javaOptions ++= Seq(
-        "-Dgraalvm.locatorDisabled=true"
+        "-Dgraalvm.locatorDisabled=true",
+        s"--upgrade-module-path=${file("engine/runtime/build-cache/truffle-api.jar").absolutePath}"
       ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
