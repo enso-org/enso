@@ -11,7 +11,7 @@ import org.enso.jsonrpc.test.RetrySpec
 class FileManagerTest extends BaseServerTest with RetrySpec {
   "File Server" must {
 
-    "write textual content to a file" taggedAs Retry(3) in {
+    "write textual content to a file" taggedAs Retry() in {
       val client = getInitialisedWsClient()
       client.send(json"""
           { "jsonrpc": "2.0",

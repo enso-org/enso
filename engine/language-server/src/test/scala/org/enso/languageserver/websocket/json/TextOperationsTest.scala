@@ -9,7 +9,7 @@ import org.enso.languageserver.filemanager.Path
 class TextOperationsTest extends BaseServerTest with RetrySpec {
 
   "text/openFile" must {
-    "fail opening a file if it does not exist" taggedAs Retry(3) in {
+    "fail opening a file if it does not exist" taggedAs Retry() in {
       // Interaction:
       // 1. Client tries to open a non-existent file.
       // 2. Client receives an error message.

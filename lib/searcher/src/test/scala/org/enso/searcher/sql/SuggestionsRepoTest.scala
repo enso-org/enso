@@ -45,7 +45,7 @@ class SuggestionsRepoTest
       Await.result(action, Timeout) shouldEqual Some(suggestion.atom)
     }
 
-    "find suggestion by returnType" taggedAs Retry(3) in {
+    "find suggestion by returnType" taggedAs Retry() in {
       val action =
         for {
           _   <- db.run(repo.insert(suggestion.local))
