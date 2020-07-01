@@ -11,7 +11,7 @@ env:
   graalVersion: 20.1.0
   javaVersion: java8
   # Please ensure that this is in sync with project/build.properties
-  sbtVersion: 1.3.10
+  sbtVersion: 1.3.13
   excludedPaths: |
     .github/PULL_REQUEST_TEMPLATE.md
     .github/CODEOWNERS
@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        os: [macOS-latest, ubuntu-latest]
+        os: [macOS-latest, ubuntu-latest, windows-latest]
       fail-fast: false
     steps:
       - uses: actions/checkout@v2

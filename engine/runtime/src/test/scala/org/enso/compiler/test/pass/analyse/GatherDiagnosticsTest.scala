@@ -1,8 +1,10 @@
 package org.enso.compiler.test.pass.analyse
 
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.Passes
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.CallArgument
+import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.test.CompilerTest
 import org.enso.syntax.text.AST
@@ -62,8 +64,10 @@ class GatherDiagnosticsTest extends CompilerTest {
       val method2Name = IR.Name.Literal("baz", None)
       val fooName     = IR.Name.Literal("foo", None)
 
-      val method1Ref = IR.Name.MethodReference(List(typeName), method1Name, None)
-      val method2Ref = IR.Name.MethodReference(List(typeName), method2Name, None)
+      val method1Ref =
+        IR.Name.MethodReference(List(typeName), method1Name, None)
+      val method2Ref =
+        IR.Name.MethodReference(List(typeName), method2Name, None)
 
       val module = IR.Module(
         List(),
@@ -90,6 +94,31 @@ class GatherDiagnosticsTest extends CompilerTest {
         .diagnostics
 
       errors.toSet shouldEqual Set(error1, error2, error3)
+    }
+
+    "avoid duplication" in {
+      implicit val passManager: PassManager =
+        new Passes().passManager
+
+      implicit val moduleContext: ModuleContext =
+        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+
+      val ir =
+        """
+          |type Foo
+          |    type Bar1
+          |    type Bar2
+          |
+          |    foo x =
+          |        unused = 0
+          |        0
+          |""".stripMargin.preprocessModule
+      val result = GatherDiagnostics.runModule(ir, moduleContext)
+      val diagnostics = result
+        .unsafeGetMetadata(GatherDiagnostics, "Impossible")
+        .diagnostics
+      diagnostics should have length 1
+      diagnostics.head.message shouldEqual "Unused variable unused."
     }
   }
 }

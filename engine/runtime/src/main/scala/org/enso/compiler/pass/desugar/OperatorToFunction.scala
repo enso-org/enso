@@ -8,7 +8,6 @@ import org.enso.compiler.pass.analyse.{
   DataflowAnalysis,
   DemandAnalysis
 }
-import org.enso.compiler.pass.optimise.LambdaConsolidate
 
 /** This pass converts usages of operators to calls to standard functions.
   *
@@ -61,7 +60,7 @@ case object OperatorToFunction extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression =
     ir.transformExpressions {
-      case IR.Application.Operator.Binary(l, op, r, loc, passData, _) =>
+      case IR.Application.Operator.Binary(l, op, r, loc, passData, diag) =>
         IR.Application.Prefix(
           op,
           List(
@@ -70,7 +69,8 @@ case object OperatorToFunction extends IRPass {
           ),
           hasDefaultsSuspended = false,
           loc,
-          passData
+          passData,
+          diag
         )
     }
 }

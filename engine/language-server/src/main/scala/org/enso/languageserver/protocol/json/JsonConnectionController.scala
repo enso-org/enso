@@ -39,7 +39,11 @@ import org.enso.languageserver.requesthandler.visualisation.{
   DetachVisualisationHandler,
   ModifyVisualisationHandler
 }
-import org.enso.languageserver.runtime.ContextRegistryProtocol
+import org.enso.languageserver.runtime.{
+  ContextRegistryProtocol,
+  SearchApi,
+  SearchProtocol
+}
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.VisualisationApi.{
   AttachVisualisation,
@@ -170,6 +174,14 @@ class JsonConnectionController(
         ExecutionContextExecutionFailed.Params(contextId, msg)
       )
 
+    case SearchProtocol.SuggestionsDatabaseUpdateNotification(
+          updates,
+          version
+        ) =>
+      webActor ! Notification(
+        SearchApi.SuggestionsDatabaseUpdates,
+        SearchApi.SuggestionsDatabaseUpdates.Params(updates, version)
+      )
     case InputOutputProtocol.OutputAppended(output, outputKind) =>
       outputKind match {
         case StandardOutput =>
@@ -189,7 +201,7 @@ class JsonConnectionController(
     case InputOutputProtocol.WaitingForStandardInput =>
       webActor ! Notification(InputOutputApi.WaitingForStandardInput, Unused)
 
-    case req @ Request(method, _, _) if (requestHandlers.contains(method)) =>
+    case req @ Request(method, _, _) if requestHandlers.contains(method) =>
       val handler = context.actorOf(
         requestHandlers(method),
         s"request-handler-$method-${UUID.randomUUID()}"

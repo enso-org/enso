@@ -63,12 +63,20 @@ object Capability {
   import io.circe.syntax._
 
   implicit val encoder: Encoder[Capability] = {
-    case cap: CanEdit             => cap.asJson
-    case cap: ReceivesTreeUpdates => cap.asJson
-    case cap: CanModify           => cap.asJson
-    case cap: ReceivesUpdates     => cap.asJson
+    case cap: CanEdit                            => cap.asJson
+    case cap: ReceivesTreeUpdates                => cap.asJson
+    case cap: CanModify                          => cap.asJson
+    case cap: ReceivesUpdates                    => cap.asJson
+    case cap: ReceivesSuggestionsDatabaseUpdates => cap.asJson
   }
 
+}
+
+case class ReceivesSuggestionsDatabaseUpdates()
+    extends Capability(ReceivesSuggestionsDatabaseUpdates.methodName)
+
+object ReceivesSuggestionsDatabaseUpdates {
+  val methodName = "search/receivesSuggestionsDatabaseUpdates"
 }
 
 /**
@@ -99,14 +107,17 @@ object CapabilityRegistration {
     def resolveOptions(
       method: String,
       json: Json
-    ): Decoder.Result[Capability] = method match {
-      case CanEdit.methodName             => json.as[CanEdit]
-      case ReceivesTreeUpdates.methodName => json.as[ReceivesTreeUpdates]
-      case CanModify.methodName           => json.as[CanModify]
-      case ReceivesUpdates.methodName     => json.as[ReceivesUpdates]
-      case _ =>
-        Left(DecodingFailure("Unrecognized capability method.", List()))
-    }
+    ): Decoder.Result[Capability] =
+      method match {
+        case CanEdit.methodName             => json.as[CanEdit]
+        case ReceivesTreeUpdates.methodName => json.as[ReceivesTreeUpdates]
+        case CanModify.methodName           => json.as[CanModify]
+        case ReceivesUpdates.methodName     => json.as[ReceivesUpdates]
+        case ReceivesSuggestionsDatabaseUpdates.methodName =>
+          json.as[ReceivesSuggestionsDatabaseUpdates]
+        case _ =>
+          Left(DecodingFailure("Unrecognized capability method.", List()))
+      }
 
     for {
       method <- json.downField(methodField).as[String]

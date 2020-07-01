@@ -3,7 +3,6 @@ package org.enso.compiler.pass.optimise
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionArgument
-import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
@@ -76,13 +75,14 @@ case object LambdaConsolidate extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module = ir.transformExpressions {
-    case x =>
-      runExpression(
-        x,
-        new InlineContext(freshNameSupply = moduleContext.freshNameSupply)
-      )
-  }
+  ): IR.Module =
+    ir.transformExpressions {
+      case x =>
+        runExpression(
+          x,
+          new InlineContext(freshNameSupply = moduleContext.freshNameSupply)
+        )
+    }
 
   /** Performs lambda consolidation on an expression.
     *
@@ -373,7 +373,7 @@ case object LambdaConsolidate extends IRPass {
               .map(link => aliasInfo.graph.getOccurrence(link.source))
               .collect {
                 case Some(
-                    AliasAnalysis.Graph.Occurrence.Use(_, _, identifier, _)
+                      AliasAnalysis.Graph.Occurrence.Use(_, _, identifier, _)
                     ) =>
                   identifier
               }
@@ -394,8 +394,8 @@ case object LambdaConsolidate extends IRPass {
   ): List[IR.DefinitionArgument] = {
     argsWithShadowed.map {
       case (
-          spec @ IR.DefinitionArgument.Specified(name, _, _, _, _, _),
-          isShadowed
+            spec @ IR.DefinitionArgument.Specified(name, _, _, _, _, _),
+            isShadowed
           ) =>
         val newName =
           if (isShadowed) {

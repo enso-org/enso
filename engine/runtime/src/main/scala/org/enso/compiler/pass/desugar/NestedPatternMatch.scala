@@ -238,7 +238,7 @@ case object NestedPatternMatch extends IRPass {
           val newField = Pattern.Name(newName, None)
           val nestedScrutinee =
             newName.duplicate()
-            newName.duplicate()
+          newName.duplicate()
 
           val newFields =
             fields.take(nestedPosition) ++ (newField :: fields.drop(
@@ -246,8 +246,7 @@ case object NestedPatternMatch extends IRPass {
             ))
 
           val newPattern = cons.copy(
-            fields =
-              newFields.duplicate()
+            fields = newFields.duplicate()
           )
 
           val newExpression = generateNestedCase(
@@ -259,7 +258,7 @@ case object NestedPatternMatch extends IRPass {
           )
 
           val partDesugaredBranch = IR.Case.Branch(
-            pattern = newPattern.duplicate(),
+            pattern    = newPattern.duplicate(),
             expression = newExpression.duplicate(),
             None
           )
@@ -274,6 +273,10 @@ case object NestedPatternMatch extends IRPass {
         case _: Pattern.Name =>
           throw new CompilerError(
             "Name patterns cannot be nested. This should be unreachable."
+          )
+        case Pattern.Documentation(_, _, _, _) =>
+          throw new CompilerError(
+            "Branch documentation should be desugared at an earlier stage."
           )
       }
     } else {
@@ -346,14 +349,23 @@ case object NestedPatternMatch extends IRPass {
     * @param pattern the pattern to test
     * @return `true` if
     */
-  def containsNestedPatterns(pattern: Pattern): Boolean = pattern match {
-    case _: Pattern.Name => false
-    case Pattern.Constructor(_, fields, _, _, _) =>
-      fields.exists {
-        case _: Pattern.Constructor => true
-        case _: Pattern.Name        => false
-      }
-  }
+  def containsNestedPatterns(pattern: Pattern): Boolean =
+    pattern match {
+      case _: Pattern.Name => false
+      case Pattern.Constructor(_, fields, _, _, _) =>
+        fields.exists {
+          case _: Pattern.Constructor => true
+          case _: Pattern.Name        => false
+          case _: Pattern.Documentation =>
+            throw new CompilerError(
+              "Branch documentation should be desugared at an earlier stage."
+            )
+        }
+      case _: Pattern.Documentation =>
+        throw new CompilerError(
+          "Branch documentation should be desugared at an earlier stage."
+        )
+    }
 
   /** Checks if a given pattern is a nested pattern when called on a
     * sub-pattern.
@@ -361,18 +373,28 @@ case object NestedPatternMatch extends IRPass {
     * @param pattern the pattern to check
     * @return `true` if `pattern` is nested, otherwise `false`
     */
-  def isNested(pattern: Pattern): Boolean = pattern match {
-    case _: Pattern.Name        => false
-    case _: Pattern.Constructor => true
-  }
+  def isNested(pattern: Pattern): Boolean =
+    pattern match {
+      case _: Pattern.Name        => false
+      case _: Pattern.Constructor => true
+      case _: Pattern.Documentation =>
+        throw new CompilerError(
+          "Branch documentation should be desugared at an earlier stage."
+        )
+    }
 
   /** Checks if a given pattern is a catch all branch.
     *
     * @param pattern the pattern to check
     * @return `true` if `pattern` is a catch all, otherwise `false`
     */
-  def isCatchAll(pattern: Pattern): Boolean = pattern match {
-    case _: Pattern.Name        => true
-    case _: Pattern.Constructor => false
-  }
+  def isCatchAll(pattern: Pattern): Boolean =
+    pattern match {
+      case _: Pattern.Name        => true
+      case _: Pattern.Constructor => false
+      case _: Pattern.Documentation =>
+        throw new CompilerError(
+          "Branch documentation should be desugared at an earlier stage."
+        )
+    }
 }

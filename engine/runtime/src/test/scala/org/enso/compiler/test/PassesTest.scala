@@ -11,7 +11,6 @@ import org.enso.compiler.pass.optimise.UnreachableMatchBranches
 import org.enso.compiler.pass.resolve.{
   DocumentationComments,
   IgnoredBindings,
-  SuspendedArguments,
   TypeFunctions,
   TypeSignatures
 }

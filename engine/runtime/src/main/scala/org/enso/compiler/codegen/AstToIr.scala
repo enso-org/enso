@@ -257,7 +257,7 @@ object AstToIr {
     * @return the [[IR]] representation of `maybeParensedInput`
     */
   def translateTypeBodyExpression(maybeParensedInput: AST): IR = {
-    val inputAst = AstView.MaybeParensed
+    val inputAst = AstView.MaybeManyParensed
       .unapply(maybeParensedInput)
       .getOrElse(maybeParensedInput)
 
@@ -302,7 +302,7 @@ object AstToIr {
     * @return the [[IR]] representation of `maybeParensedInput`
     */
   def translateExpression(maybeParensedInput: AST): Expression = {
-    val inputAst = AstView.MaybeParensed
+    val inputAst = AstView.MaybeManyParensed
       .unapply(maybeParensedInput)
       .getOrElse(maybeParensedInput)
 
@@ -405,6 +405,8 @@ object AstToIr {
         )
       case AstView.Pattern(_) =>
         Error.Syntax(inputAst, Error.Syntax.InvalidPattern)
+      case AST.Macro.Ambiguous(_, _) =>
+        Error.Syntax(inputAst, Error.Syntax.AmbiguousExpression)
       case _ =>
         throw new UnhandledEntity(inputAst, "translateExpression")
     }
@@ -547,18 +549,19 @@ object AstToIr {
     * @param arg the argument to translate
     * @return the [[IR]] representation of `arg`
     */
-  def translateCallArgument(arg: AST): CallArgument.Specified = arg match {
-    case AstView.AssignedArgument(left, right) =>
-      CallArgument
-        .Specified(
-          Some(Name.Literal(left.name, getIdentifiedLocation(left))),
-          translateExpression(right),
-          getIdentifiedLocation(arg)
-        )
-    case _ =>
-      CallArgument
-        .Specified(None, translateExpression(arg), getIdentifiedLocation(arg))
-  }
+  def translateCallArgument(arg: AST): CallArgument.Specified =
+    arg match {
+      case AstView.AssignedArgument(left, right) =>
+        CallArgument
+          .Specified(
+            Some(Name.Literal(left.name, getIdentifiedLocation(left))),
+            translateExpression(right),
+            getIdentifiedLocation(arg)
+          )
+      case _ =>
+        CallArgument
+          .Specified(None, translateExpression(arg), getIdentifiedLocation(arg))
+    }
 
   /** Calculates whether a set of arguments has its defaults suspended, and
     * processes the argument list to remove that operator.
@@ -651,6 +654,8 @@ object AstToIr {
           hasDefaultsSuspended = false,
           getIdentifiedLocation(callable)
         )
+      case AST.Macro.Ambiguous(_, _) =>
+        Error.Syntax(callable, Error.Syntax.AmbiguousExpression)
       case _ => throw new UnhandledEntity(callable, "translateCallable")
     }
   }
@@ -756,9 +761,15 @@ object AstToIr {
   }
 
   /** Translates the branch of a case expression from its [[AST]] representation
-    * into [[IR]].
+    * into [[IR]], also handling the documentation comments in between branches.
     *
-    * @param branch the case branch to translate
+    * The documentation comments are translated to dummy branches that contain
+    * an empty expression and a dummy [[IR.Pattern.Documentation]] pattern
+    * containing the comment. These dummy branches are removed in the
+    * DocumentationComments pass where the comments are attached to the actual
+    * branches.
+    *
+    * @param branch the case branch or comment to translate
     * @return the [[IR]] representation of `branch`
     */
   def translateCaseBranch(branch: AST): Case.Branch = {
@@ -768,6 +779,14 @@ object AstToIr {
           translatePattern(pattern),
           translateExpression(expression),
           getIdentifiedLocation(branch)
+        )
+      case c @ AST.Comment(lines) =>
+        val doc      = lines.mkString("\n")
+        val location = getIdentifiedLocation(c)
+        Case.Branch(
+          Pattern.Documentation(doc, location),
+          IR.Empty(None),
+          location
         )
       case _ => throw new UnhandledEntity(branch, "translateCaseBranch")
     }
@@ -780,7 +799,7 @@ object AstToIr {
     * @return
     */
   def translatePattern(pattern: AST): Pattern = {
-    AstView.MaybeParensed.unapply(pattern).getOrElse(pattern) match {
+    AstView.MaybeManyParensed.unapply(pattern).getOrElse(pattern) match {
       case AstView.ConstructorPattern(cons, fields) =>
         Pattern.Constructor(
           translateIdent(cons).asInstanceOf[IR.Name],

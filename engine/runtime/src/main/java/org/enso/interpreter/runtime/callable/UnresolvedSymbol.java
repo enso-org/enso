@@ -1,11 +1,20 @@
 package org.enso.interpreter.runtime.callable;
 
-import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.*;
+import com.oracle.truffle.api.library.CachedLibrary;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+import org.enso.interpreter.Constants;
+import org.enso.interpreter.node.callable.MethodResolverNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
+@ExportLibrary(InteropLibrary.class)
 public class UnresolvedSymbol implements TruffleObject {
   private final String name;
   private final ModuleScope scope;
@@ -17,7 +26,7 @@ public class UnresolvedSymbol implements TruffleObject {
    * @param scope the scope in which this symbol was created
    */
   private UnresolvedSymbol(String name, ModuleScope scope) {
-    this.name = name.intern();
+    this.name = name;
     this.scope = scope;
   }
 
@@ -67,5 +76,32 @@ public class UnresolvedSymbol implements TruffleObject {
    */
   public static UnresolvedSymbol build(String name, ModuleScope scope) {
     return new UnresolvedSymbol(name, scope);
+  }
+
+  /**
+   * Marks this object as executable through the interop library.
+   *
+   * @return always true
+   */
+  @ExportMessage
+  public boolean isExecutable() {
+    return true;
+  }
+
+  /** Implements the logic of executing {@link UnresolvedSymbol} through the interop library. */
+  @ExportMessage
+  @ImportStatic(Constants.CacheSizes.class)
+  public static class Execute {
+    @Specialization
+    static Object doDispatch(
+        UnresolvedSymbol symbol,
+        Object[] arguments,
+        @Cached MethodResolverNode methodResolverNode,
+        @CachedLibrary(limit = "BUILTIN_INTEROP_DISPATCH") InteropLibrary library)
+        throws ArityException, UnsupportedTypeException, UnsupportedMessageException {
+      if (arguments.length == 0) throw ArityException.create(1, 0);
+      Function function = methodResolverNode.execute(symbol, arguments[0]);
+      return library.execute(function, arguments);
+    }
   }
 }

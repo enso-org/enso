@@ -73,6 +73,7 @@ public class MethodProcessor extends AbstractProcessor {
       Arrays.asList(
           "com.oracle.truffle.api.frame.VirtualFrame",
           "com.oracle.truffle.api.nodes.NodeInfo",
+          "com.oracle.truffle.api.nodes.RootNode",
           "com.oracle.truffle.api.nodes.UnexpectedResultException",
           "org.enso.interpreter.Language",
           "org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
@@ -182,6 +183,30 @@ public class MethodProcessor extends AbstractProcessor {
       out.println("  @Override");
       out.println("  public String getName() {");
       out.println("    return \"" + methodDefinition.getDeclaredName() + "\";");
+      out.println("  }");
+
+      out.println();
+
+      out.println("  @Override");
+      out.println("  public boolean isCloningAllowed() {");
+      out.println("    return true;");
+      out.println("  }");
+
+      out.println();
+
+      out.println("  @Override");
+      out.println("  protected boolean isCloneUninitializedSupported() {");
+      out.println("    return true;");
+      out.println("  }");
+
+      out.println();
+
+      out.println("  @Override");
+      out.println("  protected RootNode cloneUninitialized() {");
+      out.println(
+          "    return new "
+              + methodDefinition.getClassName()
+              + "(lookupLanguageReference(Language.class).get());");
       out.println("  }");
 
       out.println();

@@ -9,7 +9,6 @@ import java.io.{
 import java.util.UUID
 
 import com.oracle.truffle.api.instrumentation.EventBinding
-import org.enso.interpreter.instrument.ReplDebuggerInstrument
 import org.enso.interpreter.test.CodeIdsTestInstrument.IdEventListener
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
 import org.enso.polyglot.debugger.{
@@ -26,10 +25,8 @@ import org.enso.polyglot.{
 }
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.Assertions
-import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-
 case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
   var bindings: List[EventBinding[LocationsEventListener]] = List()
 
@@ -41,7 +38,8 @@ case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
       val listener = binding.getElement
       if (!listener.isSuccessful) {
         Assertions.fail(
-          s"Node of type ${listener.getType.getSimpleName} at position ${listener.getStart} with length ${listener.getLength} was not found."
+          s"Node of type ${listener.getType.getSimpleName} at position " +
+          s"${listener.getStart} with length ${listener.getLength} was not found."
         )
       }
     }
@@ -103,6 +101,7 @@ class InterpreterContext(
       .allowAllAccess(true)
       .out(output)
       .err(err)
+      .logHandler(System.err)
       .in(in)
       .serverTransport { (uri, peer) =>
         if (uri.toString == DebugServerInfo.URI) {
@@ -173,16 +172,16 @@ trait InterpreterRunner {
     }
   }
 
-  def consumeErr(
-    implicit interpreterContext: InterpreterContext
+  def consumeErr(implicit
+    interpreterContext: InterpreterContext
   ): List[String] = {
     val result = interpreterContext.err.toString
     interpreterContext.err.reset()
     result.linesIterator.toList
   }
 
-  def consumeOut(
-    implicit interpreterContext: InterpreterContext
+  def consumeOut(implicit
+    interpreterContext: InterpreterContext
   ): List[String] = {
     val result = interpreterContext.output.toString
     interpreterContext.output.reset()

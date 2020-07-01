@@ -53,10 +53,13 @@ case object GatherDiagnostics extends IRPass {
     * @return `ir`, with all diagnostics from its subtree associated with it
     */
   private def gatherMetadata(ir: IR): DiagnosticsMeta = {
-    DiagnosticsMeta(ir.preorder.collect {
+    val diagnostics = ir.preorder.collect {
       case err: IR.Diagnostic => List(err)
       case x                  => x.diagnostics.toList
-    }.flatten)
+    }.flatten
+    DiagnosticsMeta(
+      diagnostics.distinctBy(d => (d.location, d.toString))
+    )
   }
 
   /** A container for diagnostics found in the IR.
@@ -69,7 +72,7 @@ case object GatherDiagnostics extends IRPass {
     /** The name of the metadata as a string. */
     override val metadataName: String = "GatherDiagnostics.Diagnostics"
 
-    override def duplicate: IRPass.Metadata =
-      this.copy(diagnostics.map(identity))
+    override def duplicate(): Option[IRPass.Metadata] =
+      Some(this)
   }
 }

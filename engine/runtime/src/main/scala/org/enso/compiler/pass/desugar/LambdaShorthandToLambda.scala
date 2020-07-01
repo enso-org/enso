@@ -64,15 +64,16 @@ case object LambdaShorthandToLambda extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module = ir.transformExpressions {
-    case x =>
-      x.mapExpressions(
-        runExpression(
-          _,
-          InlineContext(freshNameSupply = moduleContext.freshNameSupply)
+  ): IR.Module =
+    ir.transformExpressions {
+      case x =>
+        x.mapExpressions(
+          runExpression(
+            _,
+            InlineContext(freshNameSupply = moduleContext.freshNameSupply)
+          )
         )
-      )
-  }
+    }
 
   /** Desugars underscore arguments to lambdas for an arbitrary expression.
     *
@@ -316,7 +317,7 @@ case object LambdaShorthandToLambda extends IRPass {
   ): Option[IR.DefinitionArgument] = {
     if (isShorthand) {
       arg match {
-        case IR.CallArgument.Specified(_, value, _, _, _, _) =>
+        case IR.CallArgument.Specified(_, value, _, _, passData, diagnostics) =>
           // Note [Safe Casting to IR.Name.Literal]
           val defArgName =
             IR.Name.Literal(value.asInstanceOf[IR.Name.Literal].name, None)
@@ -326,7 +327,9 @@ case object LambdaShorthandToLambda extends IRPass {
               defArgName,
               None,
               suspended = false,
-              None
+              None,
+              passData.duplicate,
+              diagnostics.copy
             )
           )
       }

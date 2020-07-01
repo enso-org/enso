@@ -62,7 +62,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     def pop(): Unit = logger.trace {
       current = stack.head
       stack   = stack.tail
-      logger.log(s"New result: ${current.map(_.show).getOrElse("None")}")
+      logger.log(s"New result: ${current.map(_.show()).getOrElse("None")}")
     }
 
     def app(fn: String => AST): Unit =

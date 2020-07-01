@@ -62,11 +62,11 @@ class SmartConstructorsTest extends CompilerTest {
               if (Utility.ListOps.equals(xs, errList)) {
                 succeed
               } else {
-                fail
+                fail()
               }
-            case _ => fail
+            case _ => fail()
           }
-        case Right(_) => fail
+        case Right(_) => fail()
       }
     }
   }
@@ -88,7 +88,7 @@ class SmartConstructorsTest extends CompilerTest {
     val emptyNode           = Node.New.Empty()
     val nilNode             = Node.New.MetaNil()
     val listNode =
-      Node.New.MetaList(emptyNode, nilNode).getOrElse(fail)
+      Node.New.MetaList(emptyNode, nilNode).getOrElse(fail())
 
     "have valid fields" in {
       listNode.location shouldEqual Node.Constants.invalidLocation
@@ -225,7 +225,9 @@ class SmartConstructorsTest extends CompilerTest {
     val name                = Node.New.Name("MyModule", dummyLocation)
 
     val module =
-      Node.New.ModuleDef(name, importNil, defNil, dummyLocation).getOrElse(fail)
+      Node.New
+        .ModuleDef(name, importNil, defNil, dummyLocation)
+        .getOrElse(fail())
 
     "have valid fields" in {
       module.location shouldEqual dummyLocation
@@ -263,7 +265,7 @@ class SmartConstructorsTest extends CompilerTest {
     val segmentsNil         = Node.New.MetaNil()
     val empty               = Node.New.Empty()
     val imp =
-      Node.New.Import(segmentsNil, dummyLocation).getOrElse(fail)
+      Node.New.Import(segmentsNil, dummyLocation).getOrElse(fail())
 
     "have valid fields" in {
       imp.location shouldEqual dummyLocation
@@ -296,7 +298,7 @@ class SmartConstructorsTest extends CompilerTest {
     val topLevelBinding =
       Node.New
         .TopLevelBinding(emptyModule, binding, dummyLocation)
-        .getOrElse(fail)
+        .getOrElse(fail())
 
     "have valid fields" in {
       topLevelBinding.location shouldEqual dummyLocation
@@ -332,7 +334,7 @@ class SmartConstructorsTest extends CompilerTest {
     val argName = Node.New.Empty()
     val args    = Utility.ListOps.from(argName)
 
-    val atomDef = Node.New.AtomDef(name, args, dummyLocation).getOrElse(fail)
+    val atomDef = Node.New.AtomDef(name, args, dummyLocation).getOrElse(fail())
 
     "have valid fields" in {
       atomDef.location shouldEqual dummyLocation
@@ -369,7 +371,7 @@ class SmartConstructorsTest extends CompilerTest {
     val body     = Utility.ListOps.from(bodyExpr)
 
     val typeDef =
-      Node.New.TypeDef(name, tParams, body, dummyLocation).getOrElse(fail)
+      Node.New.TypeDef(name, tParams, body, dummyLocation).getOrElse(fail())
 
     "have valid fields" in {
       typeDef.location shouldEqual dummyLocation
@@ -677,7 +679,7 @@ class SmartConstructorsTest extends CompilerTest {
     val body = Node.New.Empty()
 
     val functionDef =
-      Node.New.FunctionDef(name, args, body, dummyLocation).getOrElse(fail)
+      Node.New.FunctionDef(name, args, body, dummyLocation).getOrElse(fail())
 
     "have valid fields" in {
       functionDef.location shouldEqual dummyLocation
@@ -717,7 +719,7 @@ class SmartConstructorsTest extends CompilerTest {
     val methodDef =
       Node.New
         .MethodDef(targetPath, name, function, dummyLocation)
-        .getOrElse(fail)
+        .getOrElse(fail())
 
     "have valid fields" in {
       methodDef.location shouldEqual dummyLocation
@@ -767,7 +769,7 @@ class SmartConstructorsTest extends CompilerTest {
 
     val arg = Node.New
       .DefinitionArgument(name, suspended, default, dummyLocation)
-      .getOrElse(fail)
+      .getOrElse(fail())
 
     "have valid fields" in {
       arg.location shouldEqual dummyLocation
@@ -1008,7 +1010,7 @@ class SmartConstructorsTest extends CompilerTest {
     val returnVal   = Node.New.Empty()
 
     val block =
-      Node.New.Block(expressions, returnVal, dummyLocation).getOrElse(fail)
+      Node.New.Block(expressions, returnVal, dummyLocation).getOrElse(fail())
 
     "have valid fields" in {
       block.location shouldEqual dummyLocation
@@ -1068,7 +1070,7 @@ class SmartConstructorsTest extends CompilerTest {
     val branches  = Utility.ListOps.from(Node.New.Empty())
 
     val caseExpr =
-      Node.New.CaseExpr(scrutinee, branches, dummyLocation).getOrElse(fail)
+      Node.New.CaseExpr(scrutinee, branches, dummyLocation).getOrElse(fail())
 
     "have valid fields" in {
       caseExpr.location shouldEqual dummyLocation
@@ -1234,7 +1236,7 @@ class SmartConstructorsTest extends CompilerTest {
       Node.New.ForeignCodeLiteral("lambda x: x + 1", dummyLocation)
 
     val foreignDefinition =
-      Node.New.ForeignDefinition(language, code, dummyLocation).getOrElse(fail)
+      Node.New.ForeignDefinition(language, code, dummyLocation).getOrElse(fail())
 
     "have valid fields" in {
       foreignDefinition.location shouldEqual dummyLocation
@@ -1371,7 +1373,7 @@ class SmartConstructorsTest extends CompilerTest {
     val emptyNode           = Node.New.Empty()
     val nilNode             = Node.New.MetaNil()
     val consNode =
-      Node.New.MetaList(emptyNode, nilNode).getOrElse(fail)
+      Node.New.MetaList(emptyNode, nilNode).getOrElse(fail())
 
     "be correctly identified" in {
       Utility.ListOps.is(emptyNode) shouldEqual false
@@ -1396,7 +1398,7 @@ class SmartConstructorsTest extends CompilerTest {
 
       listOfOne.tail.target match {
         case NodeShape.MetaNil.any(_) =>
-        case _                        => fail
+        case _                        => fail()
       }
 
       listOfMany.head.target shouldEqual emptyNode1
@@ -1410,11 +1412,11 @@ class SmartConstructorsTest extends CompilerTest {
               e3.head.target shouldEqual emptyNode3
               e3.tail.target match {
                 case NodeShape.MetaNil.any(_) => succeed
-                case _                        => fail
+                case _                        => fail()
               }
-            case _ => fail
+            case _ => fail()
           }
-        case _ => fail
+        case _ => fail()
       }
     }
   }
@@ -1465,7 +1467,7 @@ class SmartConstructorsTest extends CompilerTest {
 
       link.target match {
         case NodeShape.Empty.any(_) => succeed
-        case _                      => fail
+        case _                      => fail()
       }
     }
 

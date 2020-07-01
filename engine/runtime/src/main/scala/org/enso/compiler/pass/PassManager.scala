@@ -6,7 +6,6 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 
-import scala.annotation.unused
 import scala.collection.mutable
 
 // TODO [AA] In the future, the pass ordering should be _computed_ from the list

@@ -1,13 +1,7 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
-import org.enso.polyglot.debugger.{
-  DebugServerInfo,
-  DebuggerSessionManagerEndpoint,
-  ObjectRepresentation,
-  ReplExecutor,
-  SessionManager
-}
+import org.enso.polyglot.debugger.{DebugServerInfo, ObjectRepresentation}
 import org.graalvm.polyglot.Context
 import org.scalatest.{BeforeAndAfter, EitherValues}
 
@@ -18,8 +12,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
   override def contextModifiers: Context#Builder => Context#Builder =
     _.option(DebugServerInfo.ENABLE_OPTION, "true")
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "initialize properly" in {
