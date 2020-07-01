@@ -1,19 +1,16 @@
 package org.enso.searcher.sql
 
-import org.enso.jsonrpc.test.RetrySpec
 import org.enso.searcher.Suggestion
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import slick.jdbc.SQLiteProfile.api._
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 class SuggestionsRepoTest
     extends AnyWordSpec
-    with RetrySpec
     with Matchers
     with BeforeAndAfter
     with BeforeAndAfterAll {
@@ -22,11 +19,6 @@ class SuggestionsRepoTest
 
   val db   = new SqlDatabase()
   val repo = new SqlSuggestionsRepo()
-
-  def clean: Future[Unit] =
-    for {
-      _ <- db.run(Suggestions.delete >> Arguments.delete >> Versions.delete)
-    } yield ()
 
   override def beforeAll(): Unit = {
     Await.ready(db.run(repo.init), Timeout)
@@ -37,7 +29,7 @@ class SuggestionsRepoTest
   }
 
   before {
-    Await.ready(clean, Timeout)
+    Await.ready(db.run(repo.clean), Timeout)
   }
 
   "SuggestionsRepo" should {

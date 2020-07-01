@@ -19,7 +19,8 @@ import org.enso.languageserver.runtime.SearchProtocol.{
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.searcher.{Suggestion, SuggestionsRepo}
+import org.enso.searcher.{Database, Suggestion, SuggestionsRepo}
+import slick.dbio.DBIO
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -34,7 +35,8 @@ import scala.util.{Failure, Success}
   */
 final class SuggestionsDatabaseEventsListener(
   sessionRouter: ActorRef,
-  repo: SuggestionsRepo[Future]
+  repo: SuggestionsRepo[DBIO],
+  db: Database[DBIO, Future]
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -92,7 +94,7 @@ final class SuggestionsDatabaseEventsListener(
           (add, remove :+ msg.suggestion)
       }
 
-    for {
+    val query = for {
       addedIds   <- repo.insertAll(added)
       removedIds <- repo.removeAll(removed)
       version    <- repo.currentVersion
@@ -113,6 +115,7 @@ final class SuggestionsDatabaseEventsListener(
         version
       )
     }
+    db.transaction(query)
   }
 }
 
@@ -125,7 +128,11 @@ object SuggestionsDatabaseEventsListener {
     * @param sessionRouter the session router
     * @param repo the suggestions repo
     */
-  def props(sessionRouter: ActorRef, repo: SuggestionsRepo[Future]): Props =
-    Props(new SuggestionsDatabaseEventsListener(sessionRouter, repo))
+  def props(
+    sessionRouter: ActorRef,
+    repo: SuggestionsRepo[DBIO],
+    db: Database[DBIO, Future]
+  ): Props =
+    Props(new SuggestionsDatabaseEventsListener(sessionRouter, repo, db))
 
 }

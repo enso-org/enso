@@ -27,11 +27,7 @@ import org.enso.languageserver.runtime.{
 }
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.searcher.sql.{
-  SqlDatabase,
-  SqlSuggestionsDatabase,
-  SqlSuggestionsRepo
-}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -83,13 +79,11 @@ class BaseServerTest extends JsonRpcServerTestKit {
     )
 
   override def clientControllerFactory: ClientControllerFactory = {
-    val zioExec = ZioExec(zio.Runtime.default)
-    val suggestionsRepo = {
-      val db   = SqlDatabase(testSuggestionsDbPath.toString)
-      val repo = new SqlSuggestionsRepo()(system.dispatcher)
-      Await.ready(db.run(repo.init), defaultTimeout)
-      new SqlSuggestionsDatabase(db, repo)
-    }
+    val zioExec         = ZioExec(zio.Runtime.default)
+    val suggestionsRepo = new SqlSuggestionsRepo()(system.dispatcher)
+    val suggestionsDb   = SqlDatabase(testSuggestionsDbPath.toString)
+    Await.ready(suggestionsDb.run(suggestionsRepo.init), defaultTimeout)
+
     val fileManager =
       system.actorOf(FileManager.props(config, new FileSystem, zioExec))
     val bufferRegistry =
@@ -112,7 +106,8 @@ class BaseServerTest extends JsonRpcServerTestKit {
       system.actorOf(
         SuggestionsDatabaseEventsListener.props(
           sessionRouter,
-          suggestionsRepo
+          suggestionsRepo,
+          suggestionsDb
         )
       )
 
@@ -126,7 +121,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       )
 
     val suggestionsHandler =
-      system.actorOf(SuggestionsHandler.props(suggestionsRepo))
+      system.actorOf(SuggestionsHandler.props(suggestionsRepo, suggestionsDb))
 
     new JsonConnectionControllerFactory(
       bufferRegistry,

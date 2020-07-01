@@ -4,7 +4,8 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.runtime.SearchProtocol._
 import org.enso.languageserver.util.UnhandledLogging
-import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
+import org.enso.searcher.{Database, SuggestionEntry, SuggestionsRepo}
+import slick.dbio.DBIO
 
 import scala.concurrent.Future
 
@@ -15,8 +16,10 @@ import scala.concurrent.Future
   *
   * @param repo the suggestions repo
   */
-final class SuggestionsHandler(repo: SuggestionsRepo[Future])
-    extends Actor
+final class SuggestionsHandler(
+  repo: SuggestionsRepo[DBIO],
+  db: Database[DBIO, Future]
+) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
@@ -24,7 +27,7 @@ final class SuggestionsHandler(repo: SuggestionsRepo[Future])
 
   override def receive: Receive = {
     case GetSuggestionsDatabaseVersion =>
-      repo.currentVersion
+      db.run(repo.currentVersion)
         .map(GetSuggestionsDatabaseVersionResult)
         .pipeTo(sender())
 
@@ -33,7 +36,7 @@ final class SuggestionsHandler(repo: SuggestionsRepo[Future])
         entries <- repo.getAll
         version <- repo.currentVersion
       } yield (entries, version)
-      query
+      db.transaction(query)
         .map(Function.tupled(toGetSuggestionsDatabaseResult))
         .pipeTo(sender())
 
@@ -43,7 +46,7 @@ final class SuggestionsHandler(repo: SuggestionsRepo[Future])
         entries <- repo.search(selfType, returnType, kinds)
         version <- repo.currentVersion
       } yield (entries, version)
-      query
+      db.transaction(query)
         .map(CompletionResult.tupled)
         .pipeTo(sender())
   }
@@ -66,7 +69,7 @@ object SuggestionsHandler {
     *
     * @param repo the suggestions repo
     */
-  def props(repo: SuggestionsRepo[Future]): Props =
-    Props(new SuggestionsHandler(repo))
+  def props(repo: SuggestionsRepo[DBIO], db: Database[DBIO, Future]): Props =
+    Props(new SuggestionsHandler(repo, db))
 
 }

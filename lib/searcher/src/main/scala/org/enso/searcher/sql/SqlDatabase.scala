@@ -4,6 +4,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import org.enso.searcher.Database
 import slick.dbio.DBIO
 import slick.jdbc.SQLiteProfile
+import slick.jdbc.SQLiteProfile.api._
 
 import scala.concurrent.Future
 
@@ -20,6 +21,10 @@ final class SqlDatabase(config: Option[Config] = None)
   /** @inheritdoc */
   override def run[A](query: DBIO[A]): Future[A] =
     db.run(query)
+
+  /** @inheritdoc */
+  override def transaction[A](query: DBIO[A]): Future[A] =
+    db.run(query.transactionally)
 
   /** @inheritdoc */
   override def close(): Unit =

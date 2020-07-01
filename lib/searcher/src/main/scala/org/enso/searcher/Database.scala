@@ -13,6 +13,9 @@ trait Database[F[_], G[_]] {
     */
   def run[A](query: F[A]): G[A]
 
+  /** Run the database query in one transaction */
+  def transaction[A](query: F[A]): G[A]
+
   /** Close the database. */
   def close(): Unit
 }
