@@ -283,6 +283,7 @@ object Main {
   def displayVersion(useJson: Boolean): Unit = {
     // Running platform information
     val vmName     = System.getProperty("java.vm.name")
+    val vmVendor   = System.getProperty("java.vm.vendor")
     val jreVersion = System.getProperty("java.runtime.version")
     val osArch     = System.getProperty("os.arch")
     val osName     = System.getProperty("os.name")
@@ -297,6 +298,7 @@ object Main {
            |  "dirty": ${Info.isDirty},
            |  "commit": "${Info.commit}",
            |  "vmName": "$vmName",
+           |  "vmVendor": "$vmVendor",
            |  "jreVersion": "$jreVersion",
            |  "osName": "$osName",
            |  "osVersion": "$osVersion",
@@ -313,7 +315,7 @@ object Main {
            |Version:    ${Info.ensoVersion}
            |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
            |Built from: ${Info.branch}$dirtyStr @ ${Info.commit}
-           |Running on: $vmName, JDK $jreVersion
+           |Running on: $vmName, $vmVendor, JDK $jreVersion
            |            $osName $osVersion ($osArch)
            |""".stripMargin
       }

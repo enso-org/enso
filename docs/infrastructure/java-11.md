@@ -10,12 +10,12 @@ order: 2
 JDK 11 will be supported longer than JDK 8 that we currently use and it adds new
 features that could improve performance. Moreover, we want to be compliant to
 the Java Platform Module System, as all future versions of the JDK will rely on
-it. Thus, we want to move to using Graal builds for Java 11.
+it. Thus, we have moved to using Graal builds for Java 11.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Migration progress](#migration-progress)
-  - [Build configuration](#build-configuration)
+- [Migration Progress](#migration-progress)
+  - [Build Configuration](#build-configuration)
   - [Testing](#testing)
   - [Benchmarks](#benchmarks)
 - [Problems](#problems)
@@ -23,23 +23,32 @@ it. Thus, we want to move to using Graal builds for Java 11.
 
 <!-- /MarkdownTOC -->
 
-## Migration progress
+## Migration Progress
 The overall steps of the migration and their status are outlined in this
-section. The task is tracked as issue
-[#671](https://github.com/enso-org/enso/issues/671).
+section.
 
-### Build configuration
-Currently, the only modification was the removal of the option
-`-XX:-UseJVMCIClassLoader` that is deprecated in Java 11. Some other
-modifications may be necessary however, to fix the issues described in
-[Problems](#problems).
+### Build Configuration
+The option `-XX:-UseJVMCIClassLoader` is deprecated in Java 11 and has been
+removed from the test configuration. 
+
+The JVM running sbt must have `--upgrade-module-path=lib/truffle-api.jar` added
+as an option and the build tool must ensure that the `truffle-api.jar` is copied
+from the Maven repository to the `lib/` directory before the `runtime` project
+is compiled. Section [IllegalAccessError](#illegalaccesserror) explains why
+this is necessary and [Bootstrapping](./sbt.md#bootstrapping) explains the tasks
+that help with this process.
 
 ### Testing
-After making the build succeed, all runtime tests are passing.
-This will have to be revisited after fixing a final build configuration.
+All tests are passing.
 
 ### Benchmarks
-Benchmarks have not yet been compared.
+Initially there were some regressions found in the benchmarks, but further
+investigation revealed this was caused by some issues in the methodology of how
+the JMH benchmarks were implemented. There are plans to rewrite these
+benchmarks.
+
+Benchmarks in pure Enso are currently more meaningful. They yield comparable
+results with Java 11 being slightly faster.
 
 ## Problems
 The problems that were encountered when doing the migration.
@@ -64,15 +73,30 @@ java.lang.IllegalAccessError: superinterface check failed: class com.oracle.truf
 
 The Truffle API does not export its packages for security reasons and it uses
 some custom mechanisms when loading the language runtime. However zinc is not
-aware of these mechanisms and just directly loads the classfiles, resulting in
-errors.
+aware of these mechanisms and just directly loads the `.class` files, resulting
+in errors.
 
-Some of these errors are expected and instead of failing, simply a warning is
+Some of these errors are caught and instead of failing, simply a warning is
 printed. Others are not detected where zinc expects them, but they fail later,
-crashing the compilation process.
+crashing the compilation process. All of them are problematic though, because
+they mean that zinc is not able to read dependencies of the affected files. This
+harms incremental compilation (as some dependencies are not detected it might be
+necessary to do a clean and full recompilation when changing these files). 
 
-It may be possible to detect and catch those latter by modifying zinc, but this
-would likely negatively impact its ability to detect dependencies for
-incremental compilation.
+#### Solution
+We want to make the ClassLoader read these class files without errors. For that
+we need to ensure it has permissions to load the Truffle modules.
 
-We are currently looking into what can be done to avoid these errors.
+Truffle API is distributed in two ways. The distribution included in the Graal
+runtime (the one that is picked up by sbt by default) exports the required APIs
+only to its own modules, so they are not available for us (thus the errors).
+This is to ensure better security (to disallow language users introspecting the
+VM internals). However, there is a second Truffle distribution on Maven that is
+to be used for development only and that version exports the necessary APIs to
+all packages.
+
+We need to ensure that the sbt process doing the compilation uses the Maven
+version of Truffle, so that it does not complain about the illegal accesses. To
+achieve that, we need to add the option
+`--upgrade-module-path=lib/truffle-api.jar` to the JVM running sbt and ensure
+that the Truffle JAR from maven is copied to the `lib/` directory.

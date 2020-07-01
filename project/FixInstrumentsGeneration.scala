@@ -11,9 +11,10 @@ object FixInstrumentsGeneration {
     * Without that fix, incremental compilation would not register unchanged
     * instruments, leading to runtime errors.
     *
-    * It should be added as a dependency of compilation.
+    * It should be added as a dependency of Compile / compile / compileInputs.
     */
   lazy val preCompileTask = Def.task {
+    val log                 = streams.value.log
     val root                = baseDirectory.value
     val classFilesDirectory = (Compile / classDirectory).value
     val FragileFiles(fragileSources, fragileClassFiles) =
@@ -22,23 +23,24 @@ object FixInstrumentsGeneration {
     val fragileSourcesStore =
       streams.value.cacheStoreFactory.make("instruments_fixer")
 
-    Tracked.diffInputs(fragileSourcesStore, FileInfo.hash)(fragileSources.toSet) {
-      sourcesDiff: ChangeReport[File] =>
-        if (sourcesDiff.modified.nonEmpty) {
-          val others =
-            if (sourcesDiff.modified.size >= 2)
-              s" and ${sourcesDiff.modified.size - 1} others"
-            else ""
-          val firstInstrument = sourcesDiff.modified.head
-          val sourcesMessage  = firstInstrument.toString + others
-          println(
-            s"Instruments sources ($sourcesMessage) have been changed.\n" +
-            s"Forcing recompilation of all instruments to maintain " +
-            s"consistency of generated services files."
-          )
+    Tracked.diffInputs(fragileSourcesStore, FileInfo.hash)(
+      fragileSources.toSet
+    ) { sourcesDiff: ChangeReport[File] =>
+      if (sourcesDiff.modified.nonEmpty && sourcesDiff.unmodified.nonEmpty) {
+        val others =
+          if (sourcesDiff.modified.size >= 2)
+            s" and ${sourcesDiff.modified.size - 1} others"
+          else ""
+        val firstInstrument = sourcesDiff.modified.head
+        val sourcesMessage  = firstInstrument.toString + others
+        log.warn(
+          s"Instruments sources ($sourcesMessage) have been changed.\n" +
+          s"Forcing recompilation of all instruments to maintain " +
+          s"consistency of generated services files."
+        )
 
-          fragileClassFiles.foreach(_.delete())
-        }
+        fragileClassFiles.foreach(_.delete())
+      }
     }
   }
 
@@ -57,6 +59,7 @@ object FixInstrumentsGeneration {
   lazy val patchedCompile = Def.task {
     val compilationResult = (Compile / compile).value
 
+    val log                 = streams.value.log
     val root                = baseDirectory.value
     val classFilesDirectory = (Compile / classDirectory).value
     val FragileFiles(_, fragileClassFiles) =
@@ -72,7 +75,7 @@ object FixInstrumentsGeneration {
         fragileClassFiles.foreach(_.delete())
 
         val projectName = name.value
-        println(
+        log.error(
           "Truffle Instrumentation is not up to date, " +
           "which will lead to runtime errors\n" +
           "Fixes have been applied to ensure consistent Instrumentation state, " +

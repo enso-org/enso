@@ -1,5 +1,6 @@
 package org.enso.searcher.sql
 
+import org.enso.jsonrpc.test.RetrySpec
 import org.enso.searcher.Suggestion
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -12,6 +13,7 @@ import scala.concurrent.duration._
 
 class SuggestionsRepoTest
     extends AnyWordSpec
+    with RetrySpec
     with Matchers
     with BeforeAndAfterAll {
 
@@ -43,7 +45,7 @@ class SuggestionsRepoTest
       Await.result(action, Timeout) shouldEqual Some(suggestion.atom)
     }
 
-    "find suggestion by returnType" in {
+    "find suggestion by returnType" taggedAs Retry() in {
       val action =
         for {
           _   <- db.run(repo.insert(suggestion.local))
