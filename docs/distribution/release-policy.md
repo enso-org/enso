@@ -19,6 +19,7 @@ that we have a well-defined release policy. This document defines said policy.
     - [GitHub Releases](#github-releases)
     - [Release Notes](#release-notes)
 - [Version Support](#version-support)
+- [Working on the Current Release](#working-on-the-current-release)
 - [Backporting Fixes](#backporting-fixes)
 
 <!-- /MarkdownTOC -->
@@ -135,7 +136,7 @@ release and the current release. They should follow the template given below:
 
 - A list of changes that do not have user-facing impact, but represent
   significant improvements to the internals of Enso and related tools.
-  
+
 ```
 
 If there are no changes for a section, the section should contain a bullet point
@@ -145,7 +146,34 @@ The changelog file is an ongoing record of changes, and may diverge between
 `main` and the various release branches.
 
 ## Version Support
-Mention the security document for currently supported versions.
+We aim to support a given major version for two years after the release of the
+next major version. For a detailed breakdown of the major versions that are
+supported, please see the [security](../security.md) document.
+
+## Working on the Current Release
+TBC
 
 ## Backporting Fixes
+Supporting a major version for some time after the release of the next major
+version will sometimes require backporting a fix to the previous major version
+from the current version or from `main`. 
+
+Backporting should only be used for applying _fixes_, not the addition of new
+features
+
+The process for performing such a
+backport is as follows:
+
+1.  Create a new branch called `backport/version/fix-name`, where `version`
+    matches the version string of the corresponding release branch. This branch
+    should branch off the corresponding release branch.
+2.  Back-port the fix to the newly created `backport` branch. This can be done
+    by:
+    - Cherry-picking the commit and performing fixups (preferred).
+    - Re-implementing the fix manually (if cherry-picking will not work due to
+      progression of the codebase).
+3.  Submit your `backport/version/fix-name` branch for review as a pull-request
+    into the `release/version` branch.
+
+
 Cherry picking, PRs
