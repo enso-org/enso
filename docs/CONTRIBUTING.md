@@ -236,9 +236,6 @@ a vanilla GraalVM distribution. To run it, use:
 JAVA_HOME=<PATH_TO_GRAAL_HOME> ./enso.jar <CLI_ARGS>
 ```
 
-If you decide not to use the default launcher script, make sure to pass
-the `-XX:-UseJVMCIClassLoader` option to the `java` command.
-
 #### Installing the Jupyter kernel
 Enso has a highly experimental and not-actively-maintained Jupyer Kernel.
 To run it:
@@ -411,7 +408,7 @@ Below are options uses by the Language Server:
 To run the Language Server on 127.0.0.1:8080 type:
 
 ```bash
-java -jar enso.jar \
+./enso.jar \
   --server \
   --root-id 3256d10d-45be-45b1-9ea4-7912ef4226b1 \
   --path /tmp/content-root
