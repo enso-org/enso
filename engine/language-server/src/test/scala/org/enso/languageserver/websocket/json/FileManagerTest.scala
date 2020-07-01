@@ -6,12 +6,12 @@ import java.util.UUID
 
 import io.circe.literal._
 import org.apache.commons.io.FileUtils
-import org.enso.jsonrpc.test.FlakySpec
+import org.enso.jsonrpc.test.RetrySpec
 
-class FileManagerTest extends BaseServerTest with FlakySpec {
+class FileManagerTest extends BaseServerTest with RetrySpec {
   "File Server" must {
 
-    "write textual content to a file" taggedAs Flaky in {
+    "write textual content to a file" taggedAs Retry(3) in {
       val client = getInitialisedWsClient()
       client.send(json"""
           { "jsonrpc": "2.0",

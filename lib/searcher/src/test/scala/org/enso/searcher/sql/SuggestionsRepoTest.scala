@@ -1,6 +1,6 @@
 package org.enso.searcher.sql
 
-import org.enso.jsonrpc.test.FlakySpec
+import org.enso.jsonrpc.test.RetrySpec
 import org.enso.searcher.Suggestion
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -13,7 +13,7 @@ import scala.concurrent.duration._
 
 class SuggestionsRepoTest
     extends AnyWordSpec
-    with FlakySpec
+    with RetrySpec
     with Matchers
     with BeforeAndAfterAll {
 
@@ -45,7 +45,7 @@ class SuggestionsRepoTest
       Await.result(action, Timeout) shouldEqual Some(suggestion.atom)
     }
 
-    "find suggestion by returnType" taggedAs Flaky in {
+    "find suggestion by returnType" taggedAs Retry(3) in {
       val action =
         for {
           _   <- db.run(repo.insert(suggestion.local))
