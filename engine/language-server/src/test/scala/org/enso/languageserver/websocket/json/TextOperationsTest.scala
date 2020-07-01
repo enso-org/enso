@@ -2,13 +2,14 @@ package org.enso.languageserver.websocket.json
 
 import akka.testkit.TestProbe
 import io.circe.literal._
+import org.enso.jsonrpc.test.RetrySpec
 import org.enso.languageserver.event.BufferClosed
 import org.enso.languageserver.filemanager.Path
 
-class TextOperationsTest extends BaseServerTest {
+class TextOperationsTest extends BaseServerTest with RetrySpec {
 
   "text/openFile" must {
-    "fail opening a file if it does not exist" in {
+    "fail opening a file if it does not exist" taggedAs Retry() in {
       // Interaction:
       // 1. Client tries to open a non-existent file.
       // 2. Client receives an error message.

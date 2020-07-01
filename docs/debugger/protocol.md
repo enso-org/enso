@@ -19,10 +19,10 @@ implement a simple REPL or add debugging capabilities to the editor.
   - [`Exception`](#exception)
   - [`Binding`](#binding)
 - [Messages](#messages)
-  - [Session start](#session-start)
+  - [Session Start](#session-start)
   - [Evaluation](#evaluation)
-  - [List bindings](#list-bindings)
-  - [Session exit](#session-exit)
+  - [List Bindings](#list-bindings)
+  - [Session Exit](#session-exit)
 
 <!-- /MarkdownTOC -->
 
@@ -108,7 +108,7 @@ table Response {
 }
 ```
 
-### Session start
+### Session Start
 
 When a breakpoint is reached, the debugger sends a notification to the client
 indicating that a REPL session should be started.
@@ -153,7 +153,7 @@ table ReplEvaluationFailure {
 }
 ```
 
-### List bindings
+### List Bindings
 Lists all the bindings available in the current execution scope and sends them 
 back.
 
@@ -173,7 +173,7 @@ table ReplListBindingsResult {
 }
 ```
 
-### Session exit
+### Session Exit
 Terminates this REPL session (and resumes normal program execution).
 
 The last result of Evaluation will be returned from the instrumented node or if

@@ -17,7 +17,7 @@ import java.util.*;
 
 /** The processor used to generate code from the {@link BuiltinMethod} annotation. */
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinMethod")
-@SupportedSourceVersion(SourceVersion.RELEASE_8)
+@SupportedSourceVersion(SourceVersion.RELEASE_11)
 @AutoService(Processor.class)
 public class MethodProcessor extends AbstractProcessor {
 
