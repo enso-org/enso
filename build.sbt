@@ -371,7 +371,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
         "io.circe"      %%% "circe-generic" % circeVersion,
         "io.circe"      %%% "circe-parser"  % circeVersion
       ),
-    compile := (Compile / compile)
+    (Compile / compile) := (Compile / compile)
         .dependsOn(Def.taskDyn {
           val parserCompile =
             (`syntax-definition`.jvm / Compile / compileIncremental).value
