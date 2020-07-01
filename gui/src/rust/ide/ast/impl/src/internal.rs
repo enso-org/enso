@@ -13,5 +13,5 @@ pub fn iterate_subtree<T>(ast:T) -> impl Iterator<Item=T::Item>
         }
     };
 
-    shapely::GeneratingIterator(generator)
+    enso_shapely::GeneratingIterator(generator)
 }

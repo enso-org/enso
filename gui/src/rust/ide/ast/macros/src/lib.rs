@@ -10,8 +10,8 @@ use crate::prelude::*;
 use crate::token::TokenDescription;
 
 use enso_prelude as prelude;
-use macro_utils::gather_all_type_reprs;
-use macro_utils::repr;
+use enso_macro_utils::gather_all_type_reprs;
+use enso_macro_utils::repr;
 use proc_macro2::TokenStream;
 use proc_macro2::Ident;
 use proc_macro2::Span;

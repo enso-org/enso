@@ -132,7 +132,7 @@ pub type OngoingCalls = HashMap<Id,oneshot::Sender<ReplyMessage>>;
 /// `DeserializeOwned` and deserialize from JSON maps with `method` and `params`
 /// fields.
 
-pub use shapely::shared;
+pub use enso_shapely::shared;
 
 shared! { Handler
 

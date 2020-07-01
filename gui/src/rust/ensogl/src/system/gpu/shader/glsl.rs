@@ -11,7 +11,7 @@ use crate::math::topology::unit::*;
 
 use code_builder::CodeBuilder;
 use code_builder::HasCodeRepr;
-use shapely::derive_clone_plus;
+use enso_shapely::derive_clone_plus;
 
 
 

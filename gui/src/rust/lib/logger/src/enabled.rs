@@ -5,7 +5,7 @@ use enso_prelude::*;
 use crate::AnyLogger;
 use crate::Message;
 
-use shapely::CloneRef;
+use enso_shapely::CloneRef;
 use std::fmt::Debug;
 
 #[cfg(target_arch = "wasm32")]

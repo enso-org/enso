@@ -10,7 +10,7 @@ use crate::system::gpu::shader::Context;
 
 use num_enum::IntoPrimitive;
 
-use shapely::shared;
+use enso_shapely::shared;
 
 
 

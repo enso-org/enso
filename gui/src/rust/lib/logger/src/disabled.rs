@@ -6,7 +6,7 @@ use crate::Message;
 use crate::AnyLogger;
 use crate::enabled;
 
-use shapely::CloneRef;
+use enso_shapely::CloneRef;
 use std::fmt::Debug;
 
 

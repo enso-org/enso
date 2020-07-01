@@ -65,7 +65,7 @@ pub mod traits {
 #[macro_export]
 macro_rules! define_singletons_gl {
     ( $target:tt $( $(#$meta:tt)* $name:ident = $expr:expr ),* $(,)? ) => {
-        shapely::define_singletons!{ $( $(#$meta)* $name),* }
+        enso_shapely::define_singletons!{ $( $(#$meta)* $name),* }
         $crate::define_gl_enum_conversions!{ $target $( $(#$meta)* $name = $expr ),* }
     }
 }
@@ -127,7 +127,7 @@ macro_rules! define_singleton_enum_gl_from {
             $( $(#$field_meta:tt)* $field:ident),* $(,)?
         }
     ) => {
-        shapely::define_singleton_enum_from! { $(#$meta)* $name {$($(#$field_meta)* $field),*}}
+        enso_shapely::define_singleton_enum_from! { $(#$meta)* $name {$($(#$field_meta)* $field),*}}
 
         impl From<&$name> for $($target)* {
             fn from(t:&$name) -> Self {

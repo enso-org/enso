@@ -5,7 +5,7 @@ pub mod upload;
 use crate::prelude::*;
 
 use enum_dispatch::*;
-use shapely::shared;
+use enso_shapely::shared;
 use upload::UniformUpload;
 use web_sys::WebGlUniformLocation;
 

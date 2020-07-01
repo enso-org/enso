@@ -18,7 +18,7 @@ use crate::control::callback::CallbackFn;
 
 use web_sys::WebGlProgram;
 
-use shapely::shared;
+use enso_shapely::shared;
 
 
 
