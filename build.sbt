@@ -351,6 +351,17 @@ lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
   )
   .jsSettings(jsSettings)
 
+lazy val recompileParser = Def.taskDyn {
+  val parserCompile =
+    (`syntax-definition`.jvm / Compile / compileIncremental).value
+  if (parserCompile.hasModified) {
+    Def.task {
+      streams.value.log.info("Parser changed, forcing recompilation.")
+      clean.value
+    }
+  } else Def.task {}
+}
+
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full)
@@ -372,16 +383,10 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
         "io.circe"      %%% "circe-parser"  % circeVersion
       ),
     (Compile / compile) := (Compile / compile)
-        .dependsOn(Def.taskDyn {
-          val parserCompile =
-            (`syntax-definition`.jvm / Compile / compileIncremental).value
-          if (parserCompile.hasModified) {
-            Def.task {
-              streams.value.log.info("Parser changed, forcing recompilation.")
-              clean.value
-            }
-          } else Def.task {}
-        })
+        .dependsOn(recompileParser)
+        .value,
+    (Test / compile) := (Test / compile)
+        .dependsOn(recompileParser)
         .value
   )
   .jvmSettings(
