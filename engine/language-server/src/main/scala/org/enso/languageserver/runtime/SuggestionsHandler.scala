@@ -15,6 +15,7 @@ import scala.concurrent.Future
   * Handler initializes the database and responds to the search requests.
   *
   * @param repo the suggestions repo
+  * @param db the database query runner
   */
 final class SuggestionsHandler(
   repo: SuggestionsRepo[DBIO],
@@ -68,6 +69,7 @@ object SuggestionsHandler {
     * Creates a configuration object used to create a [[SuggestionsHandler]].
     *
     * @param repo the suggestions repo
+    * @param db the database query runner
     */
   def props(repo: SuggestionsRepo[DBIO], db: Database[DBIO, Future]): Props =
     Props(new SuggestionsHandler(repo, db))

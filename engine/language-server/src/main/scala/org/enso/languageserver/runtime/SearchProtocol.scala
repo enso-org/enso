@@ -28,26 +28,6 @@ object SearchProtocol {
       */
     case class Remove(id: SuggestionId) extends SuggestionsDatabaseUpdate
 
-    /** Modify the database entry.
-      *
-      * @param id the suggestion id
-      * @param name the new suggestion name
-      * @param arguments the new suggestion arguments
-      * @param selfType the new self type of the suggestion
-      * @param returnType the new return type of the suggestion
-      * @param documentation the new documentation string
-      * @param scope the suggestion scope
-      */
-    case class Modify(
-      id: SuggestionId,
-      name: Option[String],
-      arguments: Option[Seq[Suggestion.Argument]],
-      selfType: Option[String],
-      returnType: Option[String],
-      documentation: Option[String],
-      scope: Option[Suggestion.Scope]
-    )
-
     private object CodecField {
 
       val Type = "type"

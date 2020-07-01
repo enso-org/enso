@@ -1706,11 +1706,11 @@ null
 None
 
 ## Refactoring
-The language server also provides refactoring operations to restructure an 
+The language server also provides refactoring operations to restructure an
 internal body of code.
 
 ### `refactoring/renameProject`
-This request is sent from the project manager to the server to refactor project 
+This request is sent from the project manager to the server to refactor project
 name in an interpreter runtime.
 
 - **Type:** Request
@@ -2535,8 +2535,8 @@ Sent from client to the server to receive the autocomplete suggestion.
 
 ```typescript
 {
-  // The edited module
-  module: string;
+  // The edited file
+  file: Path;
   // The cursor position
   position: Position;
   // Filter by methods with the provided self type

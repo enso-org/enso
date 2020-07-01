@@ -32,6 +32,7 @@ import scala.util.{Failure, Success}
   *
   * @param sessionRouter the session router
   * @param repo the suggestions repo
+  * @param db the database query runner
   */
 final class SuggestionsDatabaseEventsListener(
   sessionRouter: ActorRef,
@@ -95,10 +96,13 @@ final class SuggestionsDatabaseEventsListener(
       }
 
     val query = for {
-      addedIds   <- repo.insertAll(added)
       removedIds <- repo.removeAll(removed)
+      addedIds   <- repo.insertAll(added)
       version    <- repo.currentVersion
     } yield {
+      val updatesRemoved = removedIds.collect {
+        case Some(id) => SuggestionsDatabaseUpdate.Remove(id)
+      }
       val updatesAdded =
         (addedIds zip added).flatMap {
           case (Some(id), suggestion) =>
@@ -107,11 +111,8 @@ final class SuggestionsDatabaseEventsListener(
             log.error("failed to insert suggestion: {}", suggestion)
             None
         }
-      val updatesRemoved = removedIds.collect {
-        case Some(id) => SuggestionsDatabaseUpdate.Remove(id)
-      }
       SuggestionsDatabaseUpdateNotification(
-        updatesAdded ++ updatesRemoved,
+        updatesRemoved ++ updatesAdded,
         version
       )
     }
@@ -127,6 +128,7 @@ object SuggestionsDatabaseEventsListener {
     *
     * @param sessionRouter the session router
     * @param repo the suggestions repo
+    * @param db the database query runner
     */
   def props(
     sessionRouter: ActorRef,
