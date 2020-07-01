@@ -55,7 +55,7 @@ class ProjectListHandler[F[+_, +_]: Exec](
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(s"Failure during $ProjectList operation:", ex)
+      log.error(ex, s"Failure during $ProjectList operation:")
       replyTo ! ResponseError(Some(id), ServiceError)
       cancellable.cancel()
       context.stop(self)

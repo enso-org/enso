@@ -136,7 +136,8 @@ class BaseServerTest extends JsonRpcServerTestKit {
       suggestionsHandler,
       stdOutController,
       stdErrController,
-      stdInController
+      stdInController,
+      runtimeConnectorProbe.ref
     )
   }
 

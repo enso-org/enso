@@ -20,7 +20,8 @@ class JsonConnectionControllerFactory(
   suggestionsHandler: ActorRef,
   stdOutController: ActorRef,
   stdErrController: ActorRef,
-  stdInController: ActorRef
+  stdInController: ActorRef,
+  runtimeConnector: ActorRef
 )(implicit system: ActorSystem)
     extends ClientControllerFactory {
 
@@ -41,7 +42,8 @@ class JsonConnectionControllerFactory(
         suggestionsHandler,
         stdOutController,
         stdErrController,
-        stdInController
+        stdInController,
+        runtimeConnector
       )
     )
 }

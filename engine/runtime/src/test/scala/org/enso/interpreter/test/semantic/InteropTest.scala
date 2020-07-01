@@ -1,12 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterTest, InterpreterContext}
+import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
 
 class InteropTest extends InterpreterTest {
   override def subject: String = "Interop Library"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
     "support tail recursive functions" in {
       val code =
@@ -52,6 +52,27 @@ class InteropTest extends InterpreterTest {
 
       val fun = eval(code)
       fun.call(1, 2) shouldEqual 2
+    }
+
+    "work with unresolved symbols" in {
+      val code =
+        """
+          |Number.add x = x + this
+          |Text.add x = this + x
+          |
+          |main = add
+          |""".stripMargin
+      val symbol = eval(code)
+      symbol.call(1, 2) shouldEqual 3
+      symbol.call(3, 4) shouldEqual 7
+      symbol.execute("Hello", " World") shouldEqual "Hello World"
+    }
+
+    "work with unresolved symbols from builtin scope" in {
+      val code   = "main = to_text"
+      val symbol = eval(code)
+      symbol.call(1) shouldEqual "1"
+      symbol.execute("Foo") shouldEqual "Foo"
     }
   }
 }

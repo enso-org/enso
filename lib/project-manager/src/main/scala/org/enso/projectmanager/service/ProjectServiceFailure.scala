@@ -66,4 +66,11 @@ object ProjectServiceFailure {
     */
   case object ProjectOperationTimeout extends ProjectServiceFailure
 
+  /**
+    * Signals generic server failures.
+    *
+    * @param msg a description of a failure
+    */
+  case class LanguageServerFailure(msg: String) extends ProjectServiceFailure
+
 }

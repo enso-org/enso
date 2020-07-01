@@ -22,7 +22,8 @@ sections of this document are linked below:
   - [Design Documentation](#design-documentation)
   - [System Requirements](#system-requirements)
   - [Getting the Sources](#getting-the-sources)
-  - [Getting Set Up \(Rust\)](#getting-set-up-rust)
+  - [Getting Set Up (Rust)](#getting-set-up-rust)
+  - [Getting Set Up (JVM)](#getting-set-up-jvm)
   - [Building Enso](#building-enso)
   - [Running Enso](#running-enso)
 - [Pull Requests](#pull-requests)
@@ -30,6 +31,7 @@ sections of this document are linked below:
 - [Issue Triage](#issue-triage)
 - [Out-of-Tree Contributions](#out-of-tree-contributions)
 - [Helpful Documentation and Links](#helpful-documentation-and-links)
+
 
 <!-- /MarkdownTOC -->
 
@@ -117,9 +119,10 @@ In order to build and run Enso you will need the following tools:
 
 - [sbt](https://www.scala-sbt.org/) with the same version as specified in
   [`project/build.properties`](../project/build.properties).
-- [GraalVM](https://www.graalvm.org/) with version at least that described in
-  the [`build.sbt`](../build.sbt) file, and Java 8, configured as your default
-  JVM.
+- [GraalVM](https://www.graalvm.org/) with the same version as described in the
+  [`build.sbt`](../build.sbt) file, configured as your default JVM. GraalVM is
+  distributed for different Java versions, so you need a GraalVM distribution
+  for the same Java version as specified in [`build.sbt`](../build.sbt).
 - [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version
   1.12.0.
 - [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html),
@@ -170,6 +173,23 @@ rustup component add clippy
 
 Please note that once the parser is integrated into the SBT build, the
 rust-related commands will be automatically performed for you.
+
+### Getting Set Up (JVM)
+In order to properly build the `runtime` component, the JVM running SBT needs
+to have some dependency JARs available in its module path at startup. To ensure
+they are available, before running any compilation or other tasks, these
+dependencies should be prepared. To do so, run the following command in the
+repository root directory:
+
+```bash
+sbt bootstrap
+```
+
+It is preferred to not run this command from the sbt shell, but in batch mode,
+because SBT has to be launched again anyway to pick up these JARs at startup.
+
+Bootstrap has to be run only when building the project for the first time
+**and** after each change of Graal version.
 
 ### Building Enso
 There are multiple projects in this repository, but all can be built, run and
@@ -270,8 +290,8 @@ assembly. It can be acquired for MacOS and Linux
 please choose one best suited for you.
 
 Once you have a copy of the dynamic library, it needs to be placed in
-`$JVM_HOME/jre/lib/server` on a JDK-8 install, or in `$JVM_HOME/lib/server` for
-a JDK-10 or later install (once this is supported).
+`$JVM_HOME/lib/server`.
+
 
 #### Native Image
 Native image is a capability provided alongside GraalVM that allows the
@@ -307,8 +327,8 @@ getting the project into a working state in IntelliJ.
     both 'for imports' and 'for builds'.
 8.  Disallow the overriding of the sbt version.
 9.  Under the 'Project JDK' setting, please ensure that it is set up to use a
-    GraalVM version as described in [Requirements](#requirements). You may need
-    to add it using the 'New' button if it isn't already set up.
+    GraalVM version as described in [System requirements](#system-requirements).
+    You may need to add it using the 'New' button if it isn't already set up.
 10. Click 'Finish'. This will prompt you as to whether you want to overwrite the
     `project` folder. Select 'Yes' to continue. The Enso project will load up
     with an open SBT shell, which can be interacted with as described above. You

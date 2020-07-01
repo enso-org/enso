@@ -22,18 +22,20 @@ import org.enso.projectmanager.model.Project
   * @param timeoutConfig a timeout config
   * @tparam F a effectful context
   */
-class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatMap](
+class LanguageServerRegistryProxy[
+  F[+_, +_]: Async: ErrorChannel: CovariantFlatMap
+](
   registry: ActorRef,
   timeoutConfig: TimeoutConfig
 ) extends LanguageServerService[F] {
 
-  implicit val timeout: Timeout = Timeout(timeoutConfig.bootTimeout)
-
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def start(
     clientId: UUID,
     project: Project
-  ): F[ServerStartupFailure, LanguageServerSockets] =
+  ): F[ServerStartupFailure, LanguageServerSockets] = {
+    implicit val timeout: Timeout = Timeout(timeoutConfig.bootTimeout)
+
     Async[F]
       .fromFuture { () =>
         (registry ? StartServer(clientId, project)).mapTo[ServerStartupResult]
@@ -43,12 +45,14 @@ class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatM
         case ServerStarted(sockets)  => CovariantFlatMap[F].pure(sockets)
         case f: ServerStartupFailure => ErrorChannel[F].fail(f)
       }
+  }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def stop(
     clientId: UUID,
     projectId: UUID
-  ): F[ServerShutdownFailure, Unit] =
+  ): F[ServerShutdownFailure, Unit] = {
+    implicit val timeout: Timeout = Timeout(timeoutConfig.shutdownTimeout)
     Async[F]
       .fromFuture { () =>
         (registry ? StopServer(clientId, projectId)).mapTo[ServerShutdownResult]
@@ -58,13 +62,48 @@ class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatM
         case ServerStopped            => CovariantFlatMap[F].pure(())
         case f: ServerShutdownFailure => ErrorChannel[F].fail(f)
       }
+  }
 
-  /** @inheritdoc **/
-  override def isRunning(projectId: UUID): F[CheckTimeout.type, Boolean] =
+  /** @inheritdoc * */
+  override def isRunning(projectId: UUID): F[CheckTimeout.type, Boolean] = {
+    implicit val timeout: Timeout = Timeout(timeoutConfig.requestTimeout)
+
     Async[F]
       .fromFuture { () =>
         (registry ? CheckIfServerIsRunning(projectId)).mapTo[Boolean]
       }
       .mapError(_ => CheckTimeout)
+  }
 
+  /** @inheritdoc * */
+  override def renameProject(
+    projectId: UUID,
+    oldName: String,
+    newName: String
+  ): F[ProjectRenameFailure, Unit] = {
+    implicit val timeout: Timeout = Timeout(timeoutConfig.requestTimeout)
+
+    Async[F]
+      .fromFuture { () =>
+        (registry ? RenameProject(projectId, oldName, newName))
+          .mapTo[ProjectRenameResult]
+      }
+      .mapError(_ => RenameTimeout)
+      .flatMap {
+        case ProjectRenamed          => CovariantFlatMap[F].pure(())
+        case f: ProjectRenameFailure => ErrorChannel[F].fail(f)
+      }
+  }
+
+  /** @inheritdoc * */
+  override def killAllServers(): F[Nothing, Boolean] = {
+    implicit val timeout: Timeout = Timeout(timeoutConfig.shutdownTimeout)
+
+    Async[F]
+      .fromFuture { () =>
+        (registry ? KillThemAll).mapTo[AllServersKilled.type]
+      }
+      .map(_ => true)
+      .fallbackTo(_ => CovariantFlatMap[F].pure(false))
+  }
 }

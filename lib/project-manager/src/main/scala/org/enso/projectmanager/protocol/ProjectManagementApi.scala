@@ -21,6 +21,7 @@ object ProjectManagementApi {
     implicit val hasParams = new HasParams[this.type] {
       type Params = ProjectCreate.Params
     }
+
     implicit val hasResult = new HasResult[this.type] {
       type Result = ProjectCreate.Result
     }
@@ -33,6 +34,20 @@ object ProjectManagementApi {
     implicit val hasParams = new HasParams[this.type] {
       type Params = ProjectDelete.Params
     }
+
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object ProjectRename extends Method("project/rename") {
+
+    case class Params(projectId: UUID, name: String)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ProjectRename.Params
+    }
+
     implicit val hasResult = new HasResult[this.type] {
       type Result = Unused.type
     }
@@ -50,6 +65,7 @@ object ProjectManagementApi {
     implicit val hasParams = new HasParams[this.type] {
       type Params = ProjectOpen.Params
     }
+
     implicit val hasResult = new HasResult[this.type] {
       type Result = ProjectOpen.Result
     }
@@ -62,6 +78,7 @@ object ProjectManagementApi {
     implicit val hasParams = new HasParams[this.type] {
       type Params = ProjectClose.Params
     }
+
     implicit val hasResult = new HasResult[this.type] {
       type Result = Unused.type
     }
@@ -76,6 +93,7 @@ object ProjectManagementApi {
     implicit val hasParams = new HasParams[this.type] {
       type Params = ProjectList.Params
     }
+
     implicit val hasResult = new HasResult[this.type] {
       type Result = ProjectList.Result
     }
@@ -106,5 +124,7 @@ object ProjectManagementApi {
       extends Error(4008, "Cannot remove open project")
 
   case class ProjectCloseError(msg: String) extends Error(4009, msg)
+
+  case class LanguageServerError(msg: String) extends Error(4010, msg)
 
 }

@@ -3,9 +3,10 @@ package org.enso.projectmanager.service
 import java.util.UUID
 
 import cats.MonadError
+import org.enso.pkg.PackageManager
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
-import org.enso.projectmanager.control.effect.ErrorChannel
+import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.data.{LanguageServerSockets, ProjectMetadata}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
@@ -22,6 +23,7 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectRepository,
   ProjectRepositoryFailure
 }
+import org.enso.projectmanager.infrastructure.shutdown.ShutdownHookProcessor
 import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.model.ProjectKind.UserProject
@@ -40,19 +42,20 @@ import org.enso.projectmanager.service.ValidationFailure.{
   * @param clock a clock
   * @param gen a random generator
   */
-class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
+class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   validator: ProjectValidator[F],
   repo: ProjectRepository[F],
   log: Logging[F],
   clock: Clock[F],
   gen: Generator[F],
-  languageServerService: LanguageServerService[F]
+  languageServerService: LanguageServerService[F],
+  shutdownHookProcessor: ShutdownHookProcessor[F]
 )(implicit E: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure])
     extends ProjectServiceApi[F] {
 
   import E._
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def createUserProject(
     name: String
   ): F[ProjectServiceFailure, UUID] = {
@@ -60,17 +63,17 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     for {
       _            <- log.debug(s"Creating project $name.")
       _            <- validateName(name)
-      _            <- validateExists(name)
+      _            <- checkIfNameExists(name)
       creationTime <- clock.nowInUtc()
       projectId    <- gen.randomUUID()
       project       = Project(projectId, name, UserProject, creationTime)
-      _            <- repo.save(project).mapError(toServiceFailure)
+      _            <- repo.create(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")
     } yield projectId
     // format: on
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def deleteUserProject(
     projectId: UUID
   ): F[ProjectServiceFailure, Unit] =
@@ -90,7 +93,68 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
         case true  => ErrorChannel[F].fail(CannotRemoveOpenProject)
       }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
+  override def renameProject(
+    projectId: UUID,
+    name: String
+  ): F[ProjectServiceFailure, Unit] = {
+    for {
+      _          <- log.debug(s"Renaming project $projectId to $name.")
+      _          <- validateName(name)
+      _          <- checkIfProjectExists(projectId)
+      _          <- checkIfNameExists(name)
+      oldPackage <- repo.getPackageName(projectId).mapError(toServiceFailure)
+      _          <- repo.rename(projectId, name).mapError(toServiceFailure)
+      _ <- shutdownHookProcessor.registerShutdownHook(
+        new MoveProjectDirCmd[F](projectId, repo, log)
+      )
+      newPackage = PackageManager.Default.normalizeName(name)
+      _ <- refactorProjectName(projectId, oldPackage, newPackage)
+      _ <- log.info(s"Project $projectId renamed.")
+    } yield ()
+  }
+
+  private def refactorProjectName(
+    projectId: UUID,
+    oldPackage: String,
+    newPackage: String
+  ): F[ProjectServiceFailure, Unit] =
+    languageServerService
+      .renameProject(
+        projectId,
+        oldPackage,
+        newPackage
+      )
+      .recover {
+        case ProjectNotOpened => ()
+      }
+      .mapError {
+        case ProjectNotOpened => ProjectNotOpen //impossible
+        case RenameTimeout    => ProjectOperationTimeout
+        case CannotConnectToServer =>
+          LanguageServerFailure("Cannot connect to the language server")
+
+        case RenameFailure(code, msg) =>
+          LanguageServerFailure(
+            s"Failure during renaming [code: $code message: $msg]"
+          )
+
+        case ServerUnresponsive =>
+          LanguageServerFailure("The language server is unresponsive")
+      }
+
+  private def checkIfProjectExists(
+    projectId: UUID
+  ): F[ProjectServiceFailure, Unit] =
+    repo
+      .findById(projectId)
+      .mapError(toServiceFailure)
+      .flatMap {
+        case None    => ErrorChannel[F].fail(ProjectNotFound)
+        case Some(_) => CovariantFlatMap[F].pure(())
+      }
+
+  /** @inheritdoc * */
   override def openProject(
     clientId: UUID,
     projectId: UUID
@@ -101,7 +165,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       project  <- getUserProject(projectId)
       openTime <- clock.nowInUtc()
       updated   = project.copy(lastOpened = Some(openTime))
-      _        <- repo.save(updated).mapError(toServiceFailure)
+      _        <- repo.update(updated).mapError(toServiceFailure)
       sockets  <- startServer(clientId, updated)
     } yield sockets
     // format: on
@@ -129,7 +193,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
           )
       }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def closeProject(
     clientId: UUID,
     projectId: UUID
@@ -145,7 +209,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     }
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def listProjects(
     maybeSize: Option[Int]
   ): F[ProjectServiceFailure, List[ProjectMetadata]] =
@@ -176,7 +240,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
         case Some(project) => CovariantFlatMap[F].pure(project)
       }
 
-  private def validateExists(
+  private def checkIfNameExists(
     name: String
   ): F[ProjectServiceFailure, Unit] =
     repo
@@ -207,7 +271,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       .mapError {
         case EmptyName =>
           ProjectServiceFailure.ValidationFailure(
-            "Cannot create project with empty name"
+            "Project name cannot be empty"
           )
         case NameContainsForbiddenCharacter(chars) =>
           ProjectServiceFailure.ValidationFailure(

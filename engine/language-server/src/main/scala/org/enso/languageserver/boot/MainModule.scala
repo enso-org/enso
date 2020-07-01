@@ -196,7 +196,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
     suggestionsHandler,
     stdOutController,
     stdErrController,
-    stdInController
+    stdInController,
+    runtimeConnector
   )
 
   lazy val jsonRpcServer =

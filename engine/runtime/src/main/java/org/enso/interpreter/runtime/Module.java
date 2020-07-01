@@ -40,6 +40,15 @@ public class Module implements TruffleObject {
   private IR ir;
   private final QualifiedName name;
 
+  private Module(TruffleFile sourceFile, Rope literalSource,
+                boolean isParsed, IR ir, QualifiedName name) {
+    this.sourceFile = sourceFile;
+    this.literalSource = literalSource;
+    this.isParsed = isParsed;
+    this.ir = ir;
+    this.name = name;
+  }
+
   /**
    * Creates a new module.
    *
@@ -190,6 +199,22 @@ public class Module implements TruffleObject {
   /** @return the qualified name of this module. */
   public QualifiedName getName() {
     return name;
+  }
+
+  /**
+   * Renames a project part of the QualifiedName of this module.
+   *
+   * @param oldName the old project name
+   * @param newName the new project name
+   * @return a module with the updated QualifiedName
+   */
+  public Module renameProject(String oldName, String newName) {
+    if (name.path().head().equals(oldName)) {
+      QualifiedName renamed = name.renameProject(oldName, newName);
+      return new Module(sourceFile, literalSource, false, ir, renamed);
+    } else {
+      return this;
+    }
   }
 
   /**

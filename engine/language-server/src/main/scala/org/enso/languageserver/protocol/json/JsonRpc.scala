@@ -9,17 +9,9 @@ import org.enso.languageserver.capability.CapabilityApi.{
   ReleaseCapability
 }
 import org.enso.languageserver.filemanager.FileManagerApi._
-import org.enso.languageserver.io.InputOutputApi.{
-  FeedStandardInput,
-  RedirectStandardError,
-  RedirectStandardOutput,
-  StandardErrorAppended,
-  StandardOutputAppended,
-  SuppressStandardError,
-  SuppressStandardOutput,
-  WaitingForStandardInput
-}
+import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
+import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.SearchApi._
 import org.enso.languageserver.runtime.VisualisationApi._
@@ -66,6 +58,7 @@ object JsonRpc {
     .registerRequest(GetSuggestionsDatabase)
     .registerRequest(GetSuggestionsDatabaseVersion)
     .registerRequest(Completion)
+    .registerRequest(RenameProject)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)

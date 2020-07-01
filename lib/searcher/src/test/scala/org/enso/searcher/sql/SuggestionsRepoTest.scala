@@ -1,5 +1,6 @@
 package org.enso.searcher.sql
 
+import org.enso.jsonrpc.test.RetrySpec
 import org.enso.searcher.Suggestion
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.matchers.should.Matchers
@@ -12,6 +13,7 @@ import scala.concurrent.duration._
 
 class SuggestionsRepoTest
     extends AnyWordSpec
+    with RetrySpec
     with Matchers
     with BeforeAndAfter
     with BeforeAndAfterAll {

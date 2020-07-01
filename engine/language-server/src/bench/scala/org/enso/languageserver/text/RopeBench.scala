@@ -1,6 +1,5 @@
 package org.enso.languageserver.text
-import org.enso.languageserver.data.buffer.Rope
-import org.scalacheck.Gen.Parameters
+import org.enso.text.buffer.Rope
 import org.scalameter.{Bench, Gen}
 
 object RopeBench extends Bench.LocalTime {

@@ -52,7 +52,7 @@ class ProjectCloseHandler[F[+_, +_]: Exec](
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(s"Failure during $ProjectClose operation:", ex)
+      log.error(ex, s"Failure during $ProjectClose operation:")
       replyTo ! ResponseError(Some(id), ServiceError)
       cancellable.cancel()
       context.stop(self)
