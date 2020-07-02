@@ -21,9 +21,11 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
       .joinRight(Suggestions)
       .on(_.suggestionId === _.id)
 
+  /** @inheritdoc */
   override def init: DBIO[Unit] =
     (Suggestions.schema ++ Arguments.schema ++ Versions.schema).createIfNotExists
 
+  /** @inheritdoc */
   override def clean: DBIO[Unit] =
     for {
       _ <- Suggestions.delete
@@ -112,6 +114,7 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
     } yield versionOpt.flatMap(_.id).getOrElse(0L)
   }
 
+  /** Increment the current version of the repo. */
   private def incrementVersion: DBIO[Long] = {
     val increment = for {
       version <- Versions.returning(Versions.map(_.id)) += VersionRow(None)
@@ -120,6 +123,7 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
     increment.transactionally
   }
 
+  /** Create a search query by the provided parameters. */
   private def searchQuery(
     selfType: Option[String],
     returnType: Option[String],
@@ -141,6 +145,8 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
       }
   }
 
+  /** Convert the rows of suggestions joined with arguments to a list of
+    * suggestions. */
   private def joinedToSuggestions(
     coll: Seq[(Option[ArgumentRow], SuggestionRow)]
   ): Seq[Suggestion] = {
@@ -152,6 +158,8 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
       .toSeq
   }
 
+  /** Convert the rows of suggestions joined with arguments to a list of
+    * suggestion entries. */
   private def joinedToSuggestionEntries(
     coll: Seq[(Option[ArgumentRow], SuggestionRow)]
   ): Seq[SuggestionEntry] = {
@@ -163,6 +171,7 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
       .toSeq
   }
 
+  /** Convert the suggestion to a row in the suggestions table. */
   private def toSuggestionRow(
     suggestion: Suggestion
   ): (SuggestionRow, Seq[Suggestion.Argument]) =
@@ -217,6 +226,7 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
         row -> Seq()
     }
 
+  /** Convert the argument to a row in the arguments table. */
   private def toArgumentRow(
     suggestionId: Long,
     argument: Suggestion.Argument
@@ -231,12 +241,14 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
       defaultValue = argument.defaultValue
     )
 
+  /** Convert the database rows to a suggestion entry. */
   private def toSuggestionEntry(
     suggestion: SuggestionRow,
     arguments: Seq[ArgumentRow]
   ): SuggestionEntry =
     SuggestionEntry(suggestion.id.get, toSuggestion(suggestion, arguments))
 
+  /** Convert the databaes rows to a suggestion. */
   private def toSuggestion(
     suggestion: SuggestionRow,
     arguments: Seq[ArgumentRow]
@@ -275,6 +287,7 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
         throw new NoSuchElementException(s"Unknown suggestion kind: $k")
     }
 
+  /** Convert the database row to the suggestion argument. */
   private def toArgument(row: ArgumentRow): Suggestion.Argument =
     Suggestion.Argument(
       name         = row.name,

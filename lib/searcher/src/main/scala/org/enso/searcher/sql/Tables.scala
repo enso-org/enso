@@ -77,6 +77,7 @@ object SuggestionKind {
 
 object ScopeColumn {
 
+  /** A constant representing an empty value in the scope column. */
   val EMPTY: Int = -1
 }
 
