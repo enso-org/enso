@@ -22,7 +22,7 @@ class SuggestionsHandlerTest
 
   import system.dispatcher
 
-  val Timeout: FiniteDuration = 5.seconds
+  val Timeout: FiniteDuration = 10.seconds
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
