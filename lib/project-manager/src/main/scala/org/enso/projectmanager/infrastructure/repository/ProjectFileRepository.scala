@@ -215,12 +215,27 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
 
     for {
       project <- getProject(projectId)
-      targetPath   = getPrimaryPath(project)
-      isLocationOk = project.path.get.startsWith(targetPath.toString)
+      primaryPath = getPrimaryPath(project)
       finalPath <-
-        if (isLocationOk) CovariantFlatMap[F].pure(targetPath)
-        else move(project)
+        if (isLocationOk(project.path.get, primaryPath.toString)) {
+          CovariantFlatMap[F].pure(primaryPath)
+        } else {
+          move(project)
+        }
     } yield finalPath
+  }
+
+  private def isLocationOk(
+    currentPath: String,
+    primaryPath: String
+  ): Boolean = {
+    if (currentPath.startsWith(primaryPath)) {
+      val suffixPattern = "_\\d+"
+      val suffix        = currentPath.substring(primaryPath.length, currentPath.length)
+      suffix.matches(suffixPattern)
+    } else {
+      false
+    }
   }
 
   private def updateProjectDir(projectId: UUID, targetPath: File) = {

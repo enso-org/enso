@@ -494,9 +494,11 @@ class ProjectManagementApiSpec
     }
 
     "create a project dir with a suffix if a directory is taken" in {
+      val oldProjectName  = "foobar"
+      val newProjectName  = "foo"
       implicit val client = new WsTestClient(address)
       //given
-      val projectId = createProject("foo")
+      val projectId = createProject(oldProjectName)
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -504,7 +506,7 @@ class ProjectManagementApiSpec
               "id": 0,
               "params": {
                 "projectId": $projectId,
-                "name": "bar"
+                "name": $newProjectName
               }
             }
           """)
@@ -516,15 +518,15 @@ class ProjectManagementApiSpec
             "result": null
           }
           """)
-      val primaryProjectDir = new File(userProjectDir, "bar")
+      val primaryProjectDir = new File(userProjectDir, newProjectName)
       primaryProjectDir.mkdirs()
       val future = exec.exec(shutdownHookProcessor.fireShutdownHooks())
       Await.result(future, 5.seconds)
-      val projectDir  = new File(userProjectDir, "bar_1")
+      val projectDir  = new File(userProjectDir, s"${newProjectName}_1")
       val packageFile = new File(projectDir, "package.yaml")
       val buffer      = Source.fromFile(packageFile)
       val lines       = buffer.getLines()
-      lines.contains("name: Bar") shouldBe true
+      lines.contains("name: Foo") shouldBe true
       buffer.close()
       //teardown
       deleteProject(projectId)
