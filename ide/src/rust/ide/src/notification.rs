@@ -3,6 +3,9 @@
 
 use crate::prelude::*;
 
+use flo_stream::Subscriber;
+use flo_stream::MessagePublisher;
+
 
 
 // =================
@@ -17,14 +20,12 @@ use crate::prelude::*;
 const NOTIFICATION_BUFFER_SIZE : usize = 36;
 
 /// A notification publisher which implements Debug, Default and CloneRef (which is same as
-/// republishing for the same stream).
-#[derive(Shrinkwrap)]
-#[shrinkwrap(mutable)]
-pub struct Publisher<Message>(pub flo_stream::Publisher<Message>);
+/// republishing for the same stream) and uses internal mutability.
+pub struct Publisher<Message>(RefCell<flo_stream::Publisher<Message>>);
 
 impl<Message:Clone> Default for Publisher<Message> {
     fn default() -> Self {
-        Self(flo_stream::Publisher::new(NOTIFICATION_BUFFER_SIZE))
+        Self(RefCell::new(flo_stream::Publisher::new(NOTIFICATION_BUFFER_SIZE)))
     }
 }
 
@@ -42,7 +43,22 @@ impl<Message:Clone> CloneRef for Publisher<Message> {
 
 impl<Message:Clone> Clone for Publisher<Message> {
     fn clone(&self) -> Self {
-        let Self(inner) = self;
-        Self(inner.republish())
+        Self(RefCell::new(self.0.borrow().republish()))
+    }
+}
+
+impl<Message> Publisher<Message>
+where Message                        : 'static + Send,
+      flo_stream::Publisher<Message> : MessagePublisher<Message=Message>  {
+    /// Publish a message to the subscribers of this object.
+    pub fn publish(&self, message:Message) -> LocalBoxFuture<()> {
+        self.0.borrow_mut().publish(message)
+    }
+
+    /// Create a subscription to this publisher
+    ///
+    /// Any future messages sent here will also be sent to this subscriber.
+    pub fn subscribe(&self) -> Subscriber<Message> {
+        self.0.borrow_mut().subscribe()
     }
 }

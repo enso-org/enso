@@ -293,18 +293,16 @@ async fn binary_visualization_updates_test_hlp() {
 
     use ensogl::system::web::sleep;
     use ide::view::project::MAIN_DEFINITION_NAME;
-    use double_representation::definition::Id as DefinitionId;
 
     let module_path = project.module_path_from_qualified_name(&[INITIAL_MODULE_NAME]).unwrap();
+    let method                = module_path.method_pointer(MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module                = project.module_controller(module_path).await.unwrap();
     println!("Got module: {:?}", module);
-    let function_id           = DefinitionId::new_plain_name(MAIN_DEFINITION_NAME);
-    let graph_executed        = module.executed_graph_controller_unchecked(
-        function_id,&project).await.unwrap();
+    let graph_executed        = controller::ExecutedGraph::new(&project,method).await.unwrap();
 
-    let the_node = graph_executed.nodes().unwrap()[0].info.clone();
-    graph_executed.set_expression(the_node.id(), "10+20").unwrap();
+    let the_node = graph_executed.graph().nodes().unwrap()[0].info.clone();
+    graph_executed.graph().set_expression(the_node.id(), "10+20").unwrap();
 
     // We must yield control for a moment, so the text edit is applied.
     sleep(Duration::from_millis(1)).await;

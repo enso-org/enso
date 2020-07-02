@@ -324,6 +324,8 @@ ensogl::def_command_api! { Commands
     cycle_visualization_for_selected_node,
     /// Enter the last selected node.
     enter_selected_node,
+    /// Steps out of the current node, popping the topmost stack frame from the crumb list.
+    exit_node,
 
     /// Enable nodes multi selection mode. It works like inverse mode for single node selection and like merge mode for multi node selection mode.
     enable_node_multi_select,
@@ -395,6 +397,7 @@ impl Commands {
             set_test_visualization_data_for_selected_node <- source();
             cycle_visualization_for_selected_node         <- source();
             enter_selected_node                           <- source();
+            exit_node                                     <- source();
 
             toggle_fullscreen_for_selected_visualization <- source();
 
@@ -408,7 +411,8 @@ impl Commands {
              ,enable_node_subtract_select,disable_node_subtract_select,toggle_node_subtract_select
              ,enable_node_inverse_select,disable_node_inverse_select,toggle_node_inverse_select
              ,set_test_visualization_data_for_selected_node,cycle_visualization_for_selected_node
-             ,enter_selected_node,toggle_fullscreen_for_selected_visualization,cancel}
+             ,enter_selected_node,exit_node,toggle_fullscreen_for_selected_visualization
+             ,cancel}
     }
 }
 
@@ -443,7 +447,7 @@ pub struct FrpInputs {
     pub set_expression_type          : frp::Source<(ast::Id, OptionalType)>,
     pub cycle_visualization          : frp::Source<NodeId>,
     pub set_visualization            : frp::Source<(NodeId,Option<visualization::Path>)>,
-    pub register_visualization : frp::Source<Option<visualization::Definition>>,
+    pub register_visualization       : frp::Source<Option<visualization::Definition>>,
     pub set_visualization_data       : frp::Source<(NodeId,visualization::Data)>,
 
     hover_node_input           : frp::Source<Option<EdgeTarget>>,
@@ -581,6 +585,7 @@ generate_frp_outputs! {
     node_position_set_batched : (NodeId,Vector2),
     node_expression_set       : (NodeId,node::Expression),
     node_entered              : NodeId,
+    node_exited               : (),
 
     edge_added        : EdgeId,
     edge_removed      : EdgeId,
@@ -1440,6 +1445,7 @@ impl application::shortcut::DefaultShortcutProvider for GraphEditor {
              , Self::self_shortcut(shortcut::Action::press        (&[Key::Character("d".into())])               , "set_test_visualization_data_for_selected_node")
              , Self::self_shortcut(shortcut::Action::press        (&[Key::Character("f".into())])               , "cycle_visualization_for_selected_node")
              , Self::self_shortcut(shortcut::Action::release      (&[Key::Control,Key::Enter])                  , "enter_selected_node")
+             , Self::self_shortcut(shortcut::Action::release      (&[Key::Control,Key::ArrowUp])                , "exit_node")
              ]
     }
 }
@@ -2101,10 +2107,11 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     }));
 
 
-    // === Node Entering ===
+    // === Entering and Exiting Nodes ===
 
     node_to_enter        <= inputs.enter_selected_node.map(f_!(model.last_selected_node()));
     outputs.node_entered <+ node_to_enter;
+    outputs.node_exited  <+ inputs.exit_node;
 
 
     // === OUTPUTS REBIND ===

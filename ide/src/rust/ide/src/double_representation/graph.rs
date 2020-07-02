@@ -197,7 +197,7 @@ mod tests {
 
     use crate::double_representation::definition::DefinitionName;
     use crate::double_representation::definition::DefinitionProvider;
-    use crate::double_representation::definition::traverse_for_definition;
+    use crate::double_representation::module::get_definition;
 
     use ast::HasRepr;
     use ast::test_utils::expect_single_line;
@@ -220,7 +220,7 @@ mod tests {
             DefinitionName::new_plain(name)
         }).collect();
         let id         = Id{crumbs};
-        let definition = traverse_for_definition(&module,&id).unwrap();
+        let definition = get_definition(&module, &id).unwrap();
         GraphInfo::from_definition(definition)
     }
 

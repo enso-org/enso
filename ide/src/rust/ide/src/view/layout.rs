@@ -106,7 +106,7 @@ impl ViewLayout {
         let logger        = Logger::sub(logger,"ViewLayout");
         let world         = &application.display;
         let text_editor   = TextEditor::new(&logger,world,text_controller,kb_actions,fonts);
-        let graph         = graph_controller.graph.clone_ref();
+        let graph         = graph_controller.graph().clone_ref();
         let node_editor   = NodeEditor::new
             (&logger,application,graph_controller,project_controller,visualization_controller);
         let node_editor   = node_editor.await?;

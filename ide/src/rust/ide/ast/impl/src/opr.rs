@@ -78,6 +78,11 @@ pub fn assignment() -> known::Opr {
     known::Opr::new(opr,None)
 }
 
+/// Split qualified name into segments, like `"Int.add"` into `["Int","add"]`.
+pub fn name_segments(name:&str) -> impl Iterator<Item=&str> {
+    name.split(predefined::ACCESS)
+}
+
 
 
 // ===========================

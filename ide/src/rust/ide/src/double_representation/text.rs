@@ -176,6 +176,8 @@ fn all_spaces(text:&str) -> bool {
 mod test {
     use super::*;
 
+    use crate::double_representation::module;
+
     use ast::HasIdMap;
     use data::text::Index;
     use data::text::TextChange;
@@ -264,7 +266,7 @@ mod test {
         use double_representation::definition::*;
         use double_representation::graph::GraphInfo;
         let id         = Id::new_plain_name("main");
-        let definition = traverse_for_definition(module,&id).unwrap();
+        let definition = module::get_definition(module, &id).unwrap();
         let graph      = GraphInfo::from_definition(definition);
         let nodes      = graph.nodes();
         nodes.into_iter().map(|node| node.id()).collect()

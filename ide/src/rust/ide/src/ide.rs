@@ -84,6 +84,7 @@ impl IdeInitializer {
     , project_manager  : &impl project_manager::API
     , project_metadata : &ProjectMetadata
     ) -> FallibleResult<controller::Project> {
+        use controller::Project;
         let endpoints = project_manager.open_project(&project_metadata.id).await?;
         let json_endpoint   = endpoints.language_server_json_address;
         let binary_endpoint = endpoints.language_server_binary_address;
@@ -98,7 +99,7 @@ impl IdeInitializer {
         crate::executor::global::spawn(client_binary.runner());
         let connection_json   = language_server::Connection::new(client_json,client_id).await?;
         let connection_binary = binary::Connection::new(client_binary,client_id).await?;
-        Ok(controller::Project::new(logger,connection_json,connection_binary,project_name))
+        Ok(Project::from_connections(logger,connection_json,connection_binary,project_name))
     }
 
     /// Creates a new project and returns its metadata, so the newly connected project can be

@@ -9,7 +9,7 @@ use crate::notification;
 
 use data::text::TextChange;
 use data::text::TextLocation;
-use flo_stream::MessagePublisher;
+use enso_protocol::language_server::MethodPointer;
 use flo_stream::Subscriber;
 use parser::api::SourceFile;
 use parser::api::ParsedSourceFile;
@@ -136,6 +136,23 @@ impl Path {
         let file_path   = FilePath::new(default(),&[src_dir,file_name]);
         Self::from_file_path(file_path).unwrap()
     }
+
+    /// Obtain a pointer to a method of the module (i.e. extending the module's atom).
+    ///
+    /// Note that this cannot be used for a method extending other atom than this module.
+    pub fn method_pointer(&self, method_name:impl Str) -> MethodPointer {
+        MethodPointer {
+            defined_on_type : self.module_name().into(),
+            name            : method_name.into(),
+            file            : self.file_path.clone(),
+        }
+    }
+}
+
+impl PartialEq<FilePath> for Path {
+    fn eq(&self, other:&FilePath) -> bool {
+        self.file_path.eq(other)
+    }
 }
 
 impl TryFrom<FilePath> for Path {
@@ -149,6 +166,14 @@ impl TryFrom<FilePath> for Path {
 impl Display for Path {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.file_path, f)
+    }
+}
+
+impl TryFrom<MethodPointer> for Path {
+    type Error = InvalidModulePath;
+
+    fn try_from(value:MethodPointer) -> Result<Self, Self::Error> {
+        value.file.try_into()
     }
 }
 
@@ -309,7 +334,7 @@ pub type Content = ParsedSourceFile<Metadata>;
 #[derive(Debug)]
 pub struct Module {
     content       : RefCell<Content>,
-    notifications : RefCell<notification::Publisher<Notification>>,
+    notifications : notification::Publisher<Notification>,
 }
 
 impl Default for Module {
@@ -330,7 +355,7 @@ impl Module {
 
     /// Subscribe for notifications about text representation changes.
     pub fn subscribe(&self) -> Subscriber<Notification> {
-        self.notifications.borrow_mut().subscribe()
+        self.notifications.subscribe()
     }
 
     /// Create module state from given code, id_map and metadata.
@@ -361,7 +386,7 @@ impl Module {
     pub fn find_definition
     (&self,id:&double_representation::graph::Id) -> FallibleResult<DefinitionInfo> {
         let ast = self.content.borrow().ast.clone_ref();
-        double_representation::definition::traverse_for_definition(&ast,id)
+        double_representation::module::get_definition(&ast, id)
     }
 
     /// Returns metadata for given node, if present.
@@ -431,7 +456,7 @@ impl Module {
     }
 
     fn notify(&self, notification:Notification) {
-        let notify  = self.notifications.borrow_mut().publish(notification);
+        let notify  = self.notifications.publish(notification);
         executor::global::spawn(notify);
     }
 }
