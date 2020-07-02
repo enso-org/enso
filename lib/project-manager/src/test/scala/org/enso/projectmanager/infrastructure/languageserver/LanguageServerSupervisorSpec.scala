@@ -36,7 +36,7 @@ class LanguageServerSupervisorSpec
     with MockitoSugar
     with FlakySpec {
 
-  "A language supervisor" should "monitor language server by sending ping requests on regular basis" taggedAs (Flaky) in new TestCtx {
+  "A language supervisor" should "monitor language server by sending ping requests on regular basis" taggedAs Flaky in new TestCtx {
     //given
     val probe = TestProbe()
     fakeServer.withBehaviour {
@@ -64,7 +64,7 @@ class LanguageServerSupervisorSpec
     fakeServer.stop()
   }
 
-  it should "restart server when pong message doesn't arrive on time" in new TestCtx {
+  it should "restart server when pong message doesn't arrive on time" taggedAs Flaky in new TestCtx {
     //given
     when(serverComponent.restart())
       .thenReturn(Future.successful(ComponentRestarted))

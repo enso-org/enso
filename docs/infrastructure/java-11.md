@@ -41,6 +41,11 @@ that help with this process.
 ### Testing
 All tests are passing.
 
+To make sure `runtime` tests can be run both with `test` and `testOnly`,
+`--upgrade-module-path=<path-to-truffle-api.jar>` has to be added to
+`javaOptions`. It is important to note that the tests may be ran in a working
+directory different than the project root, so an absolute path should be used.
+
 ### Benchmarks
 Initially there were some regressions found in the benchmarks, but further
 investigation revealed this was caused by some issues in the methodology of how
