@@ -130,11 +130,11 @@ impl TextEditor {
 
         let notifications_sub = self.with_borrowed(|data| data.controller.subscribe());
         executor::global::spawn(process_stream_with_handle(notifications_sub,weak,|notif,this| {
-            this.handle_controller_notification(notif)
+            this.handle_model_notification(notif)
         }));
     }
 
-    fn handle_controller_notification(&self, notification:controller::text::Notification)
+    fn handle_model_notification(&self, notification:controller::text::Notification)
     -> impl Future<Output=()> {
         match notification {
             controller::text::Notification::Invalidate => self.reload_content()

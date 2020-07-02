@@ -13,11 +13,9 @@ use crate::model::module::Path;
 use ast;
 use ast::HasIdMap;
 use data::text::*;
-use double_representation as dr;
 use enso_protocol::language_server;
 use enso_protocol::types::Sha3_224;
 use parser::Parser;
-
 
 
 // ==============
@@ -104,32 +102,45 @@ impl Handle {
     }
 
     /// Returns a graph controller for graph in this module's subtree identified by `id`.
-    pub fn graph_controller(&self, id:dr::graph::Id) -> FallibleResult<controller::Graph> {
+    pub fn graph_controller
+    (&self, id:double_representation::graph::Id) -> FallibleResult<controller::Graph> {
         controller::Graph::new(&self.logger, self.model.clone_ref(), self.parser.clone_ref(), id)
-    }
-
-    /// Returns a executed graph controller for graph in this module's subtree identified by id.
-    /// The execution context will be rooted at definition of this graph.
-    ///
-    /// This function wont check if the definition under id exists.
-    pub async fn executed_graph_controller_unchecked
-    (&self, id:dr::graph::Id, project:&controller::Project)
-    -> FallibleResult<controller::ExecutedGraph> {
-        let definition_name = id.crumbs.last().cloned().ok_or_else(|| InvalidGraphId(id.clone()))?;
-        let graph           = self.graph_controller_unchecked(id);
-        let path            = self.path.clone_ref();
-        let execution_ctx   = project.create_execution_context(path,definition_name).await?;
-        Ok(controller::ExecutedGraph::new(graph,execution_ctx))
     }
 
     /// Returns a graph controller for graph in this module's subtree identified by `id` without
     /// checking if the graph exists.
-    pub fn graph_controller_unchecked(&self, id:dr::graph::Id) -> controller::Graph {
+    pub fn graph_controller_unchecked
+    (&self, id:double_representation::graph::Id) -> controller::Graph {
         controller::Graph::new_unchecked(&self.logger, self.model.clone_ref(),
                                          self.parser.clone_ref(), id)
     }
 
-    #[cfg(test)]
+    /// Get pointer to the method identified by its definition ID.
+    ///
+    /// Note that there might exist multiple definition IDs for the same method pointer, as
+    /// definition IDs include information about definition syntax whereas method pointer identifies
+    /// the desugared entity.
+    pub fn method_pointer
+    (&self, id:&double_representation::graph::Id)
+    -> FallibleResult<language_server::MethodPointer> {
+        let crumb = match id.crumbs.as_slice() {
+            [crumb] => crumb,
+            _       => return Err(InvalidGraphId(id.clone()).into()),
+        };
+
+        let defined_on_type = if crumb.extended_target.is_empty() {
+            self.path.module_name().to_string()
+        } else {
+            crumb.extended_target.iter().map(|segment| segment.as_str()).join(".")
+        };
+        Ok(language_server::MethodPointer {
+            file : self.path.file_path().clone(),
+            defined_on_type,
+            name : crumb.name.item.clone(),
+        })
+    }
+
+    /// Creates a mocked module controller.
     pub fn new_mock
     ( path            : Path
     , code            : &str
@@ -138,7 +149,7 @@ impl Handle {
     , parser          : Parser
     ) -> FallibleResult<Self> {
         let logger = Logger::new("Mocked Module Controller");
-        let ast    = parser.parse(code.to_string(),id_map.clone())?.try_into()?;
+        let ast    = parser.parse(code.to_string(),id_map)?.try_into()?;
         let model  = model::Module::new(ast, default());
         let model  = model::synchronized::Module::mock(path.clone(),model);
         let path   = Rc::new(path);

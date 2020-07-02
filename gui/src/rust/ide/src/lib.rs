@@ -7,6 +7,7 @@
 #![feature(cell_update)]
 #![feature(drain_filter)]
 #![feature(exact_size_is_empty)]
+#![feature(iter_order_by)]
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
 #![recursion_limit="256"]
@@ -48,6 +49,9 @@ pub mod prelude {
     pub use crate::double_representation;
     pub use crate::executor;
     pub use crate::model;
+
+    pub use enso_protocol::prelude::LocalBoxFuture;
+    pub use enso_protocol::prelude::LocalBoxStream;
 
     pub use futures::Future;
     pub use futures::FutureExt;

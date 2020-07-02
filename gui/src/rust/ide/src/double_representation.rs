@@ -5,6 +5,7 @@ pub mod alias_analysis;
 pub mod connection;
 pub mod definition;
 pub mod graph;
+pub mod module;
 pub mod node;
 pub mod text;
 

@@ -71,7 +71,7 @@ pub trait API {
     /// Asynchronous event stream with notification and errors.
     ///
     /// On a repeated call, previous stream is closed.
-    fn event_stream(&mut self) -> LocalBoxStream<Event>;
+    fn event_stream(&self) -> LocalBoxStream<Event>;
 }
 
 
@@ -199,7 +199,7 @@ impl API for Client {
         })
     }
 
-    fn event_stream(&mut self) -> LocalBoxStream<Event> {
+    fn event_stream(&self) -> LocalBoxStream<Event> {
         self.handler.event_stream().boxed_local()
     }
 }

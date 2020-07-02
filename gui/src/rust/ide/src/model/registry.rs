@@ -6,7 +6,6 @@ use crate::prelude::*;
 use crate::notification::Publisher;
 
 use flo_stream::Subscriber;
-use flo_stream::MessagePublisher;
 
 
 
@@ -131,7 +130,7 @@ where K : Clone + Eq + Hash {
 
     async fn load<F,E>(&self, key:K, loader:F) -> Result<Rc<V>,E>
     where F : Future<Output=Result<Rc<V>,E>> {
-        let mut publisher = Publisher::default();
+        let publisher = Publisher::default();
         self.registry.borrow_mut().insert(key.clone(), Entry::Loading(publisher.subscribe()));
 
         let result = loader.await;

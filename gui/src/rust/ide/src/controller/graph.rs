@@ -9,6 +9,7 @@ use crate::prelude::*;
 use crate::double_representation::alias_analysis::NormalizedName;
 use crate::double_representation::alias_analysis::LocatedName;
 use crate::double_representation::definition;
+use crate::double_representation::module;
 pub use crate::double_representation::graph::Id;
 use crate::double_representation::graph::GraphInfo;
 pub use crate::double_representation::graph::LocationHint;
@@ -16,11 +17,13 @@ use crate::double_representation::node;
 use crate::double_representation::node::NodeInfo;
 use crate::model::module::NodeMetadata;
 
+use ast::crumbs::InfixCrumb;
+use enso_protocol::language_server;
 use parser::Parser;
 use span_tree::action::Actions;
 use span_tree::action::Action;
 use span_tree::SpanTree;
-use ast::crumbs::InfixCrumb;
+
 
 
 // ==============
@@ -415,7 +418,7 @@ impl Handle {
         Handle {module,parser,id,logger}
     }
 
-    /// Creates a new graph controller. Given ID should uniquely identify a definition in the
+    /// Create a new graph controller. Given ID should uniquely identify a definition in the
     /// module. Fails if ID cannot be resolved.
     pub fn new
     (parent:&Logger, module:Rc<model::synchronized::Module>, parser:Parser, id:Id)
@@ -424,6 +427,20 @@ impl Handle {
         // Get and discard definition info, we are just making sure it can be obtained.
         let _ = ret.graph_definition_info()?;
         Ok(ret)
+    }
+
+    /// Create a graph controller for the given method.
+    ///
+    /// Fails if the module is inaccessible or if the module does not contain the given method.
+    pub async fn new_method(project:&controller::Project, method:&language_server::MethodPointer)
+    -> FallibleResult<controller::Graph> {
+        let project = project.clone_ref();
+        let method = method.clone();
+        let module_path = model::module::Path::from_file_path(method.file.clone())?;
+        let module      = project.module_controller(module_path).await?;
+        let module_ast = module.model.model.ast();
+        let definition = double_representation::module::lookup_method(&module_ast,&method)?;
+        module.graph_controller(definition)
     }
 
     /// Retrieves double rep information about definition providing this graph.
@@ -626,7 +643,7 @@ impl Handle {
     pub fn update_definition_ast<F>(&self, f:F) -> FallibleResult<()>
     where F:FnOnce(definition::DefinitionInfo) -> FallibleResult<definition::DefinitionInfo> {
         let ast_so_far     = self.module.ast();
-        let definition     = definition::locate(&ast_so_far, &self.id)?;
+        let definition     = module::locate(&ast_so_far, &self.id)?;
         let new_definition = f(definition.item)?;
         info!(self.logger, "Applying graph changes onto definition");
         let new_ast    = new_definition.ast.into();
@@ -731,6 +748,11 @@ impl Handle {
     }
 }
 
+
+
+// ============
+// === Test ===
+// ============
 
 #[cfg(test)]
 mod tests {

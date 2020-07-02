@@ -2,7 +2,6 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::definition::DefinitionName;
 use crate::model::module::QualifiedName as ModuleQualifiedName;
 use crate::notification::Publisher;
 
@@ -11,7 +10,6 @@ use enso_protocol::language_server::ExpressionValueUpdate;
 use enso_protocol::language_server::ExpressionValuesComputed;
 use enso_protocol::language_server::MethodPointer;
 use enso_protocol::language_server::VisualisationConfiguration;
-use flo_stream::MessagePublisher;
 use flo_stream::Subscriber;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -72,12 +70,12 @@ pub struct ComputedValueInfoRegistry {
     /// A publisher that emits an update every time a new batch of updates is received from language
     /// server.
     #[derivative(Debug="ignore")]
-    updates : RefCell<Publisher<ComputedValueExpressions>>,
+    updates : Publisher<ComputedValueExpressions>,
 }
 
 impl ComputedValueInfoRegistry {
     fn emit(&self, update: ComputedValueExpressions) {
-        let future = self.updates.borrow_mut().0.publish(update);
+        let future = self.updates.publish(update);
         executor::global::spawn(future);
     }
 
@@ -108,7 +106,7 @@ impl ComputedValueInfoRegistry {
 
     /// Subscribe to notifications about changes in the registry.
     pub fn subscribe(&self) -> Subscriber<ComputedValueExpressions> {
-        self.updates.borrow_mut().subscribe()
+        self.updates.subscribe()
     }
 
     /// Look up the registry for information about given expression.
@@ -180,10 +178,10 @@ pub struct InvalidVisualizationId(VisualizationId);
 /// This is a single item in ExecutionContext stack.
 #[derive(Clone,Debug,Eq,PartialEq)]
 pub struct LocalCall {
-    /// An expression being a call.
+    /// An expression being a call to a method.
     pub call       : ExpressionId,
-    /// A definition of function called in `call` expression.
-    pub definition : DefinitionId,
+    /// A pointer to the called method.
+    pub definition : MethodPointer,
 }
 
 
@@ -263,7 +261,7 @@ pub struct AttachedVisualization {
 pub struct ExecutionContext {
     logger:Logger,
     /// A name of definition which is a root call of this context.
-    pub entry_point:DefinitionName,
+    pub entry_point:MethodPointer,
     /// Local call stack.
     stack:RefCell<Vec<LocalCall>>,
     /// Set of active visualizations.
@@ -274,7 +272,7 @@ pub struct ExecutionContext {
 
 impl ExecutionContext {
     /// Create new execution context
-    pub fn new(logger:impl Into<Logger>, entry_point:DefinitionName) -> Self {
+    pub fn new(logger:impl Into<Logger>, entry_point:MethodPointer) -> Self {
         let logger                       = logger.into();
         let stack                        = default();
         let visualizations               = default();
@@ -290,13 +288,22 @@ impl ExecutionContext {
 
     /// Pop the last stack item from this context. It returns error when only root call
     /// remains.
-    pub fn pop(&self) -> FallibleResult<()> {
-        self.stack.borrow_mut().pop().ok_or_else(PopOnEmptyStack)?;
+    pub fn pop(&self) -> FallibleResult<LocalCall> {
+        let ret = self.stack.borrow_mut().pop().ok_or_else(PopOnEmptyStack)?;
         self.computed_value_info_registry.clear();
-        Ok(())
+        Ok(ret)
     }
 
-    /// Attaches a new visualization for current execution context.
+    /// Obtain the method pointer to the method of the call stack's top frame.
+    pub fn current_method(&self) -> MethodPointer {
+        if let Some(top_frame) = self.stack.borrow().last() {
+            top_frame.definition.clone()
+        } else {
+            self.entry_point.clone()
+        }
+    }
+
+    /// Attach a new visualization for current execution context.
     ///
     /// Returns a stream of visualization update data received from the server.
     pub fn attach_visualization
@@ -309,11 +316,18 @@ impl ExecutionContext {
         receiver
     }
 
-    /// Detaches visualization from current execution context.
-    pub fn detach_visualization(&self, id:&VisualizationId) -> FallibleResult<Visualization> {
-        let err = || InvalidVisualizationId(*id);
+    /// Detach the visualization from this execution context.
+    pub fn detach_visualization(&self, id:VisualizationId) -> FallibleResult<Visualization> {
+        let err = || InvalidVisualizationId(id);
         info!(self.logger,"Removing from the registry: {id}.");
-        Ok(self.visualizations.borrow_mut().remove(id).ok_or_else(err)?.visualization)
+        Ok(self.visualizations.borrow_mut().remove(&id).ok_or_else(err)?.visualization)
+    }
+
+    /// Get the information about the given visualization. Fails, if there's no such visualization
+    /// active.
+    pub fn visualization_info(&self, id:VisualizationId) -> FallibleResult<Visualization> {
+        let err = || InvalidVisualizationId(id).into();
+        self.visualizations.borrow_mut().get(&id).map(|v| v.visualization.clone()).ok_or_else(err)
     }
 
     /// Get an iterator over stack items.
@@ -347,5 +361,10 @@ impl ExecutionContext {
     (&self, notification:ExpressionValuesComputed) -> FallibleResult<()> {
         self.computed_value_info_registry.apply_update(notification);
         Ok(())
+    }
+
+    /// Returns IDs of all active visualizations.
+    pub fn active_visualizations(&self) -> Vec<VisualizationId> {
+        self.visualizations.borrow().keys().copied().collect_vec()
     }
 }

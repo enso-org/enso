@@ -3,7 +3,6 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::definition::DefinitionName;
 use crate::model::module::Path as ModulePath;
 use crate::view::layout::ViewLayout;
 
@@ -16,8 +15,8 @@ use ensogl::display::style::theme;
 use ensogl::system::web;
 use enso_frp::io::keyboard::Keyboard;
 use enso_frp::io::keyboard;
-use nalgebra::Vector2;
 use enso_shapely::shared;
+use nalgebra::Vector2;
 
 
 
@@ -82,10 +81,8 @@ impl ProjectView {
     -> FallibleResult<Self> {
         let module_path       = initial_module_path(&controller)?;
         let text_controller   = controller.text_controller((*module_path).clone()).await?;
-        let main_name         = DefinitionName::new_plain(MAIN_DEFINITION_NAME);
-        let graph_id          = controller::graph::Id::new_single_crumb(main_name);
-        let module_controller = controller.module_controller(module_path).await?;
-        let graph_controller  = module_controller.executed_graph_controller_unchecked(graph_id,&controller);
+        let method            = module_path.method_pointer(MAIN_DEFINITION_NAME);
+        let graph_controller  = controller::ExecutedGraph::new(&controller,method);
         let graph_controller  = graph_controller.await?;
         let application       = Application::new(&web::get_html_element_by_id("root").unwrap());
         Self::setup_components(&application);

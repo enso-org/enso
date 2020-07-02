@@ -11,6 +11,24 @@ use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
 use crate::model::synchronized::ExecutionContext;
 
+use enso_protocol::language_server::MethodPointer;
+
+
+
+// ==============
+// === Errors ===
+// ==============
+
+#[allow(missing_docs)]
+#[fail(display = "The node {} has not been evaluated yet.", _0)]
+#[derive(Debug,Fail,Clone,Copy)]
+pub struct NotEvaluatedYet(double_representation::node::Id);
+
+#[allow(missing_docs)]
+#[fail(display = "The node {} does not resolve to a method call.", _0)]
+#[derive(Debug,Fail,Clone,Copy)]
+pub struct NoResolvedMethod(double_representation::node::Id);
+
 
 
 // ====================
@@ -27,6 +45,10 @@ pub enum Notification {
     /// The notification from the execution context about the computed value information
     /// being updated.
     ComputedValueInfo(crate::model::execution_context::ComputedValueExpressions),
+    /// Notification emitted when the node has been entered.
+    EnteredNode(double_representation::node::Id),
+    /// Notification emitted when the node was step out.
+    SteppedOutOfNode(double_representation::node::Id),
 }
 
 
@@ -37,14 +59,35 @@ pub enum Notification {
 /// Handle providing executed graph controller interface.
 #[derive(Clone,CloneRef,Debug)]
 pub struct Handle {
+    #[allow(missing_docs)]
+    pub logger:Logger,
     /// A handle to basic graph operations.
-    pub graph:controller::Graph,
+    graph:Rc<RefCell<controller::Graph>>,
     /// Execution Context handle, its call stack top contains `graph`'s definition.
     execution_ctx:Rc<ExecutionContext>,
+    /// The handle to project controller is necessary, as entering nodes might need to switch
+    /// modules, and only the project can provide their controllers.
+    project:controller::Project,
+    /// The publisher allowing sending notification to subscribed entities. Note that its outputs is
+    /// merged with publishers from the stored graph and execution controllers.
+    notifier:crate::notification::Publisher<Notification>,
 }
 
 impl Handle {
+    /// Create handle for the executed graph that will be running the given method.
+    pub async fn new
+    ( project:&controller::Project
+    , method:MethodPointer
+    ) -> FallibleResult<Self> {
+        let graph     = controller::Graph::new_method(&project, &method).await?;
+        let execution = project.create_execution_context(method.clone()).await?;
+        Ok(Self::new_internal(graph,&project,execution))
+    }
+
     /// Create handle for given graph and execution context.
+    ///
+    /// The given graph and execution context must be for the same method. Prefer using `new`,
+    /// unless writing test code.
     ///
     /// This takes a (shared) ownership of execution context which will be shared between all copies
     /// of this handle. It is held through `Rc` because the registry in the project controller needs
@@ -55,8 +98,16 @@ impl Handle {
     /// strong references to the execution context and it is expected that it will be dropped after
     /// the last copy of this controller is dropped.
     /// Then the context when being dropped shall remove itself from the Language Server.
-    pub fn new(graph:controller::Graph, execution_ctx:Rc<ExecutionContext>) -> Self {
-        Handle{graph,execution_ctx}
+    pub fn new_internal
+    ( graph:controller::Graph
+    , project:&controller::Project
+    , execution_ctx:Rc<ExecutionContext>
+    ) -> Self {
+        let logger   = Logger::sub(&graph.logger,"Executed");
+        let graph    = Rc::new(RefCell::new(graph));
+        let project  = project.clone_ref();
+        let notifier = default();
+        Handle {logger,graph,execution_ctx,project,notifier}
     }
 
     /// See `attach_visualization` in `ExecutionContext`.
@@ -67,7 +118,7 @@ impl Handle {
     }
 
     /// See `detach_visualization` in `ExecutionContext`.
-    pub async fn detach_visualization(&self, id:&VisualizationId) -> FallibleResult<Visualization> {
+    pub async fn detach_visualization(&self, id:VisualizationId) -> FallibleResult<Visualization> {
         self.execution_ctx.detach_visualization(id).await
     }
 
@@ -82,17 +133,58 @@ impl Handle {
     /// context.
     pub fn subscribe(&self) -> impl Stream<Item=Notification> {
         let registry     = self.execution_ctx.computed_value_info_registry();
-        let value_stream = registry.subscribe().map(Notification::ComputedValueInfo);
-        let graph_stream = self.graph.subscribe().map(Notification::Graph);
-        futures::stream::select(value_stream,graph_stream)
+        let value_stream = registry.subscribe().map(Notification::ComputedValueInfo).boxed_local();
+        let graph_stream = self.graph().subscribe().map(Notification::Graph).boxed_local();
+        let self_stream  = self.notifier.subscribe().boxed_local();
+        futures::stream::select_all(vec![value_stream,graph_stream,self_stream])
     }
-}
 
-impl Deref for Handle {
-    type Target = controller::Graph;
+    /// Enter node by given ID.
+    ///
+    /// This will cause pushing a new stack frame to the execution context and changing the graph
+    /// controller to point to a new definition.
+    ///
+    /// Fails if there's no information about target method pointer (e.g. because node value hasn't
+    /// been yet computed by the engine) or if method graph cannot be created (see
+    /// `graph_for_method` documentation).
+    pub async fn enter_node(&self, node:double_representation::node::Id) -> FallibleResult<()> {
+        debug!(self.logger, "Entering node {node}.");
+        let registry   = self.execution_ctx.computed_value_info_registry();
+        let node_info  = registry.get(&node).ok_or_else(|| NotEvaluatedYet(node))?;
+        let method_ptr = node_info.method_call.as_ref().ok_or_else(|| NoResolvedMethod(node))?;
+        let graph      = controller::Graph::new_method(&self.project,&method_ptr).await?;
+        let call       = model::execution_context::LocalCall {
+            call       : node,
+            definition : method_ptr.clone()
+        };
+        self.execution_ctx.push(call).await?;
 
-    fn deref(&self) -> &Self::Target {
-        &self.graph
+        debug!(self.logger,"Replacing graph with {graph:?}.");
+        self.graph.replace(graph);
+        debug!(self.logger,"Sending graph invalidation signal.");
+        self.notifier.publish(Notification::EnteredNode(node)).await;
+
+        Ok(())
+    }
+
+    /// Leave the current node. Reverse of `enter_node`.
+    ///
+    /// Fails if this execution context is already at the stack's root or if the parent graph
+    /// cannot be retrieved.
+    pub async fn exit_node(&self) -> FallibleResult<()> {
+        let frame  = self.execution_ctx.pop().await?;
+        let method = self.execution_ctx.current_method();
+        let graph  = controller::Graph::new_method(&self.project,&method).await?;
+        self.graph.replace(graph);
+        self.notifier.publish(Notification::SteppedOutOfNode(frame.call)).await;
+        Ok(())
+    }
+
+    /// Get the controller for the currently active graph.
+    ///
+    /// Note that the controller returned by this method may change as the nodes are stepped into.
+    pub fn graph(&self) -> controller::Graph {
+        self.graph.borrow().clone_ref()
     }
 }
 
@@ -127,7 +219,8 @@ mod tests {
         let connection     = language_server::Connection::new_mock_rc(ls);
         let (_,graph)      = graph_data.create_controllers_with_ls(connection.clone_ref());
         let execution      = Rc::new(execution(connection.clone_ref()));
-        let executed_graph = Handle::new(graph,execution.clone_ref());
+        let project        = controller::project::test::setup_mock_project(|_| {}, |_| {});
+        let executed_graph = Handle::new_internal(graph,&project,execution.clone_ref());
 
         // Generate notification.
         let notification = execution_data.mock_values_computed_update();

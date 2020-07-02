@@ -125,7 +125,6 @@ impl Module {
     }
 
     /// Create a module mock.
-    #[cfg(test)]
     pub fn mock(path:model::module::Path, model:model::Module) -> Rc<Self> {
         let logger = Logger::new(iformat!("Mocked Module {path}"));
         let client = language_server::MockClient::default();
