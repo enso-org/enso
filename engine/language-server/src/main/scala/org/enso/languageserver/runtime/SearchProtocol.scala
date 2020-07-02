@@ -35,9 +35,9 @@ object SearchProtocol {
 
     private object CodecType {
 
-      val Add = "SuggestionsDatabaseUpdateAdd"
+      val Add = "Add"
 
-      val Remove = "SuggestionsDatabaseUpdateRemove"
+      val Remove = "Remove"
     }
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =

@@ -48,9 +48,11 @@ object SqlDatabase {
     new SqlDatabase(Some(config))
   }
 
+  /** Create JDBC URL from the file path. */
   private def jdbcUrl(filename: String): String =
     s"jdbc:sqlite:${escapePath(filename)}"
 
+  /** Escape Windows path. */
   private def escapePath(path: String): String =
     path.replace("\\", "\\\\")
 }

@@ -33,7 +33,7 @@ class SuggestionsDatabaseEventsListenerTest
           "params" : {
             "updates" : [
               {
-                "type" : "SuggestionsDatabaseUpdateAdd",
+                "type" : "Add",
                 "id" : 1,
                 "suggestion" : {
                   "type" : "atom",
@@ -68,7 +68,7 @@ class SuggestionsDatabaseEventsListenerTest
           "params" : {
             "updates" : [
               {
-                "type" : "SuggestionsDatabaseUpdateAdd",
+                "type" : "Add",
                 "id" : 2,
                 "suggestion" : {
                   "type" : "method",
@@ -112,7 +112,7 @@ class SuggestionsDatabaseEventsListenerTest
           "params" : {
             "updates" : [
               {
-                "type" : "SuggestionsDatabaseUpdateAdd",
+                "type" : "Add",
                 "id" : 3,
                 "suggestion" : {
                   "type" : "function",
@@ -144,7 +144,7 @@ class SuggestionsDatabaseEventsListenerTest
           "params" : {
             "updates" : [
               {
-                "type" : "SuggestionsDatabaseUpdateAdd",
+                "type" : "Add",
                 "id" : 4,
                 "suggestion" : {
                   "type" : "local",
@@ -177,11 +177,11 @@ class SuggestionsDatabaseEventsListenerTest
           "params" : {
             "updates" : [
               {
-                "type" : "SuggestionsDatabaseUpdateRemove",
+                "type" : "Remove",
                 "id" : 2
               },
               {
-                "type" : "SuggestionsDatabaseUpdateRemove",
+                "type" : "Remove",
                 "id" : 3
               }
             ],
