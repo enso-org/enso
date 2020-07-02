@@ -169,7 +169,8 @@ case object IgnoredBindings extends IRPass {
     }
   }
 
-  /** Generates a new argument name for `arg` if `isIgnored` is true.
+  /** Generates a new argument name for `arg` if `isIgnored` is true and updates
+    * all arguments metadata with their 'ignored' status.
     *
     * It also handles recursing through the default values.
     *
@@ -184,6 +185,20 @@ case object IgnoredBindings extends IRPass {
     freshNameSupply: FreshNameSupply
   ): IR.DefinitionArgument = {
     arg match {
+      case spec @ IR.DefinitionArgument.Specified(
+            IR.Name.This(_, _, _),
+            _,
+            _,
+            _,
+            _,
+            _
+          ) =>
+        // Note [Ignored this Argument]
+        spec
+          .copy(defaultValue =
+            spec.defaultValue.map(resolveExpression(_, freshNameSupply))
+          )
+          .updateMetadata(this -->> State.Ignored)
       case spec: IR.DefinitionArgument.Specified =>
         if (isIgnored) {
           val newName = freshNameSupply
@@ -339,3 +354,11 @@ case object IgnoredBindings extends IRPass {
     }
   }
 }
+
+/* Note [Ignored this Argument]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * `this` is implicitly added to all methods in the GenerateMethodBodies pass.
+ * It may however not be used in the method body and this should not emit an
+ * unused warning. So when processing function arguments, `this` should be
+ * marked as ignored to avoid warnings from the UnusedBindings pass.
+ */
