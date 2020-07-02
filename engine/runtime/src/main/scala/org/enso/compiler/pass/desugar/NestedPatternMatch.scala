@@ -118,9 +118,7 @@ case object NestedPatternMatch extends IRPass {
       )
     )
 
-    ir.transformExpressions {
-      case x => desugarExpression(x, freshNameSupply)
-    }
+    ir.mapExpressions(desugarExpression(_, freshNameSupply))
   }
 
   /** Desugars nested pattern matches in an expression.

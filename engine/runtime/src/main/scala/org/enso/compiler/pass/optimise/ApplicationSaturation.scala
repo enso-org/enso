@@ -52,10 +52,9 @@ case object ApplicationSaturation extends IRPass {
     moduleContext: ModuleContext
   ): IR.Module = {
     val passConfig = moduleContext.passConfiguration
-    ir.transformExpressions({
-      case x =>
-        runExpression(x, new InlineContext(passConfiguration = passConfig))
-    })
+    ir.mapExpressions(
+      runExpression(_, new InlineContext(passConfiguration = passConfig))
+    )
   }
 
   /** Executes the analysis pass, marking functions with information about their

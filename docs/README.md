@@ -1,12 +1,12 @@
 ---
 layout: docs-index
-title: Enso Developer Documentation
+title: Enso Engine Developer Documentation
 category: summary
 tags: [summary, readme]
 order: 0
 ---
 
-# Enso Developer Documentation
+# Enso Engine Developer Documentation
 This folder contains the documentation for the implementation of the Enso
 programming language. The documentation is broken up by subject, within the
 below-listed categories, and each subject combines information about the

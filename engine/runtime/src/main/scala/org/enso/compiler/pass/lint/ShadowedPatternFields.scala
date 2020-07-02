@@ -56,9 +56,7 @@ case object ShadowedPatternFields extends IRPass {
     ir: IR.Module,
     @unused moduleContext: ModuleContext
   ): IR.Module = {
-    ir.transformExpressions {
-      case x => lintExpression(x)
-    }
+    ir.mapExpressions(lintExpression)
   }
 
   /** Lints for shadowed pattern fields.

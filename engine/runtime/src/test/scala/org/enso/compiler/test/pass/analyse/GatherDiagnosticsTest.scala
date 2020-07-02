@@ -117,8 +117,11 @@ class GatherDiagnosticsTest extends CompilerTest {
       val diagnostics = result
         .unsafeGetMetadata(GatherDiagnostics, "Impossible")
         .diagnostics
-      diagnostics should have length 1
-      diagnostics.head.message shouldEqual "Unused variable unused."
+      diagnostics should have size 2
+      diagnostics.map(_.message).toSet shouldEqual Set(
+        "Unused variable unused.",
+        "Unused function argument x."
+      )
     }
   }
 }
