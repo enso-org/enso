@@ -1,36 +1,30 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
+import org.enso.jsonrpc.test.FlakySpec
+import org.enso.languageserver.runtime.Suggestions
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.searcher.Suggestion
 import org.scalatest.BeforeAndAfter
 
 class SuggestionsDatabaseEventsListenerTest
     extends BaseServerTest
-    with BeforeAndAfter {
+    with BeforeAndAfter
+    with FlakySpec {
+
+  lazy val client = getInitialisedWsClient()
 
   "SuggestionsDatabaseEventListener" must {
 
-    "acquire and release capabilities" in {
-      val client = getInitialisedWsClient()
+    "send suggestions database notifications" taggedAs Flaky in {
 
       client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
       client.expectJson(json.ok(0))
 
-      client.send(json.releaseSuggestionsDatabaseUpdatesCapability(1))
-      client.expectJson(json.ok(1))
-    }
-
-    "send suggestions database add atom notifications" in {
-      val client = getInitialisedWsClient()
-
-      client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
-      client.expectJson(json.ok(0))
-
+      // add atom
       system.eventStream.publish(
         Api.SuggestionsDatabaseUpdateNotification(
-          Seq(Api.SuggestionsDatabaseUpdate.Add(suggestion.atom))
+          Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.atom))
         )
       )
       client.expectJson(json"""
@@ -61,17 +55,11 @@ class SuggestionsDatabaseEventsListenerTest
           }
         }
         """)
-    }
 
-    "send suggestions database add method notifications" in {
-      val client = getInitialisedWsClient()
-
-      client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
-      client.expectJson(json.ok(0))
-
+      // add method
       system.eventStream.publish(
         Api.SuggestionsDatabaseUpdateNotification(
-          Seq(Api.SuggestionsDatabaseUpdate.Add(suggestion.method))
+          Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.method))
         )
       )
       client.expectJson(json"""
@@ -81,7 +69,7 @@ class SuggestionsDatabaseEventsListenerTest
             "updates" : [
               {
                 "type" : "SuggestionsDatabaseUpdateAdd",
-                "id" : 1,
+                "id" : 2,
                 "suggestion" : {
                   "type" : "method",
                   "name" : "foo",
@@ -103,25 +91,19 @@ class SuggestionsDatabaseEventsListenerTest
                   ],
                   "selfType" : "MyType",
                   "returnType" : "Number",
-                  "documentation" : "My doc"
+                  "documentation" : "Lovely"
                 }
               }
             ],
-            "currentVersion" : 1
+            "currentVersion" : 2
           }
         }
         """)
-    }
 
-    "send suggestions database add function notifications" in {
-      val client = getInitialisedWsClient()
-
-      client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
-      client.expectJson(json.ok(0))
-
+      // add function
       system.eventStream.publish(
         Api.SuggestionsDatabaseUpdateNotification(
-          Seq(Api.SuggestionsDatabaseUpdate.Add(suggestion.function))
+          Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.function))
         )
       )
       client.expectJson(json"""
@@ -131,7 +113,7 @@ class SuggestionsDatabaseEventsListenerTest
             "updates" : [
               {
                 "type" : "SuggestionsDatabaseUpdateAdd",
-                "id" : 1,
+                "id" : 3,
                 "suggestion" : {
                   "type" : "function",
                   "name" : "print",
@@ -139,27 +121,21 @@ class SuggestionsDatabaseEventsListenerTest
                   ],
                   "returnType" : "IO",
                   "scope" : {
-                    "start" : 7,
-                    "end" : 10
+                    "start" : 9,
+                    "end" : 22
                   }
                 }
               }
             ],
-            "currentVersion" : 1
+            "currentVersion" : 3
           }
         }
       """)
-    }
 
-    "send suggestions database add local notifications" in {
-      val client = getInitialisedWsClient()
-
-      client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
-      client.expectJson(json.ok(0))
-
+      // add local
       system.eventStream.publish(
         Api.SuggestionsDatabaseUpdateNotification(
-          Seq(Api.SuggestionsDatabaseUpdate.Add(suggestion.local))
+          Seq(Api.SuggestionsDatabaseUpdate.Add(Suggestions.local))
         )
       )
       client.expectJson(json"""
@@ -169,64 +145,30 @@ class SuggestionsDatabaseEventsListenerTest
             "updates" : [
               {
                 "type" : "SuggestionsDatabaseUpdateAdd",
-                "id" : 1,
+                "id" : 4,
                 "suggestion" : {
                   "type" : "local",
                   "name" : "x",
                   "returnType" : "Number",
                   "scope" : {
-                    "start" : 15,
-                    "end" : 17
+                    "start" : 34,
+                    "end" : 68
                   }
                 }
               }
             ],
-            "currentVersion" : 1
-          }
-        }
-        """)
-    }
-
-    "send suggestions database remove notifications" in {
-      val client = getInitialisedWsClient()
-
-      client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
-      client.expectJson(json.ok(0))
-
-      val item = suggestion.local.copy(name = "y")
-
-      system.eventStream.publish(
-        Api.SuggestionsDatabaseUpdateNotification(
-          Seq(Api.SuggestionsDatabaseUpdate.Add(item))
-        )
-      )
-      client.expectJson(json"""
-        { "jsonrpc" : "2.0",
-          "method" : "search/suggestionsDatabaseUpdates",
-          "params" : {
-            "updates" : [
-              {
-                "type" : "SuggestionsDatabaseUpdateAdd",
-                "id" : 1,
-                "suggestion" : {
-                  "type" : "local",
-                  "name" : "y",
-                  "returnType" : "Number",
-                  "scope" : {
-                    "start" : 15,
-                    "end" : 17
-                  }
-                }
-              }
-            ],
-            "currentVersion" : 1
+            "currentVersion" : 4
           }
         }
         """)
 
+      // remove items
       system.eventStream.publish(
         Api.SuggestionsDatabaseUpdateNotification(
-          Seq(Api.SuggestionsDatabaseUpdate.Remove(item))
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Remove(Suggestions.method),
+            Api.SuggestionsDatabaseUpdate.Remove(Suggestions.function)
+          )
         )
       )
       client.expectJson(json"""
@@ -236,52 +178,19 @@ class SuggestionsDatabaseEventsListenerTest
             "updates" : [
               {
                 "type" : "SuggestionsDatabaseUpdateRemove",
-                "id" : 1
+                "id" : 2
+              },
+              {
+                "type" : "SuggestionsDatabaseUpdateRemove",
+                "id" : 3
               }
             ],
-            "currentVersion" : 2
+            "currentVersion" : 6
           }
         }
         """)
+
     }
-  }
-
-  object suggestion {
-
-    val atom: Suggestion.Atom =
-      Suggestion.Atom(
-        name          = "MyType",
-        arguments     = Seq(Suggestion.Argument("a", "Any", false, false, None)),
-        returnType    = "MyAtom",
-        documentation = None
-      )
-
-    val method: Suggestion.Method =
-      Suggestion.Method(
-        name = "foo",
-        arguments = Seq(
-          Suggestion.Argument("this", "MyType", false, false, None),
-          Suggestion.Argument("foo", "Number", false, true, Some("42"))
-        ),
-        selfType      = "MyType",
-        returnType    = "Number",
-        documentation = Some("My doc")
-      )
-
-    val function: Suggestion.Function =
-      Suggestion.Function(
-        name       = "print",
-        arguments  = Seq(),
-        returnType = "IO",
-        scope      = Suggestion.Scope(7, 10)
-      )
-
-    val local: Suggestion.Local =
-      Suggestion.Local(
-        name       = "x",
-        returnType = "Number",
-        scope      = Suggestion.Scope(15, 17)
-      )
   }
 
 }

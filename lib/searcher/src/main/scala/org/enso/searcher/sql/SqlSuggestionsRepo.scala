@@ -68,8 +68,10 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
     val (suggestionRow, args) = toSuggestionRow(suggestion)
     val query = for {
       id <- Suggestions.returning(Suggestions.map(_.id)) += suggestionRow
-      _  <- Arguments ++= args.map(toArgumentRow(id, _))
-      _  <- incrementVersion
+      _ <- Arguments ++= args.zipWithIndex.map {
+          case (argument, ix) => toArgumentRow(id, ix, argument)
+        }
+      _ <- incrementVersion
     } yield id
     query.transactionally.asTry.map {
       case Failure(_)  => None
@@ -229,11 +231,13 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
   /** Convert the argument to a row in the arguments table. */
   private def toArgumentRow(
     suggestionId: Long,
+    index: Int,
     argument: Suggestion.Argument
   ): ArgumentRow =
     ArgumentRow(
       id           = None,
       suggestionId = suggestionId,
+      index        = index,
       name         = argument.name,
       tpe          = argument.reprType,
       isSuspended  = argument.isSuspended,
@@ -257,14 +261,14 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
       case SuggestionKind.ATOM =>
         Suggestion.Atom(
           name          = suggestion.name,
-          arguments     = arguments.map(toArgument),
+          arguments     = arguments.sortBy(_.index).map(toArgument),
           returnType    = suggestion.returnType,
           documentation = suggestion.documentation
         )
       case SuggestionKind.METHOD =>
         Suggestion.Method(
           name          = suggestion.name,
-          arguments     = arguments.map(toArgument),
+          arguments     = arguments.sortBy(_.index).map(toArgument),
           selfType      = suggestion.selfType.get,
           returnType    = suggestion.returnType,
           documentation = suggestion.documentation
@@ -272,7 +276,7 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
       case SuggestionKind.FUNCTION =>
         Suggestion.Function(
           name       = suggestion.name,
-          arguments  = arguments.map(toArgument),
+          arguments  = arguments.sortBy(_.index).map(toArgument),
           returnType = suggestion.returnType,
           scope      = Suggestion.Scope(suggestion.scopeStart, suggestion.scopeEnd)
         )

@@ -9,6 +9,7 @@ import scala.annotation.nowarn
   *
   * @param id the id of an argument
   * @param suggestionId the id of the suggestion
+  * @param index the argument position in the arguments list
   * @param name the argument name
   * @param tpe the argument type
   * @param isSuspended is the argument lazy
@@ -18,6 +19,7 @@ import scala.annotation.nowarn
 case class ArgumentRow(
   id: Option[Long],
   suggestionId: Long,
+  index: Int,
   name: String,
   tpe: String,
   isSuspended: Boolean,
@@ -88,13 +90,23 @@ final class ArgumentsTable(tag: Tag)
 
   def id           = column[Long]("id", O.PrimaryKey, O.AutoInc)
   def suggestionId = column[Long]("suggestion_id")
+  def index        = column[Int]("index")
   def name         = column[String]("name")
   def tpe          = column[String]("type")
   def isSuspended  = column[Boolean]("is_suspended", O.Default(false))
   def hasDefault   = column[Boolean]("has_default", O.Default(false))
   def defaultValue = column[Option[String]]("default_value")
   def * =
-    (id.?, suggestionId, name, tpe, isSuspended, hasDefault, defaultValue) <>
+    (
+      id.?,
+      suggestionId,
+      index,
+      name,
+      tpe,
+      isSuspended,
+      hasDefault,
+      defaultValue
+    ) <>
     (ArgumentRow.tupled, ArgumentRow.unapply)
 
   def suggestion =

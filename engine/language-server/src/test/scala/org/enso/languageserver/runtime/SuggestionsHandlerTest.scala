@@ -5,7 +5,7 @@ import java.nio.file.Files
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
-import org.enso.searcher.{Database, Suggestion, SuggestionsRepo}
+import org.enso.searcher.{Database, SuggestionsRepo}
 import org.enso.text.editing.model.Position
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -39,7 +39,7 @@ class SuggestionsHandlerTest
 
     "get suggestions database version" in withDb { (repo, db) =>
       val handler = newSuggestionsHandler(repo, db)
-      Await.ready(db.run(repo.insert(suggestion.atom)), Timeout)
+      Await.ready(db.run(repo.insert(Suggestions.atom)), Timeout)
 
       handler ! SearchProtocol.GetSuggestionsDatabaseVersion
 
@@ -55,13 +55,13 @@ class SuggestionsHandlerTest
 
     "get suggestions database" in withDb { (repo, db) =>
       val handler = newSuggestionsHandler(repo, db)
-      Await.ready(db.run(repo.insert(suggestion.atom)), Timeout)
+      Await.ready(db.run(repo.insert(Suggestions.atom)), Timeout)
       handler ! SearchProtocol.GetSuggestionsDatabase
 
       expectMsg(
         SearchProtocol.GetSuggestionsDatabaseResult(
           Seq(
-            SearchProtocol.SuggestionsDatabaseUpdate.Add(1L, suggestion.atom)
+            SearchProtocol.SuggestionsDatabaseUpdate.Add(1L, Suggestions.atom)
           ),
           1
         )
@@ -70,7 +70,7 @@ class SuggestionsHandlerTest
 
     "search entries by empty search query" in withDb { (repo, db) =>
       val handler = newSuggestionsHandler(repo, db)
-      Await.ready(db.run(repo.insertAll(suggestion.all)), Timeout)
+      Await.ready(db.run(repo.insertAll(Suggestions.all)), Timeout)
       handler ! SearchProtocol.Completion(
         module     = "Test.Main",
         position   = Position(0, 0),
@@ -85,7 +85,7 @@ class SuggestionsHandlerTest
     "search entries by self type" in withDb { (repo, db) =>
       val handler = newSuggestionsHandler(repo, db)
       val Seq(_, methodId, _, _) =
-        Await.result(db.run(repo.insertAll(suggestion.all)), Timeout)
+        Await.result(db.run(repo.insertAll(Suggestions.all)), Timeout)
       handler ! SearchProtocol.Completion(
         module     = "Test.Main",
         position   = Position(0, 0),
@@ -100,7 +100,7 @@ class SuggestionsHandlerTest
     "search entries by return type" in withDb { (repo, db) =>
       val handler = newSuggestionsHandler(repo, db)
       val Seq(_, _, functionId, _) =
-        Await.result(db.run(repo.insertAll(suggestion.all)), Timeout)
+        Await.result(db.run(repo.insertAll(Suggestions.all)), Timeout)
       handler ! SearchProtocol.Completion(
         module     = "Test.Main",
         position   = Position(0, 0),
@@ -115,7 +115,7 @@ class SuggestionsHandlerTest
     "search entries by tags" in withDb { (repo, db) =>
       val handler = newSuggestionsHandler(repo, db)
       val Seq(_, _, _, localId) =
-        Await.result(db.run(repo.insertAll(suggestion.all)), Timeout)
+        Await.result(db.run(repo.insertAll(Suggestions.all)), Timeout)
       handler ! SearchProtocol.Completion(
         module     = "Test.Main",
         position   = Position(0, 0),
@@ -146,46 +146,6 @@ class SuggestionsHandlerTest
 
     try test(repo, db)
     finally db.close()
-  }
-
-  object suggestion {
-
-    val atom: Suggestion.Atom =
-      Suggestion.Atom(
-        name          = "MyType",
-        arguments     = Seq(Suggestion.Argument("a", "Any", false, false, None)),
-        returnType    = "MyAtom",
-        documentation = None
-      )
-
-    val method: Suggestion.Method =
-      Suggestion.Method(
-        name = "foo",
-        arguments = Seq(
-          Suggestion.Argument("this", "MyType", false, false, None),
-          Suggestion.Argument("foo", "Number", false, true, Some("42"))
-        ),
-        selfType      = "MyType",
-        returnType    = "Number",
-        documentation = Some("Lovely")
-      )
-
-    val function: Suggestion.Function =
-      Suggestion.Function(
-        name       = "print",
-        arguments  = Seq(),
-        returnType = "IO",
-        scope      = Suggestion.Scope(9, 22)
-      )
-
-    val local: Suggestion.Local =
-      Suggestion.Local(
-        name       = "x",
-        returnType = "Number",
-        scope      = Suggestion.Scope(34, 68)
-      )
-
-    val all = Seq(atom, method, function, local)
   }
 
 }

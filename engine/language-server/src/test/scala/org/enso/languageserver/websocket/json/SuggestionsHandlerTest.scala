@@ -1,5 +1,4 @@
 package org.enso.languageserver.websocket.json
-
 import io.circe.literal._
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 

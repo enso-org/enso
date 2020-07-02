@@ -33,13 +33,21 @@ final class SqlDatabase(config: Option[Config] = None)
 
 object SqlDatabase {
 
-  val configPath: String =
+  private val configPath: String =
     "searcher.db"
 
+  /** Create [[SqlDatabase]] instance.
+    *
+    * @param filename the database file path
+    * @return new sql database instance
+    */
   def apply(filename: String): SqlDatabase = {
     val config = ConfigFactory
-      .parseString(s"$configPath.filename = $filename")
+      .parseString(s"""$configPath.url = "${jdbcUrl(filename)}"""")
       .withFallback(ConfigFactory.load())
     new SqlDatabase(Some(config))
   }
+
+  private def jdbcUrl(filename: String): String =
+    s"jdbc:sqlite:$filename"
 }
