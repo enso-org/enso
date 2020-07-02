@@ -65,15 +65,12 @@ case object LambdaShorthandToLambda extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module =
-    ir.transformExpressions {
-      case x =>
-        x.mapExpressions(
-          runExpression(
-            _,
-            InlineContext(freshNameSupply = moduleContext.freshNameSupply)
-          )
-        )
-    }
+    ir.mapExpressions(
+      runExpression(
+        _,
+        InlineContext(freshNameSupply = moduleContext.freshNameSupply)
+      )
+    )
 
   /** Desugars underscore arguments to lambdas for an arbitrary expression.
     *

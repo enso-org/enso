@@ -76,13 +76,12 @@ case object LambdaConsolidate extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module =
-    ir.transformExpressions {
-      case x =>
-        runExpression(
-          x,
-          new InlineContext(freshNameSupply = moduleContext.freshNameSupply)
-        )
-    }
+    ir.mapExpressions(
+      runExpression(
+        _,
+        new InlineContext(freshNameSupply = moduleContext.freshNameSupply)
+      )
+    )
 
   /** Performs lambda consolidation on an expression.
     *
