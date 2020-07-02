@@ -5,6 +5,7 @@ import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import org.enso.jsonrpc.test.RetrySpec
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired
@@ -31,7 +32,8 @@ class SuggestionsDatabaseEventsListenerTest
     with ImplicitSender
     with AnyWordSpecLike
     with Matchers
-    with BeforeAndAfterAll {
+    with BeforeAndAfterAll
+    with RetrySpec {
 
   import system.dispatcher
 
@@ -43,18 +45,19 @@ class SuggestionsDatabaseEventsListenerTest
 
   "SuggestionsHandler" should {
 
-    "subscribe to notification updates" in withDb { (router, repo, db) =>
-      val handler  = newEventsListener(router.ref, repo, db)
-      val clientId = UUID.randomUUID()
+    "subscribe to notification updates" taggedAs Retry() in withDb {
+      (router, repo, db) =>
+        val handler  = newEventsListener(router.ref, repo, db)
+        val clientId = UUID.randomUUID()
 
-      handler ! AcquireCapability(
-        newJsonSession(clientId),
-        CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
-      )
-      expectMsg(CapabilityAcquired)
+        handler ! AcquireCapability(
+          newJsonSession(clientId),
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
+        )
+        expectMsg(CapabilityAcquired)
     }
 
-    "receive runtime updates" in withDb { (router, repo, db) =>
+    "receive runtime updates" taggedAs Retry() in withDb { (router, repo, db) =>
       val handler  = newEventsListener(router.ref, repo, db)
       val clientId = UUID.randomUUID()
 
@@ -86,37 +89,40 @@ class SuggestionsDatabaseEventsListenerTest
       records.map(_.suggestion) should contain theSameElementsAs Suggestions.all
     }
 
-    "apply runtime updates in correct order" in withDb { (router, repo, db) =>
-      val handler  = newEventsListener(router.ref, repo, db)
-      val clientId = UUID.randomUUID()
+    "apply runtime updates in correct order" taggedAs Retry() in withDb {
+      (router, repo, db) =>
+        val handler  = newEventsListener(router.ref, repo, db)
+        val clientId = UUID.randomUUID()
 
-      // acquire capability
-      handler ! AcquireCapability(
-        newJsonSession(clientId),
-        CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
-      )
-      expectMsg(CapabilityAcquired)
-
-      // receive updates
-      handler ! Api.SuggestionsDatabaseUpdateNotification(
-        Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Add) ++
-        Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Remove)
-      )
-
-      val updates = Suggestions.all.zipWithIndex.map {
-        case (suggestion, ix) =>
-          SearchProtocol.SuggestionsDatabaseUpdate.Add(ix + 1L, suggestion)
-      }
-      router.expectMsg(
-        DeliverToJsonController(
-          clientId,
-          SearchProtocol.SuggestionsDatabaseUpdateNotification(updates, 4L)
+        // acquire capability
+        handler ! AcquireCapability(
+          newJsonSession(clientId),
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         )
-      )
+        expectMsg(CapabilityAcquired)
 
-      // check that database entries removed
-      val records = Await.result(db.run(repo.getAll), Timeout)
-      records.map(_.suggestion) should contain theSameElementsAs Suggestions.all
+        // receive updates
+        handler ! Api.SuggestionsDatabaseUpdateNotification(
+          Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Add) ++
+          Suggestions.all.map(Api.SuggestionsDatabaseUpdate.Remove)
+        )
+
+        val updates = Suggestions.all.zipWithIndex.map {
+          case (suggestion, ix) =>
+            SearchProtocol.SuggestionsDatabaseUpdate.Add(ix + 1L, suggestion)
+        }
+        router.expectMsg(
+          DeliverToJsonController(
+            clientId,
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(updates, 4L)
+          )
+        )
+
+        // check that database entries removed
+        val records = Await.result(db.run(repo.getAll), Timeout)
+        records.map(
+          _.suggestion
+        ) should contain theSameElementsAs Suggestions.all
     }
 
   }

@@ -4,6 +4,7 @@ import java.nio.file.Files
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit}
+import org.enso.jsonrpc.test.RetrySpec
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
 import org.enso.searcher.{Database, SuggestionsRepo}
 import org.enso.text.editing.model.Position
@@ -18,7 +19,8 @@ class SuggestionsHandlerTest
     extends TestKit(ActorSystem("TestSystem"))
     with ImplicitSender
     with AnyWordSpecLike
-    with BeforeAndAfterAll {
+    with BeforeAndAfterAll
+    with RetrySpec {
 
   import system.dispatcher
 
@@ -68,21 +70,22 @@ class SuggestionsHandlerTest
       )
     }
 
-    "search entries by empty search query" in withDb { (repo, db) =>
-      val handler = newSuggestionsHandler(repo, db)
-      Await.ready(db.run(repo.insertAll(Suggestions.all)), Timeout)
-      handler ! SearchProtocol.Completion(
-        module     = "Test.Main",
-        position   = Position(0, 0),
-        selfType   = None,
-        returnType = None,
-        tags       = None
-      )
+    "search entries by empty search query" taggedAs Retry() in withDb {
+      (repo, db) =>
+        val handler = newSuggestionsHandler(repo, db)
+        Await.ready(db.run(repo.insertAll(Suggestions.all)), Timeout)
+        handler ! SearchProtocol.Completion(
+          module     = "Test.Main",
+          position   = Position(0, 0),
+          selfType   = None,
+          returnType = None,
+          tags       = None
+        )
 
-      expectMsg(SearchProtocol.CompletionResult(Seq(), 4L))
+        expectMsg(SearchProtocol.CompletionResult(Seq(), 4L))
     }
 
-    "search entries by self type" in withDb { (repo, db) =>
+    "search entries by self type" taggedAs Retry() in withDb { (repo, db) =>
       val handler = newSuggestionsHandler(repo, db)
       val Seq(_, methodId, _, _) =
         Await.result(db.run(repo.insertAll(Suggestions.all)), Timeout)
@@ -97,7 +100,7 @@ class SuggestionsHandlerTest
       expectMsg(SearchProtocol.CompletionResult(Seq(methodId).flatten, 4L))
     }
 
-    "search entries by return type" in withDb { (repo, db) =>
+    "search entries by return type" taggedAs Retry() in withDb { (repo, db) =>
       val handler = newSuggestionsHandler(repo, db)
       val Seq(_, _, functionId, _) =
         Await.result(db.run(repo.insertAll(Suggestions.all)), Timeout)
@@ -112,7 +115,7 @@ class SuggestionsHandlerTest
       expectMsg(SearchProtocol.CompletionResult(Seq(functionId).flatten, 4L))
     }
 
-    "search entries by tags" in withDb { (repo, db) =>
+    "search entries by tags" taggedAs Retry() in withDb { (repo, db) =>
       val handler = newSuggestionsHandler(repo, db)
       val Seq(_, _, _, localId) =
         Await.result(db.run(repo.insertAll(Suggestions.all)), Timeout)
