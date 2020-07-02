@@ -1,12 +1,13 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
+import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 
 class SuggestionsHandlerTest extends BaseServerTest {
 
   "SuggestionsHandler" must {
 
-    "get suggestions database version" in {
+    "get initial suggestions database version" in {
       val client = getInitialisedWsClient()
 
       client.send(json.getSuggestionsDatabaseVersion(0))
@@ -20,7 +21,7 @@ class SuggestionsHandlerTest extends BaseServerTest {
       """)
     }
 
-    "get suggestions database" in {
+    "get initial suggestions database" in {
       val client = getInitialisedWsClient()
 
       client.send(json.getSuggestionsDatabase(0))
@@ -36,10 +37,10 @@ class SuggestionsHandlerTest extends BaseServerTest {
       """)
     }
 
-    "reply to completions request" in {
+    "reply to completion request" in {
       val client = getInitialisedWsClient()
 
-      client.send(json.complete(0))
+      client.send(json.completion(0))
       client.expectJson(json"""
           { "jsonrpc" : "2.0",
             "id" : 0,
@@ -51,50 +52,6 @@ class SuggestionsHandlerTest extends BaseServerTest {
           }
       """)
     }
-  }
-
-  object json {
-
-    def getSuggestionsDatabaseVersion(reqId: Long) =
-      json"""
-        { "jsonrpc": "2.0",
-          "method": "search/getSuggestionsDatabaseVersion",
-          "id": $reqId,
-          "params": null
-        }
-      """
-
-    def getSuggestionsDatabase(reqId: Long) =
-      json"""
-        { "jsonrpc": "2.0",
-          "method": "search/getSuggestionsDatabase",
-          "id": $reqId,
-          "params": null
-        }
-      """
-
-    def complete(reqId: Long) =
-      json"""
-        { "jsonrpc": "2.0",
-          "method": "search/completion",
-          "id": $reqId,
-          "params": {
-            "module": "Test.Main",
-            "position": {
-              "line": 0,
-              "character": 0
-            }
-          }
-        }
-      """
-
-    def ok(reqId: Long) =
-      json"""
-        { "jsonrpc": "2.0",
-          "id": $reqId,
-          "result": null
-        }
-      """
   }
 
 }

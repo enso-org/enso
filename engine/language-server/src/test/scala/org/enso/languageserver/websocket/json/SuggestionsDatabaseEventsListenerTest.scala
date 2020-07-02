@@ -1,6 +1,7 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
+import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.Suggestion
 import org.scalatest.BeforeAndAfter
@@ -281,41 +282,6 @@ class SuggestionsDatabaseEventsListenerTest
         returnType = "Number",
         scope      = Suggestion.Scope(15, 17)
       )
-  }
-
-  object json {
-
-    def acquireSuggestionsDatabaseUpdatesCapability(reqId: Long) =
-      json"""
-        { "jsonrpc": "2.0",
-          "method": "capability/acquire",
-          "id": $reqId,
-          "params": {
-            "method": "search/receivesSuggestionsDatabaseUpdates",
-            "registerOptions": {}
-          }
-        }
-      """
-
-    def releaseSuggestionsDatabaseUpdatesCapability(reqId: Long) =
-      json"""
-        { "jsonrpc": "2.0",
-          "method": "capability/release",
-          "id": $reqId,
-          "params": {
-            "method": "search/receivesSuggestionsDatabaseUpdates",
-            "registerOptions": {}
-          }
-        }
-      """
-
-    def ok(reqId: Long) =
-      json"""
-        { "jsonrpc": "2.0",
-          "id": $reqId,
-          "result": null
-        }
-      """
   }
 
 }

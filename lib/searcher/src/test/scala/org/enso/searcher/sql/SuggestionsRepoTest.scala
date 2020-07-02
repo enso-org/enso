@@ -229,6 +229,19 @@ class SuggestionsRepoTest
       res should contain theSameElementsAs Seq(id1, id2).flatten
     }
 
+    "search suggestion by empty kinds" in {
+      val action = for {
+        _   <- db.run(repo.insert(suggestion.atom))
+        _   <- db.run(repo.insert(suggestion.method))
+        _   <- db.run(repo.insert(suggestion.function))
+        _   <- db.run(repo.insert(suggestion.local))
+        res <- db.run(repo.search(None, None, Some(Seq())))
+      } yield res
+
+      val res = Await.result(action, Timeout)
+      res.isEmpty shouldEqual true
+    }
+
     "search suggestion by return type and kind" in {
       val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
       val action = for {
