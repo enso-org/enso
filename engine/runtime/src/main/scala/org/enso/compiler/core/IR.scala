@@ -350,14 +350,6 @@ object IR {
 
     override def children: List[IR] = imports ++ bindings
 
-    def transformExpressions(
-      fn: PartialFunction[Expression, Expression]
-    ): Module = {
-      copy(
-        bindings = bindings.map(_.mapExpressions(_.transformExpressions(fn)))
-      )
-    }
-
     override def toString: String =
       s"""
       |IR.Module(

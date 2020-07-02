@@ -69,9 +69,7 @@ case object UnreachableMatchBranches extends IRPass {
     ir: IR.Module,
     @unused moduleContext: ModuleContext
   ): IR.Module = {
-    ir.transformExpressions {
-      case x => optimizeExpression(x)
-    }
+    ir.mapExpressions(optimizeExpression)
   }
 
   /** Runs unreachable branch optimisation on an expression.

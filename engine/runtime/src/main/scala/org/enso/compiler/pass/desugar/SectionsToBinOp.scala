@@ -43,13 +43,13 @@ case object SectionsToBinOp extends IRPass {
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
-  ): IR.Module = ir.transformExpressions {
-    case x =>
+  ): IR.Module =
+    ir.mapExpressions(
       runExpression(
-        x,
+        _,
         new InlineContext(freshNameSupply = moduleContext.freshNameSupply)
       )
-  }
+    )
 
   /** Performs section to binary operator conversion on an IR expression.
     *
