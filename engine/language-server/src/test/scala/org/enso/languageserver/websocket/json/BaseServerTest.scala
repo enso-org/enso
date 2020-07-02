@@ -49,7 +49,6 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
   testContentRoot.toFile.deleteOnExit()
   testSuggestionsDbPath.toFile.deleteOnExit()
-  system.registerOnTermination(Files.deleteIfExists(testSuggestionsDbPath))
 
   override def protocol: Protocol = JsonRpc.protocol
 
