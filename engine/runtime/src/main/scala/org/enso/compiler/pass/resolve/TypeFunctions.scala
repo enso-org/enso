@@ -53,9 +53,8 @@ case object TypeFunctions extends IRPass {
   override def runModule(
     ir: IR.Module,
     @unused moduleContext: ModuleContext
-  ): IR.Module = ir.transformExpressions {
-    case a => resolveExpression(a)
-  }
+  ): IR.Module =
+    ir.mapExpressions(resolveExpression)
 
   /** Performs typing function resolution on an expression.
     *
@@ -68,9 +67,10 @@ case object TypeFunctions extends IRPass {
   override def runExpression(
     ir: IR.Expression,
     @unused inlineContext: InlineContext
-  ): IR.Expression = ir.transformExpressions {
-    case a => resolveExpression(a)
-  }
+  ): IR.Expression =
+    ir.transformExpressions {
+      case a => resolveExpression(a)
+    }
 
   // === Pass Internals =======================================================
 
