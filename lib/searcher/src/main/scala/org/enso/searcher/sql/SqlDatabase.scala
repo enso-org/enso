@@ -49,5 +49,8 @@ object SqlDatabase {
   }
 
   private def jdbcUrl(filename: String): String =
-    s"jdbc:sqlite:$filename"
+    s"jdbc:sqlite:${escapePath(filename)}"
+
+  private def escapePath(path: String): String =
+    path.replace("\\", "\\\\")
 }
