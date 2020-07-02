@@ -193,7 +193,7 @@ case object IgnoredBindings extends IRPass {
             _,
             _
           ) =>
-        // Note [Ignored this Argument]
+        // Note [Ignored `this` Argument]
         spec
           .copy(defaultValue =
             spec.defaultValue.map(resolveExpression(_, freshNameSupply))
@@ -355,7 +355,7 @@ case object IgnoredBindings extends IRPass {
   }
 }
 
-/* Note [Ignored this Argument]
+/* Note [Ignored `this` Argument]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * `this` is implicitly added to all methods in the GenerateMethodBodies pass.
  * It may however not be used in the method body and this should not emit an

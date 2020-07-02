@@ -266,7 +266,7 @@ case object ComplexType extends IRPass {
 
     val binding = Method.Binding(
       methodRef.duplicate(),
-      args,
+      args.map(_.duplicate()),
       body.duplicate(),
       location,
       passData.duplicate,

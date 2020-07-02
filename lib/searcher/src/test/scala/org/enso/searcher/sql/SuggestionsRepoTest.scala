@@ -1,6 +1,6 @@
 package org.enso.searcher.sql
 
-import org.enso.jsonrpc.test.RetrySpec
+import org.enso.jsonrpc.test.FlakySpec
 import org.enso.searcher.Suggestion
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
