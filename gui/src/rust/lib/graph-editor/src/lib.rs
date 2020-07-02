@@ -1702,7 +1702,7 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     new_node           <- add_node.map(f_!([model,node_cursor_style] model.new_node(&node_cursor_style,&node_output_touch.down,&node_input_touch.down)));
     outputs.node_added <+ new_node;
 
-    node_with_position <- add_node_at_cursor.map3(&new_node,&mouse.position,|_,id,pos| (*id,*pos));
+    node_with_position <- add_node_at_cursor.map3(&new_node,&cursor_pos_in_scene,|_,id,pos| (*id,*pos));
     outputs.node_position_set         <+ node_with_position;
     outputs.node_position_set_batched <+ node_with_position;
 
@@ -1777,7 +1777,7 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     // === Move Nodes ===
     // ==================
 
-    mouse_pos_fix <- mouse.position.map(|p| Vector2(p.x,p.y));
+    cursor_pos_fix <- cursor_pos_in_scene.map(|p| Vector2(p.x,p.y));
 
 
     // === Discovering drag targets ===
@@ -1791,9 +1791,9 @@ fn new_graph_editor(world:&World) -> GraphEditor {
     eval tgts ((ids) model.disable_grid_snapping_for(ids));
 
     main_pos_on_press       <- main.map(f!((id) model.node_position(id)));
-    mouse_pos_on_press      <- mouse_pos_fix.sample(&main);
-    mouse_pos_diff          <- mouse_pos_fix.map2(&mouse_pos_on_press,|t,s|t-s).gate(&main_pressed);
-    main_tgt_pos_rt_changed <- mouse_pos_diff.map2(&main_pos_on_press,|t,s|t+s);
+    cursor_pos_on_press     <- cursor_pos_fix.sample(&main);
+    cursor_pos_diff         <- cursor_pos_fix.map2(&cursor_pos_on_press,|t,s|t-s).gate(&main_pressed);
+    main_tgt_pos_rt_changed <- cursor_pos_diff.map2(&cursor_pos_on_press,|t,s|t+s);
     just_pressed            <- bool (&main_tgt_pos_rt_changed,&main_pos_on_press);
     main_tgt_pos_rt         <- any  (&main_tgt_pos_rt_changed,&main_pos_on_press);
 
