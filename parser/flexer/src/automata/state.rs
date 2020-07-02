@@ -15,12 +15,15 @@ use std::ops::RangeInclusive;
 /// When finite automata gets into invalid state the input sequence of symbols is rejected.
 pub const INVALID:Id = Id {id:usize::max_value()};
 
+// TODO [AA] Extract this. Turn it into using `char
 /// Newtype wrapper for finite automata input symbol.
 #[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord,Hash)]
 pub struct Symbol {
     #[allow(missing_docs)]
     pub val: u32
 }
+
+// TODO [AA] Define some constants on char
 
 /// Newtype wrapper for finite automata state ID.
 #[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord,Hash)]
