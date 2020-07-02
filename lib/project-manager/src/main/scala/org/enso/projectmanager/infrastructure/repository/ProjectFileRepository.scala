@@ -251,36 +251,28 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     project: Project
   ): F[ProjectRepositoryFailure, File] =
     CovariantFlatMap[F]
-      .tailRecM[ProjectRepositoryFailure, Option[Int], File](None) {
-        case None =>
-          fileSystem
-            .exists(getPrimaryPath(project))
-            .mapError[ProjectRepositoryFailure](failure =>
-              StorageFailure(failure.toString)
-            )
-            .flatMap { fileExists =>
-              if (fileExists) {
-                CovariantFlatMap[F].pure(Left(Some(1)))
-              } else {
-                CovariantFlatMap[F].pure(Right(getPrimaryPath(project)))
-              }
+      .tailRecM[ProjectRepositoryFailure, Int, File](0) { number =>
+        val path =
+          new File(
+            storageConfig.userProjectsPath,
+            project.name + genSuffix(number)
+          )
+        fileSystem
+          .exists(path)
+          .mapError[ProjectRepositoryFailure](failure =>
+            StorageFailure(failure.toString)
+          )
+          .flatMap { fileExists =>
+            if (fileExists) {
+              CovariantFlatMap[F].pure(Left(number + 1))
+            } else {
+              CovariantFlatMap[F].pure(Right(path))
             }
-
-        case Some(suffix) =>
-          val path =
-            new File(storageConfig.userProjectsPath, project.name + s"_$suffix")
-          fileSystem
-            .exists(path)
-            .mapError[ProjectRepositoryFailure](failure =>
-              StorageFailure(failure.toString)
-            )
-            .flatMap { fileExists =>
-              if (fileExists) {
-                CovariantFlatMap[F].pure(Left(Some(suffix + 1)))
-              } else {
-                CovariantFlatMap[F].pure(Right(path))
-              }
-            }
+          }
       }
+
+  private def genSuffix(number: Int) =
+    if (number == 0) ""
+    else s"_$number"
 
 }
