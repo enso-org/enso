@@ -13,6 +13,7 @@ debug     = true
 opt-level = 3
 lto       = true
 debug     = false
+panic     = 'abort'
 
 [profile.bench]
 opt-level = 3
