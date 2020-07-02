@@ -67,13 +67,15 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   /** @inheritdoc * */
   override def create(
     project: Project
-  ): F[ProjectRepositoryFailure, Unit] = {
-    val projectPath     = getTargetPath(project)
-    val projectWithPath = project.copy(path = Some(projectPath.toString))
-
-    createProjectStructure(project, projectPath) *>
-    update(projectWithPath)
-  }
+  ): F[ProjectRepositoryFailure, Unit] =
+    // format: off
+    for {
+      projectPath     <- findTargetPath(project)
+      projectWithPath  = project.copy(path = Some(projectPath.toString))
+      _               <- createProjectStructure(project, projectPath)
+      _               <- update(projectWithPath)
+    } yield ()
+    // format: on
 
   /** @inheritdoc * */
   override def update(project: Project): F[ProjectRepositoryFailure, Unit] =
@@ -204,18 +206,21 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   override def moveProjectToTargetDir(
     projectId: UUID
   ): F[ProjectRepositoryFailure, File] = {
-    getProject(projectId)
-      .flatMap { project =>
-        val targetPath = getTargetPath(project)
-        if (targetPath.toString == project.path.get) {
-          CovariantFlatMap[F].pure(targetPath)
-        } else {
-          moveProjectDir(project, targetPath) *>
-          updateProjectDir(projectId, targetPath) *>
-          CovariantFlatMap[F].pure(targetPath)
-        }
-      }
+    def move(project: Project) =
+      for {
+        targetPath <- findTargetPath(project)
+        _          <- moveProjectDir(project, targetPath)
+        _          <- updateProjectDir(projectId, targetPath)
+      } yield targetPath
 
+    for {
+      project <- getProject(projectId)
+      targetPath   = getPrimaryPath(project)
+      isLocationOk = project.path.get.startsWith(targetPath.toString)
+      finalPath <-
+        if (isLocationOk) CovariantFlatMap[F].pure(targetPath)
+        else move(project)
+    } yield finalPath
   }
 
   private def updateProjectDir(projectId: UUID, targetPath: File) = {
@@ -237,7 +242,45 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       )
   }
 
-  private def getTargetPath(project: Project): File =
+  private def getPrimaryPath(
+    project: Project
+  ): File =
     new File(storageConfig.userProjectsPath, project.name)
+
+  private def findTargetPath(
+    project: Project
+  ): F[ProjectRepositoryFailure, File] =
+    CovariantFlatMap[F]
+      .tailRecM[ProjectRepositoryFailure, Option[Int], File](None) {
+        case None =>
+          fileSystem
+            .exists(getPrimaryPath(project))
+            .mapError[ProjectRepositoryFailure](failure =>
+              StorageFailure(failure.toString)
+            )
+            .flatMap { fileExists =>
+              if (fileExists) {
+                CovariantFlatMap[F].pure(Left(Some(1)))
+              } else {
+                CovariantFlatMap[F].pure(Right(getPrimaryPath(project)))
+              }
+            }
+
+        case Some(suffix) =>
+          val path =
+            new File(storageConfig.userProjectsPath, project.name + s"_$suffix")
+          fileSystem
+            .exists(path)
+            .mapError[ProjectRepositoryFailure](failure =>
+              StorageFailure(failure.toString)
+            )
+            .flatMap { fileExists =>
+              if (fileExists) {
+                CovariantFlatMap[F].pure(Left(Some(suffix + 1)))
+              } else {
+                CovariantFlatMap[F].pure(Right(path))
+              }
+            }
+      }
 
 }

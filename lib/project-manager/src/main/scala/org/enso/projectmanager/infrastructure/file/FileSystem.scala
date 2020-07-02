@@ -46,4 +46,12 @@ trait FileSystem[F[+_, +_]] {
     */
   def move(from: File, to: File): F[FileSystemFailure, Unit]
 
+  /**
+    * Tests if a file exists.
+    *
+    * @param file the file to check
+    * @return true if exists
+    */
+  def exists(file: File): F[FileSystemFailure, Boolean]
+
 }
