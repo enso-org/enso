@@ -128,24 +128,12 @@ using GitHub API, similarly as Enso releases.
 The primary purpose of the launcher is running various Enso components, namely
 the REPL, running a project, Enso scripts or the language server.
 
-The launcher automatically decides which Enso version to used, based on the
+The launcher automatically infers which Enso version to used, based on the
 project configuration. If used outside an Enso project, the `default` version
 from global user configuration is used.
 
 Additional arguments passed to the launcher are forwarded to the launched
-components.
-
-### REPL
-TODO
-
-### Running Scripts
-TODO
-
-### Running Project Files
-TODO
-
-### Language Server
-TODO
+component.
 
 ## Global User Configuration
 The launcher allows to edit global user configuration, saved in the `config`

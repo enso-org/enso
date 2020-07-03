@@ -37,7 +37,7 @@ developed.
 
 ## Commands
 
-### `new`
+### `new <project-name>`
 Create a new, empty project in a specified directory.
 By default uses the `default` enso version, which can be overriden with
 `--version`.
@@ -48,23 +48,23 @@ enso new project1
 enso new project2 --version 2.0
 ```
 
-### `install`
+### `install <version-string>`
 Installs a specific version of Enso.
 
-### `uninstall`
+### `uninstall <version-string>`
 Uninstalls a specific version of Enso.
 
 ### `list`
 Lists all installed versions of Enso and managed GraalVM distributions.
 
-### `default`
+### `default <version-string>`
 Sets the default Enso version used outside of projects.
 
 If run without arguments, displays currently configured `default` version.
 
-### `config`
+### `config [--global] <config-path> <config-value>`
 Can be used to manage project configuration or global user configuration (if
-outside a project or with the `--global` flat).
+outside a project or with the `--global` flag).
 
 These are mostly used for configuration of newly created projects.
 
@@ -73,27 +73,28 @@ Examples:
 enso config --global user.name Example User
 ``` 
 
-### `run`
+### `run <filename>`
 Runs a project or an Enso script file.
 
 ### `repl`
 Launches an Enso repl.
 
-### `language-server`
+### `language-server <server-parameters>`
 Launches the language server for a given project.
 
-### `upgrade`
+### `upgrade [optional: exact version]`
 Checks for updates of the launcher and downloads any new versions.
 
 ### `version`
-Prints the version of the installed launcher.
+Prints the version of the installed launcher as well as the full version string
+of the currently selected Enso distribution.
 
 ### `help`
 Print this summary of available command and their usage.
 
 ## General Options
 
-### `--path`
+### `--path=<path>`
 Specify path to the current project. Configuration from this project is used to
 determine the Enso version.
 
@@ -101,7 +102,7 @@ If not specified, the directory tree is traversed to find if one of the parent
 directories contains an Enso project. If no project is found, the `default`
 version is used.
 
-### `--version`
+### `--version=<version>`
 Overrides the inferred (project local or `default`) version when running a
 command.
 
