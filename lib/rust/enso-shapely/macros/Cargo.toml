@@ -6,8 +6,8 @@ edition = "2018"
 
 description  = "Automated typeclass derivation."
 readme       = "README.md"
-homepage     = "https://github.com/enso-org/rust-lib/src/shapely-macros"
-repository   = "https://github.com/enso-org/rust-lib"
+homepage     = "https://github.com/enso-org/enso/lib/rust/shapely/macros/"
+repository   = "https://github.com/enso-org/enso"
 license-file = "../../../../LICENSE"
 
 keywords   = ["typeclass", "deriving", "macro"]

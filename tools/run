@@ -71,7 +71,7 @@ async function withCwd(dir, fn) {
 
 function testWasm() {
     let workingDir = path.dirname(__filename)
-    let sourceDir = path.join(workingDir, 'lib/rust')
+    let sourceDir = path.join(workingDir, '../lib/rust')
 
     dirs = fss.readdirSync(sourceDir, {withFileTypes: true})
         .filter(f => f.isDirectory())

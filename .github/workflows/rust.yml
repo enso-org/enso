@@ -178,4 +178,4 @@ jobs:
 
       # Tests
       - name: Test WASM
-        run: ./run --test-wasm
+        run: ./tools/run --test-wasm
