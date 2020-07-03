@@ -120,8 +120,16 @@ The primary purpose of the launcher is running various Enso components, namely
 the REPL, running a project, Enso scripts or the language server.
 
 The launcher automatically infers which Enso version to used, based on the
-project configuration. If used outside an Enso project, the `default` version
-from global user configuration is used.
+parameters and configuration:
+ - When running a project or the language server, the version specified in
+   project configuration is used.
+ - When running the REPL, if the current directory is inside a project,
+   the project version is used, otherwise the `default` version from the global
+   configuration is used. The current path is the working directory unless
+   overridden with the `--path` parameter.
+ - When running an Enso script, if that script is located inside a project, the
+   project version is used, if it is outside a project, the `default` version is
+   used.
 
 Additional arguments passed to the launcher are forwarded to the launched
 component.
