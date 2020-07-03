@@ -141,20 +141,21 @@ creating a project with the `new` command.
 
 ## Updating the Launcher
 Besides managing Enso versions, the launcher has the ability to also update
-itself.
+itself. By default it updates to the latest version available, but it also
+allows downgrades by specifying a version explicitly.
 
 ### Minimal Required Launcher Version
 Each version of Enso can specify the minimum version of launcher required to run
-it. This version is (TODO?) specified in the release metadata on GitHub.
+it. This version is specified in a Manifest file that should be included as an
+artifact for every Enso release.
 
 Moreover, if a given project uses some new build features, it may require a
 newer version of the launcher. Thus, project configuration can also specify a
 minimal required launcher version.
 
-The launcher chooses the more recent of the two. If the launcher detects that
-the installed version is too old to run a specific project / Enso version, it
-performs a launcher version upgrade. If possible, the launcher should resume any
-commands that were interrupted by the upgrade.
+If the launcher detects that the installed version is older than one of the two
+criteria above, it performs a launcher version upgrade. Afterwards, if possible,
+the launcher should resume any commands that were interrupted by the upgrade.
  
 ### Downloading Launcher Releases
 TODO GitHub releases
@@ -162,5 +163,20 @@ TODO GitHub releases
 #### Fallback Method
 To ensure that the launcher can be safely updated even if the distribution
 scheme changes, there should be support for a fallback upgrade scheme that is
-triggered if the default upgrade process fails. It can be implemented by hosting
-the latest version on some subdomain of `enso.org`.
+triggered if the default upgrade process fails.
+
+This fallback scheme is only intended for situations where the current default
+scheme is deprecated indefinitely. So for simplicity, it does not allow to
+choose an arbitrary version but only to upgrade to the latest version of the
+launcher. In the very rare case in which the user wants to downgrade after the
+default distribution scheme has changed, they have to first upgrade to the
+latest version of the launcher which will use a new distribution scheme. Then,
+on that latest version, it may be possible to downgrade back to an old version
+(which is distributed on the new distribution scheme).
+
+Thus, when migrating to a new distribution scheme, old versions should also be
+preserved, but the fallback upgrade scheme does not have to keep track of all
+the versions, but only the latest one.
+ 
+It can be implemented by uploading the most recent artifacts to some fixed
+domain, like `launcherupgrade.release.enso.org`.
