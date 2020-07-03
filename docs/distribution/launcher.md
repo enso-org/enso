@@ -99,10 +99,26 @@ GraalVM distribution. It will also print a warning if the major version is
 different then required by that particular Enso version.
 
 ### Downloading Enso Releases
-TODO GitHub releases
+The releases are discovered and downloaded using the
+[GitHub API](https://docs.github.com/en/rest/reference/repos#releases). As
+described in [Release Policy](./release-policy.md#github-releases), each release
+contains a Manifest file that is downloaded first. It specifies if this Enso
+version can be used with the current launcher or an upgrade is needed, as
+described in
+[Minimal Required Launcher Version](#minimal-required-launcher-version). If the
+version is correct, the binary file containing the Enso components distribution
+is downloaded. The Manifest also specifies which GraalVM version should be used
+with this version of Enso. If that version of GraalVM is not present on the
+system it is also installed.
+
+Releases [marked as broken](./release-policy.md#marking-a-release-as-broken) are
+ignored by the launcher unless it is specified by an exact version match. In
+that case it is downloaded, but a warning is printed.
 
 ### Downloading GraalVM Releases
-TODO GitHub releases of Graal CE
+GraalVM is downloaded from its
+[GitHub releases page](https://github.com/graalvm/graalvm-ce-builds/releases)
+using GitHub API, similarly as Enso releases.
 
 > The actionables for this section are:
 > 
@@ -146,7 +162,8 @@ allows downgrades by specifying a version explicitly.
 
 ### Minimal Required Launcher Version
 Each version of Enso can specify the minimum version of launcher required to run
-it. This version is specified in a Manifest file that should be included as an
+it. This version is specified in a
+[Manifest file](./release-policy.md#manifest-file) that should be included as an
 artifact for every Enso release.
 
 Moreover, if a given project uses some new build features, it may require a
@@ -154,11 +171,15 @@ newer version of the launcher. Thus, project configuration can also specify a
 minimal required launcher version.
 
 If the launcher detects that the installed version is older than one of the two
-criteria above, it performs a launcher version upgrade. Afterwards, if possible,
-the launcher should resume any commands that were interrupted by the upgrade.
+criteria above, it asks the user to upgrade the launcher using the `upgrade`
+command.
  
 ### Downloading Launcher Releases
-TODO GitHub releases
+The launcher is released alongside Enso, so each new release of Enso also
+contains native artifacts for the launcher for each platform. They are
+downloaded in the same way as Enso distribution. The launcher does not have to
+be updated as often as Enso itself - its update is either triggered by the user
+or a project / Enso version requiring a more recent version.
 
 #### Fallback Method
 To ensure that the launcher can be safely updated even if the distribution
