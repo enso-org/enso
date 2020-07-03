@@ -8,7 +8,7 @@ description  = "Automated typeclass derivation."
 readme       = "README.md"
 homepage     = "https://github.com/enso-org/rust-lib/src/shapely"
 repository   = "https://github.com/enso-org/rust-lib"
-license-file = "../../../LICENSE"
+license-file = "../../../../LICENSE"
 
 keywords   = ["typeclass", "deriving"]
 categories = ["algorithms"]

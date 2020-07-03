@@ -8,7 +8,7 @@ description  = "Utilities for writing macros."
 readme       = "README.md"
 homepage     = "https://github.com/enso-org/rust-lib/src/macro-utils"
 repository   = "https://github.com/enso-org/rust-lib"
-license-file = "../../LICENSE"
+license-file = "../../../LICENSE"
 
 keywords   = ["macro", "utility"]
 categories = ["development-tools::procedural-macro-helpers"]
