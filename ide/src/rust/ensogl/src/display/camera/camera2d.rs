@@ -78,7 +78,7 @@ pub struct Clipping {
 
 impl Default for Clipping {
     fn default() -> Self {
-        let near = 0.0;
+        let near = 1.0;
         let far  = 1000.0;
         Self {near,far}
     }
@@ -227,7 +227,7 @@ impl Camera2dData {
     }
 
     fn inversed_view_projection_matrix(&self) -> Matrix4<f32> {
-        self.inversed_projection_matrix() * self.matrix.view_inversed
+        self.matrix.view_inversed * self.inversed_projection_matrix()
     }
 
     // https://github.com/rust-lang/rust-clippy/issues/4914

@@ -48,6 +48,20 @@ macro_rules! define_color_space {
             }
         }
 
+        impl std::fmt::Debug for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let comps = vec![$(self.$comp.to_string()),*].join(",");
+                write!(f,"{}({})",stringify!($name),comps)
+            }
+        }
+
+        impl std::fmt::Debug for $a_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let comps = vec![$(self.$comp.to_string()),*,self.alpha.to_string()].join(",");
+                write!(f,"{}({})",stringify!($a_name),comps)
+            }
+        }
+
         impl HasComponentsRepr for $data_name{
             type ComponentsRepr = ($(enso_shapely::replace!($comp,f32)),*,);
         }
@@ -59,7 +73,7 @@ macro_rules! define_color_space {
         }
 
         impl From<ComponentsOf<$data_name>> for $data_name {
-            fn from(Components(($($comp),*,)):ComponentsOf<Self>) -> Self {
+            fn from(Components{tuple:($($comp),*,)}:ComponentsOf<Self>) -> Self {
                 Self {$($comp),*}
             }
         }

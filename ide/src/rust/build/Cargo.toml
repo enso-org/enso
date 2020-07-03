@@ -5,5 +5,10 @@ authors = ["Enso Team <contact@luna-lang.org>"]
 edition = "2018"
 
 [dependencies]
-download-lp = "0.2.0"
 path-clean  = "0.1.0"
+
+[dependencies.reqwest]
+version  = "0.10.6"
+features = [
+  'blocking',
+]

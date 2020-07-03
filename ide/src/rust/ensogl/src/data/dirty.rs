@@ -12,7 +12,7 @@ use crate::data::function::callback::*;
 use rustc_hash::FxHashSet;
 use std::hash::Hash;
 use std::mem;
-use std::ops;
+
 
 
 // ==================
@@ -334,7 +334,7 @@ pub trait RangeCtx       <OnMut> = where OnMut:Function0;
 pub trait RangeIx                = PartialOrd + Copy + Debug;
 
 #[derive(Debug,Default)]
-pub struct RangeData<Ix=usize> { pub range: Option<ops::RangeInclusive<Ix>> }
+pub struct RangeData<Ix=usize> { pub range: Option<RangeInclusive<Ix>> }
 
 impl<Ix> HasArg      for RangeData<Ix> { type Arg = Ix; }
 impl<Ix> HasCheckAll for RangeData<Ix> { fn check_all(&self) -> bool { self.range.is_some() } }

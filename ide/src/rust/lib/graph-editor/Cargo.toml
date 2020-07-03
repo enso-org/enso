@@ -7,9 +7,9 @@ edition = "2018"
 [dependencies]
 ast          = { version = "0.1.0"   , path = "../../ide/ast/impl"              }
 span-tree    = { version = "0.1.0"   , path = "../../ide/span-tree"             }
-enso-shapely = { version = "0.1.0"                                              }
+enso-shapely = { version = "0.1.0"   , path = "../enso-shapely/impl"            }
 ensogl       = { version = "0.1.0"   , path = "../../ensogl"                    }
-enso-prelude = { version = "0.1.0"                                              }
+enso-prelude = { version = "0.1.0"   , path = "../enso-prelude"                 }
 logger       = { version = "0.1.0"   , path = "../logger"                       }
 enso-frp     = { version = "0.1.0"   , path = "../frp"                          }
 

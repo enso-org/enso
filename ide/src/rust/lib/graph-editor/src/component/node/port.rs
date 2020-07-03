@@ -19,9 +19,8 @@ use ensogl::display::Sprite;
 use ensogl::display::traits::*;
 use ensogl::display;
 use ensogl::gui::component;
+use ensogl::gui::cursor;
 
-
-use crate::component::cursor;
 use super::super::node;
 use span_tree::SpanTree;
 
@@ -37,8 +36,8 @@ pub mod shape {
 
     ensogl::define_shape_system! {
         (style:Style, hover:f32) {
-            let width  : Var<Distance<Pixels>> = "input_size.x".into();
-            let height : Var<Distance<Pixels>> = "input_size.y".into();
+            let width  : Var<Pixels> = "input_size.x".into();
+            let height : Var<Pixels> = "input_size.y".into();
             let radius = 6.px();
             let shape  = Rect((&width,&height)).corners_radius(radius);
             // let color  : Var<color::Rgba> = "srgba(1.0,1.0,1.0,0.00001 + 0.1*input_hover)".into();

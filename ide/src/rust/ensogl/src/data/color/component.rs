@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 use enso_generics::*;
+use nalgebra::Scalar;
 use nalgebra::Vector3;
 use nalgebra::Vector4;
 
@@ -14,7 +15,36 @@ use nalgebra::Vector4;
 /// Wrapper for tuple containing color components. For most components without alpha it is 3 values
 /// tuple. Alpha is always stored as the last component.
 #[derive(Clone,Copy,Debug)]
-pub struct Components<T>(pub T);
+#[allow(missing_docs)]
+pub struct Components<T> {
+    pub tuple : T
+}
+
+/// Smart constructor.
+#[allow(non_snake_case)]
+pub fn Components<T>(tuple:T) -> Components<T> {
+    Components {tuple}
+}
+
+impl<T> Components<T> {
+    /// Constructor.
+    pub fn new(tuple:T) -> Self {
+        Self {tuple}
+    }
+}
+
+impl<T> Deref for Components<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.tuple
+    }
+}
+
+
+
+// =========================
+// === HasComponentsRepr ===
+// =========================
 
 /// Component tuple representation associated to the given type.
 #[allow(missing_docs)]
@@ -38,33 +68,16 @@ impl<T,X> PushBack<X> for Components<T>
     where T:PushBack<X> {
     type Output = Components<<T as PushBack<X>>::Output>;
     fn push_back(self, t:X) -> Self::Output {
-        Components(self.0.push_back(t))
+        Components(self.tuple.push_back(t))
     }
 }
 
 impl<T> PopBack for Components<T>
     where T:PopBack {
     fn pop_back(self) -> (Self::Last,Self::Init) {
-        let (last,init) = self.0.pop_back();
+        let (last,init) = self.tuple.pop_back();
         let init = Components(init);
         (last,init)
-    }
-}
-
-
-// === Vector Conversions ===
-
-impl<T:nalgebra::Scalar> Into<Vector3<T>> for Components<(T,T,T)> {
-    fn into(self) -> Vector3<T> {
-        let tuple = self.0;
-        Vector3::new(tuple.0,tuple.1,tuple.2)
-    }
-}
-
-impl<T:nalgebra::Scalar> Into<Vector4<T>> for Components<(T,T,T,T)> {
-    fn into(self) -> Vector4<T> {
-        let tuple = self.0;
-        Vector4::new(tuple.0,tuple.1,tuple.2,tuple.3)
     }
 }
 
@@ -129,17 +142,14 @@ macro_rules! define_operator_for_component_tuple {
         impl $name<f32> for Components<( $($comp),* )> {
             type Output = Components<( $($comp),* )>;
             fn $fn(self, r:f32) -> Self::Output {
-                let t = self.0;
-                Components((  $((t.$num).$fn(r)),* ))
+                Components((  $((self.$num).$fn(r)),* ))
             }
         }
 
         impl $name<Components<( $($comp),* )>> for Components<( $($comp),* )> {
             type Output = Components<( $($comp),* )>;
             fn $fn(self, r:Components<( $($comp),* )>) -> Self::Output {
-                let t = self.0;
-                let r = r.0;
-                Components((  $((t.$num).$fn(r.$num)),* ))
+                Components((  $((self.$num).$fn(r.$num)),* ))
             }
         }
     }
@@ -199,3 +209,49 @@ macro_rules! define_operators_for_component_refs {
 
 define_operators_for_components!     { Add::add, Sub::sub, Mul::mul, Div::div }
 define_operators_for_component_refs! { Add::add, Sub::sub, Mul::mul, Div::div }
+
+
+
+// ==========================
+// === Vector Conversions ===
+// ==========================
+
+impl<T:Scalar> HasComponentsRepr for Vector2<T> { type ComponentsRepr = (T,T); }
+impl<T:Scalar> HasComponentsRepr for Vector3<T> { type ComponentsRepr = (T,T,T); }
+impl<T:Scalar> HasComponentsRepr for Vector4<T> { type ComponentsRepr = (T,T,T,T); }
+
+impl<T:Scalar> From<Vector2<T>> for ComponentsOf<Vector2<T>> {
+    fn from(t:Vector2<T>) -> Self {
+        Components((t.x.clone(),t.y.clone()))
+    }
+}
+
+impl<T:Scalar> Into<Vector2<T>> for ComponentsOf<Vector2<T>> {
+    fn into(self) -> Vector2<T> {
+        Vector2::new(self.0.clone(),self.1.clone())
+    }
+}
+
+impl<T:Scalar> From<Vector3<T>> for ComponentsOf<Vector3<T>> {
+    fn from(t:Vector3<T>) -> Self {
+        Components((t.x.clone(),t.y.clone(),t.z.clone()))
+    }
+}
+
+impl<T:Scalar> Into<Vector3<T>> for ComponentsOf<Vector3<T>> {
+    fn into(self) -> Vector3<T> {
+        Vector3::new(self.0.clone(),self.1.clone(),self.2.clone())
+    }
+}
+
+impl<T:Scalar> From<Vector4<T>> for ComponentsOf<Vector4<T>> {
+    fn from(t:Vector4<T>) -> Self {
+        Components((t.x.clone(),t.y.clone(),t.z.clone(),t.w.clone()))
+    }
+}
+
+impl<T:Scalar> Into<Vector4<T>> for ComponentsOf<Vector4<T>> {
+    fn into(self) -> Vector4<T> {
+        Vector4::new(self.0.clone(),self.1.clone(),self.2.clone(),self.3.clone())
+    }
+}

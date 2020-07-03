@@ -17,14 +17,14 @@ use crate::display::shape::text::text_field::render::assignment::GlyphLinesAssig
 use crate::display::shape::text::text_field::render::assignment::LineFragment;
 use crate::display::shape::text::text_field::render::selection::SelectionSpritesGenerator;
 use crate::display::shape::text::text_field::TextFieldProperties;
-use crate::display::shape::*;
+use crate::display::shape;
 use crate::display::shape::primitive::system::ShapeSystem;
 use crate::display::symbol::geometry::compound::sprite::Sprite;
 use crate::display::world::World;
+use crate::display::shape::primitive::def::class::ShapeOps;
 
 use nalgebra::{Vector2, zero};
 use nalgebra::Vector3;
-use crate::math::topology::unit::PixelDistance;
 use crate::display::Glsl;
 
 
@@ -127,7 +127,7 @@ impl TextFieldSprites {
         let color_glsl:Glsl     = color.into();
         let color_function      = format!("fract(input_time / 1000.0) < 0.5 ? {}.raw : {}",
             color_glsl,COLOR_HIDDEN);
-        let cursor_definition     = Rect(Vector2::new(WIDTH.px(),line_height.px()));
+        let cursor_definition     = shape::Rect(Vector2::new(WIDTH.pixels(),line_height.pixels()));
         let cursor_definition     = cursor_definition.fill(color_function);
         ShapeSystem::new(world,&cursor_definition)
     }
@@ -136,7 +136,7 @@ impl TextFieldSprites {
         const ROUNDING:f32       = 3.0;
         let width                = "input_size.x";
         let height               = "input_size.y";
-        let selection_definition = Rect((width,height));
+        let selection_definition = shape::Rect((width,height));
         ShapeSystem::new(world,&selection_definition)
     }
 

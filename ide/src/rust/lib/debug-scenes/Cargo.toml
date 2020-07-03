@@ -8,17 +8,17 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-enso-shapely         = { version = "0.1.0"                                   }
-ensogl               = { version = "0.1.0"  , path = "../../ensogl"          }
-ensogl-core-msdf-sys = { version = "0.1.0"  , path = "../../ensogl/msdf-sys" }
-ensogl-system-web    = { version = "0.1.0"  , path = "../system/web"         }
-enso-frp             = { version = "0.1.0"  , path = "../frp"                }
-graph-editor         = { version = "0.1.0"  , path = "../graph-editor"       }
-ide                  = { version = "0.1.0"  , path = "../../ide"             }
-span-tree            = { version = "0.1.0"  , path = "../../ide/span-tree"   }
-ast                  = { version = "0.1.0"  , path = "../../ide/ast/impl"    }
-
-enso-prelude         = { version = "0.1.0"                                   }
+enso-shapely         = { version = "0.1.0" , path = "../enso-shapely/impl"  }
+ensogl               = { version = "0.1.0" , path = "../../ensogl"          }
+ensogl-core-msdf-sys = { version = "0.1.0" , path = "../../ensogl/msdf-sys" }
+ensogl-system-web    = { version = "0.1.0" , path = "../system/web"         }
+ensogl-text          = { version = "0.1.0" , path = "../../ensogl/lib/text" }
+enso-frp             = { version = "0.1.0" , path = "../frp"                }
+graph-editor         = { version = "0.1.0" , path = "../graph-editor"       }
+ide                  = { version = "0.1.0" , path = "../../ide"             }
+span-tree            = { version = "0.1.0" , path = "../../ide/span-tree"   }
+ast                  = { version = "0.1.0" , path = "../../ide/ast/impl"    }
+enso-prelude         = { version = "0.1.0" , path = "../enso-prelude"       }
 
 js-sys               = { version = "0.3.28"                                  }
 nalgebra             = { version = "0.21.1"                                  }

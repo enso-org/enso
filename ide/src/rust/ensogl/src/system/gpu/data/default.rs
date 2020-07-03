@@ -1,6 +1,6 @@
 //! Defines abstraction for data types that have a default value when used as GPU values.
 
-use crate::math::types::*;
+use crate::types::*;
 
 
 

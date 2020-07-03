@@ -175,6 +175,10 @@ float mul(float a, float b) {
     return a * b;
 }
 
+float rem(float a, float b) {
+    return mod(a,b);
+}
+
 float neg(float a) {
     return -a;
 }

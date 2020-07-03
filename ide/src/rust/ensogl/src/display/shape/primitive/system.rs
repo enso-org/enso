@@ -246,6 +246,13 @@ macro_rules! _define_shape_system {
             $(pub $gpu_param : Attribute<$gpu_param_type>),*
         }
 
+        impl Deref for Shape {
+            type Target = Sprite;
+            fn deref(&self) -> &Self::Target {
+                &self.sprite
+            }
+        }
+
         impl $crate::display::shape::system::Shape for Shape {
             type System = ShapeSystem;
             fn sprites(&self) -> Vec<&Sprite> {
@@ -307,6 +314,7 @@ macro_rules! _define_shape_system {
 
             /// The canvas shape definition.
             pub fn shape_def(__style_watch__:&$crate::display::shape::StyleWatch) -> AnyShape {
+                #[allow(unused_imports)]
                 use $crate::display::style::data::DataMatch; // Operations styles.
                 $(
                     __style_watch__.reset();

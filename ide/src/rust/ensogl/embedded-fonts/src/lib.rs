@@ -1,26 +1,37 @@
-#![allow(missing_docs)]
-#![warn(unsafe_code)]
+//! Implementation of embedded fonts loading.
+
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+#![warn(unused_qualifications)]
 
 use enso_prelude::*;
-use enso_prelude::fmt::{Formatter, Error};
+
+
+
+// =====================
+// === EmbeddedFonts ===
+// =====================
 
 /// A base of built-in fonts in application
 ///
-/// The structure keeps only a binary data in ttf format. The data should be
-/// then interpreted by user (e.g. by using msdf-sys crate)
+/// The structure keeps only a binary data in ttf format. The data should be then interpreted by
+/// user (e.g. by using msdf-sys crate).
 ///
-/// For list of embedded fonts, see FONTS_TO_EXTRACT constant in `build.rs`
+/// For list of embedded fonts, see FONTS_TO_EXTRACT constant in `build.rs`.
+#[allow(missing_docs)]
 pub struct EmbeddedFonts {
     pub font_data_by_name: HashMap<&'static str,&'static [u8]>
 }
 
 impl EmbeddedFonts {
-    /// Creates an embedded fonts base filled with data
+    /// Creates an embedded fonts base filled with data.
     ///
-    /// For list of embedded fonts, see `FONTS_TO_EXTRACT` constant in
-    /// `build.rs`
+    /// For list of embedded fonts, see `FONTS_TO_EXTRACT` constant in `build.rs`
     pub fn create_and_fill() -> EmbeddedFonts {
         let mut font_data_by_name = HashMap::<&'static str,&'static [u8]>::new();
         include!(concat!(env!("OUT_DIR"), "/fill_map.rs"));
@@ -29,10 +40,16 @@ impl EmbeddedFonts {
 }
 
 impl Debug for EmbeddedFonts {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("<Embedded fonts>")
     }
 }
+
+
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod test {

@@ -47,7 +47,7 @@ impl TextFieldMouseFrp {
         let select_action       = move |p,s| Self::select(&text_field_ptr,p,s);
         frp::new_network! { text_field
             is_inside         <- mouse.position.map(move |t|is_inside(*t));
-            click_in          <- mouse.down.gate(&is_inside);
+            click_in          <- mouse.down.gate(&is_inside).constant(());
             click_in_bool     <- click_in.constant(true);
             mouse_up_bool     <- mouse.up.constant(false);
             selecting         <- any (click_in_bool,mouse_up_bool);

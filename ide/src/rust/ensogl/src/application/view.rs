@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::display::world::World;
 use super::command;
 use super::shortcut;
+use super::Application;
 
 
 
@@ -15,7 +16,7 @@ use super::shortcut;
 /// A visual component of an application.
 pub trait View : command::Provider + shortcut::DefaultShortcutProvider {
     /// Constructor.
-    fn new(world:&World) -> Self;
+    fn new(app:&Application) -> Self;
 }
 
 
@@ -76,8 +77,7 @@ impl Registry {
     }
 
     /// New view constructor.
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new<V:View>(&self) -> V {
+    pub fn new_view<V:View>(&self, app:&Application) -> V {
         let label          = V::label();
         let was_registered = self.definitions.borrow().get(label).is_some();
         if !was_registered {
@@ -87,7 +87,7 @@ impl Registry {
                 spread the information about their API.");
             self.register::<V>();
         }
-        let view = V::new(&self.display);
+        let view = V::new(app);
         self.command_registry.register_instance(&view);
         view
     }

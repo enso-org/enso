@@ -16,6 +16,10 @@ use ensogl_core_msdf_sys::run_once_initialized;
 use ensogl::display::style::theme;
 use ensogl::data::color;
 use enso_frp as frp;
+use ensogl_text as text;
+
+use text::traits::*;
+
 
 
 #[wasm_bindgen]
@@ -74,13 +78,15 @@ fn init(app:&Application) {
     let navigator = Navigator::new(&scene,&camera);
 
     app.views.register::<GraphEditor>();
-    let graph_editor = app.views.new::<GraphEditor>();
+    let graph_editor = app.new_view::<GraphEditor>();
+    let text_area = app.new_view::<text::Area>();
     world.add_child(&graph_editor);
 
 
     let node1_id = graph_editor.add_node();
     let node2_id = graph_editor.add_node();
 //
+    graph_editor.frp.set_node_position.emit((node1_id,Vector2(-150.0,50.0)));
     graph_editor.frp.set_node_position.emit((node2_id,Vector2(50.0,50.0)));
 //
     graph_editor.frp.set_node_expression.emit((node1_id,expression_mock()));
@@ -99,15 +105,42 @@ fn init(app:&Application) {
 //
 //    }
 
-//    trigger.emit(());
 
+    world.add_child(&text_area);
+
+    text_area.add_cursor(0.bytes());
+//    text_area.insert("Test text €!!!\nline2\nline3\nopen \"data.csv\"");
+    text_area.insert("open€ \"data.csv\"\nline2\nline3");
+
+
+    text_area.set((1..3).bytes(),color::Rgba::new(0.0,1.0,0.0,1.0));
+    text_area.set((8..9).bytes(),color::Rgba::new(1.0,1.0,0.0,1.0));
+    text_area.set((10..11).bytes(),color::Rgba::new(1.0,0.0,0.0,1.0));
+    text_area.set((14..15).bytes(),color::Rgba::new(0.0,0.0,1.0,1.0));
+
+    text_area.set_default(color::Rgba::new(1.0,1.0,1.0,0.7));
+    text_area.set_default(text::Size(12.0));
+    text_area.set_position_x(10.0);
+//    text_area.set((0..4).bytes(),text::Size(20.0));
+
+    text_area.insert("!!!!");
+    text_area.undo();
+
+    text_area.redraw();
+
+    let cursor = &app.cursor;
+
+    frp::new_network! { network
+        eval text_area.frp.output.mouse_cursor_style ((s) cursor.frp.input.set_style.emit(s));
+    }
 
     let mut was_rendered = false;
     let mut loader_hidden = false;
     world.on_frame(move |_| {
         let _keep_alive = &navigator;
         let _keep_alive = &graph_editor;
-//        let _keep_alive = &network;
+        let _keep_alive = &text_area;
+        let _keep_alive = &network;
 
         // Temporary code removing the web-loader instance.
         // To be changed in the future.
@@ -121,6 +154,7 @@ fn init(app:&Application) {
         }
         was_rendered = true;
     }).forget();
+
 }
 
 

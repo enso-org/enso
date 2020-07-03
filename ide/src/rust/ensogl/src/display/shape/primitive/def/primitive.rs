@@ -13,7 +13,6 @@ use crate::display::shape::primitive::def::class::ShapeRef;
 use crate::display::shape::primitive::shader::canvas::Canvas;
 use crate::display::shape::primitive::shader::canvas;
 use crate::display::shape::Var;
-use crate::math::topology::unit::*;
 use crate::system::gpu::shader::glsl::Glsl;
 use crate::system::gpu::shader::glsl::traits::*;
 
@@ -182,7 +181,7 @@ define_sdf_shapes! {
     /// angle subtraction, so 3*PI is upper half-plane, and angle of 4*PI gives the same result as
     /// the angle of 0. In case you do not need such behavior, you can use slightly more efficient
     /// `PlaneAngleFast` instead.
-    PlaneAngle (angle:Angle<Radians>) {
+    PlaneAngle (angle:Radians) {
         float pi_2       = 2.0 * PI;
         float angle_norm = value(angle) / pi_2;
               angle_norm = 1.0 - abs(mod(angle_norm,2.0)-1.0);
@@ -192,7 +191,7 @@ define_sdf_shapes! {
         return bound_sdf(distance,bounding_box(0.0,0.0));
     }
 
-    PlaneAngleFast (angle:Angle<Radians>) {
+    PlaneAngleFast (angle:Radians) {
         float v_angle  = value(angle);
         float off      = 0.5; // Fixes artifacts with 0 degrees.
         float distance = abs(position).x*cos(v_angle/2.0) - position.y*sin(v_angle/2.0) + off;
@@ -206,7 +205,7 @@ define_sdf_shapes! {
 
     // === Ellipse ===
 
-    Circle (radius:Distance<Pixels>) {
+    Circle (radius:Pixels) {
         return bound_sdf(length(position)-radius, bounding_box(radius,radius));
     }
 
@@ -222,24 +221,29 @@ define_sdf_shapes! {
 
     // === Rectangle ===
 
-    Rect (size:Vector2<Distance<Pixels>>) {
+    Rect (size:Vector2<Pixels>) {
         vec2  dir  = abs(position) - size/2.0;
         float dist = max(min(dir,0.0)) + length(max(dir,0.0));
         return bound_sdf(dist,bounding_box(size));
     }
 
     RoundedRectByCorner
-    ( size        : Vector2<Distance<Pixels>>
-    , top_left    : Distance<Pixels>
-    , top_right   : Distance<Pixels>
-    , bottom_left : Distance<Pixels>
-    , bottom_right: Distance<Pixels> ) {
-        size /= 2.0;
+    ( size        : Vector2<Pixels>
+    , top_left    : Pixels
+    , top_right   : Pixels
+    , bottom_left : Pixels
+    , bottom_right: Pixels ) {
+        float top_weight    = clamp(size.x / (top_left    + top_right)   , 0.0, 1.0);
+        float bottom_weight = clamp(size.x / (bottom_left + bottom_right), 0.0, 1.0);
+        float left_weight   = clamp(size.y / (top_left    + bottom_left) , 0.0, 1.0);
+        float right_weight  = clamp(size.y / (top_right   + bottom_right), 0.0, 1.0);
 
-        float tl = top_left;
-        float tr = top_right;
-        float bl = bottom_left;
-        float br = bottom_right;
+        float tl = min(top_weight    , left_weight)  * top_left;
+        float tr = min(top_weight    , right_weight) * top_right;
+        float bl = min(bottom_weight , left_weight)  * bottom_left;
+        float br = min(bottom_weight , right_weight) * bottom_right;
+
+        size /= 2.0;
 
         bool is_top_left     = position.x <  -size.x + tl && position.y >  size.y - tl;
         bool is_top_right    = position.x >   size.x - tr && position.y >  size.y - tr;
@@ -277,12 +281,12 @@ define_sdf_shapes! {
 
 impl Plane {
     /// Cuts angle from the plane.
-    pub fn cut_angle<T:Into<Var<Angle<Radians>>>>(&self, t:T) -> PlaneAngle {
+    pub fn cut_angle<T:Into<Var<Radians>>>(&self, t:T) -> PlaneAngle {
         PlaneAngle(t)
     }
 
     /// Cuts angle from the plane.
-    pub fn cut_angle_fast<T:Into<Var<Angle<Radians>>>>(&self, t:T) -> PlaneAngleFast {
+    pub fn cut_angle_fast<T:Into<Var<Radians>>>(&self, t:T) -> PlaneAngleFast {
         PlaneAngleFast(t)
     }
 }
@@ -290,7 +294,7 @@ impl Plane {
 impl Rect {
     /// Sets the radius of all the corners.
     pub fn corners_radius<T>(&self, radius:T) -> RoundedRectByCorner
-    where T : Into<Var<Distance<Pixels>>> {
+    where T : Into<Var<Pixels>> {
         let radius       = radius.into();
         let top_left     = radius.clone();
         let top_right    = radius.clone();
@@ -302,30 +306,30 @@ impl Rect {
     /// Sets the radiuses of each of the corners.
     pub fn corners_radiuses<T1,T2,T3,T4>
     (&self, top_left:T1, top_right:T2, bottom_left:T3, bottom_right:T4) -> RoundedRectByCorner
-    where T1 : Into<Var<Distance<Pixels>>> ,
-          T2 : Into<Var<Distance<Pixels>>> ,
-          T3 : Into<Var<Distance<Pixels>>> ,
-          T4 : Into<Var<Distance<Pixels>>> {
+    where T1 : Into<Var<Pixels>> ,
+          T2 : Into<Var<Pixels>> ,
+          T3 : Into<Var<Pixels>> ,
+          T4 : Into<Var<Pixels>> {
         RoundedRectByCorner(self.size(),top_left,top_right,bottom_left,bottom_right)
     }
 
     /// Sets the radiuses of the left corners.
     pub fn left_corners_radius<T>(&self, radius:T) -> RoundedRectByCorner
-    where T : Into<Var<Distance<Pixels>>> {
+    where T : Into<Var<Pixels>> {
         let radius       = radius.into();
         let top_left     = radius.clone();
         let bottom_left  = radius;
-        let top_right    = 0.px();
-        let bottom_right = 0.px();
+        let top_right    = 0.pixels();
+        let bottom_right = 0.pixels();
         RoundedRectByCorner(self.size(),top_left,top_right,bottom_left,bottom_right)
     }
 
     /// Sets the radiuses of the right corners.
     pub fn right_corners_radius<T>(&self, radius:T) -> RoundedRectByCorner
-        where T : Into<Var<Distance<Pixels>>> {
+        where T : Into<Var<Pixels>> {
         let radius       = radius.into();
-        let top_left     = 0.px();
-        let bottom_left  = 0.px();
+        let top_left     = 0.pixels();
+        let bottom_left  = 0.pixels();
         let top_right    = radius.clone();
         let bottom_right = radius;
         RoundedRectByCorner(self.size(),top_left,top_right,bottom_left,bottom_right)

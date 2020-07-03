@@ -11,6 +11,9 @@ use crate::prelude::*;
 use crate::display;
 use crate::display::world::World;
 use crate::display::style::theme;
+use crate::gui::cursor::Cursor;
+use crate::system::web;
+use ensogl_system_web::StyleSetter;
 
 
 
@@ -24,6 +27,7 @@ use crate::display::style::theme;
 #[allow(missing_docs)]
 pub struct Application {
     pub logger    : Logger,
+    pub cursor    : Cursor,
     pub display   : World,
     pub commands  : command::Registry,
     pub shortcuts : shortcut::Registry,
@@ -36,11 +40,20 @@ impl Application {
     pub fn new(dom:&web_sys::HtmlElement) -> Self {
         let logger    = Logger::new("Application");
         let display   = World::new(dom);
+        let scene     = display.scene();
         let commands  = command::Registry::create(&logger);
-        let shortcuts = shortcut::Registry::new(&logger, &commands);
+        let shortcuts = shortcut::Registry::new(&logger,&scene.mouse.frp,&commands);
         let views     = view::Registry::create(&logger,&display,&commands,&shortcuts);
         let themes    = theme::Manager::from(&display.scene().style_sheet);
-        Self {logger,display,commands,shortcuts,views,themes}
+        let cursor    = Cursor::new(display.scene());
+        display.add_child(&cursor);
+        web::body().set_style_or_panic("cursor","none");
+        Self {logger,cursor,display,commands,shortcuts,views,themes}
+    }
+
+    /// Create a new instance of a view.
+    pub fn new_view<T:View>(&self) -> T {
+        self.views.new_view(self)
     }
 }
 

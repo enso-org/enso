@@ -3,7 +3,6 @@
 use crate::prelude::*;
 use crate::display::shape::primitive::def::var::Var;
 use crate::system::gpu::shader::glsl::Glsl;
-use crate::math::topology::unit::*;
 use crate::system::gpu::types::*;
 use crate::data::color;
 
@@ -215,7 +214,7 @@ impl Canvas {
     }
 
     /// Translate the current canvas origin.
-    pub fn translate<V:Into<Var<Vector2<Distance<Pixels>>>>>
+    pub fn translate<V:Into<Var<Vector2<Pixels>>>>
     (&mut self, num:usize, s1:Shape, v:V) -> Shape {
         self.if_not_defined(num, |this| {
             let v:Glsl = v.into().glsl();
@@ -229,7 +228,7 @@ impl Canvas {
     }
 
     /// Rotate the current canvas origin.
-    pub fn rotation<A:Into<Var<Angle<Radians>>>>
+    pub fn rotation<A:Into<Var<Radians>>>
     (&mut self, num:usize, s1:Shape, angle:A) -> Shape {
         self.if_not_defined(num, |this| {
             let angle:Glsl = angle.into().glsl();

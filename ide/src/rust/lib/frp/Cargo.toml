@@ -7,10 +7,10 @@ edition = "2018"
 [lib]
 
 [dependencies]
-enso-callback     = { version = "0.1.0"  , path = "../callback"   }
-enso-generics     = { version = "0.1.0"  , path = "../generics"   }
-enso-prelude      = { version = "0.1.0"                           }
-ensogl-system-web = { version = "0.1.0"  , path = "../system/web" }
-keyboard-types    = { version = "0.5.0"                           }
-nalgebra          = { version = "0.21.1"                          }
-percent-encoding  = { version = "2.1.0"                           }
+enso-callback     = { version = "0.1.0"  , path = "../callback"     }
+enso-generics     = { version = "0.1.0"  , path = "../generics"     }
+enso-prelude      = { version = "0.1.0"  , path = "../enso-prelude" }
+ensogl-system-web = { version = "0.1.0"  , path = "../system/web"   }
+keyboard-types    = { version = "0.5.0"                             }
+nalgebra          = { version = "0.21.1"                            }
+percent-encoding  = { version = "2.1.0"                             }

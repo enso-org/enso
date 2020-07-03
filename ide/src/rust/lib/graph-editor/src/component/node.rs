@@ -54,8 +54,8 @@ pub mod shape {
 
             let border_size_f = 16.0;
 
-            let width  : Var<Distance<Pixels>> = "input_size.x".into();
-            let height : Var<Distance<Pixels>> = "input_size.y".into();
+            let width  : Var<Pixels> = "input_size.x".into();
+            let height : Var<Pixels> = "input_size.y".into();
             let width  = width  - NODE_SHAPE_PADDING.px() * 2.0;
             let height = height - NODE_SHAPE_PADDING.px() * 2.0;
             let radius = NODE_SHAPE_RADIUS.px();
@@ -100,14 +100,13 @@ pub mod shape {
     }
 }
 
-/// Canvas node shape definition.
 pub mod drag_area {
     use super::*;
 
     ensogl::define_shape_system! {
         (style:Style) {
-            let width  : Var<Distance<Pixels>> = "input_size.x".into();
-            let height : Var<Distance<Pixels>> = "input_size.y".into();
+            let width  : Var<Pixels> = "input_size.x".into();
+            let height : Var<Pixels> = "input_size.y".into();
             let width  = width  - NODE_SHAPE_PADDING.px() * 2.0;
             let height = height - NODE_SHAPE_PADDING.px() * 2.0;
             let radius = 14.px();
@@ -119,9 +118,6 @@ pub mod drag_area {
         }
     }
 }
-
-
-
 
 
 
@@ -382,8 +378,8 @@ impl display::Object for Node {
 //
 ///// Ring angle shape definition.
 //pub fn ring_angle<R,W,A>(inner_radius:R, width:W, angle:A) -> AnyShape
-//    where R : Into<Var<Distance<Pixels>>>,
-//          W : Into<Var<Distance<Pixels>>>,
+//    where R : Into<Var<Pixels>>,
+//          W : Into<Var<Pixels>>,
 //          A : Into<Var<Angle<Radians>>> {
 //    let inner_radius = inner_radius.into();
 //    let width        = width.into();

@@ -22,13 +22,15 @@ pub use keyboard_types::Key;
 // === KeyMask ===
 // ===============
 
-// FIXME: The follwoing implementation uses `key.legacy_keycode` which reports key codes for a very
+// FIXME: The following implementation uses `key.legacy_keycode` which reports key codes for a very
 //        small amount of keys. We need a better mechanism here.
 
 /// The key bitmask (each bit represents one key). Used for matching key combinations.
-#[derive(Clone,Copy,Debug,Default,Eq,Hash,PartialEq,Shrinkwrap)]
-#[shrinkwrap(mutable)]
-pub struct KeyMask(pub BitField256);
+#[derive(Clone,Debug,Default,Eq,Hash,PartialEq)]
+#[allow(missing_docs)]
+pub struct KeyMask {
+    pub bits : BitField256
+}
 
 impl KeyMask {
     /// Creates Key::Meta + Key::Character.
@@ -53,83 +55,38 @@ impl KeyMask {
 
     /// Check if key bit is on.
     pub fn contains(&self, key:&Key) -> bool {
-        let KeyMask(bit_set) = self;
-        bit_set.get_bit(key.legacy_keycode() as usize)
+        self.bits.get_bit(key.legacy_keycode() as usize)
     }
 
-    /// Set the `key` bit for new state.
+    /// Set the `key` bit with the new state.
     pub fn set(&mut self, key:&Key, state:bool) {
-        let KeyMask(ref mut bit_set) = self;
-        bit_set.set_bit(key.legacy_keycode() as usize,state);
+        self.bits.set_bit(key.legacy_keycode() as usize,state);
+    }
+
+    /// Clone the mask and set the `key` bit with the new state.
+    pub fn with_set(&self, key:&Key, state:bool) -> Self {
+        let mut mask = self.clone();
+        mask.set(key,state);
+        mask
     }
 }
 
 impl<'a> FromIterator<&'a Key> for KeyMask {
     fn from_iter<T: IntoIterator<Item=&'a Key>>(iter:T) -> Self {
         let mut key_mask = KeyMask::default();
-        for key in iter {
-            let bit = key.legacy_keycode() as usize;
-            key_mask.set_bit(bit,true);
-        }
+        for key in iter { key_mask.set(key,true) }
         key_mask
     }
 }
 
-impl From<&[Key]>   for KeyMask { fn from(keys:&[Key])   -> Self { KeyMask::from_iter(keys) } }
-impl From<&[Key;1]> for KeyMask { fn from(keys:&[Key;1]) -> Self { KeyMask::from_iter(keys) } }
-impl From<&[Key;2]> for KeyMask { fn from(keys:&[Key;2]) -> Self { KeyMask::from_iter(keys) } }
-impl From<&[Key;3]> for KeyMask { fn from(keys:&[Key;3]) -> Self { KeyMask::from_iter(keys) } }
-impl From<&[Key;4]> for KeyMask { fn from(keys:&[Key;4]) -> Self { KeyMask::from_iter(keys) } }
-impl From<&[Key;5]> for KeyMask { fn from(keys:&[Key;5]) -> Self { KeyMask::from_iter(keys) } }
-
-
-
-// =====================
-// === KeyMaskChange ===
-// =====================
-
-/// A helper structure used for describing KeyMask changes.
-#[derive(Clone,Debug)]
-#[allow(missing_docs)]
-enum KeyMaskChange { Set(Key), Unset(Key), Clear }
-
-impl KeyMaskChange {
-    fn on_pressed(key:&Key) -> Self {
-        Self::Set(key.clone())
-    }
-
-    /// When we're losing focus we should clear keymask, because we are not sure what keys were
-    /// released during being unfocused.
-    fn on_defocus() -> Self {
-        Self::Clear
-    }
-
-    fn on_released (key:&Key) -> Self {
-        match key {
-            // The very special case: pressing CMD on MacOS makes all the keyup events for letters
-            // lost. Therefore for CMD releasing we must clear keymask.
-            Key::Meta => Self::Clear,
-            other     => Self::Unset(other.clone())
-        }
-    }
-
-    /// Returns copy of given KeyMask with applied change
-    fn updated_mask(&self, mask:&KeyMask) -> KeyMask {
-        let mut mask = *mask;
-        match self {
-            Self::Set   (ref key) => mask.set(key,true),
-            Self::Unset (ref key) => mask.set(key,false),
-            Self::Clear           => mask = default()
-        }
-        mask
-    }
-}
-
-impl Default for KeyMaskChange {
-    fn default() -> Self {
-        Self::Clear
-    }
-}
+impl From<&[Key]>   for KeyMask { fn from(keys:&[Key])   -> Self {KeyMask::from_iter(keys)} }
+impl From<&[Key;0]> for KeyMask { fn from(keys:&[Key;0]) -> Self {KeyMask::from_iter(keys)} }
+impl From<&[Key;1]> for KeyMask { fn from(keys:&[Key;1]) -> Self {KeyMask::from_iter(keys)} }
+impl From<&[Key;2]> for KeyMask { fn from(keys:&[Key;2]) -> Self {KeyMask::from_iter(keys)} }
+impl From<&[Key;3]> for KeyMask { fn from(keys:&[Key;3]) -> Self {KeyMask::from_iter(keys)} }
+impl From<&[Key;4]> for KeyMask { fn from(keys:&[Key;4]) -> Self {KeyMask::from_iter(keys)} }
+impl From<&[Key;5]> for KeyMask { fn from(keys:&[Key;5]) -> Self {KeyMask::from_iter(keys)} }
+impl From<&KeyMask> for KeyMask { fn from(t:&KeyMask)    -> Self {t.clone()} }
 
 
 
@@ -155,17 +112,14 @@ impl Default for Keyboard {
             on_pressed        <- source();
             on_released       <- source();
             on_defocus        <- source();
-            change_set        <- on_pressed  . map(KeyMaskChange::on_pressed);
-            change_unset      <- on_released . map(KeyMaskChange::on_released);
-            change_clear      <- on_defocus  . map(|_| KeyMaskChange::on_defocus());
-            change_set_unset  <- any (change_set,change_unset);
-            change            <- any (change_set_unset,change_clear);
-            prev_key_mask     <- any_mut::<KeyMask>();
-            key_mask          <- change.map2(&prev_key_mask,KeyMaskChange::updated_mask);
-            prev_key_mask     <+ key_mask;
+            key_mask          <- any_mut::<KeyMask>();
+            key_mask          <+ on_pressed  . map2(&key_mask,|key,mask| mask.with_set(key,true));
+            key_mask          <+ on_released . map2(&key_mask,|key,mask| mask.with_set(key,false));
+            key_mask          <+ on_defocus  . map2(&key_mask,|_,_| default());
             previous_key_mask <- key_mask.previous();
         }
-        let network = keyboard;
+        let network  = keyboard;
+        let key_mask = key_mask.into();
         Keyboard {network,on_pressed,on_released,on_defocus,key_mask,previous_key_mask}
     }
 }

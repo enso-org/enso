@@ -13,7 +13,6 @@ use ensogl::display::scene::Scene;
 use ensogl::display::shape::AnyShape;
 use ensogl::display::shape::BottomHalfPlane;
 use ensogl::display::shape::Circle;
-use ensogl::display::shape::Distance;
 use ensogl::display::shape::PixelDistance;
 use ensogl::display::shape::Pixels;
 use ensogl::display::shape::Rect;
@@ -23,8 +22,6 @@ use ensogl::display;
 use ensogl::gui::component::Animation;
 use ensogl::gui::component::Tween;
 use ensogl::gui::component;
-use ensogl::math::algebra::Clamp;
-use ensogl::math::algebra::Signum;
 use std::num::NonZeroU32;
 
 use crate::node;
@@ -73,13 +70,13 @@ const INFINITE              : f32 = 99999.0;
 struct BaseShapeData {
     port_area  : AnyShape,
     hover_area : AnyShape,
-    radius     : Var<Distance<Pixels>>,
-    width      : Var<Distance<Pixels>>,
+    radius     : Var<Pixels>,
+    width      : Var<Pixels>,
 }
 
 impl BaseShapeData {
     fn new
-    (width:&Var<Distance<Pixels>>, height:&Var<Distance<Pixels>>, grow:&Var<f32>) -> Self {
+    (width:&Var<Pixels>, height:&Var<Pixels>, grow:&Var<f32>) -> Self {
         let width  = width  - node::NODE_SHAPE_PADDING.px() * 2.0;
         let height = height - node::NODE_SHAPE_PADDING.px() * 2.0;
 
@@ -209,7 +206,7 @@ pub mod multi_port_area {
 
         let plane_rotation_angle = compute_border_perpendicular_angle
             (&full_shape_border_length,&corner_segment_length,&crop_segment_pos);
-        let plane_shape_offset  = Var::<Distance<Pixels>>::from(&crop_plane_pos - width * 0.5);
+        let plane_shape_offset  = Var::<Pixels>::from(&crop_plane_pos - width * 0.5);
 
         let crop_shape = HalfPlane();
         let crop_shape = crop_shape.rotate(plane_rotation_angle);
@@ -221,8 +218,8 @@ pub mod multi_port_area {
     ensogl::define_shape_system! {
         (style:Style, grow:f32, index:f32, port_num:f32, opacity:f32, padding_left:f32,
         padding_right:f32) {
-            let overall_width  : Var<Distance<Pixels>> = "input_size.x".into();
-            let overall_height : Var<Distance<Pixels>> = "input_size.y".into();
+            let overall_width  : Var<Pixels> = "input_size.x".into();
+            let overall_height : Var<Pixels> = "input_size.y".into();
 
             let base_shape_data = BaseShapeData::new(&overall_width,&overall_height,&grow);
             let BaseShapeData{ port_area,hover_area,radius,width } = base_shape_data;
@@ -239,8 +236,8 @@ pub mod multi_port_area {
             let hover_area = hover_area.intersection(&right_shape_crop);
             let hover_area = hover_area.fill(color::Rgba::new(0.0,0.0,0.0,0.000_001));
 
-            let padding_left  = Var::<Distance<Pixels>>::from(padding_left);
-            let padding_right = Var::<Distance<Pixels>>::from(padding_right);
+            let padding_left  = Var::<Pixels>::from(padding_left);
+            let padding_right = Var::<Pixels>::from(padding_right);
 
             let left_shape_crop  = left_shape_crop.grow(padding_left);
             let right_shape_crop = right_shape_crop.grow(padding_right);
@@ -281,8 +278,8 @@ pub mod single_port_area {
 
     ensogl::define_shape_system! {
         (style:Style, grow:f32, opacity:f32) {
-            let overall_width  : Var<Distance<Pixels>> = "input_size.x".into();
-            let overall_height : Var<Distance<Pixels>> = "input_size.y".into();
+            let overall_width  : Var<Pixels> = "input_size.x".into();
+            let overall_height : Var<Pixels> = "input_size.y".into();
 
             let base_shape_data = BaseShapeData::new(&overall_width,&overall_height,&grow);
             let BaseShapeData{ port_area,hover_area, .. } = base_shape_data;
