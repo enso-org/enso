@@ -134,37 +134,37 @@ impl From<&ButtonMask> for ButtonMask { fn from(t:&ButtonMask) -> Self {*t} }
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Mouse {
-    pub network              : frp::Network,
-    pub up                   : frp::Source<Button>,
-    pub down                 : frp::Source<Button>,
-    pub wheel                : frp::Source,
-    pub up_0                 : frp::Stream,
-    pub up_1                 : frp::Stream,
-    pub up_2                 : frp::Stream,
-    pub up_3                 : frp::Stream,
-    pub up_4                 : frp::Stream,
-    pub down_0               : frp::Stream,
-    pub down_1               : frp::Stream,
-    pub down_2               : frp::Stream,
-    pub down_3               : frp::Stream,
-    pub down_4               : frp::Stream,
-    pub is_up_0              : frp::Stream<bool>,
-    pub is_up_1              : frp::Stream<bool>,
-    pub is_up_2              : frp::Stream<bool>,
-    pub is_up_3              : frp::Stream<bool>,
-    pub is_up_4              : frp::Stream<bool>,
-    pub is_down_0            : frp::Stream<bool>,
-    pub is_down_1            : frp::Stream<bool>,
-    pub is_down_2            : frp::Stream<bool>,
-    pub is_down_3            : frp::Stream<bool>,
-    pub is_down_4            : frp::Stream<bool>,
-    pub position             : frp::Source<Vector2<f32>>,
-    pub prev_position        : frp::Stream<Vector2<f32>>,
-    pub translation          : frp::Stream<Vector2<f32>>,
-    pub distance             : frp::Stream<f32>,
-    pub ever_moved           : frp::Stream<bool>,
-    pub button_mask          : frp::Stream<ButtonMask>,
-    pub previous_button_mask : frp::Stream<ButtonMask>,
+    pub network          : frp::Network,
+    pub up               : frp::Source<Button>,
+    pub down             : frp::Source<Button>,
+    pub wheel            : frp::Source,
+    pub up_0             : frp::Stream,
+    pub up_1             : frp::Stream,
+    pub up_2             : frp::Stream,
+    pub up_3             : frp::Stream,
+    pub up_4             : frp::Stream,
+    pub down_0           : frp::Stream,
+    pub down_1           : frp::Stream,
+    pub down_2           : frp::Stream,
+    pub down_3           : frp::Stream,
+    pub down_4           : frp::Stream,
+    pub is_up_0          : frp::Stream<bool>,
+    pub is_up_1          : frp::Stream<bool>,
+    pub is_up_2          : frp::Stream<bool>,
+    pub is_up_3          : frp::Stream<bool>,
+    pub is_up_4          : frp::Stream<bool>,
+    pub is_down_0        : frp::Stream<bool>,
+    pub is_down_1        : frp::Stream<bool>,
+    pub is_down_2        : frp::Stream<bool>,
+    pub is_down_3        : frp::Stream<bool>,
+    pub is_down_4        : frp::Stream<bool>,
+    pub position         : frp::Source<Vector2<f32>>,
+    pub prev_position    : frp::Stream<Vector2<f32>>,
+    pub translation      : frp::Stream<Vector2<f32>>,
+    pub distance         : frp::Stream<f32>,
+    pub ever_moved       : frp::Stream<bool>,
+    pub button_mask      : frp::Stream<ButtonMask>,
+    pub prev_button_mask : frp::Stream<ButtonMask>,
 }
 
 impl Mouse {
@@ -265,13 +265,13 @@ impl Default for Mouse {
             button_mask   <+ down . map2(&button_mask,|button,mask| mask.with_set(*button,true));
             button_mask   <+ up   . map2(&button_mask,|button,mask| mask.with_set(*button,false));
 
-            previous_button_mask <- button_mask.previous();
+            prev_button_mask <- button_mask.previous();
         };
         let button_mask = button_mask.into();
         Self { network,up,down,wheel,up_0,up_1,up_2,up_3,up_4,down_0,down_1,down_2,down_3,down_4
              , is_down_0,is_down_1,is_down_2,is_down_3,is_down_4,is_up_0,is_up_1,is_up_2,is_up_3
              , is_up_4,position,prev_position,translation,distance,ever_moved,button_mask
-             , previous_button_mask }
+             , prev_button_mask }
     }
 }
 
