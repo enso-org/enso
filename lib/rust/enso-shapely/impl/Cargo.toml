@@ -1,0 +1,32 @@
+[package]
+name    = "enso-shapely"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2018"
+
+description  = "Automated typeclass derivation."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/enso/lib/rust/shapely/impl"
+repository   = "https://github.com/enso-org/enso"
+license-file = "../../../../LICENSE"
+
+keywords   = ["typeclass", "deriving"]
+categories = ["algorithms"]
+
+publish = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+
+[dependencies]
+enso-shapely-macros = { version = "0.1.0" , path = "../macros" }
+paste               = { version = "0.1"                        }
+derivative          = { version = "1.0.3"                      }
+shrinkwraprs        = { version = "0.3.0"                      }
+
+[dev-dependencies]
+enso-prelude = { path = "../../enso-prelude" }
+wasm-bindgen-test = "0.2"

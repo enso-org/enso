@@ -178,12 +178,4 @@ jobs:
 
       # Tests
       - name: Test WASM
-        shell: bash
-        run: |
-          cd parser
-          for dir in `ls`; do
-              cd $dir;
-              wasm-pack test --node;
-              cd ..;
-          done;
-          cd ..
+        run: ./tools/run --test-wasm

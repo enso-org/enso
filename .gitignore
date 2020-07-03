@@ -53,6 +53,7 @@ cabal-dev
 .vscode/
 *.swp
 .projections.json
+.nvmrc
 
 ############################
 ## Rendered Documentation ##
