@@ -268,6 +268,24 @@ class SuggestionsRepoTest
       val res = Await.result(action, Timeout)
       res.isEmpty shouldEqual true
     }
+
+    "search suggestion by all parameters" in {
+      val kinds = Seq(
+        Suggestion.Kind.Atom,
+        Suggestion.Kind.Method,
+        Suggestion.Kind.Function
+      )
+      val action = for {
+        _   <- db.run(repo.insert(suggestion.atom))
+        _   <- db.run(repo.insert(suggestion.method))
+        _   <- db.run(repo.insert(suggestion.function))
+        _   <- db.run(repo.insert(suggestion.local))
+        res <- db.run(repo.search(Some("Main"), Some("MyType"), Some(kinds)))
+      } yield res
+
+      val res = Await.result(action, Timeout)
+      res.isEmpty shouldEqual true
+    }
   }
 
   object suggestion {

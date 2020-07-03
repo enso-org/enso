@@ -47,9 +47,7 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
     if (selfType.isEmpty && returnType.isEmpty && kinds.isEmpty) {
       DBIO.successful(Seq())
     } else {
-      val query = searchQuery(selfType, returnType, kinds)
-        .map(_._2.id)
-        .distinct
+      val query = searchQuery(selfType, returnType, kinds).map(_.id)
       query.result
     }
   }
@@ -130,20 +128,16 @@ final class SqlSuggestionsRepo(implicit ec: ExecutionContext)
     selfType: Option[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]]
-  ): Query[
-    (Rep[Option[ArgumentsTable]], SuggestionsTable),
-    (Option[ArgumentRow], SuggestionRow),
-    Seq
-  ] = {
-    joined
+  ): Query[SuggestionsTable, SuggestionRow, Seq] = {
+    Suggestions
       .filterOpt(selfType) {
-        case (row, value) => row._2.selfType === value
+        case (row, value) => row.selfType === value
       }
       .filterOpt(returnType) {
-        case (row, value) => row._2.returnType === value
+        case (row, value) => row.returnType === value
       }
       .filterOpt(kinds) {
-        case (row, value) => row._2.kind inSet value.map(SuggestionKind(_))
+        case (row, value) => row.kind inSet value.map(SuggestionKind(_))
       }
   }
 

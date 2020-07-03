@@ -143,8 +143,10 @@ final class SuggestionsTable(tag: Tag)
     ) <>
     (SuggestionRow.tupled, SuggestionRow.unapply)
 
-  def selfTypeIdx   = index("self_type_idx", selfType)
-  def returnTypeIdx = index("return_type_idx", name)
+  def selfTypeIdx   = index("suggestions_self_type_idx", selfType)
+  def returnTypeIdx = index("suggestions_return_type_idx", returnType)
+  def kindIdx       = index("suggestions_kind_idx", kind)
+  def name_idx      = index("suggestions_name_idx", name)
   def uniqueIdx =
     index(
       "suggestion_unique_idx",
