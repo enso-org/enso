@@ -1,5 +1,12 @@
-use std::{path, env, fs, io};
+//! Downloader of fonts considered as "embedded" into the application.
+
+use std::fs;
+use std::env;
 use std::io::Write;
+use std::io;
+use std::path;
+
+
 
 // =====================
 // === FillMapRsFile ===
@@ -30,9 +37,11 @@ impl FillMapRsFile {
     }
 }
 
-// ====================
-// === DejaVu fonts ===
-// ====================
+
+
+// ===================
+// === DejaVu Font ===
+// ===================
 
 mod deja_vu {
     use crate::FillMapRsFile;
@@ -43,7 +52,7 @@ mod deja_vu {
     pub const PACKAGE : GithubRelease<&str> = GithubRelease {
         project_url : "https://github.com/dejavu-fonts/dejavu-fonts/",
         version     : "version_2_37",
-        filename    : "dejavu-fonts-ttf-2.37.zip"
+        filename    : "dejavu-fonts-ttf-2.37.zip",
     };
 
     pub const PACKAGE_FONTS_PREFIX : &str = "dejavu-fonts-ttf-2.37/ttf";
@@ -83,7 +92,6 @@ mod deja_vu {
 
     pub fn download_and_extract_all_fonts(out_dir : &path::Path) {
         let package_path = out_dir.join(PACKAGE.filename);
-
         PACKAGE.download(&out_dir);
         extract_all_fonts(package_path.as_path());
     }
@@ -91,23 +99,18 @@ mod deja_vu {
     pub fn add_entries_to_fill_map_rs(file:&mut FillMapRsFile) {
         for font_name in FONTS_TO_EXTRACT {
             let font_file = font_file_from_font_name(font_name);
-
             file.add_font_inserting_line(font_name,font_file.as_str()).unwrap();
         }
     }
 }
 
 fn main() {
-    let out                  = env::var("OUT_DIR").unwrap();
-    let out_dir              = path::Path::new(&out);
-    let fill_map_rs_path     = out_dir.join("fill_map.rs");
-
-    let mut fill_map_rs_file = FillMapRsFile::create(fill_map_rs_path).unwrap();
-
-    deja_vu::download_and_extract_all_fonts(out_dir);
-    deja_vu::add_entries_to_fill_map_rs(&mut fill_map_rs_file);
-
-    fill_map_rs_file.close_block().unwrap();
-
     println!("cargo:rerun-if-changed=build.rs");
+    let out     = env::var("OUT_DIR").unwrap();
+    let out_dir = path::Path::new(&out);
+    deja_vu::download_and_extract_all_fonts(out_dir);
+    let fill_map_rs_path     = out_dir.join("fill_map.rs");
+    let mut fill_map_rs_file = FillMapRsFile::create(fill_map_rs_path).unwrap();
+    deja_vu::add_entries_to_fill_map_rs(&mut fill_map_rs_file);
+    fill_map_rs_file.close_block().unwrap();
 }

@@ -123,7 +123,7 @@ macro_rules! define_line {($($color:tt)*) => {
         ensogl::define_shape_system! {
             () {
                 let width  = LINE_WIDTH.px();
-                let height : Var<Distance<Pixels>> = "input_size.y".into();
+                let height : Var<Pixels> = "input_size.y".into();
                 let shape  = Rect((width,height));
                 let shape  = shape.fill(color::Rgba::from($($color)*));
                 shape.into()
@@ -138,8 +138,8 @@ macro_rules! define_arrow {($($color:tt)*) => {
         use super::*;
         ensogl::define_shape_system! {
             () {
-                let width  : Var<Distance<Pixels>> = "input_size.x".into();
-                let height : Var<Distance<Pixels>> = "input_size.y".into();
+                let width  : Var<Pixels> = "input_size.x".into();
+                let height : Var<Pixels> = "input_size.y".into();
                 let width      = width  - (2.0 * PADDING).px();
                 let height     = height - (2.0 * PADDING).px();
                 let triangle   = Triangle(width,height);

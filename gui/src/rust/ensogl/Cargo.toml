@@ -13,20 +13,20 @@ statistics = []
 no_unboxed_callbacks = []
 
 [dependencies]
-enso-callback              = { version = "0.1.0"  , path = "../lib/callback"     }
-ensogl-core-embedded-fonts = { version = "0.1.0"  , path = "embedded-fonts"      }
-ensogl-core-msdf-sys       = { version = "0.1.0"  , path = "msdf-sys"            }
-enso-generics              = { version = "0.1.0"  , path = "../lib/generics"     }
-enso-prelude               = { version = "0.1.0"                                 }
-ensogl-system-web          = { version = "0.1.0"  , path = "../lib/system/web"   }
-code-builder               = { version = "0.1.0"  , path = "../lib/code-builder" }
-data                       = { version = "0.1.0"  , path = "../lib/data"         }
-enso-frp                   = { version = "0.1.0"  , path = "../lib/frp"          }
-enso-math                  = { version = "0.1.0"  , path = "../lib/math"         }
-eval-tt                    = { version = "0.1.0"  , path = "../lib/eval-tt"      }
-logger                     = { version = "0.1.0"  , path = "../lib/logger"       }
-optics                     = { version = "0.1.0"  , path = "../lib/optics"       }
-enso-shapely               = { version = "0.1.0"                                 }
+enso-callback              = { version = "0.1.0" , path = "../lib/callback"          }
+ensogl-core-embedded-fonts = { version = "0.1.0" , path = "embedded-fonts"           }
+ensogl-core-msdf-sys       = { version = "0.1.0" , path = "msdf-sys"                 }
+enso-generics              = { version = "0.1.0" , path = "../lib/generics"          }
+enso-prelude               = { version = "0.1.0" , path = "../lib/enso-prelude"      }
+ensogl-system-web          = { version = "0.1.0" , path = "../lib/system/web"        }
+code-builder               = { version = "0.1.0" , path = "../lib/code-builder"      }
+data                       = { version = "0.1.0" , path = "../lib/data"              }
+enso-frp                   = { version = "0.1.0" , path = "../lib/frp"               }
+enso-types                 = { version = "0.1.0" , path = "../lib/types"             }
+eval-tt                    = { version = "0.1.0" , path = "../lib/eval-tt"           }
+logger                     = { version = "0.1.0" , path = "../lib/logger"            }
+optics                     = { version = "0.1.0" , path = "../lib/optics"            }
+enso-shapely               = { version = "0.1.0" , path = "../lib/enso-shapely/impl" }
 
 bit_field                  = { version = "0.10.0"                                }
 console_error_panic_hook   = { version = "0.1.6"                                 }

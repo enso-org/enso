@@ -127,9 +127,9 @@ commands.build.rust = async function(argv) {
 
         console.log('Checking the resulting WASM size.')
         let stats = fss.statSync(paths.dist.wasm.mainOptGz)
-        let limit = 3.37
+        let limit = 3.46
         let size = Math.round(100 * stats.size / 1024 / 1024) / 100
-        if (size > limit) {
+        if (size >= limit) {
             throw(`Output file size exceeds the limit (${size}MB > ${limit}MB).`)
         }
     }

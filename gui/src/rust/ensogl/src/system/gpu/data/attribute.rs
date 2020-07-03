@@ -164,7 +164,7 @@ impl {
 /// View for a particular buffer. Allows reading and writing buffer data
 /// via the internal mutability pattern. It is implemented as a view on
 /// a selected `Buffer` element under the hood.
-#[derive(Clone,Debug,Derivative)]
+#[derive(Clone,CloneRef,Debug,Derivative)]
 pub struct Attribute<T> {
     index  : AttributeInstanceIndex,
     buffer : Buffer<T>
@@ -193,10 +193,5 @@ impl<T:Storable> Attribute<T> {
         let mut value = self.get();
         f(&mut value);
         self.set(value);
-    }
-
-    /// Cheap reference clone.
-    pub fn clone_ref(&self) -> Self {
-        self.clone()
     }
 }

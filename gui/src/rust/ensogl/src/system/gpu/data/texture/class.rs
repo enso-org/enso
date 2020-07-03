@@ -301,19 +301,17 @@ where S : StorageRelation<I,T>,
         let internal_format = Self::gl_internal_format();
         let format          = Self::gl_format().into();
         let elem_type       = Self::gl_elem_type();
-
         self.context.bind_texture(target,Some(&self.gl_texture));
         #[allow(unsafe_code)]
         unsafe {
             // We use unsafe array view which is used immediately, so no allocations should happen
             // until we drop the view.
-            let view = data.js_buffer_view();
+            let view   = data.js_buffer_view();
             let result = self.context
                 .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_opt_array_buffer_view
                 (target,level,internal_format,width,height,border,format,elem_type,Some(&view));
             result.unwrap();
         }
-
         self.apply_texture_parameters(&self.context);
     }
 }

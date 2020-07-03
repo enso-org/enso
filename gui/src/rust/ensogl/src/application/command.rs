@@ -50,8 +50,8 @@ pub trait FrpNetworkProvider {
 /// `def_command_api` macro.
 #[allow(missing_docs)]
 pub trait CommandApi : Sized {
-    fn command_api_docs() -> Vec<EndpointDocs>;
-    fn command_api(&self) -> Vec<CommandEndpoint>;
+    fn command_api_docs() -> Vec<EndpointDocs>    { default() }
+    fn command_api(&self) -> Vec<CommandEndpoint> { default() }
 }
 
 /// Status API, a set of labeled status endpoints and labeled status docs. Both functions
@@ -62,6 +62,11 @@ pub trait CommandApi : Sized {
 pub trait StatusApi : Sized {
     fn status_api_docs() -> Vec<EndpointDocs>;
     fn status_api(&self) -> Vec<StatusEndpoint>;
+}
+
+impl<T:Sized> StatusApi for T {
+    default fn status_api_docs() -> Vec<EndpointDocs>   { default() }
+    default fn status_api(&self) -> Vec<StatusEndpoint> { default() }
 }
 
 
@@ -274,6 +279,15 @@ macro_rules! def_command_api {
 
             fn command_api(&self) -> Vec<application::command::CommandEndpoint> {
                 vec! [$(application::command::CommandEndpoint::new(stringify!($field),&self.$field)),*]
+            }
+        }
+
+        impl $name {
+            pub fn new(network:&frp::Network) -> Self {
+                frp::extend! { network
+                    $($field <- source();)*
+                }
+                Self { $($field),* }
             }
         }
     };

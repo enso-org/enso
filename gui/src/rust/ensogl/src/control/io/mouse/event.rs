@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::control::io::mouse::button::*;
+use enso_frp::io::mouse;
 use crate::system::web::dom::Shape;
 
 
@@ -44,8 +44,8 @@ macro_rules! define_events {
             }
 
             /// Translation of the button property to Rust `Button` enum.
-            pub fn button(&self) -> Button {
-                Button::from_code(self.raw.button())
+            pub fn button(&self) -> mouse::Button {
+                mouse::Button::from_code(self.raw.button().into())
             }
         }
     )*};

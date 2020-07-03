@@ -724,6 +724,18 @@ pub trait ObjectOps : Object {
         })
     }
 
+    fn set_position_x(&self, t:f32) {
+        self.mod_position(|p| p.x = t)
+    }
+
+    fn set_position_y(&self, t:f32) {
+        self.mod_position(|p| p.y = t)
+    }
+
+    fn set_position_z(&self, t:f32) {
+        self.mod_position(|p| p.z = t)
+    }
+
     fn set_scale(&self, t:Vector3<f32>) {
         self.display_object().rc.set_scale(t);
     }

@@ -5,6 +5,7 @@ members = [
     "ensogl",
     "ensogl/embedded-fonts",
     "ensogl/msdf-sys",
+    "ensogl/lib/text",
     "ide",
     "ide/ast/impl",
     "ide/ast/macros",
@@ -18,14 +19,18 @@ members = [
     "lib/code-builder",
     "lib/data",
     "lib/debug-scenes",
-    "lib/graph-editor",
+    "lib/enso-macro-utils",
+    "lib/enso-prelude",
+    "lib/enso-shapely/impl",
+    "lib/enso-shapely/macros",
     "lib/eval-tt",
     "lib/frp",
     "lib/generics",
+    "lib/graph-editor",
     "lib/logger",
-    "lib/math",
     "lib/optics",
     "lib/system/web",
+    "lib/types",
 ]
 
 [profile.dev]

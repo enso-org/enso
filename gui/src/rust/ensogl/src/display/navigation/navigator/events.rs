@@ -2,7 +2,6 @@ use crate::prelude::*;
 
 use crate::control::io::mouse;
 use crate::control::io::mouse::MouseManager;
-use crate::control::io::mouse::button;
 use crate::control::callback;
 use crate::system::web::IgnoreContextMenuHandle;
 use crate::system::web;
@@ -248,10 +247,10 @@ impl NavigatorEvents {
         let listener = self.mouse_manager.on_down.add(move |event:&mouse::OnDown| {
             if let Some(data) = data.upgrade() {
                 match event.button() {
-                    button::MiddleButton => {
+                    mouse::MiddleButton => {
                         data.set_movement_type(Some(MovementType::Pan))
                     },
-                    button::SecondaryButton => {
+                    mouse::SecondaryButton => {
                         let focus = Vector2::new(event.offset_x() as f32, event.offset_y() as f32);
                         data.set_movement_type(Some(MovementType::Zoom{focus}))
                     },

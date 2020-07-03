@@ -159,6 +159,8 @@
 #![feature(unboxed_closures)]
 #![feature(weak_into_raw)]
 
+#![recursion_limit="512"]
+
 pub mod debug;
 pub mod data;
 pub mod io;

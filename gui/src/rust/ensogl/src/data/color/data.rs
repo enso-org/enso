@@ -27,7 +27,7 @@ use nalgebra::Vector4;
 /// just want it, for example to match the behavior of color mixing in web browsers, which is
 /// broken for many years already:
 /// https://stackoverflow.com/questions/60179850/webgl-2-0-canvas-blending-with-html-in-linear-color-space
-#[derive(Clone,Copy,Debug,Default,PartialEq)]
+#[derive(Clone,Copy,Default,PartialEq)]
 pub struct Color<D> {
     /// The underlying color representation. It is either `Alpha` or a color space instance.
     pub data : D
@@ -121,6 +121,34 @@ where Color<D> : Copy + HasComponents<ComponentsRepr=(f32,f32,f32,f32)> {
     }
 }
 
+impl<D> From<Vector3<f32>> for Color<D>
+    where D : HasComponents<ComponentsRepr=(f32,f32,f32)> {
+    fn from(t:Vector3<f32>) -> Self {
+        Self::from(t.into_components())
+    }
+}
+
+impl<D> From<Vector4<f32>> for Color<D>
+    where D : HasComponents<ComponentsRepr=(f32,f32,f32,f32)> {
+    fn from(t:Vector4<f32>) -> Self {
+        Self::from(t.into_components())
+    }
+}
+
+impl<D> From<&Vector3<f32>> for Color<D>
+    where D : Copy + HasComponents<ComponentsRepr=(f32,f32,f32)> {
+    fn from(t:&Vector3<f32>) -> Self {
+        Self::from((*t).into_components())
+    }
+}
+
+impl<D> From<&Vector4<f32>> for Color<D>
+    where D : Copy + HasComponents<ComponentsRepr=(f32,f32,f32,f32)> {
+    fn from(t:&Vector4<f32>) -> Self {
+        Self::from((*t).into_components())
+    }
+}
+
 
 // === Operators ===
 
@@ -182,8 +210,9 @@ define_color_operators!{ Add::add, Sub::sub, Mul::mul, Div::div }
 // =============
 
 /// An alpha component wrapper for colors. 0.0 is fully transparent and 1.0 is fully opaque.
-#[derive(Clone,Copy,Debug,PartialEq)]
+#[derive(Clone,Copy,PartialEq)]
 #[allow(missing_docs)]
+#[allow(missing_debug_implementations)]
 pub struct Alpha<C> {
     pub alpha  : f32,
     pub opaque : Color<C>,

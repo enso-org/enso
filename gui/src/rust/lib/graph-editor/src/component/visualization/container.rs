@@ -50,8 +50,8 @@ pub mod background {
     // TODO use style
     ensogl::define_shape_system! {
         (selected:f32,radius:f32,roundness:f32) {
-            let width  : Var<Distance<Pixels>> = "input_size.x".into();
-            let height : Var<Distance<Pixels>> = "input_size.y".into();
+            let width  : Var<Pixels> = "input_size.x".into();
+            let height : Var<Pixels> = "input_size.y".into();
             let radius        = 1.px() * &radius;
             let color_bg      = color::Lcha::new(0.2,0.013,0.18,1.0);
             let corner_radius = &radius * &roundness;
@@ -73,8 +73,8 @@ pub mod fullscreen_background {
     // TODO use style
     ensogl::define_shape_system! {
         (selected:f32,radius:f32,roundness:f32) {
-            let width  : Var<Distance<Pixels>> = "input_size.x".into();
-            let height : Var<Distance<Pixels>> = "input_size.y".into();
+            let width  : Var<Pixels> = "input_size.x".into();
+            let height : Var<Pixels> = "input_size.y".into();
             let radius        = 1.px() * &radius;
             let color_bg      = color::Lcha::new(0.2,0.013,0.18,1.0);
             let corner_radius = &radius * &roundness;
@@ -92,8 +92,8 @@ pub mod overlay {
 
     ensogl::define_shape_system! {
         (selected:f32,radius:f32,roundness:f32) {
-            let width  : Var<Distance<Pixels>> = "input_size.x".into();
-            let height : Var<Distance<Pixels>> = "input_size.y".into();
+            let width  : Var<Pixels> = "input_size.x".into();
+            let height : Var<Pixels> = "input_size.y".into();
             let radius        = 1.px() * &radius;
             let corner_radius = &radius * &roundness;
             let color_overlay = color::Rgba::new(1.0,0.0,0.0,0.000_000_1);

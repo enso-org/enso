@@ -6,7 +6,7 @@ use crate::display::layout::Alignment;
 use crate::display::shape::text::glyph::font;
 use crate::display::shape::text::glyph::font::GlyphRenderInfo;
 use crate::display::shape::text::glyph::pen::PenIterator;
-use crate::display::shape::text::glyph::msdf::MsdfTexture;
+use crate::display::shape::text::glyph::msdf;
 use crate::display::symbol::material::Material;
 use crate::display::symbol::shader::builder::CodeTemplate;
 use crate::display::world::*;
@@ -57,7 +57,7 @@ impl Glyph {
             texture.storage().height != self.font.msdf_texture_rows() as i32
         });
         if texture_changed {
-            let width   = MsdfTexture::WIDTH as i32;
+            let width   = msdf::Texture::WIDTH as i32;
             let height  = self.font.msdf_texture_rows() as i32;
             let texture = Texture::<GpuOnly,Rgb,u8>::new(&self.context,(width,height));
             self.font.with_borrowed_msdf_texture_data(|data| {
@@ -254,8 +254,8 @@ impl GlyphSystem {
     pub fn new<S>(scene:&S, font:font::Handle) -> Self
     where for<'t> &'t S : Into<&'t Scene> {
         let logger        = Logger::new("glyph_system");
-        let msdf_width    = MsdfTexture::WIDTH as f32;
-        let msdf_height   = MsdfTexture::ONE_GLYPH_HEIGHT as f32;
+        let msdf_width    = msdf::Texture::WIDTH as f32;
+        let msdf_height   = msdf::Texture::ONE_GLYPH_HEIGHT as f32;
         let scene         = scene.into();
         let context       = scene.context.clone_ref();
         let sprite_system = SpriteSystem::new(scene);

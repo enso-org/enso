@@ -247,7 +247,7 @@ impl GraphEditorIntegratedWithControllerModel {
     , app        : &Application
     , controller : controller::ExecutedGraph
     , project    : controller::Project) -> Self {
-        let editor           = app.views.new::<GraphEditor>();
+        let editor           = app.new_view::<GraphEditor>();
         let node_views       = default();
         let connection_views = default();
         let expression_views = default();

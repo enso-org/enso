@@ -55,7 +55,7 @@ pub mod line {
     ensogl::define_shape_system! {
         () {
             let width  = WIDTH.px();
-            let height : Var<Distance<Pixels>> = "input_size.y".into();
+            let height : Var<Pixels> = "input_size.y".into();
             let shape  = Rect((width,height));
             let shape  = shape.fill(color::Rgba::from(color::Lcha::new(0.6,0.5,0.76,1.0)));
             shape.into()

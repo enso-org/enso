@@ -58,8 +58,8 @@ pub mod display;
 pub mod gui;
 pub mod system;
 
-pub use enso_frp  as frp;
-pub use enso_math as math;
+pub use enso_frp   as frp;
+pub use enso_types as types;
 
 /// Prelude - commonly used utilities.
 pub mod prelude {
@@ -72,7 +72,7 @@ pub mod prelude {
     pub use enso_shapely::shared;
     pub use super::display::traits::*;
     pub use super::data::container::AddMut;
-    pub use super::math::types::*;
+    pub use super::types::*;
 }
 
 /// Common traits.

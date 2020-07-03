@@ -255,6 +255,10 @@ macro_rules! extend_line2 {
     ([] $net:ident $name:ident <= $($toks:tt)*) => {$crate::extend_line2! { [] $net def $name = $($toks)* . iter()} };
     ([] $net:ident $name:ident <- $($toks:tt)*) => {$crate::extend_line2! { [] $net def $name = $($toks)* } };
     ([] $net:ident $($tgt:ident).+ <+ $($src:ident).+) => { $($tgt).+.attach(&$($src).+); };
+    ([] $net:ident $($tgt:ident).+ <+ $($toks:tt)*) => {
+        $crate::extend_line2! { [] $net __tmp__ <- $($toks)* }
+        $($tgt).+.attach(&__tmp__);
+    };
 
     ([] $net:ident eval $tgt1:ident                                                         ($($args:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [] $net def _eval = $tgt1                                 . map (f!($($args)*)) $($ts)* } };
     ([] $net:ident eval $tgt1:ident . $tgt2:ident                                           ($($args:tt)*) $($ts:tt)*) => { $crate::extend_line2! { [] $net def _eval = $tgt1 . $tgt2                         . map (f!($($args)*)) $($ts)* } };

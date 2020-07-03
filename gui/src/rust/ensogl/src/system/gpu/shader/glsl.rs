@@ -7,7 +7,6 @@ use crate::prelude::*;
 
 use crate::system::gpu::data::buffer::item::MatrixCtx;
 use crate::data::color;
-use crate::math::topology::unit::*;
 
 use code_builder::CodeBuilder;
 use code_builder::HasCodeRepr;
@@ -153,30 +152,30 @@ impls! { From + &From <color::LinearRgba> for Glsl {
 
 // === Units ===
 
-impls! { From + &From <Distance<Pixels>> for Glsl { |t| { t.value.into() } }}
+impls! { From + &From <Pixels> for Glsl { |t| { t.value.into() } }}
 
-impls! { From<PhantomData<Distance<Pixels>>> for PrimType {
+impls! { From<PhantomData<Pixels>> for PrimType {
     |_|  { PhantomData::<f32>.into() }
 }}
 
-impls! { From<PhantomData<Vector2<Distance<Pixels>>>> for PrimType {
+impls! { From<PhantomData<Vector2<Pixels>>> for PrimType {
     |_|  { PhantomData::<Vector2<f32>>.into() }
 }}
 
-impls! { From<PhantomData<Vector3<Distance<Pixels>>>> for PrimType {
+impls! { From<PhantomData<Vector3<Pixels>>> for PrimType {
     |_|  { PhantomData::<Vector3<f32>>.into() }
 }}
 
-impls! { From<PhantomData<Vector4<Distance<Pixels>>>> for PrimType {
+impls! { From<PhantomData<Vector4<Pixels>>> for PrimType {
     |_|  { PhantomData::<Vector4<f32>>.into() }
 }}
 
 
-impls! { From< Angle<Radians>> for Glsl { |t| { f32_to_rad(&t.value.glsl()) } }}
-impls! { From<&Angle<Radians>> for Glsl { |t| { f32_to_rad(&t.value.glsl()) } }}
-impls! { From< Angle<Degrees>> for Glsl { |t| { deg_to_f32(&f32_to_deg(&t.value.glsl())) } }}
-impls! { From<&Angle<Degrees>> for Glsl { |t| { deg_to_f32(&f32_to_deg(&t.value.glsl())) } }}
-impls! { From<PhantomData<Angle<Radians>>> for PrimType {
+impls! { From< Radians> for Glsl { |t| { f32_to_rad(&t.value.glsl()) } }}
+impls! { From<&Radians> for Glsl { |t| { f32_to_rad(&t.value.glsl()) } }}
+impls! { From< Degrees> for Glsl { |t| { deg_to_f32(&f32_to_deg(&t.value.glsl())) } }}
+impls! { From<&Degrees> for Glsl { |t| { deg_to_f32(&f32_to_deg(&t.value.glsl())) } }}
+impls! { From<PhantomData<Radians>> for PrimType {
     |_|  { "Radians".into() }
 }}
 

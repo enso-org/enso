@@ -96,24 +96,24 @@ impl    ShapeOps for AnyShape {}
 /// Methods implemented by every shape.
 pub trait ShapeOps : Sized where for<'t> &'t Self : IntoOwned<Owned=Self> {
     /// Translate the shape by a given offset.
-    fn translate<V:Into<Var<Vector2<Distance<Pixels>>>>>(&self, v:V) -> Translate<Self> {
+    fn translate<V:Into<Var<Vector2<Pixels>>>>(&self, v:V) -> Translate<Self> {
         Translate(self,v)
     }
 
     /// Translate the shape along X-axis by a given offset.
     fn translate_x<X>(&self, x:X) -> Translate<Self>
-        where (X,Var<Distance<Pixels>>) : Into<Var<Vector2<Distance<Pixels>>>> {
+        where (X,Var<Pixels>) : Into<Var<Vector2<Pixels>>> {
         self.translate((x,0.px()))
     }
 
     /// Translate the shape along Y-axis by a given offset.
     fn translate_y<Y>(&self, y:Y) -> Translate<Self>
-        where (Var<Distance<Pixels>>,Y) : Into<Var<Vector2<Distance<Pixels>>>> {
+        where (Var<Pixels>,Y) : Into<Var<Vector2<Pixels>>> {
         self.translate((0.px(),y))
     }
 
     /// Rotate the shape by a given angle.
-    fn rotate<A:Into<Var<Angle<Radians>>>>(&self, angle:A) -> Rotation<Self> {
+    fn rotate<A:Into<Var<Radians>>>(&self, angle:A) -> Rotation<Self> {
         Rotation(self,angle)
     }
 
@@ -149,12 +149,12 @@ pub trait ShapeOps : Sized where for<'t> &'t Self : IntoOwned<Owned=Self> {
     }
 
     /// Grows the shape by the given amount.
-    fn grow<T:Into<Var<Distance<Pixels>>>>(&self, value:T) -> Grow<Self> {
+    fn grow<T:Into<Var<Pixels>>>(&self, value:T) -> Grow<Self> {
         Grow(self, value.into())
     }
 
     /// Shrinks the shape by the given amount.
-    fn shrink<T:Into<Var<Distance<Pixels>>>>(&self, value:T) -> Shrink<Self> {
+    fn shrink<T:Into<Var<Pixels>>>(&self, value:T) -> Shrink<Self> {
         Shrink(self, value.into())
     }
 }

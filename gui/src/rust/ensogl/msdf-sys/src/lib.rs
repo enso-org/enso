@@ -3,11 +3,11 @@
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
 
-mod internal;
+mod binding;
 pub mod emscripten_data;
 pub use enso_prelude as prelude;
 
-use internal::*;
+use binding::*;
 
 use emscripten_data::ArrayMemoryView;
 use js_sys::Uint8Array;
@@ -40,12 +40,12 @@ where F : 'static + FnOnce() {
 
 /// Returns future which returns once the msdfgen library is initialized.
 pub fn initialized() -> impl Future<Output=()> {
-    MsdfgenJsInitialized{}
+    MsdfgenJsInitialized()
 }
 
 /// The future for running test after initialization
 #[derive(Debug)]
-struct MsdfgenJsInitialized {}
+struct MsdfgenJsInitialized();
 
 impl Future for MsdfgenJsInitialized {
     type Output = ();
@@ -69,7 +69,13 @@ impl Future for MsdfgenJsInitialized {
 
 #[derive(Debug)]
 pub struct Font {
-    pub handle: JsValue
+    pub handle : JsValue
+}
+
+impl Drop for Font {
+    fn drop(&mut self) {
+        msdfgen_free_font(self.handle.clone())
+    }
 }
 
 impl Font {
@@ -90,7 +96,7 @@ impl Font {
         let params         = js_sys::Array::of2(&data_js,&data_size_js);
 
         let handle         = emscripten_call_function(function_name,return_type,param_types,params);
-        Font { handle }
+        Font {handle}
     }
 
     pub fn retrieve_kerning(&self, left:char, right:char) -> f64 {
@@ -100,15 +106,8 @@ impl Font {
     }
 
     pub fn mock_font() -> Font {
-        Font {
-            handle : JsValue::from_f64(0.0)
-        }
-    }
-}
-
-impl Drop for Font {
-    fn drop(&mut self) {
-        msdfgen_free_font(self.handle.clone())
+        let handle = JsValue::from_f64(0.0);
+        Font {handle}
     }
 }
 
@@ -134,7 +133,7 @@ pub struct MsdfParameters {
 }
 
 #[derive(Debug)]
-pub struct MultichannelSignedDistanceField {
+pub struct Msdf {
     handle          : JsValue,
     pub advance     : f64,
     pub translation : nalgebra::Vector2<f64>,
@@ -142,15 +141,21 @@ pub struct MultichannelSignedDistanceField {
     pub data        : ArrayMemoryView<f32>
 }
 
-impl MultichannelSignedDistanceField {
+impl Drop for Msdf {
+    fn drop(&mut self) {
+        msdfgen_free_result(self.handle.clone());
+    }
+}
+
+impl Msdf {
     pub const CHANNELS_COUNT : usize = 3;
 
-    /// Generate Mutlichannel Signed Distance Field (MSDF) for one glyph
+    /// Generate Mutlichannel Signed Distance Field (MSDF) for one glyph.
     ///
     /// For more information about MSDF see
     /// [https://github.com/Chlumsky/msdfgen].
     pub fn generate(font:&Font, unicode:u32, params:&MsdfParameters)
-    -> MultichannelSignedDistanceField {
+    -> Msdf {
         let handle = msdfgen_generate_msdf
             ( params.width
             , params.height
@@ -167,7 +172,7 @@ impl MultichannelSignedDistanceField {
         let data_adress = msdfgen_result_get_msdf_data(handle.clone());
         let data_size   = params.width * params.height * Self::CHANNELS_COUNT;
         let data        = ArrayMemoryView::new(data_adress,data_size);
-        MultichannelSignedDistanceField{handle,advance,translation,scale,data}
+        Msdf{handle,advance,translation,scale,data}
     }
 
     const DIMENSIONS: usize = 2;
@@ -190,20 +195,14 @@ impl MultichannelSignedDistanceField {
         nalgebra::Vector2::new(scale_x, scale_y)
     }
 
-    pub fn mock_results() -> MultichannelSignedDistanceField {
-        MultichannelSignedDistanceField {
+    pub fn mock_results() -> Msdf {
+        Msdf {
             handle      : JsValue::from_f64(0.0),
             advance     : 0.0,
             translation : nalgebra::Vector2::new(0.0, 0.0),
             scale       : nalgebra::Vector2::new(1.0, 1.0),
             data        : ArrayMemoryView::empty()
         }
-    }
-}
-
-impl Drop for MultichannelSignedDistanceField {
-    fn drop(&mut self) {
-        msdfgen_free_result(self.handle.clone());
     }
 }
 
@@ -242,7 +241,7 @@ mod tests {
             overlap_support               : true
         };
         // when
-        let msdf = MultichannelSignedDistanceField::generate(
+        let msdf = Msdf::generate(
             &font,
             'A' as u32,
             &params,

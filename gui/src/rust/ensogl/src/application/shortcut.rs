@@ -1,14 +1,197 @@
-//! Keyboard shortcut management.
+//! Keyboard and mouse shortcut management.
 
 use crate::prelude::*;
 
 use super::command;
 
 use crate::control::io::keyboard::listener::KeyboardFrpBindings;
-use crate::frp::io::keyboard::KeyMask;
 use crate::frp::io::keyboard::Keyboard;
+use crate::frp::io::keyboard;
+use crate::frp::io::mouse::Mouse;
+use crate::frp::io::mouse;
 use crate::frp;
 use crate::system::web;
+
+
+
+// =================
+// === Constants ===
+// =================
+
+const DOUBLE_PRESS_THRESHOLD_MS : f32 = 300.0;
+
+
+
+// ==================
+// === ActionMask ===
+// ==================
+
+/// A bit-mask for keyboard and mouse events.
+#[derive(Clone,Debug,Default,Eq,Hash,PartialEq)]
+#[allow(missing_docs)]
+pub struct ActionMask {
+    pub keyboard : keyboard::KeyMask,
+    pub mouse    : mouse::ButtonMask,
+}
+
+impl ActionMask {
+    fn new(keyboard:impl Into<keyboard::KeyMask>, mouse:impl Into<mouse::ButtonMask>) -> Self {
+        let keyboard = keyboard.into();
+        let mouse    = mouse.into();
+        Self {keyboard,mouse}
+    }
+}
+
+
+
+// ==============
+// === Action ===
+// ==============
+
+/// A type of a keyboard action.
+#[derive(Clone,Copy,Debug,Eq,Hash,PartialEq)]
+#[allow(missing_docs)]
+pub enum ActionType {
+    Press, Release, DoublePress
+}
+
+/// Keyboard action defined as `ActionType` and `ActionMask`, like "press both key 'n' and primary
+/// mouse button". Please note that the release action happens as soon as the key mask is no longer
+/// valid. For example, pressing key "n", and then pressing key "a" (while holding "n") will trigger
+/// the release event for the key "n".
+#[derive(Clone,Debug)]
+#[allow(missing_docs)]
+pub struct Action {
+    pub tp   : ActionType,
+    pub mask : ActionMask,
+}
+
+impl Action {
+    /// Constructor.
+    pub fn new(tp:impl Into<ActionType>, mask:impl Into<ActionMask>) -> Self {
+        let tp   = tp.into();
+        let mask = mask.into();
+        Self {tp,mask}
+    }
+
+    /// Smart constructor for the `Press` action.
+    pub fn press
+    (keyboard_mask:impl Into<keyboard::KeyMask>, mouse_mask:impl Into<mouse::ButtonMask>) -> Self {
+        Self::new(ActionType::Press,ActionMask::new(keyboard_mask,mouse_mask))
+    }
+
+    /// Smart constructor for the `Release` action.
+    pub fn release
+    (keyboard_mask:impl Into<keyboard::KeyMask>, mouse_mask:impl Into<mouse::ButtonMask>) -> Self {
+        Self::new(ActionType::Release,ActionMask::new(keyboard_mask,mouse_mask))
+    }
+
+    /// Smart constructor for the `DoublePress` action.
+    pub fn double_press
+    (keyboard_mask:impl Into<keyboard::KeyMask>, mouse_mask:impl Into<mouse::ButtonMask>) -> Self {
+        Self::new(ActionType::DoublePress,ActionMask::new(keyboard_mask,mouse_mask))
+    }
+}
+
+
+
+// ===============
+// === Command ===
+// ===============
+
+/// A command name.
+#[derive(Clone,Debug,Eq,From,Hash,Into,PartialEq,Shrinkwrap)]
+pub struct Command {
+    name : String,
+}
+
+impl From<&str> for Command {
+    fn from(s:&str) -> Self {
+        Self {name:s.into()}
+    }
+}
+
+
+
+// =================
+// === Condition ===
+// =================
+
+// TODO[WD]: Uncomment and handle more complex cases. Left commented to show the direction of future
+//           development.
+/// Condition expression.
+#[derive(Clone,Debug)]
+#[allow(missing_docs)]
+pub enum Condition {
+    Ok,
+    Simple (String),
+    // Or  (Box<Condition>, Box<Condition>),
+    // And (Box<Condition>, Box<Condition>),
+}
+
+
+
+// ============
+// === Rule ===
+// ============
+
+/// A shortcut rule. Consist of target identifier (like "TextEditor"), a `Command` that will be
+/// evaluated on the target, and a `Condition` which needs to be true in order for the command
+/// to be executed.
+#[derive(Clone,Debug)]
+pub struct Rule {
+    target  : String,
+    command : Command,
+    when    : Condition,
+}
+
+impl Rule {
+    /// Constructor. Version without condition checker.
+    pub fn new<T,C>(target:T, command:C) -> Self
+        where T:Into<String>, C:Into<Command> {
+        Self::new_when(target,command,Condition::Ok)
+    }
+
+    /// Constructor.
+    pub fn new_when<T,C>(target:T, command:C, when:Condition) -> Self
+        where T:Into<String>, C:Into<Command> {
+        let target  = target.into();
+        let command = command.into();
+        Self {target,when,command}
+    }
+}
+
+
+
+// ================
+// === Shortcut ===
+// ================
+
+/// A keyboard shortcut, an `Action` associated with a `Rule`.
+#[derive(Clone,Debug,Shrinkwrap)]
+pub struct Shortcut {
+    #[shrinkwrap(main_field)]
+    rule   : Rule,
+    action : Action,
+}
+
+impl Shortcut {
+    /// Constructor. Version without condition checker.
+    pub fn new<A,T,C>(action:A, target:T, command:C) -> Self
+        where A:Into<Action>, T:Into<String>, C:Into<Command> {
+        let rule   = Rule::new(target,command);
+        let action = action.into();
+        Self {rule,action}
+    }
+
+    /// Constructor.
+    pub fn new_when<A,T,C>(action:A, target:T, command:C, condition:Condition) -> Self
+        where A:Into<Action>, T:Into<String>, C:Into<Command> {
+        let rule     = Rule::new_when(target,command,condition);
+        let action = action.into();
+        Self {rule,action}
+    }
+}
 
 
 
@@ -16,28 +199,30 @@ use crate::system::web;
 // === Registry ===
 // ================
 
-type RuleMap   = HashMap<KeyMask,Vec<WeakHandle>>;
-type ActionMap = HashMap<ActionType,RuleMap>;
-
-/// Keyboard shortcut registry. You can add new shortcuts by using the `add` method and get a
-/// `Handle` back. When `Handle` is dropped, the shortcut will be lazily removed. This is useful
-/// when defining shortcuts by GUI components. When a component is unloaded, all its default
-/// shortcuts should be removed as well.
+/// Shortcut registry. See `Shortcut` to learn more.
 ///
-/// Note: we should probably handle user shortcuts in a slightly different way. User shortcuts
-/// should persist and should probably not return handles. Alternatively, there should be an user
-/// shortcut manager which will own and manage the handles.
+/// You can add new shortcuts by using the `add` method and get a `Handle` back. When `Handle` is
+/// dropped, the shortcut will be lazily removed. This is useful when defining shortcuts by GUI
+/// components. When a component is unloaded, all its default shortcuts should be removed as well.
+///
+/// ## Implementation Notes
+/// There should be a layer for user shortcuts which will remember handles permanently until a
+/// shortcut is unregistered.
 #[derive(Clone,CloneRef,Debug)]
 pub struct Registry {
     model   : RegistryModel,
     network : frp::Network,
 }
 
+type RuleMap   = HashMap<ActionMask,Vec<WeakHandle>>;
+type ActionMap = HashMap<ActionType,RuleMap>;
+
 /// Internal representation of `Registry`.
 #[derive(Clone,CloneRef,Debug)]
 pub struct RegistryModel {
     logger            : Logger,
     keyboard          : Keyboard,
+    mouse             : Mouse,
     keyboard_bindings : Rc<KeyboardFrpBindings>,
     command_registry  : command::Registry,
     action_map        : Rc<RefCell<ActionMap>>,
@@ -50,58 +235,57 @@ impl Deref for Registry {
     }
 }
 
-impl RegistryModel {
-    /// Constructor.
-    pub fn new(logger:impl AnyLogger, command_registry:&command::Registry) -> Self {
-        let logger            = Logger::sub(logger,"ShortcutRegistry");
-        let keyboard          = Keyboard::default();
-        let keyboard_bindings = Rc::new(KeyboardFrpBindings::new(&logger,&keyboard));
-        let command_registry  = command_registry.clone_ref();
-        let action_map        = default();
-
-        Self {logger,keyboard,keyboard_bindings,command_registry,action_map}
-    }
-}
-
 impl Registry {
     /// Constructor.
-    pub fn new(logger:&Logger, command_registry:&command::Registry) -> Self {
-        let model = RegistryModel::new(logger,command_registry);
+    pub fn new(logger:&Logger, mouse:&Mouse, command_registry:&command::Registry) -> Self {
+        let model    = RegistryModel::new(logger,mouse,command_registry);
+        let keyboard = &model.keyboard;
+        let mouse    = &model.mouse;
 
-        // TODO move to theme configuration.
-        let double_press_threshold_ms = 300.0;
         frp::new_network! { network
-            let key_mask = model.keyboard.key_mask.clone_ref();
-            nothing_pressed      <- key_mask.map(|m| *m == default());
+            mask <- all_with(&keyboard.key_mask,&mouse.button_mask,|k,m| ActionMask::new(k,m));
+            nothing_pressed      <- mask.map(|m| *m == default());
             nothing_pressed_prev <- nothing_pressed.previous();
-            press                <- key_mask.gate_not(&nothing_pressed);
+            press                <- mask.gate_not(&nothing_pressed);
             single_press         <- press.gate(&nothing_pressed_prev);
             eval press ((m) model.process_action(ActionType::Press,m));
 
             single_press_prev  <- single_press.previous();
-            press_time         <- single_press.map(|_| web::performance().now());
+            press_time         <- single_press.map(|_| web::performance().now() as f32);
             press_time_prev    <- press_time.previous();
             time_delta         <- press_time.map2(&press_time_prev, |t1,t2| (t1-t2));
             is_double_press    <- time_delta.map4(&press,&single_press_prev,&nothing_pressed_prev,
-                move |delta,t,s,g| *g && *delta < double_press_threshold_ms && t == s);
+                move |delta,t,s,g| *g && *delta < DOUBLE_PRESS_THRESHOLD_MS && t == s);
             double_press       <- press.gate(&is_double_press);
             eval double_press ((m) model.process_action(ActionType::DoublePress,m));
 
-            let prev_key = model.keyboard.previous_key_mask.clone_ref();
-            the_same_key       <- prev_key.map2(&key_mask,|t,s| t == s);
-            release            <- prev_key.gate_not(&the_same_key);
-            eval release      ((m) model.process_action(ActionType::Release,m));
+            prev_mask <- all_with(&keyboard.previous_key_mask,&mouse.previous_button_mask,
+                |k,m| ActionMask::new(k,m));
+            the_same_key       <- prev_mask.map2(&mask,|t,s| t == s);
+            release            <- prev_mask.gate_not(&the_same_key);
+            eval release ((m) model.process_action(ActionType::Release,m));
         }
         Self {model,network}
     }
 }
 
 impl RegistryModel {
+    /// Constructor.
+    pub fn new
+    (logger:impl AnyLogger, mouse:&Mouse, command_registry:&command::Registry) -> Self {
+        let logger            = Logger::sub(logger,"ShortcutRegistry");
+        let keyboard          = Keyboard::default();
+        let mouse             = mouse.clone_ref();
+        let keyboard_bindings = Rc::new(KeyboardFrpBindings::new(&logger,&keyboard));
+        let command_registry  = command_registry.clone_ref();
+        let action_map        = default();
+        Self {logger,keyboard,mouse,keyboard_bindings,command_registry,action_map}
+    }
 
-    fn process_action(&self, action_type:ActionType, key_mask:&KeyMask) {
+    fn process_action(&self, action_type:ActionType, mask:&ActionMask) {
         let action_map_mut = &mut self.action_map.borrow_mut();
         if let Some(rule_map) = action_map_mut.get_mut(&action_type) {
-            if let Some(rules) = rule_map.get_mut(key_mask) {
+            if let Some(rules) = rule_map.get_mut(mask) {
                 self.process_rules(rules)
             }
         }
@@ -134,7 +318,6 @@ impl RegistryModel {
         }
     }
 
-
     fn condition_checker
     (condition:&Condition, status_map:&HashMap<String,command::Status>) -> bool {
         match condition {
@@ -151,7 +334,7 @@ impl Add<Shortcut> for &Registry {
         let instance   = handle.downgrade();
         let action_map = &mut self.action_map.borrow_mut();
         let rule_map   = action_map.entry(shortcut.action.tp).or_default();
-        let rules      = rule_map.entry(shortcut.action.key_mask).or_default();
+        let rules      = rule_map.entry(shortcut.action.mask).or_default();
         rules.push(instance);
         handle
     }
@@ -197,153 +380,6 @@ impl WeakHandle {
 
 
 
-// ==============
-// === Action ===
-// ==============
-
-/// A type of a keyboard action.
-#[derive(Clone,Copy,Debug,Eq,Hash,PartialEq)]
-#[allow(missing_docs)]
-pub enum ActionType {
-    Press, Release, DoublePress
-}
-
-/// Keyboard action defined as `ActionType` and `KeyMask`, like "release key 'n'". Please note that
-/// the release action happens as soon as the key mask is no longer valid. So for example, after
-/// pressing key "n", and then pressing key "a" (while holding "n"), the release event of the key
-/// "n" will be emitted.
-#[derive(Clone,Copy,Debug)]
-#[allow(missing_docs)]
-pub struct Action {
-    pub tp       : ActionType,
-    pub key_mask : KeyMask,
-}
-
-impl Action {
-    /// Constructor.
-    pub fn new(tp:impl Into<ActionType>, key_mask:impl Into<KeyMask>) -> Self {
-        let tp       = tp.into();
-        let key_mask = key_mask.into();
-        Self {tp,key_mask}
-    }
-
-    /// Smart constructor for the `Press` action.
-    pub fn press(key_mask:impl Into<KeyMask>) -> Self {
-        Self::new(ActionType::Press,key_mask)
-    }
-
-    /// Smart constructor for the `Release` action.
-    pub fn release(key_mask:impl Into<KeyMask>) -> Self {
-        Self::new(ActionType::Release,key_mask)
-    }
-
-    /// Smart constructor for the `DoublePress` action.
-    pub fn double_press(key_mask:impl Into<KeyMask>) -> Self {
-        Self::new(ActionType::DoublePress,key_mask)
-    }
-}
-
-
-
-// ================
-// === Shortcut ===
-// ================
-
-/// A keyboard shortcut, an `Action` associated with a `Rule`.
-#[derive(Clone,Debug,Shrinkwrap)]
-pub struct Shortcut {
-    #[shrinkwrap(main_field)]
-    rule   : Rule,
-    action : Action,
-}
-
-impl Shortcut {
-    /// Constructor. Version without condition checker.
-    pub fn new<A,T,C>(action:A, target:T, command:C) -> Self
-    where A:Into<Action>, T:Into<String>, C:Into<Command> {
-        let rule     = Rule::new(target,command);
-        let action = action.into();
-        Self {rule,action}
-    }
-
-    /// Constructor.
-    pub fn new_when<A,T,C>(action:A, target:T, command:C, condition:Condition) -> Self
-    where A:Into<Action>, T:Into<String>, C:Into<Command> {
-        let rule     = Rule::new_when(target,command,condition);
-        let action = action.into();
-        Self {rule,action}
-    }
-}
-
-
-
-// ============
-// === Rule ===
-// ============
-
-/// A shortcut rule. Consist of target identifier (`command::ProviderTag`), a `Command` that will
-/// be evaluated on the target, and a `Condition` which needs to be true in order for the command
-/// to be executed.
-#[derive(Clone,Debug)]
-pub struct Rule {
-    target  : String,
-    command : Command,
-    when    : Condition,
-}
-
-impl Rule {
-    /// Constructor. Version without condition checker.
-    pub fn new<T,C>(target:T, command:C) -> Self
-    where T:Into<String>, C:Into<Command> {
-        Self::new_when(target,command,Condition::Ok)
-    }
-
-    /// Constructor.
-    pub fn new_when<T,C>(target:T, command:C, when:Condition) -> Self
-    where T:Into<String>, C:Into<Command> {
-        let target  = target.into();
-        let command = command.into();
-        Self {target,when,command}
-    }
-}
-
-
-
-// ===============
-// === Command ===
-// ===============
-
-/// A command name.
-#[derive(Clone,Debug,Eq,From,Hash,Into,PartialEq,Shrinkwrap)]
-pub struct Command {
-    name : String,
-}
-
-impl From<&str> for Command {
-    fn from(s:&str) -> Self {
-        Self {name:s.into()}
-    }
-}
-
-
-
-// =================
-// === Condition ===
-// =================
-
-// TODO: Uncomment and handle more complex cases. Left here to show the intention of future dev.
-/// Condition expression.
-#[derive(Clone,Debug)]
-#[allow(missing_docs)]
-pub enum Condition {
-    Ok,
-    Simple (String),
-    // Or     (Box<Condition>, Box<Condition>),
-    // And    (Box<Condition>, Box<Condition>),
-}
-
-
-
 // ===============================
 // === DefaultShortcutProvider ===
 // ===============================
@@ -356,23 +392,14 @@ pub trait DefaultShortcutProvider : command::Provider {
     }
 
     /// Helper for defining shortcut targeting this object.
-    fn self_shortcut_when<A,C>(action:A, command:C, condition:Condition) -> Shortcut
-    where A:Into<Action>, C:Into<Command> {
+    fn self_shortcut_when
+    (action:impl Into<Action>, command:impl Into<Command>, condition:Condition) -> Shortcut {
         Shortcut::new_when(action,Self::label(),command,condition)
     }
 
     /// Helper for defining shortcut targeting this object. Version which does not accept
     /// condition checker.
-    fn self_shortcut<A,C>(action:A, command:C) -> Shortcut
-    where A:Into<Action>, C:Into<Command> {
+    fn self_shortcut(action:impl Into<Action>, command:impl Into<Command>) -> Shortcut {
         Shortcut::new(action,Self::label(),command)
-    }
-}
-
-/// Default implementation for all objects. It allows implementing this trait only by objects which
-/// want to use it.
-impl<T:command::Provider> DefaultShortcutProvider for T {
-    default fn default_shortcuts() -> Vec<Shortcut> {
-        default()
     }
 }

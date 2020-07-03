@@ -38,26 +38,24 @@ pub mod prelude {
     pub use ensogl::prelude::*;
 }
 
-use crate::component::cursor;
 use crate::component::node;
 use crate::component::visualization::MockDataGenerator3D;
 use crate::component::visualization;
 
-
 use enso_frp as frp;
 use enso_frp::io::keyboard;
+use ensogl::application::Application;
 use ensogl::application::shortcut;
 use ensogl::application;
 use ensogl::data::color;
-use ensogl::display::Scene;
 use ensogl::display::object::Id;
-use ensogl::display::world::*;
+use ensogl::display::Scene;
 use ensogl::display;
-use ensogl::prelude::*;
-use ensogl::system::web::StyleSetter;
-use ensogl::system::web;
 use ensogl::gui::component::Animation;
 use ensogl::gui::component::Tween;
+use ensogl::gui::cursor;
+use ensogl::prelude::*;
+use ensogl::system::web;
 
 
 
@@ -366,56 +364,6 @@ ensogl::def_command_api! { Commands
     cancel,
 }
 
-impl Commands {
-    pub fn new(network:&frp::Network) -> Self {
-        frp::extend! { network
-            add_node                              <- source();
-            add_node_at_cursor                    <- source();
-            remove_selected_nodes                 <- source();
-            remove_all_nodes                      <- source();
-            toggle_visualization_visibility       <- source();
-            press_visualization_visibility        <- source();
-            double_press_visualization_visibility <- source();
-            release_visualization_visibility      <- source();
-
-            enable_node_multi_select              <- source();
-            disable_node_multi_select             <- source();
-            toggle_node_multi_select              <- source();
-
-            enable_node_merge_select              <- source();
-            disable_node_merge_select             <- source();
-            toggle_node_merge_select              <- source();
-
-            enable_node_subtract_select           <- source();
-            disable_node_subtract_select          <- source();
-            toggle_node_subtract_select           <- source();
-
-            enable_node_inverse_select            <- source();
-            disable_node_inverse_select           <- source();
-            toggle_node_inverse_select            <- source();
-
-            set_test_visualization_data_for_selected_node <- source();
-            cycle_visualization_for_selected_node         <- source();
-            enter_selected_node                           <- source();
-            exit_node                                     <- source();
-
-            toggle_fullscreen_for_selected_visualization <- source();
-
-            cancel <- source();
-        }
-        Self {add_node,add_node_at_cursor,remove_selected_nodes,remove_all_nodes
-             ,toggle_visualization_visibility,press_visualization_visibility
-             ,double_press_visualization_visibility,release_visualization_visibility
-             ,enable_node_multi_select,disable_node_multi_select,toggle_node_multi_select
-             ,enable_node_merge_select,disable_node_merge_select,toggle_node_merge_select
-             ,enable_node_subtract_select,disable_node_subtract_select,toggle_node_subtract_select
-             ,enable_node_inverse_select,disable_node_inverse_select,toggle_node_inverse_select
-             ,set_test_visualization_data_for_selected_node,cycle_visualization_for_selected_node
-             ,enter_selected_node,exit_node,toggle_fullscreen_for_selected_visualization
-             ,cancel}
-    }
-}
-
 
 
 // =================
@@ -456,44 +404,44 @@ pub struct FrpInputs {
     some_edge_sources_detached : frp::Source,
     all_edge_targets_attached  : frp::Source,
     all_edge_sources_attached  : frp::Source,
-    all_edges_attached         : frp::Source,
+    all_edges_attached         : frp::Source, // FIXME: wrong name! Its all sources and targets of a single edge!
 
 }
 
 impl FrpInputs {
     pub fn new(network:&frp::Network) -> Self {
         frp::extend! { network
-            def set_detached_edge_targets    = source();
-            def set_detached_edge_sources    = source();
-            def set_edge_source              = source();
-            def set_edge_target              = source();
-            def unset_edge_source            = source();
-            def unset_edge_target            = source();
-            def connect_nodes                = source();
-            def deselect_all_nodes           = source();
-            def press_node_input             = source();
-            def press_node_output            = source();
-            def remove_all_node_edges        = source();
-            def remove_all_node_input_edges  = source();
-            def remove_all_node_output_edges = source();
-            def remove_edge                  = source();
-            def select_node                  = source();
-            def remove_node                  = source();
-            def set_node_expression          = source();
-            def set_node_position            = source();
-            def set_expression_type          = source();
-            def set_visualization_data       = source();
-            def cycle_visualization          = source();
-            def set_visualization            = source();
-            def register_visualization = source();
+            set_detached_edge_targets    <- source();
+            set_detached_edge_sources    <- source();
+            set_edge_source              <- source();
+            set_edge_target              <- source();
+            unset_edge_source            <- source();
+            unset_edge_target            <- source();
+            connect_nodes                <- source();
+            deselect_all_nodes           <- source();
+            press_node_input             <- source();
+            press_node_output            <- source();
+            remove_all_node_edges        <- source();
+            remove_all_node_input_edges  <- source();
+            remove_all_node_output_edges <- source();
+            remove_edge                  <- source();
+            select_node                  <- source();
+            remove_node                  <- source();
+            set_node_expression          <- source();
+            set_node_position            <- source();
+            set_expression_type          <- source();
+            set_visualization_data       <- source();
+            cycle_visualization          <- source();
+            set_visualization            <- source();
+            register_visualization       <- source();
 
-            def hover_node_input           = source();
-            def hover_node_output          = source();
-            def some_edge_targets_detached = source();
-            def some_edge_sources_detached = source();
-            def all_edge_targets_attached  = source();
-            def all_edge_sources_attached  = source();
-            def all_edges_attached  = source();
+            hover_node_input             <- source();
+            hover_node_output            <- source();
+            some_edge_targets_detached   <- source();
+            some_edge_sources_detached   <- source();
+            all_edge_targets_attached    <- source();
+            all_edge_sources_attached    <- source();
+            all_edges_attached           <- source();
         }
         let commands = Commands::new(&network);
         Self {commands,remove_edge,press_node_input,remove_all_node_edges
@@ -966,7 +914,7 @@ impl Deref for GraphEditorModelWithNetwork {
 }
 
 impl GraphEditorModelWithNetwork {
-    pub fn new<S:Into<Scene>>(scene:S, cursor:component::Cursor) -> Self {
+    pub fn new<S:Into<Scene>>(scene:S, cursor:cursor::Cursor) -> Self {
         let network = frp::Network::new();
         let model   = GraphEditorModel::new(scene,cursor,&network);
         Self {model,network}
@@ -1032,7 +980,7 @@ pub struct GraphEditorModel {
     pub logger         : Logger,
     pub display_object : display::object::Instance,
     pub scene          : Scene,
-    pub cursor         : component::Cursor,
+    pub cursor         : cursor::Cursor,
     pub nodes          : Nodes,
     pub edges          : Edges,
     touch_state        : TouchState,
@@ -1042,7 +990,7 @@ pub struct GraphEditorModel {
 // === Public ===
 
 impl GraphEditorModel {
-    pub fn new<S:Into<Scene>>(scene:S, cursor:component::Cursor, network:&frp::Network) -> Self {
+    pub fn new<S:Into<Scene>>(scene:S, cursor:cursor::Cursor, network:&frp::Network) -> Self {
         let scene          = scene.into();
         let logger         = Logger::new("GraphEditor");
         let display_object = display::object::Instance::new(&logger);
@@ -1427,32 +1375,32 @@ impl application::command::Provider for GraphEditor {
 impl application::shortcut::DefaultShortcutProvider for GraphEditor {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use keyboard::Key;
-        vec! [ Self::self_shortcut(shortcut::Action::press        (&[Key::Character("n".into())])               , "add_node_at_cursor")
-             , Self::self_shortcut(shortcut::Action::press        (&[Key::Backspace])                           , "remove_selected_nodes")
-             , Self::self_shortcut(shortcut::Action::press        (&[Key::Control,Key::Character(" ".into())])  , "press_visualization_visibility")
-             , Self::self_shortcut(shortcut::Action::double_press (&[Key::Control,Key::Character(" ".into())])  , "double_press_visualization_visibility")
-             , Self::self_shortcut(shortcut::Action::release      (&[Key::Control,Key::Character(" ".into())])  , "release_visualization_visibility")
-             , Self::self_shortcut(shortcut::Action::press        (&[Key::Meta])                                , "toggle_node_multi_select")
-             , Self::self_shortcut(shortcut::Action::release      (&[Key::Meta])                                , "toggle_node_multi_select")
-             , Self::self_shortcut(shortcut::Action::press        (&[Key::Control])                             , "toggle_node_multi_select")
-             , Self::self_shortcut(shortcut::Action::release      (&[Key::Control])                             , "toggle_node_multi_select")
-             , Self::self_shortcut(shortcut::Action::press        (&[Key::Shift])                               , "toggle_node_merge_select")
-             , Self::self_shortcut(shortcut::Action::release      (&[Key::Shift])                               , "toggle_node_merge_select")
-             , Self::self_shortcut(shortcut::Action::press        (&[Key::Alt])                                 , "toggle_node_subtract_select")
-             , Self::self_shortcut(shortcut::Action::release      (&[Key::Alt])                                 , "toggle_node_subtract_select")
-             , Self::self_shortcut(shortcut::Action::press        (&[Key::Shift,Key::Alt])                      , "toggle_node_inverse_select")
-             , Self::self_shortcut(shortcut::Action::release      (&[Key::Shift,Key::Alt])                      , "toggle_node_inverse_select")
-             , Self::self_shortcut(shortcut::Action::press        (&[Key::Character("d".into())])               , "set_test_visualization_data_for_selected_node")
-             , Self::self_shortcut(shortcut::Action::press        (&[Key::Character("f".into())])               , "cycle_visualization_for_selected_node")
-             , Self::self_shortcut(shortcut::Action::release      (&[Key::Control,Key::Enter])                  , "enter_selected_node")
-             , Self::self_shortcut(shortcut::Action::release      (&[Key::Control,Key::ArrowUp])                , "exit_node")
+        vec! [ Self::self_shortcut(shortcut::Action::press        (&[Key::Character("n".into())],&[])               , "add_node_at_cursor")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Backspace],&[])                           , "remove_selected_nodes")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Control,Key::Character(" ".into())],&[])  , "press_visualization_visibility")
+             , Self::self_shortcut(shortcut::Action::double_press (&[Key::Control,Key::Character(" ".into())],&[])  , "double_press_visualization_visibility")
+             , Self::self_shortcut(shortcut::Action::release      (&[Key::Control,Key::Character(" ".into())],&[])  , "release_visualization_visibility")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Meta],&[])                                , "toggle_node_multi_select")
+             , Self::self_shortcut(shortcut::Action::release      (&[Key::Meta],&[])                                , "toggle_node_multi_select")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Control],&[])                             , "toggle_node_multi_select")
+             , Self::self_shortcut(shortcut::Action::release      (&[Key::Control],&[])                             , "toggle_node_multi_select")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Shift],&[])                               , "toggle_node_merge_select")
+             , Self::self_shortcut(shortcut::Action::release      (&[Key::Shift],&[])                               , "toggle_node_merge_select")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Alt],&[])                                 , "toggle_node_subtract_select")
+             , Self::self_shortcut(shortcut::Action::release      (&[Key::Alt],&[])                                 , "toggle_node_subtract_select")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Shift,Key::Alt],&[])                      , "toggle_node_inverse_select")
+             , Self::self_shortcut(shortcut::Action::release      (&[Key::Shift,Key::Alt],&[])                      , "toggle_node_inverse_select")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Character("d".into())],&[])               , "set_test_visualization_data_for_selected_node")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Character("f".into())],&[])               , "cycle_visualization_for_selected_node")
+             , Self::self_shortcut(shortcut::Action::release      (&[Key::Control,Key::Enter],&[])                  , "enter_selected_node")
+             , Self::self_shortcut(shortcut::Action::release      (&[Key::Control,Key::ArrowUp],&[])                , "exit_node")
              ]
     }
 }
 
 impl application::View for GraphEditor {
-    fn new(world: &World) -> Self {
-        new_graph_editor(world)
+    fn new(app:&Application) -> Self {
+        new_graph_editor(app)
     }
 }
 
@@ -1508,13 +1456,10 @@ impl Default for SelectionMode {
 }
 
 #[allow(unused_parens)]
-fn new_graph_editor(world:&World) -> GraphEditor {
-    let scene  = world.scene();
-    let cursor = component::Cursor::new(world.scene());
-    web::body().set_style_or_panic("cursor","none");
-    world.add_child(&cursor);
-
-    let model          = GraphEditorModelWithNetwork::new(scene,cursor.clone_ref());
+fn new_graph_editor(app:&Application) -> GraphEditor {
+    let scene          = app.display.scene();
+    let cursor         = &app.cursor;
+    let model          = GraphEditorModelWithNetwork::new(scene,app.cursor.clone_ref());
     let network        = &model.network;
     let nodes          = &model.nodes;
     let edges          = &model.edges;
