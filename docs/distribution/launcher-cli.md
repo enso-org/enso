@@ -48,42 +48,85 @@ enso new project1
 enso new project2 --version 2.0
 ```
 
-### `install <version-string>`
+### `install`
 Installs a specific version of Enso.
 
-### `uninstall <version-string>`
+Examples:
+```bash
+enso install 2.0.1
+```
+
+### `uninstall`
 Uninstalls a specific version of Enso.
+
+Examples:
+```bash
+enso uninstall 2.0.1
+```
 
 ### `list`
 Lists all installed versions of Enso and managed GraalVM distributions.
 
-### `default <version-string>`
+### `default`
 Sets the default Enso version used outside of projects.
 
 If run without arguments, displays currently configured `default` version.
 
-### `config [--global] <config-path> <config-value>`
+Examples:
+```bash
+enso default 2.0.1
+enso default # prints 2.0.1
+```
+
+### `config`
 Can be used to manage project configuration or global user configuration (if
 outside a project or with the `--global` flag).
 
-These are mostly used for configuration of newly created projects.
+If only the config path is provided, currently configured value is printed.
 
 Examples:
-```
+```bash
 enso config --global user.name Example User
+enso config author.name Example User
+enso config author.name # prints Example User
 ``` 
 
-### `run <filename>`
+### `run`
 Runs a project or an Enso script file.
+
+Examples:
+```bash
+enso run script.enso
+enso run --path project1
+``` 
 
 ### `repl`
 Launches an Enso repl.
 
-### `language-server <server-parameters>`
+Examples:
+```bash
+enso repl
+``` 
+
+### `language-server`
 Launches the language server for a given project.
 
-### `upgrade [optional: exact version]`
+Examples:
+```bash
+enso language-server 
+  --server \
+  --root-id 3256d10d-45be-45b1-9ea4-7912ef4226b1 \
+  --path /tmp/content-root
+```
+
+### `upgrade`
 Checks for updates of the launcher and downloads any new versions.
+
+Examples:
+```bash
+enso upgrade 2.0.1
+enso upgrade # selects the latest version
+``` 
 
 ### `version`
 Prints the version of the installed launcher as well as the full version string
