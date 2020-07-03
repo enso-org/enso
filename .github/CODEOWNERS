@@ -41,7 +41,7 @@ README.md @iamrecursion @kustosz
 /.github @iamrecursion @kustosz
 /ci @iamrecursion @kustosz
 /project @iamrecursion @kustosz
-/build.sbt @iamrecursion kustosz @radeusgd
+/build.sbt @iamrecursion @kustosz @radeusgd
 
 # Repo Configuration
 /.github/settings.yml @iamrecursion
