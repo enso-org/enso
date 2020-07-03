@@ -59,14 +59,11 @@ compiler, type-checker, runtime and language server. These components implement
 Enso the language in its entirety, and are usable in isolation.
 
 ### Getting Started
-Enso is distributed as
-[pre-built packages](https://github.com/enso-org/enso/releases)
-for MacOS, Linux and Windows, as well as universal `.jar` packages that can run
-anywhere that [GraalVM](https://graalvm.org) can. See the
-[documentation](http://enso.org) for more.
-
-Nightly builds can be obtained from the CI artifacts. Please refer to the
-[documentation](./docs/getting-enso.md).
+While we currently don't have any official releases of Enso, nightly builds can
+be obtained from the
+[CI artifacts](https://github.com/enso-org/enso/actions?query=workflow%3A%22Engine+CI%22).
+For more information on how to run these, please refer to the documentation on
+[getting Enso](./docs/getting-enso.md).
 
 If you want to read more about the internals of Enso, please take a look at the
 developer documentation rendered [here](https://dev.enso.org), or in the
