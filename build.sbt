@@ -146,13 +146,13 @@ lazy val enso = (project in file("."))
 
 // === Akka ===================================================================
 
-def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name"  % akkaVersion
-def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name"  % akkaHTTPVersion
+def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name" % akkaVersion
+def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name" % akkaHTTPVersion
 val akkaURL                   = "com.typesafe.akka"
 val akkaVersion               = "2.6.6"
 val akkaHTTPVersion           = "10.2.0-RC1"
 val akkaMockSchedulerVersion  = "0.5.5"
-val slf4jVersion              = "1.7.30"
+val logbackClassicVersion     = "1.2.3"
 val akkaActor                 = akkaPkg("actor")
 val akkaStream                = akkaPkg("stream")
 val akkaTyped                 = akkaPkg("actor-typed")
@@ -161,8 +161,9 @@ val akkaSLF4J                 = akkaPkg("slf4j")
 val akkaTestkitTyped          = akkaPkg("actor-testkit-typed") % Test
 val akkaHttp                  = akkaHTTPPkg("http")
 val akkaSpray                 = akkaHTTPPkg("http-spray-json")
-val slf4jImplementation       = "org.slf4j"                    % "slf4j-simple" % slf4jVersion % Test
-val akkaTest                  = Seq(slf4jImplementation)
+val akkaTest = Seq(
+  "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test
+)
 val akka =
   Seq(
     akkaActor,
@@ -285,7 +286,6 @@ val guavaVersion                = "29.0-jre"
 val jlineVersion                = "3.15.0"
 val jupyterJvmBasekernelVersion = "2.3.0"
 val kindProjectorVersion        = "0.11.0"
-val logbackClassicVersion       = "1.2.3"
 val mockitoScalaVersion         = "1.14.8"
 val newtypeVersion              = "0.4.4"
 val pprintVersion               = "0.5.9"
@@ -690,7 +690,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     inConfig(Benchmark)(Defaults.testSettings),
     bench := (test in Benchmark).value,
-    libraryDependencies ++= akkaTest,
     libraryDependencies += "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
     testFrameworks ++= List(
         new TestFramework("org.scalameter.ScalaMeterFramework")
