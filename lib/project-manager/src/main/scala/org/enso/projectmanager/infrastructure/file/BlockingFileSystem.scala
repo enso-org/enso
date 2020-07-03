@@ -60,7 +60,7 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 
-  /** @inheritdoc **/
+  /** @inheritdoc * */
   override def move(from: File, to: File): F[FileSystemFailure, Unit] =
     Sync[F]
       .blockingOp {
@@ -73,6 +73,12 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
           FileUtils.moveFile(from, to)
         }
       }
+      .mapError(toFsFailure)
+
+  /** @inheritdoc * */
+  override def exists(file: File): F[FileSystemFailure, Boolean] =
+    Sync[F]
+      .blockingOp(file.exists())
       .mapError(toFsFailure)
 
   private val toFsFailure: Throwable => FileSystemFailure = {

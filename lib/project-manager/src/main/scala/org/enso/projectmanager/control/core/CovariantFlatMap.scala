@@ -2,6 +2,8 @@ package org.enso.projectmanager.control.core
 
 import zio._
 
+import scala.util.{Either, Left, Right}
+
 /**
   * A class for covariant effects containing error channel used to chain
   * computations.
@@ -27,12 +29,29 @@ trait CovariantFlatMap[F[+_, +_]] {
     */
   def flatMap[E1, E2 >: E1, A, B](fa: F[E1, A])(f: A => F[E2, B]): F[E2, B]
 
+  /**
+    * `if` lifted into monad.
+    */
+  def ifM[E, B](
+    fa: F[E, Boolean]
+  )(ifTrue: => F[E, B], ifFalse: => F[E, B]): F[E, B] =
+    flatMap(fa)(if (_) ifTrue else ifFalse)
+
+  /**
+    * Keeps calling `f` until a `scala.util.Right[B]` is returned.
+    */
+  def tailRecM[E, A, B](a: A)(f: A => F[E, Either[A, B]]): F[E, B] =
+    flatMap(f(a)) {
+      case Left(a)  => tailRecM(a)(f)
+      case Right(b) => pure(b)
+    }
+
 }
 
 object CovariantFlatMap {
 
-  def apply[F[+_, +_]](
-    implicit covariantFlatMap: CovariantFlatMap[F]
+  def apply[F[+_, +_]](implicit
+    covariantFlatMap: CovariantFlatMap[F]
   ): CovariantFlatMap[F] =
     covariantFlatMap
 
