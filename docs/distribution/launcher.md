@@ -16,7 +16,7 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
 - [Launcher Distribution](#launcher-distribution)
 - [Project Management](#project-management)
   - [Creating a Project](#creating-a-project)
-  - [Per-project Enso Version](#per-project-enso-version)
+  - [Per-Project Enso Version](#per-project-enso-version)
   - [Project Configuration](#project-configuration)
 - [Enso and Graal Version Management](#enso-and-graal-version-management)
   - [GraalVM Override](#graalvm-override)
@@ -43,9 +43,6 @@ The distribution structure is portable - this directory structure can be placed
 anywhere in the system. The launcher places all components in this directory
 structure by accessing them as relative to the location of its binary.
 
-It is a good idea to add the `bin` folder to your system `PATH` so that you can
-run the launcher just by typing `enso`.
-
 ## Project Management
 The launcher provides basic project management utilities for the command-line
 user.
@@ -54,12 +51,13 @@ user.
 It allows to create an empty project in a specified directory with the basic
 configuration based on user's config.
 
-### Per-project Enso Version
+### Per-Project Enso Version
 Project configuration can specify the exact Enso version that should be used
 inside that project. The launcher automatically detects if it is in a project
 (by traversing the directory structure). The current project can also be
 specified by the `--path` parameter. All components launched inside a project
-use the version specified in the configuration.
+use the version specified in the project configuration, or outside a project,
+the default version.
 
 > The actionables for this section are:
 > 
@@ -105,7 +103,7 @@ described in
 version is correct, the binary file containing the Enso components distribution
 is downloaded. The Manifest also specifies which GraalVM version should be used
 with this version of Enso. If that version of GraalVM is not present on the
-system it is also installed.
+system it is also downloaded and installed.
 
 Releases [marked as broken](./release-policy.md#marking-a-release-as-broken) are
 ignored by the launcher unless it is specified by an exact version match. In
@@ -115,10 +113,6 @@ that case it is downloaded, but a warning is printed.
 GraalVM is downloaded from its
 [GitHub releases page](https://github.com/graalvm/graalvm-ce-builds/releases)
 using GitHub API, similarly as Enso releases.
-
-> The actionables for this section are:
-> 
-> - Should the launcher also allow to manage versions of Graal EE in the future?
 
 ## Running Enso Components
 The primary purpose of the launcher is running various Enso components, namely
@@ -136,8 +130,8 @@ The launcher allows to edit global user configuration, saved in the `config`
 directory inside the Enso distribution structure.
 
 This configuration specifies the `default` Enso version used outside of projects
-and used for creating new projects. It also specifies default metadata used when
-creating a project with the `new` command.
+and used for creating new projects. It also specifies default project metadata
+used when creating a project with the `new` command.
 
 ## Updating the Launcher
 Besides managing Enso versions, the launcher has the ability to also update

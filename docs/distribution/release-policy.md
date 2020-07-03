@@ -85,22 +85,22 @@ A release is considered _official_ once it has been made into a release on
 [GitHub](https://github.com/enso-org/enso/releases). Once official, a release
 may not be changed in any way, except to mark it as broken.
 
-#### Manifest file
+#### Manifest File
 Each GitHub release contains an artifact named `Manifest` which is a YAML file
 containing metadata regarding the release. It has at least the following fields:
 
-- `minimum_launcher_version` - specifies the minimum version of the launcher that
-  should be used with this release of Enso,
-- `graal_vm_version` - specifies the exact version of GraalVM that should be used
-  with this release of Enso,
-- `graal_java_version` - as GraalVM versions may have different variants for
+- `minimum-launcher-version` - specifies the minimum version of the launcher
+  that should be used with this release of Enso,
+- `graal-vm-version` - specifies the exact version of GraalVM that should be
+  used with this release of Enso,
+- `graal-java-version` - as GraalVM versions may have different variants for
   different Java versions, this specifies which variant to use.
 
 For example:
 ```yaml
-minimum_launcher_version: 2.0
-graal_vm_version: 20.1.0
-graal_java_version: java11
+minimum-launcher-version: 2.0
+graal-vm-version: 20.1.0
+graal-java-version: java11
 ```
 
 #### Marking a Release as Broken

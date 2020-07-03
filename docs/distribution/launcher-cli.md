@@ -3,15 +3,17 @@ layout: developer-doc
 title: Enso Launcher CLI
 category: distribution
 tags: [distribution, launcher, cli, command]
-order: 4
+order: 5
 ---
 
 # Enso Launcher CLI
 This document describes available command-line options of the Enso launcher.
 
-This document is a DRAFT. The explanations are just to give an idea of the
-commands. It will be updated with detailed explanations when the CLI is
-developed.
+> The actionables for this document are:
+>
+> - This document is a draft. The explanations are just to give an idea of the
+>   commands. It will be updated with detailed explanations when the CLI is
+>    developed.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -44,8 +46,11 @@ By default uses the `default` enso version, which can be overriden with
 
 Examples:
 ```bash
-enso new project1
-enso new project2 --version 2.0
+enso new project1 --path /somewhere/on/the/filesystem
+    # creates project called project1 in the specified directory
+    # using the `default` Enso version
+enso new project2 --version 2.0.1
+    # creates the project in the current directory, using the 2.0.1 version
 ```
 
 ### `install`
@@ -96,8 +101,9 @@ Runs a project or an Enso script file.
 
 Examples:
 ```bash
-enso run script.enso
-enso run --path project1
+enso run script.enso # runs the file in script mode
+enso run path/to/project1 # runs the project
+enso run # runs the current project based on current directory
 ``` 
 
 ### `repl`

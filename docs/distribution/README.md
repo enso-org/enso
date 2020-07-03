@@ -18,3 +18,5 @@ dependencies, and Enso projects for use by our users.
   for Enso and this repository.
 - [**Launcher:**](./launcher.md) Information on the design of Enso launcher, the
   tool for launching various components and managing Enso versions.
+- [**Launcher CLI:**](./launcher-cli.md) Explanation of the command-line
+  interface of the launcher.
