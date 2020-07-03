@@ -37,7 +37,8 @@ Linux, Mac). It is distributed in a ZIP archive as described in
 component directories are empty (they will be populated when Enso versions are
 downloaded by the launcher on-demand). The only non-empty directory is `bin`
 which is where the launcher binary is placed. The ZIP file should also contain a
-README describing the distribution and basic usage.
+[README](../../distribution/launcher/README.md) describing the distribution and
+basic usage.
 
 The distribution structure is portable - this directory structure can be placed
 anywhere in the system. The launcher places all components in this directory

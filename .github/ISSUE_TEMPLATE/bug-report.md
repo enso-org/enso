@@ -56,7 +56,7 @@ For example:
 Enso Compiler and Runtime
 Version:    0.0.1
 Built with: scala-2.13.2 for GraalVM 20.1.0
-Built from: wip/rw/java11-migration* @ 7e161560423c68e3f0fb8337c043156d9d724aac
+Built from: main @ 7e161560423c68e3f0fb8337c043156d9d724aac
 Running on: OpenJDK 64-Bit Server VM, GraalVM Community, JDK 11.0.7+10-jvmci-20.1-b02
             Linux 4.15.0-108-generic (amd64)
 ```
