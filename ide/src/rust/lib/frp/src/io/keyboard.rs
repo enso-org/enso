@@ -98,29 +98,29 @@ impl From<&KeyMask> for KeyMask { fn from(t:&KeyMask)    -> Self {t.clone()} }
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Keyboard {
-    pub network           : frp::Network,
-    pub on_pressed        : frp::Source<Key>,
-    pub on_released       : frp::Source<Key>,
-    pub on_defocus        : frp::Source,
-    pub key_mask          : frp::Stream<KeyMask>,
-    pub previous_key_mask : frp::Stream<KeyMask>,
+    pub network       : frp::Network,
+    pub on_pressed    : frp::Source<Key>,
+    pub on_released   : frp::Source<Key>,
+    pub on_defocus    : frp::Source,
+    pub key_mask      : frp::Stream<KeyMask>,
+    pub prev_key_mask : frp::Stream<KeyMask>,
 }
 
 impl Default for Keyboard {
     fn default() -> Self {
         frp::new_network! { keyboard
-            on_pressed        <- source();
-            on_released       <- source();
-            on_defocus        <- source();
-            key_mask          <- any_mut::<KeyMask>();
-            key_mask          <+ on_pressed  . map2(&key_mask,|key,mask| mask.with_set(key,true));
-            key_mask          <+ on_released . map2(&key_mask,|key,mask| mask.with_set(key,false));
-            key_mask          <+ on_defocus  . map2(&key_mask,|_,_| default());
-            previous_key_mask <- key_mask.previous();
+            on_pressed    <- source();
+            on_released   <- source();
+            on_defocus    <- source();
+            key_mask      <- any_mut::<KeyMask>();
+            key_mask      <+ on_pressed  . map2(&key_mask,|key,mask| mask.with_set(key,true));
+            key_mask      <+ on_released . map2(&key_mask,|key,mask| mask.with_set(key,false));
+            key_mask      <+ on_defocus  . map2(&key_mask,|_,_| default());
+            prev_key_mask <- key_mask.previous();
         }
         let network  = keyboard;
         let key_mask = key_mask.into();
-        Keyboard {network,on_pressed,on_released,on_defocus,key_mask,previous_key_mask}
+        Keyboard {network,on_pressed,on_released,on_defocus,key_mask,prev_key_mask}
     }
 }
 

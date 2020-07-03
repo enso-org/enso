@@ -35,7 +35,8 @@ pub trait BitField {
 #[derive(Clone,Default,Deref,Eq,Hash,PartialEq)]
 #[allow(missing_copy_implementations)]
 pub struct BitField256 {
-    chunks : [u128;2]
+    /// Raw chunks of this bit field.
+    pub chunks : [u128;2]
 }
 
 impl BitField256 {
@@ -88,7 +89,8 @@ macro_rules! define_single_chunk_bit_field {
         #[derive(Clone,Copy,Default,Deref,Eq,Hash,PartialEq)]
         #[allow(missing_docs)]
         pub struct $name {
-            raw : $raw
+            /// Raw implementation of the bit field.
+            pub raw : $raw
         }
 
         impl $name {
