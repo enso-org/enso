@@ -146,13 +146,13 @@ lazy val enso = (project in file("."))
 
 // === Akka ===================================================================
 
-def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name"  % akkaVersion
-def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name"  % akkaHTTPVersion
+def akkaPkg(name: String)     = akkaURL                       %% s"akka-$name" % akkaVersion
+def akkaHTTPPkg(name: String) = akkaURL                       %% s"akka-$name" % akkaHTTPVersion
 val akkaURL                   = "com.typesafe.akka"
 val akkaVersion               = "2.6.6"
 val akkaHTTPVersion           = "10.2.0-RC1"
 val akkaMockSchedulerVersion  = "0.5.5"
-val slf4jVersion              = "1.7.30"
+val logbackClassicVersion     = "1.2.3"
 val akkaActor                 = akkaPkg("actor")
 val akkaStream                = akkaPkg("stream")
 val akkaTyped                 = akkaPkg("actor-typed")
@@ -161,8 +161,9 @@ val akkaSLF4J                 = akkaPkg("slf4j")
 val akkaTestkitTyped          = akkaPkg("actor-testkit-typed") % Test
 val akkaHttp                  = akkaHTTPPkg("http")
 val akkaSpray                 = akkaHTTPPkg("http-spray-json")
-val slf4jImplementation       = "org.slf4j"                    % "slf4j-simple" % slf4jVersion % Test
-val akkaTest                  = Seq(slf4jImplementation)
+val akkaTest = Seq(
+  "ch.qos.logback" % "logback-classic" % logbackClassicVersion % Test
+)
 val akka =
   Seq(
     akkaActor,
@@ -285,7 +286,6 @@ val guavaVersion                = "29.0-jre"
 val jlineVersion                = "3.15.0"
 val jupyterJvmBasekernelVersion = "2.3.0"
 val kindProjectorVersion        = "0.11.0"
-val logbackClassicVersion       = "1.2.3"
 val mockitoScalaVersion         = "1.14.8"
 val newtypeVersion              = "0.4.4"
 val pprintVersion               = "0.5.9"
@@ -310,7 +310,7 @@ val typesafeConfigVersion       = "1.4.0"
 lazy val logger = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
-  .in(file("lib/logger"))
+  .in(file("lib/scala/logger"))
   .settings(
     version := "0.1",
     libraryDependencies ++= scalaCompiler
@@ -320,7 +320,7 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
 lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
-  .in(file("lib/flexer"))
+  .in(file("lib/scala/flexer"))
   .dependsOn(logger)
   .settings(
     version := "0.1",
@@ -336,7 +336,7 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
 lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
-  .in(file("lib/syntax/definition"))
+  .in(file("lib/scala/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
@@ -354,7 +354,7 @@ lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Full)
-  .in(file("lib/syntax/specialization"))
+  .in(file("lib/scala/syntax/specialization"))
   .dependsOn(logger, flexer, `syntax-definition`)
   .configs(Test)
   .configs(Benchmark)
@@ -400,7 +400,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
 
-lazy val `parser-service` = (project in file("lib/parser-service"))
+lazy val `parser-service` = (project in file("lib/scala/parser-service"))
   .dependsOn(syntax.jvm)
   .settings(
     libraryDependencies ++= akka,
@@ -408,7 +408,7 @@ lazy val `parser-service` = (project in file("lib/parser-service"))
   )
 
 lazy val `text-buffer` = project
-  .in(file("lib/text-buffer"))
+  .in(file("lib/scala/text-buffer"))
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
@@ -418,7 +418,7 @@ lazy val `text-buffer` = project
       )
   )
 
-lazy val graph = (project in file("lib/graph/"))
+lazy val graph = (project in file("lib/scala/graph/"))
   .dependsOn(logger.jvm)
   .configs(Test)
   .settings(
@@ -445,7 +445,7 @@ lazy val graph = (project in file("lib/graph/"))
     scalacOptions ++= splainOptions
   )
 
-lazy val pkg = (project in file("lib/pkg"))
+lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
@@ -455,7 +455,7 @@ lazy val pkg = (project in file("lib/pkg"))
       )
   )
 
-lazy val `project-manager` = (project in file("lib/project-manager"))
+lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.projectmanager.boot.ProjectManager")
   )
@@ -553,7 +553,7 @@ lazy val `project-manager` = (project in file("lib/project-manager"))
  */
 
 lazy val `json-rpc-server` = project
-  .in(file("lib/json-rpc-server"))
+  .in(file("lib/scala/json-rpc-server"))
   .settings(
     libraryDependencies ++= akka,
     libraryDependencies ++= circe,
@@ -565,7 +565,7 @@ lazy val `json-rpc-server` = project
   )
 
 lazy val `json-rpc-server-test` = project
-  .in(file("lib/json-rpc-server-test"))
+  .in(file("lib/scala/json-rpc-server-test"))
   .settings(
     libraryDependencies ++= akka,
     libraryDependencies ++= circe,
@@ -577,7 +577,7 @@ lazy val `json-rpc-server-test` = project
   )
   .dependsOn(`json-rpc-server`)
 
-lazy val `core-definition` = (project in file("lib/core-definition"))
+lazy val `core-definition` = (project in file("lib/scala/core-definition"))
   .configs(Benchmark)
   .settings(
     version := "0.1",
@@ -606,7 +606,7 @@ lazy val `core-definition` = (project in file("lib/core-definition"))
   .dependsOn(syntax.jvm)
 
 lazy val searcher = project
-  .in(file("lib/searcher"))
+  .in(file("lib/scala/searcher"))
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
@@ -616,6 +616,12 @@ lazy val searcher = project
         "ch.qos.logback"      % "logback-classic" % logbackClassicVersion % Test,
         "org.scalatest"      %% "scalatest"       % scalatestVersion      % Test
       )
+  )
+
+lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
+  .settings(
+    version := "0.1",
+    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0-rc7"
   )
 
 // ============================================================================
@@ -693,7 +699,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     inConfig(Benchmark)(Defaults.testSettings),
     bench := (test in Benchmark).value,
-    libraryDependencies ++= akkaTest,
     libraryDependencies += "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
     testFrameworks ++= List(
         new TestFramework("org.scalameter.ScalaMeterFramework")
@@ -906,8 +911,3 @@ lazy val runner = project
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
 
-lazy val `interpreter-dsl` = (project in file("lib/interpreter-dsl"))
-  .settings(
-    version := "0.1",
-    libraryDependencies += "com.google.auto.service" % "auto-service" % "1.0-rc7"
-  )

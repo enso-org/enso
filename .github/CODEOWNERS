@@ -4,23 +4,29 @@
 # Distribution
 /distribution @iamrecursion @kustosz
 
-# Libraries
-/common/flexer @iamrecursion @kustosz
-/common/graph @iamrecursion @kustosz
-/common/json-rpc-server @lolczak @4e6
-/common/json-rpc-server-test @lolczak @4e6
-/common/logger @kustosz @iamrecursion
-/common/parser-service @kustosz @iamrecursion
-/common/pkg @iamrecursion @kustosz
-/common/syntax @iamrecursion @kustosz
-/common/unused @iamrecursion @kustosz
+# Scala Libraries
+/common/scala/core-definition @iamrecursion @kustosz
+/common/scala/flexer @iamrecursion @kustosz
+/common/scala/graph @iamrecursion @kustosz
+/common/scala/interpreter-dsl @iamrecursion @kustosz
+/common/scala/json-rpc-server @lolczak @4e6
+/common/scala/json-rpc-server-test @lolczak @4e6
+/common/scala/logger @kustosz @iamrecursion
+/common/scala/parser-service @kustosz @iamrecursion
+/common/scala/pkg @iamrecursion @kustosz
+/common/scala/project-manager @lolczak @4e6
+/common/scala/searcher @4e6 @lolczak
+/common/scala/syntax @iamrecursion @kustosz
+/common/scala/text-buffer @iamrecursion @kustosz
+
+# Rust Libraries
+/lib/rust/ @iamrecursion @wdanilo
 
 # Main Project
-/engine/core-definition @iamrecursion @kustosz
 /engine/language-server @lolczak @4e6
 /engine/polyglot-api @iamrecursion @kustosz
 /engine/runner @iamrecursion @kustosz @lolczak @4e6
-/engine/runtime @iamrecursion @kustosz
+/engine/runtime @iamrecursion @kustosz @radeusgd
 
 # Documentation
 /doc @iamrecursion @kustosz
@@ -35,10 +41,7 @@ README.md @iamrecursion @kustosz
 /.github @iamrecursion @kustosz
 /ci @iamrecursion @kustosz
 /project @iamrecursion @kustosz
-/build.sbt @iamrecursion @kustosz @lolczak @4e6
-
-# Parser
-/parser @iamrecursion @wdanilo
+/build.sbt @iamrecursion @kustosz @radeusgd
 
 # Repo Configuration
 /.github/settings.yml @iamrecursion

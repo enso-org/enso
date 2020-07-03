@@ -31,12 +31,14 @@ follows:
 
 ```rust
 pub fn lexer_definition() -> String {
-    ...
+    // ...
 
     let chr = alphaNum | '_';
     let blank = Pattern::from('_')
 
     lexer.rule(lexer.root,blank,"self.on_ident(token::blank(self.start_location))");
+
+    // ...
 }
 ```
 

@@ -171,6 +171,11 @@ rustup override set nightly-2019-11-04
 rustup component add clippy
 ```
 
+You will also need `node` in order to run the `wasm` tests. We only support the
+latest LTS version of [NodeJS](https://nodejs.org/en/download) and NPM. We
+recommend using [`nvm`](https://github.com/nvm-sh/nvm) to manage node versions.
+The current LTS is `v12.18.0`.
+
 Please note that once the parser is integrated into the SBT build, the
 rust-related commands will be automatically performed for you.
 
@@ -235,6 +240,11 @@ a vanilla GraalVM distribution. To run it, use:
 ```bash
 JAVA_HOME=<PATH_TO_GRAAL_HOME> ./enso.jar <CLI_ARGS>
 ```
+
+#### Testing Enso
+Running the tests for the JVM enso components is as simple as running
+`sbt / test`. To test the Rust components you can run `cargo test`. Finally, you
+can run the WASM tests for the rust components by using `./run --test-wasm`.
 
 #### Installing the Jupyter kernel
 Enso has a highly experimental and not-actively-maintained Jupyer Kernel.
