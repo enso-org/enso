@@ -74,13 +74,13 @@ public class MethodProcessor extends AbstractProcessor {
           "com.oracle.truffle.api.frame.VirtualFrame",
           "com.oracle.truffle.api.nodes.NodeInfo",
           "com.oracle.truffle.api.nodes.RootNode",
-          "com.oracle.truffle.api.object.DynamicObject",
           "com.oracle.truffle.api.nodes.UnexpectedResultException",
           "org.enso.interpreter.Language",
           "org.enso.interpreter.node.expression.builtin.BuiltinRootNode",
           "org.enso.interpreter.runtime.callable.argument.ArgumentDefinition",
           "org.enso.interpreter.runtime.callable.function.Function",
           "org.enso.interpreter.runtime.callable.function.FunctionSchema",
+          "org.enso.interpreter.runtime.data.SmallMap",
           "org.enso.interpreter.runtime.error.TypeError",
           "org.enso.interpreter.runtime.state.Stateful",
           "org.enso.interpreter.runtime.type.TypesGen");
@@ -149,7 +149,8 @@ public class MethodProcessor extends AbstractProcessor {
 
       out.println("  @Override");
       out.println("  public Stateful execute(VirtualFrame frame) {");
-      out.println("    DynamicObject state = (DynamicObject) Function.ArgumentsHelper.getState(frame.getArguments());");
+      out.println(
+          "    SmallMap state = (SmallMap) Function.ArgumentsHelper.getState(frame.getArguments());");
       if (methodDefinition.needsCallerInfo()) {
         out.println(
             "    CallerInfo callerInfo = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());");

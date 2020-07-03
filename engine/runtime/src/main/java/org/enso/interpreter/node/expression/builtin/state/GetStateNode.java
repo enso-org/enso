@@ -12,7 +12,10 @@ import com.oracle.truffle.api.object.Property;
 import com.oracle.truffle.api.object.Shape;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
+import org.enso.interpreter.runtime.data.SmallMap;
 import org.enso.interpreter.runtime.state.Stateful;
+
+import java.util.Arrays;
 
 @BuiltinMethod(
     type = "State",
@@ -23,34 +26,29 @@ public abstract class GetStateNode extends Node {
     return GetStateNodeGen.create();
   }
 
-  abstract Object execute(@MonadicState DynamicObject state, Object _this, Object key);
+  abstract Object execute(@MonadicState SmallMap state, Object _this, Object key);
 
-  @Specialization(
-      guards = {"state.getShape() == cachedShape", "key == cachedKey"},
-      assumptions = {"cachedShape.getValidAssumption()"})
+  @Specialization(guards = {"state.getKeys() == cachedKeys", "key == cachedKey"})
   Object doExecute(
-      DynamicObject state,
+      SmallMap state,
       Object _this,
       Object key,
       @Cached("key") Object cachedKey,
-      @Cached("key.toString()") String keyStr,
-      @Cached("state.getShape()") Shape cachedShape,
-      @Cached("getLocation(keyStr, cachedShape)") Location location) {
-    return location.get(state, cachedShape);
+      @Cached(value = "state.getKeys()", dimensions = 1) Object[] cachedKeys,
+      @Cached("init(key, cachedKeys)") int init,
+      @Cached("state.indexOf(key)") int idx) {
+    return state.get(idx);
+  }
+
+  public int init(Object key, Object[] keys) {
+//    System.out.println("KEY IS: " + key);
+//    System.out.println("KEYS ARE: " + keys + " @ " + Arrays.toString(keys));
+    return 0;
   }
 
   @Specialization
-  Stateful doFall(DynamicObject state, Object _this, Object key) {
+  Stateful doFall(SmallMap state, Object _this, Object key) {
+//    System.out.println("KEY IS: " + key);
     throw new RuntimeException("That's unexpected...");
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  Location getLocation(String key, Shape shape) {
-    CompilerAsserts.neverPartOfCompilation();
-    Property prop = shape.getProperty(key);
-    if (prop == null) {
-      return null;
-    }
-    return prop.getLocation();
   }
 }

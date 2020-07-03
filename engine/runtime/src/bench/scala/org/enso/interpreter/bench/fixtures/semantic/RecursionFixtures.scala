@@ -62,7 +62,7 @@ class RecursionFixtures extends DefaultInterpreterRunner {
       |""".stripMargin
   val sumStateTCO = getMain(sumStateTCOCode)
 
-  println("EXECUTE: " + sumStateTCO.execute(100L.asInstanceOf[AnyRef]))
+//  println("EXECUTE: " + sumStateTCO.execute(100L.asInstanceOf[AnyRef]))
 
   val sumTCOWithEvalCode =
     """

@@ -207,10 +207,7 @@ public class MethodDefinition {
       typeName = typeNameSegments[typeNameSegments.length - 1];
       String originalName = element.getSimpleName().toString();
       name = originalName.equals("_this") ? "this" : originalName;
-      isState =
-          element.getAnnotation(MonadicState.class) != null
-              && (type.toString().equals(OBJECT)
-                  || (type.toString().equals("com.oracle.truffle.api.object.DynamicObject")));
+      isState = element.getAnnotation(MonadicState.class) != null;
       isFrame = type.toString().equals(VIRTUAL_FRAME);
       isCallerInfo = type.toString().equals(CALLER_INFO);
       this.position = position;
