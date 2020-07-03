@@ -1,14 +1,15 @@
 [workspace]
 
 members = [
+    "lib/rust/enso-data",
+    "lib/rust/enso-generics",
+    "lib/rust/enso-logger",
     "lib/rust/enso-macro-utils",
+    "lib/rust/enso-optics",
     "lib/rust/enso-prelude",
     "lib/rust/enso-shapely/impl",
     "lib/rust/enso-shapely/macros",
     "lib/rust/flexer",
-    "lib/rust/enso-generics",
-    "lib/rust/enso-logger",
-    "lib/rust/enso-optics"
 ]
 
 [profile.dev]

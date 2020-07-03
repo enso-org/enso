@@ -9,7 +9,7 @@ edition = "2018"
 
 description  = "A finite-automata-based lexing engine."
 readme       = "README.md"
-homepage     = "https://github.com/enso-org/enso"
+homepage     = "https://github.com/enso-org/enso/lib/rust/flexer"
 repository   = "https://github.com/enso-org/enso"
 license-file = "../../../LICENSE"
 
