@@ -1,4 +1,11 @@
-# Visualization workflow
+---
+layout: developer-doc
+title: Visualization Workflow
+category: product
+tags: [product]
+---
+
+# Visualization Workflow
 
 ## Purpose of visualizations
 Visualizations have two main purposes:

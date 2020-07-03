@@ -1,3 +1,9 @@
+---
+layout: section-summary
+title: Product Documentation
+tags: [product]
+---
+
 # Enso IDE Product Documentation
 
 This section contains detailed specification of Enso IDE from the user perspective. The

@@ -1,3 +1,10 @@
+---
+layout: developer-doc
+title: Shortcuts
+category: product
+tags: [product,ui]
+---
+
 ### Graph Editor
 
 #### Navigation
