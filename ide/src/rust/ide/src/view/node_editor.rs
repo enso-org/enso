@@ -452,12 +452,14 @@ impl GraphEditorIntegratedWithControllerModel {
     /// Handle notification received from controller about values having been entered.
     pub fn on_node_entered(&self, _id:double_representation::node::Id) -> FallibleResult<()> {
         self.editor.frp.deselect_all_nodes.emit_event(&());
+        self.request_detaching_all_visualizations();
         self.refresh_graph_view()
     }
 
     /// Handle notification received from controller about node having been exited.
-    pub fn on_exited(&self, id:double_representation::node::Id) -> FallibleResult<()> {
+    pub fn on_node_exited(&self, id:double_representation::node::Id) -> FallibleResult<()> {
         self.editor.frp.deselect_all_nodes.emit_event(&());
+        self.request_detaching_all_visualizations();
         self.refresh_graph_view()?;
         let id = self.get_displayed_node_id(id)?;
         self.editor.frp.select_node.emit_event(&id);
@@ -467,6 +469,20 @@ impl GraphEditorIntegratedWithControllerModel {
     /// Handle notification received from controller about values having been computed.
     pub fn on_values_computed(&self, expressions:&[ExpressionId]) -> FallibleResult<()> {
         self.refresh_types_on(&expressions)
+    }
+
+    /// Request controller to detach all attached visualizations.
+    pub fn request_detaching_all_visualizations(&self) {
+        let controller = self.controller.clone_ref();
+        let logger     = self.logger.clone_ref();
+        let action     = async move {
+            for result in controller.detach_all_visualizations().await {
+                if let Err(err) = result {
+                    error!(logger,"Failed to detach one of the visualizations: {err:?}.");
+                }
+            }
+        };
+        executor::global::spawn(action);
     }
 
     /// Handle notification received from controller.
@@ -479,7 +495,7 @@ impl GraphEditorIntegratedWithControllerModel {
             Some(Notification::Graph(Invalidate))         => self.on_invalidated(),
             Some(Notification::ComputedValueInfo(update)) => self.on_values_computed(update),
             Some(Notification::EnteredNode(id))           => self.on_node_entered(*id),
-            Some(Notification::SteppedOutOfNode(id))      => self.on_exited(*id),
+            Some(Notification::SteppedOutOfNode(id))      => self.on_node_exited(*id),
             other => {
                 warning!(self.logger,"Handling notification {other:?} is not implemented; \
                     performing full invalidation");

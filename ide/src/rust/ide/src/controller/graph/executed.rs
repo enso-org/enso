@@ -122,6 +122,11 @@ impl Handle {
         self.execution_ctx.detach_visualization(id).await
     }
 
+    /// See `detach_all_visualizations` in `ExecutionContext`.
+    pub async fn detach_all_visualizations(&self) -> Vec<FallibleResult<Visualization>> {
+        self.execution_ctx.detach_all_visualizations().await
+    }
+
     /// See `expression_info_registry` in `ExecutionContext`.
     pub fn computed_value_info_registry(&self) -> &ComputedValueInfoRegistry {
         self.execution_ctx.computed_value_info_registry()
