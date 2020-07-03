@@ -67,8 +67,8 @@ use the version specified in the configuration.
 
 > The actionables for this section are:
 > 
-> - Decide how to support inexact project bounds (like `>=3.1, <4`) and
-> resolvers.
+> - Decide how to support inexact project bounds (like `>=3.1, <4` - when should
+>   the launcher check for new versions) and resolvers.
 
 ### Project Configuration
 The command-line allows to edit project configuration, for example: change the
@@ -83,10 +83,10 @@ If an Enso version is no longer needed, it can be removed with the `uninstall`
 command.
 
 Moreover, GraalVM distributions tied to the installed Enso versions are managed
-automatically by the tool. When a new Enso version is installed, it also ensures
-that the correct GraalVM version is installed and that it is used for launching
-this version of Enso. When a managed GraalVM distribution is no longer used by
-any installed version of Enso, it is automatically removed.
+automatically by the launcher. When a new Enso version is installed, it also
+ensures that the correct GraalVM version is installed and that it is used for
+launching this version of Enso. When a managed GraalVM distribution is no longer
+used by any installed version of Enso, it is automatically removed.
 
 ### GraalVM Override
 While the launcher manages its own installation of GraalVM to ensure that the
@@ -101,9 +101,9 @@ different then required by that particular Enso version.
 ### Downloading Enso Releases
 The releases are discovered and downloaded using the
 [GitHub API](https://docs.github.com/en/rest/reference/repos#releases). As
-described in [Release Policy](./release-policy.md#github-releases), each release
-contains a Manifest file that is downloaded first. It specifies if this Enso
-version can be used with the current launcher or an upgrade is needed, as
+described in the [Release Policy](./release-policy.md#github-releases), each
+release contains a Manifest file that is downloaded first. It specifies if this
+Enso version can be used with the current launcher or an upgrade is needed, as
 described in
 [Minimal Required Launcher Version](#minimal-required-launcher-version). If the
 version is correct, the binary file containing the Enso components distribution
@@ -145,7 +145,7 @@ creating a project with the `new` command.
 
 ## Updating the Launcher
 Besides managing Enso versions, the launcher has the ability to also update
-itself. By default it updates to the latest version available, but it also
+itself. By default it is updated to the latest version available, but it also
 allows downgrades by specifying a version explicitly.
 
 ### Minimal Required Launcher Version
@@ -166,13 +166,14 @@ command.
 The launcher is released alongside Enso, so each new release of Enso also
 contains native artifacts for the launcher for each platform. They are
 downloaded in the same way as Enso distribution. The launcher does not have to
-be updated as often as Enso itself - its update is either triggered by the user
-or a project / Enso version requiring a more recent version.
+be updated as often as Enso itself - it only has to be updated when a project or
+a new Enso version requires a more recent launcher or the user explicitly wants
+to.
 
 #### Fallback Method
 To ensure that the launcher can be safely updated even if the distribution
 scheme changes, there should be support for a fallback upgrade scheme that is
-triggered if the default upgrade process fails.
+used if the default upgrade process fails.
 
 This fallback scheme is only intended for situations where the current default
 scheme is deprecated indefinitely. So for simplicity, it does not allow to

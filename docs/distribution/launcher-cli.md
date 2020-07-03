@@ -37,7 +37,7 @@ developed.
 
 ## Commands
 
-### `new <project-name>`
+### `new`
 Create a new, empty project in a specified directory.
 By default uses the `default` enso version, which can be overriden with
 `--version`.
