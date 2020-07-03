@@ -111,21 +111,42 @@ impl ExecutionContext {
     }
 
     /// Detach visualization from current execution context.
-    pub async fn detach_visualization(&self, vis_id:VisualizationId) -> FallibleResult<Visualization> {
-        info!(self.logger,"Scheduling detaching visualization by id: {vis_id}.");
-        let vis    = self.model.detach_visualization(vis_id)?;
+    pub async fn detach_visualization
+    (&self, vis_id:VisualizationId) -> FallibleResult<Visualization> {
+        let vis    = self.model.visualization_info(vis_id)?; //.detach_visualization(vis_id)?;
+        self.detach_visualization_inner(vis).await
+    }
+
+
+    /// Detach visualization from current execution context.
+    ///
+    /// Necessary because the Language Server requires passing both visualization ID and expression
+    /// ID for the visualization attach point, and `Visualization` structure contains both.
+    pub async fn detach_visualization_inner
+    (&self, vis:Visualization) -> FallibleResult<Visualization> {
+        let vis_id = vis.id;
         let exe_id = self.id;
         let ast_id = vis.ast_id;
         let ls     = self.language_server.clone_ref();
         let logger = self.logger.clone_ref();
-        executor::global::spawn(async move {
-            info!(logger,"About to detach visualization by id: {vis_id}.");
-            let result = ls.detach_visualisation(&exe_id,&vis_id,&ast_id).await;
-            if result.is_err() {
-                error!(logger,"Error when detaching node: {result:?}.");
-            }
-        });
+        info!(logger,"About to detach visualization by id: {vis_id}.");
+        ls.detach_visualisation(&exe_id,&vis_id,&ast_id).await?;
+        if let Err(err) = self.model.detach_visualization(vis_id) {
+            warning!(logger,"Failed to update model after detaching visualization: {err:?}.")
+        }
         Ok(vis)
+    }
+
+    /// Attempt detaching all the currently active visualizations.
+    ///
+    /// The requests are made in parallel (not one by one). Any number of them might fail.
+    /// Results for each visualization that was attempted to be removed are returned.
+    pub async fn detach_all_visualizations(&self) -> Vec<FallibleResult<Visualization>> {
+        let visualizations = self.model.all_visualizations_info();
+        let detach_actions = visualizations.into_iter().map(|v| {
+            self.detach_visualization_inner(v)
+        });
+        futures::future::join_all(detach_actions).await
     }
 
     /// Dispatch the visualization update data (typically received from as LS binary notification)
@@ -441,6 +462,45 @@ pub mod tests {
             events.expect_terminated();
             assert!(context.detach_visualization(vis.id).await.is_err());
             context.dispatch_visualization_update(vis.id,update.clone()).unwrap_err();
+        });
+    }
+
+    #[test]
+    fn detaching_all_visualizations() {
+        let mock_data = MockData::new();
+        let ls        = language_server::MockClient::default();
+        let vis       = Visualization {
+            id                   : model::execution_context::VisualizationId::new_v4(),
+            ast_id               : model::execution_context::ExpressionId::new_v4(),
+            expression           : "".to_string(),
+            visualisation_module : mock_data.module_qualified_name(),
+        };
+        let vis2    = Visualization{
+            id : VisualizationId::new_v4(),
+            ..vis.clone()
+        };
+
+        let exe_id  = mock_data.context_id;
+        let vis_id  = vis.id;
+        let vis2_id = vis2.id;
+        let ast_id  = vis.ast_id;
+        let config  = vis.config(exe_id);
+        let config2  = vis2.config(exe_id);
+
+        expect_call!(ls.attach_visualisation(vis_id,ast_id,config)   => Ok(()));
+        expect_call!(ls.attach_visualisation(vis2_id,ast_id,config2) => Ok(()));
+        expect_call!(ls.detach_visualisation(exe_id,vis_id,ast_id)   => Ok(()));
+        expect_call!(ls.detach_visualisation(exe_id,vis2_id,ast_id)  => Ok(()));
+
+        let context   = mock_data.create_context(ls);
+
+        let mut test = TestWithLocalPoolExecutor::set_up();
+        test.run_task(async move {
+            // We discard visualization update streams -- they are covered by a separate test.
+            let _ = context.attach_visualization(vis.clone()).await.unwrap();
+            let _ = context.attach_visualization(vis2.clone()).await.unwrap();
+
+            context.detach_all_visualizations().await;
         });
     }
 }

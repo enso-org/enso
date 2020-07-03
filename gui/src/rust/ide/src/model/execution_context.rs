@@ -330,6 +330,11 @@ impl ExecutionContext {
         self.visualizations.borrow_mut().get(&id).map(|v| v.visualization.clone()).ok_or_else(err)
     }
 
+    /// Get the information about all the active visualizations.
+    pub fn all_visualizations_info(&self) -> Vec<Visualization> {
+        self.visualizations.borrow_mut().values().map(|v| v.visualization.clone()).collect()
+    }
+
     /// Get an iterator over stack items.
     ///
     /// Because this struct implements _internal mutability pattern_, the stack can actually change
