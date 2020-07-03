@@ -1,3 +1,10 @@
+---
+layout: style-guide
+title: Rust Style Guide
+category: style-guide
+tags: [style-guide,contributing]
+---
+
 # Rust Style Guide
 
 ## Motivation - why not rely on a formatting tool for code style?

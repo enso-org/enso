@@ -1,3 +1,10 @@
+---
+layout: developer-doc
+title: Team Process
+category: contributing
+tags: [contributing]
+---
+
 # Enso IDE Team Process
 
 This document specify our core team workflow, described as a lifecycle of a task:

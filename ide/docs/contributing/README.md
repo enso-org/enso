@@ -1,3 +1,10 @@
+---
+layout: section-summary
+title: Contributing
+category: contributing
+tags: [contributing]
+---
+
 # Enso IDE Contributing Documentation
 
 This directory contains helpful resources for anyone who wants to start Enso IDE development. The
