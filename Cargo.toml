@@ -6,7 +6,7 @@ members = [
     "lib/rust/enso-shapely/impl",
     "lib/rust/enso-shapely/macros",
     "lib/rust/flexer",
-    "lib/rust/generics"
+    "lib/rust/enso-generics"
 ]
 
 [profile.dev]
