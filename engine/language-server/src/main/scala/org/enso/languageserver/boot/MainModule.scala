@@ -24,18 +24,12 @@ import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
 }
-import org.enso.languageserver.runtime.{
-  ContextRegistry,
-  RuntimeConnector,
-  RuntimeKiller,
-  SuggestionsDatabaseEventsListener,
-  SuggestionsHandler
-}
+import org.enso.languageserver.runtime._
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.sql.SqlSuggestionsRepo
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 
@@ -72,9 +66,11 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   implicit val materializer = SystemMaterializer.get(system)
 
-  val suggestionsRepo = new SqlSuggestionsRepo()(system.dispatcher)
-  val suggestionsDb   = new SqlDatabase()
-  suggestionsDb.run(suggestionsRepo.init)
+  val suggestionsRepo = {
+    val repo = SqlSuggestionsRepo()(system.dispatcher)
+    repo.init
+    repo
+  }
 
   lazy val sessionRouter =
     system.actorOf(SessionRouter.props(), "session-router")
@@ -102,15 +98,11 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val suggestionsDatabaseEventsListener =
     system.actorOf(
-      SuggestionsDatabaseEventsListener.props(
-        sessionRouter,
-        suggestionsRepo,
-        suggestionsDb
-      )
+      SuggestionsDatabaseEventsListener.props(sessionRouter, suggestionsRepo)
     )
 
   lazy val suggestionsHandler =
-    system.actorOf(SuggestionsHandler.props(suggestionsRepo, suggestionsDb))
+    system.actorOf(SuggestionsHandler.props(suggestionsRepo))
 
   lazy val capabilityRouter =
     system.actorOf(

@@ -12,21 +12,24 @@ trait SuggestionsRepo[F[_]] {
   /** Get current version of the repo. */
   def currentVersion: F[Long]
 
-  /** Get all suggestions. */
-  def getAll: F[Seq[SuggestionEntry]]
+  /** Get all suggestions.
+    *
+    * @return the current database version and the list of suggestions
+    */
+  def getAll: F[(Long, Seq[SuggestionEntry])]
 
   /** Search suggestion by various parameters.
     *
     * @param selfType the selfType search parameter
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
-    * @return
+    * @return the current database version and the list of found suggestion ids
     */
   def search(
     selfType: Option[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]]
-  ): F[Seq[Long]]
+  ): F[(Long, Seq[Long])]
 
   /** Select the suggestion by id.
     *
@@ -45,19 +48,21 @@ trait SuggestionsRepo[F[_]] {
   /** Insert a list of suggestions
     *
     * @param suggestions the suggestions to insert
-    * @return the list of inserted suggestion ids
+    * @return the current database version and a list of inserted suggestion ids
     */
-  def insertAll(suggestions: Seq[Suggestion]): F[Seq[Option[Long]]]
+  def insertAll(suggestions: Seq[Suggestion]): F[(Long, Seq[Option[Long]])]
 
   /** Remove the suggestion.
     *
     * @param suggestion the suggestion to remove
-    * @return the id of removed suggestion */
+    * @return the id of removed suggestion
+    */
   def remove(suggestion: Suggestion): F[Option[Long]]
 
   /** Remove a list of suggestions.
     *
     * @param suggestions the suggestions to remove
-    * @return the list of removed suggestion ids */
-  def removeAll(suggestions: Seq[Suggestion]): F[Seq[Option[Long]]]
+    * @return the current database version and a list of removed suggestion ids
+    */
+  def removeAll(suggestions: Seq[Suggestion]): F[(Long, Seq[Option[Long]])]
 }

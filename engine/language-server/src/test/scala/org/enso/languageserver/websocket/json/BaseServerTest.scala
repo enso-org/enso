@@ -27,14 +27,14 @@ import org.enso.languageserver.runtime.{
 }
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
+import org.enso.searcher.sql.SqlSuggestionsRepo
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class BaseServerTest extends JsonRpcServerTestKit {
 
-  val defaultTimeout: FiniteDuration = 5.seconds
+  val timeout: FiniteDuration = 3.seconds
 
   val testSuggestionsDbPath = Files.createTempFile("suggestions", ".db")
   val testContentRoot       = Files.createTempDirectory(null).toRealPath()
@@ -79,9 +79,8 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
   override def clientControllerFactory: ClientControllerFactory = {
     val zioExec         = ZioExec(zio.Runtime.default)
-    val suggestionsRepo = new SqlSuggestionsRepo()(system.dispatcher)
-    val suggestionsDb   = SqlDatabase(testSuggestionsDbPath.toString)
-    Await.ready(suggestionsDb.run(suggestionsRepo.init), defaultTimeout)
+    val suggestionsRepo = SqlSuggestionsRepo()(system.dispatcher)
+    Await.ready(suggestionsRepo.init, timeout)
 
     val fileManager =
       system.actorOf(FileManager.props(config, new FileSystem, zioExec))
@@ -103,11 +102,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
     val suggestionsDatabaseEventsListener =
       system.actorOf(
-        SuggestionsDatabaseEventsListener.props(
-          sessionRouter,
-          suggestionsRepo,
-          suggestionsDb
-        )
+        SuggestionsDatabaseEventsListener.props(sessionRouter, suggestionsRepo)
       )
 
     val capabilityRouter =
@@ -120,7 +115,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       )
 
     val suggestionsHandler =
-      system.actorOf(SuggestionsHandler.props(suggestionsRepo, suggestionsDb))
+      system.actorOf(SuggestionsHandler.props(suggestionsRepo))
 
     new JsonConnectionControllerFactory(
       bufferRegistry,

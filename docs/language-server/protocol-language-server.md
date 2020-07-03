@@ -338,22 +338,19 @@ The update of the suggestions database.
 ```typescript
 // The kind of the suggestions database update.
 type SuggestionsDatabaseUpdate
-  = SuggestionsDatabaseUpdateAdd
-  | SuggestionsDatabaseUpdateRemove
+  = Add
+  | Remove
 
-interface SuggestionsDatabaseUpdateAdd {
+interface Add {
   // suggestion entry id
   id: number;
   // suggestion entry
   suggestion: SuggestionEntry;
 }
 
-interface SuggestionsDatabaseUpdateRemove {
+interface Remove {
   // suggestion entry id
   id: number;
-  // suggestion entry
-  suggestion: SuggestionEntry;
-}
 ```
 
 ### `File`

@@ -4,8 +4,7 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.runtime.SearchProtocol._
 import org.enso.languageserver.util.UnhandledLogging
-import org.enso.searcher.{Database, SuggestionEntry, SuggestionsRepo}
-import slick.dbio.DBIO
+import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
 
 import scala.concurrent.Future
 
@@ -15,12 +14,9 @@ import scala.concurrent.Future
   * Handler initializes the database and responds to the search requests.
   *
   * @param repo the suggestions repo
-  * @param db the database query runner
   */
-final class SuggestionsHandler(
-  repo: SuggestionsRepo[DBIO],
-  db: Database[DBIO, Future]
-) extends Actor
+final class SuggestionsHandler(repo: SuggestionsRepo[Future])
+    extends Actor
     with ActorLogging
     with UnhandledLogging {
 
@@ -28,33 +24,26 @@ final class SuggestionsHandler(
 
   override def receive: Receive = {
     case GetSuggestionsDatabaseVersion =>
-      db.run(repo.currentVersion)
+      repo.currentVersion
         .map(GetSuggestionsDatabaseVersionResult)
         .pipeTo(sender())
 
     case GetSuggestionsDatabase =>
-      val query = for {
-        entries <- repo.getAll
-        version <- repo.currentVersion
-      } yield (entries, version)
-      db.transaction(query)
+      repo.getAll
         .map(Function.tupled(toGetSuggestionsDatabaseResult))
         .pipeTo(sender())
 
     case Completion(_, _, selfType, returnType, tags) =>
       val kinds = tags.map(_.map(SuggestionKind.toSuggestion))
-      val query = for {
-        entries <- repo.search(selfType, returnType, kinds)
-        version <- repo.currentVersion
-      } yield (entries, version)
-      db.transaction(query)
+      repo
+        .search(selfType, returnType, kinds)
         .map(CompletionResult.tupled)
         .pipeTo(sender())
   }
 
   private def toGetSuggestionsDatabaseResult(
-    entries: Seq[SuggestionEntry],
-    version: Long
+    version: Long,
+    entries: Seq[SuggestionEntry]
   ): GetSuggestionsDatabaseResult = {
     val updates = entries.map(entry =>
       SuggestionsDatabaseUpdate.Add(entry.id, entry.suggestion)
@@ -69,9 +58,8 @@ object SuggestionsHandler {
     * Creates a configuration object used to create a [[SuggestionsHandler]].
     *
     * @param repo the suggestions repo
-    * @param db the database query runner
     */
-  def props(repo: SuggestionsRepo[DBIO], db: Database[DBIO, Future]): Props =
-    Props(new SuggestionsHandler(repo, db))
+  def props(repo: SuggestionsRepo[Future]): Props =
+    Props(new SuggestionsHandler(repo))
 
 }

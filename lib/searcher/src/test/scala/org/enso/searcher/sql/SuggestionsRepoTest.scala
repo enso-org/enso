@@ -18,7 +18,7 @@ class SuggestionsRepoTest
   val Timeout: FiniteDuration = 10.seconds
 
   val db   = new SqlDatabase()
-  val repo = new SqlSuggestionsRepo()
+  val repo = new SuggestionsDbio()
 
   override def beforeAll(): Unit = {
     Await.ready(db.run(repo.init), Timeout)
@@ -42,7 +42,7 @@ class SuggestionsRepoTest
           _   <- db.run(repo.insert(suggestion.function))
           _   <- db.run(repo.insert(suggestion.local))
           all <- db.run(repo.getAll)
-        } yield all
+        } yield all._2
 
       val suggestions = Await.result(action, Timeout).map(_.suggestion)
       suggestions should contain theSameElementsAs Seq(
@@ -65,7 +65,7 @@ class SuggestionsRepoTest
           _   <- db.run(repo.insert(suggestion.local))
           _   <- db.run(repo.insert(suggestion.local))
           all <- db.run(repo.getAll)
-        } yield (id1, id2, all)
+        } yield (id1, id2, all._2)
 
       val (id1, id2, all) = Await.result(action, Timeout)
       id1 shouldBe a[Some[_]]
@@ -81,11 +81,13 @@ class SuggestionsRepoTest
     "fail to insertAll duplicate suggestion" in {
       val action =
         for {
-          ids <- db.run(repo.insertAll(Seq(suggestion.local, suggestion.local)))
-          all <- db.run(repo.getAll)
-        } yield (ids, all)
+          (v1, ids) <-
+            db.run(repo.insertAll(Seq(suggestion.local, suggestion.local)))
+          (v2, all) <- db.run(repo.getAll)
+        } yield (v1, v2, ids, all)
 
-      val (ids, all) = Await.result(action, Timeout)
+      val (v1, v2, ids, all) = Await.result(action, Timeout)
+      v1 shouldEqual v2
       ids.flatten.length shouldEqual 1
       all.map(_.suggestion) should contain theSameElementsAs Seq(
         suggestion.local
@@ -183,7 +185,7 @@ class SuggestionsRepoTest
         _   <- db.run(repo.insert(suggestion.function))
         _   <- db.run(repo.insert(suggestion.local))
         res <- db.run(repo.search(None, None, None))
-      } yield res
+      } yield res._2
 
       val res = Await.result(action, Timeout)
       res.isEmpty shouldEqual true
@@ -196,7 +198,7 @@ class SuggestionsRepoTest
         _   <- db.run(repo.insert(suggestion.function))
         _   <- db.run(repo.insert(suggestion.local))
         res <- db.run(repo.search(Some("Main"), None, None))
-      } yield (id2, res)
+      } yield (id2, res._2)
 
       val (id, res) = Await.result(action, Timeout)
       res should contain theSameElementsAs Seq(id).flatten
@@ -209,7 +211,7 @@ class SuggestionsRepoTest
         id3 <- db.run(repo.insert(suggestion.function))
         id4 <- db.run(repo.insert(suggestion.local))
         res <- db.run(repo.search(None, Some("MyType"), None))
-      } yield (id3, id4, res)
+      } yield (id3, id4, res._2)
 
       val (id1, id2, res) = Await.result(action, Timeout)
       res should contain theSameElementsAs Seq(id1, id2).flatten
@@ -223,7 +225,7 @@ class SuggestionsRepoTest
         _   <- db.run(repo.insert(suggestion.function))
         id4 <- db.run(repo.insert(suggestion.local))
         res <- db.run(repo.search(None, None, Some(kinds)))
-      } yield (id1, id4, res)
+      } yield (id1, id4, res._2)
 
       val (id1, id2, res) = Await.result(action, Timeout)
       res should contain theSameElementsAs Seq(id1, id2).flatten
@@ -236,7 +238,7 @@ class SuggestionsRepoTest
         _   <- db.run(repo.insert(suggestion.function))
         _   <- db.run(repo.insert(suggestion.local))
         res <- db.run(repo.search(None, None, Some(Seq())))
-      } yield res
+      } yield res._2
 
       val res = Await.result(action, Timeout)
       res.isEmpty shouldEqual true
@@ -250,7 +252,7 @@ class SuggestionsRepoTest
         _   <- db.run(repo.insert(suggestion.function))
         id4 <- db.run(repo.insert(suggestion.local))
         res <- db.run(repo.search(None, Some("MyType"), Some(kinds)))
-      } yield (id4, res)
+      } yield (id4, res._2)
 
       val (id, res) = Await.result(action, Timeout)
       res should contain theSameElementsAs Seq(id).flatten
@@ -263,7 +265,7 @@ class SuggestionsRepoTest
         _   <- db.run(repo.insert(suggestion.function))
         _   <- db.run(repo.insert(suggestion.local))
         res <- db.run(repo.search(Some("Main"), Some("MyType"), None))
-      } yield res
+      } yield res._2
 
       val res = Await.result(action, Timeout)
       res.isEmpty shouldEqual true
@@ -281,7 +283,7 @@ class SuggestionsRepoTest
         _   <- db.run(repo.insert(suggestion.function))
         _   <- db.run(repo.insert(suggestion.local))
         res <- db.run(repo.search(Some("Main"), Some("MyType"), Some(kinds)))
-      } yield res
+      } yield res._2
 
       val res = Await.result(action, Timeout)
       res.isEmpty shouldEqual true

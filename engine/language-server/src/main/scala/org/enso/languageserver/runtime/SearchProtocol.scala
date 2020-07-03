@@ -222,9 +222,9 @@ object SearchProtocol {
 
   /** Te reply to the [[Completion]] request.
     *
-    * @param results the list of suggestion ids matched the search query
     * @param currentVersion current version of the suggestions database
+    * @param results the list of suggestion ids matched the search query
     */
-  case class CompletionResult(results: Seq[SuggestionId], currentVersion: Long)
+  case class CompletionResult(currentVersion: Long, results: Seq[SuggestionId])
 
 }

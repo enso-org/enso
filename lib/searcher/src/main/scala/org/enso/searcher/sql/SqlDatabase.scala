@@ -12,7 +12,7 @@ import scala.concurrent.Future
   *
   * @param config the configuration
   */
-final class SqlDatabase(config: Option[Config] = None)
+final private[sql] class SqlDatabase(config: Option[Config] = None)
     extends Database[DBIO, Future] {
 
   val db = SQLiteProfile.backend.Database

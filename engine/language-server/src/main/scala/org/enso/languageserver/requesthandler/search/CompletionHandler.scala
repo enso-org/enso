@@ -64,7 +64,7 @@ class CompletionHandler(
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case SearchProtocol.CompletionResult(results, version) =>
+    case SearchProtocol.CompletionResult(version, results) =>
       replyTo ! ResponseResult(
         Completion,
         id,

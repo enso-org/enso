@@ -5,15 +5,14 @@ import java.nio.file.Files
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit}
 import org.enso.jsonrpc.test.RetrySpec
-import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo}
-import org.enso.searcher.{Database, SuggestionsRepo}
+import org.enso.searcher.SuggestionsRepo
+import org.enso.searcher.sql.SqlSuggestionsRepo
 import org.enso.text.editing.model.Position
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
-import slick.dbio.DBIO
 
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class SuggestionsHandlerTest
     extends TestKit(ActorSystem("TestSystem"))
@@ -32,32 +31,32 @@ class SuggestionsHandlerTest
 
   "SuggestionsHandler" should {
 
-    "get initial suggestions database version" in withDb { (repo, db) =>
-      val handler = newSuggestionsHandler(repo, db)
+    "get initial suggestions database version" in withDb { repo =>
+      val handler = newSuggestionsHandler(repo)
       handler ! SearchProtocol.GetSuggestionsDatabaseVersion
 
       expectMsg(SearchProtocol.GetSuggestionsDatabaseVersionResult(0))
     }
 
-    "get suggestions database version" in withDb { (repo, db) =>
-      val handler = newSuggestionsHandler(repo, db)
-      Await.ready(db.run(repo.insert(Suggestions.atom)), Timeout)
+    "get suggestions database version" in withDb { repo =>
+      val handler = newSuggestionsHandler(repo)
+      Await.ready(repo.insert(Suggestions.atom), Timeout)
 
       handler ! SearchProtocol.GetSuggestionsDatabaseVersion
 
       expectMsg(SearchProtocol.GetSuggestionsDatabaseVersionResult(1))
     }
 
-    "get initial suggestions database" in withDb { (repo, db) =>
-      val handler = newSuggestionsHandler(repo, db)
+    "get initial suggestions database" in withDb { repo =>
+      val handler = newSuggestionsHandler(repo)
       handler ! SearchProtocol.GetSuggestionsDatabase
 
       expectMsg(SearchProtocol.GetSuggestionsDatabaseResult(Seq(), 0))
     }
 
-    "get suggestions database" in withDb { (repo, db) =>
-      val handler = newSuggestionsHandler(repo, db)
-      Await.ready(db.run(repo.insert(Suggestions.atom)), Timeout)
+    "get suggestions database" in withDb { repo =>
+      val handler = newSuggestionsHandler(repo)
+      Await.ready(repo.insert(Suggestions.atom), Timeout)
       handler ! SearchProtocol.GetSuggestionsDatabase
 
       expectMsg(
@@ -70,25 +69,24 @@ class SuggestionsHandlerTest
       )
     }
 
-    "search entries by empty search query" taggedAs Retry() in withDb {
-      (repo, db) =>
-        val handler = newSuggestionsHandler(repo, db)
-        Await.ready(db.run(repo.insertAll(Suggestions.all)), Timeout)
-        handler ! SearchProtocol.Completion(
-          module     = "Test.Main",
-          position   = Position(0, 0),
-          selfType   = None,
-          returnType = None,
-          tags       = None
-        )
+    "search entries by empty search query" taggedAs Retry() in withDb { repo =>
+      val handler = newSuggestionsHandler(repo)
+      Await.ready(repo.insertAll(Suggestions.all), Timeout)
+      handler ! SearchProtocol.Completion(
+        module     = "Test.Main",
+        position   = Position(0, 0),
+        selfType   = None,
+        returnType = None,
+        tags       = None
+      )
 
-        expectMsg(SearchProtocol.CompletionResult(Seq(), 4L))
+      expectMsg(SearchProtocol.CompletionResult(4L, Seq()))
     }
 
-    "search entries by self type" taggedAs Retry() in withDb { (repo, db) =>
-      val handler = newSuggestionsHandler(repo, db)
-      val Seq(_, methodId, _, _) =
-        Await.result(db.run(repo.insertAll(Suggestions.all)), Timeout)
+    "search entries by self type" taggedAs Retry() in withDb { repo =>
+      val handler = newSuggestionsHandler(repo)
+      val (_, Seq(_, methodId, _, _)) =
+        Await.result(repo.insertAll(Suggestions.all), Timeout)
       handler ! SearchProtocol.Completion(
         module     = "Test.Main",
         position   = Position(0, 0),
@@ -97,13 +95,13 @@ class SuggestionsHandlerTest
         tags       = None
       )
 
-      expectMsg(SearchProtocol.CompletionResult(Seq(methodId).flatten, 4L))
+      expectMsg(SearchProtocol.CompletionResult(4L, Seq(methodId).flatten))
     }
 
-    "search entries by return type" taggedAs Retry() in withDb { (repo, db) =>
-      val handler = newSuggestionsHandler(repo, db)
-      val Seq(_, _, functionId, _) =
-        Await.result(db.run(repo.insertAll(Suggestions.all)), Timeout)
+    "search entries by return type" taggedAs Retry() in withDb { repo =>
+      val handler = newSuggestionsHandler(repo)
+      val (_, Seq(_, _, functionId, _)) =
+        Await.result(repo.insertAll(Suggestions.all), Timeout)
       handler ! SearchProtocol.Completion(
         module     = "Test.Main",
         position   = Position(0, 0),
@@ -112,13 +110,13 @@ class SuggestionsHandlerTest
         tags       = None
       )
 
-      expectMsg(SearchProtocol.CompletionResult(Seq(functionId).flatten, 4L))
+      expectMsg(SearchProtocol.CompletionResult(4L, Seq(functionId).flatten))
     }
 
-    "search entries by tags" taggedAs Retry() in withDb { (repo, db) =>
-      val handler = newSuggestionsHandler(repo, db)
-      val Seq(_, _, _, localId) =
-        Await.result(db.run(repo.insertAll(Suggestions.all)), Timeout)
+    "search entries by tags" taggedAs Retry() in withDb { repo =>
+      val handler = newSuggestionsHandler(repo)
+      val (_, Seq(_, _, _, localId)) =
+        Await.result(repo.insertAll(Suggestions.all), Timeout)
       handler ! SearchProtocol.Completion(
         module     = "Test.Main",
         position   = Position(0, 0),
@@ -127,28 +125,22 @@ class SuggestionsHandlerTest
         tags       = Some(Seq(SearchProtocol.SuggestionKind.Local))
       )
 
-      expectMsg(SearchProtocol.CompletionResult(Seq(localId).flatten, 4L))
+      expectMsg(SearchProtocol.CompletionResult(4L, Seq(localId).flatten))
     }
 
   }
 
-  def newSuggestionsHandler(
-    repo: SuggestionsRepo[DBIO],
-    db: Database[DBIO, Future]
-  ): ActorRef =
-    system.actorOf(SuggestionsHandler.props(repo, db))
+  def newSuggestionsHandler(repo: SuggestionsRepo[Future]): ActorRef =
+    system.actorOf(SuggestionsHandler.props(repo))
 
-  def withDb(
-    test: (SuggestionsRepo[DBIO], Database[DBIO, Future]) => Any
-  ): Unit = {
+  def withDb(test: SuggestionsRepo[Future] => Any): Unit = {
     val dbPath = Files.createTempFile("suggestions", ".db")
     system.registerOnTermination(Files.deleteIfExists(dbPath))
-    val repo = new SqlSuggestionsRepo()
-    val db   = new SqlDatabase()
-    Await.ready(db.run(repo.init), Timeout)
+    val repo = SqlSuggestionsRepo()
+    Await.ready(repo.init, Timeout)
 
-    try test(repo, db)
-    finally db.close()
+    try test(repo)
+    finally repo.close()
   }
 
 }

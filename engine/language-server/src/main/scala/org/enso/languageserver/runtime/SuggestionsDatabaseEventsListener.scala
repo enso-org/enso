@@ -19,8 +19,7 @@ import org.enso.languageserver.runtime.SearchProtocol.{
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.searcher.{Database, Suggestion, SuggestionsRepo}
-import slick.dbio.DBIO
+import org.enso.searcher.{Suggestion, SuggestionsRepo}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -32,12 +31,10 @@ import scala.util.{Failure, Success}
   *
   * @param sessionRouter the session router
   * @param repo the suggestions repo
-  * @param db the database query runner
   */
 final class SuggestionsDatabaseEventsListener(
   sessionRouter: ActorRef,
-  repo: SuggestionsRepo[DBIO],
-  db: Database[DBIO, Future]
+  repo: SuggestionsRepo[Future]
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -95,10 +92,9 @@ final class SuggestionsDatabaseEventsListener(
           (add, remove :+ msg.suggestion)
       }
 
-    val query = for {
-      removedIds <- repo.removeAll(removed)
-      addedIds   <- repo.insertAll(added)
-      version    <- repo.currentVersion
+    for {
+      (_, removedIds)     <- repo.removeAll(removed)
+      (version, addedIds) <- repo.insertAll(added)
     } yield {
       val updatesRemoved = removedIds.collect {
         case Some(id) => SuggestionsDatabaseUpdate.Remove(id)
@@ -116,7 +112,6 @@ final class SuggestionsDatabaseEventsListener(
         version
       )
     }
-    db.transaction(query)
   }
 }
 
@@ -128,13 +123,11 @@ object SuggestionsDatabaseEventsListener {
     *
     * @param sessionRouter the session router
     * @param repo the suggestions repo
-    * @param db the database query runner
     */
   def props(
     sessionRouter: ActorRef,
-    repo: SuggestionsRepo[DBIO],
-    db: Database[DBIO, Future]
+    repo: SuggestionsRepo[Future]
   ): Props =
-    Props(new SuggestionsDatabaseEventsListener(sessionRouter, repo, db))
+    Props(new SuggestionsDatabaseEventsListener(sessionRouter, repo))
 
 }
