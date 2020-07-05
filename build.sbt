@@ -609,13 +609,18 @@ lazy val searcher = project
   .in(file("lib/scala/searcher"))
   .configs(Test)
   .settings(
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= jmh ++ Seq(
         "com.typesafe.slick" %% "slick"           % slickVersion,
         "org.xerial"          % "sqlite-jdbc"     % sqliteVersion,
         "com.typesafe.slick" %% "slick-hikaricp"  % slickVersion          % Runtime,
         "ch.qos.logback"      % "logback-classic" % logbackClassicVersion % Test,
         "org.scalatest"      %% "scalatest"       % scalatestVersion      % Test
       )
+  )
+  .configs(Benchmark)
+  .settings(
+    inConfig(Benchmark)(Defaults.testSettings),
+    fork in Benchmark := true
   )
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
@@ -910,4 +915,3 @@ lazy val runner = project
   .dependsOn(pkg)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
-

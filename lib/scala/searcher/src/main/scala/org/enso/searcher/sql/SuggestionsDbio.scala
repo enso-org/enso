@@ -168,6 +168,15 @@ final private[sql] class SuggestionsDbio(implicit ec: ExecutionContext)
     increment.transactionally
   }
 
+  /** Insert suggestions in a batch. */
+  private[sql] def insertBatch(suggestions: Array[Suggestion]): DBIO[Int] = {
+    val rows = suggestions.map(toSuggestionRow)
+    for {
+      _    <- (Suggestions ++= rows.map(_._1)).asTry
+      size <- Suggestions.length.result
+    } yield size
+  }
+
   /** Create a search query by the provided parameters. */
   private def searchQuery(
     selfType: Option[String],

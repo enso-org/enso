@@ -247,7 +247,7 @@ class ProjectManagementApiSpec
           """)
     }
 
-    "start the Language Server if not running" in {
+    "start the Language Server if not running" taggedAs Flaky in {
       //given
       val projectName     = "to-remove"
       implicit val client = new WsTestClient(address)
