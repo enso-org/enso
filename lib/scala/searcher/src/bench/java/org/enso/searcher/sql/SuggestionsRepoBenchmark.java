@@ -44,7 +44,7 @@ public class SuggestionsRepoBenchmark {
       System.out.println("inserting records...");
       int size = 0;
       while (size < DATABASE_SIZE) {
-        size = insertBatch(5000);
+        size = insertBatch(20000);
       }
       System.out.println("created " + size + " records");
     }

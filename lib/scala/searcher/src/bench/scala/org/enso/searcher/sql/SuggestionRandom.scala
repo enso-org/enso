@@ -66,7 +66,7 @@ object SuggestionRandom {
     }
 
   def nextString(): String =
-    Random.nextString(Random.nextInt(16) + 1)
+    Random.nextString(Random.nextInt(26) + 5)
 
   def optional[A](f: => A): Option[A] =
     Option.when(Random.nextBoolean())(f)

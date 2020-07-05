@@ -42,7 +42,7 @@ case class SuggestionRow(
   id: Option[Long],
   kind: Byte,
   name: String,
-  selfType: Option[String],
+  selfType: String,
   returnType: String,
   documentation: Option[String],
   scopeStart: Int,
@@ -81,6 +81,12 @@ object ScopeColumn {
 
   /** A constant representing an empty value in the scope column. */
   val EMPTY: Int = -1
+}
+
+object SelfTypeColumn {
+
+  /** A constant representing en empty value in the self type column. */
+  val EMPTY: String = "\u0500"
 }
 
 /** The schema of the arguments table. */
@@ -125,7 +131,7 @@ final class SuggestionsTable(tag: Tag)
   def id            = column[Long]("id", O.PrimaryKey, O.AutoInc)
   def kind          = column[Byte]("kind")
   def name          = column[String]("name")
-  def selfType      = column[Option[String]]("self_type")
+  def selfType      = column[String]("self_type")
   def returnType    = column[String]("return_type")
   def documentation = column[Option[String]]("documentation")
   def scopeStart    = column[Int]("scope_start", O.Default(ScopeColumn.EMPTY))
@@ -145,12 +151,13 @@ final class SuggestionsTable(tag: Tag)
 
   def selfTypeIdx   = index("suggestions_self_type_idx", selfType)
   def returnTypeIdx = index("suggestions_return_type_idx", returnType)
-  def kindIdx       = index("suggestions_kind_idx", kind)
   def name_idx      = index("suggestions_name_idx", name)
+  // NOTE: unique index should not contain nullable columns because SQLite
+  // teats NULLs as distinct values.
   def uniqueIdx =
     index(
       "suggestion_unique_idx",
-      (kind, name, scopeStart, scopeEnd),
+      (kind, name, selfType, scopeStart, scopeEnd),
       unique = true
     )
 }
