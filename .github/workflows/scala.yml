@@ -7,8 +7,9 @@ on:
     branches: [ "*" ]
 
 env:
-  # Please ensure that this is in sync with graalAPIVersion in build.sbt
+  # Please ensure that this is in sync with graalVersion in build.sbt
   graalVersion: 20.1.0
+  # Please ensure that this is in sync with javaVersion in build.sbt
   javaVersion: java11
   # Please ensure that this is in sync with project/build.properties
   sbtVersion: 1.3.13
@@ -215,3 +216,65 @@ jobs:
           text
           EOF
 
+  build-launcher:
+    name: Build Launcher
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
+      fail-fast: false
+    steps:
+      - name: Checkout (PR)
+        uses: actions/checkout@v2
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Checkout (Branch)
+        uses: actions/checkout@v2
+        if: github.event_name != 'pull_request'
+      - name: Setup conda
+        uses: s-weigand/setup-conda@v1
+        with:
+          update-conda: true
+          conda-channels: anaconda, conda-forge
+      - name: Install FlatBuffers Compiler
+        run: conda install flatbuffers=1.12.0
+      - name: Setup GraalVM Environment
+        uses: DeLaGuardo/setup-graalvm@2.0
+        with:
+          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+      - name: Set Up SBT
+        run: |
+          curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+          tar -xzf sbt.tgz
+          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+      - name: Set Up Native Image
+        run: gu install native-image
+
+      # Caches
+      - name: Cache SBT
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          restore-keys: ${{ runner.os }}-sbt-
+
+      # Build Artifacts
+      #- name: Bootstrap the project # as long as launcher doesn't depend on runtime, bootstrap is not mandatory
+      #  run: sbt --no-colors bootstrap
+      - name: Build Launcher Native Image
+        run: sbt --no-colors launcher/buildNativeImage
+      - name: Check linkage # TODO this is an experiment and will be removed
+        if: runner.os != 'Windows'
+        run: ldd enso
+
+      # Publish
+      - name: Publish the Launcher Binary # TODO put it into a ZIP
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: launcher-${{ matrix.os }}
+          path: enso

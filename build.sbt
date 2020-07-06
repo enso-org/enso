@@ -117,6 +117,7 @@ lazy val enso = (project in file("."))
     runner,
     runtime,
     searcher,
+    launcher,
     syntax.jvm
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
@@ -927,10 +928,12 @@ lazy val launcher = project
   .settings(
     buildNativeImage := Def
         .task {
-          val javaHome         = System.getProperty("java.home")
-          val nativeImagePath  = s"$javaHome/bin/native-image"
-          val classPath        = (Runtime / fullClasspath).value.files.mkString(":")
-          val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
+          val javaHome = System.getProperty("java.home")
+          val nativeImagePath =
+            if (sys.props("os.name").contains("Windows"))
+              s"$javaHome\\bin\\native-image.cmd"
+            else s"$javaHome/bin/native-image"
+          val classPath = (Runtime / fullClasspath).value.files.mkString(":")
           val cmd =
             s"$nativeImagePath --static --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
           cmd !
