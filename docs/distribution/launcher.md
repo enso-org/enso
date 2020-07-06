@@ -44,6 +44,21 @@ The distribution structure is portable - this directory structure can be placed
 anywhere in the system. The launcher places all components in this directory
 structure by accessing them as relative to the location of its binary.
 
+## Launcher Build
+The launcher is built using
+[GraalVM Native Image](https://www.graalvm.org/docs/reference-manual/native-image/)
+which compiles the JVM code into a native binary ahead of time, resulting in a
+small and fast launching executable.
+
+### Portability
+On Linux, it is possible to statically link all libraries required by the Native
+Image, thus ensuring portability between Linux distributions.
+
+On Windows and Mac, it is not possible to statically link against system
+libraries, but this should not hinder portability as the system libraries are
+generally compatible between distribution versions on these platforms.
+Non-system dependencies are included in the binary on these platforms as well.
+
 ## Project Management
 The launcher provides basic project management utilities for the command-line
 user.

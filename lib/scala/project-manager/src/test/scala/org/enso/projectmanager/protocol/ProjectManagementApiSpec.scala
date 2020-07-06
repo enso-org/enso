@@ -281,7 +281,7 @@ class ProjectManagementApiSpec
       deleteProject(projectId)
     }
 
-    "not start new Language Server if one is running" in {
+    "not start new Language Server if one is running" taggedAs Flaky in {
       val client1   = new WsTestClient(address)
       val projectId = createProject("foo")(client1)
       //when
