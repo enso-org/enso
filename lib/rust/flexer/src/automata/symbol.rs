@@ -6,8 +6,12 @@
 // === Symbol ===
 // ==============
 
-// TODO [AA] Should this be `char` instead? Char holds _valid_ unicode literal values
-//  If we don't make this change should we redefine the API to only be in terms of characters
+// TODO [AA] Should this be `char` instead? Char holds _valid_ unicode literal values, which has
+//  some practical issues:
+//  - `std::char::MAX` is defined in a private use area, which _may_ conflict, but due to it being
+//    private use this could be fine.
+//  - Not all valid `u32` values are valid `char` values, so we end up with some marshalling
+//    boilerplate in some places.
 /// An input symbol to a finite automaton.
 #[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord,Hash)]
 pub struct Symbol {
@@ -22,7 +26,6 @@ impl Symbol {
         Symbol{val:character as u32}
     }
 
-    // TODO [AA] This has issues in that `char.MAX` is defined in a PUA
     /// A representation of the end of the file.
     pub const EOF_CODE:Symbol = Symbol{val:u32::max_value()};
 

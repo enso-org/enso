@@ -62,7 +62,6 @@ impl Pattern {
     }
 
     /// A pattern that triggers on the given symbol.
-    // TODO [AA] This should be `char`
     pub fn symbol(symbol:u32) -> Self {
         Pattern::symbols(symbol..=symbol)
     }
@@ -87,7 +86,6 @@ impl Pattern {
         Pattern::symbols((*range.start() as u32)..=(*range.end() as u32))
     }
 
-    // TODO [AA] This may be unnecessary once things are moved to `char
     /// Pattern that triggers when sequence of characters given by `chars` is encountered.
     pub fn all(chars:&str) -> Self {
         chars.chars().fold(Self::never(), |pat,char| pat & Self::char(char))

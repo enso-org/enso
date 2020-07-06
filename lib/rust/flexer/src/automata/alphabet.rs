@@ -50,7 +50,6 @@ impl Default for Alphabet {
     }
 }
 
-// TODO [AA] Should be from `Vec<char>`
 impl From<Vec<u32>> for Alphabet {
     fn from(vec:Vec<u32>) -> Self {
         let mut dict = Self::default();
