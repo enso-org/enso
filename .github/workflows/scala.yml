@@ -292,6 +292,8 @@ jobs:
           mkdir enso-launcher/dist
           mkdir enso-launcher/jvm
           cp distribution/launcher/README.md enso-launcher/
+          cp distribution/launcher/NOTICE enso-launcher/
+          cp -r distribution/launcher/components-licences enso-launcher/
       - name: Prepare Launcher distribution (Unix)
         if: runner.os != 'Windows'
         run: |
