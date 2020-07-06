@@ -215,7 +215,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
           |        IO.println "foo"
           |        ## the return
           |        0
-          |        
+          |
           |    f = case _ of
           |        ## case 1
           |        Bar -> 100

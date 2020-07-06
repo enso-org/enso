@@ -15,30 +15,30 @@ import org.enso.languageserver.filemanager.{
   FileSystem,
   ReceivesTreeUpdatesHandler
 }
-import org.enso.languageserver.io.{
-  InputRedirectionController,
-  ObservableOutputStream,
-  ObservablePipedInputStream,
-  OutputKind,
-  OutputRedirectionController
-}
+import org.enso.languageserver.io._
 import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
 }
 import org.enso.languageserver.runtime.{
   ContextRegistry,
-  SuggestionsDatabaseEventsListener
+  SuggestionsDatabaseEventsListener,
+  SuggestionsHandler
 }
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
+import org.enso.searcher.sql.SqlSuggestionsRepo
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class BaseServerTest extends JsonRpcServerTestKit {
 
-  val testContentRoot   = Files.createTempDirectory(null).toRealPath()
-  val testContentRootId = UUID.randomUUID()
+  val timeout: FiniteDuration = 3.seconds
+
+  val testSuggestionsDbPath = Files.createTempFile("suggestions", ".db")
+  val testContentRoot       = Files.createTempDirectory(null).toRealPath()
+  val testContentRootId     = UUID.randomUUID()
   val config = Config(
     Map(testContentRootId -> testContentRoot.toFile),
     FileManagerConfig(timeout = 3.seconds),
@@ -48,6 +48,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
   val runtimeConnectorProbe = TestProbe()
 
   testContentRoot.toFile.deleteOnExit()
+  testSuggestionsDbPath.toFile.deleteOnExit()
 
   override def protocol: Protocol = JsonRpc.protocol
 
@@ -77,7 +78,10 @@ class BaseServerTest extends JsonRpcServerTestKit {
     )
 
   override def clientControllerFactory: ClientControllerFactory = {
-    val zioExec = ZioExec(zio.Runtime.default)
+    val zioExec         = ZioExec(zio.Runtime.default)
+    val suggestionsRepo = SqlSuggestionsRepo()(system.dispatcher)
+    Await.ready(suggestionsRepo.init, timeout)
+
     val fileManager =
       system.actorOf(FileManager.props(config, new FileSystem, zioExec))
     val bufferRegistry =
@@ -97,7 +101,9 @@ class BaseServerTest extends JsonRpcServerTestKit {
       )
 
     val suggestionsDatabaseEventsListener =
-      system.actorOf(SuggestionsDatabaseEventsListener.props(sessionRouter))
+      system.actorOf(
+        SuggestionsDatabaseEventsListener.props(sessionRouter, suggestionsRepo)
+      )
 
     val capabilityRouter =
       system.actorOf(
@@ -108,11 +114,15 @@ class BaseServerTest extends JsonRpcServerTestKit {
         )
       )
 
+    val suggestionsHandler =
+      system.actorOf(SuggestionsHandler.props(suggestionsRepo))
+
     new JsonConnectionControllerFactory(
       bufferRegistry,
       capabilityRouter,
       fileManager,
       contextRegistry,
+      suggestionsHandler,
       stdOutController,
       stdErrController,
       stdInController,
