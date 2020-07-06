@@ -16,39 +16,58 @@ pub mod rule;
 // == Group ==
 // ===========
 
-/// Struct that group rules together. It also inherits rules from parent group (if it has one).
-/// Groups are the basic building block of flexer:
-/// Flexer internally keeps a stack of groups, only one of them active at a time.
-/// Each group contains set of regex patterns and callbacks (together called `Rule`).
-/// Whenever a rule.pattern from active group is matched with part of input the associated
-/// rule.callback is executed, which in turn may exit the current groupor enter a new one.
-/// This allows us to nicely model a situation, where certain part of program (like a string literal)
-/// should have very different parsing rules than other (for example body of function).
-/// Note that the input is first matched with first added rule, then with the second etc.
-/// Therefore, if two rules overlap, only the callback of the first added rule will be executed.
+/// A group is a structure for associating multiple rules with each other, and is the basic building
+/// block of the flexer.
+///
+/// A group consists of the following:
+///
+/// - A set of `Rule`s, each containing a regex pattern and associated callback.
+/// - Inherited rules from a parent group, if such a group exists.
+///
+/// Internally, the flexer maintains a stack of groups, where only one group can be active at any
+/// given time. Rules are matched _in order_, and hence overlaps are handled by the order in which
+/// the rules are matched, with the first callback being triggered.
+///
+/// Whenever a rule.pattern from the active group is matched against part of the input, the
+/// associated rule.callback is executed. This callback may exit the current group or even enter a
+/// new one. As a result, groups allow us to elegantly model a situation where certain parts of a
+/// program (e.g. within a string literal) have very different lexing rules than other portions of
+/// a program (e.g. the body of a function).
 #[derive(Clone,Debug,Default)]
 pub struct Group {
-    /// Unique ID.
+    // TODO [AA] Make this
+    /// A unique identifier for the group.
     pub id: usize,
-    /// Custom name which is used for debugging.
+    /// A name for the group (useful in debugging).
     pub name: String,
-    /// Parent which we inherit rules from.
+    /// The parent group from which rules are inherited.
     pub parent: Option<Box<Group>>,
-    /// Set of regex patterns with associated callbacks.
+    /// A set of flexer rules.
     pub rules: Vec<Rule>,
 }
 
 impl Group {
-    /// Adds new rule (regex pattern with associated callback) to group.
+    /// Adds a new rule to the current group.
     pub fn add_rule(&mut self, rule:Rule) {
         self.rules.push(rule)
     }
 
-    /// Returns rule builder for given pattern.
-    /// TODO[jv] better describe it's purpose once we agree on correct API.
+    /// Returns a rule builder for the given pattern.
+    /// TODO[AA] Is this a necessary part of the API?
     pub fn rule(&mut self, pattern:Pattern) -> rule::Builder<impl FnMut(Rule) + '_> {
-        rule::Builder{pattern,callback:move |rule| self.add_rule(rule)}
+        rule::Builder{pattern, callback:move |rule| self.add_rule(rule)}
     }
+
+    /// The canonical name for a given rule.
+    fn callback_name(&self, rule_ix:usize) -> String {
+        format!("group{}_rule{}", self.id, rule_ix)
+    }
+}
+
+
+// === Getters ===
+
+impl Group {
 
     /// All rules including parent rules.
     pub fn rules(&self) -> Vec<&Rule> {
@@ -59,11 +78,6 @@ impl Group {
             parent = &state.parent;
         }
         rules
-    }
-
-    /// Canonical name of given rule.
-    fn callback_name(&self, rule_ix:usize) -> String {
-        format!("group{}_rule{}",self.id,rule_ix)
     }
 }
 
@@ -83,6 +97,7 @@ impl From<&Group> for NFA {
         nfa
     }
 }
+
 
 
 // =============
