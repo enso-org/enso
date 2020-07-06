@@ -933,7 +933,8 @@ lazy val launcher = project
             if (sys.props("os.name").contains("Windows"))
               s"$javaHome\\bin\\native-image.cmd"
             else s"$javaHome/bin/native-image"
-          val classPath = (Runtime / fullClasspath).value.files.mkString(":")
+          val classPath =
+            (Runtime / fullClasspath).value.files.mkString(File.pathSeparator)
           val cmd =
             s"$nativeImagePath --static --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
           cmd !

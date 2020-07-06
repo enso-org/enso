@@ -252,12 +252,11 @@ jobs:
         uses: DeLaGuardo/setup-graalvm@2.0
         with:
           graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-      - name: Verify Graal Updater (Windows)
+      - name: Set Up Native Image (Windows)
         if: runner.os == 'Windows'
-        run: |
-          where gu
-          gu --help
-      - name: Set Up Native Image
+        run: gu.cmd -N install -n native-image
+      - name: Set Up Native Image (non-Windows)
+        if: runner.os != 'Windows'
         run: gu -N install -n native-image
       - name: Set Up SBT
         run: |
