@@ -14,8 +14,8 @@ no_unboxed_callbacks = []
 
 [dependencies]
 enso-callback              = { version = "0.1.0" , path = "../lib/callback"          }
-ensogl-core-embedded-fonts = { version = "0.1.0" , path = "embedded-fonts"           }
-ensogl-core-msdf-sys       = { version = "0.1.0" , path = "msdf-sys"                 }
+ensogl-core-embedded-fonts = { version = "0.1.0" , path = "lib/embedded-fonts"       }
+ensogl-core-msdf-sys       = { version = "0.1.0" , path = "lib/msdf-sys"             }
 enso-generics              = { version = "0.1.0" , path = "../lib/generics"          }
 enso-prelude               = { version = "0.1.0" , path = "../lib/enso-prelude"      }
 ensogl-system-web          = { version = "0.1.0" , path = "../lib/system/web"        }

@@ -1,0 +1,28 @@
+[package]
+name    = "ide-view"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ast                  = { version = "0.1.0", path = "../ast/impl"                    }
+enso-frp             = { version = "0.1.0", path = "../../../lib/frp"               }
+enso-prelude         = { version = "0.1.0", path = "../../../lib/enso-prelude"      }
+ensogl               = { version = "0.1.0", path = "../../../ensogl"                }
+ensogl-core-msdf-sys = { version = "0.1.0", path = "../../../ensogl/lib/msdf-sys"   }
+ensogl-text          = { version = "0.1.0", path = "../../../ensogl/lib/text"       }
+enso-shapely         = { version = "0.1.0", path = "../../../lib/enso-shapely/impl" }
+span-tree            = { version = "0.1.0", path = "../span-tree"                   }
+logger               = { version = "0.1.0", path = "../../../lib/logger"            }
+
+wasm-bindgen = { version = "=0.2.58" , features = ["nightly","serde-serialize"] }
+nalgebra     = { version = "0.21.1"  , features = ["serde-serialize"]           }
+serde_json   = { version = "1.0"                                                }
+serde        = { version = "1.0"     , features = ["derive"]                    }
+js-sys       = { version = "0.3.28"                                             }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = []

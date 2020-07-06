@@ -10,21 +10,21 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 enso-callback            = { version = "0.1.0"  , path = "../lib/callback"          }
 ensogl                   = { version = "0.1.0"  , path = "../ensogl"                }
-ensogl-core-msdf-sys     = { version = "0.1.0"  , path = "../ensogl/msdf-sys"       }
+ensogl-core-msdf-sys     = { version = "0.1.0"  , path = "../ensogl/lib/msdf-sys"   }
 ensogl-system-web        = { version = "0.1.0"  , path = "../lib/system/web"        }
 data                     = { version = "0.1.0"  , path = "../lib/data"              }
 enso-frp                 = { version = "0.1.0"  , path = "../lib/frp"               }
 enso-prelude             = { version = "0.1.0"  , path = "../lib/enso-prelude"      }
-graph-editor             = { version = "0.1.0"  , path = "../lib/graph-editor"      }
 logger                   = { version = "0.1.0"  , path = "../lib/logger"            }
 enso-shapely             = { version = "0.1.0"  , path = "../lib/enso-shapely/impl" }
 
-ast                      = { version = "0.1.0"  , path = "ast/impl"            }
-enso-protocol            = { version = "0.1.0"  , path = "enso-protocol"       }
-json-rpc                 = { version = "0.1.0"  , path = "json-rpc"            }
-parser                   = { version = "0.1.0"  , path = "parser"              }
-utils                    = { version = "0.1.0"  , path = "utils"               }
-span-tree                = { version = "0.1.0"  , path = "span-tree"           }
+ast                      = { version = "0.1.0"  , path = "lib/ast/impl"      }
+ide-view                 = { version = "0.1.0"  , path = "lib/view"          }
+enso-protocol            = { version = "0.1.0"  , path = "lib/enso-protocol" }
+json-rpc                 = { version = "0.1.0"  , path = "lib/json-rpc"      }
+parser                   = { version = "0.1.0"  , path = "lib/parser"        }
+utils                    = { version = "0.1.0"  , path = "lib/utils"         }
+span-tree                = { version = "0.1.0"  , path = "lib/span-tree"     }
 
 bimap                    = { version = "0.4.0"                                               }
 console_error_panic_hook = { version = "0.1.6"                                               }

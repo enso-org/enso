@@ -111,7 +111,7 @@ commands.build.js = async function() {
 
 commands.build.rust = async function(argv) {
     console.log(`Building WASM target.`)
-    let args = ['build','--target','web','--no-typescript','--out-dir',paths.dist.wasm.root,'lib/debug-scenes']
+    let args = ['build','--target','web','--no-typescript','--out-dir',paths.dist.wasm.root,'ide']
     if (argv.dev) { args.push('--dev') }
     await run_cargo('wasm-pack',args)
     await patch_file(paths.dist.wasm.glue, js_workaround_patcher)
@@ -127,7 +127,7 @@ commands.build.rust = async function(argv) {
 
         console.log('Checking the resulting WASM size.')
         let stats = fss.statSync(paths.dist.wasm.mainOptGz)
-        let limit = 3.47
+        let limit = 3.51
         let size = Math.round(100 * stats.size / 1024 / 1024) / 100
         if (size > limit) {
             throw(`Output file size exceeds the limit (${size}MB > ${limit}MB).`)
@@ -145,7 +145,6 @@ function js_workaround_patcher(code) {
 }
 
 async function patch_file(path,patcher) {
-    console.log(`Patching ${path}`)
     let code_to_patch = await fs.readFile(path,'utf8')
     let patched_code  = patcher(code_to_patch)
     await fs.writeFile(path,patched_code)
