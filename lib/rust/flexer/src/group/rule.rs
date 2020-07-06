@@ -1,4 +1,7 @@
 //! An API for declaring rust-code callbacks to be executed when a given pattern is matched.
+//!
+//! A flexer rule is a [`crate::automata::pattern`] associated with rust code to be executed as a
+//! callback.
 
 use crate::automata::pattern::Pattern;
 

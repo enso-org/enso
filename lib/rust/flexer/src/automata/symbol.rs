@@ -6,7 +6,8 @@
 // === Symbol ===
 // ==============
 
-// TODO [AA] Extract this. Turn it into using `char`.
+// TODO [AA] Should this be `char` instead? Char holds _valid_ unicode literal values
+//  If we don't make this change should we redefine the API to only be in terms of characters
 /// An input symbol to a finite automaton.
 #[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord,Hash)]
 pub struct Symbol {
@@ -16,6 +17,12 @@ pub struct Symbol {
 
 impl Symbol {
 
+    /// Converts a character to a symbol.
+    fn from(character:char) -> Symbol {
+        Symbol{val:character as u32}
+    }
+
+    // TODO [AA] This has issues in that `char.MAX` is defined in a PUA
     /// A representation of the end of the file.
     pub const EOF_CODE:Symbol = Symbol{val:u32::max_value()};
 

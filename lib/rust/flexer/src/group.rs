@@ -1,8 +1,4 @@
 //! This module provides an API for grouping multiple flexer rules.
-//!
-//! A flexer rule is a grouping of a regex-style pattern with rust code used as a callback.
-
-// TODO [AA] Move the above comment part to `rule
 
 use crate::automata::pattern::Pattern;
 use crate::automata::nfa::NFA;
@@ -37,7 +33,6 @@ pub mod rule;
 /// lexing rules than other portions of a program (e.g. the body of a function).
 #[derive(Clone,Debug,Default)]
 pub struct Group {
-    // TODO [AA] Make this a UUID
     /// A unique identifier for the group.
     pub id: usize,
     /// A name for the group (useful in debugging).
@@ -49,12 +44,12 @@ pub struct Group {
 }
 
 impl Group {
+
     /// Adds a new rule to the current group.
     pub fn add_rule(&mut self, rule:Rule) {
         self.rules.push(rule)
     }
 
-    // TODO [AA] Is this a necessary part of the API?
     /// Returns a rule builder for the given pattern.
     pub fn rule(&mut self, pattern:Pattern) -> rule::Builder<impl FnMut(Rule) + '_> {
         rule::Builder{pattern, callback:move |rule| self.add_rule(rule)}

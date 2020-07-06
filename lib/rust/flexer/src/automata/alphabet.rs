@@ -4,7 +4,7 @@ use crate::automata::symbol::Symbol;
 
 use std::collections::BTreeSet;
 use std::ops::RangeInclusive;
-
+use enso_prelude::default;
 
 
 // ================
@@ -45,9 +45,8 @@ impl Alphabet {
 // === Trait Impls ===
 
 impl Default for Alphabet {
-    // TODO [AA] Should use symbol::default() here
     fn default() -> Self {
-        Alphabet {symbols:[Symbol{val:0}].iter().cloned().collect()}
+        Alphabet {symbols:[default()].iter().cloned().collect()}
     }
 }
 
