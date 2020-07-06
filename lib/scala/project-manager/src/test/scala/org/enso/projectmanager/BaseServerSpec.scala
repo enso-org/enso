@@ -16,8 +16,8 @@ import org.enso.projectmanager.infrastructure.file.{
   SynchronizedFileStorage
 }
 import org.enso.projectmanager.infrastructure.languageserver.{
-  LanguageServerRegistry,
-  LanguageServerRegistryProxy
+  LanguageServerGatewayImpl,
+  LanguageServerRegistry
 }
 import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
@@ -102,7 +102,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
     )
 
   lazy val languageServerService =
-    new LanguageServerRegistryProxy[ZIO[ZEnv, +*, +*]](
+    new LanguageServerGatewayImpl[ZIO[ZEnv, +*, +*]](
       languageServerRegistry,
       timeoutConfig
     )

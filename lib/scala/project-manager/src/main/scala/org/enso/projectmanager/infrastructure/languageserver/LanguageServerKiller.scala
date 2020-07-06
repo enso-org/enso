@@ -39,6 +39,7 @@ class LanguageServerKiller(
   override def receive: Receive = {
     case KillThemAll =>
       if (controllers.isEmpty) {
+        sender() ! AllServersKilled
         context.stop(self)
       } else {
         log.info("Killing all servers")

@@ -9,6 +9,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
   ServerShutdownFailure,
   ServerStartupFailure
 }
+import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
 import org.enso.projectmanager.model.Project
 
 /**
@@ -16,7 +17,7 @@ import org.enso.projectmanager.model.Project
   *
   * @tparam F a effectful context
   */
-trait LanguageServerService[F[+_, +_]] {
+trait LanguageServerGateway[F[+_, +_]] {
 
   /**
     * Starts a language server.
@@ -69,6 +70,13 @@ trait LanguageServerService[F[+_, +_]] {
     *
     * @return true if servers are killed, false otherwise
     */
-  def killAllServers(): F[Nothing, Boolean]
+  def killAllServers(): F[Throwable, Boolean]
+
+  def registerShutdownHook(
+    projectId: UUID,
+    hook: ShutdownHook[F]
+  ): F[Nothing, Unit]
+
+  def waitTillAllHooksFired(): F[Throwable, Unit]
 
 }

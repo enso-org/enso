@@ -10,7 +10,7 @@ import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class LanguageServerServiceSpec
+class LanguageServerGatewaySpec
     extends BaseServerSpec
     with FlakySpec
     with ProjectManagementOps {

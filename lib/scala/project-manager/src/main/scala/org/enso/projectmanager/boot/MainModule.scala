@@ -13,8 +13,9 @@ import org.enso.projectmanager.infrastructure.file.{
   SynchronizedFileStorage
 }
 import org.enso.projectmanager.infrastructure.languageserver.{
+  LanguageServerGatewayImpl,
   LanguageServerRegistry,
-  LanguageServerRegistryProxy
+  ShutdownHookActivator
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
@@ -22,7 +23,6 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
   ProjectIndex
 }
-import org.enso.projectmanager.infrastructure.shutdown.ShutdownHookProcessor
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.protocol.{
   JsonRpc,
@@ -39,13 +39,12 @@ import scala.concurrent.ExecutionContext
 
 /**
   * A main module containing all components of the project manager.
-  *
   */
 class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
   config: ProjectManagerConfig,
   computeExecutionContext: ExecutionContext
-)(
-  implicit E1: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure],
+)(implicit
+  E1: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure],
   E2: MonadError[F[ValidationFailure, *], ValidationFailure]
 ) {
 
@@ -73,8 +72,6 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
       indexStorage
     )
 
-  lazy val shutdownHookProcessor = new ShutdownHookProcessor[F](logging)
-
   lazy val gen = new SystemGenerator[F]
 
   lazy val projectValidator = new MonadicProjectValidator[F]()
@@ -91,8 +88,16 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
       "language-server-registry"
     )
 
-  lazy val languageServerService = new LanguageServerRegistryProxy[F](
+  lazy val shutdownHookActivator =
+    system.actorOf(
+      ShutdownHookActivator.props[F](),
+      "language-server-shutdown-hook-activator"
+    )
+
+  lazy val languageServerGateway = new LanguageServerGatewayImpl[F](
     languageServerRegistry,
+    shutdownHookActivator,
+    system,
     config.timeout
   )
 
@@ -103,8 +108,7 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
       logging,
       clock,
       gen,
-      languageServerService,
-      shutdownHookProcessor
+      languageServerGateway
     )
 
   lazy val clientControllerFactory =
