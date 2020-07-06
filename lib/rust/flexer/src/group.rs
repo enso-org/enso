@@ -1,4 +1,6 @@
-//! This module exports API for grouping multiple rules (Rust callbacks with regex pattern) together.
+//! This module provides an API for grouping multiple flexer rules.
+//!
+//! A flexer rule is a grouping of a regex-style pattern with rust code used as a callback.
 
 use crate::automata::pattern::Pattern;
 use crate::automata::nfa::NFA;

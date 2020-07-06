@@ -1,4 +1,5 @@
-//! Exports API for construction of Nondeterminist and Deterministic Finite State Automata.
+//! Provides an API for the construction of finite state automata, in both their deterministic and
+//! non-deterministic forms.
 
 pub mod alphabet;
 pub mod dfa;
