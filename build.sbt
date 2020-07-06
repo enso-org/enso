@@ -941,8 +941,11 @@ lazy val launcher = project
             if (sys.props("os.name").contains("Linux"))
               "--static"
             else ""
+          val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
           val cmd =
-            s"$nativeImagePath $additionalParameters --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
+            s"$nativeImagePath $additionalParameters $resourcesGlobOpt " +
+              s"--no-fallback --initialize-at-build-time" +
+              s" -cp $classPath ${(Compile / mainClass).value.get} enso"
           if (cmd.! != 0) {
             throw new RuntimeException("Native Image build failed")
           }

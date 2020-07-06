@@ -58,6 +58,33 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =======================
 
+'circe', licensed under Apache License Version 2.0
+(see: components-licences/LICENSE-APACHE) is distributed with the launcher.
+It requires the following notice:
+circe
+Copyright (c) 2015, Ephox Pty Ltd, Mark Hibberd, Sean Parsons, Travis Brown, and
+other contributors. All rights reserved.
+
+Argonaut was initially developed to support products at Ephox.
+
+----------------------
+
+'circe-yaml', licensed under Apache License Version 2.0
+(see: components-licences/LICENSE-APACHE) is distributed with the launcher.
+
+=======================
+
+Apache Commons IO, licensed under Apache License Version 2.0
+(see: components-licences/LICENSE-APACHE) is distributed with the launcher.
+It requires the following notice:
+Apache Commons IO
+Copyright 2002-2017 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+=======================
+
 As the launcher is written in Scala and built with Graal Native Image, its
 binary form may be linked with Scala standard library, licensed under
 Apache License Version 2.0.
