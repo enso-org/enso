@@ -121,6 +121,7 @@ the REPL, running a project, Enso scripts or the language server.
 
 The launcher automatically infers which Enso version to used, based on the
 parameters and configuration:
+
  - When running a project or the language server, the version specified in
    project configuration is used.
  - When running the REPL, if the current directory is inside a project,

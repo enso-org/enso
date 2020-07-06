@@ -13,7 +13,7 @@ This document describes available command-line options of the Enso launcher.
 >
 > - This document is a draft. The explanations are just to give an idea of the
 >   commands. It will be updated with detailed explanations when the CLI is
->    developed.
+>   developed.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 

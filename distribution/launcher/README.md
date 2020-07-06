@@ -10,7 +10,7 @@ The Enso distribution is portable, you can put this directory wherever you want
 on your system. For example you can put it at `~/.enso`.
 
 It is a good idea to add the `bin` directory to your system `PATH` so that you
-can run the launcher just by typing `enso`.
+can run Enso just by typing `enso` in any directory.
 
 ## Usage
 > Actionables for this section:
