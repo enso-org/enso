@@ -17,19 +17,18 @@ class SuggestionsRepoTest
 
   val Timeout: FiniteDuration = 10.seconds
 
-  val db   = new SqlDatabase()
-  val repo = new SuggestionsDbio()
+  val repo = SqlSuggestionsRepo()
 
   override def beforeAll(): Unit = {
-    Await.ready(db.run(repo.init), Timeout)
+    Await.ready(repo.init, Timeout)
   }
 
   override def afterAll(): Unit = {
-    db.close()
+    repo.close()
   }
 
   before {
-    Await.ready(db.run(repo.clean), Timeout)
+    Await.ready(repo.clean, Timeout)
   }
 
   "SuggestionsRepo" should {
@@ -37,11 +36,11 @@ class SuggestionsRepoTest
     "get all suggestions" in {
       val action =
         for {
-          _   <- db.run(repo.insert(suggestion.atom))
-          _   <- db.run(repo.insert(suggestion.method))
-          _   <- db.run(repo.insert(suggestion.function))
-          _   <- db.run(repo.insert(suggestion.local))
-          all <- db.run(repo.getAll)
+          _   <- repo.insert(suggestion.atom)
+          _   <- repo.insert(suggestion.method)
+          _   <- repo.insert(suggestion.function)
+          _   <- repo.insert(suggestion.local)
+          all <- repo.getAll
         } yield all._2
 
       val suggestions = Await.result(action, Timeout).map(_.suggestion)
@@ -56,15 +55,15 @@ class SuggestionsRepoTest
     "fail to insert duplicate suggestion" in {
       val action =
         for {
-          id1 <- db.run(repo.insert(suggestion.atom))
-          id2 <- db.run(repo.insert(suggestion.atom))
-          _   <- db.run(repo.insert(suggestion.method))
-          _   <- db.run(repo.insert(suggestion.method))
-          _   <- db.run(repo.insert(suggestion.function))
-          _   <- db.run(repo.insert(suggestion.function))
-          _   <- db.run(repo.insert(suggestion.local))
-          _   <- db.run(repo.insert(suggestion.local))
-          all <- db.run(repo.getAll)
+          id1 <- repo.insert(suggestion.atom)
+          id2 <- repo.insert(suggestion.atom)
+          _   <- repo.insert(suggestion.method)
+          _   <- repo.insert(suggestion.method)
+          _   <- repo.insert(suggestion.function)
+          _   <- repo.insert(suggestion.function)
+          _   <- repo.insert(suggestion.local)
+          _   <- repo.insert(suggestion.local)
+          all <- repo.getAll
         } yield (id1, id2, all._2)
 
       val (id1, id2, all) = Await.result(action, Timeout)
@@ -81,9 +80,8 @@ class SuggestionsRepoTest
     "fail to insertAll duplicate suggestion" in {
       val action =
         for {
-          (v1, ids) <-
-            db.run(repo.insertAll(Seq(suggestion.local, suggestion.local)))
-          (v2, all) <- db.run(repo.getAll)
+          (v1, ids) <- repo.insertAll(Seq(suggestion.local, suggestion.local))
+          (v2, all) <- repo.getAll
         } yield (v1, v2, ids, all)
 
       val (v1, v2, ids, all) = Await.result(action, Timeout)
@@ -97,8 +95,8 @@ class SuggestionsRepoTest
     "select suggestion by id" in {
       val action =
         for {
-          Some(id) <- db.run(repo.insert(suggestion.atom))
-          res      <- db.run(repo.select(id))
+          Some(id) <- repo.insert(suggestion.atom)
+          res      <- repo.select(id)
         } yield res
 
       Await.result(action, Timeout) shouldEqual Some(suggestion.atom)
@@ -107,8 +105,8 @@ class SuggestionsRepoTest
     "remove suggestion" in {
       val action =
         for {
-          id1 <- db.run(repo.insert(suggestion.atom))
-          id2 <- db.run(repo.remove(suggestion.atom))
+          id1 <- repo.insert(suggestion.atom)
+          id2 <- repo.remove(suggestion.atom)
         } yield (id1, id2)
 
       val (id1, id2) = Await.result(action, Timeout)
@@ -116,17 +114,16 @@ class SuggestionsRepoTest
     }
 
     "get version" in {
-      val action =
-        db.run(repo.currentVersion)
+      val action = repo.currentVersion
 
       Await.result(action, Timeout) shouldEqual 0L
     }
 
     "change version after insert" in {
       val action = for {
-        v1 <- db.run(repo.currentVersion)
-        _  <- db.run(repo.insert(suggestion.atom))
-        v2 <- db.run(repo.currentVersion)
+        v1 <- repo.currentVersion
+        _  <- repo.insert(suggestion.atom)
+        v2 <- repo.currentVersion
       } yield (v1, v2)
 
       val (v1, v2) = Await.result(action, Timeout)
@@ -135,11 +132,11 @@ class SuggestionsRepoTest
 
     "not change version after failed insert" in {
       val action = for {
-        v1 <- db.run(repo.currentVersion)
-        _  <- db.run(repo.insert(suggestion.atom))
-        v2 <- db.run(repo.currentVersion)
-        _  <- db.run(repo.insert(suggestion.atom))
-        v3 <- db.run(repo.currentVersion)
+        v1 <- repo.currentVersion
+        _  <- repo.insert(suggestion.atom)
+        v2 <- repo.currentVersion
+        _  <- repo.insert(suggestion.atom)
+        v3 <- repo.currentVersion
       } yield (v1, v2, v3)
 
       val (v1, v2, v3) = Await.result(action, Timeout)
@@ -149,11 +146,11 @@ class SuggestionsRepoTest
 
     "change version after remove" in {
       val action = for {
-        v1 <- db.run(repo.currentVersion)
-        _  <- db.run(repo.insert(suggestion.local))
-        v2 <- db.run(repo.currentVersion)
-        _  <- db.run(repo.remove(suggestion.local))
-        v3 <- db.run(repo.currentVersion)
+        v1 <- repo.currentVersion
+        _  <- repo.insert(suggestion.local)
+        v2 <- repo.currentVersion
+        _  <- repo.remove(suggestion.local)
+        v3 <- repo.currentVersion
       } yield (v1, v2, v3)
 
       val (v1, v2, v3) = Await.result(action, Timeout)
@@ -163,13 +160,13 @@ class SuggestionsRepoTest
 
     "not change version after failed remove" in {
       val action = for {
-        v1 <- db.run(repo.currentVersion)
-        _  <- db.run(repo.insert(suggestion.local))
-        v2 <- db.run(repo.currentVersion)
-        _  <- db.run(repo.remove(suggestion.local))
-        v3 <- db.run(repo.currentVersion)
-        _  <- db.run(repo.remove(suggestion.local))
-        v4 <- db.run(repo.currentVersion)
+        v1 <- repo.currentVersion
+        _  <- repo.insert(suggestion.local)
+        v2 <- repo.currentVersion
+        _  <- repo.remove(suggestion.local)
+        v3 <- repo.currentVersion
+        _  <- repo.remove(suggestion.local)
+        v4 <- repo.currentVersion
       } yield (v1, v2, v3, v4)
 
       val (v1, v2, v3, v4) = Await.result(action, Timeout)
@@ -180,11 +177,11 @@ class SuggestionsRepoTest
 
     "search suggestion by empty query" in {
       val action = for {
-        _   <- db.run(repo.insert(suggestion.atom))
-        _   <- db.run(repo.insert(suggestion.method))
-        _   <- db.run(repo.insert(suggestion.function))
-        _   <- db.run(repo.insert(suggestion.local))
-        res <- db.run(repo.search(None, None, None))
+        _   <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        _   <- repo.insert(suggestion.local)
+        res <- repo.search(None, None, None)
       } yield res._2
 
       val res = Await.result(action, Timeout)
@@ -193,11 +190,11 @@ class SuggestionsRepoTest
 
     "search suggestion by self type" in {
       val action = for {
-        _   <- db.run(repo.insert(suggestion.atom))
-        id2 <- db.run(repo.insert(suggestion.method))
-        _   <- db.run(repo.insert(suggestion.function))
-        _   <- db.run(repo.insert(suggestion.local))
-        res <- db.run(repo.search(Some("Main"), None, None))
+        _   <- repo.insert(suggestion.atom)
+        id2 <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        _   <- repo.insert(suggestion.local)
+        res <- repo.search(Some("Main"), None, None)
       } yield (id2, res._2)
 
       val (id, res) = Await.result(action, Timeout)
@@ -206,11 +203,11 @@ class SuggestionsRepoTest
 
     "search suggestion by return type" in {
       val action = for {
-        _   <- db.run(repo.insert(suggestion.atom))
-        _   <- db.run(repo.insert(suggestion.method))
-        id3 <- db.run(repo.insert(suggestion.function))
-        id4 <- db.run(repo.insert(suggestion.local))
-        res <- db.run(repo.search(None, Some("MyType"), None))
+        _   <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        id3 <- repo.insert(suggestion.function)
+        id4 <- repo.insert(suggestion.local)
+        res <- repo.search(None, Some("MyType"), None)
       } yield (id3, id4, res._2)
 
       val (id1, id2, res) = Await.result(action, Timeout)
@@ -220,11 +217,11 @@ class SuggestionsRepoTest
     "search suggestion by kind" in {
       val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
       val action = for {
-        id1 <- db.run(repo.insert(suggestion.atom))
-        _   <- db.run(repo.insert(suggestion.method))
-        _   <- db.run(repo.insert(suggestion.function))
-        id4 <- db.run(repo.insert(suggestion.local))
-        res <- db.run(repo.search(None, None, Some(kinds)))
+        id1 <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        id4 <- repo.insert(suggestion.local)
+        res <- repo.search(None, None, Some(kinds))
       } yield (id1, id4, res._2)
 
       val (id1, id2, res) = Await.result(action, Timeout)
@@ -233,11 +230,11 @@ class SuggestionsRepoTest
 
     "search suggestion by empty kinds" in {
       val action = for {
-        _   <- db.run(repo.insert(suggestion.atom))
-        _   <- db.run(repo.insert(suggestion.method))
-        _   <- db.run(repo.insert(suggestion.function))
-        _   <- db.run(repo.insert(suggestion.local))
-        res <- db.run(repo.search(None, None, Some(Seq())))
+        _   <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        _   <- repo.insert(suggestion.local)
+        res <- repo.search(None, None, Some(Seq()))
       } yield res._2
 
       val res = Await.result(action, Timeout)
@@ -247,11 +244,11 @@ class SuggestionsRepoTest
     "search suggestion by return type and kind" in {
       val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
       val action = for {
-        _   <- db.run(repo.insert(suggestion.atom))
-        _   <- db.run(repo.insert(suggestion.method))
-        _   <- db.run(repo.insert(suggestion.function))
-        id4 <- db.run(repo.insert(suggestion.local))
-        res <- db.run(repo.search(None, Some("MyType"), Some(kinds)))
+        _   <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        id4 <- repo.insert(suggestion.local)
+        res <- repo.search(None, Some("MyType"), Some(kinds))
       } yield (id4, res._2)
 
       val (id, res) = Await.result(action, Timeout)
@@ -260,11 +257,11 @@ class SuggestionsRepoTest
 
     "search suggestion by self and return types" in {
       val action = for {
-        _   <- db.run(repo.insert(suggestion.atom))
-        _   <- db.run(repo.insert(suggestion.method))
-        _   <- db.run(repo.insert(suggestion.function))
-        _   <- db.run(repo.insert(suggestion.local))
-        res <- db.run(repo.search(Some("Main"), Some("MyType"), None))
+        _   <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        _   <- repo.insert(suggestion.local)
+        res <- repo.search(Some("Main"), Some("MyType"), None)
       } yield res._2
 
       val res = Await.result(action, Timeout)
@@ -278,11 +275,11 @@ class SuggestionsRepoTest
         Suggestion.Kind.Function
       )
       val action = for {
-        _   <- db.run(repo.insert(suggestion.atom))
-        _   <- db.run(repo.insert(suggestion.method))
-        _   <- db.run(repo.insert(suggestion.function))
-        _   <- db.run(repo.insert(suggestion.local))
-        res <- db.run(repo.search(Some("Main"), Some("MyType"), Some(kinds)))
+        _   <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        _   <- repo.insert(suggestion.local)
+        res <- repo.search(Some("Main"), Some("MyType"), Some(kinds))
       } yield res._2
 
       val res = Await.result(action, Timeout)

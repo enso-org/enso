@@ -31,16 +31,14 @@ public class SuggestionsRepoBenchmark {
   final Path dbfile = Path.of(System.getProperty("java.io.tmpdir"), "bench-suggestions.db");
   final Seq<Suggestion.Kind> kinds = SuggestionRandom.nextKinds();
 
-  SqlDatabase db;
-  SuggestionsDbio dbio;
+  SqlSuggestionsRepo repo;
 
   @Setup
   public void setup() throws TimeoutException, InterruptedException {
-    db = SqlDatabase.apply(dbfile.toString());
-    dbio = SuggestionsDbio.apply(ExecutionContext.global());
+    repo = SqlSuggestionsRepo.apply(dbfile, ExecutionContext.global());
     if (Files.notExists(dbfile)) {
       System.out.println("initializing " + dbfile.toString() + " ...");
-      Await.ready(db.run(dbio.init()), TIMEOUT);
+      Await.ready(repo.init(), TIMEOUT);
       System.out.println("inserting records...");
       int size = 0;
       while (size < DATABASE_SIZE) {
@@ -52,13 +50,13 @@ public class SuggestionsRepoBenchmark {
 
   @TearDown
   public void tearDown() {
-    db.close();
+    repo.close();
   }
 
   int insertBatch(int size) throws TimeoutException, InterruptedException {
     Suggestion[] stubs =
         Stream.generate(SuggestionRandom::nextSuggestion).limit(size).toArray(Suggestion[]::new);
-    return (int) Await.result(db.run(dbio.insertBatch(stubs)), TIMEOUT);
+    return (int) Await.result(repo.insertBatch(stubs), TIMEOUT);
   }
 
   static <T> scala.Option<T> none() {
@@ -67,34 +65,30 @@ public class SuggestionsRepoBenchmark {
 
   @Benchmark
   public Object searchBaseline() throws TimeoutException, InterruptedException {
-    return Await.result(db.run(dbio.search(none(), none(), none())), TIMEOUT);
+    return Await.result(repo.search(none(), none(), none()), TIMEOUT);
   }
 
   @Benchmark
   public Object searchByReturnType() throws TimeoutException, InterruptedException {
-    return Await.result(db.run(dbio.search(none(), scala.Some.apply("MyType"), none())), TIMEOUT);
+    return Await.result(repo.search(none(), scala.Some.apply("MyType"), none()), TIMEOUT);
   }
 
   @Benchmark
   public Object searchBySelfType() throws TimeoutException, InterruptedException {
-    return Await.result(db.run(dbio.search(scala.Some.apply("MyType"), none(), none())), TIMEOUT);
+    return Await.result(repo.search(scala.Some.apply("MyType"), none(), none()), TIMEOUT);
   }
 
   @Benchmark
   public Object searchBySelfReturnTypes() throws TimeoutException, InterruptedException {
     return Await.result(
-        db.run(dbio.search(scala.Some.apply("SelfType"), scala.Some.apply("ReturnType"), none())),
-        TIMEOUT);
+        repo.search(scala.Some.apply("SelfType"), scala.Some.apply("ReturnType"), none()), TIMEOUT);
   }
 
   @Benchmark
   public Object searchByAll() throws TimeoutException, InterruptedException {
     return Await.result(
-        db.run(
-            dbio.search(
-                scala.Some.apply("SelfType"),
-                scala.Some.apply("ReturnType"),
-                scala.Some.apply(kinds))),
+        repo.search(
+            scala.Some.apply("SelfType"), scala.Some.apply("ReturnType"), scala.Some.apply(kinds)),
         TIMEOUT);
   }
 
