@@ -69,7 +69,7 @@ described below, but even so, many portions of this guide will need to be
 handled manually.
 
 ### Line Width
-Each line in the source file should be of a maximum of 80 characters of text.
+Each line in the source file should be of a maximum of 100 characters of text.
 This includes comments.
 
 ### Imports
@@ -398,12 +398,23 @@ where T: Printer {
 }
 ```
 
+We also have a specific _ordering_ for `impl` definitions. It is as follows:
+
+1.  The "main" `impl` for a type, containing its associated behaviour.
+2.  Getter implementations, if present.
+3.  Setter implementations, if present.
+4.  Trait implementations for the type, if present.
+5.  The "internal" `impl` block for that type, if present.
+
+Each of these should be accompanied by a sub-heading.
+
 ### Getters and Setters
 We have the following rules for getters and setters in our codebase.
 
 - Getters do not have the `get_` prefix, while setters do have the `set_`
   prefix.
-- If a setter is provided, a `mut` accessor should be provided as well.
+- If a setter is provided, a `mut` accessor should be provided as well as part
+  of the setters `impl` block.
 
 Correct examples for the definition of getters and setters can be found below:
 
@@ -420,6 +431,9 @@ fn set_field(&mut self, val:Type) {
     *self.field_mut = val;
 }
 ```
+
+Getters and setters should be implemented in separate `impl`, blocks, each with
+their own subheading.
 
 ### Trait Exports
 All names should be designed to be used in a qualified fashion. This does,
