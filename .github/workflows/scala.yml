@@ -238,19 +238,32 @@ jobs:
         with:
           update-conda: true
           conda-channels: anaconda, conda-forge
+      - name: Setup Conda Environment on Windows
+        if: runner.os == 'Windows'
+        run: |
+          conda create --name enso
+          conda init powershell
+      - name: Activate Conda Environment on Windows
+        if: runner.os == 'Windows'
+        run: conda activate enso
       - name: Install FlatBuffers Compiler
         run: conda install flatbuffers=1.12.0
       - name: Setup GraalVM Environment
         uses: DeLaGuardo/setup-graalvm@2.0
         with:
           graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+      - name: Verify Graal Updater (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          where gu
+          gu --help
+      - name: Set Up Native Image
+        run: gu -N install -n native-image
       - name: Set Up SBT
         run: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
           echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
-      - name: Set Up Native Image
-        run: gu install native-image
 
       # Caches
       - name: Cache SBT
@@ -268,13 +281,10 @@ jobs:
       #  run: sbt --no-colors bootstrap
       - name: Build Launcher Native Image
         run: sbt --no-colors launcher/buildNativeImage
-      - name: Check linkage # TODO this is an experiment and will be removed
-        if: runner.os != 'Windows'
-        run: ldd enso
 
       # Publish
       - name: Publish the Launcher Binary # TODO put it into a ZIP
         uses: actions/upload-artifact@v1.0.0
         with:
-          name: launcher-${{ matrix.os }}
+          name: launcher-${{ runner.os }}
           path: enso
