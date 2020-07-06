@@ -1,4 +1,4 @@
-//! Exports the structure for Deterministic Finite Automata.
+//! The structure for defining deterministic finite automata.
 
 use crate::automata::alphabet::Alphabet;
 use crate::automata::state;
@@ -10,52 +10,52 @@ use crate::data::matrix::Matrix;
 // === Deterministic Finite Automata ===
 // =====================================
 
-/// Function callback for an arbitrary state of finite automata.
-/// It contains name of Rust procedure that is meant to be executed after encountering a pattern
-/// (declared in `group::Rule.pattern`).
-#[derive(Clone,Debug,PartialEq,Eq)]
-pub struct Callback {
-    /// TODO[jv] Write better explanation after implementing rust code generation.
-    /// Priority is used during rust code generation.
-    pub priority: usize,
-    /// Name of Rust method that will be called when executing this callback.
-    pub name: String,
-}
-
-/// DFA automata with a set of symbols, states and transitions.
-/// Deterministic Finite Automata is a finite-state machine that accepts or rejects a given sequence
-/// of symbols, by running through a state sequence uniquely determined by the input symbol sequence.
-///   ___              ___              ___              ___
-///  | 0 | -- 'D' --> | 1 | -- 'F' --> | 2 | -- 'A' --> | 3 |
-///   ‾‾‾              ‾‾‾              ‾‾‾              ‾‾‾
-/// More information at: https://en.wikipedia.org/wiki/Deterministic_finite_automaton
-
+/// The definition of a [DFA](https://en.wikipedia.org/wiki/Deterministic_finite_automaton) for a
+/// given set of symbols, states, and transitions.
+///
+/// A DFA is a finite state automaton that accepts or rejects a given sequence of symbols by
+/// executing on a sequence of states _uniquely_ determined by the sequence of input symbols.
+///
+/// ```text
+///  ┌───┐  'D'  ┌───┐  'F'  ┌───┐  'A'  ┌───┐
+///  │ 0 │──────▶│ 1 │──────▶│ 2 │──────▶│ 3 │
+///  └───┘       └───┘       └───┘       └───┘
+/// ```
 #[derive(Clone,Debug,Default,PartialEq,Eq)]
 pub struct DFA {
-    /// Finite set of all valid input symbols.
+    /// A finite set of all valid input symbols.
     pub alphabet: Alphabet,
-    /// Transition matrix of deterministic finite state automata.
-    /// It contains next state for each pair of state and input symbol - (state,symbol) => new state.
-    /// For example, a transition matrix for automata that accepts string "ABABAB...." would look
-    /// like this:
-    ///  states
-    /// |       | A | B | <- symbols
-    /// | 0     | 1 | - |
-    /// | 1     | - | 0 |
-    ///  Where `-` denotes `state::INVALID`.
-    pub links: Matrix<state::Id>,
-    /// Stores callback for each state (if it has one).
+    /// The transition matrix for the DFA.
+    ///
+    /// It represents a function of type `(state, symbol) -> state`, returning the identifier for
+    /// the new state.
+    ///
+    /// For example, the transition matrix for an automaton that accepts the language
+    /// `{"A" | "B"}*"` would appear as follows, with `-` denoting
+    /// [the invalid state](state::INVALID). The leftmost column encodes the input state, while the
+    /// topmost row encodes the input symbols.
+    ///
+    /// |   | A | B |
+    /// |:-:|:-:|:-:|
+    /// | 0 | 1 | - |
+    /// | 1 | - | 0 |
+    ///
+    pub links: Matrix<state::Identifier>,
+    /// A collection of callbacks for each state (indexable in order)
     pub callbacks: Vec<Option<Callback>>,
 }
 
-impl From<Vec<Vec<usize>>> for Matrix<state::Id> {
+
+// === Trait Impls ===
+
+impl From<Vec<Vec<usize>>> for Matrix<state::Identifier> {
     fn from(input:Vec<Vec<usize>>) -> Self {
         let rows        = input.len();
         let columns     = if rows == 0 {0} else {input[0].len()};
         let mut matrix  = Self::new(rows,columns);
         for row in 0..rows {
             for column in 0..columns {
-                matrix[(row,column)] = state::Id{id:input[row][column]};
+                matrix[(row,column)] = state::Identifier {id:input[row][column]};
             }
         }
         matrix
@@ -64,9 +64,29 @@ impl From<Vec<Vec<usize>>> for Matrix<state::Id> {
 
 
 
-// ===========
-// == Tests ==
-// ===========
+// ================
+// === Callback ===
+// ================
+
+/// The callback associated with an arbitrary state of a finite automaton.
+///
+/// It contains the rust code that is intended to be executed after encountering a
+/// [`pattern`](super::pattern::Pattern) that causes the associated state transition. This pattern
+/// is declared in [`Rule.pattern`](crate::group::rule::Rule::pattern).
+#[derive(Clone,Debug,PartialEq,Eq)]
+pub struct Callback {
+    // TODO [AA] Document this better after writing rust codegen.
+    /// A description of the priority with which the callback is constructed during codegen.
+    pub priority: usize,
+    /// The rust code that will be executed when running this callback.
+    pub name: String,
+}
+
+
+
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 pub mod tests {

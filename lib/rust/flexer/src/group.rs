@@ -2,6 +2,8 @@
 //!
 //! A flexer rule is a grouping of a regex-style pattern with rust code used as a callback.
 
+// TODO [AA] Move the above comment part to `rule
+
 use crate::automata::pattern::Pattern;
 use crate::automata::nfa::NFA;
 use crate::group::rule::Rule;
@@ -21,21 +23,21 @@ pub mod rule;
 ///
 /// A group consists of the following:
 ///
-/// - A set of `Rule`s, each containing a regex pattern and associated callback.
+/// - A set of [`Rule`s](Rule), each containing a regex pattern and associated callback.
 /// - Inherited rules from a parent group, if such a group exists.
 ///
 /// Internally, the flexer maintains a stack of groups, where only one group can be active at any
 /// given time. Rules are matched _in order_, and hence overlaps are handled by the order in which
 /// the rules are matched, with the first callback being triggered.
 ///
-/// Whenever a rule.pattern from the active group is matched against part of the input, the
-/// associated rule.callback is executed. This callback may exit the current group or even enter a
-/// new one. As a result, groups allow us to elegantly model a situation where certain parts of a
-/// program (e.g. within a string literal) have very different lexing rules than other portions of
-/// a program (e.g. the body of a function).
+/// Whenever a [`rule.pattern`](Rule::pattern) from the active group is matched against part of the
+/// input, the associated [`rule.callback`](Rule::callback) is executed. This callback may exit the
+/// current group or even enter a new one. As a result, groups allow us to elegantly model a
+/// situation where certain parts of a program (e.g. within a string literal) have very different
+/// lexing rules than other portions of a program (e.g. the body of a function).
 #[derive(Clone,Debug,Default)]
 pub struct Group {
-    // TODO [AA] Make this
+    // TODO [AA] Make this a UUID
     /// A unique identifier for the group.
     pub id: usize,
     /// A name for the group (useful in debugging).
@@ -52,8 +54,8 @@ impl Group {
         self.rules.push(rule)
     }
 
+    // TODO [AA] Is this a necessary part of the API?
     /// Returns a rule builder for the given pattern.
-    /// TODO[AA] Is this a necessary part of the API?
     pub fn rule(&mut self, pattern:Pattern) -> rule::Builder<impl FnMut(Rule) + '_> {
         rule::Builder{pattern, callback:move |rule| self.add_rule(rule)}
     }
@@ -69,7 +71,7 @@ impl Group {
 
 impl Group {
 
-    /// All rules including parent rules.
+    /// The full set of rules, including parent rules.
     pub fn rules(&self) -> Vec<&Rule> {
         let mut parent = &self.parent;
         let mut rules  = (&self.rules).iter().collect_vec();
@@ -81,9 +83,14 @@ impl Group {
     }
 }
 
+
+// === Trait Impls ===
+
 impl From<&Group> for NFA {
-    /// Transforms Group to NFA.
-    /// Algorithm is based on: https://www.youtube.com/watch?v=RYNN-tb9WxI
+    /// Transforms the input group into an NFA.
+    ///
+    /// The algorithm is based on this algorithm for
+    /// [converting a regular expression to an NFA](https://www.youtube.com/watch?v=RYNN-tb9WxI).
     fn from(group:&Group) -> Self {
         let mut nfa = NFA::default();
         let start   = nfa.new_state();
