@@ -935,9 +935,15 @@ lazy val launcher = project
             else s"$javaHome/bin/native-image"
           val classPath =
             (Runtime / fullClasspath).value.files.mkString(File.pathSeparator)
+          val additionalParameters =
+            if (sys.props("os.name").contains("Linux"))
+              "--static"
+            else ""
           val cmd =
-            s"$nativeImagePath --static --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
-          cmd !
+            s"$nativeImagePath $additionalParameters --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
+          if (cmd.! != 0) {
+            throw new RuntimeException("Native Image build failed")
+          }
         }
         .dependsOn(Compile / compile)
         .value

@@ -233,6 +233,8 @@ jobs:
       - name: Checkout (Branch)
         uses: actions/checkout@v2
         if: github.event_name != 'pull_request'
+      - name: Enable Developer Command Prompt (Windows)
+        uses: ilammy/msvc-dev-cmd@v1.3.0
       - name: Setup conda
         uses: s-weigand/setup-conda@v1
         with:
@@ -282,8 +284,24 @@ jobs:
         run: sbt --no-colors launcher/buildNativeImage
 
       # Publish
-      - name: Publish the Launcher Binary # TODO put it into a ZIP
+      - name: Prepare Launcher distribution (common)
+        shell: bash
+        run: |
+          mkdir enso-launcher
+          mkdir enso-launcher/bin
+          mkdir enso-launcher/dist
+          mkdir enso-launcher/jvm
+          cp distribution/launcher/README.md enso-launcher/
+      - name: Prepare Launcher distribution (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cp enso enso-launcher/bin/
+          chmod +x enso-launcher/bin/enso
+      - name: Prepare Launcher distribution (Windows)
+        if: runner.os == 'Windows'
+        run: copy enso.exe enso-launcher\bin\
+      - name: Publish the Launcher Binary
         uses: actions/upload-artifact@v1.0.0
         with:
           name: launcher-${{ runner.os }}
-          path: enso
+          path: enso-launcher
