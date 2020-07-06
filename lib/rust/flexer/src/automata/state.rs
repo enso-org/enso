@@ -20,7 +20,7 @@ pub struct State {
     pub epsilon_links: Vec<Identifier>,
     /// The set of transitions that trigger while consuming a specific symbol.
     ///
-    /// When triggered, the automaton will transition to the [`Link::target`].
+    /// When triggered, the automaton will transition to the [`Transition::target_state`].
     pub links: Vec<Transition>,
     /// The name of the state.
     ///

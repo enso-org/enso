@@ -1,7 +1,5 @@
 //! Defines a Symbol that is operated on by the finite automata.
 
-use std::default::Default;
-
 
 
 // ==============
@@ -9,7 +7,7 @@ use std::default::Default;
 // ==============
 
 // TODO [AA] Extract this. Turn it into using `char`.
-/// Newtype wrapper for finite automata input symbol.
+/// An input symbol to a finite automaton.
 #[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord,Hash)]
 pub struct Symbol {
     #[allow(missing_docs)]
@@ -17,8 +15,6 @@ pub struct Symbol {
 }
 
 impl Symbol {
-
-    // === Constants ===
 
     /// A representation of the end of the file.
     pub const EOF_CODE:Symbol = Symbol{val:u32::max_value()};
