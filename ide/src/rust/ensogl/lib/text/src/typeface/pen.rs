@@ -84,7 +84,6 @@ impl Pen {
 mod tests {
     use super::*;
 
-    use crate::typeface::font;
     use crate::typeface::font::GlyphRenderInfo;
 
     use wasm_bindgen_test::wasm_bindgen_test;

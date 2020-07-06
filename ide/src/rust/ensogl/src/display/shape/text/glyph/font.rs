@@ -327,7 +327,6 @@ impl SharedRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::display::shape::text::glyph::msdf::Texture;
 
     use ensogl_core_embedded_fonts::EmbeddedFonts;
     use wasm_bindgen_test::wasm_bindgen_test;

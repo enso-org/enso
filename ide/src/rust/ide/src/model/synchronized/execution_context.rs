@@ -465,6 +465,9 @@ pub mod tests {
         });
     }
 
+    // TODO [mwu]
+    //   The test below has been disabled as shaky, see https://github.com/enso-org/ide/issues/637
+    #[ignore]
     #[test]
     fn detaching_all_visualizations() {
         let mock_data = MockData::new();
