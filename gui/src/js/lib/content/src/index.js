@@ -35,7 +35,7 @@ function wasm_instantiate_streaming(resource,imports) {
 /// with `{no_loader:true}` option.
 async function download_content(cfg) {
     let wasm_glue_fetch = await fetch('/assets/wasm_imports.js')
-    let wasm_fetch      = await fetch('/assets/gui.wasm')
+    let wasm_fetch      = await fetch('/assets/ide.wasm')
     let loader          = new loader_module.Loader([wasm_glue_fetch,wasm_fetch],cfg)
 
     loader.done.then(() => {

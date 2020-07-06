@@ -8,9 +8,9 @@ use crate::prelude::*;
 use crate::constants::VISUALIZATION_DIRECTORY;
 
 use enso_protocol::language_server;
-use graph_editor::data;
-use graph_editor::component::visualization::definition;
-use graph_editor::component::visualization;
+use ide_view::graph_editor::data;
+use ide_view::graph_editor::component::visualization::definition;
+use ide_view::graph_editor::component::visualization;
 use std::rc::Rc;
 
 
@@ -158,8 +158,8 @@ mod tests {
 
     use enso_protocol::language_server::FileSystemObject;
     use enso_protocol::language_server::Path;
-    use graph_editor::builtin;
-    use graph_editor::component::visualization;
+    use ide_view::graph_editor::builtin;
+    use ide_view::graph_editor::component::visualization;
     use json_rpc::expect_call;
 
     use wasm_bindgen_test::wasm_bindgen_test_configure;

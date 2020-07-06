@@ -22,7 +22,7 @@ pub trait AnyFnEasing = 'static + Fn(f32) -> f32;
 pub trait CloneableFnEasing = 'static + Clone + Fn(f32) -> f32;
 
 macro_rules! define_in_out_easing_fn {
-    (fn $tname:ident $name:ident (t:f32) -> f32 $block:block) => { paste::item! {
+    (fn $tname:ident $name:ident $lambda:expr) => { paste::item! {
         /// A $name-in function type.
         pub type [<$tname In>]    = impl Clone + Fn(f32) -> f32;
         /// A $name-out function type.
@@ -31,7 +31,7 @@ macro_rules! define_in_out_easing_fn {
         pub type [<$tname InOut>] = impl Clone + Fn(f32) -> f32;
 
         /// A $name-in transition.
-        pub fn [<$name _in>]() -> [<$tname In>] { |t| $block }
+        pub fn [<$name _in>]() -> [<$tname In>] { $lambda }
         /// A $name-out transition.
         pub fn [<$name _out>]() -> [<$tname Out>] { |t| { 1.0 - [<$name _in>]()(1.0 - t) } }
         /// A $name-in-out transition.
@@ -49,22 +49,22 @@ macro_rules! define_in_out_easing_fn {
 }
 
 macro_rules! define_in_out_easing_fns {
-    ($(fn $tname:ident $name:ident (t:f32) -> f32 $block:block)*) => {
-        $(define_in_out_easing_fn!(fn $tname $name (t:f32) -> f32 $block);)*
+    ($(fn $tname:ident $name:ident $lambda:expr)*) => {
+        $(define_in_out_easing_fn!(fn $tname $name $lambda);)*
     }
 }
 
 define_in_out_easing_fns! {
-    fn Circ    circ    (t:f32) -> f32 { 1.0 - (1.0 - t * t).sqrt() }
-    fn Quad    quad    (t:f32) -> f32 { t * t }
-    fn Cubic   cubic   (t:f32) -> f32 { t * t * t }
-    fn Quart   quart   (t:f32) -> f32 { t * t * t * t }
-    fn Quint   quint   (t:f32) -> f32 { t * t * t * t }
-    fn Expo    expo    (t:f32) -> f32 { if t == 0.0 {0.0} else {2.0_f32.powf(10.0 * (t - 1.0))} }
-    fn Sine    sine    (t:f32) -> f32 { -(t * PI/2.0).cos() + 1.0 }
-    fn Back    back    (t:f32) -> f32 { back_in_params(t, 1.70158) }
-    fn Elastic elastic (t:f32) -> f32 { elastic_in_params(t, 0.3, 1.0) }
-    fn Bounce  bounce  (t:f32) -> f32 {
+    fn Circ    circ    |t| { 1.0 - (1.0 - t * t).sqrt() }
+    fn Quad    quad    |t| { t * t }
+    fn Cubic   cubic   |t| { t * t * t }
+    fn Quart   quart   |t| { t * t * t * t }
+    fn Quint   quint   |t| { t * t * t * t }
+    fn Expo    expo    |t| { if t == 0.0 {0.0} else {2.0_f32.powf(10.0 * (t - 1.0))} }
+    fn Sine    sine    |t| { -(t * PI/2.0).cos() + 1.0 }
+    fn Back    back    |t| { back_in_params(t, 1.70158) }
+    fn Elastic elastic |t| { elastic_in_params(t, 0.3, 1.0) }
+    fn Bounce  bounce  |t| {
         if t < 1.0 / 2.75 { (7.5625 * t * t) }
         else if t < 2.0 / 2.75 {
             let t = t - 1.5 / 2.75;
@@ -74,7 +74,7 @@ define_in_out_easing_fns! {
             (7.5625 * t * t + 0.9375)
         } else {
             let t = t - 2.625 / 2.75;
-            (7.5625 * t * t + 0.984375)
+            (7.5625 * t * t + 0.984_375)
         }
     }
 }

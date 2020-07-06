@@ -24,11 +24,11 @@ paths.dist.buildInfo      = path.join(paths.dist.root,'build.json')
 
 paths.dist.wasm           = {}
 paths.dist.wasm.root      = path.join(paths.dist.root,'wasm')
-paths.dist.wasm.main      = path.join(paths.dist.wasm.root,'gui.wasm')
-paths.dist.wasm.mainRaw   = path.join(paths.dist.wasm.root,'gui_bg.wasm')
-paths.dist.wasm.glue      = path.join(paths.dist.wasm.root,'gui.js')
-paths.dist.wasm.mainOpt   = path.join(paths.dist.wasm.root,'gui_opt.wasm')
-paths.dist.wasm.mainOptGz = path.join(paths.dist.wasm.root,'gui_opt.wasm.gz')
+paths.dist.wasm.main      = path.join(paths.dist.wasm.root,'ide.wasm')
+paths.dist.wasm.mainRaw   = path.join(paths.dist.wasm.root,'ide_bg.wasm')
+paths.dist.wasm.glue      = path.join(paths.dist.wasm.root,'ide.js')
+paths.dist.wasm.mainOpt   = path.join(paths.dist.wasm.root,'ide_opt.wasm')
+paths.dist.wasm.mainOptGz = path.join(paths.dist.wasm.root,'ide_opt.wasm.gz')
 
 paths.js                  = {}
 paths.js.root             = path.join(paths.root,'src','js')
