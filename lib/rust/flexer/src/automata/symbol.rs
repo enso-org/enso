@@ -11,7 +11,7 @@
 //  - `std::char::MAX` is defined in a private use area, which _may_ conflict, but due to it being
 //    private use this could be fine.
 //  - Not all valid `u32` values are valid `char` values, so we end up with some marshalling
-//    boilerplate in some places.
+//    boilerplate `u32 -> char` in some places, whereas `char -> u32` is a trivial cast.
 /// An input symbol to a finite automaton.
 #[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord,Hash)]
 pub struct Symbol {
