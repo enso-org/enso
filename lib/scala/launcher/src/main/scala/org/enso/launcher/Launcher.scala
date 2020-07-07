@@ -44,6 +44,7 @@ object Launcher {
         } else {
           ""
         }
+
         s"""
            |Enso Launcher
            |Version:    $version

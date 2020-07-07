@@ -288,7 +288,8 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Build Artifacts
-      #- name: Bootstrap the project # as long as launcher doesn't depend on runtime, bootstrap is not mandatory
+      #- name: Bootstrap the project # As long as launcher doesn't depend on
+      #                              # runtime, bootstrap is not mandatory.
       #  run: sbt --no-colors bootstrap
       - name: Build Launcher Native Image
         run: sbt --no-colors launcher/buildNativeImage
@@ -310,10 +311,8 @@ jobs:
         run: |
           cp enso enso-launcher/bin/
           chmod +x enso-launcher/bin/enso
-          (cd enso-launcher/ && zip -r "../enso.zip" .)
           DIST_VERSION=$(./enso-launcher/bin/enso version --json | jq -r '.version')
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
-      # We skip the ZIP phase on Windows, as we can use the default GH ZIP as Windows doesn't care about permission bits
       - name: Prepare Launcher distribution (Windows)
         if: runner.os == 'Windows'
         shell: bash
@@ -321,14 +320,11 @@ jobs:
           cp enso.exe enso-launcher/bin/
           DIST_VERSION=$(./enso-launcher/bin/enso.exe version --json | jq -r '.version')
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
-      - name: Publish the Launcher Binary (Unix)
-        if: runner.os != 'Windows'
-        uses: actions/upload-artifact@v2
-        with:
-          name: launcher-${{ runner.os }}-${{ env.DIST_VERSION }}
-          path: enso.zip
-      - name: Publish the Launcher Binary (Windows)
-        if: runner.os == 'Windows'
+      # The way artifacts are uploaded currently does not preserve the
+      # executable bits for Unix. However putting artifacts into a ZIP would
+      # create a twice nested ZIP file. For now, users downloading artifacts
+      # from the CI builds have to set the bit themselves.
+      - name: Publish the Launcher Binary
         uses: actions/upload-artifact@v2
         with:
           name: launcher-${{ runner.os }}-${{ env.DIST_VERSION }}
