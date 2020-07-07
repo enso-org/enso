@@ -25,6 +25,10 @@ const ZIP_CONTENT:&str = "fbs-upload/fbs-schema/";
 /// Follow to `contribution.md` for more guidance about setting up the development environment.
 const COMMIT:&str = "7d82b1abee0f20b87b578c9ddd1a7f11330b9738";
 
+/// Currently the flatc-generated files updating shall work purely on opt-in basis. This script
+/// should do nothing if the following environment variable has not been defined.
+const ENABLE_ENV_VAR_NAME:&str = "ENSO_IDE_ENABLE_FLATC";
+
 /// An URL pointing to engine interface files.
 pub fn interface_description_url() -> reqwest::Url {
     let url = format!("https://packages.luna-lang.org/fbs-schema/nightly/{}/fbs-schema.zip",COMMIT);
@@ -124,8 +128,15 @@ impl ApiProvider {
 
 #[tokio::main]
 async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
-    let provider = ApiProvider::new();
-    provider.run().await;
+    // Regenerating bindings is now strictly opt-in, see: https://github.com/enso-org/ide/issues/644
+    if env::var(ENABLE_ENV_VAR_NAME).is_ok() {
+        let provider = ApiProvider::new();
+        provider.run().await;
+    } else {
+        println!("cargo:info=Will not try updating flatc-generated files. Define `{}` environment \
+        variable to enable regeneration of the Engine API flatc bindings.", ENABLE_ENV_VAR_NAME);
+    }
     println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-env-changed={}",ENABLE_ENV_VAR_NAME);
     Ok(())
 }
