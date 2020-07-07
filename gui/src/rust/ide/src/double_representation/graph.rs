@@ -85,10 +85,11 @@ impl GraphInfo {
     /// Adds a new node to this graph.
     pub fn add_node
     (&mut self, line_ast:Ast, location_hint:LocationHint) -> FallibleResult<()> {
-        let mut lines = self.source.block_lines()?;
-        let index     = match location_hint {
+        let mut lines      = self.source.block_lines()?;
+        let last_non_empty = || lines.iter().rposition(|line| line.elem.is_some());
+        let index          = match location_hint {
             LocationHint::Start      => 0,
-            LocationHint::End        => lines.len(),
+            LocationHint::End        => last_non_empty().map_or(lines.len(),|ix| ix + 1),
             LocationHint::After(id)  => node::index_in_lines(&lines, id)? + 1,
             LocationHint::Before(id) => node::index_in_lines(&lines, id)?
         };
@@ -321,18 +322,51 @@ mod tests {
     print "hello"
     x / x"#;
         graph.expect_code(expected_code);
-        // TODO [mwu]
-        //  Test what happens with empty lines in the block.
-        //  Currently impossible because of the parser issue.
 
         let mut graph = find_graph(&mut parser, program, "main.foo");
-
         assert_eq!(graph.nodes().len(), 1);
         graph.add_node(line_ast4, LocationHint::Start).unwrap();
         assert_eq!(graph.nodes().len(), 2);
         assert_eq!(graph.nodes()[0].expression().repr(), "2 - 2");
         assert_eq!(graph.nodes()[0].id(), id4);
         assert_eq!(graph.nodes()[1].expression().repr(), "not_node");
+    }
+
+    #[wasm_bindgen_test]
+    fn add_node_to_graph_with_blank_line() {
+        // The trailing `foo` definition is necessary for the blank line after "node2" to be
+        // included in the `main` block. Otherwise, the block would end on "node2" and the blank
+        // line would be parented to the module.
+
+        let program = r"main =
+
+    node2
+
+foo = 5";
+        let mut parser = parser::Parser::new_or_panic();
+        let mut graph  = main_graph(&mut parser, program);
+
+        let id2             = graph.nodes()[0].id();
+        let (line_ast0,_id0) = create_node_ast(&mut parser, "node0");
+        let (line_ast1,_id1) = create_node_ast(&mut parser, "node1");
+        let (line_ast3,_id3) = create_node_ast(&mut parser, "node3");
+        let (line_ast4,_id4) = create_node_ast(&mut parser, "node4");
+
+        graph.add_node(line_ast0, LocationHint::Start).unwrap();
+        graph.add_node(line_ast1, LocationHint::Before(id2)).unwrap();
+        graph.add_node(line_ast3, LocationHint::After(id2)).unwrap();
+        graph.add_node(line_ast4, LocationHint::End).unwrap();
+
+        let expected_code = r"main =
+    node0
+
+    node1
+    node2
+    node3
+    node4
+";
+        // `foo` is not part of expected code, as it belongs to module, not `main` graph.
+        graph.expect_code(expected_code);
     }
 
     #[wasm_bindgen_test]
