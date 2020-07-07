@@ -1,6 +1,6 @@
 //! This module exports State implementation for Nondeterministic Finite Automata.
 
-use crate::automata::alphabet::Alphabet;
+use crate::automata::alphabet_segmentation::AlphabetSegmentation;
 use crate::automata::state;
 use crate::automata::symbol::Symbol;
 
@@ -36,12 +36,12 @@ impl State {
     }
 
     /// Returns transition (next state) for each symbol in alphabet.
-    pub fn targets(&self, alphabet:&Alphabet) -> Vec<Identifier> {
+    pub fn targets(&self, alphabet:&AlphabetSegmentation) -> Vec<Identifier> {
         let mut targets = vec![];
         let mut index   = 0;
         let mut links   = self.links.clone();
         links.sort_by_key(|link| *link.symbols.start());
-        for &symbol in &alphabet.symbols {
+        for &symbol in &alphabet.divisions {
             while links.len() > index && *links[index].symbols.end() < symbol {
                 index += 1;
             }

@@ -6,7 +6,6 @@
 // === Symbol ===
 // ==============
 
-// TODO [AA] make API in terms of characters.
 /// An input symbol to a finite automaton.
 #[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord,Hash)]
 pub struct Symbol {

@@ -1,6 +1,6 @@
 //! The structure for defining non-deterministic finite automata.
 
-use crate::automata::alphabet::Alphabet;
+use crate::automata::alphabet_segmentation::AlphabetSegmentation;
 use crate::automata::dfa::Callback;
 use crate::automata::dfa::DFA;
 use crate::automata::pattern::Pattern;
@@ -42,8 +42,8 @@ type StateSetId = BTreeSet<state::Identifier>;
 /// ```
 #[derive(Clone,Debug,Default,PartialEq,Eq)]
 pub struct NFA {
-    /// A finite set of all valid input symbols.
-    pub alphabet: Alphabet,
+    /// A set of disjoint intervals over the input alphabet.
+    pub alphabet: AlphabetSegmentation,
     /// A set of named NFA states, with (epsilon) transitions.
     pub states: Vec<State>,
 }
@@ -153,7 +153,7 @@ impl NFA {
 
     /// Computes a transition matrix `(state, symbol) => state` for the NFA, ignoring epsilon links.
     fn nfa_matrix(&self) -> Matrix<state::Identifier> {
-        let mut matrix = Matrix::new(self.states.len(),self.alphabet.symbols.len());
+        let mut matrix = Matrix::new(self.states.len(),self.alphabet.divisions.len());
 
         for (state_ix, source) in self.states.iter().enumerate() {
             let targets = source.targets(&self.alphabet);
@@ -172,7 +172,7 @@ impl From<&NFA> for DFA {
     fn from(nfa:&NFA) -> Self {
         let     nfa_mat     = nfa.nfa_matrix();
         let     eps_mat     = nfa.eps_matrix();
-        let mut dfa_mat     = Matrix::new(0,nfa.alphabet.symbols.len());
+        let mut dfa_mat     = Matrix::new(0,nfa.alphabet.divisions.len());
         let mut dfa_eps_ixs = Vec::<StateSetId>::new();
         let mut dfa_eps_map = HashMap::<StateSetId,state::Identifier>::new();
 
@@ -182,7 +182,7 @@ impl From<&NFA> for DFA {
         let mut i = 0;
         while i < dfa_eps_ixs.len()  {
             dfa_mat.new_row();
-            for voc_ix in 0..nfa.alphabet.symbols.len() {
+            for voc_ix in 0..nfa.alphabet.divisions.len() {
                 let mut eps_set = StateSetId::new();
                 for &eps_ix in &dfa_eps_ixs[i] {
                     let tgt = nfa_mat[(eps_ix.id,voc_ix)];
@@ -215,7 +215,7 @@ impl From<&NFA> for DFA {
             }
         }
 
-        DFA {alphabet:nfa.alphabet.clone(),links:dfa_mat,callbacks}
+        DFA { alphabet_segmentation:nfa.alphabet.clone(),links:dfa_mat,callbacks}
     }
 }
 
@@ -243,7 +243,7 @@ pub mod tests {
                 State::from(vec![3]).named("group0_rule0"),
                 State::default(),
             ],
-            alphabet: Alphabet::from(vec![10,11]),
+            alphabet: AlphabetSegmentation::from_divisions(vec![10, 11]),
         }
     }
 
@@ -256,7 +256,7 @@ pub mod tests {
                 State::from(vec![3]).named("group0_rule0"),
                 State::default(),
             ],
-            alphabet: Alphabet::from(vec![97,123]),
+            alphabet: AlphabetSegmentation::from_divisions(vec![97, 123]),
         }
     }
 
@@ -275,7 +275,7 @@ pub mod tests {
                 State::from(vec![5,9]).named("group0_rule0"),
                 State::default(),
             ],
-            alphabet: Alphabet::from(vec![0,32,33]),
+            alphabet: AlphabetSegmentation::from_divisions(vec![0, 32, 33]),
         }
     }
 
@@ -296,7 +296,7 @@ pub mod tests {
                 State::from(vec![7,11]).named("group0_rule1"),
                 State::default(),
             ],
-            alphabet: Alphabet::from(vec![32,33,97,123]),
+            alphabet: AlphabetSegmentation::from_divisions(vec![32, 33, 97, 123]),
         }
     }
 

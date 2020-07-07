@@ -1,6 +1,6 @@
 //! The structure for defining deterministic finite automata.
 
-use crate::automata::alphabet::Alphabet;
+use crate::automata::alphabet_segmentation::AlphabetSegmentation;
 use crate::automata::state;
 use crate::data::matrix::Matrix;
 
@@ -23,8 +23,8 @@ use crate::data::matrix::Matrix;
 /// ```
 #[derive(Clone,Debug,Default,PartialEq,Eq)]
 pub struct DFA {
-    /// A finite set of all valid input symbols.
-    pub alphabet: Alphabet,
+    /// A set of disjoint intervals over the allowable input alphabet.
+    pub alphabet_segmentation: AlphabetSegmentation,
     /// The transition matrix for the DFA.
     ///
     /// It represents a function of type `(state, symbol) -> state`, returning the identifier for
@@ -97,7 +97,7 @@ pub mod tests {
     /// DFA automata that accepts newline '\n'.
     pub fn newline() -> DFA {
         DFA {
-            alphabet: Alphabet::from(vec![10,11]),
+            alphabet_segmentation: AlphabetSegmentation::from_divisions(vec![10, 11]),
             links: Matrix::from(vec![vec![I,1,I], vec![I,I,I]]),
             callbacks: vec![
                 None,
@@ -109,7 +109,7 @@ pub mod tests {
     /// DFA automata that accepts any letter a..=z.
     pub fn letter() -> DFA {
         DFA {
-            alphabet: Alphabet::from(vec![97,123]),
+            alphabet_segmentation: AlphabetSegmentation::from_divisions(vec![97, 123]),
             links: Matrix::from(vec![vec![I,1,I], vec![I,I,I]]),
             callbacks: vec![
                 None,
@@ -121,7 +121,7 @@ pub mod tests {
     /// DFA automata that accepts any number of spaces ' '.
     pub fn spaces() -> DFA {
         DFA {
-            alphabet: Alphabet::from(vec![0,32,33]),
+            alphabet_segmentation: AlphabetSegmentation::from_divisions(vec![0, 32, 33]),
             links: Matrix::from(vec![
                 vec![I,1,I],
                 vec![I,2,I],
@@ -138,7 +138,7 @@ pub mod tests {
     /// DFA automata that accepts one letter a..=z or any many spaces.
     pub fn letter_and_spaces() -> DFA {
         DFA {
-            alphabet: Alphabet::from(vec![32,33,97,123]),
+            alphabet_segmentation: AlphabetSegmentation::from_divisions(vec![32, 33, 97, 123]),
             links: Matrix::from(vec![
                 vec![I,1,I,2,I],
                 vec![I,3,I,I,I],
