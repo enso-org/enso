@@ -232,6 +232,8 @@ pub mod tests {
     use super::*;
     use test::Bencher;
 
+    // TODO [AA] No tests actually build the NFA.
+
     /// NFA that accepts a newline '\n'.
     pub fn newline() -> NFA {
         NFA {

@@ -11,14 +11,29 @@ use enso_prelude::default;
 // === Alphabet ===
 // ================
 
+// TODO [AA] Clarify the above, as it doesn't quite make sense to me. It makes it sound like I can't
+//  encode a language `a` | `c`
+// Alphabet is a set of any symbols, and may contain multiple, disjoint intervals.
+// - Scala impl has alphabet as tree of intervals.
+// - Collection of dynamic symbols as disjoint intervals.
+// - Printf debugging.
+// - Should divide up a big interval to have the smallest number of intervals.
+// - Needs to be sorted/ordered -> BTreeSet guarantees sorted order
+// Clarify this with Josef.
+//
+// original, unbound alphabet (in such a case NFA has only one "symbol" - every letter).
+// ... a b c d e f g h ... z ...
+// // After adding a rule for `[b,d]`, we've got 3 sections in alphabet:
+// ... a | b c d | e f g h ... z ...
+// // After adding a rule for `[d,f]`, we've got 5 sections in alphabet:
+// ... a | b c | d | e f | g h ... z ...
+
 /// An alphabet is a description of the set of valid input symbols for a given finite state
 /// automaton.
 ///
 /// These alphabets are represented over an interval. This means that if both `a` and `b` are in
 /// the alphabet, then any symbol `a..=b` is also in the alphabet. For more information, please see
 /// the wiki page on [DFAs](https://en.wikipedia.org/wiki/Deterministic_finite_automaton).
-// TODO [AA] Clarify the above, as it doesn't quite make sense to me. It makes it sound like I can't
-//  encode a language `a` | `c`
 #[derive(Clone,Debug,PartialEq,Eq)]
 pub struct Alphabet {
     /// The intervals of all valid input symbols.
@@ -26,7 +41,7 @@ pub struct Alphabet {
     /// The interval is further divided into sub-intervals (e.g. `[a,z,A,Z]` should be understood to
     /// mean `[a..=z, z..=A, A..=Z]`). This is necessary to allow efficient encoding of state
     /// transitions that trigger on not just _one_, but potentially _many_ symbols.
-    pub symbols: BTreeSet<Symbol>
+    pub symbols: BTreeSet<Symbol> //name is dumb
 }
 
 impl Alphabet {
@@ -50,6 +65,7 @@ impl Default for Alphabet {
     }
 }
 
+// Shouldn't be a `From` instance.
 impl From<Vec<u32>> for Alphabet {
     fn from(vec:Vec<u32>) -> Self {
         let mut dict = Self::default();

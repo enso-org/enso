@@ -33,17 +33,17 @@ impl Pattern {
 
     /// A pattern that never triggers.
     pub fn never() -> Self {
-        Pattern::symbols(1..=0)
+        Pattern::symbols(Symbol::from(1)..=Symbol::from(0))
     }
 
     /// A pattern that always triggers
     pub fn always() -> Self {
-        Pattern::symbols(u32::min_value()..=u32::max_value())
+        Pattern::symbols(Symbol::from(u32::min_value())..=Symbol::from(u32::max_value()))
     }
 
     /// A pattern that triggers on any character.
     pub fn any_char() -> Self {
-        Pattern::symbols(0..=u32::max_value())
+        Pattern::symbols(Symbol::from(0)..=Symbol::from(u32::max_value()))
     }
 
     /// A pattern that triggers on 0..N repetitions of the pattern described by `self`.
@@ -61,29 +61,29 @@ impl Pattern {
         self | Self::always()
     }
 
+    /// A pattern that triggers on the given character.
+    pub fn char(character:char) -> Self {
+        Self::symbol(Symbol::from(character))
+    }
+
     /// A pattern that triggers on the given symbol.
-    pub fn symbol(symbol:u32) -> Self {
+    pub fn symbol(symbol:Symbol) -> Self {
         Pattern::symbols(symbol..=symbol)
     }
 
     /// A pattern that triggers on any of the provided `symbols`.
-    pub fn symbols(symbols:RangeInclusive<u32>) -> Self {
-        Pattern::Range(Symbol{val:*symbols.start()}..=Symbol{val:*symbols.end()})
+    pub fn symbols(symbols:RangeInclusive<Symbol>) -> Self {
+        Pattern::Range(symbols)
     }
 
     /// A pattern that triggers at the end of the file.
     pub fn eof() -> Self {
-        Self::symbol(Symbol::EOF_CODE.val)
-    }
-
-    /// A pattern that triggers on a given character
-    pub fn char(char:char) -> Self {
-        Self::symbol(char as u32)
+        Self::symbol(Symbol::EOF_CODE)
     }
 
     /// A pattern that triggers on any character in the provided `range`.
     pub fn range(range:RangeInclusive<char>) -> Self {
-        Pattern::symbols((*range.start() as u32)..=(*range.end() as u32))
+        Pattern::symbols(Symbol::from(*range.start())..=Symbol::from(*range.end()))
     }
 
     /// Pattern that triggers when sequence of characters given by `chars` is encountered.
@@ -106,7 +106,7 @@ impl Pattern {
         codes.sort();
         codes.iter().tuple_windows().fold(Self::never(), |pat,(start,end)| {
             if end < start {pat} else {
-                pat | Pattern::symbols(*start..=*end)
+                pat | Pattern::symbols(Symbol::from(*start)..=Symbol::from(*end))
             }
         })
     }

@@ -75,7 +75,6 @@ impl From<Vec<Vec<usize>>> for Matrix<state::Identifier> {
 /// is declared in [`Rule.pattern`](crate::group::rule::Rule::pattern).
 #[derive(Clone,Debug,PartialEq,Eq)]
 pub struct Callback {
-    // TODO [AA] Document this better after writing rust codegen.
     /// A description of the priority with which the callback is constructed during codegen.
     pub priority: usize,
     /// The rust code that will be executed when running this callback.
