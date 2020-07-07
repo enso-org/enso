@@ -29,7 +29,7 @@ class LanguageServerGatewaySpec
       tryConnect(barSocket).isRight shouldBe true
       tryConnect(bazSocket).isRight shouldBe true
       //when
-      val future = exec.exec(languageServerService.killAllServers())
+      val future = exec.exec(languageServerGateway.killAllServers())
       Await.result(future, 20.seconds)
       //then
       tryConnect(fooSocket).isLeft shouldBe true
