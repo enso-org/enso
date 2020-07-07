@@ -41,6 +41,11 @@ import org.enso.languageserver.runtime.{
   SearchProtocol
 }
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.runtime.SearchApi.{
+  Completion,
+  GetSuggestionsDatabase,
+  GetSuggestionsDatabaseVersion
+}
 import org.enso.languageserver.runtime.VisualisationApi.{
   AttachVisualisation,
   DetachVisualisation,
@@ -67,6 +72,7 @@ import scala.concurrent.duration._
   * @param capabilityRouter a router that dispatches capability requests
   * @param fileManager performs operations with file system
   * @param contextRegistry a router that dispatches execution context requests
+  * @param suggestionsHandler a reference to the suggestions requests handler
   * @param requestTimeout a request timeout
   */
 class JsonConnectionController(
@@ -75,6 +81,7 @@ class JsonConnectionController(
   val capabilityRouter: ActorRef,
   val fileManager: ActorRef,
   val contextRegistry: ActorRef,
+  val suggestionsHandler: ActorRef,
   val stdOutController: ActorRef,
   val stdErrController: ActorRef,
   val stdInController: ActorRef,
@@ -259,6 +266,12 @@ class JsonConnectionController(
         .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextRecompute -> executioncontext.RecomputeHandler
         .props(requestTimeout, contextRegistry, rpcSession),
+      GetSuggestionsDatabaseVersion -> search.GetSuggestionsDatabaseVersionHandler
+        .props(requestTimeout, suggestionsHandler),
+      GetSuggestionsDatabase -> search.GetSuggestionsDatabaseHandler
+        .props(requestTimeout, suggestionsHandler),
+      Completion -> search.CompletionHandler
+        .props(requestTimeout, suggestionsHandler),
       AttachVisualisation -> AttachVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       DetachVisualisation -> DetachVisualisationHandler
@@ -288,6 +301,7 @@ object JsonConnectionController {
     * @param capabilityRouter a router that dispatches capability requests
     * @param fileManager performs operations with file system
     * @param contextRegistry a router that dispatches execution context requests
+    * @param suggestionsHandler a reference to the suggestions requests handler
     * @param requestTimeout a request timeout
     * @return a configuration object
     */
@@ -297,6 +311,7 @@ object JsonConnectionController {
     capabilityRouter: ActorRef,
     fileManager: ActorRef,
     contextRegistry: ActorRef,
+    suggestionsHandler: ActorRef,
     stdOutController: ActorRef,
     stdErrController: ActorRef,
     stdInController: ActorRef,
@@ -310,6 +325,7 @@ object JsonConnectionController {
         capabilityRouter,
         fileManager,
         contextRegistry,
+        suggestionsHandler,
         stdOutController,
         stdErrController,
         stdInController,

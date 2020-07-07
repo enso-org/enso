@@ -321,10 +321,6 @@ object Runtime {
         new JsonSubTypes.Type(
           value = classOf[SuggestionsDatabaseUpdate.Remove],
           name  = "suggestionsDatabaseUpdateRemove"
-        ),
-        new JsonSubTypes.Type(
-          value = classOf[SuggestionsDatabaseUpdate.Modify],
-          name  = "suggestionsDatabaseUpdateModify"
         )
       )
     )
@@ -333,37 +329,16 @@ object Runtime {
 
       /** Create or replace the database entry.
         *
-        * @param id suggestion id
         * @param suggestion the new suggestion
         */
-      case class Add(id: Long, suggestion: Suggestion)
-          extends SuggestionsDatabaseUpdate
+      case class Add(suggestion: Suggestion) extends SuggestionsDatabaseUpdate
 
       /** Remove the database entry.
         *
-        * @param id the suggestion id
+        * @param suggestion the suggestion to remove
         */
-      case class Remove(id: Long) extends SuggestionsDatabaseUpdate
-
-      /** Modify the database entry.
-        *
-        * @param id the suggestion id
-        * @param name the new suggestion name
-        * @param arguments the new suggestion arguments
-        * @param selfType the new self type of the suggestion
-        * @param returnType the new return type of the suggestion
-        * @param documentation the new documentation string
-        * @param scope the suggestion scope
-        */
-      case class Modify(
-        id: Long,
-        name: Option[String],
-        arguments: Option[Seq[Suggestion.Argument]],
-        selfType: Option[String],
-        returnType: Option[String],
-        documentation: Option[String],
-        scope: Option[Suggestion.Scope]
-      ) extends SuggestionsDatabaseUpdate
+      case class Remove(suggestion: Suggestion)
+          extends SuggestionsDatabaseUpdate
     }
 
     /**
