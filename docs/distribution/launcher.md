@@ -79,6 +79,7 @@ the default version.
 > 
 > - Decide how to support inexact project bounds (like `>=3.1, <4` - when should
 >   the launcher check for new versions) and resolvers.
+> - Decide how to support nightly builds.
 
 ### Project Configuration
 The command-line allows to edit project configuration, for example: change the
