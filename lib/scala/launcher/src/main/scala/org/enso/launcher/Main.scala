@@ -1,5 +1,7 @@
 package org.enso.launcher
 
+import java.nio.file.Path
+
 import cats.implicits._
 import com.monovore.decline._
 
@@ -8,15 +10,8 @@ object MainCommandBuilder {
 
   private def newCommand: Command[Unit] =
     Command("new", "Create a new Enso project.") {
-      val nameOpt =
-        Opts.option[String]("name", help = "Name of the created project.")
-      val pathOpt =
-        Opts
-          .option[String](
-            "path",
-            help = "Path specifying where to create the project."
-          )
-          .orNone
+      val nameOpt = Opts.argument[String]("name")
+      val pathOpt = Opts.argument[Path]("path").orNone
 
       (nameOpt, pathOpt).mapN { (name, path) =>
         Launcher.newProject(name, path)
@@ -34,7 +29,7 @@ object MainCommandBuilder {
           "Whether to print the version as JSON instead of plain text."
         )
         .orFalse
-      jsonFlag.map(Launcher.version)
+      jsonFlag.map(Launcher.displayVersion)
     }
 
   def buildCommands: Opts[Unit] = {

@@ -164,6 +164,11 @@ jobs:
           echo ::set-env name=DIST_DIR::$DIST_DIR
       - name: Build the Parser JS Bundle
         run: sbt -no-colors syntaxJS/fullOptJS
+      - name: Build the Manifest
+        run: |
+          cp distribution/Manifest.template.yml Manifest.yml
+          echo "graal-vm-version: $graalVersion" >> Manifest.yml
+          echo "graal-java-version: $javaVersion" >> Manifest.yml
 
       # Publish
       - name: Publish the Distribution Artifact
@@ -190,6 +195,11 @@ jobs:
         with:
           name: Parser JS Bundle
           path: ./target/scala-parser.js
+      - name: Publish the Manifest
+        uses: actions/upload-artifact@v2
+        with:
+          name: Manifest
+          path: Manifest.yml
       - name: Prepare AWS Session
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
@@ -294,16 +304,32 @@ jobs:
           cp distribution/launcher/README.md enso-launcher/
           cp distribution/launcher/NOTICE enso-launcher/
           cp -r distribution/launcher/components-licences enso-launcher/
+
       - name: Prepare Launcher distribution (Unix)
         if: runner.os != 'Windows'
         run: |
           cp enso enso-launcher/bin/
           chmod +x enso-launcher/bin/enso
+          (cd enso-launcher/ && zip -r "../enso.zip" .)
+          DIST_VERSION=$(./enso-launcher/bin/enso version --json | jq -r '.version')
+          echo ::set-env name=DIST_VERSION::$DIST_VERSION
+      # We skip the ZIP phase on Windows, as we can use the default GH ZIP as Windows doesn't care about permission bits
       - name: Prepare Launcher distribution (Windows)
         if: runner.os == 'Windows'
-        run: copy enso.exe enso-launcher\bin\
-      - name: Publish the Launcher Binary
-        uses: actions/upload-artifact@v1.0.0
+        shell: bash
+        run: |
+          cp enso.exe enso-launcher/bin/
+          DIST_VERSION=$(./enso-launcher/bin/enso.exe version --json | jq -r '.version')
+          echo ::set-env name=DIST_VERSION::$DIST_VERSION
+      - name: Publish the Launcher Binary (Unix)
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v2
         with:
-          name: launcher-${{ runner.os }}
+          name: launcher-${{ runner.os }}-${{ env.DIST_VERSION }}
+          path: enso.zip
+      - name: Publish the Launcher Binary (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v2
+        with:
+          name: launcher-${{ runner.os }}-${{ env.DIST_VERSION }}
           path: enso-launcher

@@ -944,13 +944,20 @@ lazy val launcher = project
           val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
           val cmd =
             s"$nativeImagePath $additionalParameters $resourcesGlobOpt " +
-              s"--no-fallback --initialize-at-build-time" +
-              s" -cp $classPath ${(Compile / mainClass).value.get} enso"
+            s"--no-fallback --initialize-at-build-time" +
+            s" -cp $classPath ${(Compile / mainClass).value.get} enso"
           if (cmd.! != 0) {
             throw new RuntimeException("Native Image build failed")
           }
         }
         .dependsOn(Compile / compile)
         .value
+  )
+  .settings(
+    Compile / sourceGenerators += Def.task {
+        val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
+        BuildInfo
+          .writeBuildInfoFile(file, ensoVersion, scalacVersion, graalVersion)
+      }.taskValue
   )
   .dependsOn(pkg)
