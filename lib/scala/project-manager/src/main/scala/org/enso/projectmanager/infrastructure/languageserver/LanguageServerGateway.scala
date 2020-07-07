@@ -13,7 +13,7 @@ import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
 import org.enso.projectmanager.model.Project
 
 /**
-  * A infrastructure service for managing lang. servers.
+  * A gateway to lang. server subsystem.
   *
   * @tparam F a effectful context
   */
