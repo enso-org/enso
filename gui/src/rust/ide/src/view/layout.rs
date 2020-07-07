@@ -106,11 +106,10 @@ impl ViewLayout {
         let logger        = Logger::sub(logger,"ViewLayout");
         let world         = &application.display;
         let text_editor   = TextEditor::new(&logger,world,text_controller,kb_actions,fonts);
-        let graph         = graph_controller.graph().clone_ref();
         let node_editor   = NodeEditor::new
             (&logger,application,graph_controller,project_controller,visualization_controller);
         let node_editor   = node_editor.await?;
-        let node_searcher = NodeSearcher::new(world,&logger,node_editor.clone_ref(),graph,fonts);
+        let node_searcher = NodeSearcher::new(world,&logger,node_editor.clone_ref(),fonts);
         world.add_child(&text_editor.display_object());
         world.add_child(&node_editor);
         world.add_child(&node_searcher);
