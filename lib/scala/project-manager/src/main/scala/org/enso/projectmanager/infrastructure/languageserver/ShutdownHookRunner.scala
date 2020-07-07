@@ -11,6 +11,12 @@ import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookRunner.
 import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
 import org.enso.projectmanager.util.UnhandledLogging
 
+/**
+  * An actor that invokes a shutdown hook.
+  *
+  * @param projectId a project id for which a hook is invoked
+  * @param hooks a hook to invoke
+  */
 class ShutdownHookRunner[F[+_, +_]: Exec: CovariantFlatMap](
   projectId: UUID,
   hooks: List[ShutdownHook[F]]
@@ -63,8 +69,15 @@ class ShutdownHookRunner[F[+_, +_]: Exec: CovariantFlatMap](
 
 object ShutdownHookRunner {
 
-  case object Run
+  private case object Run
 
+  /**
+    * Creates a configuration object used to create a [[ShutdownHookRunner]].
+    *
+    * @param projectId a project id for which a hook is invoked
+    * @param hooks a hook to invoke
+    * @return a configuration object
+    */
   def props[F[+_, +_]: Exec: CovariantFlatMap](
     projectId: UUID,
     hooks: List[ShutdownHook[F]]

@@ -72,11 +72,23 @@ trait LanguageServerGateway[F[+_, +_]] {
     */
   def killAllServers(): F[Throwable, Boolean]
 
+  /**
+    * Registers a shutdown hook.
+    *
+    * @param projectId the project for which the hook will be registered
+    * @param hook the shutdown hook to register
+    * @return
+    */
   def registerShutdownHook(
     projectId: UUID,
     hook: ShutdownHook[F]
   ): F[Nothing, Unit]
 
+  /**
+    * Waits until all shutdown hooks will be fired.
+    *
+    * @return
+    */
   def waitTillAllHooksFired(): F[Throwable, Unit]
 
 }

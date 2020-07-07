@@ -7,12 +7,17 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.event.ProjectEvent.ProjectClosed
 import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivator.{
-  IsEmpty,
+  ArePendingShutdownHooks,
   RegisterShutdownHook
 }
 import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
 import org.enso.projectmanager.util.UnhandledLogging
 
+/**
+  * The ShutdownHookActivator is responsible for receiving asynchronously
+  * [[ProjectClosed]] events and invoking all shutdown hooks for the closed
+  * project.
+  */
 class ShutdownHookActivator[F[+_, +_]: Exec: CovariantFlatMap]
     extends Actor
     with ActorLogging
@@ -42,22 +47,33 @@ class ShutdownHookActivator[F[+_, +_]: Exec: CovariantFlatMap]
         context.become(running(hooks - projectId))
       }
 
-    case IsEmpty =>
-      val isEmpty = hooks.values.map(_.size).sum == 0
-      sender() ! isEmpty
+    case ArePendingShutdownHooks =>
+      val arePending = hooks.values.map(_.size).sum != 0
+      sender() ! arePending
   }
 
 }
 
 object ShutdownHookActivator {
 
+  /**
+    * A command used to register a project shutdown hook.
+    */
   case class RegisterShutdownHook[F[+_, +_]](
     projectId: UUID,
     hook: ShutdownHook[F]
   )
 
-  case object IsEmpty
+  /**
+    * Requests an activator if there are pending shutdown hooks.
+    */
+  case object ArePendingShutdownHooks
 
+  /**
+    * Creates a configuration object used to create a [[ShutdownHookActivator]].
+    *
+    * @return a configuration object
+    */
   def props[F[+_, +_]: Exec: CovariantFlatMap](): Props =
     Props(new ShutdownHookActivator[F])
 

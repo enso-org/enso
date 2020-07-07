@@ -1,7 +1,7 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivator.IsEmpty
+import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivator.ArePendingShutdownHooks
 import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivationWatcher.{
   AllShutdownHooksFired,
   WakeUp,
@@ -10,6 +10,11 @@ import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivat
 import org.enso.projectmanager.util.UnhandledLogging
 import scala.concurrent.duration._
 
+/**
+  * An actor that waits until all shutdown hooks will be fired.
+  *
+  * @param shutdownHookActivator a reference to an activator
+  */
 class ShutdownHookActivationWatcher(shutdownHookActivator: ActorRef)
     extends Actor
     with ActorLogging
@@ -19,23 +24,23 @@ class ShutdownHookActivationWatcher(shutdownHookActivator: ActorRef)
 
   override def receive: Receive = {
     case Watch =>
-      shutdownHookActivator ! IsEmpty
+      shutdownHookActivator ! ArePendingShutdownHooks
       context.become(waitingForReply(sender()))
   }
 
-  def waitingForReply(client: ActorRef): Receive = {
-    case false =>
+  private def waitingForReply(client: ActorRef): Receive = {
+    case true =>
       context.system.scheduler.scheduleOnce(500.millis, self, WakeUp)
       context.become(sleeping(client))
 
-    case true =>
+    case false =>
       client ! AllShutdownHooksFired
       context.stop(self)
   }
 
-  def sleeping(client: ActorRef): Receive = {
+  private def sleeping(client: ActorRef): Receive = {
     case WakeUp =>
-      shutdownHookActivator ! IsEmpty
+      shutdownHookActivator ! ArePendingShutdownHooks
       context.become(waitingForReply(client))
   }
 
@@ -43,12 +48,25 @@ class ShutdownHookActivationWatcher(shutdownHookActivator: ActorRef)
 
 object ShutdownHookActivationWatcher {
 
+  /**
+    * A command that starts watching for a completion of shutdown hooks.
+    */
   case object Watch
 
+  /**
+    * Signals that all shutdown hooks are completed.
+    */
   case object AllShutdownHooksFired
 
   private case object WakeUp
 
+  /**
+    * Creates a configuration object used to create a
+    * [[ShutdownHookActivationWatcher]].
+    *
+    * @param shutdownHookActivator a reference to an activator
+    * @return a configuration object
+    */
   def props(shutdownHookActivator: ActorRef): Props =
     Props(new ShutdownHookActivationWatcher(shutdownHookActivator))
 

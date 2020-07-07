@@ -103,7 +103,7 @@ class LanguageServerGatewayImpl[
       }
   }
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def killAllServers(): F[Throwable, Boolean] = {
     implicit val timeout: Timeout = Timeout(timeoutConfig.shutdownTimeout)
 
@@ -114,6 +114,7 @@ class LanguageServerGatewayImpl[
       .map(_ => true)
   }
 
+  /** @inheritdoc */
   override def registerShutdownHook(
     projectId: UUID,
     hook: ShutdownHook[F]
@@ -124,6 +125,7 @@ class LanguageServerGatewayImpl[
       }
   }
 
+  /** @inheritdoc */
   override def waitTillAllHooksFired(): F[Throwable, Unit] = {
     implicit val timeout: Timeout = Timeout(timeoutConfig.shutdownTimeout)
     val watcher = actorSystem.actorOf(
@@ -136,4 +138,5 @@ class LanguageServerGatewayImpl[
       }
       .map(_ => ())
   }
+
 }
