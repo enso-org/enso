@@ -1,4 +1,5 @@
 #![feature(test)]
+#![feature(vec_drain_as_slice)]
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -14,13 +15,20 @@
 //! These lexers are capable of lexing any regular grammar, with some extensions to allow working
 //! with context sensitive (e.g. indentation-aware) syntax.
 
-pub use enso_prelude as prelude;
-
 
 
 pub mod automata;
 pub mod group;
 pub mod data;
+
+// TODO [AA] Remove these
+pub mod codegen_testing;
+pub mod lexer_def_testing;
+
+#[allow(missing_docs)]
+pub mod prelude {
+    pub use enso_prelude::*;
+}
 
 
 
@@ -42,3 +50,4 @@ pub trait Flexer {
         String::from("#[derive(Debug)]\npub struct Lexer {}")
     }
 }
+
