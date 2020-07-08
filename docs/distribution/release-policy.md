@@ -13,11 +13,12 @@ that we have a well-defined release policy. This document defines said policy.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Versioning](#versioning)
+  - [Launcher Versioning](#launcher-versioning)
 - [Release Branches](#release-branches)
 - [Release Workflow](#release-workflow)
-    - [Tag Naming](#tag-naming)
-    - [GitHub Releases](#github-releases)
-    - [Release Notes](#release-notes)
+  - [Tag Naming](#tag-naming)
+  - [GitHub Releases](#github-releases)
+  - [Release Notes](#release-notes)
 - [Version Support](#version-support)
 - [Working on the Current Release](#working-on-the-current-release)
 - [Backporting Fixes](#backporting-fixes)
@@ -37,6 +38,10 @@ following hold:
 - Backwards-compatible bug fixes will result in a patch version increase.
 - The tag will indicate pre-release or beta versions, and will increase when any
   pre-release change is made. These are not intended to be stable.
+
+### Launcher Versioning
+The launcher is released alongside Enso releases, so the launcher version is
+tied to the Enso version that it is released with.
 
 ## Release Branches
 A release branch in the Enso repository is a branch prefixed with `release/`.
@@ -79,6 +84,39 @@ released.
 A release is considered _official_ once it has been made into a release on
 [GitHub](https://github.com/enso-org/enso/releases). Once official, a release
 may not be changed in any way, except to mark it as broken.
+
+#### Manifest File
+Each GitHub release contains an asset named `manifest.yml` which is a YAML file
+containing metadata regarding the release. It has at least the following fields:
+
+- `minimum-launcher-version` - specifies the minimum version of the launcher
+  that should be used with this release of Enso,
+- `graal-vm-version` - specifies the exact version of GraalVM that should be
+  used with this release of Enso,
+- `graal-java-version` - as GraalVM versions may have different variants for
+  different Java versions, this specifies which variant to use.
+
+For example:
+```yaml
+minimum-launcher-version: 2.0
+graal-vm-version: 20.1.0
+graal-java-version: java11
+```
+
+#### Release Assets Structure
+Each release contains a build of the Enso engine and native launcher binaries
+for each supported platform. Moreover, for convenience, it should include
+bundles containing native launcher binaries and the latest engine build for each
+platform. So each release should contain the following assets:
+
+- `enso-bundle-<version>-linux-amd64.zip`
+- `enso-bundle-<version>-macos-amd64.zip`
+- `enso-bundle-<version>-windows-amd64.zip`
+- `enso-engine-<version>.zip`
+- `enso-launcher-<version>-linux-amd64.zip`
+- `enso-launcher-<version>-macos-amd64.zip`
+- `enso-launcher-<version>-windows-amd64.zip`
+- `manifest.yml`
 
 #### Marking a Release as Broken
 We intend to _never_ delete a release from GitHub, as users may have projects
