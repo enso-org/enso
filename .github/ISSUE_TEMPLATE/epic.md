@@ -1,6 +1,6 @@
 ---
 name: Epic
-about: Create a new epic for Enso development.
+about: Create a new epic for Enso development
 title: ''
 labels: ''
 assignees: ''
