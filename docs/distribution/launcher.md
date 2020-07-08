@@ -115,12 +115,12 @@ is different then required by that particular Enso version.
 The releases are discovered and downloaded using the
 [GitHub API](https://docs.github.com/en/rest/reference/repos#releases). As
 described in the [Release Policy](./release-policy.md#github-releases), each
-release contains a Manifest file that is downloaded first. It specifies if this
+release contains a manifest file that is downloaded first. It specifies if this
 Enso version can be used with the current launcher or an upgrade is needed, as
 described in
 [Minimal Required Launcher Version](#minimal-required-launcher-version). If the
 version is correct, the binary file containing the Enso components distribution
-is downloaded. The Manifest also specifies which GraalVM version should be used
+is downloaded. The manifest also specifies which GraalVM version should be used
 with this version of Enso. If that version of GraalVM is not present on the
 system it is also downloaded and installed.
 
@@ -169,7 +169,7 @@ allows downgrades by specifying a version explicitly.
 ### Minimal Required Launcher Version
 Each version of Enso can specify the minimum version of launcher required to run
 it. This version is specified in a
-[Manifest file](./release-policy.md#manifest-file) that should be included as an
+[manifest file](./release-policy.md#manifest-file) that should be included as an
 artifact for every Enso release.
 
 Moreover, if a given project uses some new build features, it may require a
