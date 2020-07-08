@@ -321,7 +321,7 @@ jobs:
       - name: Prepare distribution directory
         shell: bash
         run: |
-          ARTIFACT_NAME=$(echo ${{ runner.os }} | awk '{print tolower($0)}')
+          ARTIFACT_NAME=enso-launcher-${{ env.DIST_VERSION }}-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
           mv enso-launcher $ARTIFACT_NAME
           echo ::set-env name=ARTIFACT_NAME::$ARTIFACT_NAME
       # The way artifacts are uploaded currently does not preserve the

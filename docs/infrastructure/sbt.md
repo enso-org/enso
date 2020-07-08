@@ -83,6 +83,14 @@ and returns the result of `(Compile / compile).value`. An example of such a
 'patched' compile task is implemented in
 [`FixInstrumentsGeneration`](../../project/FixInstrumentsGeneration.scala).
 
+## Native Image
+The `launcher` subproject is compiled into a native binary for each platform
+using Graal's Native Image. The command to build the native binaries is
+`buildNativeImage`. It compiles the project and runs the Native Image tool which
+builds the image. To be able to use it, the Native Image component has to be
+installed within the used GraalVM distribution. It can be installed by running
+`gu install native-image`.
+
 ## Helper Tasks
 There are additional tasks defined in the [`project`](../../project) directory.
 They are used by [`build.sbt`](../../build.sbt) to provide some additional
