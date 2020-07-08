@@ -106,8 +106,8 @@ this mechanism to use the installed system JVM instead. This is an advanced
 feature and should rarely be used.
 
 The launcher will check the system JVM and refuse to launch Enso if it is not a
-GraalVM distribution. It will also print a warning if the major version is
-different then required by that particular Enso version.
+GraalVM distribution. It will also print a warning if the major or minor version
+is different then required by that particular Enso version.
 
 ### Downloading Enso Releases
 The releases are discovered and downloaded using the
@@ -192,13 +192,13 @@ scheme changes, there should be support for a fallback upgrade scheme that is
 used if the default upgrade process fails.
 
 This fallback scheme is only intended for situations where the current default
-scheme is deprecated indefinitely. So for simplicity, it does not allow to
-choose an arbitrary version but only to upgrade to the latest version of the
-launcher. In the very rare case in which the user wants to downgrade after the
-default distribution scheme has changed, they have to first upgrade to the
-latest version of the launcher which will use a new distribution scheme. Then,
-on that latest version, it may be possible to downgrade back to an old version
-(which is distributed on the new distribution scheme).
+scheme is broken indefinitely. So for simplicity, it does not allow to choose an
+arbitrary version but only to upgrade to the latest version of the launcher. In
+the very rare case in which the user wants to downgrade after the default
+distribution scheme has changed, they have to first upgrade to the latest
+version of the launcher which will use a new distribution scheme. Then, on that
+latest version, it may be possible to downgrade back to an old version (which is
+distributed on the new distribution scheme).
 
 Thus, when migrating to a new distribution scheme, old versions should also be
 preserved, but the fallback upgrade scheme does not have to keep track of all

@@ -111,7 +111,7 @@ If only the config path is provided, currently configured value is printed.
 
 Examples:
 ```bash
-> enso config --global user.name Example User
+> enso config --global author.name Example User
 > enso config author.name Example User
 > enso config author.name
 Example User
@@ -128,11 +128,15 @@ Examples:
 ``` 
 
 ### `repl`
-Launches an Enso repl.
+Launches an Enso REPL. If outside a project, it uses the `default` Enso version.
+If run inside a project or an optional project path is specified, the REPL is
+run in the context of that project, using the version specified in its
+configuration.
 
 Examples:
 ```bash
-> enso repl
+> enso repl # version and context depend on current working directory
+> enso repl /path/to/project # runs the REPL in context of the specified project
 ``` 
 
 ### `language-server`
@@ -176,14 +180,6 @@ Running on: OpenJDK 64-Bit Server VM, GraalVM Community, JDK 11.0.7+10-jvmci-20.
 Print this summary of available command and their usage.
 
 ## General Options
-
-### `--path=<path>`
-Specify path to the current project. Configuration from this project is used to
-determine the Enso version.
-
-If not specified, the directory tree is traversed to find if one of the parent
-directories contains an Enso project. If no project is found, the `default`
-version is used.
 
 ### `--version=<version>`
 Overrides the inferred (project local or `default`) version when running a

@@ -86,7 +86,7 @@ A release is considered _official_ once it has been made into a release on
 may not be changed in any way, except to mark it as broken.
 
 #### Manifest File
-Each GitHub release contains an artifact named `Manifest` which is a YAML file
+Each GitHub release contains an asset named `Manifest` which is a YAML file
 containing metadata regarding the release. It has at least the following fields:
 
 - `minimum-launcher-version` - specifies the minimum version of the launcher
@@ -102,6 +102,21 @@ minimum-launcher-version: 2.0
 graal-vm-version: 20.1.0
 graal-java-version: java11
 ```
+
+#### Release Assets Structure
+Each release contains a build of the Enso engine and native launcher binaries
+for each supported platform. Moreover, for convenience, it should include
+bundles containing native launcher binaries and the latest engine build for each
+platform. So each release should contain the following assets:
+
+- `enso-bundle-<version>-Linux-amd64.zip`
+- `enso-bundle-<version>-macOS-amd64.zip`
+- `enso-bundle-<version>-Windows-amd64.zip`
+- `enso-engine-<version>.zip`
+- `enso-launcher-<version>-Linux-amd64.zip`
+- `enso-launcher-<version>-macOS-amd64.zip`
+- `enso-launcher-<version>-Windows-amd64.zip`
+- `Manifest.yml`
 
 #### Marking a Release as Broken
 We intend to _never_ delete a release from GitHub, as users may have projects
