@@ -82,8 +82,6 @@ jobs:
       # Tests
       - name: Test Enso
         run: sbt --no-colors test
-      - name: Benchmark the Parser
-        run: sbt -no-colors syntax/bench
       - name: Check Runtime Benchmark Compilation
         run: sbt -no-colors runtime/Benchmark/compile
       - name: Check Language Server Benchmark Compilation
@@ -151,7 +149,7 @@ jobs:
         run: sbt --no-colors project-manager/assembly
       - name: Prepare Distribution
         run: |
-          DIST_DIR=enso-$(./enso.jar --version --json | jq -r '.version')
+          DIST_DIR=enso-engine-$(./enso.jar --version --json | jq -r '.version')
           mkdir $DIST_DIR
           mkdir $DIST_DIR/component
           cp runtime.jar $DIST_DIR/component
@@ -198,8 +196,8 @@ jobs:
       - name: Publish the Manifest
         uses: actions/upload-artifact@v2
         with:
-          name: Manifest
-          path: Manifest.yml
+          name: manifest
+          path: manifest.yml
       - name: Prepare AWS Session
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
@@ -320,6 +318,12 @@ jobs:
           cp enso.exe enso-launcher/bin/
           DIST_VERSION=$(./enso-launcher/bin/enso.exe version --json | jq -r '.version')
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
+      - name: Prepare distribution directory
+        shell: bash
+        run: |
+          ARTIFACT_NAME=$(echo ${{ runner.os }} | awk '{print tolower($0)}')
+          mv enso-launcher $ARTIFACT_NAME
+          echo ::set-env name=ARTIFACT_NAME::$ARTIFACT_NAME
       # The way artifacts are uploaded currently does not preserve the
       # executable bits for Unix. However putting artifacts into a ZIP would
       # create a twice nested ZIP file. For now, users downloading artifacts
@@ -327,5 +331,5 @@ jobs:
       - name: Publish the Launcher Binary
         uses: actions/upload-artifact@v2
         with:
-          name: launcher-${{ runner.os }}-${{ env.DIST_VERSION }}
-          path: enso-launcher
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_NAME }}
