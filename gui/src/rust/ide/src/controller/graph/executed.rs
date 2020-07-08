@@ -156,11 +156,11 @@ impl Handle {
         debug!(self.logger, "Entering node {node}.");
         let registry   = self.execution_ctx.computed_value_info_registry();
         let node_info  = registry.get(&node).ok_or_else(|| NotEvaluatedYet(node))?;
-        let method_ptr = node_info.method_call.as_ref().ok_or_else(|| NoResolvedMethod(node))?;
+        let method_ptr = node_info.method_pointer.as_ref().ok_or_else(|| NoResolvedMethod(node))?;
         let graph      = controller::Graph::new_method(&self.project,&method_ptr).await?;
         let call       = model::execution_context::LocalCall {
             call       : node,
-            definition : method_ptr.clone()
+            definition : method_ptr.as_ref().clone()
         };
         self.execution_ctx.push(call).await?;
 

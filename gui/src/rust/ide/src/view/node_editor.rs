@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::controller::graph::NodeTrees;
+use crate::model::execution_context::ComputedValueInfo;
 use crate::model::execution_context::ExpressionId;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
@@ -380,33 +381,47 @@ impl GraphEditorIntegratedWithControllerModel {
             // sub-parts).
             for expression_part in node.info.expression().iter_recursive() {
                 if let Some(id) = expression_part.id {
-                    self.refresh_type_on(id)
+                    self.refresh_computed_info(id)
                 }
             }
         }
 
     }
 
-    /// Like `refresh_type_on` but for multiple expressions.
-    fn refresh_types_on(&self, expressions_to_refresh:&[ExpressionId]) -> FallibleResult<()> {
+    /// Like `refresh_computed_info` but for multiple expressions.
+    fn refresh_computed_infos(&self, expressions_to_refresh:&[ExpressionId]) -> FallibleResult<()> {
         debug!(self.logger, "Refreshing type information for IDs: {expressions_to_refresh:?}.");
         for id in expressions_to_refresh {
-            self.refresh_type_on(*id)
+            self.refresh_computed_info(*id)
         }
         Ok(())
     }
 
-    /// Look up the typename for the given expression in the execution controller's registry and
-    /// pass the data to the editor view.
-    fn refresh_type_on(&self, id:ExpressionId) {
-        let typename = self.lookup_typename(&id);
-        self.set_type(id,typename)
+    /// Look up the computed information for a given expression and pass the information to the
+    /// graph editor view.
+    ///
+    /// The computed value information includes the expression type and the target method pointer.
+    fn refresh_computed_info(&self, id:ExpressionId) {
+        let info     = self.lookup_computed_info(&id);
+        let info     = info.as_ref();
+        let typename = info.and_then(|info| info.typename.clone().map(graph_editor::Type));
+        self.set_type(id,typename);
+        let method_pointer = info.and_then(|info| {
+            info.method_pointer.clone().map(graph_editor::MethodPointer)
+        });
+        self.set_method_pointer(id,method_pointer);
     }
 
     /// Set given type (or lack of such) on the given sub-expression.
-    fn set_type(&self, id:ExpressionId, typename:graph_editor::OptionalType) {
+    fn set_type(&self, id:ExpressionId, typename:Option<graph_editor::Type>) {
         let event = (id,typename);
         self.editor.frp.inputs.set_expression_type.emit_event(&event);
+    }
+
+    /// Set given method pointer (or lack of such) on the given sub-expression.
+    fn set_method_pointer(&self, id:ExpressionId, method:Option<graph_editor::MethodPointer>) {
+        let event = (id,method);
+        self.editor.frp.inputs.set_method_pointer.emit_event(&event);
     }
 
     fn refresh_connection_views
@@ -474,7 +489,7 @@ impl GraphEditorIntegratedWithControllerModel {
 
     /// Handle notification received from controller about values having been computed.
     pub fn on_values_computed(&self, expressions:&[ExpressionId]) -> FallibleResult<()> {
-        self.refresh_types_on(&expressions)
+        self.refresh_computed_infos(&expressions)
     }
 
     /// Request controller to detach all attached visualizations.
@@ -711,11 +726,9 @@ impl GraphEditorIntegratedWithControllerModel {
         self.visualizations.get_copied(&node_id).ok_or_else(err)
     }
 
-    fn lookup_typename(&self, id:&ExpressionId) -> graph_editor::OptionalType {
+    fn lookup_computed_info(&self, id:&ExpressionId) -> Option<Rc<ComputedValueInfo>> {
         let registry = self.controller.computed_value_info_registry();
-        let info     = registry.get(id);
-        let typename = info.and_then(|info| info.typename.clone());
-        graph_editor::OptionalType(typename)
+        registry.get(id)
     }
 }
 

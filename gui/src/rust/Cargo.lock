@@ -1132,6 +1132,7 @@ dependencies = [
  "ast 0.1.0",
  "enso-frp 0.1.0",
  "enso-prelude 0.1.0",
+ "enso-protocol 0.1.0",
  "enso-shapely 0.1.0",
  "ensogl 0.1.0",
  "ensogl-core-msdf-sys 0.1.0",

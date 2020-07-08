@@ -372,7 +372,8 @@ pub struct FrpInputs {
     pub remove_node                  : frp::Source<NodeId>,
     pub set_node_expression          : frp::Source<(NodeId,node::Expression)>,
     pub set_node_position            : frp::Source<(NodeId,Vector2)>,
-    pub set_expression_type          : frp::Source<(ast::Id, OptionalType)>,
+    pub set_expression_type          : frp::Source<(ast::Id,Option<Type>)>,
+    pub set_method_pointer           : frp::Source<(ast::Id,Option<MethodPointer>)>,
     pub cycle_visualization          : frp::Source<NodeId>,
     pub set_visualization            : frp::Source<(NodeId,Option<visualization::Path>)>,
     pub register_visualization       : frp::Source<Option<visualization::Definition>>,
@@ -410,6 +411,7 @@ impl FrpInputs {
             set_node_expression          <- source();
             set_node_position            <- source();
             set_expression_type          <- source();
+            set_method_pointer           <- source();
             set_visualization_data       <- source();
             cycle_visualization          <- source();
             set_visualization            <- source();
@@ -428,11 +430,12 @@ impl FrpInputs {
              ,remove_all_node_input_edges,remove_all_node_output_edges,set_visualization_data
              ,set_detached_edge_targets,set_edge_source,set_edge_target
              ,unset_edge_source,unset_edge_target
-             ,set_node_position,set_expression_type,select_node,remove_node,set_node_expression
-             ,connect_nodes,deselect_all_nodes,cycle_visualization,set_visualization
-             ,register_visualization,some_edge_targets_detached,some_edge_sources_detached
-             ,all_edge_targets_attached,hover_node_input,all_edge_sources_attached
-             ,hover_node_output,press_node_output,set_detached_edge_sources,all_edges_attached
+             ,set_node_position,set_expression_type,set_method_pointer,select_node,remove_node
+             ,set_node_expression,connect_nodes,deselect_all_nodes,cycle_visualization
+             ,set_visualization,register_visualization,some_edge_targets_detached
+             ,some_edge_sources_detached,all_edge_targets_attached,hover_node_input
+             ,all_edge_sources_attached,hover_node_output,press_node_output
+             ,set_detached_edge_sources,all_edges_attached
         }
     }
 }
@@ -650,8 +653,22 @@ impl display::Object for Edge {
 /// Typename information that may be associated with the given Port.
 ///
 /// `None` means that type for the port is unknown.
-#[derive(Clone,Debug,Default,Shrinkwrap)]
-pub struct OptionalType(pub Option<ImString>);
+#[derive(Clone,Debug,Shrinkwrap)]
+pub struct Type(pub ImString);
+
+
+
+// =============================
+// === OptionalMethodPointer ===
+// =============================
+
+/// Information about target definition for node entering.
+// TODO [mwu]
+//  As currently there is no good place to wrap Rc into a newtype that can be easily depended on
+//  both by `ide-view` and `ide` crates, we put this as-is. Refactoring should be considered in the
+//  future, once code organization and emerging patterns are more clear.
+#[derive(Clone,Debug,Shrinkwrap)]
+pub struct MethodPointer(pub Rc<enso_protocol::language_server::MethodPointer>);
 
 
 
