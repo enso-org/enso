@@ -1,10 +1,7 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import java.net.{InetSocketAddress, Socket => JSocket}
-
-import cats.implicits._
 import org.enso.jsonrpc.test.FlakySpec
-import org.enso.projectmanager.data.Socket
+import org.enso.projectmanager.test.Net._
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 
 import scala.concurrent.Await
@@ -42,19 +39,5 @@ class LanguageServerGatewaySpec
     }
 
   }
-
-  private def tryConnect(socket: Socket): Either[Throwable, Unit] =
-    tryConnect(new InetSocketAddress(socket.host, socket.port), 500)
-
-  private def tryConnect(
-    inetSocketAddress: InetSocketAddress,
-    timeout: Int
-  ): Either[Throwable, Unit] =
-    Either.catchNonFatal {
-      val socket = new JSocket()
-      socket.connect(inetSocketAddress, timeout)
-      socket.getChannel
-      socket.close()
-    }
 
 }

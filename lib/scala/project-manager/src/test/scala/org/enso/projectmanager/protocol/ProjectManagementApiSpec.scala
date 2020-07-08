@@ -6,6 +6,7 @@ import java.util.UUID
 
 import io.circe.literal._
 import org.enso.jsonrpc.test.FlakySpec
+import org.enso.projectmanager.test.Net.tryConnect
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 
 import scala.io.Source
@@ -523,6 +524,9 @@ class ProjectManagementApiSpec
       val lines       = buffer.getLines()
       lines.contains("name: Bar") shouldBe true
       buffer.close()
+      val jsonSocket = openProject(projectId)
+      tryConnect(jsonSocket).isRight shouldBe true
+      closeProject(projectId)
       //teardown
       deleteProject(projectId)
     }
