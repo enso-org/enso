@@ -41,3 +41,9 @@ impl From<char> for Symbol {
         Symbol{val:val as u32}
     }
 }
+
+impl From<&Symbol> for Symbol {
+    fn from(symb: &Symbol) -> Self {
+        Symbol{val:symb.val}
+    }
+}

@@ -4,8 +4,6 @@ use crate::automata::alphabet;
 use crate::automata::state;
 use crate::data::matrix::Matrix;
 
-
-
 // =====================================
 // === Deterministic Finite Automata ===
 // =====================================
@@ -55,7 +53,7 @@ impl From<Vec<Vec<usize>>> for Matrix<state::Identifier> {
         let mut matrix  = Self::new(rows,columns);
         for row in 0..rows {
             for column in 0..columns {
-                matrix[(row,column)] = state::Identifier {id:input[row][column]};
+                matrix[(row,column)] = state::Identifier::from(input[row][column]);
             }
         }
         matrix
@@ -78,7 +76,7 @@ pub struct RuleExecutable {
     /// A description of the priority with which the callback is constructed during codegen.
     pub priority: usize,
     /// The rust code that will be executed when running this callback.
-    pub name: String,
+    pub code: String,
 }
 
 
@@ -89,21 +87,20 @@ pub struct RuleExecutable {
 
 #[cfg(test)]
 pub mod tests {
-    use super::*;
     use crate::automata::state;
 
-    const I:usize = state::Identifier::INVALID.id;
+    use super::*;
+
+    const INVALID:usize = state::Identifier::INVALID.id;
 
     /// DFA automata that accepts newline '\n'.
     pub fn newline() -> DFA {
         DFA {
-            alphabet_segmentation: alphabet::Segmentation::from_divisions(
-                vec![10,11].as_slice()
-            ),
-            links: Matrix::from(vec![vec![I,1,I], vec![I,I,I]]),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(&[10,11]),
+            links: Matrix::from(vec![vec![INVALID,1,INVALID], vec![INVALID,INVALID,INVALID]]),
             callbacks: vec![
                 None,
-                Some(RuleExecutable {priority:2,name:"group0_rule0".into()}),
+                Some(RuleExecutable {priority:2, code:"group0_rule0".into()}),
             ],
         }
     }
@@ -111,13 +108,11 @@ pub mod tests {
     /// DFA automata that accepts any letter a..=z.
     pub fn letter() -> DFA {
         DFA {
-            alphabet_segmentation: alphabet::Segmentation::from_divisions(
-                vec![97,123].as_slice()
-            ),
-            links: Matrix::from(vec![vec![I,1,I], vec![I,I,I]]),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(&[97,123]),
+            links: Matrix::from(vec![vec![INVALID,1,INVALID], vec![INVALID,INVALID,INVALID]]),
             callbacks: vec![
                 None,
-                Some(RuleExecutable {priority:2,name:"group0_rule0".into()}),
+                Some(RuleExecutable {priority:2, code:"group0_rule0".into()}),
             ],
         }
     }
@@ -125,18 +120,16 @@ pub mod tests {
     /// DFA automata that accepts any number of spaces ' '.
     pub fn spaces() -> DFA {
         DFA {
-            alphabet_segmentation: alphabet::Segmentation::from_divisions(
-                vec![0,32,33].as_slice()
-            ),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(&[0,32,33]),
             links: Matrix::from(vec![
-                vec![I,1,I],
-                vec![I,2,I],
-                vec![I,2,I],
+                vec![INVALID,1,INVALID],
+                vec![INVALID,2,INVALID],
+                vec![INVALID,2,INVALID],
             ]),
             callbacks: vec![
                 None,
-                Some(RuleExecutable {priority:3,name:"group0_rule0".into()}),
-                Some(RuleExecutable {priority:3,name:"group0_rule0".into()}),
+                Some(RuleExecutable {priority:3, code:"group0_rule0".into()}),
+                Some(RuleExecutable {priority:3, code:"group0_rule0".into()}),
             ],
         }
     }
@@ -144,20 +137,18 @@ pub mod tests {
     /// DFA automata that accepts one letter a..=z or any many spaces.
     pub fn letter_and_spaces() -> DFA {
         DFA {
-            alphabet_segmentation: alphabet::Segmentation::from_divisions(
-                vec![32,33,97,123].as_slice()
-            ),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(&[32,33,97,123]),
             links: Matrix::from(vec![
-                vec![I,1,I,2,I],
-                vec![I,3,I,I,I],
-                vec![I,I,I,I,I],
-                vec![I,3,I,I,I],
+                vec![INVALID,1,INVALID,2,INVALID],
+                vec![INVALID,3,INVALID,INVALID,INVALID],
+                vec![INVALID,INVALID,INVALID,INVALID,INVALID],
+                vec![INVALID,3,INVALID,INVALID,INVALID],
             ]),
             callbacks: vec![
                 None,
-                Some(RuleExecutable {priority:4,name:"group0_rule1".into()}),
-                Some(RuleExecutable {priority:4,name:"group0_rule0".into()}),
-                Some(RuleExecutable {priority:4,name:"group0_rule1".into()}),
+                Some(RuleExecutable {priority:4, code:"group0_rule1".into()}),
+                Some(RuleExecutable {priority:4, code:"group0_rule0".into()}),
+                Some(RuleExecutable {priority:4, code:"group0_rule1".into()}),
             ],
         }
     }

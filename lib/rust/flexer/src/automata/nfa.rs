@@ -15,6 +15,8 @@ use std::collections::BTreeSet;
 use std::collections::HashMap;
 use std::ops::RangeInclusive;
 
+use crate::prelude::*;
+
 
 
 // =========================================
@@ -69,7 +71,7 @@ impl NFA {
     /// If any symbol from such range happens to be the input when the automaton is in the `source`
     /// state, it will immediately transition to the `target` state.
     pub fn connect_via
-    (&mut self
+    ( &mut self
     , source:state::Identifier
     , target_state:state::Identifier
     , symbols:&RangeInclusive<Symbol>) {
@@ -211,7 +213,7 @@ impl From<&NFA> for DFA {
             let has_name = |&key:&state::Identifier| nfa.states[key.id].name.is_some();
             if let Some(eps) = epss.into_iter().find(has_name) {
                 let rule = nfa.states[eps.id].name.as_ref().cloned().unwrap();
-                callbacks[dfa_ix] = Some(RuleExecutable{name:rule,priority});
+                callbacks[dfa_ix] = Some(RuleExecutable{ code:rule,priority});
             }
         }
 

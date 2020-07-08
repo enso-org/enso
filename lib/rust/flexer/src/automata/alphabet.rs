@@ -55,7 +55,7 @@ pub struct Segmentation {
 impl Segmentation {
     /// Inserts a range of symbols into the alphabet.
     pub fn insert(&mut self, range:RangeInclusive<Symbol>) {
-        self.divisions.insert(Symbol{val:range.start().val});
+        self.divisions.insert(Symbol::from(range.start()));
         self.divisions.insert(Symbol{val:range.end().val + 1});
     }
 
@@ -75,6 +75,8 @@ impl Segmentation {
 impl Default for Segmentation {
     fn default() -> Self {
         let mut divisions: BTreeSet<Symbol> = default();
+        // The existence of the default (0) member in the set is assumed by the implementation of
+        // the NFA -> DFA conversion.
         divisions.insert(default());
         Segmentation { divisions }
     }
