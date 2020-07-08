@@ -14,7 +14,7 @@ class SuggestionsHandlerTest extends BaseServerTest {
           { "jsonrpc" : "2.0",
             "id" : 0,
             "result" : {
-              "version" : 0
+              "currentVersion" : 0
             }
           }
       """)

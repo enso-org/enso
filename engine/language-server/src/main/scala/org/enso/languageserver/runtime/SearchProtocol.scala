@@ -4,7 +4,7 @@ import enumeratum._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
-import org.enso.searcher.Suggestion
+import org.enso.polyglot.Suggestion
 import org.enso.text.editing.model.Position
 
 object SearchProtocol {

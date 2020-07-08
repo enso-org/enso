@@ -18,8 +18,9 @@ import org.enso.languageserver.runtime.SearchProtocol.{
 }
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.searcher.{Suggestion, SuggestionsRepo}
+import org.enso.searcher.SuggestionsRepo
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}

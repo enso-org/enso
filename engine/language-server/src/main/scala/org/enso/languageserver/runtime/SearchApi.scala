@@ -47,7 +47,7 @@ object SearchApi {
   case object GetSuggestionsDatabaseVersion
       extends Method("search/getSuggestionsDatabaseVersion") {
 
-    case class Result(version: Long)
+    case class Result(currentVersion: Long)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = Unused.type

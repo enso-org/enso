@@ -1,12 +1,13 @@
 package org.enso.languageserver.runtime
 
-import org.enso.searcher.Suggestion
+import org.enso.polyglot.Suggestion
 
 /** Suggestion instances used in tests. */
 object Suggestions {
 
   val atom: Suggestion.Atom =
     Suggestion.Atom(
+      module        = "Test.Main",
       name          = "MyType",
       arguments     = Vector(Suggestion.Argument("a", "Any", false, false, None)),
       returnType    = "MyAtom",
@@ -15,7 +16,8 @@ object Suggestions {
 
   val method: Suggestion.Method =
     Suggestion.Method(
-      name = "foo",
+      module = "Test.Main",
+      name   = "foo",
       arguments = Vector(
         Suggestion.Argument("this", "MyType", false, false, None),
         Suggestion.Argument("foo", "Number", false, true, Some("42"))
@@ -27,6 +29,7 @@ object Suggestions {
 
   val function: Suggestion.Function =
     Suggestion.Function(
+      module     = "Test.Main",
       name       = "print",
       arguments  = Vector(),
       returnType = "IO",
@@ -35,6 +38,7 @@ object Suggestions {
 
   val local: Suggestion.Local =
     Suggestion.Local(
+      module     = "Test.Main",
       name       = "x",
       returnType = "Number",
       scope      = Suggestion.Scope(34, 68)

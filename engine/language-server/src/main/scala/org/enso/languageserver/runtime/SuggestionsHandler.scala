@@ -36,7 +36,7 @@ final class SuggestionsHandler(repo: SuggestionsRepo[Future])
     case Completion(_, _, selfType, returnType, tags) =>
       val kinds = tags.map(_.map(SuggestionKind.toSuggestion))
       repo
-        .search(selfType, returnType, kinds)
+        .search(None, selfType, returnType, kinds, None)
         .map(CompletionResult.tupled)
         .pipeTo(sender())
   }
