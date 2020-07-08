@@ -2,7 +2,8 @@ package org.enso.searcher.sql
 
 import java.nio.file.Path
 
-import org.enso.searcher.{Suggestion, SuggestionEntry, SuggestionsRepo}
+import org.enso.polyglot.Suggestion
+import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
 import slick.jdbc.SQLiteProfile.api._
 
 import scala.concurrent.{ExecutionContext, Future}

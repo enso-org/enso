@@ -1,6 +1,29 @@
-package org.enso.searcher
+package org.enso.polyglot
+
+import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 
 /** A search suggestion. */
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes(
+  Array(
+    new JsonSubTypes.Type(
+      value = classOf[Suggestion.Atom],
+      name  = "suggestionAtom"
+    ),
+    new JsonSubTypes.Type(
+      value = classOf[Suggestion.Method],
+      name  = "suggestionMethod"
+    ),
+    new JsonSubTypes.Type(
+      value = classOf[Suggestion.Function],
+      name  = "suggestionFunction"
+    ),
+    new JsonSubTypes.Type(
+      value = classOf[Suggestion.Local],
+      name  = "suggestionLocal"
+    )
+  )
+)
 sealed trait Suggestion
 object Suggestion {
 

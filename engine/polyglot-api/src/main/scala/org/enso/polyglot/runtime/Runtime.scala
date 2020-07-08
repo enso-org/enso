@@ -11,7 +11,7 @@ import com.fasterxml.jackson.module.scala.{
   DefaultScalaModule,
   ScalaObjectMapper
 }
-import org.enso.searcher.Suggestion
+import org.enso.polyglot.Suggestion
 import org.enso.text.editing.model.TextEdit
 
 import scala.util.Try

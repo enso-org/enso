@@ -1,6 +1,6 @@
 package org.enso.searcher.sql
 
-import org.enso.searcher.Suggestion
+import org.enso.polyglot.Suggestion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}

@@ -9,7 +9,7 @@ import org.enso.compiler.context.{
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.test.CompilerTest
-import org.enso.searcher.Suggestion
+import org.enso.polyglot.Suggestion
 
 class SuggestionBuilderTest extends CompilerTest {
 
@@ -37,7 +37,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with documentation" in {
-      pending // fix documentation
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
@@ -385,6 +384,36 @@ class SuggestionBuilderTest extends CompilerTest {
           ),
           selfType      = "MyAtom",
           returnType    = "Boolean",
+          documentation = None
+        )
+      )
+    }
+
+    "build module" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """type MyType a b
+          |
+          |main = IO.println("Hello!")""".stripMargin
+      val module = code.preprocessModule
+
+      build(module) should contain theSameElementsAs Seq(
+        Suggestion.Atom(
+          name = "MyType",
+          arguments = Seq(
+            Suggestion.Argument("a", "Any", false, false, None),
+            Suggestion.Argument("b", "Any", false, false, None)
+          ),
+          returnType    = "MyType",
+          documentation = None
+        ),
+        Suggestion.Method(
+          name = "main",
+          arguments = Seq(
+            Suggestion.Argument("this", "Any", false, false, None)
+          ),
+          selfType      = "here",
+          returnType    = "Any",
           documentation = None
         )
       )

@@ -1,5 +1,7 @@
 package org.enso.searcher
 
+import org.enso.polyglot.Suggestion
+
 /** The object for accessing the suggestions database. */
 trait SuggestionsRepo[F[_]] {
 

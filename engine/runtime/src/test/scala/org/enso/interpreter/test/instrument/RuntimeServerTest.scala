@@ -8,9 +8,8 @@ import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
-import org.enso.polyglot.runtime.Runtime.Api.PushContextResponse
-import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
-import org.enso.polyglot.{LanguageInfo, PolyglotContext, RuntimeOptions, RuntimeServerInfo}
+import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot._
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -377,66 +376,155 @@ class RuntimeServerTest
   it should "support file modification operations" in {
     val fooFile   = new File(context.pkg.sourceDir, "Foo.enso")
     val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
 
-    send(Api.CreateContextRequest(contextId))
-    context.receive
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
 
     // Create a new file
     context.writeFile(fooFile, "main = IO.println \"I'm a file!\"")
 
     // Open the new file
-    send(
-      Api.OpenFileNotification(
-        fooFile,
-        "main = IO.println \"I'm a file!\""
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(
+          fooFile,
+          "main = IO.println \"I'm a file!\""
+        )
       )
     )
-    context.receive
+    context.receive shouldEqual None
     context.consumeOut shouldEqual List()
 
     // Push new item on the stack to trigger the re-execution
-    send(
-      Api.PushContextRequest(
-        contextId,
-        Api.StackItem
-          .ExplicitCall(
-            Api.MethodPointer(fooFile, "Foo", "main"),
-            None,
-            Vector()
-          )
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem
+            .ExplicitCall(
+              Api.MethodPointer(fooFile, "Foo", "main"),
+              None,
+              Vector()
+            )
+        )
       )
     )
-    context.receive(2)
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId))
+    )
     context.consumeOut shouldEqual List("I'm a file!")
 
-    // Open the file with contents changed
-    send(
-      Api.OpenFileNotification(
-        fooFile,
-        "main = IO.println \"I'm an open file!\""
-      )
-    )
-    context.receive
-    context.consumeOut shouldEqual List()
-
     // Modify the file
-    send(
-      Api.EditFileNotification(
-        fooFile,
-        Seq(
-          TextEdit(
-            model.Range(model.Position(0, 24), model.Position(0, 30)),
-            " modified"
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          fooFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(0, 25), model.Position(0, 29)),
+              "modified"
+            )
           )
         )
       )
     )
-    context.receive
-    context.consumeOut shouldEqual List("I'm a modified file!")
+    context.receive shouldEqual None
+    context.consumeOut shouldEqual List("I'm a modified!")
 
     // Close the file
-    send(Api.CloseFileNotification(fooFile))
-    context.receive
+    context.send(Api.Request(Api.CloseFileNotification(fooFile)))
+    context.consumeOut shouldEqual List()
+  }
+
+  it should "send suggestion notifications when file modified" in {
+    val fooFile   = new File(context.pkg.sourceDir, "Foo.enso")
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Create a new file
+    context.writeFile(fooFile, "main = IO.println \"I'm a file!\"")
+
+    // Open the new file
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(
+          fooFile,
+          "main = IO.println \"I'm a file!\""
+        )
+      )
+    )
+    context.receive shouldEqual None
+    context.consumeOut shouldEqual List()
+
+    // Push new item on the stack to trigger the re-execution
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem
+            .ExplicitCall(
+              Api.MethodPointer(fooFile, "Foo", "main"),
+              None,
+              Vector()
+            )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId))
+    )
+    context.consumeOut shouldEqual List("I'm a file!")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          fooFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(0, 25), model.Position(0, 29)),
+              "modified"
+            ),
+            TextEdit(
+              model.Range(model.Position(0, 0), model.Position(0, 0)),
+              "Number.lucky = 42\n\n"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.SuggestionsDatabaseUpdateNotification(
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                "lucky",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "Number",
+                "Any",
+                None
+              )
+            )
+          )
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("I'm a modified!")
+
+    // Close the file
+    context.send(Api.Request(Api.CloseFileNotification(fooFile)))
+    context.receive shouldEqual None
     context.consumeOut shouldEqual List()
   }
 
@@ -587,7 +675,7 @@ class RuntimeServerTest
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
     context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, PushContextResponse(contextId)),
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(Api.ExecutionFailed(contextId, "error in function: main"))
     )
 
@@ -645,8 +733,10 @@ class RuntimeServerTest
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
-    send(
-      Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
+      )
     )
 
     val contextId       = UUID.randomUUID()
@@ -758,8 +848,10 @@ class RuntimeServerTest
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
-    send(
-      Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
+      )
     )
 
     val contextId       = UUID.randomUUID()
@@ -865,8 +957,10 @@ class RuntimeServerTest
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
-    send(
-      Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
+      )
     )
 
     val contextId       = UUID.randomUUID()
@@ -1011,9 +1105,6 @@ class RuntimeServerTest
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId)
     )
-
   }
 
-  private def send(msg: ApiRequest): Unit =
-    context.send(Api.Request(UUID.randomUUID(), msg))
 }

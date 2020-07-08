@@ -2,7 +2,7 @@ package org.enso.compiler.context
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.{DocumentationComments, TypeSignatures}
-import org.enso.searcher.Suggestion
+import org.enso.polyglot.Suggestion
 import org.enso.syntax.text.Location
 
 import scala.collection.immutable.VectorBuilder
@@ -18,7 +18,7 @@ final class SuggestionBuilder {
     * @param ir the input `IR`
     * @return the list of suggestion entries extracted from the given `IR`
     */
-  def build(ir: IR.Module): Vector[Suggestion] = {
+  def build(ir: IR): Vector[Suggestion] = {
     @scala.annotation.tailrec
     def go(
       scope: Scope,
@@ -38,22 +38,22 @@ final class SuggestionBuilder {
         ir match {
           case IR.Module.Scope.Definition.Method
                 .Explicit(
-                IR.Name.MethodReference(typePtr, methodName, _, _, _),
-                IR.Function.Lambda(args, body, _, _, _, _),
-                _,
-                _,
-                _
+                  IR.Name.MethodReference(typePtr, methodName, _, _, _),
+                  IR.Function.Lambda(args, body, _, _, _, _),
+                  _,
+                  _,
+                  _
                 ) =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             acc += buildMethod(methodName, typePtr, args, doc, typeSignature)
             scopes += Scope(body.children, body.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Expression.Binding(
-              name,
-              IR.Function.Lambda(args, body, _, _, _, _),
-              _,
-              _,
-              _
+                name,
+                IR.Function.Lambda(args, body, _, _, _, _),
+                _,
+                _,
+                _
               ) if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             acc += buildFunction(name, args, scope.location.get, typeSignature)

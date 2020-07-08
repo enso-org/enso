@@ -663,6 +663,7 @@ lazy val searcher = project
     fork in Benchmark := true
   )
   .settings(licenseSettings)
+  .dependsOn(`polyglot-api`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
@@ -717,7 +718,6 @@ lazy val `polyglot-api` = project
   .settings(licenseSettings)
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
-  .dependsOn(`searcher`)
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(

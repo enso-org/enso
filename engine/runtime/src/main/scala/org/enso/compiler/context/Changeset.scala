@@ -17,7 +17,7 @@ import scala.collection.mutable
   * @param ir the IR node
   * @tparam A a source type
   */
-final class Changeset[A: TextEditor: IndexedSource](val source: A, ir: IR) {
+final class Changeset[A: TextEditor: IndexedSource](val source: A, val ir: IR) {
 
   /** Traverses the IR and returns a list of all IR nodes affected by the edit
     * using the [[DataflowAnalysis]] information.

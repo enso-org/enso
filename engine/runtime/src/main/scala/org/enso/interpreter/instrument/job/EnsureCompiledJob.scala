@@ -1,10 +1,15 @@
 package org.enso.interpreter.instrument.job
 
 import java.io.File
+import java.util.Optional
 
+import org.enso.compiler.context.{Changeset, SuggestionBuilder}
 import org.enso.interpreter.instrument.CacheInvalidation
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.runtime.Module
+import org.enso.polyglot.Suggestion
+import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.text.buffer.Rope
 import org.enso.text.editing.model.TextEdit
 
 import scala.collection.concurrent.TrieMap
@@ -19,8 +24,10 @@ import scala.jdk.OptionConverters._
 class EnsureCompiledJob(protected val files: List[File])
     extends Job[Unit](List.empty, true, false) {
 
+  private val builder = new SuggestionBuilder
+
   /**
-    * Ensures that a files is compiled after applying the edits
+    * Create a job that ensures that a files is compiled after applying the edits.
     *
     * @param file a file to compile
     */
@@ -29,26 +36,54 @@ class EnsureCompiledJob(protected val files: List[File])
     EnsureCompiledJob.enqueueEdits(file, edits)
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.locking.acquireWriteCompilationLock()
     try {
-      val modules = files.flatMap(compile)
-      runInvalidation(files)
-      modules.foreach(compile)
+      ensureCompiled(files)
     } finally {
       ctx.locking.releaseWriteCompilationLock()
     }
   }
 
-  protected def runInvalidation(
+  /** Run the compilation and invalidation logic.
+    *
+    * @param files the list of files to compile
+    * @param ctx the runtime context
+    */
+  protected def ensureCompiled(
     files: Iterable[File]
-  )(implicit ctx: RuntimeContext): Unit =
-    runInvalidationCommands {
-      files.flatMap { file =>
-        applyEdits(file, EnsureCompiledJob.dequeueEdits(file))
+  )(implicit ctx: RuntimeContext): Unit = {
+    files.foreach { file =>
+      compile(file).foreach { module =>
+        val removedSuggestions = runInvalidation(file)
+        compile(module)
+        removedSuggestions.ifPresent { removed =>
+          val added = builder.build(module.getIr)
+          sendSuggestionsNotifications(
+            removed diff added,
+            Api.SuggestionsDatabaseUpdate.Remove
+          )
+          sendSuggestionsNotifications(
+            added diff removed,
+            Api.SuggestionsDatabaseUpdate.Add
+          )
+        }
       }
     }
+  }
+
+  private def runInvalidation(
+    file: File
+  )(implicit ctx: RuntimeContext): Optional[Vector[Suggestion]] = {
+    val edits = EnsureCompiledJob.dequeueEdits(file)
+    applyEdits(file, edits).map { changeset =>
+      runInvalidationCommands(
+        EnsureCompiledJob.buildCacheInvalidationCommands(changeset, edits)
+      )
+      builder.build(changeset.ir)
+    }
+  }
 
   private def compile(
     file: File
@@ -62,35 +97,13 @@ class EnsureCompiledJob(protected val files: List[File])
   private def compile(module: Module)(implicit ctx: RuntimeContext): Module =
     module.parseScope(ctx.executionService.getContext).getModule
 
-  private def applyEdits(file: File, edits: Seq[TextEdit])(
-    implicit ctx: RuntimeContext
-  ): Iterable[CacheInvalidation] = {
+  private def applyEdits(file: File, edits: Seq[TextEdit])(implicit
+    ctx: RuntimeContext
+  ): Optional[Changeset[Rope]] = {
     ctx.locking.acquireFileLock(file)
     ctx.locking.acquireReadCompilationLock()
     try {
-      val changesetOpt =
-        ctx.executionService
-          .modifyModuleSources(file, edits.asJava)
-          .toScala
-      val invalidateExpressionsCommand = changesetOpt.map { changeset =>
-        CacheInvalidation.Command.InvalidateKeys(
-          changeset.compute(edits)
-        )
-      }
-      val invalidateStaleCommand = changesetOpt.map { changeset =>
-        val scopeIds = ctx.executionService.getContext.getCompiler
-          .parseMeta(changeset.source.toString)
-          .map(_._2)
-        CacheInvalidation.Command.InvalidateStale(scopeIds)
-      }
-      (invalidateExpressionsCommand.toSeq ++ invalidateStaleCommand.toSeq)
-        .map(
-          CacheInvalidation(
-            CacheInvalidation.StackSelector.All,
-            _,
-            Set(CacheInvalidation.IndexSelector.All)
-          )
-        )
+      ctx.executionService.modifyModuleSources(file, edits.asJava)
     } finally {
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseFileLock(file)
@@ -106,6 +119,18 @@ class EnsureCompiledJob(protected val files: List[File])
           CacheInvalidation.runAll(stack, invalidationCommands)
       }
   }
+
+  private def sendSuggestionsNotifications(
+    suggestions: Seq[Suggestion],
+    toUpdate: Suggestion => Api.SuggestionsDatabaseUpdate
+  )(implicit ctx: RuntimeContext): Unit =
+    if (suggestions.nonEmpty) {
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          Api.SuggestionsDatabaseUpdateNotification(suggestions.map(toUpdate))
+        )
+      )
+    }
 
 }
 
@@ -123,4 +148,23 @@ object EnsureCompiledJob {
       case None    => Some(edits)
     }
 
+  private def buildCacheInvalidationCommands(
+    changeset: Changeset[Rope],
+    edits: Seq[TextEdit]
+  )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
+    val invalidateExpressionsCommand =
+      CacheInvalidation.Command.InvalidateKeys(changeset.compute(edits))
+    val scopeIds = ctx.executionService.getContext.getCompiler
+      .parseMeta(changeset.source.toString)
+      .map(_._2)
+    val invalidateStaleCommand =
+      CacheInvalidation.Command.InvalidateStale(scopeIds)
+    Seq(invalidateExpressionsCommand, invalidateStaleCommand).map(
+      CacheInvalidation(
+        CacheInvalidation.StackSelector.All,
+        _,
+        Set(CacheInvalidation.IndexSelector.All)
+      )
+    )
+  }
 }

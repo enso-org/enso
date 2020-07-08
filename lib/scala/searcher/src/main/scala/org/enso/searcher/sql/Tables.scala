@@ -1,6 +1,6 @@
 package org.enso.searcher.sql
 
-import org.enso.searcher.Suggestion
+import org.enso.polyglot.Suggestion
 import slick.jdbc.SQLiteProfile.api._
 
 import scala.annotation.nowarn
