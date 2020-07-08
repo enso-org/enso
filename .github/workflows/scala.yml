@@ -149,8 +149,10 @@ jobs:
         run: sbt --no-colors project-manager/assembly
       - name: Prepare Distribution
         run: |
-          DIST_DIR=enso-engine-$(./enso.jar --version --json | jq -r '.version')
-          mkdir $DIST_DIR
+          DIST_VERSION=$(./enso.jar --version --json | jq -r '.version')
+          DIST_ROOT=enso-engine-$DIST_VERSION
+          DIST_DIR=$DIST_ROOT/enso-$DIST_VERSION
+          mkdir -p $DIST_DIR
           mkdir $DIST_DIR/component
           cp runtime.jar $DIST_DIR/component
           mv enso.jar $DIST_DIR/component
@@ -159,6 +161,7 @@ jobs:
           cp -r distribution/bin $DIST_DIR/bin
           chmod +x $DIST_DIR/bin/enso
           chmod +x $DIST_DIR/bin/project-manager
+          echo ::set-env name=DIST_ROOT::$DIST_ROOT
           echo ::set-env name=DIST_DIR::$DIST_DIR
       - name: Build the Parser JS Bundle
         run: sbt -no-colors syntaxJS/fullOptJS
@@ -172,8 +175,8 @@ jobs:
       - name: Publish the Distribution Artifact
         uses: actions/upload-artifact@v1.0.0
         with:
-          name: ${{ env.DIST_DIR }}
-          path: ${{ env.DIST_DIR }}
+          name: ${{ env.DIST_ROOT }}
+          path: ${{ env.DIST_ROOT }}
       - name: Prepare the FlatBuffers Schemas for Upload
         run: |
           mkdir fbs-upload
@@ -299,22 +302,26 @@ jobs:
         run: |
           chmod +x enso
           DIST_VERSION=$(./enso version --json | jq -r '.version')
-          DIST_DIR=enso-launcher-${{ env.DIST_VERSION }}-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
+          DIST_ROOT=enso-launcher-$DIST_VERSION-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
+          DIST_DIR=$DIST_ROOT/enso
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
           echo ::set-env name=DIST_DIR::$DIST_DIR
+          echo ::set-env name=DIST_ROOT::$DIST_ROOT
       - name: Prepare distribution directory name (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
           DIST_VERSION=$(./enso.exe version --json | jq -r '.version')
-          DIST_DIR=enso-launcher-${{ env.DIST_VERSION }}-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
+          DIST_ROOT=enso-launcher-$DIST_VERSION-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
+          DIST_DIR=$DIST_ROOT/enso
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
           echo ::set-env name=DIST_DIR::$DIST_DIR
+          echo ::set-env name=DIST_ROOT::$DIST_ROOT
 
       - name: Prepare Launcher distribution (common)
         shell: bash
         run: |
-          mkdir ${{ env.DIST_DIR }}
+          mkdir -p ${{ env.DIST_DIR }}
           mkdir ${{ env.DIST_DIR }}/bin
           mkdir ${{ env.DIST_DIR }}/dist
           mkdir ${{ env.DIST_DIR }}/jvm
@@ -340,5 +347,5 @@ jobs:
       - name: Publish the Launcher Binary
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.DIST_DIR }}
-          path: ${{ env.DIST_DIR }}
+          name: ${{ env.DIST_ROOT }}
+          path: ${{ env.DIST_ROOT }}
