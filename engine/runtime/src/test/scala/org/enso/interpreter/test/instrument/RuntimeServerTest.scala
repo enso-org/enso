@@ -509,6 +509,7 @@ class RuntimeServerTest
           Seq(
             Api.SuggestionsDatabaseUpdate.Add(
               Suggestion.Method(
+                "Test.Foo",
                 "lucky",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
                 "Number",

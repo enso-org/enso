@@ -181,7 +181,33 @@ class SuggestionsRepoTest
         _   <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
-        res <- repo.search(None, None, None)
+        res <- repo.search(None, None, None, None, None)
+      } yield res._2
+
+      val res = Await.result(action, Timeout)
+      res.isEmpty shouldEqual true
+    }
+
+    "search suggestion by module" in {
+      val action = for {
+        id1 <- repo.insert(suggestion.atom)
+        id2 <- repo.insert(suggestion.method)
+        id3 <- repo.insert(suggestion.function)
+        id4 <- repo.insert(suggestion.local)
+        res <- repo.search(Some("Test.Main"), None, None, None, None)
+      } yield (id1, id2, id3, id4, res._2)
+
+      val (id1, id2, id3, id4, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(id1, id2, id3, id4).flatten
+    }
+
+    "search suggestion by empty module" in {
+      val action = for {
+        _   <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        _   <- repo.insert(suggestion.local)
+        res <- repo.search(Some(""), None, None, None, None)
       } yield res._2
 
       val res = Await.result(action, Timeout)
@@ -194,7 +220,7 @@ class SuggestionsRepoTest
         id2 <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
-        res <- repo.search(Some("Main"), None, None)
+        res <- repo.search(None, Some("Main"), None, None, None)
       } yield (id2, res._2)
 
       val (id, res) = Await.result(action, Timeout)
@@ -207,7 +233,7 @@ class SuggestionsRepoTest
         _   <- repo.insert(suggestion.method)
         id3 <- repo.insert(suggestion.function)
         id4 <- repo.insert(suggestion.local)
-        res <- repo.search(None, Some("MyType"), None)
+        res <- repo.search(None, None, Some("MyType"), None, None)
       } yield (id3, id4, res._2)
 
       val (id1, id2, res) = Await.result(action, Timeout)
@@ -221,7 +247,7 @@ class SuggestionsRepoTest
         _   <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         id4 <- repo.insert(suggestion.local)
-        res <- repo.search(None, None, Some(kinds))
+        res <- repo.search(None, None, None, Some(kinds), None)
       } yield (id1, id4, res._2)
 
       val (id1, id2, res) = Await.result(action, Timeout)
@@ -234,11 +260,50 @@ class SuggestionsRepoTest
         _   <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
-        res <- repo.search(None, None, Some(Seq()))
+        res <- repo.search(None, None, None, Some(Seq()), None)
       } yield res._2
 
       val res = Await.result(action, Timeout)
       res.isEmpty shouldEqual true
+    }
+
+    "search suggestion global by scope" in {
+      val action = for {
+        id1 <- repo.insert(suggestion.atom)
+        id2 <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        _   <- repo.insert(suggestion.local)
+        res <- repo.search(None, None, None, None, Some(99))
+      } yield (id1, id2, res._2)
+
+      val (id1, id2, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(id1, id2).flatten
+    }
+
+    "search suggestion local by scope" in {
+      val action = for {
+        id1 <- repo.insert(suggestion.atom)
+        id2 <- repo.insert(suggestion.method)
+        id3 <- repo.insert(suggestion.function)
+        _   <- repo.insert(suggestion.local)
+        res <- repo.search(None, None, None, None, Some(5))
+      } yield (id1, id2, id3, res._2)
+
+      val (id1, id2, id3, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(id1, id2, id3).flatten
+    }
+
+    "search suggestion by module and self type" in {
+      val action = for {
+        _   <- repo.insert(suggestion.atom)
+        id2 <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        _   <- repo.insert(suggestion.local)
+        res <- repo.search(Some("Test.Main"), Some("Main"), None, None, None)
+      } yield (id2, res._2)
+
+      val (id, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(id).flatten
     }
 
     "search suggestion by return type and kind" in {
@@ -248,8 +313,35 @@ class SuggestionsRepoTest
         _   <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         id4 <- repo.insert(suggestion.local)
-        res <- repo.search(None, Some("MyType"), Some(kinds))
+        res <- repo.search(None, None, Some("MyType"), Some(kinds), None)
       } yield (id4, res._2)
+
+      val (id, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(id).flatten
+    }
+
+    "search suggestion by return type and scope" in {
+      val action = for {
+        _   <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        id4 <- repo.insert(suggestion.local)
+        res <- repo.search(None, None, Some("MyType"), None, Some(42))
+      } yield (id4, res._2)
+
+      val (id, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(id).flatten
+    }
+
+    "search suggestion by kind and scope" in {
+      val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
+      val action = for {
+        id1 <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        _   <- repo.insert(suggestion.local)
+        res <- repo.search(None, None, None, Some(kinds), Some(99))
+      } yield (id1, res._2)
 
       val (id, res) = Await.result(action, Timeout)
       res should contain theSameElementsAs Seq(id).flatten
@@ -261,11 +353,45 @@ class SuggestionsRepoTest
         _   <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
-        res <- repo.search(Some("Main"), Some("MyType"), None)
+        res <- repo.search(None, Some("Main"), Some("MyType"), None, None)
       } yield res._2
 
       val res = Await.result(action, Timeout)
       res.isEmpty shouldEqual true
+    }
+
+    "search suggestion by module, return type and kind" in {
+      val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
+      val action = for {
+        _   <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        id4 <- repo.insert(suggestion.local)
+        res <- repo.search(
+          Some("Test.Main"),
+          None,
+          Some("MyType"),
+          Some(kinds),
+          None
+        )
+      } yield (id4, res._2)
+
+      val (id, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(id).flatten
+    }
+
+    "search suggestion by return type, kind and scope" in {
+      val kinds = Seq(Suggestion.Kind.Atom, Suggestion.Kind.Local)
+      val action = for {
+        _   <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        id4 <- repo.insert(suggestion.local)
+        res <- repo.search(None, None, Some("MyType"), Some(kinds), Some(42))
+      } yield (id4, res._2)
+
+      val (id, res) = Await.result(action, Timeout)
+      res should contain theSameElementsAs Seq(id).flatten
     }
 
     "search suggestion by all parameters" in {
@@ -275,11 +401,17 @@ class SuggestionsRepoTest
         Suggestion.Kind.Function
       )
       val action = for {
-        _   <- repo.insert(suggestion.atom)
-        _   <- repo.insert(suggestion.method)
-        _   <- repo.insert(suggestion.function)
-        _   <- repo.insert(suggestion.local)
-        res <- repo.search(Some("Main"), Some("MyType"), Some(kinds))
+        _ <- repo.insert(suggestion.atom)
+        _ <- repo.insert(suggestion.method)
+        _ <- repo.insert(suggestion.function)
+        _ <- repo.insert(suggestion.local)
+        res <- repo.search(
+          Some("Test.Main"),
+          Some("Main"),
+          Some("MyType"),
+          Some(kinds),
+          Some(42)
+        )
       } yield res._2
 
       val res = Await.result(action, Timeout)
@@ -291,7 +423,8 @@ class SuggestionsRepoTest
 
     val atom: Suggestion.Atom =
       Suggestion.Atom(
-        name = "Pair",
+        module = "Test.Main",
+        name   = "Pair",
         arguments = Seq(
           Suggestion.Argument("a", "Any", false, false, None),
           Suggestion.Argument("b", "Any", false, false, None)
@@ -302,6 +435,7 @@ class SuggestionsRepoTest
 
     val method: Suggestion.Method =
       Suggestion.Method(
+        module        = "Test.Main",
         name          = "main",
         arguments     = Seq(),
         selfType      = "Main",
@@ -311,7 +445,8 @@ class SuggestionsRepoTest
 
     val function: Suggestion.Function =
       Suggestion.Function(
-        name = "bar",
+        module = "Test.Main",
+        name   = "bar",
         arguments = Seq(
           Suggestion.Argument("x", "Number", false, true, Some("0"))
         ),
@@ -321,6 +456,7 @@ class SuggestionsRepoTest
 
     val local: Suggestion.Local =
       Suggestion.Local(
+        module     = "Test.Main",
         name       = "bazz",
         returnType = "MyType",
         scope      = Suggestion.Scope(37, 84)

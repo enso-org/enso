@@ -56,10 +56,10 @@ class EnsureCompiledJob(protected val files: List[File])
   )(implicit ctx: RuntimeContext): Unit = {
     files.foreach { file =>
       compile(file).foreach { module =>
-        val removedSuggestions = runInvalidation(file)
+        val removedSuggestions = runInvalidation(file, module)
         compile(module)
         removedSuggestions.ifPresent { removed =>
-          val added = builder.build(module.getIr)
+          val added = builder.build(module.getName.toString, module.getIr)
           sendSuggestionsNotifications(
             removed diff added,
             Api.SuggestionsDatabaseUpdate.Remove
@@ -74,14 +74,15 @@ class EnsureCompiledJob(protected val files: List[File])
   }
 
   private def runInvalidation(
-    file: File
+    file: File,
+    module: Module
   )(implicit ctx: RuntimeContext): Optional[Vector[Suggestion]] = {
     val edits = EnsureCompiledJob.dequeueEdits(file)
     applyEdits(file, edits).map { changeset =>
       runInvalidationCommands(
         EnsureCompiledJob.buildCacheInvalidationCommands(changeset, edits)
       )
-      builder.build(changeset.ir)
+      builder.build(module.getName.toString, changeset.ir)
     }
   }
 

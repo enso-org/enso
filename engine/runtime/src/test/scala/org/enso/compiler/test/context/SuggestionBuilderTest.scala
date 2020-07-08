@@ -25,7 +25,8 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "foo",
+          module = "Test",
+          name   = "foo",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None)
           ),
@@ -46,7 +47,8 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "foo",
+          module = "Test",
+          name   = "foo",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None)
           ),
@@ -70,7 +72,8 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "foo",
+          module = "Test",
+          name   = "foo",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None),
             Suggestion.Argument("a", "Any", false, false, None),
@@ -80,8 +83,8 @@ class SuggestionBuilderTest extends CompilerTest {
           returnType    = "Any",
           documentation = None
         ),
-        Suggestion.Local("x", "Number", Suggestion.Scope(9, 62)),
-        Suggestion.Local("y", "Any", Suggestion.Scope(9, 62))
+        Suggestion.Local("Test", "x", "Number", Suggestion.Scope(9, 62)),
+        Suggestion.Local("Test", "y", "Any", Suggestion.Scope(9, 62))
       )
     }
 
@@ -94,7 +97,8 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "foo",
+          module = "Test",
+          name   = "foo",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None),
             Suggestion.Argument("a", "Any", false, true, Some("0"))
@@ -118,7 +122,8 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "bar",
+          module = "Test",
+          name   = "bar",
           arguments = Seq(
             Suggestion.Argument("this", "MyAtom", false, false, None),
             Suggestion.Argument("a", "Number", false, false, None),
@@ -140,7 +145,8 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "foo",
+          module = "Test",
+          name   = "foo",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None),
             Suggestion.Argument("a", "Any", true, false, None)
@@ -163,7 +169,8 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "main",
+          module = "Test",
+          name   = "main",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None)
           ),
@@ -172,7 +179,8 @@ class SuggestionBuilderTest extends CompilerTest {
           documentation = None
         ),
         Suggestion.Function(
-          name = "foo",
+          module = "Test",
+          name   = "foo",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None)
           ),
@@ -194,7 +202,8 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "main",
+          module = "Test",
+          name   = "main",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None)
           ),
@@ -203,7 +212,8 @@ class SuggestionBuilderTest extends CompilerTest {
           documentation = None
         ),
         Suggestion.Function(
-          name = "foo",
+          module = "Test",
+          name   = "foo",
           arguments = Seq(
             Suggestion.Argument("a", "Number", false, false, None)
           ),
@@ -221,7 +231,8 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
-          name = "MyType",
+          module = "Test",
+          name   = "MyType",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None),
             Suggestion.Argument("b", "Any", false, false, None)
@@ -242,7 +253,8 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
-          name = "MyType",
+          module = "Test",
+          name   = "MyType",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None),
             Suggestion.Argument("b", "Any", false, false, None)
@@ -264,13 +276,15 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
+          module        = "Test",
           name          = "Nothing",
           arguments     = Seq(),
           returnType    = "Nothing",
           documentation = None
         ),
         Suggestion.Atom(
-          name = "Just",
+          module = "Test",
+          name   = "Just",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None)
           ),
@@ -294,13 +308,15 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
+          module        = "Test",
           name          = "Nothing",
           arguments     = Seq(),
           returnType    = "Nothing",
           documentation = Some(" Nothing here")
         ),
         Suggestion.Atom(
-          name = "Just",
+          module = "Test",
+          name   = "Just",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None)
           ),
@@ -324,13 +340,15 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
+          module        = "Test",
           name          = "Nothing",
           arguments     = Seq(),
           returnType    = "Nothing",
           documentation = None
         ),
         Suggestion.Atom(
-          name = "Just",
+          module = "Test",
+          name   = "Just",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None)
           ),
@@ -338,7 +356,8 @@ class SuggestionBuilderTest extends CompilerTest {
           documentation = None
         ),
         Suggestion.Method(
-          name = "map",
+          module = "Test",
+          name   = "map",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None),
             Suggestion.Argument("f", "Any", false, false, None)
@@ -348,7 +367,8 @@ class SuggestionBuilderTest extends CompilerTest {
           documentation = None
         ),
         Suggestion.Method(
-          name = "map",
+          module = "Test",
+          name   = "map",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None),
             Suggestion.Argument("f", "Any", false, false, None)
@@ -372,13 +392,15 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
+          module        = "Test",
           name          = "MyAtom",
           arguments     = Seq(),
           returnType    = "MyAtom",
           documentation = None
         ),
         Suggestion.Method(
-          name = "is_atom",
+          module = "Test",
+          name   = "is_atom",
           arguments = Seq(
             Suggestion.Argument("this", "MyAtom", false, false, None)
           ),
@@ -399,7 +421,8 @@ class SuggestionBuilderTest extends CompilerTest {
 
       build(module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
-          name = "MyType",
+          module = "Test",
+          name   = "MyType",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None),
             Suggestion.Argument("b", "Any", false, false, None)
@@ -408,7 +431,8 @@ class SuggestionBuilderTest extends CompilerTest {
           documentation = None
         ),
         Suggestion.Method(
-          name = "main",
+          module = "Test",
+          name   = "main",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None)
           ),
@@ -420,8 +444,10 @@ class SuggestionBuilderTest extends CompilerTest {
     }
   }
 
+  private val Module = "Test"
+
   private def build(ir: IR.Module): Vector[Suggestion] =
-    new SuggestionBuilder().build(ir)
+    new SuggestionBuilder().build(Module, ir)
 
   private def freshModuleContext: ModuleContext =
     ModuleContext(freshNameSupply = Some(new FreshNameSupply))

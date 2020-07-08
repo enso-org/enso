@@ -68,12 +68,14 @@ object Suggestion {
 
   /** A value constructor.
     *
+    * @param module the module name
     * @param name the atom name
     * @param arguments the list of arguments
     * @param returnType the type of an atom
     * @param documentation the documentation string
     */
   case class Atom(
+    module: String,
     name: String,
     arguments: Seq[Argument],
     returnType: String,
@@ -82,6 +84,7 @@ object Suggestion {
 
   /** A function defined on a type or a module.
     *
+    * @param module the module name
     * @param name the method name
     * @param arguments the function arguments
     * @param selfType the self type of a method
@@ -89,6 +92,7 @@ object Suggestion {
     * @param documentation the documentation string
     */
   case class Method(
+    module: String,
     name: String,
     arguments: Seq[Argument],
     selfType: String,
@@ -98,12 +102,14 @@ object Suggestion {
 
   /** A local function definition.
     *
+    * @param module the module name
     * @param name the function name
     * @param arguments the function arguments
     * @param returnType the return type of a function
     * @param scope the scope where the function is defined
     */
   case class Function(
+    module: String,
     name: String,
     arguments: Seq[Argument],
     returnType: String,
@@ -112,10 +118,15 @@ object Suggestion {
 
   /** A local value.
     *
+    * @param module the module name
     * @param name the name of a value
     * @param returnType the type of a local value
     * @param scope the scope where the value is defined
     */
-  case class Local(name: String, returnType: String, scope: Scope)
-      extends Suggestion
+  case class Local(
+    module: String,
+    name: String,
+    returnType: String,
+    scope: Scope
+  ) extends Suggestion
 }

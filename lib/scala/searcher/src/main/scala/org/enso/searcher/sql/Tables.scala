@@ -31,6 +31,7 @@ case class ArgumentRow(
   *
   * @param id the id of a suggestion
   * @param kind the type of a suggestion
+  * @param module the module name
   * @param name the suggestion name
   * @param selfType the self type of a suggestion
   * @param returnType the return type of a suggestion
@@ -41,6 +42,7 @@ case class ArgumentRow(
 case class SuggestionRow(
   id: Option[Long],
   kind: Byte,
+  module: String,
   name: String,
   selfType: String,
   returnType: String,
@@ -130,6 +132,7 @@ final class SuggestionsTable(tag: Tag)
 
   def id            = column[Long]("id", O.PrimaryKey, O.AutoInc)
   def kind          = column[Byte]("kind")
+  def module        = column[String]("module")
   def name          = column[String]("name")
   def selfType      = column[String]("self_type")
   def returnType    = column[String]("return_type")
@@ -140,6 +143,7 @@ final class SuggestionsTable(tag: Tag)
     (
       id.?,
       kind,
+      module,
       name,
       selfType,
       returnType,
@@ -151,13 +155,14 @@ final class SuggestionsTable(tag: Tag)
 
   def selfTypeIdx   = index("suggestions_self_type_idx", selfType)
   def returnTypeIdx = index("suggestions_return_type_idx", returnType)
+  def moduleIdx     = index("suggestions_module_idx", module)
   def name_idx      = index("suggestions_name_idx", name)
   // NOTE: unique index should not contain nullable columns because SQLite
   // teats NULLs as distinct values.
   def uniqueIdx =
     index(
-      "suggestion_unique_idx",
-      (kind, name, selfType, scopeStart, scopeEnd),
+      "suggestions_unique_idx",
+      (kind, module, name, selfType, scopeStart, scopeEnd),
       unique = true
     )
 }

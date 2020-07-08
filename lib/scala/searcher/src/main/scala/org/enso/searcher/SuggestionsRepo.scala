@@ -22,15 +22,19 @@ trait SuggestionsRepo[F[_]] {
 
   /** Search suggestion by various parameters.
     *
+    * @param module the module name search parameter
     * @param selfType the selfType search parameter
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
+    * @param position the absolute position in the text
     * @return the current database version and the list of found suggestion ids
     */
   def search(
+    module: Option[String],
     selfType: Option[String],
     returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]]
+    kinds: Option[Seq[Suggestion.Kind]],
+    position: Option[Int]
   ): F[(Long, Seq[Long])]
 
   /** Select the suggestion by id.

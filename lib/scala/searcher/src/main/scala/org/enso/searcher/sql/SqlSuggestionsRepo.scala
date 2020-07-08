@@ -40,11 +40,13 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
 
   /** @inheritdoc */
   override def search(
+    module: Option[String],
     selfType: Option[String],
     returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]]
+    kinds: Option[Seq[Suggestion.Kind]],
+    position: Option[Int]
   ): Future[(Long, Seq[Long])] =
-    db.run(searchQuery(selfType, returnType, kinds))
+    db.run(searchQuery(module, selfType, returnType, kinds, position))
 
   /** @inheritdoc */
   override def select(id: Long): Future[Option[Suggestion]] =
@@ -105,21 +107,33 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
 
   /** The query to search suggestion by various parameters.
     *
+    * @param module the module name search parameter
     * @param selfType the selfType search parameter
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
+    * @param position the absolute position in the text
     * @return the list of suggestion ids
     */
   private def searchQuery(
+    module: Option[String],
     selfType: Option[String],
     returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]]
+    kinds: Option[Seq[Suggestion.Kind]],
+    position: Option[Int]
   ): DBIO[(Long, Seq[Long])] = {
     val searchAction =
-      if (selfType.isEmpty && returnType.isEmpty && kinds.isEmpty) {
+      if (
+        module.isEmpty &&
+        selfType.isEmpty &&
+        returnType.isEmpty &&
+        kinds.isEmpty &&
+        position.isEmpty
+      ) {
         DBIO.successful(Seq())
       } else {
-        val query = searchQueryBuilder(selfType, returnType, kinds).map(_.id)
+        val query =
+          searchQueryBuilder(module, selfType, returnType, kinds, position)
+            .map(_.id)
         query.result
       }
     val query = for {
@@ -241,11 +255,16 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
 
   /** Create a search query by the provided parameters. */
   private def searchQueryBuilder(
+    module: Option[String],
     selfType: Option[String],
     returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]]
+    kinds: Option[Seq[Suggestion.Kind]],
+    position: Option[Int]
   ): Query[SuggestionsTable, SuggestionRow, Seq] = {
     Suggestions
+      .filterOpt(module) {
+        case (row, value) => row.module === value
+      }
       .filterOpt(selfType) {
         case (row, value) => row.selfType === value
       }
@@ -254,6 +273,11 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
       }
       .filterOpt(kinds) {
         case (row, value) => row.kind inSet value.map(SuggestionKind(_))
+      }
+      .filterOpt(position) {
+        case (row, value) =>
+          (row.scopeStart === ScopeColumn.EMPTY) ||
+          (row.scopeStart <= value && row.scopeEnd >= value)
       }
   }
 
@@ -290,10 +314,11 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     suggestion: Suggestion
   ): (SuggestionRow, Seq[Suggestion.Argument]) =
     suggestion match {
-      case Suggestion.Atom(name, args, returnType, doc) =>
+      case Suggestion.Atom(module, name, args, returnType, doc) =>
         val row = SuggestionRow(
           id            = None,
           kind          = SuggestionKind.ATOM,
+          module        = module,
           name          = name,
           selfType      = SelfTypeColumn.EMPTY,
           returnType    = returnType,
@@ -302,10 +327,11 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
           scopeEnd      = ScopeColumn.EMPTY
         )
         row -> args
-      case Suggestion.Method(name, args, selfType, returnType, doc) =>
+      case Suggestion.Method(module, name, args, selfType, returnType, doc) =>
         val row = SuggestionRow(
           id            = None,
           kind          = SuggestionKind.METHOD,
+          module        = module,
           name          = name,
           selfType      = selfType,
           returnType    = returnType,
@@ -314,10 +340,11 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
           scopeEnd      = ScopeColumn.EMPTY
         )
         row -> args
-      case Suggestion.Function(name, args, returnType, scope) =>
+      case Suggestion.Function(module, name, args, returnType, scope) =>
         val row = SuggestionRow(
           id            = None,
           kind          = SuggestionKind.FUNCTION,
+          module        = module,
           name          = name,
           selfType      = SelfTypeColumn.EMPTY,
           returnType    = returnType,
@@ -326,10 +353,11 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
           scopeEnd      = scope.end
         )
         row -> args
-      case Suggestion.Local(name, returnType, scope) =>
+      case Suggestion.Local(module, name, returnType, scope) =>
         val row = SuggestionRow(
           id            = None,
           kind          = SuggestionKind.LOCAL,
+          module        = module,
           name          = name,
           selfType      = SelfTypeColumn.EMPTY,
           returnType    = returnType,
@@ -372,6 +400,7 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     suggestion.kind match {
       case SuggestionKind.ATOM =>
         Suggestion.Atom(
+          module        = suggestion.module,
           name          = suggestion.name,
           arguments     = arguments.sortBy(_.index).map(toArgument),
           returnType    = suggestion.returnType,
@@ -379,6 +408,7 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
         )
       case SuggestionKind.METHOD =>
         Suggestion.Method(
+          module        = suggestion.module,
           name          = suggestion.name,
           arguments     = arguments.sortBy(_.index).map(toArgument),
           selfType      = suggestion.selfType,
@@ -387,6 +417,7 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
         )
       case SuggestionKind.FUNCTION =>
         Suggestion.Function(
+          module     = suggestion.module,
           name       = suggestion.name,
           arguments  = arguments.sortBy(_.index).map(toArgument),
           returnType = suggestion.returnType,
@@ -394,6 +425,7 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
         )
       case SuggestionKind.LOCAL =>
         Suggestion.Local(
+          module     = suggestion.module,
           name       = suggestion.name,
           returnType = suggestion.returnType,
           scope      = Suggestion.Scope(suggestion.scopeStart, suggestion.scopeEnd)
