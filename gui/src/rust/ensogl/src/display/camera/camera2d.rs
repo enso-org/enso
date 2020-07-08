@@ -79,7 +79,7 @@ pub struct Clipping {
 impl Default for Clipping {
     fn default() -> Self {
         let near = 1.0;
-        let far  = 1000.0;
+        let far  = 10000.0;
         Self {near,far}
     }
 }
