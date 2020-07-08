@@ -1,11 +1,9 @@
 //! This module exports State implementation for Nondeterministic Finite Automata.
 
-use crate::automata::alphabet_segmentation::AlphabetSegmentation;
-use crate::automata::state;
+use crate::automata::alphabet;
 use crate::automata::symbol::Symbol;
 
-use std::ops::RangeInclusive;
-
+use crate::prelude::*;
 
 
 
@@ -36,7 +34,7 @@ impl State {
     }
 
     /// Returns transition (next state) for each symbol in alphabet.
-    pub fn targets(&self, alphabet:&AlphabetSegmentation) -> Vec<Identifier> {
+    pub fn targets(&self, alphabet:&alphabet::Segmentation) -> Vec<Identifier> {
         let mut targets = vec![];
         let mut index   = 0;
         let mut links   = self.links.clone();
@@ -46,7 +44,7 @@ impl State {
                 index += 1;
             }
             if links.len() <= index || *links[index].symbols.start() > symbol {
-                targets.push(state::INVALID);
+                targets.push(Identifier::INVALID);
             } else {
                 targets.push(links[index].target_state);
             }
@@ -87,11 +85,17 @@ impl From<Vec<(RangeInclusive<u32>, usize)>> for State {
 
 /// A state identifier for an arbitrary finite automaton.
 #[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord,Hash)]
+#[allow(missing_docs)]
 pub struct Identifier {
-    #[allow(missing_docs)]
     pub id: usize
 }
 
+impl Identifier {
+    /// An identifier representing the invalid state.
+    ///
+    /// When in an invalid state, a finite automaton will reject the sequence of input symbols.
+    pub const INVALID:Identifier = Identifier{id:usize::max_value()};
+}
 
 // === Trait Impls ===
 
@@ -99,17 +103,15 @@ impl Default for Identifier {
     /// Returns state::INVALID. This is because every finite automata has an invalid state
     /// and because all transitions in automata transition matrix lead to invalid state by default.
     fn default() -> Self {
-        state::INVALID
+        Identifier::INVALID
     }
 }
 
-
-// === Constants ===
-
-/// An identifier representing the invalid state.
-///
-/// When in an invalid state, a finite automaton will reject the sequence of input symbols.
-pub const INVALID:Identifier = Identifier {id:usize::max_value()};
+impl From<usize> for Identifier {
+    fn from(id: usize) -> Self {
+        Identifier{id}
+    }
+}
 
 
 

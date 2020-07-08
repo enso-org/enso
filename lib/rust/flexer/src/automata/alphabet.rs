@@ -2,9 +2,10 @@
 
 use crate::automata::symbol::Symbol;
 
+use crate::prelude::*;
 use std::collections::BTreeSet;
 use std::ops::RangeInclusive;
-use enso_prelude::default;
+
 
 
 // ================
@@ -46,27 +47,23 @@ use enso_prelude::default;
 /// This type tracks these divisions explicitly for an input alphabet defined for all automata in
 /// this library as `0u32..=u32::max_value()`.
 #[derive(Clone,Debug,PartialEq,Eq)]
-pub struct AlphabetSegmentation {
-    /// The divisions over the set of input symbols.
+#[allow(missing_docs)]
+pub struct Segmentation {
     pub divisions: BTreeSet<Symbol>
 }
 
-impl AlphabetSegmentation {
+impl Segmentation {
     /// Inserts a range of symbols into the alphabet.
     pub fn insert(&mut self, range:RangeInclusive<Symbol>) {
-        // The symbol range is associated with a transition in the automaton. Therefore we:
-        // Mark the symbol with the new transition.
         self.divisions.insert(Symbol{val:range.start().val});
-        // Mark the symbol without the new transition.
         self.divisions.insert(Symbol{val:range.end().val + 1});
-        // This way each symbol in alphabet corresponds to a unique set of transitions.
     }
 
     /// Creates an [`AlphabetSegmentation`] from an input set of divisions.
-    pub fn from_divisions(divisions:Vec<u32>) -> Self {
+    pub fn from_divisions(divisions:&[u32]) -> Self {
         let mut dict = Self::default();
         for val in divisions {
-            dict.divisions.insert(Symbol::from(val));
+            dict.divisions.insert(Symbol::from(*val));
         }
         dict
     }
@@ -75,8 +72,10 @@ impl AlphabetSegmentation {
 
 // === Trait Impls ===
 
-impl Default for AlphabetSegmentation {
+impl Default for Segmentation {
     fn default() -> Self {
-        AlphabetSegmentation { divisions:[default()].iter().cloned().collect()}
+        let mut divisions: BTreeSet<Symbol> = default();
+        divisions.insert(default());
+        Segmentation { divisions }
     }
 }

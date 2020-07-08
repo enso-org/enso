@@ -1,6 +1,6 @@
 //! The structure for defining deterministic finite automata.
 
-use crate::automata::alphabet_segmentation::AlphabetSegmentation;
+use crate::automata::alphabet;
 use crate::automata::state;
 use crate::data::matrix::Matrix;
 
@@ -21,10 +21,10 @@ use crate::data::matrix::Matrix;
 ///  │ 0 │──────▶│ 1 │──────▶│ 2 │──────▶│ 3 │
 ///  └───┘       └───┘       └───┘       └───┘
 /// ```
-#[derive(Clone,Debug,Default,PartialEq,Eq)]
+#[derive(Clone,Debug,Default,Eq,PartialEq)]
 pub struct DFA {
     /// A set of disjoint intervals over the allowable input alphabet.
-    pub alphabet_segmentation: AlphabetSegmentation,
+    pub alphabet_segmentation: alphabet::Segmentation,
     /// The transition matrix for the DFA.
     ///
     /// It represents a function of type `(state, symbol) -> state`, returning the identifier for
@@ -42,7 +42,7 @@ pub struct DFA {
     ///
     pub links: Matrix<state::Identifier>,
     /// A collection of callbacks for each state (indexable in order)
-    pub callbacks: Vec<Option<Callback>>,
+    pub callbacks: Vec<Option<RuleExecutable>>,
 }
 
 
@@ -74,7 +74,7 @@ impl From<Vec<Vec<usize>>> for Matrix<state::Identifier> {
 /// [`pattern`](super::pattern::Pattern) that causes the associated state transition. This pattern
 /// is declared in [`Rule.pattern`](crate::group::rule::Rule::pattern).
 #[derive(Clone,Debug,PartialEq,Eq)]
-pub struct Callback {
+pub struct RuleExecutable {
     /// A description of the priority with which the callback is constructed during codegen.
     pub priority: usize,
     /// The rust code that will be executed when running this callback.
@@ -92,16 +92,18 @@ pub mod tests {
     use super::*;
     use crate::automata::state;
 
-    const I:usize = state::INVALID.id;
+    const I:usize = state::Identifier::INVALID.id;
 
     /// DFA automata that accepts newline '\n'.
     pub fn newline() -> DFA {
         DFA {
-            alphabet_segmentation: AlphabetSegmentation::from_divisions(vec![10, 11]),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(
+                vec![10,11].as_slice()
+            ),
             links: Matrix::from(vec![vec![I,1,I], vec![I,I,I]]),
             callbacks: vec![
                 None,
-                Some(Callback{priority:2,name:"group0_rule0".into()}),
+                Some(RuleExecutable {priority:2,name:"group0_rule0".into()}),
             ],
         }
     }
@@ -109,11 +111,13 @@ pub mod tests {
     /// DFA automata that accepts any letter a..=z.
     pub fn letter() -> DFA {
         DFA {
-            alphabet_segmentation: AlphabetSegmentation::from_divisions(vec![97, 123]),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(
+                vec![97,123].as_slice()
+            ),
             links: Matrix::from(vec![vec![I,1,I], vec![I,I,I]]),
             callbacks: vec![
                 None,
-                Some(Callback{priority:2,name:"group0_rule0".into()}),
+                Some(RuleExecutable {priority:2,name:"group0_rule0".into()}),
             ],
         }
     }
@@ -121,7 +125,9 @@ pub mod tests {
     /// DFA automata that accepts any number of spaces ' '.
     pub fn spaces() -> DFA {
         DFA {
-            alphabet_segmentation: AlphabetSegmentation::from_divisions(vec![0, 32, 33]),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(
+                vec![0,32,33].as_slice()
+            ),
             links: Matrix::from(vec![
                 vec![I,1,I],
                 vec![I,2,I],
@@ -129,8 +135,8 @@ pub mod tests {
             ]),
             callbacks: vec![
                 None,
-                Some(Callback{priority:3,name:"group0_rule0".into()}),
-                Some(Callback{priority:3,name:"group0_rule0".into()}),
+                Some(RuleExecutable {priority:3,name:"group0_rule0".into()}),
+                Some(RuleExecutable {priority:3,name:"group0_rule0".into()}),
             ],
         }
     }
@@ -138,7 +144,9 @@ pub mod tests {
     /// DFA automata that accepts one letter a..=z or any many spaces.
     pub fn letter_and_spaces() -> DFA {
         DFA {
-            alphabet_segmentation: AlphabetSegmentation::from_divisions(vec![32, 33, 97, 123]),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(
+                vec![32,33,97,123].as_slice()
+            ),
             links: Matrix::from(vec![
                 vec![I,1,I,2,I],
                 vec![I,3,I,I,I],
@@ -147,9 +155,9 @@ pub mod tests {
             ]),
             callbacks: vec![
                 None,
-                Some(Callback{priority:4,name:"group0_rule1".into()}),
-                Some(Callback{priority:4,name:"group0_rule0".into()}),
-                Some(Callback{priority:4,name:"group0_rule1".into()}),
+                Some(RuleExecutable {priority:4,name:"group0_rule1".into()}),
+                Some(RuleExecutable {priority:4,name:"group0_rule0".into()}),
+                Some(RuleExecutable {priority:4,name:"group0_rule1".into()}),
             ],
         }
     }

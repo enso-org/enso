@@ -1,7 +1,7 @@
 //! The structure for defining non-deterministic finite automata.
 
-use crate::automata::alphabet_segmentation::AlphabetSegmentation;
-use crate::automata::dfa::Callback;
+use crate::automata::alphabet;
+use crate::automata::dfa::RuleExecutable;
 use crate::automata::dfa::DFA;
 use crate::automata::pattern::Pattern;
 use crate::automata::state::State;
@@ -43,7 +43,7 @@ type StateSetId = BTreeSet<state::Identifier>;
 #[derive(Clone,Debug,Default,PartialEq,Eq)]
 pub struct NFA {
     /// A set of disjoint intervals over the input alphabet.
-    pub alphabet: AlphabetSegmentation,
+    pub alphabet_segmentation: alphabet::Segmentation,
     /// A set of named NFA states, with (epsilon) transitions.
     pub states: Vec<State>,
 }
@@ -68,13 +68,13 @@ impl NFA {
     ///
     /// If any symbol from such range happens to be the input when the automaton is in the `source`
     /// state, it will immediately transition to the `target` state.
-    pub fn connect_via(
-      &mut self, source:state::Identifier,
-      target:state::Identifier,
-      symbols:&RangeInclusive<Symbol>
-    ) {
-        self.alphabet.insert(symbols.clone());
-        self.states[source.id].links.push(Transition {symbols:symbols.clone(), target_state: target });
+    pub fn connect_via
+    (&mut self
+    , source:state::Identifier
+    , target_state:state::Identifier
+    , symbols:&RangeInclusive<Symbol>) {
+        self.alphabet_segmentation.insert(symbols.clone());
+        self.states[source.id].links.push(Transition{symbols:symbols.clone(), target_state});
     }
 
     /// Transforms a pattern to an NFA using the algorithm described
@@ -85,7 +85,7 @@ impl NFA {
         match pattern {
             Pattern::Range(range) => {
                 let state = self.new_state();
-                self.connect_via(current, state, range);
+                self.connect_via(current,state,range);
                 state
             },
             Pattern::Many(body) => {
@@ -146,17 +146,17 @@ impl NFA {
         let mut computed = vec![false; self.states.len()];
         for id in 0..self.states.len() {
             let mut visited = vec![false; states.len()];
-            fill_eps_matrix(self,&mut states,&mut computed,&mut visited,state::Identifier {id});
+            fill_eps_matrix(self,&mut states,&mut computed,&mut visited,state::Identifier{id});
         }
         states
     }
 
     /// Computes a transition matrix `(state, symbol) => state` for the NFA, ignoring epsilon links.
     fn nfa_matrix(&self) -> Matrix<state::Identifier> {
-        let mut matrix = Matrix::new(self.states.len(),self.alphabet.divisions.len());
+        let mut matrix = Matrix::new(self.states.len(),self.alphabet_segmentation.divisions.len());
 
         for (state_ix, source) in self.states.iter().enumerate() {
-            let targets = source.targets(&self.alphabet);
+            let targets = source.targets(&self.alphabet_segmentation);
             for (voc_ix, &target) in targets.iter().enumerate() {
                 matrix[(state_ix,voc_ix)] = target;
             }
@@ -172,21 +172,21 @@ impl From<&NFA> for DFA {
     fn from(nfa:&NFA) -> Self {
         let     nfa_mat     = nfa.nfa_matrix();
         let     eps_mat     = nfa.eps_matrix();
-        let mut dfa_mat     = Matrix::new(0,nfa.alphabet.divisions.len());
+        let mut dfa_mat     = Matrix::new(0,nfa.alphabet_segmentation.divisions.len());
         let mut dfa_eps_ixs = Vec::<StateSetId>::new();
         let mut dfa_eps_map = HashMap::<StateSetId,state::Identifier>::new();
 
         dfa_eps_ixs.push(eps_mat[0].clone());
-        dfa_eps_map.insert(eps_mat[0].clone(), state::Identifier {id:0});
+        dfa_eps_map.insert(eps_mat[0].clone(),state::Identifier::from(0));
 
         let mut i = 0;
         while i < dfa_eps_ixs.len()  {
             dfa_mat.new_row();
-            for voc_ix in 0..nfa.alphabet.divisions.len() {
+            for voc_ix in 0..nfa.alphabet_segmentation.divisions.len() {
                 let mut eps_set = StateSetId::new();
                 for &eps_ix in &dfa_eps_ixs[i] {
                     let tgt = nfa_mat[(eps_ix.id,voc_ix)];
-                    if tgt != state::INVALID {
+                    if tgt != state::Identifier::INVALID {
                         eps_set.extend(eps_mat[tgt.id].iter());
                     }
                 }
@@ -210,12 +210,15 @@ impl From<&NFA> for DFA {
         for (dfa_ix, epss) in dfa_eps_ixs.into_iter().enumerate() {
             let has_name = |&key:&state::Identifier| nfa.states[key.id].name.is_some();
             if let Some(eps) = epss.into_iter().find(has_name) {
-                let rule  = nfa.states[eps.id].name.as_ref().cloned().unwrap();
-                callbacks[dfa_ix] = Some(Callback {name:rule,priority});
+                let rule = nfa.states[eps.id].name.as_ref().cloned().unwrap();
+                callbacks[dfa_ix] = Some(RuleExecutable{name:rule,priority});
             }
         }
 
-        DFA { alphabet_segmentation:nfa.alphabet.clone(),links:dfa_mat,callbacks}
+        let alphabet_segmentation = nfa.alphabet_segmentation.clone();
+        let links = dfa_mat;
+
+        DFA{alphabet_segmentation,links,callbacks}
     }
 }
 
@@ -241,7 +244,7 @@ pub mod tests {
                 State::from(vec![3]).named("group0_rule0"),
                 State::default(),
             ],
-            alphabet: AlphabetSegmentation::from_divisions(vec![10, 11]),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(vec![10, 11].as_slice()),
         }
     }
 
@@ -254,7 +257,7 @@ pub mod tests {
                 State::from(vec![3]).named("group0_rule0"),
                 State::default(),
             ],
-            alphabet: AlphabetSegmentation::from_divisions(vec![97, 123]),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(vec![97, 123].as_slice()),
         }
     }
 
@@ -273,7 +276,7 @@ pub mod tests {
                 State::from(vec![5,9]).named("group0_rule0"),
                 State::default(),
             ],
-            alphabet: AlphabetSegmentation::from_divisions(vec![0, 32, 33]),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(vec![0, 32, 33].as_slice()),
         }
     }
 
@@ -294,7 +297,7 @@ pub mod tests {
                 State::from(vec![7,11]).named("group0_rule1"),
                 State::default(),
             ],
-            alphabet: AlphabetSegmentation::from_divisions(vec![32, 33, 97, 123]),
+            alphabet_segmentation: alphabet::Segmentation::from_divisions(vec![32, 33, 97, 123].as_slice()),
         }
     }
 

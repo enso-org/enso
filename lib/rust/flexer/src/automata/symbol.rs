@@ -14,7 +14,6 @@ pub struct Symbol {
 }
 
 impl Symbol {
-
     /// A representation of the end of the file.
     pub const EOF_CODE:Symbol = Symbol{val:u32::max_value()};
 

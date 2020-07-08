@@ -17,3 +17,5 @@
 pub mod automata;
 pub mod group;
 pub mod data;
+
+pub use enso_prelude as prelude;
