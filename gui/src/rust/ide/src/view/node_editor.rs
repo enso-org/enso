@@ -140,7 +140,7 @@ struct GraphEditorIntegratedWithControllerModel {
     logger             : Logger,
     editor             : GraphEditor,
     controller         : controller::ExecutedGraph,
-    project_controller : controller::Project,
+    project            : Rc<model::Project>,
     node_views         : RefCell<BiMap<ast::Id,graph_editor::NodeId>>,
     expression_views   : RefCell<HashMap<graph_editor::NodeId,String>>,
     connection_views   : RefCell<BiMap<controller::graph::Connection,graph_editor::EdgeId>>,
@@ -156,7 +156,7 @@ impl GraphEditorIntegratedWithController {
     ( logger     : Logger
     , app        : &Application
     , controller : controller::ExecutedGraph
-    , project    : controller::Project) -> Self {
+    , project    : Rc<model::Project>) -> Self {
         let model = GraphEditorIntegratedWithControllerModel::new(logger,app,controller,project);
         let model       = Rc::new(model);
         let editor_outs = &model.editor.frp.outputs;
@@ -253,15 +253,14 @@ impl GraphEditorIntegratedWithControllerModel {
     ( logger     : Logger
     , app        : &Application
     , controller : controller::ExecutedGraph
-    , project    : controller::Project) -> Self {
+    , project    : Rc<model::Project>) -> Self {
         let editor           = app.new_view::<GraphEditor>();
         let node_views       = default();
         let connection_views = default();
         let expression_views = default();
         let visualizations   = default();
         let this = GraphEditorIntegratedWithControllerModel {editor,controller,node_views,
-            expression_views,connection_views,logger,visualizations,
-            project_controller: project
+            expression_views,connection_views,logger,visualizations,project
         };
 
         if let Err(err) = this.refresh_graph_view() {
@@ -587,7 +586,7 @@ impl GraphEditorIntegratedWithControllerModel {
         //   Because of that for now we will just hardcode the `visualization_module` using
         //   fixed defaults. In future this will be changed, then the editor will also get access
         //   to the customised values.
-        let project_name         = self.project_controller.project_name.as_ref();
+        let project_name         = self.project.name.as_ref();
         let module_name          = crate::view::project::INITIAL_MODULE_NAME;
         let visualisation_module = QualifiedName::from_module_segments(&[module_name],project_name);
         let id                   = VisualizationId::new_v4();
@@ -754,7 +753,7 @@ impl NodeEditor {
     ( logger        : impl AnyLogger
     , app           : &Application
     , controller    : controller::ExecutedGraph
-    , project       : controller::Project
+    , project       : Rc<model::Project>
     , visualization : controller::Visualization) -> FallibleResult<Self> {
         let logger         = Logger::sub(logger,"NodeEditor");
         let display_object = display::object::Instance::new(&logger);

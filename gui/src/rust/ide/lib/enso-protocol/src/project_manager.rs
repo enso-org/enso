@@ -115,7 +115,7 @@ pub mod response {
 
     /// Response of `create_project`.
     #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
-    #[serde(rename_all = "camelCase")]
+    #[serde(rename_all="camelCase")]
     pub struct CreateProject {
         /// Created project uuid.
         pub project_id: Uuid
@@ -123,7 +123,7 @@ pub mod response {
 
     /// Response of `open_project`.
     #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-    #[serde(rename_all = "camelCase")]
+    #[serde(rename_all="camelCase")]
     pub struct OpenProject {
         /// Address of the endpoint for JSON-RPC communication.
         pub language_server_json_address : IpWithSocket,

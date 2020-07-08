@@ -1,9 +1,4 @@
 //! Module Controller.
-//!
-//! The module controller keeps cached module state (module state is AST+Metadata or equivalent),
-//! and uses it for synchronizing state for text and graph representations. It provides method
-//! for registering text and graph changes. If for example text represntation will be changed, there
-//! will be notifications for both text change and graph change.
 
 use crate::prelude::*;
 
@@ -39,7 +34,6 @@ pub struct InvalidGraphId(controller::graph::Id);
 #[allow(missing_docs)]
 #[derive(Clone,CloneRef,Debug)]
 pub struct Handle {
-    pub path            : Rc<Path>,
     pub model           : Rc<model::synchronized::Module>,
     pub language_server : Rc<language_server::Connection>,
     pub parser          : Parser,
@@ -48,25 +42,20 @@ pub struct Handle {
 
 impl Handle {
     /// Create a module controller for given path.
-    ///
-    /// This function won't load module from file - it just get the state in `model` argument.
-    pub fn new
-    ( parent          : impl AnyLogger
-    , path            : Path
-    , model           : Rc<model::synchronized::Module>
-    , language_server : Rc<language_server::Connection>
-    , parser          : Parser
-    ) -> Self {
-        let logger = Logger::sub(parent,format!("Module Controller {}", path));
-        let path   = Rc::new(path);
-        Handle {path,model,language_server,parser,logger}
+    pub async fn new
+    (parent:impl AnyLogger, path:Path, project:&model::Project) -> FallibleResult<Self> {
+        let logger          = Logger::sub(parent,format!("Module Controller {}", path));
+        let model           = project.module(path).await?;
+        let language_server = project.language_server_rpc.clone_ref();
+        let parser          = project.parser.clone_ref();
+        Ok(Handle {model,language_server,parser,logger})
     }
 
     /// Save the module to file.
     pub fn save_file(&self) -> impl Future<Output=FallibleResult<()>> {
         let content = self.model.serialized_content();
-        let path    = self.path.clone_ref();
-        let ls      = self.language_server.clone();
+        let path    = self.model.path.clone_ref();
+        let ls      = self.language_server.clone_ref();
         async move {
             let version = Sha3_224::new(content?.content.as_bytes());
             Ok(ls.client.save_text_file(path.file_path(),&version).await?)
@@ -129,12 +118,12 @@ impl Handle {
         };
 
         let defined_on_type = if crumb.extended_target.is_empty() {
-            self.path.module_name().to_string()
+            self.model.path.module_name().to_string()
         } else {
             crumb.extended_target.iter().map(|segment| segment.as_str()).join(".")
         };
         Ok(language_server::MethodPointer {
-            file : self.path.file_path().clone(),
+            file : self.model.path.file_path().clone(),
             defined_on_type,
             name : crumb.name.item.clone(),
         })
@@ -151,9 +140,8 @@ impl Handle {
         let logger = Logger::new("Mocked Module Controller");
         let ast    = parser.parse(code.to_string(),id_map)?.try_into()?;
         let model  = model::Module::new(ast, default());
-        let model  = model::synchronized::Module::mock(path.clone(),model);
-        let path   = Rc::new(path);
-        Ok(Handle {path,model,language_server,parser,logger})
+        let model  = model::synchronized::Module::mock(path,model);
+        Ok(Handle {model,language_server,parser,logger})
     }
 
     #[cfg(test)]

@@ -14,7 +14,7 @@ use ide::prelude::*;
 
 use enso_protocol::language_server::*;
 use enso_protocol::types::*;
-use ide::controller::Project;
+use ide::model::Project;
 use ide::model::execution_context::Visualization;
 use ide::transport::web::WebSocket;
 use ide::view::project::INITIAL_MODULE_NAME;
@@ -53,16 +53,17 @@ Number.foo = x ->
 []"#;
 
 const VISUALISATION_CODE:&str = r#"
-    encode = x -> x.to_text
+encode = x -> x.to_text
 
-    incAndEncode = x -> here.encode x+1
+incAndEncode = x -> here.encode x+1
 "#;
 
 wasm_bindgen_test_configure!(run_in_browser);
 
-//#[wasm_bindgen_test::wasm_bindgen_test(async)]
+// #[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
-async fn file_operations() {
+async fn ls_text_protocol_test() {
+    // Setting up.
     let ws        = WebSocket::new_opened(default(),SERVER_ENDPOINT).await;
     let ws        = ws.expect("Couldn't connect to WebSocket server.");
     let client    = Client::new(ws);
@@ -75,6 +76,7 @@ async fn file_operations() {
     let session   = session.expect("Couldn't initialize session.");
     let root_id   = session.content_roots[0];
 
+    // Initialize files.
     let file      = Path{root_id,segments:vec!["src".into(),"Main.enso".into()]};
     let contents  = MAIN_CODE.to_string();
     let result    = client.write_file(&file,&contents).await;
@@ -90,13 +92,14 @@ async fn file_operations() {
     let response     = client.write_file(&package_file,&contents).await;
     response.expect("Couldn't write yaml file.");
 
+    // Setting execution context.
     let execution_context    = client.create_execution_context().await;
     let execution_context    = execution_context.expect("Couldn't create execution context.");
     let execution_context_id = execution_context.context_id;
 
     let defined_on_type = "Main".to_string();
     let name            = "main".to_string();
-    let method_pointer  = MethodPointer{file,defined_on_type,name};
+    let method_pointer  = MethodPointer{file:file.clone(),defined_on_type,name};
     let positional_arguments_expressions = default();
     let this_argument_expression         = default();
     let explicit_call                    = ExplicitCall
@@ -104,17 +107,27 @@ async fn file_operations() {
     let stack_item = StackItem::ExplicitCall(explicit_call);
     let response   = client.push_to_execution_context(&execution_context_id,&stack_item).await;
     response.expect("Couldn't push execution context.");
-
     let response = client.pop_from_execution_context(&execution_context_id).await;
     response.expect("Couldn't pop execution context.");
+    // Push stackframe again for visualizations testing.
+    let response   = client.push_to_execution_context(&execution_context_id,&stack_item).await;
+    response.expect("Couldn't push execution context.");
 
+    // Retrieving Database.
+    let response = client.get_suggestions_database().await;
+    response.expect("Couldn't get the suggestions database");
+    let response = client.get_suggestions_database_version().await;
+    response.expect("Couldn't get the suggestions database version");
+
+
+    // Setting visualization.
     let visualisation_id     = uuid::Uuid::new_v4();
     let expression_id        = uuid::Uuid::parse_str("c553533e-a2b9-4305-9f12-b8fe7781f933");
     let expression_id        = expression_id.expect("Couldn't parse expression id.");
     let expression           = "x -> here.encode x".to_string();
     let visualisation_module = "Test.Visualisation".to_string();
     let visualisation_config = VisualisationConfiguration
-    {execution_context_id,expression,visualisation_module};
+        {execution_context_id,expression,visualisation_module};
     let response = client.attach_visualisation
         (&visualisation_id,&expression_id,&visualisation_config);
     response.await.expect("Couldn't attach visualisation.");
@@ -133,6 +146,20 @@ async fn file_operations() {
     let response = client.destroy_execution_context(&execution_context_id).await;
     response.expect("Couldn't destroy execution context.");
 
+    // Asking for autocompletion.
+
+    //TODO[ao] Engine will fix getting suggestion method in
+    // https://github.com/enso-org/enso/issues/438, therefore we also should adjust our api in the
+    // next PR.
+
+    // let position  = Position {line:4, character:4};
+    // let ret_type  = "Number".to_string();
+    // let self_type = "Number".to_string();
+    // let response  = client.completion(&,&position,&Some(self_type),&Some(ret_type),&None);
+    // let result    = response.await.expect("Couldn't get completion suggestion list");
+    // assert!(!result.results.is_empty());
+
+    // Operations on file.
     let path      = Path{root_id, segments:vec!["foo".into()]};
     let name      = "text.txt".into();
     let object    = FileSystemObject::File {name,path};
@@ -202,7 +229,7 @@ async fn file_operations() {
     assert_eq!("Hello, world!".to_string(),read.contents);
 }
 
-//#[wasm_bindgen_test::wasm_bindgen_test(async)]
+// #[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 async fn file_events() {
     let ws         = WebSocket::new_opened(default(),SERVER_ENDPOINT).await;
@@ -228,9 +255,11 @@ async fn file_events() {
         assert_eq!(file.exists,false);
     }
 
-    let path       = Path{root_id, segments:vec![]};
-    let options    = RegisterOptions::Path{path};
-    let capability = client.acquire_capability(&"receivesTreeUpdates".to_string(),&options).await;
+    let path         = Path{root_id, segments:vec![]};
+    let registration = CapabilityRegistration::create_receives_tree_updates(path);
+    let method       = registration.method;
+    let options      = registration.register_options;
+    let capability   = client.acquire_capability(&method,&options).await;
     capability.expect("Couldn't acquire receivesTreeUpdates capability.");
 
     let path      = Path{root_id, segments:vec![]};
@@ -240,8 +269,7 @@ async fn file_events() {
 
     let path         = Path{root_id,segments:vec!["test.txt".into()]};
     let kind         = FileEventKind::Added;
-    let event        = FileEvent {path,kind};
-    let notification = Notification::FileEvent {event};
+    let notification = Notification::FileEvent(FileEvent {path,kind});
 
     let event = stream.next().await.expect("Couldn't get any notification.");
     if let Event::Notification(incoming_notification) = event {
@@ -286,7 +314,7 @@ async fn binary_protocol_test() {
 
 /// The future that tests attaching visualization and routing its updates.
 async fn binary_visualization_updates_test_hlp() {
-    let project  = setup_project().await;
+    let project  = Rc::new(setup_project().await);
     println!("Got project: {:?}", project);
 
     let expression = "x -> x.json_serialize";
@@ -294,12 +322,13 @@ async fn binary_visualization_updates_test_hlp() {
     use ensogl::system::web::sleep;
     use ide::view::project::MAIN_DEFINITION_NAME;
 
+    let logger      = Logger::new("Test");
     let module_path = project.module_path_from_qualified_name(&[INITIAL_MODULE_NAME]).unwrap();
     let method                = module_path.method_pointer(MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
-    let module                = project.module_controller(module_path).await.unwrap();
+    let module                = project.module(module_path).await.unwrap();
     println!("Got module: {:?}", module);
-    let graph_executed        = controller::ExecutedGraph::new(&project,method).await.unwrap();
+    let graph_executed        = controller::ExecutedGraph::new(&logger,project,method).await.unwrap();
 
     let the_node = graph_executed.graph().nodes().unwrap()[0].info.clone();
     graph_executed.graph().set_expression(the_node.id(), "10+20").unwrap();
@@ -308,7 +337,7 @@ async fn binary_visualization_updates_test_hlp() {
     sleep(Duration::from_millis(1)).await;
 
     println!("Main graph: {:?}", graph_executed);
-    println!("The code is: {:?}", module.code());
+    println!("The code is: {:?}", module.ast().repr());
     println!("Main node: {:?} with {}", the_node, the_node.expression().repr());
 
     let visualization = Visualization::new(the_node.id(),expression,module_qualified_name);

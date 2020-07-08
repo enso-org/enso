@@ -20,7 +20,7 @@ pub type Event = json_rpc::handler::Event<Notification>;
 /// A path is a representation of a path relative to a specified content root.
 // FIXME [mwu] Consider rename to something like `FilePath`, see https://github.com/luna/enso/issues/708
 #[derive(Clone,Debug,Serialize,Deserialize,Hash,PartialEq,Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 pub struct Path {
     /// Path's root id.
     pub root_id:Uuid,
@@ -110,25 +110,24 @@ impl Path {
 pub enum Notification {
     /// Filesystem event occurred for a watched path.
     #[serde(rename = "file/event")]
-    FileEvent {
-        /// The `file/event` notification input wrapper.
-        /// The serialization format requires the information to be wrapped into a field named "event".
-        /// This behavior is currently not specified by the specification and the issue has been raised
-        /// to address this: https://github.com/luna/enso/issues/707
-        // TODO [mwu] Update as the issue is resolved on way or another.
-        event:FileEvent,
-    },
+    FileEvent(FileEvent),
 
-    /// Sent from the server to the client to inform about new information for certain expressions becoming available.
+    /// Sent from the server to the client to inform about new information for certain expressions
+    /// becoming available.
     #[serde(rename = "executionContext/expressionValuesComputed")]
     ExpressionValuesComputed(ExpressionValuesComputed),
+
+    /// Sent from server to the client to inform abouth the change in the suggestions database.
+    #[serde(rename = "search/suggestionsDatabaseUpdate")]
+    SuggestionDatabaseUpdate(SuggestionDatabaseUpdateEvent),
 }
 
-/// Sent from the server to the client to inform about new information for certain expressions becoming available.
+/// Sent from the server to the client to inform about new information for certain expressions
+/// becoming available.
 #[derive(Clone,Debug,PartialEq)]
 #[derive(Serialize,Deserialize)]
 #[allow(missing_docs)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 pub struct ExpressionValuesComputed {
     pub context_id : ContextId,
     pub updates    : Vec<ExpressionValueUpdate>,
@@ -138,7 +137,7 @@ pub struct ExpressionValuesComputed {
 #[derive(Clone,Debug,PartialEq)]
 #[derive(Serialize,Deserialize)]
 #[allow(missing_docs)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 pub struct ExpressionValueUpdate {
     pub id          : ExpressionId,
     #[serde(rename = "type")] // To avoid collision with the `type` keyword.
@@ -180,7 +179,7 @@ pub enum FileEventKind {
 /// Attributes of the file in the filesystem.
 #[derive(Clone,Debug,PartialEq,Eq,Hash)]
 #[derive(Serialize,Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 pub struct FileAttributes {
     /// When the file was created.
     pub creation_time:UTCDateTime,
@@ -319,7 +318,7 @@ impls!{ Into + &Into <Range<data::text::TextLocation>> for TextRange { |this|
 
 /// A representation of a change to a text file at a given position.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct TextEdit {
     pub range: TextRange,
@@ -333,7 +332,7 @@ pub struct TextEdit {
 
 /// A versioned representation of batch edits to a file.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct FileEdit {
     pub path: Path,
@@ -355,7 +354,7 @@ pub type ExpressionId = Uuid;
 
 /// A configuration object for properties of the visualisation.
 #[derive(Clone,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct VisualisationConfiguration {
     #[allow(missing_docs)]
@@ -369,7 +368,7 @@ pub struct VisualisationConfiguration {
 /// Used to enter deeper in the execution context stack. In general, all consequent stack items
 /// should be `LocalCall`s.
 #[derive(Hash, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct LocalCall {
     pub expression_id: ExpressionId
@@ -377,7 +376,7 @@ pub struct LocalCall {
 
 /// Points to a method definition.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct MethodPointer {
     pub file: Path,
@@ -388,7 +387,7 @@ pub struct MethodPointer {
 /// Used for entering a method. The first item on the execution context stack should always be
 /// an `ExplicitCall`.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct ExplicitCall {
     pub method_pointer: MethodPointer,
@@ -412,7 +411,7 @@ pub enum StackItem {
 
 /// `CapabilityRegistration` is used to keep track of permissions granting.
 #[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 pub struct CapabilityRegistration {
     /// Method is the name of the capability listed in
     /// https://github.com/luna/enso/blob/main/docs/language-server/protocol-language-server.md#capabilities
@@ -422,24 +421,38 @@ pub struct CapabilityRegistration {
 }
 
 impl CapabilityRegistration {
-    /// Create "text/canEdit" capability for path
+    /// Create "file/receivesTreeUpdates" capability for path.
+    pub fn create_receives_tree_updates(path:Path) -> Self {
+        let method           = "file/receivesTreeUpdates".to_string();
+        let register_options = RegisterOptions::Path {path};
+        CapabilityRegistration {method,register_options}
+    }
+
+    /// Create "text/canEdit" capability for path.
     pub fn create_can_edit_text_file(path:Path) -> Self {
         let method           = "text/canEdit".to_string();
         let register_options = RegisterOptions::Path {path};
         CapabilityRegistration {method,register_options}
     }
 
-    /// Create "executionContext/canModify" capability for path
+    /// Create "executionContext/canModify" capability for path.
     pub fn create_can_modify_execution_context(context_id:Uuid) -> Self {
         let method = "executionContext/canModify".to_string();
         let register_options = RegisterOptions::ExecutionContextId {context_id};
         CapabilityRegistration {method,register_options}
     }
 
-    /// Create "executionContext/receivesUpdates" capability for path
+    /// Create "executionContext/receivesUpdates" capability for path.
     pub fn create_receives_execution_context_updates(context_id:Uuid) -> Self {
         let method = "executionContext/receivesUpdates".to_string();
         let register_options = RegisterOptions::ExecutionContextId {context_id};
+        CapabilityRegistration {method,register_options}
+    }
+
+    /// Create "search/receivesSuggestionsDatabaseUpdates" capability
+    pub fn create_receives_suggestions_database_updates() -> Self {
+        let method           = "search/receivesSuggestionsDatabaseUpdates".to_string();
+        let register_options = RegisterOptions::None {};
         CapabilityRegistration {method,register_options}
     }
 }
@@ -460,6 +473,132 @@ impl CapabilityRegistration {
 #[allow(missing_docs)]
 pub enum RegisterOptions {
     Path {path:Path},
-    #[serde(rename_all = "camelCase")]
+    #[serde(rename_all="camelCase")]
     ExecutionContextId {context_id:ContextId},
+    None {},
+}
+
+
+// ===========================
+// === Suggestion Database ===
+// ===========================
+
+/// The identifier of SuggestionEntry in SuggestionDatabase.
+pub type SuggestionEntryId = usize;
+
+/// The version of Suggestion Database.
+pub type SuggestionsDatabaseVersion = usize;
+
+/// The argument of an atom, method or function suggestion.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all="camelCase")]
+pub struct SuggestionEntryArgument {
+    /// The argument name.
+    pub name: String,
+    /// The arguement type. String 'Any' is used to specify generic types.
+    #[serde(rename = "type")] // To avoid collision with the `type` keyword.
+    pub arg_type: String,
+    /// Indicates whether the argument is lazy.
+    pub is_suspended: bool,
+    /// Optional default value.
+    pub default_value: Option<String>,
+}
+
+/// The definition scope. The start and end are chars indices.
+#[derive(Hash,Debug,Copy,Clone,PartialEq,Eq,Serialize,Deserialize)]
+#[serde(rename_all="camelCase")]
+#[allow(missing_docs)]
+pub struct SuggestionEntryScope {
+    pub start : usize,
+    pub end   : usize,
+}
+
+/// A type of suggestion entry.
+#[derive(Hash,Debug,Copy,Clone,PartialEq,Eq,Serialize,Deserialize)]
+#[serde(rename_all="camelCase")]
+#[allow(missing_docs)]
+pub enum SuggestionEntryType {Atom,Method,Function,Local}
+
+/// A Suggestion Entry.
+#[derive(Hash, Debug, Clone, PartialEq, Eq,Serialize,Deserialize)]
+#[serde(rename_all="camelCase")]
+#[allow(missing_docs)]
+pub enum SuggestionEntry {
+    SuggestionEntryAtom {
+        name          : String,
+        module        : String,
+        arguments     : Vec<SuggestionEntryArgument>,
+        return_type   : String,
+        documentation : Option<String>,
+    },
+    SuggestionEntryMethod {
+        name          : String,
+        module        : String,
+        arguments     : Vec<SuggestionEntryArgument>,
+        self_type     : String,
+        return_type   : String,
+        documentation : Option<String>,
+    },
+    SuggestionEntryFunction {
+        name        : String,
+        module      : String,
+        arguments   : Vec<SuggestionEntryArgument>,
+        return_type : String,
+        scope       : SuggestionEntryScope,
+    },
+    SuggestionEntryLocal {
+        name        : String,
+        module      : String,
+        return_type : String,
+        scope       : SuggestionEntryScope,
+    },
+}
+
+impl SuggestionEntry {
+    /// Get name of the suggested entity.
+    pub fn name(&self) -> &String {
+        match self {
+            Self::SuggestionEntryAtom     {name,..} => name,
+            Self::SuggestionEntryFunction {name,..} => name,
+            Self::SuggestionEntryLocal    {name,..} => name,
+            Self::SuggestionEntryMethod   {name,..} => name,
+        }
+    }
+}
+
+/// The entry in the suggestions database.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all="camelCase")]
+#[allow(missing_docs)]
+pub struct SuggestionsDatabaseEntry {
+    pub id         : SuggestionEntryId,
+    pub suggestion : SuggestionEntry,
+}
+
+/// The kind of the suggestions database update.
+#[derive(Hash,Debug,Copy,Clone,PartialEq,Eq,Serialize,Deserialize)]
+#[allow(missing_docs)]
+pub enum SuggestionsDatabaseUpdateKind {Add,Update,Delete}
+
+/// The update of the suggestions database.
+#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all="camelCase")]
+#[allow(missing_docs)]
+pub enum SuggestionsDatabaseUpdate {
+    Add {
+        id    : SuggestionEntryId,
+        entry : SuggestionEntry,
+    },
+    Remove {
+        id : SuggestionEntryId
+    },
+}
+
+/// Notification about change in the suggestions database.
+#[derive(Hash,Debug,Clone,PartialEq,Eq,Serialize,Deserialize)]
+#[serde(rename_all="camelCase")]
+#[allow(missing_docs)]
+pub struct SuggestionDatabaseUpdateEvent {
+    pub updates         : Vec<SuggestionsDatabaseUpdate>,
+    pub current_version : SuggestionsDatabaseVersion,
 }

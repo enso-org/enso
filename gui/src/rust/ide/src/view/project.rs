@@ -57,7 +57,7 @@ shared! { ProjectView
         application       : Application,
         layout            : ViewLayout,
         resize_callback   : Option<callback::Handle>,
-        controller        : controller::Project,
+        model             : Rc<model::Project>,
         keyboard          : Keyboard,
         keyboard_bindings : KeyboardFrpBindings,
         keyboard_actions  : keyboard::Actions
@@ -72,34 +72,35 @@ shared! { ProjectView
 }
 
 /// Returns the path to the initially opened module in the given project.
-pub fn initial_module_path(project:&controller::Project) -> FallibleResult<ModulePath> {
+pub fn initial_module_path(project:&model::Project) -> FallibleResult<ModulePath> {
     project.module_path_from_qualified_name(&[INITIAL_MODULE_NAME])
 }
 
 impl ProjectView {
     /// Create a new ProjectView.
-    pub async fn new(logger:impl AnyLogger, controller:controller::Project)
+    pub async fn new(logger:impl AnyLogger, model:Rc<model::Project>)
     -> FallibleResult<Self> {
-        let module_path       = initial_module_path(&controller)?;
-        let text_controller   = controller.text_controller((*module_path).clone()).await?;
+        let logger            = Logger::sub(logger,"ProjectView");
+        let module_path       = initial_module_path(&model)?;
+        let file_path         = module_path.file_path().clone();
+        let text_controller   = controller::Text::new(&logger,&*model,file_path).await?;
         let method            = module_path.method_pointer(MAIN_DEFINITION_NAME);
-        let graph_controller  = controller::ExecutedGraph::new(&controller,method);
+        let graph_controller  = controller::ExecutedGraph::new(&logger,model.clone(),method);
         let graph_controller  = graph_controller.await?;
         let application       = Application::new(&web::get_html_element_by_id("root").unwrap());
         Self::setup_components(&application);
         Self::setup_theme(&application);
         let _world = &application.display;
         // graph::register_shapes(&world);
-        let logger                   = Logger::sub(logger,"ProjectView");
         let keyboard                 = Keyboard::default();
         let keyboard_bindings        = KeyboardFrpBindings::new(&logger,&keyboard);
         let mut keyboard_actions     = keyboard::Actions::new(&keyboard);
         let resize_callback          = None;
         let mut fonts                = font::Registry::new();
-        let visualization_controller = controller.visualization.clone();
+        let visualization_controller = model.visualization.clone();
         let layout = ViewLayout::new(&logger,&mut keyboard_actions,&application, text_controller,
-            graph_controller,visualization_controller,controller.clone_ref(),&mut fonts).await?;
-        let data = ProjectViewData {application,layout,resize_callback,controller,keyboard,
+            graph_controller,visualization_controller,model.clone_ref(),&mut fonts).await?;
+        let data = ProjectViewData {application,layout,resize_callback,model,keyboard,
             keyboard_bindings,keyboard_actions};
         Ok(Self::new_from_data(data).init())
     }
