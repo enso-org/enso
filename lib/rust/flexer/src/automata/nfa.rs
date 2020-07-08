@@ -66,7 +66,7 @@ impl NFA {
         self.states[source.id].links.push(Link{symbols:symbols.clone(), target});
     }
 
-    /// Transforms pattern to NFA.
+    /// Transforms pattern to NFA with linear asymptotic complexity O(no_of_symbols).
     /// The algorithm is based on: https://www.youtube.com/watch?v=RYNN-tb9WxI
     pub fn new_pattern(&mut self, source:state::Id, pattern:&Pattern) -> state::Id {
         let current = self.new_state();
@@ -105,45 +105,38 @@ impl NFA {
     // === NFA -> DFA ===
 
     /// Merges states that are connected by epsilon links.
+    /// Asymptotic complexity is O(no_of_states^2)
     /// The algorithm is based on: https://www.youtube.com/watch?v=taClnxU-nao
     fn eps_matrix(&self) -> Vec<StateSetId> {
         fn fill_eps_matrix
         ( nfa      : &NFA
         , states   : &mut Vec<StateSetId>
-        , computed : &mut Vec<bool>
         , visited  : &mut Vec<bool>
         , state    : state::Id
         ) {
             let mut state_set = StateSetId::new();
-            let mut circular  = false;
             visited[state.id] = true;
             state_set.insert(state);
             for &target in &nfa.states[state.id].epsilon_links {
                 if !visited[target.id] {
-                    fill_eps_matrix(nfa,states,computed,visited,target);
+                    fill_eps_matrix(nfa,states,visited,target);
                 }
                 state_set.insert(target);
                 state_set.extend(states[target.id].iter());
-                if !computed[target.id] {
-                    circular = true
-                }
-            }
-            if !circular {
-                computed[state.id] = true
             }
             states[state.id] = state_set;
         }
 
-        let mut states   = vec![StateSetId::new(); self.states.len()];
-        let mut computed = vec![false; self.states.len()];
+        let mut states = vec![StateSetId::new(); self.states.len()];
         for id in 0..self.states.len() {
             let mut visited = vec![false; states.len()];
-            fill_eps_matrix(self,&mut states,&mut computed,&mut visited,state::Id{id});
+            fill_eps_matrix(self,&mut states,&mut visited,state::Id{id});
         }
         states
     }
 
     /// Computes a transition matrix (state X symbol => state) for NFA.
+    /// Asymptotic complexity is O(no_of_states^2)
     /// Ignores epsilon links.
     fn nfa_matrix(&self) -> Matrix<state::Id> {
         let mut matrix = Matrix::new(self.states.len(),self.alphabet.symbols.len());
@@ -159,7 +152,7 @@ impl NFA {
 }
 
 impl From<&NFA> for DFA {
-    /// Transforms NFA into DFA.
+    /// Transforms NFA into DFA with asymptotic complexity O(no_of_states^2).
     /// The algorithm is based on: https://www.youtube.com/watch?v=taClnxU-nao
     fn from(nfa:&NFA) -> Self {
         let     nfa_mat     = nfa.nfa_matrix();

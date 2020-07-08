@@ -14,10 +14,10 @@ pub mod rule;
 // == Group ==
 // ===========
 
-/// Struct that group rules together. It also inherits rules from parent group (if it has one).
+/// Struct that groups rules together. It also inherits rules from parent group (if it has one).
 /// Groups are the basic building block of flexer:
 /// Flexer internally keeps a stack of groups, only one of them active at a time.
-/// Each group contains set of regex patterns and callbacks (together called `Rule`).
+/// Each group contains an independent set of regex patterns and callbacks (together called `Rule`).
 /// Whenever a rule.pattern from active group is matched with part of input the associated
 /// rule.callback is executed, which in turn may exit the current groupor enter a new one.
 /// This allows us to nicely model a situation, where certain part of program (like a string literal)
@@ -139,11 +139,15 @@ pub mod tests {
         group
     }
 
-    fn hundred_rules() -> Group {
-        let     pattern = Pattern::all("The quick brown fox jumps over the lazy dog!!");
+    fn complex_rules(count:usize) -> Group {
         let mut group   = Group::default();
 
-        for _ in 0..100 {
+        for ix in 0..count {
+            let string  = ix.to_string();
+            let all     = Pattern::all(&string);
+            let any     = Pattern::any(&string);
+            let none    = Pattern::none(&string);
+            let pattern = Pattern::many(all & any & none);
             group.add_rule(Rule{pattern:pattern.clone(),callback:"".into()})
         }
         group
@@ -190,7 +194,17 @@ pub mod tests {
     }
 
     #[bench]
+    fn bench_ten_rules(bencher:&mut Bencher) {
+        bencher.iter(|| DFA::from(&NFA::from(&complex_rules(10))));
+    }
+
+    #[bench]
     fn bench_hundred_rules(bencher:&mut Bencher) {
-        bencher.iter(|| DFA::from(&NFA::from(&hundred_rules())));
+        bencher.iter(|| DFA::from(&NFA::from(&complex_rules(100))));
+    }
+
+    #[bench]
+    fn bench_thousand_rules(bencher:&mut Bencher) {
+        bencher.iter(|| DFA::from(&NFA::from(&complex_rules(1000))));
     }
 }

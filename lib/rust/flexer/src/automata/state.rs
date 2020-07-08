@@ -23,6 +23,11 @@ pub struct Symbol {
     pub val: u32
 }
 
+impl Symbol {
+    /// Maximum value of symbol.
+    pub const MAX:u32 = std::u32::MAX;
+}
+
 // TODO [AA] Define some constants on char
 
 /// Newtype wrapper for finite automata state ID.

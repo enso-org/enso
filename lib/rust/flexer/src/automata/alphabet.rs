@@ -38,7 +38,9 @@ impl Alphabet {
         // Mark the symbol with the new transition.
         self.symbols.insert(Symbol{val:range.start().val});
         // Mark the symbol without the new transition.
-        self.symbols.insert(Symbol{val:range.end().val + 1});
+        if range.end().val != Symbol::MAX {
+            self.symbols.insert(Symbol{val:range.end().val + 1});
+        }
         // This way each symbol in alphabet corresponds to a unique set of transitions.
     }
 }
