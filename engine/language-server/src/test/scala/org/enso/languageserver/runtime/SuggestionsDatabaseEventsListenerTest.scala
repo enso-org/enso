@@ -89,7 +89,7 @@ class SuggestionsDatabaseEventsListenerTest
       records.map(_.suggestion) should contain theSameElementsAs Suggestions.all
     }
 
-    "apply runtime updates in correct order" taggedAs Retry() in withDb {
+    "apply runtime updates in correct order" taggedAs Flaky in withDb {
       (router, repo) =>
         val handler  = newEventsListener(router.ref, repo)
         val clientId = UUID.randomUUID()
