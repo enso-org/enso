@@ -1,5 +1,8 @@
-//! An API for declaring Rust callbacks for encountered regex patterns.
+//! An API for declaring rust-code callbacks to be executed when a given pattern is matched.
 //!
+//! A flexer rule is a [`crate::automata::pattern`] associated with rust code to be executed as a
+//! callback.
+
 use crate::automata::pattern::Pattern;
 
 
@@ -8,29 +11,28 @@ use crate::automata::pattern::Pattern;
 // == Rule ==
 // ==========
 
-/// A rule is a pair of regex pattern and callback.
-/// The intention is to run the callback after encountering given pattern.
+/// A flexer rule.
 #[derive(Clone,Debug)]
 pub struct Rule {
-    /// Pattern that triggers the callback.
+    /// The pattern that triggers the callback.
     pub pattern: Pattern,
-    /// Callback containing stringified Rust code.
+    /// The code to execute when [`Rule::pattern`] matches, containing rust code as a
+    /// [`std::string::String`].
     pub callback: String,
 }
 
-/// Builder that allows us to add `Rule` to `Group` in a nice way.
-/// It is possible this structure won't be useful in rust, since borrow checker will likely influence
-/// the final API of rule construction.
+/// A builder that allows us to add a [`Rule`] to [`crate::group::Group`] in an elegant way.
 #[derive(Clone,Debug)]
 pub struct Builder<Callback> {
-    /// Pattern that triggers the callback.
+    /// The pattern that triggers the callback.
     pub pattern: Pattern,
-    /// Callback containing a closure.
+
+    /// The callback containing a closure
     pub callback: Callback,
 }
 
 impl<F:FnMut(Rule)> Builder<F> {
-    /// Feeds the input that triggered regex pattern to callback.
+    /// Feeds the input that triggered the [`Builder::pattern`] to the [`Builder::callback`].
     pub fn run(&mut self, program:String){
         let rule = Rule {pattern:self.pattern.clone(),callback:program};
         (self.callback)(rule);
