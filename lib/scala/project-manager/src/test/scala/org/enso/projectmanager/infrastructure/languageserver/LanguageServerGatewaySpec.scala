@@ -14,7 +14,7 @@ class LanguageServerGatewaySpec
 
   "A language server service" must {
 
-    "kill all running language servers" taggedAs Flaky in {
+    "kill all running language servers" ignore {
       implicit val client = new WsTestClient(address)
       val fooId           = createProject("foo")
       val barId           = createProject("bar")
