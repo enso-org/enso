@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Request a new feature in Enso.
+about: Request a new feature in Enso
 title: ''
 labels: 'Type: Enhancement'
 assignees: ''

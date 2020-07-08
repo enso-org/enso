@@ -56,7 +56,9 @@ object Macro {
 
     val clsDef = c.parse(s"final class __Parser__ extends $tree2")
     val tgtDef = addGroupDefs.transform(clsDef)
-    c.Expr[() => P](q"$tgtDef; () => { new __Parser__ () }")
-  }
 
+    val finalCode = q"$tgtDef; () => { new __Parser__() }"
+
+    c.Expr[() => P](finalCode)
+  }
 }
