@@ -164,9 +164,9 @@ jobs:
         run: sbt -no-colors syntaxJS/fullOptJS
       - name: Build the Manifest
         run: |
-          cp distribution/Manifest.template.yml Manifest.yml
-          echo "graal-vm-version: $graalVersion" >> Manifest.yml
-          echo "graal-java-version: $javaVersion" >> Manifest.yml
+          cp distribution/manifest.template.yml manifest.yml
+          echo "graal-vm-version: $graalVersion" >> manifest.yml
+          echo "graal-java-version: $javaVersion" >> manifest.yml
 
       # Publish
       - name: Publish the Distribution Artifact
