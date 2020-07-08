@@ -10,7 +10,7 @@ import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.data.{LanguageServerSockets, ProjectMetadata}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerService
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerGateway
 import org.enso.projectmanager.infrastructure.log.Logging
 import org.enso.projectmanager.infrastructure.random.Generator
 import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailure.{
@@ -23,7 +23,6 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectRepository,
   ProjectRepositoryFailure
 }
-import org.enso.projectmanager.infrastructure.shutdown.ShutdownHookProcessor
 import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.model.ProjectKind.UserProject
@@ -48,8 +47,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   log: Logging[F],
   clock: Clock[F],
   gen: Generator[F],
-  languageServerService: LanguageServerService[F],
-  shutdownHookProcessor: ShutdownHookProcessor[F]
+  languageServerGateway: LanguageServerGateway[F]
 )(implicit E: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure])
     extends ProjectServiceApi[F] {
 
@@ -85,13 +83,18 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   private def ensureProjectIsNotRunning(
     projectId: UUID
   ): F[ProjectServiceFailure, Unit] =
-    languageServerService
-      .isRunning(projectId)
-      .mapError(_ => ProjectOperationTimeout)
+    isServerRunning(projectId)
       .flatMap {
         case false => CovariantFlatMap[F].pure(())
         case true  => ErrorChannel[F].fail(CannotRemoveOpenProject)
       }
+
+  private def isServerRunning(
+    projectId: UUID
+  ): F[ProjectServiceFailure, Boolean] =
+    languageServerGateway
+      .isRunning(projectId)
+      .mapError(_ => ProjectOperationTimeout)
 
   /** @inheritdoc * */
   override def renameProject(
@@ -105,13 +108,22 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
       _          <- checkIfNameExists(name)
       oldPackage <- repo.getPackageName(projectId).mapError(toServiceFailure)
       _          <- repo.rename(projectId, name).mapError(toServiceFailure)
-      _ <- shutdownHookProcessor.registerShutdownHook(
-        new MoveProjectDirCmd[F](projectId, repo, log)
-      )
+      _          <- renameProjectDirOrRegisterShutdownHook(projectId)
       newPackage = PackageManager.Default.normalizeName(name)
       _ <- refactorProjectName(projectId, oldPackage, newPackage)
       _ <- log.info(s"Project $projectId renamed.")
     } yield ()
+  }
+
+  private def renameProjectDirOrRegisterShutdownHook(
+    projectId: UUID
+  ): F[ProjectServiceFailure, Unit] = {
+    val cmd = new MoveProjectDirCmd[F](projectId, repo, log)
+    CovariantFlatMap[F]
+      .ifM(isServerRunning(projectId))(
+        ifTrue  = languageServerGateway.registerShutdownHook(projectId, cmd),
+        ifFalse = cmd.execute()
+      )
   }
 
   private def refactorProjectName(
@@ -119,7 +131,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     oldPackage: String,
     newPackage: String
   ): F[ProjectServiceFailure, Unit] =
-    languageServerService
+    languageServerGateway
       .renameProject(
         projectId,
         oldPackage,
@@ -175,7 +187,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     clientId: UUID,
     project: Project
   ): F[ProjectServiceFailure, LanguageServerSockets] =
-    languageServerService
+    languageServerGateway
       .start(clientId, project)
       .mapError {
         case PreviousInstanceNotShutDown =>
@@ -199,7 +211,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
     projectId: UUID
   ): F[ProjectServiceFailure, Unit] = {
     log.debug(s"Closing project $projectId") *>
-    languageServerService.stop(clientId, projectId).mapError {
+    languageServerGateway.stop(clientId, projectId).mapError {
       case ServerShutdownTimedOut =>
         ProjectCloseFailed("Server shutdown timed out")
 

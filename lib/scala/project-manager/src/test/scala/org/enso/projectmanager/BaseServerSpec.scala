@@ -16,14 +16,14 @@ import org.enso.projectmanager.infrastructure.file.{
   SynchronizedFileStorage
 }
 import org.enso.projectmanager.infrastructure.languageserver.{
+  LanguageServerGatewayImpl,
   LanguageServerRegistry,
-  LanguageServerRegistryProxy
+  ShutdownHookActivator
 }
 import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
   ProjectIndex
 }
-import org.enso.projectmanager.infrastructure.shutdown.ShutdownHookProcessor
 import org.enso.projectmanager.protocol.{
   JsonRpc,
   ManagerClientControllerFactory
@@ -101,14 +101,16 @@ class BaseServerSpec extends JsonRpcServerTestKit {
         .props(netConfig, bootloaderConfig, supervisionConfig, timeoutConfig)
     )
 
-  lazy val languageServerService =
-    new LanguageServerRegistryProxy[ZIO[ZEnv, +*, +*]](
+  lazy val shutdownHookActivator =
+    system.actorOf(ShutdownHookActivator.props[ZIO[ZEnv, +*, +*]]())
+
+  lazy val languageServerGateway =
+    new LanguageServerGatewayImpl[ZIO[ZEnv, +*, +*]](
       languageServerRegistry,
+      shutdownHookActivator,
+      system,
       timeoutConfig
     )
-
-  lazy val shutdownHookProcessor =
-    new ShutdownHookProcessor[ZIO[ZEnv, +*, +*]](new NopLogging[ZEnv])
 
   lazy val projectService =
     new ProjectService[ZIO[ZEnv, +*, +*]](
@@ -117,8 +119,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       new NopLogging[ZEnv],
       testClock,
       gen,
-      languageServerService,
-      shutdownHookProcessor
+      languageServerGateway
     )
 
   override def clientControllerFactory: ClientControllerFactory = {

@@ -6,10 +6,9 @@ import java.util.UUID
 
 import io.circe.literal._
 import org.enso.jsonrpc.test.FlakySpec
+import org.enso.projectmanager.test.Net.tryConnect
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
 import scala.io.Source
 
 class ProjectManagementApiSpec
@@ -481,8 +480,6 @@ class ProjectManagementApiSpec
             "result": null
           }
           """)
-      val future = exec.exec(shutdownHookProcessor.fireShutdownHooks())
-      Await.result(future, 5.seconds)
       val projectDir  = new File(userProjectDir, "bar")
       val packageFile = new File(projectDir, "package.yaml")
       val buffer      = Source.fromFile(packageFile)
@@ -493,12 +490,55 @@ class ProjectManagementApiSpec
       deleteProject(projectId)
     }
 
+    "move project dir on project close" in {
+      implicit val client = new WsTestClient(address)
+      //given
+      val projectId = createProject("foo")
+      openProject(projectId)
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/rename",
+              "id": 0,
+              "params": {
+                "projectId": $projectId,
+                "name": "bar"
+              }
+            }
+          """)
+      //then
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "result": null
+          }
+          """)
+      val projectDir = new File(userProjectDir, "bar")
+      projectDir.exists() shouldBe false
+      closeProject(projectId)
+      Thread.sleep(1000)
+      projectDir.exists() shouldBe true
+      val packageFile = new File(projectDir, "package.yaml")
+      val buffer      = Source.fromFile(packageFile)
+      val lines       = buffer.getLines()
+      lines.contains("name: Bar") shouldBe true
+      buffer.close()
+      val jsonSocket = openProject(projectId)
+      tryConnect(jsonSocket).isRight shouldBe true
+      closeProject(projectId)
+      //teardown
+      deleteProject(projectId)
+    }
+
     "create a project dir with a suffix if a directory is taken" in {
       val oldProjectName  = "foobar"
       val newProjectName  = "foo"
       implicit val client = new WsTestClient(address)
       //given
-      val projectId = createProject(oldProjectName)
+      val projectId         = createProject(oldProjectName)
+      val primaryProjectDir = new File(userProjectDir, newProjectName)
+      primaryProjectDir.mkdirs()
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -518,10 +558,6 @@ class ProjectManagementApiSpec
             "result": null
           }
           """)
-      val primaryProjectDir = new File(userProjectDir, newProjectName)
-      primaryProjectDir.mkdirs()
-      val future = exec.exec(shutdownHookProcessor.fireShutdownHooks())
-      Await.result(future, 5.seconds)
       val projectDir  = new File(userProjectDir, s"${newProjectName}_1")
       val packageFile = new File(projectDir, "package.yaml")
       val buffer      = Source.fromFile(packageFile)

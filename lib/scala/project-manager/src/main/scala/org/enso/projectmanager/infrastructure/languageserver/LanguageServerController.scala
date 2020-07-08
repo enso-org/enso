@@ -28,6 +28,7 @@ import org.enso.projectmanager.boot.configuration.{
 }
 import org.enso.projectmanager.data.{LanguageServerSockets, Socket}
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
+import org.enso.projectmanager.event.ProjectEvent.ProjectClosed
 import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
   ServerBootFailed,
@@ -267,6 +268,7 @@ class LanguageServerController(
 
   private def stop(): Unit = {
     context.parent ! ServerShutDown(project.id)
+    context.system.eventStream.publish(ProjectClosed(project.id))
     if (context.children.isEmpty) {
       context.stop(self)
     } else {
