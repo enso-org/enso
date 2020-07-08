@@ -472,7 +472,7 @@ pub mod test {
         // Context now has the information about type.
         let value_info = value_registry.get(&expression_id).unwrap();
         assert_eq!(value_info.typename, value_update.typename.clone().map(ImString::new));
-        assert_eq!(value_info.method_call,value_update.method_call);
+        assert_eq!(value_info.method_pointer, value_update.method_call.clone().map(Rc::new));
     }
 
     fn mock_calls_for_opening_text_file

@@ -16,6 +16,7 @@ ensogl-text          = { version = "0.1.0", path = "../../../ensogl/lib/text"   
 enso-shapely         = { version = "0.1.0", path = "../../../lib/enso-shapely/impl" }
 span-tree            = { version = "0.1.0", path = "../span-tree"                   }
 logger               = { version = "0.1.0", path = "../../../lib/logger"            }
+enso-protocol        = { version = "0.1.0", path = "../../../ide/lib/enso-protocol" }
 
 wasm-bindgen = { version = "=0.2.58" , features = ["nightly","serde-serialize"] }
 nalgebra     = { version = "0.21.1"  , features = ["serde-serialize"]           }

@@ -38,16 +38,16 @@ pub type ExpressionId = ast::Id;
 #[derive(Clone,Debug)]
 pub struct ComputedValueInfo {
     /// The string representing the typename of the computed value, e.g. "Number" or "Unit".
-    pub typename    : Option<ImString>,
+    pub typename:Option<ImString>,
     /// If the expression is a method call (i.e. can be entered), this points to the target method.
-    pub method_call : Option<MethodPointer>,
+    pub method_pointer:Option<Rc<MethodPointer>>,
 }
 
 impl From<ExpressionValueUpdate> for ComputedValueInfo {
     fn from(update:ExpressionValueUpdate) -> Self {
         ComputedValueInfo {
-            typename    : update.typename.map(ImString::new),
-            method_call : update.method_call,
+            typename       : update.typename.map(ImString::new),
+            method_pointer : update.method_call.map(Rc::new),
         }
     }
 }
