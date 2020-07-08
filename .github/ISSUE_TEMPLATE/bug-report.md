@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug in Enso.
+about: Report a bug in Enso
 title: ''
 labels: 'Type: Bug'
 assignees: ''
