@@ -14,6 +14,8 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Launcher Distribution](#launcher-distribution)
+- [Launcher Build](#launcher-build)
+  - [Portability](#portability)
 - [Project Management](#project-management)
   - [Creating a Project](#creating-a-project)
   - [Per-Project Enso Version](#per-project-enso-version)

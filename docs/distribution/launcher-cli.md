@@ -31,7 +31,6 @@ This document describes available command-line options of the Enso launcher.
   - [`version`](#version)
   - [`help`](#help)
 - [General Options](#general-options)
-  - [`--path`](#--path)
   - [`--version`](#--version)
   - [`--use-system-jvm`](#--use-system-jvm)
 
@@ -181,7 +180,7 @@ Print this summary of available command and their usage.
 
 ## General Options
 
-### `--version=<version>`
+### `--version`
 Overrides the inferred (project local or `default`) version when running a
 command.
 
