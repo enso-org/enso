@@ -251,11 +251,13 @@ pub struct AttachedVisualization {
 
 /// Execution Context Model.
 ///
-/// The execution context consists of the root call (which is a direct call of some function
+/// This model reflects the state of the execution context in Language Server.
+/// It consists of the root call (which is a direct call of some function
 /// definition), stack of function calls (see `StackItem` definition and docs) and a list of
-/// active visualizations.
+/// active visualizations. It can also cache all computed values and types of various expression
+/// for the context.
 ///
-/// It implements internal mutability pattern, so the state may be shared between different
+/// It implements internal mutability pattern, so it may be shared between different
 /// controllers.
 #[derive(Debug)]
 pub struct ExecutionContext {

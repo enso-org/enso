@@ -87,7 +87,8 @@ impl LanguageServerContent {
 /// [https://github.com/luna/enso/blob/main/docs/language-server/protocol-language-server.md].
 #[derive(Debug)]
 pub struct Module {
-    path            : model::module::Path,
+    /// Path to the module file.
+    pub path        : model::module::Path,
     /// The module handle.
     pub model       : model::Module,
     language_server : Rc<language_server::Connection>,

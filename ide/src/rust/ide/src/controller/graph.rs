@@ -421,7 +421,7 @@ impl Handle {
     /// Create a new graph controller. Given ID should uniquely identify a definition in the
     /// module. Fails if ID cannot be resolved.
     pub fn new
-    (parent:&Logger, module:Rc<model::synchronized::Module>, parser:Parser, id:Id)
+    (parent:impl AnyLogger, module:Rc<model::synchronized::Module>, parser:Parser, id:Id)
     -> FallibleResult<Handle> {
         let ret = Self::new_unchecked(parent,module,parser,id);
         // Get and discard definition info, we are just making sure it can be obtained.
@@ -432,15 +432,15 @@ impl Handle {
     /// Create a graph controller for the given method.
     ///
     /// Fails if the module is inaccessible or if the module does not contain the given method.
-    pub async fn new_method(project:&controller::Project, method:&language_server::MethodPointer)
+    pub async fn new_method
+    (parent:impl AnyLogger, project:&model::Project, method:&language_server::MethodPointer)
     -> FallibleResult<controller::Graph> {
-        let project = project.clone_ref();
         let method = method.clone();
         let module_path = model::module::Path::from_file_path(method.file.clone())?;
-        let module      = project.module_controller(module_path).await?;
-        let module_ast = module.model.model.ast();
+        let module      = project.module(module_path).await?;
+        let module_ast  = module.model.ast();
         let definition = double_representation::module::lookup_method(&module_ast,&method)?;
-        module.graph_controller(definition)
+        Self::new(parent,module,project.parser.clone_ref(),definition)
     }
 
     /// Retrieves double rep information about definition providing this graph.
@@ -877,7 +877,7 @@ mod tests {
             let pos    = model::module::Position {vector:Vector2::new(0.0,0.0)};
             let crumbs = vec![DefinitionName::new_plain("main")];
             let id     = Id {crumbs};
-            let graph  = Handle::new(&default(),module,parser,id).unwrap();
+            let graph  = Handle::new(Logger::new("Test"),module,parser,id).unwrap();
             let uid    = graph.all_node_infos().unwrap()[0].id();
 
             graph.module.with_node_metadata(uid, |data| data.position = Some(pos));

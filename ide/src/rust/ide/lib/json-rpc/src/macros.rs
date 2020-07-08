@@ -103,7 +103,7 @@ macro_rules! make_rpc_methods {
         $(
             /// Structure transporting method arguments.
             #[derive(Serialize,Debug,PartialEq)]
-            #[serde(rename_all = "camelCase")]
+            #[serde(rename_all="camelCase")]
             struct $method_input<'a> {
                 #[serde(skip)]
                 phantom : std::marker::PhantomData<&'a()>,

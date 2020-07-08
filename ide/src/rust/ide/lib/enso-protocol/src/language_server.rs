@@ -137,4 +137,24 @@ trait API {
     #[MethodInput=ModifyVisualisationInput,rpc_name="executionContext/modifyVisualisation"]
     fn modify_visualisation
     (&self, visualisation_id:Uuid, visualisation_config:VisualisationConfiguration) -> ();
+
+    /// Obtain the full suggestions database.
+    #[MethodInput=GetSuggestionsDatabaseInput,rpc_name="search/getSuggestionsDatabase"]
+    fn get_suggestions_database(&self) -> response::GetSuggestionDatabase;
+
+    /// Receive the current version of the suggestions database.
+    #[MethodInput=GetSuggestionsDatabaseVersionInput,
+        rpc_name="search/getSuggestionsDatabaseVersion"]
+    fn get_suggestions_database_version(&self) -> response::GetSuggestionDatabaseVersion;
+
+    /// Receive the autocomplete suggestion.
+    #[MethodInput=CompletionInput,rpc_name="search/completion"]
+    fn completion
+    ( &self
+    , module      : String
+    , position    : Position
+    , self_type   : Option<String>
+    , return_type : Option<String>
+    , tags        : Option<Vec<SuggestionEntryType>>
+    ) -> response::Completion;
 }}

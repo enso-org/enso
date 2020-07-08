@@ -67,7 +67,7 @@ pub struct Handle {
     execution_ctx:Rc<ExecutionContext>,
     /// The handle to project controller is necessary, as entering nodes might need to switch
     /// modules, and only the project can provide their controllers.
-    project:controller::Project,
+    project:Rc<model::Project>,
     /// The publisher allowing sending notification to subscribed entities. Note that its outputs is
     /// merged with publishers from the stored graph and execution controllers.
     notifier:crate::notification::Publisher<Notification>,
@@ -76,12 +76,13 @@ pub struct Handle {
 impl Handle {
     /// Create handle for the executed graph that will be running the given method.
     pub async fn new
-    ( project:&controller::Project
-    , method:MethodPointer
+    ( parent  : impl AnyLogger
+    , project : Rc<model::Project>
+    , method  : MethodPointer
     ) -> FallibleResult<Self> {
-        let graph     = controller::Graph::new_method(&project, &method).await?;
+        let graph     = controller::Graph::new_method(parent,&*project,&method).await?;
         let execution = project.create_execution_context(method.clone()).await?;
-        Ok(Self::new_internal(graph,&project,execution))
+        Ok(Self::new_internal(graph,project,execution))
     }
 
     /// Create handle for given graph and execution context.
@@ -99,13 +100,12 @@ impl Handle {
     /// the last copy of this controller is dropped.
     /// Then the context when being dropped shall remove itself from the Language Server.
     pub fn new_internal
-    ( graph:controller::Graph
-    , project:&controller::Project
-    , execution_ctx:Rc<ExecutionContext>
+    ( graph         : controller::Graph
+    , project       : Rc<model::Project>
+    , execution_ctx : Rc<ExecutionContext>
     ) -> Self {
         let logger   = Logger::sub(&graph.logger,"Executed");
         let graph    = Rc::new(RefCell::new(graph));
-        let project  = project.clone_ref();
         let notifier = default();
         Handle {logger,graph,execution_ctx,project,notifier}
     }
@@ -157,7 +157,7 @@ impl Handle {
         let registry   = self.execution_ctx.computed_value_info_registry();
         let node_info  = registry.get(&node).ok_or_else(|| NotEvaluatedYet(node))?;
         let method_ptr = node_info.method_pointer.as_ref().ok_or_else(|| NoResolvedMethod(node))?;
-        let graph      = controller::Graph::new_method(&self.project,&method_ptr).await?;
+        let graph      = controller::Graph::new_method(&self.logger,&self.project,&method_ptr).await?;
         let call       = model::execution_context::LocalCall {
             call       : node,
             definition : method_ptr.as_ref().clone()
@@ -179,7 +179,7 @@ impl Handle {
     pub async fn exit_node(&self) -> FallibleResult<()> {
         let frame  = self.execution_ctx.pop().await?;
         let method = self.execution_ctx.current_method();
-        let graph  = controller::Graph::new_method(&self.project,&method).await?;
+        let graph  = controller::Graph::new_method(&self.logger,&self.project,&method).await?;
         self.graph.replace(graph);
         self.notifier.publish(Notification::SteppedOutOfNode(frame.call)).await;
         Ok(())
@@ -212,7 +212,7 @@ mod tests {
 
     wasm_bindgen_test_configure!(run_in_browser);
 
-    /// Test that checks that value computed notification is properly relayed by the executed graph.
+    // Test that checks that value computed notification is properly relayed by the executed graph.
     #[wasm_bindgen_test]
     fn dispatching_value_computed_notification() {
         // Setup the controller.
@@ -224,8 +224,8 @@ mod tests {
         let connection     = language_server::Connection::new_mock_rc(ls);
         let (_,graph)      = graph_data.create_controllers_with_ls(connection.clone_ref());
         let execution      = Rc::new(execution(connection.clone_ref()));
-        let project        = controller::project::test::setup_mock_project(|_| {}, |_| {});
-        let executed_graph = Handle::new_internal(graph,&project,execution.clone_ref());
+        let project        = model::project::test::setup_mock_project(|_| {}, |_| {});
+        let executed_graph = Handle::new_internal(graph,Rc::new(project),execution.clone_ref());
 
         // Generate notification.
         let notification = execution_data.mock_values_computed_update();

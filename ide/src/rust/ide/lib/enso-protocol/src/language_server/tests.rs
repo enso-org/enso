@@ -51,13 +51,11 @@ fn test_file_event_notification() {
             "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
-                "event" : {
-                    "path" : {
-                        "rootId"   : "00000000-0000-0000-0000-000000000000",
-                        "segments" : ["Main.txt"]
-                    },
-                    "kind" : "Modified"
-                }
+                "path" : {
+                    "rootId"   : "00000000-0000-0000-0000-000000000000",
+                    "segments" : ["Main.txt"]
+                },
+                "kind" : "Modified"
             }
         }"#;
     fixture.transport.mock_peer_text_message(notification_text);
@@ -66,7 +64,7 @@ fn test_file_event_notification() {
     fixture.executor.run_until_stalled();
 
     if let Event::Notification(n) = events.expect_next() {
-        assert_eq!(n, Notification::FileEvent {event:expected_event});
+        assert_eq!(n, Notification::FileEvent(expected_event));
     } else {
         panic!("expected notification event");
     }
@@ -284,13 +282,14 @@ fn test_acquire_capability() {
     let root_id   = root_id.expect("Couldn't parse uuid.");
     let unit_json = json!(null);
 
-    let path    = Path { root_id, segments: default() };
-    let options = RegisterOptions::Path{path};
+    let path             = Path { root_id, segments: default() };
+    let method           = "file/receivesTreeUpdates".to_string();
+    let register_options = RegisterOptions::Path {path};
     test_request(
-        |client| client.acquire_capability(&"receivesTreeUpdates".to_string(), &options),
+        |client| client.acquire_capability(&method,&register_options),
         "capability/acquire",
         json!({
-            "method"          : "receivesTreeUpdates",
+            "method"          : "file/receivesTreeUpdates",
             "registerOptions" : {
                 "path" : {
                     "rootId"   : "00000000-0000-0000-0000-000000000000",

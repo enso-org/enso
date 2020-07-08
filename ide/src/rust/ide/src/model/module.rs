@@ -70,9 +70,9 @@ pub struct EmptyQualifiedName;
 /// The `file_path` contains at least two segments:
 /// * the first one is a source directory in the project (see `SOURCE_DIRECTORY`);
 /// * the last one is a source file with the module's contents.
-#[derive(Clone,Debug,Eq,Hash,PartialEq,Shrinkwrap)]
+#[derive(Clone,CloneRef,Debug,Eq,Hash,PartialEq,Shrinkwrap)]
 pub struct Path {
-    file_path:FilePath,
+    file_path:Rc<FilePath>,
 }
 
 impl Path {
@@ -90,6 +90,7 @@ impl Path {
         name_first_char.is_uppercase().ok_or_else(error(NonCapitalizedFileName))?;
         let is_in_src = file_path.segments.first().contains_if(|name| *name == SOURCE_DIRECTORY);
         is_in_src.ok_or_else(error(NotInSourceDirectory))?;
+        let file_path = Rc::new(file_path);
         Ok(Path {file_path})
     }
 
@@ -104,13 +105,13 @@ impl Path {
         let module_file = segments.last_mut().ok_or(EmptyQualifiedName)?;
         module_file.push('.');
         module_file.push_str(LANGUAGE_FILE_EXTENSION);
-        let file_path = FilePath {root_id,segments} ;
+        let file_path = Rc::new(FilePath {root_id,segments});
         Ok(Path {file_path})
     }
 
     /// Get the file path.
     pub fn file_path(&self) -> &FilePath {
-        &self.file_path
+        &*self.file_path
     }
 
     /// Gives the file name for the given module name.
@@ -144,14 +145,14 @@ impl Path {
         MethodPointer {
             defined_on_type : self.module_name().into(),
             name            : method_name.into(),
-            file            : self.file_path.clone(),
+            file            : self.file_path.deref().clone(),
         }
     }
 }
 
 impl PartialEq<FilePath> for Path {
     fn eq(&self, other:&FilePath) -> bool {
-        self.file_path.eq(other)
+        self.file_path.deref().eq(other)
     }
 }
 

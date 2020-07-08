@@ -46,32 +46,36 @@ enum FileHandle {
 /// This struct contains all information and handles to do all module controller operations.
 #[derive(Clone,CloneRef,Debug)]
 pub struct Handle {
+    logger: Logger,
     file: FileHandle,
 }
 
 impl Handle {
-
-    /// Create controller managing plain text file (which is not a module).
-    pub fn new_for_plain_text
-    (path:FilePath, language_server:Rc<language_server::Connection>) -> Self {
-        let path = Rc::new(path);
-        Self {
-            file : FileHandle::PlainText {path,language_server}
-        }
-    }
-
-    /// Create controller managing Luna module file.
-    pub fn new_for_module(controller:controller::Module) -> Self {
-        Self {
-            file : FileHandle::Module {controller}
-        }
+    /// Create a Text Controller for file.
+    ///
+    /// This constructor checks what kind of file we read, and load it as a module file or plain
+    /// text file.
+    pub async fn new
+    (parent:impl AnyLogger, project:&model::Project, path:FilePath) -> FallibleResult<Self> {
+        let logger = Logger::sub(parent,format!("Text Controller {}", path));
+        let file   = if let Ok(path) = model::module::Path::from_file_path(path.clone()) {
+            FileHandle::Module {
+                controller : controller::Module::new(logger.clone_ref(),path,project).await?
+            }
+        } else {
+            FileHandle::PlainText {
+                path            : Rc::new(path),
+                language_server : project.language_server_rpc.clone_ref()
+            }
+        };
+        Ok(Self {logger,file})
     }
 
     /// Get clone of file path handled by this controller.
     pub fn file_path(&self) -> &FilePath {
         match &self.file {
             FileHandle::PlainText{path,..} => &*path,
-            FileHandle::Module{controller} => controller.path.file_path()
+            FileHandle::Module{controller} => controller.model.path.file_path()
         }
     }
 
@@ -178,7 +182,10 @@ mod test {
             let parser     = Parser::new().unwrap();
             let module_res = controller::Module::new_mock(path,"main = 2+2",default(),ls,parser);
             let module     = module_res.unwrap();
-            let controller = Handle::new_for_module(module.clone());
+            let controller = Handle {
+                logger : Logger::new("Test text controller"),
+                file   : FileHandle::Module {controller:module.clone()}
+            };
             let mut sub    = controller.subscribe();
 
             module.apply_code_change(TextChange::insert(Index::new(8),"2".to_string())).unwrap();

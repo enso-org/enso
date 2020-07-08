@@ -1,9 +1,10 @@
 //! Helper structures wrapping RPC method result types.
 use super::*;
+use crate::language_server::SuggestionsDatabaseEntry;
 
 /// Response of `init_protocol_connection` method.
 #[derive(Hash,Debug,Clone,PartialEq,Eq,Serialize,Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 pub struct InitProtocolConnection {
     /// List of Root IDs.
     pub content_roots:Vec<Uuid>,
@@ -39,7 +40,7 @@ pub struct FileInfo {
 
 /// Response of `open_text_file` method.
 #[derive(Hash,Debug,Clone,PartialEq,Eq,Serialize,Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct OpenTextFile {
     pub write_capability : Option<CapabilityRegistration>,
@@ -49,10 +50,36 @@ pub struct OpenTextFile {
 
 /// Response of `create_execution_context` method.
 #[derive(Hash,Debug,Clone,PartialEq,Eq,Serialize,Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct CreateExecutionContext {
     pub context_id       : ContextId,
     pub can_modify       : CapabilityRegistration,
     pub receives_updates : CapabilityRegistration
+}
+
+/// Response of `get_suggestions_database` method.
+#[derive(Hash,Debug,Clone,PartialEq,Eq,Serialize,Deserialize)]
+#[serde(rename_all="camelCase")]
+#[allow(missing_docs)]
+pub struct GetSuggestionDatabase {
+    pub entries         : Vec<SuggestionsDatabaseEntry>,
+    pub current_version : SuggestionsDatabaseVersion,
+}
+
+/// Response of `get_suggestions_database_version` method.
+#[derive(Hash,Debug,Copy,Clone,PartialEq,Eq,Serialize,Deserialize)]
+#[serde(rename_all="camelCase")]
+#[allow(missing_docs)]
+pub struct GetSuggestionDatabaseVersion {
+    pub version : SuggestionsDatabaseVersion,
+}
+
+/// Response of `completion` method.
+#[derive(Hash,Debug,Clone,PartialEq,Eq,Serialize,Deserialize)]
+#[serde(rename_all="camelCase")]
+#[allow(missing_docs)]
+pub struct Completion {
+    pub results         : Vec<SuggestionEntryId>,
+    pub current_version : SuggestionsDatabaseVersion,
 }
