@@ -100,5 +100,64 @@ class StateTest extends InterpreterTest {
           |""".stripMargin
       eval(code) shouldEqual 5
     }
+
+    "localize properly with State.run when 1 key used" in {
+      val code =
+        """
+          |inner = State.put Number 0
+          |
+          |outer =
+          |    State.put Number 1
+          |    State.run Number 2 here.inner
+          |    State.get Number
+          |
+          |main = State.run Number 3 here.outer
+          |""".stripMargin
+      eval(code) shouldEqual 1
+    }
+
+    "localize properly with State.run when 2 states used" in {
+      val code =
+        """
+          |type S1
+          |type S2
+          |
+          |inner =
+          |    State.put S1 0
+          |    State.put S2 0
+          |
+          |outer =
+          |    State.put S1 1
+          |    State.run S2 2 here.inner
+          |    State.get S1
+          |
+          |main = State.run S1 3 here.outer
+          |
+          |""".stripMargin
+      eval(code) shouldEqual 0
+    }
+
+    "localize properly with State.run when multiple states used" in {
+      val code =
+        """
+          |type S1
+          |type S2
+          |type S3
+          |
+          |inner =
+          |    State.put S1 0
+          |    State.put S2 0
+          |
+          |outer =
+          |    State.put S1 1
+          |    State.put S3 2
+          |    State.run S2 2 here.inner
+          |    State.get S1 + State.get S2 + State.get S3
+          |
+          |main = State.run S3 0 (State.run S2 5 (State.run S1 3 here.outer))
+          |
+          |""".stripMargin
+      eval(code) shouldEqual 7 // S1 = 0, S2 = 5, S3 = 2
+    }
   }
 }

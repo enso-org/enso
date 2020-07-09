@@ -1,6 +1,6 @@
 package org.enso.interpreter.runtime.data;
 
-public class SingletonState {
+public final class SingletonState {
   private final Object key;
   private final Object value;
 

@@ -2,12 +2,15 @@ package org.enso.interpreter.node.expression.builtin.state;
 
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.*;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.data.EmptyState;
 import org.enso.interpreter.runtime.data.SingletonState;
 import org.enso.interpreter.runtime.data.SmallMap;
@@ -26,20 +29,14 @@ public abstract class PutStateNode extends Node {
 
   abstract Stateful execute(@MonadicState Object state, Object _this, Object key, Object new_state);
 
-  @Specialization(guards = "state.getKey() == cachedKey")
-  Stateful doSameSingleton(
-      SingletonState state,
-      Object _this,
-      Object key,
-      Object new_state,
-      @Cached("key") Object cachedKey) {
-    return new Stateful(new SingletonState(cachedKey, new_state), new_state);
+  @Specialization(guards = "state.getKey() == key")
+  Stateful doExistingSingleton(SingletonState state, Object _this, Object key, Object new_state) {
+    return new Stateful(new SingletonState(key, new_state), new_state);
   }
 
   @Specialization(
-      guards = {"state.getKeys() == cachedKeys", "index != NOT_FOUND", "key == cachedKey"},
-      limit = "10")
-  Stateful doExisting(
+      guards = {"state.getKeys() == cachedKeys", "index != NOT_FOUND", "key == cachedKey"})
+  Stateful doExistingMultiCached(
       SmallMap state,
       Object _this,
       Object key,
@@ -47,24 +44,36 @@ public abstract class PutStateNode extends Node {
       @Cached("key") Object cachedKey,
       @Cached(value = "state.getKeys()", dimensions = 1) Object[] cachedKeys,
       @Cached("state.indexOf(key)") int index) {
-//    SmallMap changedState = state.set(index, new_state);
     Object[] newVals = new Object[cachedKeys.length];
     System.arraycopy(state.getValues(), 0, newVals, 0, cachedKeys.length);
     newVals[index] = new_state;
     SmallMap newState = new SmallMap(cachedKeys, newVals);
-    return new Stateful(newState, new_state);// changedState, new_state);
-  }
-
-
-  int init(Object[] keys, Object key) {
-    //    System.out.println("Insert: " + key + " into " + keys + " @ " + Arrays.toString(keys) + "
-    // from " + this);
-    return 0;
+    return new Stateful(newState, new_state);
   }
 
   @Specialization
-  Stateful doError(Object state, Object _this, Object key, Object new_state) {
-    throw new PanicException(
-        "Cannot find state for key: " + key + ". Is State.run being used?", this);
+  Stateful doMultiUncached(
+      SmallMap state,
+      Object _this,
+      Object key,
+      Object new_state,
+      @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> ctxRef) {
+    int index = state.indexOf(key);
+    if (index == SmallMap.NOT_FOUND) {
+      throw new PanicException(
+          ctxRef.get().getBuiltins().error().unitializedState().newInstance(key), this);
+    } else {
+      return doExistingMultiCached(state, _this, key, new_state, key, state.getKeys(), index);
+    }
+  }
+
+  @Specialization
+  Stateful doError(
+      Object state,
+      Object _this,
+      Object key,
+      Object new_state,
+      @CachedContext(Language.class) Context ctx) {
+    throw new PanicException(ctx.getBuiltins().error().unitializedState().newInstance(key), this);
   }
 }

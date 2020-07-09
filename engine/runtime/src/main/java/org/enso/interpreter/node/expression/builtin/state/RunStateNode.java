@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.state;
 
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
@@ -18,6 +19,7 @@ import org.enso.interpreter.runtime.state.Stateful;
     name = "run",
     description = "Runs a stateful computation in a local state environment.")
 @ReportPolymorphism
+@ImportStatic(SmallMap.class)
 public abstract class RunStateNode extends Node {
   static RunStateNode build() {
     return RunStateNodeGen.create();
@@ -36,13 +38,21 @@ public abstract class RunStateNode extends Node {
     return new Stateful(state, result);
   }
 
+  @Specialization(guards = {"state.getKey() == key"})
+  Stateful doSingletonSameKey(
+      SingletonState state, Object _this, Object key, Object local_state, Thunk computation) {
+    SingletonState localStateContainer = new SingletonState(state.getKey(), local_state);
+    Stateful res = thunkExecutorNode.executeThunk(computation, localStateContainer, false);
+    return new Stateful(state, res.getValue());
+  }
+
   @Specialization(
       guards = {
         "key == cachedNewKey",
         "state.getKey() == cachedOldKey",
         "cachedOldKey != cachedNewKey"
       })
-  Stateful doSingletonCached(
+  Stateful doSingletonNewKeyCached(
       SingletonState state,
       Object _this,
       Object key,
@@ -50,25 +60,104 @@ public abstract class RunStateNode extends Node {
       Thunk computation,
       @Cached("key") Object cachedNewKey,
       @Cached("state.getKey()") Object cachedOldKey,
-//      @Cached("init(state, key, cachedNewKey, cachedOldKey)") Object foo,
-      @Cached(value = "buildSmallKeys(cachedNewKey, cachedOldKey)", dimensions = 1) Object[] newKeys) {
+      @Cached(value = "buildSmallKeys(cachedNewKey, cachedOldKey)", dimensions = 1)
+          Object[] newKeys) {
     SmallMap localStateMap = new SmallMap(newKeys, new Object[] {local_state, state.getValue()});
     Stateful res = thunkExecutorNode.executeThunk(computation, localStateMap, false);
-//    SmallMap newStateMap = (SmallMap) res.getState();
-    return new Stateful(local_state, res.getValue());
+    Object newStateVal = ((SmallMap) res.getState()).getValues()[1];
+    return new Stateful(new SingletonState(cachedOldKey, newStateVal), res.getValue());
   }
 
-  Object init(SingletonState st, Object key, Object newKey, Object oldKey) {
-    System.out.println("INIT STATE");
-    System.out.println(st.getKey());
-    System.out.println(st.getValue());
-    System.out.println(key);
-    System.out.println(newKey);
-    System.out.println(oldKey);
-    return null;
+  @Specialization
+  Stateful doSingletonNewKeyUncached(
+      SingletonState state, Object _this, Object key, Object local_state, Thunk computation) {
+    return doSingletonNewKeyCached(
+        state,
+        _this,
+        key,
+        local_state,
+        computation,
+        key,
+        state.getKey(),
+        buildSmallKeys(key, state.getKey()));
   }
 
   Object[] buildSmallKeys(Object k1, Object k2) {
     return new Object[] {k1, k2};
+  }
+
+  @Specialization(
+      guards = {"key == cachedNewKey", "state.getKeys() == cachedOldKeys", "index == NOT_FOUND"})
+  Stateful doMultiNewKeyCached(
+      SmallMap state,
+      Object _this,
+      Object key,
+      Object local_state,
+      Thunk computation,
+      @Cached("key") Object cachedNewKey,
+      @Cached(value = "state.getKeys()", dimensions = 1) Object[] cachedOldKeys,
+      @Cached("state.indexOf(key)") int index,
+      @Cached(value = "buildNewKeys(cachedNewKey, cachedOldKeys)", dimensions = 1)
+          Object[] newKeys) {
+    Object[] newValues = new Object[newKeys.length];
+    System.arraycopy(state.getValues(), 0, newValues, 1, cachedOldKeys.length);
+    newValues[0] = local_state;
+    SmallMap localStateMap = new SmallMap(newKeys, newValues);
+    Stateful res = thunkExecutorNode.executeThunk(computation, localStateMap, false);
+    SmallMap resultStateMap = (SmallMap) res.getState();
+    Object[] resultValues = new Object[cachedOldKeys.length];
+    System.arraycopy(resultStateMap.getValues(), 1, resultValues, 0, cachedOldKeys.length);
+    return new Stateful(new SmallMap(cachedOldKeys, resultValues), res.getValue());
+  }
+
+  @Specialization(
+      guards = {"key == cachedNewKey", "state.getKeys() == cachedOldKeys", "index != NOT_FOUND"})
+  Stateful doMultiExistingKeyCached(
+      SmallMap state,
+      Object _this,
+      Object key,
+      Object local_state,
+      Thunk computation,
+      @Cached("key") Object cachedNewKey,
+      @Cached(value = "state.getKeys()", dimensions = 1) Object[] cachedOldKeys,
+      @Cached("state.indexOf(key)") int index) {
+    Object[] newValues = new Object[cachedOldKeys.length];
+    System.arraycopy(state.getValues(), 0, newValues, 0, cachedOldKeys.length);
+    newValues[index] = local_state;
+    SmallMap localStateMap = new SmallMap(cachedOldKeys, newValues);
+    Stateful res = thunkExecutorNode.executeThunk(computation, localStateMap, false);
+    SmallMap resultStateMap = (SmallMap) res.getState();
+    Object[] resultValues = new Object[cachedOldKeys.length];
+    System.arraycopy(resultStateMap.getValues(), 0, resultValues, 0, cachedOldKeys.length);
+    resultValues[index] = state.getValues()[index];
+    return new Stateful(new SmallMap(cachedOldKeys, resultValues), res.getValue());
+  }
+
+  @Specialization
+  Stateful doMultiUncached(
+      SmallMap state, Object _this, Object key, Object local_state, Thunk computation) {
+    int idx = state.indexOf(key);
+    if (idx == SmallMap.NOT_FOUND) {
+      return doMultiNewKeyCached(
+          state,
+          _this,
+          key,
+          local_state,
+          computation,
+          key,
+          state.getKeys(),
+          idx,
+          buildNewKeys(key, state.getKeys()));
+    } else {
+      return doMultiExistingKeyCached(
+          state, _this, key, local_state, computation, key, state.getKeys(), idx);
+    }
+  }
+
+  Object[] buildNewKeys(Object newKey, Object[] oldKeys) {
+    Object[] result = new Object[oldKeys.length + 1];
+    System.arraycopy(oldKeys, 0, result, 1, oldKeys.length);
+    result[0] = newKey;
+    return result;
   }
 }

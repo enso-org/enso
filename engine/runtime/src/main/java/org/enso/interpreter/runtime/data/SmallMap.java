@@ -2,13 +2,11 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 
-public class SmallMap implements TruffleObject {
+public final class SmallMap implements TruffleObject {
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] keys;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] values;
   private static final SmallMap EMPTY = new SmallMap(new Object[0], new Object[0]);
-  private static Object[] len1Keys;
 
   public static final int NOT_FOUND = -1;
 
@@ -29,19 +27,6 @@ public class SmallMap implements TruffleObject {
       }
     }
     return NOT_FOUND;
-  }
-
-  @ExplodeLoop
-  public final SmallMap set(int key, Object value) {
-    Object[] newValues = new Object[values.length];
-    for (int i = 0; i < values.length; i++) {
-      if (i == key) {
-        newValues[i] = value;
-      } else {
-        newValues[i] = values[i];
-      }
-    }
-    return new SmallMap(keys, newValues);
   }
 
   public Object[] getKeys() {
