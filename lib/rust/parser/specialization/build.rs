@@ -3,6 +3,7 @@ use std::io::prelude::*;
 use definition::parser::Parser;
 
 
+/// Generates specialized parser and saves the result into a new file.
 fn main() -> std::io::Result<()> {
     println!("cargo:rerun-if-changed=../definition/src/parser.rs");
 
