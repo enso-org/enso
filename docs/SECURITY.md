@@ -30,6 +30,9 @@ provided.
 | `main@HEAD` | :white_check_mark: |
 | `wip/*`     | :x:                |
 
+Please see our [release policy](./distribution/release-policy.md) for more
+information on how we support released versions.
+
 ## Reporting a Vulnerability
 If you believe that you've found a security vulnerability in the Enso codebase
 or one of the libraries maintained in this repository, please contact

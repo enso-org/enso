@@ -14,3 +14,9 @@ dependencies, and Enso projects for use by our users.
   to our users, and for use by the [IDE](https://github.com/enso-org/ide).
 - [**Packaging:**](./packaging.md) Information on the structure of an Enso
   project/package.
+- [**Release Policy:**](./release-policy.md) Information on the release policy
+  for Enso and this repository.
+- [**Launcher:**](./launcher.md) Information on the design of Enso launcher, the
+  tool for launching various components and managing Enso versions.
+- [**Launcher CLI:**](./launcher-cli.md) Explanation of the command-line
+  interface of the launcher.

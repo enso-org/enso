@@ -24,6 +24,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`project/close`](#projectclose)
   - [`project/list`](#projectlist)
   - [`project/create`](#projectcreate)
+  - [`project/rename`](#projectrename)
   - [`project/delete`](#projectdelete)
   - [`project/listSample`](#projectlistsample)
 - [Language Server Management](#language-server-management)
@@ -192,6 +193,40 @@ interface ProjectOpenResponse {
 - [`ProjectExistsError`](#projectexistserror) to signal that the project
   already exists.
 
+### `project/rename`
+This message requests the renaming of a project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+interface ProjectRenameRequest {
+  projectId: UUID;
+  name: String;
+}
+```
+
+#### Result
+
+```
+null
+```
+
+#### Errors
+- [`ProjectNameValidationError`](#projectnamevalidationerror) to signal
+  validation failures.
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
+  underlying data store.
+- [`ProjectExistsError`](#projectexistserror) to signal that the project with
+  the provided name already exists.
+- [`ServiceError`](#serviceerror) to signal that the 
+  the operation timed out.
+- [`LanguageServerError`](#languageservererror) to signal generic language
+  server failures.
 
 ### `project/delete`
 This message requests the deletion of a project.
@@ -317,16 +352,6 @@ Signals that the project cannot be open due to boot failures.
 }
 ```
 
-### `ProjectCloseError`
-Signals failures during shutdown of a server.
-
-```typescript
-"error" : {
-  "code" : 4009,
-  "message" : "A shutdown failure."
-}
-```
-
 ### `ProjectNotOpenError`
 Signals that cannot close project that is not open.
 
@@ -354,5 +379,25 @@ Signals that cannot remove open project.
 "error" : {
   "code" : 4008,
   "message" : "Cannot remove open project"
+}
+```
+
+### `ProjectCloseError`
+Signals failures during shutdown of a server.
+
+```typescript
+"error" : {
+  "code" : 4009,
+  "message" : "A shutdown failure."
+}
+```
+
+### `LanguageServerError`
+Signals generic language server errors.
+
+```typescript
+"error" : {
+  "code" : 4010,
+  "message" : "The language server is unresponsive"
 }
 ```

@@ -19,19 +19,15 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.io.InputOutputApi._
-import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
 import org.enso.languageserver.io.OutputKind.{StandardError, StandardOutput}
+import org.enso.languageserver.io.{InputOutputApi, InputOutputProtocol}
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
+import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.capability._
-import org.enso.languageserver.requesthandler.io.{
-  FeedStandardInputHandler,
-  RedirectStdErrHandler,
-  RedirectStdOutHandler,
-  SuppressStdErrHandler,
-  SuppressStdOutHandler
-}
+import org.enso.languageserver.requesthandler.io._
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
+import org.enso.languageserver.requesthandler.refactoring.RenameProjectHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.requesthandler.text._
 import org.enso.languageserver.requesthandler.visualisation.{
@@ -45,6 +41,11 @@ import org.enso.languageserver.runtime.{
   SearchProtocol
 }
 import org.enso.languageserver.runtime.ExecutionApi._
+import org.enso.languageserver.runtime.SearchApi.{
+  Completion,
+  GetSuggestionsDatabase,
+  GetSuggestionsDatabaseVersion
+}
 import org.enso.languageserver.runtime.VisualisationApi.{
   AttachVisualisation,
   DetachVisualisation,
@@ -71,6 +72,7 @@ import scala.concurrent.duration._
   * @param capabilityRouter a router that dispatches capability requests
   * @param fileManager performs operations with file system
   * @param contextRegistry a router that dispatches execution context requests
+  * @param suggestionsHandler a reference to the suggestions requests handler
   * @param requestTimeout a request timeout
   */
 class JsonConnectionController(
@@ -79,9 +81,11 @@ class JsonConnectionController(
   val capabilityRouter: ActorRef,
   val fileManager: ActorRef,
   val contextRegistry: ActorRef,
+  val suggestionsHandler: ActorRef,
   val stdOutController: ActorRef,
   val stdErrController: ActorRef,
   val stdInController: ActorRef,
+  val runtimeConnector: ActorRef,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
@@ -109,6 +113,12 @@ class JsonConnectionController(
           ),
           requestTimeout
         )
+      )
+      handler.forward(req)
+
+    case req @ Request(RenameProject, _, _) =>
+      val handler = context.actorOf(
+        RenameProjectHandler.props(requestTimeout, runtimeConnector)
       )
       handler.forward(req)
 
@@ -256,6 +266,12 @@ class JsonConnectionController(
         .props(requestTimeout, contextRegistry, rpcSession),
       ExecutionContextRecompute -> executioncontext.RecomputeHandler
         .props(requestTimeout, contextRegistry, rpcSession),
+      GetSuggestionsDatabaseVersion -> search.GetSuggestionsDatabaseVersionHandler
+        .props(requestTimeout, suggestionsHandler),
+      GetSuggestionsDatabase -> search.GetSuggestionsDatabaseHandler
+        .props(requestTimeout, suggestionsHandler),
+      Completion -> search.CompletionHandler
+        .props(requestTimeout, suggestionsHandler),
       AttachVisualisation -> AttachVisualisationHandler
         .props(rpcSession.clientId, requestTimeout, contextRegistry),
       DetachVisualisation -> DetachVisualisationHandler
@@ -285,6 +301,7 @@ object JsonConnectionController {
     * @param capabilityRouter a router that dispatches capability requests
     * @param fileManager performs operations with file system
     * @param contextRegistry a router that dispatches execution context requests
+    * @param suggestionsHandler a reference to the suggestions requests handler
     * @param requestTimeout a request timeout
     * @return a configuration object
     */
@@ -294,9 +311,11 @@ object JsonConnectionController {
     capabilityRouter: ActorRef,
     fileManager: ActorRef,
     contextRegistry: ActorRef,
+    suggestionsHandler: ActorRef,
     stdOutController: ActorRef,
     stdErrController: ActorRef,
     stdInController: ActorRef,
+    runtimeConnector: ActorRef,
     requestTimeout: FiniteDuration = 10.seconds
   ): Props =
     Props(
@@ -306,9 +325,11 @@ object JsonConnectionController {
         capabilityRouter,
         fileManager,
         contextRegistry,
+        suggestionsHandler,
         stdOutController,
         stdErrController,
         stdInController,
+        runtimeConnector,
         requestTimeout
       )
     )

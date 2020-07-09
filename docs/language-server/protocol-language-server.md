@@ -27,7 +27,6 @@ transport formats, please look [here](./protocol-architecture).
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
-  - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
   - [`SuggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
   - [`File`](#file)
   - [`DirectoryTree`](#directorytree)
@@ -141,6 +140,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`CapabilityNotAcquired`](#capabilitynotacquired)
   - [`SessionNotInitialisedError`](#sessionnotinitialisederror)
   - [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror)
+  - [`SuggestionsDatabaseError`](#suggestionsdatabaseerror)
 
 <!-- /MarkdownTOC -->
 
@@ -330,20 +330,6 @@ type SuggestionEntryType
   | Local;
 ```
 
-### `SuggestionsDatabaseEntry`
-The entry in the suggestions database.
-
-#### Format
-
-```typescript
-// The suggestions database entry.
-interface SuggestionsDatabaseEntry {
-  // suggestion entry id;
-  id: number;
-  suggestion: Suggestion;
-}
-```
-
 ### `SuggestionsDatabaseUpdate`
 The update of the suggestions database.
 
@@ -351,23 +337,20 @@ The update of the suggestions database.
 
 ```typescript
 // The kind of the suggestions database update.
-type SuggestionsDatabaseUpdateKind
+type SuggestionsDatabaseUpdate
   = Add
-  | Update
-  | Delete
+  | Remove
 
-interface SuggestionsDatabaseUpdate {
+interface Add {
   // suggestion entry id
   id: number;
-  kind: SuggestionsDatabaseUpdateKind;
-  name?: string;
-  module?: string;
-  arguments?: [SuggestionEntryArgument];
-  selfType?: string;
-  returnType?: string;
-  documentation?: string;
-  scope?: SuggestionEntryScope;
+  // suggestion entry
+  suggestion: SuggestionEntry;
 }
+
+interface Remove {
+  // suggestion entry id
+  id: number;
 ```
 
 ### `File`
@@ -1719,6 +1702,37 @@ null
 #### Errors
 None
 
+## Refactoring
+The language server also provides refactoring operations to restructure an
+internal body of code.
+
+### `refactoring/renameProject`
+This request is sent from the project manager to the server to refactor project
+name in an interpreter runtime.
+
+- **Type:** Request
+- **Direction:** Project Manager -> Server
+- **Connection:** Protocol
+- **Visibility:** Private
+
+#### Parameters
+
+```typescript
+{
+  oldName: String;
+  newName: String;
+}
+```
+
+#### Result
+
+```typescript
+null
+```
+
+#### Errors
+None
+
 ## Execution Management Operations
 The execution management portion of the language server API deals with exposing
 fine-grained control over program and expression execution to the clients of
@@ -2451,7 +2465,7 @@ null
 ```typescript
 {
   // The list of suggestions database entries
-  entries: [SuggestionsDatabaseEntry];
+  entries: [SuggestionsDatabaseUpdate];
   // The version of received suggestions database
   currentVersion: number;
 }
@@ -2938,5 +2952,15 @@ Signals that session is already initialised.
 "error" : {
   "code" : 6002,
   "message" : "Session already initialised"
+}
+```
+
+### `SuggestionsDatabaseError`
+Signals about an error accessing the suggestions database.
+
+```typescript
+"error" : {
+  "code" : 7001,
+  "message" : "Suggestions database error"
 }
 ```

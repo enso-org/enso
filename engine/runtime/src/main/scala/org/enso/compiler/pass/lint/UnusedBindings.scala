@@ -47,9 +47,7 @@ case object UnusedBindings extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module =
-    ir.transformExpressions {
-      case x => x.mapExpressions(runExpression(_, InlineContext()))
-    }
+    ir.mapExpressions(runExpression(_, InlineContext()))
 
   /** Lints an arbitrary expression.
     *
@@ -97,10 +95,9 @@ case object UnusedBindings extends IRPass {
     val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
 
     if (!isIgnored && !isUsed) {
-      binding.copy(
-        expression = runExpression(binding.expression, context)
-      )
-      binding.addDiagnostic(IR.Warning.Unused.Binding(binding.name))
+      binding
+        .copy(expression = runExpression(binding.expression, context))
+        .addDiagnostic(IR.Warning.Unused.Binding(binding.name))
     } else {
       binding.copy(
         expression = runExpression(binding.expression, context)

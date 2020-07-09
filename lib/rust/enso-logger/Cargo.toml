@@ -1,0 +1,26 @@
+[package]
+name    = "logger"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2018"
+
+description  = "A generic logging library."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/enso/lib/rust/enso-logger"
+repository   = "https://github.com/enso-org/enso"
+license-file = "../../../LICENSE"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+
+[dependencies]
+enso-prelude = { version = "0.1.0" , path = "../enso-prelude"      }
+enso-shapely = { version = "0.1.0" , path = "../enso-shapely/impl" }
+wasm-bindgen = { version = "=0.2.58", features = ["nightly"]       }
+
+[dependencies.web-sys]
+version  = "0.3.4"
+features = ['console']

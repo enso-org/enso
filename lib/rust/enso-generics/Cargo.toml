@@ -1,0 +1,19 @@
+[package]
+name    = "enso-generics"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2018"
+
+description  = "A library for type-level and generic programming."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/enso/lib/rust/enso-generics"
+repository   = "https://github.com/enso-org/enso"
+license-file = "../../../LICENSE"
+
+keywords = ["type-level", "generic"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+nalgebra = { version = "0.21.1" }

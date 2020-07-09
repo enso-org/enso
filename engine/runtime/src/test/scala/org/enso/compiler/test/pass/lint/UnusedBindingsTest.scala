@@ -1,7 +1,7 @@
 package org.enso.compiler.test.pass.lint
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FreshNameSupply, InlineContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Pattern
 import org.enso.compiler.pass.PassConfiguration._
@@ -11,8 +11,9 @@ import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
+import org.scalatest.Inside
 
-class UnusedBindingsTest extends CompilerTest {
+class UnusedBindingsTest extends CompilerTest with Inside {
 
   // === Test Setup ===========================================================
 
@@ -57,6 +58,31 @@ class UnusedBindingsTest extends CompilerTest {
     )
   }
 
+  /** Adds an extension method for running linting on the input IR.
+    *
+    * @param ir the IR to lint
+    */
+  implicit class LintModule(ir: IR.Module) {
+
+    /** Runs unused name linting on [[ir]].
+      *
+      * @param moduleContext the inline context in which the desugaring takes
+      *                      place
+      * @return [[ir]], with all unused names linted
+      */
+    def lint(implicit moduleContext: ModuleContext): IR.Module = {
+      UnusedBindings.runModule(ir, moduleContext)
+    }
+  }
+
+  /** Makes a module context.
+    *
+    * @return a new inline context
+    */
+  def mkModuleContext: ModuleContext = {
+    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+  }
+
   // === The Tests ============================================================
 
   "Unused bindings linting" should {
@@ -76,6 +102,31 @@ class UnusedBindingsTest extends CompilerTest {
       lintMeta should not be empty
       lintMeta.head shouldBe an[IR.Warning.Unused.FunctionArgument]
       lintMeta.head.name.name shouldEqual "x"
+    }
+
+    "attach a warning to an unused top-level function argument" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
+      val ir =
+        """
+          |f = x -> 10
+          |main =
+          |    f 0
+          |""".stripMargin.preprocessModule.lint
+
+      inside(ir.bindings.head) {
+        case definition: IR.Module.Scope.Definition.Method.Explicit =>
+          inside(definition.body) {
+            case f: IR.Function.Lambda =>
+              val lintMeta = f.arguments(1).diagnostics.collect {
+                case u: IR.Warning.Unused.FunctionArgument => u
+              }
+
+              lintMeta should not be empty
+              lintMeta.head shouldBe an[IR.Warning.Unused.FunctionArgument]
+              lintMeta.head.name.name shouldEqual "x"
+          }
+      }
     }
 
     "not attach a warning to an unused function argument if it is an ignore" in {

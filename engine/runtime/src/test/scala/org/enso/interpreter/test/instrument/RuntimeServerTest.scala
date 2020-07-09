@@ -697,15 +697,15 @@ class RuntimeServerTest
     val expectedExpressionId = context.Main.idMainX
     val Some(data) = attachVisualisationResponses.collectFirst {
       case Api.Response(
-          None,
-          Api.VisualisationUpdate(
-            Api.VisualisationContext(
-              `visualisationId`,
-              `contextId`,
-              `expectedExpressionId`
-            ),
-            data
-          )
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
           ) =>
         data
     }
@@ -738,15 +738,15 @@ class RuntimeServerTest
     )
     val Some(data2) = recomputeResponses2.collectFirst {
       case Api.Response(
-          None,
-          Api.VisualisationUpdate(
-            Api.VisualisationContext(
-              `visualisationId`,
-              `contextId`,
-              `expectedExpressionId`
-            ),
-            data
-          )
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
           ) =>
         data
     }
@@ -811,15 +811,15 @@ class RuntimeServerTest
     val expectedExpressionId = context.Main.idMainX
     val Some(data) = attachVisualisationResponses.collectFirst {
       case Api.Response(
-          None,
-          Api.VisualisationUpdate(
-            Api.VisualisationContext(
-              `visualisationId`,
-              `contextId`,
-              `expectedExpressionId`
-            ),
-            data
-          )
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
           ) =>
         data
     }
@@ -845,15 +845,15 @@ class RuntimeServerTest
     val Some(dataAfterModification) =
       modifyVisualisationResponses.collectFirst {
         case Api.Response(
-            None,
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                `visualisationId`,
-                `contextId`,
-                `expectedExpressionId`
-              ),
-              data
-            )
+              None,
+              Api.VisualisationUpdate(
+                Api.VisualisationContext(
+                  `visualisationId`,
+                  `contextId`,
+                  `expectedExpressionId`
+                ),
+                data
+              )
             ) =>
           data
       }
@@ -952,6 +952,66 @@ class RuntimeServerTest
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.Main.Update.mainX(contextId)
     )
+  }
+
+  it should "rename a project" in {
+    val mainFile  = context.writeMain(context.Main.code)
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId)
+    )
+    context.pkg.rename("Foo")
+    context.send(Api.Request(requestId, Api.RenameProject("Test", "Foo")))
+    context.receive(1) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.ProjectRenamed())
+    )
+
+    // recompute reusing the cache
+    context.send(
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+    )
+
+    context.receive(1) should contain(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
+    )
+
+    // recompute invalidating all
+    context.send(
+      Api.Request(
+        requestId,
+        Api.RecomputeContextRequest(
+          contextId,
+          Some(Api.InvalidatedExpressions.All())
+        )
+      )
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId)
+    )
+
   }
 
   private def send(msg: ApiRequest): Unit =

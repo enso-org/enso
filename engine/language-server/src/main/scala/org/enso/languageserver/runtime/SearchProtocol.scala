@@ -1,48 +1,32 @@
 package org.enso.languageserver.runtime
 
+import enumeratum._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import org.enso.searcher.Suggestion
+import org.enso.text.editing.model.Position
 
 object SearchProtocol {
+
+  type SuggestionId = Long
 
   sealed trait SuggestionsDatabaseUpdate
   object SuggestionsDatabaseUpdate {
 
     /** Create or replace the database entry.
       *
-      * @param id suggestion id
+      * @param id the suggestion id
       * @param suggestion the new suggestion
       */
-    case class Add(id: Long, suggestion: Suggestion)
+    case class Add(id: SuggestionId, suggestion: Suggestion)
         extends SuggestionsDatabaseUpdate
 
     /** Remove the database entry.
       *
       * @param id the suggestion id
       */
-    case class Remove(id: Long) extends SuggestionsDatabaseUpdate
-
-    /** Modify the database entry.
-      *
-      * @param id the suggestion id
-      * @param name the new suggestion name
-      * @param arguments the new suggestion arguments
-      * @param selfType the new self type of the suggestion
-      * @param returnType the new return type of the suggestion
-      * @param documentation the new documentation string
-      * @param scope the suggestion scope
-      */
-    case class Modify(
-      id: Long,
-      name: Option[String],
-      arguments: Option[Seq[Suggestion.Argument]],
-      selfType: Option[String],
-      returnType: Option[String],
-      documentation: Option[String],
-      scope: Option[Suggestion.Scope]
-    ) extends SuggestionsDatabaseUpdate
+    case class Remove(id: SuggestionId) extends SuggestionsDatabaseUpdate
 
     private object CodecField {
 
@@ -53,9 +37,7 @@ object SearchProtocol {
 
       val Add = "Add"
 
-      val Delete = "Delete"
-
-      val Update = "Update"
+      val Remove = "Remove"
     }
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =
@@ -64,10 +46,7 @@ object SearchProtocol {
           case CodecType.Add =>
             Decoder[SuggestionsDatabaseUpdate.Add].tryDecode(cursor)
 
-          case CodecType.Update =>
-            Decoder[SuggestionsDatabaseUpdate.Modify].tryDecode(cursor)
-
-          case CodecType.Delete =>
+          case CodecType.Remove =>
             Decoder[SuggestionsDatabaseUpdate.Remove].tryDecode(cursor)
         }
       }
@@ -80,16 +59,10 @@ object SearchProtocol {
             .deepMerge(Json.obj(CodecField.Type -> CodecType.Add.asJson))
             .dropNullValues
 
-        case modify: SuggestionsDatabaseUpdate.Modify =>
-          Encoder[SuggestionsDatabaseUpdate.Modify]
-            .apply(modify)
-            .deepMerge(Json.obj(CodecField.Type -> CodecType.Update.asJson))
-            .dropNullValues
-
         case remove: SuggestionsDatabaseUpdate.Remove =>
           Encoder[SuggestionsDatabaseUpdate.Remove]
             .apply(remove)
-            .deepMerge(Json.obj(CodecField.Type -> CodecType.Delete.asJson))
+            .deepMerge(Json.obj(CodecField.Type -> CodecType.Remove.asJson))
       }
 
     private object SuggestionType {
@@ -152,9 +125,106 @@ object SearchProtocol {
       }
   }
 
+  /** The type of a suggestion. */
+  sealed trait SuggestionKind extends EnumEntry
+  object SuggestionKind
+      extends Enum[SuggestionKind]
+      with CirceEnum[SuggestionKind] {
+
+    /** An atom suggestion. */
+    case object Atom extends SuggestionKind
+
+    /** A method suggestion. */
+    case object Method extends SuggestionKind
+
+    /** A function suggestion. */
+    case object Function extends SuggestionKind
+
+    /** Local binding suggestion. */
+    case object Local extends SuggestionKind
+
+    override val values = findValues
+
+    /** Create API kind from the [[Suggestion.Kind]]
+      *
+      * @param kind the suggestion kind
+      * @return the API kind
+      */
+    def apply(kind: Suggestion.Kind): SuggestionKind =
+      kind match {
+        case Suggestion.Kind.Atom     => Atom
+        case Suggestion.Kind.Method   => Method
+        case Suggestion.Kind.Function => Function
+        case Suggestion.Kind.Local    => Local
+      }
+
+    /** Convert from API kind to [[Suggestion.Kind]]
+      *
+      * @param kind the API kind
+      * @return the suggestion kind
+      */
+    def toSuggestion(kind: SuggestionKind): Suggestion.Kind =
+      kind match {
+        case Atom     => Suggestion.Kind.Atom
+        case Method   => Suggestion.Kind.Method
+        case Function => Suggestion.Kind.Function
+        case Local    => Suggestion.Kind.Local
+      }
+  }
+
+  /** A notification about changes in the suggestions database.
+    *
+    * @param updates the list of database updates
+    * @param currentVersion current version of the suggestions database
+    */
   case class SuggestionsDatabaseUpdateNotification(
     updates: Seq[SuggestionsDatabaseUpdate],
     currentVersion: Long
   )
+
+  /** The request to receive contents of the suggestions database. */
+  case object GetSuggestionsDatabase
+
+  /** The reply to the [[GetSuggestionsDatabase]] request.
+    *
+    * @param entries the entries of the suggestion database
+    * @param currentVersion current version of the suggestions database
+    */
+  case class GetSuggestionsDatabaseResult(
+    entries: Seq[SuggestionsDatabaseUpdate],
+    currentVersion: Long
+  )
+
+  /** The request to receive the current version of the suggestions database. */
+  case object GetSuggestionsDatabaseVersion
+
+  /** The reply to the [[GetSuggestionsDatabaseVersion]] request.
+    *
+    * @param version current version of the suggestions database
+    */
+  case class GetSuggestionsDatabaseVersionResult(version: Long)
+
+  /** The completion request.
+    *
+    * @param module the edited module
+    * @param position the cursor position
+    * @param selfType filter entries matching the self type
+    * @param returnType filter entries matching the return type
+    * @param tags filter entries by suggestion type
+    */
+  case class Completion(
+    module: String,
+    position: Position,
+    selfType: Option[String],
+    returnType: Option[String],
+    tags: Option[Seq[SuggestionKind]]
+  )
+
+  /** Te reply to the [[Completion]] request.
+    *
+    * @param currentVersion current version of the suggestions database
+    * @param results the list of suggestion ids matched the search query
+    */
+  case class CompletionResult(currentVersion: Long, results: Seq[SuggestionId])
 
 }

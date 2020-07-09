@@ -3,16 +3,17 @@ package org.enso.languageserver.websocket.json
 import java.io.File
 
 import io.circe.literal._
+import org.enso.jsonrpc.test.RetrySpec
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model.{Position, Range, TextEdit}
 
-class FileNotificationsTest extends BaseServerTest {
+class FileNotificationsTest extends BaseServerTest with RetrySpec {
 
   def file(name: String): File = new File(testContentRoot.toFile, name)
 
   "text operations" should {
 
-    "notify runtime about operations with files" in {
+    "notify runtime about operations with files" taggedAs Retry() in {
       // Interaction:
       // 1.  Client 1 creates a file.
       // 2.  Client 1 opens the file.

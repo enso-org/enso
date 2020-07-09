@@ -1,7 +1,15 @@
 [workspace]
 
 members = [
-    "parser/flexer"
+    "lib/rust/enso-data",
+    "lib/rust/enso-generics",
+    "lib/rust/enso-logger",
+    "lib/rust/enso-macro-utils",
+    "lib/rust/enso-optics",
+    "lib/rust/enso-prelude",
+    "lib/rust/enso-shapely/impl",
+    "lib/rust/enso-shapely/macros",
+    "lib/rust/flexer",
 ]
 
 [profile.dev]
@@ -13,6 +21,7 @@ debug     = true
 opt-level = 3
 lto       = true
 debug     = false
+panic     = 'abort'
 
 [profile.bench]
 opt-level = 3
