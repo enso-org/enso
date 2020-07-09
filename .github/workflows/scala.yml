@@ -78,10 +78,13 @@ jobs:
       - name: Build Enso
         run: sbt --no-colors compile
 
+      - name: Setup Test
+        if: runner.os == 'Windows'
+        run: echo ::set-env name=CI_TEST_TIMEFACTOR::2
       # Tests
       - name: Test Enso
         run: |
-          if [ ${{ runner.os }} = 'Windows' ]; then echo ::set-env name=CI_TEST_TIMEFACTOR::2; fi
+          echo $CI_TEST_TIMEFACTOR
           sbt --no-colors test
       - name: Benchmark the Parser
         run: sbt -no-colors syntax/bench
