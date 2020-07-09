@@ -17,7 +17,7 @@ object Launcher {
     println(s"Project created in $actualPath")
   }
 
-  def displayVersion(useJson: Boolean): Unit = {
+  def displayVersion(useJSON: Boolean): Unit = {
     val runtimeVersionParameter = VersionDescriptionParameter(
       humanReadableName = "Currently selected Enso version",
       humandReadableValue =
@@ -32,6 +32,6 @@ object Launcher {
       additionalParameters  = Seq(runtimeVersionParameter)
     )
 
-    println(versionDescription.asString(useJson))
+    println(versionDescription.asString(useJSON))
   }
 }

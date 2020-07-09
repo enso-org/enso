@@ -18,28 +18,39 @@ object MainCommandBuilder {
       }
     }
 
+  private val jsonFlag = Opts
+    .flag(
+      JSON_OPTION,
+      "Whether to print the version as JSON instead of plain text."
+    )
+    .orFalse
+
   private def versionCommand: Command[Unit] =
     Command(
       "version",
       "Print version of the launcher and currently selected Enso distribution."
     ) {
-      val jsonFlag = Opts
-        .flag(
-          JSON_OPTION,
-          "Whether to print the version as JSON instead of plain text."
-        )
-        .orFalse
       jsonFlag.map(Launcher.displayVersion)
     }
 
+  private def versionOption: Opts[Unit] = {
+    val versionTrigger = Opts
+      .flag(
+        "version",
+        "Print version of the launcher and currently selected Enso distribution."
+      )
+    (versionTrigger, jsonFlag).mapN { (_, useJSON) =>
+      Launcher.displayVersion(useJSON)
+    }
+  }
+
   def buildCommands: Opts[Unit] = {
+    versionOption orElse
     Opts.subcommands(
       versionCommand,
       newCommand
-    ) // TODO this is a work in progress
+    )
   }
-
-  buildCommands
 }
 
 object Main

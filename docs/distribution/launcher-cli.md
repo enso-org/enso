@@ -166,7 +166,13 @@ of the currently selected Enso distribution.
 
 ```bash
 > enso version
-Launcher version is 2.0.1.
+
+Enso Launcher
+Version:    0.0.1
+Built with: scala-2.13.3 for GraalVM 20.1.0
+Built from: main @ 919ffbdfacc44cc35a1b38f1bad5b573acdbe358
+Running on: Linux 4.15.0-109-generic (amd64)
+Currently selected Enso version:
 Enso Compiler and Runtime
 Version:    0.0.1
 Built with: scala-2.13.3 for GraalVM 20.1.0
@@ -174,6 +180,9 @@ Built from: main @ 919ffbdfacc44cc35a1b38f1bad5b573acdbe358
 Running on: OpenJDK 64-Bit Server VM, GraalVM Community, JDK 11.0.7+10-jvmci-20.1-b02
             Linux 4.15.0-108-generic (amd64)
 ```
+
+Besides `enso version`, `enso --version` is also supported and yields the same
+result.
 
 ### `help`
 Print this summary of available command and their usage.
