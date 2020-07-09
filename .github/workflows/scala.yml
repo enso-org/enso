@@ -78,12 +78,10 @@ jobs:
       - name: Build Enso
         run: sbt --no-colors compile
 
-      - name: Setup Test
+      # Tests
+      - name: Setup Test on Windows
         if: runner.os == 'Windows'
         run: echo '::set-env name=CI_TEST_TIMEFACTOR::2'
-      - name: Check Setup
-        run: echo 'The timefactor is' $CI_TEST_TIMEFACTOR
-      # Tests
       - name: Test Enso
         run: sbt --no-colors test
       - name: Benchmark the Parser

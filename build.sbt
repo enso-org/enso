@@ -13,10 +13,7 @@ import scala.sys.process._
 // === Global Configuration ===================================================
 // ============================================================================
 
-val scalacVersion = {
-  println(s"CI_TEST_TIMEFACTOR=${sys.env.get("CI_TEST_TIMEFACTOR")}")
-  "2.13.3"
-}
+val scalacVersion = "2.13.3"
 val graalVersion  = "20.1.0"
 val javaVersion   = "11"
 val ensoVersion   = "0.0.1"
