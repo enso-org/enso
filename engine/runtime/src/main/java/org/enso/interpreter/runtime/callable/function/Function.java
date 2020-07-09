@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
+import org.enso.interpreter.runtime.data.EmptyState;
 import org.enso.interpreter.runtime.data.SmallMap;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.type.Types;
@@ -199,8 +200,7 @@ public final class Function implements TruffleObject {
         Object[] arguments,
         @Cached InteropApplicationNode interopApplicationNode,
         @CachedContext(Language.class) Context context) {
-      return interopApplicationNode.execute(
-          function, SmallMap.empty(), arguments);
+      return interopApplicationNode.execute(function, EmptyState.create(), arguments);
     }
   }
 

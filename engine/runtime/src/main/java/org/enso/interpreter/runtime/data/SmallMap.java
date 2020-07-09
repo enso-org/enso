@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.data;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 public class SmallMap implements TruffleObject {
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] keys;
@@ -15,7 +16,7 @@ public class SmallMap implements TruffleObject {
     return EMPTY;
   }
 
-  private SmallMap(Object[] keys, Object[] values) {
+  public SmallMap(Object[] keys, Object[] values) {
     this.keys = keys;
     this.values = values;
   }
@@ -30,28 +31,16 @@ public class SmallMap implements TruffleObject {
     return NOT_FOUND;
   }
 
-  private Object[] arrayPrepend(Object newItem, Object[] items) {
-    Object[] newItems = new Object[items.length + 1];
-    System.arraycopy(items, 0, newItems, 0, items.length);
-    newItems[items.length] = newItem;
-    return newItems;
-  }
-
-  public final SmallMap insert(Object key, Object value) {
-    Object[] newKeys = arrayPrepend(key, keys);
-    Object[] newValues = arrayPrepend(value, values);
-    return new SmallMap(newKeys, newValues);
-  }
-
-  public final SmallMap insert(Object keys[], Object value) {
-    Object[] newValues = arrayPrepend(value, values);
-    return new SmallMap(keys, newValues);
-  }
-
+  @ExplodeLoop
   public final SmallMap set(int key, Object value) {
     Object[] newValues = new Object[values.length];
-    System.arraycopy(values, 0, newValues, 0, values.length);
-    newValues[key] = value;
+    for (int i = 0; i < values.length; i++) {
+      if (i == key) {
+        newValues[i] = value;
+      } else {
+        newValues[i] = values[i];
+      }
+    }
     return new SmallMap(keys, newValues);
   }
 
@@ -63,11 +52,7 @@ public class SmallMap implements TruffleObject {
     return values[idx];
   }
 
-  public Object[] getSchemaAfterInsert(Object key) {
-    if (len1Keys != null) {
-      return len1Keys;
-    }
-    len1Keys = arrayPrepend(key, keys);
-    return len1Keys;
+  public Object[] getValues() {
+    return values;
   }
 }
