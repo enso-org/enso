@@ -1,9 +1,9 @@
 package org.enso.launcher
 
-import buildinfo.Info
 import java.nio.file.Path
 
 import org.enso.pkg.PackageManager
+import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
 object Launcher {
   private val packageManager = PackageManager.Default
@@ -18,46 +18,20 @@ object Launcher {
   }
 
   def displayVersion(useJson: Boolean): Unit = {
-    val version   = Info.ensoVersion // Note [Launcher Version]
-    val osArch    = System.getProperty("os.arch")
-    val osName    = System.getProperty("os.name")
-    val osVersion = System.getProperty("os.version")
+    val runtimeVersionParameter = VersionDescriptionParameter(
+      humanReadableName = "Currently selected Enso version",
+      humandReadableValue =
+        "\nRuntime component is not yet implemented in the launcher.",
+      jsonName  = "runtime",
+      jsoNValue = "\"<not implemented yet>\"" // TODO [RW] add with #976
+    )
 
-    val runtimeVersion = // TODO [RW] add with #976
-      if (useJson) "\"<not implemented yet>\""
-      else "Runtime component is not yet implemented in the launcher."
+    val versionDescription = VersionDescription.make(
+      "Enso Launcher",
+      includeRuntimeJVMInfo = false,
+      additionalParameters  = Seq(runtimeVersionParameter)
+    )
 
-    val versionOutput =
-      if (useJson) {
-        s"""{ "version": "$version",
-           |  "ref": "${Info.ref}",
-           |  "dirty": ${Info.isDirty},
-           |  "commit": "${Info.commit}",
-           |  "osName": "$osName",
-           |  "osVersion": "$osVersion",
-           |  "osArch": "$osArch",
-           |  "runtime": $runtimeVersion
-           |}""".stripMargin
-      } else {
-        val dirtyStr = if (Info.isDirty) "*" else ""
-        s"""
-           |Enso Launcher
-           |Version:    $version
-           |Built with: scala-${Info.scalacVersion} and GraalVM ${Info.graalVersion} Native Image
-           |Built from: ${Info.ref}$dirtyStr @ ${Info.commit}
-           |Running on: $osName $osVersion ($osArch)
-           |Currently selected Enso version:
-           |$runtimeVersion
-           |""".stripMargin
-      }
-    println(versionOutput)
+    println(versionDescription.asString(useJson))
   }
 }
-
-/* Note [Launcher Version]
- * ~~~~~~~~~~~~~~~~~~~~~~~
- * Currently the launcher is released along with new Enso versions, so its
- * vesrsion number is tied to Enso version number (although a given launcher
- * version can be used with different Enso versions other than the one it was
- * released with, unless an Enso version has a higher minimum launcher version).
- */

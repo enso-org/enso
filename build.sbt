@@ -112,6 +112,7 @@ lazy val enso = (project in file("."))
     graph,
     logger.jvm,
     pkg,
+    `version-output`,
     runner,
     runtime,
     searcher,
@@ -454,6 +455,19 @@ lazy val pkg = (project in file("lib/scala/pkg"))
       )
   )
 
+lazy val `version-output` = (project in file("lib/scala/version-output"))
+  .settings(
+    version := "0.1"
+  )
+  .settings(
+    Compile / sourceGenerators += Def.task {
+        val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
+        state.value.log.debug("Updating build info.")
+        BuildInfo
+          .writeBuildInfoFile(file, ensoVersion, scalacVersion, graalVersion)
+      }.taskValue
+  )
+
 lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.projectmanager.boot.ProjectManager")
@@ -517,13 +531,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         .dependsOn(runtime / assembly)
         .value
   )
-  .settings(
-    Compile / sourceGenerators += Def.task {
-        val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
-        BuildInfo
-          .writeBuildInfoFile(file, ensoVersion, scalacVersion, graalVersion)
-      }.taskValue
-  )
+  .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`language-server`)
   .dependsOn(`json-rpc-server`)
@@ -893,15 +901,11 @@ lazy val runner = project
         .value
   )
   .settings(
-    Compile / sourceGenerators += Def.task {
-        val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
-        BuildInfo
-          .writeBuildInfoFile(file, ensoVersion, scalacVersion, graalVersion)
-      }.taskValue,
     assembly := assembly
         .dependsOn(runtime / assembly)
         .value
   )
+  .dependsOn(`version-output`)
   .dependsOn(pkg)
   .dependsOn(`language-server`)
   .dependsOn(`polyglot-api`)
@@ -919,11 +923,5 @@ lazy val launcher = project
   .settings(
     buildNativeImage := NativeImage.buildNativeImage(staticOnLinux = true).value
   )
-  .settings(
-    Compile / sourceGenerators += Def.task {
-        val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
-        BuildInfo
-          .writeBuildInfoFile(file, ensoVersion, scalacVersion, graalVersion)
-      }.taskValue
-  )
+  .dependsOn(`version-output`)
   .dependsOn(pkg)
