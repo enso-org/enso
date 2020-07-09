@@ -92,7 +92,7 @@ files are included by the CI build within the built artifacts.
 >   notices should be replicated in the distributed packages anyway.
 
 ### Bundles
-Beside the launcher and engine components, the distributed bundles alos contain
+Beside the launcher and engine components, the distributed bundles also contain
 a distribution of GraalVM CE. This distribution however contains its own licence
 and notices within itself, so no further action should be necessary in that
 regard.

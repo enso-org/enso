@@ -950,7 +950,7 @@ lazy val runner = project
   .dependsOn(`polyglot-api`)
 
 lazy val launcher = project
-  .in(file("lib/scala/launcher"))
+  .in(file("engine/launcher"))
   .configs(Test)
   .settings(
     libraryDependencies ++= Seq(
