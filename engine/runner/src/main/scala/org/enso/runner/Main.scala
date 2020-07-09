@@ -294,7 +294,7 @@ object Main {
         s"""{ "version": "${Info.ensoVersion}",
            |  "scalaVersion": "${Info.scalacVersion}",
            |  "graalVersion": "${Info.graalVersion}",
-           |  "branch": "${Info.branch}",
+           |  "ref": "${Info.ref}",
            |  "dirty": ${Info.isDirty},
            |  "commit": "${Info.commit}",
            |  "vmName": "$vmName",
@@ -310,7 +310,7 @@ object Main {
            |Enso Compiler and Runtime
            |Version:    ${Info.ensoVersion}
            |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
-           |Built from: ${Info.branch}$dirtyStr @ ${Info.commit}
+           |Built from: ${Info.ref}$dirtyStr @ ${Info.commit}
            |Running on: $vmName, $vmVendor, JDK $jreVersion
            |            $osName $osVersion ($osArch)
            |""".stripMargin

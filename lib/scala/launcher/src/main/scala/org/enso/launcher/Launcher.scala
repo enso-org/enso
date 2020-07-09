@@ -30,7 +30,7 @@ object Launcher {
     val versionOutput =
       if (useJson) {
         s"""{ "version": "$version",
-           |  "branch": "${Info.branch}",
+           |  "ref": "${Info.ref}",
            |  "dirty": ${Info.isDirty},
            |  "commit": "${Info.commit}",
            |  "osName": "$osName",
@@ -44,7 +44,7 @@ object Launcher {
            |Enso Launcher
            |Version:    $version
            |Built with: scala-${Info.scalacVersion} and GraalVM ${Info.graalVersion} Native Image
-           |Built from: ${Info.branch}$dirtyStr @ ${Info.commit}
+           |Built from: ${Info.ref}$dirtyStr @ ${Info.commit}
            |Running on: $osName $osVersion ($osArch)
            |Currently selected Enso version:
            |$runtimeVersion

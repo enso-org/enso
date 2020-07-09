@@ -9,8 +9,13 @@ object BuildInfo {
     scalacVersion: String,
     graalVersion: String
   ): Seq[File] = {
-    val gitHash          = ("git rev-parse HEAD" !!).trim
-    val gitBranch        = ("git rev-parse --abbrev-ref HEAD" !!).trim
+    val gitHash            = ("git rev-parse HEAD" !!).trim
+    val gitBranchCommand   = "git symbolic-ref -q --short HEAD"
+    val gitTagCommand      = "git describe --tags --exact-match"
+    val gitFallbackCommand = "git rev-parse --abbrev-ref HEAD"
+    val gitRefCommand =
+      gitBranchCommand #|| gitTagCommand #|| gitFallbackCommand
+    val gitRef           = (gitRefCommand !!).trim
     val isDirty          = !("git status --porcelain" !!).trim.isEmpty
     val latestCommitDate = ("git log HEAD -1 --format=%cd" !!).trim
 
@@ -27,7 +32,7 @@ object BuildInfo {
          |
          |  // Git Info
          |  val commit            = "$gitHash"
-         |  val branch            = "$gitBranch"
+         |  val ref               = "$gitRef"
          |  val isDirty           = $isDirty
          |  val latestCommitDate  = "$latestCommitDate"
          |}
