@@ -67,11 +67,36 @@ object ProjectManager extends App with LazyLogging {
       _       <- getStrLn
       _       <- effectTotal { logger.info("Stopping server...") }
       _       <- effectTotal { binding.unbind() }
-      _       <- mainModule.languageServerService.killAllServers()
-      _       <- mainModule.shutdownHookProcessor.fireShutdownHooks()
+      _       <- killAllLanguageServer(mainModule)
+      _       <- waitTillAllShutdownHooksWillBeFired(mainModule)
       _       <- effectTotal { mainModule.system.terminate() }
     } yield ()
   }
+
+  private def killAllLanguageServer(mainModule: MainModule[ZIO[ZEnv, +*, +*]]) =
+    mainModule.languageServerGateway
+      .killAllServers()
+      .foldM(
+        failure = th =>
+          effectTotal {
+            logger.error("An error occurred during killing lang servers", th)
+          },
+        success = ZIO.succeed(_)
+      )
+
+  private def waitTillAllShutdownHooksWillBeFired(
+    mainModule: MainModule[ZIO[ZEnv, +*, +*]]
+  ) =
+    mainModule.languageServerGateway
+      .waitTillAllHooksFired()
+      .foldM(
+        failure = th =>
+          effectTotal {
+            logger
+              .error("An error occurred during waiting for shutdown hooks", th)
+          },
+        success = ZIO.succeed(_)
+      )
 
   /**
     * The main function of the application, which will be passed the command-line

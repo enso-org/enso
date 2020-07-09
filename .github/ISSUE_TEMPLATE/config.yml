@@ -2,4 +2,4 @@ blank_issues_enabled: false
 contact_links:
   - name: Issues with the IDE?
     url: https://github.com/enso-org/ide/issues/new/choose
-    about: Please report problems with the IDE here.
+    about: Please report problems with the IDE in the IDE repository

@@ -34,6 +34,9 @@ the compiler, and hence can be automatically lifted to aid usability.
 - [Monadic Bind](#monadic-bind)
 - [Context Definitions](#context-definitions)
 - [Context Lifting](#context-lifting)
+- [Inbuilt Contexts](#inbuilt-contexts)
+    - [IO](#io)
+    - [State](#state)
 
 <!-- /MarkdownTOC -->
 
@@ -64,3 +67,27 @@ Contexts can be defined by users.
 > The actionables for this section are:
 >
 > - Specify and explain how automated lifting of monadic contexts works.
+> - It depends on the order of `runCtx`
+
+## Inbuilt Contexts
+Enso includes a set of commonly-used monadic contexts as part of `Base`, its
+standard library. These are listed below.
+
+> The actionables for this section are:
+>
+> - Determine the full set of contexts that Enso should provide by default.
+
+### IO
+> The actionables for this section are:
+>
+> - Determine the granularity of IO (it's not one context, but a lot).
+> - Explain how there is no `runIO`, and IO is just run at the program boundary,
+>   as well as the impacts of this.
+
+### State
+> The actionables for this section are:
+>
+> - Determine exactly how state works (the fact that the 'keys' are preset by
+>   the `runState`)
+> - Describe how dependently-typed maps allow us to provide more flexible
+>   interfaces in future.

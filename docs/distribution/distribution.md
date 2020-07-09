@@ -15,7 +15,8 @@ be structured and how it should behave.
 - [Enso Home Layout](#enso-home-layout)
 - [Universal Launcher Script](#universal-launcher-script)
 - [Layout of an Enso Version Package](#layout-of-an-enso-version-package)
-    - [Package Sets](#package-sets)
+  - [Standard Library](#standard-library)
+  - [Resolvers](#resolvers)
 
 <!-- /MarkdownTOC -->
 
@@ -28,11 +29,11 @@ assumptions about actually being placed in any particular directory.
 The directory structure is as follows:
 
 ```
-~/.enso
+install-location
 ├── bin
 │   └── enso                  # The universal launcher script, responsible for choosing the appropriate compiler version.
 ├── dist                      # Per-compiler-version distribution directories.
-│   ├── default -> enso-1.2.0 # A symlink to the version that should be used when no version is explicitely specified.
+│   ├── default -> enso-1.2.0 # A symlink to the version that should be used when no version is explicitly specified.
 │   ├── enso-1.0.0            # A full distribution of given Enso version, described below.
 │   │   └── <truncated>
 │   └── enso-1.2.0            # A full distribution of given Enso version, described below.
@@ -53,19 +54,10 @@ The directory structure is as follows:
         └── lts-2.0.8.yaml
 ```
 
-> The actionables for this section are:
->
-> - Determine the appropriate method for per-user installation on windows.
-
 ## Universal Launcher Script
 The universal launcher script should be able to launch the proper version of
 Enso executable based on the version specified in the project being run,
 or use the default version if none specified.
-
-> The actionables for this section are:
->
-> - Determine the proper technology to implement the script (i.e. Java/Bash).
-> - Determine the features needed in the launcher script.
 
 ## Layout of an Enso Version Package
 This section describes the structure of a single version distribution. This

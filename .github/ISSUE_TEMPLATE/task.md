@@ -1,6 +1,6 @@
 ---
 name: Task
-about: Create a new development task for Enso.
+about: Create a new development task for Enso
 title: ''
 labels: ''
 assignees: ''

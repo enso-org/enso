@@ -8,10 +8,14 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-//! This module exports simple parser based on Deterministic Finite State Automata for regular
-//! grammars (anything parsable with regex patterns).
+//! This module exports the API for defining a simple lexer based on a deterministic finite state
+//! automaton.
+//!
+//! These lexers are capable of lexing any regular grammar, with some extensions to allow working
+//! with context sensitive (e.g. indentation-aware) syntax.
 
 pub mod automata;
 pub mod group;
-pub mod parser;
 pub mod data;
+
+pub use enso_prelude as prelude;

@@ -1,23 +1,20 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import java.net.{InetSocketAddress, Socket => JSocket}
-
-import cats.implicits._
 import org.enso.jsonrpc.test.FlakySpec
-import org.enso.projectmanager.data.Socket
+import org.enso.projectmanager.test.Net._
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class LanguageServerServiceSpec
+class LanguageServerGatewaySpec
     extends BaseServerSpec
     with FlakySpec
     with ProjectManagementOps {
 
   "A language server service" must {
 
-    "kill all running language servers" taggedAs Flaky in {
+    "kill all running language servers" ignore {
       implicit val client = new WsTestClient(address)
       val fooId           = createProject("foo")
       val barId           = createProject("bar")
@@ -29,7 +26,7 @@ class LanguageServerServiceSpec
       tryConnect(barSocket).isRight shouldBe true
       tryConnect(bazSocket).isRight shouldBe true
       //when
-      val future = exec.exec(languageServerService.killAllServers())
+      val future = exec.exec(languageServerGateway.killAllServers())
       Await.result(future, 20.seconds)
       //then
       tryConnect(fooSocket).isLeft shouldBe true
@@ -42,19 +39,5 @@ class LanguageServerServiceSpec
     }
 
   }
-
-  private def tryConnect(socket: Socket): Either[Throwable, Unit] =
-    tryConnect(new InetSocketAddress(socket.host, socket.port), 500)
-
-  private def tryConnect(
-    inetSocketAddress: InetSocketAddress,
-    timeout: Int
-  ): Either[Throwable, Unit] =
-    Either.catchNonFatal {
-      val socket = new JSocket()
-      socket.connect(inetSocketAddress, timeout)
-      socket.getChannel
-      socket.close()
-    }
 
 }

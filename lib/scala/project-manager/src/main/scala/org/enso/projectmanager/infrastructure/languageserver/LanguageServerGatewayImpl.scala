@@ -2,16 +2,22 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.ActorRef
+import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
 import akka.util.Timeout
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.control.effect.{Async, ErrorChannel}
+import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Sync}
 import org.enso.projectmanager.data.LanguageServerSockets
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
+import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivationWatcher.{
+  AllShutdownHooksFired,
+  Watch
+}
+import org.enso.projectmanager.infrastructure.languageserver.ShutdownHookActivator.RegisterShutdownHook
+import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
 import org.enso.projectmanager.model.Project
 
 /**
@@ -22,12 +28,14 @@ import org.enso.projectmanager.model.Project
   * @param timeoutConfig a timeout config
   * @tparam F a effectful context
   */
-class LanguageServerRegistryProxy[
-  F[+_, +_]: Async: ErrorChannel: CovariantFlatMap
+class LanguageServerGatewayImpl[
+  F[+_, +_]: Async: Sync: ErrorChannel: CovariantFlatMap
 ](
   registry: ActorRef,
+  shutdownHookActivator: ActorRef,
+  actorSystem: ActorSystem,
   timeoutConfig: TimeoutConfig
-) extends LanguageServerService[F] {
+) extends LanguageServerGateway[F] {
 
   /** @inheritdoc * */
   override def start(
@@ -95,8 +103,8 @@ class LanguageServerRegistryProxy[
       }
   }
 
-  /** @inheritdoc * */
-  override def killAllServers(): F[Nothing, Boolean] = {
+  /** @inheritdoc */
+  override def killAllServers(): F[Throwable, Boolean] = {
     implicit val timeout: Timeout = Timeout(timeoutConfig.shutdownTimeout)
 
     Async[F]
@@ -104,6 +112,31 @@ class LanguageServerRegistryProxy[
         (registry ? KillThemAll).mapTo[AllServersKilled.type]
       }
       .map(_ => true)
-      .fallbackTo(_ => CovariantFlatMap[F].pure(false))
   }
+
+  /** @inheritdoc */
+  override def registerShutdownHook(
+    projectId: UUID,
+    hook: ShutdownHook[F]
+  ): F[Nothing, Unit] = {
+    Sync[F]
+      .effect {
+        shutdownHookActivator ! RegisterShutdownHook(projectId, hook)
+      }
+  }
+
+  /** @inheritdoc */
+  override def waitTillAllHooksFired(): F[Throwable, Unit] = {
+    implicit val timeout: Timeout = Timeout(timeoutConfig.shutdownTimeout)
+    val watcher = actorSystem.actorOf(
+      ShutdownHookActivationWatcher.props(shutdownHookActivator)
+    )
+
+    Async[F]
+      .fromFuture { () =>
+        (watcher ? Watch).mapTo[AllShutdownHooksFired.type]
+      }
+      .map(_ => ())
+  }
+
 }
