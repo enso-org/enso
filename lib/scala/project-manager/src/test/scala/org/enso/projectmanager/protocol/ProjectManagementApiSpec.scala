@@ -490,7 +490,7 @@ class ProjectManagementApiSpec
       deleteProject(projectId)
     }
 
-    "move project dir on project close" in {
+    "move project dir on project close" taggedAs Flaky in {
       implicit val client = new WsTestClient(address)
       //given
       val projectId = createProject("foo")
