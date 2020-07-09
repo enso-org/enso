@@ -38,9 +38,9 @@ type StateSetId = BTreeSet<state::Identifier>;
 /// [epsilon links](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton#NFA_with_%CE%B5-moves).
 ///
 /// ```text
-///  ┌───┐  'N'  ┌───┐   ┌───┐  'F'  ┌───┐   ┌───┐  'A'  ┌───┐
-///  │ 0 │──────▶│ 1 │──▶│ 2 │──────▶│ 3 │──▶│ 3 │──────▶│ 3 │
-///  └───┘       └───┘ ε └───┘       └───┘ ε └───┘       └───┘
+///  ┌───┐  'N'  ┌───┐    ┌───┐  'F'  ┌───┐    ┌───┐  'A'  ┌───┐
+///  │ 0 │ ----> │ 1 │ -> │ 2 │ ----> │ 3 │ -> │ 3 │ ----> │ 3 │
+///  └───┘       └───┘ ε  └───┘       └───┘ ε  └───┘       └───┘
 /// ```
 #[derive(Clone,Debug,Default,PartialEq,Eq)]
 pub struct NFA {
@@ -81,6 +81,7 @@ impl NFA {
 
     /// Transforms a pattern to an NFA using the algorithm described
     /// [here](https://www.youtube.com/watch?v=RYNN-tb9WxI).
+    /// The asymptotic complexity is linear in number of symbols.
     pub fn new_pattern(&mut self, source:state::Identifier, pattern:&Pattern) -> state::Identifier {
         let current = self.new_state();
         self.connect(source,current);
@@ -162,6 +163,7 @@ impl From<&NFA> for DFA {
 
     /// Transforms an NFA into a DFA, based on the algorithm described
     /// [here](https://www.youtube.com/watch?v=taClnxU-nao).
+    /// The asymptotic complexity is quadratic in number of states.
     fn from(nfa:&NFA) -> Self {
         let     nfa_mat     = nfa.nfa_matrix();
         let     eps_mat     = nfa.eps_matrix();

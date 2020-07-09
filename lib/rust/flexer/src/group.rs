@@ -86,6 +86,7 @@ impl From<&Group> for NFA {
     ///
     /// The algorithm is based on this algorithm for
     /// [converting a regular expression to an NFA](https://www.youtube.com/watch?v=RYNN-tb9WxI).
+    /// The asymptotic complexity is linear in number of symbols.
     fn from(group:&Group) -> Self {
         let mut nfa = NFA::default();
         let start   = nfa.new_state();
