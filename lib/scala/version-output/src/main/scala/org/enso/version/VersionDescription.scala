@@ -14,14 +14,14 @@ case class VersionDescriptionParameter(
   humanReadableName: String,
   humandReadableValue: String,
   jsonName: String,
-  jsoNValue: String
+  jsonValue: String
 )
 
 object VersionDescription {
   def formatParameterAsJSONString(
     parameter: VersionDescriptionParameter
   ): String =
-    s""""${parameter.jsonName}": ${parameter.jsoNValue}"""
+    s""""${parameter.jsonName}": ${parameter.jsonValue}"""
   def formatParameterAsHumanReadableString(
     parameter: VersionDescriptionParameter
   ): String =

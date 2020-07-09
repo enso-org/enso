@@ -23,7 +23,7 @@ object Launcher {
       humandReadableValue =
         "\nRuntime component is not yet implemented in the launcher.",
       jsonName  = "runtime",
-      jsoNValue = "\"<not implemented yet>\"" // TODO [RW] add with #976
+      jsonValue = "\"<not implemented yet>\"" // TODO [RW] add with #976
     )
 
     val versionDescription = VersionDescription.make(
