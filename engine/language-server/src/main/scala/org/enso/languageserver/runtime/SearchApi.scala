@@ -1,6 +1,7 @@
 package org.enso.languageserver.runtime
 
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
+import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.runtime.SearchProtocol.{
   SuggestionId,
   SuggestionKind,
@@ -60,7 +61,7 @@ object SearchApi {
   case object Completion extends Method("search/completion") {
 
     case class Params(
-      module: String,
+      file: Path,
       position: Position,
       selfType: Option[String],
       returnType: Option[String],

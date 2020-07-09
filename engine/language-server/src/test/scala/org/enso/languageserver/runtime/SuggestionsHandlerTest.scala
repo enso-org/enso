@@ -1,10 +1,17 @@
 package org.enso.languageserver.runtime
 
 import java.nio.file.Files
+import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit}
 import org.enso.jsonrpc.test.RetrySpec
+import org.enso.languageserver.data.{
+  Config,
+  ExecutionContextConfig,
+  FileManagerConfig,
+  PathWatcherConfig
+}
 import org.enso.searcher.SuggestionsRepo
 import org.enso.searcher.sql.SqlSuggestionsRepo
 import org.enso.text.editing.model.Position
@@ -31,14 +38,15 @@ class SuggestionsHandlerTest
 
   "SuggestionsHandler" should {
 
-    "get initial suggestions database version" in withDb { repo =>
-      val handler = newSuggestionsHandler(repo)
-      handler ! SearchProtocol.GetSuggestionsDatabaseVersion
+    "get initial suggestions database version" taggedAs Retry() in withDb {
+      repo =>
+        val handler = newSuggestionsHandler(repo)
+        handler ! SearchProtocol.GetSuggestionsDatabaseVersion
 
-      expectMsg(SearchProtocol.GetSuggestionsDatabaseVersionResult(0))
+        expectMsg(SearchProtocol.GetSuggestionsDatabaseVersionResult(0))
     }
 
-    "get suggestions database version" in withDb { repo =>
+    "get suggestions database version" taggedAs Retry() in withDb { repo =>
       val handler = newSuggestionsHandler(repo)
       Await.ready(repo.insert(Suggestions.atom), Timeout)
 
@@ -47,14 +55,14 @@ class SuggestionsHandlerTest
       expectMsg(SearchProtocol.GetSuggestionsDatabaseVersionResult(1))
     }
 
-    "get initial suggestions database" in withDb { repo =>
+    "get initial suggestions database" taggedAs Retry() in withDb { repo =>
       val handler = newSuggestionsHandler(repo)
       handler ! SearchProtocol.GetSuggestionsDatabase
 
       expectMsg(SearchProtocol.GetSuggestionsDatabaseResult(Seq(), 0))
     }
 
-    "get suggestions database" in withDb { repo =>
+    "get suggestions database" taggedAs Retry() in withDb { repo =>
       val handler = newSuggestionsHandler(repo)
       Await.ready(repo.insert(Suggestions.atom), Timeout)
       handler ! SearchProtocol.GetSuggestionsDatabase
@@ -130,8 +138,18 @@ class SuggestionsHandlerTest
 
   }
 
-  def newSuggestionsHandler(repo: SuggestionsRepo[Future]): ActorRef =
-    system.actorOf(SuggestionsHandler.props(repo))
+  def newSuggestionsHandler(repo: SuggestionsRepo[Future]): ActorRef = {
+    val testContentRoot = Files.createTempDirectory(null).toRealPath()
+    testContentRoot.toFile.deleteOnExit()
+    val testContentRootId = UUID.randomUUID()
+    val config = Config(
+      Map(testContentRootId -> testContentRoot.toFile),
+      FileManagerConfig(timeout = 3.seconds),
+      PathWatcherConfig(),
+      ExecutionContextConfig(requestTimeout = 3.seconds)
+    )
+    system.actorOf(SuggestionsHandler.props(config, repo))
+  }
 
   def withDb(test: SuggestionsRepo[Future] => Any): Unit = {
     val dbPath = Files.createTempFile("suggestions", ".db")

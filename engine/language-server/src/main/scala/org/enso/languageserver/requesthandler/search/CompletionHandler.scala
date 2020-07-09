@@ -34,10 +34,10 @@ class CompletionHandler(
     case Request(
           Completion,
           id,
-          Completion.Params(module, pos, selfType, returnType, tags)
+          Completion.Params(file, pos, selfType, returnType, tags)
         ) =>
       suggestionsHandler ! SearchProtocol.Completion(
-        module,
+        file,
         pos,
         selfType,
         returnType,

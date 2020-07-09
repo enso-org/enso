@@ -102,7 +102,9 @@ class MainModule(serverConfig: LanguageServerConfig) {
     )
 
   lazy val suggestionsHandler =
-    system.actorOf(SuggestionsHandler.props(suggestionsRepo))
+    system.actorOf(
+      SuggestionsHandler.props(languageServerConfig, suggestionsRepo)
+    )
 
   lazy val capabilityRouter =
     system.actorOf(

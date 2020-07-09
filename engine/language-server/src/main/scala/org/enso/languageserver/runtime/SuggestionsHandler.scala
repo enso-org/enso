@@ -2,6 +2,7 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.pipe
+import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.SearchProtocol._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
@@ -13,9 +14,10 @@ import scala.concurrent.Future
   *
   * Handler initializes the database and responds to the search requests.
   *
+  * @param config the server configuration
   * @param repo the suggestions repo
   */
-final class SuggestionsHandler(repo: SuggestionsRepo[Future])
+final class SuggestionsHandler(config: Config, repo: SuggestionsRepo[Future])
     extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -33,8 +35,11 @@ final class SuggestionsHandler(repo: SuggestionsRepo[Future])
         .map(Function.tupled(toGetSuggestionsDatabaseResult))
         .pipeTo(sender())
 
-    case Completion(_, _, selfType, returnType, tags) =>
+    case Completion(path, _, selfType, returnType, tags) =>
       val kinds = tags.map(_.map(SuggestionKind.toSuggestion))
+      val file = for {
+        rootFile <- config.findContentRoot(path.rootId)
+      } yield path.toFile(rootFile)
       repo
         .search(None, selfType, returnType, kinds, None)
         .map(CompletionResult.tupled)
@@ -57,9 +62,10 @@ object SuggestionsHandler {
   /**
     * Creates a configuration object used to create a [[SuggestionsHandler]].
     *
+    * @param config the server configuration
     * @param repo the suggestions repo
     */
-  def props(repo: SuggestionsRepo[Future]): Props =
-    Props(new SuggestionsHandler(repo))
+  def props(config: Config, repo: SuggestionsRepo[Future]): Props =
+    Props(new SuggestionsHandler(config, repo))
 
 }

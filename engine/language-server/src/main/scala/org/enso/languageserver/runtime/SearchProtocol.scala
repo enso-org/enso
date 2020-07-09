@@ -4,6 +4,7 @@ import enumeratum._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
+import org.enso.languageserver.filemanager.Path
 import org.enso.polyglot.Suggestion
 import org.enso.text.editing.model.Position
 
@@ -206,14 +207,14 @@ object SearchProtocol {
 
   /** The completion request.
     *
-    * @param module the edited module
+    * @param file the edited file
     * @param position the cursor position
     * @param selfType filter entries matching the self type
     * @param returnType filter entries matching the return type
     * @param tags filter entries by suggestion type
     */
   case class Completion(
-    module: String,
+    file: Path,
     position: Position,
     selfType: Option[String],
     returnType: Option[String],
