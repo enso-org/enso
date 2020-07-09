@@ -80,7 +80,9 @@ jobs:
 
       # Tests
       - name: Test Enso
-        run: sbt --no-colors test
+        run: |
+          if [ ${{ runner.os }} = 'Windows' ]; then echo ::set-env name=CI_TEST_TIMEFACTOR::2; fi
+          sbt --no-colors test
       - name: Benchmark the Parser
         run: sbt -no-colors syntax/bench
       - name: Check Runtime Benchmark Compilation
