@@ -5,12 +5,21 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
+/**
+ * Container for builtin Error types
+ */
 public class Error {
   private final AtomConstructor syntaxError;
   private final AtomConstructor compileError;
   private final AtomConstructor inexhaustivePatternMatchError;
   private final AtomConstructor unitializedState;
 
+  /**
+   * Creates and registers the relevant constructors.
+   *
+   * @param language the current language instance.
+   * @param scope the scope to register constructors in.
+   */
   public Error(Language language, ModuleScope scope) {
     syntaxError =
         new AtomConstructor("Syntax_Error", scope)

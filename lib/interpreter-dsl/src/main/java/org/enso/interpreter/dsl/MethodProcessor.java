@@ -148,8 +148,7 @@ public class MethodProcessor extends AbstractProcessor {
 
       out.println("  @Override");
       out.println("  public Stateful execute(VirtualFrame frame) {");
-      out.println(
-          "    Object state = Function.ArgumentsHelper.getState(frame.getArguments());");
+      out.println("    Object state = Function.ArgumentsHelper.getState(frame.getArguments());");
       if (methodDefinition.needsCallerInfo()) {
         out.println(
             "    CallerInfo callerInfo = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());");

@@ -9,9 +9,9 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
-import org.enso.interpreter.runtime.data.EmptyState;
-import org.enso.interpreter.runtime.data.SingletonState;
-import org.enso.interpreter.runtime.data.SmallMap;
+import org.enso.interpreter.runtime.state.data.EmptyMap;
+import org.enso.interpreter.runtime.state.data.SingletonMap;
+import org.enso.interpreter.runtime.state.data.SmallMap;
 import org.enso.interpreter.runtime.state.Stateful;
 
 @BuiltinMethod(
@@ -32,16 +32,16 @@ public abstract class RunStateNode extends Node {
 
   @Specialization
   Stateful doEmpty(
-      EmptyState state, Object _this, Object key, Object local_state, Thunk computation) {
-    SingletonState localStateMap = new SingletonState(key, local_state);
+      EmptyMap state, Object _this, Object key, Object local_state, Thunk computation) {
+    SingletonMap localStateMap = new SingletonMap(key, local_state);
     Object result = thunkExecutorNode.executeThunk(computation, localStateMap, false).getValue();
     return new Stateful(state, result);
   }
 
   @Specialization(guards = {"state.getKey() == key"})
   Stateful doSingletonSameKey(
-      SingletonState state, Object _this, Object key, Object local_state, Thunk computation) {
-    SingletonState localStateContainer = new SingletonState(state.getKey(), local_state);
+      SingletonMap state, Object _this, Object key, Object local_state, Thunk computation) {
+    SingletonMap localStateContainer = new SingletonMap(state.getKey(), local_state);
     Stateful res = thunkExecutorNode.executeThunk(computation, localStateContainer, false);
     return new Stateful(state, res.getValue());
   }
@@ -53,7 +53,7 @@ public abstract class RunStateNode extends Node {
         "cachedOldKey != cachedNewKey"
       })
   Stateful doSingletonNewKeyCached(
-      SingletonState state,
+      SingletonMap state,
       Object _this,
       Object key,
       Object local_state,
@@ -65,12 +65,12 @@ public abstract class RunStateNode extends Node {
     SmallMap localStateMap = new SmallMap(newKeys, new Object[] {local_state, state.getValue()});
     Stateful res = thunkExecutorNode.executeThunk(computation, localStateMap, false);
     Object newStateVal = ((SmallMap) res.getState()).getValues()[1];
-    return new Stateful(new SingletonState(cachedOldKey, newStateVal), res.getValue());
+    return new Stateful(new SingletonMap(cachedOldKey, newStateVal), res.getValue());
   }
 
   @Specialization
   Stateful doSingletonNewKeyUncached(
-      SingletonState state, Object _this, Object key, Object local_state, Thunk computation) {
+      SingletonMap state, Object _this, Object key, Object local_state, Thunk computation) {
     return doSingletonNewKeyCached(
         state,
         _this,

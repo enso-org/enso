@@ -1,23 +1,16 @@
 package org.enso.interpreter.node.expression.builtin.state;
 
-import com.oracle.truffle.api.CompilerAsserts;
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.object.*;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.data.EmptyState;
-import org.enso.interpreter.runtime.data.SingletonState;
-import org.enso.interpreter.runtime.data.SmallMap;
+import org.enso.interpreter.runtime.state.data.SingletonMap;
+import org.enso.interpreter.runtime.state.data.SmallMap;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
-
-import java.util.Arrays;
 
 @BuiltinMethod(type = "State", name = "put", description = "Updates the value of monadic state.")
 @ImportStatic(SmallMap.class)
@@ -30,8 +23,8 @@ public abstract class PutStateNode extends Node {
   abstract Stateful execute(@MonadicState Object state, Object _this, Object key, Object new_state);
 
   @Specialization(guards = "state.getKey() == key")
-  Stateful doExistingSingleton(SingletonState state, Object _this, Object key, Object new_state) {
-    return new Stateful(new SingletonState(key, new_state), new_state);
+  Stateful doExistingSingleton(SingletonMap state, Object _this, Object key, Object new_state) {
+    return new Stateful(new SingletonMap(key, new_state), new_state);
   }
 
   @Specialization(

@@ -1,25 +1,16 @@
 package org.enso.interpreter.node.expression.builtin.state;
 
-import com.oracle.truffle.api.CompilerAsserts;
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.object.DynamicObject;
-import com.oracle.truffle.api.object.Location;
-import com.oracle.truffle.api.object.Property;
-import com.oracle.truffle.api.object.Shape;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.MonadicState;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.data.EmptyState;
-import org.enso.interpreter.runtime.data.SingletonState;
-import org.enso.interpreter.runtime.data.SmallMap;
+import org.enso.interpreter.runtime.state.data.EmptyMap;
+import org.enso.interpreter.runtime.state.data.SingletonMap;
+import org.enso.interpreter.runtime.state.data.SmallMap;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.Stateful;
-
-import java.util.Arrays;
 
 @BuiltinMethod(
     type = "State",
@@ -35,7 +26,7 @@ public abstract class GetStateNode extends Node {
   abstract Object execute(@MonadicState Object state, Object _this, Object key);
 
   @Specialization(guards = {"state.getKey() == key"})
-  Object doSingleton(SingletonState state, Object _this, Object key) {
+  Object doSingleton(SingletonMap state, Object _this, Object key) {
     return state.getValue();
   }
 
@@ -68,13 +59,13 @@ public abstract class GetStateNode extends Node {
 
   @Specialization
   Object doEmpty(
-      EmptyState state, Object _this, Object key, @CachedContext(Language.class) Context ctx) {
+      EmptyMap state, Object _this, Object key, @CachedContext(Language.class) Context ctx) {
     throw new PanicException(ctx.getBuiltins().error().unitializedState().newInstance(key), this);
   }
 
   @Specialization
   Object doSingletonError(
-      SingletonState state, Object _this, Object key, @CachedContext(Language.class) Context ctx) {
+      SingletonMap state, Object _this, Object key, @CachedContext(Language.class) Context ctx) {
     throw new PanicException(ctx.getBuiltins().error().unitializedState().newInstance(key), this);
   }
 }
