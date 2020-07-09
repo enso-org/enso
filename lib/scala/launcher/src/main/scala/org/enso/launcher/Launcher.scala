@@ -39,12 +39,7 @@ object Launcher {
            |  "runtime": $runtimeVersion
            |}""".stripMargin
       } else {
-        val dirtyStr = if (Info.isDirty) {
-          "*"
-        } else {
-          ""
-        }
-
+        val dirtyStr = if (Info.isDirty) "*" else ""
         s"""
            |Enso Launcher
            |Version:    $version

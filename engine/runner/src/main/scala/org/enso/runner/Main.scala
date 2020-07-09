@@ -305,11 +305,7 @@ object Main {
            |  "osArch": "$osArch"
            |}""".stripMargin
       } else {
-        val dirtyStr = if (Info.isDirty) {
-          "*"
-        } else {
-          ""
-        }
+        val dirtyStr = if (Info.isDirty) "*" else ""
         s"""
            |Enso Compiler and Runtime
            |Version:    ${Info.ensoVersion}

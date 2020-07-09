@@ -7,8 +7,6 @@ import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
-import scala.sys.process._
-
 // ============================================================================
 // === Global Configuration ===================================================
 // ============================================================================
@@ -890,17 +888,8 @@ lazy val runner = project
     connectInput in run := true
   )
   .settings(
-    buildNativeImage := Def
-        .task {
-          val javaHome         = System.getProperty("java.home")
-          val nativeImagePath  = s"$javaHome/bin/native-image"
-          val classPath        = (Runtime / fullClasspath).value.files.mkString(":")
-          val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
-          val cmd =
-            s"$nativeImagePath $resourcesGlobOpt --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
-          cmd !
-        }
-        .dependsOn(Compile / compile)
+    buildNativeImage := NativeImage
+        .buildNativeImage(staticOnLinux = false)
         .value
   )
   .settings(
@@ -928,30 +917,7 @@ lazy val launcher = project
       )
   )
   .settings(
-    buildNativeImage := Def
-        .task {
-          val javaHome = System.getProperty("java.home")
-          val nativeImagePath =
-            if (sys.props("os.name").contains("Windows"))
-              s"$javaHome\\bin\\native-image.cmd"
-            else s"$javaHome/bin/native-image"
-          val classPath =
-            (Runtime / fullClasspath).value.files.mkString(File.pathSeparator)
-          val additionalParameters =
-            if (sys.props("os.name").contains("Linux"))
-              "--static"
-            else ""
-          val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
-          val cmd =
-            s"$nativeImagePath $additionalParameters $resourcesGlobOpt " +
-            s"--no-fallback --initialize-at-build-time" +
-            s" -cp $classPath ${(Compile / mainClass).value.get} enso"
-          if (cmd.! != 0) {
-            throw new RuntimeException("Native Image build failed")
-          }
-        }
-        .dependsOn(Compile / compile)
-        .value
+    buildNativeImage := NativeImage.buildNativeImage(staticOnLinux = true).value
   )
   .settings(
     Compile / sourceGenerators += Def.task {
