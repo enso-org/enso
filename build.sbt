@@ -462,9 +462,14 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
   .settings(
     Compile / sourceGenerators += Def.task {
         val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
-        state.value.log.debug("Updating build info.")
         BuildInfo
-          .writeBuildInfoFile(file, ensoVersion, scalacVersion, graalVersion)
+          .writeBuildInfoFile(
+            file,
+            state.value.log,
+            ensoVersion,
+            scalacVersion,
+            graalVersion
+          )
       }.taskValue
   )
 
