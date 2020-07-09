@@ -1,0 +1,28 @@
+[package]
+name    = "specialization"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2018"
+
+description  = "A specialized parser."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/enso/lib/rust/parser/specialization"
+repository   = "https://github.com/enso-org/enso"
+license-file = "../../../../LICENSE"
+
+keywords   = ["lexer", "finite-automata"]
+categories = ["parsing"]
+
+publish = false
+
+[lib]
+name       = "specialization"
+crate-type = ["cdylib", "rlib"]
+test       = true
+bench      = true
+
+[dependencies]
+definition = { path = "../definition", version = "0.1.0" }
+
+[build-dependencies]
+definition = { path = "../definition", version = "0.1.0" }
