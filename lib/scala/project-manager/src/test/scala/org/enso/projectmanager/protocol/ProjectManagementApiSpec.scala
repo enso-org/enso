@@ -5,9 +5,9 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import io.circe.literal._
-import org.enso.jsonrpc.test.FlakySpec
 import org.enso.projectmanager.test.Net.tryConnect
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
+import org.enso.testkit.FlakySpec
 
 import scala.io.Source
 

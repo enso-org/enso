@@ -4,8 +4,8 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.{Executors, LinkedBlockingQueue, Semaphore}
 
 import org.apache.commons.io.FileUtils
-import org.enso.jsonrpc.test.RetrySpec
 import org.enso.languageserver.effect.Effects
+import org.enso.testkit.RetrySpec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
