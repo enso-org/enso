@@ -80,7 +80,7 @@ jobs:
 
       - name: Setup Test
         if: runner.os == 'Windows'
-        run: echo ::set-env name=CI_TEST_TIMEFACTOR::2
+        run: echo '::set-env name=CI_TEST_TIMEFACTOR::2'
       - name: Check Setup
         run: echo 'The timefactor is' $CI_TEST_TIMEFACTOR
       # Tests
