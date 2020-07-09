@@ -1,11 +1,17 @@
 Enso
 Copyright 2020 New Byte Order sp. z o. o.
 
-'decline', licensed under Apache License Version 2.0
-(see: components-licences/LICENCE-APACHE) is distributed with the launcher.
+As the launcher is built into a native binary using GraalVM Native Image, some
+of the dependencies that are listed here may not actually be distributed with it
+if their code was removed during compilation. For completeness, this document
+lists all source dependencies that were used for its compilation.
 
-'cats' is distributed with the launcher.
-It requires the following notice:
+'decline', licensed under Apache License Version 2.0
+(see: components-licences/LICENSE-APACHE) is distributed with the launcher.
+
+'cats', licensed under the MIT licence
+(see: components-licences/LICENSE-MIT), is distributed with the launcher. It
+requires the following notice:
 Cats Copyright (c) 2015 Cats Contributors.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -110,3 +116,19 @@ This software includes projects with other licenses -- see `doc/LICENSE.md`.
 
 (However the projects with other licenses that are mentioned in the above notice
 are parts of the Scala compiler and are not included in this distribution.)
+
+===============
+
+'jawn-parser', licensed under the MIT licence, is distributed with the launcher.
+It requires the following copyright notice:
+Copyright Erik Osheim, 2012-2020.
+
+================
+
+'shapeless', licensed under the Apache License, Version 2.0, is distributed with
+the launcher.
+
+================
+
+'snakeyaml', licensed under the Apache License, Version 2.0, is distributed with
+the launcher.

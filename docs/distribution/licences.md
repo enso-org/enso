@@ -68,10 +68,10 @@ on the particular licences.
 
 For most dependencies under the Apache, MIT or BSD licences, a copy of the
 licence has to be included within the distribution and if the dependency
-includes a `NOTICE` file, the contents of this file have to be added to the
-`NOTICE` that is included within the distribution. To find these `NOTICE` files
-it may be necessary to walk through the `JAR`s containing the dependencies or
-visit project websites of each dependency.
+includes a `NOTICE` file, the contents of this file have to be reproduced within
+the distribution by adding them to an aggregate `NOTICE` file. To find these
+`NOTICE` files it may be necessary to walk through the `JAR`s containing the
+dependencies or visit project websites of each dependency.
 
 ### Launcher
 As the launcher is distributed as a native binary executable, the licences and
