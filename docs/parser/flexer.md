@@ -88,6 +88,32 @@ they mostly choose the _longest_ match instead. Once the pattern is matched, the
 associated code is executed and the process starts over again until the input
 stream has been consumed.
 
+### Automatic code generation
+
+In order to avoid getting lexer definition out of sync with its implementation
+(generated engine), it is required to create a separate crate for the generated 
+engine with lexer definition as one of its dependencies.
+
+This separation enables a call to `specialize` (function that generates the engine)
+in `build.rs` during compilation. The output can be stored in new file i.e. 
+`lexer-engine.rs` and exported with `include!("lexer-engine.src")`. The project
+structure should therefore look like:
+
+```
+- root/
+  - lexer-definition/
+    - src/
+      - lexer.rs
+    - cargo.toml
+
+  - lexer-engine/
+    - src/
+      - lexer.rs <-- include!("lexer-engine.rs")
+    - build.rs   <-- calls `lexer-definition::Lexer::new()::specialize()`
+                  -- and saves its output to `src/lexer-engine.rs`
+    - cargo.toml <-- lexer-definition is in dependencies and build-dependencies
+```
+
 ### Notes on Code Generation
 The following properties are likely to hold for the code generation machinery.
 

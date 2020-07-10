@@ -11,7 +11,7 @@ members = [
     "lib/rust/enso-shapely/macros",
     "lib/rust/flexer",
     "lib/rust/parser/definition",
-    "lib/rust/parser/specialization",
+    "lib/rust/parser/engine",
 ]
 
 [profile.dev]

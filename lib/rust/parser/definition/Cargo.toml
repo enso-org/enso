@@ -1,24 +1,24 @@
 [package]
-name    = "definition"
+name    = "parser-definition"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2018"
 
-description  = "A definition of parser."
+description  = "Parser for the enso language."
 readme       = "README.md"
 homepage     = "https://github.com/enso-org/enso/lib/rust/parser/definition"
 repository   = "https://github.com/enso-org/enso"
 license-file = "../../../../LICENSE"
 
-keywords   = ["lexer", "finite-automata"]
+keywords   = ["parser", "lexer", "finite-automata"]
 categories = ["parsing"]
 
 publish = false
 
 [lib]
-name       = "definition"
 crate-type = ["cdylib", "rlib"]
 test       = true
 bench      = true
 
 [dependencies]
+flexer = { path = "../../flexer", version = "0.1.0" }
