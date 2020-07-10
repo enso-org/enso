@@ -33,6 +33,12 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
 <!-- /MarkdownTOC -->
 
 ## Launcher Distribution
+> The actionables for this section are:
+>
+> - Finalize the decision if Enso is distributed as a portable directory
+>   structure or if the launcher keeps the installations in system-defined
+>   directories.
+
 The launcher is distributed as a native binary for each platform (Windows,
 Linux, Mac). It is distributed in a ZIP archive as described in
 [Enso Home Layout](./distribution.md#enso-home-layout), except that the
@@ -45,6 +51,11 @@ basic usage.
 The distribution structure is portable - this directory structure can be placed
 anywhere in the system. The launcher places all components in this directory
 structure by accessing them as relative to the location of its binary.
+
+### Using Multiple Launcher Versions Side-By-Side
+In the future it should be possible to install multiple versions of the launcher
+side-by-side and switch between them. This feature will not be implemented right
+away, but should be considered at some point.
 
 ## Launcher Build
 The launcher is built using
@@ -152,6 +163,13 @@ parameters and configuration:
 
 Additional arguments passed to the launcher are forwarded to the launched
 component.
+
+### Running Plugins
+If the launcher gets an unknown command `foo`, it tries to run `enso-foo` and
+pass all the arguments that follow. If `enso-foo` is not found, it fails as
+normal. This can be used to implement plugins that are launched through the
+universal launcher. For example, the Enso IDE can provide an `enso-ide`
+executable, allowing users to launch the IDE by typing `enso ide`.
 
 ## Global User Configuration
 The launcher allows to edit global user configuration, saved in the `config`

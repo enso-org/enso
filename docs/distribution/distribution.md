@@ -21,43 +21,55 @@ be structured and how it should behave.
 <!-- /MarkdownTOC -->
 
 ## Enso Home Layout
-All of Enso's binaries, packages, etc. are installed into a directory in
-the user's home directory. For macOS and linux distributions that's `~/.enso`,
-by default. The distribution is fully portable, so it never makes any
-assumptions about actually being placed in any particular directory.
+> The actionables for this section are:
+>
+> - Finalize the decision if Enso is distributed as a portable directory
+>   structure or if the launcher keeps the installations in system-defined
+>   directories.
+
+All files in the directory structure, except for configuration, can be safely
+removed and the launcher will re-download them if needed.
 
 The directory structure is as follows:
 
 ```
 install-location
 ├── bin
-│   └── enso                  # The universal launcher script, responsible for choosing the appropriate compiler version.
-├── dist                      # Per-compiler-version distribution directories.
-│   ├── default -> enso-1.2.0 # A symlink to the version that should be used when no version is explicitly specified.
-│   ├── enso-1.0.0            # A full distribution of given Enso version, described below.
+│   └── enso                # The universal launcher script, responsible for choosing the appropriate compiler version (TODO [RW] it may be stored in a different place).
+├── config                  # (TODO [RW] This configuration may be stored somewhere else.)
+│   └── global-config.yaml  # Global user configuration.
+├── dist                    # Per-compiler-version distribution directories.
+│   ├── 1.0.0               # A full distribution of given Enso version, described below.
 │   │   └── <truncated>
-│   └── enso-1.2.0            # A full distribution of given Enso version, described below.
+│   └── 1.2.0               # A full distribution of given Enso version, described below.
 │       └── <truncated>
-├── jvm                       # A directory storing (optional) distributions of the JVM used by the Enso distributions.
+├── runtime                 # A directory storing (optional) distributions of the JVM used by the Enso distributions.
 │   └── graalvm-ce-27.1.1
-└── cache                     # A directory storing downloaded libraries and resolvers. Can be removed safely.
-    ├── libraries             # Contains downloaded libraries.
-    │   └── Dataframe         # Each library may be stored in multiple version.
-    │       └── 1.7.0         # Each version contains a standard Enso package.
-    │           ├── package.yaml
-    │           └── src
-    │               ├── List.enso
-    │               ├── Number.enso
-    │               └── Text.enso
-    └── resolvers           # Contains resolver specifications, described below.
-        ├── lts-1.56.7.yaml
-        └── lts-2.0.8.yaml
+├── lib
+│   └── src                 # Contains sources of downloaded libraries.
+│       └── Dataframe       # Each library may be stored in multiple version.
+│           └── 1.7.0       # Each version contains a standard Enso package.
+│               ├── package.yaml
+│               └── src
+│                   ├── List.enso
+│                   ├── Number.enso
+│                   └── Text.enso
+└── resolvers               # Contains resolver specifications, described below.
+    ├── lts-1.56.7.yaml
+    └── lts-2.0.8.yaml
 ```
 
 ## Universal Launcher Script
-The universal launcher script should be able to launch the proper version of
-Enso executable based on the version specified in the project being run,
-or use the default version if none specified.
+The [universal launcher script](./launcher.md) should be able to launch the
+proper version of Enso executable based on the version specified in the project
+being run, or use the default version if none specified. It should also be able
+to launch other Enso components, provided as
+[plugins](./launcher.md#running-plugins).
+
+**Note**
+This launcher is under development. Until it is in a ready-to-use state, the
+Enso version packages provide simple launcher scripts in the `bin` directory of
+that package. They will be removed when the universal launcher matures.
 
 ## Layout of an Enso Version Package
 This section describes the structure of a single version distribution. This
@@ -71,10 +83,12 @@ The layout of such a distribution is as follows:
 
 ```
 enso-1.0.0
-├── component     # Contains all the executable tools and their dependencies.
-│   └── enso.jar  # The main executable of the distribution. CLI entry point.
-└── std-lib       # Contains all the pre-installed libraries compiler version.
-    ├── Http      # Every version sub-directory is just an Enso package containing the library.
+├── manifest.yaml    # A manifest file defining metadata about this Enso version.
+├── component        # Contains all the executable tools and their dependencies.
+│   ├── runner.jar   # The main executable of the distribution. CLI entry point.
+│   └── runtime.jar  # The language runtime. It is loaded by other JVM components, like the runner.
+└── std-lib          # Contains all the libraries that are pre-installed within that compiler version.
+    ├── Http         # Every version sub-directory is just an Enso package containing the library.
     │     ├── package.yaml
     │     ├── polyglot
     │     └── src

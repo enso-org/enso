@@ -96,10 +96,10 @@ jobs:
       - name: Build the Uberjar
         run: sbt -no-colors runner/assembly
       - name: Test the Uberjar
-        run: ./enso.jar --run tools/ci/Test.enso
+        run: ./runner.jar --run tools/ci/Test.enso
       - name: Test the Repl in the Uberjar
         shell: bash
-        run: cat tools/ci/artifact-test/repl/ReplTest.in | ./enso.jar --repl | diff -q tools/ci/artifact-test/repl/ReplTest.out - && echo "Test successful"
+        run: cat tools/ci/artifact-test/repl/ReplTest.in | ./runner.jar --repl | diff -q tools/ci/artifact-test/repl/ReplTest.out - && echo "Test successful"
 
   # This job is responsible for building the artifacts
   build:
@@ -152,29 +152,30 @@ jobs:
         run: sbt --no-colors runner/assembly
       - name: Build the Project Manager Uberjar
         run: sbt --no-colors project-manager/assembly
+      - name: Build the Manifest
+        run: |
+          cp distribution/manifest.template.yaml manifest.yaml
+          echo "graal-vm-version: $graalVersion" >> manifest.yaml
+          echo "graal-java-version: $javaVersion" >> manifest.yaml
       - name: Prepare Distribution
         run: |
-          DIST_VERSION=$(./enso.jar --version --json | jq -r '.version')
+          DIST_VERSION=$(./runner.jar --version --json | jq -r '.version')
           DIST_ROOT=enso-engine-$DIST_VERSION
           DIST_DIR=$DIST_ROOT/enso-$DIST_VERSION
           mkdir -p $DIST_DIR
           mkdir $DIST_DIR/component
           cp runtime.jar $DIST_DIR/component
-          mv enso.jar $DIST_DIR/component
+          mv runner.jar $DIST_DIR/component
           mv project-manager.jar $DIST_DIR/component
           cp -r distribution/std-lib $DIST_DIR/std-lib
           cp -r distribution/bin $DIST_DIR/bin
           chmod +x $DIST_DIR/bin/enso
           chmod +x $DIST_DIR/bin/project-manager
+          cp manifest.yaml $DIST_DIR
           echo ::set-env name=DIST_ROOT::$DIST_ROOT
           echo ::set-env name=DIST_DIR::$DIST_DIR
       - name: Build the Parser JS Bundle
         run: sbt -no-colors syntaxJS/fullOptJS
-      - name: Build the Manifest
-        run: |
-          cp distribution/manifest.template.yml manifest.yml
-          echo "graal-vm-version: $graalVersion" >> manifest.yml
-          echo "graal-java-version: $javaVersion" >> manifest.yml
 
       # Publish
       - name: Publish the Distribution Artifact
@@ -205,7 +206,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: manifest
-          path: manifest.yml
+          path: manifest.yaml
       - name: Prepare AWS Session
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
@@ -314,7 +315,7 @@ jobs:
           mkdir -p ${{ env.DIST_DIR }}
           mkdir ${{ env.DIST_DIR }}/bin
           mkdir ${{ env.DIST_DIR }}/dist
-          mkdir ${{ env.DIST_DIR }}/jvm
+          mkdir ${{ env.DIST_DIR }}/runtime
           cp distribution/launcher/README.md ${{ env.DIST_DIR }}
           cp distribution/launcher/NOTICE ${{ env.DIST_DIR }}
           cp -r distribution/launcher/components-licences ${{ env.DIST_DIR }}

@@ -79,7 +79,8 @@ specified on a per-language basis, in the
 
 ### The `package.yaml` File
 `package.yaml` describes certain package metadata, such as its name, authors
-and version. It also includes the list of dependencies of the package.
+and version. It also includes the list of extra dependencies of the package
+(dependencies that are not present in the resolver or need a version override).
 The following is an example of this manifest file.
 
 ```yaml
@@ -97,14 +98,21 @@ extra-dependencies:
 ```
 
 The following is the specification of the manifest fields.
+Fields marked as **Optional (required for publishing)** are completely optional
+during development - if not specified, their default values will be used.
+However, they must be specified before publishing the package. A package missing
+any of these fields cannot be published. 
 
 #### license
-**Optional** *String*: The short license name of this package. Defaults to
-`None`, meaning the package is not safe for use by third parties.
+**Optional (required for publishing)** *String*: The short license name of this
+package. Defaults to `None`, meaning the package is not safe for use by third
+parties.
 
 #### version
-**Required** *String*: The [semantic versioning](https://semver.org/) string,
-in the `major.minor.patch` format.
+**Optional (required for publishing)** *String*: The
+[semantic versioning](https://semver.org/) string, in the `major.minor.patch`
+format. If not set, it defaults to `dev` (which can be used for development, but
+is not a valid version for publishing).
 
 #### author
 **Optional** *String* or *List of Strings*: The name(s) and contact info(s) of
@@ -117,8 +125,9 @@ format.
 
 #### resolver
 **Note** This field is not currently implemented.
-**Required** *String*: The resolver name, used to choose compiler version and
-basic libraries set.
+**Optional (required for publishing)** *String*: The resolver name, used to
+choose compiler version and basic libraries set. If not set, the system-default
+resolver will be used.
 
 > The actionables for this section are:
 >
