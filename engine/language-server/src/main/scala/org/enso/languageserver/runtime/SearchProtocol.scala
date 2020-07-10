@@ -4,7 +4,7 @@ import enumeratum._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
-import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.polyglot.Suggestion
 import org.enso.text.editing.model.Position
 
@@ -228,4 +228,16 @@ object SearchProtocol {
     */
   case class CompletionResult(currentVersion: Long, results: Seq[SuggestionId])
 
+  sealed trait SearchFailure
+
+  case class FileSystemError(e: FileSystemFailure) extends SearchFailure
+
+  /** Error specifying that the search handler have not been initialized. */
+  case object HandlerUninitializedError extends SearchFailure
+
+  /** Error specifying that the module not found for given file.
+    *
+    * @param file the file path
+    */
+  case class ModuleNotFoundError(file: Path) extends SearchFailure
 }

@@ -672,8 +672,10 @@ object Runtime {
 
     /**
       * Signals that project has been renamed.
+      *
+      * @param newName the new project name
       */
-    case class ProjectRenamed() extends ApiResponse
+    case class ProjectRenamed(newName: String) extends ApiResponse
 
     /**
       * A notification about the change in the suggestions database.

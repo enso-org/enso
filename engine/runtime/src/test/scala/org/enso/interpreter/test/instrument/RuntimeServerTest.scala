@@ -1078,7 +1078,7 @@ class RuntimeServerTest
     context.pkg.rename("Foo")
     context.send(Api.Request(requestId, Api.RenameProject("Test", "Foo")))
     context.receive(1) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.ProjectRenamed())
+      Api.Response(requestId, Api.ProjectRenamed("Foo"))
     )
 
     // recompute reusing the cache
