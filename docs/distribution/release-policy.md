@@ -98,10 +98,16 @@ containing metadata regarding the release. It has at least the following fields:
 
 For example:
 ```yaml
-minimum-launcher-version: 2.0
+minimum-launcher-version: 0.0.1
 graal-vm-version: 20.1.0
 graal-java-version: java11
 ```
+
+The `minimum-launcher-version` should be updated whenever a new version of Enso
+introduces changes that require a more recent launcher version. This value is
+stored in
+[`distribution/manifest.template.yml`](../../distribution/manifest.template.yml)
+and other values are added to this template at build time.
 
 #### Release Assets Structure
 Each release contains a build of the Enso engine and native launcher binaries

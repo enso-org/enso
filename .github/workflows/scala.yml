@@ -7,8 +7,9 @@ on:
     branches: [ "*" ]
 
 env:
-  # Please ensure that this is in sync with graalAPIVersion in build.sbt
+  # Please ensure that this is in sync with graalVersion in build.sbt
   graalVersion: 20.1.0
+  # Please ensure that this is in sync with javaVersion in build.sbt
   javaVersion: java11
   # Please ensure that this is in sync with project/build.properties
   sbtVersion: 1.3.13
@@ -81,8 +82,6 @@ jobs:
       # Tests
       - name: Test Enso
         run: sbt --no-colors test
-      - name: Benchmark the Parser
-        run: sbt -no-colors syntax/bench
       - name: Check Runtime Benchmark Compilation
         run: sbt -no-colors runtime/Benchmark/compile
       - name: Check Language Server Benchmark Compilation
@@ -150,8 +149,10 @@ jobs:
         run: sbt --no-colors project-manager/assembly
       - name: Prepare Distribution
         run: |
-          DIST_DIR=enso-$(./enso.jar --version --json | jq -r '.version')
-          mkdir $DIST_DIR
+          DIST_VERSION=$(./enso.jar --version --json | jq -r '.version')
+          DIST_ROOT=enso-engine-$DIST_VERSION
+          DIST_DIR=$DIST_ROOT/enso-$DIST_VERSION
+          mkdir -p $DIST_DIR
           mkdir $DIST_DIR/component
           cp runtime.jar $DIST_DIR/component
           mv enso.jar $DIST_DIR/component
@@ -160,16 +161,22 @@ jobs:
           cp -r distribution/bin $DIST_DIR/bin
           chmod +x $DIST_DIR/bin/enso
           chmod +x $DIST_DIR/bin/project-manager
+          echo ::set-env name=DIST_ROOT::$DIST_ROOT
           echo ::set-env name=DIST_DIR::$DIST_DIR
       - name: Build the Parser JS Bundle
         run: sbt -no-colors syntaxJS/fullOptJS
+      - name: Build the Manifest
+        run: |
+          cp distribution/manifest.template.yml manifest.yml
+          echo "graal-vm-version: $graalVersion" >> manifest.yml
+          echo "graal-java-version: $javaVersion" >> manifest.yml
 
       # Publish
       - name: Publish the Distribution Artifact
         uses: actions/upload-artifact@v1.0.0
         with:
-          name: ${{ env.DIST_DIR }}
-          path: ${{ env.DIST_DIR }}
+          name: ${{ env.DIST_ROOT }}
+          path: ${{ env.DIST_ROOT }}
       - name: Prepare the FlatBuffers Schemas for Upload
         run: |
           mkdir fbs-upload
@@ -189,6 +196,11 @@ jobs:
         with:
           name: Parser JS Bundle
           path: ./target/scala-parser.js
+      - name: Publish the Manifest
+        uses: actions/upload-artifact@v2
+        with:
+          name: manifest
+          path: manifest.yml
       - name: Prepare AWS Session
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
@@ -215,3 +227,110 @@ jobs:
           text
           EOF
 
+  build-launcher:
+    name: Build Launcher
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
+      fail-fast: false
+    steps:
+      - name: Checkout (PR)
+        uses: actions/checkout@v2
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Checkout (Branch)
+        uses: actions/checkout@v2
+        if: github.event_name != 'pull_request'
+      - name: Enable Developer Command Prompt (Windows)
+        uses: ilammy/msvc-dev-cmd@v1.3.0
+      - name: Setup GraalVM Environment
+        uses: DeLaGuardo/setup-graalvm@2.0
+        with:
+          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+      - name: Set Up Native Image (Windows)
+        if: runner.os == 'Windows'
+        run: gu.cmd -N install -n native-image
+      - name: Set Up Native Image (non-Windows)
+        if: runner.os != 'Windows'
+        run: gu -N install -n native-image
+      - name: Set Up SBT
+        run: |
+          curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+          tar -xzf sbt.tgz
+          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+
+      # Caches
+      - name: Cache SBT
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          restore-keys: ${{ runner.os }}-sbt-
+
+      # Build Artifacts
+      #- name: Bootstrap the project # As long as launcher doesn't depend on
+      #                              # runtime, bootstrap is not mandatory.
+      #  run: sbt --no-colors bootstrap
+      - name: Build Launcher Native Image
+        run: sbt --no-colors launcher/buildNativeImage
+
+      # Publish
+      - name: Prepare distribution directory name (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          chmod +x enso
+          DIST_VERSION=$(./enso version --json | jq -r '.version')
+          DIST_ROOT=enso-launcher-$DIST_VERSION-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
+          DIST_DIR=$DIST_ROOT/enso
+          echo ::set-env name=DIST_VERSION::$DIST_VERSION
+          echo ::set-env name=DIST_DIR::$DIST_DIR
+          echo ::set-env name=DIST_ROOT::$DIST_ROOT
+      - name: Prepare distribution directory name (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          DIST_VERSION=$(./enso.exe version --json | jq -r '.version')
+          DIST_ROOT=enso-launcher-$DIST_VERSION-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
+          DIST_DIR=$DIST_ROOT/enso
+          echo ::set-env name=DIST_VERSION::$DIST_VERSION
+          echo ::set-env name=DIST_DIR::$DIST_DIR
+          echo ::set-env name=DIST_ROOT::$DIST_ROOT
+
+      - name: Prepare Launcher distribution (common)
+        shell: bash
+        run: |
+          mkdir -p ${{ env.DIST_DIR }}
+          mkdir ${{ env.DIST_DIR }}/bin
+          mkdir ${{ env.DIST_DIR }}/dist
+          mkdir ${{ env.DIST_DIR }}/jvm
+          cp distribution/launcher/README.md ${{ env.DIST_DIR }}
+          cp distribution/launcher/NOTICE ${{ env.DIST_DIR }}
+          cp -r distribution/launcher/components-licences ${{ env.DIST_DIR }}
+
+      - name: Prepare Launcher distribution (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cp enso ${{ env.DIST_DIR }}/bin/
+
+      - name: Prepare Launcher distribution (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cp enso.exe ${{ env.DIST_DIR }}/bin/
+
+      # The way artifacts are uploaded currently does not preserve the
+      # executable bits for Unix. However putting artifacts into a ZIP would
+      # create a twice nested ZIP file. For now, users downloading artifacts
+      # from the CI builds have to set the bit themselves.
+      - name: Publish the Launcher Binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.DIST_ROOT }}
+          path: ${{ env.DIST_ROOT }}

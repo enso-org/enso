@@ -5,7 +5,7 @@ import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import org.enso.jsonrpc.test.RetrySpec
+import org.enso.jsonrpc.test.{FlakySpec, RetrySpec}
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired
@@ -32,6 +32,7 @@ class SuggestionsDatabaseEventsListenerTest
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll
+    with FlakySpec
     with RetrySpec {
 
   import system.dispatcher
@@ -56,7 +57,7 @@ class SuggestionsDatabaseEventsListenerTest
         expectMsg(CapabilityAcquired)
     }
 
-    "receive runtime updates" taggedAs Retry() in withDb { (router, repo) =>
+    "receive runtime updates" taggedAs Flaky in withDb { (router, repo) =>
       val handler  = newEventsListener(router.ref, repo)
       val clientId = UUID.randomUUID()
 
@@ -88,7 +89,7 @@ class SuggestionsDatabaseEventsListenerTest
       records.map(_.suggestion) should contain theSameElementsAs Suggestions.all
     }
 
-    "apply runtime updates in correct order" taggedAs Retry() in withDb {
+    "apply runtime updates in correct order" taggedAs Flaky in withDb {
       (router, repo) =>
         val handler  = newEventsListener(router.ref, repo)
         val clientId = UUID.randomUUID()
