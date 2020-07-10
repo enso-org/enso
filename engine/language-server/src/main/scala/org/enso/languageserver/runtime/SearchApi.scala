@@ -81,9 +81,9 @@ object SearchApi {
   case object SuggestionsDatabaseError
       extends Error(7001, "Suggestions database error")
 
-  case object HandlerUninitializedError
-      extends Error(7002, "Search handler uninitialized")
+  case object ProjectNotFoundError
+      extends Error(7002, "Project not found in the root directory")
 
-  case object ModuleNotFoundError
-      extends Error(7003, "Module not found for path")
+  case object ModuleNotResolvedError
+      extends Error(7003, "Module can not be resolved")
 }

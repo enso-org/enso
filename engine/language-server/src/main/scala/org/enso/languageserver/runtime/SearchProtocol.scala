@@ -232,12 +232,12 @@ object SearchProtocol {
 
   case class FileSystemError(e: FileSystemFailure) extends SearchFailure
 
-  /** Error specifying that the search handler have not been initialized. */
-  case object HandlerUninitializedError extends SearchFailure
+  /** Error specifying that the project not found in the root directory. */
+  case object ProjectNotFoundError extends SearchFailure
 
-  /** Error specifying that the module not found for given file.
+  /** Error specifying that the module can not be resolved for the given file.
     *
     * @param file the file path
     */
-  case class ModuleNotFoundError(file: Path) extends SearchFailure
+  case class ModuleNotResolvedError(file: Path) extends SearchFailure
 }

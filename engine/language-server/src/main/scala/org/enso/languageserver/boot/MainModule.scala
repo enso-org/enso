@@ -24,12 +24,10 @@ import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
 }
-import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime._
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
-import org.enso.pkg.PackageManager
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.SqlSuggestionsRepo
 import org.graalvm.polyglot.Context
@@ -207,12 +205,6 @@ class MainModule(serverConfig: LanguageServerConfig) {
       InboundMessageDecoder,
       BinaryEncoder.empty,
       new BinaryConnectionControllerFactory(fileManager)
-    )
-
-  PackageManager.Default
-    .fromDirectory(new File(serverConfig.contentRootPath))
-    .foreach(pkg =>
-      system.eventStream.publish(ProjectNameChangedEvent(pkg.config.name))
     )
 
 }

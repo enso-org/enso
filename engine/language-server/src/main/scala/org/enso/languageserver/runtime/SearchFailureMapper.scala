@@ -4,8 +4,8 @@ import org.enso.jsonrpc.Error
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.runtime.SearchProtocol.{
   FileSystemError,
-  HandlerUninitializedError,
-  ModuleNotFoundError,
+  ModuleNotResolvedError,
+  ProjectNotFoundError,
   SearchFailure
 }
 
@@ -20,8 +20,8 @@ object SearchFailureMapper {
   def mapFailure(searchError: SearchFailure): Error =
     searchError match {
       case FileSystemError(e)        => FileSystemFailureMapper.mapFailure(e)
-      case HandlerUninitializedError => SearchApi.HandlerUninitializedError
-      case ModuleNotFoundError(_)    => SearchApi.ModuleNotFoundError
+      case ProjectNotFoundError      => SearchApi.ProjectNotFoundError
+      case ModuleNotResolvedError(_) => SearchApi.ModuleNotResolvedError
     }
 
 }

@@ -12,6 +12,8 @@ import org.enso.languageserver.data.{
   FileManagerConfig,
   PathWatcherConfig
 }
+import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.searcher.SuggestionsRepo
 import org.enso.searcher.sql.SqlSuggestionsRepo
 import org.enso.text.editing.model.Position
@@ -40,14 +42,14 @@ class SuggestionsHandlerTest
 
     "get initial suggestions database version" taggedAs Retry() in withDb {
       repo =>
-        val handler = newSuggestionsHandler(repo)
+        val (handler, _) = newSuggestionsHandler(repo)
         handler ! SearchProtocol.GetSuggestionsDatabaseVersion
 
         expectMsg(SearchProtocol.GetSuggestionsDatabaseVersionResult(0))
     }
 
     "get suggestions database version" taggedAs Retry() in withDb { repo =>
-      val handler = newSuggestionsHandler(repo)
+      val (handler, _) = newSuggestionsHandler(repo)
       Await.ready(repo.insert(Suggestions.atom), Timeout)
 
       handler ! SearchProtocol.GetSuggestionsDatabaseVersion
@@ -56,14 +58,14 @@ class SuggestionsHandlerTest
     }
 
     "get initial suggestions database" taggedAs Retry() in withDb { repo =>
-      val handler = newSuggestionsHandler(repo)
+      val (handler, _) = newSuggestionsHandler(repo)
       handler ! SearchProtocol.GetSuggestionsDatabase
 
       expectMsg(SearchProtocol.GetSuggestionsDatabaseResult(Seq(), 0))
     }
 
     "get suggestions database" taggedAs Retry() in withDb { repo =>
-      val handler = newSuggestionsHandler(repo)
+      val (handler, _) = newSuggestionsHandler(repo)
       Await.ready(repo.insert(Suggestions.atom), Timeout)
       handler ! SearchProtocol.GetSuggestionsDatabase
 
@@ -78,10 +80,10 @@ class SuggestionsHandlerTest
     }
 
     "search entries by empty search query" taggedAs Retry() in withDb { repo =>
-      val handler = newSuggestionsHandler(repo)
+      val (handler, config) = newSuggestionsHandler(repo)
       Await.ready(repo.insertAll(Suggestions.all), Timeout)
       handler ! SearchProtocol.Completion(
-        module     = "Test.Main",
+        file       = mkModulePath(config, "Foo", "Main.enso"),
         position   = Position(0, 0),
         selfType   = None,
         returnType = None,
@@ -92,11 +94,11 @@ class SuggestionsHandlerTest
     }
 
     "search entries by self type" taggedAs Retry() in withDb { repo =>
-      val handler = newSuggestionsHandler(repo)
+      val (handler, config) = newSuggestionsHandler(repo)
       val (_, Seq(_, methodId, _, _)) =
         Await.result(repo.insertAll(Suggestions.all), Timeout)
       handler ! SearchProtocol.Completion(
-        module     = "Test.Main",
+        file       = mkModulePath(config, "Main.enso"),
         position   = Position(0, 0),
         selfType   = Some("MyType"),
         returnType = None,
@@ -107,11 +109,11 @@ class SuggestionsHandlerTest
     }
 
     "search entries by return type" taggedAs Retry() in withDb { repo =>
-      val handler = newSuggestionsHandler(repo)
+      val (handler, config) = newSuggestionsHandler(repo)
       val (_, Seq(_, _, functionId, _)) =
         Await.result(repo.insertAll(Suggestions.all), Timeout)
       handler ! SearchProtocol.Completion(
-        module     = "Test.Main",
+        file       = mkModulePath(config, "Main.enso"),
         position   = Position(0, 0),
         selfType   = None,
         returnType = Some("IO"),
@@ -122,11 +124,11 @@ class SuggestionsHandlerTest
     }
 
     "search entries by tags" taggedAs Retry() in withDb { repo =>
-      val handler = newSuggestionsHandler(repo)
+      val (handler, config) = newSuggestionsHandler(repo)
       val (_, Seq(_, _, _, localId)) =
         Await.result(repo.insertAll(Suggestions.all), Timeout)
       handler ! SearchProtocol.Completion(
-        module     = "Test.Main",
+        file       = mkModulePath(config, "Main.enso"),
         position   = Position(0, 0),
         selfType   = None,
         returnType = None,
@@ -138,7 +140,9 @@ class SuggestionsHandlerTest
 
   }
 
-  def newSuggestionsHandler(repo: SuggestionsRepo[Future]): ActorRef = {
+  def newSuggestionsHandler(
+    repo: SuggestionsRepo[Future]
+  ): (ActorRef, Config) = {
     val testContentRoot = Files.createTempDirectory(null).toRealPath()
     testContentRoot.toFile.deleteOnExit()
     val testContentRootId = UUID.randomUUID()
@@ -148,7 +152,14 @@ class SuggestionsHandlerTest
       PathWatcherConfig(),
       ExecutionContextConfig(requestTimeout = 3.seconds)
     )
-    system.actorOf(SuggestionsHandler.props(config, repo))
+    val handler = system.actorOf(SuggestionsHandler.props(config, repo))
+    handler ! ProjectNameChangedEvent("Test")
+    (handler, config)
+  }
+
+  def mkModulePath(config: Config, segments: String*): Path = {
+    val (rootId, _) = config.contentRoots.head
+    Path(rootId, "src" +: segments.toVector)
   }
 
   def withDb(test: SuggestionsRepo[Future] => Any): Unit = {

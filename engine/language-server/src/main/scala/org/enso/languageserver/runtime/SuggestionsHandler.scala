@@ -8,6 +8,7 @@ import org.enso.languageserver.data.Config
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.SearchProtocol._
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.pkg.PackageManager
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
 
 import scala.concurrent.Future
@@ -30,13 +31,19 @@ final class SuggestionsHandler(config: Config, repo: SuggestionsRepo[Future])
 
   override def preStart(): Unit = {
     context.system.eventStream.subscribe(self, classOf[ProjectNameChangedEvent])
+    config.contentRoots.foreach {
+      case (_, contentRoot) =>
+        PackageManager.Default
+          .fromDirectory(contentRoot)
+          .foreach(pkg => self ! ProjectNameChangedEvent(pkg.config.name))
+    }
   }
 
   override def receive: Receive = {
     case ProjectNameChangedEvent(name) =>
       context.become(initialized(name))
     case _ =>
-      sender() ! HandlerUninitializedError
+      sender() ! ProjectNotFoundError
   }
   def initialized(projectName: String): Receive = {
     case GetSuggestionsDatabaseVersion =>
@@ -56,16 +63,17 @@ final class SuggestionsHandler(config: Config, repo: SuggestionsRepo[Future])
           config.findContentRoot(path.rootId).left.map(FileSystemError)
         module <-
           getModule(projectName, rootFile.toPath, path.toFile(rootFile).toPath)
-            .toRight(ModuleNotFoundError(path))
+            .toRight(ModuleNotResolvedError(path))
       } yield module
 
       module
         .fold(
           Future.successful,
-          module =>
+          module => {
             repo
               .search(Some(module), selfType, returnType, kinds, None)
               .map(CompletionResult.tupled)
+          }
         )
         .pipeTo(sender())
 

@@ -1,7 +1,5 @@
 package org.enso.languageserver.websocket.json
 
-import java.util.UUID
-
 import io.circe.literal._
 
 object SearchJsonMessages {
@@ -45,24 +43,6 @@ object SearchJsonMessages {
           "method": "search/getSuggestionsDatabase",
           "id": $reqId,
           "params": null
-        }
-      """
-
-  def completion(reqId: Long, rootId: UUID) =
-    json"""
-        { "jsonrpc": "2.0",
-          "method": "search/completion",
-          "id": $reqId,
-          "params": {
-            "file": {
-              "rootId": $rootId,
-              "segments": [ ]
-            },
-            "position": {
-              "line": 0,
-              "character": 0
-            }
-          }
         }
       """
 

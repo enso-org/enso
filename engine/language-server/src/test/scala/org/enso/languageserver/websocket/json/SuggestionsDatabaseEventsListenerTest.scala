@@ -37,6 +37,7 @@ class SuggestionsDatabaseEventsListenerTest
                 "id" : 1,
                 "suggestion" : {
                   "type" : "atom",
+                  "module" : "Test.Main",
                   "name" : "MyType",
                   "arguments" : [
                     {
@@ -72,6 +73,7 @@ class SuggestionsDatabaseEventsListenerTest
                 "id" : 2,
                 "suggestion" : {
                   "type" : "method",
+                  "module" : "Test.Main",
                   "name" : "foo",
                   "arguments" : [
                     {
@@ -116,6 +118,7 @@ class SuggestionsDatabaseEventsListenerTest
                 "id" : 3,
                 "suggestion" : {
                   "type" : "function",
+                  "module" : "Test.Main",
                   "name" : "print",
                   "arguments" : [
                   ],
@@ -148,6 +151,7 @@ class SuggestionsDatabaseEventsListenerTest
                 "id" : 4,
                 "suggestion" : {
                   "type" : "local",
+                  "module" : "Test.Main",
                   "name" : "x",
                   "returnType" : "Number",
                   "scope" : {

@@ -115,7 +115,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       )
 
     val suggestionsHandler =
-      system.actorOf(SuggestionsHandler.props(suggestionsRepo))
+      system.actorOf(SuggestionsHandler.props(config, suggestionsRepo))
 
     new JsonConnectionControllerFactory(
       bufferRegistry,
