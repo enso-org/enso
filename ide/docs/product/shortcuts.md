@@ -7,6 +7,13 @@ tags: [product,ui]
 
 ### Graph Editor
 
+
+#### Node Editing
+| Shortcut | Action |
+| -------- | ------ |
+| <kbd>Ctrl</kbd>+<kbd>n</kbd> | Creates an empty node. |
+| <kbd>Ctrl</kbd>+<kbd>Backspace</kbd> | Removes the selected nodes. |
+
 #### Navigation
 
 | Shortcut | Action |
@@ -37,6 +44,20 @@ tags: [product,ui]
 ### Node dragging
 
 | Shortcut | Action |
-| --- | --- |
+| -------- | ------ |
 | LMB drag non-selected node name | Move the node to new position. |
-| LMB drag selected node name | Move all selected nodes the node to new positions. |
+| LMB drag selected node name     | Move all selected nodes the node to new positions. |
+
+
+
+### Visualization
+
+| Shortcut | Action |
+| -------- | ------ |
+| <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>space<kbd> | Toggle visualization visibility of the selected node. |
+| <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>f<kbd>     | Cycle visualizations of the selected node. |
+
+### Debug
+| Shortcut | Action |
+| -------- | ------ |
+| <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>d<kbd>     | Send test data to the selected node. |
