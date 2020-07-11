@@ -241,6 +241,21 @@ a vanilla GraalVM distribution. To run it, use:
 JAVA_HOME=<PATH_TO_GRAAL_HOME> ./enso.jar <CLI_ARGS>
 ```
 
+#### Building the Launcher Native Binary
+If you want to build the native launcher binary, you need to ensure that the
+Native Image component is installed in your GraalVM distribution. To install it,
+run:
+
+```bash
+gu install native-image
+```
+
+Then, you can build the launcher using:
+
+```bash
+sbt launcher/buildNativeImage
+```
+
 #### Testing Enso
 Running the tests for the JVM enso components is as simple as running
 `sbt / test`. To test the Rust components you can run `cargo test`. Finally, you
