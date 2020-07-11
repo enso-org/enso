@@ -18,7 +18,7 @@
 //!         const height  = this.dom.getAttributeNS(null, "height");
 //!         const svgElem = document.createElementNS(xmlns, "svg");
 //!         svgElem.setAttributeNS(null, "id"     , "vis-svg");
-//!         svgElem.setAttributeNS(null, "viewBox", 0 + " " + 0 + " " + width + " " + height);
+//!         svgElem.setAttributeNS(null, "viewBox", "0 0 " + width + " " + height);
 //!         svgElem.setAttributeNS(null, "width"  , "100%");
 //!         svgElem.setAttributeNS(null, "height" , "100%");
 //!         this.dom.appendChild(svgElem);
