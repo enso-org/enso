@@ -1,6 +1,6 @@
 package org.enso.searcher.sql;
 
-import org.enso.searcher.Suggestion;
+import org.enso.polyglot.Suggestion;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -65,30 +65,38 @@ public class SuggestionsRepoBenchmark {
 
   @Benchmark
   public Object searchBaseline() throws TimeoutException, InterruptedException {
-    return Await.result(repo.search(none(), none(), none()), TIMEOUT);
+    return Await.result(repo.search(none(), none(), none(), none(), none()), TIMEOUT);
   }
 
   @Benchmark
   public Object searchByReturnType() throws TimeoutException, InterruptedException {
-    return Await.result(repo.search(none(), scala.Some.apply("MyType"), none()), TIMEOUT);
+    return Await.result(
+        repo.search(none(), none(), scala.Some.apply("MyType"), none(), none()), TIMEOUT);
   }
 
   @Benchmark
   public Object searchBySelfType() throws TimeoutException, InterruptedException {
-    return Await.result(repo.search(scala.Some.apply("MyType"), none(), none()), TIMEOUT);
+    return Await.result(
+        repo.search(none(), scala.Some.apply("MyType"), none(), none(), none()), TIMEOUT);
   }
 
   @Benchmark
   public Object searchBySelfReturnTypes() throws TimeoutException, InterruptedException {
     return Await.result(
-        repo.search(scala.Some.apply("SelfType"), scala.Some.apply("ReturnType"), none()), TIMEOUT);
+        repo.search(
+            none(), scala.Some.apply("SelfType"), scala.Some.apply("ReturnType"), none(), none()),
+        TIMEOUT);
   }
 
   @Benchmark
   public Object searchByAll() throws TimeoutException, InterruptedException {
     return Await.result(
         repo.search(
-            scala.Some.apply("SelfType"), scala.Some.apply("ReturnType"), scala.Some.apply(kinds)),
+            none(),
+            scala.Some.apply("SelfType"),
+            scala.Some.apply("ReturnType"),
+            scala.Some.apply(kinds),
+            none()),
         TIMEOUT);
   }
 
