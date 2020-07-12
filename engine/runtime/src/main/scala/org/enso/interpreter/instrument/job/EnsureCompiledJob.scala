@@ -24,8 +24,6 @@ import scala.jdk.OptionConverters._
 class EnsureCompiledJob(protected val files: List[File])
     extends Job[Unit](List.empty, true, false) {
 
-  private val builder = new SuggestionBuilder
-
   /**
     * Create a job that ensures that a files is compiled after applying the edits.
     *
@@ -56,33 +54,24 @@ class EnsureCompiledJob(protected val files: List[File])
   )(implicit ctx: RuntimeContext): Unit = {
     files.foreach { file =>
       compile(file).foreach { module =>
-        val removedSuggestions = runInvalidation(file, module)
-        compile(module)
-        removedSuggestions.ifPresent { removed =>
-          val added = builder.build(module.getName.toString, module.getIr)
-          sendSuggestionsNotifications(
-            removed diff added,
-            Api.SuggestionsDatabaseUpdate.Remove
-          )
-          sendSuggestionsNotifications(
-            added diff removed,
-            Api.SuggestionsDatabaseUpdate.Add
-          )
+        applyEdits(file).ifPresent {
+          case (changeset, edits) =>
+            runInvalidationCommands(
+              EnsureCompiledJob.buildCacheInvalidationCommands(changeset, edits)
+            )
+            val removedSuggestions = SuggestionBuilder(changeset.source)
+              .build(module.getName.toString, module.getIr)
+            compile(module)
+            val addedSuggestions =
+              SuggestionBuilder(changeset.applyEdits(edits))
+                .build(module.getName.toString, module.getIr)
+            sendSuggestionsNotifications(
+              removedSuggestions diff addedSuggestions,
+              addedSuggestions diff removedSuggestions
+            )
+
         }
       }
-    }
-  }
-
-  private def runInvalidation(
-    file: File,
-    module: Module
-  )(implicit ctx: RuntimeContext): Optional[Vector[Suggestion]] = {
-    val edits = EnsureCompiledJob.dequeueEdits(file)
-    applyEdits(file, edits).map { changeset =>
-      runInvalidationCommands(
-        EnsureCompiledJob.buildCacheInvalidationCommands(changeset, edits)
-      )
-      builder.build(module.getName.toString, changeset.ir)
     }
   }
 
@@ -98,13 +87,22 @@ class EnsureCompiledJob(protected val files: List[File])
   private def compile(module: Module)(implicit ctx: RuntimeContext): Module =
     module.parseScope(ctx.executionService.getContext).getModule
 
-  private def applyEdits(file: File, edits: Seq[TextEdit])(implicit
+  private def applyEdits(
+    file: File
+  )(implicit
     ctx: RuntimeContext
-  ): Optional[Changeset[Rope]] = {
+  ): Optional[(Changeset[Rope], Seq[TextEdit])] = {
     ctx.locking.acquireFileLock(file)
     ctx.locking.acquireReadCompilationLock()
     try {
-      ctx.executionService.modifyModuleSources(file, edits.asJava)
+      val edits = EnsureCompiledJob.dequeueEdits(file)
+      if (edits.nonEmpty) {
+        ctx.executionService
+          .modifyModuleSources(file, edits.asJava)
+          .map(_ -> edits)
+      } else {
+        Optional.empty()
+      }
     } finally {
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseFileLock(file)
@@ -122,13 +120,16 @@ class EnsureCompiledJob(protected val files: List[File])
   }
 
   private def sendSuggestionsNotifications(
-    suggestions: Seq[Suggestion],
-    toUpdate: Suggestion => Api.SuggestionsDatabaseUpdate
+    removed: Seq[Suggestion],
+    added: Seq[Suggestion]
   )(implicit ctx: RuntimeContext): Unit =
-    if (suggestions.nonEmpty) {
+    if (added.nonEmpty || removed.nonEmpty) {
       ctx.endpoint.sendToClient(
         Api.Response(
-          Api.SuggestionsDatabaseUpdateNotification(suggestions.map(toUpdate))
+          Api.SuggestionsDatabaseUpdateNotification(
+            removed.map(Api.SuggestionsDatabaseUpdate.Remove) :++
+            added.map(Api.SuggestionsDatabaseUpdate.Add)
+          )
         )
       )
     }

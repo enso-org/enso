@@ -33,7 +33,8 @@ object Suggestions {
       name       = "print",
       arguments  = Vector(),
       returnType = "IO",
-      scope      = Suggestion.Scope(9, 22)
+      scope =
+        Suggestion.Scope(Suggestion.Position(1, 9), Suggestion.Position(1, 22))
     )
 
   val local: Suggestion.Local =
@@ -41,7 +42,8 @@ object Suggestions {
       module     = "Test.Main",
       name       = "x",
       returnType = "Number",
-      scope      = Suggestion.Scope(34, 68)
+      scope =
+        Suggestion.Scope(Suggestion.Position(21, 0), Suggestion.Position(89, 0))
     )
 
   val all = Seq(atom, method, function, local)

@@ -9,7 +9,9 @@ import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.SearchProtocol._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.pkg.PackageManager
+import org.enso.polyglot.Suggestion
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
+import org.enso.text.editing.model.Position
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -56,7 +58,7 @@ final class SuggestionsHandler(config: Config, repo: SuggestionsRepo[Future])
         .map(Function.tupled(toGetSuggestionsDatabaseResult))
         .pipeTo(sender())
 
-    case Completion(path, _, selfType, returnType, tags) =>
+    case Completion(path, pos, selfType, returnType, tags) =>
       val kinds = tags.map(_.map(SuggestionKind.toSuggestion))
       val module = for {
         rootFile <-
@@ -71,7 +73,13 @@ final class SuggestionsHandler(config: Config, repo: SuggestionsRepo[Future])
           Future.successful,
           module => {
             repo
-              .search(Some(module), selfType, returnType, kinds, None)
+              .search(
+                Some(module),
+                selfType,
+                returnType,
+                kinds,
+                Some(toPosition(pos))
+              )
               .map(CompletionResult.tupled)
           }
         )
@@ -121,6 +129,9 @@ final class SuggestionsHandler(config: Config, repo: SuggestionsRepo[Future])
 
   private def toModule(segments: Iterable[String]): String =
     segments.mkString(".")
+
+  private def toPosition(pos: Position): Suggestion.Position =
+    Suggestion.Position(pos.line, pos.character)
 }
 
 object SuggestionsHandler {

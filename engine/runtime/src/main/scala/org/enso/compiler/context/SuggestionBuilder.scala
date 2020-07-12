@@ -4,12 +4,17 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.{DocumentationComments, TypeSignatures}
 import org.enso.polyglot.Suggestion
 import org.enso.syntax.text.Location
+import org.enso.text.editing.IndexedSource
 
 import scala.collection.immutable.VectorBuilder
 import scala.collection.mutable
 
-/** Module that extracts [[Suggestion]] entries from the [[IR]]. */
-final class SuggestionBuilder {
+/** Module that extracts [[Suggestion]] entries from the [[IR]].
+  *
+  * @param source the text source
+  * @tparam A the type of the text source
+  */
+final class SuggestionBuilder[A: IndexedSource](val source: A) {
 
   import SuggestionBuilder._
 
@@ -327,10 +332,23 @@ final class SuggestionBuilder {
     }
 
   private def buildScope(location: Location): Suggestion.Scope =
-    Suggestion.Scope(location.start, location.end)
+    Suggestion.Scope(toPosition(location.start), toPosition(location.end))
+
+  private def toPosition(index: Int): Suggestion.Position = {
+    val pos = IndexedSource[A].toPosition(index, source)
+    Suggestion.Position(pos.line, pos.character)
+  }
 }
 
 object SuggestionBuilder {
+
+  /** Create the suggestion builder.
+    *
+    * @param source the text source
+    * @tparam A the type of the text source
+    */
+  def apply[A: IndexedSource](source: A): SuggestionBuilder[A] =
+    new SuggestionBuilder[A](source)
 
   /** A single level of an `IR`.
     *

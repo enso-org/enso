@@ -60,11 +60,19 @@ object Suggestion {
     defaultValue: Option[String]
   )
 
+  /** Position in the text.
+    *
+    * @param line a line position in a document (zero-based).
+    * @param character a character offset
+    */
+  case class Position(line: Int, character: Int)
+
   /** The definition scope.
+    *
     * @param start the start of the definition scope
     * @param end the end of the definition scope
     */
-  case class Scope(start: Int, end: Int)
+  case class Scope(start: Position, end: Position)
 
   /** A value constructor.
     *

@@ -36,8 +36,10 @@ case class ArgumentRow(
   * @param selfType the self type of a suggestion
   * @param returnType the return type of a suggestion
   * @param documentation the documentation string
-  * @param scopeStart the start of the scope
-  * @param scopeEnd the end of the scope
+  * @param scopeStartLine the line of the start position of the scope
+  * @param scopeStartOffset the offset of the start position of the scope
+  * @param scopeEndLine the line of the end position of the scope
+  * @param scopeEndOffset the offset of the end position of the scope
   */
 case class SuggestionRow(
   id: Option[Long],
@@ -47,8 +49,10 @@ case class SuggestionRow(
   selfType: String,
   returnType: String,
   documentation: Option[String],
-  scopeStart: Int,
-  scopeEnd: Int
+  scopeStartLine: Int,
+  scopeStartOffset: Int,
+  scopeEndLine: Int,
+  scopeEndOffset: Int
 )
 
 /** A row in the versions table.
@@ -137,8 +141,14 @@ final class SuggestionsTable(tag: Tag)
   def selfType      = column[String]("self_type")
   def returnType    = column[String]("return_type")
   def documentation = column[Option[String]]("documentation")
-  def scopeStart    = column[Int]("scope_start", O.Default(ScopeColumn.EMPTY))
-  def scopeEnd      = column[Int]("scope_end", O.Default(ScopeColumn.EMPTY))
+  def scopeStartLine =
+    column[Int]("scope_start_line", O.Default(ScopeColumn.EMPTY))
+  def scopeStartOffset =
+    column[Int]("scope_start_offset", O.Default(ScopeColumn.EMPTY))
+  def scopeEndLine =
+    column[Int]("scope_end_line", O.Default(ScopeColumn.EMPTY))
+  def scopeEndOffset =
+    column[Int]("scope_end_offset", O.Default(ScopeColumn.EMPTY))
   def * =
     (
       id.?,
@@ -148,8 +158,10 @@ final class SuggestionsTable(tag: Tag)
       selfType,
       returnType,
       documentation,
-      scopeStart,
-      scopeEnd
+      scopeStartLine,
+      scopeStartOffset,
+      scopeEndLine,
+      scopeEndOffset
     ) <>
     (SuggestionRow.tupled, SuggestionRow.unapply)
 
@@ -162,7 +174,16 @@ final class SuggestionsTable(tag: Tag)
   def uniqueIdx =
     index(
       "suggestions_unique_idx",
-      (kind, module, name, selfType, scopeStart, scopeEnd),
+      (
+        kind,
+        module,
+        name,
+        selfType,
+        scopeStartLine,
+        scopeStartOffset,
+        scopeEndLine,
+        scopeEndOffset
+      ),
       unique = true
     )
 }

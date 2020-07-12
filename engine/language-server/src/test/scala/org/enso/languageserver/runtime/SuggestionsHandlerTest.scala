@@ -114,7 +114,7 @@ class SuggestionsHandlerTest
         Await.result(repo.insertAll(Suggestions.all), Timeout)
       handler ! SearchProtocol.Completion(
         file       = mkModulePath(config, "Main.enso"),
-        position   = Position(0, 0),
+        position   = Position(1, 10),
         selfType   = None,
         returnType = Some("IO"),
         tags       = None
@@ -129,7 +129,7 @@ class SuggestionsHandlerTest
         Await.result(repo.insertAll(Suggestions.all), Timeout)
       handler ! SearchProtocol.Completion(
         file       = mkModulePath(config, "Main.enso"),
-        position   = Position(0, 0),
+        position   = Position(42, 0),
         selfType   = None,
         returnType = None,
         tags       = Some(Seq(SearchProtocol.SuggestionKind.Local))

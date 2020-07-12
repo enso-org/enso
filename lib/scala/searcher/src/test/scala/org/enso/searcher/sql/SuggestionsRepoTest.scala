@@ -273,7 +273,8 @@ class SuggestionsRepoTest
         id2 <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
-        res <- repo.search(None, None, None, None, Some(99))
+        res <-
+          repo.search(None, None, None, None, Some(Suggestion.Position(99, 42)))
       } yield (id1, id2, res._2)
 
       val (id1, id2, res) = Await.result(action, Timeout)
@@ -286,7 +287,8 @@ class SuggestionsRepoTest
         id2 <- repo.insert(suggestion.method)
         id3 <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
-        res <- repo.search(None, None, None, None, Some(5))
+        res <-
+          repo.search(None, None, None, None, Some(Suggestion.Position(1, 5)))
       } yield (id1, id2, id3, res._2)
 
       val (id1, id2, id3, res) = Await.result(action, Timeout)
@@ -326,7 +328,13 @@ class SuggestionsRepoTest
         _   <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         id4 <- repo.insert(suggestion.local)
-        res <- repo.search(None, None, Some("MyType"), None, Some(42))
+        res <- repo.search(
+          None,
+          None,
+          Some("MyType"),
+          None,
+          Some(Suggestion.Position(42, 0))
+        )
       } yield (id4, res._2)
 
       val (id, res) = Await.result(action, Timeout)
@@ -340,7 +348,13 @@ class SuggestionsRepoTest
         _   <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         _   <- repo.insert(suggestion.local)
-        res <- repo.search(None, None, None, Some(kinds), Some(99))
+        res <- repo.search(
+          None,
+          None,
+          None,
+          Some(kinds),
+          Some(Suggestion.Position(99, 1))
+        )
       } yield (id1, res._2)
 
       val (id, res) = Await.result(action, Timeout)
@@ -387,7 +401,13 @@ class SuggestionsRepoTest
         _   <- repo.insert(suggestion.method)
         _   <- repo.insert(suggestion.function)
         id4 <- repo.insert(suggestion.local)
-        res <- repo.search(None, None, Some("MyType"), Some(kinds), Some(42))
+        res <- repo.search(
+          None,
+          None,
+          Some("MyType"),
+          Some(kinds),
+          Some(Suggestion.Position(42, 0))
+        )
       } yield (id4, res._2)
 
       val (id, res) = Await.result(action, Timeout)
@@ -410,7 +430,7 @@ class SuggestionsRepoTest
           Some("Main"),
           Some("MyType"),
           Some(kinds),
-          Some(42)
+          Some(Suggestion.Position(42, 0))
         )
       } yield res._2
 
@@ -451,7 +471,8 @@ class SuggestionsRepoTest
           Suggestion.Argument("x", "Number", false, true, Some("0"))
         ),
         returnType = "MyType",
-        scope      = Suggestion.Scope(5, 9)
+        scope =
+          Suggestion.Scope(Suggestion.Position(1, 5), Suggestion.Position(1, 9))
       )
 
     val local: Suggestion.Local =
@@ -459,7 +480,10 @@ class SuggestionsRepoTest
         module     = "Test.Main",
         name       = "bazz",
         returnType = "MyType",
-        scope      = Suggestion.Scope(37, 84)
+        scope = Suggestion.Scope(
+          Suggestion.Position(32, 0),
+          Suggestion.Position(84, 0)
+        )
       )
   }
 }

@@ -44,7 +44,7 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     selfType: Option[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Int]
+    position: Option[Suggestion.Position]
   ): Future[(Long, Seq[Long])] =
     db.run(searchQuery(module, selfType, returnType, kinds, position))
 
@@ -119,7 +119,7 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     selfType: Option[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Int]
+    position: Option[Suggestion.Position]
   ): DBIO[(Long, Seq[Long])] = {
     val searchAction =
       if (
@@ -201,8 +201,10 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     val selectQuery = Suggestions
       .filter(_.kind === raw.kind)
       .filter(_.name === raw.name)
-      .filter(_.scopeStart === raw.scopeStart)
-      .filter(_.scopeEnd === raw.scopeEnd)
+      .filter(_.scopeStartLine === raw.scopeStartLine)
+      .filter(_.scopeStartOffset === raw.scopeStartOffset)
+      .filter(_.scopeEndLine === raw.scopeEndLine)
+      .filter(_.scopeEndOffset === raw.scopeEndOffset)
     val deleteQuery = for {
       rows <- selectQuery.result
       n    <- selectQuery.delete
@@ -259,7 +261,7 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     selfType: Option[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Int]
+    position: Option[Suggestion.Position]
   ): Query[SuggestionsTable, SuggestionRow, Seq] = {
     Suggestions
       .filterOpt(module) {
@@ -276,8 +278,13 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
       }
       .filterOpt(position) {
         case (row, value) =>
-          (row.scopeStart === ScopeColumn.EMPTY) ||
-          (row.scopeStart <= value && row.scopeEnd >= value)
+          (row.scopeStartLine === ScopeColumn.EMPTY) ||
+          (
+            row.scopeStartLine <= value.line &&
+            row.scopeStartOffset <= value.character &&
+            row.scopeEndLine >= value.line &&
+            row.scopeEndOffset >= value.character
+          )
       }
   }
 
@@ -316,54 +323,62 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     suggestion match {
       case Suggestion.Atom(module, name, args, returnType, doc) =>
         val row = SuggestionRow(
-          id            = None,
-          kind          = SuggestionKind.ATOM,
-          module        = module,
-          name          = name,
-          selfType      = SelfTypeColumn.EMPTY,
-          returnType    = returnType,
-          documentation = doc,
-          scopeStart    = ScopeColumn.EMPTY,
-          scopeEnd      = ScopeColumn.EMPTY
+          id               = None,
+          kind             = SuggestionKind.ATOM,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY
         )
         row -> args
       case Suggestion.Method(module, name, args, selfType, returnType, doc) =>
         val row = SuggestionRow(
-          id            = None,
-          kind          = SuggestionKind.METHOD,
-          module        = module,
-          name          = name,
-          selfType      = selfType,
-          returnType    = returnType,
-          documentation = doc,
-          scopeStart    = ScopeColumn.EMPTY,
-          scopeEnd      = ScopeColumn.EMPTY
+          id               = None,
+          kind             = SuggestionKind.METHOD,
+          module           = module,
+          name             = name,
+          selfType         = selfType,
+          returnType       = returnType,
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY
         )
         row -> args
       case Suggestion.Function(module, name, args, returnType, scope) =>
         val row = SuggestionRow(
-          id            = None,
-          kind          = SuggestionKind.FUNCTION,
-          module        = module,
-          name          = name,
-          selfType      = SelfTypeColumn.EMPTY,
-          returnType    = returnType,
-          documentation = None,
-          scopeStart    = scope.start,
-          scopeEnd      = scope.end
+          id               = None,
+          kind             = SuggestionKind.FUNCTION,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          documentation    = None,
+          scopeStartLine   = scope.start.line,
+          scopeStartOffset = scope.start.character,
+          scopeEndLine     = scope.end.line,
+          scopeEndOffset   = scope.end.character
         )
         row -> args
       case Suggestion.Local(module, name, returnType, scope) =>
         val row = SuggestionRow(
-          id            = None,
-          kind          = SuggestionKind.LOCAL,
-          module        = module,
-          name          = name,
-          selfType      = SelfTypeColumn.EMPTY,
-          returnType    = returnType,
-          documentation = None,
-          scopeStart    = scope.start,
-          scopeEnd      = scope.end
+          id               = None,
+          kind             = SuggestionKind.LOCAL,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          documentation    = None,
+          scopeStartLine   = scope.start.line,
+          scopeStartOffset = scope.start.character,
+          scopeEndLine     = scope.end.line,
+          scopeEndOffset   = scope.end.character
         )
         row -> Seq()
     }
@@ -421,14 +436,32 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
           name       = suggestion.name,
           arguments  = arguments.sortBy(_.index).map(toArgument),
           returnType = suggestion.returnType,
-          scope      = Suggestion.Scope(suggestion.scopeStart, suggestion.scopeEnd)
+          scope = Suggestion.Scope(
+            Suggestion.Position(
+              suggestion.scopeStartLine,
+              suggestion.scopeStartOffset
+            ),
+            Suggestion.Position(
+              suggestion.scopeEndLine,
+              suggestion.scopeEndOffset
+            )
+          )
         )
       case SuggestionKind.LOCAL =>
         Suggestion.Local(
           module     = suggestion.module,
           name       = suggestion.name,
           returnType = suggestion.returnType,
-          scope      = Suggestion.Scope(suggestion.scopeStart, suggestion.scopeEnd)
+          scope = Suggestion.Scope(
+            Suggestion.Position(
+              suggestion.scopeStartLine,
+              suggestion.scopeStartOffset
+            ),
+            Suggestion.Position(
+              suggestion.scopeEndLine,
+              suggestion.scopeEndOffset
+            )
+          )
         )
       case k =>
         throw new NoSuchElementException(s"Unknown suggestion kind: $k")

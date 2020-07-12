@@ -124,8 +124,14 @@ class SuggestionsDatabaseEventsListenerTest
                   ],
                   "returnType" : "IO",
                   "scope" : {
-                    "start" : 9,
-                    "end" : 22
+                    "start" : {
+                      "line" : 1,
+                      "character" : 9
+                    },
+                    "end" : {
+                      "line" : 1,
+                      "character" : 22
+                    }
                   }
                 }
               }
@@ -155,8 +161,14 @@ class SuggestionsDatabaseEventsListenerTest
                   "name" : "x",
                   "returnType" : "Number",
                   "scope" : {
-                    "start" : 34,
-                    "end" : 68
+                    "start" : {
+                      "line" : 21,
+                      "character" : 0
+                    },
+                    "end" : {
+                      "line" : 89,
+                      "character" : 0
+                    }
                   }
                 }
               }

@@ -34,7 +34,7 @@ trait SuggestionsRepo[F[_]] {
     selfType: Option[String],
     returnType: Option[String],
     kinds: Option[Seq[Suggestion.Kind]],
-    position: Option[Int]
+    position: Option[Suggestion.Position]
   ): F[(Long, Seq[Long])]
 
   /** Select the suggestion by id.

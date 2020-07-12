@@ -56,8 +56,14 @@ object SuggestionRandom {
 
   def nextScope(): Suggestion.Scope =
     Suggestion.Scope(
-      start = Random.nextInt(Int.MaxValue),
-      end   = Random.nextInt(Int.MaxValue)
+      start = nextPosition(),
+      end   = nextPosition()
+    )
+
+  def nextPosition(): Suggestion.Position =
+    Suggestion.Position(
+      Random.nextInt(Int.MaxValue),
+      Random.nextInt(Int.MaxValue)
     )
 
   def nextKind(): Suggestion.Kind =
