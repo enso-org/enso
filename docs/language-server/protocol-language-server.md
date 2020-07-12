@@ -265,10 +265,10 @@ The language construct that can be returned as a suggestion.
 // The definition scope
 interface SuggestionEntryScope {
 
-  // The char index indicating the start of the definition scope
-  start: number;
-  // The char index indicating the end of the definition scope
-  end: number;
+  // The start position of the definition scope
+  start: Position;
+  // The end position of the definition scope
+  end: Position;
 }
 
 // A type of suggestion entries.
