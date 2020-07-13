@@ -38,9 +38,9 @@ type StateSetId = BTreeSet<state::Identifier>;
 /// [epsilon links](https://en.wikipedia.org/wiki/Nondeterministic_finite_automaton#NFA_with_%CE%B5-moves).
 ///
 /// ```text
-///  ┌───┐  'N'  ┌───┐   ┌───┐  'F'  ┌───┐   ┌───┐  'A'  ┌───┐
-///  │ 0 │──────▶│ 1 │──▶│ 2 │──────▶│ 3 │──▶│ 3 │──────▶│ 3 │
-///  └───┘       └───┘ ε └───┘       └───┘ ε └───┘       └───┘
+///  ┌───┐  'N'  ┌───┐    ┌───┐  'F'  ┌───┐    ┌───┐  'A'  ┌───┐
+///  │ 0 │ ----> │ 1 │ -> │ 2 │ ----> │ 3 │ -> │ 3 │ ----> │ 3 │
+///  └───┘       └───┘ ε  └───┘       └───┘ ε  └───┘       └───┘
 /// ```
 #[derive(Clone,Debug,Default,PartialEq,Eq)]
 pub struct NFA {
@@ -81,6 +81,7 @@ impl NFA {
 
     /// Transforms a pattern to an NFA using the algorithm described
     /// [here](https://www.youtube.com/watch?v=RYNN-tb9WxI).
+    /// The asymptotic complexity is linear in number of symbols.
     pub fn new_pattern(&mut self, source:state::Identifier, pattern:&Pattern) -> state::Identifier {
         let current = self.new_state();
         self.connect(source,current);
@@ -120,35 +121,26 @@ impl NFA {
         fn fill_eps_matrix
         ( nfa      : &NFA
         , states   : &mut Vec<StateSetId>
-        , computed : &mut Vec<bool>
         , visited  : &mut Vec<bool>
         , state    : state::Identifier
         ) {
             let mut state_set = StateSetId::new();
-            let mut circular  = false;
             visited[state.id] = true;
             state_set.insert(state);
             for &target in &nfa.states[state.id].epsilon_links {
                 if !visited[target.id] {
-                    fill_eps_matrix(nfa,states,computed,visited,target);
+                    fill_eps_matrix(nfa,states,visited,target);
                 }
                 state_set.insert(target);
                 state_set.extend(states[target.id].iter());
-                if !computed[target.id] {
-                    circular = true
-                }
-            }
-            if !circular {
-                computed[state.id] = true
             }
             states[state.id] = state_set;
         }
 
-        let mut states   = vec![StateSetId::new(); self.states.len()];
-        let mut computed = vec![false; self.states.len()];
+        let mut states = vec![StateSetId::new(); self.states.len()];
         for id in 0..self.states.len() {
             let mut visited = vec![false; states.len()];
-            fill_eps_matrix(self,&mut states,&mut computed,&mut visited,state::Identifier{id});
+            fill_eps_matrix(self,&mut states,&mut visited,state::Identifier{id});
         }
         states
     }
@@ -171,6 +163,7 @@ impl From<&NFA> for DFA {
 
     /// Transforms an NFA into a DFA, based on the algorithm described
     /// [here](https://www.youtube.com/watch?v=taClnxU-nao).
+    /// The asymptotic complexity is quadratic in number of states.
     fn from(nfa:&NFA) -> Self {
         let     nfa_mat     = nfa.nfa_matrix();
         let     eps_mat     = nfa.eps_matrix();
