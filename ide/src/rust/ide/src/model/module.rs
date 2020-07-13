@@ -17,7 +17,7 @@ use parser::Parser;
 use serde::Serialize;
 use serde::Deserialize;
 
-
+pub use double_representation::module::QualifiedName;
 
 // ============
 // == Errors ==
@@ -148,6 +148,26 @@ impl Path {
             file            : self.file_path.deref().clone(),
         }
     }
+
+    /// Obtain a module's full qualified name from the path and the project name.
+    ///
+    /// ```
+    /// use ide::prelude::*;
+    /// use ide::model::module::QualifiedName;
+    /// use ide::model::module::Path;
+    ///
+    /// let path = Path::from_name_segments(default(),&["Main"]).unwrap();
+    /// assert_eq!(path.to_string(),"//00000000-0000-0000-0000-000000000000/src/Main.enso");
+    /// let name = path.qualified_module_name("Project");
+    /// assert_eq!(name.to_string(),"Project.Main");
+    /// ```
+    pub fn qualified_module_name(&self, project_name:impl Str) -> QualifiedName {
+        let non_src_directories = &self.file_path.segments[1..self.file_path.segments.len()-1];
+        let non_src_directories = non_src_directories.iter().map(|dirname| dirname.as_str());
+        let module_name         = std::iter::once(self.module_name());
+        let module_segments     = non_src_directories.chain(module_name);
+        QualifiedName::from_segments(project_name,module_segments)
+    }
 }
 
 impl PartialEq<FilePath> for Path {
@@ -177,65 +197,6 @@ impl TryFrom<MethodPointer> for Path {
         value.file.try_into()
     }
 }
-
-
-
-// ===========================
-// === ModuleQualifiedName ===
-// ===========================
-
-/// Module's qualified name is used in some of the Language Server's APIs, like
-/// `VisualisationConfiguration`.
-///
-/// Qualified name is constructed as follows:
-/// `ProjectName.<directories_between_src_and_enso_file>.<file_without_ext>`
-///
-/// See https://dev.enso.org/docs/distribution/packaging.html for more information about the
-/// package structure.
-#[derive(Clone,Debug,Shrinkwrap)]
-pub struct QualifiedName(String);
-
-impl QualifiedName {
-    /// Obtain a module's full qualified name from its path and the project name.
-    ///
-    /// ```
-    /// use ide::prelude::*;
-    /// use ide::model::module::QualifiedName;
-    /// use ide::model::module::Path;
-    ///
-    /// let path = Path::from_name_segments(default(),&["Main"]).unwrap();
-    /// assert_eq!(path.to_string(),"//00000000-0000-0000-0000-000000000000/src/Main.enso");
-    /// let name = QualifiedName::from_path(&path,"Project");
-    /// assert_eq!(name.to_string(),"Project.Main");
-    /// ```
-    pub fn from_path(path:&Path, project_name:impl Str) -> QualifiedName {
-        let non_src_directories = &path.file_path.segments[1..path.file_path.segments.len()-1];
-        let non_src_directories = non_src_directories.iter().map(|dirname| dirname.as_str());
-        let module_name         = std::iter::once(path.module_name());
-        let module_segments     = non_src_directories.chain(module_name);
-        Self::from_module_segments(module_segments,project_name)
-    }
-
-    /// Obtain a module's full qualified name from its path and the project name.
-    ///
-    /// ```
-    /// use ide::model::module::QualifiedName;
-    ///
-    /// let name = QualifiedName::from_module_segments(&["Main"],"Project");
-    /// assert_eq!(name.to_string(), "Project.Main");
-    /// ```
-    pub fn from_module_segments
-    (module_segments:impl IntoIterator<Item:AsRef<str>>, project_name:impl Str)
-    -> QualifiedName {
-        let project_name     = std::iter::once(project_name.into());
-        let module_segments  = module_segments.into_iter();
-        let module_segments  = module_segments.map(|segment| segment.as_ref().to_string());
-        let mut all_segments = project_name.chain(module_segments);
-        let name             = all_segments.join(".");
-        QualifiedName(name)
-    }
-}
-
 
 
 // ====================
@@ -589,7 +550,7 @@ mod test {
         let root_id      = default();
         let file_path    = FilePath::new(root_id, &["src", "Foo", "Bar.enso"]);
         let module_path  = Path::from_file_path(file_path).unwrap();
-        let qualified    = QualifiedName::from_path(&module_path,project_name);
+        let qualified    = module_path.qualified_module_name(project_name);
         assert_eq!(*qualified, "P.Foo.Bar");
     }
 }

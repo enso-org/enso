@@ -399,9 +399,10 @@ impl<'de> Deserialize<'de> for Ast {
 #[ast(flat)]
 #[derive(HasTokens)]
 pub enum Shape<T> {
-    Unrecognized  { str   : String  },
-    InvalidQuote  { quote : Builder },
-    InlineBlock   { quote : Builder },
+    Unrecognized  { str   : String                         },
+    Unexpected    { msg   : String, stream:Vec<Shifted<T>> },
+    InvalidQuote  { quote : Builder                        },
+    InlineBlock   { quote : Builder                        },
 
     // === Identifiers ===
     Blank         { },
@@ -475,7 +476,7 @@ pub enum Shape<T> {
 #[macro_export]
 macro_rules! with_shape_variants {
     ($f:ident) => {
-        $f! { [Unrecognized] [InvalidQuote] [InlineBlock]
+        $f! { [Unrecognized] [Unexpected Ast] [InvalidQuote] [InlineBlock]
               [Blank] [Var] [Cons] [Opr] [Mod] [InvalidSuffix Ast]
               [Number] [DanglingBase]
               [TextLineRaw] [TextLineFmt Ast] [TextBlockRaw] [TextBlockFmt Ast] [TextUnclosed Ast]
