@@ -33,6 +33,7 @@ This document describes available command-line options of the Enso launcher.
 - [General Options](#general-options)
   - [`--version`](#--version)
   - [`--use-system-jvm`](#--use-system-jvm)
+- [JVM Options](#jvm-options)
 
 <!-- /MarkdownTOC -->
 
@@ -196,3 +197,12 @@ command.
 ### `--use-system-jvm`
 Tells the launcher to use the default JVM (based on `JAVA_HOME`) instead of the
 managed one. Will not work if the set-up JVM version is not GraalVM.
+
+## JVM Options
+For commands that launch an Enso component inside a JVM (`repl`, `run` and
+`language-server`), additional parameters are passed to the launcher components.
+Moreover, it is possible to pass parameters to the JVM that is used to launch
+these components, which may be helpful with debugging.
+
+A parameter of the form `--jvm.argumentName=argumentValue` will be passed to the
+JVM as `-DargumentName=argumentValue`.

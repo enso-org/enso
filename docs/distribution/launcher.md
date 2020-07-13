@@ -14,6 +14,7 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Launcher Distribution](#launcher-distribution)
+  - [Using Multiple Launcher Versions Side-By-Side](#using-multiple-launcher-versions-side-by-side)
 - [Launcher Build](#launcher-build)
   - [Portability](#portability)
 - [Project Management](#project-management)
@@ -25,6 +26,7 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
   - [Downloading Enso Releases](#downloading-enso-releases)
   - [Downloading GraalVM Releases](#downloading-graalvm-releases)
 - [Running Enso Components](#running-enso-components)
+  - [Running Plugins](#running-plugins)
 - [Global User Configuration](#global-user-configuration)
 - [Updating the Launcher](#updating-the-launcher)
   - [Minimal Required Launcher Version](#minimal-required-launcher-version)
@@ -162,7 +164,9 @@ parameters and configuration:
    used.
 
 Additional arguments passed to the launcher are forwarded to the launched
-component.
+component. Moreover, options for the JVM that is used to run the components
+can also be provided, as described in
+[JVM Options](./launcher-cli.md#jvm-options).
 
 ### Running Plugins
 If the launcher gets an unknown command `foo`, it tries to run `enso-foo` and
