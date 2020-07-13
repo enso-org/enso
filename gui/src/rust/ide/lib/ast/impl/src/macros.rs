@@ -12,6 +12,35 @@ use crate::known;
 
 
 // ===============
+// === Imports ===
+// ===============
+
+/// The keyword introducing an import declaration. See:
+/// https://dev.enso.org/docs/enso/syntax/imports.html#import-syntax
+pub const IMPORT_KEYWORD:&str = "import";
+
+/// If the given AST node is an import declaration, returns it as a Match (which is the only shape
+/// capable of storing import declarations). Returns `None` otherwise.
+pub fn ast_as_import_match(ast:&Ast) -> Option<known::Match> {
+    let macro_match = known::Match::try_from(ast).ok()?;
+    is_match_import(&macro_match).then(macro_match)
+}
+
+/// Check if the given macro match node is an import declaration.
+pub fn is_match_import(ast:&known::Match) -> bool {
+    let segment = &ast.segs.head;
+    let keyword = crate::identifier::name(&segment.head);
+    keyword.contains_if(|str| *str == IMPORT_KEYWORD)
+}
+
+/// Check if the given ast node is an import declaration.
+pub fn is_ast_import(ast:&Ast) -> bool {
+    ast_as_import_match(ast).is_some()
+}
+
+
+
+// ===============
 // === Lambdas ===
 // ===============
 

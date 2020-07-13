@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::double_representation::text::apply_code_change_to_id_map;
+use crate::double_representation::module;
 use crate::model::module::Path;
 
 use ast;
@@ -11,6 +12,7 @@ use data::text::*;
 use enso_protocol::language_server;
 use enso_protocol::types::Sha3_224;
 use parser::Parser;
+
 
 
 // ==============
@@ -127,6 +129,43 @@ impl Handle {
             defined_on_type,
             name : crumb.name.item.clone(),
         })
+    }
+
+    /// Modify module by modifying its `Info` description (which is a wrapper directly over module's
+    /// AST).
+    pub fn modify<R>(&self, f:impl FnOnce(&mut module::Info) -> R) -> R {
+        let mut module = self.module_info();
+        let ret        = f(&mut module);
+        self.model.update_ast(module.ast);
+        ret
+    }
+
+    /// Obtains the `Info` value describing this module's AST.
+    pub fn module_info(&self) -> module::Info {
+        let ast = self.model.ast();
+        double_representation::module::Info {ast}
+    }
+
+    /// Adds a new import to the module.
+    ///
+    /// May create duplicate entries if such import was already present.
+    pub fn add_import(&self, target:&module::QualifiedName) {
+        let import = module::ImportInfo::from_qualified_name(target);
+        self.modify(|info| info.add_import(&self.parser, import));
+    }
+
+    /// Removes an import declaration that brings given target.
+    ///
+    /// Fails, if there was no such declaration found.
+    pub fn remove_import(&self, target:&module::QualifiedName) -> FallibleResult<()> {
+        let import = module::ImportInfo::from_qualified_name(target);
+        self.modify(|info| info.remove_import(&import))
+    }
+
+    /// Retrieve a vector describing all import declarations currently present in the module.
+    pub fn imports(&self) -> Vec<module::ImportInfo> {
+        let module = self.module_info();
+        module.iter_imports().collect()
     }
 
     /// Creates a mocked module controller.
