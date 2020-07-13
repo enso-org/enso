@@ -8,6 +8,9 @@ import scala.util.Random
 
 object SuggestionRandom {
 
+  def nextUpdateAllInput(): Seq[(UUID, String)] =
+    Seq(UUID.randomUUID() -> nextString())
+
   def nextKinds(): Seq[Suggestion.Kind] =
     Set.fill(1)(nextKind()).toSeq
 

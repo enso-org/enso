@@ -236,7 +236,7 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
   }
 
   /** Update a suggestion. */
-  def updateQuery(
+  private def updateQuery(
     externalId: Suggestion.ExternalId,
     returnType: String
   ): DBIO[Option[Long]] = {
@@ -247,18 +247,19 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
       }
     for {
       id <- selectQuery.map(_.id).result.headOption
-      n  <- selectQuery.map(_.returnType).update(returnType)
-      _  <- if (n > 0) incrementVersionQuery else DBIO.successful(())
+      _  <- selectQuery.map(_.returnType).update(returnType)
     } yield id
   }
 
   /** Update a list of suggestions by external id. */
-  def updateAllQuery(
+  private def updateAllQuery(
     expressions: Seq[(Suggestion.ExternalId, String)]
   ): DBIO[(Long, Seq[Option[Long]])] = {
     val query = for {
-      ids     <- DBIO.sequence(expressions.map(Function.tupled(updateQuery)))
-      version <- currentVersionQuery
+      ids <- DBIO.sequence(expressions.map(Function.tupled(updateQuery)))
+      version <-
+        if (ids.exists(_.nonEmpty)) incrementVersionQuery
+        else currentVersionQuery
     } yield (version, ids)
     query.transactionally
   }

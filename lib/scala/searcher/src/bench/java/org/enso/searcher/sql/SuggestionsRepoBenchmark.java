@@ -13,6 +13,7 @@ import scala.concurrent.duration.Duration;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
@@ -30,6 +31,7 @@ public class SuggestionsRepoBenchmark {
 
   final Path dbfile = Path.of(System.getProperty("java.io.tmpdir"), "bench-suggestions.db");
   final Seq<Suggestion.Kind> kinds = SuggestionRandom.nextKinds();
+  final Seq<scala.Tuple2<UUID, String>> updateInput = SuggestionRandom.nextUpdateAllInput();
 
   SqlSuggestionsRepo repo;
 
@@ -99,6 +101,12 @@ public class SuggestionsRepoBenchmark {
             none()),
         TIMEOUT);
   }
+
+  @Benchmark
+  public Object updateByExternalId() throws TimeoutException, InterruptedException {
+    return Await.result(repo.updateAll(updateInput), TIMEOUT);
+  }
+
 
   public static void main(String[] args) throws RunnerException {
     Options opt =

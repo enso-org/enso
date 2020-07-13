@@ -173,14 +173,12 @@ final class SuggestionsTable(tag: Tag)
     ) <>
     (SuggestionRow.tupled, SuggestionRow.unapply)
 
-  def externalIdLeastIdx =
-    index("suggestions_external_id_least_idx", externalIdLeast)
-  def externalIdMostIdx =
-    index("suggestions_external_id_most_idx", externalIdMost)
   def moduleIdx     = index("suggestions_module_idx", module)
   def name_idx      = index("suggestions_name_idx", name)
   def selfTypeIdx   = index("suggestions_self_type_idx", selfType)
   def returnTypeIdx = index("suggestions_return_type_idx", returnType)
+  def externalIdIdx =
+    index("suggestions_external_id_idx", (externalIdLeast, externalIdMost))
   // NOTE: unique index should not contain nullable columns because SQLite
   // teats NULLs as distinct values.
   def uniqueIdx =
