@@ -1,16 +1,16 @@
 [package]
-name    = "parser-definition"
+name    = "lexer-definition"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2018"
 
-description  = "Parser for the enso language."
+description  = "Lexer for the enso language."
 readme       = "README.md"
-homepage     = "https://github.com/enso-org/enso/lib/rust/parser/definition"
+homepage     = "https://github.com/enso-org/enso/lib/rust/lexer/definition"
 repository   = "https://github.com/enso-org/enso"
 license-file = "../../../../LICENSE"
 
-keywords   = ["parser", "lexer", "finite-automata"]
+keywords   = ["lexer", "finite-automata"]
 categories = ["parsing"]
 
 publish = false

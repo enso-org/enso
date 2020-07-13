@@ -1,16 +1,16 @@
 [package]
-name    = "parser-engine"
+name    = "lexer-generation"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2018"
 
-description  = "The engine of parser for the enso language."
+description  = "The generated code for the lexer of the enso language."
 readme       = "README.md"
-homepage     = "https://github.com/enso-org/enso/lib/rust/parser/engine"
+homepage     = "https://github.com/enso-org/enso/lib/rust/lexer/generation"
 repository   = "https://github.com/enso-org/enso"
 license-file = "../../../../LICENSE"
 
-keywords   = ["parser", "lexer", "finite-automata"]
+keywords   = ["lexer", "finite-automata"]
 categories = ["parsing"]
 
 publish = false
@@ -22,8 +22,8 @@ bench      = true
 
 [dependencies]
 flexer            = { path = "../../flexer" , version = "0.1.0" }
-parser-definition = { path = "../definition", version = "0.1.0" }
+lexer-definition = { path = "../definition", version = "0.1.0" }
 
 [build-dependencies]
 flexer            = { path = "../../flexer" , version = "0.1.0" }
-parser-definition = { path = "../definition", version = "0.1.0" }
+lexer-definition = { path = "../definition", version = "0.1.0" }

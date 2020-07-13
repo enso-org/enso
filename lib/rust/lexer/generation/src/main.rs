@@ -1,4 +1,4 @@
-use parser_engine::lexer::Lexer;
+use lexer_generation::lexer::Lexer;
 
 
 fn main() {

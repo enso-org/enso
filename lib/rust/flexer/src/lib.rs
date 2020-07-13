@@ -29,7 +29,7 @@ pub trait Flexer {
     fn new() -> Self;
 
     /// Returns a code for a highly-optimised lexer implemented on top of finite-state-automata.
-    fn specialize(&mut self) -> String {
+    fn generate_specialized_code(&mut self) -> String {
         String::from("#[derive(Debug)]\npub struct Lexer {}")
     }
 }

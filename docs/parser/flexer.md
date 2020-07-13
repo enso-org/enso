@@ -16,6 +16,7 @@ from which it then generates code for a highly-optimised lexer.
 - [Pattern Description](#pattern-description)
 - [State Management](#state-management)
 - [Code Generation](#code-generation)
+    - [Automated Code Generation](#automated-code-generation)
     - [Notes on Code Generation](#notes-on-code-generation)
 - [An Example](#an-example)
 
@@ -88,28 +89,27 @@ they mostly choose the _longest_ match instead. Once the pattern is matched, the
 associated code is executed and the process starts over again until the input
 stream has been consumed.
 
-### Automatic code generation
-
+### Automated code generation
 In order to avoid getting lexer definition out of sync with its implementation
 (generated engine), it is required to create a separate crate for the generated 
 engine with lexer definition as one of its dependencies.
 
 This separation enables a call to `specialize` (function that generates the engine)
 in `build.rs` during compilation. The output can be stored in new file i.e. 
-`lexer-engine.rs` and exported with `include!("lexer-engine.src")`. The project
+`lexer-engine.rs` and exported with `include!("lexer-engine.rs")`. The project
 structure should therefore look like:
 
 ```
-- root/
-  - lexer-definition/
+- lib/rust/lexer/
+  - definition/
     - src/
       - lexer.rs
     - cargo.toml
 
-  - lexer-engine/
+  - generation/
     - src/
       - lexer.rs <-- include!("lexer-engine.rs")
-    - build.rs   <-- calls `lexer-definition::Lexer::new()::specialize()`
+    - build.rs   <-- calls `lexer_definition::lexer_source_code()`
                   -- and saves its output to `src/lexer-engine.rs`
     - cargo.toml <-- lexer-definition is in dependencies and build-dependencies
 ```
