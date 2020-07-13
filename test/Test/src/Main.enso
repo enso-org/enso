@@ -1,0 +1,10 @@
+three_times ~x =
+    x
+    x
+    x
+
+main =
+    here.three_times <|
+        x = IO.println "fst"
+        y = IO.println "snd"
+

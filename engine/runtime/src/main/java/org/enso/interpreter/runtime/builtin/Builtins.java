@@ -6,6 +6,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.*;
+import org.enso.interpreter.node.expression.builtin.function.ApplicationOperatorMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.generic.*;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNode;
@@ -138,6 +139,7 @@ public class Builtins {
     scope.registerMethod(debug, "breakpoint", DebugBreakpointMethodGen.makeFunction(language));
 
     scope.registerMethod(function, "call", ExplicitCallFunctionMethodGen.makeFunction(language));
+    scope.registerMethod(function, "<|", ApplicationOperatorMethodGen.makeFunction(language));
 
     scope.registerMethod(text, "+", ConcatMethodGen.makeFunction(language));
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
