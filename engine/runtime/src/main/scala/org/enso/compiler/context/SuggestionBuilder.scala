@@ -52,7 +52,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                 ) =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             acc += buildMethod(
-                ir.getExternalId,
+                body.getExternalId,
                 module,
                 methodName,
                 typePtr,
@@ -71,7 +71,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               ) if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             acc += buildFunction(
-                ir.getExternalId,
+                body.getExternalId,
                 module,
                 name,
                 args,
@@ -84,7 +84,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             acc += buildLocal(
-                ir.getExternalId,
+                expr.getExternalId,
                 module,
                 name.name,
                 scope.location.get,
@@ -94,7 +94,6 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
             go(scope, scopes, acc)
           case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
             acc += buildAtom(
-                ir.getExternalId,
                 module,
                 name.name,
                 arguments,
@@ -204,14 +203,13 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     }
 
   private def buildAtom(
-    externalId: Option[IR.ExternalId],
     module: String,
     name: String,
     arguments: Seq[IR.DefinitionArgument],
     doc: Option[String]
   ): Suggestion.Atom =
     Suggestion.Atom(
-      externalId    = externalId,
+      externalId    = None,
       module        = module,
       name          = name,
       arguments     = arguments.map(buildArgument),

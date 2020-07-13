@@ -490,11 +490,11 @@ class SuggestionBuilderTest extends CompilerTest {
     "build method with external id" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
       val code =
-        """main = IO.println("Hello!")
+        """main = IO.println "Hello!"
           |
           |
           |#### METADATA ####
-          |[[{"index": {"value": 0}, "size": {"value": 27}}, "4083ce56-a5e5-4ecd-bf45-37ddf0b58456"]]
+          |[[{"index": {"value": 7}, "size": {"value": 19}}, "4083ce56-a5e5-4ecd-bf45-37ddf0b58456"]]
           |[]
           |""".stripMargin
       val module = code.preprocessModule
@@ -514,6 +514,90 @@ class SuggestionBuilderTest extends CompilerTest {
         )
       )
     }
+
+    "build function with external id" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """main =
+          |    id x = x
+          |    IO.println (id "Hello!")
+          |
+          |
+          |#### METADATA ####
+          |[[{"index": {"value": 18}, "size": {"value": 1}}, "f533d910-63f8-44cd-9204-a1e2d46bb7c3"]]
+          |[]
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) should contain theSameElementsAs Seq(
+        Suggestion.Method(
+          externalId = None,
+          module     = "Test",
+          name       = "main",
+          arguments = Seq(
+            Suggestion.Argument("this", "Any", false, false, None)
+          ),
+          selfType      = "here",
+          returnType    = "Any",
+          documentation = None
+        ),
+        Suggestion.Function(
+          externalId =
+            Some(UUID.fromString("f533d910-63f8-44cd-9204-a1e2d46bb7c3")),
+          module = "Test",
+          name   = "id",
+          arguments = Seq(
+            Suggestion.Argument("x", "Any", false, false, None)
+          ),
+          returnType = "Any",
+          scope = Suggestion.Scope(
+            Suggestion.Position(0, 6),
+            Suggestion.Position(2, 28)
+          )
+        )
+      )
+    }
+
+    "build local with external id" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """main =
+          |    foo = 42
+          |    IO.println foo
+          |
+          |
+          |#### METADATA ####
+          |[[{"index": {"value": 17}, "size": {"value": 2}}, "0270bcdf-26b8-4b99-8745-85b3600c7359"]]
+          |[]
+          |""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) should contain theSameElementsAs Seq(
+        Suggestion.Method(
+          externalId = None,
+          module     = "Test",
+          name       = "main",
+          arguments = Seq(
+            Suggestion.Argument("this", "Any", false, false, None)
+          ),
+          selfType      = "here",
+          returnType    = "Any",
+          documentation = None
+        ),
+        Suggestion.Local(
+          externalId =
+            Some(UUID.fromString("0270bcdf-26b8-4b99-8745-85b3600c7359")),
+          module     = "Test",
+          name       = "foo",
+          returnType = "Any",
+          scope = Suggestion.Scope(
+            Suggestion.Position(0, 6),
+            Suggestion.Position(2, 18)
+          )
+        )
+      )
+    }
+
   }
 
   private val Module = "Test"
