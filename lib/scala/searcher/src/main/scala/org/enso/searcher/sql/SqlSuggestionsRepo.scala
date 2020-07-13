@@ -87,7 +87,11 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
   def close(): Unit =
     db.close()
 
-  /** Insert suggestions in a batch. */
+  /** Insert suggestions in a batch.
+    *
+    * @param suggestions the list of suggestions to insert
+    * @return the current database size
+    */
   private[sql] def insertBatch(suggestions: Array[Suggestion]): Future[Int] =
     db.run(insertBatchQuery(suggestions))
 
@@ -103,7 +107,10 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
       _ <- Versions.delete
     } yield ()
 
-  /** Get all suggestions. */
+  /** Get all suggestions.
+    *
+    * @return the current database version with the list of suggestion entries
+    */
   private def getAllQuery: DBIO[(Long, Seq[SuggestionEntry])] = {
     val query = for {
       suggestions <- joined.result.map(joinedToSuggestionEntries)
@@ -235,7 +242,12 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     query.transactionally
   }
 
-  /** Update a suggestion. */
+  /** The query to update a suggestion.
+    *
+    * @param externalId the external id of a suggestion
+    * @param returnType the new return type
+    * @return the id of updated suggestion
+    */
   private def updateQuery(
     externalId: Suggestion.ExternalId,
     returnType: String
@@ -251,7 +263,11 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     } yield id
   }
 
-  /** Update a list of suggestions by external id. */
+  /** The query to update a list of suggestions by external id.
+    *
+    * @param expressions the list of expressions to update
+    * @return the current database version with the list of updated suggestion ids
+    */
   private def updateAllQuery(
     expressions: Seq[(Suggestion.ExternalId, String)]
   ): DBIO[(Long, Seq[Option[Long]])] = {
@@ -280,7 +296,11 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     increment.transactionally
   }
 
-  /** The query to insert suggestions in a batch. */
+  /** The query to insert suggestions in a batch.
+    *
+    * @param suggestions the list of suggestions to insert
+    * @return the current size of the database
+    */
   private def insertBatchQuery(
     suggestions: Array[Suggestion]
   ): DBIO[Int] = {
@@ -291,7 +311,15 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     } yield size
   }
 
-  /** Create a search query by the provided parameters. */
+  /** Create a search query by the provided parameters.
+    *
+    * @param module the module name search parameter
+    * @param selfType the selfType search parameter
+    * @param returnType the returnType search parameter
+    * @param kinds the list suggestion kinds to search
+    * @param position the absolute position in the text
+    * @return the search query
+    */
   private def searchQueryBuilder(
     module: Option[String],
     selfType: Option[String],
@@ -537,7 +565,12 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
       defaultValue = row.defaultValue
     )
 
-  /** Convert bits to the UUID. */
+  /** Convert bits to the UUID.
+    *
+    * @param least the least significant bits of the UUID
+    * @param most the most significant bits of the UUID
+    * @return the new UUID
+    */
   private def toUUID(least: Option[Long], most: Option[Long]): Option[UUID] =
     for {
       l <- least

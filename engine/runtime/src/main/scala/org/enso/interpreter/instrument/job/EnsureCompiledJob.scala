@@ -25,7 +25,7 @@ class EnsureCompiledJob(protected val files: List[File])
     extends Job[Unit](List.empty, true, false) {
 
   /**
-    * Create a job that ensures that a files is compiled after applying the edits.
+    * Create a job ensuring that files are compiled after applying the edits.
     *
     * @param file a file to compile
     */
@@ -44,7 +44,8 @@ class EnsureCompiledJob(protected val files: List[File])
     }
   }
 
-  /** Run the compilation and invalidation logic.
+  /**
+    * Run the compilation and invalidation logic.
     *
     * @param files the list of files to compile
     * @param ctx the runtime context
@@ -57,7 +58,7 @@ class EnsureCompiledJob(protected val files: List[File])
         applyEdits(file).ifPresent {
           case (changeset, edits) =>
             runInvalidationCommands(
-              EnsureCompiledJob.buildCacheInvalidationCommands(changeset, edits)
+              buildCacheInvalidationCommands(changeset, edits)
             )
             val removedSuggestions = SuggestionBuilder(changeset.source)
               .build(module.getName.toString, module.getIr)
@@ -75,6 +76,13 @@ class EnsureCompiledJob(protected val files: List[File])
     }
   }
 
+  /**
+    * Compile the file.
+    *
+    * @param file the file path to compile
+    * @param ctx the runtime context
+    * @return the compiled module
+    */
   private def compile(
     file: File
   )(implicit ctx: RuntimeContext): Option[Module] = {
@@ -84,9 +92,23 @@ class EnsureCompiledJob(protected val files: List[File])
       .toScala
   }
 
+  /**
+    * Compile the module.
+    *
+    * @param module the module to compile.
+    * @param ctx the runtime context
+    * @return the compiled module
+    */
   private def compile(module: Module)(implicit ctx: RuntimeContext): Module =
     module.parseScope(ctx.executionService.getContext).getModule
 
+  /**
+    * Apply pending edits to the file.
+    *
+    * @param file the file to apply edits to
+    * @param ctx the runtime context
+    * @return the [[Changeset]] object and the list of applied edits
+    */
   private def applyEdits(
     file: File
   )(implicit
@@ -109,47 +131,15 @@ class EnsureCompiledJob(protected val files: List[File])
     }
   }
 
-  private def runInvalidationCommands(
-    invalidationCommands: Iterable[CacheInvalidation]
-  )(implicit ctx: RuntimeContext): Unit = {
-    ctx.contextManager.getAll.valuesIterator
-      .collect {
-        case stack if stack.nonEmpty =>
-          CacheInvalidation.runAll(stack, invalidationCommands)
-      }
-  }
-
-  private def sendSuggestionsNotifications(
-    removed: Seq[Suggestion],
-    added: Seq[Suggestion]
-  )(implicit ctx: RuntimeContext): Unit =
-    if (added.nonEmpty || removed.nonEmpty) {
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          Api.SuggestionsDatabaseUpdateNotification(
-            removed.map(Api.SuggestionsDatabaseUpdate.Remove) :++
-            added.map(Api.SuggestionsDatabaseUpdate.Add)
-          )
-        )
-      )
-    }
-
-}
-
-object EnsureCompiledJob {
-
-  private val unappliedEdits =
-    new TrieMap[File, Seq[TextEdit]]()
-
-  private def dequeueEdits(file: File): Seq[TextEdit] =
-    unappliedEdits.remove(file).getOrElse(Seq())
-
-  private def enqueueEdits(file: File, edits: Seq[TextEdit]): Unit =
-    unappliedEdits.updateWith(file) {
-      case Some(v) => Some(v :++ edits)
-      case None    => Some(edits)
-    }
-
+  /**
+    * Create cache invalidation commands after applying the edits.
+    *
+    * @param changeset the [[Changeset]] object capturing the previous version
+    * of IR
+    * @param edits the list of applied edits
+    * @param ctx the runtime context
+    * @return the list of cache invalidation commands
+    */
   private def buildCacheInvalidationCommands(
     changeset: Changeset[Rope],
     edits: Seq[TextEdit]
@@ -169,4 +159,57 @@ object EnsureCompiledJob {
       )
     )
   }
+
+  /**
+    * Run the invalidation commands.
+    *
+    * @param invalidationCommands the invalidation command to run
+    * @param ctx the runtime context
+    */
+  private def runInvalidationCommands(
+    invalidationCommands: Iterable[CacheInvalidation]
+  )(implicit ctx: RuntimeContext): Unit = {
+    ctx.contextManager.getAll.valuesIterator
+      .collect {
+        case stack if stack.nonEmpty =>
+          CacheInvalidation.runAll(stack, invalidationCommands)
+      }
+  }
+
+  /**
+    * Send notifications about the suggestions database updates.
+    *
+    * @param removed the list of suggestions to remove
+    * @param added the list of suggestions to add
+    * @param ctx the runtime context
+    */
+  private def sendSuggestionsNotifications(
+    removed: Seq[Suggestion],
+    added: Seq[Suggestion]
+  )(implicit ctx: RuntimeContext): Unit =
+    if (added.nonEmpty || removed.nonEmpty) {
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          Api.SuggestionsDatabaseUpdateNotification(
+            removed.map(Api.SuggestionsDatabaseUpdate.Remove) :++
+            added.map(Api.SuggestionsDatabaseUpdate.Add)
+          )
+        )
+      )
+    }
+}
+
+object EnsureCompiledJob {
+
+  private val unappliedEdits =
+    new TrieMap[File, Seq[TextEdit]]()
+
+  private def dequeueEdits(file: File): Seq[TextEdit] =
+    unappliedEdits.remove(file).getOrElse(Seq())
+
+  private def enqueueEdits(file: File, edits: Seq[TextEdit]): Unit =
+    unappliedEdits.updateWith(file) {
+      case Some(v) => Some(v :++ edits)
+      case None    => Some(edits)
+    }
 }

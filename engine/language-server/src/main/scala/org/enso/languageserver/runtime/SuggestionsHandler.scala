@@ -65,7 +65,7 @@ final class SuggestionsHandler(config: Config, repo: SuggestionsRepo[Future])
           config.findContentRoot(path.rootId).left.map(FileSystemError)
         module <-
           getModule(projectName, rootFile.toPath, path.toFile(rootFile).toPath)
-            .toRight(ModuleNotResolvedError(path))
+            .toRight(ModuleNameNotResolvedError(path))
       } yield module
 
       module

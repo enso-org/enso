@@ -84,6 +84,6 @@ object SearchApi {
   case object ProjectNotFoundError
       extends Error(7002, "Project not found in the root directory")
 
-  case object ModuleNotResolvedError
-      extends Error(7003, "Module can not be resolved")
+  case object ModuleNameNotResolvedError
+      extends Error(7003, "Module name can't be resolved for the given file")
 }

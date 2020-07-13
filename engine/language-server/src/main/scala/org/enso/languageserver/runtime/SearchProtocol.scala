@@ -247,16 +247,18 @@ object SearchProtocol {
     */
   case class CompletionResult(currentVersion: Long, results: Seq[SuggestionId])
 
+  /** Base trait for search request errors. */
   sealed trait SearchFailure
 
+  /** Signals about file system error. */
   case class FileSystemError(e: FileSystemFailure) extends SearchFailure
 
-  /** Error specifying that the project not found in the root directory. */
+  /** Signals that the project not found in the root directory. */
   case object ProjectNotFoundError extends SearchFailure
 
-  /** Error specifying that the module can not be resolved for the given file.
+  /** Signals that the module name can not be resolved for the given file.
     *
     * @param file the file path
     */
-  case class ModuleNotResolvedError(file: Path) extends SearchFailure
+  case class ModuleNameNotResolvedError(file: Path) extends SearchFailure
 }

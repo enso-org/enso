@@ -2973,3 +2973,23 @@ Signals about an error accessing the suggestions database.
   "message" : "Suggestions database error"
 }
 ```
+
+### `ProjectNotFoundError`
+Signals that the project not found in the root directory.
+
+```typescript
+"error" : {
+  "code" : 7002,
+  "message" : "Project not found in the root directory"
+}
+```
+
+### `ModuleNameNotResolvedError`
+Signals that the module name can not be resolved for the given file.
+
+```typescript
+"error" : {
+  "code" : 7002,
+  "message" : "Module name can't be resolved for the given file"
+}
+```
