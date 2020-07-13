@@ -40,8 +40,8 @@ public abstract class PutStateNode extends Node {
     Object[] newVals = new Object[cachedKeys.length];
     System.arraycopy(state.getValues(), 0, newVals, 0, cachedKeys.length);
     newVals[index] = new_state;
-    SmallMap newState = new SmallMap(cachedKeys, newVals);
-    return new Stateful(newState, new_state);
+    SmallMap newStateMap = new SmallMap(cachedKeys, newVals);
+    return new Stateful(newStateMap, new_state);
   }
 
   @Specialization
