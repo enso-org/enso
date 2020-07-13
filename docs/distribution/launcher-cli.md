@@ -200,8 +200,7 @@ Launches the language server for a given project.
 Examples:
 
 ```bash
-> enso language-server
-    --server \
+> enso language-server \
     --root-id 3256d10d-45be-45b1-9ea4-7912ef4226b1 \
     --path /tmp/content-root
 ```
@@ -263,9 +262,11 @@ managed one. Will not work if the set-up JVM version is not GraalVM.
 ## JVM Options
 
 For commands that launch an Enso component inside a JVM (`repl`, `run` and
-`language-server`), additional parameters are passed to the launcher components.
-Moreover, it is possible to pass parameters to the JVM that is used to launch
-these components, which may be helpful with debugging.
+`language-server`), parameters that the launcher does not know about (for
+example introduced in versions of Enso newer than the launcher knows about) may
+be passed after a double dash (`--`), i.e. `enso repl -- --someUnknownFlag`.
 
-A parameter of the form `--jvm.argumentName=argumentValue` will be passed to the
-JVM as `-DargumentName=argumentValue`.
+Moreover, it is possible to pass parameters to the JVM that is used to launch
+these components, which may be helpful with debugging. A parameter of the form
+`--jvm.argumentName=argumentValue` will be passed to the JVM as
+`-DargumentName=argumentValue`.
