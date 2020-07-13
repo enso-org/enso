@@ -1,5 +1,7 @@
 package org.enso.polyglot
 
+import java.util.UUID
+
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 
 /** A search suggestion. */
@@ -26,6 +28,8 @@ import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
 )
 sealed trait Suggestion
 object Suggestion {
+
+  type ExternalId = UUID
 
   /** The type of a suggestion. */
   sealed trait Kind
@@ -76,6 +80,7 @@ object Suggestion {
 
   /** A value constructor.
     *
+    * @param externalId the external id
     * @param module the module name
     * @param name the atom name
     * @param arguments the list of arguments
@@ -83,6 +88,7 @@ object Suggestion {
     * @param documentation the documentation string
     */
   case class Atom(
+    externalId: Option[ExternalId],
     module: String,
     name: String,
     arguments: Seq[Argument],
@@ -92,6 +98,7 @@ object Suggestion {
 
   /** A function defined on a type or a module.
     *
+    * @param externalId the external id
     * @param module the module name
     * @param name the method name
     * @param arguments the function arguments
@@ -100,6 +107,7 @@ object Suggestion {
     * @param documentation the documentation string
     */
   case class Method(
+    externalId: Option[ExternalId],
     module: String,
     name: String,
     arguments: Seq[Argument],
@@ -110,6 +118,7 @@ object Suggestion {
 
   /** A local function definition.
     *
+    * @param externalId the external id
     * @param module the module name
     * @param name the function name
     * @param arguments the function arguments
@@ -117,6 +126,7 @@ object Suggestion {
     * @param scope the scope where the function is defined
     */
   case class Function(
+    externalId: Option[ExternalId],
     module: String,
     name: String,
     arguments: Seq[Argument],
@@ -126,12 +136,14 @@ object Suggestion {
 
   /** A local value.
     *
+    * @param externalId the external id
     * @param module the module name
     * @param name the name of a value
     * @param returnType the type of a local value
     * @param scope the scope where the value is defined
     */
   case class Local(
+    externalId: Option[ExternalId],
     module: String,
     name: String,
     returnType: String,

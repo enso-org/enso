@@ -30,6 +30,8 @@ case class ArgumentRow(
 /** A row in the suggestions table.
   *
   * @param id the id of a suggestion
+  * @param externalIdLeast the least significant bits of external id
+  * @param externalIdMost the most significant bits of external id
   * @param kind the type of a suggestion
   * @param module the module name
   * @param name the suggestion name
@@ -43,6 +45,8 @@ case class ArgumentRow(
   */
 case class SuggestionRow(
   id: Option[Long],
+  externalIdLeast: Option[Long],
+  externalIdMost: Option[Long],
   kind: Byte,
   module: String,
   name: String,
@@ -134,13 +138,15 @@ final class ArgumentsTable(tag: Tag)
 final class SuggestionsTable(tag: Tag)
     extends Table[SuggestionRow](tag, "suggestions") {
 
-  def id            = column[Long]("id", O.PrimaryKey, O.AutoInc)
-  def kind          = column[Byte]("kind")
-  def module        = column[String]("module")
-  def name          = column[String]("name")
-  def selfType      = column[String]("self_type")
-  def returnType    = column[String]("return_type")
-  def documentation = column[Option[String]]("documentation")
+  def id              = column[Long]("id", O.PrimaryKey, O.AutoInc)
+  def externalIdLeast = column[Option[Long]]("external_id_least")
+  def externalIdMost  = column[Option[Long]]("external_id_most")
+  def kind            = column[Byte]("kind")
+  def module          = column[String]("module")
+  def name            = column[String]("name")
+  def selfType        = column[String]("self_type")
+  def returnType      = column[String]("return_type")
+  def documentation   = column[Option[String]]("documentation")
   def scopeStartLine =
     column[Int]("scope_start_line", O.Default(ScopeColumn.EMPTY))
   def scopeStartOffset =
@@ -152,6 +158,8 @@ final class SuggestionsTable(tag: Tag)
   def * =
     (
       id.?,
+      externalIdLeast,
+      externalIdMost,
       kind,
       module,
       name,
@@ -165,10 +173,14 @@ final class SuggestionsTable(tag: Tag)
     ) <>
     (SuggestionRow.tupled, SuggestionRow.unapply)
 
-  def selfTypeIdx   = index("suggestions_self_type_idx", selfType)
-  def returnTypeIdx = index("suggestions_return_type_idx", returnType)
+  def externalIdLeastIdx =
+    index("suggestions_external_id_least_idx", externalIdLeast)
+  def externalIdMostIdx =
+    index("suggestions_external_id_most_idx", externalIdMost)
   def moduleIdx     = index("suggestions_module_idx", module)
   def name_idx      = index("suggestions_name_idx", name)
+  def selfTypeIdx   = index("suggestions_self_type_idx", selfType)
+  def returnTypeIdx = index("suggestions_return_type_idx", returnType)
   // NOTE: unique index should not contain nullable columns because SQLite
   // teats NULLs as distinct values.
   def uniqueIdx =

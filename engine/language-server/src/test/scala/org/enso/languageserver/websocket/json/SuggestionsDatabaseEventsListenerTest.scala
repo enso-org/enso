@@ -73,6 +73,7 @@ class SuggestionsDatabaseEventsListenerTest
                 "id" : 2,
                 "suggestion" : {
                   "type" : "method",
+                  "externalId" : "ea9d7734-26a7-4f65-9dd9-c648eaf57d63",
                   "module" : "Test.Main",
                   "name" : "foo",
                   "arguments" : [
@@ -118,6 +119,7 @@ class SuggestionsDatabaseEventsListenerTest
                 "id" : 3,
                 "suggestion" : {
                   "type" : "function",
+                  "externalId" : "78d452ce-ed48-48f1-b4f2-b7f45f8dff89",
                   "module" : "Test.Main",
                   "name" : "print",
                   "arguments" : [
@@ -157,6 +159,7 @@ class SuggestionsDatabaseEventsListenerTest
                 "id" : 4,
                 "suggestion" : {
                   "type" : "local",
+                  "externalId" : "dc077227-d9b6-4620-9b51-792c2a69419d",
                   "module" : "Test.Main",
                   "name" : "x",
                   "returnType" : "Number",

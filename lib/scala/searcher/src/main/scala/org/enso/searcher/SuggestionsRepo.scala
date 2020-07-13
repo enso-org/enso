@@ -71,4 +71,13 @@ trait SuggestionsRepo[F[_]] {
     * @return the current database version and a list of removed suggestion ids
     */
   def removeAll(suggestions: Seq[Suggestion]): F[(Long, Seq[Option[Long]])]
+
+  /** Update a list of suggestions by external id.
+    *
+    * @param expressions pairs of external id and a return type
+    * @return the current database version and a list of updated suggestion ids
+    */
+  def updateAll(
+    expressions: Seq[(Suggestion.ExternalId, String)]
+  ): F[(Long, Seq[Option[Long]])]
 }

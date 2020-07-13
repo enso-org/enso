@@ -340,6 +340,7 @@ The update of the suggestions database.
 type SuggestionsDatabaseUpdate
   = Add
   | Remove
+  | Modify
 
 interface Add {
   // suggestion entry id
@@ -351,6 +352,14 @@ interface Add {
 interface Remove {
   // suggestion entry id
   id: number;
+}
+
+interface Modify {
+  // suggestion entry id
+  id: number;
+  // new return type
+  returnType: String;
+}
 ```
 
 ### `File`

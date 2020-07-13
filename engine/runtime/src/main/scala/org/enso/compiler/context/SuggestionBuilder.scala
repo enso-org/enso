@@ -52,6 +52,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                 ) =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             acc += buildMethod(
+                ir.getExternalId,
                 module,
                 methodName,
                 typePtr,
@@ -70,6 +71,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               ) if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             acc += buildFunction(
+                ir.getExternalId,
                 module,
                 name,
                 args,
@@ -82,6 +84,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
               if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             acc += buildLocal(
+                ir.getExternalId,
                 module,
                 name.name,
                 scope.location.get,
@@ -90,7 +93,13 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
             scopes += Scope(expr.children, expr.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
-            acc += buildAtom(module, name.name, arguments, doc)
+            acc += buildAtom(
+                ir.getExternalId,
+                module,
+                name.name,
+                arguments,
+                doc
+              )
             go(scope, scopes, acc)
           case _ =>
             go(scope, scopes, acc)
@@ -105,6 +114,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   }
 
   private def buildMethod(
+    externalId: Option[IR.ExternalId],
     module: String,
     name: IR.Name,
     typeRef: Seq[IR.Name],
@@ -119,6 +129,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         val (methodArgs, returnTypeDef) =
           buildMethodArguments(args, typeSig, selfType)
         Suggestion.Method(
+          externalId    = externalId,
           module        = module,
           name          = name.name,
           arguments     = methodArgs,
@@ -128,6 +139,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         )
       case _ =>
         Suggestion.Method(
+          externalId    = externalId,
           module        = module,
           name          = name.name,
           arguments     = args.map(buildArgument),
@@ -139,6 +151,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   }
 
   private def buildFunction(
+    externalId: Option[IR.ExternalId],
     module: String,
     name: IR.Name,
     args: Seq[IR.DefinitionArgument],
@@ -151,6 +164,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         val (methodArgs, returnTypeDef) =
           buildFunctionArguments(args, typeSig)
         Suggestion.Function(
+          externalId = externalId,
           module     = module,
           name       = name.name,
           arguments  = methodArgs,
@@ -159,6 +173,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         )
       case _ =>
         Suggestion.Function(
+          externalId = externalId,
           module     = module,
           name       = name.name,
           arguments  = args.map(buildArgument),
@@ -169,6 +184,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   }
 
   private def buildLocal(
+    externalId: Option[IR.ExternalId],
     module: String,
     name: String,
     location: Location,
@@ -176,18 +192,26 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
   ): Suggestion.Local =
     typeSignature match {
       case Some(TypeSignatures.Signature(tname: IR.Name)) =>
-        Suggestion.Local(module, name, tname.name, buildScope(location))
+        Suggestion.Local(
+          externalId,
+          module,
+          name,
+          tname.name,
+          buildScope(location)
+        )
       case _ =>
-        Suggestion.Local(module, name, Any, buildScope(location))
+        Suggestion.Local(externalId, module, name, Any, buildScope(location))
     }
 
   private def buildAtom(
+    externalId: Option[IR.ExternalId],
     module: String,
     name: String,
     arguments: Seq[IR.DefinitionArgument],
     doc: Option[String]
   ): Suggestion.Atom =
     Suggestion.Atom(
+      externalId    = externalId,
       module        = module,
       name          = name,
       arguments     = arguments.map(buildArgument),

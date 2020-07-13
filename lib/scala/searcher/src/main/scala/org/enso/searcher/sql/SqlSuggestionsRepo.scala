@@ -1,6 +1,7 @@
 package org.enso.searcher.sql
 
 import java.nio.file.Path
+import java.util.UUID
 
 import org.enso.polyglot.Suggestion
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
@@ -71,6 +72,12 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     suggestions: Seq[Suggestion]
   ): Future[(Long, Seq[Option[Long]])] =
     db.run(removeAllQuery(suggestions))
+
+  /** @inheritdoc */
+  override def updateAll(
+    expressions: Seq[(Suggestion.ExternalId, String)]
+  ): Future[(Long, Seq[Option[Long]])] =
+    db.run(updateAllQuery(expressions))
 
   /** @inheritdoc */
   override def currentVersion: Future[Long] =
@@ -228,6 +235,34 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     query.transactionally
   }
 
+  /** Update a suggestion. */
+  def updateQuery(
+    externalId: Suggestion.ExternalId,
+    returnType: String
+  ): DBIO[Option[Long]] = {
+    val selectQuery = Suggestions
+      .filter { row =>
+        row.externalIdLeast === externalId.getLeastSignificantBits &&
+        row.externalIdMost === externalId.getMostSignificantBits
+      }
+    for {
+      id <- selectQuery.map(_.id).result.headOption
+      n  <- selectQuery.map(_.returnType).update(returnType)
+      _  <- if (n > 0) incrementVersionQuery else DBIO.successful(())
+    } yield id
+  }
+
+  /** Update a list of suggestions by external id. */
+  def updateAllQuery(
+    expressions: Seq[(Suggestion.ExternalId, String)]
+  ): DBIO[(Long, Seq[Option[Long]])] = {
+    val query = for {
+      ids     <- DBIO.sequence(expressions.map(Function.tupled(updateQuery)))
+      version <- currentVersionQuery
+    } yield (version, ids)
+    query.transactionally
+  }
+
   /** The query to get current version of the repo. */
   private def currentVersionQuery: DBIO[Long] = {
     for {
@@ -321,9 +356,11 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     suggestion: Suggestion
   ): (SuggestionRow, Seq[Suggestion.Argument]) =
     suggestion match {
-      case Suggestion.Atom(module, name, args, returnType, doc) =>
+      case Suggestion.Atom(expr, module, name, args, returnType, doc) =>
         val row = SuggestionRow(
           id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
           kind             = SuggestionKind.ATOM,
           module           = module,
           name             = name,
@@ -336,9 +373,19 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
           scopeEndOffset   = ScopeColumn.EMPTY
         )
         row -> args
-      case Suggestion.Method(module, name, args, selfType, returnType, doc) =>
+      case Suggestion.Method(
+            expr,
+            module,
+            name,
+            args,
+            selfType,
+            returnType,
+            doc
+          ) =>
         val row = SuggestionRow(
           id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
           kind             = SuggestionKind.METHOD,
           module           = module,
           name             = name,
@@ -351,9 +398,11 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
           scopeEndOffset   = ScopeColumn.EMPTY
         )
         row -> args
-      case Suggestion.Function(module, name, args, returnType, scope) =>
+      case Suggestion.Function(expr, module, name, args, returnType, scope) =>
         val row = SuggestionRow(
           id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
           kind             = SuggestionKind.FUNCTION,
           module           = module,
           name             = name,
@@ -366,9 +415,11 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
           scopeEndOffset   = scope.end.character
         )
         row -> args
-      case Suggestion.Local(module, name, returnType, scope) =>
+      case Suggestion.Local(expr, module, name, returnType, scope) =>
         val row = SuggestionRow(
           id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
           kind             = SuggestionKind.LOCAL,
           module           = module,
           name             = name,
@@ -415,6 +466,8 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     suggestion.kind match {
       case SuggestionKind.ATOM =>
         Suggestion.Atom(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module        = suggestion.module,
           name          = suggestion.name,
           arguments     = arguments.sortBy(_.index).map(toArgument),
@@ -423,6 +476,8 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
         )
       case SuggestionKind.METHOD =>
         Suggestion.Method(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module        = suggestion.module,
           name          = suggestion.name,
           arguments     = arguments.sortBy(_.index).map(toArgument),
@@ -432,6 +487,8 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
         )
       case SuggestionKind.FUNCTION =>
         Suggestion.Function(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module     = suggestion.module,
           name       = suggestion.name,
           arguments  = arguments.sortBy(_.index).map(toArgument),
@@ -449,6 +506,8 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
         )
       case SuggestionKind.LOCAL =>
         Suggestion.Local(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
           module     = suggestion.module,
           name       = suggestion.name,
           returnType = suggestion.returnType,
@@ -476,6 +535,13 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
       hasDefault   = row.hasDefault,
       defaultValue = row.defaultValue
     )
+
+  /** Convert bits to the UUID. */
+  private def toUUID(least: Option[Long], most: Option[Long]): Option[UUID] =
+    for {
+      l <- least
+      m <- most
+    } yield new UUID(m, l)
 }
 
 object SqlSuggestionsRepo {

@@ -29,6 +29,14 @@ object SearchProtocol {
       */
     case class Remove(id: SuggestionId) extends SuggestionsDatabaseUpdate
 
+    /** Modify the database entry.
+      *
+      * @param id the suggestion id
+      * @param returnType the new return type
+      */
+    case class Modify(id: SuggestionId, returnType: String)
+        extends SuggestionsDatabaseUpdate
+
     private object CodecField {
 
       val Type = "type"
@@ -39,6 +47,8 @@ object SearchProtocol {
       val Add = "Add"
 
       val Remove = "Remove"
+
+      val Modify = "Modify"
     }
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =
@@ -49,6 +59,9 @@ object SearchProtocol {
 
           case CodecType.Remove =>
             Decoder[SuggestionsDatabaseUpdate.Remove].tryDecode(cursor)
+
+          case CodecType.Modify =>
+            Decoder[SuggestionsDatabaseUpdate.Modify].tryDecode(cursor)
         }
       }
 
@@ -64,6 +77,12 @@ object SearchProtocol {
           Encoder[SuggestionsDatabaseUpdate.Remove]
             .apply(remove)
             .deepMerge(Json.obj(CodecField.Type -> CodecType.Remove.asJson))
+
+        case modify: SuggestionsDatabaseUpdate.Modify =>
+          Encoder[SuggestionsDatabaseUpdate.Modify]
+            .apply(modify)
+            .deepMerge(Json.obj(CodecField.Type -> CodecType.Modify.asJson))
+            .dropNullValues
       }
 
     private object SuggestionType {

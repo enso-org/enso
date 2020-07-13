@@ -1,5 +1,7 @@
 package org.enso.searcher.sql
 
+import java.util.UUID
+
 import org.enso.polyglot.Suggestion
 
 import scala.util.Random
@@ -20,6 +22,7 @@ object SuggestionRandom {
 
   def nextSuggestionAtom(): Suggestion.Atom =
     Suggestion.Atom(
+      externalId    = optional(UUID.randomUUID()),
       module        = "Test.Main",
       name          = nextString(),
       arguments     = Seq(),
@@ -29,6 +32,7 @@ object SuggestionRandom {
 
   def nextSuggestionMethod(): Suggestion.Method =
     Suggestion.Method(
+      externalId    = optional(UUID.randomUUID()),
       module        = "Test.Main",
       name          = nextString(),
       arguments     = Seq(),
@@ -39,6 +43,7 @@ object SuggestionRandom {
 
   def nextSuggestionFunction(): Suggestion.Function =
     Suggestion.Function(
+      externalId = optional(UUID.randomUUID()),
       module     = "Test.Main",
       name       = nextString(),
       arguments  = Seq(),
@@ -48,6 +53,7 @@ object SuggestionRandom {
 
   def nextSuggestionLocal(): Suggestion.Local =
     Suggestion.Local(
+      externalId = optional(UUID.randomUUID()),
       module     = "Test.Main",
       name       = nextString(),
       returnType = nextString(),

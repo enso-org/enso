@@ -44,6 +44,8 @@ final class SuggestionsDatabaseEventsListener(
 
   override def preStart(): Unit = {
     context.system.eventStream
+      .subscribe(self, classOf[Api.ExpressionValuesComputed])
+    context.system.eventStream
       .subscribe(self, classOf[Api.SuggestionsDatabaseUpdateNotification])
   }
 
@@ -80,6 +82,22 @@ final class SuggestionsDatabaseEventsListener(
               msg.updates
             )
         }
+
+    case Api.ExpressionValuesComputed(_, updates) =>
+      val types = updates.flatMap(update =>
+        update.expressionType.map(update.expressionId -> _)
+      )
+      repo
+        .updateAll(types)
+        .map {
+          case (version, updatedIds) =>
+            val updates = types.zip(updatedIds).collect {
+              case ((_, typeValue), Some(suggestionId)) =>
+                SuggestionsDatabaseUpdate.Modify(suggestionId, typeValue)
+            }
+            SuggestionsDatabaseUpdateNotification(updates, version)
+        }
+
   }
 
   private def applyDatabaseUpdates(

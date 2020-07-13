@@ -1,5 +1,7 @@
 package org.enso.searcher.sql
 
+import java.util.UUID
+
 import org.enso.polyglot.Suggestion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -173,6 +175,56 @@ class SuggestionsRepoTest
       v1 should not equal v2
       v2 should not equal v3
       v3 shouldEqual v4
+    }
+
+    "update suggestion by external id" in {
+      val newReturnType = "Quux"
+      val action = for {
+        _         <- repo.insert(suggestion.atom)
+        _         <- repo.insert(suggestion.method)
+        _         <- repo.insert(suggestion.function)
+        Some(id4) <- repo.insert(suggestion.local)
+        res <-
+          repo.updateAll(Seq(suggestion.local.externalId.get -> newReturnType))
+        Some(val4) <- repo.select(id4)
+      } yield (id4, res._2, val4)
+
+      val (suggestionId, updatedIds, result) = Await.result(action, Timeout)
+      updatedIds.flatten shouldEqual Seq(suggestionId)
+      result shouldEqual suggestion.local.copy(returnType = newReturnType)
+    }
+
+    "change version after updateAll" in {
+      val newReturnType = "Quux"
+      val action = for {
+        _   <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        id4 <- repo.insert(suggestion.local)
+        v1  <- repo.currentVersion
+        res <-
+          repo.updateAll(Seq(suggestion.local.externalId.get -> newReturnType))
+      } yield (id4, res._2, v1, res._1)
+
+      val (suggestionId, updatedIds, v1, v2) = Await.result(action, Timeout)
+      updatedIds shouldEqual Seq(suggestionId)
+      v1 should not equal v2
+    }
+
+    "not change version after failed updateAll" in {
+      val newReturnType = "Quux"
+      val action = for {
+        _   <- repo.insert(suggestion.atom)
+        _   <- repo.insert(suggestion.method)
+        _   <- repo.insert(suggestion.function)
+        _   <- repo.insert(suggestion.local)
+        v1  <- repo.currentVersion
+        res <- repo.updateAll(Seq(UUID.randomUUID() -> newReturnType))
+      } yield (res._2, v1, res._1)
+
+      val (updatedIds, v1, v2) = Await.result(action, Timeout)
+      updatedIds shouldEqual Seq(None)
+      v1 shouldEqual v2
     }
 
     "search suggestion by empty query" in {
@@ -443,8 +495,9 @@ class SuggestionsRepoTest
 
     val atom: Suggestion.Atom =
       Suggestion.Atom(
-        module = "Test.Main",
-        name   = "Pair",
+        externalId = None,
+        module     = "Test.Main",
+        name       = "Pair",
         arguments = Seq(
           Suggestion.Argument("a", "Any", false, false, None),
           Suggestion.Argument("b", "Any", false, false, None)
@@ -455,6 +508,7 @@ class SuggestionsRepoTest
 
     val method: Suggestion.Method =
       Suggestion.Method(
+        externalId    = Some(UUID.randomUUID()),
         module        = "Test.Main",
         name          = "main",
         arguments     = Seq(),
@@ -465,8 +519,9 @@ class SuggestionsRepoTest
 
     val function: Suggestion.Function =
       Suggestion.Function(
-        module = "Test.Main",
-        name   = "bar",
+        externalId = Some(UUID.randomUUID()),
+        module     = "Test.Main",
+        name       = "bar",
         arguments = Seq(
           Suggestion.Argument("x", "Number", false, true, Some("0"))
         ),
@@ -477,6 +532,7 @@ class SuggestionsRepoTest
 
     val local: Suggestion.Local =
       Suggestion.Local(
+        externalId = Some(UUID.randomUUID()),
         module     = "Test.Main",
         name       = "bazz",
         returnType = "MyType",
