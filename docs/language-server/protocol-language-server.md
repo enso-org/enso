@@ -2989,7 +2989,7 @@ Signals that the module name can not be resolved for the given file.
 
 ```typescript
 "error" : {
-  "code" : 7002,
+  "code" : 7003,
   "message" : "Module name can't be resolved for the given file"
 }
 ```
