@@ -4,8 +4,7 @@ import Base.List
 type Suite name examples
 type Example name result
 
-Example.is_fail = case this of
-    Example _ r -> r.is_fail
+Example.is_fail = this.result.is_fail
 
 type Assertion
     type Success
@@ -14,7 +13,6 @@ type Assertion
     is_fail = case this of
         Success -> False
         Fail _ -> True
-
 
 Any.id = this
 Any.should_equal that = case this == that of
@@ -30,18 +28,17 @@ for_each list fun = case list of
         here.for_each t fun
     Nil -> Unit
 
-Suite.print_report = case this of
-    Suite name examples ->
-        IO.print_err (name + ":")
-        examples.reverse.each ex-> case ex of
-            Example name result -> case result of
-                Success ->
-                    IO.print_err ("    - " + name)
-                Fail msg ->
-                    IO.print_err ("    - [FAILED] " + name)
-                    IO.print_err ("        Reason: " + msg)
-        code = if examples.any is_fail then 1 else 0
-        System.exit code
+Suite.print_report =
+    IO.print_err (this.name + ":")
+    this.examples.reverse.each ex->
+        case ex.result of
+            Success ->
+                IO.print_err ("    - " + ex.name)
+            Fail msg ->
+                IO.print_err ("    - [FAILED] " + ex.name)
+                IO.print_err ("        Reason: " + msg)
+    code = if this.examples.any is_fail then 1 else 0
+    System.exit code
 
 Text.describe ~spec =
     r = State.run Suite (Suite this Nil) <|
