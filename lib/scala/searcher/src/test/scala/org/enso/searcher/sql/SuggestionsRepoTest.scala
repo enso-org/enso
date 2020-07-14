@@ -117,11 +117,11 @@ class SuggestionsRepoTest
 
     "remove suggestions by module name" in {
       val action = for {
-        id1 <- repo.insert(suggestion.atom)
-        id2 <- repo.insert(suggestion.method)
-        id3 <- repo.insert(suggestion.function)
-        id4 <- repo.insert(suggestion.local)
-        ids <- repo.removeByModule(suggestion.atom.module)
+        id1      <- repo.insert(suggestion.atom)
+        id2      <- repo.insert(suggestion.method)
+        id3      <- repo.insert(suggestion.function)
+        id4      <- repo.insert(suggestion.local)
+        (_, ids) <- repo.removeByModule(suggestion.atom.module)
       } yield (Seq(id1, id2, id3, id4).flatten, ids)
 
       val (inserted, removed) = Await.result(action, Timeout)
@@ -205,11 +205,10 @@ class SuggestionsRepoTest
 
     "change version after remove by module name" in {
       val action = for {
-        v1 <- repo.currentVersion
-        _  <- repo.insert(suggestion.local)
-        v2 <- repo.currentVersion
-        _  <- repo.removeByModule(suggestion.local.module)
-        v3 <- repo.currentVersion
+        v1      <- repo.currentVersion
+        _       <- repo.insert(suggestion.local)
+        v2      <- repo.currentVersion
+        (v3, _) <- repo.removeByModule(suggestion.local.module)
       } yield (v1, v2, v3)
 
       val (v1, v2, v3) = Await.result(action, Timeout)
@@ -219,13 +218,12 @@ class SuggestionsRepoTest
 
     "not change version after failed remove by module name" in {
       val action = for {
-        v1 <- repo.currentVersion
-        _  <- repo.insert(suggestion.local)
-        v2 <- repo.currentVersion
-        _  <- repo.removeByModule(suggestion.local.module)
-        v3 <- repo.currentVersion
-        _  <- repo.removeByModule(suggestion.local.module)
-        v4 <- repo.currentVersion
+        v1      <- repo.currentVersion
+        _       <- repo.insert(suggestion.local)
+        v2      <- repo.currentVersion
+        _       <- repo.removeByModule(suggestion.local.module)
+        v3      <- repo.currentVersion
+        (v4, _) <- repo.removeByModule(suggestion.local.module)
       } yield (v1, v2, v3, v4)
 
       val (v1, v2, v3, v4) = Await.result(action, Timeout)

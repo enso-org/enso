@@ -20,11 +20,7 @@ import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
 }
-import org.enso.languageserver.runtime.{
-  ContextRegistry,
-  SuggestionsDatabaseEventsListener,
-  SuggestionsHandler
-}
+import org.enso.languageserver.runtime.{ContextRegistry, SuggestionsHandler}
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.searcher.sql.{SqlSuggestionsRepo, SqlVersionsRepo}
@@ -108,9 +104,9 @@ class BaseServerTest extends JsonRpcServerTestKit {
         ContextRegistry.props(config, runtimeConnectorProbe.ref, sessionRouter)
       )
 
-    val suggestionsDatabaseEventsListener =
+    val suggestionsHandler =
       system.actorOf(
-        SuggestionsDatabaseEventsListener.props(sessionRouter, suggestionsRepo)
+        SuggestionsHandler.props(config, suggestionsRepo, sessionRouter)
       )
 
     val capabilityRouter =
@@ -118,12 +114,9 @@ class BaseServerTest extends JsonRpcServerTestKit {
         CapabilityRouter.props(
           bufferRegistry,
           fileEventRegistry,
-          suggestionsDatabaseEventsListener
+          suggestionsHandler
         )
       )
-
-    val suggestionsHandler =
-      system.actorOf(SuggestionsHandler.props(config, suggestionsRepo))
 
     new JsonConnectionControllerFactory(
       bufferRegistry,

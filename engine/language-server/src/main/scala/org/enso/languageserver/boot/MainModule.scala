@@ -102,14 +102,11 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "file-event-registry"
     )
 
-  lazy val suggestionsDatabaseEventsListener =
-    system.actorOf(
-      SuggestionsDatabaseEventsListener.props(sessionRouter, suggestionsRepo)
-    )
-
   lazy val suggestionsHandler =
     system.actorOf(
-      SuggestionsHandler.props(languageServerConfig, suggestionsRepo)
+      SuggestionsHandler
+        .props(languageServerConfig, suggestionsRepo, sessionRouter),
+      "suggestions-handler"
     )
 
   lazy val capabilityRouter =
@@ -117,7 +114,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
       CapabilityRouter.props(
         bufferRegistry,
         receivesTreeUpdatesHandler,
-        suggestionsDatabaseEventsListener
+        suggestionsHandler
       ),
       "capability-router"
     )

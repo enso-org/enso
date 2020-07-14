@@ -2,21 +2,18 @@ package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
 import org.enso.jsonrpc.test.FlakySpec
+import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.Suggestions
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 import org.enso.polyglot.runtime.Runtime.Api
-import org.scalatest.BeforeAndAfter
 
-class SuggestionsDatabaseEventsListenerTest
-    extends BaseServerTest
-    with BeforeAndAfter
-    with FlakySpec {
+class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
-  lazy val client = getInitialisedWsClient()
-
-  "SuggestionsDatabaseEventListener" must {
+  "SuggestionsHandlerEvents" must {
 
     "send suggestions database notifications" taggedAs Flaky in {
+      val client = getInitialisedWsClient()
+      system.eventStream.publish(ProjectNameChangedEvent("Test"))
 
       client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
       client.expectJson(json.ok(0))

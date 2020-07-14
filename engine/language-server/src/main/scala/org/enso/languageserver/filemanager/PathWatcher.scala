@@ -171,17 +171,17 @@ final class PathWatcher(
       }
       .leftMap(errorHandler)
 
-  private val errorHandler: Throwable => FileSystemFailure = {
-    case ex => GenericFileSystemFailure(ex.getMessage)
+  private val errorHandler: Throwable => FileSystemFailure = { ex =>
+    GenericFileSystemFailure(ex.getMessage)
   }
 }
 
 object PathWatcher {
 
   /**
-    * Conunt unsuccessful file watcher restarts
+    * Counter for unsuccessful file watcher restarts.
     *
-    * @param maxRestarts maximum number of restarts we can try
+    * @param maxRestarts maximum restart attempts
     */
   final private class RestartCounter(maxRestarts: Int) {
 

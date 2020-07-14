@@ -1,20 +1,32 @@
 package org.enso.languageserver.runtime
 
-import java.nio.file.Path
-
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
-import org.enso.languageserver.data.Config
+import org.enso.languageserver.capability.CapabilityProtocol.{
+  AcquireCapability,
+  CapabilityAcquired,
+  CapabilityReleased,
+  ReleaseCapability
+}
+import org.enso.languageserver.data.{
+  CapabilityRegistration,
+  ClientId,
+  Config,
+  ReceivesSuggestionsDatabaseUpdates
+}
+import org.enso.languageserver.filemanager.{FileDeletedEvent, Path}
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.runtime.SearchProtocol._
+import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.Suggestion
-import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
+import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.searcher.SuggestionsRepo
 import org.enso.text.editing.model.Position
 
 import scala.concurrent.Future
-import scala.util.Try
+import scala.util.{Failure, Success}
 
 /**
   * The handler of search requests.
@@ -23,16 +35,28 @@ import scala.util.Try
   *
   * @param config the server configuration
   * @param repo the suggestions repo
+  * @param sessionRouter the session router
   */
-final class SuggestionsHandler(config: Config, repo: SuggestionsRepo[Future])
-    extends Actor
+final class SuggestionsHandler(
+  config: Config,
+  repo: SuggestionsRepo[Future],
+  sessionRouter: ActorRef
+) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
   import context.dispatcher
 
   override def preStart(): Unit = {
+    context.system.eventStream
+      .subscribe(self, classOf[Api.ExpressionValuesComputed])
+    context.system.eventStream
+      .subscribe(self, classOf[Api.SuggestionsDatabaseUpdateNotification])
+    context.system.eventStream
+      .subscribe(self, classOf[Api.SuggestionsDatabaseReIndexNotification])
     context.system.eventStream.subscribe(self, classOf[ProjectNameChangedEvent])
+    context.system.eventStream.subscribe(self, classOf[FileDeletedEvent])
+
     config.contentRoots.foreach {
       case (_, contentRoot) =>
         PackageManager.Default
@@ -43,11 +67,77 @@ final class SuggestionsHandler(config: Config, repo: SuggestionsRepo[Future])
 
   override def receive: Receive = {
     case ProjectNameChangedEvent(name) =>
-      context.become(initialized(name))
-    case _ =>
+      context.become(initialized(name, Set()))
+
+    case msg =>
+      log.warning("unhandled message {}", msg)
       sender() ! ProjectNotFoundError
   }
-  def initialized(projectName: String): Receive = {
+
+  def initialized(projectName: String, clients: Set[ClientId]): Receive = {
+    case AcquireCapability(
+          client,
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
+        ) =>
+      sender() ! CapabilityAcquired
+      context.become(initialized(projectName, clients + client.clientId))
+
+    case ReleaseCapability(
+          client,
+          CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
+        ) =>
+      sender() ! CapabilityReleased
+      context.become(initialized(projectName, clients - client.clientId))
+
+    case msg: Api.SuggestionsDatabaseUpdateNotification =>
+      applyDatabaseUpdates(msg)
+        .onComplete {
+          case Success(notification) =>
+            if (notification.updates.nonEmpty) {
+              clients.foreach { clientId =>
+                sessionRouter ! DeliverToJsonController(clientId, notification)
+              }
+            }
+          case Failure(ex) =>
+            log.error(
+              ex,
+              "Error applying suggestion database updates: {}",
+              msg.updates
+            )
+        }
+
+    case msg: Api.SuggestionsDatabaseReIndexNotification =>
+      applyReIndexUpdates(msg.moduleName, msg.updates)
+        .onComplete {
+          case Success(notification) =>
+            if (notification.updates.nonEmpty) {
+              clients.foreach { clientId =>
+                sessionRouter ! DeliverToJsonController(clientId, notification)
+              }
+            }
+          case Failure(ex) =>
+            log.error(
+              ex,
+              "Error applying suggestion re-index updates: {}",
+              msg.updates
+            )
+        }
+
+    case Api.ExpressionValuesComputed(_, updates) =>
+      val types = updates.flatMap(update =>
+        update.expressionType.map(update.expressionId -> _)
+      )
+      repo
+        .updateAll(types)
+        .map {
+          case (version, updatedIds) =>
+            val updates = types.zip(updatedIds).collect {
+              case ((_, typeValue), Some(suggestionId)) =>
+                SuggestionsDatabaseUpdate.Modify(suggestionId, typeValue)
+            }
+            SuggestionsDatabaseUpdateNotification(updates, version)
+        }
+
     case GetSuggestionsDatabaseVersion =>
       repo.currentVersion
         .map(GetSuggestionsDatabaseVersionResult)
@@ -55,80 +145,140 @@ final class SuggestionsHandler(config: Config, repo: SuggestionsRepo[Future])
 
     case GetSuggestionsDatabase =>
       repo.getAll
-        .map(Function.tupled(toGetSuggestionsDatabaseResult))
+        .map {
+          case (version, entries) =>
+            val updates = entries.map(entry =>
+              SuggestionsDatabaseUpdate.Add(entry.id, entry.suggestion)
+            )
+            GetSuggestionsDatabaseResult(updates, version)
+        }
         .pipeTo(sender())
 
     case Completion(path, pos, selfType, returnType, tags) =>
-      val kinds = tags.map(_.map(SuggestionKind.toSuggestion))
-      val module = for {
-        rootFile <-
-          config.findContentRoot(path.rootId).left.map(FileSystemError)
-        module <-
-          getModule(projectName, rootFile.toPath, path.toFile(rootFile).toPath)
-            .toRight(ModuleNameNotResolvedError(path))
-      } yield module
-
-      module
+      getModule(projectName, path)
         .fold(
           Future.successful,
-          module => {
+          module =>
             repo
               .search(
                 Some(module),
                 selfType,
                 returnType,
-                kinds,
+                tags.map(_.map(SuggestionKind.toSuggestion)),
                 Some(toPosition(pos))
               )
               .map(CompletionResult.tupled)
-          }
         )
         .pipeTo(sender())
 
+    case FileDeletedEvent(path) =>
+      getModule(projectName, path)
+        .fold(
+          err => Future.successful(Left(err)),
+          module =>
+            repo
+              .removeByModule(module)
+              .map {
+                case (version, ids) =>
+                  Right(
+                    SuggestionsDatabaseUpdateNotification(
+                      ids.map(SuggestionsDatabaseUpdate.Remove),
+                      version
+                    )
+                  )
+              }
+        )
+        .onComplete {
+          case Success(Right(notification)) =>
+            if (notification.updates.nonEmpty) {
+              clients.foreach { clientId =>
+                sessionRouter ! DeliverToJsonController(clientId, notification)
+              }
+            }
+          case Success(Left(err)) =>
+            log.error(
+              "Error cleaning the index after file delete event: {}",
+              err
+            )
+          case Failure(ex) =>
+            log.error(
+              ex,
+              "Error cleaning the index after file delete event"
+            )
+        }
+
     case ProjectNameChangedEvent(name) =>
-      context.become(initialized(name))
+      context.become(initialized(name, clients))
   }
 
-  private def toGetSuggestionsDatabaseResult(
-    version: Long,
-    entries: Seq[SuggestionEntry]
-  ): GetSuggestionsDatabaseResult = {
-    val updates = entries.map(entry =>
-      SuggestionsDatabaseUpdate.Add(entry.id, entry.suggestion)
-    )
-    GetSuggestionsDatabaseResult(updates, version)
+  private def applyReIndexUpdates(
+    moduleName: String,
+    updates: Seq[Api.SuggestionsDatabaseUpdate.Add]
+  ): Future[SuggestionsDatabaseUpdateNotification] = {
+    val added = updates.map(_.suggestion)
+    for {
+      (_, removedIds)     <- repo.removeByModule(moduleName)
+      (version, addedIds) <- repo.insertAll(added)
+    } yield {
+      val updatesRemoved = removedIds.map(SuggestionsDatabaseUpdate.Remove)
+      val updatesAdded = (addedIds zip added).flatMap {
+        case (Some(id), suggestion) =>
+          Some(SuggestionsDatabaseUpdate.Add(id, suggestion))
+        case (None, suggestion) =>
+          log.error("failed to insert suggestion: {}", suggestion)
+          None
+      }
+      SuggestionsDatabaseUpdateNotification(
+        updatesRemoved ++ updatesAdded,
+        version
+      )
+    }
+  }
+
+  private def applyDatabaseUpdates(
+    msg: Api.SuggestionsDatabaseUpdateNotification
+  ): Future[SuggestionsDatabaseUpdateNotification] = {
+    val (added, removed) = msg.updates
+      .foldLeft((Seq[Suggestion](), Seq[Suggestion]())) {
+        case ((add, remove), msg: Api.SuggestionsDatabaseUpdate.Add) =>
+          (add :+ msg.suggestion, remove)
+        case ((add, remove), msg: Api.SuggestionsDatabaseUpdate.Remove) =>
+          (add, remove :+ msg.suggestion)
+      }
+
+    for {
+      (_, removedIds)     <- repo.removeAll(removed)
+      (version, addedIds) <- repo.insertAll(added)
+    } yield {
+      val updatesRemoved = removedIds.collect {
+        case Some(id) => SuggestionsDatabaseUpdate.Remove(id)
+      }
+      val updatesAdded =
+        (addedIds zip added).flatMap {
+          case (Some(id), suggestion) =>
+            Some(SuggestionsDatabaseUpdate.Add(id, suggestion))
+          case (None, suggestion) =>
+            log.error("failed to insert suggestion: {}", suggestion)
+            None
+        }
+      SuggestionsDatabaseUpdateNotification(
+        updatesRemoved ++ updatesAdded,
+        version
+      )
+    }
   }
 
   private def getModule(
     projectName: String,
-    root: Path,
-    file: Path
-  ): Option[String] = {
-    getModuleSegments(root, file).map { modules =>
-      toModule(projectName +: modules :+ getModuleName(file))
-    }
-  }
-
-  private def getModuleSegments(
-    root: Path,
-    file: Path
-  ): Option[Vector[String]] = {
-    Try(root.relativize(file)).toOption
-      .map { relativePath =>
-        val b = Vector.newBuilder[String]
-        1.until(relativePath.getNameCount - 1)
-          .foreach(i => b += relativePath.getName(i).toString)
-        b.result()
-      }
-  }
-
-  private def getModuleName(path: Path): String = {
-    val fileName = path.getFileName.toString
-    fileName.substring(0, fileName.lastIndexOf('.'))
-  }
-
-  private def toModule(segments: Iterable[String]): String =
-    segments.mkString(".")
+    path: Path
+  ): Either[SearchFailure, String] =
+    for {
+      rootFile <- config.findContentRoot(path.rootId).left.map(FileSystemError)
+      module <-
+        ModuleNameBuilder
+          .build(projectName, rootFile.toPath, path.toFile(rootFile).toPath)
+          .toRight(ModuleNameNotResolvedError(path))
+    } yield module
 
   private def toPosition(pos: Position): Suggestion.Position =
     Suggestion.Position(pos.line, pos.character)
@@ -141,8 +291,13 @@ object SuggestionsHandler {
     *
     * @param config the server configuration
     * @param repo the suggestions repo
+    * @param sessionRouter the session router
     */
-  def props(config: Config, repo: SuggestionsRepo[Future]): Props =
-    Props(new SuggestionsHandler(config, repo))
+  def props(
+    config: Config,
+    repo: SuggestionsRepo[Future],
+    sessionRouter: ActorRef
+  ): Props =
+    Props(new SuggestionsHandler(config, repo, sessionRouter))
 
 }

@@ -68,7 +68,7 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     db.run(removeQuery(suggestion))
 
   /** @inheritdoc */
-  override def removeByModule(name: String): Future[Seq[Long]] =
+  override def removeByModule(name: String): Future[(Long, Seq[Long])] =
     db.run(removeByModuleQuery(name))
 
   /** @inheritdoc */
@@ -234,15 +234,15 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
   /** The query to remove the suggestions by module name
     *
     * @param name the module name
-    * @return the list of removed suggestion ids
+    * @return the current database version and a list of removed suggestion ids
     */
-  private def removeByModuleQuery(name: String): DBIO[Seq[Long]] = {
+  private def removeByModuleQuery(name: String): DBIO[(Long, Seq[Long])] = {
     val selectQuery = Suggestions.filter(_.module === name)
     val deleteQuery = for {
-      rows <- selectQuery.result
-      n    <- selectQuery.delete
-      _    <- if (n > 0) incrementVersionQuery else DBIO.successful(())
-    } yield rows.flatMap(_.id)
+      rows    <- selectQuery.result
+      n       <- selectQuery.delete
+      version <- if (n > 0) incrementVersionQuery else currentVersionQuery
+    } yield version -> rows.flatMap(_.id)
     deleteQuery.transactionally
   }
 
