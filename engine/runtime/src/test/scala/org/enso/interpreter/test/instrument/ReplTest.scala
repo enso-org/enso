@@ -93,14 +93,16 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "access and modify monadic state" in {
       val code =
         """
-          |main =
-          |    State.put 10
+          |run =
+          |    State.put Number 10
           |    Debug.breakpoint
-          |    State.get
+          |    State.get Number
+          |
+          |main = State.run Number 0 here.run
           |""".stripMargin
       setSessionManager { executor =>
-        executor.evaluate("x = State.get")
-        executor.evaluate("State.put (x + 1)")
+        executor.evaluate("x = State.get Number")
+        executor.evaluate("State.put Number (x + 1)")
         executor.exit()
       }
       eval(code) shouldEqual 11
