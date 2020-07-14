@@ -12,6 +12,7 @@ import org.enso.launcher.cli.impl.{
   Parameter,
   Parser,
   PositionalArgument,
+  PrefixedParameters,
   TrailingArguments
 }
 
@@ -49,7 +50,9 @@ trait Opts[A] {
   def helpExplanations(): Seq[String]
   def commandLine(): String = {
     val options =
-      if (parameters.nonEmpty || flags.nonEmpty) "[options] " else ""
+      if (parameters.nonEmpty || flags.nonEmpty || prefixedParameters.nonEmpty)
+        "[options] "
+      else ""
     val required = requiredArguments.map(arg => s"<$arg> ").mkString
     val optional = optionalArguments.map(arg => s"[<$arg>]").mkString
     val trailing = trailingArguments.map(args => s"[<$args>...]").getOrElse("")
@@ -118,12 +121,9 @@ object Opts {
 
   // `--prefix.key=value` or `--prefix.key value`
   def prefixedParameters(
-    prefix: String
-  ): Opts[Seq[(String, String)]] = {
-    val _ = prefix
-    // TODO
-    pure(Seq())
-  }
+    prefix: String,
+    help: String = ""
+  ): Opts[Seq[(String, String)]] = new PrefixedParameters(prefix, help)
 
   // additional parameters, after a `--`
   def additionalArguments(help: String = ""): Opts[Seq[String]] =

@@ -4,7 +4,8 @@ import org.enso.launcher.cli.{
   Application,
   Opts,
   PluginInterceptedFlow,
-  PluginNotFound
+  PluginNotFound,
+  Spelling
 }
 
 sealed trait Token
@@ -43,6 +44,16 @@ object Parser {
     def addError(error: String): Unit = {
       parseErrors = error :: parseErrors
     }
+    def unknownParameter(parameter: String): Unit = {
+      val suggestions = Spelling
+        .suggestClosestMatches(parameter, opts.gatherParameterNames)
+      addError(s"Unknown parameter $parameter." + suggestions)
+    }
+    def unknownPrefix(prefix: String): Unit = {
+      val suggestions =
+        Spelling.suggestClosestMatches(prefix, opts.gatherParameterPrefixes)
+      addError(s"Unknown parameter prefix $prefix." + suggestions)
+    }
 
     opts.reset()
     val (tokens, additionalArguments) = tokenize(args)
@@ -74,10 +85,10 @@ object Parser {
                 )
               ) opts.prefixedParameters(prefix)(rest, value)
             } else {
-              addError(s"Unknown parameter prefix $prefix, TODO suggestions.")
+              unknownPrefix(prefix)
             }
           } else {
-            addError(s"Unknown parameter $parameter.")
+            unknownParameter(parameter)
           }
         case ParameterWithValue(parameter, value) =>
           if (opts.parameters.contains(parameter)) {
@@ -87,10 +98,10 @@ object Parser {
             if (opts.prefixedParameters.contains(prefix)) {
               opts.prefixedParameters(prefix)(rest, value)
             } else {
-              addError(s"Unknown parameter prefix $prefix, TODO suggestions.")
+              unknownPrefix(prefix)
             }
           } else {
-            addError(s"Unknown parameter $parameter")
+            unknownParameter(parameter)
           }
       }
     }
@@ -112,7 +123,10 @@ object Parser {
   ): Either[List[String], () => Unit] =
     args match {
       case Seq() =>
-        singleError("Expected a command, TODO suggestions")
+        singleError(
+          s"Expected a command. " +
+          s"See ${application.name} --help for a list of available commands."
+        )
       case Seq(commandName, commandArgs @ _*) =>
         application.commands.find(_.name == commandName) match {
           case Some(command) =>
@@ -129,8 +143,11 @@ object Parser {
               .getOrElse(PluginNotFound)
             pluginBehaviour match {
               case PluginNotFound =>
+                val commandNames = application.gatherCommandNames()
+                val suggestions =
+                  Spelling.suggestClosestMatches(commandName, commandNames)
                 singleError(
-                  s"$commandName is not a known command, TODO suggestions"
+                  s"$commandName is not a known command." + suggestions
                 )
               case PluginInterceptedFlow(run) => Right(run)
             }

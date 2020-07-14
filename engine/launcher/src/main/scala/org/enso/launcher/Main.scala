@@ -31,18 +31,27 @@ object Main {
 
   private def newCommand: Command =
     Command("new", "Create a new Enso project.") {
-      val nameOpt = Opts.positionalArgument[String]("name")
-      val pathOpt = Opts.optionalArgument[Path]("path")
+      val nameOpt = Opts.positionalArgument[String]("name", "Project name.")
+      val pathOpt = Opts.optionalArgument[Path](
+        "path",
+        "Path where to create the project. " +
+        "By default a directory called <name> is created in the current directory."
+      )
 
       (nameOpt, pathOpt) mapN { (name, path) => () =>
         Launcher.newProject(name, path)
       }
     }
 
+  private def jvmArgs =
+    Opts.prefixedParameters(
+      "jvm",
+      "Parameters prefixed with jvm (--jvm.key=value) will be passed to the launched JVM as -Dkey=value."
+    )
+
   private def runCommand: Command =
     Command("run", "Run a project or Enso script.") {
       val pathOpt        = Opts.optionalArgument[Path]("path")
-      val jvmArgs        = Opts.prefixedParameters("jvm")
       val additionalArgs = Opts.additionalArguments()
       (pathOpt, jvmArgs, additionalArgs) mapN {
         (path, jvmArgs, additionalArgs) => () =>
@@ -58,7 +67,6 @@ object Main {
     ) {
       val rootId         = Opts.parameter[UUID]("root-id", "uuid", "TODO explain.")
       val path           = Opts.parameter[Path]("path", "path", "Project path.")
-      val jvmArgs        = Opts.prefixedParameters("jvm")
       val additionalArgs = Opts.additionalArguments()
       (rootId, path, jvmArgs, additionalArgs) mapN {
         (rootId, path, jvmArgs, additionalArgs) => () =>
@@ -70,7 +78,6 @@ object Main {
   private def replCommand: Command =
     Command("repl", "Launch an Enso REPL.") {
       val path           = Opts.optionalParameter[Path]("path", "path", "Project path.")
-      val jvmArgs        = Opts.prefixedParameters("jvm")
       val additionalArgs = Opts.additionalArguments()
       (path, jvmArgs, additionalArgs) mapN {
         (path, jvmArgs, additionalArgs) => () =>
@@ -216,6 +223,8 @@ object Main {
       // TODO [RW] find plugins, --describe
       Seq(CommandHelp("ide", "Launch Enso IDE."))
     }
+
+    override def pluginsNames(): Seq[String] = Seq("ide")
   }
 
   private val commandsConfig: Application =

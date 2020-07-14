@@ -7,6 +7,7 @@ case object PluginNotFound                        extends PluginBehaviour
 case class PluginInterceptedFlow(run: () => Unit) extends PluginBehaviour
 trait PluginManager {
   def tryRunningPlugin(name: String, args: Seq[String]): PluginBehaviour
+  def pluginsNames():                                    Seq[String]
   def pluginsHelp():                                     Seq[CommandHelp]
 }
 
@@ -19,6 +20,9 @@ class Application(
   def parse(
     args: Seq[String]
   ): Either[List[String], () => Unit] = Parser.parseApplication(this)(args)
+
+  def gatherCommandNames(): Seq[String] =
+    commands.map(_.name) ++ pluginManager.map(_.pluginsNames()).getOrElse(Seq())
 
   def displayHelp(): Unit = {
     val subCommands = commands.map(_.topLevelHelp) ++ pluginManager
