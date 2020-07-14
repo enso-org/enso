@@ -966,7 +966,6 @@ lazy val launcher = project
   .settings(
     libraryDependencies ++= Seq(
         "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-        "com.monovore"  %% "decline"   % declineVersion,
         "org.typelevel" %% "cats-core" % catsVersion
       )
   )

@@ -6,9 +6,6 @@ of the dependencies that are listed here may not actually be distributed with it
 if their code was removed during compilation. For completeness, this document
 lists all source dependencies that were used for its compilation.
 
-'decline', licensed under Apache License Version 2.0
-(see: components-licences/LICENSE-APACHE) is distributed with the launcher.
-
 'cats', licensed under the MIT licence
 (see: components-licences/LICENSE-MIT), is distributed with the launcher. It
 requires the following notice:
