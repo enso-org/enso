@@ -9,9 +9,6 @@ const path      = require('path')
 const nodeJsVersion = "v12.18.0"
 const rustcVersion  = "1.40.0-nightly"
 
-// Configuration
-const libImplDirName = 'impl'
-
 let args = process.argv.slice(2)
 function runRead(cmd, args) {
     let out = ''
@@ -42,21 +39,13 @@ function runSync(cmd, args) {
     console.log(`Executing '${cmd} ${args.join(' ')}'`)
     let proc = spawnSync(cmd, args, {stdio: 'inherit', shell: true})
     if (proc.status != 0) {
-        process.exit(code)
+        process.exit(proc.code)
     }
 }
 
 function testLibrary() {
     cwd = process.cwd()
     console.log(`In directory ${cwd}`)
-
-    containedDirs = fss.readdirSync(cwd, {withFileTypes: true})
-        .filter(f => f.isDirectory())
-        .map(d => d.name)
-
-    if (containedDirs.includes(libImplDirName)) {
-        process.chdir(path.join(cwd, libImplDirName))
-    }
 
     runSync('wasm-pack', ['test', '--node'])
 }
@@ -75,9 +64,11 @@ function testWasm() {
     content = fss.readFileSync(path.join(rootDir, 'Cargo.toml'), {encoding: 'utf-8'})
     content = content.replace(/\s+|"/g, '')
     members = content.split('members')[1].split('[')[1].split(']')[0]
-    dirs    = members.split(',').filter(d => d != '').map(d => path.join(rootDir, d))
+    dirs    = members.split(',').map(d => path.join(rootDir, d))
 
-    dirs.forEach(d => withCwd(d, testLibrary))
+    dirs.forEach(d => {
+        if (d != '' && '!d.includes('macro')) withCwd(d, testLibrary)
+    })
 }
 
 async function main() {
