@@ -37,6 +37,7 @@ public class Module implements TruffleObject {
   private TruffleFile sourceFile;
   private Rope literalSource;
   private boolean isParsed = false;
+  private boolean isIndexed = false;
   private IR ir;
   private final QualifiedName name;
 
@@ -215,6 +216,16 @@ public class Module implements TruffleObject {
     } else {
       return this;
     }
+  }
+
+  /** @return the indexed flag. */
+  public boolean isIndexed() {
+    return isIndexed;
+  }
+
+  /** Set the indexed flag. */
+  public void setIndexed(boolean indexed) {
+    isIndexed = indexed;
   }
 
   /**

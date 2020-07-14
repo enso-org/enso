@@ -47,6 +47,8 @@ final class SuggestionsDatabaseEventsListener(
       .subscribe(self, classOf[Api.ExpressionValuesComputed])
     context.system.eventStream
       .subscribe(self, classOf[Api.SuggestionsDatabaseUpdateNotification])
+    context.system.eventStream
+      .subscribe(self, classOf[Api.SuggestionsDatabaseReIndexNotification])
   }
 
   override def receive: Receive = withClients(Set())
@@ -83,6 +85,23 @@ final class SuggestionsDatabaseEventsListener(
             )
         }
 
+    case msg: Api.SuggestionsDatabaseReIndexNotification =>
+      applyReIndexUpdates(msg.moduleName, msg.updates)
+        .onComplete {
+          case Success(notification) =>
+            if (notification.updates.nonEmpty) {
+              clients.foreach { clientId =>
+                sessionRouter ! DeliverToJsonController(clientId, notification)
+              }
+            }
+          case Failure(ex) =>
+            log.error(
+              ex,
+              "Error applying suggestion re-index updates: {}",
+              msg.updates
+            )
+        }
+
     case Api.ExpressionValuesComputed(_, updates) =>
       val types = updates.flatMap(update =>
         update.expressionType.map(update.expressionId -> _)
@@ -97,7 +116,30 @@ final class SuggestionsDatabaseEventsListener(
             }
             SuggestionsDatabaseUpdateNotification(updates, version)
         }
+  }
 
+  private def applyReIndexUpdates(
+    moduleName: String,
+    updates: Seq[Api.SuggestionsDatabaseUpdate.Add]
+  ): Future[SuggestionsDatabaseUpdateNotification] = {
+    val added = updates.map(_.suggestion)
+    for {
+      removedIds          <- repo.removeByModule(moduleName)
+      (version, addedIds) <- repo.insertAll(added)
+    } yield {
+      val updatesRemoved = removedIds.map(SuggestionsDatabaseUpdate.Remove)
+      val updatesAdded = (addedIds zip added).flatMap {
+        case (Some(id), suggestion) =>
+          Some(SuggestionsDatabaseUpdate.Add(id, suggestion))
+        case (None, suggestion) =>
+          log.error("failed to insert suggestion: {}", suggestion)
+          None
+      }
+      SuggestionsDatabaseUpdateNotification(
+        updatesRemoved ++ updatesAdded,
+        version
+      )
+    }
   }
 
   private def applyDatabaseUpdates(

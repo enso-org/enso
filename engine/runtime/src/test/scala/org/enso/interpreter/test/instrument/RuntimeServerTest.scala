@@ -391,7 +391,8 @@ class RuntimeServerTest
       Api.Request(
         Api.OpenFileNotification(
           fooFile,
-          "main = IO.println \"I'm a file!\""
+          "main = IO.println \"I'm a file!\"",
+          false
         )
       )
     )
@@ -413,8 +414,26 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          "Test.Foo",
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                "Test.Foo",
+                "main",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            )
+          )
+        )
+      )
     )
     context.consumeOut shouldEqual List("I'm a file!")
 
@@ -458,7 +477,8 @@ class RuntimeServerTest
       Api.Request(
         Api.OpenFileNotification(
           fooFile,
-          "main = IO.println \"I'm a file!\""
+          "main = IO.println \"I'm a file!\"",
+          false
         )
       )
     )
@@ -480,8 +500,26 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          "Test.Foo",
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                "Test.Foo",
+                "main",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            )
+          )
+        )
+      )
     )
     context.consumeOut shouldEqual List("I'm a file!")
 
@@ -737,7 +775,11 @@ class RuntimeServerTest
 
     context.send(
       Api.Request(
-        Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
+        Api.OpenFileNotification(
+          visualisationFile,
+          context.Visualisation.code,
+          false
+        )
       )
     )
 
@@ -852,7 +894,11 @@ class RuntimeServerTest
 
     context.send(
       Api.Request(
-        Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
+        Api.OpenFileNotification(
+          visualisationFile,
+          context.Visualisation.code,
+          false
+        )
       )
     )
 
@@ -961,7 +1007,11 @@ class RuntimeServerTest
 
     context.send(
       Api.Request(
-        Api.OpenFileNotification(visualisationFile, context.Visualisation.code)
+        Api.OpenFileNotification(
+          visualisationFile,
+          context.Visualisation.code,
+          false
+        )
       )
     )
 

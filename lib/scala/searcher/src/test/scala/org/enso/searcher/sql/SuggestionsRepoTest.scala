@@ -115,6 +115,32 @@ class SuggestionsRepoTest
       id1 shouldEqual id2
     }
 
+    "remove suggestions by module name" in {
+      val action = for {
+        id1 <- repo.insert(suggestion.atom)
+        id2 <- repo.insert(suggestion.method)
+        id3 <- repo.insert(suggestion.function)
+        id4 <- repo.insert(suggestion.local)
+        ids <- repo.removeByModule(suggestion.atom.module)
+      } yield (Seq(id1, id2, id3, id4).flatten, ids)
+
+      val (inserted, removed) = Await.result(action, Timeout)
+      inserted should contain theSameElementsAs removed
+    }
+
+    "remove all suggestions" in {
+      val action = for {
+        id1      <- repo.insert(suggestion.atom)
+        _        <- repo.insert(suggestion.method)
+        _        <- repo.insert(suggestion.function)
+        id4      <- repo.insert(suggestion.local)
+        (_, ids) <- repo.removeAll(Seq(suggestion.atom, suggestion.local))
+      } yield (Seq(id1, id4), ids)
+
+      val (inserted, removed) = Await.result(action, Timeout)
+      inserted should contain theSameElementsAs removed
+    }
+
     "get version" in {
       val action = repo.currentVersion
 
@@ -169,6 +195,65 @@ class SuggestionsRepoTest
         v3 <- repo.currentVersion
         _  <- repo.remove(suggestion.local)
         v4 <- repo.currentVersion
+      } yield (v1, v2, v3, v4)
+
+      val (v1, v2, v3, v4) = Await.result(action, Timeout)
+      v1 should not equal v2
+      v2 should not equal v3
+      v3 shouldEqual v4
+    }
+
+    "change version after remove by module name" in {
+      val action = for {
+        v1 <- repo.currentVersion
+        _  <- repo.insert(suggestion.local)
+        v2 <- repo.currentVersion
+        _  <- repo.removeByModule(suggestion.local.module)
+        v3 <- repo.currentVersion
+      } yield (v1, v2, v3)
+
+      val (v1, v2, v3) = Await.result(action, Timeout)
+      v1 should not equal v2
+      v2 should not equal v3
+    }
+
+    "not change version after failed remove by module name" in {
+      val action = for {
+        v1 <- repo.currentVersion
+        _  <- repo.insert(suggestion.local)
+        v2 <- repo.currentVersion
+        _  <- repo.removeByModule(suggestion.local.module)
+        v3 <- repo.currentVersion
+        _  <- repo.removeByModule(suggestion.local.module)
+        v4 <- repo.currentVersion
+      } yield (v1, v2, v3, v4)
+
+      val (v1, v2, v3, v4) = Await.result(action, Timeout)
+      v1 should not equal v2
+      v2 should not equal v3
+      v3 shouldEqual v4
+    }
+
+    "change version after remove all suggestions" in {
+      val action = for {
+        v1      <- repo.currentVersion
+        _       <- repo.insert(suggestion.local)
+        v2      <- repo.currentVersion
+        (v3, _) <- repo.removeAll(Seq(suggestion.local))
+      } yield (v1, v2, v3)
+
+      val (v1, v2, v3) = Await.result(action, Timeout)
+      v1 should not equal v2
+      v2 should not equal v3
+    }
+
+    "not change version after failed remove all suggestions" in {
+      val action = for {
+        v1      <- repo.currentVersion
+        _       <- repo.insert(suggestion.local)
+        v2      <- repo.currentVersion
+        (v3, _) <- repo.removeAll(Seq(suggestion.local))
+        (v4, _) <- repo.removeAll(Seq(suggestion.local))
       } yield (v1, v2, v3, v4)
 
       val (v1, v2, v3, v4) = Await.result(action, Timeout)

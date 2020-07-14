@@ -1,6 +1,9 @@
 package org.enso.languageserver.text
 
+import java.util
+
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Stash}
+import akka.pattern.pipe
 import cats.implicits._
 import org.enso.languageserver.capability.CapabilityProtocol._
 import org.enso.languageserver.data.{
@@ -30,9 +33,11 @@ import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.searcher.FileVersionsRepo
 import org.enso.text.editing._
 import org.enso.text.editing.model.TextEdit
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -40,6 +45,7 @@ import scala.language.postfixOps
   * An actor enabling multiple users edit collaboratively a file.
   *
   * @param bufferPath a path to a file
+  * @param versionsRepo a repo containing versions of indexed files
   * @param fileManager a file manger actor
   * @param runtimeConnector a gateway to the runtime
   * @param timeout a request timeout
@@ -47,11 +53,12 @@ import scala.language.postfixOps
   */
 class CollaborativeBuffer(
   bufferPath: Path,
+  versionsRepo: FileVersionsRepo[Future],
   fileManager: ActorRef,
   runtimeConnector: ActorRef,
   timeout: FiniteDuration
-)(
-  implicit versionCalculator: ContentBasedVersioning
+)(implicit
+  versionCalculator: ContentBasedVersioning
 ) extends Actor
     with Stash
     with ActorLogging
@@ -284,9 +291,17 @@ class CollaborativeBuffer(
     originalSender ! OpenFileResponse(
       Right(OpenFileResult(buffer, Some(cap)))
     )
-    runtimeConnector ! Api.Request(
-      Api.OpenFileNotification(file.path, file.content)
-    )
+    val currentVersion = versionCalculator.evalDigest(file.content)
+    versionsRepo
+      .setVersion(file.path, currentVersion)
+      .map { prevVersionOpt =>
+        val isIndexed =
+          prevVersionOpt.exists(util.Arrays.equals(_, currentVersion))
+        Api.Request(
+          Api.OpenFileNotification(file.path, file.content, isIndexed)
+        )
+      }
+      .pipeTo(runtimeConnector)
     context.become(
       collaborativeEditing(
         buffer,
@@ -325,8 +340,8 @@ class CollaborativeBuffer(
   ): Unit = {
     val newLock =
       lockHolder.flatMap {
-        case holder if (holder.clientId == clientId) => None
-        case holder                                  => Some(holder)
+        case holder if holder.clientId == clientId => None
+        case holder                                => Some(holder)
       }
     val newClientMap = clients - clientId
     if (newClientMap.isEmpty) {
@@ -398,6 +413,7 @@ object CollaborativeBuffer {
     * Creates a configuration object used to create a [[CollaborativeBuffer]]
     *
     * @param bufferPath a path to a file
+    * @param versionsRepo a repo containing versions of indexed files
     * @param fileManager a file manager actor
     * @param runtimeConnector a gateway to the runtime
     * @param timeout a request timeout
@@ -406,6 +422,7 @@ object CollaborativeBuffer {
     */
   def props(
     bufferPath: Path,
+    versionsRepo: FileVersionsRepo[Future],
     fileManager: ActorRef,
     runtimeConnector: ActorRef,
     timeout: FiniteDuration = 10 seconds
@@ -413,6 +430,7 @@ object CollaborativeBuffer {
     Props(
       new CollaborativeBuffer(
         bufferPath,
+        versionsRepo,
         fileManager,
         runtimeConnector,
         timeout

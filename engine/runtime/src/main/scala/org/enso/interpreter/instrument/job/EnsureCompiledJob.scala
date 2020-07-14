@@ -57,20 +57,28 @@ class EnsureCompiledJob(protected val files: List[File])
       compile(file).foreach { module =>
         applyEdits(file).ifPresent {
           case (changeset, edits) =>
+            val moduleName = module.getName.toString
             runInvalidationCommands(
               buildCacheInvalidationCommands(changeset, edits)
             )
-            val removedSuggestions = SuggestionBuilder(changeset.source)
-              .build(module.getName.toString, module.getIr)
-            compile(module)
-            val addedSuggestions =
-              SuggestionBuilder(changeset.applyEdits(edits))
-                .build(module.getName.toString, module.getIr)
-            sendSuggestionsNotifications(
-              removedSuggestions diff addedSuggestions,
-              addedSuggestions diff removedSuggestions
-            )
-
+            if (module.isIndexed) {
+              val removedSuggestions = SuggestionBuilder(changeset.source)
+                .build(moduleName, module.getIr)
+              compile(module)
+              val addedSuggestions =
+                SuggestionBuilder(changeset.applyEdits(edits))
+                  .build(moduleName, module.getIr)
+              sendSuggestionsUpdateNotification(
+                removedSuggestions diff addedSuggestions,
+                addedSuggestions diff removedSuggestions
+              )
+            } else {
+              val addedSuggestions =
+                SuggestionBuilder(changeset.applyEdits(edits))
+                  .build(moduleName, module.getIr)
+              sendReIndexNotification(moduleName, addedSuggestions)
+              module.setIndexed(true)
+            }
         }
       }
     }
@@ -118,13 +126,9 @@ class EnsureCompiledJob(protected val files: List[File])
     ctx.locking.acquireReadCompilationLock()
     try {
       val edits = EnsureCompiledJob.dequeueEdits(file)
-      if (edits.nonEmpty) {
-        ctx.executionService
-          .modifyModuleSources(file, edits.asJava)
-          .map(_ -> edits)
-      } else {
-        Optional.empty()
-      }
+      ctx.executionService
+        .modifyModuleSources(file, edits.asJava)
+        .map(_ -> edits)
     } finally {
       ctx.locking.releaseReadCompilationLock()
       ctx.locking.releaseFileLock(file)
@@ -177,13 +181,13 @@ class EnsureCompiledJob(protected val files: List[File])
   }
 
   /**
-    * Send notifications about the suggestions database updates.
+    * Send notification about the suggestions database updates.
     *
     * @param removed the list of suggestions to remove
     * @param added the list of suggestions to add
     * @param ctx the runtime context
     */
-  private def sendSuggestionsNotifications(
+  private def sendSuggestionsUpdateNotification(
     removed: Seq[Suggestion],
     added: Seq[Suggestion]
   )(implicit ctx: RuntimeContext): Unit =
@@ -197,6 +201,26 @@ class EnsureCompiledJob(protected val files: List[File])
         )
       )
     }
+
+  /**
+    * Send notification about the re-indexed module updates.
+    *
+    * @param moduleName the name of re-indexed module
+    * @param added the list of suggestions to add
+    * @param ctx the runtime context
+    */
+  private def sendReIndexNotification(
+    moduleName: String,
+    added: Seq[Suggestion]
+  )(implicit ctx: RuntimeContext): Unit =
+    ctx.endpoint.sendToClient(
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
+          added.map(Api.SuggestionsDatabaseUpdate.Add)
+        )
+      )
+    )
 }
 
 object EnsureCompiledJob {

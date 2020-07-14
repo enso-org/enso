@@ -27,7 +27,7 @@ import org.enso.languageserver.runtime.{
 }
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.searcher.sql.SqlSuggestionsRepo
+import org.enso.searcher.sql.{SqlSuggestionsRepo, SqlVersionsRepo}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -78,15 +78,23 @@ class BaseServerTest extends JsonRpcServerTestKit {
     )
 
   override def clientControllerFactory: ClientControllerFactory = {
-    val zioExec         = ZioExec(zio.Runtime.default)
-    val suggestionsRepo = SqlSuggestionsRepo()(system.dispatcher)
+    val zioExec = ZioExec(zio.Runtime.default)
+    val suggestionsRepo =
+      SqlSuggestionsRepo(testSuggestionsDbPath)(system.dispatcher)
+    val versionsRepo =
+      SqlVersionsRepo(testSuggestionsDbPath.toFile)(system.dispatcher)
     Await.ready(suggestionsRepo.init, timeout)
+    Await.ready(versionsRepo.init, timeout)
 
     val fileManager =
       system.actorOf(FileManager.props(config, new FileSystem, zioExec))
     val bufferRegistry =
       system.actorOf(
-        BufferRegistry.props(fileManager, runtimeConnectorProbe.ref)(
+        BufferRegistry.props(
+          versionsRepo,
+          fileManager,
+          runtimeConnectorProbe.ref
+        )(
           Sha3_224VersionCalculator
         )
       )

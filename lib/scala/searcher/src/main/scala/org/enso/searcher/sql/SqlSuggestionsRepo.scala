@@ -68,6 +68,10 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     db.run(removeQuery(suggestion))
 
   /** @inheritdoc */
+  override def removeByModule(name: String): Future[Seq[Long]] =
+    db.run(removeByModuleQuery(name))
+
+  /** @inheritdoc */
   override def removeAll(
     suggestions: Seq[Suggestion]
   ): Future[(Long, Seq[Option[Long]])] =
@@ -97,14 +101,14 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
 
   /** The query to initialize the repo. */
   private def initQuery: DBIO[Unit] =
-    (Suggestions.schema ++ Arguments.schema ++ Versions.schema).createIfNotExists
+    (Suggestions.schema ++ Arguments.schema ++ SuggestionsVersions.schema).createIfNotExists
 
   /** The query to clean the repo. */
   private def cleanQuery: DBIO[Unit] =
     for {
       _ <- Suggestions.delete
       _ <- Arguments.delete
-      _ <- Versions.delete
+      _ <- SuggestionsVersions.delete
     } yield ()
 
   /** Get all suggestions.
@@ -227,6 +231,21 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     deleteQuery.transactionally
   }
 
+  /** The query to remove the suggestions by module name
+    *
+    * @param name the module name
+    * @return the list of removed suggestion ids
+    */
+  private def removeByModuleQuery(name: String): DBIO[Seq[Long]] = {
+    val selectQuery = Suggestions.filter(_.module === name)
+    val deleteQuery = for {
+      rows <- selectQuery.result
+      n    <- selectQuery.delete
+      _    <- if (n > 0) incrementVersionQuery else DBIO.successful(())
+    } yield rows.flatMap(_.id)
+    deleteQuery.transactionally
+  }
+
   /** The query to remove a list of suggestions.
     *
     * @param suggestions the suggestions to remove
@@ -283,15 +302,17 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
   /** The query to get current version of the repo. */
   private def currentVersionQuery: DBIO[Long] = {
     for {
-      versionOpt <- Versions.result.headOption
+      versionOpt <- SuggestionsVersions.result.headOption
     } yield versionOpt.flatMap(_.id).getOrElse(0L)
   }
 
   /** The query to increment the current version of the repo. */
   private def incrementVersionQuery: DBIO[Long] = {
     val increment = for {
-      version <- Versions.returning(Versions.map(_.id)) += VersionRow(None)
-      _       <- Versions.filterNot(_.id === version).delete
+      version <- SuggestionsVersions.returning(
+        SuggestionsVersions.map(_.id)
+      ) += SuggestionsVersionRow(None)
+      _ <- SuggestionsVersions.filterNot(_.id === version).delete
     } yield version
     increment.transactionally
   }

@@ -59,11 +59,18 @@ case class SuggestionRow(
   scopeEndOffset: Int
 )
 
-/** A row in the versions table.
+/** A row in the suggestions_version table.
   *
   * @param id the row id
   */
-case class VersionRow(id: Option[Long])
+case class SuggestionsVersionRow(id: Option[Long])
+
+/** A row in the file_versions table
+  *
+  * @param path the file path
+  * @param digest the file version
+  */
+case class FileVersionRow(path: String, digest: Array[Byte])
 
 /** The type of a suggestion. */
 object SuggestionKind {
@@ -198,17 +205,31 @@ final class SuggestionsTable(tag: Tag)
     )
 }
 
-/** The schema of the versions table. */
+/** The schema of the suggestions_version table. */
 @nowarn("msg=multiarg infix syntax")
-final class VersionsTable(tag: Tag) extends Table[VersionRow](tag, "version") {
+final class SuggestionsVersionTable(tag: Tag)
+    extends Table[SuggestionsVersionRow](tag, "suggestions_version") {
 
   def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
 
-  def * = id.? <> (VersionRow.apply, VersionRow.unapply)
+  def * = id.? <> (SuggestionsVersionRow.apply, SuggestionsVersionRow.unapply)
+}
+
+/** The schema of the file_versions table. */
+@nowarn("msg=multiarg infix syntax")
+final class FileVersionsTable(tag: Tag)
+    extends Table[FileVersionRow](tag, "file_versions") {
+
+  def path   = column[String]("path", O.PrimaryKey)
+  def digest = column[Array[Byte]]("digest")
+
+  def * = (path, digest) <> (FileVersionRow.tupled, FileVersionRow.unapply)
 }
 
 object Arguments extends TableQuery(new ArgumentsTable(_))
 
 object Suggestions extends TableQuery(new SuggestionsTable(_))
 
-object Versions extends TableQuery(new VersionsTable(_))
+object SuggestionsVersions extends TableQuery(new SuggestionsVersionTable(_))
+
+object FileDigests extends TableQuery(new FileVersionsTable(_))

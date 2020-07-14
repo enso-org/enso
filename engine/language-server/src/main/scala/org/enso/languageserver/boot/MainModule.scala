@@ -29,7 +29,7 @@ import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
-import org.enso.searcher.sql.SqlSuggestionsRepo
+import org.enso.searcher.sql.{SqlSuggestionsRepo, SqlVersionsRepo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 
@@ -72,6 +72,12 @@ class MainModule(serverConfig: LanguageServerConfig) {
     repo
   }
 
+  val versionsRepo = {
+    val repo = SqlVersionsRepo()(system.dispatcher)
+    repo.init
+    repo
+  }
+
   lazy val sessionRouter =
     system.actorOf(SessionRouter.props(), "session-router")
 
@@ -85,7 +91,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val bufferRegistry =
     system.actorOf(
-      BufferRegistry.props(fileManager, runtimeConnector),
+      BufferRegistry.props(versionsRepo, fileManager, runtimeConnector),
       "buffer-registry"
     )
 
