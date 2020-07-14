@@ -132,7 +132,8 @@ lazy val enso = (project in file("."))
     runtime,
     searcher,
     launcher,
-    syntax.jvm
+    syntax.jvm,
+    testkit
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
@@ -566,6 +567,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(`language-server`)
   .dependsOn(`json-rpc-server`)
   .dependsOn(`json-rpc-server-test` % Test)
+  .dependsOn(testkit % Test)
 
 /* Note [Classpath Separation]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -616,6 +618,14 @@ lazy val `json-rpc-server-test` = project
   .settings(licenseSettings)
   .dependsOn(`json-rpc-server`)
 
+lazy val testkit = project
+  .in(file("lib/scala/testkit"))
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % scalatestVersion
+    )
+  )
+
 lazy val `core-definition` = (project in file("lib/scala/core-definition"))
   .configs(Benchmark)
   .settings(
@@ -662,6 +672,7 @@ lazy val searcher = project
     inConfig(Benchmark)(Defaults.testSettings),
     fork in Benchmark := true
   )
+  .dependsOn(testkit % Test)
   .settings(licenseSettings)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
@@ -758,6 +769,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`json-rpc-server-test` % Test)
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
+  .dependsOn(testkit % Test)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)

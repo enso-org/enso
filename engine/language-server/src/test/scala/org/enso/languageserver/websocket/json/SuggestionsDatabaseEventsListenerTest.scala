@@ -1,10 +1,10 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
-import org.enso.jsonrpc.test.FlakySpec
 import org.enso.languageserver.runtime.Suggestions
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.FlakySpec
 import org.scalatest.BeforeAndAfter
 
 class SuggestionsDatabaseEventsListenerTest

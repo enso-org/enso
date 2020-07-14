@@ -1,8 +1,8 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
-import org.enso.jsonrpc.test.FlakySpec
 import org.enso.projectmanager.test.Net._
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
+import org.enso.testkit.FlakySpec
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

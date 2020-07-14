@@ -132,7 +132,11 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   override def afterEach(): Unit = {
     super.afterEach()
-    FileUtils.deleteDirectory(testProjectsRoot)
+    try FileUtils.deleteDirectory(testProjectsRoot)
+    catch {
+      case ex: java.io.IOException =>
+        system.log.error(ex, s"Failed to cleanup $testProjectsRoot")
+    }
   }
 
 }
