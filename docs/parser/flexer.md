@@ -94,8 +94,8 @@ In order to avoid getting lexer definition out of sync with its implementation
 (generated engine), it is required to create a separate crate for the generated 
 engine with lexer definition as one of its dependencies.
 
-This separation enables a call to `specialize` (function that generates the engine)
-in `build.rs` during compilation. The output can be stored in new file i.e. 
+This separation enables a call to `flexer.generate_specialized_code()` in `build.rs` 
+(or macro) during compilation. The output can be stored in new file i.e. 
 `lexer-engine.rs` and exported with `include!("lexer-engine.rs")`. The project
 structure should therefore look like:
 
@@ -113,6 +113,13 @@ structure should therefore look like:
                   -- and saves its output to `src/lexer-engine.rs`
     - cargo.toml <-- lexer-definition is in dependencies and build-dependencies
 ```
+
+With this design `flexer.generate_specialized_code()` is going to be executed on each rebuild
+of `lexer/generation`. Therefore, `generation` should contain only minimum amount of logic 
+(i.e. tests should be in separate crate) and its dependencies should optimally involve only 
+such code which directly influences the content of generated code (in order to minimize 
+the unnecessary calls to expensive flexer specialization).
+  
 
 ### Notes on Code Generation
 The following properties are likely to hold for the code generation machinery.
