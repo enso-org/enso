@@ -5,7 +5,6 @@ import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import org.enso.jsonrpc.test.RetrySpec
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired
@@ -26,6 +25,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.searcher.SuggestionsRepo
 import org.enso.searcher.sql.SqlSuggestionsRepo
 import org.enso.text.editing.model.Position
+import org.enso.testkit.RetrySpec
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike

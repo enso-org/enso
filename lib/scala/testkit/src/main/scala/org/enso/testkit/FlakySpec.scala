@@ -1,4 +1,4 @@
-package org.enso.jsonrpc.test
+package org.enso.testkit
 
 import org.scalatest._
 

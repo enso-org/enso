@@ -3,6 +3,7 @@ package org.enso.searcher.sql
 import java.util.UUID
 
 import org.enso.polyglot.Suggestion
+import org.enso.testkit.RetrySpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
@@ -15,7 +16,8 @@ class SuggestionsRepoTest
     extends AnyWordSpec
     with Matchers
     with BeforeAndAfter
-    with BeforeAndAfterAll {
+    with BeforeAndAfterAll
+    with RetrySpec {
 
   val Timeout: FiniteDuration = 10.seconds
 
@@ -35,7 +37,7 @@ class SuggestionsRepoTest
 
   "SuggestionsRepo" should {
 
-    "get all suggestions" in {
+    "get all suggestions" taggedAs Retry() in {
       val action =
         for {
           _   <- repo.insert(suggestion.atom)
@@ -54,7 +56,7 @@ class SuggestionsRepoTest
       )
     }
 
-    "fail to insert duplicate suggestion" in {
+    "fail to insert duplicate suggestion" taggedAs Retry() in {
       val action =
         for {
           id1 <- repo.insert(suggestion.atom)
@@ -79,7 +81,7 @@ class SuggestionsRepoTest
       )
     }
 
-    "fail to insertAll duplicate suggestion" in {
+    "fail to insertAll duplicate suggestion" taggedAs Retry() in {
       val action =
         for {
           (v1, ids) <- repo.insertAll(Seq(suggestion.local, suggestion.local))

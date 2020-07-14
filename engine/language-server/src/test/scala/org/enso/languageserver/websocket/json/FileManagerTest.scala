@@ -6,7 +6,7 @@ import java.util.UUID
 
 import io.circe.literal._
 import org.apache.commons.io.FileUtils
-import org.enso.jsonrpc.test.RetrySpec
+import org.enso.testkit.RetrySpec
 
 class FileManagerTest extends BaseServerTest with RetrySpec {
   "File Server" must {
