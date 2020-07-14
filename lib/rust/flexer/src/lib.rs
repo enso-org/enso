@@ -31,13 +31,13 @@ pub mod data;
 /// The flexer is an engine for generating lexers. Akin to flex and other lexer generators.
 ///
 /// It is given a definition as a series of rules from which it then generates code for a highly
-/// optimised lexer implemented on top of
+/// optimised lexer implemented on top of a
 /// [DFA](https://en.wikipedia.org/wiki/Deterministic_finite_automaton).
 pub trait Flexer {
     /// Creates a new lexer.
     fn new() -> Self;
 
-    /// Returns a code for a highly-optimised lexer implemented on top of finite-state-automata.
+    /// Returns a code for a highly-optimised lexer implemented on top of a finite-state-automaton.
     fn generate_specialized_code(&mut self) -> String {
         String::from("#[derive(Debug)]\npub struct Lexer {}")
     }

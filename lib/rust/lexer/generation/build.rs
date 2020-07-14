@@ -5,7 +5,7 @@ use flexer::Flexer;
 
 
 
-/// Generates the lexer engine and saves the result into a file `src/lexer-engine.rs`.
+/// Generates the lexer engine and saves the result into the file `src/lexer-engine.rs`.
 ///
 /// The content of the generated file can be used with the `include!` macro.
 fn generate_engine() -> std::io::Result<()> {

@@ -1,4 +1,4 @@
-//! This module exposes the definition of lexer for the enso language.
+//! This module exposes the definition of the Enso lexer.
 
 use flexer::Flexer;
 

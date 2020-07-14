@@ -1,4 +1,4 @@
-//! This library exposes the specialized version of the enso lexer.
+//! This library exposes the specialized version of the Enso lexer.
 //!
 //! Its sole purpose is to avoid the lexer definition getting out of sync with its implementation
 //! (the generated engine), which requires the engine to live in a separate crate.

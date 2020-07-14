@@ -123,7 +123,6 @@ its dependencies should optimally involve only such code which directly
 influences the content of generated code (in order to minimize the
 unnecessary calls to expensive flexer specialization).
 
-
 ### Notes on Code Generation
 The following properties are likely to hold for the code generation machinery.
 
