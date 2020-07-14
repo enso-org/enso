@@ -73,7 +73,7 @@ function testWasm() {
     let rootDir = path.join(path.dirname(__filename), '..')
 
     content = fss.readFileSync(path.join(rootDir, 'Cargo.toml'), {encoding: 'utf-8'})
-    content = content.replace(/\s+/g, '')
+    content = content.replace(/\s+|"/g, '')
     members = content.split('members')[1].split('[')[1].split(']')[0]
     dirs    = members.split(',').filter(d => d != '').map(d => path.join(rootDir, d))
 
