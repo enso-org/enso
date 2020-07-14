@@ -28,10 +28,10 @@ pub mod data;
 // === Flexer ====
 // ===============
 
-/// The flexer is an engine for generating lexers. Akin to flex and other lexer generators.
+/// The flexer is an engine for generating lexers.
 ///
-/// It is given a definition as a series of rules from which it then generates code for a highly
-/// optimised lexer implemented on top of a
+/// Akin to flex and other lexer generators, it is given a definition as a series of rules from
+/// which it then generates code for a highly optimised lexer implemented on top of a
 /// [DFA](https://en.wikipedia.org/wiki/Deterministic_finite_automaton).
 pub trait Flexer {
     /// Creates a new lexer.

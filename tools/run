@@ -70,14 +70,19 @@ async function withCwd(dir, fn) {
 }
 
 function testWasm() {
-    let workingDir = path.dirname(__filename)
-    let sourceDir = path.join(workingDir, '../lib/rust')
+    let rootDir = path.join(path.dirname(__filename), '..')
 
-    dirs = fss.readdirSync(sourceDir, {withFileTypes: true})
-        .filter(f => f.isDirectory())
-        .map(d => path.join(sourceDir, d.name))
-
-    dirs.forEach(d => withCwd(d, testLibrary))
+    fs.readFile(path.join(rootDir, 'Cargo.toml'), {encoding: 'utf-8'}, (err,data) => {
+        if (err) {
+            console.log('Project does not contain `./Cargo.toml`.')
+            return
+        }
+        data    = data.replace(/\s+/g, '')
+        members = data.split('members')[1].split('[')[1].split(']')[0]
+        dirs    = members.split(',').filter(d => d != '').map(d => path.join(rootDir, d))
+        console.log(dirs)
+        dirs.forEach(d => withCwd(d, testLibrary))
+    })
 }
 
 async function main() {
