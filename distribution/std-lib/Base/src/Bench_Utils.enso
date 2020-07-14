@@ -34,5 +34,6 @@ measure = act -> label -> iter_size -> num_iters ->
         act_it_num = num_iters - it_num
         res = iter_size.times single_call
         avg = here.avg_list res
+        Runtime.gc
         IO.println (label + "/iteration:" + act_it_num.to_text + ": " + (avg/1000000).to_text + "ms")
     num_iters.times iteration

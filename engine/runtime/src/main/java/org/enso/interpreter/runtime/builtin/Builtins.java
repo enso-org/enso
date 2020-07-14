@@ -13,12 +13,15 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatc
 import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
 import org.enso.interpreter.node.expression.builtin.io.*;
 import org.enso.interpreter.node.expression.builtin.number.*;
+import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.*;
+import org.enso.interpreter.node.expression.builtin.system.ExitMethodGen;
 import org.enso.interpreter.node.expression.builtin.system.NanoTimeMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.*;
 import org.enso.interpreter.node.expression.builtin.text.*;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
+import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -90,6 +93,8 @@ public class Builtins {
     AtomConstructor java = new AtomConstructor("Java", scope).initializeFields();
     AtomConstructor thread = new AtomConstructor("Thread", scope).initializeFields();
 
+    AtomConstructor unsafe = new AtomConstructor("Unsafe", scope).initializeFields();
+
     scope.registerConstructor(unit);
     scope.registerConstructor(any);
     scope.registerConstructor(number);
@@ -109,6 +114,8 @@ public class Builtins {
     scope.registerConstructor(java);
     scope.registerConstructor(thread);
 
+    scope.registerConstructor(unsafe);
+
     createPolyglot(language);
 
     scope.registerMethod(io, "println", PrintlnMethodGen.makeFunction(language));
@@ -116,7 +123,9 @@ public class Builtins {
     scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
 
     scope.registerMethod(system, "nano_time", NanoTimeMethodGen.makeFunction(language));
+    scope.registerMethod(system, "exit", ExitMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
+    scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
     scope.registerMethod(panic, "recover", CatchPanicMethodGen.makeFunction(language));
@@ -150,6 +159,8 @@ public class Builtins {
 
     scope.registerMethod(
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
+
+    scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
 
     interopDispatchRoot = Truffle.getRuntime().createCallTarget(MethodDispatchNode.build(language));
     interopDispatchSchema =
