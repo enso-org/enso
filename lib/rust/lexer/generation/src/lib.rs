@@ -6,5 +6,4 @@
 //! This separation enables generation of the enso lexer source code with `build.rs` during
 //! compilation. Its output is then stored in a new file `lexer-engine.rs`and exported by `lexer.rs`.
 
-
 pub mod lexer;

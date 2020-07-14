@@ -11,6 +11,11 @@
 //! This file tests the generated source code of the enso lexer.
 
 
+
+// =============
+// === Tests ===
+// =============
+
 fn main() {
     println!("This needs to be here because the crate isn't a library.")
 }
@@ -18,6 +23,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use lexer_generation::lexer::Lexer;
+
 
 
     #[test]
