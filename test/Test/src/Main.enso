@@ -1,62 +1,7 @@
-import Base.Bench_Utils
-import Base.List
+import Base.Test
+import Test.List_Spec
+import Test.Number_Spec
 
-type Suite name examples
-type Example name result
-
-Example.is_fail = this.result.is_fail
-
-type Assertion
-    type Success
-    type Fail message
-
-    is_fail = case this of
-        Success -> False
-        Fail _ -> True
-
-Any.id = this
-Any.should_equal that = case this == that of
-    True -> Success
-    False ->
-        msg = this.to_text + " did not equal " + that.to_text + "."
-        Fail msg
-
-
-for_each list fun = case list of
-    Cons h t ->
-        fun h
-        here.for_each t fun
-    Nil -> Unit
-
-Suite.print_report =
-    IO.print_err (this.name + ":")
-    this.examples.reverse.each ex->
-        case ex.result of
-            Success ->
-                IO.print_err ("    - " + ex.name)
-            Fail msg ->
-                IO.print_err ("    - [FAILED] " + ex.name)
-                IO.print_err ("        Reason: " + msg)
-    code = if this.examples.any is_fail then 1 else 0
-    System.exit code
-
-Text.describe ~spec =
-    r = State.run Suite (Suite this Nil) <|
-        spec.id
-        State.get Suite
-    r.print_report
-
-Text.it ~example =
-    suite = State.get Suite
-    new_suite = case suite of
-        Suite name examples ->
-            Suite name (Cons (Example this example) examples)
-    State.put Suite new_suite
-
-main = describe "List" <|
-    it "should have properly defined length" <|
-        l = Cons 1 <| Cons 2 <| Cons 3 <| Nil
-        l.length.should_equal 7
-    it "should have well defined length when empty" <|
-        Nil.length.should_equal 0
-
+main = Suite.run <|
+    List_Spec.spec
+    Number_Spec.spec

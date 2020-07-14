@@ -1,0 +1,10 @@
+import Base.Test
+import Base.List
+
+spec = describe "List" <|
+    it "should have properly defined length" <|
+        l = Cons 1 <| Cons 2 <| Cons 3 <| Nil
+        l.length.should_equal 3
+    it "should have well defined length when empty" <|
+        Nil.length.should_equal 0
+

@@ -1,0 +1,55 @@
+import Base.List
+
+type Suite specs
+type Spec name behaviors
+type Behavior name result
+
+Behavior.is_fail = this.result.is_fail
+Spec.is_fail = this.behaviors.any is_fail
+Suite.is_fail = this.specs.any is_fail
+
+type Assertion
+    type Success
+    type Fail message
+
+    is_fail = case this of
+        Success -> False
+        Fail _ -> True
+
+Any.id = this
+Any.should_equal that = case this == that of
+    True -> Success
+    False ->
+        msg = this.to_text + " did not equal " + that.to_text + "."
+        Fail msg
+
+Spec.print_report =
+    IO.print_err (this.name + ":")
+    this.behaviors.reverse.each behavior->
+        case behavior.result of
+            Success ->
+                IO.print_err ("    - " + behavior.name)
+            Fail msg ->
+                IO.print_err ("    - [FAILED] " + behavior.name)
+                IO.print_err ("        Reason: " + msg)
+
+Text.describe ~behaviors =
+    r = State.run Spec (Spec this Nil) <|
+        behaviors.id
+        State.get Spec
+    r.print_report
+    suite = State.get Suite
+    new_suite = Suite (Cons r suite.specs)
+    State.put Suite new_suite
+
+Text.it ~behavior =
+    spec = State.get Spec
+    new_spec = Spec spec.name (Cons (Behavior this behavior) spec.behaviors)
+    State.put Spec new_spec
+
+Suite.run ~specs =
+    r = State.run Suite (Suite Nil) <|
+        specs.id
+        State.get Suite
+    code = if r.is_fail then 1 else 0
+    System.exit code
