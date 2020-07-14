@@ -13,4 +13,29 @@ package object impl {
       case (Left(errors), Right(_))           => Left(errors)
       case (Right(_), Left(errors))           => Left(errors)
     }
+
+  def splitAtCharacter(char: Char)(line: String): (String, String) = {
+    val index = line.indexOf(char.toString)
+    if (index < 0) {
+      ("", line)
+    } else {
+      (line.take(index), line.drop(index + 1))
+    }
+  }
+
+  def alignTabulators(lines: Seq[String]): Seq[String] = {
+    val splitted      = lines.map(splitAtCharacter('\t'))
+    val prefixLengths = splitted.map(_._1.length)
+    val padLength     = prefixLengths.max + 2
+    def rightPad(str: String): String =
+      if (str.length > padLength) str
+      else {
+        val padding = " " * (padLength - str.length)
+        str + padding
+      }
+
+    splitted.map {
+      case (prefix, suffix) => rightPad(prefix) + suffix
+    }
+  }
 }

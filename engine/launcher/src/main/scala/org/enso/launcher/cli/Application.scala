@@ -25,7 +25,8 @@ class Application(
         .map(_.pluginsHelp())
         .getOrElse(Seq())
 
-    val commandDescriptions = subCommands.map(_.toString).mkString("\n")
+    val commandDescriptions =
+      impl.alignTabulators(subCommands.map(_.toString)).mkString("\n")
     println(helpHeader)
     println("\nAvailable commands:")
     println(commandDescriptions)
