@@ -23,7 +23,8 @@ package object impl {
     }
   }
 
-  def alignTabulators(lines: Seq[String]): Seq[String] = {
+  def alignTabulators(lines: Seq[String], wrapAt: Int = 80): Seq[String] = {
+    val _             = wrapAt
     val splitted      = lines.map(splitAtCharacter('\t'))
     val prefixLengths = splitted.map(_._1.length)
     val padLength     = prefixLengths.max + 2

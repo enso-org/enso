@@ -10,7 +10,6 @@ import org.enso.launcher.cli.impl.{
   OptsProduct,
   OptsPure,
   Parameter,
-  Parser,
   PositionalArgument,
   PrefixedParameters,
   TrailingArguments
@@ -53,9 +52,9 @@ trait Opts[A] {
       if (parameters.nonEmpty || flags.nonEmpty || prefixedParameters.nonEmpty)
         "[options] "
       else ""
-    val required = requiredArguments.map(arg => s"<$arg> ").mkString
-    val optional = optionalArguments.map(arg => s"[<$arg>]").mkString
-    val trailing = trailingArguments.map(args => s"[<$args>...]").getOrElse("")
+    val required = requiredArguments.map(arg => s"$arg ").mkString
+    val optional = optionalArguments.map(arg => s"[$arg]").mkString
+    val trailing = trailingArguments.map(args => s"[$args...]").getOrElse("")
     val additional =
       if (additionalArguments.isDefined) "[-- <additional arguments>...]"
       else ""
@@ -131,6 +130,9 @@ object Opts {
 
   def pure[A](a: A): Opts[A] = new OptsPure[A](a)
 
-  def parse[A](opts: Opts[A])(args: Seq[String]): Either[List[String], A] =
-    Parser.parseOpts(opts)(args)
+  def parse[A](opts: Opts[A])(args: Seq[String]): Either[List[String], A] = {
+    val _ = opts
+    val _ = args
+    Left(List("deprecated")) // FIXME [RW] remove this
+  }
 }

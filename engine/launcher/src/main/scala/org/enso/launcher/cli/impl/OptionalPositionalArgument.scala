@@ -32,7 +32,7 @@ class OptionalPositionalArgument[A: Argument](
 
   override def helpExplanations(): Seq[String] = {
     if (helpComment.nonEmpty) {
-      Seq(s"[<$metavar>]\t$helpComment")
+      Seq(s"[$metavar]\t$helpComment")
     } else Seq()
   }
 }

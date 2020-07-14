@@ -2,6 +2,7 @@ package org.enso.launcher.cli.impl
 
 import org.enso.launcher.cli.{
   Application,
+  CLIOutput,
   Opts,
   PluginInterceptedFlow,
   PluginNotFound,
@@ -23,6 +24,8 @@ class TokenProvider(initialTokens: Seq[Token], errorReporter: String => Unit) {
     token
   }
 
+  def peekToken(): Token = tokens.head
+
   def tryConsumeArgument(errorMessage: String): Option[String] = {
     tokens.headOption match {
       case Some(PlainToken(arg)) =>
@@ -34,12 +37,16 @@ class TokenProvider(initialTokens: Seq[Token], errorReporter: String => Unit) {
     }
   }
 
+  def rest(): Seq[Token] = tokens
 }
 
 object Parser {
   def parseOpts[A](
-    opts: Opts[A]
-  )(args: Seq[String]): Either[List[String], A] = {
+    opts: Opts[A],
+    tokens: Seq[Token],
+    additionalArguments: Seq[String],
+    isTopLevel: Boolean
+  ): Either[List[String], (A, Seq[Token])] = {
     var parseErrors: List[String] = Nil
     def addError(error: String): Unit = {
       parseErrors = error :: parseErrors
@@ -47,7 +54,12 @@ object Parser {
     def unknownParameter(parameter: String): Unit = {
       val suggestions = Spelling
         .suggestClosestMatches(parameter, opts.gatherParameterNames)
-      addError(s"Unknown parameter $parameter." + suggestions)
+      val additional =
+        if (opts.additionalArguments.isDefined)
+          "\nIf the argument is for a newer version, " +
+          "you may have to include it after --."
+        else ""
+      addError(s"Unknown parameter $parameter." + suggestions + additional)
     }
     def unknownPrefix(prefix: String): Unit = {
       val suggestions =
@@ -56,10 +68,19 @@ object Parser {
     }
 
     opts.reset()
-    val (tokens, additionalArguments) = tokenize(args)
-    val tokenProvider                 = new TokenProvider(tokens, addError)
+    val tokenProvider = new TokenProvider(tokens, addError)
 
-    while (tokenProvider.hasTokens) {
+    /**
+      * Specifies whether the parser should parse the next argument.
+      * In top-level, we want to break when encountering the first positional
+      * argument (which is the command).
+      * Outside of top-level, we proceed always.
+      */
+    def shouldProceed(): Boolean =
+      if (isTopLevel) !tokenProvider.peekToken().isInstanceOf[PlainToken]
+      else true
+
+    while (tokenProvider.hasTokens && shouldProceed()) {
       tokenProvider.consumeToken() match {
         case PlainToken(value) =>
           if (opts.wantsArgument()) {
@@ -106,40 +127,58 @@ object Parser {
       }
     }
 
-    opts.additionalArguments match {
-      case Some(additionalArgumentsHandler) =>
-        additionalArgumentsHandler(additionalArguments)
-      case None =>
-        if (additionalArguments.nonEmpty) {
-          addError("Additional arguments (after --) were not expected.")
-        }
+    if (!isTopLevel) {
+      opts.additionalArguments match {
+        case Some(additionalArgumentsHandler) =>
+          additionalArgumentsHandler(additionalArguments)
+        case None =>
+          if (additionalArguments.nonEmpty) {
+            addError("Additional arguments (after --) were not expected.")
+          }
+      }
+    } else if (additionalArguments.nonEmpty) {
+      throw new IllegalArgumentException(
+        "Additional arguments should only be provided for subcommand parsing," +
+        " not at top level."
+      )
     }
 
-    appendErrors(opts.result(), parseErrors)
+    appendErrors(opts.result().map((_, tokenProvider.rest())), parseErrors)
   }
 
-  def parseApplication(application: Application)(
-    args: Seq[String]
+  def parseSubcommand[Config](
+    application: Application[Config],
+    config: Config,
+    tokens: Seq[Token],
+    additionalArguments: Seq[String]
   ): Either[List[String], () => Unit] =
-    args match {
+    tokens match {
       case Seq() =>
         singleError(
           s"Expected a command. " +
           s"See ${application.name} --help for a list of available commands."
         )
-      case Seq(commandName, commandArgs @ _*) =>
+      case Seq(PlainToken(commandName), commandArgs @ _*) =>
         application.commands.find(_.name == commandName) match {
           case Some(command) =>
             if (wantsHelp(commandArgs)) {
               Right(() => {
-                println(command.help(application.name))
+                CLIOutput.println(command.help(application.name))
               })
             } else {
-              Parser.parseOpts(command.opts)(commandArgs)
+              Parser
+                .parseOpts(
+                  command.opts,
+                  commandArgs,
+                  additionalArguments,
+                  isTopLevel = false
+                )
+                .map(_._1)
+                .map(runner => () => runner(config))
             }
           case None =>
             val pluginBehaviour = application.pluginManager
-              .map(_.tryRunningPlugin(commandName, commandArgs))
+              .map(_.tryRunningPlugin(commandName, untokenize(commandArgs)))
               .getOrElse(PluginNotFound)
             pluginBehaviour match {
               case PluginNotFound =>
@@ -154,8 +193,9 @@ object Parser {
         }
     }
 
-  def wantsHelp(args: Seq[String]): Boolean =
-    args.headOption.contains("help") || args.contains("--help")
+  def wantsHelp(args: Seq[Token]): Boolean =
+    args.headOption.contains(PlainToken("help")) ||
+    args.contains(ParameterOrFlag("help"))
 
   private def appendErrors[B](
     result: Either[List[String], B],
@@ -189,7 +229,7 @@ object Parser {
   private val shortParam     = """-(\w)""".r
   private val longParam      = """--([\w.]+)""".r
   private val paramWithValue = """--([\w.]+)=(.*)""".r
-  private def tokenize(args: Seq[String]): (Seq[Token], Seq[String]) = {
+  def tokenize(args: Seq[String]): (Seq[Token], Seq[String]) = {
     def toToken(arg: String): Token =
       arg match {
         case paramWithValue(name, value) => ParameterWithValue(name, value)
@@ -200,5 +240,16 @@ object Parser {
 
     val (localArgs, rest) = splitAdditionalArguments(args)
     (localArgs.map(toToken), rest)
+  }
+
+  def untokenize(tokens: Seq[Token]): Seq[String] = {
+    def fromToken(arg: Token): String =
+      arg match {
+        case PlainToken(value)                    => value
+        case ParameterOrFlag(parameter)           => s"--$parameter"
+        case ParameterWithValue(parameter, value) => s"--$parameter=$value"
+      }
+
+    tokens.map(fromToken)
   }
 }
