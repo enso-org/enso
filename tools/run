@@ -67,7 +67,7 @@ function testWasm() {
     dirs    = members.split(',').filter(d => d != '').map(d => path.join(rootDir, d))
 
     dirs.forEach(d => {
-        if (!d.endsWith('macros')) withCwd(d, testLibrary)
+        if (!d.endsWith('/macros')) withCwd(d, testLibrary)
     })
 }
 
