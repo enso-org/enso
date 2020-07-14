@@ -56,7 +56,9 @@ impl Segmentation {
     /// Inserts a range of symbols into the alphabet.
     pub fn insert(&mut self, range:RangeInclusive<Symbol>) {
         self.divisions.insert(Symbol::from(range.start()));
-        self.divisions.insert(Symbol{val:range.end().val + 1});
+        if range.end().val != Symbol::EOF_CODE.val {
+            self.divisions.insert(Symbol{val:range.end().val + 1});
+        }
     }
 
     /// Creates an [`AlphabetSegmentation`] from an input set of divisions.

@@ -86,6 +86,7 @@ impl From<&Group> for NFA {
     ///
     /// The algorithm is based on this algorithm for
     /// [converting a regular expression to an NFA](https://www.youtube.com/watch?v=RYNN-tb9WxI).
+    /// The asymptotic complexity is linear in number of symbols.
     fn from(group:&Group) -> Self {
         let mut nfa = NFA::default();
         let start   = nfa.new_state();
@@ -158,11 +159,15 @@ pub mod tests {
         group
     }
 
-    fn hundred_rules() -> Group {
-        let     pattern = Pattern::all("The quick brown fox jumps over the lazy dog!!");
+    fn complex_rules(count:usize) -> Group {
         let mut group   = Group::default();
 
-        for _ in 0..100 {
+        for ix in 0..count {
+            let string  = ix.to_string();
+            let all     = Pattern::all(&string);
+            let any     = Pattern::any(&string);
+            let none    = Pattern::none(&string);
+            let pattern = Pattern::many(all & any & none);
             group.add_rule(Rule{pattern:pattern.clone(),callback:"".into()})
         }
         group
@@ -209,7 +214,17 @@ pub mod tests {
     }
 
     #[bench]
+    fn bench_ten_rules(bencher:&mut Bencher) {
+        bencher.iter(|| DFA::from(&NFA::from(&complex_rules(10))));
+    }
+
+    #[bench]
     fn bench_hundred_rules(bencher:&mut Bencher) {
-        bencher.iter(|| DFA::from(&NFA::from(&hundred_rules())));
+        bencher.iter(|| DFA::from(&NFA::from(&complex_rules(100))));
+    }
+
+    #[bench]
+    fn bench_thousand_rules(bencher:&mut Bencher) {
+        bencher.iter(|| DFA::from(&NFA::from(&complex_rules(1000))));
     }
 }

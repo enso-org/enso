@@ -3,13 +3,13 @@ package org.enso.runner
 import java.io.File
 import java.util.UUID
 
-import buildinfo.Info
 import cats.implicits._
 import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
+import org.enso.version.VersionDescription
 import org.graalvm.polyglot.Value
 
 import scala.util.Try
@@ -281,46 +281,11 @@ object Main {
     * @param useJson whether the output should be JSON or human-readable.
     */
   def displayVersion(useJson: Boolean): Unit = {
-    // Running platform information
-    val vmName     = System.getProperty("java.vm.name")
-    val vmVendor   = System.getProperty("java.vm.vendor")
-    val jreVersion = System.getProperty("java.runtime.version")
-    val osArch     = System.getProperty("os.arch")
-    val osName     = System.getProperty("os.name")
-    val osVersion  = System.getProperty("os.version")
-
-    val versionOutput =
-      if (useJson) {
-        s"""{ "version": "${Info.ensoVersion}",
-           |  "scalaVersion": "${Info.scalacVersion}",
-           |  "graalVersion": "${Info.graalVersion}",
-           |  "branch": "${Info.branch}",
-           |  "dirty": ${Info.isDirty},
-           |  "commit": "${Info.commit}",
-           |  "vmName": "$vmName",
-           |  "vmVendor": "$vmVendor",
-           |  "jreVersion": "$jreVersion",
-           |  "osName": "$osName",
-           |  "osVersion": "$osVersion",
-           |  "osArch": "$osArch"
-           |}""".stripMargin
-      } else {
-        val dirtyStr = if (Info.isDirty) {
-          "*"
-        } else {
-          ""
-        }
-        s"""
-           |Enso Compiler and Runtime
-           |Version:    ${Info.ensoVersion}
-           |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
-           |Built from: ${Info.branch}$dirtyStr @ ${Info.commit}
-           |Running on: $vmName, $vmVendor, JDK $jreVersion
-           |            $osName $osVersion ($osArch)
-           |""".stripMargin
-      }
-
-    println(versionOutput)
+    val versionDescription = VersionDescription.make(
+      "Enso Compiler and Runtime",
+      includeRuntimeJVMInfo = true
+    )
+    println(versionDescription.asString(useJson))
   }
 
   /**

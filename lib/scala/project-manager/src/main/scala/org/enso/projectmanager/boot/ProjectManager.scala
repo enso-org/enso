@@ -4,7 +4,6 @@ import java.io.IOException
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import akka.http.scaladsl.Http
-import buildinfo.Info
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
@@ -19,6 +18,7 @@ import zio._
 import zio.console._
 import zio.interop.catz.core._
 import org.enso.projectmanager.infrastructure.config.ConfigurationReaders.fileReader
+import org.enso.version.VersionDescription
 import pureconfig.generic.auto._
 
 import scala.concurrent.duration._
@@ -115,40 +115,12 @@ object ProjectManager extends App with LazyLogging {
   }
 
   private def displayVersion(useJson: Boolean): ZIO[Console, Nothing, Int] = {
-    // Running platform information
-    val vmName     = System.getProperty("java.vm.name")
-    val jreVersion = System.getProperty("java.runtime.version")
-    val osArch     = System.getProperty("os.arch")
-    val osName     = System.getProperty("os.name")
-    val osVersion  = System.getProperty("os.version")
-    val dirtyStr   = if (Info.isDirty) "*" else ""
-
-    val versionOutput =
-      if (useJson) {
-        s"""{ "version": "${Info.ensoVersion}",
-           |  "scalaVersion": "${Info.scalacVersion}",
-           |  "graalVersion": "${Info.graalVersion}",
-           |  "branch": "${Info.branch}",
-           |  "dirty": ${Info.isDirty},
-           |  "commit": "${Info.commit}",
-           |  "vmName": "$vmName",
-           |  "jreVersion": "$jreVersion",
-           |  "osName": "$osName",
-           |  "osVersion": "$osVersion",
-           |  "osArch": "$osArch"
-           |}""".stripMargin
-      } else {
-        s"""
-           |Enso Project Manager
-           |Version:    ${Info.ensoVersion}
-           |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
-           |Built from: ${Info.branch}$dirtyStr @ ${Info.commit}
-           |Running on: $vmName, JDK $jreVersion
-           |            $osName $osVersion ($osArch)
-           |""".stripMargin
-      }
-
-    putStrLn(versionOutput) *> ZIO.succeed(SuccessExitCode)
+    val versionDescription = VersionDescription.make(
+      "Enso Project Manager",
+      includeRuntimeJVMInfo = true
+    )
+    putStrLn(versionDescription.asString(useJson)) *>
+    ZIO.succeed(SuccessExitCode)
   }
 
   private def logServerStartup(): UIO[Unit] =

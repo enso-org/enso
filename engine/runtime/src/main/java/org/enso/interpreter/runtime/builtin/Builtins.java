@@ -47,9 +47,7 @@ public class Builtins {
   private final AtomConstructor function;
   private final AtomConstructor text;
   private final AtomConstructor debug;
-  private final AtomConstructor syntaxError;
-  private final AtomConstructor compileError;
-  private final AtomConstructor inexhaustivePatternMatchError;
+  private final Error error;
   private final Bool bool;
 
   private final RootCallTarget interopDispatchRoot;
@@ -70,21 +68,10 @@ public class Builtins {
     any = new AtomConstructor("Any", scope).initializeFields();
     number = new AtomConstructor("Number", scope).initializeFields();
     bool = new Bool(language, scope);
+    error = new Error(language, scope);
     function = new AtomConstructor("Function", scope).initializeFields();
     text = new AtomConstructor("Text", scope).initializeFields();
     debug = new AtomConstructor("Debug", scope).initializeFields();
-    syntaxError =
-        new AtomConstructor("Syntax_Error", scope)
-            .initializeFields(
-                new ArgumentDefinition(0, "message", ArgumentDefinition.ExecutionMode.EXECUTE));
-    compileError =
-        new AtomConstructor("Compile_Error", scope)
-            .initializeFields(
-                new ArgumentDefinition(0, "message", ArgumentDefinition.ExecutionMode.EXECUTE));
-    inexhaustivePatternMatchError =
-        new AtomConstructor("Inexhaustive_Pattern_Match_Error", scope)
-            .initializeFields(
-                new ArgumentDefinition(0, "scrutinee", ArgumentDefinition.ExecutionMode.EXECUTE));
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -117,9 +104,6 @@ public class Builtins {
     scope.registerConstructor(debug);
     scope.registerConstructor(system);
     scope.registerConstructor(runtime);
-
-    scope.registerConstructor(syntaxError);
-    scope.registerConstructor(compileError);
 
     scope.registerConstructor(java);
     scope.registerConstructor(thread);
@@ -234,6 +218,11 @@ public class Builtins {
     return bool;
   }
 
+  /** @return the builtin Error types container. */
+  public Error error() {
+    return error;
+  }
+
   /**
    * Returns the {@code Any} atom constructor.
    *
@@ -250,21 +239,6 @@ public class Builtins {
    */
   public AtomConstructor debug() {
     return debug;
-  }
-
-  /** @return the builtin {@code Syntax_Error} atom constructor. */
-  public AtomConstructor syntaxError() {
-    return syntaxError;
-  }
-
-  /** @return the builtin {@code Compile_Error} atom constructor. */
-  public AtomConstructor compileError() {
-    return compileError;
-  }
-
-  /** @return the builtin {@code Inexhaustive_Pattern_Match_Error} atom constructor. */
-  public AtomConstructor inexhaustivePatternMatchError() {
-    return inexhaustivePatternMatchError;
   }
 
   /**
