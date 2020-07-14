@@ -4,26 +4,29 @@ import java.nio.file.Path
 import java.util.UUID
 
 import org.enso.launcher.cli.{
+  Application,
   Argument,
   Command,
-  Commands,
+  CommandHelp,
   Opts,
   PluginBehaviour,
   PluginInterceptedFlow,
+  PluginManager,
   PluginNotFound
 }
 import org.enso.launcher.cli.Opts._
 import cats.implicits._
 
 object Main {
-  private def jsonFlag: Opts[Boolean] = Opts.flag("json")
+  private def jsonFlag: Opts[Boolean] =
+    Opts.flag("json", "Use JSON instead of plain text for output.")
 
   private def versionCommand: Command =
     Command(
       "version",
       "Print version of the launcher and currently selected Enso distribution."
     ) {
-      jsonFlag map Launcher.displayVersion
+      jsonFlag map { useJSON => () => Launcher.displayVersion(useJSON) }
     }
 
   private def newCommand: Command =
@@ -31,83 +34,99 @@ object Main {
       val nameOpt = Opts.positionalArgument[String]("name")
       val pathOpt = Opts.optionalArgument[Path]("path")
 
-      (nameOpt, pathOpt) mapN { (name, path) =>
+      (nameOpt, pathOpt) mapN { (name, path) => () =>
         Launcher.newProject(name, path)
       }
     }
 
   private def runCommand: Command =
-    Command("run", "TODO") {
+    Command("run", "Run a project or Enso script.") {
       val pathOpt        = Opts.optionalArgument[Path]("path")
       val jvmArgs        = Opts.prefixedParameters("jvm")
-      val additionalArgs = Opts.additionalParameters
+      val additionalArgs = Opts.additionalArguments()
       (pathOpt, jvmArgs, additionalArgs) mapN {
-        (path, jvmArgs, additionalArgs) =>
+        (path, jvmArgs, additionalArgs) => () =>
           println(s"Launch runner for $path")
           println(s"JVM=$jvmArgs, additionalArgs=$additionalArgs")
       }
     }
 
   private def languageServerCommand: Command =
-    Command("language-server", "TODO") {
-      val rootId         = Opts.parameter[UUID]("root-id")
-      val path           = Opts.parameter[Path]("path")
+    Command(
+      "language-server",
+      "Launch the Language Server for a given project."
+    ) {
+      val rootId         = Opts.parameter[UUID]("root-id", "uuid", "TODO explain.")
+      val path           = Opts.parameter[Path]("path", "path", "Project path.")
       val jvmArgs        = Opts.prefixedParameters("jvm")
-      val additionalArgs = Opts.additionalParameters
+      val additionalArgs = Opts.additionalArguments()
       (rootId, path, jvmArgs, additionalArgs) mapN {
-        (rootId, path, jvmArgs, additionalArgs) =>
+        (rootId, path, jvmArgs, additionalArgs) => () =>
           println(s"Launch language server in $path with id=$rootId.")
           println(s"JVM=$jvmArgs, additionalArgs=$additionalArgs")
       }
     }
 
   private def replCommand: Command =
-    Command("repl", "TODO") {
-      val path           = Opts.optionalParameter[Path]("path")
+    Command("repl", "Launch an Enso REPL.") {
+      val path           = Opts.optionalParameter[Path]("path", "path", "Project path.")
       val jvmArgs        = Opts.prefixedParameters("jvm")
-      val additionalArgs = Opts.additionalParameters
-      (path, jvmArgs, additionalArgs) mapN { (path, jvmArgs, additionalArgs) =>
-        println(s"Launch REPL in $path")
-        println(s"JVM=$jvmArgs, additionalArgs=$additionalArgs")
+      val additionalArgs = Opts.additionalArguments()
+      (path, jvmArgs, additionalArgs) mapN {
+        (path, jvmArgs, additionalArgs) => () =>
+          println(s"Launch REPL in $path")
+          println(s"JVM=$jvmArgs, additionalArgs=$additionalArgs")
       }
     }
 
   private def defaultCommand: Command =
-    Command("default", "TODO") {
-      val version = Opts.optionalArgument[String]()
-      version map {
-        case Some(version) => println(s"Set version to $version")
-        case None          => println("Print current version")
+    Command("default", "Print or change the default Enso version.") {
+      val version = Opts.optionalArgument[String](
+        "version",
+        "If provided, sets default version to <version>. " +
+        "Otherwise, current default is displayed."
+      )
+      version map { version => () =>
+        version match {
+          case Some(version) => println(s"Set version to $version")
+          case None          => println("Print current version")
+        }
       }
     }
 
   private def upgradeCommand: Command =
-    Command("upgrade", "TODO") {
-      val version = Opts.optionalArgument[String]()
-      version map {
-        case Some(version) => println(s"Upgrade launcher to $version")
-        case None          => println("Upgrade launcher to latest")
+    Command("upgrade", "Upgrade the launcher.") {
+      val version = Opts.optionalArgument[String](
+        "version",
+        "Version to upgrade to. " +
+        "If not provided, defaults to latest version."
+      )
+      version map { version => () =>
+        version match {
+          case Some(version) => println(s"Upgrade launcher to $version")
+          case None          => println("Upgrade launcher to latest version")
+        }
       }
     }
 
   private def installCommand: Command =
-    Command("install", "TODO") {
-      val version = Opts.positionalArgument[String]()
-      version map { version =>
+    Command("install", "Installs a selected Enso version.") {
+      val version = Opts.positionalArgument[String]("version")
+      version map { version => () =>
         println(s"Install $version")
       }
     }
 
   private def uninstallCommand: Command =
-    Command("uninstall", "TODO") {
-      val version = Opts.positionalArgument[String]()
-      version map { version =>
+    Command("uninstall", "Uninstall an Enso version.") {
+      val version = Opts.positionalArgument[String]("version")
+      version map { version => () =>
         println(s"Uninstall $version")
       }
     }
 
   private def listCommand: Command =
-    Command("list", "TODO") {
+    Command("list", "List installed components.") {
       sealed trait Components
       case object EnsoComponents    extends Components
       case object RuntimeComponents extends Components
@@ -115,61 +134,94 @@ object Main {
         case "enso"    => EnsoComponents.asRight
         case "runtime" => RuntimeComponents.asRight
         case other =>
-          (s"Unknown argument '$other' - expected 'enso', 'runtime' " +
-          "or no argument to print a general summary.").asLeft
+          List(
+            s"Unknown argument '$other' - expected 'enso', 'runtime' " +
+            "or no argument to print a general summary."
+          ).asLeft
       }
 
-      val what = Opts.optionalArgument[Components]()
-      what map {
-        case Some(EnsoComponents)    => println("List enso")
-        case Some(RuntimeComponents) => println("List runtime")
-        case None                    => println("List summary")
+      val what = Opts.optionalArgument[Components](
+        "components",
+        "Can be either 'enso', 'runtime' or none. " +
+        "If not specified, prints a summary of all installed components."
+      )
+      what map { what => () =>
+        what match {
+          case Some(EnsoComponents)    => println("List enso")
+          case Some(RuntimeComponents) => println("List runtime")
+          case None                    => println("List summary")
+        }
       }
     }
 
   private def configCommand: Command =
-    Command("config", "TODO") {
-      val global = Opts.flag("global")
-      val key    = Opts.positionalArgument[String]("key")
-      val value  = Opts.positionalArgument[String]("value")
-      (key, value, global) mapN { (key, value, global) =>
+    Command("config", "Modify project or user configuration.") {
+      val global = Opts.flag(
+        "global",
+        "Set global user config. By default sets config of current project."
+      )
+      val key   = Opts.positionalArgument[String]("key")
+      val value = Opts.positionalArgument[String]("value")
+      (key, value, global) mapN { (key, value, global) => () =>
         val which = if (global) "global" else "local"
         println(s"Set in the $which config $key => $value")
       }
     }
 
   private def helpCommand: Command =
-    Command("help", "TODO") {
-      pure(()) map { _ => printTopLevelHelp() }
+    Command("help", "Display summary of available commands.") {
+      pure(()) map { _ => () => printTopLevelHelp() }
     }
 
-  private def specialOptions: Opts[Unit] = {
-    val help    = Opts.flag("help", 'h')
-    val version = Opts.flag("version", 'V')
+  private def specialOptions: Opts[() => Boolean] = {
+    val help    = Opts.flag("help", 'h', "Display help.")
+    val version = Opts.flag("version", 'V', "Display version.")
     val json    = jsonFlag
-    (help, version, json) mapN {
-      case (help, version, useJSON) =>
-        if (help || !version) {
-          printTopLevelHelp()
-        } else {
-          Launcher.displayVersion(useJSON)
-        }
+    (help, version, json) mapN { (help, version, useJSON) => () =>
+      if (help) {
+        printTopLevelHelp()
+        true
+      } else if (version) {
+        Launcher.displayVersion(useJSON)
+        true
+      } else false
+    }
+  }
+
+  private def handleTopLevelOptions(args: Seq[String]): Boolean = {
+    Opts.parse(specialOptions)(args) match {
+      case Left(_) =>
+        false
+      case Right(handler) => handler()
     }
   }
 
   private def findPlugin(name: String): Boolean = name == "ide" // TODO [RW]
 
-  private def pluginHandler(name: String, args: Seq[String]): PluginBehaviour =
-    findPlugin(name) match {
-      case true =>
-        println(s"Would launch $name with $args") // TODO [RW] launch plugin
-        PluginInterceptedFlow
-      case false =>
-        PluginNotFound
-    }
+  private object LauncherPluginManager extends PluginManager {
+    override def tryRunningPlugin(
+      name: String,
+      args: Seq[String]
+    ): PluginBehaviour =
+      findPlugin(name) match {
+        case true =>
+          PluginInterceptedFlow(() => {
+            println(s"Would launch $name with $args") // TODO [RW] launch plugin
+          })
+        case false =>
+          PluginNotFound
+      }
 
-  private def commandsConfig: Commands =
-    Commands(
+    override def pluginsHelp(): Seq[CommandHelp] = {
+      // TODO [RW] find plugins, --describe
+      Seq(CommandHelp("ide", "Launch Enso IDE."))
+    }
+  }
+
+  private val commandsConfig: Application =
+    Application(
+      "enso",
+      "Enso Launcher",
       Seq(
         versionCommand,
         helpCommand,
@@ -184,24 +236,22 @@ object Main {
         listCommand,
         configCommand
       ),
-      pluginHandler
+      LauncherPluginManager
     )
 
   private def printTopLevelHelp(): Unit = {
-    println("TODO help")
+    commandsConfig.displayHelp()
   }
 
   def main(args: Array[String]): Unit = {
     val arguments = args.toSeq
-    Opts.parse(specialOptions)(arguments) match {
-      case Right(()) =>
-      case Left(_) =>
-        Commands.parse(commandsConfig)(arguments) match {
-          case Left(errors) =>
-            println(errors.mkString("\n"))
-            System.exit(1)
-          case Right(()) =>
-        }
+    if (!handleTopLevelOptions(arguments)) {
+      commandsConfig.parse(arguments) match {
+        case Left(errors) =>
+          println(errors.mkString("\n"))
+          System.exit(1)
+        case Right(run) => run()
+      }
     }
   }
 }

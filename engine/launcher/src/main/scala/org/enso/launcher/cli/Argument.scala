@@ -6,7 +6,7 @@ import java.util.UUID
 import cats.implicits._
 
 trait Argument[A] {
-  def read(string: String): Either[String, A]
+  def read(string: String): Either[List[String], A]
 }
 
 object Argument {
@@ -20,7 +20,8 @@ object Argument {
       try {
         string.toInt.asRight
       } catch {
-        case _: NumberFormatException => s"Invalid number '$string'".asLeft
+        case _: NumberFormatException =>
+          List(s"Invalid number '$string'").asLeft
       }
 
   implicit val argumentPath: Argument[Path] =
@@ -29,13 +30,15 @@ object Argument {
         Path.of(string).asRight
       } catch {
         case invalidPathException: InvalidPathException =>
-          s"Invalid path '$string': ${invalidPathException.getMessage}".asLeft
+          List(
+            s"Invalid path '$string': ${invalidPathException.getMessage}"
+          ).asLeft
       }
 
   implicit val argumentUUID: Argument[UUID] = (string: String) =>
     try { UUID.fromString(string).asRight }
     catch {
       case _: IllegalArgumentException | _: NumberFormatException =>
-        s"Invalid UUID '$string'".asLeft
+        List(s"Invalid UUID '$string'").asLeft
     }
 }
