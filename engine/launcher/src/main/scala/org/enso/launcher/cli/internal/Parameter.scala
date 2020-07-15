@@ -7,8 +7,16 @@ class Parameter[A: Argument](
   metavar: String,
   helpComment: String
 ) extends BaseOpts[A] {
+  if (name.exists(_.isWhitespace)) {
+    throw new IllegalArgumentException(
+      s"Parameter name '$name' cannot contain whitespace."
+    )
+  }
+
   override private[cli] val parameters =
     Map(name -> update)
+  override private[cli] val usageOptions =
+    Seq(s"--$name $metavar")
 
   val empty = Right(None)
 
@@ -33,6 +41,6 @@ class Parameter[A: Argument](
     }
 
   override def helpExplanations(): Seq[String] = {
-    Seq(s"(required) --$name <$metavar>\t$helpComment")
+    Seq(s" --$name $metavar\t$helpComment")
   }
 }

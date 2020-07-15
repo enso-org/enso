@@ -4,7 +4,7 @@ import org.enso.launcher.cli.Argument
 
 class OptionalPositionalArgument[A: Argument](
   metavar: String,
-  helpComment: String
+  helpComment: Option[String]
 ) extends BaseOpts[Option[A]] {
   val empty                                  = Right(None)
   var value: Either[List[String], Option[A]] = empty
@@ -30,9 +30,5 @@ class OptionalPositionalArgument[A: Argument](
   override private[cli] def result() =
     value
 
-  override def helpExplanations(): Seq[String] = {
-    if (helpComment.nonEmpty) {
-      Seq(s"[$metavar]\t$helpComment")
-    } else Seq()
-  }
+  override def additionalHelp(): Seq[String] = helpComment.toSeq
 }

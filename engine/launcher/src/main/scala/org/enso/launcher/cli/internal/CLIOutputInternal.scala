@@ -63,11 +63,11 @@ private[cli] object CLIOutputInternal {
     rows: Seq[(String, String)],
     wrapLength: Int,
     minimumWrapWidth: Int,
-    minimumTableWidth: Option[Int]
+    minimumTableWidth: Int
   ): Seq[String] = {
     val prefixLengths = rows.map(_._1.length)
     val commmonPrefixLength =
-      (Seq(prefixLengths.max + 2) ++ minimumTableWidth.toSeq).max
+      Seq(prefixLengths.max + 1, minimumTableWidth).max
     val commonSuffixLength =
       Seq(wrapLength - commmonPrefixLength, minimumWrapWidth).max
     val additionalLinesPadding = " " * commmonPrefixLength

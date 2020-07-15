@@ -2,8 +2,10 @@ package org.enso.launcher.cli.internal
 
 import org.enso.launcher.cli.Argument
 
-class PositionalArgument[A: Argument](metavar: String, helpComment: String)
-    extends BaseOpts[A] {
+class PositionalArgument[A: Argument](
+  metavar: String,
+  helpComment: Option[String]
+) extends BaseOpts[A] {
   val empty                                  = Right(None)
   var value: Either[List[String], Option[A]] = empty
 
@@ -31,9 +33,5 @@ class PositionalArgument[A: Argument](metavar: String, helpComment: String)
       case None        => Left(List(s"Missing required argument <$metavar>."))
     }
 
-  override def helpExplanations(): Seq[String] = {
-    if (helpComment.nonEmpty) {
-      Seq(s"$metavar\t$helpComment")
-    } else Seq()
-  }
+  override def additionalHelp(): Seq[String] = helpComment.toSeq
 }

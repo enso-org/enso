@@ -6,6 +6,7 @@ class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
   override private[cli] val flags              = a.flags
   override private[cli] val parameters         = a.parameters
   override private[cli] val prefixedParameters = a.prefixedParameters
+  override private[cli] val usageOptions       = a.usageOptions
 //  override private[cli] val requiredParameters: Seq[String] =
 //    a.requiredParameters
 
@@ -24,5 +25,5 @@ class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
   override private[cli] def result() = a.result().map(f)
 
   override def helpExplanations(): Seq[String] = a.helpExplanations()
-
+  override def additionalHelp(): Seq[String]   = a.additionalHelp()
 }

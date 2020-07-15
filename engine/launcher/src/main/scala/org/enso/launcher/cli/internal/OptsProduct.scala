@@ -7,7 +7,10 @@ class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
   override private[cli] val parameters = lhs.parameters ++ rhs.parameters
   override private[cli] val prefixedParameters =
     lhs.prefixedParameters ++ rhs.prefixedParameters
-//  override private[cli] val requiredParameters: Seq[String] =
+  override private[cli] val usageOptions =
+    lhs.usageOptions ++ rhs.usageOptions
+
+  //  override private[cli] val requiredParameters: Seq[String] =
 //    lhs.requiredParameters ++ rhs.requiredParameters
 
   override private[cli] def wantsArgument() =
@@ -45,6 +48,8 @@ class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
 
   override def helpExplanations(): Seq[String] =
     lhs.helpExplanations() ++ rhs.helpExplanations()
+  override def additionalHelp(): Seq[String] =
+    lhs.additionalHelp() ++ rhs.additionalHelp()
 }
 
 object OptsProduct {

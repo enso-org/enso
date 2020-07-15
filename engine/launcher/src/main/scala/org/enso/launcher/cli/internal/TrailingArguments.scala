@@ -4,7 +4,7 @@ import org.enso.launcher.cli.Argument
 
 class TrailingArguments[A: Argument](
   metavar: String,
-  helpComment: String
+  helpComment: Option[String]
 ) extends BaseOpts[Seq[A]] {
   val empty                                = Right(Nil)
   var value: Either[List[String], List[A]] = empty
@@ -27,9 +27,5 @@ class TrailingArguments[A: Argument](
   override private[cli] def result() =
     value.map(_.reverse)
 
-  override def helpExplanations(): Seq[String] = {
-    if (helpComment.nonEmpty) {
-      Seq(s"<$metavar>...\t$helpComment")
-    } else Seq()
-  }
+  override def additionalHelp(): Seq[String] = helpComment.toSeq
 }

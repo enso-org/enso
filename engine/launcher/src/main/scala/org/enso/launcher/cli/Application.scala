@@ -22,7 +22,7 @@ class Application[Config](
   val name: String,
   val helpHeader: String,
   val topLevelOpts: Opts[() => TopLevelBehavior[Config]],
-  val commands: Seq[Command[Config]],
+  val commands: Seq[Command[Config => Unit]],
   val pluginManager: Option[PluginManager]
 ) {
   def parse(
@@ -57,18 +57,28 @@ class Application[Config](
     commands.map(_.name) ++ pluginManager.map(_.pluginsNames()).getOrElse(Seq())
 
   def displayHelp(): String = {
+    val usageOptions = topLevelOpts.commandLineOptions()
+    val usage        = s"Usage: $name\t${usageOptions}COMMAND [ARGS]\n"
+
     val subCommands = commands.map(_.topLevelHelp) ++ pluginManager
         .map(_.pluginsHelp())
         .getOrElse(Seq())
-
     val commandDescriptions = subCommands.map(_.toString).mkString("\n")
-    val sb                  = new StringBuilder
+
+    val topLevelOptions = topLevelOpts.helpExplanations().mkString("\n")
+    val topLevelOptionsHelp =
+      if (topLevelOptions.isEmpty) ""
+      else "\nAvailable options:\n" + topLevelOptions + "\n"
+
+    val sb = new StringBuilder
     sb.append(helpHeader + "\n")
+    sb.append(usage)
     sb.append("\nAvailable commands:\n")
     sb.append(commandDescriptions + "\n")
+    sb.append(topLevelOptionsHelp)
     sb.append(
       s"\nFor more information on a specific command listed above," +
-      s" please run `$name <command> --help`."
+      s" please run `$name COMMAND --help`."
     )
 
     sb.toString()
@@ -80,7 +90,7 @@ object Application {
     name: String,
     helpHeader: String,
     topLevelOpts: Opts[() => TopLevelBehavior[Config]],
-    commands: Seq[Command[Config]],
+    commands: Seq[Command[Config => Unit]],
     pluginManager: PluginManager
   ): Application[Config] =
     new Application(

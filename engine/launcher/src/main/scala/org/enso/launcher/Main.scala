@@ -20,28 +20,28 @@ import org.enso.launcher.cli.Opts._
 import cats.implicits._
 
 object Main {
-  private def jsonFlag: Opts[Boolean] =
-    Opts.flag("json", "Use JSON instead of plain text for output.")
+  private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =
+    Opts.flag("json", "Use JSON instead of plain text for output.", showInUsage)
 
   type Config = Unit
 
-  private def versionCommand: Command[Config] =
+  private def versionCommand: Command[Config => Unit] =
     Command(
       "version",
       "Print version of the launcher and currently selected Enso distribution."
     ) {
-      jsonFlag map { useJSON => (_: Config) =>
+      jsonFlag(showInUsage = true) map { useJSON => (_: Config) =>
         Launcher.displayVersion(useJSON)
       }
     }
 
-  private def newCommand: Command[Config] =
+  private def newCommand: Command[Config => Unit] =
     Command("new", "Create a new Enso project.") {
       val nameOpt = Opts.positionalArgument[String]("NAME", "Project name.")
       val pathOpt = Opts.optionalArgument[Path](
         "PATH",
-        "Path where to create the project. " +
-        "By default a directory called <name> is created in the current directory."
+        "Path where to create the project. If not specified, a directory " +
+        "called NAME is created in the current directory."
       )
 
       (nameOpt, pathOpt) mapN { (name, path) => (_: Config) =>
@@ -52,10 +52,11 @@ object Main {
   private def jvmArgs =
     Opts.prefixedParameters(
       "jvm",
-      "Parameters prefixed with jvm (--jvm.key=value) will be passed to the launched JVM as -Dkey=value."
+      "Parameters prefixed with jvm (--jvm.key=value) will be passed to the " +
+      "launched JVM as -Dkey=value."
     )
 
-  private def runCommand: Command[Config] =
+  private def runCommand: Command[Config => Unit] =
     Command("run", "Run a project or Enso script.") {
       val pathOpt        = Opts.optionalArgument[Path]("PATH")
       val additionalArgs = Opts.additionalArguments()
@@ -66,22 +67,53 @@ object Main {
       }
     }
 
-  private def languageServerCommand: Command[Config] =
+  private def languageServerCommand: Command[Config => Unit] =
     Command(
       "language-server",
       "Launch the Language Server for a given project."
     ) {
-      val rootId         = Opts.parameter[UUID]("root-id", "UUID", "TODO explain.")
-      val path           = Opts.parameter[Path]("path", "PATH", "Project path.")
+      val rootId = Opts.parameter[UUID]("root-id", "UUID", "Content root id.")
+      val path =
+        Opts.parameter[Path]("path", "PATH", "Path to the content root.")
+      val interface =
+        Opts.optionalParameter[String](
+          "interface",
+          "INTERFACE",
+          "Interface for processing all incoming connections."
+        )
+      val rpcPort =
+        Opts.optionalParameter[Int](
+          "rpc-port",
+          "PORT",
+          "RPC port for processing all incoming connections."
+        )
+      val dataPort =
+        Opts.optionalParameter[Int](
+          "data-port",
+          "PORT",
+          "Data port for visualisation protocol."
+        )
       val additionalArgs = Opts.additionalArguments()
-      (rootId, path, jvmArgs, additionalArgs) mapN {
-        (rootId, path, jvmArgs, additionalArgs) => (_: Config) =>
-          println(s"Launch language server in $path with id=$rootId.")
-          println(s"JVM=$jvmArgs, additionalArgs=$additionalArgs")
+      (
+        rootId,
+        path,
+        interface,
+        rpcPort,
+        dataPort,
+        jvmArgs,
+        additionalArgs
+      ) mapN {
+        (rootId, path, interface, rpcPort, dataPort, jvmArgs, additionalArgs) =>
+          (_: Config) =>
+            println(s"Launch language server in $path with id=$rootId.")
+            println(
+              s"interface=$interface, rpcPort=$rpcPort, dataPort=$dataPort"
+            )
+            println(s"JVM=$jvmArgs, additionalArgs=$additionalArgs")
       }
     }
 
-  private def replCommand: Command[Config] =
+  private def replCommand: Command[Config => Unit] =
     Command("repl", "Launch an Enso REPL.") {
       val path           = Opts.optionalParameter[Path]("path", "PATH", "Project path.")
       val additionalArgs = Opts.additionalArguments()
@@ -92,7 +124,7 @@ object Main {
       }
     }
 
-  private def defaultCommand: Command[Config] =
+  private def defaultCommand: Command[Config => Unit] =
     Command("default", "Print or change the default Enso version.") {
       val version = Opts.optionalArgument[String](
         "VERSION",
@@ -107,7 +139,7 @@ object Main {
       }
     }
 
-  private def upgradeCommand: Command[Config] =
+  private def upgradeCommand: Command[Config => Unit] =
     Command("upgrade", "Upgrade the launcher.") {
       val version = Opts.optionalArgument[String](
         "version",
@@ -122,7 +154,7 @@ object Main {
       }
     }
 
-  private def installCommand: Command[Config] =
+  private def installCommand: Command[Config => Unit] =
     Command("install", "Install a selected Enso version.") {
       val version = Opts.positionalArgument[String]("VERSION")
       version map { version => (_: Config) =>
@@ -130,7 +162,7 @@ object Main {
       }
     }
 
-  private def uninstallCommand: Command[Config] =
+  private def uninstallCommand: Command[Config => Unit] =
     Command("uninstall", "Uninstall an Enso version.") {
       val version = Opts.positionalArgument[String]("VERSION")
       version map { version => (_: Config) =>
@@ -138,7 +170,7 @@ object Main {
       }
     }
 
-  private def listCommand: Command[Config] =
+  private def listCommand: Command[Config => Unit] =
     Command("list", "List installed components.") {
       sealed trait Components
       case object EnsoComponents    extends Components
@@ -167,11 +199,12 @@ object Main {
       }
     }
 
-  private def configCommand: Command[Config] =
+  private def configCommand: Command[Config => Unit] =
     Command("config", "Modify project or user configuration.") {
       val global = Opts.flag(
         "global",
-        "Set global user config. By default sets config of current project."
+        "Set global user config. By default sets config of current project.",
+        showInUsage = true
       )
       val key   = Opts.positionalArgument[String]("KEY")
       val value = Opts.positionalArgument[String]("VALUE")
@@ -181,15 +214,16 @@ object Main {
       }
     }
 
-  private def helpCommand: Command[Config] =
+  private def helpCommand: Command[Config => Unit] =
     Command("help", "Display summary of available commands.") {
       pure(()) map { (_: Config) => (_: Config) => printTopLevelHelp() }
     }
 
   private def topLevelOpts: Opts[() => TopLevelBehavior[Config]] = {
-    val help    = Opts.flag("help", 'h', "Display help.")
-    val version = Opts.flag("version", 'V', "Display version.")
-    val json    = jsonFlag
+    val help = Opts.flag("help", 'h', "Display help.", showInUsage = true)
+    val version =
+      Opts.flag("version", 'V', "Display version.", showInUsage = true)
+    val json = jsonFlag(showInUsage = false)
     (help, version, json) mapN { (help, version, useJSON) => () =>
       if (help) {
         printTopLevelHelp()

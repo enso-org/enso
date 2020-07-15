@@ -11,7 +11,7 @@ object CLIOutput {
     * @param text
     * @return
     */
-  def alignAndWrap(text: String): String = {
+  def alignAndWrap(text: String, minTableWidth: Option[Int] = None): String = {
     val entities = CLIOutputInternal.groupTables(text.split('\n'))
     val wrapped: Seq[String] = entities flatMap {
         case CLIOutputInternal.TextLine(line) =>
@@ -21,7 +21,7 @@ object CLIOutput {
             rows,
             terminalWidth,
             minimumColumnWrapWidth,
-            minimumTableWidth = None
+            minimumTableWidth = minTableWidth.getOrElse(2)
           )
       }
     wrapped.mkString("\n")

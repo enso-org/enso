@@ -70,7 +70,7 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
         ),
         10,
         5,
-        None
+        2
       )
 
       wrapped.mkString("\n") shouldEqual
@@ -87,7 +87,7 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
         ),
         10,
         5,
-        None
+        2
       )
 
       wrapped.mkString("\n") shouldEqual

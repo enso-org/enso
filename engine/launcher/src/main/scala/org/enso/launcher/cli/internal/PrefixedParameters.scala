@@ -1,7 +1,13 @@
 package org.enso.launcher.cli.internal
 
-class PrefixedParameters(prefix: String, helpComment: String)
+class PrefixedParameters(prefix: String, helpComment: Option[String])
     extends BaseOpts[Seq[(String, String)]] {
+  if (prefix.exists(_.isWhitespace)) {
+    throw new IllegalArgumentException(
+      s"Prefix '$prefix' cannot contain whitespace."
+    )
+  }
+
   override private[cli] val prefixedParameters = Map(prefix -> update)
   var currentValue: List[(String, String)]     = Nil
 
@@ -11,6 +17,5 @@ class PrefixedParameters(prefix: String, helpComment: String)
 
   override private[cli] def result() = Right(currentValue.reverse)
 
-  override def helpExplanations(): Seq[String] =
-    if (helpComment.nonEmpty) Seq(helpComment) else Seq()
+  override def additionalHelp(): Seq[String] = helpComment.toSeq
 }
