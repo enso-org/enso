@@ -232,4 +232,4 @@ object Suggestions extends TableQuery(new SuggestionsTable(_))
 
 object SuggestionsVersions extends TableQuery(new SuggestionsVersionTable(_))
 
-object FileDigests extends TableQuery(new FileVersionsTable(_))
+object FileVersions extends TableQuery(new FileVersionsTable(_))

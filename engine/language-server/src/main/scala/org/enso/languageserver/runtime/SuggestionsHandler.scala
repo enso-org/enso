@@ -45,19 +45,19 @@ import scala.util.{Failure, Success}
   *              Request/Response           v
   *  +---------+<---------------->+---------+----------+
   *  | Clients |                  | SuggestionsHandler |
-  *  +---------+<-----------------+---+----------------+
-  *              Database Update      ^
-  *              Notifications        |
-  *                                   |
-  *                               +---+----------------+
+  *  +---------+<-----------------+---------+----------+
+  *              Database Update            ^
+  *              Notifications              |
+  *                                         |
+  *                               +---------+----------+
   *                               | RuntimeConnector   |
-  *                               +-+---------+--------+
-  *                                 ^         ^
-  *       SuggestionsDatabaseUpdate |         | ExpressionValuesComputed
-  *                                 |         |
-  *                +----------------+--+   +--+--------------------+
-  *                | EnsureCompiledJob |   | IdExecutionInstrument |
-  *                +-------------------+   +-----------------------+
+  *                               +----+----------+----+
+  *                                    ^          ^
+  *          SuggestionsDatabaseUpdate |          | ExpressionValuesComputed
+  *                                    |          |
+  *                   +----------------+--+    +--+--------------------+
+  *                   | EnsureCompiledJob |    | IdExecutionInstrument |
+  *                   +-------------------+    +-----------------------+
   *
   * }}
   *
@@ -98,7 +98,7 @@ final class SuggestionsHandler(
       context.become(initialized(name, Set()))
 
     case msg =>
-      log.warning("unhandled message {}", msg)
+      log.warning("Unhandled message: {}", msg)
       sender() ! ProjectNotFoundError
   }
 

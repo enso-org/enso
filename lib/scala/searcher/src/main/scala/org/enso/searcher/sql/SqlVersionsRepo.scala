@@ -36,14 +36,14 @@ final class SqlVersionsRepo private (db: SqlDatabase)(implicit
     db.close()
 
   private def initQuery: DBIO[Unit] =
-    FileDigests.schema.createIfNotExists
+    FileVersions.schema.createIfNotExists
 
   private def cleanQuery: DBIO[Unit] =
-    FileDigests.delete >> DBIO.successful(())
+    FileVersions.delete >> DBIO.successful(())
 
   private def getVersionQuery(file: File): DBIO[Option[Array[Byte]]] = {
     val query = for {
-      row <- FileDigests
+      row <- FileVersions
       if row.path === file.toString
     } yield row.digest
     query.result.headOption
@@ -53,7 +53,7 @@ final class SqlVersionsRepo private (db: SqlDatabase)(implicit
     file: File,
     bytes: Array[Byte]
   ): DBIO[Option[Array[Byte]]] = {
-    val upsertQuery = FileDigests
+    val upsertQuery = FileVersions
       .insertOrUpdate(FileVersionRow(file.toString, bytes))
     for {
       version <- getVersionQuery(file)
@@ -63,7 +63,7 @@ final class SqlVersionsRepo private (db: SqlDatabase)(implicit
 
   private def removeQuery(file: File): DBIO[Unit] = {
     val query = for {
-      row <- FileDigests
+      row <- FileVersions
       if row.path === file.toString
     } yield row
     query.delete >> DBIO.successful(())

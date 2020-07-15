@@ -12,7 +12,7 @@ import scala.concurrent.{ExecutionContext, Future}
   */
 class OpenFileCmd(request: Api.OpenFileNotification) extends Command(None) {
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def execute(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext
