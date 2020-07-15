@@ -2481,7 +2481,10 @@ null
 ```
 
 #### Errors
-TBC
+- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
+  suggestions database
+- [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
+  root directory
 
 ### `search/getSuggestionsDatabaseVersion`
 Sent from client to the server to receive the current version of the suggestions
@@ -2506,7 +2509,10 @@ null
 ```
 
 #### Errors
-TBC
+- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
+  suggestions database
+- [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
+  root directory
 
 ### `search/suggestionsDatabaseUpdate`
 Sent from server to the client to inform abouth the change in the suggestions
@@ -2527,7 +2533,7 @@ database.
 ```
 
 #### Errors
-TBC
+N/A
 
 ### `search/completion`
 Sent from client to the server to receive the autocomplete suggestion.
@@ -2563,7 +2569,12 @@ Sent from client to the server to receive the autocomplete suggestion.
 ```
 
 #### Errors
-TBC
+- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
+  suggestions database
+- [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
+  root directory
+- [`ModuleNameNotResolvedError`](#modulenamenotresolvederror) the module name
+  cannot be extracted from the provided file path parameter
 
 ## Input/Output Operations
 The input/output portion of the language server API deals with redirecting

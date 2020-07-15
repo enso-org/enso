@@ -33,6 +33,34 @@ import scala.util.{Failure, Success}
   *
   * Handler initializes the database and responds to the search requests.
   *
+  * == Implementation ==
+  *
+  * {{
+  *
+  *                               +--------------------+
+  *                               | SuggestionsRepo    |
+  *                               +---------+----------+
+  *                                         ^
+  *              Capability,Search          |
+  *              Request/Response           v
+  *  +---------+<---------------->+---------+----------+
+  *  | Clients |                  | SuggestionsHandler |
+  *  +---------+<-----------------+---+----------------+
+  *              Database Update      ^
+  *              Notifications        |
+  *                                   |
+  *                               +---+----------------+
+  *                               | RuntimeConnector   |
+  *                               +-+---------+--------+
+  *                                 ^         ^
+  *       SuggestionsDatabaseUpdate |         | ExpressionValuesComputed
+  *                                 |         |
+  *                +----------------+--+   +--+--------------------+
+  *                | EnsureCompiledJob |   | IdExecutionInstrument |
+  *                +-------------------+   +-----------------------+
+  *
+  * }}
+  *
   * @param config the server configuration
   * @param repo the suggestions repo
   * @param sessionRouter the session router
@@ -211,6 +239,17 @@ final class SuggestionsHandler(
       context.become(initialized(name, clients))
   }
 
+  /**
+    * Handle the suggestions database re-index update.
+    *
+    * Function clears existing module suggestions from the database, inserts new
+    * suggestions and builds the notification containing combined removed and
+    * added suggestions.
+    *
+    * @param moduleName the module name
+    * @param updates the list of updates after the full module re-index
+    * @return the API suggestions database update notification
+    */
   private def applyReIndexUpdates(
     moduleName: String,
     updates: Seq[Api.SuggestionsDatabaseUpdate.Add]
@@ -235,6 +274,15 @@ final class SuggestionsHandler(
     }
   }
 
+  /**
+    * Handle the suggestions database update.
+    *
+    * Function applies notification updates on the suggestions database and
+    * builds the notification to the user
+    *
+    * @param msg the suggestions database update notification from runtime
+    * @return the API suggestions database update notification
+    */
   private def applyDatabaseUpdates(
     msg: Api.SuggestionsDatabaseUpdateNotification
   ): Future[SuggestionsDatabaseUpdateNotification] = {
@@ -268,6 +316,13 @@ final class SuggestionsHandler(
     }
   }
 
+  /**
+    * Build module name from the requested file path.
+    *
+    * @param projectName the project name
+    * @param path the requested file path
+    * @return the module name
+    */
   private def getModule(
     projectName: String,
     path: Path
