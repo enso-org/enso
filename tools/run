@@ -42,7 +42,7 @@ function runSync(cmd, args) {
     console.log(`Executing '${cmd} ${args.join(' ')}'`)
     let proc = spawnSync(cmd, args, {stdio: 'inherit', shell: true})
     if (proc.status != 0) {
-        process.exit(code)
+        process.exit(proc.code)
     }
 }
 
@@ -50,12 +50,12 @@ function testLibrary() {
     cwd = process.cwd()
     console.log(`In directory ${cwd}`)
 
-    containedDirs = fss.readdirSync(cwd, {withFileTypes: true})
-        .filter(f => f.isDirectory())
-        .map(d => d.name)
+    if (cwd.endsWith('macros')) {
+        containedDirs = fss.readdirSync(path.join(cwd, '..'), {withFileTypes: true})
+            .filter(f => f.isDirectory())
+            .map(d => d.name)
 
-    if (containedDirs.includes(libImplDirName)) {
-        process.chdir(path.join(cwd, libImplDirName))
+        if (containedDirs.includes(libImplDirName)) return
     }
 
     runSync('wasm-pack', ['test', '--node'])
@@ -70,12 +70,12 @@ async function withCwd(dir, fn) {
 }
 
 function testWasm() {
-    let workingDir = path.dirname(__filename)
-    let sourceDir = path.join(workingDir, '../lib/rust')
+    let rootDir = path.join(path.dirname(__filename), '..')
 
-    dirs = fss.readdirSync(sourceDir, {withFileTypes: true})
-        .filter(f => f.isDirectory())
-        .map(d => path.join(sourceDir, d.name))
+    content = fss.readFileSync(path.join(rootDir, 'Cargo.toml'), {encoding: 'utf-8'})
+    content = content.replace(/\s+|"/g, '')
+    members = content.split('members')[1].split('[')[1].split(']')[0]
+    dirs    = members.split(',').filter(d => d != '').map(d => path.join(rootDir, d))
 
     dirs.forEach(d => withCwd(d, testLibrary))
 }

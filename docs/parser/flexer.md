@@ -16,6 +16,7 @@ from which it then generates code for a highly-optimised lexer.
 - [Pattern Description](#pattern-description)
 - [State Management](#state-management)
 - [Code Generation](#code-generation)
+    - [Automated Code Generation](#automated-code-generation)
     - [Notes on Code Generation](#notes-on-code-generation)
 - [An Example](#an-example)
 
@@ -87,6 +88,40 @@ _matches fully_ is chosen. This differs from other common lexer generators, as
 they mostly choose the _longest_ match instead. Once the pattern is matched, the
 associated code is executed and the process starts over again until the input
 stream has been consumed.
+
+### Automated Code Generation
+In order to avoid the lexer definition getting out of sync with its 
+implementation (the generated engine), it is necessary to create a separate 
+crate for the generated engine that has the lexer definition as one of its 
+dependencies.
+
+This separation enables a call to `flexer.generate_specialized_code()` in 
+`build.rs` (or a macro) during compilation. The output can be stored in a new 
+file i.e. `lexer-engine.rs` and exported from the library with 
+`include!("lexer-engine.rs")`. The project structure therefore appears as 
+follows:
+
+```
+- lib/rust/lexer/
+  - definition/
+    - src/
+      - lexer.rs
+    - cargo.toml
+
+  - generation/
+    - src/
+      - lexer.rs <-- include!("lexer-engine.rs")
+    - build.rs   <-- calls `lexer_definition::lexer_source_code()`
+                  -- and saves its output to `src/lexer-engine.rs`
+    - cargo.toml <-- lexer-definition is in dependencies and build-dependencies
+```
+
+With this design, `flexer.generate_specialized_code()` is going to be executed 
+on each rebuild of `lexer/generation`. Therefore, `generation` should contain
+only the minimum amount of logic (i.e. tests should be in separate crate) and
+its dependencies should optimally involve only such code which directly 
+influences the content of generated code (in order to minimize the
+unnecessary calls to expensive flexer specialization).
 
 ### Notes on Code Generation
 The following properties are likely to hold for the code generation machinery.
