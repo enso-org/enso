@@ -292,5 +292,19 @@ class DemandAnalysisTest extends CompilerTest {
         .asInstanceOf[IR.CallArgument.Specified]
         .shouldBeSuspended shouldEqual Some(false)
     }
+
+    "foobar" in {
+      implicit  val ctx: ModuleContext =
+      val ir =
+        """
+          |id x = x
+          |
+          |bar ~x = here.id <|
+          |    x
+          |
+          |main = here.bar <|
+          |    IO.println 0
+          |""".stripMargin.preprocessModule
+    }
   }
 }

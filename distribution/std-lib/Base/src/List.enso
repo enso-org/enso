@@ -32,8 +32,11 @@ Nil.reverse acc = acc
 
 Nil.length = 0
 
+Cons.length : Number
 Cons.length = this.fold 0 (_ -> acc -> acc + 1)
 
+Nil.any : (Any -> Boolean) -> Boolean
 Nil.any _ = False
 
+Cons.any : (Any -> Boolean) -> Boolean
 Cons.any predicate = this.fold False (el -> acc -> acc || predicate el)
