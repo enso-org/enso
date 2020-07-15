@@ -1,3 +1,9 @@
+## PRIVATE
+   A helper for the `map` function.
+
+   Uses unsafe field mutation under the hood, to rewrite `map` in
+   a tail-recursive manner. The mutation is purely internal and does not leak
+   to the user-facing API.
 map_helper list cons f = case list of
     Cons h t ->
         res = Cons (f h) Nil
