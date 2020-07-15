@@ -1,4 +1,4 @@
-package org.enso.launcher.cli.impl
+package org.enso.launcher.cli.internal
 
 class PrefixedParameters(prefix: String, helpComment: String)
     extends BaseOpts[Seq[(String, String)]] {

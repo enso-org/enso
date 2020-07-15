@@ -1,4 +1,4 @@
-package org.enso.launcher.cli.impl
+package org.enso.launcher.cli.internal
 
 class Flag(name: String, short: Option[Char], helpComment: String)
     extends BaseOpts[Boolean] {

@@ -1,6 +1,6 @@
 package org.enso.launcher.cli
 
-import org.enso.launcher.cli.impl.Parser
+import org.enso.launcher.cli.internal.Parser
 
 sealed trait PluginBehaviour
 case object PluginNotFound                        extends PluginBehaviour
@@ -61,15 +61,14 @@ class Application[Config](
         .map(_.pluginsHelp())
         .getOrElse(Seq())
 
-    val commandDescriptions =
-      impl.alignTabulators(subCommands.map(_.toString)).mkString("\n")
-    val sb = new StringBuilder
+    val commandDescriptions = subCommands.map(_.toString).mkString("\n")
+    val sb                  = new StringBuilder
     sb.append(helpHeader + "\n")
     sb.append("\nAvailable commands:\n")
     sb.append(commandDescriptions + "\n")
     sb.append(
       s"\nFor more information on a specific command listed above," +
-      s" please run $name <command> --help."
+      s" please run `$name <command> --help`."
     )
 
     sb.toString()

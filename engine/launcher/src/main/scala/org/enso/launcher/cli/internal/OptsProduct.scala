@@ -1,4 +1,4 @@
-package org.enso.launcher.cli.impl
+package org.enso.launcher.cli.internal
 
 import org.enso.launcher.cli.{IllegalOptsStructure, Opts}
 

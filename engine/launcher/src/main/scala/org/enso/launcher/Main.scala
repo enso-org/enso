@@ -123,7 +123,7 @@ object Main {
     }
 
   private def installCommand: Command[Config] =
-    Command("install", "Installs a selected Enso version.") {
+    Command("install", "Install a selected Enso version.") {
       val version = Opts.positionalArgument[String]("VERSION")
       version map { version => (_: Config) =>
         println(s"Install $version")

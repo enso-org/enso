@@ -1,7 +1,7 @@
 package org.enso.launcher.cli
 
 import cats.{Functor, Semigroupal}
-import org.enso.launcher.cli.impl.{
+import org.enso.launcher.cli.internal.{
   AdditionalArguments,
   Flag,
   OptionalParameter,

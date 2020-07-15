@@ -1,12 +1,12 @@
-package org.enso.launcher.cli.impl
+package org.enso.launcher.cli.internal
 
 import org.enso.launcher.cli.Argument
 
-class OptionalParameter[A: Argument](
+class Parameter[A: Argument](
   name: String,
   metavar: String,
   helpComment: String
-) extends BaseOpts[Option[A]] {
+) extends BaseOpts[A] {
   override private[cli] val parameters =
     Map(name -> update)
 
@@ -26,9 +26,13 @@ class OptionalParameter[A: Argument](
     )
   }
 
-  override private[cli] def result() = value
+  override private[cli] def result() =
+    value.flatMap {
+      case Some(value) => Right(value)
+      case None        => Left(List(s"Missing required parameter $name"))
+    }
 
   override def helpExplanations(): Seq[String] = {
-    Seq(s"--$name <$metavar>\t$helpComment")
+    Seq(s"(required) --$name <$metavar>\t$helpComment")
   }
 }
