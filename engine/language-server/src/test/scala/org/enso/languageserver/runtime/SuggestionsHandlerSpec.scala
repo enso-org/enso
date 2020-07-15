@@ -1,5 +1,6 @@
 package org.enso.languageserver.runtime
 
+import java.io.File
 import java.nio.file.Files
 import java.util.UUID
 
@@ -12,6 +13,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 import org.enso.languageserver.data.{
   CapabilityRegistration,
   Config,
+  DirectoriesConfig,
   ExecutionContextConfig,
   FileManagerConfig,
   PathWatcherConfig,
@@ -227,22 +229,24 @@ class SuggestionsHandlerSpec
   }
 
   def newSuggestionsHandler(
+    config: Config,
     sessionRouter: TestProbe,
     repo: SuggestionsRepo[Future]
-  ): (ActorRef, Config) = {
-    val testContentRoot = Files.createTempDirectory(null).toRealPath()
-    testContentRoot.toFile.deleteOnExit()
-    val testContentRootId = UUID.randomUUID()
-    val config = Config(
-      Map(testContentRootId -> testContentRoot.toFile),
-      FileManagerConfig(timeout = 3.seconds),
-      PathWatcherConfig(),
-      ExecutionContextConfig(requestTimeout = 3.seconds)
-    )
+  ): ActorRef = {
     val handler =
       system.actorOf(SuggestionsHandler.props(config, repo, sessionRouter.ref))
     handler ! ProjectNameChangedEvent("Test")
-    (handler, config)
+    handler
+  }
+
+  def newConfig(root: File): Config = {
+    Config(
+      Map(UUID.randomUUID() -> root),
+      FileManagerConfig(timeout = 3.seconds),
+      PathWatcherConfig(),
+      ExecutionContextConfig(requestTimeout = 3.seconds),
+      DirectoriesConfig(root)
+    )
   }
 
   def mkModulePath(config: Config, segments: String*): Path = {
@@ -256,11 +260,12 @@ class SuggestionsHandlerSpec
   def withDb(
     test: (Config, SuggestionsRepo[Future], TestProbe, ActorRef) => Any
   ): Unit = {
-    val dbPath = Files.createTempFile("suggestions", ".db")
-    system.registerOnTermination(Files.deleteIfExists(dbPath))
-    val router            = TestProbe("session-router")
-    val repo              = SqlSuggestionsRepo()
-    val (handler, config) = newSuggestionsHandler(router, repo)
+    val testContentRoot = Files.createTempDirectory(null).toRealPath()
+    testContentRoot.toFile.deleteOnExit()
+    val config  = newConfig(testContentRoot.toFile)
+    val router  = TestProbe("session-router")
+    val repo    = SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)
+    val handler = newSuggestionsHandler(config, router, repo)
     Await.ready(repo.init, Timeout)
 
     try test(config, repo, router, handler)

@@ -6,9 +6,25 @@ import java.util.UUID
 
 import io.circe.literal._
 import org.apache.commons.io.FileUtils
+import org.enso.languageserver.data._
 import org.enso.testkit.RetrySpec
 
+import scala.concurrent.duration._
+
 class FileManagerTest extends BaseServerTest with RetrySpec {
+
+  override def mkConfig: Config = {
+    val directoriesDir = Files.createTempDirectory(null).toRealPath()
+    directoriesDir.toFile.deleteOnExit()
+    Config(
+      Map(testContentRootId -> testContentRoot.toFile),
+      FileManagerConfig(timeout = 3.seconds),
+      PathWatcherConfig(),
+      ExecutionContextConfig(requestTimeout = 3.seconds),
+      DirectoriesConfig(directoriesDir.toFile)
+    )
+  }
+
   "File Server" must {
 
     "write textual content to a file" taggedAs Retry() in {
@@ -760,6 +776,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "get a root tree" in withCleanRoot {
       val client = getInitialisedWsClient()
+
       // create:
       //
       // base

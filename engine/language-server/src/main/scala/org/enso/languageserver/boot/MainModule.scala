@@ -46,7 +46,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
-    ExecutionContextConfig()
+    ExecutionContextConfig(),
+    DirectoriesConfig(serverConfig.contentRootPath)
   )
 
   val zioExec = ZioExec(zio.Runtime.default)
@@ -67,13 +68,17 @@ class MainModule(serverConfig: LanguageServerConfig) {
   implicit val materializer = SystemMaterializer.get(system)
 
   val suggestionsRepo = {
-    val repo = SqlSuggestionsRepo()(system.dispatcher)
+    val repo = SqlSuggestionsRepo(
+      languageServerConfig.directories.suggestionsDatabaseFile
+    )(system.dispatcher)
     repo.init
     repo
   }
 
   val versionsRepo = {
-    val repo = SqlVersionsRepo()(system.dispatcher)
+    val repo = SqlVersionsRepo(
+      languageServerConfig.directories.suggestionsDatabaseFile
+    )(system.dispatcher)
     repo.init
     repo
   }

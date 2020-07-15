@@ -32,19 +32,21 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
   val timeout: FiniteDuration = 3.seconds
 
-  val testSuggestionsDbPath = Files.createTempFile("suggestions", ".db")
   val testContentRoot       = Files.createTempDirectory(null).toRealPath()
   val testContentRootId     = UUID.randomUUID()
-  val config = Config(
-    Map(testContentRootId -> testContentRoot.toFile),
-    FileManagerConfig(timeout = 3.seconds),
-    PathWatcherConfig(),
-    ExecutionContextConfig(requestTimeout = 3.seconds)
-  )
+  val config                = mkConfig
   val runtimeConnectorProbe = TestProbe()
 
   testContentRoot.toFile.deleteOnExit()
-  testSuggestionsDbPath.toFile.deleteOnExit()
+
+  def mkConfig: Config =
+    Config(
+      Map(testContentRootId -> testContentRoot.toFile),
+      FileManagerConfig(timeout = 3.seconds),
+      PathWatcherConfig(),
+      ExecutionContextConfig(requestTimeout = 3.seconds),
+      DirectoriesConfig(testContentRoot.toFile)
+    )
 
   override def protocol: Protocol = JsonRpc.protocol
 
@@ -76,9 +78,13 @@ class BaseServerTest extends JsonRpcServerTestKit {
   override def clientControllerFactory: ClientControllerFactory = {
     val zioExec = ZioExec(zio.Runtime.default)
     val suggestionsRepo =
-      SqlSuggestionsRepo(testSuggestionsDbPath)(system.dispatcher)
+      SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)(
+        system.dispatcher
+      )
     val versionsRepo =
-      SqlVersionsRepo(testSuggestionsDbPath.toFile)(system.dispatcher)
+      SqlVersionsRepo(config.directories.suggestionsDatabaseFile)(
+        system.dispatcher
+      )
     Await.ready(suggestionsRepo.init, timeout)
     Await.ready(versionsRepo.init, timeout)
 

@@ -8,6 +8,7 @@ import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
 import org.enso.languageserver.data.{
   Config,
+  DirectoriesConfig,
   ExecutionContextConfig,
   FileManagerConfig,
   PathWatcherConfig
@@ -32,7 +33,8 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
     Map(testContentRootId -> testContentRoot.toFile),
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
-    ExecutionContextConfig(requestTimeout = 3.seconds)
+    ExecutionContextConfig(requestTimeout = 3.seconds),
+    DirectoriesConfig(testContentRoot.toFile)
   )
 
   testContentRoot.toFile.deleteOnExit()

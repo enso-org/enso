@@ -1,6 +1,6 @@
 package org.enso.searcher.sql
 
-import java.nio.file.Path
+import java.io.File
 import java.util.UUID
 
 import org.enso.polyglot.Suggestion
@@ -614,7 +614,7 @@ object SqlSuggestionsRepo {
     * @param path the path to the database file.
     * @return the suggestions repo backed up by SQL database.
     */
-  def apply(path: Path)(implicit ec: ExecutionContext): SqlSuggestionsRepo = {
+  def apply(path: File)(implicit ec: ExecutionContext): SqlSuggestionsRepo = {
     new SqlSuggestionsRepo(SqlDatabase(path.toString))
   }
 }
