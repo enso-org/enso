@@ -8,12 +8,7 @@ import org.enso.launcher.cli.{
   Argument,
   CLIOutput,
   Command,
-  CommandHelp,
   Opts,
-  PluginBehaviour,
-  PluginInterceptedFlow,
-  PluginManager,
-  PluginNotFound,
   TopLevelBehavior
 }
 import org.enso.launcher.cli.Opts._
@@ -235,30 +230,6 @@ object Main {
     }
   }
 
-  private def findPlugin(name: String): Boolean = name == "ide" // TODO [RW]
-
-  private object LauncherPluginManager extends PluginManager {
-    override def tryRunningPlugin(
-      name: String,
-      args: Seq[String]
-    ): PluginBehaviour =
-      findPlugin(name) match {
-        case true =>
-          PluginInterceptedFlow(() => {
-            println(s"Would launch $name with $args") // TODO [RW] launch plugin
-          })
-        case false =>
-          PluginNotFound
-      }
-
-    override def pluginsHelp(): Seq[CommandHelp] = {
-      // TODO [RW] find plugins, --describe
-      Seq(CommandHelp("ide", "Launch Enso IDE."))
-    }
-
-    override def pluginsNames(): Seq[String] = Seq("ide")
-  }
-
   private val application: Application[Config] =
     Application(
       "enso",
@@ -278,7 +249,7 @@ object Main {
         listCommand,
         configCommand
       ),
-      LauncherPluginManager
+      PluginManager
     )
 
   private def printTopLevelHelp(): Unit = {

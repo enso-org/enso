@@ -56,6 +56,12 @@ jobs:
         uses: DeLaGuardo/setup-graalvm@2.0
         with:
           graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+      - name: Set Up Native Image (Windows)
+        if: runner.os == 'Windows'
+        run: gu.cmd -N install -n native-image
+      - name: Set Up Native Image (non-Windows)
+        if: runner.os != 'Windows'
+        run: gu -N install -n native-image
       - name: Set Up SBT
         run: |
           curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz

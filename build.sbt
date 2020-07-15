@@ -972,6 +972,13 @@ lazy val launcher = project
   .settings(
     buildNativeImage := NativeImage.buildNativeImage(staticOnLinux = true).value
   )
+  .settings(
+    (Test / test) := (Test / test)
+        .dependsOn(
+          NativeImage.incrementalNativeImageBuild(buildNativeImage, "enso")
+        )
+        .value
+  )
   .settings(licenseSettings)
   .dependsOn(`version-output`)
   .dependsOn(pkg)

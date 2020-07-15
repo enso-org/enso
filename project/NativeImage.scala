@@ -1,8 +1,10 @@
 import java.io.File
 
-import sbt._
+import sbt.{File, _}
 import sbt.Keys._
+
 import scala.sys.process._
+import scala.collection.JavaConverters._
 
 object NativeImage {
   def buildNativeImage(staticOnLinux: Boolean): Def.Initialize[Task[Unit]] =
@@ -11,14 +13,14 @@ object NativeImage {
         val log      = state.value.log
         val javaHome = System.getProperty("java.home")
         val nativeImagePath =
-          if (sys.props("os.name").contains("Windows"))
+          if (isWindows)
             s"$javaHome\\bin\\native-image.cmd"
           else s"$javaHome/bin/native-image"
         val classPath =
           (Runtime / fullClasspath).value.files.mkString(File.pathSeparator)
 
         val additionalParameters =
-          if (staticOnLinux && sys.props("os.name").contains("Linux"))
+          if (staticOnLinux && isLinux)
             "--static"
           else ""
         val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
@@ -47,4 +49,52 @@ object NativeImage {
         log.info("Native Image build successful.")
       }
       .dependsOn(Compile / compile)
+
+  def incrementalNativeImageBuild(
+    actualBuild: TaskKey[Unit],
+    artifactName: String
+  ) =
+    Def.taskDyn {
+      val compilationSummary = (Compile / compile).value
+      val filesSet = compilationSummary
+        .readStamps()
+        .getAllProductStamps
+        .keySet()
+        .asScala
+        .toSet
+
+      def rebuild(reason: String) =
+        Def.task {
+          streams.value.log.info(
+            s"$reason, forcing a rebuild."
+          )
+          actualBuild.value
+        }
+
+      val store =
+        streams.value.cacheStoreFactory.make("incremental_native_image")
+      Tracked.diffInputs(store, FileInfo.hash)(filesSet) {
+        sourcesDiff: ChangeReport[File] =>
+          if (sourcesDiff.modified.nonEmpty)
+            rebuild("Native Image is not up to date")
+          else if (!artifactFile(artifactName).exists())
+            rebuild("Native Image does not exist")
+          else
+            Def.task {
+              streams.value.log.debug(
+                "No source changes, Native Image is up to date."
+              )
+            }
+      }
+    }
+
+  private def isWindows: Boolean =
+    sys.props("os.name").toLowerCase().contains("windows")
+
+  private def isLinux: Boolean =
+    sys.props("os.name").toLowerCase().contains("linux")
+
+  private def artifactFile(name: String): File =
+    if (isWindows) file(name + ".exe")
+    else file(name)
 }

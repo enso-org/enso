@@ -74,9 +74,9 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
       )
 
       wrapped.mkString("\n") shouldEqual
-      """aa  a b c
-        |    d e f
-        |b   a""".stripMargin
+      """aa a b c d
+        |   e f
+        |b  a""".stripMargin
     }
 
     "keep the minimum wrap width" in {
@@ -91,9 +91,9 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
       )
 
       wrapped.mkString("\n") shouldEqual
-      """abcdef  a b c
-        |        d e f
-        |b       a""".stripMargin
+      """abcdef a b c
+        |       d e f
+        |b      a""".stripMargin
     }
   }
 }
