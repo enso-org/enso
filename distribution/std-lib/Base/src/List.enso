@@ -25,7 +25,7 @@ type List
              (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . map +1
          The result of running the code above is:
              Cons 1 <| Cons 2 <| Cons 3 <| Nil
-    map : (Any -> Any) -> Nil
+    map : (Any -> Any) -> List
     map f = case this of
         Nil -> Nil
         Cons h t ->
