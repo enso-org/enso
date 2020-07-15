@@ -37,7 +37,7 @@ public class SuggestionsRepoBenchmark {
 
   @Setup
   public void setup() throws TimeoutException, InterruptedException {
-    repo = SqlSuggestionsRepo.apply(dbfile, ExecutionContext.global());
+    repo = SqlSuggestionsRepo.apply(dbfile.toFile(), ExecutionContext.global());
     if (Files.notExists(dbfile)) {
       System.out.println("initializing " + dbfile.toString() + " ...");
       Await.ready(repo.init(), TIMEOUT);
