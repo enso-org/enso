@@ -21,7 +21,7 @@ target/
 Cargo.lock
 **/*.rs.bk
 wasm-pack.log
-lexer-engine.rs
+/lib/rust/lexer/generation/src/lexer-engine.rs
 
 #############
 ## Haskell ##
