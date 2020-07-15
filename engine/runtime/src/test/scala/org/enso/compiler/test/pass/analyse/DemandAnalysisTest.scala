@@ -9,6 +9,10 @@ import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 
+import scala.annotation.nowarn
+
+// TODO Remove this
+@nowarn("cat=unused")
 class DemandAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
@@ -61,9 +65,15 @@ class DemandAnalysisTest extends CompilerTest {
     *
     * @return a new inline context
     */
-  def mkContext: InlineContext = {
+  def mkInlineContext: InlineContext = {
     InlineContext(
       localScope      = Some(LocalScope.root),
+      freshNameSupply = Some(new FreshNameSupply)
+    )
+  }
+
+  def mkModuleContext: ModuleContext = {
+    ModuleContext(
       freshNameSupply = Some(new FreshNameSupply)
     )
   }
@@ -72,7 +82,7 @@ class DemandAnalysisTest extends CompilerTest {
 
   "Suspended arguments" should {
     "be forced when assigned" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -95,7 +105,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "work correctly when deeply nested" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -111,7 +121,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "not be forced when passed to functions" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -134,7 +144,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "be forced when used in vector literals" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -153,7 +163,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "be marked as not to suspend during codegen when passed to a function" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -177,7 +187,7 @@ class DemandAnalysisTest extends CompilerTest {
   }
 
   "Non-suspended arguments" should {
-    implicit val ctx: InlineContext = mkContext
+    implicit val ctx: InlineContext = mkInlineContext
 
     val ir =
       """x -> y ->
@@ -225,7 +235,7 @@ class DemandAnalysisTest extends CompilerTest {
 
   "Suspended blocks" should {
     "be forced when used" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -250,7 +260,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "not be forced when passed to a function" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -272,7 +282,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "be marked as not to suspend during codegen when passed to a function" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -293,18 +303,31 @@ class DemandAnalysisTest extends CompilerTest {
         .shouldBeSuspended shouldEqual Some(false)
     }
 
-    "foobar" in {
-      implicit  val ctx: ModuleContext =
+    "force terms in blocks passed directly as arguments" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
       val ir =
         """
-          |id x = x
-          |
-          |bar ~x = here.id <|
+          |bar ~x = foo <|
           |    x
-          |
-          |main = here.bar <|
-          |    IO.println 0
-          |""".stripMargin.preprocessModule
+          |""".stripMargin.preprocessModule.analyse
+
+      val barFunc = ir.bindings.head
+        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+      val oprCall = barFunc.body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Application.Prefix]
+
+      oprCall.function.asInstanceOf[IR.Name].name shouldEqual "<|"
+      oprCall.arguments.length shouldEqual 2
+
+      val xArg = oprCall.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+
+      xArg.value shouldBe an[IR.Expression.Block]
+      xArg.value
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue shouldBe an[IR.Application.Force]
     }
   }
 }
