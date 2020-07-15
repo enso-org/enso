@@ -91,5 +91,7 @@ type List
          larger than `1`:
              (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . any (> 5)
     any : (Any -> Boolean) -> Boolean
-    any predicate = this.fold False (acc -> el -> acc || predicate el)
+    any predicate = case this of
+        Nil -> False
+        Cons h t -> if predicate h then True else t.any predicate
 
