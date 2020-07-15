@@ -16,12 +16,19 @@ type Assertion
         Success -> False
         Fail _ -> True
 
-Any.id = this
 Any.should_equal that = case this == that of
     True -> Success
     False ->
         msg = this.to_text + " did not equal " + that.to_text + "."
-        Fail msg
+        Panic.throw (Fail msg)
+
+Boolean.should_be_true = case this of
+    True -> Success
+    False -> Panic.throw (Fail "Expected False to be True.")
+
+Boolean.should_be_false = case this of
+    True -> Panic.throw (Fail "Expected True to be False.")
+    False -> Success
 
 Spec.print_report =
     IO.print_err (this.name + ":")
@@ -35,7 +42,7 @@ Spec.print_report =
 
 Text.describe ~behaviors =
     r = State.run Spec (Spec this Nil) <|
-        behaviors.id
+        behaviors
         State.get Spec
     r.print_report
     suite = State.get Suite
@@ -44,12 +51,18 @@ Text.describe ~behaviors =
 
 Text.it ~behavior =
     spec = State.get Spec
-    new_spec = Spec spec.name (Cons (Behavior this behavior) spec.behaviors)
+    maybeExc = case Panic.recover behavior of
+        _ -> Success
+    result = maybeExc.catch ex->
+        case ex of
+            Fail _ -> ex
+            _ -> Fail ("Unexpected error has been thrown: " + ex.to_text)
+    new_spec = Spec spec.name (Cons (Behavior this result) spec.behaviors)
     State.put Spec new_spec
 
 Suite.run ~specs =
     r = State.run Suite (Suite Nil) <|
-        specs.id
+        specs
         State.get Suite
     code = if r.is_fail then 1 else 0
     System.exit code

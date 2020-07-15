@@ -5,31 +5,39 @@ map_helper list cons f = case list of
         here.map_helper t res f
     Nil -> Unsafe.set_atom_field cons 1 Nil
 
-
+Nil.map : (Any -> Any) -> Nil
 Nil.map _ = Nil
 
+Cons.map : (Any -> Any) -> Cons
 Cons.map f = case this of
     Cons h t ->
         res = Cons (f h) Nil
         here.map_helper t res f
         res
 
+Nil.each : (Any -> Any) -> Any
 Nil.each _ = Nil
 
+Cons.each : (Any -> Any) -> Any
 Cons.each f = case this of
     Cons h t ->
         f h
         t.each f
 
+Nil.fold : Any -> (Any -> Any -> Any) -> Any
 Nil.fold acc _ = acc
 
+Cons.fold : Any -> (Any -> Any -> Any) -> Any
 Cons.fold acc f = case this of
     Cons h t -> t.fold (f h acc) f
 
+Cons.reverse : Cons
 Cons.reverse = this.fold Nil Cons
 
+Nil.reverse : Nil
 Nil.reverse acc = acc
 
+Nil.length : Number
 Nil.length = 0
 
 Cons.length : Number

@@ -30,25 +30,12 @@ sum_state = sum_to ->
     res = State.run Number 0 (here.sum_state_body sum_to)
     res
 
-gen_list length =
-    generator = acc -> i -> if i == 0 then acc else generator (Cons i acc) (i - 1)
-    res = generator Nil length
-    res
-
 main =
     hundred_mil = 100000000
-    mil = 1000000
-    list = here.gen_list mil
-    IO.println "Measuring List Reverse"
-    Bench_Utils.measure (_ -> list.reverse) "list_reverse" 100 10
-    IO.println "Measuring List Gen"
-    Bench_Utils.measure (_ -> here.gen_list mil) "gen_list" 100 10
-    IO.println "Measuring List Map"
-    Bench_Utils.measure (_ -> list.map +1) "list_map" 100 10
     IO.println "Measuring SumTCO"
-    Bench_Utils.measure (_ -> here.sum_tco hundred_mil) "sum_tco" 100 10
+    Bench_Utils.measure ( here.sum_tco hundred_mil) "sum_tco" 100 10
     IO.println "Measuring State"
-    Bench_Utils.measure (_ -> here.sum_state hundred_mil) "sum_state" 100 10
+    Bench_Utils.measure (here.sum_state hundred_mil) "sum_state" 100 10
     IO.println "Measuring Co-State"
-    Bench_Utils.measure (_ -> here.sum_co_state hundred_mil) "sum_co_state" 100 10
+    Bench_Utils.measure (here.sum_co_state hundred_mil) "sum_co_state" 100 10
     IO.println "Bye."

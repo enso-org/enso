@@ -82,7 +82,7 @@ public class Builtins {
         new AtomConstructor("Cons", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "head", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(1, "rest", ArgumentDefinition.ExecutionMode.EXECUTE));
+                new ArgumentDefinition(1, "tail", ArgumentDefinition.ExecutionMode.EXECUTE));
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
     AtomConstructor system = new AtomConstructor("System", scope).initializeFields();
     AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
