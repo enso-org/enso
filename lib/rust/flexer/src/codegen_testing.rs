@@ -21,7 +21,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug, Default)]
 pub struct State {
     pub name: String,
-    index: usize,
+    index: usize, // rename to id
 }
 
 #[allow(missing_docs)]
@@ -55,6 +55,7 @@ impl <T> Lexer<T> {
 
     // TODO [AA] Lexer interface
     pub fn run(&mut self) -> LexerResult<T> {
+        // Reserve stack to bigger (1024)
         self.state_stack.reserve(self.registry.len());
         self.reader.rewinder.set_matched();
         self.reader.next_char();
@@ -171,10 +172,12 @@ impl <T> Lexer<T> {
         let current_state_index = self.current_state_ix();
 
         // This match should be generated
+        // TODO [AA] Use unreachable_unchecked. Write macro for panic in debug / this in prod
+        //  builds. Should take string.
         match current_state_index {
             0 => self.dispatch_in_state_0(new_state_index),
             1 => self.dispatch_in_state_1(new_state_index),
-            _ => panic!("Unreachable state reached in lexer.")
+            _ => unreachable_panic!("Unreachable state reached in lexer.")
         }
     }
 
@@ -186,11 +189,11 @@ impl <T> Lexer<T> {
             2 => self.state_0_to_2(),
             3 => self.state_0_to_3(),
             4 => self.state_0_to_4(),
-            _ => panic!("Unreachable state reached in lexer.")
+            _ => unreachable_panic!("Unreachable state reached in lexer.")
         }
     }
 
-    // TODO [AA} Generated code
+    // TODO [AA] Generated code
     fn state_0_to_0(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             97 => LexerStageStatus::ContinueWith(1),
@@ -286,7 +289,7 @@ impl <T> Lexer<T> {
             3 => self.state_1_to_3(),
             4 => self.state_1_to_4(),
             5 => self.state_1_to_5(),
-            _ => panic!("Unreachable state reached in lexer.")
+            _ => unreachable_panic!("Unreachable state reached in lexer.")
         }
     }
 
