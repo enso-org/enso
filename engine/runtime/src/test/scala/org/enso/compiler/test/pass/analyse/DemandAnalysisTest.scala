@@ -9,8 +9,6 @@ import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 
-import scala.annotation.nowarn
-
 class DemandAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
