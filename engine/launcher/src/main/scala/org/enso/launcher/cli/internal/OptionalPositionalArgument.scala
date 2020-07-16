@@ -9,7 +9,7 @@ class OptionalPositionalArgument[A: Argument](
   val empty                                  = Right(None)
   var value: Either[List[String], Option[A]] = empty
 
-  override private[cli] val requiredArguments = Seq(metavar)
+  override private[cli] val optionalArguments = Seq(metavar)
 
   override private[cli] def wantsArgument() =
     value match {

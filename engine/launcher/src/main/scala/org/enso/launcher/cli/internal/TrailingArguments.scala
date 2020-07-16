@@ -9,7 +9,7 @@ class TrailingArguments[A: Argument](
   val empty                                = Right(Nil)
   var value: Either[List[String], List[A]] = empty
 
-  override private[cli] val requiredArguments = Seq(metavar)
+  override private[cli] val trailingArguments = Some(metavar)
 
   override private[cli] def wantsArgument() = true
 

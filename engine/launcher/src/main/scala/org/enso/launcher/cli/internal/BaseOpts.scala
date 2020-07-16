@@ -22,7 +22,6 @@ abstract class BaseOpts[A] extends Opts[A] {
   override private[cli] val additionalArguments: Option[Seq[String] => Unit] =
     None
 
-  override private[cli] def reset(): Unit = {}
   override def helpExplanations(): Seq[String] = Seq()
   override def additionalHelp(): Seq[String]   = Seq()
 }

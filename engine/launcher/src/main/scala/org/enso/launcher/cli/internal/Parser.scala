@@ -51,15 +51,18 @@ object Parser {
     def addError(error: String): Unit = {
       parseErrors = error :: parseErrors
     }
-    def unknownParameter(parameter: String): Unit = {
+    def unknownParameter(parameter: String, orFlag: Boolean = false): Unit = {
       val suggestions = Spelling
         .suggestClosestMatches(parameter, opts.gatherParameterNames)
       val additional =
         if (opts.additionalArguments.isDefined)
-          "\nIf the argument is for a newer version, " +
+          "\nIf the parameter is for a newer version, " +
           "you may have to include it after --."
         else ""
-      addError(s"Unknown parameter $parameter." + suggestions + additional)
+      val orFlagStr = if (orFlag) " or flag" else ""
+      addError(
+        s"Unknown parameter$orFlagStr $parameter." + suggestions + additional
+      )
     }
     def unknownPrefix(prefix: String): Unit = {
       val suggestions =
@@ -109,7 +112,7 @@ object Parser {
               unknownPrefix(prefix)
             }
           } else {
-            unknownParameter(parameter)
+            unknownParameter(parameter, orFlag = true)
           }
         case ParameterWithValue(parameter, value) =>
           if (opts.parameters.contains(parameter)) {
@@ -143,7 +146,10 @@ object Parser {
       )
     }
 
-    appendErrors(opts.result().map((_, tokenProvider.rest())), parseErrors)
+    appendErrors(
+      opts.result().map((_, tokenProvider.rest())),
+      parseErrors.reverse
+    )
   }
 
   def parseSubcommand[Config](
@@ -156,14 +162,14 @@ object Parser {
       case Seq() =>
         singleError(
           s"Expected a command. " +
-          s"See ${application.name} --help for a list of available commands."
+          s"See ${application.commandName} --help for a list of available commands."
         )
       case Seq(PlainToken(commandName), commandArgs @ _*) =>
         application.commands.find(_.name == commandName) match {
           case Some(command) =>
             if (wantsHelp(commandArgs)) {
               Right(() => {
-                CLIOutput.println(command.help(application.name))
+                CLIOutput.println(command.help(application.commandName))
               })
             } else {
               Parser
@@ -186,7 +192,7 @@ object Parser {
                 val suggestions =
                   Spelling.suggestClosestMatches(commandName, commandNames)
                 singleError(
-                  s"$commandName is not a known command." + suggestions
+                  s"`$commandName` is not an Enso command." + suggestions
                 )
               case PluginInterceptedFlow(run) => Right(run)
             }

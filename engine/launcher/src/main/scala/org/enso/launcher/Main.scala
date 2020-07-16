@@ -257,7 +257,7 @@ object Main {
   }
 
   def main(args: Array[String]): Unit = {
-    application.parse(args) match {
+    application.run(args) match {
       case Left(errors) =>
         CLIOutput.println(errors.mkString("\n"))
         System.exit(1)

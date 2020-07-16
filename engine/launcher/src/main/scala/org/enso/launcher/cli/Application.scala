@@ -19,17 +19,18 @@ object TopLevelBehavior {
 }
 
 class Application[Config](
-  val name: String,
+  val commandName: String,
+  val prettyName: String,
   val helpHeader: String,
   val topLevelOpts: Opts[() => TopLevelBehavior[Config]],
   val commands: Seq[Command[Config => Unit]],
   val pluginManager: Option[PluginManager]
 ) {
-  def parse(
+  def run(
     args: Array[String]
-  ): Either[List[String], Unit] = parse(args.toSeq)
+  ): Either[List[String], Unit] = run(args.toSeq)
 
-  def parse(
+  def run(
     args: Seq[String]
   ): Either[List[String], Unit] = {
     val (tokens, additionalArguments) = Parser.tokenize(args)
@@ -58,7 +59,7 @@ class Application[Config](
 
   def displayHelp(): String = {
     val usageOptions = topLevelOpts.commandLineOptions()
-    val usage        = s"Usage: $name\t${usageOptions}COMMAND [ARGS]\n"
+    val usage        = s"Usage: $commandName\t${usageOptions}COMMAND [ARGS]\n"
 
     val subCommands = commands.map(_.topLevelHelp) ++ pluginManager
         .map(_.pluginsHelp())
@@ -78,7 +79,7 @@ class Application[Config](
     sb.append(topLevelOptionsHelp)
     sb.append(
       s"\nFor more information on a specific command listed above," +
-      s" please run `$name COMMAND --help`."
+      s" please run `$commandName COMMAND --help`."
     )
 
     sb.toString()
@@ -86,6 +87,7 @@ class Application[Config](
 }
 
 object Application {
+  // TODO [RW] FIXME names
   def apply[Config](
     name: String,
     helpHeader: String,
@@ -95,9 +97,32 @@ object Application {
   ): Application[Config] =
     new Application(
       name,
+      name,
       helpHeader,
       topLevelOpts,
       commands,
       Some(pluginManager)
+    )
+
+  def apply[Config](
+    name: String,
+    helpHeader: String,
+    topLevelOpts: Opts[() => TopLevelBehavior[Config]],
+    commands: Seq[Command[Config => Unit]]
+  ): Application[Config] =
+    new Application(name, name, helpHeader, topLevelOpts, commands, None)
+
+  def apply(
+    name: String,
+    helpHeader: String,
+    commands: Seq[Command[Unit => Unit]]
+  ): Application[()] =
+    new Application(
+      name,
+      name,
+      helpHeader,
+      Opts.pure { () => TopLevelBehavior.Continue(()) },
+      commands,
+      None
     )
 }
