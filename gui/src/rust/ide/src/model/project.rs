@@ -16,8 +16,11 @@ use enso_protocol::binary;
 use enso_protocol::binary::message::VisualisationContext;
 use enso_protocol::language_server;
 use enso_protocol::language_server::CapabilityRegistration;
+use enso_protocol::project_manager;
+use enso_protocol::project_manager::ProjectName;
 use parser::Parser;
 use uuid::Uuid;
+
 
 
 // ===============
@@ -92,17 +95,43 @@ impl ExecutionContextsRegistry {
 
 
 
+// ===================
+// === ProjectData ===
+// ===================
+
+/// A structure containing the project's unique ID and name.
+#[derive(Debug,Clone)]
+pub struct ProjectData {
+    id   : Uuid,
+    name : RefCell<ProjectName>,
+}
+
+impl ProjectData {
+    /// Set project name.
+    pub fn set_name(&self, name:ProjectName) {
+        *self.name.borrow_mut() = name;
+    }
+
+    /// Get project name.
+    pub fn name(&self) -> ProjectName {
+        self.name.borrow().clone()
+    }
+}
+
+
+
 // =============
 // === Model ===
 // =============
 
 /// Project Model.
-///
-///
 #[allow(missing_docs)]
-#[derive(Debug)]
+#[derive(Clone,CloneRef,Derivative)]
+#[derivative(Debug)]
 pub struct Project {
-    pub name                : Rc<String>,
+    pub project_data        : Rc<ProjectData>,
+    #[derivative(Debug = "ignore")]
+    pub project_manager     : Rc<dyn project_manager::API>,
     pub language_server_rpc : Rc<language_server::Connection>,
     pub language_server_bin : Rc<binary::Connection>,
     pub visualization       : Visualization,
@@ -117,18 +146,21 @@ impl Project {
     /// Create a new project model.
     pub async fn new
     ( parent              : impl AnyLogger
+    , project_manager     : Rc<dyn project_manager::API>
     , language_server_rpc : Rc<language_server::Connection>
     , language_server_bin : Rc<binary::Connection>
-    , name                : impl Str
+    , project_id          : Uuid
+    , project_name        : ProjectName
     ) -> FallibleResult<Self> {
         let logger = Logger::sub(parent,"Project Controller");
-        info!(logger,"Creating a model of project {name.as_ref()}");
-        let binary_protocol_events  = language_server_bin.event_stream();
+        info!(logger,"Creating a model of project {project_name}");
         let json_rpc_events         = language_server_rpc.events();
+        let binary_protocol_events  = language_server_bin.event_stream();
         let embedded_visualizations = default();
         let language_server         = language_server_rpc.clone();
         let visualization           = Visualization::new(language_server,embedded_visualizations);
-        let name                    = Rc::new(name.into());
+        let project_data            = ProjectData{id:project_id,name:RefCell::new(project_name)};
+        let project_data            = Rc::new(project_data);
         let module_registry         = default();
         let execution_contexts      = default();
         let parser                  = Parser::new_or_panic();
@@ -136,7 +168,7 @@ impl Project {
         let suggestion_db           = SuggestionDatabase::create_synchronized(language_server);
         let suggestion_db           = Rc::new(suggestion_db.await?);
 
-        let ret = Project {name,module_registry,execution_contexts,parser,
+        let ret = Project {project_data,project_manager,module_registry,execution_contexts,parser,
             language_server_rpc,language_server_bin,logger,visualization,suggestion_db};
 
         let binary_handler = ret.binary_event_handler();
@@ -152,13 +184,16 @@ impl Project {
     /// Create a project model from owned LS connections.
     pub fn from_connections
     ( parent              : impl AnyLogger
+    , project_manager     : Rc<dyn project_manager::API>
     , language_server_rpc : language_server::Connection
     , language_server_bin : binary::Connection
-    , project_name        : impl Str
+    , project_id          : Uuid
+    , project_name        : ProjectName
     ) -> impl Future<Output=FallibleResult<Self>> {
         let language_server_rpc = Rc::new(language_server_rpc);
         let language_server_bin = Rc::new(language_server_bin);
-        Self::new(parent,language_server_rpc,language_server_bin,project_name)
+        Self::new(parent,project_manager,language_server_rpc,language_server_bin,project_id
+                 ,project_name)
     }
 
     /// Returns the primary content root id for this project.
@@ -279,7 +314,7 @@ impl Project {
 
     /// Generates full module's qualified name that includes the leading project name segment.
     pub fn qualified_module_name(&self, path:&model::module::Path) -> ModuleQualifiedName {
-        path.qualified_module_name(self.name.deref())
+        path.qualified_module_name(self.project_name().deref())
     }
 
     fn load_module(&self, path:ModulePath)
@@ -306,6 +341,19 @@ impl Project {
     /// `create_execution_context` method -- it is automatically done.
     pub fn register_execution_context(&self, execution_context:&Rc<ExecutionContext>) {
         self.execution_contexts.insert(execution_context.clone_ref());
+    }
+
+    /// Get project's name.
+    pub fn project_name(&self) -> ProjectName {
+        self.project_data.name()
+    }
+
+    /// Rename project.
+    pub async fn rename_project(&self, name:impl Str) -> FallibleResult<()> {
+        let name = name.into();
+        self.project_manager.rename_project(&self.project_data.id,&name).await?;
+        self.project_data.set_name(ProjectName::new(name));
+        Ok(())
     }
 }
 
@@ -362,11 +410,15 @@ pub mod test {
 
         setup_mock_json(&mut json_client);
         setup_mock_binary(&mut binary_client);
+
+        let project_manager   = Rc::new(project_manager::MockClient::default());
+        let project_id        = uuid::Uuid::new_v4();
+        let project_name      = ProjectName::new(DEFAULT_PROJECT_NAME);
         let json_connection   = language_server::Connection::new_mock(json_client);
         let binary_connection = binary::Connection::new_mock(binary_client);
         let logger            = Logger::default();
-        let mut project_fut   = model::Project::from_connections(logger,json_connection,
-            binary_connection,DEFAULT_PROJECT_NAME).boxed_local();
+        let mut project_fut   = model::Project::from_connections(logger,project_manager
+            ,json_connection,binary_connection,project_id,project_name).boxed_local();
         project_fut.expect_ready().unwrap()
     }
 

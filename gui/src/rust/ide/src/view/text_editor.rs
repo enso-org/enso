@@ -9,11 +9,11 @@ use data::text::TextChange;
 use enso_frp::io::keyboard::KeyMask;
 use enso_frp::io::keyboard;
 use ensogl::data::color;
-use ensogl::display::shape::text::glyph::font;
-use ensogl::display::shape::text::text_field::TextField;
-use ensogl::display::shape::text::text_field::TextFieldProperties;
-use ensogl::display::world::*;
 use ensogl::display;
+use ensogl::display::Scene;
+use ensogl::display::shape::text::glyph::font;
+use ensogl::display::shape::text::text_field::{TextField, FocusManager};
+use ensogl::display::shape::text::text_field::TextFieldProperties;
 use ensogl::system::web::platform::Platform;
 use nalgebra::Vector2;
 use nalgebra::zero;
@@ -64,15 +64,16 @@ impl {
 
 impl TextEditor {
     /// Creates a new TextEditor.
-    pub fn new
+    pub fn new<'t,S:Into<&'t Scene>>
     ( logger           : impl AnyLogger
-    , world            : &World
+    , scene            : S
     , controller       : controller::Text
     , keyboard_actions : &mut keyboard::Actions
     , fonts            : &mut font::Registry
+    , focus_manager    : &FocusManager
     ) -> Self {
+        let scene      = scene.into();
         let logger     = Logger::sub(logger,"TextEditor");
-        let scene      = world.scene();
         let camera     = scene.camera();
         let screen     = camera.screen();
         let font       = fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap();
@@ -82,7 +83,7 @@ impl TextEditor {
         let base_color = color::Rgba::new(1.0, 1.0, 1.0, 0.7);
         let text_size  = 16.0;
         let properties = TextFieldProperties {font,text_size,base_color,size};
-        let text_field = TextField::new(&world,properties);
+        let text_field = TextField::new(scene,properties,focus_manager);
         // world.add_child(&text_field); // FIXME !!!
 
         let data = TextEditorData {controller,text_field,padding,position,size,logger};

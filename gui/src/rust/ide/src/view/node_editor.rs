@@ -109,8 +109,14 @@ impl<Parameter:frp::Data> FencedAction<Parameter> {
 // ==============================
 
 /// The gap between nodes in pixels on default node layout (when user did not set any position of
-/// node - possible when node was added by editing text).
-const DEFAULT_GAP_BETWEEN_NODES:f32 = 44.0;
+/// node - possibly when node was added by editing text).
+const DEFAULT_GAP_BETWEEN_NODES : f32 =    4.0;
+/// The default X position of the node when user did not set any position of node - possibly when
+/// node was added by editing text.
+const DEFAULT_NODE_X_POSITION   : f32 = -100.0;
+/// The default Y position of the node when user did not set any position of node - possibly when
+/// node was added by editing text.
+const DEFAULT_NODE_Y_POSITION   : f32 =  200.0;
 
 /// A structure which handles integration between controller and graph_editor EnsoGl control.
 /// All changes made by user in view are reflected in controller, and all controller notifications
@@ -168,6 +174,19 @@ impl GraphEditorIntegratedWithController {
                 }
             }));
         }
+
+
+        // === Project Renaming ===
+
+        let project_name = &model.editor.project_name;
+        frp::extend! {network
+            eval project_name.frp.outputs.name((name) {model.rename_project(name);});
+        }
+        model.editor.project_name.frp.cancel_editing.emit(());
+
+
+        // === UI Actions ===
+
         let node_removed = Self::ui_action(&model,
             GraphEditorIntegratedWithControllerModel::node_removed_in_ui,&invalidate.trigger);
         let node_entered = Self::ui_action(&model,
@@ -271,6 +290,26 @@ impl GraphEditorIntegratedWithControllerModel {
 }
 
 
+// === Project renaming ===
+
+impl GraphEditorIntegratedWithControllerModel {
+    fn rename_project(&self, name:impl Str) {
+        let name = name.into();
+        if self.project.project_name().to_string() != name {
+            let project      = self.project.clone_ref();
+            let project_name = self.editor.project_name.clone_ref();
+            let logger       = self.logger.clone_ref();
+            executor::global::spawn(async move {
+                if let Err(e) = project.rename_project(&name).await {
+                    info!(logger, "The project couldn't be renamed: {e}");
+                    project_name.frp.cancel_editing.emit(());
+                }
+            });
+        }
+    }
+}
+
+
 // === Updating Graph View ===
 
 impl GraphEditorIntegratedWithControllerModel {
@@ -294,7 +333,9 @@ impl GraphEditorIntegratedWithControllerModel {
         for (i,node_info) in nodes.iter().enumerate() {
             let id          = node_info.info.id();
             let node_trees  = trees.remove(&id).unwrap_or_else(default);
-            let default_pos = Vector2(0.0, i as f32 * -DEFAULT_GAP_BETWEEN_NODES);
+            let x           = DEFAULT_NODE_X_POSITION;
+            let y           = DEFAULT_NODE_Y_POSITION + i as f32 * -DEFAULT_GAP_BETWEEN_NODES;
+            let default_pos = Vector2(x,y);
             let displayed   = self.node_views.borrow_mut().get_by_left(&id).cloned();
             match displayed {
                 Some(displayed) => self.refresh_node_view(displayed, node_info, node_trees),
@@ -586,7 +627,8 @@ impl GraphEditorIntegratedWithControllerModel {
         //   Because of that for now we will just hardcode the `visualization_module` using
         //   fixed defaults. In future this will be changed, then the editor will also get access
         //   to the customised values.
-        let project_name         = self.project.name.as_ref();
+        let project_name         = self.project.project_name();
+        let project_name         = project_name.deref();
         let module_name          = crate::view::project::INITIAL_MODULE_NAME;
         let visualisation_module = QualifiedName::from_segments(project_name,&[module_name])?;
         let id                   = VisualizationId::new_v4();
@@ -769,6 +811,8 @@ impl NodeEditor {
         let graph_editor = self.graph.graph_editor();
         let identifiers  = self.visualization.list_visualizations().await;
         let identifiers  = identifiers.unwrap_or_default();
+        let project_name = self.graph.model.project.project_name().to_string();
+        graph_editor.project_name.frp.name.emit(project_name);
         for identifier in identifiers {
             let visualization = self.visualization.load_visualization(&identifier).await;
             let visualization = visualization.map(|visualization| {

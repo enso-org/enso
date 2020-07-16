@@ -55,6 +55,10 @@ trait API {
     #[MethodInput=CreateProjectInput,rpc_name="project/create"]
     fn create_project(&self, name:String) -> response::CreateProject;
 
+    /// Request project renaming.
+    #[MethodInput=RenameProject,rpc_name="project/rename"]
+    fn rename_project(&self, project_id:Uuid, name:String) -> ();
+
     /// Request the deletion of a project.
     #[MethodInput=DeleteProjectInput,rpc_name="project/delete"]
     fn delete_project(&self, project_id:Uuid) -> ();
@@ -80,8 +84,9 @@ pub struct IpWithSocket {
 }
 
 /// Project name.
-#[derive(Debug,Clone,Serialize,Deserialize,PartialEq,Shrinkwrap)]
-pub struct ProjectName(String);
+#[derive(Debug,Display,Clone,Serialize,Deserialize,PartialEq,Shrinkwrap)]
+#[shrinkwrap(mutable)]
+pub struct ProjectName(pub String);
 
 impl ProjectName {
     /// Create new ProjectName.

@@ -293,7 +293,8 @@ async fn setup_project() -> Project {
     let project_metadata = ide::IdeInitializer::get_most_recent_project_or_create_new
         (&logger,&pm,name).await.expect("Couldn't get most recent or create new project.");
     let error_msg = "Couldn't open project";
-    ide::IdeInitializer::open_project(&logger,&pm,&project_metadata).await.expect(error_msg)
+    let pm = Rc::new(pm);
+    ide::IdeInitializer::open_project(&logger,pm,project_metadata).await.expect(error_msg)
 }
 
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]

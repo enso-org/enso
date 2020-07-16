@@ -2,10 +2,11 @@
 
 use crate::prelude::*;
 
-use crate::control::io::mouse::{MouseFrpCallbackHandles, bind_frp_to_mouse};
+use crate::control::io::mouse::bind_frp_to_mouse;
+use crate::control::io::mouse::MouseFrpCallbackHandles;
+use crate::display::Scene;
 use crate::display::shape::text::text_field::frp::keyboard::TextFieldKeyboardFrp;
 use crate::display::shape::text::text_field::WeakTextField;
-use crate::display::world::World;
 
 use enso_frp::io::keyboard;
 use enso_frp::io::Mouse;
@@ -63,8 +64,8 @@ impl TextFieldMouseFrp {
     }
 
     /// Bind this FRP graph to js events.
-    pub fn bind_frp_to_mouse(&self, world:&World) -> MouseFrpCallbackHandles  {
-        let mouse_manager = &world.scene().mouse.mouse_manager;
+    pub fn bind_frp_to_mouse<'t,S:Into<&'t Scene>>(&self, scene:S) -> MouseFrpCallbackHandles  {
+        let mouse_manager = &scene.into().mouse.mouse_manager;
         bind_frp_to_mouse(&self.mouse,mouse_manager)
     }
 }

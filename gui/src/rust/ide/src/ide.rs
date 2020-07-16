@@ -81,13 +81,12 @@ impl IdeInitializer {
     /// Connect to language server.
     pub async fn open_project
     ( logger           : &Logger
-    , project_manager  : &impl project_manager::API
-    , project_metadata : &ProjectMetadata
+    , project_manager  : Rc<dyn project_manager::API>
+    , project_metadata : ProjectMetadata
     ) -> FallibleResult<model::Project> {
-        let endpoints = project_manager.open_project(&project_metadata.id).await?;
+        let endpoints       = project_manager.open_project(&project_metadata.id).await?;
         let json_endpoint   = endpoints.language_server_json_address;
         let binary_endpoint = endpoints.language_server_binary_address;
-        let project_name    = project_metadata.name.to_string();
         info!(logger, "Establishing Language Server connection.");
         let client_id     = Uuid::new_v4();
         let json_ws       = new_opened_ws(logger.clone_ref(), json_endpoint).await?;
@@ -98,7 +97,10 @@ impl IdeInitializer {
         crate::executor::global::spawn(client_binary.runner());
         let connection_json   = language_server::Connection::new(client_json,client_id).await?;
         let connection_binary = binary::Connection::new(client_binary,client_id).await?;
-        model::Project::from_connections(logger,connection_json,connection_binary,project_name).await
+        let project_id        = project_metadata.id;
+        let project_name      = project_metadata.name;
+        model::Project::from_connections(logger,project_manager,connection_json,connection_binary
+            ,project_id,project_name).await
     }
 
     /// Creates a new project and returns its metadata, so the newly connected project can be
@@ -169,17 +171,14 @@ impl IdeInitializer {
     pub async fn initialize_project_view
     ( &self
     , config          : &config::Startup
-    , project_manager : &project_manager::Client
+    , project_manager : project_manager::Client
     ) -> FallibleResult<ProjectView> {
-        let logger                     = &self.logger;
-        let project_name_from_argument = &config.user_provided_project_name;
-        let project_metadata = if let Some(project_name) = project_name_from_argument {
-            Self::get_project_or_create_new(logger,project_manager,&project_name).await?
-        } else {
-            let project_name = constants::DEFAULT_PROJECT_NAME;
-            Self::get_most_recent_project_or_create_new(logger,project_manager,project_name).await?
-        };
-        let project = Self::open_project(logger,project_manager,&project_metadata).await?;
+        let logger           = &self.logger;
+        let project_name     = config.project_name.to_string();
+        let project_metadata = Self::get_project_or_create_new
+            (logger,&project_manager,&project_name).await?;
+        let project_manager = Rc::new(project_manager);
+        let project         = Self::open_project(logger,project_manager,project_metadata).await?;
         Ok(ProjectView::new(logger,Rc::new(project)).await?)
     }
 
@@ -195,7 +194,7 @@ impl IdeInitializer {
             //      in case of setup failure.
             let project_manager = self.initialize_project_manager(&config).await;
             let project_manager = project_manager.expect("Failed to initialize Project Manager.");
-            let project_view    = self.initialize_project_view(&config,&project_manager).await;
+            let project_view    = self.initialize_project_view(&config,project_manager).await;
             let project_view    = project_view.expect("Failed to setup initial project view.");
             self.logger.info("Setup done.");
             let ide = Ide{project_view};

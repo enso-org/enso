@@ -30,8 +30,11 @@ pub fn run_example_text_typing() {
             size       : Vector2::new(200.0, 200.0)
         };
 
-        let mut text_field = TextField::new(&world,properties);
+        let scene         = world.scene();
+        let focus_manager = world.text_field_focus_manager();
+        let mut text_field = TextField::new(scene,properties,focus_manager);
         text_field.set_position(Vector3::new(10.0, 600.0, 0.0));
+        //FIXME:Use add_child(&text_field) when replaced by TextField 2.0
         world.add_child(&text_field.display_object());
 
         let now             = js_sys::Date::now();
