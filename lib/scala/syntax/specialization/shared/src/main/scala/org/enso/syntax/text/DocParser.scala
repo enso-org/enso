@@ -291,10 +291,10 @@ object DocParserHTMLGenerator {
   ): String = {
     ast.map { elem =>
       elem match {
-        case AST.Documented.any(d) =>
-          val file = onHTMLRendering(d, cssFileName)
+        case AST.Documented.any(documented) =>
+          val file = onHTMLRendering(documented, cssFileName)
           return file.code.toString() + generateHTMLForEveryDocumented(
-            d,
+            documented,
             cssFileName
           )
         case _ =>
