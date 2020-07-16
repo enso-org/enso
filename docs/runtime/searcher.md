@@ -152,6 +152,38 @@ The searcher primarily consists of:
 - Suggestion builder (aka _indexer_) that extracts suggestion entries from `IR`
   in compile time.
 
+```
+
+                                  +--------------------------------+
+                                  |         SuggestionsDB          |
+                                  +-----------------+--------------+
+                                  | SuggestionsRepo | VersionsRepo |
+                                  +----+------------+---------+----+
+                                       ^                      ^
+                                       |                      |
+            Capability,Search          v                      v
+ +--------+      Request     +---------+----------+        +--+------------------+
+ | Client +<---------------->+ SuggestionsHandler |        | CollaborativeBuffer |
+ +--------+ Database Update  +---------+----------+        +-------------------+-+
+            Notifications              ^                  OpenFileNotification |
+                                       |                  (isIndexed)          |
+                                       |                                       v
+                             +---------+---------------------------------------+-------+
+                             |                   RuntimeConnector                      |
+                             +----+----------+---------------------------------+-------+
+                                  ^          ^                                 |
+        ExpressionValuesComputed  |          |  SuggestionsDBUpdate            |
+                                  |          |                                 |
+               +------------------+--+    +--+----------------+                |
+               | ExecutionInstrument |    | EnsureCompiledJob |           +----+------+
+               +---------------------+    +-------------------+           |  Module   |
+                                          |                   | (re)index +-----------+
+                                          | SuggestionBuilder +-----------+ isIndexed |
+                                          |                   |           +-----------+
+                                          +-------------------+
+
+```
+
 ### Indexing
 
 Indexing is a process of extracting suggestions information from the `IR`. To
