@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 @BuiltinMethod(
     type = "Function",
     name = "<|",
-    description = "Allows function calls to be made explicitly",
+    description = "Takes a function and an argument and applies the function to the argument.",
     alwaysDirect = false)
 public class ApplicationOperator extends Node {
   private @Child InvokeCallableNode invokeCallableNode;

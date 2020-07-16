@@ -29,4 +29,3 @@ spec = describe "List" <|
         any_even.should_be_true
         any_eq_five.should_be_false
 
-

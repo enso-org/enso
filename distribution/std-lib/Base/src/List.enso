@@ -77,7 +77,7 @@ type List
     reverse : List
     reverse = this.fold Nil (l -> el -> Cons el l)
 
-    ## Computes the number of elements in a list.
+    ## Computes the number of elements in the list.
     length : Number
     length = this.fold 0 (acc -> _ -> acc + 1)
 

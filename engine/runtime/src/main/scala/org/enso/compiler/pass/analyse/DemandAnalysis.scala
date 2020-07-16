@@ -152,7 +152,6 @@ case object DemandAnalysis extends IRPass {
     val usesLazyTerm = isUsageOfSuspendedTerm(name)
 
     if (isInsideCallArgument) {
-      // isInsideCallArgument shouldn't be set here for inside a block
       name
     } else {
       if (usesLazyTerm) {

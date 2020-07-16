@@ -11,8 +11,6 @@ import org.enso.interpreter.runtime.scope.LocalScope
 
 import scala.annotation.nowarn
 
-// TODO Remove this
-@nowarn("cat=unused")
 class DemandAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
