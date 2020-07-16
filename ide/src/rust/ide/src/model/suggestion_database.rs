@@ -2,6 +2,8 @@
 
 use crate::prelude::*;
 
+use crate::double_representation::module::QualifiedName;
+
 use enso_protocol::language_server;
 use language_server::types::SuggestionsDatabaseVersion;
 use language_server::types::SuggestionDatabaseUpdateEvent;
@@ -9,7 +11,6 @@ use language_server::types::SuggestionDatabaseUpdateEvent;
 pub use language_server::types::SuggestionEntryArgument as Argument;
 pub use language_server::types::SuggestionEntryId as EntryId;
 pub use language_server::types::SuggestionsDatabaseUpdate as Update;
-
 
 
 // =============
@@ -30,8 +31,8 @@ pub struct Entry {
     pub name : String,
     /// A type of suggestion.
     pub kind : EntryKind,
-    /// A module where the suggested object is defined.
-    pub module : String,
+    /// A module where the suggested object is defined, represented as vector of segments.
+    pub module : QualifiedName,
     /// Argument lists of suggested object (atom or function). If the object does not take any
     /// arguments, the list is empty.
     pub arguments : Vec<Argument>,
@@ -45,42 +46,63 @@ pub struct Entry {
 
 impl Entry {
     /// Create entry from the structure deserialized from the Language Server responses.
-    pub fn from_ls_entry(entry:language_server::types::SuggestionEntry) -> Self {
+    pub fn from_ls_entry(entry:language_server::types::SuggestionEntry) -> FallibleResult<Self> {
         use language_server::types::SuggestionEntry::*;
-        match entry {
+        let this = match entry {
             SuggestionEntryAtom {name,module,arguments,return_type,documentation} =>
                 Self {
-                    name,module,arguments,return_type,documentation,
-                    self_type     : None,
-                    kind          : EntryKind::Atom,
+                    name,arguments,return_type,documentation,
+                    module    : module.try_into()?,
+                    self_type : None,
+                    kind      : EntryKind::Atom,
                 },
             SuggestionEntryMethod {name,module,arguments,self_type,return_type,documentation} =>
                 Self {
-                    name,module,arguments,return_type,documentation,
-                    self_type     : Some(self_type),
-                    kind          : EntryKind::Method,
+                    name,arguments,return_type,documentation,
+                    module    : module.try_into()?,
+                    self_type : Some(self_type),
+                    kind      : EntryKind::Method,
                 },
             SuggestionEntryFunction {name,module,arguments,return_type,..} =>
                 Self {
-                    name,module,arguments,return_type,
+                    name,arguments,return_type,
+                    module        : module.try_into()?,
                     self_type     : None,
                     documentation : default(),
                     kind          : EntryKind::Function,
                 },
             SuggestionEntryLocal {name,module,return_type,..} =>
                 Self {
-                    name,module,return_type,
+                    name,return_type,
                     arguments     : default(),
+                    module        : module.try_into()?,
                     self_type     : None,
                     documentation : default(),
                     kind          : EntryKind::Local,
                 },
+        };
+        Ok(this)
+    }
+
+    /// Returns the code which should be inserted to Searcher input when suggestion is picked.
+    pub fn code_to_insert(&self) -> String {
+        let module = self.module.name();
+        if self.self_type.as_ref().contains(&module) {
+            iformat!("{module}.{self.name}")
+        } else {
+            self.name.clone()
         }
+    }
+
+    /// Returns entry with the changed name.
+    pub fn with_name(self, name:impl Into<String>) -> Self {
+        Self {name:name.into(),..self}
     }
 }
 
-impl From<language_server::types::SuggestionEntry> for Entry {
-    fn from(entry:language_server::types::SuggestionEntry) -> Self {
+impl TryFrom<language_server::types::SuggestionEntry> for Entry {
+    type Error = failure::Error;
+    fn try_from(entry:language_server::types::SuggestionEntry) -> FallibleResult<Self> {
         Self::from_ls_entry(entry)
     }
 }
@@ -99,6 +121,7 @@ impl From<language_server::types::SuggestionEntry> for Entry {
 /// argument names and types.
 #[derive(Clone,Debug,Default)]
 pub struct SuggestionDatabase {
+    logger  : Logger,
     entries : RefCell<HashMap<EntryId,Rc<Entry>>>,
     version : Cell<SuggestionsDatabaseVersion>,
 }
@@ -113,11 +136,17 @@ impl SuggestionDatabase {
 
     /// Create a new database model from response received from the Language Server.
     fn from_ls_response(response:language_server::response::GetSuggestionDatabase) -> Self {
+        let logger      = Logger::new("SuggestionDatabase");
         let mut entries = HashMap::new();
-        for entry in response.entries {
-            entries.insert(entry.id, Rc::new(Entry::from_ls_entry(entry.suggestion)));
+        for ls_entry in response.entries {
+            let id = ls_entry.id;
+            match Entry::from_ls_entry(ls_entry.suggestion) {
+                Ok(entry) => { entries.insert(id, Rc::new(entry)); },
+                Err(err)  => { error!(logger,"Discarded invalid entry {id}: {err}"); },
+            }
         }
         Self {
+            logger,
             entries : RefCell::new(entries),
             version : Cell::new(response.current_version),
         }
@@ -133,8 +162,11 @@ impl SuggestionDatabase {
         for update in event.updates {
             let mut entries = self.entries.borrow_mut();
             match update {
-                Update::Add    {id,entry} => entries.insert(id,Rc::new(entry.into())),
-                Update::Remove {id}       => entries.remove(&id),
+                Update::Add {id,entry} => match entry.try_into() {
+                    Ok(entry) => { entries.insert(id,Rc::new(entry));                       },
+                    Err(err)  => { error!(self.logger, "Discarding update for {id}: {err}") },
+                },
+                Update::Remove {id} => { entries.remove(&id); },
             };
         }
         self.version.set(event.current_version);
@@ -163,7 +195,39 @@ impl From<language_server::response::GetSuggestionDatabase> for SuggestionDataba
 #[cfg(test)]
 mod test {
     use super::*;
+
     use enso_protocol::language_server::SuggestionsDatabaseEntry;
+
+
+
+    #[test]
+    fn code_from_entry() {
+        let module = QualifiedName::from_segments("Project",&["Main"]).unwrap();
+        let atom_entry = Entry {
+            name          : "Atom".to_string(),
+            kind          : EntryKind::Atom,
+            module,
+            arguments     : vec![],
+            return_type   : "Number".to_string(),
+            documentation : None,
+            self_type     : None
+        };
+        let method_entry = Entry {
+            name      : "method".to_string(),
+            kind      : EntryKind::Method,
+            self_type : Some("Number".to_string()),
+            ..atom_entry.clone()
+        };
+        let module_method_entry = Entry {
+            name      : "moduleMethod".to_string(),
+            self_type : Some("Main".to_string()),
+            ..method_entry.clone()
+        };
+
+        assert_eq!(atom_entry.code_to_insert()         , "Atom".to_string());
+        assert_eq!(method_entry.code_to_insert()       , "method".to_string());
+        assert_eq!(module_method_entry.code_to_insert(), "Main.moduleMethod".to_string());
+    }
 
     #[test]
     fn initialize_database() {
@@ -179,7 +243,7 @@ mod test {
         // Non-empty db
         let entry = language_server::types::SuggestionEntry::SuggestionEntryAtom {
             name          : "TextAtom".to_string(),
-            module        : "TestModule".to_string(),
+            module        : "TestProject.TestModule".to_string(),
             arguments     : vec![],
             return_type   : "TestAtom".to_string(),
             documentation : None
@@ -199,21 +263,21 @@ mod test {
     fn applying_update() {
         let entry1 = language_server::types::SuggestionEntry::SuggestionEntryAtom {
             name          : "Entry1".to_string(),
-            module        : "TestModule".to_string(),
+            module        : "TestProject.TestModule".to_string(),
             arguments     : vec![],
             return_type   : "TestAtom".to_string(),
             documentation : None
         };
         let entry2 = language_server::types::SuggestionEntry::SuggestionEntryAtom {
             name          : "Entry2".to_string(),
-            module        : "TestModule".to_string(),
+            module        : "TestProject.TestModule".to_string(),
             arguments     : vec![],
             return_type   : "TestAtom".to_string(),
             documentation : None
         };
         let new_entry2 = language_server::types::SuggestionEntry::SuggestionEntryAtom {
             name          : "NewEntry2".to_string(),
-            module        : "TestModule".to_string(),
+            module        : "TestProject.TestModule".to_string(),
             arguments     : vec![],
             return_type   : "TestAtom".to_string(),
             documentation : None

@@ -166,7 +166,8 @@ impl Path {
         let non_src_directories = non_src_directories.iter().map(|dirname| dirname.as_str());
         let module_name         = std::iter::once(self.module_name());
         let module_segments     = non_src_directories.chain(module_name);
-        QualifiedName::from_segments(project_name,module_segments)
+        // The module path during creation should be checked for at least one module segment.
+        QualifiedName::from_segments(project_name,module_segments).unwrap()
     }
 }
 
