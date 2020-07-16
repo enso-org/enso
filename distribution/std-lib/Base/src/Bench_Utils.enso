@@ -24,10 +24,10 @@ Number.times = act ->
     res = here.reverse_list (go Nil this)
     res
 
-measure = act -> label -> iter_size -> num_iters ->
-    single_call = input ->
+measure = ~act -> label -> iter_size -> num_iters ->
+    single_call = _ ->
         x1 = System.nano_time
-        Runtime.no_inline (act input)
+        Runtime.no_inline act
         x2 = System.nano_time
         x2 - x1
     iteration = it_num ->

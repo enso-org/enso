@@ -1,0 +1,111 @@
+import Base.List
+
+## The top-level entry point for a test suite.
+type Suite specs
+
+## PRIVATE
+type Spec name behaviors
+
+## PRIVATE
+type Behavior name result
+
+## PRIVATE
+Behavior.is_fail = this.result.is_fail
+
+## PRIVATE
+Spec.is_fail = this.behaviors.any is_fail
+
+## PRIVATE
+Suite.is_fail = this.specs.any is_fail
+
+## PRIVATE
+type Assertion
+    type Success
+    type Fail message
+
+    is_fail = case this of
+        Success -> False
+        Fail _ -> True
+
+## Asserts that `this` value is equal to the expected value.
+Any.should_equal that = case this == that of
+    True -> Success
+    False ->
+        msg = this.to_text + " did not equal " + that.to_text + "."
+        Panic.throw (Fail msg)
+
+## Asserts that the given `Boolean` is `True`
+Boolean.should_be_true = case this of
+    True -> Success
+    False -> Panic.throw (Fail "Expected False to be True.")
+
+## Asserts that the given `Boolean` is `False`
+Boolean.should_be_false = case this of
+    True -> Panic.throw (Fail "Expected True to be False.")
+    False -> Success
+
+## PRIVATE
+Spec.print_report =
+    IO.print_err (this.name + ":")
+    this.behaviors.reverse.each behavior->
+        case behavior.result of
+            Success ->
+                IO.print_err ("    - " + behavior.name)
+            Fail msg ->
+                IO.print_err ("    - [FAILED] " + behavior.name)
+                IO.print_err ("        Reason: " + msg)
+
+## Creates a new test group, desribing properties of the object
+   described by `this`.
+
+   > Example
+         Suite.run <|
+             describe "Number" <|
+                 it "should define addition" <|
+                     2+3 . should_equal 5
+                 it "should define multiplication" <|
+                     2*3 . should_equal 6
+Text.describe ~behaviors =
+    r = State.run Spec (Spec this Nil) <|
+        behaviors
+        State.get Spec
+    r.print_report
+    suite = State.get Suite
+    new_suite = Suite (Cons r suite.specs)
+    State.put Suite new_suite
+
+## Specifies a single behavior, described by `this`.
+
+   > Example
+         Suite.run <|
+             describe "Number" <|
+                 it "should define addition" <|
+                     2+3 . should_equal 5
+                 it "should define multiplication" <|
+                     2*3 . should_equal 6
+Text.it ~behavior =
+    spec = State.get Spec
+    maybeExc = case Panic.recover behavior of
+        _ -> Success
+    result = maybeExc.catch ex->
+        case ex of
+            Fail _ -> ex
+            _ -> Fail ("Unexpected error has been thrown: " + ex.to_text)
+    new_spec = Spec spec.name (Cons (Behavior this result) spec.behaviors)
+    State.put Spec new_spec
+
+## Runs a suite of tests, consisting of multiple `describe` blocks.
+
+   > Example
+         Suite.run <|
+             describe "Number" <|
+                 it "should define addition" <|
+                     2+3 . should_equal 5
+                 it "should define multiplication" <|
+                     2*3 . should_equal 6
+Suite.run ~specs =
+    r = State.run Suite (Suite Nil) <|
+        specs
+        State.get Suite
+    code = if r.is_fail then 1 else 0
+    System.exit code
