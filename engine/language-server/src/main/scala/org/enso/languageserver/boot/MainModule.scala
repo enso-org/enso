@@ -215,4 +215,9 @@ class MainModule(serverConfig: LanguageServerConfig) {
       new BinaryConnectionControllerFactory(fileManager)
     )
 
+  /** Close the main module releasing all resources. */
+  def close(): Unit = {
+    suggestionsRepo.close()
+    versionsRepo.close()
+  }
 }
