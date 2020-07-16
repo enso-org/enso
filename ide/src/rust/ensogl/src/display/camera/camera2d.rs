@@ -79,6 +79,8 @@ pub struct Clipping {
 impl Default for Clipping {
     fn default() -> Self {
         let near = 1.0;
+        //FIXME: Bigger screens needs bigger far values, which means that this value has to be
+        // updated when the screen is resized.
         let far  = 10000.0;
         Self {near,far}
     }

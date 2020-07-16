@@ -251,8 +251,7 @@ pub struct GlyphSystem {
 
 impl GlyphSystem {
     /// Constructor.
-    pub fn new<S>(scene:&S, font:font::Handle) -> Self
-    where for<'t> &'t S : Into<&'t Scene> {
+    pub fn new<'t,S:Into<&'t Scene>>(scene:S, font:font::Handle) -> Self {
         let logger        = Logger::new("glyph_system");
         let msdf_width    = msdf::Texture::WIDTH as f32;
         let msdf_height   = msdf::Texture::ONE_GLYPH_HEIGHT as f32;

@@ -6,10 +6,10 @@ pub mod keyboard;
 use crate::prelude::*;
 
 use crate::control::io::mouse::MouseFrpCallbackHandles;
+use crate::display::Scene;
 use crate::display::shape::text::text_field::frp::keyboard::TextFieldKeyboardFrp;
 use crate::display::shape::text::text_field::frp::mouse::TextFieldMouseFrp;
 use crate::display::shape::text::text_field::WeakTextField;
-use crate::display::world::World;
 
 
 
@@ -32,10 +32,10 @@ pub struct TextFieldFrp {
 impl TextFieldFrp {
     /// Create FRP definitions which will do their actions on given `text_field`, and are bound
     /// to JS events.
-    pub fn new(world:&World, text_field:WeakTextField) -> Self {
+    pub fn new<'t,S:Into<&'t Scene>>(scene:S, text_field:WeakTextField) -> Self {
         let keyboard         = TextFieldKeyboardFrp::new(text_field.clone_ref());
         let mouse            = TextFieldMouseFrp::new(text_field,&keyboard);
-        let mouse_binding    = mouse.bind_frp_to_mouse(world);
+        let mouse_binding    = mouse.bind_frp_to_mouse(scene);
         TextFieldFrp {keyboard,mouse,mouse_binding}
     }
 }

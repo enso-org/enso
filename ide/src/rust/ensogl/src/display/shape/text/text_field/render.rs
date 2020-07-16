@@ -7,7 +7,10 @@ use crate::prelude::*;
 
 use crate::data::color;
 use crate::display;
+use crate::display::Glsl;
 use crate::display::object::traits::*;
+use crate::display::Scene;
+use crate::display::shape;
 use crate::display::shape::text::glyph::font;
 use crate::display::shape::text::glyph::system::GlyphSystem;
 use crate::display::shape::text::text_field::content::TextFieldContent;
@@ -17,15 +20,13 @@ use crate::display::shape::text::text_field::render::assignment::GlyphLinesAssig
 use crate::display::shape::text::text_field::render::assignment::LineFragment;
 use crate::display::shape::text::text_field::render::selection::SelectionSpritesGenerator;
 use crate::display::shape::text::text_field::TextFieldProperties;
-use crate::display::shape;
+use crate::display::shape::primitive::def::class::ShapeOps;
 use crate::display::shape::primitive::system::ShapeSystem;
 use crate::display::symbol::geometry::compound::sprite::Sprite;
-use crate::display::world::World;
-use crate::display::shape::primitive::def::class::ShapeOps;
 
-use nalgebra::{Vector2, zero};
+use nalgebra::Vector2;
 use nalgebra::Vector3;
-use crate::display::Glsl;
+use nalgebra::zero;
 
 
 
@@ -73,14 +74,15 @@ pub struct TextFieldSprites {
 impl TextFieldSprites {
 
     /// Create RenderedContent structure.
-    pub fn new(world:&World, properties:&TextFieldProperties) -> Self {
+    pub fn new<'t,S:Into<&'t Scene>>(scene:S, properties:&TextFieldProperties) -> Self {
         let font              = properties.font.clone_ref();
         let line_height       = properties.text_size;
         let color             = properties.base_color;
-        let selection_system  = Self::create_selection_system(world);
-        let cursor_system     = Self::create_cursor_system(world,line_height,color);
+        let scene             = scene.into();
+        let selection_system  = Self::create_selection_system(scene);
+        let cursor_system     = Self::create_cursor_system(scene,line_height,color);
         let cursors           = Vec::new();
-        let glyph_system      = GlyphSystem::new(world,font.clone_ref());
+        let glyph_system      = GlyphSystem::new(scene,font.clone_ref());
         let display_object    = display::object::Instance::new(Logger::new("RenderedContent"));
         display_object.add_child(&selection_system);
         display_object.add_child(&glyph_system);
@@ -121,7 +123,8 @@ impl TextFieldSprites {
         }
     }
 
-    fn create_cursor_system(world:&World,line_height:f32,color:color::Rgba) -> ShapeSystem {
+    fn create_cursor_system
+    <'t,S:Into<&'t Scene>>(scene:S,line_height:f32,color:color::Rgba) -> ShapeSystem {
         const WIDTH:f32         = 2.0;
         const COLOR_HIDDEN:&str = "vec4(0.0,0.0,0.0,0.0)";
         let color_glsl:Glsl     = color.into();
@@ -129,15 +132,15 @@ impl TextFieldSprites {
             color_glsl,COLOR_HIDDEN);
         let cursor_definition     = shape::Rect(Vector2::new(WIDTH.pixels(),line_height.pixels()));
         let cursor_definition     = cursor_definition.fill(color_function);
-        ShapeSystem::new(world,&cursor_definition)
+        ShapeSystem::new(scene,&cursor_definition)
     }
 
-    fn create_selection_system(world:&World) -> ShapeSystem {
+    fn create_selection_system<'t,S:Into<&'t Scene>>(scene:S) -> ShapeSystem {
         const ROUNDING:f32       = 3.0;
         let width                = "input_size.x";
         let height               = "input_size.y";
         let selection_definition = shape::Rect((width,height));
-        ShapeSystem::new(world,&selection_definition)
+        ShapeSystem::new(scene,&selection_definition)
     }
 
     fn create_assignment_structure

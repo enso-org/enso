@@ -29,8 +29,21 @@ mod tests {
         let uuid     = creation.project_id;
         let _address = client.open_project(&uuid).await.expect("Couldn't open project.");
         client.close_project(&uuid).await.expect("Couldn't close project.");
+        let list_response = client.list_projects(&None).await;
+        let list_response = list_response.expect("Couldn't list recent projects.");
+        assert!(list_response.projects.iter().any(|project| *project.name.deref() == name));
+
+        let new_name = "NewTestProject".to_string();
+        client.rename_project(&uuid,&new_name).await.expect("Couldn't rename project.");
+        let list_response = client.list_projects(&None).await;
+        let list_response = list_response.expect("Couldn't list recent projects.");
+        assert!(!list_response.projects.iter().any(|project| *project.name.deref() == name));
+        assert!(list_response.projects.iter().any(|project| *project.name.deref() == new_name));
+
         client.delete_project(&uuid).await.expect("Couldn't delete project.");
-        client.list_projects(&Some(10)).await.expect("Couldn't list recent projects.");
+        let list_response = client.list_projects(&None).await;
+        let list_response = list_response.expect("Couldn't list recent projects.");
+        assert!(!list_response.projects.iter().any(|project| *project.name.deref() == name));
         // FIXME[dg]: project/listSample isn't implemented on the server-side yet.
         //client.list_samples(10).await.expect("Couldn't list samples.");
     }

@@ -11,7 +11,9 @@ pub mod word_occurrence;
 use crate::prelude::*;
 
 use crate::data::color;
+use crate::display;
 use crate::display::object::traits::*;
+use crate::display::Scene;
 use crate::display::shape::text::glyph::font;
 use crate::display::shape::text::text_field::content::location::TextLocationChange;
 use crate::display::shape::text::text_field::content::TextFieldContent;
@@ -24,8 +26,6 @@ use crate::display::shape::text::text_field::frp::TextFieldFrp;
 use crate::display::shape::text::text_field::render::assignment::GlyphLinesAssignmentUpdate;
 use crate::display::shape::text::text_field::render::TextFieldSprites;
 use crate::display::shape::text::text_field::word_occurrence::WordOccurrences;
-use crate::display::world::World;
-use crate::display;
 use crate::system::web::text_input::KeyboardBinding;
 
 use data::text::TextChange;
@@ -126,6 +126,21 @@ shared! { TextField
     }
 
     impl {
+        /// Get TextField's line height.
+        pub fn line_height(&self) -> f32 {
+            self.content.line_height
+        }
+
+        /// Get the width of the line.
+        pub fn width_of_line(&mut self, line:usize) -> f32 {
+            let mut width = 0.0;
+            let mut line  = self.content.line(line);
+            if line.len() > 0 {
+                width = line.get_char_x_position(line.len() - 1);
+            }
+            width
+        }
+
         /// Display object getter.
         pub fn display_object(&self) -> display::object::Instance {
             self.display_object.clone()
@@ -149,6 +164,12 @@ shared! { TextField
         /// Set size.
         pub fn set_size(&mut self, size:Vector2<f32>) {
             self.properties.size = size;
+            self.rendered.update_lines(&self.properties);
+        }
+
+        /// Set color.
+        pub fn set_base_color(&mut self, base_color:color::Rgba) {
+            self.properties.base_color = base_color;
             self.rendered.update_lines(&self.properties);
         }
 
@@ -342,6 +363,11 @@ shared! { TextField
             self.text_change_callback = Some(Box::new(callback))
         }
 
+        /// Tell if the TextField is focused.
+        pub fn is_focused(&self) -> bool {
+            self.focused
+        }
+
         fn on_defocus(&mut self) {
             self.focused = false;
             self.rendered.update_cursor_sprites(&self.cursors,&mut self.content,self.focused);
@@ -354,17 +380,20 @@ shared! { TextField
 
 impl TextField {
     /// Create new empty TextField
-    pub fn new(world:&World, properties:TextFieldProperties) -> Self {
-        Self::new_with_content(world,"",properties)
+    pub fn new<'t,S:Into<&'t Scene>>
+    (scene:S, properties:TextFieldProperties,focus_manager:&FocusManager) -> Self {
+        Self::new_with_content(scene,"",properties,focus_manager)
     }
 
     /// Create new TextField with predefined content.
-    pub fn new_with_content(world:&World, initial_content:&str, properties:TextFieldProperties)
+    pub fn new_with_content<'t,S:Into<&'t Scene>>
+    (scene:S, initial_content:&str, properties:TextFieldProperties,focus_manager:&FocusManager)
     -> Self {
-        let data = TextFieldData::new(world,initial_content,properties);
+        let scene = scene.into();
+        let data = TextFieldData::new(scene,initial_content,properties,focus_manager);
         let rc   = Rc::new(RefCell::new(data));
         let this = Self {rc};
-        let frp  = TextFieldFrp::new(world,this.downgrade());
+        let frp  = TextFieldFrp::new(scene,this.downgrade());
         this.with_borrowed(move |mut data| { data.frp = Some(frp); });
         this
     }
@@ -458,16 +487,21 @@ impl TextField {
 }
 
 impl TextFieldData {
-    fn new(world:&World, initial_content:&str, properties:TextFieldProperties) -> Self {
+    fn new<'t,S:Into<&'t Scene>>
+    ( scene           : S
+    , initial_content : &str
+    , properties      : TextFieldProperties
+    , focus_manager   : &FocusManager
+    ) -> Self {
         let logger               = Logger::new("TextField");
         let display_object       = display::object::Instance::new(logger);
         let content              = TextFieldContent::new(initial_content,&properties);
         let cursors              = Cursors::default();
-        let rendered             = TextFieldSprites::new(world,&properties);
+        let rendered             = TextFieldSprites::new(scene,&properties);
         let frp                  = None;
         let word_occurrences     = None;
         let text_change_callback = None;
-        let focus_manager        = world.text_field_focus_manager().clone_ref();
+        let focus_manager        = focus_manager.clone_ref();
         let focused              = false;
         display_object.add_child(&rendered);
 
