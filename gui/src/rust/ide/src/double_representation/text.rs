@@ -29,7 +29,7 @@ pub fn apply_code_change_to_id_map(id_map:&mut IdMap, change:&data::text::TextCh
     let non_white     = |c:char| !c.is_whitespace();
     let logger        = logger::disabled::Logger::new("apply_code_change_to_id_map");
     let vector        = &mut id_map.vec;
-    let inserted_size = Size::from(inserted);
+    let inserted_size = Size::from_text(inserted);
 
     info!(logger,"Old code:\n```\n{code}\n```");
     info!(logger,"New code:\n```\n{new_code}\n```");
@@ -82,7 +82,7 @@ pub fn apply_code_change_to_id_map(id_map:&mut IdMap, change:&data::text::TextCh
             if all_spaces(code_between) && inserted_non_white {
                 debug!(logger,"Will extend the node leftwards.");
                 span.extend_left(inserted_size);
-                span.extend_left(Size::from(code_between));
+                span.extend_left(Size::from_text(code_between));
                 trim_front = true;
             }
         } else if span.index >= removed.index {
@@ -109,7 +109,7 @@ pub fn apply_code_change_to_id_map(id_map:&mut IdMap, change:&data::text::TextCh
             let between = &code[Span::from(span.end() .. removed.index)];
             if all_spaces(between) && inserted_non_white {
                 debug!(logger,"Will extend ");
-                span.size += Size::from(between) + inserted_size;
+                span.size += Size::from_text(between) + inserted_size;
                 trim_back = true;
             }
         }
@@ -158,7 +158,7 @@ pub fn apply_code_change_to_id_map(id_map:&mut IdMap, change:&data::text::TextCh
 
 /// Returns the byte length of leading space characters sequence.
 fn spaces_size(itr:impl Iterator<Item=char>) -> Size {
-    Size::new(itr.take_while(|c| *c == ' ').fold(0, |acc, c| acc + c.len_utf8()))
+    Size::new(itr.take_while(|c| *c == ' ').fold(0, |acc, _| acc + 1))
 }
 
 /// Checks if the given string slice contains only space charactesr.
