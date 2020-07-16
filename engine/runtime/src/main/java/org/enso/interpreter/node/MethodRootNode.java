@@ -6,6 +6,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -14,24 +15,37 @@ import org.enso.interpreter.runtime.state.Stateful;
 /**
  * This node represents the root of Enso closures and closure-like structures.
  *
- * <p>All new computations in Enso must be executed from within an {@link ClosureRootNode}, as
+ * <p>All new computations in Enso must be executed from within an {@link MethodRootNode}, as
  * determined by the API provided by Truffle.
  */
 @ReportPolymorphism
 @NodeInfo(shortName = "Closure", description = "A root node for Enso closures.")
-public class ClosureRootNode extends EnsoRootNode {
+public class MethodRootNode extends ClosureRootNode {
 
-  @Child private ExpressionNode body;
+  private final AtomConstructor atomConstructor;
+  private final String methodName;
 
-  ClosureRootNode(
+  private MethodRootNode(
       Language language,
       LocalScope localScope,
       ModuleScope moduleScope,
       ExpressionNode body,
       SourceSection section,
-      String name) {
-    super(language, localScope, moduleScope, name, section);
-    this.body = body;
+      AtomConstructor atomConstructor,
+      String methodName) {
+    super(
+        language,
+        localScope,
+        moduleScope,
+        body,
+        section,
+        shortName(atomConstructor.getName(), methodName));
+    this.atomConstructor = atomConstructor;
+    this.methodName = methodName;
+  }
+
+  private static String shortName(String atomName, String methodName) {
+    return atomName + "." + methodName;
   }
 
   /**
@@ -45,29 +59,32 @@ public class ClosureRootNode extends EnsoRootNode {
    * @param name a name for the node
    * @return a node representing the specified closure
    */
-  public static ClosureRootNode build(
+  public static MethodRootNode build(
       Language language,
       LocalScope localScope,
       ModuleScope moduleScope,
       ExpressionNode body,
       SourceSection section,
-      String name) {
-    return new ClosureRootNode(
-        language, localScope, moduleScope, body, section, name);
+      AtomConstructor atomConstructor,
+      String methodName) {
+    return new MethodRootNode(
+        language, localScope, moduleScope, body, section, atomConstructor, methodName);
   }
 
-  /**
-   * Executes the node.
-   *
-   * @param frame the stack frame to execute in
-   * @return the result of executing this node
-   */
   @Override
-  public Object execute(VirtualFrame frame) {
-    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
-    frame.setObject(this.getStateFrameSlot(), state);
-    Object result = body.executeGeneric(frame);
-    state = FrameUtil.getObjectSafe(frame, this.getStateFrameSlot());
-    return new Stateful(state, result);
+  public String getQualifiedName() {
+    return getModuleScope().getModule().getName().toString()
+        + "::"
+        + atomConstructor.getQualifiedName().toString()
+        + "::"
+        + methodName;
+  }
+
+  public AtomConstructor getAtomConstructor() {
+    return atomConstructor;
+  }
+
+  public String getMethodName() {
+    return methodName;
   }
 }

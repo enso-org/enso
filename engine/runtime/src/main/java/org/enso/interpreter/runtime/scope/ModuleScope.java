@@ -28,7 +28,7 @@ public class ModuleScope {
    */
   public ModuleScope(Module module) {
     this.module = module;
-    this.associatedType = new AtomConstructor(module.getName().module(), this).initializeFields();
+    this.associatedType = new AtomConstructor(module.getName().item(), this).initializeFields();
   }
 
   /**
