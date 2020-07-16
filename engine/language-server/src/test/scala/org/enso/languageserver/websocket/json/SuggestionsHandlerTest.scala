@@ -4,8 +4,9 @@ import java.util.UUID
 import io.circe.literal._
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.websocket.json.{SearchJsonMessages => json}
+import org.enso.testkit.FlakySpec
 
-class SuggestionsHandlerTest extends BaseServerTest {
+class SuggestionsHandlerTest extends BaseServerTest with FlakySpec {
 
   "SuggestionsHandler" must {
 
@@ -25,8 +26,8 @@ class SuggestionsHandlerTest extends BaseServerTest {
     }
 
     "get initial suggestions database version" in {
-      system.eventStream.publish(ProjectNameChangedEvent("Test"))
       val client = getInitialisedWsClient()
+      system.eventStream.publish(ProjectNameChangedEvent("Test"))
 
       client.send(json.getSuggestionsDatabaseVersion(0))
       client.expectJson(json"""
@@ -39,9 +40,9 @@ class SuggestionsHandlerTest extends BaseServerTest {
       """)
     }
 
-    "get initial suggestions database" in {
-      system.eventStream.publish(ProjectNameChangedEvent("Test"))
+    "get initial suggestions database" taggedAs Flaky in {
       val client = getInitialisedWsClient()
+      system.eventStream.publish(ProjectNameChangedEvent("Test"))
 
       client.send(json.getSuggestionsDatabase(0))
       client.expectJson(json"""
@@ -56,9 +57,9 @@ class SuggestionsHandlerTest extends BaseServerTest {
       """)
     }
 
-    "reply to completion request" in {
-      system.eventStream.publish(ProjectNameChangedEvent("Test"))
+    "reply to completion request" taggedAs Flaky in {
       val client = getInitialisedWsClient()
+      system.eventStream.publish(ProjectNameChangedEvent("Test"))
 
       client.send(json"""
         { "jsonrpc": "2.0",
@@ -115,9 +116,9 @@ class SuggestionsHandlerTest extends BaseServerTest {
       """)
     }
 
-    "reply with error when project root not found" in {
-      system.eventStream.publish(ProjectNameChangedEvent("Test"))
+    "reply with error when project root not found" taggedAs Flaky in {
       val client = getInitialisedWsClient()
+      system.eventStream.publish(ProjectNameChangedEvent("Test"))
 
       client.send(json"""
         { "jsonrpc": "2.0",

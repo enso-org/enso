@@ -13,7 +13,7 @@ sealed abstract class IndexedSourceSpec[A: IndexedSource]
     """main =
       |    x = 7
       |    y = 42
-      |    IO.println(x + y)""".stripMargin
+      |    IO.println(x + y)""".stripMargin.linesIterator.mkString("\n")
 
   implicit def toIndexedSource(text: String): A
 

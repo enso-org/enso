@@ -496,7 +496,7 @@ class SuggestionBuilderTest extends CompilerTest {
           |#### METADATA ####
           |[[{"index": {"value": 7}, "size": {"value": 19}}, "4083ce56-a5e5-4ecd-bf45-37ddf0b58456"]]
           |[]
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val module = code.preprocessModule
 
       build(code, module) should contain theSameElementsAs Seq(
@@ -526,7 +526,7 @@ class SuggestionBuilderTest extends CompilerTest {
           |#### METADATA ####
           |[[{"index": {"value": 18}, "size": {"value": 1}}, "f533d910-63f8-44cd-9204-a1e2d46bb7c3"]]
           |[]
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val module = code.preprocessModule
 
       build(code, module) should contain theSameElementsAs Seq(
@@ -569,7 +569,7 @@ class SuggestionBuilderTest extends CompilerTest {
           |#### METADATA ####
           |[[{"index": {"value": 17}, "size": {"value": 2}}, "0270bcdf-26b8-4b99-8745-85b3600c7359"]]
           |[]
-          |""".stripMargin
+          |""".stripMargin.linesIterator.mkString("\n")
       val module = code.preprocessModule
 
       build(code, module) should contain theSameElementsAs Seq(
