@@ -317,7 +317,7 @@ final class SuggestionsHandler(
   }
 
   /**
-    * Build module name from the requested file path.
+    * Build the module name from the requested file path.
     *
     * @param projectName the project name
     * @param path the requested file path

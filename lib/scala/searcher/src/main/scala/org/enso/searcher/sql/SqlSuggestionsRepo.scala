@@ -27,12 +27,12 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
       .joinRight(Suggestions)
       .on(_.suggestionId === _.id)
 
-  /** @inheritdoc */
-  override def init: Future[Unit] =
+  /** Initialize the repo. */
+  def init: Future[Unit] =
     db.run(initQuery)
 
-  /** @inheritdoc */
-  override def clean: Future[Unit] =
+  /** Clean the repo. */
+  def clean: Future[Unit] =
     db.run(cleanQuery)
 
   /** @inheritdoc */

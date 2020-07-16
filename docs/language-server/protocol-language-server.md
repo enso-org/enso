@@ -2533,7 +2533,7 @@ database.
 ```
 
 #### Errors
-N/A
+None
 
 ### `search/completion`
 Sent from client to the server to receive the autocomplete suggestion.
