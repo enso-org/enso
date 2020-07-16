@@ -4,12 +4,12 @@ import java.nio.file.Files
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit}
-import org.enso.jsonrpc.test.RetrySpec
 import org.enso.searcher.SuggestionsRepo
 import org.enso.searcher.sql.SqlSuggestionsRepo
 import org.enso.text.editing.model.Position
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.enso.testkit.RetrySpec
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}

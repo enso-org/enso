@@ -5,7 +5,6 @@ import java.util.UUID
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.miguno.akka.testing.VirtualTime
-import org.enso.jsonrpc.test.FlakySpec
 import org.enso.languageserver.boot.LifecycleComponent.ComponentRestarted
 import org.enso.languageserver.boot.{LanguageServerConfig, LifecycleComponent}
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
@@ -17,6 +16,7 @@ import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSock
 }
 import org.enso.projectmanager.infrastructure.languageserver.StepParent.ChildTerminated
 import org.enso.projectmanager.infrastructure.net.Tcp
+import org.enso.testkit.FlakySpec
 import org.mockito.BDDMockito._
 import org.mockito.Mockito._
 import org.mockito.MockitoSugar

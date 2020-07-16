@@ -2,9 +2,9 @@ package org.enso.languageserver.websocket.json
 
 import akka.testkit.TestProbe
 import io.circe.literal._
-import org.enso.jsonrpc.test.RetrySpec
 import org.enso.languageserver.event.BufferClosed
 import org.enso.languageserver.filemanager.Path
+import org.enso.testkit.RetrySpec
 
 class TextOperationsTest extends BaseServerTest with RetrySpec {
 

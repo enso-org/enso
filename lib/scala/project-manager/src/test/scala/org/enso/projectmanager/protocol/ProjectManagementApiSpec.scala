@@ -5,9 +5,9 @@ import java.nio.file.Paths
 import java.util.UUID
 
 import io.circe.literal._
-import org.enso.jsonrpc.test.FlakySpec
 import org.enso.projectmanager.test.Net.tryConnect
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
+import org.enso.testkit.FlakySpec
 
 import scala.io.Source
 
@@ -317,7 +317,7 @@ class ProjectManagementApiSpec
 
   "project/close" must {
 
-    "fail when project is not open" in {
+    "fail when project is not open" taggedAs Flaky in {
       val client = new WsTestClient(address)
       client.send(json"""
             { "jsonrpc": "2.0",
@@ -341,7 +341,7 @@ class ProjectManagementApiSpec
 
     }
 
-    "close project when the requester is the only client" in {
+    "close project when the requester is the only client" taggedAs Flaky in {
       //given
       implicit val client = new WsTestClient(address)
       val projectId       = createProject("foo")
@@ -490,7 +490,7 @@ class ProjectManagementApiSpec
       deleteProject(projectId)
     }
 
-    "move project dir on project close" in {
+    "move project dir on project close" taggedAs Flaky in {
       implicit val client = new WsTestClient(address)
       //given
       val projectId = createProject("foo")

@@ -14,8 +14,31 @@
 //! These lexers are capable of lexing any regular grammar, with some extensions to allow working
 //! with context sensitive (e.g. indentation-aware) syntax.
 
+pub use enso_prelude as prelude;
+
+
+
 pub mod automata;
 pub mod group;
 pub mod data;
 
-pub use enso_prelude as prelude;
+
+
+// ===============
+// === Flexer ====
+// ===============
+
+/// The flexer is an engine for generating lexers.
+///
+/// Akin to flex and other lexer generators, it is given a definition as a series of rules from
+/// which it then generates code for a highly optimised lexer implemented on top of a
+/// [DFA](https://en.wikipedia.org/wiki/Deterministic_finite_automaton).
+pub trait Flexer {
+    /// Creates a new lexer.
+    fn new() -> Self;
+
+    /// Returns a code for a highly-optimised lexer implemented on top of a finite-state-automaton.
+    fn generate_specialized_code(&mut self) -> String {
+        String::from("#[derive(Debug)]\npub struct Lexer {}")
+    }
+}
