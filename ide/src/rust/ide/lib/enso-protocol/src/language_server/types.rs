@@ -117,6 +117,11 @@ pub enum Notification {
     #[serde(rename = "executionContext/expressionValuesComputed")]
     ExpressionValuesComputed(ExpressionValuesComputed),
 
+    /// Sent from the server to the client to inform about a failure during execution of an
+    /// execution context.
+    #[serde(rename = "executionContext/executionFailed")]
+    ExecutionFailed(ExecutionFailed),
+
     /// Sent from server to the client to inform abouth the change in the suggestions database.
     #[serde(rename = "search/suggestionsDatabaseUpdate")]
     SuggestionDatabaseUpdate(SuggestionDatabaseUpdateEvent),
@@ -131,6 +136,17 @@ pub enum Notification {
 pub struct ExpressionValuesComputed {
     pub context_id : ContextId,
     pub updates    : Vec<ExpressionValueUpdate>,
+}
+
+/// Sent from the server to the client to inform about a failure during execution of an execution
+/// context.
+#[derive(Clone,Debug,PartialEq)]
+#[derive(Serialize,Deserialize)]
+#[allow(missing_docs)]
+#[serde(rename_all="camelCase")]
+pub struct ExecutionFailed {
+    pub context_id : ContextId,
+    pub message    : String,
 }
 
 /// The updates from `executionContext/expressionValuesComputed`.
