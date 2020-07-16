@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::{Ast, TokenConsumer};
+use crate::Ast;
 use crate::Id;
 use crate::crumbs::Located;
 use crate::crumbs::PrefixCrumb;
@@ -10,6 +10,8 @@ use crate::HasTokens;
 use crate::known;
 use crate::Prefix;
 use crate::Shifted;
+use crate::Token;
+use crate::TokenConsumer;
 
 use utils::vec::VecExt;
 
@@ -141,6 +143,16 @@ impl Chain {
             self.fold_arg()
         }
         self.func
+    }
+}
+
+impl HasTokens for Chain {
+    fn feed_to(&self, consumer: &mut impl TokenConsumer) {
+        self.func.feed_to(consumer);
+        for arg in &self.args {
+            consumer.feed(Token::Off(arg.sast.off));
+            arg.sast.wrapped.feed_to(consumer);
+        }
     }
 }
 

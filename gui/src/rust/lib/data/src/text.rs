@@ -41,7 +41,7 @@ impl Index {
 
 /// Strongly typed index of byte in String (which may differ with analogous character index,
 /// because some chars takes more than one byte).
-//TODO[ao] We should use structures from ensogl::,math::topology to represent different quantities
+//TODO[ao] We should use structures from ensogl::math::topology to represent different quantities
 // and units.
 #[allow(missing_docs)]
 #[derive(Clone,Copy,Debug,Default,Hash,PartialEq,Eq,PartialOrd,Ord,Serialize,Deserialize)]
