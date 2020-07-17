@@ -32,7 +32,10 @@ to launch other Enso components, provided as
 
 > This launcher is under development. Until it is in a ready-to-use state, the
 > Enso version packages provide simple launcher scripts in the `bin` directory
-> of that package. They will be removed when the universal launcher matures.
+> of that package. They are a temporary replacement for the launcher
+> functionality, so once the universal launcher matures, they will be removed.
+> The universal launcher will not call the components through these scripts, as
+> it must have full control over which JVM is chosen and its parameters.
 
 ## Enso Distribution Layout
 Enso is distributed as a portable package that can be extracted anywhere on the
