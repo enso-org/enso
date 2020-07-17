@@ -5,6 +5,7 @@ import java.util.UUID
 
 import akka.testkit.TestProbe
 import io.circe.literal._
+import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.languageserver.capability.CapabilityRouter
@@ -37,7 +38,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
   val config                = mkConfig
   val runtimeConnectorProbe = TestProbe()
 
-  testContentRoot.toFile.deleteOnExit()
+  sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
 
   def mkConfig: Config =
     Config(

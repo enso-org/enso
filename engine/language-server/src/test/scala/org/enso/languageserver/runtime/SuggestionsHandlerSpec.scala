@@ -6,6 +6,7 @@ import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import org.apache.commons.io.FileUtils
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired
@@ -53,7 +54,7 @@ class SuggestionsHandlerSpec
 
   "SuggestionsHandler" should {
 
-    "subscribe to notification updates" taggedAs Retry() in withDb {
+    "subscribe to notification updates" taggedAs Retry in withDb {
       (_, _, _, handler) =>
         val clientId = UUID.randomUUID()
 
@@ -64,7 +65,7 @@ class SuggestionsHandlerSpec
         expectMsg(CapabilityAcquired)
     }
 
-    "receive runtime updates" taggedAs Retry() in withDb {
+    "receive runtime updates" taggedAs Retry in withDb {
       (_, repo, router, handler) =>
         val clientId = UUID.randomUUID()
 
@@ -98,7 +99,7 @@ class SuggestionsHandlerSpec
         ) should contain theSameElementsAs Suggestions.all
     }
 
-    "apply runtime updates in correct order" taggedAs Retry() in withDb {
+    "apply runtime updates in correct order" taggedAs Retry in withDb {
       (_, repo, router, handler) =>
         val clientId = UUID.randomUUID()
 
@@ -131,14 +132,14 @@ class SuggestionsHandlerSpec
         all.map(_.suggestion) should contain theSameElementsAs Suggestions.all
     }
 
-    "get initial suggestions database version" taggedAs Retry() in withDb {
+    "get initial suggestions database version" taggedAs Retry in withDb {
       (_, _, _, handler) =>
         handler ! SearchProtocol.GetSuggestionsDatabaseVersion
 
         expectMsg(SearchProtocol.GetSuggestionsDatabaseVersionResult(0))
     }
 
-    "get suggestions database version" taggedAs Retry() in withDb {
+    "get suggestions database version" taggedAs Retry in withDb {
       (_, repo, _, handler) =>
         Await.ready(repo.insert(Suggestions.atom), Timeout)
         handler ! SearchProtocol.GetSuggestionsDatabaseVersion
@@ -146,14 +147,14 @@ class SuggestionsHandlerSpec
         expectMsg(SearchProtocol.GetSuggestionsDatabaseVersionResult(1))
     }
 
-    "get initial suggestions database" taggedAs Retry() in withDb {
+    "get initial suggestions database" taggedAs Retry in withDb {
       (_, _, _, handler) =>
         handler ! SearchProtocol.GetSuggestionsDatabase
 
         expectMsg(SearchProtocol.GetSuggestionsDatabaseResult(Seq(), 0))
     }
 
-    "get suggestions database" taggedAs Retry() in withDb {
+    "get suggestions database" taggedAs Retry in withDb {
       (_, repo, _, handler) =>
         Await.ready(repo.insert(Suggestions.atom), Timeout)
         handler ! SearchProtocol.GetSuggestionsDatabase
@@ -168,7 +169,7 @@ class SuggestionsHandlerSpec
         )
     }
 
-    "search entries by empty search query" taggedAs Retry() in withDb {
+    "search entries by empty search query" taggedAs Retry in withDb {
       (config, repo, _, handler) =>
         Await.ready(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
@@ -182,7 +183,7 @@ class SuggestionsHandlerSpec
         expectMsg(SearchProtocol.CompletionResult(4L, Seq()))
     }
 
-    "search entries by self type" taggedAs Retry() in withDb {
+    "search entries by self type" taggedAs Retry in withDb {
       (config, repo, _, handler) =>
         val (_, Seq(_, methodId, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
@@ -197,7 +198,7 @@ class SuggestionsHandlerSpec
         expectMsg(SearchProtocol.CompletionResult(4L, Seq(methodId).flatten))
     }
 
-    "search entries by return type" taggedAs Retry() in withDb {
+    "search entries by return type" taggedAs Retry in withDb {
       (config, repo, _, handler) =>
         val (_, Seq(_, _, functionId, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
@@ -212,7 +213,7 @@ class SuggestionsHandlerSpec
         expectMsg(SearchProtocol.CompletionResult(4L, Seq(functionId).flatten))
     }
 
-    "search entries by tags" taggedAs Retry() in withDb {
+    "search entries by tags" taggedAs Retry in withDb {
       (config, repo, _, handler) =>
         val (_, Seq(_, _, _, localId)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
@@ -261,7 +262,7 @@ class SuggestionsHandlerSpec
     test: (Config, SuggestionsRepo[Future], TestProbe, ActorRef) => Any
   ): Unit = {
     val testContentRoot = Files.createTempDirectory(null).toRealPath()
-    testContentRoot.toFile.deleteOnExit()
+    sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
     val config  = newConfig(testContentRoot.toFile)
     val router  = TestProbe("session-router")
     val repo    = SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)

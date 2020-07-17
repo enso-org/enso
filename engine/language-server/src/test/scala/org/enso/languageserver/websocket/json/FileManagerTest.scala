@@ -15,7 +15,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
   override def mkConfig: Config = {
     val directoriesDir = Files.createTempDirectory(null).toRealPath()
-    directoriesDir.toFile.deleteOnExit()
+    sys.addShutdownHook(FileUtils.deleteQuietly(directoriesDir.toFile))
     Config(
       Map(testContentRootId -> testContentRoot.toFile),
       FileManagerConfig(timeout = 3.seconds),
@@ -27,7 +27,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
   "File Server" must {
 
-    "write textual content to a file" taggedAs Retry() in {
+    "write textual content to a file" taggedAs Retry in {
       val client = getInitialisedWsClient()
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -1424,7 +1424,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
       // create symlink base3/link -> $testOtherRoot
       val testOtherRoot = Files.createTempDirectory(null)
-      val symlink       = Paths.get(testContentRoot.toString, "base3", "link")
+      sys.addShutdownHook(FileUtils.deleteQuietly(testOtherRoot.toFile))
+      val symlink = Paths.get(testContentRoot.toString, "base3", "link")
       Files.createSymbolicLink(symlink, testOtherRoot)
       Files.isSymbolicLink(symlink) shouldBe true
 

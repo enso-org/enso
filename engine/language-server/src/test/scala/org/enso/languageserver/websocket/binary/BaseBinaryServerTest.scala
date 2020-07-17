@@ -6,6 +6,7 @@ import java.util.UUID
 import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
+import org.apache.commons.io.FileUtils
 import org.enso.languageserver.data.{
   Config,
   DirectoriesConfig,
@@ -37,7 +38,7 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
     DirectoriesConfig(testContentRoot.toFile)
   )
 
-  testContentRoot.toFile.deleteOnExit()
+  sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
 
   @volatile
   protected var lastConnectionController: ActorRef = _
