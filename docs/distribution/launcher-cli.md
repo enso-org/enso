@@ -19,8 +19,10 @@ This document describes available command-line options of the Enso launcher.
 
 - [Commands](#commands)
   - [`new`](#new)
-  - [`install`](#install)
-  - [`uninstall`](#uninstall)
+  - [`install engine`](#install-engine)
+  - [`uninstall engine`](#uninstall-engine)
+  - [`install distribution`](#install-distribution)
+  - [`uninstall distribution`](#uninstall-distribution)
   - [`list`](#list)
   - [`default`](#default)
   - [`config`](#config)
@@ -53,20 +55,49 @@ Examples:
     # creates the project in the current directory, using the 2.0.1 version
 ```
 
-### `install`
-Installs a specific version of Enso.
+### `install engine`
+Installs a specific version of the Enso engine.
 
 Examples:
 ```bash
-> enso install 2.0.1
+> enso install engine 2.0.1
 ```
 
-### `uninstall`
-Uninstalls a specific version of Enso.
+### `uninstall engine`
+Uninstalls a specific version of the Enso engine.
 
 Examples:
 ```bash
 > enso uninstall 2.0.1
+```
+
+### `install distribution`
+Installs a portable Enso distribution into system-defined directories, as
+explained in
+[Installed Enso Distribution Layout](./distribution.md#installed-enso-distribution-layout).
+
+Examples:
+```bash
+> extraction-location/bin/enso install distribution
+This will install Enso to ~/.local/share/enso/.
+Configuration will be placed in ~/.config/enso/.
+The universal launcher script will be placed in ~/.local/bin/.
+Do you want to continue? [Y/n]
+```
+
+### `uninstall distribution`
+Uninstalls an installed Enso distribution from the installation location
+described in
+[Installed Enso Distribution Layout](./distribution.md#installed-enso-distribution-layout).
+It removes the universal launcher script and all components.
+
+Examples:
+```bash
+> enso uninstall distribution
+This will completely uninstall Enso from ~/.local/share/enso/,
+remove configuration from ~/.config/enso/
+and the launcher script from ~/.local/bin/.
+Do you want to continue? [y/N]
 ```
 
 ### `list`

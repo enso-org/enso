@@ -35,29 +35,19 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
 <!-- /MarkdownTOC -->
 
 ## Launcher Distribution
-> The actionables for this section are:
->
-> - Finalize the decision if Enso is distributed as a portable directory
->   structure or if the launcher keeps the installations in system-defined
->   directories.
-
 The launcher is distributed as a native binary for each platform (Windows,
-Linux, Mac). It is distributed in a ZIP archive as described in
-[Enso Home Layout](./distribution.md#enso-home-layout), except that the
-component directories are empty (they will be populated when Enso versions are
-downloaded by the launcher on-demand). The only non-empty directory is `bin`
-which is where the launcher binary is placed. The ZIP file should also contain a
-[README](../../distribution/launcher/README.md) describing the distribution and
-basic usage.
-
-The distribution structure is portable - this directory structure can be placed
-anywhere in the system. The launcher places all components in this directory
-structure by accessing them as relative to the location of its binary.
+Linux, macOS). It is distributed in a ZIP archive as described in
+[Enso Distribution Layout](./distribution.md#enso-distribution-layout) in two
+flavors - as packages containing just the launcher binary that can then
+download and install desired versions of the engine and as bundles that already
+contain the latest version of Enso engine and Graal runtime corresponding to it.
 
 ### Using Multiple Launcher Versions Side-By-Side
-In the future it should be possible to install multiple versions of the launcher
-side-by-side and switch between them. This feature will not be implemented right
-away, but should be considered at some point.
+Multiple portable distributions of the launcher can be used side-by-side. To use
+multiple installed distributions, some tricks are necessary - before launching a
+different version, the environment variables `ENSO_DATA_DIRECTORY`,
+`ENSO_CONFIG_DIRECTORY` and `ENSO_BIN_DIRECTORY` have to be set to directories
+corresponding to that version.
 
 ## Launcher Build
 The launcher is built using
@@ -69,7 +59,7 @@ small and fast launching executable.
 On Linux, it is possible to statically link all libraries required by the Native
 Image, thus ensuring portability between Linux distributions.
 
-On Windows and Mac, it is not possible to statically link against system
+On Windows and macOS, it is not possible to statically link against system
 libraries, but this should not hinder portability as the system libraries are
 generally compatible between distribution versions on these platforms.
 Non-system dependencies are included in the binary on these platforms as well.
