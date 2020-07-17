@@ -17,7 +17,6 @@ be structured and how it should behave.
   - [Portable Enso Distribution Layout](#portable-enso-distribution-layout)
   - [Installed Enso Distribution Layout](#installed-enso-distribution-layout)
   - [Converting a Portable Distribution into Installed](#converting-a-portable-distribution-into-installed)
-  - [Uninstalling](#uninstalling)
 - [Layout of an Enso Version Package](#layout-of-an-enso-version-package)
   - [Standard Library](#standard-library)
   - [Resolvers](#resolvers)
@@ -73,6 +72,7 @@ extraction-location
 │   ├── lts-1.56.7.yaml
 │   └── lts-2.0.8.yaml
 ├── README.md               # Information on layout and usage of the Enso distribution.
+├── .enso.portable          # An empty file that allows the universal launcher script to detect that if it is run from this directory, it should run in portable distribution mode.
 ├── NOTICE                  # A copyright notice regarding components that are included in the distribution of the universal launcher script.
 └── components-licences     # Contains licences of distributed components, as described in the NOTICE.
 ```
@@ -125,16 +125,15 @@ value, depending on the system:
 
 ### Converting a Portable Distribution into Installed
 After downloading and extracting the portable distribution, the user can run
-`extraction-location/bin/enso install distribution` to install it. This will
-copy the files from the portable distribution into the installed locations which
-are described above and then remove the original files.
+`extraction-location/bin/enso install distribution` to install it locally. This
+will copy the files from the portable distribution into the installed locations
+which are described above and then remove the original files.
 
 On Linux and macOS, if `ENSO_BIN_DIRECTORY` (`~/.local/bin` by default) is not
 on system `PATH`, the installer will issue a warning, telling the user how they
 can add it. On Windows, the installer automatically adds `ENSO_BIN_DIRECTORY` to
 the user's `PATH`.
 
-### Uninstalling
 The installed distribution can be removed by running
 `enso uninstall distribution`.
 

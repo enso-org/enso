@@ -68,16 +68,18 @@ Uninstalls a specific version of the Enso engine.
 
 Examples:
 ```bash
-> enso uninstall 2.0.1
+> enso uninstall engine 2.0.1
 ```
 
 ### `install distribution`
 Installs a portable Enso distribution into system-defined directories, as
 explained in
 [Installed Enso Distribution Layout](./distribution.md#installed-enso-distribution-layout).
+By default, it asks the user for confirmation, but this can be skipped by
+adding a `--yes` flag.
 
 Examples:
-```bash
+```
 > extraction-location/bin/enso install distribution
 This will install Enso to ~/.local/share/enso/.
 Configuration will be placed in ~/.config/enso/.
@@ -89,10 +91,11 @@ Do you want to continue? [Y/n]
 Uninstalls an installed Enso distribution from the installation location
 described in
 [Installed Enso Distribution Layout](./distribution.md#installed-enso-distribution-layout).
-It removes the universal launcher script and all components.
+It removes the universal launcher script and all components. By default, it asks
+the user for confirmation, but this can be skipped by adding a `--yes` flag.
 
 Examples:
-```bash
+```
 > enso uninstall distribution
 This will completely uninstall Enso from ~/.local/share/enso/,
 remove configuration from ~/.config/enso/

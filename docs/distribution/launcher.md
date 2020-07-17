@@ -15,6 +15,7 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
 
 - [Launcher Distribution](#launcher-distribution)
   - [Using Multiple Launcher Versions Side-By-Side](#using-multiple-launcher-versions-side-by-side)
+  - [Detecting Portable Distribution](#detecting-portable-distribution)
 - [Launcher Build](#launcher-build)
   - [Portability](#portability)
 - [Project Management](#project-management)
@@ -48,6 +49,15 @@ multiple installed distributions, some tricks are necessary - before launching a
 different version, the environment variables `ENSO_DATA_DIRECTORY`,
 `ENSO_CONFIG_DIRECTORY` and `ENSO_BIN_DIRECTORY` have to be set to directories
 corresponding to that version.
+
+### Detecting Portable Distribution
+As described in
+[Enso Distribution Layout](./distribution.md#enso-distribution-layout), the
+launcher can either be run in a portable distribution or installed locally. The
+launcher must detect if its run as the portable or installed distribution. When
+run, the launcher checks if it is placed in a directory called `bin` and checks
+the parent directory for a file called `.enso.portable`. If such file is found,
+the launcher runs in portable mode. Otherwise, it runs in installed mode.
 
 ## Launcher Build
 The launcher is built using
