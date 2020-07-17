@@ -36,10 +36,11 @@ class DocParser {
     * @return - If it was able to retrieve Doc, then retrieved data, else
     *           exception with error message [[errMsg]]
     */
-  def runMatched(input: String): Doc = run(input) match {
-    case res(_, res.Success(v)) => v
-    case _                      => throw new Exception(errMsg)
-  }
+  def runMatched(input: String): Doc =
+    run(input) match {
+      case res(_, res.Success(v)) => v
+      case _                      => throw new Exception(errMsg)
+    }
 
   /**
     * Used to initialize Doc Parser with input string to get parsed Doc
@@ -274,7 +275,6 @@ object DocParserRunner {
   *
   * Essentially it enables Doc Parser to create pretty HTML files from
   * documented code.
-  *
   */
 object DocParserHTMLGenerator {
 
@@ -283,29 +283,26 @@ object DocParserHTMLGenerator {
     * reformatted [[AST.Documented]]
     *
     * @param ast - parsed AST.Module and reformatted using Doc Parser
-    * @param path - path to save file
     * @param cssFileName - name of file containing stylesheets for the HTML code
     */
   def generateHTMLForEveryDocumented(
     ast: AST,
-    path: String,
-    cssFileName: String
-  ): Unit = {
+    cssFileName: String = "style.css"
+  ): String = {
     ast.map { elem =>
       elem match {
-        case AST.Documented.any(d) =>
-          generateHTMLForEveryDocumented(d, path, cssFileName)
-          val file = onHTMLRendering(d, cssFileName)
-          println("\nFINISHED FILE: " + file.name)
-          // FIXME: For now prints out code. When decided how to save HTML's
-          //        then it should be changed
-          println(file.code)
-          println()
+        case AST.Documented.any(documented) =>
+          val file = onHTMLRendering(documented, cssFileName)
+          return file.code.toString() + generateHTMLForEveryDocumented(
+            documented,
+            cssFileName
+          )
         case _ =>
-          generateHTMLForEveryDocumented(elem, path, cssFileName)
+          generateHTMLForEveryDocumented(elem, cssFileName)
       }
       elem
-    }: Unit
+    }
+    new String
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -348,7 +345,7 @@ object DocParserHTMLGenerator {
   def renderHTML(
     ast: AST,
     doc: Doc,
-    cssLink: String = "style.css"
+    cssLink: String
   ): TypedTag[String] = {
     val title         = ast.show().split("\n").head.split("=").head
     val documentation = DocumentedToHtml(ast, doc)
@@ -525,8 +522,8 @@ object DocParserHTMLGenerator {
   def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
     val cls = HTML.`class` := "Infix"
     val pageHref = HTML.`href` := infix.larg
-        .show()
-        .replaceAll(" ", "_") + ".html"
+          .show()
+          .replaceAll(" ", "_") + ".html"
     val innerDiv = HTML.div(cls)(infix.larg.show())
     HTML.a(pageHref)(innerDiv)
   }
