@@ -175,6 +175,12 @@ normal. This can be used to implement plugins that are launched through the
 universal launcher. For example, the Enso IDE can provide an `enso-ide`
 executable, allowing users to launch the IDE by typing `enso ide`.
 
+For a plugin to be recognized by the launcher, it needs to support a
+`--synopsis` option - running `enso-foo --synopsis` should print a short
+description and return with exit code 0, for the plugin to be considered
+supported. That description will be included in the command listing printed by
+`enso help`.
+
 ## Global User Configuration
 The launcher allows to edit global user configuration, saved in the `config`
 directory inside the Enso distribution structure.
