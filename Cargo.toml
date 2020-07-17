@@ -10,6 +10,7 @@ members = [
     "lib/rust/enso-shapely/impl",
     "lib/rust/enso-shapely/macros",
     "lib/rust/flexer",
+    "lib/rust/lazy-reader",
 ]
 
 [profile.dev]
