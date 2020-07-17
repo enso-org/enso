@@ -11,12 +11,16 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
+import org.enso.interpreter.node.expression.atom.GetFieldNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.node.expression.builtin.InstantiateAtomNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
@@ -48,6 +52,7 @@ public class AtomConstructor implements TruffleObject {
   public AtomConstructor initializeFields(ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     this.constructorFunction = buildConstructorFunction(args);
+    generateMethods(args);
     if (args.length == 0) {
       cachedInstance = new Atom(this);
     } else {
@@ -73,6 +78,23 @@ public class AtomConstructor implements TruffleObject {
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     return new Function(
         callTarget, null, new FunctionSchema(FunctionSchema.CallStrategy.ALWAYS_DIRECT, args));
+  }
+
+  private void generateMethods(ArgumentDefinition[] args) {
+    for (ArgumentDefinition arg : args) {
+      definitionScope.registerMethod(this, arg.getName(), generateGetter(arg.getPosition()));
+    }
+  }
+
+  private Function generateGetter(int position) {
+    GetFieldNode node = new GetFieldNode(null, position);
+    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    return new Function(
+        callTarget,
+        null,
+        new FunctionSchema(
+            FunctionSchema.CallStrategy.ALWAYS_DIRECT,
+            new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
   }
 
   /**

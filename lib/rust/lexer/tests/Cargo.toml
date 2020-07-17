@@ -1,0 +1,20 @@
+[package]
+name    = "lexer-tests"
+version = "0.1.0"
+authors = ["Enso Team <enso-dev@enso.org>"]
+edition = "2018"
+
+description  = "The tests for the lexer of the enso language."
+readme       = "README.md"
+homepage     = "https://github.com/enso-org/enso/lib/rust/lexer/tests"
+repository   = "https://github.com/enso-org/enso"
+license-file = "../../../../LICENSE"
+
+keywords   = ["lexer", "finite-automata"]
+categories = ["parsing"]
+
+publish = false
+
+[dependencies]
+flexer           = { path = "../../flexer" , version = "0.1.0" }
+lexer-generation = { path = "../generation", version = "0.1.0" }

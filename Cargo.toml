@@ -10,6 +10,9 @@ members = [
     "lib/rust/enso-shapely/impl",
     "lib/rust/enso-shapely/macros",
     "lib/rust/flexer",
+    "lib/rust/lexer/definition",
+    "lib/rust/lexer/generation",
+    "lib/rust/lexer/tests",
 ]
 
 [profile.dev]
