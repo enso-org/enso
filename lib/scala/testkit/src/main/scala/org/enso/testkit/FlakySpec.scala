@@ -10,11 +10,15 @@ import org.scalatest._
 trait FlakySpec extends TestSuite {
 
   /** Tags test as _flaky_. */
-  object Flaky extends Tag("org.enso.test.flaky")
+  object Flaky extends Tag("org.enso.test.flaky") {
+
+    val isEnabled = sys.env.contains("CI_TEST_FLAKY_ENABLE")
+  }
 
   override def withFixture(test: NoArgTest): Outcome =
     super.withFixture(test) match {
-      case Failed(_) | Canceled(_) if test.tags.contains(Flaky.name) =>
+      case Failed(_) | Canceled(_)
+          if Flaky.isEnabled && test.tags.contains(Flaky.name) =>
         Pending
       case outcome =>
         outcome
