@@ -333,11 +333,13 @@ type SuggestionEntryType
 ### `SuggestionsDatabaseEntry`
 
 #### Format
-The entry in the suggestions database
+The entry in the suggestions database.
 
 ``` typescript
 interface SuggestionsDatabaseEntry {
+  // suggestion entry id
   id: number;
+  // suggestion entry
   suggestion: SuggestionEntry;
 }
 ```
