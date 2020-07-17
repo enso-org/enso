@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 
 class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
-  val Timeout: FiniteDuration = 5.seconds
+  val Timeout: FiniteDuration = 10.seconds
 
   val tmpdir: Path = {
     val tmp = Files.createTempDirectory("suggestions-repo-test")
@@ -73,7 +73,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
           all <- repo.getAll
         } yield (id1, id2, all._2)
 
-      val (id1, id2, all) = Await.result(action, Timeout)
+      val (id1, id2, all) = Await.result(action, Timeout * 2)
       id1 shouldBe a[Some[_]]
       id2 shouldBe a[None.type]
       all.map(_.suggestion) should contain theSameElementsAs Seq(
