@@ -200,8 +200,8 @@ object Parser {
     }
 
   def wantsHelp(args: Seq[Token]): Boolean =
-    args.headOption.contains(PlainToken("help")) ||
-    args.contains(ParameterOrFlag("help"))
+    args.contains(ParameterOrFlag("help")) ||
+    args.contains(ParameterOrFlag("h"))
 
   private def appendErrors[B](
     result: Either[List[String], B],

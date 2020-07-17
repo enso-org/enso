@@ -149,12 +149,24 @@ object Main {
       }
     }
 
-  private def installCommand: Command[Config => Unit] =
-    Command("install", "Install a selected Enso version.") {
+  private def installEngineCommand: Command[Config => Unit] =
+    Command("engine", "Install a selected Enso engine version.") {
       val version = Opts.positionalArgument[String]("VERSION")
       version map { version => (_: Config) =>
         println(s"Install $version")
       }
+    }
+
+  private def installDistributionCommand: Command[Config => Unit] =
+    Command("distribution", "Install a distribution locally.") {
+      Opts.pure { (_: Config) =>
+        println(s"Install distribution")
+      }
+    }
+
+  private def installCommand: Command[Config => Unit] =
+    Command("install", "Install engine or distribution.") {
+      Opts.subcommands(installEngineCommand, installDistributionCommand)
     }
 
   private def uninstallCommand: Command[Config => Unit] =

@@ -1,5 +1,6 @@
 package org.enso.launcher.cli
 
+import cats.data.NonEmptyList
 import cats.{Functor, Semigroupal}
 import org.enso.launcher.cli.internal.{
   AdditionalArguments,
@@ -12,6 +13,7 @@ import org.enso.launcher.cli.internal.{
   Parameter,
   PositionalArgument,
   PrefixedParameters,
+  SubcommandOpt,
   TrailingArguments
 }
 
@@ -22,21 +24,21 @@ trait Opts[A] {
   // aggregate known names for printing failures
   // aggregate callbacks for setting a value (argument priorities - trailing last)
   // callbacks set values and verify duplicated params (but the possible failure is saved to be reported within result)
-  private[cli] val flags: Map[String, () => Unit]
-  private[cli] val parameters: Map[String, String => Unit]
+  private[cli] def flags:      Map[String, () => Unit]
+  private[cli] def parameters: Map[String, String => Unit]
 //  private[cli] val requiredParameters: Seq[(String, String)]
-  private[cli] val prefixedParameters: Map[String, (String, String) => Unit]
+  private[cli] def prefixedParameters: Map[String, (String, String) => Unit]
 
   // options that are explicitly printed in usage
-  private[cli] val usageOptions: Seq[String]
+  private[cli] def usageOptions: Seq[String]
 
   private[cli] def wantsArgument():              Boolean
   private[cli] def consumeArgument(arg: String): Unit
-  private[cli] val requiredArguments: Seq[String]
-  private[cli] val optionalArguments: Seq[String]
-  private[cli] val trailingArguments: Option[String]
+  private[cli] def requiredArguments:            Seq[String]
+  private[cli] def optionalArguments:            Seq[String]
+  private[cli] def trailingArguments:            Option[String]
 
-  private[cli] val additionalArguments: Option[Seq[String] => Unit]
+  private[cli] def additionalArguments: Option[Seq[String] => Unit]
 
   private[cli] def gatherParameterNames: Seq[String] =
     (parameters.keys ++ flags.keys).toSeq
@@ -61,7 +63,7 @@ trait Opts[A] {
     otherOptions + usageOptions.map(_ + " ").mkString
   }
 
-  def commandLine(): String = {
+  def commandLines(): NonEmptyList[String] = {
     val options  = commandLineOptions()
     val required = requiredArguments.map(arg => s"$arg ").mkString
     val optional = optionalArguments.map(arg => s"[$arg]").mkString
@@ -75,7 +77,7 @@ trait Opts[A] {
     sb.append(optional)
     sb.append(trailing)
     sb.append(additional)
-    sb.toString()
+    NonEmptyList.one(sb.toString())
   }
 }
 
@@ -152,6 +154,15 @@ object Opts {
   // additional parameters, after a `--`
   def additionalArguments(help: String = ""): Opts[Seq[String]] =
     new AdditionalArguments(help)
+
+  def subcommands[A](commands: Command[A]*): Opts[A] = {
+    val nonEmptyCommands = NonEmptyList.fromList(commands.toList).getOrElse {
+      throw new IllegalArgumentException(
+        "The subcommands option should take at least one command."
+      )
+    }
+    new SubcommandOpt[A](nonEmptyCommands)
+  }
 
   def pure[A](a: A): Opts[A] = new OptsPure[A](a)
 }

@@ -69,13 +69,13 @@ class PluginManagerImplementation(environment: SystemEnvironment)
   def describePlugin(name: String): Option[String] = {
     def canonicalizeDescription(description: String): String =
       description.replace("\n", " ").trim
-    val noopLogger = new ProcessLogger {
+    val noOpLogger = new ProcessLogger {
       override def out(s: => String): Unit = {}
       override def err(s: => String): Unit = {}
       override def buffer[T](f: => T): T = f
     }
     val command = Seq(pluginCommandForName(name), synopsisOption)
-    Try(command.!!(noopLogger)).toOption.map(canonicalizeDescription)
+    Try(command.!!(noOpLogger)).toOption.map(canonicalizeDescription)
   }
 
   private val pluginPrefix                               = "enso-"

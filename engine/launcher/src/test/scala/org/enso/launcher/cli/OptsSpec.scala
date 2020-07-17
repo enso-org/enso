@@ -94,7 +94,7 @@ class OptsSpec
     }
 
     "show in the usage" in {
-      opt.commandLine() should include("arg")
+      opt.commandLines().head should include("arg")
     }
   }
 
@@ -109,7 +109,7 @@ class OptsSpec
     }
 
     "show in the usage" in {
-      opt.commandLine() should include("[arg]")
+      opt.commandLines().head should include("[arg]")
     }
   }
 
@@ -125,9 +125,7 @@ class OptsSpec
     }
 
     "show in the usage" in {
-      println(opt)
-      println(opt.commandLine())
-      opt.commandLine() should include("[args...]")
+      opt.commandLines().head should include("[args...]")
     }
   }
 
@@ -140,9 +138,9 @@ class OptsSpec
     }
 
     "show in usage if specified" in {
-      Opts.flag("a", "help", showInUsage = true).commandLine() should
+      Opts.flag("a", "help", showInUsage = true).commandLines().head should
       include("--a")
-      Opts.flag("a", "help", showInUsage = false).commandLine() should not
+      Opts.flag("a", "help", showInUsage = false).commandLines().head should not
       include("--a")
     }
   }
@@ -161,7 +159,7 @@ class OptsSpec
     }
 
     "show in the usage" in {
-      opt.commandLine() should include("--param STR")
+      opt.commandLines().head should include("--param STR")
     }
 
     "parse when put anywhere between arguments" in {
@@ -188,7 +186,7 @@ class OptsSpec
     }
 
     "show in the usage" in {
-      opt.commandLine() should include("[--param INT]")
+      opt.commandLines().head should include("[--param INT]")
     }
   }
 
@@ -230,6 +228,48 @@ class OptsSpec
       Opts.pure("A").parseFailing("arg").head should include("Unexpected")
       Opts.pure("A").parseFailing("--flag").head should include("Unknown")
       Opts.pure("A").parseFailing("--parameter=x").head should include("Unknown")
+    }
+  }
+
+
+  "subcommands" should {
+    val opt = Opts.subcommands(
+      Command("cmd1", "") {
+        Opts.flag("flag1", "", showInUsage = true).map((1, _))
+      },
+      Command("cmd2", "") {
+        Opts.flag("flag2", "", showInUsage = true).map((2, _))
+      }
+    )
+
+    "delegate to right subcommand" in {
+      opt.parseSuccessfully("cmd1")._1 shouldEqual 1
+      opt.parseSuccessfully("cmd2")._1 shouldEqual 2
+    }
+
+    "handle subcommand options correctly" in {
+      opt.parseSuccessfully("cmd1 --flag1") shouldEqual ((1, true))
+      opt.parseSuccessfully("cmd1") shouldEqual ((1, false))
+      opt.parseSuccessfully("cmd2 --flag2") shouldEqual ((2, true))
+      opt.parseSuccessfully("cmd2") shouldEqual ((2, false))
+      opt.parseFailing("cmd1 --flag2").head should include("Unknown")
+      opt.parseFailing("cmd2 --flag1").head should include("Unknown")
+    }
+
+    "handle parent options" in {
+      val flag = Opts.flag("flag3", "", showInUsage = true)
+      val opts: Opts[(Boolean, (Int, Boolean))] =
+        (flag, opt) mapN { (flag, rest) => (flag, rest) }
+
+      opts.parseSuccessfully("--flag3 cmd1") shouldEqual ((true, (1, false)))
+      opts.parseSuccessfully("cmd1") shouldEqual ((false, (1, false)))
+
+      opts.parseSuccessfully("--flag3 cmd1 --flag1") shouldEqual
+        ((true, (1, true)))
+      opts.parseSuccessfully("cmd1 --flag3 --flag1") shouldEqual
+        ((true, (1, true)))
+
+      opts.parseFailing("--flag1 cmd1")
     }
   }
 }

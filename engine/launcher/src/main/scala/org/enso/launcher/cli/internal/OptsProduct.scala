@@ -3,11 +3,11 @@ package org.enso.launcher.cli.internal
 import org.enso.launcher.cli.{IllegalOptsStructure, Opts}
 
 class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
-  override private[cli] val flags      = lhs.flags ++ rhs.flags
-  override private[cli] val parameters = lhs.parameters ++ rhs.parameters
-  override private[cli] val prefixedParameters =
+  override private[cli] def flags      = lhs.flags ++ rhs.flags
+  override private[cli] def parameters = lhs.parameters ++ rhs.parameters
+  override private[cli] def prefixedParameters =
     lhs.prefixedParameters ++ rhs.prefixedParameters
-  override private[cli] val usageOptions =
+  override private[cli] def usageOptions =
     lhs.usageOptions ++ rhs.usageOptions
 
   //  override private[cli] val requiredParameters: Seq[String] =
@@ -18,22 +18,23 @@ class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
   override private[cli] def consumeArgument(arg: String): Unit =
     if (lhs.wantsArgument()) lhs.consumeArgument(arg)
     else rhs.consumeArgument(arg)
-  override private[cli] val requiredArguments: Seq[String] =
+  override private[cli] def requiredArguments: Seq[String] =
     lhs.requiredArguments ++ rhs.requiredArguments
-  override private[cli] val optionalArguments: Seq[String] =
+  override private[cli] def optionalArguments: Seq[String] =
     lhs.optionalArguments ++ rhs.optionalArguments
-  override private[cli] val trailingArguments: Option[String] =
+  override private[cli] def trailingArguments: Option[String] =
     OptsProduct.combineOptions(
       lhs.trailingArguments,
       rhs.trailingArguments,
       "More than one set of trailing arguments expected."
     )
 
-  override private[cli] val additionalArguments = OptsProduct.combineOptions(
-    lhs.additionalArguments,
-    rhs.additionalArguments,
-    "More than one instance of additional arguments defined"
-  )
+  override private[cli] def additionalArguments =
+    OptsProduct.combineOptions(
+      lhs.additionalArguments,
+      rhs.additionalArguments,
+      "More than one instance of additional arguments defined"
+    )
 
   override private[cli] def reset(): Unit = {
     lhs.reset()

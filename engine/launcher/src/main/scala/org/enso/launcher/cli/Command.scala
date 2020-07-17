@@ -8,10 +8,17 @@ case class Command[A](name: String, comment: String)(
 ) {
   def help(applicationName: String): String = {
     val tableDivider = "\t"
+    val usages =
+      opts.commandLines().map(s"$applicationName $name$tableDivider" + _)
+    val firstLine = "Usage: "
+    val padding   = " " * firstLine.length
     val usage =
-      s"Usage: $applicationName $name$tableDivider${opts.commandLine()}\n\n"
+      firstLine + usages.head +
+      (usages.tail.map("\n" + padding + _)).mkString + "\n\n"
 
-    val options = opts.helpExplanations().map("    " + _).mkString("\n")
+    val optionExplanations =
+      Seq("[--help | -h]\tPrint this help message.") ++ opts.helpExplanations()
+    val options = optionExplanations.map("    " + _).mkString("\n")
     val optionsHelp =
       if (options.isEmpty) "" else "Available options:\n" + options + "\n\n"
 

@@ -94,7 +94,6 @@ class ApplicationSpec
       )
     )
 
-    // TODO [RW]
     val error = app.run(Seq("cmd")).left.value.head
     error should include("cmd1")
     error should include("cmd2")
