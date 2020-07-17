@@ -11,7 +11,7 @@ case class Command[A](name: String, comment: String)(
     val usage =
       s"Usage: $applicationName $name$tableDivider${opts.commandLine()}\n\n"
 
-    val options = opts.helpExplanations().mkString("\n")
+    val options = opts.helpExplanations().map("    " + _).mkString("\n")
     val optionsHelp =
       if (options.isEmpty) "" else "Available options:\n" + options + "\n\n"
 

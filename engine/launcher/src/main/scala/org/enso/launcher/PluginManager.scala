@@ -53,35 +53,30 @@ class PluginManagerImplementation(environment: SystemEnvironment)
       .map(_.split(File.pathSeparatorChar).toSeq.flatMap(safeParsePath))
       .getOrElse(Seq())
 
-    //println(paths)
-    def monadPrint[F[_]](str: String)(unit: F[Unit]): F[Unit] = {
-      //println(str)
-      val _ = str
-      unit
-    }
-    def sunit = Seq(())
-    def ounit = Some(())
-
     for {
       directory <- paths if Files.isDirectory(directory)
-      _         <- monadPrint(directory.toString)(sunit)
       file      <- Files.list(directory).toScala(Factory.arrayFactory)
-      _         <- monadPrint(file.toString)(sunit)
       if Files.isExecutable(file)
-      _           <- monadPrint(file.getFileName.toString)(sunit)
       pluginName  <- pluginNameForExecutable(file.getFileName.toString)
-      _           <- monadPrint(pluginName)(ounit)
       description <- describePlugin(pluginName)
-      _           <- monadPrint(file.getFileName.toString)(ounit)
     } yield CommandHelp(pluginName, description)
   }
 
   override def pluginsNames(): Seq[String] = pluginsHelp().map(_.name)
 
+  val synopsisOption: String                   = "--synopsis"
   private def hasPlugin(name: String): Boolean = describePlugin(name).isDefined
-
-  def describePlugin(name: String): Option[String] =
-    Try(Seq(pluginCommandForName(name), "--describe").!!).toOption
+  def describePlugin(name: String): Option[String] = {
+    def canonicalizeDescription(description: String): String =
+      description.replace("\n", " ").trim
+    val noopLogger = new ProcessLogger {
+      override def out(s: => String): Unit = {}
+      override def err(s: => String): Unit = {}
+      override def buffer[T](f: => T): T = f
+    }
+    val command = Seq(pluginCommandForName(name), synopsisOption)
+    Try(command.!!(noopLogger)).toOption.map(canonicalizeDescription)
+  }
 
   private val pluginPrefix                               = "enso-"
   private def pluginCommandForName(name: String): String = pluginPrefix + name

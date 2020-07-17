@@ -64,9 +64,11 @@ class Application[Config](
     val subCommands = commands.map(_.topLevelHelp) ++ pluginManager
         .map(_.pluginsHelp())
         .getOrElse(Seq())
-    val commandDescriptions = subCommands.map(_.toString).mkString("\n")
+    val commandDescriptions =
+      subCommands.map(_.toString).map("    " + _).mkString("\n")
 
-    val topLevelOptions = topLevelOpts.helpExplanations().mkString("\n")
+    val topLevelOptions =
+      topLevelOpts.helpExplanations().map("    " + _).mkString("\n")
     val topLevelOptionsHelp =
       if (topLevelOptions.isEmpty) ""
       else "\nAvailable options:\n" + topLevelOptions + "\n"
