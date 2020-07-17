@@ -12,28 +12,27 @@ be structured and how it should behave.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Universal Launcher Script](#universal-launcher-script)
+- [Universal Launcher](#universal-launcher)
 - [Enso Distribution Layout](#enso-distribution-layout)
   - [Portable Enso Distribution Layout](#portable-enso-distribution-layout)
   - [Installed Enso Distribution Layout](#installed-enso-distribution-layout)
-  - [Converting a Portable Distribution into Installed](#converting-a-portable-distribution-into-installed)
+  - [Installing from a Portable Distribution](#installing-from-a-portable-distribution)
 - [Layout of an Enso Version Package](#layout-of-an-enso-version-package)
   - [Standard Library](#standard-library)
   - [Resolvers](#resolvers)
 
 <!-- /MarkdownTOC -->
 
-## Universal Launcher Script
-The [universal launcher script](./launcher.md) should be able to launch the
+## Universal Launcher
+The [universal launcher](./launcher.md) should be able to launch the
 proper version of Enso executable based on the version specified in the project
 being run, or use the default version if none specified. It should also be able
 to launch other Enso components, provided as
 [plugins](./launcher.md#running-plugins).
 
-**Note**
-This launcher is under development. Until it is in a ready-to-use state, the
-Enso version packages provide simple launcher scripts in the `bin` directory of
-that package. They will be removed when the universal launcher matures.
+> This launcher is under development. Until it is in a ready-to-use state, the
+> Enso version packages provide simple launcher scripts in the `bin` directory
+> of that package. They will be removed when the universal launcher matures.
 
 ## Enso Distribution Layout
 Enso is distributed as a portable package that can be extracted anywhere on the
@@ -49,7 +48,7 @@ The directory structure is as follows:
 ```
 extraction-location
 ├── bin
-│   └── enso                # The universal launcher script, responsible for choosing the appropriate compiler version (TODO [RW] it may be stored in a different place).
+│   └── enso                # The universal launcher, responsible for choosing the appropriate compiler version (TODO [RW] it may be stored in a different place).
 ├── config
 │   └── global-config.yaml  # Global user configuration.
 ├── dist                    # Per-compiler-version distribution directories.
@@ -72,8 +71,8 @@ extraction-location
 │   ├── lts-1.56.7.yaml
 │   └── lts-2.0.8.yaml
 ├── README.md               # Information on layout and usage of the Enso distribution.
-├── .enso.portable          # An empty file that allows the universal launcher script to detect that if it is run from this directory, it should run in portable distribution mode.
-├── NOTICE                  # A copyright notice regarding components that are included in the distribution of the universal launcher script.
+├── .enso.portable          # An empty file that allows the universal launcher to detect that if it is run from this directory, it should run in portable distribution mode.
+├── NOTICE                  # A copyright notice regarding components that are included in the distribution of the universal launcher.
 └── components-licences     # Contains licences of distributed components, as described in the NOTICE.
 ```
 
@@ -106,7 +105,7 @@ ENSO_CONFIG_DIRECTORY
 └── global-config.yaml      # Global user configuration.
 
 ENSO_BIN_DIRECTORY
-└── enso                    # The universal launcher script, responsible for choosing the appropriate compiler version (TODO [RW] it may be stored in a different place).
+└── enso                    # The universal launcher, responsible for choosing the appropriate compiler version (TODO [RW] it may be stored in a different place).
 ```
 
 Where `ENSO_DATA_DIRECTORY`, `ENSO_CONFIG_DIRECTORY` and `ENSO_BIN_DIRECTORY`
@@ -123,7 +122,7 @@ value, depending on the system:
 | `ENSO_CONFIG_DIRECTORY` | `$XDG_CONFIG_HOME/enso/` which defaults to `$HOME/.config/enso`    | `$HOME/Library/Preferences/org.enso/`         | `%LocalAppData%/enso/config` |
 | `ENSO_BIN_DIRECTORY`    | `$XDG_BIN_HOME` which defaults to `$HOME/.local/bin`               | `$HOME/.local/bin`                            | `%LocalAppData%/enso/bin`    |
 
-### Converting a Portable Distribution into Installed
+### Installing from a Portable Distribution
 After downloading and extracting the portable distribution, the user can run
 `extraction-location/bin/enso install distribution` to install it locally. This
 will copy the files from the portable distribution into the installed locations

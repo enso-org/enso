@@ -83,7 +83,7 @@ Examples:
 > extraction-location/bin/enso install distribution
 This will install Enso to ~/.local/share/enso/.
 Configuration will be placed in ~/.config/enso/.
-The universal launcher script will be placed in ~/.local/bin/.
+The universal `enso` launcher will be placed in ~/.local/bin/.
 Do you want to continue? [Y/n]
 ```
 
@@ -91,8 +91,8 @@ Do you want to continue? [Y/n]
 Uninstalls an installed Enso distribution from the installation location
 described in
 [Installed Enso Distribution Layout](./distribution.md#installed-enso-distribution-layout).
-It removes the universal launcher script and all components. By default, it asks
-the user for confirmation, but this can be skipped by adding a `--yes` flag.
+It removes the universal launcher and all components. By default, it asks the
+user for confirmation, but this can be skipped by adding a `--yes` flag.
 
 Examples:
 ```
