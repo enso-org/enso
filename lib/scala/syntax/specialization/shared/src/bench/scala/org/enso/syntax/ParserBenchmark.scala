@@ -110,7 +110,7 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
 
   val dummy = gen(exp(0))
 
-  performance of "lib/rust/lazy-reader/reader" in {
+  performance of "reader" in {
     measure method "Buffered" in  { using(dummy) in (_ => runBufferedReader()) }
     measure method "FlexerUTF" in { using(dummy) in (_ => runReaderUTF())      }
     measure method "Flexer" in    { using(dummy) in (_ => runReader())         }
