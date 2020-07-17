@@ -62,20 +62,24 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     "fail to insert duplicate suggestion" taggedAs Retry in withRepo { repo =>
       val action =
         for {
-          id1 <- repo.insert(suggestion.atom)
-          id2 <- repo.insert(suggestion.atom)
-          _   <- repo.insert(suggestion.method)
-          _   <- repo.insert(suggestion.method)
-          _   <- repo.insert(suggestion.function)
-          _   <- repo.insert(suggestion.function)
-          _   <- repo.insert(suggestion.local)
-          _   <- repo.insert(suggestion.local)
+          (_, ids) <- repo.insertAll(
+            Seq(
+              suggestion.atom,
+              suggestion.atom,
+              suggestion.method,
+              suggestion.method,
+              suggestion.function,
+              suggestion.function,
+              suggestion.local,
+              suggestion.local
+            )
+          )
           all <- repo.getAll
-        } yield (id1, id2, all._2)
+        } yield (ids, all._2)
 
-      val (id1, id2, all) = Await.result(action, Timeout * 2)
-      id1 shouldBe a[Some[_]]
-      id2 shouldBe a[None.type]
+      val (ids, all) = Await.result(action, Timeout)
+      ids(0) shouldBe a[Some[_]]
+      ids(1) shouldBe a[None.type]
       all.map(_.suggestion) should contain theSameElementsAs Seq(
         suggestion.atom,
         suggestion.method,
