@@ -5,32 +5,51 @@ import org.enso.flexer.Reader
 import org.enso.syntax.text.Parser.ParserError
 
 import scala.scalajs.js.annotation._
+import scala.scalajs.js
 
 object Parse {
   @JSExportTopLevel("parse")
   def parse(program: String, idsJson: String): String = {
-    val idmap = Parser
-      .idMapFromJson(idsJson)
-      .left
-      .map { error =>
-        throw new ParserError("Could not deserialize idmap.", error)
-      }
-      .merge
-    new Parser().run(new Reader(program), idmap).toJson().noSpacesSortKeys
+    try {
+      val idmap = Parser
+        .idMapFromJson(idsJson)
+        .left
+        .map { error =>
+          throw new ParserError("Could not deserialize idmap.", error)
+        }
+        .merge
+      new Parser().run(new Reader(program), idmap).toJson().noSpacesSortKeys
+    } catch {
+      // FIXME We wrap the error message in JavaScriptException, so that javascript
+      //  can display it. This is no longer needed in scalajs 1.0
+      case e: Throwable => throw js.JavaScriptException(e.getMessage)
+    }
   }
 
   @JSExportTopLevel("parse_with_metadata")
   def parse_with_metadata(program: String): String = {
-    new Parser().runWithMetadata(program).asJson.noSpacesSortKeys
+    try {
+      new Parser().runWithMetadata(program).asJson.noSpacesSortKeys
+    } catch {
+      // FIXME We wrap the error message in JavaScriptException, so that javascript
+      //  can display it. This is no longer needed in scalajs 1.0
+      case e: Throwable => throw js.JavaScriptException(e.getMessage)
+    }
   }
 
   @JSExportTopLevel("doc_parser_generate_html_source")
   def doc_parser_generate_html_source(program: String): String = {
-    val parser   = new Parser()
-    val module   = parser.run(program)
-    val dropMeta = parser.dropMacroMeta(module)
-    val doc      = DocParserRunner.createDocs(dropMeta)
-    val htmlCode = DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
-    htmlCode
+    try {
+      val parser   = new Parser()
+      val module   = parser.run(program)
+      val dropMeta = parser.dropMacroMeta(module)
+      val doc      = DocParserRunner.createDocs(dropMeta)
+      val htmlCode = DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
+      htmlCode
+    } catch {
+      // FIXME We wrap the error message in JavaScriptException, so that javascript
+      //  can display it. This is no longer needed in scalajs 1.0
+      case e: Throwable => throw js.JavaScriptException(e.getMessage)
+    }
   }
 }
