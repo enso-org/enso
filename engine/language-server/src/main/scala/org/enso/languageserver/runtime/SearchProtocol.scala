@@ -6,6 +6,7 @@ import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
 import org.enso.polyglot.Suggestion
+import org.enso.searcher.SuggestionEntry
 import org.enso.text.editing.model.Position
 
 object SearchProtocol {
@@ -194,12 +195,12 @@ object SearchProtocol {
 
   /** A notification about changes in the suggestions database.
     *
-    * @param updates the list of database updates
     * @param currentVersion current version of the suggestions database
+    * @param updates the list of database updates
     */
   case class SuggestionsDatabaseUpdateNotification(
-    updates: Seq[SuggestionsDatabaseUpdate],
-    currentVersion: Long
+    currentVersion: Long,
+    updates: Seq[SuggestionsDatabaseUpdate]
   )
 
   /** The request to receive contents of the suggestions database. */
@@ -207,12 +208,12 @@ object SearchProtocol {
 
   /** The reply to the [[GetSuggestionsDatabase]] request.
     *
-    * @param entries the entries of the suggestion database
     * @param currentVersion current version of the suggestions database
+    * @param entries the entries of the suggestion database
     */
   case class GetSuggestionsDatabaseResult(
-    entries: Seq[SuggestionsDatabaseUpdate],
-    currentVersion: Long
+    currentVersion: Long,
+    entries: Seq[SuggestionEntry]
   )
 
   /** The request to receive the current version of the suggestions database. */

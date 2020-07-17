@@ -57,7 +57,7 @@ class GetSuggestionsDatabaseHandler(
     case msg: SearchProtocol.SearchFailure =>
       replyTo ! ResponseError(Some(id), SearchFailureMapper.mapFailure(msg))
 
-    case SearchProtocol.GetSuggestionsDatabaseResult(updates, version) =>
+    case SearchProtocol.GetSuggestionsDatabaseResult(version, updates) =>
       replyTo ! ResponseResult(
         GetSuggestionsDatabase,
         id,

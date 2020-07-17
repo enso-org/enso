@@ -25,7 +25,7 @@ import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.searcher.SuggestionsRepo
+import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
 import org.enso.searcher.sql.SqlSuggestionsRepo
 import org.enso.text.editing.model.Position
 import org.enso.testkit.RetrySpec
@@ -88,7 +88,7 @@ class SuggestionsHandlerSpec
         router.expectMsg(
           DeliverToJsonController(
             clientId,
-            SearchProtocol.SuggestionsDatabaseUpdateNotification(updates, 4L)
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(4L, updates)
           )
         )
 
@@ -123,7 +123,7 @@ class SuggestionsHandlerSpec
         router.expectMsg(
           DeliverToJsonController(
             clientId,
-            SearchProtocol.SuggestionsDatabaseUpdateNotification(updates, 4L)
+            SearchProtocol.SuggestionsDatabaseUpdateNotification(4L, updates)
           )
         )
 
@@ -151,7 +151,7 @@ class SuggestionsHandlerSpec
       (_, _, _, handler) =>
         handler ! SearchProtocol.GetSuggestionsDatabase
 
-        expectMsg(SearchProtocol.GetSuggestionsDatabaseResult(Seq(), 0))
+        expectMsg(SearchProtocol.GetSuggestionsDatabaseResult(0, Seq()))
     }
 
     "get suggestions database" taggedAs Retry in withDb {
@@ -161,10 +161,8 @@ class SuggestionsHandlerSpec
 
         expectMsg(
           SearchProtocol.GetSuggestionsDatabaseResult(
-            Seq(
-              SearchProtocol.SuggestionsDatabaseUpdate.Add(1L, Suggestions.atom)
-            ),
-            1
+            1,
+            Seq(SuggestionEntry(1L, Suggestions.atom))
           )
         )
     }

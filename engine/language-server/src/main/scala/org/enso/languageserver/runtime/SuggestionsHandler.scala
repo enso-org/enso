@@ -163,7 +163,7 @@ final class SuggestionsHandler(
               case ((_, typeValue), Some(suggestionId)) =>
                 SuggestionsDatabaseUpdate.Modify(suggestionId, typeValue)
             }
-            SuggestionsDatabaseUpdateNotification(updates, version)
+            SuggestionsDatabaseUpdateNotification(version, updates)
         }
 
     case GetSuggestionsDatabaseVersion =>
@@ -173,13 +173,7 @@ final class SuggestionsHandler(
 
     case GetSuggestionsDatabase =>
       repo.getAll
-        .map {
-          case (version, entries) =>
-            val updates = entries.map(entry =>
-              SuggestionsDatabaseUpdate.Add(entry.id, entry.suggestion)
-            )
-            GetSuggestionsDatabaseResult(updates, version)
-        }
+        .map(GetSuggestionsDatabaseResult.tupled)
         .pipeTo(sender())
 
     case Completion(path, pos, selfType, returnType, tags) =>
@@ -210,8 +204,8 @@ final class SuggestionsHandler(
                 case (version, ids) =>
                   Right(
                     SuggestionsDatabaseUpdateNotification(
-                      ids.map(SuggestionsDatabaseUpdate.Remove),
-                      version
+                      version,
+                      ids.map(SuggestionsDatabaseUpdate.Remove)
                     )
                   )
               }
@@ -268,8 +262,8 @@ final class SuggestionsHandler(
           None
       }
       SuggestionsDatabaseUpdateNotification(
-        updatesRemoved ++ updatesAdded,
-        version
+        version,
+        updatesRemoved :++ updatesAdded
       )
     }
   }
@@ -310,8 +304,8 @@ final class SuggestionsHandler(
             None
         }
       SuggestionsDatabaseUpdateNotification(
-        updatesRemoved ++ updatesAdded,
-        version
+        version,
+        updatesRemoved :++ updatesAdded
       )
     }
   }

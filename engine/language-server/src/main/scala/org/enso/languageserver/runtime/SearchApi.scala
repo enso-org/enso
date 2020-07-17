@@ -7,6 +7,7 @@ import org.enso.languageserver.runtime.SearchProtocol.{
   SuggestionKind,
   SuggestionsDatabaseUpdate
 }
+import org.enso.searcher.SuggestionEntry
 import org.enso.text.editing.model.Position
 
 /**
@@ -33,7 +34,7 @@ object SearchApi {
       extends Method("search/getSuggestionsDatabase") {
 
     case class Result(
-      entries: Seq[SuggestionsDatabaseUpdate],
+      entries: Seq[SuggestionEntry],
       currentVersion: Long
     )
 

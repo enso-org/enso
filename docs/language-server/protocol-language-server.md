@@ -330,6 +330,18 @@ type SuggestionEntryType
   | Local;
 ```
 
+### `SuggestionsDatabaseEntry`
+
+#### Format
+The entry in the suggestions database
+
+``` typescript
+interface SuggestionsDatabaseEntry {
+  id: number;
+  suggestion: SuggestionEntry;
+}
+```
+
 ### `SuggestionsDatabaseUpdate`
 The update of the suggestions database.
 
@@ -2474,7 +2486,7 @@ null
 ```typescript
 {
   // The list of suggestions database entries
-  entries: [SuggestionsDatabaseUpdate];
+  entries: [SuggestionsDatabaseEntry];
   // The version of received suggestions database
   currentVersion: number;
 }
