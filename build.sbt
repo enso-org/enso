@@ -622,8 +622,8 @@ lazy val testkit = project
   .in(file("lib/scala/testkit"))
   .settings(
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % scalatestVersion
-    )
+        "org.scalatest" %% "scalatest" % scalatestVersion
+      )
   )
 
 lazy val `core-definition` = (project in file("lib/scala/core-definition"))
