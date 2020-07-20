@@ -14,11 +14,13 @@ object Protocol {
   sealed trait Request
   final case class ParseRequest(program: String, ids: Parser.IDMap)
       extends Request
-  final case class ParseRequestWithMetadata(content: String) extends Request
+  final case class ParseRequestWithMetadata(content: String)    extends Request
+  final case class DocParserGenerateHtmlSource(program: String) extends Request
 
   sealed trait Response
   final case class Success(module: SourceFile) extends Response
   final case class Error(message: String)      extends Response
+  final case class SuccessDoc(code: String)    extends Response
 }
 
 /** Helper for implementing protocol over text-based transport.
