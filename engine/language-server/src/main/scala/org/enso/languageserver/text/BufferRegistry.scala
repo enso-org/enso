@@ -22,6 +22,9 @@ import org.enso.languageserver.text.TextProtocol.{
   OpenFile,
   SaveFile
 }
+import org.enso.searcher.FileVersionsRepo
+
+import scala.concurrent.Future
 
 /**
   * An actor that routes request regarding text editing to the right buffer.
@@ -55,12 +58,17 @@ import org.enso.languageserver.text.TextProtocol.{
   *
   * }}}
   *
+  * @param versionsRepo a repo containing versions of indexed files
   * @param fileManager a file manager
   * @param runtimeConnector a gateway to the runtime
   * @param versionCalculator a content based version calculator
   */
-class BufferRegistry(fileManager: ActorRef, runtimeConnector: ActorRef)(
-  implicit versionCalculator: ContentBasedVersioning
+class BufferRegistry(
+  versionsRepo: FileVersionsRepo[Future],
+  fileManager: ActorRef,
+  runtimeConnector: ActorRef
+)(implicit
+  versionCalculator: ContentBasedVersioning
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -77,7 +85,12 @@ class BufferRegistry(fileManager: ActorRef, runtimeConnector: ActorRef)(
       } else {
         val bufferRef =
           context.actorOf(
-            CollaborativeBuffer.props(path, fileManager, runtimeConnector)
+            CollaborativeBuffer.props(
+              path,
+              versionsRepo,
+              fileManager,
+              runtimeConnector
+            )
           )
         context.watch(bufferRef)
         bufferRef.forward(msg)
@@ -130,14 +143,19 @@ object BufferRegistry {
   /**
     * Creates a configuration object used to create a [[BufferRegistry]]
     *
+    * @param versionsRepo a repo containing versions of indexed files
     * @param fileManager a file manager actor
     * @param runtimeConnector a gateway to the runtime
     * @param versionCalculator a content based version calculator
     * @return a configuration object
     */
-  def props(fileManager: ActorRef, runtimeConnector: ActorRef)(
-    implicit versionCalculator: ContentBasedVersioning
+  def props(
+    versionsRepo: FileVersionsRepo[Future],
+    fileManager: ActorRef,
+    runtimeConnector: ActorRef
+  )(implicit
+    versionCalculator: ContentBasedVersioning
   ): Props =
-    Props(new BufferRegistry(fileManager, runtimeConnector))
+    Props(new BufferRegistry(versionsRepo, fileManager, runtimeConnector))
 
 }

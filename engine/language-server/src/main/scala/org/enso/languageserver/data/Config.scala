@@ -1,6 +1,7 @@
 package org.enso.languageserver.data
 
 import java.io.File
+import java.nio.file.Files
 import java.util.UUID
 
 import org.enso.languageserver.filemanager.{
@@ -10,6 +11,7 @@ import org.enso.languageserver.filemanager.{
 }
 
 import scala.concurrent.duration._
+import scala.util.Try
 
 /**
   * Configuration of the path watcher.
@@ -56,7 +58,7 @@ object FileManagerConfig {
   def apply(timeout: FiniteDuration): FileManagerConfig =
     FileManagerConfig(
       timeout     = timeout,
-      parallelism = Runtime.getRuntime().availableProcessors()
+      parallelism = Runtime.getRuntime.availableProcessors()
     )
 }
 
@@ -79,16 +81,54 @@ object ExecutionContextConfig {
 }
 
 /**
+  * Configuration of directories for storing internal files.
+  *
+  * @param root the root directory path
+  */
+case class DirectoriesConfig(root: File) {
+
+  /** The data directory path. */
+  val dataDirectory: File =
+    new File(root, DirectoriesConfig.DataDirectory)
+
+  /** The suggestions database file path. */
+  val suggestionsDatabaseFile: File =
+    new File(dataDirectory, DirectoriesConfig.SuggestionsDatabaseFile)
+
+  Try(Files.createDirectories(dataDirectory.toPath))
+}
+
+object DirectoriesConfig {
+
+  val DataDirectory: String           = ".enso"
+  val SuggestionsDatabaseFile: String = "suggestions.db"
+
+  /**
+    * Create default data directory config
+    *
+    * @param root the root directory path
+    * @return default data directory config
+    */
+  def apply(root: String): DirectoriesConfig =
+    new DirectoriesConfig(new File(root))
+}
+
+/**
   * The config of the running Language Server instance.
   *
   * @param contentRoots a mapping between content root id and absolute path to
-  *                     the content root
+  * the content root
+  * @param fileManager the file manater config
+  * @param pathWatcher the path watcher config
+  * @param executionContext the executionContext config
+  * @param directories the configuration of internal directories
   */
 case class Config(
   contentRoots: Map[UUID, File],
   fileManager: FileManagerConfig,
   pathWatcher: PathWatcherConfig,
-  executionContext: ExecutionContextConfig
+  executionContext: ExecutionContextConfig,
+  directories: DirectoriesConfig
 ) {
 
   def findContentRoot(rootId: UUID): Either[FileSystemFailure, File] =

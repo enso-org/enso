@@ -1,8 +1,10 @@
 package org.enso.searcher.sql
 
-import java.nio.file.Path
+import java.io.File
+import java.util.UUID
 
-import org.enso.searcher.{Suggestion, SuggestionEntry, SuggestionsRepo}
+import org.enso.polyglot.Suggestion
+import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
 import slick.jdbc.SQLiteProfile.api._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -25,12 +27,12 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
       .joinRight(Suggestions)
       .on(_.suggestionId === _.id)
 
-  /** @inheritdoc */
-  override def init: Future[Unit] =
+  /** Initialize the repo. */
+  def init: Future[Unit] =
     db.run(initQuery)
 
-  /** @inheritdoc */
-  override def clean: Future[Unit] =
+  /** Clean the repo. */
+  def clean: Future[Unit] =
     db.run(cleanQuery)
 
   /** @inheritdoc */
@@ -39,11 +41,13 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
 
   /** @inheritdoc */
   override def search(
+    module: Option[String],
     selfType: Option[String],
     returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]]
+    kinds: Option[Seq[Suggestion.Kind]],
+    position: Option[Suggestion.Position]
   ): Future[(Long, Seq[Long])] =
-    db.run(searchQuery(selfType, returnType, kinds))
+    db.run(searchQuery(module, selfType, returnType, kinds, position))
 
   /** @inheritdoc */
   override def select(id: Long): Future[Option[Suggestion]] =
@@ -64,10 +68,20 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     db.run(removeQuery(suggestion))
 
   /** @inheritdoc */
+  override def removeByModule(name: String): Future[(Long, Seq[Long])] =
+    db.run(removeByModuleQuery(name))
+
+  /** @inheritdoc */
   override def removeAll(
     suggestions: Seq[Suggestion]
   ): Future[(Long, Seq[Option[Long]])] =
     db.run(removeAllQuery(suggestions))
+
+  /** @inheritdoc */
+  override def updateAll(
+    expressions: Seq[(Suggestion.ExternalId, String)]
+  ): Future[(Long, Seq[Option[Long]])] =
+    db.run(updateAllQuery(expressions))
 
   /** @inheritdoc */
   override def currentVersion: Future[Long] =
@@ -77,23 +91,30 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
   def close(): Unit =
     db.close()
 
-  /** Insert suggestions in a batch. */
+  /** Insert suggestions in a batch.
+    *
+    * @param suggestions the list of suggestions to insert
+    * @return the current database size
+    */
   private[sql] def insertBatch(suggestions: Array[Suggestion]): Future[Int] =
     db.run(insertBatchQuery(suggestions))
 
   /** The query to initialize the repo. */
   private def initQuery: DBIO[Unit] =
-    (Suggestions.schema ++ Arguments.schema ++ Versions.schema).createIfNotExists
+    (Suggestions.schema ++ Arguments.schema ++ SuggestionsVersions.schema).createIfNotExists
 
   /** The query to clean the repo. */
   private def cleanQuery: DBIO[Unit] =
     for {
       _ <- Suggestions.delete
       _ <- Arguments.delete
-      _ <- Versions.delete
+      _ <- SuggestionsVersions.delete
     } yield ()
 
-  /** Get all suggestions. */
+  /** Get all suggestions.
+    *
+    * @return the current database version with the list of suggestion entries
+    */
   private def getAllQuery: DBIO[(Long, Seq[SuggestionEntry])] = {
     val query = for {
       suggestions <- joined.result.map(joinedToSuggestionEntries)
@@ -104,21 +125,33 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
 
   /** The query to search suggestion by various parameters.
     *
+    * @param module the module name search parameter
     * @param selfType the selfType search parameter
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
+    * @param position the absolute position in the text
     * @return the list of suggestion ids
     */
   private def searchQuery(
+    module: Option[String],
     selfType: Option[String],
     returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]]
+    kinds: Option[Seq[Suggestion.Kind]],
+    position: Option[Suggestion.Position]
   ): DBIO[(Long, Seq[Long])] = {
     val searchAction =
-      if (selfType.isEmpty && returnType.isEmpty && kinds.isEmpty) {
+      if (
+        module.isEmpty &&
+        selfType.isEmpty &&
+        returnType.isEmpty &&
+        kinds.isEmpty &&
+        position.isEmpty
+      ) {
         DBIO.successful(Seq())
       } else {
-        val query = searchQueryBuilder(selfType, returnType, kinds).map(_.id)
+        val query =
+          searchQueryBuilder(module, selfType, returnType, kinds, position)
+            .map(_.id)
         query.result
       }
     val query = for {
@@ -186,13 +219,30 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     val selectQuery = Suggestions
       .filter(_.kind === raw.kind)
       .filter(_.name === raw.name)
-      .filter(_.scopeStart === raw.scopeStart)
-      .filter(_.scopeEnd === raw.scopeEnd)
+      .filter(_.scopeStartLine === raw.scopeStartLine)
+      .filter(_.scopeStartOffset === raw.scopeStartOffset)
+      .filter(_.scopeEndLine === raw.scopeEndLine)
+      .filter(_.scopeEndOffset === raw.scopeEndOffset)
     val deleteQuery = for {
       rows <- selectQuery.result
       n    <- selectQuery.delete
       _    <- if (n > 0) incrementVersionQuery else DBIO.successful(())
     } yield rows.flatMap(_.id).headOption
+    deleteQuery.transactionally
+  }
+
+  /** The query to remove the suggestions by module name
+    *
+    * @param name the module name
+    * @return the current database version and a list of removed suggestion ids
+    */
+  private def removeByModuleQuery(name: String): DBIO[(Long, Seq[Long])] = {
+    val selectQuery = Suggestions.filter(_.module === name)
+    val deleteQuery = for {
+      rows    <- selectQuery.result
+      n       <- selectQuery.delete
+      version <- if (n > 0) incrementVersionQuery else currentVersionQuery
+    } yield version -> rows.flatMap(_.id)
     deleteQuery.transactionally
   }
 
@@ -211,23 +261,67 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     query.transactionally
   }
 
+  /** The query to update a suggestion.
+    *
+    * @param externalId the external id of a suggestion
+    * @param returnType the new return type
+    * @return the id of updated suggestion
+    */
+  private def updateQuery(
+    externalId: Suggestion.ExternalId,
+    returnType: String
+  ): DBIO[Option[Long]] = {
+    val selectQuery = Suggestions
+      .filter { row =>
+        row.externalIdLeast === externalId.getLeastSignificantBits &&
+        row.externalIdMost === externalId.getMostSignificantBits
+      }
+    for {
+      id <- selectQuery.map(_.id).result.headOption
+      _  <- selectQuery.map(_.returnType).update(returnType)
+    } yield id
+  }
+
+  /** The query to update a list of suggestions by external id.
+    *
+    * @param expressions the list of expressions to update
+    * @return the current database version with the list of updated suggestion ids
+    */
+  private def updateAllQuery(
+    expressions: Seq[(Suggestion.ExternalId, String)]
+  ): DBIO[(Long, Seq[Option[Long]])] = {
+    val query = for {
+      ids <- DBIO.sequence(expressions.map(Function.tupled(updateQuery)))
+      version <-
+        if (ids.exists(_.nonEmpty)) incrementVersionQuery
+        else currentVersionQuery
+    } yield (version, ids)
+    query.transactionally
+  }
+
   /** The query to get current version of the repo. */
   private def currentVersionQuery: DBIO[Long] = {
     for {
-      versionOpt <- Versions.result.headOption
+      versionOpt <- SuggestionsVersions.result.headOption
     } yield versionOpt.flatMap(_.id).getOrElse(0L)
   }
 
   /** The query to increment the current version of the repo. */
   private def incrementVersionQuery: DBIO[Long] = {
     val increment = for {
-      version <- Versions.returning(Versions.map(_.id)) += VersionRow(None)
-      _       <- Versions.filterNot(_.id === version).delete
+      version <- SuggestionsVersions.returning(
+        SuggestionsVersions.map(_.id)
+      ) += SuggestionsVersionRow(None)
+      _ <- SuggestionsVersions.filterNot(_.id === version).delete
     } yield version
     increment.transactionally
   }
 
-  /** The query to insert suggestions in a batch. */
+  /** The query to insert suggestions in a batch.
+    *
+    * @param suggestions the list of suggestions to insert
+    * @return the current size of the database
+    */
   private def insertBatchQuery(
     suggestions: Array[Suggestion]
   ): DBIO[Int] = {
@@ -238,13 +332,26 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     } yield size
   }
 
-  /** Create a search query by the provided parameters. */
+  /** Create a search query by the provided parameters.
+    *
+    * @param module the module name search parameter
+    * @param selfType the selfType search parameter
+    * @param returnType the returnType search parameter
+    * @param kinds the list suggestion kinds to search
+    * @param position the absolute position in the text
+    * @return the search query
+    */
   private def searchQueryBuilder(
+    module: Option[String],
     selfType: Option[String],
     returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]]
+    kinds: Option[Seq[Suggestion.Kind]],
+    position: Option[Suggestion.Position]
   ): Query[SuggestionsTable, SuggestionRow, Seq] = {
     Suggestions
+      .filterOpt(module) {
+        case (row, value) => row.module === value
+      }
       .filterOpt(selfType) {
         case (row, value) => row.selfType === value
       }
@@ -253,6 +360,16 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
       }
       .filterOpt(kinds) {
         case (row, value) => row.kind inSet value.map(SuggestionKind(_))
+      }
+      .filterOpt(position) {
+        case (row, value) =>
+          (row.scopeStartLine === ScopeColumn.EMPTY) ||
+          (
+            row.scopeStartLine <= value.line &&
+            row.scopeStartOffset <= value.character &&
+            row.scopeEndLine >= value.line &&
+            row.scopeEndOffset >= value.character
+          )
       }
   }
 
@@ -289,52 +406,80 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     suggestion: Suggestion
   ): (SuggestionRow, Seq[Suggestion.Argument]) =
     suggestion match {
-      case Suggestion.Atom(name, args, returnType, doc) =>
+      case Suggestion.Atom(expr, module, name, args, returnType, doc) =>
         val row = SuggestionRow(
-          id            = None,
-          kind          = SuggestionKind.ATOM,
-          name          = name,
-          selfType      = SelfTypeColumn.EMPTY,
-          returnType    = returnType,
-          documentation = doc,
-          scopeStart    = ScopeColumn.EMPTY,
-          scopeEnd      = ScopeColumn.EMPTY
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.ATOM,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY
         )
         row -> args
-      case Suggestion.Method(name, args, selfType, returnType, doc) =>
+      case Suggestion.Method(
+            expr,
+            module,
+            name,
+            args,
+            selfType,
+            returnType,
+            doc
+          ) =>
         val row = SuggestionRow(
-          id            = None,
-          kind          = SuggestionKind.METHOD,
-          name          = name,
-          selfType      = selfType,
-          returnType    = returnType,
-          documentation = doc,
-          scopeStart    = ScopeColumn.EMPTY,
-          scopeEnd      = ScopeColumn.EMPTY
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.METHOD,
+          module           = module,
+          name             = name,
+          selfType         = selfType,
+          returnType       = returnType,
+          documentation    = doc,
+          scopeStartLine   = ScopeColumn.EMPTY,
+          scopeStartOffset = ScopeColumn.EMPTY,
+          scopeEndLine     = ScopeColumn.EMPTY,
+          scopeEndOffset   = ScopeColumn.EMPTY
         )
         row -> args
-      case Suggestion.Function(name, args, returnType, scope) =>
+      case Suggestion.Function(expr, module, name, args, returnType, scope) =>
         val row = SuggestionRow(
-          id            = None,
-          kind          = SuggestionKind.FUNCTION,
-          name          = name,
-          selfType      = SelfTypeColumn.EMPTY,
-          returnType    = returnType,
-          documentation = None,
-          scopeStart    = scope.start,
-          scopeEnd      = scope.end
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.FUNCTION,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          documentation    = None,
+          scopeStartLine   = scope.start.line,
+          scopeStartOffset = scope.start.character,
+          scopeEndLine     = scope.end.line,
+          scopeEndOffset   = scope.end.character
         )
         row -> args
-      case Suggestion.Local(name, returnType, scope) =>
+      case Suggestion.Local(expr, module, name, returnType, scope) =>
         val row = SuggestionRow(
-          id            = None,
-          kind          = SuggestionKind.LOCAL,
-          name          = name,
-          selfType      = SelfTypeColumn.EMPTY,
-          returnType    = returnType,
-          documentation = None,
-          scopeStart    = scope.start,
-          scopeEnd      = scope.end
+          id               = None,
+          externalIdLeast  = expr.map(_.getLeastSignificantBits),
+          externalIdMost   = expr.map(_.getMostSignificantBits),
+          kind             = SuggestionKind.LOCAL,
+          module           = module,
+          name             = name,
+          selfType         = SelfTypeColumn.EMPTY,
+          returnType       = returnType,
+          documentation    = None,
+          scopeStartLine   = scope.start.line,
+          scopeStartOffset = scope.start.character,
+          scopeEndLine     = scope.end.line,
+          scopeEndOffset   = scope.end.character
         )
         row -> Seq()
     }
@@ -371,6 +516,9 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
     suggestion.kind match {
       case SuggestionKind.ATOM =>
         Suggestion.Atom(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
+          module        = suggestion.module,
           name          = suggestion.name,
           arguments     = arguments.sortBy(_.index).map(toArgument),
           returnType    = suggestion.returnType,
@@ -378,6 +526,9 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
         )
       case SuggestionKind.METHOD =>
         Suggestion.Method(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
+          module        = suggestion.module,
           name          = suggestion.name,
           arguments     = arguments.sortBy(_.index).map(toArgument),
           selfType      = suggestion.selfType,
@@ -386,16 +537,40 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
         )
       case SuggestionKind.FUNCTION =>
         Suggestion.Function(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
+          module     = suggestion.module,
           name       = suggestion.name,
           arguments  = arguments.sortBy(_.index).map(toArgument),
           returnType = suggestion.returnType,
-          scope      = Suggestion.Scope(suggestion.scopeStart, suggestion.scopeEnd)
+          scope = Suggestion.Scope(
+            Suggestion.Position(
+              suggestion.scopeStartLine,
+              suggestion.scopeStartOffset
+            ),
+            Suggestion.Position(
+              suggestion.scopeEndLine,
+              suggestion.scopeEndOffset
+            )
+          )
         )
       case SuggestionKind.LOCAL =>
         Suggestion.Local(
+          externalId =
+            toUUID(suggestion.externalIdLeast, suggestion.externalIdMost),
+          module     = suggestion.module,
           name       = suggestion.name,
           returnType = suggestion.returnType,
-          scope      = Suggestion.Scope(suggestion.scopeStart, suggestion.scopeEnd)
+          scope = Suggestion.Scope(
+            Suggestion.Position(
+              suggestion.scopeStartLine,
+              suggestion.scopeStartOffset
+            ),
+            Suggestion.Position(
+              suggestion.scopeEndLine,
+              suggestion.scopeEndOffset
+            )
+          )
         )
       case k =>
         throw new NoSuchElementException(s"Unknown suggestion kind: $k")
@@ -410,6 +585,18 @@ final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
       hasDefault   = row.hasDefault,
       defaultValue = row.defaultValue
     )
+
+  /** Convert bits to the UUID.
+    *
+    * @param least the least significant bits of the UUID
+    * @param most the most significant bits of the UUID
+    * @return the new UUID
+    */
+  private def toUUID(least: Option[Long], most: Option[Long]): Option[UUID] =
+    for {
+      l <- least
+      m <- most
+    } yield new UUID(m, l)
 }
 
 object SqlSuggestionsRepo {
@@ -427,7 +614,7 @@ object SqlSuggestionsRepo {
     * @param path the path to the database file.
     * @return the suggestions repo backed up by SQL database.
     */
-  def apply(path: Path)(implicit ec: ExecutionContext): SqlSuggestionsRepo = {
+  def apply(path: File)(implicit ec: ExecutionContext): SqlSuggestionsRepo = {
     new SqlSuggestionsRepo(SqlDatabase(path.toString))
   }
 }

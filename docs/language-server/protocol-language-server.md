@@ -265,10 +265,10 @@ The language construct that can be returned as a suggestion.
 // The definition scope
 interface SuggestionEntryScope {
 
-  // The start of the definition scope
-  start: number;
-  // The end of the definition scope
-  end: number;
+  // The start position of the definition scope
+  start: Position;
+  // The end position of the definition scope
+  end: Position;
 }
 
 // A type of suggestion entries.
@@ -330,6 +330,20 @@ type SuggestionEntryType
   | Local;
 ```
 
+### `SuggestionsDatabaseEntry`
+
+#### Format
+The entry in the suggestions database.
+
+``` typescript
+interface SuggestionsDatabaseEntry {
+  // suggestion entry id
+  id: number;
+  // suggestion entry
+  suggestion: SuggestionEntry;
+}
+```
+
 ### `SuggestionsDatabaseUpdate`
 The update of the suggestions database.
 
@@ -340,6 +354,7 @@ The update of the suggestions database.
 type SuggestionsDatabaseUpdate
   = Add
   | Remove
+  | Modify
 
 interface Add {
   // suggestion entry id
@@ -351,6 +366,14 @@ interface Add {
 interface Remove {
   // suggestion entry id
   id: number;
+}
+
+interface Modify {
+  // suggestion entry id
+  id: number;
+  // new return type
+  returnType: String;
+}
 ```
 
 ### `File`
@@ -2465,14 +2488,17 @@ null
 ```typescript
 {
   // The list of suggestions database entries
-  entries: [SuggestionsDatabaseUpdate];
+  entries: [SuggestionsDatabaseEntry];
   // The version of received suggestions database
   currentVersion: number;
 }
 ```
 
 #### Errors
-TBC
+- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
+  suggestions database
+- [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
+  root directory
 
 ### `search/getSuggestionsDatabaseVersion`
 Sent from client to the server to receive the current version of the suggestions
@@ -2497,7 +2523,10 @@ null
 ```
 
 #### Errors
-TBC
+- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
+  suggestions database
+- [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
+  root directory
 
 ### `search/suggestionsDatabaseUpdate`
 Sent from server to the client to inform abouth the change in the suggestions
@@ -2518,7 +2547,7 @@ database.
 ```
 
 #### Errors
-TBC
+None
 
 ### `search/completion`
 Sent from client to the server to receive the autocomplete suggestion.
@@ -2554,7 +2583,12 @@ Sent from client to the server to receive the autocomplete suggestion.
 ```
 
 #### Errors
-TBC
+- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
+  suggestions database
+- [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
+  root directory
+- [`ModuleNameNotResolvedError`](#modulenamenotresolvederror) the module name
+  cannot be extracted from the provided file path parameter
 
 ## Input/Output Operations
 The input/output portion of the language server API deals with redirecting
@@ -2962,5 +2996,25 @@ Signals about an error accessing the suggestions database.
 "error" : {
   "code" : 7001,
   "message" : "Suggestions database error"
+}
+```
+
+### `ProjectNotFoundError`
+Signals that the project not found in the root directory.
+
+```typescript
+"error" : {
+  "code" : 7002,
+  "message" : "Project not found in the root directory"
+}
+```
+
+### `ModuleNameNotResolvedError`
+Signals that the module name can not be resolved for the given file.
+
+```typescript
+"error" : {
+  "code" : 7003,
+  "message" : "Module name can't be resolved for the given file"
 }
 ```

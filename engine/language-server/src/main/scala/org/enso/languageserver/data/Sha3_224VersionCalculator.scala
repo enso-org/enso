@@ -8,16 +8,14 @@ import org.bouncycastle.util.encoders.Hex
   */
 object Sha3_224VersionCalculator extends ContentBasedVersioning {
 
-  /**
-    * Digests textual content.
-    *
-    * @param content a textual content
-    * @return a digest
-    */
-  override def evalVersion(content: String): String = {
+  /** @inheritdoc */
+  override def evalVersion(content: String): String =
+    Hex.toHexString(evalDigest(content))
+
+  /** @inheritdoc */
+  override def evalDigest(content: String): Array[Byte] = {
     val digestSHA3 = new SHA3.Digest224()
-    val hash       = digestSHA3.digest(content.getBytes("UTF-8"))
-    Hex.toHexString(hash)
+    digestSHA3.digest(content.getBytes("UTF-8"))
   }
 
 }

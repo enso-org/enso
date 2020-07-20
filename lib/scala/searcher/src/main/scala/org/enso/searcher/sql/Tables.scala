@@ -1,6 +1,6 @@
 package org.enso.searcher.sql
 
-import org.enso.searcher.Suggestion
+import org.enso.polyglot.Suggestion
 import slick.jdbc.SQLiteProfile.api._
 
 import scala.annotation.nowarn
@@ -30,30 +30,47 @@ case class ArgumentRow(
 /** A row in the suggestions table.
   *
   * @param id the id of a suggestion
+  * @param externalIdLeast the least significant bits of external id
+  * @param externalIdMost the most significant bits of external id
   * @param kind the type of a suggestion
+  * @param module the module name
   * @param name the suggestion name
   * @param selfType the self type of a suggestion
   * @param returnType the return type of a suggestion
   * @param documentation the documentation string
-  * @param scopeStart the start of the scope
-  * @param scopeEnd the end of the scope
+  * @param scopeStartLine the line of the start position of the scope
+  * @param scopeStartOffset the offset of the start position of the scope
+  * @param scopeEndLine the line of the end position of the scope
+  * @param scopeEndOffset the offset of the end position of the scope
   */
 case class SuggestionRow(
   id: Option[Long],
+  externalIdLeast: Option[Long],
+  externalIdMost: Option[Long],
   kind: Byte,
+  module: String,
   name: String,
   selfType: String,
   returnType: String,
   documentation: Option[String],
-  scopeStart: Int,
-  scopeEnd: Int
+  scopeStartLine: Int,
+  scopeStartOffset: Int,
+  scopeEndLine: Int,
+  scopeEndOffset: Int
 )
 
-/** A row in the versions table.
+/** A row in the suggestions_version table.
   *
   * @param id the row id
   */
-case class VersionRow(id: Option[Long])
+case class SuggestionsVersionRow(id: Option[Long])
+
+/** A row in the file_versions table
+  *
+  * @param path the file path
+  * @param digest the file version
+  */
+case class FileVersionRow(path: String, digest: Array[Byte])
 
 /** The type of a suggestion. */
 object SuggestionKind {
@@ -128,51 +145,91 @@ final class ArgumentsTable(tag: Tag)
 final class SuggestionsTable(tag: Tag)
     extends Table[SuggestionRow](tag, "suggestions") {
 
-  def id            = column[Long]("id", O.PrimaryKey, O.AutoInc)
-  def kind          = column[Byte]("kind")
-  def name          = column[String]("name")
-  def selfType      = column[String]("self_type")
-  def returnType    = column[String]("return_type")
-  def documentation = column[Option[String]]("documentation")
-  def scopeStart    = column[Int]("scope_start", O.Default(ScopeColumn.EMPTY))
-  def scopeEnd      = column[Int]("scope_end", O.Default(ScopeColumn.EMPTY))
+  def id              = column[Long]("id", O.PrimaryKey, O.AutoInc)
+  def externalIdLeast = column[Option[Long]]("external_id_least")
+  def externalIdMost  = column[Option[Long]]("external_id_most")
+  def kind            = column[Byte]("kind")
+  def module          = column[String]("module")
+  def name            = column[String]("name")
+  def selfType        = column[String]("self_type")
+  def returnType      = column[String]("return_type")
+  def documentation   = column[Option[String]]("documentation")
+  def scopeStartLine =
+    column[Int]("scope_start_line", O.Default(ScopeColumn.EMPTY))
+  def scopeStartOffset =
+    column[Int]("scope_start_offset", O.Default(ScopeColumn.EMPTY))
+  def scopeEndLine =
+    column[Int]("scope_end_line", O.Default(ScopeColumn.EMPTY))
+  def scopeEndOffset =
+    column[Int]("scope_end_offset", O.Default(ScopeColumn.EMPTY))
   def * =
     (
       id.?,
+      externalIdLeast,
+      externalIdMost,
       kind,
+      module,
       name,
       selfType,
       returnType,
       documentation,
-      scopeStart,
-      scopeEnd
+      scopeStartLine,
+      scopeStartOffset,
+      scopeEndLine,
+      scopeEndOffset
     ) <>
     (SuggestionRow.tupled, SuggestionRow.unapply)
 
+  def moduleIdx     = index("suggestions_module_idx", module)
+  def name_idx      = index("suggestions_name_idx", name)
   def selfTypeIdx   = index("suggestions_self_type_idx", selfType)
   def returnTypeIdx = index("suggestions_return_type_idx", returnType)
-  def name_idx      = index("suggestions_name_idx", name)
+  def externalIdIdx =
+    index("suggestions_external_id_idx", (externalIdLeast, externalIdMost))
   // NOTE: unique index should not contain nullable columns because SQLite
   // teats NULLs as distinct values.
   def uniqueIdx =
     index(
-      "suggestion_unique_idx",
-      (kind, name, selfType, scopeStart, scopeEnd),
+      "suggestions_unique_idx",
+      (
+        kind,
+        module,
+        name,
+        selfType,
+        scopeStartLine,
+        scopeStartOffset,
+        scopeEndLine,
+        scopeEndOffset
+      ),
       unique = true
     )
 }
 
-/** The schema of the versions table. */
+/** The schema of the suggestions_version table. */
 @nowarn("msg=multiarg infix syntax")
-final class VersionsTable(tag: Tag) extends Table[VersionRow](tag, "version") {
+final class SuggestionsVersionTable(tag: Tag)
+    extends Table[SuggestionsVersionRow](tag, "suggestions_version") {
 
   def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
 
-  def * = id.? <> (VersionRow.apply, VersionRow.unapply)
+  def * = id.? <> (SuggestionsVersionRow.apply, SuggestionsVersionRow.unapply)
+}
+
+/** The schema of the file_versions table. */
+@nowarn("msg=multiarg infix syntax")
+final class FileVersionsTable(tag: Tag)
+    extends Table[FileVersionRow](tag, "file_versions") {
+
+  def path   = column[String]("path", O.PrimaryKey)
+  def digest = column[Array[Byte]]("digest")
+
+  def * = (path, digest) <> (FileVersionRow.tupled, FileVersionRow.unapply)
 }
 
 object Arguments extends TableQuery(new ArgumentsTable(_))
 
 object Suggestions extends TableQuery(new SuggestionsTable(_))
 
-object Versions extends TableQuery(new VersionsTable(_))
+object SuggestionsVersions extends TableQuery(new SuggestionsVersionTable(_))
+
+object FileVersions extends TableQuery(new FileVersionsTable(_))

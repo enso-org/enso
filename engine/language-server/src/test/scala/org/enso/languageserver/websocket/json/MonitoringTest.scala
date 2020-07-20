@@ -1,12 +1,13 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
+import org.enso.testkit.FlakySpec
 
-class MonitoringTest extends BaseServerTest {
+class MonitoringTest extends BaseServerTest with FlakySpec {
 
   "Monitoring subsystem" must {
 
-    "reply to ping requests" in {
+    "reply to ping requests" taggedAs Flaky in {
       val client = new WsTestClient(address)
 
       client.send(json"""

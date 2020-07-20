@@ -3,6 +3,7 @@ package org.enso.languageserver.filemanager
 import java.nio.file.{Files, Path, Paths}
 import java.nio.file.attribute.BasicFileAttributes
 
+import org.apache.commons.io.FileUtils
 import org.enso.languageserver.effect.Effects
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -70,7 +71,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers with Effects {
     //given
     val path    = Paths.get(testDirPath.toString, "foo.txt")
     val content = "123456789"
-    testDir.delete()
+    testDirPath.toFile.delete()
     //when
     val result =
       objectUnderTest.write(path.toFile, content).unsafeRunSync()
@@ -654,9 +655,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers with Effects {
   trait TestCtx {
 
     val testDirPath = Files.createTempDirectory(null)
-
-    val testDir = testDirPath.toFile
-    testDir.deleteOnExit()
+    sys.addShutdownHook(FileUtils.deleteQuietly(testDirPath.toFile))
 
     val objectUnderTest = new FileSystem
 

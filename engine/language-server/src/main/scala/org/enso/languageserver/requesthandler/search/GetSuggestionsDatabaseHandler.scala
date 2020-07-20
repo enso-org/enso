@@ -8,7 +8,7 @@ import org.enso.languageserver.runtime.SearchApi.{
   GetSuggestionsDatabase,
   SuggestionsDatabaseError
 }
-import org.enso.languageserver.runtime.SearchProtocol
+import org.enso.languageserver.runtime.{SearchFailureMapper, SearchProtocol}
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -54,7 +54,10 @@ class GetSuggestionsDatabaseHandler(
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case SearchProtocol.GetSuggestionsDatabaseResult(updates, version) =>
+    case msg: SearchProtocol.SearchFailure =>
+      replyTo ! ResponseError(Some(id), SearchFailureMapper.mapFailure(msg))
+
+    case SearchProtocol.GetSuggestionsDatabaseResult(version, updates) =>
       replyTo ! ResponseResult(
         GetSuggestionsDatabase,
         id,
