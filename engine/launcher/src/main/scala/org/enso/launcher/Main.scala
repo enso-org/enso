@@ -3,7 +3,7 @@ package org.enso.launcher
 import java.nio.file.Path
 import java.util.UUID
 
-import org.enso.launcher.cli.{
+import org.enso.cli.{
   Application,
   Argument,
   CLIOutput,
@@ -12,7 +12,7 @@ import org.enso.launcher.cli.{
   Subcommand,
   TopLevelBehavior
 }
-import org.enso.launcher.cli.Opts._
+import org.enso.cli.Opts._
 import cats.implicits._
 
 object Main {

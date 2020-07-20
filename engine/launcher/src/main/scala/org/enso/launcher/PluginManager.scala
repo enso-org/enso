@@ -4,10 +4,11 @@ import java.io.File
 import java.nio.file.{Files, Path}
 
 import sys.process._
-import org.enso.launcher.cli.{
+import org.enso.cli.{
   CommandHelp,
   PluginBehaviour,
   PluginInterceptedFlow,
+  PluginManager,
   PluginNotFound
 }
 
@@ -40,10 +41,10 @@ trait SystemEnvironment {
 }
 
 /**
-  * Implements a [[cli.PluginManager]] using the provided [[SystemEnvironment]].
+  * Implements a [[PluginManager]] using the provided [[SystemEnvironment]].
   */
 class PluginManagerImplementation(environment: SystemEnvironment)
-    extends cli.PluginManager {
+    extends PluginManager {
 
   /**
     * Checks if the provided name represents a valid plugin and tries to run it.
