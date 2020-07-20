@@ -14,7 +14,6 @@ trait FlakySpec extends TestSuite {
 
   /** Tags test as _flaky_. */
   object Flaky extends Tag("org.enso.test.flaky") {
-
     val isEnabled = sys.env.contains("CI_TEST_FLAKY_ENABLE")
   }
 
