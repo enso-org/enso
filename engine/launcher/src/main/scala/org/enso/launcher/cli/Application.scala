@@ -35,7 +35,13 @@ class Application[Config](
   ): Either[List[String], Unit] = {
     val (tokens, additionalArguments) = Parser.tokenize(args)
     val topLevelParseResult =
-      Parser.parseOpts(topLevelOpts, tokens, Seq(), isTopLevel = true)
+      Parser.parseOpts(
+        topLevelOpts,
+        tokens,
+        Seq(),
+        isTopLevel = true,
+        command    = Seq(commandName)
+      )
     topLevelParseResult.flatMap {
       case (run, restOfTokens) =>
         run() match {
@@ -65,10 +71,10 @@ class Application[Config](
         .map(_.pluginsHelp())
         .getOrElse(Seq())
     val commandDescriptions =
-      subCommands.map(_.toString).map("    " + _).mkString("\n")
+      subCommands.map(_.toString).map(CLIOutput.indent + _).mkString("\n")
 
     val topLevelOptions =
-      topLevelOpts.helpExplanations().map("    " + _).mkString("\n")
+      topLevelOpts.helpExplanations().map(CLIOutput.indent + _).mkString("\n")
     val topLevelOptionsHelp =
       if (topLevelOptions.isEmpty) ""
       else "\nAvailable options:\n" + topLevelOptions + "\n"
@@ -86,20 +92,34 @@ class Application[Config](
 
     sb.toString()
   }
+
+  def commandSuggestions(typo: String): String = {
+    val header =
+      s"`$typo` is not an $prettyName command. See `$commandName --help`.\n\n"
+    val similar = Spelling.selectClosestMatches(typo, gatherCommandNames())
+    val suggestions =
+      if (similar.isEmpty) ""
+      else {
+        "The most similar commands are\n" +
+        similar.map(CLIOutput.indent + _ + "\n").mkString
+      }
+
+    header + suggestions
+  }
 }
 
 object Application {
-  // TODO [RW] FIXME names
   def apply[Config](
-    name: String,
+    commandName: String,
+    prettyName: String,
     helpHeader: String,
     topLevelOpts: Opts[() => TopLevelBehavior[Config]],
     commands: Seq[Command[Config => Unit]],
     pluginManager: PluginManager
   ): Application[Config] =
     new Application(
-      name,
-      name,
+      commandName,
+      prettyName,
       helpHeader,
       topLevelOpts,
       commands,
@@ -107,21 +127,30 @@ object Application {
     )
 
   def apply[Config](
-    name: String,
+    commandName: String,
+    prettyName: String,
     helpHeader: String,
     topLevelOpts: Opts[() => TopLevelBehavior[Config]],
     commands: Seq[Command[Config => Unit]]
   ): Application[Config] =
-    new Application(name, name, helpHeader, topLevelOpts, commands, None)
+    new Application(
+      commandName,
+      prettyName,
+      helpHeader,
+      topLevelOpts,
+      commands,
+      None
+    )
 
   def apply(
-    name: String,
+    commandName: String,
+    prettyName: String,
     helpHeader: String,
     commands: Seq[Command[Unit => Unit]]
   ): Application[()] =
     new Application(
-      name,
-      name,
+      commandName,
+      prettyName,
       helpHeader,
       Opts.pure { () => TopLevelBehavior.Continue(()) },
       commands,

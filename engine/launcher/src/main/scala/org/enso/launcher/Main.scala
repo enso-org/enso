@@ -245,6 +245,7 @@ object Main {
   private val application: Application[Config] =
     Application(
       "enso",
+      "Enso",
       "Enso Launcher",
       topLevelOpts,
       Seq(

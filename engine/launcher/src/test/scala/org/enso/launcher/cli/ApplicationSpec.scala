@@ -15,6 +15,7 @@ class ApplicationSpec
       var ranCommand: Option[String] = None
       val app = Application(
         "app",
+        "App",
         "Test app.",
         Seq(
           Command("cmd1", "cmd1") {
@@ -41,6 +42,7 @@ class ApplicationSpec
       var ranCommand: Option[String] = None
       val app = Application[String](
         "app",
+        "App",
         "Test app.", {
           val halt = Opts.flag("halt", "halt", showInUsage = false)
           val setting =
@@ -79,6 +81,7 @@ class ApplicationSpec
     var ranCommand: Option[String] = None
     val app = Application(
       "app",
+      "App",
       "Test app.",
       Seq(
         Command("cmd1", "cmd1") {

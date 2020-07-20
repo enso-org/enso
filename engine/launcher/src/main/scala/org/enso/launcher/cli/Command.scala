@@ -18,7 +18,7 @@ case class Command[A](name: String, comment: String)(
 
     val optionExplanations =
       Seq("[--help | -h]\tPrint this help message.") ++ opts.helpExplanations()
-    val options = optionExplanations.map("    " + _).mkString("\n")
+    val options = optionExplanations.map(CLIOutput.indent + _).mkString("\n")
     val optionsHelp =
       if (options.isEmpty) "" else "Available options:\n" + options + "\n\n"
 

@@ -9,9 +9,8 @@ class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
     lhs.prefixedParameters ++ rhs.prefixedParameters
   override private[cli] def usageOptions =
     lhs.usageOptions ++ rhs.usageOptions
-
-  //  override private[cli] val requiredParameters: Seq[String] =
-//    lhs.requiredParameters ++ rhs.requiredParameters
+  override private[cli] def gatherOptions =
+    lhs.gatherOptions ++ rhs.gatherOptions
 
   override private[cli] def wantsArgument() =
     lhs.wantsArgument() || rhs.wantsArgument()

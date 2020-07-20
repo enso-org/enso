@@ -40,8 +40,7 @@ trait Opts[A] {
 
   private[cli] def additionalArguments: Option[Seq[String] => Unit]
 
-  private[cli] def gatherParameterNames: Seq[String] =
-    (parameters.keys ++ flags.keys).toSeq
+  private[cli] def gatherOptions: Seq[(String, String)]
   private[cli] def gatherParameterPrefixes: Seq[String] =
     prefixedParameters.keys.toSeq
 

@@ -17,6 +17,8 @@ class Parameter[A: Argument](
     Map(name -> update)
   override private[cli] val usageOptions =
     Seq(s"--$name $metavar")
+  override private[cli] def gatherOptions =
+    Seq(name -> s"--$name $metavar")
 
   val empty = Right(None)
 

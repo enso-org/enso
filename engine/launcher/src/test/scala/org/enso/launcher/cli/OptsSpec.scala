@@ -22,7 +22,7 @@ class OptsSpec
     def parse(args: Seq[String]): Either[List[String], A] = {
       val (tokens, additionalArguments) = Parser.tokenize(args)
       Parser
-        .parseOpts(opts, tokens, additionalArguments, isTopLevel = false)
+        .parseOpts(opts, tokens, additionalArguments, isTopLevel = false, Seq("???"))
         .map(_._1)
     }
 
@@ -230,7 +230,6 @@ class OptsSpec
       Opts.pure("A").parseFailing("--parameter=x").head should include("Unknown")
     }
   }
-
 
   "subcommands" should {
     val opt = Opts.subcommands(

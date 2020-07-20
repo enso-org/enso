@@ -30,4 +30,6 @@ object CLIOutput {
   def println(text: String): Unit = {
     Predef.println(alignAndWrap(text))
   }
+
+  val indent: String = "    "
 }

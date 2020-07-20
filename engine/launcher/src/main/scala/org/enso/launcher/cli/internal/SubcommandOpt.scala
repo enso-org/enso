@@ -14,6 +14,8 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]]) extends Opts[A] {
     selectedCommand.map(_.opts.parameters).getOrElse(Map.empty)
   override private[cli] def prefixedParameters =
     selectedCommand.map(_.opts.prefixedParameters).getOrElse(Map.empty)
+  override private[cli] def gatherOptions =
+    selectedCommand.map(_.opts.gatherOptions).getOrElse(Seq())
   override private[cli] val usageOptions =
     subcommands.toList.flatMap(_.opts.usageOptions).distinct
 

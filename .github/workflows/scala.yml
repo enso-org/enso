@@ -53,15 +53,11 @@ jobs:
       - name: Install FlatBuffers Compiler
         run: conda install --freeze-installed flatbuffers=1.12.0
       - name: Setup GraalVM Environment
-        uses: DeLaGuardo/setup-graalvm@2.0
+        uses: rinx/setup-graalvm-ce@v0.0.4
         with:
-          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-      - name: Set Up Native Image (Windows)
-        if: runner.os == 'Windows'
-        run: gu.cmd -N install -n native-image
-      - name: Set Up Native Image (non-Windows)
-        if: runner.os != 'Windows'
-        run: gu -N install -n native-image
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
       - name: Set Up SBT
         run: |
           curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
@@ -262,15 +258,11 @@ jobs:
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.3.0
       - name: Setup GraalVM Environment
-        uses: DeLaGuardo/setup-graalvm@2.0
+        uses: rinx/setup-graalvm-ce@v0.0.4
         with:
-          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-      - name: Set Up Native Image (Windows)
-        if: runner.os == 'Windows'
-        run: gu.cmd -N install -n native-image
-      - name: Set Up Native Image (non-Windows)
-        if: runner.os != 'Windows'
-        run: gu -N install -n native-image
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
       - name: Set Up SBT
         run: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz

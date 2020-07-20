@@ -18,6 +18,8 @@ class OptionalParameter[A: Argument](
     Map(name -> update)
   override private[cli] val usageOptions =
     if (showInUsage) Seq(s"[--$name $metavar]") else Seq()
+  override private[cli] def gatherOptions =
+    Seq(name -> s"--$name $metavar")
 
   val empty = Right(None)
 

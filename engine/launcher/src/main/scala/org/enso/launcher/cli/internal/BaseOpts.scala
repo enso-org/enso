@@ -6,8 +6,9 @@ abstract class BaseOpts[A] extends Opts[A] {
   override private[cli] val flags: Map[String, () => Unit]          = Map.empty
   override private[cli] val parameters: Map[String, String => Unit] = Map.empty
   override private[cli] val prefixedParameters
-    : Map[String, (String, String) => Unit]           = Map.empty
-  override private[cli] val usageOptions: Seq[String] = Seq()
+    : Map[String, (String, String) => Unit]                      = Map.empty
+  override private[cli] val usageOptions: Seq[String]            = Seq()
+  override private[cli] def gatherOptions: Seq[(String, String)] = Seq()
 
   override private[cli] def wantsArgument() = false
   override private[cli] def consumeArgument(arg: String): Unit =

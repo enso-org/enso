@@ -45,29 +45,50 @@ object Parser {
     opts: Opts[A],
     tokens: Seq[Token],
     additionalArguments: Seq[String],
-    isTopLevel: Boolean
+    isTopLevel: Boolean,
+    command: Seq[String]
   ): Either[List[String], (A, Seq[Token])] = {
     var parseErrors: List[String] = Nil
     def addError(error: String): Unit = {
       parseErrors = error :: parseErrors
     }
-    def unknownParameter(parameter: String, orFlag: Boolean = false): Unit = {
-      val suggestions = Spelling
-        .suggestClosestMatches(parameter, opts.gatherParameterNames)
+    val helpCommand = command.mkString(" ") + " --help"
+    def unknownParameter(parameter: String): Unit = {
+      val similar =
+        Spelling
+          .selectClosestMatchesWithMetadata(parameter, opts.gatherOptions)
+          .map(_._2)
+      val suggestions =
+        if (similar.isEmpty) ""
+        else
+          "\n\nThe most similar options are\n" +
+          similar.map(CLIOutput.indent + _ + "\n").mkString
       val additional =
         if (opts.additionalArguments.isDefined)
           "\nIf the parameter is for a newer version, " +
           "you may have to include it after --."
         else ""
-      val orFlagStr = if (orFlag) " or flag" else ""
+
       addError(
-        s"Unknown parameter$orFlagStr $parameter." + suggestions + additional
+        s"Unknown option `$parameter`. See `$helpCommand`." + suggestions + additional
       )
     }
     def unknownPrefix(prefix: String): Unit = {
-      val suggestions =
-        Spelling.suggestClosestMatches(prefix, opts.gatherParameterPrefixes)
-      addError(s"Unknown parameter prefix $prefix." + suggestions)
+      val closestMatches =
+        Spelling.selectClosestMatches(prefix, opts.gatherParameterPrefixes)
+      val suggestions = closestMatches match {
+        case Seq()    => ""
+        case Seq(one) => s" Did you mean `$one`?"
+        case seq =>
+          val quoted = seq.map(s => s"`$s`")
+          val inits  = quoted.init.mkString(", ")
+          s" Did you mean $inits or ${quoted.last}?"
+      }
+
+      addError(
+        s"Unknown parameter prefix $prefix." + suggestions + "\n" +
+        s"See `$helpCommand` for a list of available options."
+      )
     }
 
     opts.reset()
@@ -112,7 +133,7 @@ object Parser {
               unknownPrefix(prefix)
             }
           } else {
-            unknownParameter(parameter, orFlag = true)
+            unknownParameter(parameter)
           }
         case ParameterWithValue(parameter, value) =>
           if (opts.parameters.contains(parameter)) {
@@ -162,7 +183,8 @@ object Parser {
       case Seq() =>
         singleError(
           s"Expected a command. " +
-          s"See ${application.commandName} --help for a list of available commands."
+          s"See `${application.commandName} --help` " +
+          s"for a list of available commands."
         )
       case Seq(PlainToken(commandName), commandArgs @ _*) =>
         application.commands.find(_.name == commandName) match {
@@ -177,7 +199,8 @@ object Parser {
                   command.opts,
                   commandArgs,
                   additionalArguments,
-                  isTopLevel = false
+                  isTopLevel = false,
+                  Seq(application.commandName, commandName)
                 )
                 .map(_._1)
                 .map(runner => () => runner(config))
@@ -188,12 +211,7 @@ object Parser {
               .getOrElse(PluginNotFound)
             pluginBehaviour match {
               case PluginNotFound =>
-                val commandNames = application.gatherCommandNames()
-                val suggestions =
-                  Spelling.suggestClosestMatches(commandName, commandNames)
-                singleError(
-                  s"`$commandName` is not an Enso command." + suggestions
-                )
+                singleError(application.commandSuggestions(commandName))
               case PluginInterceptedFlow(run) => Right(run)
             }
         }

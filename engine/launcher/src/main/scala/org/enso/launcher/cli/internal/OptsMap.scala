@@ -7,8 +7,8 @@ class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
   override private[cli] def parameters         = a.parameters
   override private[cli] def prefixedParameters = a.prefixedParameters
   override private[cli] def usageOptions       = a.usageOptions
-//  override private[cli] val requiredParameters: Seq[String] =
-//    a.requiredParameters
+  override private[cli] def gatherOptions =
+    a.gatherOptions
 
   override private[cli] def wantsArgument() = a.wantsArgument()
   override private[cli] def consumeArgument(arg: String): Unit =
