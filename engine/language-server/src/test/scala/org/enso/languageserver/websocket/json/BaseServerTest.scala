@@ -5,6 +5,7 @@ import java.util.UUID
 
 import akka.testkit.TestProbe
 import io.circe.literal._
+import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.languageserver.capability.CapabilityRouter
@@ -20,14 +21,10 @@ import org.enso.languageserver.protocol.json.{
   JsonConnectionControllerFactory,
   JsonRpc
 }
-import org.enso.languageserver.runtime.{
-  ContextRegistry,
-  SuggestionsDatabaseEventsListener,
-  SuggestionsHandler
-}
+import org.enso.languageserver.runtime.{ContextRegistry, SuggestionsHandler}
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.searcher.sql.SqlSuggestionsRepo
+import org.enso.searcher.sql.{SqlSuggestionsRepo, SqlVersionsRepo}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -36,19 +33,21 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
   val timeout: FiniteDuration = 3.seconds
 
-  val testSuggestionsDbPath = Files.createTempFile("suggestions", ".db")
   val testContentRoot       = Files.createTempDirectory(null).toRealPath()
   val testContentRootId     = UUID.randomUUID()
-  val config = Config(
-    Map(testContentRootId -> testContentRoot.toFile),
-    FileManagerConfig(timeout = 3.seconds),
-    PathWatcherConfig(),
-    ExecutionContextConfig(requestTimeout = 3.seconds)
-  )
+  val config                = mkConfig
   val runtimeConnectorProbe = TestProbe()
 
-  testContentRoot.toFile.deleteOnExit()
-  testSuggestionsDbPath.toFile.deleteOnExit()
+  sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
+
+  def mkConfig: Config =
+    Config(
+      Map(testContentRootId -> testContentRoot.toFile),
+      FileManagerConfig(timeout = 3.seconds),
+      PathWatcherConfig(),
+      ExecutionContextConfig(requestTimeout = 3.seconds),
+      DirectoriesConfig(testContentRoot.toFile)
+    )
 
   override def protocol: Protocol = JsonRpc.protocol
 
@@ -78,15 +77,27 @@ class BaseServerTest extends JsonRpcServerTestKit {
     )
 
   override def clientControllerFactory: ClientControllerFactory = {
-    val zioExec         = ZioExec(zio.Runtime.default)
-    val suggestionsRepo = SqlSuggestionsRepo()(system.dispatcher)
+    val zioExec = ZioExec(zio.Runtime.default)
+    val suggestionsRepo =
+      SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)(
+        system.dispatcher
+      )
+    val versionsRepo =
+      SqlVersionsRepo(config.directories.suggestionsDatabaseFile)(
+        system.dispatcher
+      )
     Await.ready(suggestionsRepo.init, timeout)
+    Await.ready(versionsRepo.init, timeout)
 
     val fileManager =
       system.actorOf(FileManager.props(config, new FileSystem, zioExec))
     val bufferRegistry =
       system.actorOf(
-        BufferRegistry.props(fileManager, runtimeConnectorProbe.ref)(
+        BufferRegistry.props(
+          versionsRepo,
+          fileManager,
+          runtimeConnectorProbe.ref
+        )(
           Sha3_224VersionCalculator
         )
       )
@@ -100,9 +111,9 @@ class BaseServerTest extends JsonRpcServerTestKit {
         ContextRegistry.props(config, runtimeConnectorProbe.ref, sessionRouter)
       )
 
-    val suggestionsDatabaseEventsListener =
+    val suggestionsHandler =
       system.actorOf(
-        SuggestionsDatabaseEventsListener.props(sessionRouter, suggestionsRepo)
+        SuggestionsHandler.props(config, suggestionsRepo, sessionRouter)
       )
 
     val capabilityRouter =
@@ -110,12 +121,9 @@ class BaseServerTest extends JsonRpcServerTestKit {
         CapabilityRouter.props(
           bufferRegistry,
           fileEventRegistry,
-          suggestionsDatabaseEventsListener
+          suggestionsHandler
         )
       )
-
-    val suggestionsHandler =
-      system.actorOf(SuggestionsHandler.props(suggestionsRepo))
 
     new JsonConnectionControllerFactory(
       bufferRegistry,

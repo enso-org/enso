@@ -1,13 +1,9 @@
 package org.enso.searcher
 
+import org.enso.polyglot.Suggestion
+
 /** The object for accessing the suggestions database. */
 trait SuggestionsRepo[F[_]] {
-
-  /** Initialize the repo. */
-  def init: F[Unit]
-
-  /** Clean the repo. */
-  def clean: F[Unit]
 
   /** Get current version of the repo. */
   def currentVersion: F[Long]
@@ -20,15 +16,19 @@ trait SuggestionsRepo[F[_]] {
 
   /** Search suggestion by various parameters.
     *
+    * @param module the module name search parameter
     * @param selfType the selfType search parameter
     * @param returnType the returnType search parameter
     * @param kinds the list suggestion kinds to search
+    * @param position the absolute position in the text
     * @return the current database version and the list of found suggestion ids
     */
   def search(
+    module: Option[String],
     selfType: Option[String],
     returnType: Option[String],
-    kinds: Option[Seq[Suggestion.Kind]]
+    kinds: Option[Seq[Suggestion.Kind]],
+    position: Option[Suggestion.Position]
   ): F[(Long, Seq[Long])]
 
   /** Select the suggestion by id.
@@ -59,10 +59,26 @@ trait SuggestionsRepo[F[_]] {
     */
   def remove(suggestion: Suggestion): F[Option[Long]]
 
+  /** Remove suggestions by module name.
+    *
+    * @param name the module name
+    * @return the current database version and a list of removed suggestion ids
+    */
+  def removeByModule(name: String): F[(Long, Seq[Long])]
+
   /** Remove a list of suggestions.
     *
     * @param suggestions the suggestions to remove
     * @return the current database version and a list of removed suggestion ids
     */
   def removeAll(suggestions: Seq[Suggestion]): F[(Long, Seq[Option[Long]])]
+
+  /** Update a list of suggestions by external id.
+    *
+    * @param expressions pairs of external id and a return type
+    * @return the current database version and a list of updated suggestion ids
+    */
+  def updateAll(
+    expressions: Seq[(Suggestion.ExternalId, String)]
+  ): F[(Long, Seq[Option[Long]])]
 }

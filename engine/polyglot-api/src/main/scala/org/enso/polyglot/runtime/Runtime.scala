@@ -11,7 +11,7 @@ import com.fasterxml.jackson.module.scala.{
   DefaultScalaModule,
   ScalaObjectMapper
 }
-import org.enso.searcher.Suggestion
+import org.enso.polyglot.Suggestion
 import org.enso.text.editing.model.TextEdit
 
 import scala.util.Try
@@ -163,6 +163,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.SuggestionsDatabaseUpdateNotification],
         name  = "suggestionsDatabaseUpdateNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.SuggestionsDatabaseReIndexNotification],
+        name  = "suggestionsDatabaseReindexNotification"
       )
     )
   )
@@ -565,9 +569,13 @@ object Runtime {
       *
       * @param path the file being moved to memory.
       * @param contents the current file contents.
+      * @param isIndexed the flag specifying whether the file is indexed
       */
-    case class OpenFileNotification(path: File, contents: String)
-        extends ApiRequest
+    case class OpenFileNotification(
+      path: File,
+      contents: String,
+      isIndexed: Boolean
+    ) extends ApiRequest
 
     /**
       * A notification sent to the server about in-memory file contents being
@@ -672,8 +680,10 @@ object Runtime {
 
     /**
       * Signals that project has been renamed.
+      *
+      * @param newName the new project name
       */
-    case class ProjectRenamed() extends ApiResponse
+    case class ProjectRenamed(newName: String) extends ApiResponse
 
     /**
       * A notification about the change in the suggestions database.
@@ -682,6 +692,17 @@ object Runtime {
       */
     case class SuggestionsDatabaseUpdateNotification(
       updates: Seq[SuggestionsDatabaseUpdate]
+    ) extends ApiNotification
+
+    /**
+      * A notification about the re-indexed module updates.
+      *
+      * @param moduleName the name of re-indexed module
+      * @param updates the list of database updates
+      */
+    case class SuggestionsDatabaseReIndexNotification(
+      moduleName: String,
+      updates: Seq[SuggestionsDatabaseUpdate.Add]
     ) extends ApiNotification
 
     private lazy val mapper = {

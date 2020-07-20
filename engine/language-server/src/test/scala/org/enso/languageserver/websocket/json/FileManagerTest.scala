@@ -6,12 +6,28 @@ import java.util.UUID
 
 import io.circe.literal._
 import org.apache.commons.io.FileUtils
+import org.enso.languageserver.data._
 import org.enso.testkit.RetrySpec
 
+import scala.concurrent.duration._
+
 class FileManagerTest extends BaseServerTest with RetrySpec {
+
+  override def mkConfig: Config = {
+    val directoriesDir = Files.createTempDirectory(null).toRealPath()
+    sys.addShutdownHook(FileUtils.deleteQuietly(directoriesDir.toFile))
+    Config(
+      Map(testContentRootId -> testContentRoot.toFile),
+      FileManagerConfig(timeout = 3.seconds),
+      PathWatcherConfig(),
+      ExecutionContextConfig(requestTimeout = 3.seconds),
+      DirectoriesConfig(directoriesDir.toFile)
+    )
+  }
+
   "File Server" must {
 
-    "write textual content to a file" taggedAs Retry() in {
+    "write textual content to a file" taggedAs Retry in {
       val client = getInitialisedWsClient()
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -760,6 +776,7 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
     "get a root tree" in withCleanRoot {
       val client = getInitialisedWsClient()
+
       // create:
       //
       // base
@@ -1407,7 +1424,8 @@ class FileManagerTest extends BaseServerTest with RetrySpec {
 
       // create symlink base3/link -> $testOtherRoot
       val testOtherRoot = Files.createTempDirectory(null)
-      val symlink       = Paths.get(testContentRoot.toString, "base3", "link")
+      sys.addShutdownHook(FileUtils.deleteQuietly(testOtherRoot.toFile))
+      val symlink = Paths.get(testContentRoot.toString, "base3", "link")
       Files.createSymbolicLink(symlink, testOtherRoot)
       Files.isSymbolicLink(symlink) shouldBe true
 

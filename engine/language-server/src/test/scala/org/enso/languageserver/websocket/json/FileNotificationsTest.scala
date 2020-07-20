@@ -4,16 +4,16 @@ import java.io.File
 
 import io.circe.literal._
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.RetrySpec
+import org.enso.testkit.FlakySpec
 import org.enso.text.editing.model.{Position, Range, TextEdit}
 
-class FileNotificationsTest extends BaseServerTest with RetrySpec {
+class FileNotificationsTest extends BaseServerTest with FlakySpec {
 
   def file(name: String): File = new File(testContentRoot.toFile, name)
 
   "text operations" should {
 
-    "notify runtime about operations with files" taggedAs Retry() in {
+    "notify runtime about operations with files" taggedAs Flaky in {
       // Interaction:
       // 1.  Client 1 creates a file.
       // 2.  Client 1 opens the file.
@@ -87,7 +87,9 @@ class FileNotificationsTest extends BaseServerTest with RetrySpec {
           """)
       // 4
       runtimeConnectorProbe.expectMsg(
-        Api.Request(Api.OpenFileNotification(file("foo.txt"), "123456789"))
+        Api.Request(
+          Api.OpenFileNotification(file("foo.txt"), "123456789", false)
+        )
       )
 
       // 5

@@ -8,7 +8,7 @@ import org.enso.languageserver.runtime.SearchApi.{
   GetSuggestionsDatabaseVersion,
   SuggestionsDatabaseError
 }
-import org.enso.languageserver.runtime.SearchProtocol
+import org.enso.languageserver.runtime.{SearchFailureMapper, SearchProtocol}
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -53,6 +53,9 @@ class GetSuggestionsDatabaseVersionHandler(
       log.error(s"Request $id timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
+
+    case msg: SearchProtocol.SearchFailure =>
+      replyTo ! ResponseError(Some(id), SearchFailureMapper.mapFailure(msg))
 
     case SearchProtocol.GetSuggestionsDatabaseVersionResult(version) =>
       replyTo ! ResponseResult(

@@ -22,7 +22,7 @@ class WatcherAdapterSpec
 
   final val Timeout: FiniteDuration = 5.seconds
 
-  it should "get create events" taggedAs Retry() in withWatcher {
+  it should "get create events" taggedAs Retry in withWatcher {
     (path, events) =>
       val fileA = Paths.get(path.toString, "a.txt")
       Files.createFile(fileA)
@@ -30,7 +30,7 @@ class WatcherAdapterSpec
       event shouldBe WatcherAdapter.WatcherEvent(fileA, EventTypeCreate)
   }
 
-  it should "get delete events" taggedAs Retry() in withWatcher {
+  it should "get delete events" taggedAs Retry in withWatcher {
     (path, events) =>
       val fileA = Paths.get(path.toString, "a.txt")
 
@@ -43,7 +43,7 @@ class WatcherAdapterSpec
       event2 shouldBe WatcherEvent(fileA, EventTypeDelete)
   }
 
-  it should "get modify events" taggedAs Retry() in withWatcher {
+  it should "get modify events" taggedAs Retry in withWatcher {
     (path, events) =>
       val fileA = Paths.get(path.toString, "a.txt")
 
@@ -56,7 +56,7 @@ class WatcherAdapterSpec
       event2 shouldBe WatcherEvent(fileA, EventTypeModify)
   }
 
-  it should "get events from subdirectories" taggedAs Retry() in withWatcher {
+  it should "get events from subdirectories" taggedAs Retry in withWatcher {
     (path, events) =>
       val subdir = Paths.get(path.toString, "subdir")
       val fileA  = Paths.get(path.toString, "subdir", "a.txt")
