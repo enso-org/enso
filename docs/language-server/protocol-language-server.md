@@ -729,10 +729,6 @@ client.
 
 ```typescript
 {
-  registration: CapabilityRegistration;
-}
-
-interface CapabilityRegistration {
   method: String;
   registerOptions?: any;
 }
