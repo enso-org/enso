@@ -82,7 +82,9 @@ jobs:
       # Tests
       - name: Setup Tests on Windows
         if: runner.os == 'Windows'
-        run: echo '::set-env name=CI_TEST_TIMEFACTOR::2'
+        run: |
+          echo '::set-env name=CI_TEST_TIMEFACTOR::2'
+          echo '::set-env name=CI_TEST_FLAKY_ENABLE::true'
       - name: Test Enso
         run: sbt --no-colors test
       - name: Check Runtime Benchmark Compilation

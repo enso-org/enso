@@ -24,7 +24,7 @@ import org.enso.languageserver.protocol.json.{
 import org.enso.languageserver.runtime.{ContextRegistry, SuggestionsHandler}
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.searcher.sql.{SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -77,15 +77,10 @@ class BaseServerTest extends JsonRpcServerTestKit {
     )
 
   override def clientControllerFactory: ClientControllerFactory = {
-    val zioExec = ZioExec(zio.Runtime.default)
-    val suggestionsRepo =
-      SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)(
-        system.dispatcher
-      )
-    val versionsRepo =
-      SqlVersionsRepo(config.directories.suggestionsDatabaseFile)(
-        system.dispatcher
-      )
+    val zioExec         = ZioExec(zio.Runtime.default)
+    val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
+    val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
+    val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
     Await.ready(suggestionsRepo.init, timeout)
     Await.ready(versionsRepo.init, timeout)
 
