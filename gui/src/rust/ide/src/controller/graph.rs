@@ -1256,7 +1256,7 @@ main =
         impl Case {
             fn run(&self) {
                 let mut test  = Fixture::set_up();
-                const MAIN_PREFIX:&str = "main = \n    in = foo\n    ";
+                const MAIN_PREFIX:&str = "main = \n    var = foo\n    ";
                 let main     = format!("{}{}",MAIN_PREFIX,self.dest_node_expr);
                 let expected = format!("{}{}",MAIN_PREFIX,self.dest_node_expected);
                 let this     = self.clone();
@@ -1272,20 +1272,20 @@ main =
         }
 
         let cases = &
-            [ Case {dest_node_expr:"foo in"             , dest_node_expected:"foo _"              }
-            , Case {dest_node_expr:"foo in a"           , dest_node_expected:"foo _ a"            }
-            , Case {dest_node_expr:"foo a in"           , dest_node_expected:"foo a"              }
-            , Case {dest_node_expr:"in + a"             , dest_node_expected:"_ + a"              }
-            , Case {dest_node_expr:"a + in"             , dest_node_expected:"a + _"              }
-            , Case {dest_node_expr:"in + b + c"         , dest_node_expected:"_ + b + c"          }
-            , Case {dest_node_expr:"a + in + c"         , dest_node_expected:"a + _ + c"          }
-            , Case {dest_node_expr:"a + b + in"         , dest_node_expected:"a + b"              }
-            , Case {dest_node_expr:"in , a"             , dest_node_expected:"_ , a"              }
-            , Case {dest_node_expr:"a , in"             , dest_node_expected:"a , _"              }
-            , Case {dest_node_expr:"in , b , c"         , dest_node_expected:"_ , b , c"          }
-            , Case {dest_node_expr:"a , in , c"         , dest_node_expected:"a , _ , c"          }
-            , Case {dest_node_expr:"a , b , in"         , dest_node_expected:"a , b"              }
-            , Case {dest_node_expr:"f\n        bar a in", dest_node_expected: "f\n        bar a _"}
+            [ Case {dest_node_expr:"foo var"             , dest_node_expected:"foo _"              }
+            , Case {dest_node_expr:"foo var a"           , dest_node_expected:"foo _ a"            }
+            , Case {dest_node_expr:"foo a var"           , dest_node_expected:"foo a"              }
+            , Case {dest_node_expr:"var + a"             , dest_node_expected:"_ + a"              }
+            , Case {dest_node_expr:"a + var"             , dest_node_expected:"a + _"              }
+            , Case {dest_node_expr:"var + b + c"         , dest_node_expected:"_ + b + c"          }
+            , Case {dest_node_expr:"a + var + c"         , dest_node_expected:"a + _ + c"          }
+            , Case {dest_node_expr:"a + b + var"         , dest_node_expected:"a + b"              }
+            , Case {dest_node_expr:"var , a"             , dest_node_expected:"_ , a"              }
+            , Case {dest_node_expr:"a , var"             , dest_node_expected:"a , _"              }
+            , Case {dest_node_expr:"var , b , c"         , dest_node_expected:"_ , b , c"          }
+            , Case {dest_node_expr:"a , var , c"         , dest_node_expected:"a , _ , c"          }
+            , Case {dest_node_expr:"a , b , var"         , dest_node_expected:"a , b"              }
+            , Case {dest_node_expr:"f\n        bar a var", dest_node_expected: "f\n        bar a _"}
             ];
         for case in cases {
             case.run();
