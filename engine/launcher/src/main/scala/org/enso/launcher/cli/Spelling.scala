@@ -1,34 +1,61 @@
 package org.enso.launcher.cli
 
 object Spelling {
+
+  /**
+    * Selects closest matches to a potentially mistyped name.
+    * @param typo the unknown name that the user typed
+    * @param possibleWords a sequence of words that were expected
+    * @return a sequence of `possibleWords` that are most similar to `typo`
+    */
   def selectClosestMatches(
     typo: String,
     possibleWords: Seq[String]
   ): Seq[String] =
     selectClosestMatchesWithMetadata(typo, possibleWords.map((_, ()))).map(_._1)
 
-  private val maxScoreThreshold: Double = 10.0
-  private val topSelectionsLimit        = 3
+  /**
+    * Selects closest matches to a potentially mistyped name, returning not only
+    * the matches but any metadata that was passed with them. May be useful for
+    * including additional text in the match suggestions.
+    *
+    * @param typo the unknown name that the user typed
+    * @param possibleMatches a sequence of tuples (word, metadata)
+    * @tparam A type of metadata
+    * @return a sequence of tuples from `possibleMatches` whose first elements
+    *         were most similar to `typo`
+    */
   def selectClosestMatchesWithMetadata[A](
     typo: String,
-    possibleWords: Seq[(String, A)]
+    possibleMatches: Seq[(String, A)]
   ): Seq[(String, A)] =
     if (
-      possibleWords.isEmpty ||
-      typo.length > 2 * possibleWords.map(_._1.length).max
+      possibleMatches.isEmpty ||
+      typo.length > 2 * possibleMatches.map(_._1.length).max
     ) Seq()
     else {
       val withScores =
-        possibleWords.map(word => (scoreNeedlemanWunsch(typo, word._1), word))
+        possibleMatches.map(word => (scoreNeedlemanWunsch(typo, word._1), word))
       val top = withScores
         .filter(_._1 < maxScoreThreshold)
         .sortBy(_._1)
-        .take(topSelectionsLimit)
+        .take(topSuggestionsLimit)
       top.map(_._2)
     }
 
   /**
-    * Compute the similarity score between two words using the Needleman-Wunsch
+    * A threshold for the Needleman-Wunsch similarity score. Any matches above
+    * that threshold are not considered.
+    */
+  private val maxScoreThreshold: Double = 10.0
+
+  /**
+    * The limit of how many suggestions should be displayed at most.
+    */
+  private val topSuggestionsLimit = 3
+
+  /**
+    * Computes the similarity score between two words using the Needleman-Wunsch
     * algorithm, as described at
     * https://en.wikipedia.org/wiki/Needleman%E2%80%93Wunsch_algorithm
     *
@@ -109,6 +136,10 @@ object Spelling {
     Map.from(tuples)
   }
 
+  /**
+    * Approximates distance between two keys on a QWERTY keyboard. If a provided
+    * character is not contained in the set of basic keys, None is returned.
+    */
   def keyboardDistance(from: Char, to: Char): Option[Double] =
     for {
       (x1, y1) <- keyboardMap.get(from)

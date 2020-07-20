@@ -7,7 +7,7 @@ class AdditionalArguments(helpComment: String) extends BaseOpts[Seq[String]] {
   override private[cli] def result()      = Right(value)
   override private[cli] def reset(): Unit = value = Seq()
 
-  override def helpExplanations(): Seq[String] =
+  override def availableOptionsHelp(): Seq[String] =
     if (helpComment.nonEmpty) {
       Seq(helpComment)
     } else Seq()

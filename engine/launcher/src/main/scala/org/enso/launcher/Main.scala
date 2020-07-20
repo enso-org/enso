@@ -9,6 +9,7 @@ import org.enso.launcher.cli.{
   CLIOutput,
   Command,
   Opts,
+  Subcommand,
   TopLevelBehavior
 }
 import org.enso.launcher.cli.Opts._
@@ -154,23 +155,26 @@ object Main {
       }
     }
 
-  private def installEngineCommand: Command[Config => Unit] =
-    Command("engine", "Install a selected Enso engine version.") {
+  private def installEngineCommand: Subcommand[Config => Unit] =
+    Subcommand("engine") {
       val version = Opts.positionalArgument[String]("VERSION")
       version map { version => (_: Config) =>
         println(s"Install $version")
       }
     }
 
-  private def installDistributionCommand: Command[Config => Unit] =
-    Command("distribution", "Install a distribution locally.") {
+  private def installDistributionCommand: Subcommand[Config => Unit] =
+    Subcommand("distribution") {
       Opts.pure { (_: Config) =>
         println(s"Install distribution")
       }
     }
 
   private def installCommand: Command[Config => Unit] =
-    Command("install", "Install engine or distribution.") {
+    Command(
+      "install",
+      "Install a new version of engine or install the distribution locally."
+    ) {
       Opts.subcommands(installEngineCommand, installDistributionCommand)
     }
 
@@ -271,7 +275,7 @@ object Main {
     )
 
   private def printTopLevelHelp(): Unit = {
-    CLIOutput.println(application.displayHelp())
+    CLIOutput.println(application.renderHelp())
   }
 
   def main(args: Array[String]): Unit = {

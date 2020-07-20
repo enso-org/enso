@@ -40,7 +40,7 @@ class Flag(
 
   override private[cli] def result() = value
 
-  override def helpExplanations(): Seq[String] =
+  override def availableOptionsHelp(): Seq[String] =
     short match {
       case Some(short) =>
         Seq(s"[-$short | --$name]\t$helpComment")

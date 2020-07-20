@@ -10,10 +10,25 @@ import org.enso.launcher.cli.{
   Spelling
 }
 
-sealed trait Token
-case class PlainToken(value: String)                            extends Token
-case class ParameterOrFlag(parameter: String)                   extends Token
-case class ParameterWithValue(parameter: String, value: String) extends Token
+/**
+  * A token used in the parser.
+  */
+sealed trait Token {
+
+  /**
+    * The original value that this token has been created from.
+    *
+    * Used to reverse the tokenization process.
+    */
+  def originalValue: String
+}
+case class PlainToken(override val originalValue: String) extends Token
+case class ParameterOrFlag(parameter: String)(
+  override val originalValue: String
+) extends Token
+case class ParameterWithValue(parameter: String, value: String)(
+  override val originalValue: String
+) extends Token
 
 class TokenProvider(initialTokens: Seq[Token], errorReporter: String => Unit) {
   var tokens: List[Token] = initialTokens.toList
@@ -77,7 +92,10 @@ object Parser {
     }
     def unknownPrefix(prefix: String): Unit = {
       val closestMatches =
-        Spelling.selectClosestMatches(prefix, opts.gatherParameterPrefixes)
+        Spelling.selectClosestMatches(
+          prefix,
+          opts.prefixedParameters.keys.toSeq
+        )
       val suggestions = closestMatches match {
         case Seq()    => ""
         case Seq(one) => s" Did you mean `$one`?"
@@ -238,7 +256,7 @@ object Parser {
                 pluginBehaviour match {
                   case PluginNotFound =>
                     singleError(application.commandSuggestions(commandName))
-                  case PluginInterceptedFlow(run) => Right(run)
+                  case PluginInterceptedFlow => Right(() => ())
                 }
             }
         }
@@ -283,9 +301,9 @@ object Parser {
   def tokenize(args: Seq[String]): (Seq[Token], Seq[String]) = {
     def toToken(arg: String): Token =
       arg match {
-        case paramWithValue(name, value) => ParameterWithValue(name, value)
-        case longParam(name)             => ParameterOrFlag(name)
-        case shortParam(name)            => ParameterOrFlag(name)
+        case paramWithValue(name, value) => ParameterWithValue(name, value)(arg)
+        case longParam(name)             => ParameterOrFlag(name)(arg)
+        case shortParam(name)            => ParameterOrFlag(name)(arg)
         case _                           => PlainToken(arg)
       }
 
@@ -293,14 +311,6 @@ object Parser {
     (localArgs.map(toToken), rest)
   }
 
-  def untokenize(tokens: Seq[Token]): Seq[String] = {
-    def fromToken(arg: Token): String =
-      arg match {
-        case PlainToken(value)                    => value
-        case ParameterOrFlag(parameter)           => s"--$parameter"
-        case ParameterWithValue(parameter, value) => s"--$parameter=$value"
-      }
-
-    tokens.map(fromToken)
-  }
+  def untokenize(tokens: Seq[Token]): Seq[String] =
+    tokens.map(_.originalValue)
 }

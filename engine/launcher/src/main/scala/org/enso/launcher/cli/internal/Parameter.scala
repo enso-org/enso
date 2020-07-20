@@ -42,7 +42,7 @@ class Parameter[A: Argument](
       case None        => Left(List(s"Missing required parameter $name"))
     }
 
-  override def helpExplanations(): Seq[String] = {
+  override def availableOptionsHelp(): Seq[String] = {
     Seq(s" --$name $metavar\t$helpComment")
   }
 }

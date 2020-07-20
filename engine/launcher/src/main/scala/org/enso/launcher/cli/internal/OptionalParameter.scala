@@ -39,7 +39,7 @@ class OptionalParameter[A: Argument](
 
   override private[cli] def result() = value
 
-  override def helpExplanations(): Seq[String] = {
+  override def availableOptionsHelp(): Seq[String] = {
     Seq(s"[--$name $metavar]\t$helpComment")
   }
 }

@@ -1,12 +1,13 @@
 package org.enso.launcher.cli.internal
 
 import cats.data.NonEmptyList
-import org.enso.launcher.cli.{CLIOutput, Command, Opts, Spelling}
+import org.enso.launcher.cli.{CLIOutput, Opts, Spelling, Subcommand}
 
-class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]]) extends Opts[A] {
-  var selectedCommand: Option[Command[A]] = None
-  var errors: List[String]                = Nil
-  def addError(error: String): Unit       = errors ::= error
+class SubcommandOpt[A](subcommands: NonEmptyList[Subcommand[A]])
+    extends Opts[A] {
+  var selectedCommand: Option[Subcommand[A]] = None
+  var errors: List[String]                   = Nil
+  def addError(error: String): Unit          = errors ::= error
 
   override private[cli] def flags =
     selectedCommand.map(_.opts.flags).getOrElse(Map.empty)
@@ -68,14 +69,14 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]]) extends Opts[A] {
           Left(List("Expected a subcommand."))
       }
 
-  override def helpExplanations(): Seq[String] =
-    subcommands.toList.flatMap(_.opts.helpExplanations()).distinct
+  override def availableOptionsHelp(): Seq[String] =
+    subcommands.toList.flatMap(_.opts.availableOptionsHelp()).distinct
 
   override def additionalHelp(): Seq[String] =
     subcommands.toList.flatMap(_.opts.additionalHelp()).distinct
 
   override def commandLines(): NonEmptyList[String] = {
-    def prefixedCommandLines(command: Command[_]): NonEmptyList[String] =
+    def prefixedCommandLines(command: Subcommand[_]): NonEmptyList[String] =
       command.opts.commandLines().map(command.name + " " + _)
 
     subcommands.flatMap(prefixedCommandLines)

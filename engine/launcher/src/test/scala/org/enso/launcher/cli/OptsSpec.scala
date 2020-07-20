@@ -233,10 +233,10 @@ class OptsSpec
 
   "subcommands" should {
     val opt = Opts.subcommands(
-      Command("cmd1", "") {
+      Subcommand("cmd1") {
         Opts.flag("flag1", "", showInUsage = true).map((1, _))
       },
-      Command("cmd2", "") {
+      Subcommand("cmd2") {
         Opts.flag("flag2", "", showInUsage = true).map((2, _))
       }
     )

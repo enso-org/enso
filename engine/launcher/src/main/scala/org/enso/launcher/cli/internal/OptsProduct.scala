@@ -46,8 +46,8 @@ class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
       r <- rhs.result()
     } yield (l, r)
 
-  override def helpExplanations(): Seq[String] =
-    lhs.helpExplanations() ++ rhs.helpExplanations()
+  override def availableOptionsHelp(): Seq[String] =
+    lhs.availableOptionsHelp() ++ rhs.availableOptionsHelp()
   override def additionalHelp(): Seq[String] =
     lhs.additionalHelp() ++ rhs.additionalHelp()
 }

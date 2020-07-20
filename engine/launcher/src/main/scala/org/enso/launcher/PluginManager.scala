@@ -14,9 +14,24 @@ import org.enso.launcher.cli.{
 import scala.collection.Factory
 import scala.util.Try
 import scala.jdk.StreamConverters._
+import scala.util.control.NonFatal
 
+/**
+  * An abstraction of the system environment.
+  */
 trait SystemEnvironment {
+
+  /**
+    * Returns the system PATH, if available.
+    */
   def getSystemPath: Option[String]
+
+  /**
+    * Returns a list of system-dependent plugin extensions.
+    *
+    * By default, on Unix plugins should have no extensions. On Windows, `.exe`
+    * and `.bat` are supported.
+    */
   def getPluginExtensions: Seq[String] =
     if (System.getProperty("os.name").toLowerCase.contains("windows"))
       Seq("bat", "exe")
@@ -24,19 +39,48 @@ trait SystemEnvironment {
 
 }
 
+/**
+  * Implements a [[cli.PluginManager]] using the provided [[SystemEnvironment]].
+  */
 class PluginManagerImplementation(environment: SystemEnvironment)
     extends cli.PluginManager {
+
+  /**
+    * Checks if the provided name represents a valid plugin and tries to run it.
+    * @param name name of the plugin
+    * @param args arguments that should be passed to it
+    * @return
+    */
   override def tryRunningPlugin(
     name: String,
     args: Seq[String]
   ): PluginBehaviour =
     if (hasPlugin(name)) {
-      PluginInterceptedFlow(() => {
+      try {
         val exitCode = (Seq(pluginCommandForName(name)) ++ args).!
         System.exit(exitCode)
-      })
+        PluginInterceptedFlow
+      } catch {
+        case NonFatal(_) =>
+          System.err.println(
+            s"A plugin `$name` was found on system PATH, " +
+            s"but it could not be executed."
+          )
+          PluginNotFound
+      }
+
     } else PluginNotFound
 
+  private val pluginPrefix           = "enso-"
+  private val synopsisOption: String = "--synopsis"
+
+  /**
+    * Traverses all directories in the system PATH, looking for executable files
+    * which names start with `enso-`. A valid plugin must support a `synopsis`
+    * option, i.e. running `enso-foo --synopsis` should return a short
+    * description of the plugin and return with exit code 0 for the plugin to be
+    * considered valid.
+    */
   override def pluginsHelp(): Seq[CommandHelp] = {
 
     /**
@@ -58,15 +102,16 @@ class PluginManagerImplementation(environment: SystemEnvironment)
       file      <- Files.list(directory).toScala(Factory.arrayFactory)
       if Files.isExecutable(file)
       pluginName  <- pluginNameForExecutable(file.getFileName.toString)
-      description <- describePlugin(pluginName)
+      description <- tryDescribingPlugin(pluginName)
     } yield CommandHelp(pluginName, description)
   }
 
   override def pluginsNames(): Seq[String] = pluginsHelp().map(_.name)
 
-  val synopsisOption: String                   = "--synopsis"
-  private def hasPlugin(name: String): Boolean = describePlugin(name).isDefined
-  def describePlugin(name: String): Option[String] = {
+  private def hasPlugin(name: String): Boolean =
+    tryDescribingPlugin(name).isDefined
+
+  private def tryDescribingPlugin(name: String): Option[String] = {
     def canonicalizeDescription(description: String): String =
       description.replace("\n", " ").trim
     val noOpLogger = new ProcessLogger {
@@ -78,8 +123,8 @@ class PluginManagerImplementation(environment: SystemEnvironment)
     Try(command.!!(noOpLogger)).toOption.map(canonicalizeDescription)
   }
 
-  private val pluginPrefix                               = "enso-"
   private def pluginCommandForName(name: String): String = pluginPrefix + name
+
   private def pluginNameForExecutable(executableName: String): Option[String] =
     if (executableName.startsWith(pluginPrefix)) {
       Some(stripPlatformSuffix(executableName.stripPrefix(pluginPrefix)))
@@ -95,6 +140,9 @@ class PluginManagerImplementation(environment: SystemEnvironment)
   }
 }
 
+/**
+  * Implements the default [[SystemEnvironment]].
+  */
 object LocalSystemEnvironment extends SystemEnvironment {
   override def getSystemPath: Option[String] = Option(System.getenv("PATH"))
 }

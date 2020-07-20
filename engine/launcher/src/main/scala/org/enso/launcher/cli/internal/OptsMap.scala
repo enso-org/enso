@@ -24,6 +24,6 @@ class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
 
   override private[cli] def result() = a.result().map(f)
 
-  override def helpExplanations(): Seq[String] = a.helpExplanations()
-  override def additionalHelp(): Seq[String]   = a.additionalHelp()
+  override def availableOptionsHelp(): Seq[String] = a.availableOptionsHelp()
+  override def additionalHelp(): Seq[String]       = a.additionalHelp()
 }
