@@ -9,21 +9,18 @@ trait RetrySpec extends TestSuite {
     *
     * @param times the number of attempted retries
     */
-  case class Retry(times: Int) extends Tag(Retry.tagName(times)) {
+  case class Retry(times: Int) extends Tag(RetryTag.name(times)) {
     assert(times > 0, "number of retries should be a positive number")
   }
 
-  case object Retry {
+  case object Retry extends Tag(RetryTag.name(1))
 
-    /** Retry the test a single time. */
-    def apply(): Retry =
-      new Retry(1)
-
+  protected object RetryTag {
     val Name      = "org.enso.test.retry"
     val Separator = "-"
 
     /** Create the tag name. */
-    def tagName(n: Int): String =
+    def name(n: Int): String =
       s"$Name$Separator$n"
 
     /** Parse the number of retries from the tag name. */
@@ -43,9 +40,9 @@ trait RetrySpec extends TestSuite {
         }
       } else outcomes.head
 
-    test.tags.find(_.contains(Retry.Name)) match {
+    test.tags.find(_.contains(RetryTag.Name)) match {
       case Some(tag) =>
-        go(Retry.parseRetries(tag) + 1, Nil)
+        go(RetryTag.parseRetries(tag) + 1, Nil)
       case None =>
         super.withFixture(test)
     }

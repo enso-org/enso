@@ -51,7 +51,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val gen = new ObservableGenerator[ZEnv]()
 
   val testProjectsRoot = Files.createTempDirectory(null).toFile
-  testProjectsRoot.deleteOnExit()
+  sys.addShutdownHook(FileUtils.deleteQuietly(testProjectsRoot))
 
   val userProjectDir = new File(testProjectsRoot, "projects")
 
@@ -132,11 +132,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   override def afterEach(): Unit = {
     super.afterEach()
-    try FileUtils.deleteDirectory(testProjectsRoot)
-    catch {
-      case ex: java.io.IOException =>
-        system.log.error(ex, s"Failed to cleanup $testProjectsRoot")
-    }
+    FileUtils.deleteQuietly(testProjectsRoot)
   }
 
 }

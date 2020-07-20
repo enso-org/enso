@@ -21,13 +21,13 @@ import org.enso.languageserver.util.UnhandledLogging
   * @param bufferRegistry the recipient of buffer capability requests
   * @param receivesTreeUpdatesHandler the recipient of
   * `receivesTreeUpdates` capability requests
-  * @param suggestionsDatabaseEventsListener the recipient of
+  * @param suggestionsHandler the recipient of
   * `receivesSuggestionsDatabaseUpdates` capability requests
   */
 class CapabilityRouter(
   bufferRegistry: ActorRef,
   receivesTreeUpdatesHandler: ActorRef,
-  suggestionsDatabaseEventsListener: ActorRef
+  suggestionsHandler: ActorRef
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -58,13 +58,13 @@ class CapabilityRouter(
           _,
           CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
-      suggestionsDatabaseEventsListener.forward(msg)
+      suggestionsHandler.forward(msg)
 
     case msg @ ReleaseCapability(
           _,
           CapabilityRegistration(ReceivesSuggestionsDatabaseUpdates())
         ) =>
-      suggestionsDatabaseEventsListener.forward(msg)
+      suggestionsHandler.forward(msg)
   }
 
 }
@@ -77,20 +77,20 @@ object CapabilityRouter {
     * @param bufferRegistry a buffer registry ref
     * @param receivesTreeUpdatesHandler the recipient of `receivesTreeUpdates`
     * capability requests
-    * @param suggestionsDatabaseEventsListener the recipient of
+    * @param suggestionsHandler the recipient of
     * `receivesSuggestionsDatabaseUpdates` capability requests
     * @return a configuration object
     */
   def props(
     bufferRegistry: ActorRef,
     receivesTreeUpdatesHandler: ActorRef,
-    suggestionsDatabaseEventsListener: ActorRef
+    suggestionsHandler: ActorRef
   ): Props =
     Props(
       new CapabilityRouter(
         bufferRegistry,
         receivesTreeUpdatesHandler,
-        suggestionsDatabaseEventsListener
+        suggestionsHandler
       )
     )
 

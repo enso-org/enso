@@ -29,7 +29,7 @@ import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
-import org.enso.searcher.sql.SqlSuggestionsRepo
+import org.enso.searcher.sql.{SqlSuggestionsRepo, SqlVersionsRepo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 
@@ -46,7 +46,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
-    ExecutionContextConfig()
+    ExecutionContextConfig(),
+    DirectoriesConfig(serverConfig.contentRootPath)
   )
 
   val zioExec = ZioExec(zio.Runtime.default)
@@ -67,7 +68,17 @@ class MainModule(serverConfig: LanguageServerConfig) {
   implicit val materializer = SystemMaterializer.get(system)
 
   val suggestionsRepo = {
-    val repo = SqlSuggestionsRepo()(system.dispatcher)
+    val repo = SqlSuggestionsRepo(
+      languageServerConfig.directories.suggestionsDatabaseFile
+    )(system.dispatcher)
+    repo.init
+    repo
+  }
+
+  val versionsRepo = {
+    val repo = SqlVersionsRepo(
+      languageServerConfig.directories.suggestionsDatabaseFile
+    )(system.dispatcher)
     repo.init
     repo
   }
@@ -85,7 +96,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val bufferRegistry =
     system.actorOf(
-      BufferRegistry.props(fileManager, runtimeConnector),
+      BufferRegistry.props(versionsRepo, fileManager, runtimeConnector),
       "buffer-registry"
     )
 
@@ -96,20 +107,19 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "file-event-registry"
     )
 
-  lazy val suggestionsDatabaseEventsListener =
-    system.actorOf(
-      SuggestionsDatabaseEventsListener.props(sessionRouter, suggestionsRepo)
-    )
-
   lazy val suggestionsHandler =
-    system.actorOf(SuggestionsHandler.props(suggestionsRepo))
+    system.actorOf(
+      SuggestionsHandler
+        .props(languageServerConfig, suggestionsRepo, sessionRouter),
+      "suggestions-handler"
+    )
 
   lazy val capabilityRouter =
     system.actorOf(
       CapabilityRouter.props(
         bufferRegistry,
         receivesTreeUpdatesHandler,
-        suggestionsDatabaseEventsListener
+        suggestionsHandler
       ),
       "capability-router"
     )
@@ -205,4 +215,9 @@ class MainModule(serverConfig: LanguageServerConfig) {
       new BinaryConnectionControllerFactory(fileManager)
     )
 
+  /** Close the main module releasing all resources. */
+  def close(): Unit = {
+    suggestionsRepo.close()
+    versionsRepo.close()
+  }
 }

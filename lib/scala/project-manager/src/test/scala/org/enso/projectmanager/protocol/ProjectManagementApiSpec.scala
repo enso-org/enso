@@ -531,7 +531,7 @@ class ProjectManagementApiSpec
       deleteProject(projectId)
     }
 
-    "create a project dir with a suffix if a directory is taken" in {
+    "create a project dir with a suffix if a directory is taken" taggedAs Flaky in {
       val oldProjectName  = "foobar"
       val newProjectName  = "foo"
       implicit val client = new WsTestClient(address)

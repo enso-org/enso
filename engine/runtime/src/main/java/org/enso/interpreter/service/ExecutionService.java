@@ -17,7 +17,10 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
-import org.enso.text.editing.*;
+import org.enso.text.editing.IndexedSource;
+import org.enso.text.editing.JavaEditorAdapter;
+import org.enso.text.editing.TextEditor;
+import org.enso.text.editing.model;
 
 import java.io.File;
 import java.util.List;
@@ -184,12 +187,16 @@ public class ExecutionService {
    * @param path the module path.
    * @param contents the sources to use for it.
    */
-  public void setModuleSources(File path, String contents) {
+  public void setModuleSources(File path, String contents, boolean isIndexed) {
     Optional<Module> module = context.getModuleForFile(path);
     if (!module.isPresent()) {
       module = context.createModuleForFile(path);
     }
-    module.ifPresent(mod -> mod.setLiteralSource(contents));
+    module.ifPresent(
+        mod -> {
+          mod.setLiteralSource(contents);
+          mod.setIndexed(isIndexed);
+        });
   }
 
   /**

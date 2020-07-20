@@ -1,10 +1,15 @@
 package org.enso.searcher.sql
 
-import org.enso.searcher.Suggestion
+import java.util.UUID
+
+import org.enso.polyglot.Suggestion
 
 import scala.util.Random
 
 object SuggestionRandom {
+
+  def nextUpdateAllInput(): Seq[(UUID, String)] =
+    Seq(UUID.randomUUID() -> nextString())
 
   def nextKinds(): Seq[Suggestion.Kind] =
     Set.fill(1)(nextKind()).toSeq
@@ -20,6 +25,8 @@ object SuggestionRandom {
 
   def nextSuggestionAtom(): Suggestion.Atom =
     Suggestion.Atom(
+      externalId    = optional(UUID.randomUUID()),
+      module        = "Test.Main",
       name          = nextString(),
       arguments     = Seq(),
       returnType    = nextString(),
@@ -28,6 +35,8 @@ object SuggestionRandom {
 
   def nextSuggestionMethod(): Suggestion.Method =
     Suggestion.Method(
+      externalId    = optional(UUID.randomUUID()),
+      module        = "Test.Main",
       name          = nextString(),
       arguments     = Seq(),
       selfType      = nextString(),
@@ -37,6 +46,8 @@ object SuggestionRandom {
 
   def nextSuggestionFunction(): Suggestion.Function =
     Suggestion.Function(
+      externalId = optional(UUID.randomUUID()),
+      module     = "Test.Main",
       name       = nextString(),
       arguments  = Seq(),
       returnType = nextString(),
@@ -45,6 +56,8 @@ object SuggestionRandom {
 
   def nextSuggestionLocal(): Suggestion.Local =
     Suggestion.Local(
+      externalId = optional(UUID.randomUUID()),
+      module     = "Test.Main",
       name       = nextString(),
       returnType = nextString(),
       scope      = nextScope()
@@ -52,8 +65,14 @@ object SuggestionRandom {
 
   def nextScope(): Suggestion.Scope =
     Suggestion.Scope(
-      start = Random.nextInt(Int.MaxValue),
-      end   = Random.nextInt(Int.MaxValue)
+      start = nextPosition(),
+      end   = nextPosition()
+    )
+
+  def nextPosition(): Suggestion.Position =
+    Suggestion.Position(
+      Random.nextInt(Int.MaxValue),
+      Random.nextInt(Int.MaxValue)
     )
 
   def nextKind(): Suggestion.Kind =

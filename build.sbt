@@ -622,8 +622,8 @@ lazy val testkit = project
   .in(file("lib/scala/testkit"))
   .settings(
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % scalatestVersion
-    )
+        "org.scalatest" %% "scalatest" % scalatestVersion
+      )
   )
 
 lazy val `core-definition` = (project in file("lib/scala/core-definition"))
@@ -674,6 +674,7 @@ lazy val searcher = project
   )
   .dependsOn(testkit % Test)
   .settings(licenseSettings)
+  .dependsOn(`polyglot-api`)
 
 lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
   .settings(
@@ -728,7 +729,6 @@ lazy val `polyglot-api` = project
   .settings(licenseSettings)
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
-  .dependsOn(`searcher`)
 
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(

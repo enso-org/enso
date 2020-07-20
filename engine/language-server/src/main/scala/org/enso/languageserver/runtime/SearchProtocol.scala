@@ -4,7 +4,9 @@ import enumeratum._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
-import org.enso.searcher.Suggestion
+import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
+import org.enso.polyglot.Suggestion
+import org.enso.searcher.SuggestionEntry
 import org.enso.text.editing.model.Position
 
 object SearchProtocol {
@@ -28,6 +30,14 @@ object SearchProtocol {
       */
     case class Remove(id: SuggestionId) extends SuggestionsDatabaseUpdate
 
+    /** Modify the database entry.
+      *
+      * @param id the suggestion id
+      * @param returnType the new return type
+      */
+    case class Modify(id: SuggestionId, returnType: String)
+        extends SuggestionsDatabaseUpdate
+
     private object CodecField {
 
       val Type = "type"
@@ -38,6 +48,8 @@ object SearchProtocol {
       val Add = "Add"
 
       val Remove = "Remove"
+
+      val Modify = "Modify"
     }
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =
@@ -48,6 +60,9 @@ object SearchProtocol {
 
           case CodecType.Remove =>
             Decoder[SuggestionsDatabaseUpdate.Remove].tryDecode(cursor)
+
+          case CodecType.Modify =>
+            Decoder[SuggestionsDatabaseUpdate.Modify].tryDecode(cursor)
         }
       }
 
@@ -63,6 +78,12 @@ object SearchProtocol {
           Encoder[SuggestionsDatabaseUpdate.Remove]
             .apply(remove)
             .deepMerge(Json.obj(CodecField.Type -> CodecType.Remove.asJson))
+
+        case modify: SuggestionsDatabaseUpdate.Modify =>
+          Encoder[SuggestionsDatabaseUpdate.Modify]
+            .apply(modify)
+            .deepMerge(Json.obj(CodecField.Type -> CodecType.Modify.asJson))
+            .dropNullValues
       }
 
     private object SuggestionType {
@@ -174,12 +195,12 @@ object SearchProtocol {
 
   /** A notification about changes in the suggestions database.
     *
-    * @param updates the list of database updates
     * @param currentVersion current version of the suggestions database
+    * @param updates the list of database updates
     */
   case class SuggestionsDatabaseUpdateNotification(
-    updates: Seq[SuggestionsDatabaseUpdate],
-    currentVersion: Long
+    currentVersion: Long,
+    updates: Seq[SuggestionsDatabaseUpdate]
   )
 
   /** The request to receive contents of the suggestions database. */
@@ -187,12 +208,12 @@ object SearchProtocol {
 
   /** The reply to the [[GetSuggestionsDatabase]] request.
     *
-    * @param entries the entries of the suggestion database
     * @param currentVersion current version of the suggestions database
+    * @param entries the entries of the suggestion database
     */
   case class GetSuggestionsDatabaseResult(
-    entries: Seq[SuggestionsDatabaseUpdate],
-    currentVersion: Long
+    currentVersion: Long,
+    entries: Seq[SuggestionEntry]
   )
 
   /** The request to receive the current version of the suggestions database. */
@@ -206,14 +227,14 @@ object SearchProtocol {
 
   /** The completion request.
     *
-    * @param module the edited module
+    * @param file the edited file
     * @param position the cursor position
     * @param selfType filter entries matching the self type
     * @param returnType filter entries matching the return type
     * @param tags filter entries by suggestion type
     */
   case class Completion(
-    module: String,
+    file: Path,
     position: Position,
     selfType: Option[String],
     returnType: Option[String],
@@ -227,4 +248,18 @@ object SearchProtocol {
     */
   case class CompletionResult(currentVersion: Long, results: Seq[SuggestionId])
 
+  /** Base trait for search request errors. */
+  sealed trait SearchFailure
+
+  /** Signals about file system error. */
+  case class FileSystemError(e: FileSystemFailure) extends SearchFailure
+
+  /** Signals that the project not found in the root directory. */
+  case object ProjectNotFoundError extends SearchFailure
+
+  /** Signals that the module name can not be resolved for the given file.
+    *
+    * @param file the file path
+    */
+  case class ModuleNameNotResolvedError(file: Path) extends SearchFailure
 }

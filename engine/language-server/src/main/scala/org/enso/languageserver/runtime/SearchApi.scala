@@ -1,11 +1,13 @@
 package org.enso.languageserver.runtime
 
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
+import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.runtime.SearchProtocol.{
   SuggestionId,
   SuggestionKind,
   SuggestionsDatabaseUpdate
 }
+import org.enso.searcher.SuggestionEntry
 import org.enso.text.editing.model.Position
 
 /**
@@ -32,7 +34,7 @@ object SearchApi {
       extends Method("search/getSuggestionsDatabase") {
 
     case class Result(
-      entries: Seq[SuggestionsDatabaseUpdate],
+      entries: Seq[SuggestionEntry],
       currentVersion: Long
     )
 
@@ -47,7 +49,7 @@ object SearchApi {
   case object GetSuggestionsDatabaseVersion
       extends Method("search/getSuggestionsDatabaseVersion") {
 
-    case class Result(version: Long)
+    case class Result(currentVersion: Long)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = Unused.type
@@ -60,7 +62,7 @@ object SearchApi {
   case object Completion extends Method("search/completion") {
 
     case class Params(
-      module: String,
+      file: Path,
       position: Position,
       selfType: Option[String],
       returnType: Option[String],
@@ -79,4 +81,10 @@ object SearchApi {
 
   case object SuggestionsDatabaseError
       extends Error(7001, "Suggestions database error")
+
+  case object ProjectNotFoundError
+      extends Error(7002, "Project not found in the root directory")
+
+  case object ModuleNameNotResolvedError
+      extends Error(7003, "Module name can't be resolved for the given file")
 }
