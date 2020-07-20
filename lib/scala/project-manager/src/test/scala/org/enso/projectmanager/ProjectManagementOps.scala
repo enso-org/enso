@@ -53,7 +53,7 @@ trait ProjectManagementOps { this: BaseServerSpec =>
       port   <- addr.downField("port").as[Int]
     } yield Socket(host, port)
 
-    socket.fold(fail(_), identity)
+    socket.fold(fail(s"Failed to decode json: $openReply", _), identity)
   }
 
   def closeProject(
