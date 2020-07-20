@@ -551,7 +551,7 @@ object Main extends scala.App {
 
   println("--- PARSING ---")
 
-  val mod = parser.run(inp)
+  val mod = parser.run(inC)
 
   println(Debug.pretty(mod.toString))
 
@@ -571,21 +571,18 @@ object Main extends scala.App {
 
   /** Invoking the Enso Documentation Parser */
   println("===== DOCUMENTATION =====")
-  val droppedMeta   = parser.dropMacroMeta(mod)
-  val documentation = DocParserRunner.createDocs(droppedMeta)
-  val htmlPath      = "target/"
-  val cssFileName   = "style.css"
+  val droppedMeta = parser.dropMacroMeta(mod)
+  val doc         = DocParserRunner.createDocs(droppedMeta)
+  val cssFileName = "style.css"
 
-  println(Debug.pretty(documentation.toString))
+  println(Debug.pretty(doc.toString))
   println("------")
-  println(documentation.show())
+  println(doc.show())
   println("=========================")
-  DocParserHTMLGenerator.generateHTMLForEveryDocumented(
-    documentation,
-    htmlPath,
-    cssFileName
-  )
-  println()
+  val htmlCode = DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
+  println("========== HTML ===========")
+  println(htmlCode)
+  println("=========================")
 
   AST.main()
 
