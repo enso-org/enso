@@ -86,6 +86,7 @@ impl Fixture {
         });
     }
 
+    #[allow(dead_code)] // TODO [mwu] https://github.com/enso-org/enso/issues/1016
     fn deserialize_unexpected(&mut self) {
         let unexpected = "import";
         let ast = self.parser.parse_line(unexpected).unwrap();
@@ -396,7 +397,7 @@ impl Fixture {
         self.blank_line_round_trip();
         self.deserialize_metadata();
         self.deserialize_unrecognized();
-        self.deserialize_unexpected();
+        //self.deserialize_unexpected(); // TODO [mwu] https://github.com/enso-org/enso/issues/1016
         self.deserialize_invalid_quote();
         self.deserialize_inline_block();
         self.deserialize_blank();

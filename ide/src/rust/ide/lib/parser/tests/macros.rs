@@ -27,7 +27,7 @@ fn import_utilities() {
         assert!(ast_as_import_match(&ast).is_none());
     };
 
-    expect_import("import");
+    // expect_import("import"); // TODO [mwu] https://github.com/enso-org/enso/issues/1016
     expect_import("import Foo");
     expect_import("import Foo.Bar");
     expect_import("import Foo.Bar.Baz");
