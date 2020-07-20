@@ -37,6 +37,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
     logger.info("Starting Language Server...")
     for {
       module      <- Future { new MainModule(config) }
+      _           <- Future { logger.debug("MainModule created") }
       jsonBinding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
       binaryBinding <-
         module.binaryServer

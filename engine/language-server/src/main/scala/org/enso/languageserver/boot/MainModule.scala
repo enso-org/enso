@@ -4,7 +4,6 @@ import java.io.File
 import java.net.URI
 
 import akka.actor.ActorSystem
-import akka.stream.SystemMaterializer
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
@@ -29,7 +28,7 @@ import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
-import org.enso.searcher.sql.{SqlSuggestionsRepo, SqlVersionsRepo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 
@@ -42,7 +41,7 @@ import scala.concurrent.duration._
   */
 class MainModule(serverConfig: LanguageServerConfig) {
 
-  lazy val languageServerConfig = Config(
+  val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
     FileManagerConfig(timeout = 3.seconds),
     PathWatcherConfig(),
@@ -52,7 +51,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   val zioExec = ZioExec(zio.Runtime.default)
 
-  lazy val fileSystem: FileSystem = new FileSystem
+  val fileSystem: FileSystem = new FileSystem
 
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
@@ -65,23 +64,22 @@ class MainModule(serverConfig: LanguageServerConfig) {
       Some(serverConfig.computeExecutionContext)
     )
 
-  implicit val materializer = SystemMaterializer.get(system)
-
+  val sqlDatabase = SqlDatabase(
+    languageServerConfig.directories.suggestionsDatabaseFile
+  )
+  system.log.debug("Sql database created")
   val suggestionsRepo = {
-    val repo = SqlSuggestionsRepo(
-      languageServerConfig.directories.suggestionsDatabaseFile
-    )(system.dispatcher)
+    val repo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
     repo.init
     repo
   }
 
   val versionsRepo = {
-    val repo = SqlVersionsRepo(
-      languageServerConfig.directories.suggestionsDatabaseFile
-    )(system.dispatcher)
+    val repo = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
     repo.init
     repo
   }
+  system.log.debug("Sql repos created")
 
   lazy val sessionRouter =
     system.actorOf(SessionRouter.props(), "session-router")
@@ -136,6 +134,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
+  system.log.debug("Initializing Runtime context...")
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
@@ -161,6 +160,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     })
     .build()
   context.initialize(LanguageInfo.ID)
+  system.log.debug("Runtime context initialized")
 
   val runtimeKiller =
     system.actorOf(

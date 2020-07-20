@@ -7,9 +7,8 @@ import slick.jdbc.SQLiteProfile.api._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-final class SqlVersionsRepo private (db: SqlDatabase)(implicit
-  ec: ExecutionContext
-) extends FileVersionsRepo[Future] {
+final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
+    extends FileVersionsRepo[Future] {
 
   /** Initialize the repo. */
   def init: Future[Unit] =

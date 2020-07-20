@@ -11,9 +11,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 /** The object for accessing the suggestions database. */
-final class SqlSuggestionsRepo private (db: SqlDatabase)(implicit
-  ec: ExecutionContext
-) extends SuggestionsRepo[Future] {
+final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
+    extends SuggestionsRepo[Future] {
 
   /** The query returning the arguments joined with the corresponding
     * suggestions.
