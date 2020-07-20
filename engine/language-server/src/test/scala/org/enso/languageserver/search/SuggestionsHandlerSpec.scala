@@ -1,4 +1,4 @@
-package org.enso.languageserver.runtime
+package org.enso.languageserver.search
 
 import java.io.File
 import java.nio.file.Files

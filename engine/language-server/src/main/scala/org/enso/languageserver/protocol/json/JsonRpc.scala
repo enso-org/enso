@@ -13,7 +13,7 @@ import org.enso.languageserver.io.InputOutputApi._
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.SearchApi._
+import org.enso.languageserver.search.SearchApi._
 import org.enso.languageserver.runtime.VisualisationApi._
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._

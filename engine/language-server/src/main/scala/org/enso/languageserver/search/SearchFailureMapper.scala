@@ -1,8 +1,8 @@
-package org.enso.languageserver.runtime
+package org.enso.languageserver.search
 
 import org.enso.jsonrpc.Error
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
-import org.enso.languageserver.runtime.SearchProtocol.{
+import org.enso.languageserver.search.SearchProtocol.{
   FileSystemError,
   ModuleNameNotResolvedError,
   ProjectNotFoundError,
