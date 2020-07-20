@@ -31,7 +31,7 @@ object Main {
     }
 
   private def newCommand: Command[Config => Unit] =
-    Command("new", "Create a new Enso project.") {
+    Command("new", "Create a new Enso project.", related = Seq("create")) {
       val nameOpt = Opts.positionalArgument[String]("NAME", "Project name.")
       val pathOpt = Opts.optionalArgument[Path](
         "PATH",
@@ -52,7 +52,11 @@ object Main {
     )
 
   private def runCommand: Command[Config => Unit] =
-    Command("run", "Run a project or Enso script.") {
+    Command(
+      "run",
+      "Run a project or Enso script.",
+      related = Seq("exec", "execute", "build")
+    ) {
       val pathOpt        = Opts.optionalArgument[Path]("PATH")
       val additionalArgs = Opts.additionalArguments()
       (pathOpt, jvmArgs, additionalArgs) mapN {
@@ -65,7 +69,8 @@ object Main {
   private def languageServerCommand: Command[Config => Unit] =
     Command(
       "language-server",
-      "Launch the Language Server for a given project."
+      "Launch the Language Server for a given project.",
+      related = Seq("server")
     ) {
       val rootId = Opts.parameter[UUID]("root-id", "UUID", "Content root id.")
       val path =
@@ -187,14 +192,14 @@ object Main {
         case "runtime" => RuntimeComponents.asRight
         case other =>
           List(
-            s"Unknown argument '$other' - expected 'enso', 'runtime' " +
+            s"Unknown argument `$other` - expected `enso`, `runtime` " +
             "or no argument to print a general summary."
           ).asLeft
       }
 
       val what = Opts.optionalArgument[Components](
-        "<component>",
-        "Can be either 'enso', 'runtime' or none. " +
+        "COMPONENT",
+        "COMPONENT can be either `enso`, `runtime` or none. " +
         "If not specified, prints a summary of all installed components."
       )
       what map { what => (_: Config) =>

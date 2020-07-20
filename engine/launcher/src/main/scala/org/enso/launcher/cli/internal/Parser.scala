@@ -3,6 +3,7 @@ package org.enso.launcher.cli.internal
 import org.enso.launcher.cli.{
   Application,
   CLIOutput,
+  Command,
   Opts,
   PluginInterceptedFlow,
   PluginNotFound,
@@ -221,13 +222,24 @@ object Parser {
                 .map(runner => () => runner(config))
             }
           case None =>
-            val pluginBehaviour = application.pluginManager
-              .map(_.tryRunningPlugin(commandName, untokenize(commandArgs)))
-              .getOrElse(PluginNotFound)
-            pluginBehaviour match {
-              case PluginNotFound =>
-                singleError(application.commandSuggestions(commandName))
-              case PluginInterceptedFlow(run) => Right(run)
+            val possiblyRelated = Command.formatRelated(
+              commandName,
+              Seq(application.commandName),
+              application.commands
+            )
+
+            possiblyRelated match {
+              case Some(relatedCommandMessage) =>
+                singleError(relatedCommandMessage)
+              case None =>
+                val pluginBehaviour = application.pluginManager
+                  .map(_.tryRunningPlugin(commandName, untokenize(commandArgs)))
+                  .getOrElse(PluginNotFound)
+                pluginBehaviour match {
+                  case PluginNotFound =>
+                    singleError(application.commandSuggestions(commandName))
+                  case PluginInterceptedFlow(run) => Right(run)
+                }
             }
         }
     }

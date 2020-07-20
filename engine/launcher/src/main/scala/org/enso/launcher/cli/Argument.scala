@@ -21,7 +21,7 @@ object Argument {
         string.toInt.asRight
       } catch {
         case _: NumberFormatException =>
-          List(s"Invalid number '$string'").asLeft
+          List(s"Invalid number `$string`").asLeft
       }
 
   implicit val argumentPath: Argument[Path] =
@@ -31,7 +31,7 @@ object Argument {
       } catch {
         case invalidPathException: InvalidPathException =>
           List(
-            s"Invalid path '$string': ${invalidPathException.getMessage}"
+            s"Invalid path `$string`: ${invalidPathException.getMessage}"
           ).asLeft
       }
 
@@ -39,6 +39,6 @@ object Argument {
     try { UUID.fromString(string).asRight }
     catch {
       case _: IllegalArgumentException | _: NumberFormatException =>
-        List(s"Invalid UUID '$string'").asLeft
+        List(s"Invalid UUID `$string`").asLeft
     }
 }

@@ -160,6 +160,12 @@ object Opts {
         "The subcommands option should take at least one command."
       )
     }
+    nonEmptyCommands.map(cmd =>
+      if (cmd.related.nonEmpty)
+        throw new IllegalArgumentException(
+          "Related commands are not supported for subcommands."
+        )
+    )
     new SubcommandOpt[A](nonEmptyCommands)
   }
 
