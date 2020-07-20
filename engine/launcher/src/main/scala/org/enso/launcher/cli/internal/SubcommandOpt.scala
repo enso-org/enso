@@ -1,7 +1,7 @@
 package org.enso.launcher.cli.internal
 
 import cats.data.NonEmptyList
-import org.enso.launcher.cli.{Command, Opts}
+import org.enso.launcher.cli.{CLIOutput, Command, Opts, Spelling}
 
 class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]]) extends Opts[A] {
   var selectedCommand: Option[Command[A]] = None
@@ -30,8 +30,16 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]]) extends Opts[A] {
           case Some(command) =>
             selectedCommand = Some(command)
           case None =>
-            addError(s"Subcommand '$arg' is not valid.")
-          // TODO [RW] Suggestions
+            val similar =
+              Spelling
+                .selectClosestMatches(arg, subcommands.toList.map(_.name))
+            val suggestions =
+              if (similar.isEmpty) ""
+              else
+                "\n\nThe most similar subcommands are\n" +
+                similar.map(CLIOutput.indent + _ + "\n").mkString
+            addError(s"`$arg` is not a valid subcommand." + suggestions)
+
         }
     }
 
@@ -57,7 +65,7 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]]) extends Opts[A] {
       selectedCommand match {
         case Some(command) => command.opts.result()
         case None =>
-          Left(List("Expected a subcommand.")) // TODO [RW] suggestions?
+          Left(List("Expected a subcommand."))
       }
 
   override def helpExplanations(): Seq[String] =

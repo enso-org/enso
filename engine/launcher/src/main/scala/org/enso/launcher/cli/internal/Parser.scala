@@ -52,7 +52,7 @@ object Parser {
     def addError(error: String): Unit = {
       parseErrors = error :: parseErrors
     }
-    val helpCommand = command.mkString(" ") + " --help"
+    var suppressUnexpectedArgument = false
     def unknownParameter(parameter: String): Unit = {
       val similar =
         Spelling
@@ -69,8 +69,9 @@ object Parser {
           "you may have to include it after --."
         else ""
 
+      suppressUnexpectedArgument = true
       addError(
-        s"Unknown option `$parameter`. See `$helpCommand`." + suggestions + additional
+        s"Unknown option `$parameter`." + suggestions + additional
       )
     }
     def unknownPrefix(prefix: String): Unit = {
@@ -86,8 +87,7 @@ object Parser {
       }
 
       addError(
-        s"Unknown parameter prefix $prefix." + suggestions + "\n" +
-        s"See `$helpCommand` for a list of available options."
+        s"Unknown parameter prefix $prefix." + suggestions
       )
     }
 
@@ -109,10 +109,12 @@ object Parser {
         case PlainToken(value) =>
           if (opts.wantsArgument()) {
             opts.consumeArgument(value)
-          } else {
-            addError(s"Unexpected argument '$value'.")
+          } else if (!suppressUnexpectedArgument) {
+            addError(s"Unexpected argument `$value`.")
           }
+          suppressUnexpectedArgument = false
         case ParameterOrFlag(parameter) =>
+          suppressUnexpectedArgument = false
           if (opts.flags.contains(parameter)) {
             opts.flags(parameter)()
           } else if (opts.parameters.contains(parameter)) {
@@ -136,6 +138,7 @@ object Parser {
             unknownParameter(parameter)
           }
         case ParameterWithValue(parameter, value) =>
+          suppressUnexpectedArgument = false
           if (opts.parameters.contains(parameter)) {
             opts.parameters(parameter)(value)
           } else if (hasPrefix(parameter)) {
@@ -167,9 +170,21 @@ object Parser {
       )
     }
 
-    appendErrors(
-      opts.result().map((_, tokenProvider.rest())),
-      parseErrors.reverse
+    def appendHelp[T](
+      result: Either[List[String], T]
+    ): Either[List[String], T] = {
+      val help = s"See `${command.mkString(" ")} --help` for usage explanation."
+      result match {
+        case Left(errors) => Left(errors ++ Seq(help))
+        case Right(value) => Right(value)
+      }
+    }
+
+    appendHelp(
+      appendErrors(
+        opts.result().map((_, tokenProvider.rest())),
+        parseErrors.reverse
+      )
     )
   }
 
