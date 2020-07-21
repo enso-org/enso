@@ -94,8 +94,9 @@ may not be changed in any way, except to mark it as broken.
 
 #### Manifest File
 
-Each GitHub release contains an asset named `manifest.yml` which is a YAML file
-containing metadata regarding the release. It has at least the following fields:
+Each GitHub release contains an asset named `manifest.yaml` which is a YAML file
+containing metadata regarding the release. The manifest is also included in the
+root of an Enso version package. It has at least the following fields:
 
 - `minimum-launcher-version` - specifies the minimum version of the launcher
   that should be used with this release of Enso,
@@ -115,7 +116,7 @@ graal-java-version: java11
 The `minimum-launcher-version` should be updated whenever a new version of Enso
 introduces changes that require a more recent launcher version. This value is
 stored in
-[`distribution/manifest.template.yml`](../../distribution/manifest.template.yml)
+[`distribution/manifest.template.yaml`](../../distribution/manifest.template.yaml)
 and other values are added to this template at build time.
 
 #### Release Assets Structure
@@ -132,7 +133,7 @@ platform. So each release should contain the following assets:
 - `enso-launcher-<version>-linux-amd64.zip`
 - `enso-launcher-<version>-macos-amd64.zip`
 - `enso-launcher-<version>-windows-amd64.zip`
-- `manifest.yml`
+- `manifest.yaml`
 
 #### Marking a Release as Broken
 

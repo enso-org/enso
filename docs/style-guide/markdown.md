@@ -17,8 +17,8 @@ documentation is very important.
 
 - [Automated Formatting](#automated-formatting)
 - [Manual Formatting](#manual-formatting)
-    - [Title Case](#title-case)
-    - [Table of Contents](#table-of-contents)
+  - [Title Case](#title-case)
+  - [Table of Contents](#table-of-contents)
 - [In the Future](#in-the-future)
 
 <!-- /MarkdownTOC -->
