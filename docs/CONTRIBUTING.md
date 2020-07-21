@@ -23,8 +23,9 @@ sections of this document are linked below:
   - [Design Documentation](#design-documentation)
   - [System Requirements](#system-requirements)
   - [Getting the Sources](#getting-the-sources)
-  - [Getting Set Up (Rust)](#getting-set-up-rust)
-  - [Getting Set Up (JVM)](#getting-set-up-jvm)
+  - [Getting Set Up \(Rust\)](#getting-set-up-rust)
+  - [Getting Set Up \(JVM\)](#getting-set-up-jvm)
+  - [Getting Set Up \(Documentation\)](#getting-set-up-documentation)
   - [Building Enso](#building-enso)
   - [Running Enso](#running-enso)
 - [Pull Requests](#pull-requests)
@@ -206,6 +207,30 @@ because SBT has to be launched again anyway to pick up these JARs at startup.
 
 Bootstrap has to be run only when building the project for the first time
 **and** after each change of Graal version.
+
+### Getting Set Up (Documentation)
+
+We enforce automated formatting of all of our documentation and configuration
+using the fairly common [prettier](https://prettier.io) automatic formatter. You
+can install prettier for our project by running the following command:
+
+```bash
+npm install
+```
+
+This does, however, mean that you have to have node installed on your system.
+Please follow the guidelines [above](#getting-set-up-rust) to install node if
+you have not already done so.
+
+The version if prettier is forced by our
+[`package-lock.json`](../package-lock.json) in order for us to make formatting
+bumps all at once.
+
+You can format all of our documentation and configuration as follows:
+
+```bash
+npx prettier --write <dir>
+```
 
 ### Building Enso
 

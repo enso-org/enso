@@ -23,4 +23,9 @@ Please include the following checklist in your PR:
       and
       [Rust](https://github.com/enso-org/enso/blob/main/docs/style-guide/rust.md)
       style guides.
+- [ ] All documentation and configuration conforms to the
+      [markdown](https://github.com/enso-org/enso/blob/main/docs/style-guide/markdown.md)
+      and
+      [YAML](https://github.com/enso-org/enso/blob/main/docs/style-guide/yaml.md)
+      style guides.
 - [ ] All code has been tested where possible.
