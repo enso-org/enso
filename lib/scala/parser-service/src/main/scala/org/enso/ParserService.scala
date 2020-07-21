@@ -6,6 +6,7 @@ import org.enso.parserservice.Protocol
 import org.enso.parserservice.Server
 import org.enso.syntax.text.{
   AST,
+  DocParser,
   DocParserHTMLGenerator,
   DocParserRunner,
   Parser,
@@ -55,6 +56,10 @@ case class ParserService() extends Server with Protocol {
         val dropMeta = parser.dropMacroMeta(module)
         val doc      = DocParserRunner.createDocs(dropMeta)
         val code     = DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
+        Protocol.SuccessDoc(code)
+      case DocParserGenerateHtmlFromDoc(docStr) =>
+        val doc  = DocParser.runMatched(docStr)
+        val code = DocParserHTMLGenerator.generateHTMLPureDoc(doc)
         Protocol.SuccessDoc(code)
       case _ =>
         throw new Exception(f"unimplemented request: $request")

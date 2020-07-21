@@ -14,8 +14,9 @@ object Protocol {
   sealed trait Request
   final case class ParseRequest(program: String, ids: Parser.IDMap)
       extends Request
-  final case class ParseRequestWithMetadata(content: String)    extends Request
-  final case class DocParserGenerateHtmlSource(program: String) extends Request
+  final case class ParseRequestWithMetadata(content: String)     extends Request
+  final case class DocParserGenerateHtmlSource(program: String)  extends Request
+  final case class DocParserGenerateHtmlFromDoc(program: String) extends Request
 
   sealed trait Response
   final case class Success(module: SourceFile) extends Response

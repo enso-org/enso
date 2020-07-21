@@ -305,6 +305,20 @@ object DocParserHTMLGenerator {
     new String
   }
 
+  /**
+    * Function to generate HTML File from pure doc comment w/o connection to AST
+    *
+    * @param doc - Doc from Doc Parser
+    * @param cssLink - string containing CSS file name
+    * @return - HTML Code from Doc
+    */
+  def generateHTMLPureDoc(
+    doc: Doc,
+    cssLink: String = "style.css"
+  ): String = {
+    HTML.html(createHTMLHead("", cssLink), HTML.body(doc.html)).toString()
+  }
+
   //////////////////////////////////////////////////////////////////////////////
   //// HTML Rendering of Documentation /////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
