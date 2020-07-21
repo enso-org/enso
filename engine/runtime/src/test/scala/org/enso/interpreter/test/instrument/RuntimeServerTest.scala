@@ -607,11 +607,12 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receive(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId),
+      idMainUpdate,
       Api.Response(
         Api.SuggestionsDatabaseReIndexNotification(
           "Test.Main",
@@ -703,11 +704,10 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.fooY(contextId),
-      context.Main.Update.fooZ(contextId),
-      idMainUpdate
+      context.Main.Update.fooZ(contextId)
     )
 
     // pop foo call
