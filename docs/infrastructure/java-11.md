@@ -7,6 +7,7 @@ order: 2
 ---
 
 # Migrating to Java 11
+
 JDK 11 will be supported longer than JDK 8 that we currently use and it adds new
 features that could improve performance. Moreover, we want to be compliant to
 the Java Platform Module System, as all future versions of the JDK will rely on
@@ -24,21 +25,24 @@ it. Thus, we have moved to using Graal builds for Java 11.
 <!-- /MarkdownTOC -->
 
 ## Migration Progress
+
 The overall steps of the migration and their status are outlined in this
 section.
 
 ### Build Configuration
+
 The option `-XX:-UseJVMCIClassLoader` is deprecated in Java 11 and has been
-removed from the test configuration. 
+removed from the test configuration.
 
 The JVM running sbt must have `--upgrade-module-path=lib/truffle-api.jar` added
 as an option and the build tool must ensure that the `truffle-api.jar` is copied
 from the Maven repository to the `lib/` directory before the `runtime` project
-is compiled. Section [IllegalAccessError](#illegalaccesserror) explains why
-this is necessary and [Bootstrapping](./sbt.md#bootstrapping) explains the tasks
-that help with this process.
+is compiled. Section [IllegalAccessError](#illegalaccesserror) explains why this
+is necessary and [Bootstrapping](./sbt.md#bootstrapping) explains the tasks that
+help with this process.
 
 ### Testing
+
 All tests are passing.
 
 To make sure `runtime` tests can be run both with `test` and `testOnly`,
@@ -47,6 +51,7 @@ To make sure `runtime` tests can be run both with `test` and `testOnly`,
 directory different than the project root, so an absolute path should be used.
 
 ### Benchmarks
+
 Initially there were some regressions found in the benchmarks, but further
 investigation revealed this was caused by some issues in the methodology of how
 the JMH benchmarks were implemented. There are plans to rewrite these
@@ -56,9 +61,11 @@ Benchmarks in pure Enso are currently more meaningful. They yield comparable
 results with Java 11 being slightly faster.
 
 ## Problems
+
 The problems that were encountered when doing the migration.
 
 ### IllegalAccessError
+
 As described in [Build tools](sbt.md#incremental-compilation), to allow for
 incremental compilation, zinc has to analyse dependencies between various files.
 As our project uses both Scala and Java code, dependencies between files in both
@@ -86,9 +93,10 @@ printed. Others are not detected where zinc expects them, but they fail later,
 crashing the compilation process. All of them are problematic though, because
 they mean that zinc is not able to read dependencies of the affected files. This
 harms incremental compilation (as some dependencies are not detected it might be
-necessary to do a clean and full recompilation when changing these files). 
+necessary to do a clean and full recompilation when changing these files).
 
 #### Solution
+
 We want to make the ClassLoader read these class files without errors. For that
 we need to ensure it has permissions to load the Truffle modules.
 

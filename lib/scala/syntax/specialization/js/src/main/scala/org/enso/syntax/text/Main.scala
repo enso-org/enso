@@ -33,4 +33,11 @@ object Parse {
     val htmlCode = DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
     htmlCode
   }
+
+  @JSExportTopLevel("doc_parser_generate_html_from_doc")
+  def doc_parser_generate_html_from_doc(code: String): String = {
+    val doc      = DocParser.runMatched(code)
+    val htmlCode = DocParserHTMLGenerator.generateHTMLPureDoc(doc)
+    htmlCode
+  }
 }

@@ -7,13 +7,14 @@ order: 0
 ---
 
 # Enso Polyglot Support
+
 Enso supports robust polyglot interoperation with other programming languages
 that are supported on its platform. This section of the design documentation
 deals with
 
 It is broken down into the following sections:
 
-- [**Polyglot Bindings:**](./polyglot-bindings.md) A document providing an 
+- [**Polyglot Bindings:**](./polyglot-bindings.md) A document providing an
   overview of the mechanisms provided to work with polyglot bindings in Enso.
 - [**Typing Polyglot Bindings:**](./typing-polyglot-bindings.md) An exploration
   of how we can provide a modicum of type safety for the polyglot bindings in

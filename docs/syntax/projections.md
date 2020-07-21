@@ -7,6 +7,7 @@ order: 12
 ---
 
 # Projections and Field Access
+
 Enso provides multiple ways for users to access data from their types. It has
 the old functional stalwart of pattern matching, but it also has an inbuilt
 notion of accessors based on lenses (field projections).
@@ -20,6 +21,7 @@ notion of accessors based on lenses (field projections).
 <!-- /MarkdownTOC -->
 
 ## Pattern Matching
+
 Pattern matching in Enso works similarly to as you would expect in various other
 functional languages. Typing information is _always_ refined in the branches of
 a case expression, which interacts well with dependent typing and type-term
@@ -68,16 +70,18 @@ unification. There are a few main ways you can pattern match:
 > The actionables for this section :
 >
 > - Refine the syntax for the name-based case.
-> - Provide code examples for why the renaming use-case is important (e.g.
->   cases where there are clashing field names).
+> - Provide code examples for why the renaming use-case is important (e.g. cases
+>   where there are clashing field names).
 > - Function-resolution matching.
 
 ### The Underscore in Pattern Matching
+
 An underscore `_` passed as an argument to a syntactic pattern does not behave
 like the function argument shorthand. Instead it acts as a positional match that
 is given no name.
 
 ## Projections
+
 Unlike the simple accessors defined by most programming language, Enso's
 accessors are far more powerful. This is because they are based on lenses.
 

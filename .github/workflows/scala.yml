@@ -2,9 +2,9 @@ name: Engine CI
 
 on:
   push:
-    branches: [ main, "release/*" ]
+    branches: [main, "release/*"]
   pull_request:
-    branches: [ "*" ]
+    branches: ["*"]
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
@@ -99,7 +99,10 @@ jobs:
         run: ./runner.jar --run tools/ci/Test.enso
       - name: Test the Repl in the Uberjar
         shell: bash
-        run: cat tools/ci/artifact-test/repl/ReplTest.in | ./runner.jar --repl | diff -q tools/ci/artifact-test/repl/ReplTest.out - && echo "Test successful"
+        run:
+          cat tools/ci/artifact-test/repl/ReplTest.in | ./runner.jar --repl |
+          diff -q tools/ci/artifact-test/repl/ReplTest.out - && echo "Test
+          successful"
 
   # This job is responsible for building the artifacts
   build:

@@ -7,6 +7,7 @@ order: 2
 ---
 
 # Contributing to Enso
+
 Thank you for your interest in contributing to Enso! We believe that only
 through community involvement can Enso be the best it can be! There are a whole
 host of ways to contribute, and every single one is appreciated. The major
@@ -22,8 +23,9 @@ sections of this document are linked below:
   - [Design Documentation](#design-documentation)
   - [System Requirements](#system-requirements)
   - [Getting the Sources](#getting-the-sources)
-  - [Getting Set Up (Rust)](#getting-set-up-rust)
-  - [Getting Set Up (JVM)](#getting-set-up-jvm)
+  - [Getting Set Up \(Rust\)](#getting-set-up-rust)
+  - [Getting Set Up \(JVM\)](#getting-set-up-jvm)
+  - [Getting Set Up \(Documentation\)](#getting-set-up-documentation)
   - [Building Enso](#building-enso)
   - [Running Enso](#running-enso)
 - [Pull Requests](#pull-requests)
@@ -32,13 +34,13 @@ sections of this document are linked below:
 - [Out-of-Tree Contributions](#out-of-tree-contributions)
 - [Helpful Documentation and Links](#helpful-documentation-and-links)
 
-
 <!-- /MarkdownTOC -->
 
 All contributions to Enso should be in keeping with our
 [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## The Contributor License Agreement
+
 As part of your first contribution to this repository, you need to accept the
 Contributor License Agreement. You will automatically be asked to sign the CLA
 when you make your first pull request.
@@ -50,6 +52,7 @@ The CLA you sign applies to all repositories associated with the Enso project,
 so you will only have to sign it once at the start of your contributions.
 
 ## Issues
+
 If you're wanting to get involved with Enso's development and are looking for
 somewhere to start, you can check out the following tags in our issues:
 
@@ -60,20 +63,22 @@ You can use the "Size" and "Difficulty" labels that should be assigned to every
 issue to get a better idea of how much work a given issue might be.
 
 ## Feature Enhancements
+
 If you feel like you have a suggestion for a change to the way that Enso works
-as a language, please take a look at the
-[Enso RFC process](./rfcs/README.md) to learn how to file an RFC for the
-project.
+as a language, please take a look at the [Enso RFC process](./rfcs/README.md) to
+learn how to file an RFC for the project.
 
 In essence, the RFC process provides a way to propose major changes to the
-language, the compiler, and the runtime in a way that ensures that they get
-seen and discussed by all the major stakeholders involved.
+language, the compiler, and the runtime in a way that ensures that they get seen
+and discussed by all the major stakeholders involved.
 
 If, on the other hand, you're asking for a smaller feature, please feel free to
-submit a [feature request](https://github.com/enso-org/enso/issues/new?assignees=&labels=Type%3A+Enhancement&template=feature-request.md&title=)
+submit a
+[feature request](https://github.com/enso-org/enso/issues/new?assignees=&labels=Type%3A+Enhancement&template=feature-request.md&title=)
 to the repository.
 
 ## Bug Reports
+
 While it's never great to find a bug, they are a reality of software and
 software development! We can't fix or improve on the things that we don't know
 about, so report as many bugs as you can! If you're not sure whether something
@@ -84,10 +89,11 @@ users of Enso, please look at our [security guidelines](./SECURITY.md).**
 
 Even though GitHub search can be a bit hard to use sometimes, we'd appreciate if
 you could
-[search](https://github.com/enso-org/enso/search?q=&type=Issues&utf8=%E2%9C%93) for
-your issue before filing a bug as it's possible that someone else has already
-reported the issue. We know the search isn't the best, and it can be hard to
-know what to search for, so we really don't mind if you do submit a duplicate!
+[search](https://github.com/enso-org/enso/search?q=&type=Issues&utf8=%E2%9C%93)
+for your issue before filing a bug as it's possible that someone else has
+already reported the issue. We know the search isn't the best, and it can be
+hard to know what to search for, so we really don't mind if you do submit a
+duplicate!
 
 Opening an issue is as easy as following
 [this link](https://github.com/enso-org/enso/issues/new?template=bug-report.md)
@@ -101,11 +107,13 @@ output of `enso --version`, as that will let us know if the bug is Operating
 System or Architecture specific.
 
 ## Hacking on Enso
+
 This will get you up and running for Enso development, with only a minimal
 amount of setup required. Enso's build system is fairly simple, allowing you to
 bootstrap the compiler as long as you have a minimal set of tools.
 
 ### Design Documentation
+
 If you're going to start contributing to Enso, it is often a good idea to take a
 look at the design documentation for the language. These files explain provide
 both a rigorous specification of Enso's design, but also insight into the _why_
@@ -115,6 +123,7 @@ These can be found in [`docs/`](README.md), and are organised by the part of the
 compiler that they relate to.
 
 ### System Requirements
+
 In order to build and run Enso you will need the following tools:
 
 - [sbt](https://www.scala-sbt.org/) with the same version as specified in
@@ -142,6 +151,7 @@ The flatbuffers `flatc` compiler can be installed from the following locations:
 - MacOS users can install it via homebrew (`brew install flatbuffers`).
 
 ### Getting the Sources
+
 Given you've probably been reading this document on GitHub, you might have an
 inkling where to look!. You can clone Enso using two methods:
 
@@ -161,6 +171,7 @@ git clone git@github.com:enso-org/enso.git
 ```
 
 ### Getting Set Up (Rust)
+
 This project currently requires a specific nightly rust toolchain, as well as a
 special set-up step in SBT. To get this project set up, you can run the
 following commands:
@@ -180,8 +191,9 @@ Please note that once the parser is integrated into the SBT build, the
 rust-related commands will be automatically performed for you.
 
 ### Getting Set Up (JVM)
-In order to properly build the `runtime` component, the JVM running SBT needs
-to have some dependency JARs available in its module path at startup. To ensure
+
+In order to properly build the `runtime` component, the JVM running SBT needs to
+have some dependency JARs available in its module path at startup. To ensure
 they are available, before running any compilation or other tasks, these
 dependencies should be prepared. To do so, run the following command in the
 repository root directory:
@@ -196,7 +208,32 @@ because SBT has to be launched again anyway to pick up these JARs at startup.
 Bootstrap has to be run only when building the project for the first time
 **and** after each change of Graal version.
 
+### Getting Set Up (Documentation)
+
+We enforce automated formatting of all of our documentation and configuration
+using the fairly common [prettier](https://prettier.io) automatic formatter. You
+can install prettier for our project by running the following command:
+
+```bash
+npm install
+```
+
+This does, however, mean that you have to have node installed on your system.
+Please follow the guidelines [above](#getting-set-up-rust) to install node if
+you have not already done so.
+
+The version if prettier is forced by our
+[`package-lock.json`](../package-lock.json) in order for us to make formatting
+bumps all at once.
+
+You can format all of our documentation and configuration as follows:
+
+```bash
+npx prettier --write <dir>
+```
+
 ### Building Enso
+
 There are multiple projects in this repository, but all can be built, run and
 tested using `sbt`. As long as your configuration is correct, with the correct
 versions of SBT and GraalVM, the same steps can be followed on all of our
@@ -211,6 +248,7 @@ to provide work-arounds for building on that platform while it is still in an
 unstable state.
 
 #### Building Enso Components
+
 In order to build a specific component (e.g. `runtime`), please follow the
 following steps.
 
@@ -226,6 +264,7 @@ shell will execute the appropriate thing. Furthermore we have `testOnly` and
 or benchmarks to run (e.g. `testOnly *FunctionArguments*`).
 
 #### Building the Interpreter CLI Fat Jar
+
 In order to build a fat jar with the CLI component, run the `assembly` task
 inside the `runner` subproject:
 
@@ -242,6 +281,7 @@ JAVA_HOME=<PATH_TO_GRAAL_HOME> ./runner.jar <CLI_ARGS>
 ```
 
 #### Building the Launcher Native Binary
+
 If you want to build the native launcher binary, you need to ensure that the
 Native Image component is installed in your GraalVM distribution. To install it,
 run:
@@ -257,17 +297,19 @@ sbt launcher/buildNativeImage
 ```
 
 #### Testing Enso
+
 Running the tests for the JVM enso components is as simple as running
 `sbt / test`. To test the Rust components you can run `cargo test`. Finally, you
 can run the WASM tests for the rust components by using `./run --test-wasm`.
 
 #### Installing the Jupyter kernel
-Enso has a highly experimental and not-actively-maintained Jupyer Kernel.
-To run it:
+
+Enso has a highly experimental and not-actively-maintained Jupyer Kernel. To run
+it:
 
 1. Build (or download from the CI server) the CLI Fat Jar.
-2. Fill in the `engine/language-server/jupyter-kernel/enso/kernel.json`
-   file, providing correct paths to the `runner.jar` distribution and GraalVM
+2. Fill in the `engine/language-server/jupyter-kernel/enso/kernel.json` file,
+   providing correct paths to the `runner.jar` distribution and GraalVM
    `JAVA_HOME`.
 3. Run:
 
@@ -278,6 +320,7 @@ jupyter kernelspec install <ROOT_OF_THIS_REPO>/engine/language-server/jupyter-ke
 Congratulations, your Jupyter Kernel should now be installed and ready to use.
 
 #### Passing Debug Options
+
 GraalVM provides some useful debugging options, including the ability to output
 the compilation graph during JIT optimisation, and the ASM generated by the JIT.
 
@@ -304,6 +347,7 @@ withDebug benchOnly --showCompilations -- RecursionBenchmark
 ```
 
 #### Working with Assembly
+
 In order to examine the assembly generated by GraalVM and HotSpot you need to
 provide your JVM install with a dynamic library that supports the dumping of
 assembly. It can be acquired for MacOS and Linux
@@ -314,16 +358,16 @@ please choose one best suited for you.
 Once you have a copy of the dynamic library, it needs to be placed in
 `$JVM_HOME/lib/server`.
 
-
 #### Native Image
+
 Native image is a capability provided alongside GraalVM that allows the
 generation of native executables from JVM language programs (such as the Enso
 interpreter itself). However, it results in significantly degraded peak
 performance, so it is not part of our roadmap currently.
 
 If you would like to experiment with it, you can execute the `buildNativeImage`
-command in the sbt shell while inside the `runner` project. Please note
-that while the command is available at the moment, and you are welcome to
+command in the sbt shell while inside the `runner` project. Please note that
+while the command is available at the moment, and you are welcome to
 [report an issue](https://github.com/enso-org/enso/issues/new?assignees=&labels=Type%3A+Bug&template=bug-report.md&title=)
 with the functionality, any bugs you report will _not_ be considered high
 priority.
@@ -331,6 +375,7 @@ priority.
 **WE CURRENTLY DO NOT SUPPORT THE NATIVE IMAGE BUILD.**
 
 #### Using IntelliJ
+
 Internally, most of the developers working on the Enso project use IntelliJ as
 their primary IDE. To that end, what follows is a basic set of instructions for
 getting the project into a working state in IntelliJ.
@@ -364,8 +409,8 @@ make use of the IntelliJ debugger. In order to get debugging working, you will
 need to follow these steps:
 
 1. Go to Run -> Edit Configurations.
-2. Click the `+` button in the header of the 'Run/Debug Configurations'
-   dialogue that pops up.
+2. Click the `+` button in the header of the 'Run/Debug Configurations' dialogue
+   that pops up.
 3. Select 'Remote' and name the new configuration appropriately.
 4. In the options for that configuration select 'Listen to remote JVM' under
    'Debugger mode:'
@@ -383,6 +428,7 @@ need to follow these steps:
 configuration as they are specific to your machine.
 
 #### Troubleshooting
+
 If you are having issues building Enso, please check the list below before
 filing an issue with us.
 
@@ -402,13 +448,14 @@ If your problem was not listed above, please
 in our issue tracker and we will get back to you as soon as possible.
 
 ### Running Enso
-The only component in this repository with a proper executable is the Enso
-interpreter. It can be run using the sbt `run` command in the project
-`runner` and provides a rudimentary command-line interface to the basic
-capabilities of the interpreter.
 
-Detailed information on the flags it supports can be obtained by executing `run
---help`, but the primary functionality is as follows:
+The only component in this repository with a proper executable is the Enso
+interpreter. It can be run using the sbt `run` command in the project `runner`
+and provides a rudimentary command-line interface to the basic capabilities of
+the interpreter.
+
+Detailed information on the flags it supports can be obtained by executing
+`run --help`, but the primary functionality is as follows:
 
 - `--new PATH`: Creates a new Enso project at the location spcified by `PATH`.
 - `--run PATH`: Executes the interpreter on the Enso source specified by `PATH`.
@@ -416,12 +463,14 @@ Detailed information on the flags it supports can be obtained by executing `run
   project.
 
 #### Language Server Mode
+
 The Language Server can be run using the `--server` option. It requires also a
 content root to be provided (`--root-id` and `--path` options). Command-line
 interface of the runner prints all server options when you execute it with
 `--help` option.
 
 Below are options uses by the Language Server:
+
 - `--server`: Runs the Language Server
 - `--root-id <uuid>`: Content root id.
 - `--path <path>`: Path to the content root.
@@ -446,6 +495,7 @@ specify the following options:
 - `--port`: The port on `interface` where the socket will be opened (e.g. `80`).
 
 ## Pull Requests
+
 Pull Requests are the primary method for making changes to Enso. GitHub has
 [fantastic documentation](https://help.github.com/articles/about-pull-requests/)
 on using the pull request feature. Enso uses the 'fork-and-pull' model of
@@ -472,7 +522,8 @@ every push to make sure that you can't forget.
   please feel free to ask for a specific person if you've worked with them in a
   specific area before!
 - If you have questions, or would like to begin the review process before your
-  PR is 'done', please use the [Draft Pull Requests](https://github.blog/2019-02-14-introducing-draft-pull-requests/)
+  PR is 'done', please use the
+  [Draft Pull Requests](https://github.blog/2019-02-14-introducing-draft-pull-requests/)
   feature on GitHub. Doing so will allow you to make use of our CI
   infrastructure as part of your development process.
 
@@ -482,6 +533,7 @@ please feel free to discuss the suggestions and comments! We can only achieve
 the best results through open collaboration.
 
 ## Documentation
+
 Documentation improvements are very welcome! For now, the main documentation
 available is the _developer_ documentation for the language, which can be found
 at the [dev docs site](https://dev.enso.org). The source for this documentation
@@ -495,6 +547,7 @@ To find documentation-related issues, sort by the
 label.
 
 ## Issue Triage
+
 Sometimes issues can be left open long after the bug has been fixed. Other
 times, a bug might go stale because something has changed in the meantime.
 
@@ -512,9 +565,11 @@ If you're looking for somewhere to start, take a look at the
 issue label, as well as the
 [Status: Help Wanted](https://github.com/enso-org/enso/labels/Status%3A%20Help%20Wanted)
 and
-[Status: Good First Issue](https://github.com/enso-org/enso/labels/Status%3A%20Good%20First%20Issue) labels.
+[Status: Good First Issue](https://github.com/enso-org/enso/labels/Status%3A%20Good%20First%20Issue)
+labels.
 
 ## Out-of-Tree Contributions
+
 As helpful as contributing to Enso directly is, it can also be just as helpful
 to contribute in other ways outside this repository:
 
@@ -522,9 +577,9 @@ to contribute in other ways outside this repository:
   [StackOverflow](https://stackoverflow.com/questions/tagged/enso).
 
 ## Helpful Documentation and Links
+
 For people new to Enso, and just starting to contribute, or even for more
 seasoned developers, some useful places to look for information are:
 
 - The [design documentation](./README.md).
 - The community! Don't be afraid to ask questions.
-

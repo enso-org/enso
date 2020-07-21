@@ -7,6 +7,7 @@ order: 14
 ---
 
 # Dependent Typing
+
 Enso is a [dependently typed](https://en.wikipedia.org/wiki/Dependent_type)
 programming language. This means that types are first-class values in the
 language, and hence can be manipulated and computed upon just like any other
@@ -37,6 +38,7 @@ to automate much of the proof burden through SMT solvers.
 <!-- /MarkdownTOC -->
 
 ## Proving Program Properties
+
 Some notes:
 
 - Dependent types as constructing proofs through combining types. Combining
@@ -53,25 +55,26 @@ Some notes:
   and utilises this when typechecking. It may also take a string description of
   the property to prove, allowing for nicer error messages:
 
-    ```
-    append : (v1 : Vector a) -> (v2 : Vector a) -> (v3 : Vector a)
-    append = vec1 -> vec2 ->
-        prove (v3.size == v1.size + v2.size) "appending augments length"
-        ...
-    ````
+  ```
+  append : (v1 : Vector a) -> (v2 : Vector a) -> (v3 : Vector a)
+  append = vec1 -> vec2 ->
+      prove (v3.size == v1.size + v2.size) "appending augments length"
+      ...
+  ```
 
-    Sample error:
+  Sample error:
 
-    ```
-    [line, col] Unable to prove that "appending augments length":
-        Required Property: v3.size == v1.size + v2.size
-        Proof State:       <state>
+  ```
+  [line, col] Unable to prove that "appending augments length":
+      Required Property: v3.size == v1.size + v2.size
+      Proof State:       <state>
 
-        <caret diagnostics>
-    ```
+      <caret diagnostics>
+  ```
 
   This gives rise to the question as to how we determine which properties (or
   data) are able to be reasoned about statically.
+
 - Dependent types in Enso will desugar to an application of Quantitative Type
   Theory.
 
@@ -80,9 +83,10 @@ Some notes:
 > - Specify how we want dependency to behave in a _far more rigorous_ fashion.
 
 ## Automating the Proof Burden
+
 Even with as capable and simple a dependently-typed system as that provided by
 Enso, there is still a burden of proof imposed on our users that want to use
-these features. However, the language [F*](https://www.fstar-lang.org/) has
+these features. However, the language [F\*](https://www.fstar-lang.org/) has
 pioneered the combination of a dependently-typed system with an SMT solver to
 allow the automation of many of the simpler proofs.
 

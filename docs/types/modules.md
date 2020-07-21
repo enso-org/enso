@@ -7,6 +7,7 @@ order: 7
 ---
 
 # Modules
+
 With such a flexible type system in Enso, the need for making modules
 first-class is obviated. Instead, a module is very much its own entity, being
 simply a container for bindings (whether they be functions, methods, atoms, or
@@ -24,6 +25,7 @@ more generic typesets).
 <!-- /MarkdownTOC -->
 
 ## Resolving Name Clashes
+
 Enso modules employ the following rules in order to avoid name clashes:
 
 - Where the module name clashes with a member contained in the module, the
@@ -32,6 +34,7 @@ Enso modules employ the following rules in order to avoid name clashes:
 - We provide the alias `here` as a way to access the name of the current module.
 
 ## Scoping and Imports
+
 To use the contents of a module we need a way to bring them into scope. Like
 most languages, Enso provides an _import_ mechanism for this. Enso has four
 different kinds of imports that may be combined freely, all of which take a

@@ -2,9 +2,9 @@ name: Rust CI
 
 on:
   push:
-    branches: [ main, "release/*" ]
+    branches: [main, "release/*"]
   pull_request:
-    branches: [ "*" ]
+    branches: ["*"]
 
 env:
   wasmpackVersion: 0.8.1
@@ -154,8 +154,11 @@ jobs:
         # We could use cargo install wasm-pack, but that takes 3.5 minutes
         # compared to a few seconds.
         env:
-          WASMPACKURL: https://github.com/rustwasm/wasm-pack/releases/download/v${{ env.wasmpackVersion }}
-          WASMPACKDIR: wasm-pack-v${{ env.wasmpackVersion }}-x86_64-unknown-linux-musl
+          WASMPACKURL:
+            https://github.com/rustwasm/wasm-pack/releases/download/v${{
+            env.wasmpackVersion }}
+          WASMPACKDIR:
+            wasm-pack-v${{ env.wasmpackVersion }}-x86_64-unknown-linux-musl
         shell: bash
         run: |
           curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .

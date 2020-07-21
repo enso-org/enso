@@ -7,8 +7,9 @@ order: 1
 ---
 
 # The Enso Distribution
-This document provides a specification of how the Enso distribution should
-be structured and how it should behave.
+
+This document provides a specification of how the Enso distribution should be
+structured and how it should behave.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -24,10 +25,11 @@ be structured and how it should behave.
 <!-- /MarkdownTOC -->
 
 ## Universal Launcher
-The [universal launcher](./launcher.md) should be able to launch the
-proper version of Enso executable based on the version specified in the project
-being run, or use the default version if none specified. It should also be able
-to launch other Enso components, provided as
+
+The [universal launcher](./launcher.md) should be able to launch the proper
+version of Enso executable based on the version specified in the project being
+run, or use the default version if none specified. It should also be able to
+launch other Enso components, provided as
 [plugins](./launcher.md#running-plugins).
 
 > This launcher is under development. Until it is in a ready-to-use state, the
@@ -38,11 +40,13 @@ to launch other Enso components, provided as
 > it must have full control over which JVM is chosen and its parameters.
 
 ## Enso Distribution Layout
+
 Enso is distributed as a portable package that can be extracted anywhere on the
 system and run. It can also be installed for the local user into system-defined
 directories, as explained below.
 
 ### Portable Enso Distribution Layout
+
 All files in the directory structure, except for configuration, can be safely
 removed and the launcher will re-download them if needed.
 
@@ -80,6 +84,7 @@ extraction-location
 ```
 
 ### Installed Enso Distribution Layout
+
 After installation, the directory structure is following:
 
 ```
@@ -120,12 +125,13 @@ If not set, each of these three environment variables defaults to the following
 value, depending on the system:
 
 |                         | Linux                                                              | macOS                                         | Windows                      |
-|-------------------------|--------------------------------------------------------------------|-----------------------------------------------|------------------------------|
+| ----------------------- | ------------------------------------------------------------------ | --------------------------------------------- | ---------------------------- |
 | `ENSO_DATA_DIRECTORY`   | `$XDG_DATA_HOME/enso/` which defaults to `$HOME/.local/share/enso` | `$HOME/Library/Application Support/org.enso/` | `%LocalAppData%/enso`        |
 | `ENSO_CONFIG_DIRECTORY` | `$XDG_CONFIG_HOME/enso/` which defaults to `$HOME/.config/enso`    | `$HOME/Library/Preferences/org.enso/`         | `%LocalAppData%/enso/config` |
 | `ENSO_BIN_DIRECTORY`    | `$XDG_BIN_HOME` which defaults to `$HOME/.local/bin`               | `$HOME/.local/bin`                            | `%LocalAppData%/enso/bin`    |
 
 ### Installing from a Portable Distribution
+
 After downloading and extracting the portable distribution, the user can run
 `extraction-location/bin/enso install distribution` to install it locally. This
 will copy the files from the portable distribution into the installed locations
@@ -140,6 +146,7 @@ The installed distribution can be removed by running
 `enso uninstall distribution`.
 
 ## Layout of an Enso Version Package
+
 This section describes the structure of a single version distribution. This
 system is intended to be implemented first and used e.g. for the Enso nightly
 builds / releases.
@@ -170,19 +177,21 @@ enso-1.0.0
               └── Text.enso
 ```
 
-> **Implementation Note:**
-> This structure makes use of deep nesting, which may give some with knowledge
-> of Windows' path-name limits pause (windows paths are historically limited to
-> 256 characters). However, there is no special action required to handle this
-> limit as long as we are building on top of the JVM. The JVM automatically
-> inserts the `\\?\` prefix required to bypass the windows path length limit.
+> **Implementation Note:** This structure makes use of deep nesting, which may
+> give some with knowledge of Windows' path-name limits pause (windows paths are
+> historically limited to 256 characters). However, there is no special action
+> required to handle this limit as long as we are building on top of the JVM.
+> The JVM automatically inserts the `\\?\` prefix required to bypass the windows
+> path length limit.
 
 ### Standard Library
-The standard library is a set of libraries shipped with the compiler.
-Whether a given package belongs to standard library can be a bit of an
-arbitrary choice, but the following are some guidelines:
-1. Fundamental packages – basic collections and utilities should be a part
-   of standard library.
+
+The standard library is a set of libraries shipped with the compiler. Whether a
+given package belongs to standard library can be a bit of an arbitrary choice,
+but the following are some guidelines:
+
+1. Fundamental packages – basic collections and utilities should be a part of
+   standard library.
 2. Packages relying on the compiler internals (e.g. the internal object
    representation). An example of such a package would be `Generic`, exposing
    reflective access to Enso objects.
@@ -190,6 +199,7 @@ arbitrary choice, but the following are some guidelines:
    traces etc.
 
 ### Resolvers
+
 **Note** This system is not implemented yet.
 
 A resolver is a manifest containing library versions that are automatically

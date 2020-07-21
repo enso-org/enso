@@ -7,6 +7,7 @@ order: 11
 ---
 
 # Type-Directed Programming
+
 When you have a language with as powerful a type system as Enso, you can
 leverage the type system to provide users with tools to write their programs
 based on types. This is an _advanced_ feature and is not expected to be used by
@@ -14,7 +15,7 @@ the novice, but it is nonetheless an important feature for working with a
 powerful type system.
 
 > The actionables for this section are:
-> 
+>
 > - Examine what other ways we can exploit type information to aid development.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
