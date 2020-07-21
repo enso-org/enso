@@ -11,6 +11,7 @@ import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
   FileManager,
   FileSystem,
@@ -29,6 +30,7 @@ import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 class BaseServerTest extends JsonRpcServerTestKit {
 
@@ -82,8 +84,6 @@ class BaseServerTest extends JsonRpcServerTestKit {
     val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
     val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
     val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
-    Await.ready(suggestionsRepo.init, timeout)
-    Await.ready(versionsRepo.init, timeout)
 
     val fileManager =
       system.actorOf(FileManager.props(config, new FileSystem, zioExec))
@@ -120,6 +120,26 @@ class BaseServerTest extends JsonRpcServerTestKit {
           suggestionsHandler
         )
       )
+
+    // initialize
+    val suggestionsRepoInit = suggestionsRepo.init
+    suggestionsRepoInit.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.SuggestionsRepo)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize Suggestions repo")
+    }(system.dispatcher)
+
+    val versionsRepoInit = versionsRepo.init
+    versionsRepoInit.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.FileVersionsRepo)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize FileVersions repo")
+    }(system.dispatcher)
+
+    Await.ready(suggestionsRepoInit, timeout)
+    Await.ready(versionsRepoInit, timeout)
 
     new JsonConnectionControllerFactory(
       bufferRegistry,

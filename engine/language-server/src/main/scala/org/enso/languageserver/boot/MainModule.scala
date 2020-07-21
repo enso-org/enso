@@ -68,20 +68,10 @@ class MainModule(serverConfig: LanguageServerConfig) {
       Some(serverConfig.computeExecutionContext)
     )
 
-  val sqlDatabase = SqlDatabase(
-    languageServerConfig.directories.suggestionsDatabaseFile
-  )
-  system.log.debug("Sql database created")
-  val suggestionsRepo = {
-    val repo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
-    repo
-  }
-
-  val versionsRepo = {
-    val repo = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
-    repo
-  }
-
+  val sqlDatabase =
+    SqlDatabase(languageServerConfig.directories.suggestionsDatabaseFile)
+  val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
+  val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
   system.log.debug("Sql repos created")
 
   lazy val sessionRouter =
