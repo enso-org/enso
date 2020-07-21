@@ -89,8 +89,10 @@ impl From<serde_json::error::Error> for Error {
 /// All request supported by the Parser Service.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Request {
-    ParseRequest             { program: String, ids: IdMap },
-    ParseRequestWithMetadata { content: String },
+    ParseRequest                 { program : String, ids : IdMap },
+    ParseRequestWithMetadata     { content : String },
+    DocParserGenerateHtmlSource  { program : String },
+    DocParserGenerateHtmlFromDoc { code : String },
 }
 
 /// All responses that Parser Service might reply with.
@@ -98,6 +100,13 @@ pub enum Request {
 pub enum Response<Metadata> {
     Success { module  : ParsedSourceFile<Metadata> },
     Error   { message : String                     },
+}
+
+/// All responses that Doc Parser Service might reply with.
+#[derive(Debug, serde::Deserialize)]
+pub enum ResponseDoc {
+    SuccessDoc { code    : String },
+    Error      { message : String },
 }
 
 
@@ -165,14 +174,36 @@ mod internal {
             }
         }
 
+        /// Obtains a text message from peer and deserializes it using JSON
+        /// into a `ResponseDoc`.
+        ///
+        /// Should be called exactly once after each `send_request` invocation.
+        pub fn recv_response_doc(&mut self) -> Result<ResponseDoc> {
+            let response = self.connection.recv_message()?;
+            match response {
+                websocket::OwnedMessage::Text(code) => Ok(serde_json::from_str(&code)?),
+                _                                   => Err(Error::NonTextResponse(response)),
+            }
+        }
+
         /// Sends given `Request` to peer and receives a `Response`.
         ///
         /// Both request and response are exchanged in JSON using text messages
         /// over WebSocket.
         pub fn rpc_call<M:Metadata>
-        (&mut self, request: Request) -> Result<Response<M>> {
+        (&mut self, request:Request) -> Result<Response<M>> {
             self.send_request(request)?;
             self.recv_response()
+        }
+
+        /// Sends given `Request` to peer and receives a `ResponseDoc`.
+        ///
+        /// Both request and response are exchanged in JSON using text messages
+        /// over WebSocket.
+        pub fn rpc_call_doc
+        (&mut self, request:Request) -> Result<ResponseDoc> {
+            self.send_request(request)?;
+            self.recv_response_doc()
         }
     }
 }
@@ -196,22 +227,44 @@ impl Client {
         Ok(client)
     }
 
+    /// Sends a request to parser service to parse Enso code
     pub fn parse(&mut self, program:String, ids:IdMap) -> api::Result<Ast> {
         let request  = Request::ParseRequest {program,ids};
         let response = self.rpc_call::<serde_json::Value>(request)?;
         match response {
             Response::Success {module} => Ok(module.ast.into()),
-            Response::Error {message}  => Err(ParsingError(message)),
+            Response::Error  {message} => Err(ParsingError(message)),
         }
     }
 
+    /// Sends a request to parser service to parse code with metadata
     pub fn parse_with_metadata<M:Metadata>
     (&mut self, program:String) -> api::Result<ParsedSourceFile<M>> {
         let request  = Request::ParseRequestWithMetadata {content:program};
         let response = self.rpc_call(request)?;
         match response {
             Response::Success {module} => Ok(module),
-            Response::Error {message}  => Err(ParsingError(message)),
+            Response::Error  {message} => Err(ParsingError(message)),
+        }
+    }
+
+    /// Sends a request to parser service to generate HTML code from documented Enso code
+    pub fn generate_html_docs(&mut self, program:String) -> api::Result<String> {
+        let request      = Request::DocParserGenerateHtmlSource {program};
+        let response_doc = self.rpc_call_doc(request)?;
+        match response_doc {
+            ResponseDoc::SuccessDoc {code} => Ok(code),
+            ResponseDoc::Error   {message} => Err(ParsingError(message)),
+        }
+    }
+
+    /// Sends a request to parser service to generate HTML code from pure documentation code
+    pub fn generate_html_doc_pure(&mut self, code:String) -> api::Result<String> {
+        let request      = Request::DocParserGenerateHtmlFromDoc {code};
+        let response_doc = self.rpc_call_doc(request)?;
+        match response_doc {
+            ResponseDoc::SuccessDoc {code} => Ok(code),
+            ResponseDoc::Error   {message} => Err(ParsingError(message)),
         }
     }
 
