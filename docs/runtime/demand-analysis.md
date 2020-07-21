@@ -7,6 +7,7 @@ order: 2
 ---
 
 # Demand Analysis
+
 Demand analysis is the process of deciding when to compute the value of a
 suspended computation in a language which supports suspended computation.
 
@@ -19,10 +20,11 @@ suspended computation in a language which supports suspended computation.
 <!-- /MarkdownTOC -->
 
 ## Determining When To Force
+
 As Enso supports dynamic dispatch for methods, we cannot always (even in the
-presence of a typechecker), statically determine whether or not the function 
+presence of a typechecker), statically determine whether or not the function
 that will eventually be called at any given call site. This means that we have
-to come up with a more efficient way to handle suspended arguments. 
+to come up with a more efficient way to handle suspended arguments.
 
 This is done by making the _function application_ responsible for determining
 when a value passed to it should be evaluated. It works as follows:
@@ -36,6 +38,7 @@ when a value passed to it should be evaluated. It works as follows:
     be explicitly forced at their use sites in the function body.
 
 ## Avoiding Pathological Force-Thunk Chains
+
 The above approach does, when done naively, result in a severe performance
 pathology when passing suspended arguments into functions also expecting
 suspended arguments. Without intervention, the suspended argument gets wrapped
@@ -49,6 +52,7 @@ In order to avoid this issue, we do the following:
 2.  All other uses of that argument are forced.
 
 ## The Demand Analysis Algorithm
+
 The algorithm for performing demand analysis on Enso code is as follows.
 
 ```

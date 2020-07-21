@@ -32,6 +32,13 @@ cabal-dev
 .stack-work/
 
 ############
+## NodeJS ##
+############
+
+node_modules/
+package-lock.json
+
+############
 ## System ##
 ############
 

@@ -7,6 +7,7 @@ order: 5
 ---
 
 # Pattern Matching
+
 Pattern matching in Enso works similarly to as you would expect in various other
 functional languages. Typing information is _always_ refined in the branches of
 a case expression, which interacts well with dependent typing and type-term
@@ -31,6 +32,7 @@ unification.
 <!-- /MarkdownTOC -->
 
 ## Positional Matching
+
 Matching on the scrutinee by structure. This works both for atoms and typesets
 (for typesets it is a subsumption judgement).
 
@@ -46,6 +48,7 @@ case v of
 ```
 
 ## Type Matching
+
 Matching purely by the types involved, and not matching on structure.
 
 ```ruby
@@ -54,6 +57,7 @@ case v of
 ```
 
 ## Name Matching on Labels
+
 Matching on the labels defined within a type for both atoms and typesets, with
 renaming.
 
@@ -64,6 +68,7 @@ case v of
 ```
 
 ## Naming Scrutinees
+
 Ascribing a name of a scrutinee is done using the standard typing judgement.
 This works due to the type-term unification present in Enso.
 

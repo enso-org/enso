@@ -7,6 +7,7 @@ order: 7
 ---
 
 # Scoping Rules
+
 Enso's scoping rules should be fairly familiar to those coming from other
 languages that are immutable (or make heavy use of immutability). In essence,
 Enso is a lexically-scoped language where bindings may be shadowed in child
@@ -24,6 +25,7 @@ scopes.
 <!-- /MarkdownTOC -->
 
 ## Scopes
+
 A scope is the span in the code within which a set of accessible identifiers
 occurs. A nested scope may:
 
@@ -54,6 +56,7 @@ valid entity," and hence implies "can have its value used."
 >   contexts, we need to revisit the above rules.
 
 ## Introducing New Scopes
+
 The following constructs introduce new scopes in Enso:
 
 - **Modules:** Each module (file) introduces a new scope.
@@ -88,6 +91,7 @@ the above constructs:
 >   implementation of `case` evolves.
 
 ### Scoping of Type Signatures
+
 Currently, type signatures in Enso obey a simple set of typing rules:
 
 - The RHS of the type ascription introduces a new scope that is a child of the
@@ -97,20 +101,23 @@ Currently, type signatures in Enso obey a simple set of typing rules:
 >
 > In order to enable much of the flexible metaprogramming ability that Enso aims
 > for, we have an additional set of scoping rules for type signatures:
+>
 > - Both operands of the type ascription operator share a scope.
-> - If two names are used on the type and term levels to refer to the same entity,
->   both are valid but this issues a warning. Referring to the same entity means
->   that they are two names for the same underlying object.
+> - If two names are used on the type and term levels to refer to the same
+>   entity, both are valid but this issues a warning. Referring to the same
+>   entity means that they are two names for the same underlying object.
 > - Name clashes are disallowed unless the clashing names refer to the same
 >   entity.
 > - Do we actually want to support this?
 > - What complexities does this introduce wrt typechecking?
 
 ## Implementation Notes
+
 This section contains notes on the implementation of the Enso scoping rules in
 the interpreter.
 
 ### Function Call Arguments
+
 In order to support suspended function arguments in the interpreter in a
 performant way, we implicitly wrap _all_ function arguments in a suspension. In
 conjunction with making the function itself responsible for when its arguments
@@ -127,6 +134,7 @@ However, it _does_ require creating a small hack in the Alias Analysis process:
 To this end, we account for this implementation detail in alias analysis.
 
 ### Collapsing Scopes
+
 Another quirk of the internal alias analysis process is down to the fact that
 the Enso IR represents Methods, functions, and blocks as separate constructs.
 This means that if you had a method containing a function containing a block, a

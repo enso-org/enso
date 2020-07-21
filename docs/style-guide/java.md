@@ -7,6 +7,7 @@ order: 2
 ---
 
 # Java Style Guide
+
 Like many style guides, this Java style guide exists for two primary reasons.
 The first is to provide guidelines that result in a consistent code style across
 all of the Enso codebases, while the second is to guide people towards a style
@@ -34,19 +35,22 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 <!-- /MarkdownTOC -->
 
 ## Code Formatting
+
 This section explains the rules for visually laying out your code. They provide
 a robust set of guidelines for creating a consistent visual to the code.
 
-Primary code formatting is done using the [Google Java Format](https://github.com/google/google-java-format)
-tool, which enforces a clear and consistent style. This is a zero configuration
-tool, and hence there is no project-level configuration for this tool. It should
-be used for all new Java projects.
+Primary code formatting is done using the
+[Google Java Format](https://github.com/google/google-java-format) tool, which
+enforces a clear and consistent style. This is a zero configuration tool, and
+hence there is no project-level configuration for this tool. It should be used
+for all new Java projects.
 
 All files must be formatted using this tool before being committed, and this
 should be set up as either a precommit hook, or using an integration in your
 IDE.
 
 ### Naming
+
 Enso has some fairly simple general naming conventions, though the sections
 below may provide more rules for use in specific cases.
 
@@ -61,6 +65,7 @@ below may provide more rules for use in specific cases.
 - Naming should use American English spelling.
 
 ## Package Structure and Naming
+
 Enso follows the
 [Java convention for naming packages](https://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html):
 package name components may contain only lower case characters and, if
@@ -70,11 +75,12 @@ project should be named `org.enso.filemanager`.
 
 When the name of the file in the package is the same as the final component of
 the package name, the file should be moved one level up. For examples, if
-`File Manager` project contains `FileManager.java` file, then the file should
-be placed directly in the `org.enso` package instead of `org.enso.filemanager`.
+`File Manager` project contains `FileManager.java` file, then the file should be
+placed directly in the `org.enso` package instead of `org.enso.filemanager`.
 This is to avoid repetitious constructs like `org.enso.filemanager.FileManager`.
 
 ### The Public API
+
 In order to produce as flexible a codebase as possible, we tend not to make use
 of access modifiers in our code (`protected`, `private`, and so on). Instead, we
 use the concept of `Internal` modules to separate public from private.
@@ -85,10 +91,11 @@ you should create a `X.Y.MyType.Internal` package. You can then write the
 relevant language construct in that package instead of the source package.
 
 #### Using Access Modifiers
+
 There are, however, a few notable exceptions to the above:
 
-- **Safety:** Privacy modifiers (e.g. `private` and `protected`) should be
-  used to enforce an API contract around safety.
+- **Safety:** Privacy modifiers (e.g. `private` and `protected`) should be used
+  to enforce an API contract around safety.
 - **Reducing Overhead:** As the `Internal` module is a separate module, there
   can (under some circumstances) be some overhead for its use. If you are
   writing code on a performance-critical path, you may instead make use of
@@ -99,6 +106,7 @@ There are, however, a few notable exceptions to the above:
   JVM with additional information.
 
 ## Commenting
+
 Comments in code are a tricky area to get right as we have found that comments
 often expire quickly, and in absence of a way to validate them, remain incorrect
 for long periods of time. In order to best deal with this problem, we make the
@@ -122,6 +130,7 @@ Code should be written in such a way that it guides you over what it does, and
 comments should not be used as a crutch for badly-designed code.
 
 ### Documentation Comments
+
 One of the primary forms of comment that we allow across the Enso codebases is
 the doc comment. We use these comments to document the public API of a module,
 as defined in [The Public API](#the-public-api). For constructs that _are_ part
@@ -181,6 +190,7 @@ public class SpanTree<T> implements Tree<T> {
 ```
 
 ### Source Notes
+
 Source Notes is a mechanism for moving detailed design information about a piece
 of code out of the code itself. In doing so, it retains the key information
 about the design while not impeding the flow of the code. They are used in the
@@ -212,9 +222,9 @@ A source note comment is broken into two parts:
    already in use.
 2. **Source Note:** This is the comment itself, which is a large block comment
    placed after the first function in which it is referred to in the module. It
-   uses the java block-comment syntax `/* ... */`, and the first line names
-   the note using the same referrer as above: `/* Note [Note Name]`. The name(s)
-   in the note are underlined using a string of the `~` (tilde) character.
+   uses the java block-comment syntax `/* ... */`, and the first line names the
+   note using the same referrer as above: `/* Note [Note Name]`. The name(s) in
+   the note are underlined using a string of the `~` (tilde) character.
 
 A source note may contain sections within it where necessary. These are titled
 using the following syntax: `== Note [Note Name (Section Name)]`, and can be
@@ -267,6 +277,7 @@ but can also be used for:
   its usage is safe in this context.
 
 ### TODO Comments
+
 We follow a simple convention for `TODO` comments in our codebases:
 
 - The line starts with `TODO` or `FIXME`.
@@ -284,6 +295,7 @@ For example:
 ```
 
 ### Other Comment Usage
+
 There are, of course, a few other situations where commenting is very useful:
 
 - **Commenting Out:** You may comment out code while developing it, but if you
@@ -294,10 +306,12 @@ There are, of course, a few other situations where commenting is very useful:
   where the bug has been reported.
 
 ## Program Design
+
 Any good style guide goes beyond purely stylistic rules, and also talks about
 design styles to use in code.
 
 ### Code Complexity
+
 While we often have to write complex functionality, we want to ensure that the
 code itself is kept as simple and easy to read as possible. To do this, please
 use the following rules:
@@ -309,6 +323,7 @@ use the following rules:
   comprehension.
 
 ### Testing and Benchmarking
+
 New code should always be accompanied by tests. These can be unit, integration,
 or some combination of the two, and they should always aim to test the new code
 in a rigorous fashion.
@@ -334,14 +349,16 @@ _Do not benchmark a development build_ as the data you get will often be
 entirely useless.
 
 ### Warnings, and Lints
+
 In general, we aim for a codebase that is free of warnings and lints, and we do
 this using the following ideas.
 
 #### Warnings
-New code should introduce no new warnings onto main. You may build with
-warnings on your own branch, but the code that is submitted as part of a PR
-should not introduce new warnings. You should also endeavour to fix any warnings
-that you come across during development.
+
+New code should introduce no new warnings onto main. You may build with warnings
+on your own branch, but the code that is submitted as part of a PR should not
+introduce new warnings. You should also endeavour to fix any warnings that you
+come across during development.
 
 Sometimes it is impossible to fix a warning (often in situations involving the
 use of macros or code-generation). In such cases, you are allowed to suppress

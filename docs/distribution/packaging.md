@@ -7,10 +7,11 @@ order: 2
 ---
 
 # Enso Libraries Packaging
-Given the nature of Enso as an open-source programming language and platform,
-it is crucial that we provide users with an extensible package management
-system. This document describes the current state of our packaging efforts, as
-well as future directions and enhancements to it.
+
+Given the nature of Enso as an open-source programming language and platform, it
+is crucial that we provide users with an extensible package management system.
+This document describes the current state of our packaging efforts, as well as
+future directions and enhancements to it.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -23,6 +24,7 @@ well as future directions and enhancements to it.
 <!-- /MarkdownTOC -->
 
 ## Enso Package Structure
+
 The general directory structure of an Enso package is as follows:
 
 ```
@@ -41,12 +43,13 @@ My_Package
 ```
 
 ### The `src` Directory
-The `src` directory contains all Enso sources, organized in a hierarchical
-structure. The structure of this directory dictates how particular modules
-are imported in all of Enso code.
 
-Note that all files and directories in this subtree must be named according
-to the Enso style for referent names (i.e. `Upper_Snake_Case`, see
+The `src` directory contains all Enso sources, organized in a hierarchical
+structure. The structure of this directory dictates how particular modules are
+imported in all of Enso code.
+
+Note that all files and directories in this subtree must be named according to
+the Enso style for referent names (i.e. `Upper_Snake_Case`, see
 [the syntax specification](../syntax/naming.md#naming-constructs)).
 
 A file located at the path `My_Package/src/Sub_Module/Helper.enso` will be
@@ -59,8 +62,8 @@ import My_Package.Sub_Module.Helper
 Please note the following:
 
 - The name of the package appears as the first segment of the name.
-- The package name is not specified by the containing directory's name,
-  but rather it is described in the `package.yaml` file.
+- The package name is not specified by the containing directory's name, but
+  rather it is described in the `package.yaml` file.
 
 The exact transformation is as follows:
 
@@ -68,18 +71,20 @@ The exact transformation is as follows:
    name.
 2. Any subdirectories on the path from the `src` directory to the source file
    are appended as consecutive segments.
-3. The name of the source file, with the `.enso` extension stripped, becomes
-   the last segment.
+3. The name of the source file, with the `.enso` extension stripped, becomes the
+   last segment.
 
 ### The `polyglot` Directory
+
 The `polyglot` directory contains per-language subdirectories containing files
 used by the supported polyglot languages. The contents of each subdirectory is
 specified on a per-language basis, in the
 [polyglot documentation](../polyglot/README.md).
 
 ### The `package.yaml` File
-`package.yaml` describes certain package metadata, such as its name, authors
-and version. It also includes the list of extra dependencies of the package
+
+`package.yaml` describes certain package metadata, such as its name, authors and
+version. It also includes the list of extra dependencies of the package
 (dependencies that are not present in the resolver or need a version override).
 The following is an example of this manifest file.
 
@@ -91,53 +96,57 @@ author: "John Doe <john.doe@example.com>"
 maintainer: "Jane Doe <jane.doe@example.com>"
 resolver: lts-1.2.0
 extra-dependencies:
-- name: Base
-  version: "1.2.0"
-- name: Http
-  version: "4.5.3"
+  - name: Base
+    version: "1.2.0"
+  - name: Http
+    version: "4.5.3"
 ```
 
-The following is the specification of the manifest fields.
-Fields marked as **Optional (required for publishing)** are completely optional
-during development - if not specified, their default values will be used.
-However, they must be specified before publishing the package. A package missing
-any of these fields cannot be published. 
+The following is the specification of the manifest fields. Fields marked as
+**Optional (required for publishing)** are completely optional during
+development - if not specified, their default values will be used. However, they
+must be specified before publishing the package. A package missing any of these
+fields cannot be published.
 
 #### license
-**Optional (required for publishing)** *String*: The short license name of this
+
+**Optional (required for publishing)** _String_: The short license name of this
 package. Defaults to `None`, meaning the package is not safe for use by third
 parties.
 
 #### version
-**Optional (required for publishing)** *String*: The
+
+**Optional (required for publishing)** _String_: The
 [semantic versioning](https://semver.org/) string, in the `major.minor.patch`
 format. If not set, it defaults to `dev` (which can be used for development, but
 is not a valid version for publishing).
 
 #### author
-**Optional** *String* or *List of Strings*: The name(s) and contact info(s) of
+
+**Optional** _String_ or _List of Strings_: The name(s) and contact info(s) of
 the author(s) of this library, in the `Name <contact>` or `Name` format.
 
 #### maintainer
-**Optional** *String* or *List of Strings*: The name(s) and contact info(s)
-of the current maintainer(s) of this library, in the `Name <contact>` or `Name`
+
+**Optional** _String_ or _List of Strings_: The name(s) and contact info(s) of
+the current maintainer(s) of this library, in the `Name <contact>` or `Name`
 format.
 
 #### resolver
-**Note** This field is not currently implemented.
-**Optional (required for publishing)** *String*: The resolver name, used to
-choose compiler version and basic libraries set. If not set, the system-default
-resolver will be used.
+
+**Note** This field is not currently implemented. **Optional (required for
+publishing)** _String_: The resolver name, used to choose compiler version and
+basic libraries set. If not set, the system-default resolver will be used.
 
 > The actionables for this section are:
 >
 > - Extend the compiler version to handle version bounds.
 
 #### extra-dependencies
-**Note** This field is not currently implemented.
-**Optional** *List of Library objects*: The list of libraries this package
-requires to function properly and that are not included in the resolver.
-Defaults to an empty list.
+
+**Note** This field is not currently implemented. **Optional** _List of Library
+objects_: The list of libraries this package requires to function properly and
+that are not included in the resolver. Defaults to an empty list.
 
 A library object is of the form:
 
@@ -151,13 +160,14 @@ version: <semver string of the required library version>
 > - Extend the library version field to handle version bounds.
 
 ## Build Reproducibility
+
 It is crucial for any good development environment to provide reproducible
 builds, such that it is impossible for it to go wrong by mismatching library
 versions.
 
 > The actionables for this section are:
-> 
-> - Decide on the strategies of ensuring consistent library resolution. This
->   may include hashing the downloaded versions of libraries and publishing
+>
+> - Decide on the strategies of ensuring consistent library resolution. This may
+>   include hashing the downloaded versions of libraries and publishing
 >   stack-style resolvers for sets of libraries that are proven to work well
 >   together.

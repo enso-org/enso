@@ -7,6 +7,7 @@ order: 13
 ---
 
 # Inference and Checking
+
 As a statically-typed language, Enso is built with a sophisticated type checker
 capable of reasoning about a fully dependently-typed system. However, a type
 checker on its own is quite useless. For Enso to truly be usable, it must also
@@ -29,12 +30,13 @@ have a powerful type inference engine.
 
 - [Maximal Inference Power](#maximal-inference-power)
 - [Type Inference Algorithm](#type-inference-algorithm)
-    - [Inferring Dependency](#inferring-dependency)
+  - [Inferring Dependency](#inferring-dependency)
 - [Type Checking Algorithm](#type-checking-algorithm)
 
 <!-- /MarkdownTOC -->
 
 ## Maximal Inference Power
+
 In order to make Enso's type inference as helpful and friendly as possible to
 our users, we want the ability to infer the _maximal subset_ of the types that
 Enso can express.

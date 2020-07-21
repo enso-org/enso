@@ -7,6 +7,7 @@ order: 9
 ---
 
 # Evaluation and Typing
+
 Enso is a language that has strict semantics by default, but it can still be
 very useful to be able to opt-in to suspended computations (thunks) for the
 design of certain APIs.

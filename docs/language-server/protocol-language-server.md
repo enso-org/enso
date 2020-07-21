@@ -7,6 +7,7 @@ order: 4
 ---
 
 # Enso Protocol Language Server Message Specification
+
 This document contains the specification of the Enso protocol messages that
 pertain to the language server component. Please familiarise yourself with the
 [common](./protocol-common.md) features of the protocol before reading this
@@ -145,10 +146,12 @@ transport formats, please look [here](./protocol-architecture).
 <!-- /MarkdownTOC -->
 
 ## Types
+
 There are a number of types that are used only within the language server's
 protocol messages. These are specified here.
 
 ### `ExpressionId`
+
 An identifier used for Enso expressions.
 
 ```typescript
@@ -156,6 +159,7 @@ type ExpressionId = UUID;
 ```
 
 ### `ContextId`
+
 An identifier used for execution contexts.
 
 ```typescript
@@ -167,19 +171,19 @@ type SuggestionEntryId = number;
 ```
 
 ### `StackItem`
+
 A representation of an executable position in code, used by the execution APIs.
 
 `ExplicitCall` is a call performed at the top of the stack, to initialize the
-context with first execution.
-The `thisArgumentsPosition` field can be omitted, in which case the context
-will try to infer the argument on a best-effort basis. E.g. for a module-level
-method, or a method defined on a parameter-less atom type, `this` will be
-substituted for the unambiguous singleton instance.
+context with first execution. The `thisArgumentsPosition` field can be omitted,
+in which case the context will try to infer the argument on a best-effort basis.
+E.g. for a module-level method, or a method defined on a parameter-less atom
+type, `this` will be substituted for the unambiguous singleton instance.
 
 `LocalCall` is a call corresponding to "entering a function call".
 
 ```typescript
-type StackItem = ExplicitCall | LocalCall
+type StackItem = ExplicitCall | LocalCall;
 
 interface ExplicitCall {
   methodPointer: MethodPointer;
@@ -193,6 +197,7 @@ interface LocalCall {
 ```
 
 ### `MethodPointer`
+
 Points to a method definition.
 
 ```typescript
@@ -215,6 +220,7 @@ interface ExpressionValueUpdate {
 ```
 
 ### `VisualisationConfiguration`
+
 A configuration object for properties of the visualisation.
 
 ```typescript
@@ -236,6 +242,7 @@ interface VisualisationConfiguration {
 ```
 
 ### `SuggestionEntryArgument`
+
 The argument of a [`SuggestionEntry`](#suggestionentry).
 
 #### Format
@@ -257,6 +264,7 @@ interface SuggestionEntryArgument {
 ```
 
 ### `SuggestionEntry`
+
 The language construct that can be returned as a suggestion.
 
 #### Format
@@ -317,25 +325,23 @@ interface SuggestionEntryLocal {
 ```
 
 ### `SuggestionEntryType`
+
 The suggestion entry type that is used as a filter in search requests.
 
 #### Format
 
 ```typescript
 // The kind of a suggestion.
-type SuggestionEntryType
-  = Atom
-  | Method
-  | Function
-  | Local;
+type SuggestionEntryType = Atom | Method | Function | Local;
 ```
 
 ### `SuggestionsDatabaseEntry`
 
 #### Format
+
 The entry in the suggestions database.
 
-``` typescript
+```typescript
 interface SuggestionsDatabaseEntry {
   // suggestion entry id
   id: number;
@@ -345,16 +351,14 @@ interface SuggestionsDatabaseEntry {
 ```
 
 ### `SuggestionsDatabaseUpdate`
+
 The update of the suggestions database.
 
 #### Format
 
 ```typescript
 // The kind of the suggestions database update.
-type SuggestionsDatabaseUpdate
-  = Add
-  | Remove
-  | Modify
+type SuggestionsDatabaseUpdate = Add | Remove | Modify;
 
 interface Add {
   // suggestion entry id
@@ -377,6 +381,7 @@ interface Modify {
 ```
 
 ### `File`
+
 A representation of a file on disk.
 
 #### Format
@@ -389,6 +394,7 @@ interface File {
 ```
 
 ### `DirectoryTree`
+
 A directory tree is a recursive type used to represent tree structures of files
 and directories. It contains files and symlinks in the `files` section and
 directories in the `directories` section. When the tree was requested with the
@@ -408,6 +414,7 @@ interface DirectoryTree {
 ```
 
 ### `FileAttributes`
+
 A description of the attributes of a file required by the IDE. These attributes
 may be expanded in future.
 
@@ -434,6 +441,7 @@ interface FileAttributes {
 ```
 
 ### `UTCDateTime`
+
 Time in UTC time zone represented as ISO-8601 string
 
 #### Format
@@ -443,6 +451,7 @@ type UTCDateTime = String;
 ```
 
 ### `FileEventKind`
+
 The kind of event being described for a watched file.
 
 #### Format
@@ -452,6 +461,7 @@ type FileEventKind = Added | Removed | Modified;
 ```
 
 ### `Position`
+
 A representation of a position in a text file.
 
 #### Format
@@ -475,7 +485,7 @@ interface Position {
 }
 ```
 
-``` idl
+```idl
 namespace org.enso.languageserver.protocol.binary;
 
 struct Position {
@@ -487,6 +497,7 @@ struct Position {
 ```
 
 ### `Range`
+
 A representation of a range of text in a text file.
 
 #### Format
@@ -506,6 +517,7 @@ interface Range {
 ```
 
 ### `TextEdit`
+
 A representation of a change to a text file at a given position.
 
 #### Format
@@ -518,22 +530,24 @@ interface TextEdit {
 ```
 
 ### `SHA3-224`
+
 The `SHA3-224` message digest encoded as a base16 string.
 
 #### Format
 
-``` typescript
+```typescript
 type SHA3-224 = String;
 ```
 
 ### `FileEdit`
+
 A representation of a batch of edits to a file, versioned.
 
 `SHA3-224` represents hash of the file contents. `oldVersion` is the version
 you're applying your update on, `newVersion` is what you compute as the hash
 after applying the changes. In other words,
 
-``` python
+```python
 hash(origFile) == oldVersion
 hash(applyEdits(origFile, edits)) == newVersion
 ```
@@ -560,6 +574,7 @@ interface FileEdit {
 ```
 
 ### `FileContents`
+
 A representation of the contents of a file.
 
 #### Format
@@ -573,16 +588,13 @@ class TextFileContents extends FileContents[String];
 ```
 
 ### `FileSystemObject`
+
 A representation of what kind of type a filesystem object can be.
 
 #### Format
 
 ```typescript
-type FileSystemObject
-  = Directory
-  | SymlinkLoop
-  | File
-  | Other;
+type FileSystemObject = Directory | SymlinkLoop | File | Other;
 
 /**
  * Represents a directory.
@@ -631,6 +643,7 @@ interface Other {
 ```
 
 ### `WorkspaceEdit`
+
 This is a message to be specified once we better understand the intricacies of
 undo/redo.
 
@@ -640,10 +653,12 @@ undo/redo.
 > - Specify this message.
 
 ## Connection Management
+
 In order to properly set-up and tear-down the language server connection, we
 need a set of messages to control this process.
 
 ### `session/initProtocolConnection`
+
 This message initialises the connection used to send the textual protocol
 messages. This initialisation is important such that the client identifier can
 be correlated between the textual and data connections.
@@ -670,10 +685,12 @@ be correlated between the textual and data connections.
 ```
 
 #### Errors
+
 - [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror) to signal
-that session is already initialised.
+  that session is already initialised.
 
 ### `session/initBinaryConnection`
+
 This message initialises the data connection used for transferring binary data
 between engine and clients. This initialisation is important such that the
 client identifier can be correlated between the data and textual connections.
@@ -709,14 +726,17 @@ table Success {}
 ```
 
 #### Errors
+
 N/A
 
 ## Capability Management
-In order to mediate between multiple clients properly, the language server has
-a robust notion of capability management to grant and remove permissions from
+
+In order to mediate between multiple clients properly, the language server has a
+robust notion of capability management to grant and remove permissions from
 clients.
 
 ### `capability/acquire`
+
 This requests that the server grant the specified capability to the requesting
 client.
 
@@ -740,13 +760,15 @@ in the section on [capabilities](#capabilities) below.
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 TBC
 
 ### `capability/release`
+
 This requests that the server acknowledge that the client is releasing a given
 capability.
 
@@ -766,13 +788,15 @@ capability.
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 TBC
 
 ### `capability/granted`
+
 This notifies the client that it has been granted a capability without any
 action on its part.
 
@@ -790,9 +814,11 @@ action on its part.
 ```
 
 #### Errors
+
 TBC
 
 ### `capability/forceReleased`
+
 This notifies the client that a capability has been forcibly removed from its
 capability set.
 
@@ -810,12 +836,15 @@ capability set.
 ```
 
 #### Errors
+
 TBC
 
 ## Capabilities
+
 The capability management features work with the following capabilities.
 
 ### `text/canEdit`
+
 This capability states that the capability has the ability to perform both
 `text/applyEdit` and `text/save` for the specified file.
 
@@ -823,13 +852,16 @@ This capability states that the capability has the ability to perform both
 - **registerOptions:** `{path: Path;}`
 
 #### Enables
+
 - [`text/applyEdit`](#textapplyedit)
 - [`text/save`](#textsave)
 
 #### Disables
+
 None
 
 ### `file/receivesTreeUpdates`
+
 This capability states that the client will receive updates for any watched
 content roots in the current project.
 
@@ -837,31 +869,37 @@ content roots in the current project.
 - **registerOptions:** `{ path: Path; }`
 
 #### Enables
+
 - [`file/event`](#fileevent)
 
 #### Disables
+
 None
 
 #### Errors
 
 [`capability/acquire`](#capabilityacquire):
+
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 - [`FileNotFound`](#filenotfound) informs that path cannot be found.
 
 [`capability/release`](#capabilityrelease):
+
 - [`CapabilityNotAcquired`](#capabilitynotacquired) informs that requested
   capability is not acquired.
 
 ### `executionContext/canModify`
+
 This capability states that the client has the ability to modify an execution
 context, including modifying the execution stack, invalidating caches, or
 destroying the context.
 
 - **method:** `executionContext/canModify`
-- **registerOptions:** `{  contextId: ContextId; }`
+- **registerOptions:** `{ contextId: ContextId; }`
 
 #### Enables
+
 - [`executionContext/destroy`](#executioncontextdestroy)
 - [`executionContext/recompute`](#executioncontextrecompute)
 - [`executionContext/push`](#executioncontextpush)
@@ -872,22 +910,27 @@ destroying the context.
 - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
 
 #### Disables
+
 None
 
 ### `executionContext/receivesUpdates`
-This capability states that the client receives expression value updates from
-a given execution context.
+
+This capability states that the client receives expression value updates from a
+given execution context.
 
 - **method:** `executionContext/receivesUpdates`
 - **registerOptions:** `{ contextId: ContextId; }`
 
 #### Enables
+
 - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
 
 #### Disables
+
 None
 
 ### `search/receivesSuggestionsDatabaseUpdates`
+
 This capability states that the client receives the search database updates for
 a given execution context.
 
@@ -895,25 +938,29 @@ a given execution context.
 - **registerOptions:** `{}`
 
 ### Enables
+
 - [`search/suggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
 
 ### Disables
+
 None
 
 ## File Management Operations
+
 The language server also provides file operations to the IDE.
 
 ### `file/write`
-This requests that the file manager component write to a specified file with
-the specified contents.
+
+This requests that the file manager component write to a specified file with the
+specified contents.
 
 - **Type:** Request
 - **Direction:** Client -> Server
 
 This request is _explicitly_ allowed to write to files that do not exist, and
 will create them under such circumstances. If a file is recorded as 'open' by
-one of the clients, and another client attempts to write to that file, the
-write must fail.
+one of the clients, and another client attempts to write to that file, the write
+must fail.
 
 #### Parameters
 
@@ -927,7 +974,7 @@ write must fail.
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
@@ -940,6 +987,7 @@ null
   access to a resource.
 
 ### `file/read`
+
 This requests that the file manager component reads the contents of a specified
 file.
 
@@ -963,7 +1011,7 @@ return the contents from the in-memory buffer rather than the file on disk.
 
 ```typescript
 {
-  contents: FileContents[T]
+  contents: FileContents[T];
 }
 ```
 
@@ -978,8 +1026,9 @@ return the contents from the in-memory buffer rather than the file on disk.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
 ### `file/writeBinary`
-This requests that the file manager component write to a specified file with
-the binary contents.
+
+This requests that the file manager component write to a specified file with the
+binary contents.
 
 - **Type:** Request
 - **Connection:** Binary
@@ -987,8 +1036,8 @@ the binary contents.
 
 This request is _explicitly_ allowed to write to files that do not exist, and
 will create them under such circumstances. If a file is recorded as 'open' by
-one of the clients, and another client attempts to write to that file, the
-write must fail.
+one of the clients, and another client attempts to write to that file, the write
+must fail.
 
 #### Parameters
 
@@ -1027,6 +1076,7 @@ table Success {}
   access to a resource.
 
 ### `file/readBinary`
+
 This requests that the file manager component reads the binary contents of a
 specified file.
 
@@ -1076,8 +1126,8 @@ table FileContentsReply {
   access to a resource.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
-
 ### `file/create`
+
 This request asks the file manager to create the specified file system object.
 
 - **Type:** Request
@@ -1098,7 +1148,7 @@ This will fail if the specified object already exists.
 #### Response
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
@@ -1111,6 +1161,7 @@ null
   access to a resource.
 
 ### `file/delete`
+
 This request asks the file manager to delete the specified file system object.
 
 - **Type:** Request
@@ -1133,6 +1184,7 @@ null
 ```
 
 #### Errors
+
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
@@ -1141,6 +1193,7 @@ null
 - [`FileExists`](#fileexists) informs that file already exists
 
 ### `file/copy`
+
 This request asks the file manager to copy a specified filesystem object to
 another location.
 
@@ -1161,10 +1214,11 @@ another location.
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
@@ -1172,6 +1226,7 @@ null
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
 ### `file/move`
+
 This request asks the file manager to move a specified filesystem object to
 another location.
 
@@ -1195,10 +1250,11 @@ inform the client that the currently edited file has been moved.
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
@@ -1207,6 +1263,7 @@ null
 - [`FileExists`](#fileexists) informs that target file already exists.
 
 ### `file/exists`
+
 This request asks the file manager to check whether a filesystem object exists
 at the specified path.
 
@@ -1232,10 +1289,12 @@ at the specified path.
 ```
 
 #### Errors
+
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
   requested content root cannot be found.
 
 ### `file/tree`
+
 This request asks the file manager component to generate and provide the
 directory tree starting at a given path.
 
@@ -1262,6 +1321,7 @@ directory tree starting at a given path.
 ```
 
 #### Errors
+
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
   requested content root cannot be found.
 - [`FileNotFound`](#filenotfound) informs that requested path does not exist or
@@ -1270,6 +1330,7 @@ directory tree starting at a given path.
   directory.
 
 ### `file/list`
+
 This request lists the contents of a given filesystem object. For a file it will
 just return the file, while for a directory it will list the contents of the
 directory.
@@ -1296,6 +1357,7 @@ directory.
 ```
 
 #### Errors
+
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
   requested content root cannot be found.
 - [`FileNotFound`](#filenotfound) informs that requested path does not exist.
@@ -1303,6 +1365,7 @@ directory.
   directory.
 
 ### `file/info`
+
 This request gets information about a specified filesystem object.
 
 - **Type:** Request
@@ -1329,11 +1392,13 @@ This request should work for all kinds of filesystem object.
 ```
 
 #### Errors
+
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
   requested content root cannot be found.
 - [`FileNotFound`](#filenotfound) informs that requested path does not exist.
 
 ### `file/event`
+
 This is a notification that is sent every time something under a watched content
 root changes. It is used to ensure that the client's filesystem representation
 stays in synchronisation with reality.
@@ -1356,9 +1421,11 @@ of the (possibly multiple) content roots.
 ```
 
 #### Errors
+
 None
 
 ### `file/addRoot`
+
 This request adds a content root to the active project.
 
 - **Type:** Request
@@ -1384,13 +1451,15 @@ structure.
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 TBC
 
 ### `file/removeRoot`
+
 This request removes a content root from the active project.
 
 - **Type:** Request
@@ -1414,13 +1483,15 @@ IDE is responsible for any additional discovery.
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 TBC
 
 ### `file/rootAdded`
+
 This is a notification sent to all clients other than the one performing the
 addition of the root in order to inform them of the content root's ID.
 
@@ -1434,14 +1505,16 @@ addition of the root in order to inform them of the content root's ID.
 ```typescript
 {
   id: UUID; // The content root ID
-  absolutePath: [String]
+  absolutePath: [String];
 }
 ```
 
 #### Errors
+
 TBC
 
 ### `file/rootRemoved`
+
 This is a notification sent to all clients other than the one performing the
 removal of the content root in order to inform them of the removal of the root.
 
@@ -1459,13 +1532,16 @@ removal of the content root in order to inform them of the removal of the root.
 ```
 
 #### Errors
+
 TBC
 
 ## Text Editing Operations
+
 The language server also has a set of text editing operations to ensure that it
 stays in sync with the clients.
 
 ### `text/openFile`
+
 This requests the language server to open the specified file.
 
 - **Type:** Request
@@ -1473,8 +1549,8 @@ This requests the language server to open the specified file.
 - **Connection:** Protocol
 - **Visibility:** Public
 
-If no client has write lock on the opened file, the capability is granted to
-the client that sent the `text/openFile` message.
+If no client has write lock on the opened file, the capability is granted to the
+client that sent the `text/openFile` message.
 
 #### Parameters
 
@@ -1495,6 +1571,7 @@ the client that sent the `text/openFile` message.
 ```
 
 #### Errors
+
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
   file-system error.
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
@@ -1503,8 +1580,8 @@ the client that sent the `text/openFile` message.
   access to a resource.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
-
 ### `text/closeFile`
+
 This requests the language server to close the specified file.
 
 - **Type:** Request
@@ -1523,14 +1600,16 @@ This requests the language server to close the specified file.
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 - [`FileNotOpenedError`](#filenotopenederror) to signal that a file wasn't
   opened.
 
 ### `text/save`
+
 This requests for the language server to save the specified file.
 
 - **Type:** Request
@@ -1546,17 +1625,18 @@ that file, or if the client is requesting a save of an outdated version.
 ```typescript
 {
   path: Path;
-  currentVersion: SHA3-224;
+  currentVersion: SHA3 - 224;
 }
 ```
 
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 - [`FileNotOpenedError`](#filenotopenederror) to signal that the file isn't
   open.
 - [`InvalidVersionError`](#invalidversionerror) to signal that the version
@@ -1571,6 +1651,7 @@ null
   access to a resource.
 
 ### `text/applyEdit`
+
 This requests that the server apply a series of edits to the project. These
 edits solely concern text files.
 
@@ -1594,10 +1675,11 @@ that some edits are applied and others are not.
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 - [`FileNotOpenedError`](#filenotopenederror) to signal that the file isn't
   open.
 - [`TextEditValidationError`](#texteditvalidationerror) to signal that
@@ -1608,6 +1690,7 @@ null
   write lock for the buffer.
 
 ### `text/didChange`
+
 This is a notification sent from the server to the clients to inform them of any
 changes made to files that they have open.
 
@@ -1627,15 +1710,18 @@ This notification must _only_ be sent for files that the client has open.
 ```
 
 #### Errors
+
 ```typescript
-null
+null;
 ```
 
 ## Workspace Operations
+
 The language server also has a set of operations useful for managing the client
 workspace.
 
 ### `workspace/undo`
+
 This request is sent from the client to the server to request that an operation
 be undone.
 
@@ -1658,13 +1744,15 @@ server undoing that same action for all clients in the workspace.
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 TBC
 
 ### `workspace/redo`
+
 This request is sent from the client to the server to request that an operation
 be redone.
 
@@ -1687,17 +1775,20 @@ server redoing that same action for all clients in the workspace.
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 TBC
 
 ## Monitoring
+
 The language server also has a heartbeat operation to monitor the Language
 server. This API is private and should be used only by the Project Manager.
 
 ### `heartbeat/ping`
+
 This request is sent from the supervisor process to the server to check the
 health of the Language Server.
 
@@ -1709,23 +1800,26 @@ health of the Language Server.
 #### Parameters
 
 ```typescript
-null
+null;
 ```
 
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 None
 
 ## Refactoring
+
 The language server also provides refactoring operations to restructure an
 internal body of code.
 
 ### `refactoring/renameProject`
+
 This request is sent from the project manager to the server to refactor project
 name in an interpreter runtime.
 
@@ -1746,29 +1840,31 @@ name in an interpreter runtime.
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 None
 
 ## Execution Management Operations
+
 The execution management portion of the language server API deals with exposing
-fine-grained control over program and expression execution to the clients of
-the language server. This is incredibly important for enabling the high levels
-of interactivity required by Enso Studio.
+fine-grained control over program and expression execution to the clients of the
+language server. This is incredibly important for enabling the high levels of
+interactivity required by Enso Studio.
 
 ### Execution Management Example
 
 Given the default project structure.
 
-``` text
+```text
 ├── package.yaml
 └── src
     └── Main.enso
 ```
 
-``` bash
+```bash
 $ cat src/Main.enso
 
 main =
@@ -1794,33 +1890,33 @@ for the precalculated metadata indexes.
 
 ### Create Execution Context
 
-``` json
+```json
 {
-  "jsonrpc":"2.0",
-  "method":"executionContext/create",
-  "id":0,
-  "params":null
+  "jsonrpc": "2.0",
+  "method": "executionContext/create",
+  "id": 0,
+  "params": null
 }
 ```
 
 Return capabilities together with a newly created `ContextId`.
 
-``` json
+```json
 {
-  "jsonrpc":"2.0",
-  "id":0,
-  "result":{
-    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
-    "canModify":{
-      "method":"executionContext/canModify",
-      "registerOptions":{
-        "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3"
+  "jsonrpc": "2.0",
+  "id": 0,
+  "result": {
+    "contextId": "1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "canModify": {
+      "method": "executionContext/canModify",
+      "registerOptions": {
+        "contextId": "1eb5ad04-4094-4c1f-be54-e9d29ddf19a3"
       }
     },
-    "receivesUpdates":{
-      "method":"executionContext/receivesUpdates",
-      "registerOptions":{
-        "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3"
+    "receivesUpdates": {
+      "method": "executionContext/receivesUpdates",
+      "registerOptions": {
+        "contextId": "1eb5ad04-4094-4c1f-be54-e9d29ddf19a3"
       }
     }
   }
@@ -1828,31 +1924,29 @@ Return capabilities together with a newly created `ContextId`.
 ```
 
 ### Push Item
+
 Entering the `main` method. First item on the stack should always be an
 `ExplicitCall`.
 
-``` json
+```json
 {
-  "jsonrpc":"2.0",
-  "method":"executionContext/push",
-  "id":0,
-  "params":{
-    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
-    "stackItem":{
-      "type":"ExplicitCall",
-      "methodPointer":{
-        "file":{
-          "rootId":"18f642a2-5f69-4fc8-add6-13bf199ca326",
-          "segments":[
-            "src",
-            "Main.enso"
-          ]
+  "jsonrpc": "2.0",
+  "method": "executionContext/push",
+  "id": 0,
+  "params": {
+    "contextId": "1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "stackItem": {
+      "type": "ExplicitCall",
+      "methodPointer": {
+        "file": {
+          "rootId": "18f642a2-5f69-4fc8-add6-13bf199ca326",
+          "segments": ["src", "Main.enso"]
         },
-        "definedOnType":"Main",
-        "name":"main"
+        "definedOnType": "Main",
+        "name": "main"
       },
-      "thisArgumentExpression":null,
-      "positionalArgumentsExpressions":[ ]
+      "thisArgumentExpression": null,
+      "positionalArgumentsExpressions": []
     }
   }
 }
@@ -1860,37 +1954,34 @@ Entering the `main` method. First item on the stack should always be an
 
 Returns successful reponse.
 
-``` json
+```json
 {
-  "jsonrpc":"2.0",
-  "id":0,
-  "result":null
+  "jsonrpc": "2.0",
+  "id": 0,
+  "result": null
 }
 ```
 
 And a value update, result of the method `foo` call defined on type `Number`.
 
-``` json
+```json
 {
-  "jsonrpc":"2.0",
-  "method":"executionContext/expressionValuesComputed",
-  "params":{
-    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
-    "updates":[
+  "jsonrpc": "2.0",
+  "method": "executionContext/expressionValuesComputed",
+  "params": {
+    "contextId": "1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "updates": [
       {
-        "id":"37f284d4-c593-4e65-a4be-4948fbd2adfb",
-        "type":"Number",
-        "shortValue":"45",
-        "methodCall":{
-          "file":{
-            "rootId":"18f642a2-5f69-4fc8-add6-13bf199ca326",
-            "segments":[
-              "src",
-              "Main.enso"
-            ]
+        "id": "37f284d4-c593-4e65-a4be-4948fbd2adfb",
+        "type": "Number",
+        "shortValue": "45",
+        "methodCall": {
+          "file": {
+            "rootId": "18f642a2-5f69-4fc8-add6-13bf199ca326",
+            "segments": ["src", "Main.enso"]
           },
-          "definedOnType":"Number",
-          "name":"foo"
+          "definedOnType": "Number",
+          "name": "foo"
         }
       }
     ]
@@ -1901,16 +1992,16 @@ And a value update, result of the method `foo` call defined on type `Number`.
 We can go deeper and evaluate the method `foo` call by pushing the `LocalCall`
 on the stack. In general, all consequent stack items should be `LocalCall`s.
 
-``` json
+```json
 {
-  "jsonrpc":"2.0",
-  "method":"executionContext/push",
-  "id":0,
-  "params":{
-    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
-    "stackItem":{
-      "type":"LocalCall",
-      "expressionId":"37f284d4-c593-4e65-a4be-4948fbd2adfb"
+  "jsonrpc": "2.0",
+  "method": "executionContext/push",
+  "id": 0,
+  "params": {
+    "contextId": "1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "stackItem": {
+      "type": "LocalCall",
+      "expressionId": "37f284d4-c593-4e65-a4be-4948fbd2adfb"
     }
   }
 }
@@ -1918,28 +2009,28 @@ on the stack. In general, all consequent stack items should be `LocalCall`s.
 
 Returns successful reponse.
 
-``` json
+```json
 {
-  "jsonrpc":"2.0",
-  "id":0,
-  "result":null
+  "jsonrpc": "2.0",
+  "id": 0,
+  "result": null
 }
 ```
 
 And update of some value inside the function `foo`.
 
-``` json
+```json
 {
-  "jsonrpc":"2.0",
-  "method":"executionContext/expressionValuesComputed",
-  "params":{
-    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
-    "updates":[
+  "jsonrpc": "2.0",
+  "method": "executionContext/expressionValuesComputed",
+  "params": {
+    "contextId": "1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "updates": [
       {
-        "id":"1cda3676-bd62-41f8-b6a1-a1e1b7c73d18",
-        "type":"Number",
-        "shortValue":"9",
-        "methodCall":null
+        "id": "1cda3676-bd62-41f8-b6a1-a1e1b7c73d18",
+        "type": "Number",
+        "shortValue": "9",
+        "methodCall": null
       }
     ]
   }
@@ -1948,13 +2039,13 @@ And update of some value inside the function `foo`.
 
 ### Pop Item
 
-``` json
+```json
 {
-  "jsonrpc":"2.0",
-  "method":"executionContext/pop",
-  "id":0,
-  "params":{
-    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3"
+  "jsonrpc": "2.0",
+  "method": "executionContext/pop",
+  "id": 0,
+  "params": {
+    "contextId": "1eb5ad04-4094-4c1f-be54-e9d29ddf19a3"
   }
 }
 ```
@@ -1963,9 +2054,8 @@ Popping one item will return us into the `main` method. Second call will clear
 the stack. Subsequent pop calls will result in an error indicating that the
 stack is empty.
 
-
-
 ### `executionContext/create`
+
 Sent from the client to the server to create a new execution context. Return
 capabilities [`executionContext/canModify`](#executioncontextcanmodify) and
 [`executionContext/receivesUpdates`](#executioncontextreceivesupdates).
@@ -1976,11 +2066,13 @@ capabilities [`executionContext/canModify`](#executioncontextcanmodify) and
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
-null
+null;
 ```
 
 #### Result
+
 ```typescript
 {
   contextId: ContextId;
@@ -1990,9 +2082,11 @@ null
 ```
 
 #### Errors
+
 None
 
 ### `executionContext/destroy`
+
 Sent from the client to the server destroy an execution context and free its
 resources.
 
@@ -2002,6 +2096,7 @@ resources.
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
 {
   contextId: ContextId;
@@ -2009,22 +2104,24 @@ resources.
 ```
 
 #### Result
+
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 - [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
   `executionContext/canModify` capability for this context.
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
 
 ### `executionContext/fork`
+
 Sent from the client to the server to duplicate an execution context, creating
-an independent copy, containing all the data precomputed in the first
-one. Return capabilities
-[`executionContext/canModify`](#executioncontextcanmodify) and
-[`executionContext/receivesUpdates`](#executioncontextreceivesupdates).
+an independent copy, containing all the data precomputed in the first one.
+Return capabilities [`executionContext/canModify`](#executioncontextcanmodify)
+and [`executionContext/receivesUpdates`](#executioncontextreceivesupdates).
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -2032,6 +2129,7 @@ one. Return capabilities
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
 {
   contextId: ContextId;
@@ -2039,6 +2137,7 @@ one. Return capabilities
 ```
 
 #### Result
+
 ```typescript
 {
   contextId: ContextId;
@@ -2048,9 +2147,11 @@ one. Return capabilities
 ```
 
 #### Errors
+
 No known errors.
 
 ### `executionContext/push`
+
 Sent from the client to the server execute item and move the execution context
 to a new location deeper down the stack. If a stack item becomes invalid because
 of a text edit (e.g. the root function of the view was removed), it will stop
@@ -2062,6 +2163,7 @@ executing. If the function reappears, execution should resume as normal.
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
 {
   contextId: ContextId;
@@ -2070,11 +2172,13 @@ executing. If the function reappears, execution should resume as normal.
 ```
 
 #### Result
+
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 - [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
   `executionContext/canModify` capability for this context.
 - [`StackItemNotFoundError`](#stackitemnotfounderror) when the request stack
@@ -2083,6 +2187,7 @@ null
   top of the empty stack, or pushing `ExplicitCall` on top of non-empty stack.
 
 ### `executionContext/pop`
+
 Sent from the client to the server move the execution context up the stack,
 corresponding to the client clicking out of the current breadcrumb.
 
@@ -2092,6 +2197,7 @@ corresponding to the client clicking out of the current breadcrumb.
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
 {
   contextId: ContextId;
@@ -2099,17 +2205,20 @@ corresponding to the client clicking out of the current breadcrumb.
 ```
 
 #### Result
+
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 - [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
   `executionContext/canModify` capability for this context.
 - [`EmptyStackError`](#emptystackerror) when the user tries to pop an empty
   stack.
 
 ### `executionContext/recompute`
+
 Sent from the client to the server to force recomputation of current position.
 May include a list of expressions for which caches should be invalidated.
 
@@ -2119,6 +2228,7 @@ May include a list of expressions for which caches should be invalidated.
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
 {
   contextId: ContextId;
@@ -2127,17 +2237,20 @@ May include a list of expressions for which caches should be invalidated.
 ```
 
 #### Result
+
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 - [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
   `executionContext/canModify` capability for this context.
 - [`EmptyStackError`](#emptystackerror) when the user tries to recompute an
   empty stack.
 
 ### `executionContext/expressionValuesComputed`
+
 Sent from the server to the client to inform about new information for certain
 expressions becoming available.
 
@@ -2147,17 +2260,20 @@ expressions becoming available.
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
 {
   contextId: ContextId;
-  updates: [ExpressionValueUpdate]
+  updates: [ExpressionValueUpdate];
 }
 ```
 
 #### Errors
+
 None
 
 ### `executionContext/executionFailed`
+
 Sent from the server to the client to inform about a failure during execution of
 an execution context.
 
@@ -2167,6 +2283,7 @@ an execution context.
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
 {
   contextId: ContextId;
@@ -2175,9 +2292,11 @@ an execution context.
 ```
 
 #### Errors
+
 None
 
 ### `executionContext/attachVisualisation`
+
 This message allows the client to attach a visualisation, potentially
 preprocessed by some arbitrary Enso code, to a given node in the program.
 
@@ -2199,22 +2318,23 @@ interface AttachVisualisationRequest {
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 - [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
   `executionContext/canModify` capability for this context.
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-the visualisation cannot be found.
+  the visualisation cannot be found.
 - [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
-the expression specified in the `VisualisationConfiguration` cannot be
-evaluated.
-
+  the expression specified in the `VisualisationConfiguration` cannot be
+  evaluated.
 
 ### `executionContext/detachVisualisation`
+
 This message allows a client to detach a visualisation from the executing code.
 
 - **Type:** Request
@@ -2235,18 +2355,20 @@ interface DetachVisualisationRequest {
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 - [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
   `executionContext/canModify` capability for this context.
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
 - [`VisualisationNotFoundError`](#visualisationnotfounderror) when a
-visualisation can not be found.
+  visualisation can not be found.
 
 ### `executionContext/modifyVisualisation`
+
 This message allows a client to modify the configuration for an existing
 visualisation.
 
@@ -2267,23 +2389,25 @@ interface ModifyVisualisationRequest {
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 - [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
   `executionContext/canModify` capability for this context.
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-the visualisation cannot be found.
+  the visualisation cannot be found.
 - [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
-the expression specified in the `VisualisationConfiguration` cannot be
-evaluated.
+  the expression specified in the `VisualisationConfiguration` cannot be
+  evaluated.
 - [`VisualisationNotFoundError`](#visualisationnotfounderror) when a
-visualisation can not be found.
+  visualisation can not be found.
 
 ### `executionContext/visualisationUpdate`
+
 This message is responsible for providing a visualisation data update to the
 client.
 
@@ -2330,6 +2454,7 @@ root_type VisualisationUpdate;
 ```
 
 #### Errors
+
 N/A
 
 ## Search Operations
@@ -2343,7 +2468,7 @@ a key-value storage with [`SuggestionEntry`](#suggestionentry) values.
 
 The following code snippet shows examples of the database entries.
 
-``` ruby
+```ruby
 type MyType a b
 
 type Maybe
@@ -2368,106 +2493,107 @@ main =
 
 #### MyType
 
-``` typescript
-<SuggestionEntryAtom> {
-  name: 'MyType',
+```typescript
+<SuggestionEntryAtom>{
+  name: "MyType",
   arguments: [],
-  returnType: 'MyType',
+  returnType: "MyType",
 };
 ```
 
 #### Maybe.Nothing
 
-``` typescript
-<SuggestionEntryAtom> {
-  name: 'Nothing',
+```typescript
+<SuggestionEntryAtom>{
+  name: "Nothing",
   arguments: [],
-  returnType: 'Maybe',
+  returnType: "Maybe",
 };
 ```
 
 #### Maybe.Just
 
-``` typescript
-<SuggestionEntryAtom> {
-  name: 'Just',
+```typescript
+<SuggestionEntryAtom>{
+  name: "Just",
   arguments: [
     {
-      name: 'a',
-      type: 'Any',
+      name: "a",
+      type: "Any",
       isSuspended: false,
       hasDefault: false,
-    }
+    },
   ],
-  returnType: 'Maybe',
+  returnType: "Maybe",
 };
 ```
 
 #### Maybe.is_just
 
-``` typescript
-<SuggestionEntryMethod> {
-  name: 'is_just',
+```typescript
+<SuggestionEntryMethod>{
+  name: "is_just",
   arguments: [],
-  selfType: 'Maybe',
-  returnType: 'Bool',
+  selfType: "Maybe",
+  returnType: "Bool",
 };
 ```
 
 #### foo
 
-``` typescript
-<SuggestionEntryFunction> {
-  name: 'foo',
+```typescript
+<SuggestionEntryFunction>{
+  name: "foo",
   arguments: [
     {
-      name: 'x',
-      type: 'Number',
+      name: "x",
+      type: "Number",
       isSuspended: false,
       hasDefault: false,
-    }
+    },
   ],
-  returnType: 'Bool',
+  returnType: "Bool",
 };
 ```
 
 #### Number.baz
 
-``` typescript
-<SuggestionEntryMethod> {
-  name: 'baz',
+```typescript
+<SuggestionEntryMethod>{
+  name: "baz",
   arguments: [
     {
-      name: 'x',
-      type: 'Number',
+      name: "x",
+      type: "Number",
       isSuspended: false,
       hasDefault: false,
-    }
+    },
   ],
-  selfType: 'Number',
-  returnType: 'Number',
+  selfType: "Number",
+  returnType: "Number",
 };
 ```
 
 #### Local x
 
-``` typescript
-<SuggestionEntryLocal> {
-  name: 'x',
-  returnType: 'Number',
+```typescript
+<SuggestionEntryLocal>{
+  name: "x",
+  returnType: "Number",
 };
 ```
 
 #### Local y
 
-``` typescript
-<SuggestionEntryLocal> {
-  name: 'y',
-  returnType: 'Number',
+```typescript
+<SuggestionEntryLocal>{
+  name: "y",
+  returnType: "Number",
 };
 ```
 
 ### `search/getSuggestionsDatabase`
+
 Sent from client to the server to receive the full suggestions database.
 
 - **Type:** Request
@@ -2476,11 +2602,13 @@ Sent from client to the server to receive the full suggestions database.
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
-null
+null;
 ```
 
 #### Result
+
 ```typescript
 {
   // The list of suggestions database entries
@@ -2491,12 +2619,14 @@ null
 ```
 
 #### Errors
+
 - [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
   suggestions database
 - [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
   root directory
 
 ### `search/getSuggestionsDatabaseVersion`
+
 Sent from client to the server to receive the current version of the suggestions
 database.
 
@@ -2506,11 +2636,13 @@ database.
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
-null
+null;
 ```
 
 #### Result
+
 ```typescript
 {
   // The version of the suggestions database
@@ -2519,12 +2651,14 @@ null
 ```
 
 #### Errors
+
 - [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
   suggestions database
 - [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
   root directory
 
 ### `search/suggestionsDatabaseUpdate`
+
 Sent from server to the client to inform abouth the change in the suggestions
 database.
 
@@ -2543,9 +2677,11 @@ database.
 ```
 
 #### Errors
+
 None
 
 ### `search/completion`
+
 Sent from client to the server to receive the autocomplete suggestion.
 
 - **Type:** Request
@@ -2571,6 +2707,7 @@ Sent from client to the server to receive the autocomplete suggestion.
 ```
 
 #### Result
+
 ```typescript
 {
   results: [SuggestionEntryId];
@@ -2579,6 +2716,7 @@ Sent from client to the server to receive the autocomplete suggestion.
 ```
 
 #### Errors
+
 - [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
   suggestions database
 - [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
@@ -2587,12 +2725,14 @@ Sent from client to the server to receive the autocomplete suggestion.
   cannot be extracted from the provided file path parameter
 
 ## Input/Output Operations
+
 The input/output portion of the language server API deals with redirecting
-stdin/stdout/stderr of Enso programs to the clients of the language server.
-This is incredibly important for enabling the high levels of interactivity
-required by Enso Studio.
+stdin/stdout/stderr of Enso programs to the clients of the language server. This
+is incredibly important for enabling the high levels of interactivity required
+by Enso Studio.
 
 ### `io/redirectStandardOutput`
+
 This message allows a client to redirect the standard output of Enso programs.
 Once the standard output is redirected, the Language server will notify the
 client about new output data by emitting `io/standardOutputAppended` messages.
@@ -2605,18 +2745,21 @@ client about new output data by emitting `io/standardOutputAppended` messages.
 #### Parameters
 
 ```typescript
-null
+null;
 ```
+
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 N/A
 
 ### `io/suppressStandardOutput`
+
 This message allows a client to suppress the redirection of the standard output.
 
 - **Type:** Request
@@ -2627,18 +2770,21 @@ This message allows a client to suppress the redirection of the standard output.
 #### Parameters
 
 ```typescript
-null
+null;
 ```
+
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 N/A
 
 ### `io/standardOutputAppended`
+
 Sent from the server to the client to inform that new output data are available
 for the standard output.
 
@@ -2648,6 +2794,7 @@ for the standard output.
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
 {
   output: String;
@@ -2655,6 +2802,7 @@ for the standard output.
 ```
 
 ### `io/redirectStandardError`
+
 This message allows a client to redirect the standard error of Enso programs.
 Once the standard error is redirected, the Language server will notify the
 client about new output data by emitting `io/standardErrorAppended` messages.
@@ -2667,18 +2815,21 @@ client about new output data by emitting `io/standardErrorAppended` messages.
 #### Parameters
 
 ```typescript
-null
+null;
 ```
+
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 N/A
 
 ### `io/suppressStandardError`
+
 This message allows a client to suppress the redirection of the standard error.
 
 - **Type:** Request
@@ -2689,18 +2840,21 @@ This message allows a client to suppress the redirection of the standard error.
 #### Parameters
 
 ```typescript
-null
+null;
 ```
+
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 N/A
 
 ### `io/standardErrorAppended`
+
 Sent from the server to the client to inform that new output data are available
 for the standard error.
 
@@ -2710,6 +2864,7 @@ for the standard error.
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
 {
   output: String;
@@ -2717,6 +2872,7 @@ for the standard error.
 ```
 
 ### `io/feedStandardInput`
+
 This message allows a client to feed the standard input of Enso programs.
 
 - **Type:** Request
@@ -2732,16 +2888,19 @@ This message allows a client to feed the standard input of Enso programs.
   isLineTerminated: Boolean;
 }
 ```
+
 #### Result
 
 ```typescript
-null
+null;
 ```
 
 #### Errors
+
 N/A
 
 ### `io/waitingForStandardInput`
+
 Sent from the server to the client to inform that an Enso program is suspended
 by `IO.readln`. This message is used to notify a client that she should feed the
 standard input.
@@ -2752,15 +2911,18 @@ standard input.
 - **Visibility:** Public
 
 #### Parameters
+
 ```typescript
-null
+null;
 ```
 
 ## Errors
+
 The language server component also has its own set of errors. This section is
 not a complete specification and will be updated as new errors are added.
 
 ### `AccessDeniedError`
+
 It signals that a user doesn't have access to a resource.
 
 ```typescript
@@ -2771,6 +2933,7 @@ It signals that a user doesn't have access to a resource.
 ```
 
 ### `FileSystemError`
+
 This error signals generic file system errors.
 
 ```typescript
@@ -2781,6 +2944,7 @@ This error signals generic file system errors.
 ```
 
 ### `ContentRootNotFoundError`
+
 The error informs that the requested content root cannot be found.
 
 ```typescript
@@ -2791,6 +2955,7 @@ The error informs that the requested content root cannot be found.
 ```
 
 ### `FileNotFound`
+
 It signals that requested file doesn't exist.
 
 ```typescript
@@ -2801,6 +2966,7 @@ It signals that requested file doesn't exist.
 ```
 
 ### `FileExists`
+
 It signals that file already exists.
 
 ```typescript
@@ -2811,6 +2977,7 @@ It signals that file already exists.
 ```
 
 ### `OperationTimeoutError`
+
 It signals that IO operation timed out.
 
 ```typescript
@@ -2821,6 +2988,7 @@ It signals that IO operation timed out.
 ```
 
 ### `NotDirectory`
+
 It signals that provided path is not a directory.
 
 ```typescript
@@ -2831,6 +2999,7 @@ It signals that provided path is not a directory.
 ```
 
 ### `StackItemNotFoundError`
+
 It signals that provided stack item was not found.
 
 ```typescript
@@ -2842,6 +3011,7 @@ It signals that provided stack item was not found.
 ```
 
 ### `ContextNotFoundError`
+
 It signals that provided context was not found.
 
 ```typescript
@@ -2852,6 +3022,7 @@ It signals that provided context was not found.
 ```
 
 ### `EmptyStackError`
+
 It signals that stack is empty.
 
 ```typescript
@@ -2862,6 +3033,7 @@ It signals that stack is empty.
 ```
 
 ### `InvalidStackItemError`
+
 It signals that stack is invalid in this context.
 
 ```typescript
@@ -2872,6 +3044,7 @@ It signals that stack is invalid in this context.
 ```
 
 ### `ModuleNotFoundError`
+
 It signals that the given module cannot be found.
 
 ```typescript
@@ -2882,6 +3055,7 @@ It signals that the given module cannot be found.
 ```
 
 ### `VisualisationNotFoundError`
+
 It signals that the visualisation cannot be found.
 
 ```typescript
@@ -2892,6 +3066,7 @@ It signals that the visualisation cannot be found.
 ```
 
 ### `VisualisationExpressionError`
+
 It signals that the expression specified in the `VisualisationConfiguration`
 cannot be evaluated.
 
@@ -2903,6 +3078,7 @@ cannot be evaluated.
 ```
 
 ### `VisualisationEvaluationError`
+
 It is a push message. It signals that an evaluation of a code responsible for
 generating visualisation data failed.
 
@@ -2914,6 +3090,7 @@ generating visualisation data failed.
 ```
 
 ### `FileNotOpenedError`
+
 Signals that a file wasn't opened.
 
 ```typescript
@@ -2924,6 +3101,7 @@ Signals that a file wasn't opened.
 ```
 
 ### `TextEditValidationError`
+
 Signals that validation has failed for a series of edits.
 
 ```typescript
@@ -2934,8 +3112,9 @@ Signals that validation has failed for a series of edits.
 ```
 
 ### `InvalidVersionError`
-Signals that version provided by a client doesn't match to the version
-computed by the server.
+
+Signals that version provided by a client doesn't match to the version computed
+by the server.
 
 ```typescript
 "error" : {
@@ -2945,6 +3124,7 @@ computed by the server.
 ```
 
 ### `WriteDeniedError`
+
 Signals that the client doesn't hold write lock to the buffer.
 
 ```typescript
@@ -2954,8 +3134,8 @@ Signals that the client doesn't hold write lock to the buffer.
 }
 ```
 
-
 ### `CapabilityNotAcquired`
+
 Signals that requested capability is not acquired.
 
 ```typescript
@@ -2966,6 +3146,7 @@ Signals that requested capability is not acquired.
 ```
 
 ### `SessionNotInitialisedError`
+
 Signals that requested cannot be proccessed, beacuse session is not initialised.
 
 ```typescript
@@ -2976,6 +3157,7 @@ Signals that requested cannot be proccessed, beacuse session is not initialised.
 ```
 
 ### `SessionAlreadyInitialisedError`
+
 Signals that session is already initialised.
 
 ```typescript
@@ -2986,6 +3168,7 @@ Signals that session is already initialised.
 ```
 
 ### `SuggestionsDatabaseError`
+
 Signals about an error accessing the suggestions database.
 
 ```typescript
@@ -2996,6 +3179,7 @@ Signals about an error accessing the suggestions database.
 ```
 
 ### `ProjectNotFoundError`
+
 Signals that the project not found in the root directory.
 
 ```typescript
@@ -3006,6 +3190,7 @@ Signals that the project not found in the root directory.
 ```
 
 ### `ModuleNameNotResolvedError`
+
 Signals that the module name can not be resolved for the given file.
 
 ```typescript

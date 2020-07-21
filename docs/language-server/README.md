@@ -7,6 +7,7 @@ order: 0
 ---
 
 # Language Server
+
 The Enso Language Server is responsible for providing language services to the
 Enso IDE (and other clients). This mainly involves speaking the Enso protocol
 and orchestrating the runtime in response to this. It is responsible for:
@@ -15,8 +16,8 @@ and orchestrating the runtime in response to this. It is responsible for:
   about their running code including values, types, profiling information, and
   debugging.
 - **Code Execution:** The ability for clients to execute arbitrary Enso code in
-  arbitrary scopes. This can be used in conjunction with the above to provide
-  a REPL with an integrated debugger.
+  arbitrary scopes. This can be used in conjunction with the above to provide a
+  REPL with an integrated debugger.
 - **Code Completion:** Sophisticated completion functionality that refines
   suggestions intelligently based on context.
 - **Node Management:** Tracking and providing the language server's internal

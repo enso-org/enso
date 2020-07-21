@@ -7,8 +7,9 @@ order: 2
 ---
 
 # Enso Protocol Common Message Specification
+
 This document contains the specification of the Enso protocol messages that are
-common to multiple sub-components of the protocol. 
+common to multiple sub-components of the protocol.
 
 For information on the design and architecture of the protocol, as well as its
 transport formats, please look [here](./protocol-architecture).
@@ -24,6 +25,7 @@ transport formats, please look [here](./protocol-architecture).
 <!-- /MarkdownTOC -->
 
 ## Protocol Message Specification
+
 The message specification for protocol messages must include the following
 fields:
 
@@ -37,8 +39,8 @@ fields:
 
 They must also contain separate sections specifying their parameters, result (if
 it has one), and any errors that may occur. These specifications should be
-either in typescript or flatbuffers syntax, depending on the connection on
-which the message occurs.
+either in typescript or flatbuffers syntax, depending on the connection on which
+the message occurs.
 
 The capability specifications must include the following fields, as well as a
 section 'Enables' stating which protocol messages are gated by the capability.
@@ -48,13 +50,16 @@ section 'Enables' stating which protocol messages are gated by the capability.
   capability, described using typescript type syntax.
 
 ## Common Types
+
 There are a number of types that are shared between many of the protocol
 messages. They are specified below.
 
 ### `Path`
+
 A path is a representation of a path relative to a specified content root.
 
 #### Format
+
 Please note that segments can only be ordinary file names, `..` and `.` may not
 be supported.
 
@@ -81,6 +86,7 @@ table Path {
 ```
 
 ### `IPWithSocket`
+
 A IPWithSocket is an endpoint for communication between machines.
 
 #### Format
@@ -93,6 +99,7 @@ interface IPWithSocket {
 ```
 
 ### `EnsoUUID`
+
 An EnsoUUID is a value object containing 128-bit universally unique identifier.
 
 #### Format

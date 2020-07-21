@@ -7,6 +7,7 @@ order: 4
 ---
 
 # Access Modifiers
+
 While we don't usually like making things private in a programming language, it
 sometimes the case that it is necessary to indicate that certain fields should
 not be touched (as this might break invariants and such like). To this end, Enso
@@ -21,6 +22,7 @@ provides an explicit mechanism for access modification.
 <!-- /MarkdownTOC -->
 
 ## Access Modification
+
 Access modifiers in Enso work as follows:
 
 - We have a set of access modifiers, namely `private` and `unsafe`.
@@ -66,6 +68,7 @@ Access modifiers in Enso work as follows:
 > - How do we type this?
 
 ## Private
+
 The `private` modifier acts to hide implementation details from clients of the
 API. It is:
 
@@ -73,6 +76,7 @@ API. It is:
 - Able to be avoided using the above-described mechanism.
 
 ## Unsafe
+
 While `private` works as you might expect, coming from other languages, the
 `unsafe` annotation has additional restrictions:
 

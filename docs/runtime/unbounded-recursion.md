@@ -7,6 +7,7 @@ order: 5
 ---
 
 # Unbounded Recursion
+
 The JVM (and hence, GraalVM) do not have support for segmented stacks, and hence
 do not allow for computation of unbounded recursion - if you make too many
 recursive function calls you can cause your stack to overflow. Quite obviously,
@@ -45,6 +46,7 @@ use of unbounded recursion in Enso on GraalVM.
 <!-- /MarkdownTOC -->
 
 ## A Baseline
+
 In an ideal world, we'd like the performance of Enso's recursive calls to
 approximate that of Haskell, which can be made to have fairly optimal
 performance for a functional language. Basic measurements for a Haskell program
@@ -60,11 +62,13 @@ perform the same summation of integers. They have a variable threshold, listed
 in the results as `inputSize`.
 
 ## Emulating Stack Segmentation with Threads
+
 As each new thread has its own stack, we can exploit this to emulate the notion
 of split stacks as used in many functional programming languages. The basic idea
 is to work out when you're about to run out of stack space,
 
 ### When to Spawn a Thread
+
 One of the main problems with this approach is that you want to make as much use
 out of the stack for a given thread as possible. However, it is very difficult
 to get an accurate idea of when a stack may be _about_ to overflow. There are
@@ -82,6 +86,7 @@ permits as a valid stack implementation. This means that from a specification
 perspective there is very little that could actually be relied upon.
 
 ### Conservative Counting
+
 A naive and obvious solution is to maintain a counter that tracks the depth of
 your call stack. This would allow you to make a conservative estimate of the
 amount of stack you have remaining, and spawn a new thread at some threshold.
@@ -112,6 +117,7 @@ thread are approximately equal to Haskell. It is hence possible that a method
 that reduces the cost of context switching could make this approach feasible.
 
 ### Catching the Overflow
+
 Though it is heavily recommended against by the Java documentation, it is indeed
 possible to catch the `StackOverflowError`. While this provides accurate info
 about when you run out of stack space, it has one major problem: you may not
@@ -153,11 +159,13 @@ threads and hence reduce the context switching overhead. Nevertheless, this is
 still very slow compared to Haskell baseline.
 
 ### Thread Pools
+
 While a thread pool is conventionally seen as a way to amortise the cost of
 spawning threads, this approach to recursion requires far more threads than is
 really feasible to keep around in a pool, so we've not explored that approach.
 
 ### Project Loom
+
 If project loom's coroutines and / or fibres were stable, these would likely
 help somewhat by reducing the thread creation overhead that is primarily down to
 OS-level context switches.
@@ -167,6 +175,7 @@ it is not only far from stable, but also has no guarantee that it will actually
 make it into the JVM.
 
 ## Avoiding Stack Usage via a CPS Transform
+
 Transforming recursive calls into CPS allows us to avoid the _need_ for using
 the stack instead of trying to augment it. This could be implemented as a global
 transformation, or as a local one only for recursive calls.
@@ -188,6 +197,7 @@ size grows to the point that additional stack segments are needed, the execution
 performance is within spitting distance of the Haskell code.
 
 ### The CPS Transform
+
 While it is tempting to perform the CPS transform globally for the whole
 program, this has some major drawbacks:
 
@@ -204,6 +214,7 @@ program stack in a thread-safe manner and perform the transformation at runtime
 (e.g. `private static ThreadLocal<Boolean> isExecuting;`).
 
 ### A Hybrid Approach
+
 As we clearly don't want to CPS transform the program globally, we need some
 mechanism by which we can rewrite only when necessary. As discussed above, we
 could do this via a dynamic runtime analysis, but we could also potentially make
@@ -239,6 +250,7 @@ is trivial, but it may require some more sophisticated tracing in the case of
 mutually-recursive functions.
 
 ## Linearised Representations
+
 While not something that we could feasibly do at the moment, one of the
 potential solutions for this is to statically compile the language to a
 linearised representation. Rather than trying to implement the CPS transform in
@@ -246,8 +258,8 @@ a Truffle interpreter not designed for it, we could instead compile Enso to a
 low-level IR format which has no stack frames, and instead just uses jumps.
 
 Whether we write this IR ourselves or use an existing one implemented as a
-Truffle language, such as WASM bytecode (currently very experimental) or LLVM
-IR (much more tried and tested), this would provide a number of benefits:
+Truffle language, such as WASM bytecode (currently very experimental) or LLVM IR
+(much more tried and tested), this would provide a number of benefits:
 
 - The IR output by the compiler phase need not be fed into the truffle
   interpreter for said IR.
@@ -264,12 +276,14 @@ However, such an approach also has some major downsides:
   which, is currently tied quite strongly into the Truffle language life-cycle.
 
 ## Alternatives
+
 At the current time there are no apparent alternatives to the three approaches
 discussed above. While it would be ideal for the JVM to have native support for
 stack segmentation on the heap, this would likely be an in-depth and significant
 amount of work to add, with no guarantee that it would be accepted into main.
 
 ## Open Questions
+
 The following are questions for which we don't yet have answers:
 
 - Are there any ways to instrument a JVM thread to detect when it's about to
