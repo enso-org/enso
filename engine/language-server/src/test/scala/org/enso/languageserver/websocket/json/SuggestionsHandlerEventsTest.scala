@@ -178,6 +178,107 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
         }
         """)
 
+      // get suggestions database
+      client.send(json.getSuggestionsDatabase(0))
+      client.expectJson(json"""
+        { "jsonrpc" : "2.0",
+          "id" : 0,
+          "result" : {
+            "entries" : [
+              {
+                "id" : 3,
+                "suggestion" : {
+                  "type" : "function",
+                  "externalId" : ${Suggestions.function.externalId.get},
+                  "module" : "Test.Main",
+                  "name" : "print",
+                  "arguments" : [
+                  ],
+                  "returnType" : "IO",
+                  "scope" : {
+                    "start" : {
+                      "line" : 1,
+                      "character" : 9
+                    },
+                    "end" : {
+                      "line" : 1,
+                      "character" : 22
+                    }
+                  }
+                }
+              },
+              {
+                "id" : 1,
+                "suggestion" : {
+                  "type" : "atom",
+                  "module" : "Test.Main",
+                  "name" : "MyType",
+                  "arguments" : [
+                    {
+                      "name" : "a",
+                      "reprType" : "Any",
+                      "isSuspended" : false,
+                      "hasDefault" : false,
+                      "defaultValue" : null
+                    }
+                  ],
+                  "returnType" : "MyAtom"
+                }
+              },
+              {
+                "id" : 2,
+                "suggestion" : {
+                  "type" : "method",
+                  "externalId" : ${Suggestions.method.externalId.get},
+                  "module" : "Test.Main",
+                  "name" : "foo",
+                  "arguments" : [
+                    {
+                      "name" : "this",
+                      "reprType" : "MyType",
+                      "isSuspended" : false,
+                      "hasDefault" : false,
+                      "defaultValue" : null
+                    },
+                    {
+                      "name" : "foo",
+                      "reprType" : "Number",
+                      "isSuspended" : false,
+                      "hasDefault" : true,
+                      "defaultValue" : "42"
+                    }
+                  ],
+                  "selfType" : "MyType",
+                  "returnType" : "Number",
+                  "documentation" : "Lovely"
+                }
+              },
+              {
+                "id" : 4,
+                "suggestion" : {
+                  "type" : "local",
+                  "externalId" : ${Suggestions.local.externalId.get},
+                  "module" : "Test.Main",
+                  "name" : "x",
+                  "returnType" : "Number",
+                  "scope" : {
+                    "start" : {
+                      "line" : 21,
+                      "character" : 0
+                    },
+                    "end" : {
+                      "line" : 89,
+                      "character" : 0
+                    }
+                  }
+                }
+              }
+            ],
+            "currentVersion" : 4
+          }
+        }
+        """)
+
       // remove items
       system.eventStream.publish(
         Api.SuggestionsDatabaseUpdateNotification(
