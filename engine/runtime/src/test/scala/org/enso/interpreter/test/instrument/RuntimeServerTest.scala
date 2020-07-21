@@ -679,7 +679,7 @@ class RuntimeServerTest
                 "y",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(11, 0))
+                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(10, 5))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -688,10 +688,8 @@ class RuntimeServerTest
                 "Test.Main",
                 "z",
                 "Any",
-                Suggestion.Scope(
-                  Suggestion.Position(7, 17),
-                  Suggestion.Position(11, 0)
-                )
+                Suggestion
+                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(10, 5))
               )
             )
           )
