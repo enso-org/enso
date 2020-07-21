@@ -105,20 +105,21 @@ class RuntimeServerTest
       val idFooY  = metadata.addItem(81, 8)
       val idFooZ  = metadata.addItem(98, 5)
 
-      val code = metadata.appendToCode(
-        """
-          |main =
-          |    x = 6
-          |    y = x.foo 5
-          |    z = y + 5
-          |    z
-          |
-          |Number.foo = x ->
-          |    y = this + 3
-          |    z = y * x
-          |    z
-          |""".stripMargin
-      )
+      def code =
+        metadata.appendToCode(
+          """
+            |main =
+            |    x = 6
+            |    y = x.foo 5
+            |    z = y + 5
+            |    z
+            |
+            |Number.foo = x ->
+            |    y = this + 3
+            |    z = y * x
+            |    z
+            |""".stripMargin.linesIterator.mkString("\n")
+        )
 
       object Update {
 
@@ -457,6 +458,274 @@ class RuntimeServerTest
     // Close the file
     context.send(Api.Request(Api.CloseFileNotification(fooFile)))
     context.consumeOut shouldEqual List()
+  }
+
+  it should "support file modification operations with attached ids" in {
+    val fooFile   = new File(context.pkg.sourceDir, "Foo.enso")
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+    val metadata  = new Metadata
+    val idMain    = metadata.addItem(7, 2)
+    val code      = metadata.appendToCode("main = 84")
+
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Create a new file
+    context.writeFile(fooFile, code)
+
+    // Open the new file
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(
+          fooFile,
+          code,
+          false
+        )
+      )
+    )
+    context.receive shouldEqual None
+
+    // Push new item on the stack to trigger the re-execution
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem
+            .ExplicitCall(
+              Api.MethodPointer(fooFile, "Foo", "main"),
+              None,
+              Vector()
+            )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(idMain, Some("Number"), Some("84"), None)
+          )
+        )
+      ),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          "Test.Foo",
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idMain),
+                "Test.Foo",
+                "main",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            )
+          )
+        )
+      )
+    )
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          fooFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(0, 0), model.Position(0, 9)),
+              "main = 42"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(idMain, Some("Number"), Some("42"), None)
+          )
+        )
+      )
+    )
+  }
+
+  it should "send suggestion notifications when file executed" in {
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+    val idMain    = context.Main.metadata.addItem(7, 47)
+    val idMainUpdate =
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMain,
+              Some("Number"),
+              Some("50"),
+              None
+            )
+          )
+        )
+      )
+
+    val mainFile = context.writeMain(context.Main.code)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(
+          mainFile,
+          context.Main.code,
+          false
+        )
+      )
+    )
+    context.receive shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(7) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      idMainUpdate,
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          "Test.Main",
+          List(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idMain),
+                "Test.Main",
+                "main",
+                List(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                "Test.Main",
+                "foo",
+                List(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("x", "Any", false, false, None)
+                ),
+                "Number",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idMainX),
+                "Test.Main",
+                "x",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idMainY),
+                "Test.Main",
+                "y",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idMainZ),
+                "Test.Main",
+                "z",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idFooY),
+                "Test.Main",
+                "y",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(10, 5))
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idFooZ),
+                "Test.Main",
+                "z",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(10, 5))
+              )
+            )
+          )
+        )
+      )
+    )
+
+    // push foo call
+    val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item2))
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.fooY(contextId),
+      context.Main.Update.fooZ(contextId)
+    )
+
+    // pop foo call
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      idMainUpdate
+    )
+
+    // pop main
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId))
+    )
+
+    // pop empty stack
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.EmptyStackError(contextId))
+    )
   }
 
   it should "send suggestion notifications when file modified" in {
