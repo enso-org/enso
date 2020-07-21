@@ -34,16 +34,7 @@ case class Command[A](
       firstLine + usages.head +
       usages.tail.map("\n" + padding + _).mkString + "\n\n"
 
-    val optionExplanations =
-      Seq("[--help | -h]\tPrint this help message.") ++ opts
-        .availableOptionsHelp()
-    val options = optionExplanations.map(CLIOutput.indent + _).mkString("\n")
-    val optionsHelp =
-      if (options.isEmpty) "" else "Available options:\n" + options + "\n\n"
-
-    val additionalHelp = opts.additionalHelp().map(_ + "\n").mkString
-
-    comment + "\n" + usage + optionsHelp + additionalHelp
+    comment + "\n" + usage + opts.helpExplanations(addHelpOption = true)
   }
 
   /**

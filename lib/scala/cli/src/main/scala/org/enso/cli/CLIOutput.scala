@@ -28,7 +28,8 @@ object CLIOutput {
     * @return the `text` with added whitespace
     */
   def alignAndWrap(text: String, minTableWidth: Option[Int] = None): String = {
-    val entities = CLIOutputInternal.groupTables(text.split('\n'))
+    val lines    = splitLinesPreservingTrailing(text)
+    val entities = CLIOutputInternal.groupTables(lines)
     val wrapped: Seq[String] = entities flatMap {
         case CLIOutputInternal.TextLine(line) =>
           CLIOutputInternal.wrapLine(line, terminalWidth).toList
@@ -40,7 +41,7 @@ object CLIOutput {
             minimumTableWidth = minTableWidth.getOrElse(2)
           )
       }
-    wrapped.mkString("\n")
+    joinLines(wrapped)
   }
 
   /**
@@ -55,4 +56,18 @@ object CLIOutput {
     * Default indentation used for printing lists.
     */
   val indent: String = "    "
+
+  /**
+    * Splits the text into lines, preserving trailing newlines by adding empty
+    * lines.
+    */
+  private def splitLinesPreservingTrailing(string: String): Seq[String] = {
+    val lines     = (string + "|").split("\\R")
+    val lastIndex = lines.length - 1
+    lines(lastIndex) = lines(lastIndex).stripSuffix("|")
+    lines.toIndexedSeq
+  }
+
+  private def joinLines(lines: Seq[String]): String =
+    lines.mkString(System.lineSeparator())
 }

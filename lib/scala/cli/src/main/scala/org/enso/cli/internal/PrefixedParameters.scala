@@ -1,7 +1,11 @@
 package org.enso.cli.internal
 
-class PrefixedParameters(prefix: String, helpComment: Option[String])
-    extends BaseOpts[Seq[(String, String)]] {
+class PrefixedParameters(
+  prefix: String,
+  keyMetavar: String,
+  valueMetavar: String,
+  helpComment: Option[String]
+) extends BaseOpts[Seq[(String, String)]] {
   if (prefix.exists(_.isWhitespace)) {
     throw new IllegalArgumentException(
       s"Prefix '$prefix' cannot contain whitespace."
@@ -18,5 +22,11 @@ class PrefixedParameters(prefix: String, helpComment: Option[String])
 
   override private[cli] def result() = Right(currentValue.reverse)
 
-  override def additionalHelp(): Seq[String] = helpComment.toSeq
+  override private[cli] def gatherPrefixedParameters =
+    Seq(prefix -> s"--$prefix.$keyMetavar=$valueMetavar")
+
+  override def availablePrefixedParametersHelp(): Seq[String] =
+    helpComment.toSeq.map(help =>
+      s"[--$prefix.$keyMetavar=$valueMetavar]\t$help"
+    )
 }

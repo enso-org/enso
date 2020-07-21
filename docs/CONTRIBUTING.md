@@ -478,8 +478,8 @@ Below are options uses by the Language Server:
   Default value is 127.0.0.1
 - `--rpc-port <port>`: RPC port for processing all incoming connections. Default
   value is 8080.
-- `--data-port <port>`: Data port for visualisation protocol. Default value is
-  8081.
+- `--data-port <port>`: Data port for visualisation protocol. Default value
+  is 8081.
 
 To run the Language Server on 127.0.0.1:8080 type:
 

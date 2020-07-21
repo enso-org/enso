@@ -9,6 +9,8 @@ class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
   override private[cli] def usageOptions       = a.usageOptions
   override private[cli] def gatherOptions =
     a.gatherOptions
+  override private[cli] def gatherPrefixedParameters =
+    a.gatherPrefixedParameters
 
   override private[cli] def wantsArgument() = a.wantsArgument()
   override private[cli] def consumeArgument(arg: String): Unit =
@@ -25,5 +27,7 @@ class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
   override private[cli] def result() = a.result().map(f)
 
   override def availableOptionsHelp(): Seq[String] = a.availableOptionsHelp()
-  override def additionalHelp(): Seq[String]       = a.additionalHelp()
+  override def availablePrefixedParametersHelp(): Seq[String] =
+    a.availablePrefixedParametersHelp()
+  override def additionalHelp(): Seq[String] = a.additionalHelp()
 }

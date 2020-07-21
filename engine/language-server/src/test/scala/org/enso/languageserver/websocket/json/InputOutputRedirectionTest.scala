@@ -1,8 +1,9 @@
 package org.enso.languageserver.websocket.json
 import io.circe.literal._
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.RetrySpec
 
-class InputOutputRedirectionTest extends BaseServerTest {
+class InputOutputRedirectionTest extends BaseServerTest with RetrySpec {
 
   "Standard output redirection controller" must {
 
@@ -98,7 +99,7 @@ class InputOutputRedirectionTest extends BaseServerTest {
 
   "Standard input controller" must {
 
-    "notify context owners when read is blocked" in {
+    "notify context owners when read is blocked" taggedAs Retry in {
       val client = getInitialisedWsClient()
       client.send(ExecutionContextJsonMessages.executionContextCreateRequest(1))
       val (requestId, contextId) =

@@ -26,6 +26,9 @@ case class PlainToken(override val originalValue: String) extends Token
 case class ParameterOrFlag(parameter: String)(
   override val originalValue: String
 ) extends Token
+case class MistypedParameter(parameter: String)(
+  override val originalValue: String
+) extends Token
 case class ParameterWithValue(parameter: String, value: String)(
   override val originalValue: String
 ) extends Token
@@ -110,7 +113,10 @@ object Parser {
       parseErrors = error :: parseErrors
     }
     var suppressUnexpectedArgument = false
-    def reportUnknownParameter(parameter: String): Unit = {
+    def reportUnknownParameter(
+      parameter: String,
+      dash: String = "--"
+    ): Unit = {
       val similar =
         Spelling
           .selectClosestMatchesWithMetadata(parameter, opts.gatherOptions)
@@ -128,26 +134,21 @@ object Parser {
 
       suppressUnexpectedArgument = true
       addError(
-        s"Unknown option `$parameter`." + suggestions + additional
+        s"Unknown option `$dash$parameter`." + suggestions + additional
       )
     }
-    def reportUnknownPrefix(prefix: String): Unit = {
-      val closestMatches =
-        Spelling.selectClosestMatches(
-          prefix,
-          opts.prefixedParameters.keys.toSeq
-        )
-      val suggestions = closestMatches match {
-        case Seq()    => ""
-        case Seq(one) => s" Did you mean `$one`?"
-        case seq =>
-          val quoted = seq.map(s => s"`$s`")
-          val inits  = quoted.init.mkString(", ")
-          s" Did you mean $inits or ${quoted.last}?"
-      }
+    def reportUnknownPrefix(prefix: String, dash: String = "--"): Unit = {
+      val similar = Spelling
+        .selectClosestMatchesWithMetadata(prefix, opts.gatherPrefixedParameters)
+        .map(_._2)
+      val suggestions =
+        if (similar.isEmpty) ""
+        else
+          "\n\nThe most similar prefixed parameters are\n" +
+          similar.map(CLIOutput.indent + _ + "\n").mkString
 
       addError(
-        s"Unknown parameter prefix $prefix." + suggestions
+        s"Unknown parameter prefix `$dash$prefix`." + suggestions
       )
     }
 
@@ -171,6 +172,14 @@ object Parser {
             opts.consumeArgument(value)
           } else if (!suppressUnexpectedArgument) {
             addError(s"Unexpected argument `$value`.")
+          }
+          suppressUnexpectedArgument = false
+        case MistypedParameter(parameter) =>
+          if (hasPrefix(parameter)) {
+            val (prefix, _) = splitPrefix(parameter)
+            reportUnknownPrefix(prefix, dash = "-")
+          } else {
+            reportUnknownParameter(parameter, dash = "-")
           }
           suppressUnexpectedArgument = false
         case ParameterOrFlag(parameter) =>
@@ -355,16 +364,22 @@ object Parser {
     (parameter.take(dotPosition), parameter.drop(dotPosition + 1))
   }
 
-  private val shortParam     = """-(\w)""".r
-  private val longParam      = """--([\w.]+)""".r
-  private val paramWithValue = """--([\w.]+)=(.*)""".r
+  private val shortParam             = """-(\w)""".r
+  private val longParam              = """--([\w.]+)""".r
+  private val paramWithValue         = """--([\w.]+)=(.*)""".r
+  private val mistypedLongParam      = """-([\w.]+)""".r
+  private val mistypedParamWithValue = """-([\w.]+)=(.*)""".r
   def tokenize(args: Seq[String]): (Seq[Token], Seq[String]) = {
     def toToken(arg: String): Token =
       arg match {
         case paramWithValue(name, value) => ParameterWithValue(name, value)(arg)
         case longParam(name)             => ParameterOrFlag(name)(arg)
         case shortParam(name)            => ParameterOrFlag(name)(arg)
-        case _                           => PlainToken(arg)
+
+        case mistypedLongParam(name)         => MistypedParameter(name)(arg)
+        case mistypedParamWithValue(name, _) => MistypedParameter(name)(arg)
+
+        case _ => PlainToken(arg)
       }
 
     val (localArgs, rest) = splitAdditionalArguments(args)

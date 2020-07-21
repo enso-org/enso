@@ -98,10 +98,24 @@ trait Opts[A] {
   private[cli] def gatherOptions: Seq[(String, String)]
 
   /**
+    * Lists all available prefixed parameters by their name and format.
+    *
+    * Used for displaying suggestions when an unknown prefix is provided. Can
+    * contain, for example `("jvm", "--jvm.KEY VALUE")`.
+    */
+  private[cli] def gatherPrefixedParameters: Seq[(String, String)]
+
+  /**
     * Lists all available options with their help messages to be displayed in
     * the help.
     */
   def availableOptionsHelp(): Seq[String]
+
+  /**
+    * Lists all available prefixed parameters with their help messages to be
+    * displayed in the help.
+    */
+  def availablePrefixedParametersHelp(): Seq[String]
 
   /**
     * Lists additional help messages that are displayed at the end of the help.
@@ -116,7 +130,7 @@ trait Opts[A] {
     *
     * @return a string representing the options usage
     */
-  def commandLineOptions(): String = {
+  private[cli] def commandLineOptions(): String = {
     val allOptions = parameters.size + flags.size + prefixedParameters.size
     val otherOptions =
       if (allOptions > usageOptions.size)
@@ -147,6 +161,27 @@ trait Opts[A] {
     sb.append(trailing)
     sb.append(additional)
     NonEmptyList.one(sb.toString().stripLeading())
+  }
+
+  def helpExplanations(addHelpOption: Boolean): String = {
+    val additionalHelpOption =
+      if (addHelpOption) Seq("[--help | -h]\tPrint this help message.")
+      else Seq()
+    val optionExplanations =
+      additionalHelpOption ++ availableOptionsHelp()
+    val options = optionExplanations.map(CLIOutput.indent + _).mkString("\n")
+    val optionsHelp =
+      if (options.isEmpty) "" else "Available options:\n" + options + "\n\n"
+
+    val prefixed =
+      availablePrefixedParametersHelp().map(CLIOutput.indent + _).mkString("\n")
+    val prefixedHelp =
+      if (prefixed.isEmpty) ""
+      else
+        "Prefixed parameters (may occur multiple times):\n" + prefixed + "\n\n"
+
+    val additional = additionalHelp().map(_ + "\n").mkString
+    optionsHelp + prefixedHelp + additional
   }
 }
 
@@ -360,9 +395,16 @@ object Opts {
     */
   def prefixedParameters(
     prefix: String,
-    help: String = ""
+    help: String         = "",
+    keyMetavar: String   = "KEY",
+    valueMetavar: String = "VALUE"
   ): Opts[Seq[(String, String)]] =
-    new PrefixedParameters(prefix, if (help.isEmpty) None else Some(help))
+    new PrefixedParameters(
+      prefix,
+      keyMetavar,
+      valueMetavar,
+      if (help.isEmpty) None else Some(help)
+    )
 
   /**
     * An option that accepts an arbitrary amount of unspecified additional

@@ -48,8 +48,7 @@ object Main {
   private def jvmArgs =
     Opts.prefixedParameters(
       "jvm",
-      "Parameters prefixed with jvm (--jvm.key=value) will be passed to the " +
-      "launched JVM as -Dkey=value."
+      "These parameters will be passed to the launched JVM as -DKEY=VALUE."
     )
 
   private def runCommand: Command[Config => Unit] =
@@ -282,7 +281,7 @@ object Main {
     application.run(args) match {
       case Left(errors) =>
         CLIOutput.println(errors.mkString("\n"))
-        System.exit(1)
+        System.exit(1) // TODO [RW]
       case Right(()) =>
     }
   }

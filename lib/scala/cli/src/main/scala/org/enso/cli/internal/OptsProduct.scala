@@ -11,6 +11,8 @@ class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
     lhs.usageOptions ++ rhs.usageOptions
   override private[cli] def gatherOptions =
     lhs.gatherOptions ++ rhs.gatherOptions
+  override private[cli] def gatherPrefixedParameters =
+    lhs.gatherPrefixedParameters ++ rhs.gatherPrefixedParameters
 
   override private[cli] def wantsArgument() =
     lhs.wantsArgument() || rhs.wantsArgument()
@@ -48,6 +50,9 @@ class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
 
   override def availableOptionsHelp(): Seq[String] =
     lhs.availableOptionsHelp() ++ rhs.availableOptionsHelp()
+  override def availablePrefixedParametersHelp(): Seq[String] =
+    lhs.availablePrefixedParametersHelp() ++
+    rhs.availablePrefixedParametersHelp()
   override def additionalHelp(): Seq[String] =
     lhs.additionalHelp() ++ rhs.additionalHelp()
 }

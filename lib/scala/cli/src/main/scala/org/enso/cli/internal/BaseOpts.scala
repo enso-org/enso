@@ -9,6 +9,8 @@ abstract class BaseOpts[A] extends Opts[A] {
     : Map[String, (String, String) => Unit]                      = Map.empty
   override private[cli] val usageOptions: Seq[String]            = Seq()
   override private[cli] def gatherOptions: Seq[(String, String)] = Seq()
+  override private[cli] def gatherPrefixedParameters: Seq[(String, String)] =
+    Seq()
 
   override private[cli] def wantsArgument() = false
   override private[cli] def consumeArgument(arg: String): Unit =
@@ -23,6 +25,7 @@ abstract class BaseOpts[A] extends Opts[A] {
   override private[cli] val additionalArguments: Option[Seq[String] => Unit] =
     None
 
-  override def availableOptionsHelp(): Seq[String] = Seq()
-  override def additionalHelp(): Seq[String]       = Seq()
+  override def availableOptionsHelp(): Seq[String]            = Seq()
+  override def availablePrefixedParametersHelp(): Seq[String] = Seq()
+  override def additionalHelp(): Seq[String]                  = Seq()
 }

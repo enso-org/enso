@@ -73,7 +73,7 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
         2
       )
 
-      wrapped.mkString("\n") shouldEqual
+      wrapped.mkString(System.lineSeparator()) shouldEqual
       """aa a b c d
         |   e f
         |b  a""".stripMargin
@@ -90,10 +90,59 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
         2
       )
 
-      wrapped.mkString("\n") shouldEqual
+      wrapped.mkString(System.lineSeparator()) shouldEqual
       """abcdef a b c
         |       d e f
         |b      a""".stripMargin
+    }
+  }
+
+  "CLIOutput" should {
+    val tabulation = "\t"
+    "align tables" in {
+      val unaligned =
+        s"""short${tabulation}row
+           |very long${tabulation}row
+           |""".stripMargin
+      val aligned =
+        s"""short     row
+           |very long row
+           |""".stripMargin
+      CLIOutput.alignAndWrap(unaligned) shouldEqual aligned
+    }
+
+    "align tables independently" in {
+      val unaligned =
+        s"""Table One
+           |short${tabulation}row
+           |very long${tabulation}row
+           |
+           |Table Two
+           |a${tabulation}b
+           |c${tabulation}d
+           |""".stripMargin
+      val aligned =
+        s"""Table One
+           |short     row
+           |very long row
+           |
+           |Table Two
+           |a b
+           |c d
+           |""".stripMargin
+      CLIOutput.alignAndWrap(unaligned) shouldEqual aligned
+    }
+
+    "wrap text to 80 characters" in {
+      val text10 = "TEN LETTER"
+      val text80 = text10 * 8
+      CLIOutput.alignAndWrap(text80) shouldEqual text80
+
+      val longer = s"""$text80 MORE"""
+      val longerWrapped =
+        s"""$text80
+           |MORE""".stripMargin
+      CLIOutput.alignAndWrap(longer) shouldEqual longerWrapped
     }
   }
 }

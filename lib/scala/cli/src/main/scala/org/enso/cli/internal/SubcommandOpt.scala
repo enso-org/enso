@@ -17,6 +17,8 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Subcommand[A]])
     selectedCommand.map(_.opts.prefixedParameters).getOrElse(Map.empty)
   override private[cli] def gatherOptions =
     selectedCommand.map(_.opts.gatherOptions).getOrElse(Seq())
+  override private[cli] def gatherPrefixedParameters =
+    selectedCommand.map(_.opts.gatherPrefixedParameters).getOrElse(Seq())
   override private[cli] val usageOptions =
     subcommands.toList.flatMap(_.opts.usageOptions).distinct
 
@@ -71,6 +73,11 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Subcommand[A]])
 
   override def availableOptionsHelp(): Seq[String] =
     subcommands.toList.flatMap(_.opts.availableOptionsHelp()).distinct
+
+  override def availablePrefixedParametersHelp(): Seq[String] =
+    subcommands.toList
+      .flatMap(_.opts.availablePrefixedParametersHelp())
+      .distinct
 
   override def additionalHelp(): Seq[String] =
     subcommands.toList.flatMap(_.opts.additionalHelp()).distinct

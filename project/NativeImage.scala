@@ -4,7 +4,6 @@ import sbt.{File, _}
 import sbt.Keys._
 
 import scala.sys.process._
-import scala.collection.JavaConverters._
 
 object NativeImage {
   def buildNativeImage(staticOnLinux: Boolean): Def.Initialize[Task[Unit]] =
@@ -55,21 +54,17 @@ object NativeImage {
     artifactName: String
   ) =
     Def.taskDyn {
-      val compilationSummary = (Compile / compile).value
-      val filesSet = compilationSummary
-        .readStamps()
-        .getAllProductStamps
-        .keySet()
-        .asScala
-        .toSet
-
-      def rebuild(reason: String) =
+      def rebuild(reason: String) = {
+        streams.value.log.info(
+          s"$reason, forcing a rebuild."
+        )
         Def.task {
-          streams.value.log.info(
-            s"$reason, forcing a rebuild."
-          )
           actualBuild.value
         }
+      }
+
+      val classpath = (Compile / fullClasspath).value
+      val filesSet  = classpath.flatMap(f => f.data.allPaths.get()).toSet
 
       val store =
         streams.value.cacheStoreFactory.make("incremental_native_image")

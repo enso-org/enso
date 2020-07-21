@@ -10,7 +10,7 @@ import sbt.Keys.scalacOptions
 import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-import com.typesafe.sbt.license.{DepModuleInfo, LicenseInfo}
+import com.typesafe.sbt.license.DepModuleInfo
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -988,9 +988,17 @@ lazy val launcher = project
   .settings(
     (Test / test) := (Test / test)
         .dependsOn(
-          NativeImage.incrementalNativeImageBuild(buildNativeImage, "enso")
+          NativeImage.incrementalNativeImageBuild(
+            buildNativeImage,
+            "enso"
+          )
         )
         .value
+//    (Compile / compileIncremental) := {
+//      val res = (Compile / compileIncremental).value
+//      println(s"COMPILE INC: ${res.hasModified}")
+//      res
+//    }
   )
   .settings(licenseSettings)
   .dependsOn(cli)
