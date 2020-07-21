@@ -6,25 +6,6 @@ import org.enso.syntax.text.AST
 
 import scala.annotation.tailrec
 
-/* Questions:
- * - I don't quite see what the best structure for this should be in rust. Do
- *   you have any ideas or should I come up with something?
- * - You mentioned "a big if" in rust. Does that imply that we don't want
- *   functions, or just that you'd rather use `if` over `match`..? If so, why?
- * - Do we want to define the implementation as a 'slot-in' trait into the
- *   execution engine (like here), or oll in one file?
- *
- * Need to consider that the implementation needs to have access to the
- * internals of the lexer. Hoist the elements into the trait + delegation?
- * (e.g. currentMatch).
- *
- * Another option is that the lexer implementation hosts the engine.
- *
- * Engine parametrised by Phantom type (ZST). `PhantomData`
- *
- * Use the functions.
- */
-
 final class __Parser__ extends flexer.Parser[AST.Module] {
 
   final object Word {

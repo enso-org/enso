@@ -16,6 +16,25 @@
 //! - Docs are intentionally missing for now in many places.
 
 use crate::prelude::*;
+use unicode_segmentation::UnicodeSegmentation;
+
+#[allow(missing_docs)]
+pub fn test_run() -> Vec<AST> {
+    let reader = unimplemented!();
+    let mut lexer:Lexer<AST> = Lexer::new(reader);
+
+    let root_state = lexer.define_state("ROOT");
+    let seen_first_word_state = lexer.define_state("SEEN FIRST WORD");
+
+    unimplemented!()
+}
+
+#[allow(missing_docs)]
+#[derive(Clone, Debug, PartialEq)]
+pub enum AST {
+    Word(String),
+    Unrecognised(String)
+}
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Default)]
@@ -47,16 +66,33 @@ pub struct Lexer<T> {
     reader: Reader,
     current_match: String,
     phantom: std::marker::PhantomData<T>,
-    status:LexerStageStatus
+    status:LexerStageStatus,
+    def_current:Option<AST>,
+    tokens:Vec<AST>
+}
+
+impl <T> Lexer<T> {
+    pub fn new(reader:Reader) -> Lexer<T> {
+        let status = LexerStageStatus::ExitSuccess;
+        let phantom = PhantomData;
+        let current_match = String::from("");
+        let mut registry = Vec::new();
+        let root_index = registry.len();
+        let root_state = State::new("ROOT", root_index);
+        registry.push(root_state);
+        let state_stack = vec![root_index];
+        let def_current = None;
+        let tokens = Vec::new();
+        Lexer{registry,state_stack,reader,current_match,phantom,status,def_current,tokens}
+    }
 }
 
 #[allow(missing_docs)]
-impl <T> Lexer<T> {
+impl Lexer<AST> {
 
     // TODO [AA] Lexer interface
-    pub fn run(&mut self) -> LexerResult<T> {
-        // Reserve stack to bigger (1024)
-        self.state_stack.reserve(self.registry.len());
+    pub fn run(&mut self) -> LexerResult<Vec<AST>> {
+        self.state_stack.reserve(1014);
         self.reader.rewinder.set_matched();
         self.reader.next_char();
 
@@ -73,8 +109,8 @@ impl <T> Lexer<T> {
     }
 
     // TODO [AA] Internal helper (generated)
-    fn get_result(&mut self) -> Option<T> {
-        unimplemented!()
+    fn get_result(&mut self) -> Option<Vec<AST>> {
+        Some(self.tokens.clone())
     }
 
     // TODO [AA] Lexer interface
@@ -148,7 +184,7 @@ impl <T> Lexer<T> {
         while self.status.is_valid() {
             let status = self.status.value().expect("Value guaranteed to exist as `is_valid()`.");
             let state_from_status = self.state_for(status).index;
-            self.status = self.step(state_from_status);
+            self.status = self.def_step(state_from_status);
 
             if is_finished && !self.reader.rewinder.is_rewinded() {
                 self.status = LexerStageStatus::ExitFinished
@@ -168,39 +204,39 @@ impl <T> Lexer<T> {
     }
 
     // TODO [AA] Generated code
-    fn step(&mut self,new_state_index:usize) -> LexerStageStatus {
+    fn def_step(&mut self, new_state_index:usize) -> LexerStageStatus {
         let current_state_index = self.current_state_ix();
 
         // This match should be generated
         // TODO [AA] Use unreachable_unchecked. Write macro for panic in debug / this in prod
         //  builds. Should take string.
         match current_state_index {
-            0 => self.dispatch_in_state_0(new_state_index),
-            1 => self.dispatch_in_state_1(new_state_index),
+            0 => self.def_dispatch_in_state_0(new_state_index),
+            1 => self.def_dispatch_in_state_1(new_state_index),
             _ => unreachable_panic!("Unreachable state reached in lexer.")
         }
     }
 
     // TODO [AA] Generated code
-    fn dispatch_in_state_0(&mut self,new_state_index:usize) -> LexerStageStatus {
+    fn def_dispatch_in_state_0(&mut self, new_state_index:usize) -> LexerStageStatus {
         match new_state_index {
-            0 => self.state_0_to_0(),
-            1 => self.state_0_to_1(),
-            2 => self.state_0_to_2(),
-            3 => self.state_0_to_3(),
-            4 => self.state_0_to_4(),
+            0 => self.def_state_0_to_0(),
+            1 => self.def_state_0_to_1(),
+            2 => self.def_state_0_to_2(),
+            3 => self.def_state_0_to_3(),
+            4 => self.def_state_0_to_4(),
             _ => unreachable_panic!("Unreachable state reached in lexer.")
         }
     }
 
     // TODO [AA] Generated code
-    fn state_0_to_0(&mut self) -> LexerStageStatus {
+    fn def_state_0_to_0(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             97 => LexerStageStatus::ContinueWith(1),
             98 => LexerStageStatus::ContinueWith(2),
             _  => {
                 self.current_match = self.reader.result.to_string();
-                self.group_0_rule_2();
+                self.def_group_0_rule_2();
                 self.reader.set_result_length(0);
                 self.reader.rewinder.set_matched();
                 LexerStageStatus::ExitSuccess
@@ -209,12 +245,12 @@ impl <T> Lexer<T> {
     }
 
     // TODO [AA] Generated code
-    fn state_0_to_1(&mut self) -> LexerStageStatus {
+    fn def_state_0_to_1(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             97 => LexerStageStatus::ContinueWith(3),
             _  => {
                 self.current_match = self.reader.result.to_string();
-                self.group_0_rule_0();
+                self.def_group_0_rule_0();
                 self.reader.set_result_length(0);
                 self.reader.rewinder.set_matched();
                 LexerStageStatus::ExitSuccess
@@ -223,12 +259,12 @@ impl <T> Lexer<T> {
     }
 
     // TODO [AA] Generated code
-    fn state_0_to_2(&mut self) -> LexerStageStatus {
+    fn def_state_0_to_2(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             98 => LexerStageStatus::ContinueWith(4),
             _  => {
                 self.current_match = self.reader.result.to_string();
-                self.group_0_rule_1();
+                self.def_group_0_rule_1();
                 self.reader.set_result_length(0);
                 self.reader.rewinder.set_matched();
                 LexerStageStatus::ExitSuccess
@@ -237,12 +273,12 @@ impl <T> Lexer<T> {
     }
 
     // TODO [AA] Generated code
-    fn state_0_to_3(&mut self) -> LexerStageStatus {
+    fn def_state_0_to_3(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             97 => LexerStageStatus::ContinueWith(3),
             _  => {
                 self.current_match = self.reader.result.to_string();
-                self.group_0_rule_0();
+                self.def_group_0_rule_0();
                 self.reader.set_result_length(0);
                 self.reader.rewinder.set_matched();
                 LexerStageStatus::ExitSuccess
@@ -251,12 +287,12 @@ impl <T> Lexer<T> {
     }
 
     // TODO [AA] Generated code
-    fn state_0_to_4(&mut self) -> LexerStageStatus {
+    fn def_state_0_to_4(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             98 => LexerStageStatus::ContinueWith(4),
             _  => {
                 self.current_match = self.reader.result.to_string();
-                self.group_0_rule_1();
+                self.def_group_0_rule_1();
                 self.reader.set_result_length(0);
                 self.reader.rewinder.set_matched();
                 LexerStageStatus::ExitSuccess
@@ -264,37 +300,74 @@ impl <T> Lexer<T> {
         }
     }
 
-    // TODO [AA] Generated code
-    fn group_0_rule_0(&self) -> () {
-        // TODO [AA] These get implemented in terms of the lexer interface in the definition.
-        unimplemented!()
+    pub fn def_on_first_word_str(&mut self,str:String) {
+        let ast = AST::Word(str);
+        self.def_on_first_word(ast)
+    }
+
+    pub fn def_on_first_word(&mut self,ast:AST) {
+        self.def_current = Some(ast);
+        let state = unimplemented!(); // ???????????????????
+        self.begin_state(state);
+    }
+
+    pub fn def_on_spaced_word_str(&mut self,str:String) {
+        let ast = AST::Word(String::from(str.trim_end()));
+        self.def_on_spaced_word(ast);
+    }
+
+    pub fn def_on_spaced_word(&mut self,ast:AST) {
+        self.def_current = Some(ast);
+    }
+
+    pub fn def_on_no_err_suffix(&mut self) {
+        self.def_submit();
+        self.end_state();
+    }
+
+    pub fn def_on_err_suffix(&mut self) {
+        let ast = AST::Unrecognised(self.current_match.clone());
+        self.tokens.push(ast);
+        self.def_current = None;
+        self.end_state();
+    }
+
+    pub fn def_submit(&mut self) {
+        let token = self.def_current.as_ref().unwrap().clone();
+        self.tokens.push(token);
+        self.def_current = None;
     }
 
     // TODO [AA] Generated code
-    fn group_0_rule_1(&self) -> () {
-        unimplemented!()
+    fn def_group_0_rule_0(&mut self) -> () {
+        self.def_on_first_word_str(self.current_match.clone())
     }
 
     // TODO [AA] Generated code
-    fn group_0_rule_2(&self) -> () {
-        unimplemented!()
+    fn def_group_0_rule_1(&mut self) -> () {
+        self.def_on_first_word_str(self.current_match.clone())
     }
 
     // TODO [AA] Generated code
-    fn dispatch_in_state_1(&mut self,new_state_index:usize) -> LexerStageStatus {
+    fn def_group_0_rule_2(&mut self) -> () {
+        self.def_on_err_suffix()
+    }
+
+    // TODO [AA] Generated code
+    fn def_dispatch_in_state_1(&mut self, new_state_index:usize) -> LexerStageStatus {
         match new_state_index {
-            0 => self.state_1_to_0(),
-            1 => self.state_1_to_1(),
-            2 => self.state_1_to_2(),
-            3 => self.state_1_to_3(),
-            4 => self.state_1_to_4(),
-            5 => self.state_1_to_5(),
+            0 => self.def_state_1_to_0(),
+            1 => self.def_state_1_to_1(),
+            2 => self.def_state_1_to_2(),
+            3 => self.def_state_1_to_3(),
+            4 => self.def_state_1_to_4(),
+            5 => self.def_state_1_to_5(),
             _ => unreachable_panic!("Unreachable state reached in lexer.")
         }
     }
 
     // TODO [AA] Generated code
-    fn state_1_to_0(&mut self) -> LexerStageStatus {
+    fn def_state_1_to_0(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             32 => {
                 // TODO [AA] What determines use of the rewinder here?
@@ -303,7 +376,7 @@ impl <T> Lexer<T> {
             }
             _  => {
                 self.current_match = self.reader.result.to_string();
-                self.group_1_rule_2();
+                self.def_group_1_rule_2();
                 self.reader.set_result_length(0);
                 self.reader.rewinder.set_matched();
                 LexerStageStatus::ExitSuccess
@@ -312,14 +385,14 @@ impl <T> Lexer<T> {
     }
 
     // TODO [AA] Generated code
-    fn state_1_to_1(&mut self) -> LexerStageStatus {
+    fn def_state_1_to_1(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             97 => LexerStageStatus::ContinueWith(2),
             98 => LexerStageStatus::ContinueWith(3),
             _  => {
                 self.reader.rewinder.run_rule();
                 self.current_match = self.reader.result.to_string();
-                self.group_1_rule_2();
+                self.def_group_1_rule_2();
                 self.reader.set_result_length(0);
                 self.reader.rewinder.set_matched();
                 LexerStageStatus::ExitSuccess
@@ -328,12 +401,12 @@ impl <T> Lexer<T> {
     }
 
     // TODO [AA] Generated code
-    fn state_1_to_2(&mut self) -> LexerStageStatus {
+    fn def_state_1_to_2(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             97 => LexerStageStatus::ContinueWith(4),
             _  => {
                 self.current_match = self.reader.result.to_string();
-                self.group_1_rule_0();
+                self.def_group_1_rule_0();
                 self.reader.set_result_length(0);
                 self.reader.rewinder.set_matched();
                 LexerStageStatus::ExitSuccess
@@ -342,12 +415,12 @@ impl <T> Lexer<T> {
     }
 
     // TODO [AA] Generated code
-    fn state_1_to_3(&mut self) -> LexerStageStatus {
+    fn def_state_1_to_3(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             98 => LexerStageStatus::ContinueWith(5),
             _  => {
                 self.current_match = self.reader.result.to_string();
-                self.group_1_rule_1();
+                self.def_group_1_rule_1();
                 self.reader.set_result_length(0);
                 self.reader.rewinder.set_matched();
                 LexerStageStatus::ExitSuccess
@@ -356,12 +429,12 @@ impl <T> Lexer<T> {
     }
 
     // TODO [AA] Generated code
-    fn state_1_to_4(&mut self) -> LexerStageStatus {
+    fn def_state_1_to_4(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             97 => LexerStageStatus::ContinueWith(4),
             _  => {
                 self.current_match = self.reader.result.to_string();
-                self.group_1_rule_0();
+                self.def_group_1_rule_0();
                 self.reader.set_result_length(0);
                 self.reader.rewinder.set_matched();
                 LexerStageStatus::ExitSuccess
@@ -370,12 +443,12 @@ impl <T> Lexer<T> {
     }
 
     // TODO [AA] Generated code
-    fn state_1_to_5(&mut self) -> LexerStageStatus {
+    fn def_state_1_to_5(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             98 => LexerStageStatus::ContinueWith(5),
             _  => {
                 self.current_match = self.reader.result.to_string();
-                self.group_1_rule_1();
+                self.def_group_1_rule_1();
                 self.reader.set_result_length(0);
                 self.reader.rewinder.set_matched();
                 LexerStageStatus::ExitSuccess
@@ -384,34 +457,18 @@ impl <T> Lexer<T> {
     }
 
     // TODO [AA] Generated code
-    fn group_1_rule_0(&self) -> () {
-        unimplemented!()
+    fn def_group_1_rule_0(&mut self) {
+        self.def_on_spaced_word_str(self.current_match.clone());
     }
 
     // TODO [AA] Generated code
-    fn group_1_rule_1(&self) -> () {
-        unimplemented!()
+    fn def_group_1_rule_1(&mut self) -> () {
+        self.def_on_spaced_word_str(self.current_match.clone());
     }
 
     // TODO [AA] Generated code
-    fn group_1_rule_2(&self) -> () {
-        unimplemented!()
-    }
-}
-
-#[allow(missing_docs)]
-impl <T> Default for Lexer<T> {
-    fn default() -> Self {
-        let status = LexerStageStatus::ExitSuccess;
-        let phantom = PhantomData;
-        let current_match = String::from("");
-        let reader = Reader::default();
-        let mut registry = Vec::new();
-        let root_index = registry.len();
-        let root_state = State::new("ROOT", root_index);
-        registry.push(root_state);
-        let state_stack = vec![root_index];
-        Lexer{registry,state_stack,reader,current_match,phantom,status}
+    fn def_group_1_rule_2(&mut self) -> () {
+        self.def_on_no_err_suffix();
     }
 }
 
