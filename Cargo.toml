@@ -13,6 +13,7 @@ members = [
     "lib/rust/lexer/definition",
     "lib/rust/lexer/generation",
     "lib/rust/lexer/tests",
+    "lib/rust/lazy-reader",
 ]
 
 [profile.dev]
