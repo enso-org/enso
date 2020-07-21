@@ -1,11 +1,14 @@
 //! This module contains all structures which describes Module state (code, ast, metadata).
+
+pub mod plain;
+pub mod synchronized;
+
 use crate::prelude::*;
 
 use crate::constants::LANGUAGE_FILE_EXTENSION;
 use crate::constants::SOURCE_DIRECTORY;
 use crate::controller::FilePath;
 use crate::double_representation::definition::DefinitionInfo;
-use crate::notification;
 
 use data::text::TextChange;
 use data::text::TextLocation;
@@ -289,141 +292,65 @@ impl Position {
 /// A type describing content of the module: the ast and metadata.
 pub type Content = ParsedSourceFile<Metadata>;
 
-/// A structure describing the module.
-///
-/// It implements internal mutability pattern, so the state may be shared between different
-/// controllers. Each change in module will emit notification for each module representation
-/// (text and graph).
-#[derive(Debug)]
-pub struct Module {
-    content       : RefCell<Content>,
-    notifications : notification::Publisher<Notification>,
-}
-
-impl Default for Module {
-    fn default() -> Self {
-        let ast = ast::known::Module::new(ast::Module{lines:default()},None);
-        Self::new(ast,default())
-    }
-}
-
-impl Module {
-    /// Create state with given content.
-    pub fn new(ast:ast::known::Module, metadata:Metadata) -> Self {
-        Module {
-            content       : RefCell::new(ParsedSourceFile{ast,metadata}),
-            notifications : default(),
-        }
-    }
-
+/// Module model API.
+pub trait API:Debug {
     /// Subscribe for notifications about text representation changes.
-    pub fn subscribe(&self) -> Subscriber<Notification> {
-        self.notifications.subscribe()
-    }
-
-    /// Create module state from given code, id_map and metadata.
-    #[cfg(test)]
-    pub fn from_code_or_panic<S:ToString>
-    (code:S, id_map:ast::IdMap, metadata:Metadata) -> Self {
-        let parser = parser::Parser::new_or_panic();
-        let ast    = parser.parse(code.to_string(),id_map).unwrap().try_into().unwrap();
-        Self::new(ast,metadata)
-    }
-}
+    fn subscribe(&self) -> Subscriber<Notification>;
 
 
-// === Access to Module Content ===
+// === Getters ===
+    /// Get the module path.
+    fn path(&self) -> &Path;
 
-impl Module {
     /// Get module sources as a string, which contains both code and metadata.
-    pub fn serialized_content(&self) -> FallibleResult<SourceFile> {
-        self.content.borrow().serialize().map_err(|e| e.into())
-    }
+    fn serialized_content(&self) -> FallibleResult<SourceFile>;
 
     /// Get module's ast.
-    pub fn ast(&self) -> ast::known::Module {
-        self.content.borrow().ast.clone_ref()
-    }
+    fn ast(&self) -> ast::known::Module;
 
     /// Obtains definition information for given graph id.
-    pub fn find_definition
-    (&self,id:&double_representation::graph::Id) -> FallibleResult<DefinitionInfo> {
-        let ast = self.content.borrow().ast.clone_ref();
-        double_representation::module::get_definition(&ast, id)
-    }
+    fn find_definition
+    (&self,id:&double_representation::graph::Id) -> FallibleResult<DefinitionInfo>;
 
     /// Returns metadata for given node, if present.
-    pub fn node_metadata(&self, id:ast::Id) -> FallibleResult<NodeMetadata> {
-        let data = self.content.borrow().metadata.ide.node.get(&id).cloned();
-        data.ok_or_else(|| NodeMetadataNotFound(id).into())
-    }
-}
+    fn node_metadata(&self, id:ast::Id) -> FallibleResult<NodeMetadata>;
 
 
 // === Setters ===
 
-impl Module {
-
     /// Update whole content of the module.
-    pub fn update_whole(&self, content:Content) {
-        *self.content.borrow_mut() = content;
-        self.notify(Notification::Invalidate);
-    }
+    fn update_whole(&self, content:Content);
 
     /// Update ast in module controller.
-    pub fn update_ast(&self, ast:ast::known::Module) {
-        self.content.borrow_mut().ast  = ast;
-        self.notify(Notification::Invalidate);
-    }
+    fn update_ast(&self, ast:ast::known::Module);
 
     /// Updates AST after code change.
     ///
     /// May return Error when new code causes parsing errors, or when parsed code does not produce
     /// Module ast.
-    pub fn apply_code_change
-    (&self, change:TextChange, parser:&Parser, new_id_map:ast::IdMap) -> FallibleResult<()> {
-        let mut code          = self.ast().repr();
-        let replaced_location = TextLocation::convert_range(&code,&change.replaced);
-        change.apply(&mut code);
-        let new_ast = parser.parse(code,new_id_map)?.try_into()?;
-        self.content.borrow_mut().ast = new_ast;
-        self.notify(Notification::CodeChanged {change,replaced_location});
-        Ok(())
-    }
+    fn apply_code_change
+    (&self, change:TextChange, parser:&Parser, new_id_map:ast::IdMap) -> FallibleResult<()>;
 
     /// Sets metadata for given node.
-    pub fn set_node_metadata(&self, id:ast::Id, data:NodeMetadata) {
-        self.content.borrow_mut().metadata.ide.node.insert(id, data);
-        self.notify(Notification::MetadataChanged);
-    }
+    fn set_node_metadata(&self, id:ast::Id, data:NodeMetadata);
 
     /// Removes metadata of given node and returns them.
-    pub fn remove_node_metadata(&self, id:ast::Id) -> FallibleResult<NodeMetadata> {
-        let lookup = self.content.borrow_mut().metadata.ide.node.remove(&id);
-        let data   = lookup.ok_or_else(|| NodeMetadataNotFound(id))?;
-        self.notify(Notification::MetadataChanged);
-        Ok(data)
-    }
+    fn remove_node_metadata(&self, id:ast::Id) -> FallibleResult<NodeMetadata>;
 
     /// Modify metadata of given node.
     ///
     /// If ID doesn't have metadata, empty (default) metadata is inserted. Inside callback you
     /// should use only the data passed as argument; don't use functions of this controller for
     /// getting and setting metadata for the same node.
-    pub fn with_node_metadata(&self, id:ast::Id, fun:impl FnOnce(&mut NodeMetadata)) {
-        let lookup   = self.content.borrow_mut().metadata.ide.node.remove(&id);
-        let mut data = lookup.unwrap_or_default();
-        fun(&mut data);
-        self.content.borrow_mut().metadata.ide.node.insert(id, data);
-        self.notify(Notification::MetadataChanged);
-    }
-
-    fn notify(&self, notification:Notification) {
-        let notify  = self.notifications.publish(notification);
-        executor::global::spawn(notify);
-    }
+    fn with_node_metadata(&self, id:ast::Id, fun:Box<dyn FnOnce(&mut NodeMetadata) + '_>);
 }
 
+/// The general, shared Module Model handle.
+pub type Module = Rc<dyn API>;
+/// Module Model which does not do anything besides storing data.
+pub type Plain = plain::Module;
+/// Module Model which synchronizes all changes with Language Server.
+pub type Synchronized = synchronized::Module;
 
 
 // ============
@@ -431,96 +358,47 @@ impl Module {
 // ============
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use super::*;
 
-    use crate::executor::test_utils::TestWithLocalPoolExecutor;
-
-    use data::text;
-    use uuid::Uuid;
-    use wasm_bindgen_test::wasm_bindgen_test;
-
-    #[wasm_bindgen_test]
-    fn applying_code_change() {
-        let mut test = TestWithLocalPoolExecutor::set_up();
-        test.run_task(async {
-            let module = Module::from_code_or_panic("2 + 2",default(),default());
-            let change = TextChange {
-                replaced: text::Index::new(2)..text::Index::new(5),
-                inserted: "- abc".to_string(),
-            };
-            module.apply_code_change(change,&Parser::new_or_panic(),default()).unwrap();
-            assert_eq!("2 - abc",module.ast().repr());
-        });
+    pub fn expect_code(module:&dyn API, expected_code:impl AsRef<str>) {
+        let code = module.ast().repr();
+        assert_eq!(code,expected_code.as_ref())
     }
 
-    #[wasm_bindgen_test]
-    fn notifying() {
-        let mut test = TestWithLocalPoolExecutor::set_up();
-        test.run_task(async {
-            let module                 = Module::default();
-            let mut subscription       = module.subscribe();
-
-            // Ast update
-            let new_line       = Ast::infix_var("a","+","b");
-            let new_module_ast = Ast::one_line_module(new_line);
-            let new_module_ast = ast::known::Module::try_new(new_module_ast).unwrap();
-            module.update_ast(new_module_ast.clone_ref());
-            assert_eq!(Some(Notification::Invalidate), subscription.next().await);
-
-            // Code change
-            let change = TextChange {
-                replaced: text::Index::new(0)..text::Index::new(1),
-                inserted: "foo".to_string(),
-            };
-            module.apply_code_change(change.clone(),&Parser::new_or_panic(),default()).unwrap();
-            let replaced_location = TextLocation{line:0, column:0}..TextLocation{line:0, column:1};
-            let notification      = Notification::CodeChanged {change,replaced_location};
-            assert_eq!(Some(notification), subscription.next().await);
-
-            // Metadata update
-            let id            = Uuid::new_v4();
-            let node_metadata = NodeMetadata {position:Some(Position::new(1.0, 2.0))};
-            module.set_node_metadata(id.clone(),node_metadata.clone());
-            assert_eq!(Some(Notification::MetadataChanged), subscription.next().await);
-            module.remove_node_metadata(id.clone()).unwrap();
-            assert_eq!(Some(Notification::MetadataChanged), subscription.next().await);
-            module.with_node_metadata(id.clone(),|md| *md = node_metadata.clone());
-            assert_eq!(Some(Notification::MetadataChanged), subscription.next().await);
-
-            // Whole update
-            let mut metadata = Metadata::default();
-            metadata.ide.node.insert(id,node_metadata);
-            module.update_whole(ParsedSourceFile{ast:new_module_ast, metadata});
-            assert_eq!(Some(Notification::Invalidate), subscription.next().await);
-
-            // No more notifications emitted
-            drop(module);
-            assert_eq!(None, subscription.next().await);
-        });
+    /// Data from which module model is usually created in test scenarios.
+    #[derive(Clone,Debug)]
+    pub struct MockData {
+        pub path     : Path,
+        pub code     : String,
+        pub id_map   : ast::IdMap,
+        pub metadata : Metadata,
     }
 
-    #[test]
-    fn handling_metadata() {
-        let mut test = TestWithLocalPoolExecutor::set_up();
-        test.run_task(async {
-            let module = Module::default();
+    impl Default for MockData {
+        fn default() -> Self {
+            Self {
+                path     : Path::from_mock_module_name("Main"),
+                code     : "main = 2 + 2".into(),
+                id_map   : default(),
+                metadata : default(),
+            }
+        }
+    }
 
-            let id         = Uuid::new_v4();
-            let initial_md = module.node_metadata(id.clone());
-            assert!(initial_md.is_err());
+    impl MockData {
+        pub fn plain(&self, parser:&Parser) -> Module {
+            let ast    = parser.parse_module(self.code.clone(),self.id_map.clone()).unwrap();
+            let module = Plain::new(self.path.clone(),ast,self.metadata.clone());
+            Rc::new(module)
+        }
+    }
 
-            let md_to_set = NodeMetadata {position:Some(Position::new(1.0, 2.0))};
-            module.set_node_metadata(id.clone(),md_to_set.clone());
-            assert_eq!(md_to_set.position, module.node_metadata(id.clone()).unwrap().position);
-
-            let new_pos = Position::new(4.0, 5.0);
-            module.with_node_metadata(id.clone(), |md| {
-                assert_eq!(md_to_set.position, md.position);
-                md.position = Some(new_pos);
-            });
-            assert_eq!(Some(new_pos), module.node_metadata(id).unwrap().position);
-        });
+    pub fn plain_from_code(code:impl Into<String>) -> Module {
+        MockData {
+            code : code.into(),
+            ..default()
+        }.plain(&parser::Parser::new_or_panic())
     }
 
     #[test]

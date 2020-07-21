@@ -60,18 +60,18 @@ pub type Event = crate::common::event::Event<Notification>;
 #[automock]
 pub trait API {
     /// Initializes the protocol. Must be called exactly once before making any other calls.
-    fn init(&self, client_id:Uuid) -> LocalBoxFuture<FallibleResult<()>>;
+    fn init(&self, client_id:Uuid) -> StaticBoxFuture<FallibleResult<()>>;
 
     /// Writes binary data to the file.
-    fn write_file(&self, path:&Path, contents:&[u8]) -> LocalBoxFuture<FallibleResult<()>>;
+    fn write_file(&self, path:&Path, contents:&[u8]) -> StaticBoxFuture<FallibleResult<()>>;
 
     /// Retrieves the file contents as a binary data.
-    fn read_file(&self, path:&Path) -> LocalBoxFuture<FallibleResult<Vec<u8>>>;
+    fn read_file(&self, path:&Path) -> StaticBoxFuture<FallibleResult<Vec<u8>>>;
 
     /// Asynchronous event stream with notification and errors.
     ///
     /// On a repeated call, previous stream is closed.
-    fn event_stream(&self) -> LocalBoxStream<Event>;
+    fn event_stream(&self) -> StaticBoxStream<Event>;
 }
 
 
@@ -145,7 +145,7 @@ impl Client {
 
     /// Starts a new request, described by the given payload.
     /// Function `f` serves to retrieve the request's result from the more general `Reply` type.
-    pub fn make_request<F,R>(&self, payload:ToServerPayload, f:F) -> LocalBoxFuture<FallibleResult<R>>
+    pub fn make_request<F,R>(&self, payload:ToServerPayload, f:F) -> StaticBoxFuture<FallibleResult<R>>
     where F : FnOnce(FromServerPayloadOwned) -> FallibleResult<R>,
           R : 'static,
           F : 'static, {
@@ -175,19 +175,19 @@ impl Client {
 }
 
 impl API for Client {
-    fn init(&self, client_id:Uuid) -> LocalBoxFuture<FallibleResult<()>> {
+    fn init(&self, client_id:Uuid) -> StaticBoxFuture<FallibleResult<()>> {
         info!(self.logger,"Initializing binary connection as client with id {client_id}.");
         let payload = ToServerPayload::InitSession {client_id};
         self.make_request(payload,Self::expect_success)
     }
 
-    fn write_file(&self, path:&Path, contents:&[u8]) -> LocalBoxFuture<FallibleResult<()>> {
+    fn write_file(&self, path:&Path, contents:&[u8]) -> StaticBoxFuture<FallibleResult<()>> {
         info!(self.logger,"Writing file {path} with {contents.len()} bytes.");
         let payload = ToServerPayload::WriteFile {path,contents};
         self.make_request(payload,Self::expect_success)
     }
 
-    fn read_file(&self, path:&Path) -> LocalBoxFuture<FallibleResult<Vec<u8>>> {
+    fn read_file(&self, path:&Path) -> StaticBoxFuture<FallibleResult<Vec<u8>>> {
         info!(self.logger,"Reading file {path}.");
         let payload = ToServerPayload::ReadFile {path};
         self.make_request(payload, move |result| {
@@ -199,7 +199,7 @@ impl API for Client {
         })
     }
 
-    fn event_stream(&self) -> LocalBoxStream<Event> {
+    fn event_stream(&self) -> StaticBoxStream<Event> {
         self.handler.event_stream().boxed_local()
     }
 }
@@ -248,7 +248,7 @@ mod tests {
     // ========================
 
     fn test_request<R>
-    ( make_request     : impl Fn(&Client) -> LocalBoxFuture<FallibleResult<R>>
+    ( make_request     : impl Fn(&Client) -> StaticBoxFuture<FallibleResult<R>>
     , expected_result  : R
     , expected_request : ToServerPayloadOwned
     , mock_reply       : FromServerPayloadOwned

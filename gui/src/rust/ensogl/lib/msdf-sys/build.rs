@@ -3,9 +3,9 @@
 mod msdfgen_wasm {
     use ensogl_build_utilities::GithubRelease;
 
-    use std::path;
     use std::fs;
     use std::io::Write;
+    use std::path;
 
     pub const PACKAGE : GithubRelease<&str> = GithubRelease {
         project_url : "https://github.com/luna/msdfgen-wasm",

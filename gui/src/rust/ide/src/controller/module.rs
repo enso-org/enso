@@ -36,7 +36,7 @@ pub struct InvalidGraphId(controller::graph::Id);
 #[allow(missing_docs)]
 #[derive(Clone,CloneRef,Debug)]
 pub struct Handle {
-    pub model           : Rc<model::synchronized::Module>,
+    pub model           : model::Module,
     pub language_server : Rc<language_server::Connection>,
     pub parser          : Parser,
     pub logger          : Logger,
@@ -48,15 +48,15 @@ impl Handle {
     (parent:impl AnyLogger, path:Path, project:&model::Project) -> FallibleResult<Self> {
         let logger          = Logger::sub(parent,format!("Module Controller {}", path));
         let model           = project.module(path).await?;
-        let language_server = project.language_server_rpc.clone_ref();
-        let parser          = project.parser.clone_ref();
+        let language_server = project.json_rpc();
+        let parser          = project.parser();
         Ok(Handle {model,language_server,parser,logger})
     }
 
     /// Save the module to file.
     pub fn save_file(&self) -> impl Future<Output=FallibleResult<()>> {
         let content = self.model.serialized_content();
-        let path    = self.model.path.clone_ref();
+        let path    = self.model.path().clone_ref();
         let ls      = self.language_server.clone_ref();
         async move {
             let version = Sha3_224::new(content?.content.as_bytes());
@@ -120,12 +120,12 @@ impl Handle {
         };
 
         let defined_on_type = if crumb.extended_target.is_empty() {
-            self.model.path.module_name().to_string()
+            self.model.path().module_name().to_string()
         } else {
             crumb.extended_target.iter().map(|segment| segment.as_str()).join(".")
         };
         Ok(language_server::MethodPointer {
-            file : self.model.path.file_path().clone(),
+            file : self.model.path().file_path().clone(),
             defined_on_type,
             name : crumb.name.item.clone(),
         })
@@ -176,10 +176,10 @@ impl Handle {
     , language_server : Rc<language_server::Connection>
     , parser          : Parser
     ) -> FallibleResult<Self> {
-        let logger = Logger::new("Mocked Module Controller");
-        let ast    = parser.parse(code.to_string(),id_map)?.try_into()?;
-        let model  = model::Module::new(ast, default());
-        let model  = model::synchronized::Module::mock(path,model);
+        let logger   = Logger::new("Mocked Module Controller");
+        let ast      = parser.parse(code.to_string(),id_map)?.try_into()?;
+        let metadata = default();
+        let model    = Rc::new(model::module::Plain::new(path,ast,metadata));
         Ok(Handle {model,language_server,parser,logger})
     }
 
@@ -216,20 +216,18 @@ mod test {
             let ls       = language_server::Connection::new_mock_rc(default());
             let parser   = Parser::new().unwrap();
             let location = Path::from_mock_module_name("Test");
-
+            let code     = "2+2";
             let uuid1    = Uuid::new_v4();
             let uuid2    = Uuid::new_v4();
             let uuid3    = Uuid::new_v4();
             let uuid4    = Uuid::new_v4();
-            let module   = "2+2";
             let id_map   = ast::IdMap::new(vec!
                 [ (Span::new(Index::new(0),Size::new(1)),uuid1)
                 , (Span::new(Index::new(1),Size::new(1)),uuid2)
                 , (Span::new(Index::new(2),Size::new(1)),uuid3)
                 , (Span::new(Index::new(0),Size::new(3)),uuid4)
                 ]);
-
-            let controller = Handle::new_mock(location,module,id_map,ls,parser).unwrap();
+            let controller = Handle::new_mock(location,code,id_map,ls,parser).unwrap();
 
             // Change code from "2+2" to "22+2"
             let change = TextChange::insert(Index::new(0),"2".to_string());

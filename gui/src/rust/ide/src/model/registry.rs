@@ -160,18 +160,18 @@ mod test {
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
 
     type ModulePath = model::module::Path;
-    type Registry   = super::Registry<ModulePath,model::Module>;
+    type Registry   = super::Registry<ModulePath,model::module::Plain>;
 
     #[test]
     fn getting_module() {
         let mut test = TestWithLocalPoolExecutor::set_up();
         test.run_task(async move {
             let line     = ast::Ast::infix_var("a", "+", "b");
-            let ast      = ast::Ast::one_line_module(line);
-            let state    = Rc::new(model::Module::new(ast.try_into().unwrap(),default()));
-            let registry = Rc::new(Registry::default());
-            let expected = state.clone_ref();
+            let ast      = ast::Ast::one_line_module(line).try_into().unwrap();
             let path     = ModulePath::from_mock_module_name("Test");
+            let state    = Rc::new(model::module::Plain::new(path.clone(),ast,default()));
+            let registry = Registry::default();
+            let expected = state.clone_ref();
 
             let loader = async move { Ok(state) };
             let module = registry.get_or_load(path.clone(),loader).await.unwrap();
@@ -186,13 +186,13 @@ mod test {
     #[test]
     fn getting_module_during_load() {
         let line      = ast::Ast::infix_var("a", "+", "b");
-        let ast       = ast::Ast::one_line_module(line);
-        let state1    = Rc::new(model::Module::new(ast.try_into().unwrap(),default()));
+        let ast       = ast::Ast::one_line_module(line).try_into().unwrap();
+        let path1     = ModulePath::from_mock_module_name("Test");
+        let path2     = path1.clone();
+        let state1    = Rc::new(model::module::Plain::new(path1.clone_ref(),ast,default()));
         let state2    = state1.clone_ref();
         let registry1 = Rc::new(Registry::default());
         let registry2 = registry1.clone_ref();
-        let path1     = ModulePath::from_mock_module_name("Test");
-        let path2     = path1.clone();
 
         let (loaded_send, loaded_recv) = futures::channel::oneshot::channel::<()>();
 

@@ -98,9 +98,10 @@ impl IdeInitializer {
         let connection_json   = language_server::Connection::new(client_json,client_id).await?;
         let connection_binary = binary::Connection::new(client_binary,client_id).await?;
         let project_id        = project_metadata.id;
-        let project_name      = project_metadata.name;
-        model::Project::from_connections(logger,project_manager,connection_json,connection_binary
-            ,project_id,project_name).await
+        let ProjectName(name) = project_metadata.name;
+        let project           = model::project::Synchronized::from_connections(logger,
+            project_manager,connection_json,connection_binary,project_id,name).await?;
+        Ok(Rc::new(project))
     }
 
     /// Creates a new project and returns its metadata, so the newly connected project can be
@@ -179,7 +180,7 @@ impl IdeInitializer {
             (logger,&project_manager,&project_name).await?;
         let project_manager = Rc::new(project_manager);
         let project         = Self::open_project(logger,project_manager,project_metadata).await?;
-        Ok(ProjectView::new(logger,Rc::new(project)).await?)
+        Ok(ProjectView::new(logger,project).await?)
     }
 
     /// This function initializes the project manager, creates the project view and forget IDE

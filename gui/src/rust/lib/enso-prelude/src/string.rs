@@ -150,6 +150,21 @@ impl From<&&str> for ImString {
     }
 }
 
+impl Into<String> for ImString {
+    fn into(self) -> String {
+        match Rc::try_unwrap(self.content) {
+            Ok(str) => str,
+            Err(rc) => rc.deref().clone(),
+        }
+    }
+}
+
+impl PartialEq<&str> for ImString {
+    fn eq(&self, other:&&str) -> bool {
+        self.content.as_ref().eq(other)
+    }
+}
+
 impl PartialEq<String> for ImString {
     fn eq(&self, other:&String) -> bool {
         self.content.as_ref().eq(other)

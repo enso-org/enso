@@ -84,7 +84,7 @@ mod tests {
     use json_rpc::error::RpcError;
     use futures::task::LocalSpawnExt;
 
-    fn ready<T:'static>(t:impl Into<T>) -> LocalBoxFuture<T> {
+    fn ready<T:'static>(t:impl Into<T>) -> StaticBoxFuture<T> {
         futures::future::ready(t.into()).boxed_local()
     }
 

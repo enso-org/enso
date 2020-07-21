@@ -24,7 +24,7 @@ use ensogl::traits::*;
 pub struct NodeSearcher {
     display_object : display::object::Instance,
     node_editor    : NodeEditor,
-    project        : Rc<model::Project>,
+    project        : model::Project,
     controller     : Rc<CloneCell<Option<controller::Searcher>>>,
     text_field     : TextField,
     logger         : Logger,
@@ -37,8 +37,8 @@ impl NodeSearcher {
     , node_editor   : NodeEditor
     , fonts         : &mut font::Registry
     , focus_manager : &FocusManager
-    , project       : Rc<model::Project>)
-    -> Self {
+    , project       : model::Project
+    ) -> Self {
         let scene          = scene.into();
         let camera         = scene.camera();
         let screen         = camera.screen();
@@ -94,7 +94,7 @@ impl NodeSearcher {
             // https://github.com/enso-org/ide/issues/653 . This code should be replaced with
             // the proper Searcher view integration anyway.
             let position   = TextLocation { line:2, column:4 };
-            let controller = controller::Searcher::new(&self.logger,&*self.project,module,position);
+            let controller = controller::Searcher::new(&self.logger,&self.project,module,position);
             let logger     = self.logger.clone_ref();
             let weak       = Rc::downgrade(&self.controller);
             executor::global::spawn(controller.subscribe().for_each(move |notification| {

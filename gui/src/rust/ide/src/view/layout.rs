@@ -93,9 +93,10 @@ impl ViewLayout {
     , text_controller          : controller::Text
     , graph_controller         : controller::ExecutedGraph
     , visualization_controller : controller::Visualization
-    , project                  : Rc<model::Project>
+    , project                  : impl Into<model::Project> // Note [ViewLayout::new]
     , fonts                    : &mut font::Registry
     ) -> FallibleResult<Self> {
+        let project       = project.into();
         let logger        = Logger::sub(logger,"ViewLayout");
         let world         = &application.display;
         let scene         = world.scene();
@@ -117,12 +118,21 @@ impl ViewLayout {
         let node_searcher_show_action = None;
         let data = ViewLayoutData{network,text_editor,node_editor,node_searcher,size,logger,
             node_searcher_show_action,mouse_position_sampler};
-        let rc   = Rc::new(RefCell::new(data));
+        let rc = Rc::new(RefCell::new(data));
         Ok(Self {rc}.init(world,kb_actions))
     }
 
+    // Note [ViewLayout::new]
+    // ======================
+    // We cannot take directly `project:model::Project` as it seems that there's a bug in rustc
+    // that cannot properly handle lifetimes when async method is taking dyn Trait as a parameter.
+    // We believe it is the same issue as described here:
+    // https://github.com/rust-lang/rust/issues/63033
+    // Once it it resolved, the method signature should be simplified. For now we use impl Into<...>
+    // syntax as a workaround to avoid triggering the bug.
+
     fn init_keyboard(self, keyboard_actions:&mut keyboard::Actions) -> Self {
-        // TODO[ao] add here some useful staff (quitting project for example)
+        // TODO[ao] add here some useful stuff (quitting project for example)
         let layout                    = self.rc.clone_ref();
         let keys                      = &[keyboard::Key::Tab];
         let node_searcher_show_action = keyboard_actions.add_action(keys, move || {
