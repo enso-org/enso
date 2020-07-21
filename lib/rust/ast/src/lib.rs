@@ -10,6 +10,14 @@
 
 //! This module exports the implementation of the enso abstract syntax tree.
 
+pub mod application;
+pub mod block;
+pub mod definition;
+pub mod identifier;
+pub mod invalid;
+pub mod number;
+pub mod text;
+
 use uuid::Uuid;
 
 
@@ -38,122 +46,19 @@ pub struct Ast<Shape> {
 #[allow(missing_docs)]
 #[derive(Debug,Clone)]
 pub enum Shape {
-    Unrecognized(Unrecognized),
-    Blank(Blank),
-    Var(Var),
-    Cons(Cons),
-    Opr(Opr),
-    Number(Number),
-    Text(Text),
-    Prefix(Prefix),
-    Infix(Infix),
-    Module(Module),
-    Block(Block),
+    Unrecognized(invalid::Unrecognized),
+    Blank(identifier::Blank),
+    Var(identifier::Var),
+    Cons(identifier::Cons),
+    Opr(identifier::Opr),
+    Number(number::Number),
+    Text(text::Text),
+    Prefix(application::Prefix),
+    Infix(application::Infix),
+    Module(block::Module),
+    Block(block::Block),
 }
 
-
-// === Unrecognized ===
-
-/// Unrecognized token.
-#[allow(missing_docs)]
-#[derive(Debug,Clone)]
-pub struct Unrecognized { pub str: String }
-
-
-// === Identifiers ===
-
-/// The ast node for the underscore `_`.
-#[allow(missing_docs)]
-#[derive(Debug,Clone,Copy)]
-pub struct Blank {}
-
-/// The ast node for a variable.
-#[allow(missing_docs)]
-#[derive(Debug,Clone)]
-pub struct Var { pub name: String }
-
-/// The ast node for a constructor.
-#[allow(missing_docs)]
-#[derive(Debug,Clone)]
-pub struct Cons { pub name: String }
-
-/// The ast node for an operator.
-#[allow(missing_docs)]
-#[derive(Debug,Clone)]
-pub struct Opr { pub name: String }
-
-
-// === Number ===
-
-/// The ast node for a number
-#[allow(missing_docs)]
-#[derive(Debug,Clone)]
-pub struct Number { pub number: String }
-
-
-// === Text ===
-
-/// The ast node for a string of text.
-#[allow(missing_docs)]
-#[derive(Debug,Clone)]
-pub struct Text { pub text: String }
-
-
-// === Application ===
-
-/// The ast node for application.
-#[allow(missing_docs)]
-#[derive(Debug,Clone)]
-pub struct Prefix { pub func: Box<AnyAst>, pub arg: Box<AnyAst> }
-
-/// The ast node for an infix operator application.
-#[allow(missing_docs)]
-#[derive(Debug,Clone)]
-pub struct Infix { pub larg: Box<AnyAst>, pub opr: Box<Ast<Opr>>, pub rarg: Box<AnyAst> }
-
-
-// === Module ===
-
-/// The ast node for a module that represents the file's root block.
-///
-/// The module consists of a sequence of possibly empty lines with no leading indentation.
-#[allow(missing_docs)]
-#[derive(Debug,Clone)]
-pub struct Module { pub lines: Vec<Option<AnyAst>> }
-
-
-// === Block ===
-
-/// The ast node for a block that represents a sequence of equally indented lines.
-///
-/// Lines may contain some child ast or be empty. Block is used for all code blocks except for
-/// the root one, which uses `Module`.
-#[derive(Debug,Clone)]
-pub struct Block {
-    /// Absolute's block indent, counting from the module's root.
-    pub indent: usize,
-    /// Leading empty lines. Each line is represented by absolute count of spaces
-    /// it contains, counting from the root.
-    pub empty_lines: Vec<usize>,
-    /// First line with non-empty item.
-    pub first_line: Box<AnyAst>,
-    /// Rest of lines, each of them optionally having contents.
-    pub lines: Vec<Option<AnyAst>>,
-}
-
-/// The ast node of a line in block or module.
-#[derive(Debug,Clone)]
-pub struct Line<T> {
-    /// The AST stored in the line.
-    pub ast: T,
-    /// The trailing whitespace in the line after the `ast`.
-    pub off: usize
-}
-
-
-// === Definition ===
-
-pub struct MethodDefinition { name:Ast<Var>, args:AnyAst, body:AnyAst }
 
 // === Into<Shape> ===
 
