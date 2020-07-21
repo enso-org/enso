@@ -12,7 +12,7 @@ import org.enso.cli.{
   Subcommand,
   TopLevelBehavior
 }
-import org.enso.cli.Opts._
+import org.enso.cli.Opts.implicits._
 import cats.implicits._
 
 object Main {
@@ -237,7 +237,7 @@ object Main {
 
   private def helpCommand: Command[Config => Unit] =
     Command("help", "Display summary of available commands.") {
-      pure(()) map { (_: Config) => (_: Config) => printTopLevelHelp() }
+      Opts.pure(()) map { (_: Config) => (_: Config) => printTopLevelHelp() }
     }
 
   private def topLevelOpts: Opts[() => TopLevelBehavior[Config]] = {

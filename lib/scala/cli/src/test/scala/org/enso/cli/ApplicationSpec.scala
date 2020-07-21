@@ -1,6 +1,7 @@
 package org.enso.cli
 
 import cats.implicits._
+import org.enso.cli.Opts.implicits._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{EitherValues, OptionValues}

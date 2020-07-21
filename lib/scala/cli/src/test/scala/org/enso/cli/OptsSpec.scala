@@ -1,6 +1,7 @@
 package org.enso.cli
 
 import cats.implicits._
+import org.enso.cli.Opts.implicits._
 import org.enso.cli.internal.Parser
 import org.scalactic.source
 import org.scalatest.exceptions.{StackDepthException, TestFailedException}
@@ -269,6 +270,20 @@ class OptsSpec
         ((true, (1, true)))
 
       opts.parseFailing("--flag1 cmd1")
+    }
+  }
+
+  "withDefault" should {
+    "return the default value if the result is missing" in {
+      Opts.optionalArgument[Int]("arg")
+        .withDefault(1)
+        .parseSuccessfully("") shouldEqual 1
+    }
+
+    "return the original value if provided" in {
+      Opts.optionalArgument[Int]("arg")
+        .withDefault(1)
+        .parseSuccessfully("0") shouldEqual 0
     }
   }
 }

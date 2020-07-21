@@ -2,6 +2,7 @@ package org.enso.cli
 
 import cats.data.NonEmptyList
 import cats.{Functor, Semigroupal}
+import cats.implicits._
 import org.enso.cli.internal._
 
 /**
@@ -216,37 +217,51 @@ trait Opts[A] {
   * all arguments will be captured by the trailing arguments.
   */
 object Opts {
+  object implicits {
 
-  /**
-    * A [[Semigroupal]] instance for combining multiple options sets.
-    *
-    * The combined set of options parses options from both sets and returns a
-    * tuple of results of both sets if both have succeeded. Unordered options
-    * (i.e. flags and parameters) can be interleaved. Arguments are parsed in
-    * order, i.e. first all arguments of the first set are parsed and only after
-    * the first set does not want any more arguments, the second set is given
-    * any further arguments. If the first set contained an option accepting an
-    * unlimited amount of arguments (like the [[trailingPositionalArguments]]),
-    * arguments in the second set, if present, will never be handled. So it is
-    * important to keep [[trailingPositionalArguments]] last.
-    */
-  implicit val semigroupal: Semigroupal[Opts] = new Semigroupal[Opts] {
-    override def product[A, B](fa: Opts[A], fb: Opts[B]): Opts[(A, B)] =
-      new OptsProduct(fa, fb)
-  }
+    /**
+      * A [[Semigroupal]] instance for combining multiple options sets.
+      *
+      * The combined set of options parses options from both sets and returns a
+      * tuple of results of both sets if both have succeeded. Unordered options
+      * (i.e. flags and parameters) can be interleaved. Arguments are parsed in
+      * order, i.e. first all arguments of the first set are parsed and only
+      * after the first set does not want any more arguments, the second set is
+      * given any further arguments. If the first set contained an option
+      * accepting an unlimited amount of arguments (like the
+      * [[trailingPositionalArguments]]), arguments in the second set, if
+      * present, will never be handled. So it is important to keep
+      * [[trailingPositionalArguments]] last.
+      */
+    implicit val semigroupal: Semigroupal[Opts] = new Semigroupal[Opts] {
+      override def product[A, B](fa: Opts[A], fb: Opts[B]): Opts[(A, B)] =
+        new OptsProduct(fa, fb)
+    }
 
-  /**
-    * A [[Functor]] instance that allows to map over option sets to process
-    * their values.
-    *
-    * The mapping is done eagerly, and it is possible that the result of mapping
-    * some set of options that is later combined into a bigger one, may still
-    * later fail. Thus the function doing the mapping should avoid any
-    * side-effects. It is recommended to return an IO monad or a `() => A`
-    * callback to handle actions.
-    */
-  implicit val functor: Functor[Opts] = new Functor[Opts] {
-    override def map[A, B](fa: Opts[A])(f: A => B): Opts[B] = new OptsMap(fa, f)
+    /**
+      * A [[Functor]] instance that allows to map over option sets to process
+      * their values.
+      *
+      * The mapping is done eagerly, and it is possible that the result of
+      * mapping some set of options that is later combined into a bigger one,
+      * may still later fail. Thus the function doing the mapping should avoid
+      * any  side-effects. It is recommended to return an IO monad or a
+      * `() => A` callback to handle actions.
+      */
+    implicit val functor: Functor[Opts] = new Functor[Opts] {
+      override def map[A, B](fa: Opts[A])(f: A => B): Opts[B] =
+        new OptsMap(fa, f)
+    }
+
+    implicit class WithDefaultSyntax[A](val opts: Opts[Option[A]]) {
+
+      /**
+        * Adds a default value that is returned if the result was None, turning
+        * `Opts[Option[A]]` into `Opts[A]`.
+        */
+      def withDefault(defaultValue: => A): Opts[A] =
+        opts.map(_.getOrElse(defaultValue))
+    }
   }
 
   /**
