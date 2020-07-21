@@ -7,6 +7,7 @@ order: 0
 ---
 
 # Enso's Syntax
+
 When working with a programming language, the syntax is the first thing that a
 user encounters. This makes it _utterly integral_ to how users experience the
 language, and, in the case of Enso, the tool as a whole.
@@ -29,7 +30,7 @@ The various components of Enso's syntax are described below:
 - [**Encoding:**](./encoding.md) The source encoding of Enso files.
 - [**Naming:**](./naming.md) The naming of Enso language constructs.
 - [**Layout Rules:**](./layout.md) The layout rules for Enso code.
-- [**Imports and Exports:**](./imports.md) The syntax and rules for importing 
+- [**Imports and Exports:**](./imports.md) The syntax and rules for importing
   modules and exporting module functions.
 - [**Literals:**](./literals.md) The syntax for Enso literals.
 - [**Assignment:**](./assignment.md) The syntax for various forms of assignment

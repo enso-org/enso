@@ -7,6 +7,7 @@ order: 4
 ---
 
 # Haskell Style Guide
+
 Like many style guides, this Haskell style guide exists for two primary reasons.
 The first is to provide guidelines that result in a consistent code style across
 all of the Enso codebases, while the second is to guide people towards a style
@@ -46,10 +47,12 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 <!-- /MarkdownTOC -->
 
 ## Code Formatting
+
 This section explains the rules for visually laying out your code. They provide
 a robust set of guidelines for creating a consistent visual to the code.
 
 ### Whitespace
+
 The rules for whitespace in the Enso codebases are relatively simple:
 
 - 4 spaces are used for indentation, with no tabs.
@@ -58,6 +61,7 @@ The rules for whitespace in the Enso codebases are relatively simple:
   [alignment](#alignment) as discussed below.
 
 ### Line Wrapping
+
 In order to provide visual consistency across our codebases, and also to
 contribute to making our code easier to scan, we enforce that all code should be
 wrapped to 80 characters width at a maximum.
@@ -106,8 +110,8 @@ break lines. We use the following guidelines:
       veryLongFunction2 veryLongArgument2 veryLongArgument3
   ```
 
-- Function signatures should wrap on the `=>` and `->`, and in the context of
-  a doc comment should have each argument on a separate line.
+- Function signatures should wrap on the `=>` and `->`, and in the context of a
+  doc comment should have each argument on a separate line.
 - Lists (and all list-like constructs e.g. constraint tuples, import lists)
   should be wrapped with a _leading_ comma, aligned with the opening bracket,
   and a space between the opening bracket and the first item. This is also used
@@ -135,6 +139,7 @@ line. We would much prefer that the code wraps to two lines and that naming
 remains intelligible than names become so shortened as to be useless.
 
 ### Alignment
+
 When there are multiple lines that are visually similar, we try to align the
 similar portions of the lines vertically.
 
@@ -153,6 +158,7 @@ multiple lines, it _no longer counts_ as visually similar, and hence subsequent
 lines should not be aligned with it.
 
 ### Naming
+
 Enso has some fairly simple general naming conventions, though the sections
 below may provide more rules for use in specific cases.
 
@@ -172,6 +178,7 @@ below may provide more rules for use in specific cases.
 - Naming should use American English spelling.
 
 ### Imports
+
 Organising imports properly means that it's easy to find the provenance of a
 given function even in the absence of IDE-style tooling. We organise our imports
 in four sections, each of which may be omitted if empty.
@@ -229,6 +236,7 @@ import Vector    (Vector (Vector), test)
 ```
 
 ### Exports
+
 There is nothing more frustrating than having a need to use a function in a
 module that hasn't been exported. To that end, we do not allow for restricted
 export lists in our modules.
@@ -240,6 +248,7 @@ that these functions can be imported by clients of the API if they need to, but
 that we provide no guarantees about API stability when using those functions.
 
 ### Section Headers
+
 In order to visually break up the code for easier 'visual grepping', we organise
 it using section headers. These allow us to easily find the section that we are
 looking for, even in a large file.
@@ -270,6 +279,7 @@ subsections may be omitted if they don't exist, and a file may contain multiple
 of these sections as relevant.
 
 ### Auto-Formatting
+
 While we have attempted to use haskell auto-formatters to enforce many of the
 above stylistic choices in this document, none have been found to be flexible
 enough for our needs. However, as tools evolve or new ones emerge, we are open
@@ -277,6 +287,7 @@ to revisiting this decision; if you know of a tool that would let us automate
 the above stylistic rules, then please speak up.
 
 ## Commenting
+
 Comments in code are a tricky area to get right as we have found that comments
 often expire quickly, and in absence of a way to validate them, remain incorrect
 for long periods of time. In order to best deal with this problem, we make the
@@ -300,6 +311,7 @@ Code should be written in such a way that it guides you over what it does, and
 comments should not be used as a crutch for badly-designed code.
 
 ### Documentation Comments
+
 One of the primary forms of comment that we allow across the Enso codebases is
 the doc comment. Every language construct that can have an associated doc
 comment should do so. These are intended to be consumed by users of the API, and
@@ -314,6 +326,7 @@ choices made in the function's implementation. See [Source Notes](#source-notes)
 below for how to indicate that kind of information.
 
 ### Source Notes
+
 Source Notes is a mechanism for moving detailed design information about a piece
 of code out of the code itself. In doing so, it retains the key information
 about the design while not impeding the flow of the code.
@@ -387,6 +400,7 @@ but can also be used for:
   its usage is safe in this context.
 
 ### TODO Comments
+
 We follow a simple convention for `TODO` comments in our codebases:
 
 - The line starts with `TODO` or `FIXME`.
@@ -402,6 +416,7 @@ For example:
 ```
 
 ### Other Comment Usage
+
 There are, of course, a few other situations where commenting is very useful:
 
 - **Commenting Out:** You may comment out code while developing it, but if you
@@ -412,10 +427,12 @@ There are, of course, a few other situations where commenting is very useful:
   where the bug has been reported.
 
 ## Program Design
+
 Any good style guide goes beyond purely stylistic rules, and also talks about
 design styles to use in code.
 
 ### Libraries
+
 The Enso project has many internal libraries that are useful, but we have found
 that maintaining these on Hackage while they are under such active development
 is counterproductive.
@@ -426,6 +443,7 @@ freely used by others of our projects by depending on a git commit of the
 project that they live in. All of these are safe to use.
 
 #### Prologue
+
 `Prologue` is our replacement for Haskell's `Prelude`. For the most part it is
 compatible with the prelude, though it is designed with a safe API as the first
 port of call.
@@ -443,6 +461,7 @@ computation.
 It is highly recommended that you scan the code of Prologue.
 
 #### Safety
+
 It is incredibly important that we can trust the code that we use, and hence we
 tend to disallow the definition of unsafe functions in our public API. When
 defining an unsafe function, you must account for the following:
@@ -458,11 +477,13 @@ defining an unsafe function, you must account for the following:
 Furthermore, we do not allow for code containing pattern matches that can fail.
 
 #### Control.Monad.Exception
+
 We have our own exception framework based on `ExceptT` that encodes exception
 usage at the type level. This ensures that all synchronous exceptions must be
 dealt with.
 
-It is defined in [`lib/exception/`](https://github.com/enso-org/luna/tree/master/lib/exception)
+It is defined in
+[`lib/exception/`](https://github.com/enso-org/luna/tree/master/lib/exception)
 and contains utilities for declaring that a function throws an exception, as
 well as throwing and catching exceptions.
 
@@ -485,6 +506,7 @@ so they should use the following guidelines:
   re-wrapping an error thrown inside our function.
 
 ### Modules
+
 Unlike much of the Haskell ecosystem, we tend to design modules to be imported
 _qualified_ rather than unqualified. This means that we have a few rules to keep
 in mind:
@@ -499,13 +521,15 @@ in mind:
   `State.run` rather than `State.runState`).
 
 ### Data Declarations
+
 When declaring data types in the Enso codebases, please make sure to keep the
 following rules of thumb in mind:
 
 - For single-constructor types:
-  + Write the definition across multiple lines.
-  + Always name your fields.
-  + Always generate lenses.
+
+  - Write the definition across multiple lines.
+  - Always name your fields.
+  - Always generate lenses.
 
   ```hs
   data Rectangle = MkRectangle
@@ -514,10 +538,12 @@ following rules of thumb in mind:
       } deriving (Eq, Ord, Show)
   makeLenses ''Rectangle
   ```
+
 - For multiple-constructor data-types:
-  + Write the definition across multiple lines.
-  + Never name your fields.
-  + Generate prisms only when necessary.
+
+  - Write the definition across multiple lines.
+  - Never name your fields.
+  - Generate prisms only when necessary.
 
   ```hs
   data Shape
@@ -528,17 +554,18 @@ following rules of thumb in mind:
 
 - Always prefer named fields over unnamed ones. You should only use unnamed
   fields if one or more of the following hold:
-  + Your data type is one where you are are _sure_ that separate field access
+  - Your data type is one where you are are _sure_ that separate field access
     will never be needed.
-  + You are defining a multiple-constructor data type.
+  - You are defining a multiple-constructor data type.
 - Sort deriving clauses in alphabetical order, and derive the following for your
   type if logically correct:
-  + General Types: `Eq`, `Generic`, `NFData`, `Ord`, `Show`.
-  + Parametric 1-Types: `Applicative`, `Alternative`, `Functor`.
-  + Monads: `Monad`, `MonadFix`.
-  + Monad Transformers: `MonadTrans`.
+  - General Types: `Eq`, `Generic`, `NFData`, `Ord`, `Show`.
+  - Parametric 1-Types: `Applicative`, `Alternative`, `Functor`.
+  - Monads: `Monad`, `MonadFix`.
+  - Monad Transformers: `MonadTrans`.
 
 #### Lenses
+
 The Enso codebases make significant use of Lenses, and so we have some rules for
 their use:
 
@@ -570,6 +597,7 @@ This will generate lenses with names like `vector_x`, `vector_y`, and `point_x`,
 `point_y`.
 
 ### Testing and Benchmarking
+
 New code should always be accompanied by tests. These can be unit, integration,
 or some combination of the two, and they should always aim to test the new code
 in a rigorous fashion.
@@ -597,14 +625,16 @@ _Do not benchmark a development build_ as the data you get will often be
 entirely useless.
 
 ### Warnings, and Lints
+
 In general, we aim for a codebase that is free of warnings and lints, and we do
 this using the following ideas:
 
 #### Warnings
-New code should introduce no new warnings onto main. You may build with
-warnings on your own branch, but the code that is submitted as part of a PR
-should not introduce new warnings. You should also endeavour to fix any warnings
-that you come across during development.
+
+New code should introduce no new warnings onto main. You may build with warnings
+on your own branch, but the code that is submitted as part of a PR should not
+introduce new warnings. You should also endeavour to fix any warnings that you
+come across during development.
 
 Sometimes it is impossible to fix a warning (e.g. TemplateHaskell generated code
 often warns about unused pattern matches). In such cases, you are allowed to
@@ -613,15 +643,17 @@ must be accompanied by a source note explaining _why_ the warning cannot be
 fixed otherwise.
 
 #### Lints
+
 We also recommend using HLint on your code as a stylistic guide, as we find that
 its suggestions in general lead to more readable code. If you don't know how to
 set up automatic linting for your editor, somebody will be able to help.
 
 An example of an anti-pattern that HLint will catch is the repeated-`$`. Instead
-of `foo $ bar $ baz $ bam quux`, you should write `foo . bar. baz $ bam quux`
-to use function composition.
+of `foo $ bar $ baz $ bam quux`, you should write `foo . bar. baz $ bam quux` to
+use function composition.
 
 ## Language Extensions
+
 Much like any sophisticated Haskell codebase, Enso makes heavy use of the GHC
 language extensions. We have a broad swath of extensions that are enabled by
 default across our projects, and a further set which are allowed whenever
@@ -639,6 +671,7 @@ available to you, we recommend checking the GHC Users Guide entry for that
 extension (linked from the extension's table below).
 
 ### Default Extensions
+
 The following language extensions are considered to be so safe, or to have such
 high utility, that they are considered to be Enso's set of default extensions.
 You can find said set of extensions for Enso itself defined in a
@@ -647,7 +680,7 @@ You can find said set of extensions for Enso itself defined in a
 #### AllowAmbiguousTypes
 
 |          |                                                                                                                                          |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`AllowAmbiguousTypes`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-AllowAmbiguousTypes) |
 | **Flag** | `-XAllowAmbiguousTypes`                                                                                                                  |
 
@@ -662,7 +695,7 @@ would not be possible without `-XAllowAmbiguousTypes`.
 #### ApplicativeDo
 
 |          |                                                                                                                              |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`ApplicativeDo`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ApplicativeDo) |
 | **Flag** | `-XApplicativeDo`                                                                                                            |
 
@@ -670,14 +703,14 @@ This extension allows desugaring of do-notation based on applicative operations
 (`<$>`, `<*>`, and `join`) as far as is possible. This will preserve the
 original semantics as long as the type has an appropriate applicative instance.
 
-Applicative operations are often easier to optimise than monadic ones, so if
-you can write a computation using applicatives please do. This is the same
-reason that we prefer `pure` to `return`.
+Applicative operations are often easier to optimise than monadic ones, so if you
+can write a computation using applicatives please do. This is the same reason
+that we prefer `pure` to `return`.
 
 #### BangPatterns
 
 |          |                                                                                                                            |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`BangPatterns`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-BangPatterns) |
 | **Flag** | `-XBangPatterns`                                                                                                           |
 
@@ -689,7 +722,7 @@ laziness.
 #### BinaryLiterals
 
 |          |                                                                                                                                |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`BinaryLiterals`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-BinaryLiterals) |
 | **Flag** | `-XBinaryLiterals`                                                                                                             |
 
@@ -699,7 +732,7 @@ This can be very useful when writing bit-masks, and other low-level code.
 #### ConstraintKinds
 
 |          |                                                                                                                                  |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`ConstraintKinds`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ConstraintKinds) |
 | **Flag** | `-XConstraintKinds`                                                                                                              |
 
@@ -713,7 +746,7 @@ All of these are very useful.
 #### DataKinds
 
 |          |                                                                                                                      |
-|:---------|:---------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`DataKinds`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DataKinds) |
 | **Flag** | `-XDataKinds`                                                                                                        |
 
@@ -727,7 +760,7 @@ makes the Enso codebase so expressive and yet so safe.
 #### DefaultSignatures
 
 |          |                                                                                                                                      |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`DefaultSignatures`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DefaultSignatures) |
 | **Flag** | `-XDefaultSignatures`                                                                                                                |
 
@@ -739,7 +772,7 @@ implementation of a typeclass method.
 #### DeriveDataTypeable
 
 |          |                                                                                                                                        |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`DeriveDataTypeable`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DeriveDataTypeable) |
 | **Flag** | `-XDeriveDataTypeable`                                                                                                                 |
 
@@ -750,7 +783,7 @@ type representations with types. This is often useful for low-level programming.
 #### DeriveFoldable
 
 |          |                                                                                                                                |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`DeriveFoldable`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DeriveFoldable) |
 | **Flag** | `-XDeriveFoldable`                                                                                                             |
 
@@ -761,7 +794,7 @@ kind `Type -> Type`.
 #### DeriveFunctor
 
 |          |                                                                                                                              |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`DeriveFunctor`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DeriveFunctor) |
 | **Flag** | `-XDeriveFunctor`                                                                                                            |
 
@@ -771,7 +804,7 @@ with kind `Type -> Type`.
 #### DeriveGeneric
 
 |          |                                                                                                                              |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`DeriveGeneric`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DeriveGeneric) |
 | **Flag** | `-XDeriveGeneric`                                                                                                            |
 
@@ -782,7 +815,7 @@ generic programming.
 #### DeriveTraversable
 
 |          |                                                                                                                                      |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`DeriveTraversable`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DeriveTraversable) |
 | **Flag** | `-XDeriveTraversable`                                                                                                                |
 
@@ -793,7 +826,7 @@ that can be traversed. It is a valid derivation for any data type with kind
 #### DerivingStrategies
 
 |          |                                                                                                                                        |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`DerivingStrategies`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DerivingStrategies) |
 | **Flag** | `-XDerivingStrategies`                                                                                                                 |
 
@@ -807,7 +840,7 @@ link.
 #### DerivingVia
 
 |          |                                                                                                                          |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`DerivingVia`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DerivingVia) |
 | **Flag** | `-XDerivingVia`                                                                                                          |
 
@@ -819,7 +852,7 @@ requires the specification of another type (the via-type) to coerce through.
 #### DuplicateRecordFields
 
 |          |                                                                                                                                              |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`DuplicateRecordFields`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-DuplicateRecordFields) |
 | **Flag** | `-XDuplicateRecordFields`                                                                                                                    |
 
@@ -830,7 +863,7 @@ above in the section on [lenses](#lenses).
 #### EmptyDataDecls
 
 |          |                                                                                                                                |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`EmptyDataDecls`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-EmptyDataDecls) |
 | **Flag** | `-XEmptyDataDecls`                                                                                                             |
 
@@ -841,7 +874,7 @@ properties in types through the use of rich kinds.
 #### FlexibleContexts
 
 |          |                                                                                                                                    |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`FlexibleContexts`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-FlexibleContexts) |
 | **Flag** | `-XFlexibleContexts`                                                                                                               |
 
@@ -851,7 +884,7 @@ that anything with kind `Constraint` is usable in a class declaration's context.
 #### FlexibleInstances
 
 |          |                                                                                                                                      |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`FlexibleInstances`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-FlexibleInstances) |
 | **Flag** | `-XFlexibleInstances`                                                                                                                |
 
@@ -862,7 +895,7 @@ support rich type-level programming.
 #### Functional Dependencies
 
 |          |                                                                                                                                                |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`FunctionalDependencies`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-FunctionalDependencies) |
 | **Flag** | `-XFunctionalDependencies`                                                                                                                     |
 
@@ -877,7 +910,7 @@ Type Families.
 #### GeneralizedNewtypeDeriving
 
 |          |                                                                                                                                                        |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`GeneralizedNewtypeDeriving`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-GeneralizedNewtypeDeriving) |
 | **Flag** | `-XGeneralizedNewtypeDeriving`                                                                                                                         |
 
@@ -888,7 +921,7 @@ has been somewhat superseded by `-XDerivingVia`
 #### InstanceSigs
 
 |          |                                                                                                                            |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`InstanceSigs`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-InstanceSigs) |
 | **Flag** | `-XInstanceSigs`                                                                                                           |
 
@@ -899,17 +932,17 @@ the signature provided in the class definition.
 #### LambdaCase
 
 |          |                                                                                                                        |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`LambdaCase`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-LambdaCase) |
 | **Flag** | `-XLambdaCase`                                                                                                         |
 
-Enables `\case` as an alternative to `case <...> of`. This often results in
-much cleaner code.
+Enables `\case` as an alternative to `case <...> of`. This often results in much
+cleaner code.
 
 #### LiberalTypeSynonyms
 
 |          |                                                                                                                                          |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`LiberalTypeSynonyms`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-LiberalTypeSynonyms) |
 | **Flag** | `-XLiberalTypeSynonyms`                                                                                                                  |
 
@@ -920,7 +953,7 @@ context of type-level programming constructs.
 #### MonadComprehensions
 
 |          |                                                                                                                                                        |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`GeneralizedNewtypeDeriving`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-GeneralizedNewtypeDeriving) |
 | **Flag** | `-XGeneralizedNewtypeDeriving`                                                                                                                         |
 
@@ -930,7 +963,7 @@ any type that is an instance of `Monad`.
 #### MultiParamTypeClasses
 
 |          |                                                                                                                                              |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`MultiParamTypeClasses`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-MultiParamTypeClasses) |
 | **Flag** | `-XMultiParamTypeClasses`                                                                                                                    |
 
@@ -941,7 +974,7 @@ typeclasses.
 #### MultiWayIf
 
 |          |                                                                                                                        |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`MultiWayIf`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-MultiWayIf) |
 | **Flag** | `-XMultiWayIf`                                                                                                         |
 
@@ -949,11 +982,13 @@ This extension allows GHC to accept conditional expressions with multiple
 branches, using the guard-style notation familiar from function definitions.
 
 #### NamedWildCards
+
 #### NegativeLiterals
+
 #### NoImplicitPrelude
 
 |          |                                                                                                                                      |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`NoImplicitPrelude`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-NoImplicitPrelude) |
 | **Flag** | `-XNoImplicitPrelude`                                                                                                                |
 
@@ -964,7 +999,7 @@ to use `Prologue`, our own custom prelude (discussed in the section on
 #### NumDecimals
 
 |          |                                                                                                                          |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`NumDecimals`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-NumDecimals) |
 | **Flag** | `-XNumDecimals`                                                                                                          |
 
@@ -973,7 +1008,7 @@ Enables writing integer literals using exponential syntax.
 #### OverloadedLabels
 
 |          |                                                                                                                                    |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`OverloadedLabels`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-OverloadedLabels) |
 | **Flag** | `-XOverloadedLabels`                                                                                                               |
 
@@ -983,7 +1018,7 @@ both on its literal text and its kind. This is similar to `-XOverloadedStrings`.
 #### OverloadedStrings
 
 |          |                                                                                                                                      |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`OverloadedStrings`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-OverloadedStrings) |
 | **Flag** | `-XOverloadedStrings`                                                                                                                |
 
@@ -994,7 +1029,7 @@ can be used to represent any type that is an instance of `IsString`.
 #### PatternSynonyms
 
 |          |                                                                                                                                  |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`PatternSynonyms`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-PatternSynonyms) |
 | **Flag** | `-XPatternSynonyms`                                                                                                              |
 
@@ -1006,7 +1041,7 @@ useful for defining clean APIs to not-so-clean data.
 #### QuasiQuotes
 
 |          |                                                                                                                          |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`QuasiQuotes`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-QuasiQuotes) |
 | **Flag** | `-XQuasiQuotes`                                                                                                          |
 
@@ -1017,7 +1052,7 @@ in Haskell source files.
 #### RankNTypes
 
 |          |                                                                                                                        |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`RankNTypes`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RankNTypes) |
 | **Flag** | `-XRankNTypes`                                                                                                         |
 
@@ -1028,7 +1063,7 @@ for defining clean and safe APIs.
 #### RecursiveDo
 
 |          |                                                                                                                          |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`RecursiveDo`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RecursiveDo) |
 | **Flag** | `-XRecursiveDo`                                                                                                          |
 
@@ -1039,7 +1074,7 @@ defined, much as for an ordinary `let`-expression.
 #### ScopedTypeVariables
 
 |          |                                                                                                                                          |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`ScopedTypeVariables`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ScopedTypeVariables) |
 | **Flag** | `-XScopedTypeVariables`                                                                                                                  |
 
@@ -1050,7 +1085,7 @@ scope of this variables is extended to the function body.
 #### StandaloneDeriving
 
 |          |                                                                                                                                        |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`StandaloneDeriving`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-StandaloneDeriving) |
 | **Flag** | `-XStandaloneDeriving`                                                                                                                 |
 
@@ -1061,7 +1096,7 @@ need to create orphan instances, or to derive some non-default classes.
 #### Strict
 
 |          |                                                                                                                |
-|:---------|:---------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`Strict`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-Strict) |
 | **Flag** | `-XStrict`                                                                                                     |
 
@@ -1076,7 +1111,7 @@ When disabling strict for a module using `-XNoStrict`, you also need to add
 #### StrictData
 
 |          |                                                                                                                        |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`StrictData`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-StrictData) |
 | **Flag** | `-XStrictData`                                                                                                         |
 
@@ -1086,7 +1121,7 @@ be explicitly disabled in contexts where the strictness is undesirable.
 #### TemplateHaskell
 
 |          |                                                                                                                                  |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`TemplateHaskell`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TemplateHaskell) |
 | **Flag** | `-XTemplateHaskell`                                                                                                              |
 
@@ -1097,7 +1132,7 @@ arbitrary input.
 #### TupleSections
 
 |          |                                                                                                                              |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`TupleSections`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TupleSections) |
 | **Flag** | `-XTupleSections`                                                                                                            |
 
@@ -1107,7 +1142,7 @@ extension enables partial application of tuple constructors.
 #### TypeApplications
 
 |          |                                                                                                                                    |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`TypeApplications`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeApplications) |
 | **Flag** | `-XTypeApplications`                                                                                                               |
 
@@ -1123,7 +1158,7 @@ to nice and clean APIs.
 #### TypeFamilies
 
 |          |                                                                                                                            |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`TypeFamilies`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeFamilies) |
 | **Flag** | `-XTypeFamilies`                                                                                                           |
 
@@ -1150,7 +1185,7 @@ When using Type Families, please keep the following things in mind:
 #### TypeFamilyDependencies
 
 |          |                                                                                                                                                |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`TypeFamilyDependencies`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeFamilyDependencies) |
 | **Flag** | `-XTypeFamilyDependencies`                                                                                                                     |
 
@@ -1162,7 +1197,7 @@ would otherwise be ambiguous.
 #### TypeOperators
 
 |          |                                                                                                                              |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`TypeOperators`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-TypeOperators) |
 | **Flag** | `-XTypeOperators`                                                                                                            |
 
@@ -1174,7 +1209,7 @@ expressiveness of type-level APIs.
 #### UnicodeSyntax
 
 |          |                                                                                                                              |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`UnicodeSyntax`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UnicodeSyntax) |
 | **Flag** | `-XUnicodeSyntax`                                                                                                            |
 
@@ -1183,7 +1218,7 @@ Enables unicode syntax for certain parts of the Haskell language.
 #### ViewPatterns
 
 |          |                                                                                                                            |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`ViewPatterns`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-ViewPatterns) |
 | **Flag** | `-XViewPatterns`                                                                                                           |
 
@@ -1192,6 +1227,7 @@ letting the programmer execute arbitrary logic as part of a pattern match. This
 is very useful for the creation of clean APIs.
 
 ### Allowed Extensions
+
 These extensions can be used in your code without reservation, but are not
 enabled by default because they may interact negatively with other parts of the
 codebase.
@@ -1199,18 +1235,18 @@ codebase.
 #### BlockArguments
 
 |          |                                                                                                                                |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`BlockArguments`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-BlockArguments) |
 | **Flag** | `-XBlockArguments`                                                                                                             |
 
-Block arguments allow expressions such as `do`, `\`, `if`, `case`, and `let`,
-to be used as both arguments to operators and to functions. This can often make
+Block arguments allow expressions such as `do`, `\`, `if`, `case`, and `let`, to
+be used as both arguments to operators and to functions. This can often make
 code more readable than it otherwise would be.
 
 #### GADTs
 
 |          |                                                                                                              |
-|:---------|:-------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------- |
 | **Name** | [`GADTs`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-GADTs) |
 | **Flag** | `-XGADTs`                                                                                                    |
 
@@ -1222,7 +1258,7 @@ available for declaring GADTs.
 #### HexFloatLiterals
 
 |          |                                                                                                                                    |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`HexFloatLiterals`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-HexFloatLiterals) |
 | **Flag** | `-XHexFloatLiterals`                                                                                                               |
 
@@ -1232,7 +1268,7 @@ ensure that no rounding or truncation takes place.
 #### MagicHash
 
 |          |                                                                                                                      |
-|:---------|:---------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`MagicHash`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-MagicHash) |
 | **Flag** | `-XMagicHash`                                                                                                        |
 
@@ -1243,7 +1279,7 @@ in surface Haskell.
 #### NumericUnderscores
 
 |          |                                                                                                                                        |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`NumericUnderscores`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-NumericUnderscores) |
 | **Flag** | `-XNumericUnderscores`                                                                                                                 |
 
@@ -1253,7 +1289,7 @@ This extension allows breaking up of long numeric literals using underscores
 #### PolyKinds
 
 |          |                                                                                                                      |
-|:---------|:---------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`PolyKinds`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-PolyKinds) |
 | **Flag** | `-XPolyKinds`                                                                                                        |
 
@@ -1268,7 +1304,7 @@ it brings.
 #### Quantified Constraints
 
 |          |                                                                                                                                              |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`QuantifiedConstraints`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-QuantifiedConstraints) |
 | **Flag** | `-XQuantifiedConstraints`                                                                                                                    |
 
@@ -1280,7 +1316,7 @@ than they would otherwise be able to.
 #### RoleAnnotations
 
 |          |                                                                                                                                  |
-|:---------|:---------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`RoleAnnotations`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-RoleAnnotations) |
 | **Flag** | `-XRoleAnnotations`                                                                                                              |
 
@@ -1290,7 +1326,7 @@ specifying the roles of the class and type parameters that they declare.
 #### UnboxedSums
 
 |          |                                                                                                                          |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`UnboxedSums`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UnboxedSums) |
 | **Flag** | `-XUnboxedSums`                                                                                                          |
 
@@ -1301,7 +1337,7 @@ anonymous sum type, including in pattern matching and at the type level.
 #### UnboxedTuples
 
 |          |                                                                                                                              |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`UnboxedTuples`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UnboxedTuples) |
 | **Flag** | `-XUnboxedTuples`                                                                                                            |
 
@@ -1310,13 +1346,14 @@ of as a dual to the above `-XunboxedSums` as it allows for the declaration and
 manipulation of unboxed product types.
 
 ### Allowed With Care
+
 If you make use of any of these extensions in your code, you should accompany
 their usage by a source note that explains why they are used.
 
 #### CApiFFI
 
 |          |                                                                                                                  |
-|:---------|:-----------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`CApiFFI`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-CApiFFI) |
 | **Flag** | `-XCApiFFI`                                                                                                      |
 
@@ -1329,7 +1366,7 @@ against the C language.
 #### CPP
 
 |          |                                                                                                          |
-|:---------|:---------------------------------------------------------------------------------------------------------|
+| :------- | :------------------------------------------------------------------------------------------------------- |
 | **Name** | [`CPP`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-CPP) |
 | **Flag** | `-XCPP`                                                                                                  |
 
@@ -1341,7 +1378,7 @@ _other_ solution to your problem.
 #### PostfixOperators
 
 |          |                                                                                                                                    |
-|:---------|:-----------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :--------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`PostfixOperators`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-PostfixOperators) |
 | **Flag** | `-XPostfixOperators`                                                                                                               |
 
@@ -1353,7 +1390,7 @@ the entire codebase.
 #### StaticPointers
 
 |          |                                                                                                                                |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`StaticPointers`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-StaticPointers) |
 | **Flag** | `-XStaticPointers`                                                                                                             |
 
@@ -1365,7 +1402,7 @@ much care must be taken when it is used.
 #### UndecidableInstances
 
 |          |                                                                                                                                            |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`UndecidableInstances`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UndecidableInstances) |
 | **Flag** | `-XUndecidableInstances`                                                                                                                   |
 
@@ -1378,16 +1415,17 @@ terminating.
 #### UndecidableSuperclasses
 
 |          |                                                                                                                                                  |
-|:---------|:-------------------------------------------------------------------------------------------------------------------------------------------------|
+| :------- | :----------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Name** | [`UndecidableSuperclasses`](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/glasgow_exts.html#extension-UndecidableSuperclasses) |
 | **Flag** | `-XUndecidableSuperclasses`                                                                                                                      |
 
 Permits the definition of superclass constraints which can potentially lead to
 the non-termination of the type-checker. Much like the above, this is sometimes
-necessary but should only be enabled when you are _sure_ that you will not
-cause the typechecker to loop.
+necessary but should only be enabled when you are _sure_ that you will not cause
+the typechecker to loop.
 
 ### Disallowed Extensions
+
 If a language extension hasn't been listed in the above sections, then it is
 considered to be disallowed throughout the Enso codebases. If you have a good
 reason to want to use one of these disallowed extensions, please talk to Ara or

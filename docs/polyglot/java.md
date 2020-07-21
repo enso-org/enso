@@ -7,8 +7,9 @@ order: 3
 ---
 
 # Polyglot Java
-This document deals with the implementation of polyglot interoperation with
-Java in the runtime. Please familiarise yourself with the general operation of
+
+This document deals with the implementation of polyglot interoperation with Java
+in the runtime. Please familiarise yourself with the general operation of
 [polyglot bindings](./polyglot-bindings.md).
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
@@ -20,6 +21,7 @@ Java in the runtime. Please familiarise yourself with the general operation of
 <!-- /MarkdownTOC -->
 
 ## Class Lookup
+
 In order for the Enso runtime to effectively find Java objects for working with
 in a polyglot fashion, it will look in the `polyglot/java` subdirectory of an
 Enso project. This directory has the following requirements placed on it.
@@ -37,12 +39,13 @@ Enso project. This directory has the following requirements placed on it.
 >   maybe even compiling Java code.
 
 ## Polyglot Library System
+
 The dynamic polyglot system is a dynamic runtime lookup for Java objects,
 allowing Enso code to work with them through a runtime reflection-style
 mechanism. It is comprised of the following components:
 
-- `Java.lookup_class : Class.Path -> Maybe Class`: A function that lets
-  users look up a class by a given name on the runtime classpath.
+- `Java.lookup_class : Class.Path -> Maybe Class`: A function that lets users
+  look up a class by a given name on the runtime classpath.
 - `Polyglot.instantiate : Class -> Object`: A function that lets users
   instantiate a class into an object.
 - A whole host of functions on the polyglot type that let you dynamically work
@@ -63,6 +66,7 @@ main =
 > - Expand on the detail when there is time.
 
 ## Polyglot Syntax System
+
 The static system, however, lets us do much better in terms of user experience.
 Instead of having to dynamically look things up at runtime, we can instead do
 the following:

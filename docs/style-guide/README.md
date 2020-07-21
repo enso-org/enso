@@ -7,6 +7,7 @@ order: 0
 ---
 
 # Enso Developer Style Guides
+
 This folder contains the style guides for developers working on the various
 languages that make up the Enso project.
 

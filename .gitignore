@@ -32,6 +32,12 @@ cabal-dev
 .stack-work/
 
 ############
+## NodeJS ##
+############
+
+node_modules/
+
+############
 ## System ##
 ############
 

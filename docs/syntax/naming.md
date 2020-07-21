@@ -7,6 +7,7 @@ order: 2
 ---
 
 # Naming
+
 This file describes the syntax for naming language constructs in Enso, as well
 as the various rules that names follow.
 
@@ -26,6 +27,7 @@ giving Enso code a uniform identity.
 <!-- /MarkdownTOC -->
 
 ## Naming Constructs
+
 Given that Enso is dependently-typed, with no artificial separation between the
 type and value-level syntaxes, an arbitrary name can refer to both types and
 values. This means that naming itself can become a bit of a concern. At first
@@ -37,9 +39,9 @@ As we still want to have a minimal syntax for such use-cases, Enso enforces the
 following rules around naming:
 
 - All identifiers are named as follows. This is known as 'variable' form.
-  + Each 'word' in the identifier must be lower-case or a number.
-  + Words in the identifier are separated using `_`.
-  + Numbers may not occur as the first 'word' in an identifier.
+  - Each 'word' in the identifier must be lower-case or a number.
+  - Words in the identifier are separated using `_`.
+  - Numbers may not occur as the first 'word' in an identifier.
 - An identifier named as above can be referred to by capitalizing the first
   letter of each 'word' in the identifier. This is known as 'referent' form.
 - No mixed-format names are allowed (e.g. `HTTP`, `foO`, `make_New`, or
@@ -53,10 +55,10 @@ Name resolution obeys the following rules:
 - In a [pattern context](#pattern-contexts), an identifier in referent form will
   _always_ refer to a name in scope, whereas an identifier in variable form is
   interpreted as the creation of a fresh identifier.
-- This behaviour _only_ occurs in pattern contexts. In all other contexts,
-  both conventions refer to that name already in scope.
-- Operator names behave as variable names when placed in a prefix position
-  (e.g. `+ a b`).
+- This behaviour _only_ occurs in pattern contexts. In all other contexts, both
+  conventions refer to that name already in scope.
+- Operator names behave as variable names when placed in a prefix position (e.g.
+  `+ a b`).
 - Operator names behave as referent names when placed in an infix position (e.g.
   `a + b`).
 - All literals (e.g. `1` and `"Hello"`) are treated as referent names.
@@ -68,6 +70,7 @@ Identifiers are introduced by:
 - Using them in a type ascription (free variables).
 
 ## Pattern Contexts
+
 A pattern context is a span in the code where variable identifiers (as described
 above) can be used to introduce new identifiers into the scope containing the
 pattern context. The following spans are pattern contexts:
@@ -99,6 +102,7 @@ means that these are the _only_ constructs which introduce pattern contexts.
 >   means in a formal sense.
 
 ## Localised Naming
+
 We do, however, recognise that there is sometimes a need for unicode characters
 in names (e.g. designing a high-level visual library that targets a narrow
 domain in a specific country). To that end, Enso allows users to specify
@@ -108,6 +112,7 @@ Special support is provided for providing completions based on these localised
 names in the language server, and in Enso Studio.
 
 ## Operator Naming
+
 Operator names are those built solely from operator symbols (e.g. `+` or `<*>`).
 Operator symbols are defined as characters in the following set.
 
@@ -120,6 +125,7 @@ _valid_ operator name, as some may collide with built-in language constructs
 (e.g. `[` and `]`, which start and end a vector literal respectively).
 
 ## Reserved Names
+
 Even though we do not intend to reserve any names at the level of the lexer or
 parser, there are a number of constructs so core to the operation of Enso as a
 language that we do not want to let them be overridden or redefined by users.
@@ -140,8 +146,8 @@ the readability and consistency of Enso code. They are as follows:
 - `.`: This is the forward function chaining operator.
 - `case ... of`: This reserved name is the case expression that is fundamental
   to the operation of control flow in the language.
-- `this`:  This reserved name is the one used to refer to the enclosing type in
-  a method or type definition.
+- `this`: This reserved name is the one used to refer to the enclosing type in a
+  method or type definition.
 - `here`: This reserved name is the one used to refer to the enclosing module.
 - `in`: Used to specify the monadic context(s) in a type signature.
 

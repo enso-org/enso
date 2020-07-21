@@ -7,10 +7,10 @@ order: 10
 ---
 
 # Automated Parallelism Analysis
-The nature of Enso's type system provides the compiler with a significant
-amount of information about the program as it runs. This information can be
-exploited by the compiler to automatically parallelise some sections of Enso
-programs.
+
+The nature of Enso's type system provides the compiler with a significant amount
+of information about the program as it runs. This information can be exploited
+by the compiler to automatically parallelise some sections of Enso programs.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 

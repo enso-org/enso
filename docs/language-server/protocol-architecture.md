@@ -7,6 +7,7 @@ order: 1
 ---
 
 # The Enso Protocol
+
 Enso is a sophisticated language, but in order to provide a great user
 experience to our users we also need the ability to provide great tooling. This
 tooling means a language server, but it also means a set of extra peripheral
@@ -53,6 +54,7 @@ please see [the protocol message specifications](./README.md).
 <!-- /MarkdownTOC -->
 
 ## Architecture
+
 The divisions of responsibility between the backend engine services are dictated
 purely by necessity. As multi-client editing necessitates careful
 synchronisation and conflict resolution, between the actions of multiple
@@ -73,6 +75,7 @@ decision as to run them in different processes until the requirements become
 more clear.
 
 ### The Project Manager
+
 The project manager service is responsible for both allowing users to work with
 their projects but also the setup and teardown of the language server itself.
 Its responsibilities can be summarised as follows:
@@ -83,6 +86,7 @@ Its responsibilities can be summarised as follows:
   it to persist any state that it needs to disk.
 
 ### Language Server
+
 The language server is responsible for managing incoming connections and
 communicating with the clients, as well as resolving any potential conflicts
 between the clients. It is responsible for the following:
@@ -123,6 +127,7 @@ language server. Instead, the LS should only depend on `org.graalvm.polyglot` to
 interface with the runtime.
 
 ## Textual Protocol
+
 The protocol refers to the communication format that all of the above services
 speak between each other and to the GUI. This protocol is not specialised only
 to language server operations, as instead it needs to work for all of the
@@ -140,13 +145,14 @@ The protocol we are using intends to be fully compatible with the Microsoft LSP
      commands) we will do so.
   2. If this is not possible, we will specify an _extension_ to the protocol.
      This extension will be well-specified within this document, and should be
-     in the spirit of the existing protocol. If relevant, we may propose it as
-     a future extension to the specification.
+     in the spirit of the existing protocol. If relevant, we may propose it as a
+     future extension to the specification.
 
 Aside from the language server protocol-based operations, we will definitely
 need a protocol extension to support Enso's custom language functionality.
 
 ### Textual Protocol Communication Patterns
+
 Whatever protocol we decide on will need to have support for a couple of main
 communication patterns:
 
@@ -154,9 +160,9 @@ communication patterns:
   able to support this kind of connection to deal with events that do not occur
   strictly in response to client actions (e.g. updates to observed values).
 - **Req/Res:** A standard request/response model, the server will need to be
-  able to support this kind of connection to deal with one-off requests from
-  the client, and potentially to make requests to the client (e.g. list modules
-  in the current project, please refresh your file state).
+  able to support this kind of connection to deal with one-off requests from the
+  client, and potentially to make requests to the client (e.g. list modules in
+  the current project, please refresh your file state).
 
 There are also certain messages that follow the request/response model but where
 the responses are trivial acknowledgements. For simplicity's sake these are
@@ -173,6 +179,7 @@ We can support additional patterns through LSP's mechanisms:
 - Protocol-level acknowledgements is supported directly in LSP.
 
 ### Textual Protocol Transport
+
 The transport of the protocol refers to the underlying layer over which its
 messages (discussed in [the protocol format](#the-protocol-format) below) are
 sent. As we are maintaining compatibility with LSP, the protocol transport
@@ -192,6 +199,7 @@ format is already defined for us.
 >   and tear it down.
 
 ### The Protocol Format
+
 Protocol messages are defined by LSP. Any extensions to the messages defined in
 the standard should use similar patterns such that they are not incongruous with
 LSP messages. The following notes apply:
@@ -204,6 +212,7 @@ This means that we have two pipes: one is the textual WebSocket defined by LSP,
 and the other is a binary WebSocket.
 
 ## Textual Protocol Functionality
+
 This entire section deals with the _functional_ requirements placed upon the
 protocol used by the engine services. These requirements are overwhelmingly
 imposed by the IDE, but also include additional functionality for the future
@@ -214,6 +223,7 @@ those _expected_ for the 2.0 release. Any additional functionality beyond this
 milestone is described in a [dedicated section](#functionality-post-20).
 
 ### Textual Diff Management
+
 The engine services need to support robust handling of textual diffs. This is
 simply because it is the primary form of communication for synchronising source
 code between the IDE and the engine. It will need to support the following
@@ -252,6 +262,7 @@ The implementation is as follows:
   track updates as necessary.
 
 ### Handling Multiple Clients
+
 Multiple-client support will be implemented while remaining compatible with the
 LSP specification.
 
@@ -277,6 +288,7 @@ It will work as follows:
   state, and then `applyEdit` to synchronise views of the code.
 
 ### Project State Management
+
 One of the most important functionalities for this service set is the ability to
 manage the state of a project in general. The project state refers to the whole
 set of the project files and metadata and needs to support the following
@@ -295,6 +307,7 @@ projects in a single engine, as this would allow users to work with multiple
 related projects in a single instance of the IDE.
 
 ### File Management and Storage
+
 The nature of LSP means that file management and storage is _not_ handled by the
 language server, and is instead handled by the editor. The protocol makes a
 distinction between:
@@ -311,6 +324,7 @@ file operations between the IDE and that machine are handled _indepdendently_ of
 the language server.
 
 ### Execution Management
+
 The language server process will need to be able to respond to requests for
 various kinds of execution of Enso code. Furthermore, it needs to be able to
 respond to requests to 'listen' to the execution of various portions of code.
@@ -339,11 +353,11 @@ given position in the call stack.
 - A subscription may encompass multiple nodes or a single node. Information is
   received for _all_ nodes covered by the provided span.
 - A subscription will ensure that the client receives information on changes in:
-  + Execution state (whether the node is being computed or is cached)
-  + Profiling information
-  + Values
-  + Types
-  + Where we are in the call stack (useful for recursive execution)
+  - Execution state (whether the node is being computed or is cached)
+  - Profiling information
+  - Values
+  - Types
+  - Where we are in the call stack (useful for recursive execution)
 - Such subscriptions _must_ be accompanied by heartbeat messages in order to
   allow the language server to cull unused subscriptions.
 - Additionally, it will be important for each subscription to be able to
@@ -351,6 +365,7 @@ given position in the call stack.
   client. If unspecified this should be set to a sensible default.
 
 #### Caching
+
 One of the most important elements of execution management for the language
 server is the ability to control and interact with the execution cache state in
 the runtime.
@@ -378,6 +393,7 @@ strategies, but we need to be correct.
   better cache-eviction decisions.
 
 #### Progress Reporting
+
 In the future it will be desirable for long running computations to provide
 real-time progress information (e.g. for training a neural network it would be
 great to know which epoch is running).
@@ -393,6 +409,7 @@ of long-running operations within the _language server_ rather than in user
 code.
 
 ### Completion
+
 The IDE needs the ability to request completions for some target point (cursor
 position) in the source code. In essence, this boils down to _some_ kind of
 smart completion. The completion should provide the following:
@@ -441,6 +458,7 @@ From an implementation perspective, the following notes apply:
   any optimisations here.
 
 ### Analysis Operations
+
 We also want to be able to support a useful set of semantic analysis operations
 to help users navigate their code. As these rely on knowledge of the language
 semantics, they must be explicitly supported by the language server:
@@ -451,6 +469,7 @@ semantics, they must be explicitly supported by the language server:
   file is closed, then the edit should be made directly, as the LSP specifies.
 
 ### Functionality Post 2.0
+
 In addition to the functionality discussed in detail above, there are further
 augmentations that could sensibly be made to the Engine services to support a
 much better editing and user-experience for Enso. These are listed briefly below
@@ -479,7 +498,8 @@ and will be expanded upon as necessary in the future.
   should allow for hot-reloading of code, changing of values within a live
   program, and various other debugger functionality (step over, step in, step
   out, continue, etc). Future debugger functionality should be based on the
-  standard [debug adapter protocol](https://microsoft.github.io/debug-adapter-protocol/specification).
+  standard
+  [debug adapter protocol](https://microsoft.github.io/debug-adapter-protocol/specification).
 - **Profiling Information:** Profiling information for the executing code, able
   to be displayed visually in Enso Studio.
 - **Code Formatting:** Automatic formatting of Enso code using the One True
@@ -503,6 +523,7 @@ and will be expanded upon as necessary in the future.
   relevant to our language. Currently we only support a small subset thereof.
 
 ## Binary Protocol
+
 The binary protocol refers to the auxiliary protocol used to transport raw
 binary data between the engine and the client. This functionality is _entirely_
 extraneous to the operation of the [textual protocol](#textual-protocol), and is
@@ -585,6 +606,7 @@ table Success {}
 ```
 
 ### Binary Protocol Communication Patterns
+
 The binary protocol currently only supports a single type of communication
 pattern:
 
@@ -592,6 +614,7 @@ pattern:
   performed using the textual protocol.
 
 ### Binary Protocol Transport
+
 The binary protocol uses [flatbuffers](https://github.com/google/flatbuffers)
 for the protocol transport format. This choice has been made for a few reasons:
 
@@ -601,15 +624,17 @@ for the protocol transport format. This choice has been made for a few reasons:
 - Robust, schema-based messages.
 
 ## Binary Protocol Functionality
+
 The binary protocol exists in order to serve the high-bandwidth data transfer
 requirements of the engine and the GUI.
 
 ### Displaying Visualisations
+
 A major part of Enso Studio's functionality is the rich embedded visualisations
 that it supports. This means that the following functionality is necessary:
 
-- Execution of an arbitrary Enso expression on a cached value designated by
-  a source location.
+- Execution of an arbitrary Enso expression on a cached value designated by a
+  source location.
 - The ability to create and destroy visualisation subscriptions with an
   arbitrary piece of Enso code as the preprocessing function.
 - The ability to update _existing_ subscriptions with a new preprocessing
@@ -632,6 +657,7 @@ From the implementation perspective:
   visualisation data to identify an update.
 
 ## Service Connection Setup
+
 As these services need to support multiple clients in future, there is some
 rigmarole around setting up the various connections needed by each client. The
 process for spawning and connecting to an engine instance is as follows:
@@ -642,14 +668,16 @@ process for spawning and connecting to an engine instance is as follows:
     be used to identify the client while it is connected.
 3.  **Protocol Connection Initialisation:** The client performs the init for the
     textual protocol connection, passing its client identifier as it does so.
-    See [`session/initProtocolConnection`](./protocol-language-server.md#sessioninitprotocolconnection)
+    See
+    [`session/initProtocolConnection`](./protocol-language-server.md#sessioninitprotocolconnection)
     for more information.
 4.  **Data Connection Initialisation:** The client performs the init for the
     data connection, passing its client identifier as it does so. See
-    [`session/initDataConnection`](./protocol-language-server.md#sessioninitdataconnection) below more
-    information.
+    [`session/initDataConnection`](./protocol-language-server.md#sessioninitdataconnection)
+    below more information.
 
 ## Service Connection Teardown
+
 As the engine performs sophisticated caching and persisting of data where
 possible, it is very important that the client informs the engine of the end of
 its session. In contrast to the initialisation flow above, this is not an

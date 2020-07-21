@@ -7,6 +7,7 @@ order: 8
 ---
 
 # Parser Driver
+
 The parser driver component is responsible for orchestrating the entire action
 of the parser. It handles the following duties:
 
@@ -22,6 +23,7 @@ of the parser. It handles the following duties:
 <!-- /MarkdownTOC -->
 
 ## Driver Clients
+
 The parser is going to be employed in two contexts, both running in-process:
 
 1. In the IDE codebase as a rust dependency.
