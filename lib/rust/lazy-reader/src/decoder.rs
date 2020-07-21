@@ -10,6 +10,22 @@ use std::fmt::Debug;
 // === Decoder ===
 // ===============
 
+/// Trait for decoding UTF32 characters.
+pub trait Decoder {
+    /// The input of the decoder.
+    type Word : Default + Copy + Debug;
+    /// The maximum amount of words needed to decode one symbol.
+    const MAX_CODEPOINT_LEN: usize;
+
+    /// Decodes the first symbol from the slice and returns it with its length (in words).
+    ///
+    /// This function can panic if `words.len() < MAX_CODEPOINT_LEN`.
+    fn decode(words:&[Self::Word]) -> Char;
+}
+
+
+// === Char ===
+
 /// The result of `decoder.decode`.
 #[derive(Debug,Clone,Copy)]
 pub struct Char {
@@ -17,19 +33,6 @@ pub struct Char {
     pub char: Option<char>,
     /// The number of words read.
     pub size: usize,
-}
-
-/// Trait for decoding UTF32 characters.
-pub trait Decoder {
-    /// The input of the decoder.
-    type Word : Default + Copy + Debug;
-    /// The maximum amount of words needed to decode one symbol.
-    const MAX_SYMBOL_LEN: usize;
-
-    /// Decodes the first symbol from the slice and returns it with its length (in words).
-    ///
-    /// This function can panic if `words.len() < MAX_SYMBOL_LEN`.
-    fn decode(words:&[Self::Word]) -> Char;
 }
 
 
@@ -44,10 +47,13 @@ pub trait Decoder {
 #[derive(Debug,Copy,Clone)]
 pub struct DecoderUTF8();
 
+
+// === Trait Impls ===
+
 impl Decoder for DecoderUTF8 {
     type Word = u8;
 
-    const MAX_SYMBOL_LEN: usize = 4;
+    const MAX_CODEPOINT_LEN: usize = 4;
 
     fn decode(words: &[u8]) -> Char {
         let size = match !words[0] >> 4 {
@@ -78,10 +84,13 @@ impl Decoder for DecoderUTF8 {
 #[derive(Debug,Copy,Clone)]
 pub struct DecoderUTF16();
 
+
+// === Trait Impls ===
+
 impl Decoder for DecoderUTF16 {
     type Word = u16;
 
-    const MAX_SYMBOL_LEN: usize = 2;
+    const MAX_CODEPOINT_LEN: usize = 2;
 
     fn decode(words: &[u16]) -> Char {
         if words[0] < 0xD800 || 0xDFFF < words[0] {
@@ -104,10 +113,13 @@ impl Decoder for DecoderUTF16 {
 #[derive(Debug,Copy,Clone)]
 pub struct DecoderUTF32();
 
+
+// === Trait Impls ===
+
 impl Decoder for DecoderUTF32 {
     type Word = char;
 
-    const MAX_SYMBOL_LEN: usize = 1;
+    const MAX_CODEPOINT_LEN: usize = 1;
 
     fn decode(words: &[char]) -> Char {
         Char{char:Some(words[0]), size:1}
@@ -126,9 +138,10 @@ mod tests {
     use itertools::Itertools;
 
 
+
     #[test]
     fn test_utf8() {
-        let string  = "こんにちは世𤭢";
+        let string  = "a.b^c! #𤭢界んにち𤭢#𤭢";
         let mut buf = string.as_bytes();
         let mut str = String::from("");
         while !buf.is_empty() {
@@ -141,7 +154,7 @@ mod tests {
 
     #[test]
     fn test_utf16() {
-        let string  = "界𤭢!?";
+        let string  = "a.b^c! #𤭢界んにち𤭢#𤭢";
         let buffer  = string.encode_utf16().collect_vec();
         let mut buf = &buffer[..];
         let mut str = String::from("");
@@ -155,7 +168,7 @@ mod tests {
 
     #[test]
     fn test_utf32() {
-        let string  = "こんにちは世界!".chars().collect_vec();
+        let string  = "a.b^c! #𤭢界んにち𤭢#𤭢".chars().collect_vec();
         let mut buf = &string[..];
         let mut str = vec![];
         while !buf.is_empty() {

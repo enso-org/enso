@@ -142,7 +142,7 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
         if let Some(offset) = self.bookmark.iter().map(|b| b.offset).min() {
             return self.buffer.len() - offset
         }
-        D::MAX_SYMBOL_LEN
+        D::MAX_CODEPOINT_LEN
     }
 
     /// Decrease the offset all bookmarks.
@@ -178,7 +178,7 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
     pub fn next_char(&mut self) -> Result<char,Error> {
         if self.empty() { return Err(Error::EOF) }
 
-        if self.offset >= self.buffer.len() - D::MAX_SYMBOL_LEN {
+        if self.offset >= self.buffer.len() - D::MAX_CODEPOINT_LEN {
             self.fill();
         }
 
@@ -307,7 +307,7 @@ mod tests {
 
     #[test]
     fn test_reader_small_input() {
-        let     str    = "こんにちは世界!";
+        let     str    = "a.b^c! #𤭢界んにち𤭢#𤭢";
         let mut reader = Reader::new(str.as_bytes(), DecoderUTF8(), 0);
         let mut result = String::from("");
         while let Ok(char) = reader.next_char() {
@@ -318,7 +318,7 @@ mod tests {
 
     #[test]
     fn test_reader_big_input() {
-        let     str    = "こんにちは世界!".repeat(10_000);
+        let     str    = "a.b^c! #𤭢界んにち𤭢#𤭢".repeat(10_000);
         let mut reader = Reader::new(str.as_bytes(), DecoderUTF8(), 0);
         let mut result = String::from("");
         while let Ok(char) = reader.next_char() {
