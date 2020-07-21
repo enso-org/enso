@@ -145,20 +145,19 @@ public class IdExecutionInstrument extends TruffleInstrument {
       }
     }
 
+    /** @return the name of the module this function was defined in, or null if not available. */
     public QualifiedName getModuleName() {
       return moduleName;
     }
 
+    /** @return the name of the type this method was defined for, or null if not a method. */
     public QualifiedName getTypeName() {
       return typeName;
     }
 
+    /** @return the name of this function. */
     public String getFunctionName() {
       return functionName;
-    }
-
-    public boolean isMethodCall() {
-      return typeName != null;
     }
   }
 

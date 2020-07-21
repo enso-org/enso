@@ -146,7 +146,7 @@ object Main {
   /** Terminates the process with a failure exit code. */
   private def exitFail(): Nothing = {
     System.exit(1)
-    throw new RuntimeException("impossible to reach here")
+    throw new IllegalStateException("impossible to reach here")
   }
 
   /** Terminates the process with a success exit code. */

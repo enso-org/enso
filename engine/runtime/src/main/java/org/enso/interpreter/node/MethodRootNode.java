@@ -12,14 +12,8 @@ import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
 
-/**
- * This node represents the root of Enso closures and closure-like structures.
- *
- * <p>All new computations in Enso must be executed from within an {@link MethodRootNode}, as
- * determined by the API provided by Truffle.
- */
 @ReportPolymorphism
-@NodeInfo(shortName = "Closure", description = "A root node for Enso closures.")
+@NodeInfo(shortName = "Method", description = "A root node for Enso methods.")
 public class MethodRootNode extends ClosureRootNode {
 
   private final AtomConstructor atomConstructor;
@@ -56,7 +50,8 @@ public class MethodRootNode extends ClosureRootNode {
    * @param moduleScope a description of the module scope
    * @param body the program body to be executed
    * @param section a mapping from {@code body} to the program source
-   * @param name a name for the node
+   * @param atomConstructor the constructor this method is defined for
+   * @param methodName the name of this method
    * @return a node representing the specified closure
    */
   public static MethodRootNode build(
@@ -71,6 +66,13 @@ public class MethodRootNode extends ClosureRootNode {
         language, localScope, moduleScope, body, section, atomConstructor, methodName);
   }
 
+  /**
+   * Computes the fully qualified name of this method.
+   *
+   * <p>The name has a form of [method's module]::[qualified type name]::[method name].
+   *
+   * @return the qualified name of this method.
+   */
   @Override
   public String getQualifiedName() {
     return getModuleScope().getModule().getName().toString()
@@ -80,10 +82,12 @@ public class MethodRootNode extends ClosureRootNode {
         + methodName;
   }
 
+  /** @return the constructor this method was defined for */
   public AtomConstructor getAtomConstructor() {
     return atomConstructor;
   }
 
+  /** @return the method name */
   public String getMethodName() {
     return methodName;
   }

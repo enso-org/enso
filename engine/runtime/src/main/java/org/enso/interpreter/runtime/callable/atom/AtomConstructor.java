@@ -183,6 +183,7 @@ public class AtomConstructor implements TruffleObject {
     return newInstance(arguments);
   }
 
+  /** @return the fully qualified name of this constructor. */
   public QualifiedName getQualifiedName() {
     return definitionScope.getModule().getName().createChild(getName());
   }

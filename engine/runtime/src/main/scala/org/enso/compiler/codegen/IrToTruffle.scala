@@ -757,6 +757,15 @@ class IrToTruffle(
       setLocation(ErrorNode.build(payload), error.location)
     }
 
+    /**
+      * Processes function arguments, generates arguments reads and creates
+      * a node to represent the whole method body.
+      *
+      * @param arguments the argument definitions
+      * @param body the body definition
+      * @return a node for the final shape of function body and pre-processed
+      *         argument definitions.
+      */
     def buildFunctionBody(
       arguments: List[IR.DefinitionArgument],
       body: IR.Expression
