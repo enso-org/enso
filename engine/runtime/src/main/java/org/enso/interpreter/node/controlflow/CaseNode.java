@@ -50,7 +50,7 @@ public abstract class CaseNode extends ExpressionNode {
   /**
    * Forwards an error in the case's scrutinee.
    *
-   * It is important that this is the first specialization.
+   * <p>It is important that this is the first specialization.
    *
    * @param frame the stack frame in which to execute
    * @param error the error being matched against
@@ -81,7 +81,8 @@ public abstract class CaseNode extends ExpressionNode {
       }
       CompilerDirectives.transferToInterpreter();
       throw new PanicException(
-          ctx.get().getBuiltins().inexhaustivePatternMatchError().newInstance(object), this);
+          ctx.get().getBuiltins().error().inexhaustivePatternMatchError().newInstance(object),
+          this);
     } catch (BranchSelectedException e) {
       // Note [Branch Selection Control Flow]
       frame.setObject(getStateFrameSlot(), e.getResult().getState());

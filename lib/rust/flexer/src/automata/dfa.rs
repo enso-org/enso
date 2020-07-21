@@ -16,7 +16,7 @@ use crate::data::matrix::Matrix;
 ///
 /// ```text
 ///  ┌───┐  'D'  ┌───┐  'F'  ┌───┐  'A'  ┌───┐
-///  │ 0 │──────▶│ 1 │──────▶│ 2 │──────▶│ 3 │
+///  │ 0 │ ----> │ 1 │ ----> │ 2 │ ----> │ 3 │
 ///  └───┘       └───┘       └───┘       └───┘
 /// ```
 #[derive(Clone,Debug,Default,Eq,PartialEq)]
@@ -139,10 +139,10 @@ pub mod tests {
         DFA {
             alphabet_segmentation: alphabet::Segmentation::from_divisions(&[32,33,97,123]),
             links: Matrix::from(vec![
-                vec![INVALID,1,INVALID,2,INVALID],
-                vec![INVALID,3,INVALID,INVALID,INVALID],
+                vec![INVALID,      1,INVALID,      2,INVALID],
+                vec![INVALID,      3,INVALID,INVALID,INVALID],
                 vec![INVALID,INVALID,INVALID,INVALID,INVALID],
-                vec![INVALID,3,INVALID,INVALID,INVALID],
+                vec![INVALID,      3,INVALID,INVALID,INVALID],
             ]),
             callbacks: vec![
                 None,

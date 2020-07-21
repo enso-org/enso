@@ -7,6 +7,7 @@ order: 1
 ---
 
 # Source File Encoding
+
 While many modern programming languages are moving in a direction of being
 liberal with the input they accept, we find that this often leads to the
 resultant code being more difficult to use.
@@ -21,9 +22,11 @@ This file describes the source file encoding for Enso files.
 <!-- /MarkdownTOC -->
 
 ## Source Encoding
+
 All input source in Enso is UTF-8 encoded.
 
 ## Indentation
+
 Indentation in Enso is performed using spaces. An indent level is 4 spaces.
 
 This is intentionally not made configurable.

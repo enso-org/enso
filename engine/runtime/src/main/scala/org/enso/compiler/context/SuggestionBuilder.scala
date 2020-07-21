@@ -2,23 +2,29 @@ package org.enso.compiler.context
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.{DocumentationComments, TypeSignatures}
-import org.enso.searcher.Suggestion
+import org.enso.polyglot.Suggestion
 import org.enso.syntax.text.Location
+import org.enso.text.editing.IndexedSource
 
 import scala.collection.immutable.VectorBuilder
 import scala.collection.mutable
 
-/** Module that extracts [[Suggestion]] entries from the [[IR]]. */
-final class SuggestionBuilder {
+/** Module that extracts [[Suggestion]] entries from the [[IR]].
+  *
+  * @param source the text source
+  * @tparam A the type of the text source
+  */
+final class SuggestionBuilder[A: IndexedSource](val source: A) {
 
   import SuggestionBuilder._
 
   /** Build suggestions from the given `ir`.
     *
+    * @param module the module name
     * @param ir the input `IR`
     * @return the list of suggestion entries extracted from the given `IR`
     */
-  def build(ir: IR.Module): Vector[Suggestion] = {
+  def build(module: String, ir: IR): Vector[Suggestion] = {
     @scala.annotation.tailrec
     def go(
       scope: Scope,
@@ -38,35 +44,61 @@ final class SuggestionBuilder {
         ir match {
           case IR.Module.Scope.Definition.Method
                 .Explicit(
-                IR.Name.MethodReference(typePtr, methodName, _, _, _),
+                  IR.Name.MethodReference(typePtr, methodName, _, _, _),
+                  IR.Function.Lambda(args, body, _, _, _, _),
+                  _,
+                  _,
+                  _
+                ) =>
+            val typeSignature = ir.getMetadata(TypeSignatures)
+            acc += buildMethod(
+                body.getExternalId,
+                module,
+                methodName,
+                typePtr,
+                args,
+                doc,
+                typeSignature
+              )
+            scopes += Scope(body.children, body.location.map(_.location))
+            go(scope, scopes, acc)
+          case IR.Expression.Binding(
+                name,
                 IR.Function.Lambda(args, body, _, _, _, _),
                 _,
                 _,
                 _
-                ) =>
-            val typeSignature = ir.getMetadata(TypeSignatures)
-            acc += buildMethod(methodName, typePtr, args, doc, typeSignature)
-            scopes += Scope(body.children, body.location.map(_.location))
-            go(scope, scopes, acc)
-          case IR.Expression.Binding(
-              name,
-              IR.Function.Lambda(args, body, _, _, _, _),
-              _,
-              _,
-              _
               ) if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
-            acc += buildFunction(name, args, scope.location.get, typeSignature)
+            acc += buildFunction(
+                body.getExternalId,
+                module,
+                name,
+                args,
+                scope.location.get,
+                typeSignature
+              )
             scopes += Scope(body.children, body.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Expression.Binding(name, expr, _, _, _)
               if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
-            acc += buildLocal(name.name, scope.location.get, typeSignature)
+            acc += buildLocal(
+                expr.getExternalId,
+                module,
+                name.name,
+                scope.location.get,
+                typeSignature
+              )
             scopes += Scope(expr.children, expr.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Module.Scope.Definition.Atom(name, arguments, _, _, _) =>
-            acc += buildAtom(name.name, arguments, doc)
+            acc += buildAtom(
+                module,
+                name.name,
+                arguments,
+                doc
+              )
             go(scope, scopes, acc)
           case _ =>
             go(scope, scopes, acc)
@@ -81,6 +113,8 @@ final class SuggestionBuilder {
   }
 
   private def buildMethod(
+    externalId: Option[IR.ExternalId],
+    module: String,
     name: IR.Name,
     typeRef: Seq[IR.Name],
     args: Seq[IR.DefinitionArgument],
@@ -94,6 +128,8 @@ final class SuggestionBuilder {
         val (methodArgs, returnTypeDef) =
           buildMethodArguments(args, typeSig, selfType)
         Suggestion.Method(
+          externalId    = externalId,
+          module        = module,
           name          = name.name,
           arguments     = methodArgs,
           selfType      = selfType,
@@ -102,6 +138,8 @@ final class SuggestionBuilder {
         )
       case _ =>
         Suggestion.Method(
+          externalId    = externalId,
+          module        = module,
           name          = name.name,
           arguments     = args.map(buildArgument),
           selfType      = buildSelfType(typeRef),
@@ -112,6 +150,8 @@ final class SuggestionBuilder {
   }
 
   private def buildFunction(
+    externalId: Option[IR.ExternalId],
+    module: String,
     name: IR.Name,
     args: Seq[IR.DefinitionArgument],
     location: Location,
@@ -123,6 +163,8 @@ final class SuggestionBuilder {
         val (methodArgs, returnTypeDef) =
           buildFunctionArguments(args, typeSig)
         Suggestion.Function(
+          externalId = externalId,
+          module     = module,
           name       = name.name,
           arguments  = methodArgs,
           returnType = buildReturnType(returnTypeDef),
@@ -130,6 +172,8 @@ final class SuggestionBuilder {
         )
       case _ =>
         Suggestion.Function(
+          externalId = externalId,
+          module     = module,
           name       = name.name,
           arguments  = args.map(buildArgument),
           returnType = Any,
@@ -139,23 +183,34 @@ final class SuggestionBuilder {
   }
 
   private def buildLocal(
+    externalId: Option[IR.ExternalId],
+    module: String,
     name: String,
     location: Location,
     typeSignature: Option[TypeSignatures.Metadata]
   ): Suggestion.Local =
     typeSignature match {
       case Some(TypeSignatures.Signature(tname: IR.Name)) =>
-        Suggestion.Local(name, tname.name, buildScope(location))
+        Suggestion.Local(
+          externalId,
+          module,
+          name,
+          tname.name,
+          buildScope(location)
+        )
       case _ =>
-        Suggestion.Local(name, Any, buildScope(location))
+        Suggestion.Local(externalId, module, name, Any, buildScope(location))
     }
 
   private def buildAtom(
+    module: String,
     name: String,
     arguments: Seq[IR.DefinitionArgument],
     doc: Option[String]
   ): Suggestion.Atom =
     Suggestion.Atom(
+      externalId    = None,
+      module        = module,
       name          = name,
       arguments     = arguments.map(buildArgument),
       returnType    = name,
@@ -299,10 +354,23 @@ final class SuggestionBuilder {
     }
 
   private def buildScope(location: Location): Suggestion.Scope =
-    Suggestion.Scope(location.start, location.end)
+    Suggestion.Scope(toPosition(location.start), toPosition(location.end))
+
+  private def toPosition(index: Int): Suggestion.Position = {
+    val pos = IndexedSource[A].toPosition(index, source)
+    Suggestion.Position(pos.line, pos.character)
+  }
 }
 
 object SuggestionBuilder {
+
+  /** Create the suggestion builder.
+    *
+    * @param source the text source
+    * @tparam A the type of the text source
+    */
+  def apply[A: IndexedSource](source: A): SuggestionBuilder[A] =
+    new SuggestionBuilder[A](source)
 
   /** A single level of an `IR`.
     *

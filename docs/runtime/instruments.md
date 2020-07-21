@@ -7,6 +7,7 @@ order: 6
 ---
 
 # Instruments
+
 Instruments are used to track runtime events to allow for profiling, debugging
 and other kinds of behavior analysis at runtime.
 
@@ -18,11 +19,13 @@ and other kinds of behavior analysis at runtime.
 <!-- /MarkdownTOC -->
 
 ## Naming Conventions
+
 Every Instrument must be implemented in Java and have name that ends with
 `Instrument`. This requirement is to ensure that the [fix](#fixing-compilation)
 described below works.
 
 ## Fixing Compilation
+
 Annotations are used to register the implemented instruments with Graal. The
 annotation processor is triggered when recompiling the Java files.
 Unfortunately, when doing an incremental compilation, only the changed files are

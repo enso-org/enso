@@ -1,5 +1,7 @@
 package org.enso.compiler.test.context
 
+import java.util.UUID
+
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{
   FreshNameSupply,
@@ -9,7 +11,7 @@ import org.enso.compiler.context.{
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.test.CompilerTest
-import org.enso.searcher.Suggestion
+import org.enso.polyglot.Suggestion
 
 class SuggestionBuilderTest extends CompilerTest {
 
@@ -23,9 +25,11 @@ class SuggestionBuilderTest extends CompilerTest {
       val code   = """foo = 42""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "foo",
+          externalId = None,
+          module     = "Test",
+          name       = "foo",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None)
           ),
@@ -37,7 +41,6 @@ class SuggestionBuilderTest extends CompilerTest {
     }
 
     "build method with documentation" in {
-      pending // fix documentation
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
@@ -45,9 +48,11 @@ class SuggestionBuilderTest extends CompilerTest {
           |foo = 42""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "foo",
+          externalId = None,
+          module     = "Test",
+          name       = "foo",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None)
           ),
@@ -69,9 +74,11 @@ class SuggestionBuilderTest extends CompilerTest {
           |    x * y""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "foo",
+          externalId = None,
+          module     = "Test",
+          name       = "foo",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None),
             Suggestion.Argument("a", "Any", false, false, None),
@@ -81,8 +88,20 @@ class SuggestionBuilderTest extends CompilerTest {
           returnType    = "Any",
           documentation = None
         ),
-        Suggestion.Local("x", "Number", Suggestion.Scope(9, 62)),
-        Suggestion.Local("y", "Any", Suggestion.Scope(9, 62))
+        Suggestion.Local(
+          externalId = None,
+          "Test",
+          "x",
+          "Number",
+          Suggestion.Scope(Suggestion.Position(0, 9), Suggestion.Position(4, 9))
+        ),
+        Suggestion.Local(
+          externalId = None,
+          "Test",
+          "y",
+          "Any",
+          Suggestion.Scope(Suggestion.Position(0, 9), Suggestion.Position(4, 9))
+        )
       )
     }
 
@@ -93,9 +112,11 @@ class SuggestionBuilderTest extends CompilerTest {
         """foo (a = 0) = a + 1""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "foo",
+          externalId = None,
+          module     = "Test",
+          name       = "foo",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None),
             Suggestion.Argument("a", "Any", false, true, Some("0"))
@@ -117,9 +138,11 @@ class SuggestionBuilderTest extends CompilerTest {
           |""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "bar",
+          externalId = None,
+          module     = "Test",
+          name       = "bar",
           arguments = Seq(
             Suggestion.Argument("this", "MyAtom", false, false, None),
             Suggestion.Argument("a", "Number", false, false, None),
@@ -139,9 +162,11 @@ class SuggestionBuilderTest extends CompilerTest {
         """foo ~a = a + 1""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "foo",
+          externalId = None,
+          module     = "Test",
+          name       = "foo",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None),
             Suggestion.Argument("a", "Any", true, false, None)
@@ -162,9 +187,11 @@ class SuggestionBuilderTest extends CompilerTest {
           |    foo 42""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "main",
+          externalId = None,
+          module     = "Test",
+          name       = "main",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None)
           ),
@@ -173,12 +200,17 @@ class SuggestionBuilderTest extends CompilerTest {
           documentation = None
         ),
         Suggestion.Function(
-          name = "foo",
+          externalId = None,
+          module     = "Test",
+          name       = "foo",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None)
           ),
           returnType = "Any",
-          scope      = Suggestion.Scope(6, 35)
+          scope = Suggestion.Scope(
+            Suggestion.Position(0, 6),
+            Suggestion.Position(2, 10)
+          )
         )
       )
     }
@@ -193,9 +225,11 @@ class SuggestionBuilderTest extends CompilerTest {
           |    foo 42""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Method(
-          name = "main",
+          externalId = None,
+          module     = "Test",
+          name       = "main",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None)
           ),
@@ -204,12 +238,17 @@ class SuggestionBuilderTest extends CompilerTest {
           documentation = None
         ),
         Suggestion.Function(
-          name = "foo",
+          externalId = None,
+          module     = "Test",
+          name       = "foo",
           arguments = Seq(
             Suggestion.Argument("a", "Number", false, false, None)
           ),
           returnType = "Number",
-          scope      = Suggestion.Scope(6, 62)
+          scope = Suggestion.Scope(
+            Suggestion.Position(0, 6),
+            Suggestion.Position(3, 10)
+          )
         )
       )
     }
@@ -220,9 +259,11 @@ class SuggestionBuilderTest extends CompilerTest {
       val code   = """type MyType a b"""
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
-          name = "MyType",
+          externalId = None,
+          module     = "Test",
+          name       = "MyType",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None),
             Suggestion.Argument("b", "Any", false, false, None)
@@ -241,9 +282,11 @@ class SuggestionBuilderTest extends CompilerTest {
           |type MyType a b""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
-          name = "MyType",
+          externalId = None,
+          module     = "Test",
+          name       = "MyType",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None),
             Suggestion.Argument("b", "Any", false, false, None)
@@ -263,15 +306,19 @@ class SuggestionBuilderTest extends CompilerTest {
           |    type Just a""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
+          externalId    = None,
+          module        = "Test",
           name          = "Nothing",
           arguments     = Seq(),
           returnType    = "Nothing",
           documentation = None
         ),
         Suggestion.Atom(
-          name = "Just",
+          externalId = None,
+          module     = "Test",
+          name       = "Just",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None)
           ),
@@ -293,15 +340,19 @@ class SuggestionBuilderTest extends CompilerTest {
           |    type Just a""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
+          externalId    = None,
+          module        = "Test",
           name          = "Nothing",
           arguments     = Seq(),
           returnType    = "Nothing",
           documentation = Some(" Nothing here")
         ),
         Suggestion.Atom(
-          name = "Just",
+          externalId = None,
+          module     = "Test",
+          name       = "Just",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None)
           ),
@@ -323,15 +374,19 @@ class SuggestionBuilderTest extends CompilerTest {
           |        Nothing -> Nothing""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
+          externalId    = None,
+          module        = "Test",
           name          = "Nothing",
           arguments     = Seq(),
           returnType    = "Nothing",
           documentation = None
         ),
         Suggestion.Atom(
-          name = "Just",
+          externalId = None,
+          module     = "Test",
+          name       = "Just",
           arguments = Seq(
             Suggestion.Argument("a", "Any", false, false, None)
           ),
@@ -339,7 +394,9 @@ class SuggestionBuilderTest extends CompilerTest {
           documentation = None
         ),
         Suggestion.Method(
-          name = "map",
+          externalId = None,
+          module     = "Test",
+          name       = "map",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None),
             Suggestion.Argument("f", "Any", false, false, None)
@@ -349,7 +406,9 @@ class SuggestionBuilderTest extends CompilerTest {
           documentation = None
         ),
         Suggestion.Method(
-          name = "map",
+          externalId = None,
+          module     = "Test",
+          name       = "map",
           arguments = Seq(
             Suggestion.Argument("this", "Any", false, false, None),
             Suggestion.Argument("f", "Any", false, false, None)
@@ -371,15 +430,19 @@ class SuggestionBuilderTest extends CompilerTest {
           |    is_atom = true""".stripMargin
       val module = code.preprocessModule
 
-      build(module) should contain theSameElementsAs Seq(
+      build(code, module) should contain theSameElementsAs Seq(
         Suggestion.Atom(
+          externalId    = None,
+          module        = "Test",
           name          = "MyAtom",
           arguments     = Seq(),
           returnType    = "MyAtom",
           documentation = None
         ),
         Suggestion.Method(
-          name = "is_atom",
+          externalId = None,
+          module     = "Test",
+          name       = "is_atom",
           arguments = Seq(
             Suggestion.Argument("this", "MyAtom", false, false, None)
           ),
@@ -389,10 +452,158 @@ class SuggestionBuilderTest extends CompilerTest {
         )
       )
     }
+
+    "build module" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """type MyType a b
+          |
+          |main = IO.println("Hello!")""".stripMargin
+      val module = code.preprocessModule
+
+      build(code, module) should contain theSameElementsAs Seq(
+        Suggestion.Atom(
+          externalId = None,
+          module     = "Test",
+          name       = "MyType",
+          arguments = Seq(
+            Suggestion.Argument("a", "Any", false, false, None),
+            Suggestion.Argument("b", "Any", false, false, None)
+          ),
+          returnType    = "MyType",
+          documentation = None
+        ),
+        Suggestion.Method(
+          externalId = None,
+          module     = "Test",
+          name       = "main",
+          arguments = Seq(
+            Suggestion.Argument("this", "Any", false, false, None)
+          ),
+          selfType      = "here",
+          returnType    = "Any",
+          documentation = None
+        )
+      )
+    }
+
+    "build method with external id" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """main = IO.println "Hello!"
+          |
+          |
+          |#### METADATA ####
+          |[[{"index": {"value": 7}, "size": {"value": 19}}, "4083ce56-a5e5-4ecd-bf45-37ddf0b58456"]]
+          |[]
+          |""".stripMargin.linesIterator.mkString("\n")
+      val module = code.preprocessModule
+
+      build(code, module) should contain theSameElementsAs Seq(
+        Suggestion.Method(
+          externalId =
+            Some(UUID.fromString("4083ce56-a5e5-4ecd-bf45-37ddf0b58456")),
+          module = "Test",
+          name   = "main",
+          arguments = Seq(
+            Suggestion.Argument("this", "Any", false, false, None)
+          ),
+          selfType      = "here",
+          returnType    = "Any",
+          documentation = None
+        )
+      )
+    }
+
+    "build function with external id" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """main =
+          |    id x = x
+          |    IO.println (id "Hello!")
+          |
+          |
+          |#### METADATA ####
+          |[[{"index": {"value": 18}, "size": {"value": 1}}, "f533d910-63f8-44cd-9204-a1e2d46bb7c3"]]
+          |[]
+          |""".stripMargin.linesIterator.mkString("\n")
+      val module = code.preprocessModule
+
+      build(code, module) should contain theSameElementsAs Seq(
+        Suggestion.Method(
+          externalId = None,
+          module     = "Test",
+          name       = "main",
+          arguments = Seq(
+            Suggestion.Argument("this", "Any", false, false, None)
+          ),
+          selfType      = "here",
+          returnType    = "Any",
+          documentation = None
+        ),
+        Suggestion.Function(
+          externalId =
+            Some(UUID.fromString("f533d910-63f8-44cd-9204-a1e2d46bb7c3")),
+          module = "Test",
+          name   = "id",
+          arguments = Seq(
+            Suggestion.Argument("x", "Any", false, false, None)
+          ),
+          returnType = "Any",
+          scope = Suggestion.Scope(
+            Suggestion.Position(0, 6),
+            Suggestion.Position(2, 28)
+          )
+        )
+      )
+    }
+
+    "build local with external id" in {
+      implicit val moduleContext: ModuleContext = freshModuleContext
+      val code =
+        """main =
+          |    foo = 42
+          |    IO.println foo
+          |
+          |
+          |#### METADATA ####
+          |[[{"index": {"value": 17}, "size": {"value": 2}}, "0270bcdf-26b8-4b99-8745-85b3600c7359"]]
+          |[]
+          |""".stripMargin.linesIterator.mkString("\n")
+      val module = code.preprocessModule
+
+      build(code, module) should contain theSameElementsAs Seq(
+        Suggestion.Method(
+          externalId = None,
+          module     = "Test",
+          name       = "main",
+          arguments = Seq(
+            Suggestion.Argument("this", "Any", false, false, None)
+          ),
+          selfType      = "here",
+          returnType    = "Any",
+          documentation = None
+        ),
+        Suggestion.Local(
+          externalId =
+            Some(UUID.fromString("0270bcdf-26b8-4b99-8745-85b3600c7359")),
+          module     = "Test",
+          name       = "foo",
+          returnType = "Any",
+          scope = Suggestion.Scope(
+            Suggestion.Position(0, 6),
+            Suggestion.Position(2, 18)
+          )
+        )
+      )
+    }
+
   }
 
-  private def build(ir: IR.Module): Vector[Suggestion] =
-    new SuggestionBuilder().build(ir)
+  private val Module = "Test"
+
+  private def build(source: String, ir: IR.Module): Vector[Suggestion] =
+    SuggestionBuilder(source).build(Module, ir)
 
   private def freshModuleContext: ModuleContext =
     ModuleContext(freshNameSupply = Some(new FreshNameSupply))

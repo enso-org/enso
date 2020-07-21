@@ -7,6 +7,7 @@ order: 3
 ---
 
 # Layout Rules
+
 Enso is a layout-aware programming language, in that layout rules are used to
 determine code structure. The layout rules in Enso are intended to provide for
 an intuitive way to format code.
@@ -25,6 +26,7 @@ This document describes the layout rules for Enso's white-space.
 <!-- /MarkdownTOC -->
 
 ## Maximum Line Length
+
 The maximum length of a line in an Enso source file is restricted to 80
 characters outside of text blocks. If your code exceeds this limit, the compiler
 will emit a warning message.
@@ -38,6 +40,7 @@ in user code. The reasoning behind this is as follows:
   views.
 
 ## Indented Blocks
+
 Indentation in Enso is used to start a block. Every indented line is considered
 to be a sub-structure of the nearest previous line with lower indentation. We
 refer to these as the 'child' and the 'parent' lines respectively. This means
@@ -54,6 +57,7 @@ In addition, we have a set of custom layout rules that impact exactly how blocks
 are defined. These are described in the following subsections.
 
 ### Trailing Operator on the Parent Line
+
 If a line ends with an operator then all of its child lines form a
 [_code_ block](./functions.md/#code-blocks). The most common usage of this kind
 of indented block is a function definition body (following the `=` or `->`).
@@ -64,6 +68,7 @@ test = a -> b ->
 ```
 
 ### Leading Operator on All Child Lines
+
 If all the child lines in a block begin with an operator, the lines in the block
 are considered to form a single expression.
 
@@ -85,6 +90,7 @@ nums = 1..100
 ```
 
 ### No Leading or Trailing Operators
+
 In the case where neither the parent line ends with a trailing operator, or the
 child lines begin with an operator, every child line is considered to form a
 separate expression passed as an argument to the parent expression. The most
@@ -99,6 +105,7 @@ geo2 = sphere
 ```
 
 ### Debug Line Breaks
+
 In certain cases it may be useful to debug line breaks in code. To this end, we
 provide a debug line-break operator `\\` which, when placed at the beginning of
 a child line tells Enso to glue that line to the end of the previous one.

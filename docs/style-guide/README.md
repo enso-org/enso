@@ -7,6 +7,7 @@ order: 0
 ---
 
 # Enso Developer Style Guides
+
 This folder contains the style guides for developers working on the various
 languages that make up the Enso project.
 
@@ -14,3 +15,8 @@ languages that make up the Enso project.
 - [Java](./java.md)
 - [Rust](./rust.md)
 - [Haskell](./haskell.md)
+
+Our configuration and documentation also has style guides:
+
+- [Markdown](./markdown.md)
+- [YAML](./yaml.md)

@@ -1,0 +1,7 @@
+import Base.Test
+import Test.List_Spec
+import Test.Number_Spec
+
+main = Suite.run <|
+    List_Spec.spec
+    Number_Spec.spec

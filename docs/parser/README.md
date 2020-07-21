@@ -7,6 +7,7 @@ order: 0
 ---
 
 # Enso's Parser
+
 The parser is one of the most crucial components of the Enso runtime in that
 _all_ code that a user writes must be parsed. This means that a good parser is
 fast, responsive, and lightweight; it shouldn't baulk at having thousands of

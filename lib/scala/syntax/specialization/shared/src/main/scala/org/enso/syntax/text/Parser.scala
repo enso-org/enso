@@ -99,8 +99,6 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
   * note, that there is a special module parsing macro, which runs
   * [[Pattern.Build]] on every line.
   *
-  *
-  *
   * ==Pattern Build Mechanism==
   *
   * The resolution of [[Pattern.Build]] is as interesting as the macro system.
@@ -123,8 +121,6 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
   * same precedence. The associativity is inferred by the operator direction,
   * where both "=" and "," operators are considered right-associative. See
   * [[Operator]] and [[Prec]] for more information.
-  *
-  *
   *
   * ==Finalizers==
   *
@@ -230,7 +226,7 @@ class Parser {
   def run(input: Reader, idMap: IDMap): AST.Module = {
     val tokenStream = engine.run(input).map(InHoisting.run)
 
-    val spanned     = tokenStream.map(attachModuleLocations)
+    val spanned = tokenStream.map(attachModuleLocations)
     val resolved = spanned.map(Macro.run) match {
       case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
         val mod2 = annotateModule(idMap, mod)
@@ -309,16 +305,17 @@ class Parser {
     * @return a version of the input AST with the absolute positioning info
     *         populated
     */
-  def attachLocations(ast: AST, startOffset: Int): AST = ast match {
-    case App.Prefix.any(app) =>
-      val locatedFn = attachLocations(app.func, startOffset)
-      val locatedArg =
-        attachLocations(app.arg, startOffset + locatedFn.span + app.off)
-      App.Prefix(locatedFn, app.off, locatedArg)
-    case AST.Block.any(block) => attachBlockLocations(block, startOffset)
-    case _ =>
-      ast.setLocation(Location(startOffset, startOffset + ast.span))
-  }
+  def attachLocations(ast: AST, startOffset: Int): AST =
+    ast match {
+      case App.Prefix.any(app) =>
+        val locatedFn = attachLocations(app.func, startOffset)
+        val locatedArg =
+          attachLocations(app.arg, startOffset + locatedFn.span + app.off)
+        App.Prefix(locatedFn, app.off, locatedArg)
+      case AST.Block.any(block) => attachBlockLocations(block, startOffset)
+      case _ =>
+        ast.setLocation(Location(startOffset, startOffset + ast.span))
+    }
 
   def annotateModule(
     idMap: IDMap,
@@ -554,7 +551,7 @@ object Main extends scala.App {
 
   println("--- PARSING ---")
 
-  val mod = parser.run(inp)
+  val mod = parser.run(inC)
 
   println(Debug.pretty(mod.toString))
 
@@ -574,21 +571,54 @@ object Main extends scala.App {
 
   /** Invoking the Enso Documentation Parser */
   println("===== DOCUMENTATION =====")
-  val droppedMeta   = parser.dropMacroMeta(mod)
-  val documentation = DocParserRunner.createDocs(droppedMeta)
-  val htmlPath      = "target/"
-  val cssFileName   = "style.css"
+  val droppedMeta = parser.dropMacroMeta(mod)
+  val doc         = DocParserRunner.createDocs(droppedMeta)
+  val cssFileName = "style.css"
 
-  println(Debug.pretty(documentation.toString))
+  println(Debug.pretty(doc.toString))
   println("------")
-  println(documentation.show())
+  println(doc.show())
   println("=========================")
-  DocParserHTMLGenerator.generateHTMLForEveryDocumented(
-    documentation,
-    htmlPath,
-    cssFileName
-  )
-  println()
+  val htmlCode = DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
+  println("========== HTML ===========")
+  println(htmlCode)
+  println("=========================")
+
+  println("===== PURE DOCUMENTATION PARSER AND GENERATOR (W/O AST CONN) =====")
+  val inpOnlyDoc =
+    """DEPRECATED
+      |REMOVED - replaced by Foo Bar
+      |ADDED
+      |MODIFIED
+      |UPCOMING
+      |ALAMAKOTA a kot ma Ale
+      |This is a test of Enso Documentation Parser. This is a short synopsis.
+      |
+      |Here you can write the body of documentation. On top you can see tags
+      |added to this piece of code. You can customise your text with _Italic_
+      |~Strikethrough~ or *Bold*. ~_*Combined*_~ is funny
+      |
+      |
+      |There are 3 kinds of sections
+      |  - Important
+      |  - Info
+      |  - Example
+      |    * You can use example to add multiline code to your documentation
+      |
+      |! Important
+      |  Here is a small test of Important Section
+      |
+      |? Info
+      |  Here is a small test of Info Section
+      |
+      |> Example
+      |  Here is a small test of Example Section
+      |      Import Foo
+      |      def Bar a
+      |""".stripMargin
+  val doc2      = DocParser.runMatched(inpOnlyDoc)
+  val htmlCode2 = DocParserHTMLGenerator.generateHTMLPureDoc(doc2)
+  println(htmlCode2)
 
   AST.main()
 

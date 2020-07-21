@@ -7,6 +7,7 @@ order: 3
 ---
 
 # The Enso Code of Conduct
+
 This document contains the code of conduct for _all_ venues associated with the
 Enso project.
 
@@ -45,13 +46,14 @@ Enso project.
 - Private harassment is also unacceptable. No matter who you are, if you feel
   you have been or are being harassed or made uncomfortable by a community
   member, please contact one of the [moderators](#moderators) immediately, or
-  send an email to the [moderator team](#mod_team).
-  Whether you're a regular contributor or a newcomer, we care about making this
-  community a safe place for you and we've got your back.
+  send an email to the [moderator team](#mod_team). Whether you're a regular
+  contributor or a newcomer, we care about making this community a safe place
+  for you and we've got your back.
 - Likewise any spamming, trolling, flaming, baiting or other attention-stealing
   behaviour is not welcome.
 
 ## Moderation
+
 These are the policies for upholding our community's standards of conduct. If
 you feel that a thread needs moderation, please contact the
 [Enso moderation team](#moderators).
@@ -94,10 +96,13 @@ intent and forgive as long as there is an atmosphere of trust.
 The enforcement policies listed above apply to all official Enso venues. This
 includes the official discord and GitHub repositories under `enso-org`.
 
-> Adapted from the [Node.js Policy on Trolling](http://blog.izs.me/post/30036893703/policy-on-trolling)
-> as well as the [Contributor Covenant v1.3.0](https://www.contributor-covenant.org/version/1/3/0/).
+> Adapted from the
+> [Node.js Policy on Trolling](http://blog.izs.me/post/30036893703/policy-on-trolling)
+> as well as the
+> [Contributor Covenant v1.3.0](https://www.contributor-covenant.org/version/1/3/0/).
 
 ### Moderators
+
 The following members of the Enso organisation can be contacted as moderators:
 
 - [`@joenash`](https://github.com/joenash)
@@ -107,6 +112,7 @@ Alternatively, you can send an email to the moderation team at
 [moderators@enso.org](mailto:moderators@enso.org).
 
 ## Credit
+
 This code of conduct is adapted from the [Rust](https://rust-lang.org) code of
 conduct. Many thanks to the Rust community for being such an exemplar of the
 open-source spirit!

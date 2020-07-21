@@ -7,6 +7,7 @@ order: 8
 ---
 
 # The Enso Macro Syntax
+
 Enso provides a macro system that allows users to perform AST to AST
 transformations on the provided pieces of code. While many languages' macros
 provide their users with access to the compilation and type-checking phases
@@ -32,11 +33,12 @@ provide their users with access to the compilation and type-checking phases
 <!-- /MarkdownTOC -->
 
 ## Annotations
+
 Much like annotations on the JVM, annotations in Enso are tags that perform a
 purely syntactic transformation on the entity to which they are applied. The
-implementation of this requires both parser changes and support for
-user-defined macros, but for now it would be possible to work only with a set
-of hard-coded annotation macros.
+implementation of this requires both parser changes and support for user-defined
+macros, but for now it would be possible to work only with a set of hard-coded
+annotation macros.
 
 Annotations can be arbitrarily nested, so a set of annotation macros become
 implicitly nested inside each other:
@@ -60,11 +62,12 @@ derive Eq Debug
 ```
 
 In the presence of annotations and macros, it becomes more and more important
-that we are able to reserve words such as `type` to ensure that users can
-always have a good sense of what the most common constructs in the language
-mean, rather than allowing them to be overridden outside of the stdlib.
+that we are able to reserve words such as `type` to ensure that users can always
+have a good sense of what the most common constructs in the language mean,
+rather than allowing them to be overridden outside of the stdlib.
 
 ## Automatic Deriving
+
 In order to make the language easier to debug, we have all types automatically
 derive an interface `DebugShow`. This interface provides a function that will
 print all the significant information about the value (e.g. locations, types,

@@ -58,7 +58,8 @@ class PassManager(
   /** Calculates the number of times each pass occurs in the pass ordering.
     *
     * @return the a mapping from the pass identifier to the number of times the
-    *         pass occurs */
+    *         pass occurs
+    */
   private def calculatePassCounts: mutable.Map[UUID, PassCount] = {
     val passCounts: mutable.Map[UUID, PassCount] = mutable.Map()
 

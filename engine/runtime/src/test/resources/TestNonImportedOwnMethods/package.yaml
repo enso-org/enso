@@ -1,5 +1,5 @@
 name: TestNonImportedOwnMethods
 license: APLv2
-version: '0.0.1'
-author: 'Enso Team <contact@enso.org>'
-maintainer: 'Enso Team <contact@enso.org>'
+version: "0.0.1"
+author: "Enso Team <contact@enso.org>"
+maintainer: "Enso Team <contact@enso.org>"

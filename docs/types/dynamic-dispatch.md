@@ -7,6 +7,7 @@ order: 6
 ---
 
 # Dynamic Dispatch
+
 Enso is a language that supports pervasive dynamic dispatch. This is a big boon
 for usability, as users can write very flexible code that still plays nicely
 with the GUI.
@@ -29,6 +30,7 @@ implementation of dynamic dispatch in Enso.
 <!-- /MarkdownTOC -->
 
 ## Specificity
+
 In order to determine which of the potential dispatch candidates is the correct
 one to select, the compiler needs to have a notion of _specificity_, which is
 effectively an algorithm for determining which candidate is more specific than
@@ -60,6 +62,7 @@ another.
 >   arguments).
 
 ## Multiple Dispatch
+
 It is an open question as to whether we want to support proper multiple dispatch
 in Enso. Multiple dispatch refers to the dynamic dispatch target being
 determined based not only on the type of the `this` argument, but the types of

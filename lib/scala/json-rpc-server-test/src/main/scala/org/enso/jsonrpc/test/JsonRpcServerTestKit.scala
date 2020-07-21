@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import io.circe.Json
+import io.circe.{ACursor, Decoder, DecodingFailure, HCursor, Json}
 import io.circe.parser.parse
 import org.enso.jsonrpc.{ClientControllerFactory, JsonRpcServer, Protocol}
 import org.scalatest.matchers.should.Matchers
@@ -27,6 +27,15 @@ abstract class JsonRpcServerTestKit
     with Matchers
     with BeforeAndAfterAll
     with BeforeAndAfterEach {
+
+  implicit final class ACursorExpectedField(cursor: ACursor) {
+
+    def downExpectedField(name: String): Decoder.Result[HCursor] = {
+      val newCursor = cursor.downField(name)
+      newCursor.success
+        .toRight(DecodingFailure(s"Field '$name' not found", newCursor.history))
+    }
+  }
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)

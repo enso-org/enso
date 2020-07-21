@@ -1,0 +1,97 @@
+## PRIVATE
+   A helper for the `map` function.
+
+   Uses unsafe field mutation under the hood, to rewrite `map` in
+   a tail-recursive manner. The mutation is purely internal and does not leak
+   to the user-facing API.
+map_helper list cons f = case list of
+    Cons h t ->
+        res = Cons (f h) Nil
+        Unsafe.set_atom_field cons 1 res
+        here.map_helper t res f
+    Nil -> Unsafe.set_atom_field cons 1 Nil
+
+## The basic cons-list type.
+
+   A cons-list allows to store an arbitrary number of elements.
+   Prepending to the list can be achieved by using the `Cons` constructor,
+   while an empty list is represented by `Nil`.
+   > Example
+     A list containing the elements `1`, `2`, and `3`, in this order is:
+         Cons 1 (Cons 2 (Cons 3 Nil))
+type List
+    Nil
+    Cons
+
+    ## Applies a function to each element of the list, returning the list of
+       results.
+
+       > Example
+         In the following example, we add `1` to each element of the list:
+             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . map +1
+         The result of running the code above is:
+             Cons 1 <| Cons 2 <| Cons 3 <| Nil
+    map : (Any -> Any) -> List
+    map f = case this of
+        Nil -> Nil
+        Cons h t ->
+            res = Cons (f h) Nil
+            here.map_helper t res f
+            res
+
+    ## Applies a function to each element of the list.
+
+       Unlike `map`, this method does not return the individual results,
+       therefore it is only useful for side-effecting computations.
+
+       > Example
+         In the following example, we're printing each element of the list
+         to the standard output:
+             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . each IO.println
+    each : (Any -> Any) -> Unit
+    each f = case this of
+        Nil -> Unit
+        Cons h t ->
+            f h
+            t.each f
+
+    ## Combines all the elements of the list, by iteratively applying the
+       passed function with next elements of the list.
+
+       In general, the result of
+           (Cons l0 <| Cons l1 <| ... <| Cons ln) . fold init f
+       is the same as
+           f (...(f (f init l0) l1)...) ln
+
+       > Example
+         In the following example, we'll compute the sum of all elements of a
+         list:
+             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . fold 0 (+)
+    fold : Any -> (Any -> Any -> Any) -> Any
+    fold init f = case this of
+        Nil -> init
+        Cons h t -> t.fold (f init h) f
+
+    ## Reverses the list, returning a list with the same elements, but in the
+       opposite order.
+    reverse : List
+    reverse = this.fold Nil (l -> el -> Cons el l)
+
+    ## Computes the number of elements in the list.
+    length : Number
+    length = this.fold 0 (acc -> _ -> acc + 1)
+
+    ## Checks whether any element of the list matches the given predicate.
+
+       A predicate is a function that takes a list element and returns
+       a Boolean value.
+
+       > Example
+         In the following example, we'll check if any element of the list is
+         larger than `1`:
+             (Cons 0 <| Cons 1 <| Cons 2 <| Nil) . any (> 5)
+    any : (Any -> Boolean) -> Boolean
+    any predicate = case this of
+        Nil -> False
+        Cons h t -> if predicate h then True else t.any predicate
+

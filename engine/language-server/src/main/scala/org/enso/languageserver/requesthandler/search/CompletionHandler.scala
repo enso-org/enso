@@ -8,7 +8,7 @@ import org.enso.languageserver.runtime.SearchApi.{
   Completion,
   SuggestionsDatabaseError
 }
-import org.enso.languageserver.runtime.SearchProtocol
+import org.enso.languageserver.runtime.{SearchFailureMapper, SearchProtocol}
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -34,10 +34,10 @@ class CompletionHandler(
     case Request(
           Completion,
           id,
-          Completion.Params(module, pos, selfType, returnType, tags)
+          Completion.Params(file, pos, selfType, returnType, tags)
         ) =>
       suggestionsHandler ! SearchProtocol.Completion(
-        module,
+        file,
         pos,
         selfType,
         returnType,
@@ -63,6 +63,9 @@ class CompletionHandler(
       log.error(s"Request $id timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
+
+    case msg: SearchProtocol.SearchFailure =>
+      replyTo ! ResponseError(Some(id), SearchFailureMapper.mapFailure(msg))
 
     case SearchProtocol.CompletionResult(version, results) =>
       replyTo ! ResponseResult(

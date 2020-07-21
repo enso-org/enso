@@ -19,9 +19,9 @@ class RenameProjectCmd(
   request: Api.RenameProject
 ) extends Command(maybeRequestId) {
 
-  /** @inheritdoc **/
-  override def execute(
-    implicit ctx: RuntimeContext,
+  /** @inheritdoc */
+  override def execute(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
     Future {
@@ -34,7 +34,7 @@ class RenameProjectCmd(
         )
         val context = ctx.executionService.getContext
         context.renameProject(request.oldName, request.newName)
-        reply(Api.ProjectRenamed())
+        reply(Api.ProjectRenamed(request.newName))
         logger.log(Level.INFO, s"Project renamed to ${request.newName}")
       } finally {
         ctx.locking.releaseWriteCompilationLock()

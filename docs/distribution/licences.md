@@ -7,6 +7,7 @@ order: 6
 ---
 
 # Licenses
+
 When distributing Enso, we include code from many dependencies that are used
 within it. We need to ensure that we comply with the licenses of the
 dependencies that we distribute with Enso.
@@ -23,10 +24,12 @@ dependencies that we distribute with Enso.
 <!-- /MarkdownTOC -->
 
 ## Gathering Used Dependencies
+
 As a first step, we need to gather a list of which dependencies are used in the
 distributed artifacts.
 
 ### SBT
+
 We can use the plugin `sbt-license-report` to gather a list of used dependencies
 and their licences. To use it, run `enso/dumpLicenseReport` in the SBT shell.
 This will gather dependency information for all the subprojects. For each
@@ -40,6 +43,7 @@ actually built into distributable artifacts. For now these are: `runtime`,
 `runner`, `project-manager` and `launcher`.
 
 #### `sbt-license-report` Configuration
+
 Settings for the plugin are defined in the `licenseSettings` variable in
 [`build.sbt`](../../build.sbt). The settings have to be applied to each project
 by adding `.settings(licenseSettings)` to the project definition (defining these
@@ -53,6 +57,7 @@ Currently it is set to only consider `compile` dependencies, as dependencies for
 `provided`, `test` or `benchmark` are not distributed.
 
 ### Rust
+
 We do not distribute any Rust-based artifacts in this repository.
 
 > The actionables for this section are:
@@ -62,6 +67,7 @@ We do not distribute any Rust-based artifacts in this repository.
 >   gathering dependencies used in the Rust projects.
 
 ## Preparing the Distribution
+
 When a new dependency is added, its transitive dependencies have to be analysed
 as described in the previous section. Various action has to be taken depending
 on the particular licences.
@@ -74,6 +80,7 @@ the distribution by adding them to an aggregate `NOTICE` file. To find these
 dependencies or visit project websites of each dependency.
 
 ### Launcher
+
 As the launcher is distributed as a native binary executable, the licences and
 notices have to be included separately.
 
@@ -84,6 +91,7 @@ directory. The notices should be gathered in
 files are included by the CI build within the built artifacts.
 
 ### Engine Components
+
 > The actionables for this section are:
 >
 > - The engine components as distributed as a JAR archive that everyone can
@@ -92,6 +100,7 @@ files are included by the CI build within the built artifacts.
 >   notices should be replicated in the distributed packages anyway.
 
 ### Bundles
+
 Beside the launcher and engine components, the distributed bundles also contain
 a distribution of GraalVM CE. This distribution however contains its own licence
 and notices within itself, so no further action should be necessary in that

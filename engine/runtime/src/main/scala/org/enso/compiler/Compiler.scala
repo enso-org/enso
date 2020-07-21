@@ -49,7 +49,7 @@ class Compiler(private val context: Context) {
     val compilerOutput = runCompilerPhases(expr, moduleContext)
     runErrorHandling(compilerOutput, source, moduleContext)
     truffleCodegen(compilerOutput, source, scope)
-    expr
+    compilerOutput
   }
 
   /**

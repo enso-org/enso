@@ -7,6 +7,7 @@ order: 11
 ---
 
 # Reading Source Code
+
 The reader is responsible for abstracting the interface to reading a character
 from a stream. This handles abstracting away the various encodings that the
 project is going to use, as well as backing formats for the stream.
@@ -15,12 +16,13 @@ project is going to use, as well as backing formats for the stream.
 
 - [Reader Functionality](#reader-functionality)
 - [Provided Readers](#provided-readers)
-    - [UTF-8 Reader](#utf-8-reader)
-    - [UTF-16 Reader](#utf-16-reader)
+  - [UTF-8 Reader](#utf-8-reader)
+  - [UTF-16 Reader](#utf-16-reader)
 
 <!-- /MarkdownTOC -->
 
 ## Reader Functionality
+
 The reader has the following functionality:
 
 - It reads its input _lazily_, not requiring the entire input to be in
