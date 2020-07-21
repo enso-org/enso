@@ -57,10 +57,10 @@ case class ParserService() extends Server with Protocol {
         val doc      = DocParserRunner.createDocs(dropMeta)
         val code     = DocParserHTMLGenerator.generateHTMLForEveryDocumented(doc)
         Protocol.SuccessDoc(code)
-      case DocParserGenerateHtmlFromDoc(docStr) =>
-        val doc  = DocParser.runMatched(docStr)
-        val code = DocParserHTMLGenerator.generateHTMLPureDoc(doc)
-        Protocol.SuccessDoc(code)
+      case DocParserGenerateHtmlFromDoc(code) =>
+        val doc      = DocParser.runMatched(code)
+        val htmlCode = DocParserHTMLGenerator.generateHTMLPureDoc(doc)
+        Protocol.SuccessDoc(htmlCode)
       case _ =>
         throw new Exception(f"unimplemented request: $request")
     }
