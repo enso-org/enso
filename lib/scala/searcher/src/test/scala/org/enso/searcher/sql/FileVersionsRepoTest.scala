@@ -44,6 +44,10 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
   "FileVersionsRepo" should {
 
+    "init idempotent" in withRepo { repo =>
+      Await.result(repo.init, Timeout)
+    }
+
     "insert digest" taggedAs Retry in withRepo { repo =>
       val file   = new File("/foo/bar")
       val digest = nextDigest()

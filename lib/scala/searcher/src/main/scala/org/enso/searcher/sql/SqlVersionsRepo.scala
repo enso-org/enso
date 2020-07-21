@@ -38,8 +38,10 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.close()
 
   /** The query to initialize the repo. */
-  private def initQuery: DBIO[Unit] =
-    FileVersions.schema.createIfNotExists
+  private def initQuery: DBIO[Unit] = {
+    // Initialize schema suppressing errors. Workaround for slick/slick#1999.
+    FileVersions.schema.createIfNotExists.asTry >> DBIO.successful(())
+  }
 
   /** The query to clean the repo. */
   private def cleanQuery: DBIO[Unit] =

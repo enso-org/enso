@@ -40,6 +40,10 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
   "SuggestionsRepo" should {
 
+    "init idempotent" in withRepo { repo =>
+      Await.result(repo.init, Timeout)
+    }
+
     "get all suggestions" taggedAs Retry in withRepo { repo =>
       val action =
         for {
