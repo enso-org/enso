@@ -249,7 +249,10 @@ object Main {
               }
               .getOrElse(sourceLoc.getSource.getName)
             val loc = if (sourceLoc.getStartLine == sourceLoc.getEndLine) {
-              s"${sourceLoc.getStartLine}:${sourceLoc.getStartColumn}-${sourceLoc.getEndColumn}"
+              val line  = sourceLoc.getStartLine
+              val start = sourceLoc.getStartColumn
+              val end   = sourceLoc.getEndColumn
+              s"$line:$start-$end"
             } else {
               s"${sourceLoc.getStartLine}-${sourceLoc.getEndLine}"
             }
