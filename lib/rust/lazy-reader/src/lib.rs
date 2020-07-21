@@ -8,7 +8,7 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-//! This module exports a reader that is able to process large inputs in constant memory.
+//! This module exports a reader that is able to process large textual inputs in constant memory.
 
 pub mod decoder;
 

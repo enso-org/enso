@@ -37,9 +37,9 @@ The lazy reader consists of the following parts:
 ### Read
 
 The `Read` trait is similar to `std::io::Read`, but supports different
- encodings but `&[u8]`. It provides the interface 
+ encodings than just `&[u8]`. It provides the interface 
  `fn read(&mut self, buffer:&mut [Self::Item]) -> usize` that fills the provided
- buffer with the data tha are being read.
+ buffer with the data that is being read.
  
 Any structure that implements `std::io::Read` also implements `Read<Item=u8>`.
 
@@ -47,18 +47,18 @@ Any structure that implements `std::io::Read` also implements `Read<Item=u8>`.
 
 The `Decoder` trait is an interface for reading a single character from an 
 underlying buffer `fn decode(words:&[Self::Word]) -> Char`. The type of buffer
-depends on the type of encoding so that i.e. UTF-32 can use `&[char]` directly.
+depends on the type of the underlying encoding so that i.e. UTF-32 can use `&[char]` directly.
 
 #### Example Usage  
 
-To put thins into perspective, this is how the reader is constructed from a file
+To put things into perspective, this is how the reader is constructed from a file
 and a string.
+
 ```rust
 let string      = "Hello, World!";
 let byte_reader = Reader::new(string.as_bytes(), DecoderUTF8(), 0);
 let file_reader = Reader::new(File::open("foo.txt")?, DecoderUTF8(), 0);
 ```
-
 
 ## Provided Encodings 
 The decoders currently provides the following input encodings.
