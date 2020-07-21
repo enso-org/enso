@@ -1,0 +1,8 @@
+This file is present in the root of the portable Enso distribution to allow the
+universal launcher to detect if it should run in portable or locally installed
+mode.
+
+It is advised not to remove this file, unless deleting the whole directory.
+
+If you want to locally install the launcher, you should not remove this file,
+but simply run `./bin/enso install distribution`.
