@@ -18,13 +18,18 @@ use uuid::Uuid;
 // === Abstract Syntax Tree (Stub) ===
 // ===================================
 
+/// An ast node of unknown shape.
+pub type AnyAst = Ast<Shape>;
+
 /// An ast node with an unique id and length.
 #[derive(Debug,Clone)]
-pub struct Ast {
+pub struct Ast<Shape> {
     /// An unique identifier.
     uid: Option<Uuid>,
     /// Length in number of chars of this ast node.
     len: usize,
+    /// The number of trailing spaces.
+    off: usize,
     /// The ast node itself.
     ast: Shape,
 }
@@ -99,18 +104,12 @@ pub struct Text { pub text: String }
 /// The ast node for application.
 #[allow(missing_docs)]
 #[derive(Debug,Clone)]
-pub struct Prefix { pub func: Box<Ast>, pub off: usize, pub arg: Box<Ast> }
+pub struct Prefix { pub func: Box<AnyAst>, pub arg: Box<AnyAst> }
 
 /// The ast node for an infix operator application.
 #[allow(missing_docs)]
 #[derive(Debug,Clone)]
-pub struct Infix {
-    pub larg: Box<Ast>,
-    pub loff: usize,
-    pub opr: Box<Ast>,
-    pub roff: usize,
-    pub rarg: Box<Ast>,
-}
+pub struct Infix { pub larg: Box<AnyAst>, pub opr: Box<Ast<Opr>>, pub rarg: Box<AnyAst> }
 
 
 // === Module ===
@@ -120,7 +119,7 @@ pub struct Infix {
 /// The module consists of a sequence of possibly empty lines with no leading indentation.
 #[allow(missing_docs)]
 #[derive(Debug,Clone)]
-pub struct Module { pub lines: Vec<Line<Option<Ast>>> }
+pub struct Module { pub lines: Vec<Option<AnyAst>> }
 
 
 // === Block ===
@@ -137,9 +136,9 @@ pub struct Block {
     /// it contains, counting from the root.
     pub empty_lines: Vec<usize>,
     /// First line with non-empty item.
-    pub first_line: Box<Line<Ast>>,
+    pub first_line: Box<AnyAst>,
     /// Rest of lines, each of them optionally having contents.
-    pub lines: Vec<Line<Option<Ast>>>,
+    pub lines: Vec<Option<AnyAst>>,
 }
 
 /// The ast node of a line in block or module.
@@ -152,19 +151,23 @@ pub struct Line<T> {
 }
 
 
+// === Definition ===
+
+pub struct MethodDefinition { name:Ast<Var>, args:AnyAst, body:AnyAst }
+
 // === Into<Shape> ===
 
-impl From<Unrecognized> for Shape { fn from(val: Unrecognized) -> Self { Self::Unrecognized(val) } }
-impl From<Blank>        for Shape { fn from(val: Blank)        -> Self { Self::Blank       (val) } }
-impl From<Var>          for Shape { fn from(val: Var)          -> Self { Self::Var         (val) } }
-impl From<Cons>         for Shape { fn from(val: Cons)         -> Self { Self::Cons        (val) } }
-impl From<Opr>          for Shape { fn from(val: Opr)          -> Self { Self::Opr         (val) } }
-impl From<Number>       for Shape { fn from(val: Number)       -> Self { Self::Number      (val) } }
-impl From<Text>         for Shape { fn from(val: Text)         -> Self { Self::Text        (val) } }
-impl From<Prefix>       for Shape { fn from(val: Prefix)       -> Self { Self::Prefix      (val) } }
-impl From<Infix>        for Shape { fn from(val: Infix)        -> Self { Self::Infix       (val) } }
-impl From<Module>       for Shape { fn from(val: Module)       -> Self { Self::Module      (val) } }
-impl From<Block>        for Shape { fn from(val: Block)        -> Self { Self::Block       (val) } }
+impl From<Unrecognized> for Shape { fn from(val:Unrecognized) -> Self { Self::Unrecognized(val) } }
+impl From<Blank>        for Shape { fn from(val:Blank)        -> Self { Self::Blank       (val) } }
+impl From<Var>          for Shape { fn from(val:Var)          -> Self { Self::Var         (val) } }
+impl From<Cons>         for Shape { fn from(val:Cons)         -> Self { Self::Cons        (val) } }
+impl From<Opr>          for Shape { fn from(val:Opr)          -> Self { Self::Opr         (val) } }
+impl From<Number>       for Shape { fn from(val:Number)       -> Self { Self::Number      (val) } }
+impl From<Text>         for Shape { fn from(val:Text)         -> Self { Self::Text        (val) } }
+impl From<Prefix>       for Shape { fn from(val:Prefix)       -> Self { Self::Prefix      (val) } }
+impl From<Infix>        for Shape { fn from(val:Infix)        -> Self { Self::Infix       (val) } }
+impl From<Module>       for Shape { fn from(val:Module)       -> Self { Self::Module      (val) } }
+impl From<Block>        for Shape { fn from(val:Block)        -> Self { Self::Block       (val) } }
 
 
 
@@ -172,7 +175,7 @@ impl From<Block>        for Shape { fn from(val: Block)        -> Self { Self::B
 // === Constructors ===
 // ====================
 
-impl Ast {
+impl AnyAst {
     /// Creates a new ast node with random `Uuid` from `Shape`.
     pub fn new(ast:impl Into<Shape>) -> Self {
         Self::new_with_id(ast, Some(Uuid::new_v4()))
@@ -220,14 +223,14 @@ impl Ast {
 
 impl Prefix {
     /// Creates an `Prefix` shape with spacing=0.
-    pub fn from_vars(func:Ast, arg:Ast) -> Self {
+    pub fn from_vars(func:AnyAst, arg:AnyAst) -> Self {
         Self {func:Box::new(func), off:0, arg:Box::new(arg)}
     }
 }
 
 impl Infix {
     /// Creates an `Infix` shape with spacing=0.
-    pub fn from_vars(larg:Ast, opr:Ast, rarg:Ast) -> Infix {
+    pub fn from_vars(larg:AnyAst, opr:AnyAst, rarg:AnyAst) -> Infix {
         Infix {larg:Box::new(larg), loff:0, opr:Box::new(opr), roff:1, rarg:Box::new(rarg)}
     }
 }
@@ -235,14 +238,14 @@ impl Infix {
 
 impl Module {
     /// Creates a `Module` shape with lines storing given ASTs.
-    pub fn from_lines(lines:&[Option<Ast>]) -> Self {
+    pub fn from_lines(lines:&[Option<AnyAst>]) -> Self {
         Self {lines: lines.iter().cloned().map(Line::new).collect()}
     }
 }
 
 impl Block {
     /// Creates a `Block` shape with lines storing given ASTs.
-    pub fn new(indent:usize, first_line:Ast, tail_lines:&[Option<Ast>]) -> Self {
+    pub fn new(indent:usize, first_line:AnyAst, tail_lines:&[Option<AnyAst>]) -> Self {
         let empty_lines = Vec::new();
         let first_line  = Box::new(Line::new(first_line));
         let lines       = tail_lines.iter().cloned().map(Line::new).collect();
