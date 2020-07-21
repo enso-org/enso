@@ -13,9 +13,8 @@ package org.enso.cli
 case class Command[A](
   name: String,
   comment: String,
-  related: Seq[String] = Seq()
-)(
-  val opts: Opts[A]
+  opts: Opts[A],
+  related: Seq[String]
 ) {
 
   /**
@@ -55,6 +54,22 @@ case class Command[A](
 case class Subcommand[A](name: String)(val opts: Opts[A])
 
 object Command {
+
+  /**
+    * Utility constructor for creating commands.
+    *
+    * Allows for the following syntax
+    * {{{
+    *   val command = Command("name", "help text.") {
+    *     Opts.positionalArgument[Int]("ARG") map { arg =>
+    *       println(s"Argument was $arg.")
+    *     }
+    *   }
+    * }}}
+    */
+  def apply[A](name: String, comment: String, related: Seq[String] = Seq())(
+    opts: Opts[A]
+  ): Command[A] = new Command(name, comment, opts, related)
 
   /**
     * A helper function that creates a mapping of related command names from a
