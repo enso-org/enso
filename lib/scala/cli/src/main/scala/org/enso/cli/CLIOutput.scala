@@ -22,6 +22,7 @@ object CLIOutput {
     *
     * If a word without spaces is longer than [[terminalWidth]] it is also not
     * wrapped. This is done to avoid breaking long URLs when wrapping text.
+    *
     * @param text the text to align and wrap
     * @param minTableWidth if provided, the first column in each table is
     *                      padded to have at least this width

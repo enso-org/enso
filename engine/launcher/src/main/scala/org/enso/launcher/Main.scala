@@ -57,7 +57,13 @@ object Main {
       "Run a project or Enso script.",
       related = Seq("exec", "execute", "build")
     ) {
-      val pathOpt        = Opts.optionalArgument[Path]("PATH")
+      val pathOpt = Opts.optionalArgument[Path](
+        "PATH",
+        "If PATH points to a file, that file is run as a script. " +
+        "If it points to a directory, the project from that directory is " +
+        "run. If a PATH is not provided, a project in the current working " +
+        "directory is run."
+      )
       val additionalArgs = Opts.additionalArguments()
       (pathOpt, jvmArgs, additionalArgs) mapN {
         (path, jvmArgs, additionalArgs) => (_: Config) =>
@@ -281,7 +287,7 @@ object Main {
     application.run(args) match {
       case Left(errors) =>
         CLIOutput.println(errors.mkString("\n"))
-        System.exit(1) // TODO [RW]
+        System.exit(1)
       case Right(()) =>
     }
   }

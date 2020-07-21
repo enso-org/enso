@@ -58,6 +58,7 @@ class Application[Config](
   /**
     * Runs the application logic. Parses the top level options and depending on
     * its result, possibly runs a command or a plugin.
+    *
     * @return either a list of errors encountered when parsing the options or
     *         [[Unit]] if it succeeded
     */
@@ -125,6 +126,7 @@ class Application[Config](
   /**
     * Generates a help text for an unknown command, including, if available,
     * suggestions of similar commands.
+    *
     * @param typo the unrecognized command name
     */
   def commandSuggestions(typo: String): String = {
@@ -185,6 +187,7 @@ trait PluginManager {
 
 /**
   * Defines the behaviour of parsing top-level application options.
+  *
   * @tparam Config type of configuration that is passed to commands
   */
 trait TopLevelBehavior[+Config]
@@ -194,6 +197,7 @@ object TopLevelBehavior {
     * If top-level options return a value of this class, the application should
     * continue execution. The provided value of `Config` should be passed to the
     * executed commands.
+    *
     * @param withConfig the configuration that is passed to commands
     * @tparam Config type of configuration that is passed to commands
     */

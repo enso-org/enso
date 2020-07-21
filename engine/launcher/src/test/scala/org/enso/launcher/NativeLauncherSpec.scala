@@ -1,10 +1,8 @@
 package org.enso.launcher
 
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
 import buildinfo.Info
 
-class NativeLauncherSpec extends AnyWordSpec with Matchers with NativeTest {
+class NativeLauncherSpec extends NativeTest {
   "native launcher" should {
     "display its version" in {
       val run = runLauncher(Seq("--version"))

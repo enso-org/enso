@@ -317,8 +317,8 @@ object Opts {
     new Flag(name, None, help, showInUsage)
 
   /**
-    * A flag with a short alternative that returns a [[Boolean]] value indicating
-    * if it was provided in the command line.
+    * A flag with a short alternative that returns a [[Boolean]] value
+    * indicating if it was provided in the command line.
     *
     * Returns true if `--name` or `-s` (where `s` is the short argument) is
     * included in the command line.
@@ -413,6 +413,7 @@ object Opts {
     *
     * It can be used to accept possibly unknown parameters that are passed to
     * other applications.
+    *
     * @param help an additional help message
     */
   def additionalArguments(help: String = ""): Opts[Seq[String]] =

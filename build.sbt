@@ -994,11 +994,6 @@ lazy val launcher = project
           )
         )
         .value
-//    (Compile / compileIncremental) := {
-//      val res = (Compile / compileIncremental).value
-//      println(s"COMPILE INC: ${res.hasModified}")
-//      res
-//    }
   )
   .settings(licenseSettings)
   .dependsOn(cli)

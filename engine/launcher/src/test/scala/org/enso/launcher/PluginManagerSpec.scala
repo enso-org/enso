@@ -5,17 +5,13 @@ import java.nio.file.{Files, Path}
 import org.scalatest.OptionValues
 
 import scala.jdk.CollectionConverters._
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
 
 import scala.sys.process._
 
 class PluginManagerSpec
-    extends AnyWordSpec
-    with Matchers
+    extends NativeTest
     with OptionValues
-    with WithTemporaryDirectory
-    with NativeTest {
+    with WithTemporaryDirectory {
 
   def makePluginCode(name: String): Seq[String] =
     Seq(s"""echo "Plugin $name."""")

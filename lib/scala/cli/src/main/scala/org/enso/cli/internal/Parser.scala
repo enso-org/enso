@@ -86,6 +86,7 @@ object Parser {
 
   /**
     * Parses an option set.
+    *
     * @param opts the option set that defines the parsing logic
     * @param tokens the sequence of tokens to parse
     * @param additionalArguments additional arguments that may be needed by the

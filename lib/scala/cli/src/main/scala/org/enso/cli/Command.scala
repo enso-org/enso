@@ -40,7 +40,6 @@ case class Command[A](
   /**
     * Returns a top-level help entry for the application help text. It includes
     * a short description of the command.
-    * @return
     */
   def topLevelHelp: CommandHelp = CommandHelp(name, comment)
 }
@@ -48,6 +47,7 @@ case class Command[A](
 /**
   * A stripped-down alternative to [[Command]] that is used in
   * [[Opts.subcommands]].
+  *
   * @param name name of the subcommand
   * @param opts parsing logic for the subcommand's options
   * @tparam A type returned by the command
@@ -68,6 +68,7 @@ object Command {
   /**
     * Creates a message that is displayed when a related command is executed. It
     * points the user to the original command instead and informs them on usage.
+    *
     * @param name name of the entered, unkown command
     * @param commandsPath a sequence of words used to generate the help command
     * @param availableCommands a sequence of available subcommands that is
@@ -94,6 +95,7 @@ object Command {
 
 /**
   * A help entry used in the top-level help text.
+  *
   * @param name name of a command
   * @param comment a short description of that command
   */

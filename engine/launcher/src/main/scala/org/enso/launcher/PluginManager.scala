@@ -15,7 +15,6 @@ import org.enso.cli.{
 import scala.collection.Factory
 import scala.util.Try
 import scala.jdk.StreamConverters._
-import scala.util.control.NonFatal
 
 /**
   * An abstraction of the system environment.
@@ -57,19 +56,9 @@ class PluginManagerImplementation(environment: SystemEnvironment)
     args: Seq[String]
   ): PluginBehaviour =
     if (hasPlugin(name)) {
-      try {
-        val exitCode = (Seq(pluginCommandForName(name)) ++ args).!
-        System.exit(exitCode)
-        PluginInterceptedFlow
-      } catch {
-        case NonFatal(_) =>
-          System.err.println(
-            s"A plugin `$name` was found on system PATH, " +
-            s"but it could not be executed."
-          )
-          PluginNotFound
-      }
-
+      val exitCode = (Seq(pluginCommandForName(name)) ++ args).!
+      System.exit(exitCode)
+      PluginInterceptedFlow
     } else PluginNotFound
 
   private val pluginPrefix           = "enso-"
