@@ -282,10 +282,13 @@ jobs:
           chmod +x artifacts/enso-engine-${{ env.DIST_VERSION }}/enso-${{ env.DIST_VERSION }}/bin/project-manager
           chmod +x artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/bin/enso
           chmod +x artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/bin/enso
+          mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/config
           mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/dist
           mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/runtime
+          mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/config
           mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/dist
           mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/runtime
+          mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/config
           mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/dist
           mkdir artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/runtime
 
@@ -304,9 +307,9 @@ jobs:
       - name: Prepare Bundles
         shell: bash
         run: |
-          cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}/enso-${{ env.DIST_VERSION }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/dist
-          cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}/enso-${{ env.DIST_VERSION }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/dist
-          cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}/enso-${{ env.DIST_VERSION }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/dist
+          cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}/enso-${{ env.DIST_VERSION }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/dist/${{ env.DIST_VERSION }}
+          cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}/enso-${{ env.DIST_VERSION }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/dist/${{ env.DIST_VERSION }}
+          cp -r artifacts/enso-engine-${{ env.DIST_VERSION }}/enso-${{ env.DIST_VERSION }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/dist/${{ env.DIST_VERSION }}
           mv graalvm-linux/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-linux-amd64/enso/runtime
           mv graalvm-macos/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-macos-amd64/enso/runtime
           mv graalvm-windows/graalvm-ce-java${{ env.javaVersion }}-${{ env.graalVersion }} artifacts/enso-launcher-${{ env.DIST_VERSION }}-windows-amd64/enso/runtime
