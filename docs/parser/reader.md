@@ -31,11 +31,9 @@ The reader has the following functionality:
   later by calling `rewind`.
   
 ## Reader Structure
-
 The lazy reader consists of the following parts:
 
 ### Read
-
 The `Read` trait is similar to `std::io::Read`, but supports different
  encodings than just `&[u8]`. It provides the interface 
  `fn read(&mut self, buffer:&mut [Self::Item]) -> usize` that fills the provided
@@ -44,13 +42,11 @@ The `Read` trait is similar to `std::io::Read`, but supports different
 Any structure that implements `std::io::Read` also implements `Read<Item=u8>`.
 
 ### Decoder
-
 The `Decoder` trait is an interface for reading a single character from an 
 underlying buffer `fn decode(words:&[Self::Word]) -> Char`. The type of buffer
 depends on the type of the underlying encoding so that i.e. UTF-32 can use `&[char]` directly.
 
 #### Example Usage  
-
 To put things into perspective, this is how the reader is constructed from a file
 and a string.
 
@@ -78,5 +74,4 @@ Rust also uses UTF-32 encoding for its characters. Therefore, this encoding is
 required in order to support inputs as `&[char]`. 
 
 ### Benchmarks
-
 7/17/2020: The parser is throughput is around 100e+6 chars/s.

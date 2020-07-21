@@ -34,6 +34,9 @@ pub trait Read {
     fn read(&mut self, buffer:&mut [Self::Item]) -> usize;
 }
 
+
+// === Trait Impls ===
+
 impl<R:std::io::Read> Read for R {
     type Item = u8;
 
@@ -67,15 +70,6 @@ pub enum Error {
     InvalidChar,
 }
 
-impl From<Error> for u32 {
-    fn from(error: Error) -> Self {
-        match error {
-            Error::EOF         => u32::max_value(),
-            Error::InvalidChar => u32::max_value() - 1,
-        }
-    }
-}
-
 /// Strongly typed identifier of `Bookmark`
 #[derive(Debug,Clone,Copy)]
 pub struct BookmarkId {
@@ -86,7 +80,7 @@ pub struct BookmarkId {
 /// Bookmarks a specific character in buffer, so that `LazyReader` can return to it when needed.
 #[derive(Debug,Clone,Copy)]
 pub struct Bookmark {
-    /// The offset of bookmarked character.
+    /// The position of bookmarked character in `reader.buffer`.
     offset: usize,
 }
 
@@ -200,6 +194,18 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
 }
 
 
+// === Trait Impls ===
+
+impl From<Error> for u32 {
+    fn from(error: Error) -> Self {
+        match error {
+            Error::EOF         => u32::max_value(),
+            Error::InvalidChar => u32::max_value() - 1,
+        }
+    }
+}
+
+
 
 // =============
 // === Tests ===
@@ -230,6 +236,14 @@ mod tests {
         /// How many more times the input should be repeated.
         repeat: usize,
     }
+
+    /// Creates a reader that repeats an input n times.
+    fn repeat<T:Copy>(input:Vec<T>, repeat:usize) -> impl Read<Item=T> {
+        Repeat { buffer:input, repeat, offset: 0 }
+    }
+
+
+    // === Trait Impls ===
 
     impl<T:Copy> Read for Repeat<T> {
         type Item = T;
@@ -263,11 +277,6 @@ mod tests {
             self.offset = buffer.len();
             read
         }
-    }
-
-    /// Creates a reader that repeats an input n times.
-    fn repeat<T:Copy>(input:Vec<T>, repeat:usize) -> impl Read<Item=T> {
-        Repeat { buffer:input, repeat, offset: 0 }
     }
 
 
@@ -316,6 +325,8 @@ mod tests {
             result.push(char);
         }
         assert_eq!(&result, &str);
+        assert_eq!(reader.bookmark.len(), 0);
+        assert_eq!(reader.buffer.len(), BUFFER_SIZE);
     }
 
     #[bench]
