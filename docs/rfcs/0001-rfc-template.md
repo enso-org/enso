@@ -6,14 +6,14 @@ tags: [rfcs, specification]
 order: 1 # Should match the RFC Number
 ---
 
----
-
-> **Feature Name:** A unique name for the feature **Start Date:** Today's date
-> (YYYY-MM-DD) **Change Type:** Breaking / Non-Breaking (delete as appropriate)
-> **RFC Dependencies:** List any RFCs that this one depends on. **RFC PR:**
-> Leave Empty **Enso Issue:** Leave Empty **Implemented:** Leave blank, this
-> will be filled with the first version of the relevant tool where it is
-> implemented.
+> - **Feature Name:** A unique name for the feature
+> - **Start Date:** Today's date (YYYY-MM-DD)
+> - **Change Type:** Breaking / Non-Breaking (delete as appropriate)
+> - **RFC Dependencies:** List any RFCs that this one depends on.
+> - **RFC PR:** Leave Empty
+> - **Enso Issue:** Leave Empty
+> - **Implemented:** Leave blank, this will be filled with the first version of
+>   the relevant tool where it is implemented.
 
 # Summary
 
