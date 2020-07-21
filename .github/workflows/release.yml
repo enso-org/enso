@@ -338,7 +338,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: enso-${{ env.DIST_VERSION }}
-          release_name: Release ${{ env.DIST_VERSION }}
+          release_name: Enso ${{ env.DIST_VERSION }}
           body: "Please fill-in the release description"
           draft: true
           prerelease: true
