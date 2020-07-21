@@ -607,7 +607,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receive(6) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
