@@ -17,7 +17,6 @@ use enso_protocol::types::*;
 use ide::model::Project;
 use ide::model::execution_context::Visualization;
 use ide::transport::web::WebSocket;
-use ide::view::project::INITIAL_MODULE_NAME;
 use std::time::Duration;
 #[allow(unused_imports)]
 use wasm_bindgen_test::wasm_bindgen_test;
@@ -300,22 +299,35 @@ async fn setup_project() -> Project {
 //#[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 /// This integration test covers writing and reading a file using the binary protocol
-async fn binary_protocol_test() {
+async fn file_operations_test() {
     let _guard   = ide::ide::setup_global_executor();
     let project  = setup_project().await;
     println!("Got project: {:?}",project);
-    let path     = Path::new(project.language_server_rpc.content_root(), &["test_file.txt"]);
-    let contents = "Hello!".as_bytes();
-    let written  = project.language_server_bin.write_file(&path,contents).await.unwrap();
+    // Edit file using the text protocol
+    let path     = Path::new(project.json_rpc().content_root(), &["test_file.txt"]);
+    let contents = "Hello, 世界!".to_string();
+    let written  = project.json_rpc().write_file(&path,&contents).await.unwrap();
     println!("Written: {:?}", written);
-    let read_back = project.language_server_bin.read_file(&path).await.unwrap();
+    let read_back = project.json_rpc().read_file(&path).await.unwrap();
     println!("Read back: {:?}", read_back);
-    assert_eq!(contents, read_back.as_slice());
+    assert_eq!(contents, read_back.contents);
+
+    // Edit file using the binary protocol.
+    let other_contents = "Totally different treść.";
+    let read_back = project.binary_rpc().read_file(&path).await.unwrap();
+    assert_eq!(contents.as_bytes(), read_back.as_slice());
+    project.binary_rpc().write_file(&path, other_contents.as_bytes()).await.unwrap();
+    let read_back = project.binary_rpc().read_file(&path).await.unwrap();
+    assert_eq!(other_contents.as_bytes(), read_back.as_slice());
+
+    // Once again check that we read the same thing with text protocol.
+    let read_back = project.json_rpc().read_file(&path).await.unwrap();
+    assert_eq!(other_contents, read_back.contents);
 }
 
 /// The future that tests attaching visualization and routing its updates.
 async fn binary_visualization_updates_test_hlp() {
-    let project  = Rc::new(setup_project().await);
+    let project  = setup_project().await;
     println!("Got project: {:?}", project);
 
     let expression = "x -> x.json_serialize";
@@ -323,8 +335,8 @@ async fn binary_visualization_updates_test_hlp() {
     use ensogl::system::web::sleep;
     use ide::view::project::MAIN_DEFINITION_NAME;
 
-    let logger      = Logger::new("Test");
-    let module_path = project.module_path_from_qualified_name(&[INITIAL_MODULE_NAME]).unwrap();
+    let logger                = Logger::new("Test");
+    let module_path           = ide::view::project::initial_module_path(&project).unwrap();
     let method                = module_path.method_pointer(MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module                = project.module(module_path).await.unwrap();

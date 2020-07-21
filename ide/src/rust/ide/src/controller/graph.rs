@@ -402,7 +402,7 @@ impl EndpointInfo {
 #[derive(Clone,CloneRef,Debug)]
 pub struct Handle {
     /// Model of the module which this graph belongs to.
-    pub module : Rc<model::synchronized::Module>,
+    pub module : model::Module,
     parser     : Parser,
     id         : Rc<Id>,
     logger     : Logger,
@@ -412,7 +412,7 @@ impl Handle {
 
     /// Creates a new controller. Does not check if id is valid.
     pub fn new_unchecked
-    (parent:impl AnyLogger, module:Rc<model::synchronized::Module>, parser:Parser, id:Id) -> Handle {
+    (parent:impl AnyLogger, module:model::Module, parser:Parser, id:Id) -> Handle {
         let id     = Rc::new(id);
         let logger = Logger::sub(parent,format!("Graph Controller {}", id));
         Handle {module,parser,id,logger}
@@ -421,7 +421,7 @@ impl Handle {
     /// Create a new graph controller. Given ID should uniquely identify a definition in the
     /// module. Fails if ID cannot be resolved.
     pub fn new
-    (parent:impl AnyLogger, module:Rc<model::synchronized::Module>, parser:Parser, id:Id)
+    (parent:impl AnyLogger, module:model::Module, parser:Parser, id:Id)
     -> FallibleResult<Handle> {
         let ret = Self::new_unchecked(parent,module,parser,id);
         // Get and discard definition info, we are just making sure it can be obtained.
@@ -435,12 +435,12 @@ impl Handle {
     pub async fn new_method
     (parent:impl AnyLogger, project:&model::Project, method:&language_server::MethodPointer)
     -> FallibleResult<controller::Graph> {
-        let method = method.clone();
+        let method      = method.clone();
         let module_path = model::module::Path::from_file_path(method.file.clone())?;
         let module      = project.module(module_path).await?;
-        let module_ast  = module.model.ast();
-        let definition = double_representation::module::lookup_method(&module_ast,&method)?;
-        Self::new(parent,module,project.parser.clone_ref(),definition)
+        let module_ast  = module.ast();
+        let definition  = double_representation::module::lookup_method(&module_ast,&method)?;
+        Self::new(parent,module,project.parser(),definition)
     }
 
     /// Retrieves double rep information about definition providing this graph.
@@ -755,23 +755,18 @@ impl Handle {
 // ============
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
-    use crate::double_representation::definition::DefinitionName;
-    use crate::double_representation::node::NodeInfo;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
-    use crate::model::module::Path as ModulePath;
 
-    use ast::HasRepr;
     use ast::crumbs;
+    use ast::test_utils::expect_shape;
     use data::text::Index;
     use data::text::TextChange;
-    use enso_protocol::language_server;
     use parser::Parser;
     use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;
-    use ast::test_utils::expect_shape;
 
     /// All the data needed to set up and run the graph controller in mock environment.
     #[derive(Clone,Debug)]
@@ -783,127 +778,102 @@ mod tests {
     }
 
     impl MockData {
-        pub fn new(code:impl Str) -> Self {
+        /// Creates a mock data with the `main` function being an inline definition with a single
+        /// node.
+        pub fn new() -> Self {
             MockData {
                 module_path  : model::module::Path::from_mock_module_name("Main"),
-                graph_id     :  Id::new_plain_name("main"),
+                graph_id     : Id::new_plain_name("main"),
                 project_name : "MockProject".to_string(),
-                code         : code.into(),
+                code         : "main = 2 + 2".to_string(),
             }
         }
 
         /// Creates a mock data with the main function being an inline definition.
         ///
         /// The single node's expression is taken as the argument.
-        pub fn new_inline(main_body:impl Str) -> Self {
-            Self::new(format!("main = {}", main_body.as_ref()))
+        pub fn new_inline(main_body:impl Into<String>) -> Self {
+            MockData {
+                code : format!("main = {}", main_body.into()),
+                ..Self::new()
+            }
         }
 
-        /// Creates module and graph controllers.
-        pub fn create_controllers(&self) -> (controller::Module,Handle) {
-            let ls = language_server::Connection::new_mock_rc(default());
-            self.create_controllers_with_ls(ls)
+        pub fn module_data(&self) -> model::module::test::MockData {
+            model::module::test::MockData {
+                code : self.code.clone(),
+                path : self.module_path.clone(),
+                ..default()
+            }
         }
 
-        /// Like `create_controllers`, but allows  passing a custom LS client (e.g. with some
-        /// expectations already set or shared with other controllers).
-        pub fn create_controllers_with_ls
-        (&self, ls:Rc<language_server::Connection>) -> (controller::Module,Handle) {
+        /// Create a graph controller from the current mock data.
+        pub fn graph(&self) -> Handle {
+            let logger = Logger::new("Test");
+            let parser = Parser::new().unwrap();
+            let module = self.module_data().plain(&parser);
             let id     = self.graph_id.clone();
-            let path   = self.module_path.clone();
-            let code   = &self.code;
-            let id_map = default();
-            let parser = Parser::new_or_panic();
-            let module = controller::Module::new_mock(path,code,id_map,ls,parser).unwrap();
-            let graph  = module.graph_controller(id).unwrap();
-            (module,graph)
+            Handle::new(logger,module,parser,id).unwrap()
+        }
+    }
+
+    impl Default for MockData {
+        fn default() -> Self {
+            Self::new()
         }
     }
 
     #[derive(Debug,Shrinkwrap)]
     #[shrinkwrap(mutable)]
-    pub struct Fixture(pub TestWithLocalPoolExecutor);
+    pub struct Fixture{
+        pub data  : MockData,
+        #[shrinkwrap(main_field)]
+        pub inner : TestWithLocalPoolExecutor,
+    }
+
     impl Fixture {
         pub fn set_up() -> Fixture {
-            let nested = TestWithLocalPoolExecutor::set_up();
-            Self(nested)
+            let data  = MockData::new();
+            let inner = TestWithLocalPoolExecutor::set_up();
+            Self {data,inner}
         }
 
-        pub fn run<Fut>
-        ( &mut self
-        , data : MockData
-        , test : impl FnOnce(controller::Module,Handle) -> Fut + 'static
-        ) where Fut : Future<Output=()> {
-            let (module,graph) = data.create_controllers();
+        pub fn run<Test,Fut>(&mut self, test:Test)
+        where Test : FnOnce(Handle) -> Fut + 'static,
+              Fut  : Future<Output=()> {
+            let graph = self.data.graph();
             self.run_task(async move {
-                test(module,graph).await
+                test(graph).await
             })
-        }
-
-        pub fn run_graph_for_main<Test,Fut>
-        (&mut self, code:impl Str, test:Test)
-        where Test : FnOnce(controller::Module,Handle) -> Fut + 'static,
-              Fut  : Future<Output=()> {
-            let data = MockData::new(code);
-            self.run(data,test)
-        }
-
-        pub fn run_graph_for<Test,Fut>(&mut self, code:impl Str, graph_id:Id, test:Test)
-            where Test : FnOnce(controller::Module,Handle) -> Fut + 'static,
-                  Fut  : Future<Output=()> {
-
-            let mut data = MockData::new(code);
-            data.graph_id = graph_id;
-            self.run(data,test);
-        }
-
-        pub fn run_inline_graph<Test,Fut>(&mut self, definition_body:impl Str, test:Test)
-        where Test : FnOnce(controller::Module,Handle) -> Fut + 'static,
-              Fut  : Future<Output=()> {
-            assert_eq!(definition_body.as_ref().contains('\n'), false);
-            let code = format!("main = {}", definition_body.as_ref());
-            self.run_graph_for_main(code,test)
         }
     }
 
     #[wasm_bindgen_test]
     fn node_operations() {
-        TestWithLocalPoolExecutor::set_up().run_task(async {
-            let code   = "main = Hello World";
-            let path   = ModulePath::from_mock_module_name("Test");
-            let model  = model::Module::from_code_or_panic(code,default(),default());
-            let module = model::synchronized::Module::mock(path,model);
-            let parser = Parser::new().unwrap();
-            let pos    = model::module::Position {vector:Vector2::new(0.0,0.0)};
-            let crumbs = vec![DefinitionName::new_plain("main")];
-            let id     = Id {crumbs};
-            let graph  = Handle::new(Logger::new("Test"),module,parser,id).unwrap();
-            let uid    = graph.all_node_infos().unwrap()[0].id();
-
-            graph.module.with_node_metadata(uid, |data| data.position = Some(pos));
-
+        Fixture::set_up().run(|graph| async move {
+            let uid = graph.all_node_infos().unwrap()[0].id();
+            let pos = model::module::Position {vector:Vector2::new(0.0,0.0)};
+            graph.module.with_node_metadata(uid, Box::new(|data| data.position = Some(pos)));
             assert_eq!(graph.module.node_metadata(uid).unwrap().position, Some(pos));
         })
     }
 
     #[wasm_bindgen_test]
     fn graph_controller_notification_relay() {
-        let mut test = Fixture::set_up();
-        test.run_graph_for_main("main = 2 + 2", |module, graph| async move {
-            let text_change = TextChange::insert(Index::new(12), "2".into());
-            module.apply_code_change(text_change).unwrap();
-
+        Fixture::set_up().run(|graph| async move {
             let mut sub = graph.subscribe();
-            module.apply_code_change(TextChange::insert(Index::new(1),"2".to_string())).unwrap();
+            let change  = TextChange::insert(Index::new(12), "2".into());
+            graph.module.apply_code_change(change, &graph.parser,default()).unwrap();
             assert_eq!(Some(Notification::Invalidate), sub.next().await);
-        })
+        });
     }
 
     #[wasm_bindgen_test]
     fn graph_controller_inline_definition() {
         let mut test = Fixture::set_up();
-        const EXPRESSION: &str = "2+2";
-        test.run_inline_graph(EXPRESSION, |_,graph| async move {
+        const EXPRESSION:&str = "2+2";
+        test.data.code = iformat!("main = {EXPRESSION}");
+        test.run(|graph| async move {
             let nodes   = graph.nodes().unwrap();
             let (node,) = nodes.expect_tuple();
             assert_eq!(node.info.expression().repr(), EXPRESSION);
@@ -916,12 +886,12 @@ mod tests {
     #[wasm_bindgen_test]
     fn graph_controller_block_definition() {
         let mut test  = Fixture::set_up();
-        let program = r"
+        test.data.code = r"
 main =
     foo = 2
-    print foo";
-        test.run_graph_for_main(program, |_, graph| async move {
-            let nodes   = graph.nodes().unwrap();
+    print foo".to_string();
+        test.run(|graph| async move {
+            let nodes         = graph.nodes().unwrap();
             let (node1,node2) = nodes.expect_tuple();
             assert_eq!(node1.info.expression().repr(), "2");
             assert_eq!(node2.info.expression().repr(), "print foo");
@@ -931,8 +901,7 @@ main =
     #[wasm_bindgen_test]
     fn graph_controller_parse_expression() {
         let mut test  = Fixture::set_up();
-        let program = r"main = 0";
-        test.run_graph_for_main(program, |_, graph| async move {
+        test.run(|graph| async move {
             let foo = graph.parse_node_expression("foo").unwrap();
             assert_eq!(expect_shape::<ast::Var>(&foo), &ast::Var {name:"foo".into()});
 
@@ -947,8 +916,8 @@ main =
     #[wasm_bindgen_test]
     fn graph_controller_used_names_in_inline_def() {
         let mut test  = Fixture::set_up();
-        const PROGRAM:&str = r"main = foo";
-        test.run_graph_for_main(PROGRAM, |_, graph| async move {
+        test.data.code = "main = foo".into();
+        test.run(|graph| async move {
             let expected_name = LocatedName::new_root(NormalizedName::new("foo"));
             let used_names    = graph.used_names().unwrap();
             assert_eq!(used_names, vec![expected_name]);
@@ -958,12 +927,12 @@ main =
     #[wasm_bindgen_test]
     fn graph_controller_nested_definition() {
         let mut test  = Fixture::set_up();
-        const PROGRAM:&str = r"main =
+        test.data.code = r"main =
     foo a =
         bar b = 5
-    print foo";
-        let definition = definition::Id::new_plain_names(vec!["main","foo"]);
-        test.run_graph_for(PROGRAM, definition, |module, graph| async move {
+    print foo".into();
+        test.data.graph_id = definition::Id::new_plain_names(&["main","foo"]);
+        test.run(|graph| async move {
             let expression = "new_node";
             graph.add_node(NewNodeInfo::new_pushed_back(expression)).unwrap();
             let expected_program = r"main =
@@ -971,7 +940,7 @@ main =
         bar b = 5
         new_node
     print foo";
-            module.expect_code(expected_program);
+            model::module::test::expect_code(&*graph.module,expected_program);
         })
     }
 
@@ -982,14 +951,15 @@ main =
         let mut test  = Fixture::set_up();
         // Not using multi-line raw string literals, as we don't want IntelliJ to automatically
         // strip the trailing whitespace in the lines.
-        const PROGRAM:&str = "main =\n    foo a =\n        bar b = 5\n    print foo";
-        let definition = definition::Id::new_plain_names(vec!["main","foo","bar"]);
-        test.run_graph_for(PROGRAM, definition, |module, graph| async move {
+        test.data.code     = "main =\n    foo a =\n        bar b = 5\n    print foo".into();
+        test.data.graph_id = definition::Id::new_plain_names(&["main","foo","bar"]);
+        test.run(|graph| async move {
             let expression = "new_node";
             graph.add_node(NewNodeInfo::new_pushed_back(expression)).unwrap();
             let expected_program = "main =\n    foo a =\n        bar b = \
                                     \n            5\n            new_node\n    print foo";
-            module.expect_code(expected_program);
+
+            model::module::test::expect_code(&*graph.module,expected_program);
         })
     }
 
@@ -1000,9 +970,10 @@ main =
 main =
     foo = 2
     print foo";
-        test.run_graph_for_main(PROGRAM, |module, graph| async move {
+        test.data.code = PROGRAM.into();
+        test.run(|graph| async move {
             // === Initial nodes ===
-            let nodes   = graph.nodes().unwrap();
+            let nodes         = graph.nodes().unwrap();
             let (node1,node2) = nodes.expect_tuple();
             assert_eq!(node1.info.expression().repr(), "2");
             assert_eq!(node2.info.expression().repr(), "print foo");
@@ -1024,7 +995,8 @@ main =
     foo = 2
     print foo
     a+b";
-            module.expect_code(expected_program);
+
+            model::module::test::expect_code(&*graph.module,expected_program);
             let nodes = graph.nodes().unwrap();
             let (_,_,node3) = nodes.expect_tuple();
             assert_eq!(node3.info.id(),id);
@@ -1050,7 +1022,7 @@ main =
             assert_eq!(node2.info.expression().repr(), "print foo");
             assert!(graph.module.node_metadata(id).is_err());
 
-            module.expect_code(PROGRAM);
+            model::module::test::expect_code(&*graph.module, PROGRAM);
         })
     }
 
@@ -1065,7 +1037,8 @@ main =
     print z
     foo
         print z";
-        test.run_graph_for_main(PROGRAM, |_, graph| async move {
+        test.data.code = PROGRAM.into();
+        test.run(|graph| async move {
             let connections = graph.connections().unwrap();
 
             let (node0,node1,node2,node3,node4) = graph.nodes().unwrap().expect_tuple();
@@ -1130,7 +1103,9 @@ main =
                 let src_port = src_port.to_vec();
                 let dst_port = dst_port.to_vec();
 
-                test.run_graph_for_main(main, |_, graph| async move {
+                test.data.code = main;
+                test.run(|graph| async move {
+                    println!("The nodes: {:?}", graph.nodes());
                     let (node0,node1) = graph.nodes().unwrap().expect_tuple();
                     let source        = Endpoint::new(node0.info.id(),src_port.to_vec());
                     let destination   = Endpoint::new(node1.info.id(),dst_port.to_vec());
@@ -1163,7 +1138,8 @@ main =
     a = 1
     b = 3
     sum = _ + b";
-        test.run_graph_for_main(PROGRAM,  |_, graph| async move {
+        test.data.code = PROGRAM.into();
+        test.run(|graph| async move {
             assert!(graph.connections().unwrap().connections.is_empty());
             let (node0,_node1,node2) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
@@ -1192,6 +1168,7 @@ main =
     print _
     calculate1 = calculate2
     calculate3 calculate5 = calculate5 calculate4";
+        test.data.code = PROGRAM.into();
         // Note: we expect that name `calculate5` will be introduced. There is no conflict with a
         // function argument, as it just shadows outer variable.
         const EXPECTED:&str = r"main =
@@ -1199,7 +1176,7 @@ main =
     print calculate5
     calculate1 = calculate2
     calculate3 calculate5 = calculate5 calculate4";
-        test.run_graph_for_main(PROGRAM, |_, graph| async move {
+        test.run(|graph| async move {
             assert!(graph.connections().unwrap().connections.is_empty());
             let (node0,node1,_) = graph.nodes().unwrap().expect_tuple();
             let connection_to_add = Connection {
@@ -1257,11 +1234,10 @@ main =
             fn run(&self) {
                 let mut test  = Fixture::set_up();
                 const MAIN_PREFIX:&str = "main = \n    var = foo\n    ";
-                let main     = format!("{}{}",MAIN_PREFIX,self.dest_node_expr);
-                let expected = format!("{}{}",MAIN_PREFIX,self.dest_node_expected);
-                let this     = self.clone();
-
-                test.run_graph_for_main(main,|_,graph| async move {
+                test.data.code = format!("{}{}",MAIN_PREFIX,self.dest_node_expr);
+                let expected   = format!("{}{}",MAIN_PREFIX,self.dest_node_expected);
+                let this       = self.clone();
+                test.run(|graph| async move {
                     let connections = graph.connections().unwrap();
                     let connection  = connections.connections.first().unwrap();
                     graph.disconnect(connection).unwrap();

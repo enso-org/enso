@@ -53,8 +53,9 @@ pub mod prelude {
     pub use crate::executor;
     pub use crate::model;
 
-    pub use enso_protocol::prelude::LocalBoxFuture;
-    pub use enso_protocol::prelude::LocalBoxStream;
+    pub use enso_protocol::prelude::BoxFuture;
+    pub use enso_protocol::prelude::StaticBoxFuture;
+    pub use enso_protocol::prelude::StaticBoxStream;
 
     pub use futures::Future;
     pub use futures::FutureExt;

@@ -33,14 +33,16 @@ pub mod prelude {
     pub use logger::enabled::Logger;
 
     pub use std::future::Future;
+    /// We always use local futures in our single-threaded environment
+    pub use futures::future::LocalBoxFuture as BoxFuture;
 
-    /// We want all our futures to be static. Otherwise, the would automatically inherit
+    /// We want most our futures to be static. Otherwise, they would automatically inherit
     /// lifetime of the client, which is not the desired behavior.
-    pub type LocalBoxFuture<T> = futures::future::LocalBoxFuture<'static,T>;
+    pub type StaticBoxFuture<T> = futures::future::LocalBoxFuture<'static,T>;
 
     /// We want all our streams to be static. Otherwise, the would automatically inherit
     /// lifetime of the client, which is not the desired behavior.
-    pub type LocalBoxStream<T> = futures::stream::LocalBoxStream<'static,T>;
+    pub type StaticBoxStream<T> = futures::stream::LocalBoxStream<'static,T>;
     pub use futures::FutureExt;
     pub use futures::Stream;
     pub use futures::StreamExt;

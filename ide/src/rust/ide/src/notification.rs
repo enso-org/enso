@@ -51,7 +51,7 @@ impl<Message> Publisher<Message>
 where Message                        : 'static + Send,
       flo_stream::Publisher<Message> : MessagePublisher<Message=Message>  {
     /// Publish a message to the subscribers of this object.
-    pub fn publish(&self, message:Message) -> LocalBoxFuture<()> {
+    pub fn publish(&self, message:Message) -> StaticBoxFuture<()> {
         self.0.borrow_mut().publish(message)
     }
 

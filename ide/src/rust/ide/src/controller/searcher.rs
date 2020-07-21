@@ -246,9 +246,9 @@ impl Searcher {
             data            : default(),
             notifier        : default(),
             module          : Rc::new(project.qualified_module_name(&module)),
-            database        : project.suggestion_db.clone_ref(),
-            language_server : project.language_server_rpc.clone_ref(),
-            parser          : project.parser.clone_ref(),
+            database        : project.suggestion_db(),
+            language_server : project.json_rpc(),
+            parser          : project.parser(),
         };
         this.reload_list();
         this
