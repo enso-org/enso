@@ -118,7 +118,7 @@ class RuntimeServerTest
             |    y = this + 3
             |    z = y * x
             |    z
-            |""".stripMargin
+            |""".stripMargin.linesIterator.mkString("\n")
         )
 
       object Update {
