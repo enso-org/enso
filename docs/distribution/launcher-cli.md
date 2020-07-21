@@ -19,8 +19,10 @@ This document describes available command-line options of the Enso launcher.
 
 - [Commands](#commands)
   - [`new`](#new)
-  - [`install`](#install)
-  - [`uninstall`](#uninstall)
+  - [`install engine`](#install-engine)
+  - [`uninstall engine`](#uninstall-engine)
+  - [`install distribution`](#install-distribution)
+  - [`uninstall distribution`](#uninstall-distribution)
   - [`list`](#list)
   - [`default`](#default)
   - [`config`](#config)
@@ -33,6 +35,7 @@ This document describes available command-line options of the Enso launcher.
 - [General Options](#general-options)
   - [`--version`](#--version)
   - [`--use-system-jvm`](#--use-system-jvm)
+- [JVM Options](#jvm-options)
 
 <!-- /MarkdownTOC -->
 
@@ -52,20 +55,52 @@ Examples:
     # creates the project in the current directory, using the 2.0.1 version
 ```
 
-### `install`
-Installs a specific version of Enso.
+### `install engine`
+Installs a specific version of the Enso engine.
 
 Examples:
 ```bash
-> enso install 2.0.1
+> enso install engine 2.0.1
 ```
 
-### `uninstall`
-Uninstalls a specific version of Enso.
+### `uninstall engine`
+Uninstalls a specific version of the Enso engine.
 
 Examples:
 ```bash
-> enso uninstall 2.0.1
+> enso uninstall engine 2.0.1
+```
+
+### `install distribution`
+Installs a portable Enso distribution into system-defined directories, as
+explained in
+[Installed Enso Distribution Layout](./distribution.md#installed-enso-distribution-layout).
+By default, it asks the user for confirmation, but this can be skipped by
+adding a `--yes` flag.
+
+Examples:
+```
+> extraction-location/bin/enso install distribution
+This will install Enso to ~/.local/share/enso/.
+Configuration will be placed in ~/.config/enso/.
+The universal `enso` launcher will be placed in ~/.local/bin/.
+Do you want to continue? [Y/n]
+```
+
+### `uninstall distribution`
+Uninstalls an installed Enso distribution from the installation location
+described in
+[Installed Enso Distribution Layout](./distribution.md#installed-enso-distribution-layout).
+It removes the universal launcher and all components. By default, it asks the
+user for confirmation, but this can be skipped by adding a `--yes` flag.
+
+Examples:
+```
+> enso uninstall distribution
+This will completely uninstall Enso from ~/.local/share/enso/,
+remove configuration from ~/.config/enso/
+and the launcher script from ~/.local/bin/.
+Do you want to continue? [y/N]
 ```
 
 ### `list`
@@ -196,3 +231,12 @@ command.
 ### `--use-system-jvm`
 Tells the launcher to use the default JVM (based on `JAVA_HOME`) instead of the
 managed one. Will not work if the set-up JVM version is not GraalVM.
+
+## JVM Options
+For commands that launch an Enso component inside a JVM (`repl`, `run` and
+`language-server`), additional parameters are passed to the launcher components.
+Moreover, it is possible to pass parameters to the JVM that is used to launch
+these components, which may be helpful with debugging.
+
+A parameter of the form `--jvm.argumentName=argumentValue` will be passed to the
+JVM as `-DargumentName=argumentValue`.

@@ -903,9 +903,9 @@ lazy val runner = project
     },
     mainClass in (Compile, run) := Some("org.enso.runner.Main"),
     mainClass in assembly := (Compile / run / mainClass).value,
-    assemblyJarName in assembly := "enso.jar",
+    assemblyJarName in assembly := "runner.jar",
     test in assembly := {},
-    assemblyOutputPath in assembly := file("enso.jar"),
+    assemblyOutputPath in assembly := file("runner.jar"),
     assemblyMergeStrategy in assembly := {
       case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
         MergeStrategy.discard

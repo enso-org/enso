@@ -14,6 +14,8 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Launcher Distribution](#launcher-distribution)
+  - [Using Multiple Launcher Versions Side-By-Side](#using-multiple-launcher-versions-side-by-side)
+  - [Detecting Portable Distribution](#detecting-portable-distribution)
 - [Launcher Build](#launcher-build)
   - [Portability](#portability)
 - [Project Management](#project-management)
@@ -25,6 +27,7 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
   - [Downloading Enso Releases](#downloading-enso-releases)
   - [Downloading GraalVM Releases](#downloading-graalvm-releases)
 - [Running Enso Components](#running-enso-components)
+  - [Running Plugins](#running-plugins)
 - [Global User Configuration](#global-user-configuration)
 - [Updating the Launcher](#updating-the-launcher)
   - [Minimal Required Launcher Version](#minimal-required-launcher-version)
@@ -34,17 +37,27 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
 
 ## Launcher Distribution
 The launcher is distributed as a native binary for each platform (Windows,
-Linux, Mac). It is distributed in a ZIP archive as described in
-[Enso Home Layout](./distribution.md#enso-home-layout), except that the
-component directories are empty (they will be populated when Enso versions are
-downloaded by the launcher on-demand). The only non-empty directory is `bin`
-which is where the launcher binary is placed. The ZIP file should also contain a
-[README](../../distribution/launcher/README.md) describing the distribution and
-basic usage.
+Linux, macOS). It is distributed in a ZIP archive as described in
+[Enso Distribution Layout](./distribution.md#enso-distribution-layout) in two
+flavors - as packages containing just the launcher binary that can then
+download and install desired versions of the engine and as bundles that already
+contain the latest version of Enso engine and Graal runtime corresponding to it.
 
-The distribution structure is portable - this directory structure can be placed
-anywhere in the system. The launcher places all components in this directory
-structure by accessing them as relative to the location of its binary.
+### Using Multiple Launcher Versions Side-By-Side
+Multiple portable distributions of the launcher can be used side-by-side. To use
+multiple installed distributions, some tricks are necessary - before launching a
+different version, the environment variables `ENSO_DATA_DIRECTORY`,
+`ENSO_CONFIG_DIRECTORY` and `ENSO_BIN_DIRECTORY` have to be set to directories
+corresponding to that version.
+
+### Detecting Portable Distribution
+As described in
+[Enso Distribution Layout](./distribution.md#enso-distribution-layout), the
+launcher can either be run in a portable distribution or installed locally. The
+launcher must detect if its run as the portable or installed distribution. When
+run, the launcher checks if it is placed in a directory called `bin` and checks
+the parent directory for a file called `.enso.portable`. If such file is found,
+the launcher runs in portable mode. Otherwise, it runs in installed mode.
 
 ## Launcher Build
 The launcher is built using
@@ -56,7 +69,7 @@ small and fast launching executable.
 On Linux, it is possible to statically link all libraries required by the Native
 Image, thus ensuring portability between Linux distributions.
 
-On Windows and Mac, it is not possible to statically link against system
+On Windows and macOS, it is not possible to statically link against system
 libraries, but this should not hinder portability as the system libraries are
 generally compatible between distribution versions on these platforms.
 Non-system dependencies are included in the binary on these platforms as well.
@@ -151,7 +164,22 @@ parameters and configuration:
    used.
 
 Additional arguments passed to the launcher are forwarded to the launched
-component.
+component. Moreover, options for the JVM that is used to run the components
+can also be provided, as described in
+[JVM Options](./launcher-cli.md#jvm-options).
+
+### Running Plugins
+If the launcher gets an unknown command `foo`, it tries to run `enso-foo` and
+pass all the arguments that follow. If `enso-foo` is not found, it fails as
+normal. This can be used to implement plugins that are launched through the
+universal launcher. For example, the Enso IDE can provide an `enso-ide`
+executable, allowing users to launch the IDE by typing `enso ide`.
+
+For a plugin to be recognized by the launcher, it needs to support a
+`--synopsis` option - running `enso-foo --synopsis` should print a short
+description and return with exit code 0, for the plugin to be considered
+supported. That description will be included in the command listing printed by
+`enso help`.
 
 ## Global User Configuration
 The launcher allows to edit global user configuration, saved in the `config`

@@ -233,12 +233,12 @@ inside the `runner` subproject:
 sbt "runner/assembly"
 ```
 
-This will produce an executable `enso.jar` fat jar in the repository root.
-It's self contained, with its only dependencies being available inside
-a vanilla GraalVM distribution. To run it, use:
+This will produce an executable `runner.jar` fat jar and a `runtime.jar` fat jar
+in the repository root. The `runner.jar` depends only on the `runtime.jar` and a
+vanilla GraalVM distribution. To run it, use:
 
 ```bash
-JAVA_HOME=<PATH_TO_GRAAL_HOME> ./enso.jar <CLI_ARGS>
+JAVA_HOME=<PATH_TO_GRAAL_HOME> ./runner.jar <CLI_ARGS>
 ```
 
 #### Building the Launcher Native Binary
@@ -267,7 +267,7 @@ To run it:
 
 1. Build (or download from the CI server) the CLI Fat Jar.
 2. Fill in the `engine/language-server/jupyter-kernel/enso/kernel.json`
-   file, providing correct paths to the `enso.jar` distribution and GraalVM
+   file, providing correct paths to the `runner.jar` distribution and GraalVM
    `JAVA_HOME`.
 3. Run:
 
@@ -433,7 +433,7 @@ Below are options uses by the Language Server:
 To run the Language Server on 127.0.0.1:8080 type:
 
 ```bash
-./enso.jar \
+./runner.jar \
   --server \
   --root-id 3256d10d-45be-45b1-9ea4-7912ef4226b1 \
   --path /tmp/content-root
