@@ -7,6 +7,7 @@ order: 8
 ---
 
 # Monadic Contexts
+
 Coming from a Haskell background, we have found that Monads provide a great
 abstraction with which to reason about program behaviour, but they have some
 severe usability issues. The main one of these is the lack of automatic lifting,
@@ -35,12 +36,13 @@ the compiler, and hence can be automatically lifted to aid usability.
 - [Context Definitions](#context-definitions)
 - [Context Lifting](#context-lifting)
 - [Inbuilt Contexts](#inbuilt-contexts)
-    - [IO](#io)
-    - [State](#state)
+  - [IO](#io)
+  - [State](#state)
 
 <!-- /MarkdownTOC -->
 
 ## Context Syntax
+
 There are three main notes about the syntax of contexts:
 
 1. Monadic contexts are defined using the `in` keyword (e.g. `Int in IO`).
@@ -50,6 +52,7 @@ There are three main notes about the syntax of contexts:
    through repeated uses of `in`.
 
 ## Monadic Bind
+
 It is also important to note that Enso has no equivalent to `<-` in Haskell.
 Instead, pure computations are implicitly placed in the `Pure` monadic context,
 and `=` acts to 'peel off' the outermost layer of contexts. As such, this means
@@ -57,6 +60,7 @@ that `=` _always_ acts as `bind`, greatly simplifying how the type-checker has
 to work.
 
 ## Context Definitions
+
 Contexts can be defined by users.
 
 > The actionables for this section are:
@@ -64,12 +68,14 @@ Contexts can be defined by users.
 > - How, what, when and why?
 
 ## Context Lifting
+
 > The actionables for this section are:
 >
 > - Specify and explain how automated lifting of monadic contexts works.
 > - It depends on the order of `runCtx`
 
 ## Inbuilt Contexts
+
 Enso includes a set of commonly-used monadic contexts as part of `Base`, its
 standard library. These are listed below.
 
@@ -78,6 +84,7 @@ standard library. These are listed below.
 > - Determine the full set of contexts that Enso should provide by default.
 
 ### IO
+
 > The actionables for this section are:
 >
 > - Determine the granularity of IO (it's not one context, but a lot).
@@ -85,6 +92,7 @@ standard library. These are listed below.
 >   as well as the impacts of this.
 
 ### State
+
 > The actionables for this section are:
 >
 > - Determine exactly how state works (the fact that the 'keys' are preset by

@@ -7,6 +7,7 @@ order: 1
 ---
 
 # Parser Technology Analysis
+
 As the Enso parser has some fairly unique requirements placed upon it, the
 choice of implementation technology is of paramount importance. Choosing the
 correct technology ensures that we can meet all of the requirements placed upon
@@ -22,6 +23,7 @@ the parser.
 <!-- /MarkdownTOC -->
 
 ## Technology Requirements for the Parser
+
 As the parser has to work both for the Engine and for the IDE, it has a strange
 set of requirements:
 
@@ -34,6 +36,7 @@ set of requirements:
   macOS, Linux and Windows.
 
 ## Issues With the Previous Implementation
+
 The previous implementation of the parser was implemented in Scala, and had some
 serious issues that have necessitated this rewrite:
 
@@ -48,6 +51,7 @@ serious issues that have necessitated this rewrite:
   textual operations under the hood, this proved to be a significant slowdown.
 
 ## Choosing Rust
+
 Rust, then, is an obvious choice for the following reasons:
 
 - It can be compiled _natively_ into the IDE binary, providing them with
@@ -59,6 +63,7 @@ Rust, then, is an obvious choice for the following reasons:
   interpreter to execute the parser safely in a non-native context.
 
 ### Downsides of Rust
+
 This is not to say that choosing rust doesn't come with some compromises:
 
 - It significantly complicates the CI pipeline for the engine, as we will have

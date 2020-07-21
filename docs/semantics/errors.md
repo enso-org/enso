@@ -7,6 +7,7 @@ order: 4
 ---
 
 # Errors
+
 Due to its hybrid nature, Enso supports two main exception systems that help
 users to deal with errors at runtime in the language.
 
@@ -20,11 +21,11 @@ users to deal with errors at runtime in the language.
 ## Asynchronous Exceptions
 
 > The actionables for this section are:
-> 
+>
 > - Specify the semantics of Enso's async exceptions.
 
 ## Broken Values
 
 > The actionables for this section are:
-> 
+>
 > - Specify the semantics of Enso's broken values.

@@ -7,8 +7,9 @@ order: 4
 ---
 
 # Runtime Features
-This document contains a detailed specification of Enso's runtime. It includes
-a description of the technologies on which it is built, as well as the features
+
+This document contains a detailed specification of Enso's runtime. It includes a
+description of the technologies on which it is built, as well as the features
 and functionality that it is required to support. In addition, the document aims
 to explain why _this_ design, rather than one of the many alternatives available
 to the team.
@@ -53,6 +54,7 @@ then describe the design of each component in detail.
 <!-- /MarkdownTOC -->
 
 # Architectural Overview
+
 The Enso runtime is just one of the many components of the Enso ecosystem. This
 section provides an overview of how it fits into the broader ecosystem, with a
 particular focus on how it enables workflows for Enso Studio, the Enso CLI, and
@@ -61,6 +63,7 @@ architecture of the runtime itself, breaking down the opaque 'runtime' label
 into the
 
 ## The Broader Enso Ecosystem
+
 While the runtime is arguably the core part of Enso, for the language would not
 be able to exist without it, the language's success is just as dependent on the
 surrounding ecosystem.
@@ -80,11 +83,11 @@ understanding how the runtime fits into the ecosystem.
 - **GUI Backend:** The GUI backend is instantiated for each project, and is
   responsible for all of the user-facing logic that goes into interaction with
   the Enso runtime.
-  + **Graph State Manager:** This component handles management of the state
+  - **Graph State Manager:** This component handles management of the state
     required to draw the graph in the GUI.
-  + **Double Representation Manager:** This component handles the encoding and
+  - **Double Representation Manager:** This component handles the encoding and
     decoding of the Enso program to and from the intermediate representation.
-  + **Undo/Redo Manager:** This component handles undo and redo for the graph, a
+  - **Undo/Redo Manager:** This component handles undo and redo for the graph, a
     somewhat novel operation as it does not not always have a 1:1 correspondence
     with textual editing.
 - **CLI:** This provides a command-line (specifically a terminal) interface to
@@ -97,6 +100,7 @@ understanding how the runtime fits into the ecosystem.
   interfaces to foreign languages.
 
 ## The Runtime's Architecture
+
 In order to better appreciate how the components specified below interact, it is
 important to have an understanding of the high-level architecture of the runtime
 itself. The design in this document pertains _only_ to the 'Enso Runtime'
@@ -108,6 +112,7 @@ information between the various components.
 TBC...
 
 # Choosing GraalVM
+
 Building the runtime on top of GraalVM was of course not the only choice that
 could've been made, but it was overwhelmingly the most sensible option out of
 those considered.
@@ -118,13 +123,13 @@ being considered.
 - **LLVM:** A battle-tested and comprehensive toolchain for the creation of
   language compilers, [LLVM](https://llvm.org/) includes facilities for
   compilation, optimisation, JIT, and linking.
-- **GHC:** The [Glasgow Haskell Compiler](https://gitlab.haskell.org/ghc/) is
-  a sophisticated compiler and runtime for Haskell that provides a
+- **GHC:** The [Glasgow Haskell Compiler](https://gitlab.haskell.org/ghc/) is a
+  sophisticated compiler and runtime for Haskell that provides a
   language-agnostic set of internal representations that could be leveraged to
   compile and/or interpret other functional languages.
 - **JVM:** The [JVM](https://openjdk.java.net/) is a high-performance virtual
-  machine that includes sophisticated garbage collection, profiling tools, and
-  a JIT compiler.
+  machine that includes sophisticated garbage collection, profiling tools, and a
+  JIT compiler.
 - **GraalVM:** A universal virtual machine and language development toolkit,
   [GraalVM](https://www.graalvm.org/) provides a framework for building language
   interpreters, as well as a JIT compiler. Most importantly, it provides tools
@@ -142,6 +147,7 @@ upsides (e.g. the JVM's sophisticated garbage collection machinery), they all
 had at least one 'fatal flaw' for Enso's use case.
 
 ### Speed of Development
+
 A language runtime is a complex beast, so any solution that could remove some of
 the implementation burden would be beneficial to Enso as a product.
 
@@ -167,6 +173,7 @@ interface, thereby enabling rapid development of a performant runtime without
 the need to implement complex components such as a GC and concurrency.
 
 ### Language Interoperability Support
+
 With Enso aiming to be the be-all and end-all for the data-science world, the
 ability to seamlessly interoperate with other programming languages is key. This
 means that a user should be able to paste in some Python or R code and have it
@@ -186,6 +193,7 @@ dream for ensuring that Enso can seamlessly communicate with a whole host of
 other programming languages.
 
 ### Implementation Performance
+
 Data science often involves the manipulation of very large amounts of data, and
 ensuring that an interactive environment like Enso doesn't slow down as it does
 so requires a high level of performance.
@@ -202,6 +210,7 @@ of effort, while still providing comprehensive facilities to improve performance
 further in the future.
 
 ### Maintenance Burden
+
 Just as important as getting a working runtime is the ability for the developers
 to improve and evolve it. This encompasses many factors, but Enso is primarily
 concerned with being able to evolve without having to account for undue changes
@@ -229,10 +238,12 @@ and as a result provides many of the facilities required by Enso for free or at
 least for little effort.
 
 # The Runtime Components
+
 Like any sensible large software project, Enso's runtime is modular and broken
 down into components. These are described in detail below.
 
 ## Language Server
+
 The language server component is responsible for controlling the runtime itself.
 It communicates with other portions of the ecosystem (such as the REPL and the
 Enso Studio backend) via a protocol. While this protocol is based on the
@@ -253,6 +264,7 @@ it has been extended significantly to better support Enso's use-cases.
 -->
 
 ## Filesystem Driver
+
 This component of the runtime deals with access from the runtime to external
 devices. This includes the Enso code files on disk, but is also responsible for
 watching filesystem resources (such as databases, files, and sockets) that are
@@ -265,6 +277,7 @@ used by Enso programs.
 -->
 
 ## Typechecker
+
 The typechecker is the portion of the runtime that handles the type-inference
 and type-checking of Enso code. This is a sophisticated piece of machinery, with
 the primary theory under which it operates being described in the specification
@@ -280,6 +293,7 @@ of [the type system](../types/README.md).
 -->
 
 ## Optimiser
+
 With much of Enso's performance relying on the JIT optimiser built into Graal,
 the native language optimiser instead relies on handling more front-end specific
 optimisations.
@@ -296,6 +310,7 @@ optimisations.
 -->
 
 ## Interpreter and JIT
+
 The interpreter component is responsible for the actual execution of Enso code.
 It is built on top of the Truffle framework provided by GraalVM, and is JIT
 compiled by GraalVM.
@@ -312,10 +327,12 @@ compiled by GraalVM.
 -->
 
 # Cross-Cutting Concerns
+
 The runtime also has to deal with a number of concerns that don't fit directly
 into the above components, but are nevertheless important parts of the design.
 
 ## Caching
+
 The runtime cache for Enso is a key part of how it delivers exceptional
 performance when working on big data sets. The key recognition, as seen in many
 data processing tools, is that changing code or data often doesn't require the
@@ -335,10 +352,11 @@ portions that are required of it, while using cached results for the rest.
 -->
 
 ## Profiling and Debugging
-Similarly important to the Enso user experience is the ability to visually
-debug and profile programs. This component deals with the retrieval, storage,
-and manipulation of profiling data, as well as the ability to debug programs in
-Enso using standard and non-standard debugging paradigms.
+
+Similarly important to the Enso user experience is the ability to visually debug
+and profile programs. This component deals with the retrieval, storage, and
+manipulation of profiling data, as well as the ability to debug programs in Enso
+using standard and non-standard debugging paradigms.
 
 <!-- TODO
 - An analysis of how breakpoints can be set in the Truffle interpreter.
@@ -350,6 +368,7 @@ Enso using standard and non-standard debugging paradigms.
 -->
 
 ## Foreign Language Interoperability
+
 This component deals with using the GraalVM language interoperability features
 to provide a seamless interface to foreign code from inside Enso.
 
@@ -362,6 +381,7 @@ to provide a seamless interface to foreign code from inside Enso.
 -->
 
 ## Lightweight Concurrency
+
 Though not strictly a component, this section deals with how Enso can provide
 its users with lightweight concurrency primitives in the form of green threads.
 
@@ -374,6 +394,7 @@ its users with lightweight concurrency primitives in the form of green threads.
 -->
 
 # The Initial Version of the Runtime
+
 In order to have a working version of the new runtime as quickly as possible, it
 was decided to design and build an initial, stripped-down version of the final
 design. This design focused on development of a minimal working subset of the
@@ -385,6 +406,7 @@ runtime that would allow Enso to run.
 -->
 
 # Development Considerations
+
 As part of developing the new Enso runtime, the following things need to be
 accounted for. This is to ensure that the eventual quality of the software is
 high, and that we also provide a product that is actually useful to our users.

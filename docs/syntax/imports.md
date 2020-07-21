@@ -7,20 +7,22 @@ order: 4
 ---
 
 # Imports and Exports
-In order to properly modularise and work with Enso code, the language provides
-a robust mechanism for importing code from modules, and also re-exporting that
+
+In order to properly modularise and work with Enso code, the language provides a
+robust mechanism for importing code from modules, and also re-exporting that
 code from modules.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Import Syntax](#import-syntax)
-    - [Visibility of Imported Bindings](#visibility-of-imported-bindings)
+  - [Visibility of Imported Bindings](#visibility-of-imported-bindings)
 - [Export Syntax](#export-syntax)
-    - [Visibility of Export Bindings](#visibility-of-export-bindings)
+  - [Visibility of Export Bindings](#visibility-of-export-bindings)
 
 <!-- /MarkdownTOC -->
 
 ## Import Syntax
+
 Importing a module is a way to bring its contents into scope in the current
 module. Imports in Enso appear as follows:
 
@@ -37,8 +39,8 @@ From there, Enso imports are broken up into four main categories:
     module name. It consists of the `import` keyword followed by a module path
     followed by the `as` keyword, followed by a referent name.
 3.  **Restricted Imports:** These import only the specific symbols from the
-    module into the current scope. They consist of the `import` keyword, followed
-    by a module path, followed by the `only` keyword, followed by a
+    module into the current scope. They consist of the `import` keyword,
+    followed by a module path, followed by the `only` keyword, followed by a
     space-separated list of symbols.
 4.  **Hiding Imports:** These are the inverse of restricted imports, and import
     _all_ symbols other than the named ones into the current scope. They consist
@@ -58,16 +60,19 @@ import D hiding symbol_1 symbol_2 # hiding
 import E as U only symbol_3       # qualified + restricted
 import F as V hiding symbol_4     # qualified + hiding
 ```
+
 Imports in Enso _may_ introduce ambiguous symbols, but this is not an error
 until one of the ambiguous symbols is _used_ in Enso code.
 
 ### Visibility of Imported Bindings
+
 When importing a module `X` into the current module `Y`, the bindings from `X`
 made available by the import (see above) become available in `Y`. However, Enso
 does not re-export imported bindings from a module by default, so the imported
 bindings from `X` are not visible in a module _importing_ `Y`.
 
 ## Export Syntax
+
 In order to allow for easy composition and aggregation of code, Enso provides
 its users with a mechanism to _export_ imported elements from modules. They
 appear in Enso as follows:
@@ -114,5 +119,6 @@ being exported into the module declaring the export. This means that exports
 that create name clashes need to be resolved at the _export_ site.
 
 ### Visibility of Export Bindings
+
 Bindings exported from a module `X` are available in an identical fashion to
 bindings that are _defined_ in the module `X`.

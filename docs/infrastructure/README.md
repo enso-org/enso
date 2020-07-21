@@ -7,6 +7,7 @@ order: 0
 ---
 
 # Infrastructure
+
 The Enso runtime runs on the GraalVM which is a version of the JVM. This folder
 contains all documentation pertaining to Enso's infrastructure, which is broken
 up as follows:

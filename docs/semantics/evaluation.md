@@ -7,6 +7,7 @@ order: 5
 ---
 
 # Evaluation Semantics in Enso
+
 Enso's evaluation semantics can be succinctly described as 'strict, but with
 optional laziness'. By default, expressions in Enso are evaluated strictly, but
 the programmer may choose to 'suspend' computations, and instead evaluate them
@@ -20,6 +21,7 @@ at the point they are needed.
 <!-- /MarkdownTOC -->
 
 ## Strict Evaluation
+
 Though Enso shares many syntactic similarities with Haskell, the most famous
 example of a lazily evaluated language, Enso is not lazy. Instead, Enso is a
 language that is strict.
@@ -35,6 +37,7 @@ language that is strict.
 > - Make this far better specified.
 
 ## Optional Suspension
+
 Laziness, however, can often be quite useful for defining certain kinds of API.
 To that end, Enso provides support for optional laziness, more specifically
 optional _suspension_, through the built-in `Suspended` type.

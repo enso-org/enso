@@ -7,6 +7,7 @@ order: 5
 ---
 
 # Literals
+
 Enso supports a small set of literals that allow the expression of some common
 types in literal form in the source code.
 
@@ -21,6 +22,7 @@ types in literal form in the source code.
 <!-- /MarkdownTOC -->
 
 ## Numeric Literals
+
 Enso provides rich support for numeric literals, including literals that use
 different numeric bases. It does, of course, support floating point numerals as
 well.
@@ -58,6 +60,7 @@ binary           = 2_10011101010
 >   literals, or whether these should be relegated to type constructors.
 
 ## Text Literals
+
 Enso provides rich support for textual literals in the language, supporting both
 raw and interpolated strings natively.
 
@@ -79,6 +82,7 @@ raw and interpolated strings natively.
   ```
 
 ### Inline Text Literals
+
 In Enso, inline text literals are opened and closed using the corresponding
 quote type for the literal. They may contain escape sequences but may _not_ be
 broken across lines.
@@ -89,6 +93,7 @@ inline_interpolated = 'Foo `bar` baz'
 ```
 
 ### Text Block Literals
+
 In Enso, text block literals rely on _layout_ to determine the end of the block,
 allowing users to only _open_ the literal. Block literals are opened with three
 of the relevant quote type, and the contents of the block are determined by the
@@ -112,6 +117,7 @@ not_string_expr = foo bar
 ```
 
 ## Vector Literals
+
 Enso also supports vector literals, which allow users to create literal vectors
 of elements.
 

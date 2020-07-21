@@ -7,6 +7,7 @@ order: 3
 ---
 
 # Function Types
+
 As a functional programming language, the type of functions in Enso (`->`) is
 key. There are a few things that should be noted about functions in Enso.
 
@@ -25,6 +26,7 @@ key. There are a few things that should be noted about functions in Enso.
 <!-- /MarkdownTOC -->
 
 ## Scoping
+
 Enso's scoping rules should be fairly familiar to most other programming
 languages, as it uses standard lexical scoping with shadowing. However, there
 are a few unique points to keep in mind:
@@ -46,6 +48,7 @@ lexical scoping. For a detailed discussion of scoping, please see
 [the scoping documentation](../semantics/scoping.md).
 
 ## Structural Type Shorthand
+
 In Enso, we want to be able to write a type-signature that represents types in
 terms of the operations that take place on the input values. A classical example
 is `add`:
@@ -102,6 +105,7 @@ signature acts to constrain the function type further than would be inferred.
 >   typesets.
 
 ## Function Composition
+
 Enso introduces a function composition operator which composes functions after
 all arguments have been applied. This operator is `>>` (and its backwards cousin
 `<<`). It takes a function `f` with `n` arguments, and a function `g` with `m`
@@ -123,5 +127,5 @@ chaining in Enso, and its backwards chaining cousin `<|`.
 >   complexity is worth it.
 > - Otherwise, standardise on using `>>` and `<<` for standard function
 >   composition:
->   + `<< : (b -> c) -> (a -> b) -> a -> c` - backwards composition (standard)
->   + `>> : (a -> b) -> (b -> c) -> a -> c` - forwards composition
+>   - `<< : (b -> c) -> (a -> b) -> a -> c` - backwards composition (standard)
+>   - `>> : (a -> b) -> (b -> c) -> a -> c` - forwards composition

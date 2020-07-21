@@ -7,6 +7,7 @@ order: 4
 ---
 
 # Security Policy
+
 This document outlines the security policy for Enso and its libraries.
 
 > **If you believe that you have found a vulnerability in Enso or one of its
@@ -21,12 +22,13 @@ This document outlines the security policy for Enso and its libraries.
 <!-- /MarkdownTOC -->
 
 ## Supported Versions
+
 Security updates for Enso are provided for the versions shown below with a
 :white_check_mark: next to them. No other versions have security updates
 provided.
 
 | Version     | Supported          |
-|-------------|--------------------|
+| ----------- | ------------------ |
 | `main@HEAD` | :white_check_mark: |
 | `wip/*`     | :x:                |
 
@@ -34,6 +36,7 @@ Please see our [release policy](./distribution/release-policy.md) for more
 information on how we support released versions.
 
 ## Reporting a Vulnerability
+
 If you believe that you've found a security vulnerability in the Enso codebase
 or one of the libraries maintained in this repository, please contact
 [security@enso.org](mailto:security@enso.org) and provide details of the bug.

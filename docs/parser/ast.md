@@ -7,6 +7,7 @@ order: 9
 ---
 
 # AST
+
 The parser AST describes the high-level syntactic structure of Enso, as well as
 containing robust and descriptive parser errors directly in the AST.
 
@@ -17,6 +18,7 @@ containing robust and descriptive parser errors directly in the AST.
 <!-- /MarkdownTOC -->
 
 ## Functionality
+
 The parser AST needs to account for the following:
 
 - A single `Name` type, removing the distinction between different names found

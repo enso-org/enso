@@ -7,6 +7,7 @@ order: 12
 ---
 
 # Errors
+
 Enso supports two notions of errors. One is the standard asynchronous exceptions
 model, while the other is a theory of 'broken values' that propagate through
 computations.
@@ -31,6 +32,7 @@ computations.
 > - Formalise the model of async exceptions as implemented.
 
 ## Broken Values
+
 In Enso we have the notion of a 'broken' value: one which is in an invalid state
 but not an asynchronous error. While these may initially seem a touch useless,
 they are actually key for the display of errors in the GUI.
@@ -56,6 +58,7 @@ with an automatic propagation mechanism:
   In the above example, the type of test is inferred to
   `test : Int in IO ! IO.Exception`, because no evidence discharge has taken
   place as the potential broken value hasn't been handled.
+
 - This allows for very natural error handling in the GUI.
 
 > The actionables for this section are:

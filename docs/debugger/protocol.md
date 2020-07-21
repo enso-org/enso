@@ -7,6 +7,7 @@ order: 1
 ---
 
 # Enso Debugger Protocol Message Specification
+
 Binary Protocol for the Debugger is used in communication between the runtime
 and tools exploiting the REPL/debugger functionalities. It can be used to
 implement a simple REPL or add debugging capabilities to the editor.
@@ -32,6 +33,7 @@ There are some helper types used within the debugger's protocol. These are
 specified here.
 
 ### `ObjectRepr`
+
 External representation of arbitrary values returned by the REPL (internally
 these are of type `Object`).
 
@@ -44,6 +46,7 @@ interface ObjectRepr {
 ```
 
 ### `StackTraceElement`
+
 Represents a line of the stack trace. Corresponds to
 `java.lang.StackTraceElement`.
 
@@ -57,6 +60,7 @@ interface StackTraceElement {
 ```
 
 ### `Exception`
+
 Represents an exception that may have been raised during requested execution.
 
 ```typescript
@@ -68,20 +72,21 @@ interface Exception {
 ```
 
 ### `Binding`
+
 Represents a single binding in the current scope.
 
 ```typescript
 interface Binding {
-    name: String;
-    value: ObjectRepr;
+  name: String;
+  value: ObjectRepr;
 }
 ```
 
 ## Messages
 
-All endpoints accept messages of type `Request` and return a `Response`. 
-These messages contain unions that contain the actual payload specified for each
-type of message.
+All endpoints accept messages of type `Request` and return a `Response`. These
+messages contain unions that contain the actual payload specified for each type
+of message.
 
 ```idl
 namespace org.enso.polyglot.debugger.protocol;
@@ -118,6 +123,7 @@ notification. This means that this function should not return before sending the
 session exit request.
 
 #### Notification
+
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 
@@ -125,13 +131,15 @@ table SessionStartNotification {}
 ```
 
 ### Evaluation
+
 Evaluates an arbitrary expression in the current execution context.
 
-Responds with either a message with the value of successfully evaluated 
+Responds with either a message with the value of successfully evaluated
 expression or a message with an exception that has been raised during
 evaluation.
 
 #### Request
+
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 
@@ -141,6 +149,7 @@ table ReplEvaluationRequest {
 ```
 
 #### Response
+
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 
@@ -154,10 +163,12 @@ table ReplEvaluationFailure {
 ```
 
 ### List Bindings
-Lists all the bindings available in the current execution scope and sends them 
+
+Lists all the bindings available in the current execution scope and sends them
 back.
 
 #### Request
+
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 
@@ -165,6 +176,7 @@ table ReplListBindingsRequest {}
 ```
 
 #### Response
+
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 
@@ -174,6 +186,7 @@ table ReplListBindingsResult {
 ```
 
 ### Session Exit
+
 Terminates this REPL session (and resumes normal program execution).
 
 The last result of Evaluation will be returned from the instrumented node or if
@@ -182,9 +195,10 @@ no expressions have been evaluated, unit is returned.
 This request must always be sent at the end of REPL session, as otherwise the
 program will never resume. It does not return any response. It is important to
 note that a thread calling `sendBinary` with this message will never return, as
-control will be passed to the interpreter. 
+control will be passed to the interpreter.
 
 #### Request
+
 ```idl
 namespace org.enso.polyglot.protocol.debugger;
 

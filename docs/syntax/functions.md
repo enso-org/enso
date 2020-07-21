@@ -7,6 +7,7 @@ order: 10
 ---
 
 # Defining Functions
+
 Enso is a purely-functional programming language. As a result it has support for
 [first-class and higher-order functions](https://en.wikipedia.org/wiki/Functional_programming#First-class_and_higher-order_functions),
 meaning that you can pass functions as arguments to other functions, return
@@ -32,13 +33,14 @@ arguments.
 <!-- /MarkdownTOC -->
 
 ## Lambdas
+
 The most primitive non-atom construct in Enso is the lambda. This is an
 anonymous function in one argument. A lambda is defined using the `->` operator,
 where the left hand side is an argument, and the right hand side is the body of
 the function (containing arbitrary code).
 
 Some functional languages such as Haskell allow for the definition of a lambda
-with multiple arguments, but in Enso the type signature use of `-> `and the
+with multiple arguments, but in Enso the type signature use of `->`and the
 lambda use of `->` are one and the same. We do not want to have to put the
 components of a type signature in parentheses, so we only allow one argument
 before each arrow.
@@ -68,6 +70,7 @@ reference rule and write (in this case) `a -> A -> a`.
 > - Do we want any automated unification to take place in the shadowing case?
 
 ## Defining Functions
+
 A function definition is just syntactic sugar for the definition of a lambda,
 and hence has all the properties that a lambda does. Syntactically, functions
 are defined in a similar way to variables. The only difference is that the
@@ -95,6 +98,7 @@ binds the function name. This means that:
   still be inferred.
 
 ## Methods
+
 Enso makes a distinction between functions and methods. In Enso, a method is a
 function where the first argument (known as the `this` argument) is associated
 with a given atom. Methods are dispatched dynamically based on the type of the
@@ -106,39 +110,40 @@ Methods can be defined in Enso in two ways:
    definition is automatically converted to a method on all the atoms defined in
    the body of that type definition.
 
-  ```ruby
-  type Maybe a
-      Nothing
-      type Just (value : a)
+```ruby
+type Maybe a
+    Nothing
+    type Just (value : a)
 
-      isJust = case this of
-          Nothing -> False
-          Just _ -> True
-  ```
+    isJust = case this of
+        Nothing -> False
+        Just _ -> True
+```
 
 2. **As an Extension Method:** A function defined _explicitly_ on an atom counts
    as an extension method on that atom. It can be defined on a typeset to apply
    to all the atoms within that typeset.
 
-  ```ruby
-  Number.floor = case this of
-      Integer -> ...
-      ...
-  ```
+```ruby
+Number.floor = case this of
+    Integer -> ...
+    ...
+```
 
 3. **As a Function with an Explicit `this` Argument:** A function defined with
    the type of the `this` argument specified to be a type.
 
-  ```ruby
-  floor (this : Number) = case this of
-      Integer -> ...
-  ```
+```ruby
+floor (this : Number) = case this of
+    Integer -> ...
+```
 
 If the user does not explicitly specify the `this` argument by name when
 defining a method (e.g. they use the `Type.name` syntax), it is implicitly added
 to the start of the argument list.
 
 ## Universal Call Syntax
+
 Calling a function or method is, in general, as simple as applying it to some
 arguments. However, as Enso supports both methods and functions, it is very
 important that users do not have to think about which of the two they are using
@@ -156,6 +161,7 @@ The rules for the uniform syntax call translation in Enso are as follows:
 2. For an expression `fn t <args>`, this is equivalent to `t.fn <args>`.
 
 ## Code Blocks
+
 Top-level blocks in the language are evaluated immediately. This means that the
 layout of the code has no impact on semantics of the code:
 
@@ -225,6 +231,7 @@ foo =
 ```
 
 ## Operators
+
 In Enso, an operator is a function with a non-alphanumeric name (e.g. `+`). We
 only support binary operators, with left and right arguments.
 
@@ -252,10 +259,11 @@ parts:
 ```
 
 ### Precedence
+
 Operator precedence in Enso is a collection of rules that reflect conventions
 about which operations to perform first in order to evaluate a given expression
-that contains operators. However, operator precedence in Enso differs from
-many other programming languages.
+that contains operators. However, operator precedence in Enso differs from many
+other programming languages.
 
 - Precedence is not set at fixed levels, but is instead defined in relation to
   the precedence of other operators.
@@ -266,9 +274,9 @@ many other programming languages.
   which retains the same precedence level regardless of whether it is surrounded
   by spaces or not.
 
-This space-based precedence may seem strange coming from other languages, but
-it allows for writing _far_ cleaner code than other functional languages. This
-is best demonstrated by example. Consider the following code:
+This space-based precedence may seem strange coming from other languages, but it
+allows for writing _far_ cleaner code than other functional languages. This is
+best demonstrated by example. Consider the following code:
 
 ```ruby
 list       = 1 .. 100
@@ -295,6 +303,7 @@ result = 1..100 . each random . take 10 . sort
 ```
 
 ### Sections
+
 An operator section is a nice shorthand for partially applying an operator. It
 works as follows.
 
@@ -307,6 +316,7 @@ works as follows.
   sections.
 
 ## Mixfix Functions
+
 A mixfix function is a function that is made up of multiple sections. They are
 defined using a special syntax, and operate as follows:
 
@@ -317,8 +327,8 @@ defined using a special syntax, and operate as follows:
   separate operator, allowing you to write an indented block of code after each
   section.
 
-Probably the best-known example of a mixfix function is `if-then-else`, which
-is indeed defined in the Enso standard library.
+Probably the best-known example of a mixfix function is `if-then-else`, which is
+indeed defined in the Enso standard library.
 
 ```ruby
 if foo == bar then frob else
