@@ -10,14 +10,6 @@
 
 //! This module exports the implementation of the enso abstract syntax tree.
 
-pub mod application;
-pub mod block;
-pub mod definition;
-pub mod identifier;
-pub mod invalid;
-pub mod number;
-pub mod text;
-
 use application::*;
 use block::*;
 use definition::*;
@@ -70,6 +62,165 @@ pub enum Shape {
     VarDef(VarDef),
 }
 
+
+
+// ===================
+// === Application ===
+// ===================
+
+/// This module exports ast shapes that represent function application.
+pub mod application {
+    use super::*;
+
+
+
+    /// The ast node for application.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone)]
+    pub struct Prefix { pub func: Box<AnyAst>, pub arg: Box<AnyAst> }
+
+    /// The ast node for an infix operator application.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone)]
+    pub struct Infix { pub larg: Box<AnyAst>, pub opr: Box<Ast<Opr>>, pub rarg: Box<AnyAst> }
+}
+
+
+
+// ======================
+// === Block & Module ===
+// ======================
+
+/// This module exports ast shapes that are represented as sequence of equally indented lines.
+pub mod block {
+    use super::*;
+
+
+
+    /// The ast node for a module that represents the file's root block.
+    ///
+    /// The module consists of a sequence of possibly empty lines with no leading indentation.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone)]
+    pub struct Module { pub lines: Vec<Option<AnyAst>> }
+
+    /// The ast node for a block that represents a sequence of equally indented lines.
+    ///
+    /// Lines may contain some child ast or be empty. Block is used for all code blocks except for
+    /// the root one, which uses `Module`.
+    #[derive(Debug,Clone)]
+    pub struct Block {
+        /// Absolute's block indent, counting from the module's root.
+        pub indent: usize,
+        /// Leading empty lines. Each line is represented by absolute count of spaces
+        /// it contains, counting from the root.
+        pub empty_lines: Vec<usize>,
+        /// First line with non-empty item.
+        pub first_line: Box<AnyAst>,
+        /// Rest of lines, each of them optionally having contents.
+        pub lines: Vec<Option<AnyAst>>,
+    }
+}
+
+
+
+// ==================
+// === Definition ===
+// ==================
+
+/// This module exports ast shapes that represent definition of variable, function etc.
+pub mod definition {
+    use super::*;
+
+
+
+    /// The ast node for a method definition.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone)]
+    pub struct FunDef { pub name: Box<Ast<Var>>, pub args: Box<AnyAst>, pub body: Box<AnyAst> }
+
+    /// The ast node for an operator definition.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone)]
+    pub struct OprDef { pub name: Box<Ast<Opr>>, pub args: [Box<AnyAst>;2], pub body: Box<AnyAst> }
+
+    /// The ast node for a variable definition.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone)]
+    pub struct VarDef { pub name: Box<Ast<Var>>, pub value: Box<AnyAst> }
+}
+
+
+
+// ===================
+// === Identifiers ===
+// ===================
+
+/// This module exports ast shapes for basic identifiers.
+pub mod identifier {
+    /// The ast node for the underscore `_`.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone,Copy)]
+    pub struct Blank();
+
+    /// The ast node for a variable.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone)]
+    pub struct Var { pub name: String }
+
+    /// The ast node for a constructor.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone)]
+    pub struct Cons { pub name: String }
+
+    /// The ast node for an operator.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone)]
+    pub struct Opr { pub name: String }
+}
+
+
+
+// ===============
+// === Invalid ===
+// ===============
+
+/// This module exports invalid ast shapes.
+pub mod invalid {
+    /// Unrecognized token.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone)]
+    pub struct Unrecognized { pub str: String }
+}
+
+
+
+// ==============
+// === Number ===
+// ==============
+
+/// This module exports ast shapes that represent numbers.
+pub mod number {
+    /// The ast node for a number.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone)]
+    pub struct Number { pub number: String }
+}
+
+
+
+// ============
+// === Text ===
+// ============
+
+
+/// This module exports ast shapes that represent text (strings).
+pub mod text {
+    /// The ast node for a string of text.
+    #[allow(missing_docs)]
+    #[derive(Debug,Clone)]
+    pub struct Text { pub text: String }
+}
 
 // === Into<Shape> ===
 
