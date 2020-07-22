@@ -252,7 +252,11 @@ impl Project {
                         execution context being already dropped.");
                     }
                 }
-                Event::Notification(Notification::SuggestionDatabaseUpdate(update)) => {
+                Event::Notification(Notification::ExecutionFailed(update)) => {
+                    error!(logger,"Execution failed in context {update.context_id}. Error: \
+                    {update.message}.");
+                }
+                Event::Notification(Notification::SuggestionDatabaseUpdates(update)) => {
                     if let Some(suggestion_db) = weak_suggestion_db.upgrade() {
                         suggestion_db.apply_update_event(update);
                     }

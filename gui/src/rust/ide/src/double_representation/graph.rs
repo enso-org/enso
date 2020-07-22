@@ -107,7 +107,7 @@ impl GraphInfo {
     /// After removing last node, we want to insert a placeholder value for definition value.
     /// This defines its AST. Currently it is just `Nothing`.
     pub fn empty_graph_body() -> Ast {
-        Ast::cons("Nothing").with_new_id()
+        Ast::cons(constants::keywords::NOTHING).with_new_id()
     }
 
     /// Removes the node from graph.
@@ -430,7 +430,7 @@ main =
         println!("zz");
 
         let (node,)   = graph.nodes().expect_tuple();
-        assert_eq!(node.expression().repr(), "Nothing");
+        assert_eq!(node.expression().repr(), constants::keywords::NOTHING);
         graph.expect_code("main = Nothing");
     }
 

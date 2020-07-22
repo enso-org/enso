@@ -6,7 +6,7 @@ use crate::double_representation::module::QualifiedName;
 
 use enso_protocol::language_server;
 use language_server::types::SuggestionsDatabaseVersion;
-use language_server::types::SuggestionDatabaseUpdateEvent;
+use language_server::types::SuggestionDatabaseUpdatesEvent;
 
 pub use language_server::types::SuggestionEntryArgument as Argument;
 pub use language_server::types::SuggestionEntryId as EntryId;
@@ -49,37 +49,33 @@ impl Entry {
     pub fn from_ls_entry(entry:language_server::types::SuggestionEntry) -> FallibleResult<Self> {
         use language_server::types::SuggestionEntry::*;
         let this = match entry {
-            SuggestionEntryAtom {name,module,arguments,return_type,documentation} =>
-                Self {
-                    name,arguments,return_type,documentation,
-                    module    : module.try_into()?,
-                    self_type : None,
-                    kind      : EntryKind::Atom,
-                },
-            SuggestionEntryMethod {name,module,arguments,self_type,return_type,documentation} =>
-                Self {
-                    name,arguments,return_type,documentation,
-                    module    : module.try_into()?,
-                    self_type : Some(self_type),
-                    kind      : EntryKind::Method,
-                },
-            SuggestionEntryFunction {name,module,arguments,return_type,..} =>
-                Self {
-                    name,arguments,return_type,
-                    module        : module.try_into()?,
-                    self_type     : None,
-                    documentation : default(),
-                    kind          : EntryKind::Function,
-                },
-            SuggestionEntryLocal {name,module,return_type,..} =>
-                Self {
-                    name,return_type,
-                    arguments     : default(),
-                    module        : module.try_into()?,
-                    self_type     : None,
-                    documentation : default(),
-                    kind          : EntryKind::Local,
-                },
+            Atom {name,module,arguments,return_type,documentation} => Self {
+                name,arguments,return_type,documentation,
+                module    : module.try_into()?,
+                self_type : None,
+                kind      : EntryKind::Atom,
+            },
+            Method {name,module,arguments,self_type,return_type,documentation} => Self {
+                name,arguments,return_type,documentation,
+                module    : module.try_into()?,
+                self_type : Some(self_type),
+                kind      : EntryKind::Method,
+            },
+            Function {name,module,arguments,return_type,..} => Self {
+                name,arguments,return_type,
+                module        : module.try_into()?,
+                self_type     : None,
+                documentation : default(),
+                kind          : EntryKind::Function,
+            },
+            Local {name,module,return_type,..} => Self {
+                name,return_type,
+                arguments     : default(),
+                module        : module.try_into()?,
+                self_type     : None,
+                documentation : default(),
+                kind          : EntryKind::Local,
+            },
         };
         Ok(this)
     }
@@ -88,7 +84,9 @@ impl Entry {
     pub fn code_to_insert(&self) -> String {
         let module = self.module.name();
         if self.self_type.as_ref().contains(&module) {
-            iformat!("{module}.{self.name}")
+            format!("{}.{}",module,self.name)
+        } else if self.self_type.as_ref().contains(&constants::keywords::HERE) {
+            format!("{}.{}",constants::keywords::HERE,self.name)
         } else {
             self.name.clone()
         }
@@ -158,15 +156,28 @@ impl SuggestionDatabase {
     }
 
     /// Apply the update event to the database.
-    pub fn apply_update_event(&self, event:SuggestionDatabaseUpdateEvent) {
+    pub fn apply_update_event(&self, event:SuggestionDatabaseUpdatesEvent) {
         for update in event.updates {
             let mut entries = self.entries.borrow_mut();
             match update {
-                Update::Add {id,entry} => match entry.try_into() {
+                Update::Add {id,suggestion} => match suggestion.try_into() {
                     Ok(entry) => { entries.insert(id,Rc::new(entry));                       },
                     Err(err)  => { error!(self.logger, "Discarding update for {id}: {err}") },
                 },
-                Update::Remove {id} => { entries.remove(&id); },
+                Update::Remove {id} => {
+                    let removed = entries.remove(&id);
+                    if removed.is_none() {
+                        error!(self.logger, "Received Remove event for nonexistent id: {id}");
+                    }
+                },
+                Update::Modify {id,return_type} => {
+                    if let Some(old_entry) = entries.get(&id) {
+                        let new_entry = Entry {return_type,..old_entry.deref().clone()};
+                        entries.insert(id,Rc::new(new_entry));
+                    } else {
+                        error!(self.logger, "Received Modify event for nonexistent id: {id}");
+                    }
+                }
             };
         }
         self.version.set(event.current_version);
@@ -241,7 +252,7 @@ mod test {
         assert_eq!(db.version.get()    , 123);
 
         // Non-empty db
-        let entry = language_server::types::SuggestionEntry::SuggestionEntryAtom {
+        let entry = language_server::types::SuggestionEntry::Atom {
             name          : "TextAtom".to_string(),
             module        : "TestProject.TestModule".to_string(),
             arguments     : vec![],
@@ -261,21 +272,21 @@ mod test {
 
     #[test]
     fn applying_update() {
-        let entry1 = language_server::types::SuggestionEntry::SuggestionEntryAtom {
+        let entry1 = language_server::types::SuggestionEntry::Atom {
             name          : "Entry1".to_string(),
             module        : "TestProject.TestModule".to_string(),
             arguments     : vec![],
             return_type   : "TestAtom".to_string(),
             documentation : None
         };
-        let entry2 = language_server::types::SuggestionEntry::SuggestionEntryAtom {
+        let entry2 = language_server::types::SuggestionEntry::Atom {
             name          : "Entry2".to_string(),
             module        : "TestProject.TestModule".to_string(),
             arguments     : vec![],
             return_type   : "TestAtom".to_string(),
             documentation : None
         };
-        let new_entry2 = language_server::types::SuggestionEntry::SuggestionEntryAtom {
+        let new_entry2 = language_server::types::SuggestionEntry::Atom {
             name          : "NewEntry2".to_string(),
             module        : "TestProject.TestModule".to_string(),
             arguments     : vec![],
@@ -293,7 +304,7 @@ mod test {
 
         // Remove
         let remove_update = Update::Remove {id:2};
-        let update        = SuggestionDatabaseUpdateEvent {
+        let update        = SuggestionDatabaseUpdatesEvent {
             updates         : vec![remove_update],
             current_version : 2
         };
@@ -302,8 +313,8 @@ mod test {
         assert_eq!(db.version.get(), 2   );
 
         // Add
-        let add_update = Update::Add {id:2, entry:new_entry2};
-        let update     = SuggestionDatabaseUpdateEvent {
+        let add_update = Update::Add {id:2, suggestion:new_entry2};
+        let update     = SuggestionDatabaseUpdatesEvent {
             updates         : vec![add_update],
             current_version : 3,
         };

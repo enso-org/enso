@@ -123,8 +123,8 @@ pub enum Notification {
     ExecutionFailed(ExecutionFailed),
 
     /// Sent from server to the client to inform abouth the change in the suggestions database.
-    #[serde(rename = "search/suggestionsDatabaseUpdate")]
-    SuggestionDatabaseUpdate(SuggestionDatabaseUpdateEvent),
+    #[serde(rename = "search/suggestionsDatabaseUpdates")]
+    SuggestionDatabaseUpdates(SuggestionDatabaseUpdatesEvent),
 }
 
 /// Sent from the server to the client to inform about new information for certain expressions
@@ -511,9 +511,8 @@ pub type SuggestionsDatabaseVersion = usize;
 pub struct SuggestionEntryArgument {
     /// The argument name.
     pub name: String,
-    /// The arguement type. String 'Any' is used to specify generic types.
-    #[serde(rename = "type")] // To avoid collision with the `type` keyword.
-    pub arg_type: String,
+    /// The argument type. String 'Any' is used to specify generic types.
+    pub repr_type: String,
     /// Indicates whether the argument is lazy.
     pub is_suspended: bool,
     /// Optional default value.
@@ -525,8 +524,8 @@ pub struct SuggestionEntryArgument {
 #[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct SuggestionEntryScope {
-    pub start : usize,
-    pub end   : usize,
+    pub start : Position,
+    pub end   : Position,
 }
 
 /// A type of suggestion entry.
@@ -537,17 +536,20 @@ pub enum SuggestionEntryType {Atom,Method,Function,Local}
 
 /// A Suggestion Entry.
 #[derive(Hash, Debug, Clone, PartialEq, Eq,Serialize,Deserialize)]
-#[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
+#[serde(tag="type")]
+#[serde(rename_all="camelCase")]
 pub enum SuggestionEntry {
-    SuggestionEntryAtom {
+    #[serde(rename_all="camelCase")]
+    Atom {
         name          : String,
         module        : String,
         arguments     : Vec<SuggestionEntryArgument>,
         return_type   : String,
         documentation : Option<String>,
     },
-    SuggestionEntryMethod {
+    #[serde(rename_all="camelCase")]
+    Method {
         name          : String,
         module        : String,
         arguments     : Vec<SuggestionEntryArgument>,
@@ -555,14 +557,16 @@ pub enum SuggestionEntry {
         return_type   : String,
         documentation : Option<String>,
     },
-    SuggestionEntryFunction {
+    #[serde(rename_all="camelCase")]
+    Function {
         name        : String,
         module      : String,
         arguments   : Vec<SuggestionEntryArgument>,
         return_type : String,
         scope       : SuggestionEntryScope,
     },
-    SuggestionEntryLocal {
+    #[serde(rename_all="camelCase")]
+    Local {
         name        : String,
         module      : String,
         return_type : String,
@@ -574,10 +578,10 @@ impl SuggestionEntry {
     /// Get name of the suggested entity.
     pub fn name(&self) -> &String {
         match self {
-            Self::SuggestionEntryAtom     {name,..} => name,
-            Self::SuggestionEntryFunction {name,..} => name,
-            Self::SuggestionEntryLocal    {name,..} => name,
-            Self::SuggestionEntryMethod   {name,..} => name,
+            Self::Atom     {name,..} => name,
+            Self::Function {name,..} => name,
+            Self::Local    {name,..} => name,
+            Self::Method   {name,..} => name,
         }
     }
 }
@@ -597,24 +601,31 @@ pub struct SuggestionsDatabaseEntry {
 pub enum SuggestionsDatabaseUpdateKind {Add,Update,Delete}
 
 /// The update of the suggestions database.
-#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all="camelCase")]
+#[derive(Hash,Debug,Clone,PartialEq,Eq,Serialize,Deserialize)]
 #[allow(missing_docs)]
+#[serde(tag="type")]
 pub enum SuggestionsDatabaseUpdate {
+    #[serde(rename_all="camelCase")]
     Add {
-        id    : SuggestionEntryId,
-        entry : SuggestionEntry,
+        id         : SuggestionEntryId,
+        suggestion : SuggestionEntry,
     },
+    #[serde(rename_all="camelCase")]
     Remove {
-        id : SuggestionEntryId
+        id : SuggestionEntryId,
     },
+    #[serde(rename_all="camelCase")]
+    Modify {
+        id          : SuggestionEntryId,
+        return_type : String,
+    }
 }
 
 /// Notification about change in the suggestions database.
 #[derive(Hash,Debug,Clone,PartialEq,Eq,Serialize,Deserialize)]
 #[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
-pub struct SuggestionDatabaseUpdateEvent {
+pub struct SuggestionDatabaseUpdatesEvent {
     pub updates         : Vec<SuggestionsDatabaseUpdate>,
     pub current_version : SuggestionsDatabaseVersion,
 }

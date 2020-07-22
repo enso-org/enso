@@ -151,7 +151,7 @@ trait API {
     #[MethodInput=CompletionInput,rpc_name="search/completion"]
     fn completion
     ( &self
-    , module      : String
+    , file        : Path
     , position    : Position
     , self_type   : Option<String>
     , return_type : Option<String>
