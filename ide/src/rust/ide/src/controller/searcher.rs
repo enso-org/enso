@@ -121,7 +121,7 @@ pub struct ParsedInput {
 }
 
 impl ParsedInput {
-    /// Contructor from the plain input.
+    /// Constructor from the plain input.
     fn new(mut input:String, parser:&Parser) -> FallibleResult<Self> {
         let leading_spaces = input.chars().take_while(|c| *c == ' ').count();
         // To properly guess what is "still typed argument" we simulate type of one letter by user.
@@ -225,7 +225,7 @@ pub struct Searcher {
     logger          : Logger,
     data            : Rc<RefCell<Data>>,
     notifier        : notification::Publisher<Notification>,
-    module          : Rc<model::module::QualifiedName>,
+    module          : model::module::Path,
     position        : Immutable<TextLocation>,
     database        : Rc<model::SuggestionDatabase>,
     language_server : Rc<language_server::Connection>,
@@ -241,11 +241,11 @@ impl Searcher {
     , position : TextLocation
     ) -> Self {
         let this = Self {
+            module,
             position        : Immutable(position),
             logger          : Logger::sub(parent,"Searcher Controller"),
             data            : default(),
             notifier        : default(),
-            module          : Rc::new(project.qualified_module_name(&module)),
             database        : project.suggestion_db(),
             language_server : project.json_rpc(),
             parser          : project.parser(),
@@ -344,7 +344,7 @@ impl Searcher {
     fn get_suggestion_list_from_engine
     (&self, return_type:Option<String>, tags:Option<Vec<language_server::SuggestionEntryType>>) {
         let ls          = &self.language_server;
-        let module      = self.module.as_ref();
+        let module      = self.module.file_path();
         let self_type   = None;
         let position    = self.position.deref().into();
         let request     = ls.completion(module,&position,&self_type,&return_type,&tags);
@@ -408,7 +408,7 @@ mod test {
                 logger          : default(),
                 data            : default(),
                 notifier        : default(),
-                module          : Rc::new(module_path.qualified_module_name("Test")),
+                module          : module_path,
                 position        : Immutable(TextLocation::at_document_begin()),
                 database        : default(),
                 language_server : language_server::Connection::new_mock_rc(client),
@@ -450,7 +450,7 @@ mod test {
                 current_version: default(),
             };
             expect_call!(client.completion(
-                module      = "Test.Test".to_string(),
+                module      = Path::from_mock_module_name("Test").file_path().clone(),
                 position    = TextLocation::at_document_begin().into(),
                 self_type   = None,
                 return_type = None,
