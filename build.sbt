@@ -35,6 +35,7 @@ val licenseSettings = Seq(
 val coursierCache = file("~/.cache/coursier/v1")
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
+Test / parallelExecution := false
 
 // ============================================================================
 // === Compiler Options =======================================================
