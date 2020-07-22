@@ -77,6 +77,12 @@ pub struct BookmarkId {
     id: usize
 }
 
+impl BookmarkId {
+    pub fn new(id:usize) -> BookmarkId {
+        BookmarkId{id}
+    }
+}
+
 /// Bookmarks a specific character in buffer, so that `LazyReader` can return to it when needed.
 #[derive(Debug,Clone,Copy)]
 pub struct Bookmark {

@@ -16,12 +16,13 @@
 //! - Docs are intentionally missing for now in many places.
 
 use crate::prelude::*;
-use lazy_reader::Reader;
+use lazy_reader::{Reader, BookmarkId};
+use lazy_reader::decoder::DecoderUTF8;
 
 #[allow(missing_docs)]
 pub fn test_run() -> Vec<AST> {
-    let string = "aaaaa bbbbb aaa bbbb a bbbbb";
-    let reader = TestReader::default();
+    let string = String::from("aaaaa bbbbb aaa bbbb a bbbbb");
+    let reader = Reader::new(string,DecoderUTF8,0);
     let mut lexer:Lexer<AST> = Lexer::new(reader);
 
     unimplemented!()
@@ -60,13 +61,15 @@ impl PartialEq for State {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Lexer<T> {
     state_stack: Vec<usize>,
-    reader: TestReader,
+    reader: Reader<DecoderUTF8,String>,
     current_match: String,
     status:LexerStageStatus,
     tokens:Vec<T>,
     def_current:Option<T>,
     def_initial_state: State,
-    def_seen_first_word_state: State
+    def_seen_first_word_state: State,
+    def_matched_bookmark: BookmarkId,
+    def_rule_bookmark: BookmarkId
 }
 
 impl <T> Lexer<T> {
@@ -81,6 +84,8 @@ impl <T> Lexer<T> {
         let def_initial_state = State::new("INITIAL",0);
         let def_seen_first_word_state = State::new("SEEN FIRST WORD",1);
         state_stack.push(def_initial_state.index);
+        let def_matched_bookmark = BookmarkId::new(0);
+        let def_rule_bookmark = BookmarkId::new(1);
 
         Lexer{
              state_stack
@@ -90,7 +95,9 @@ impl <T> Lexer<T> {
             ,tokens
             ,def_current
             ,def_initial_state
-            ,def_seen_first_word_state}
+            ,def_seen_first_word_state
+            ,def_matched_bookmark
+            ,def_rule_bookmark}
     }
 }
 
@@ -173,14 +180,17 @@ impl Lexer<AST> {
             let status = self.status.value().expect("Value guaranteed to exist as `is_valid()`.");
             self.status = self.def_step(status);
 
+            // TODO [JV]
             if is_finished && !self.reader.rewinder.is_rewinded() {
                 self.status = LexerStageStatus::ExitFinished
             }
 
+            // TODO [JV]
             is_finished = self.reader.is_finished();
 
             if self.status.is_valid() {
-                if !self.reader.is_finished() {
+                if !self.reader.empty() {
+                    // TODO [JV]
                     self.reader.append_code_point(self.reader.char_code);
                 }
                 self.reader.next_char();
@@ -222,8 +232,9 @@ impl Lexer<AST> {
             _  => {
                 self.current_match = self.reader.result.to_string();
                 self.def_group_0_rule_2();
+                // TODO [JV]
                 self.reader.set_result_length(0);
-                self.reader.rewinder.set_matched();
+                self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }
@@ -276,6 +287,7 @@ impl Lexer<AST> {
         match self.reader.char_code {
             98 => LexerStageStatus::ContinueWith(4),
             _  => {
+                // TODO [JV] currently matched str
                 self.current_match = self.reader.result.to_string();
                 self.def_group_0_rule_1();
                 self.reader.set_result_length(0);
@@ -355,8 +367,8 @@ impl Lexer<AST> {
     fn def_state_1_to_0(&mut self) -> LexerStageStatus {
         match self.reader.char_code {
             32 => {
-                // TODO [AA] What determines use of the rewinder here?
-                self.reader.rewinder.set_rule();
+                // We bookmark in the case of overlapping rules.
+                self.reader.bookmark(self.def_rule_bookmark);
                 LexerStageStatus::ContinueWith(1)
             }
             _  => {
@@ -407,6 +419,7 @@ impl Lexer<AST> {
                 self.current_match = self.reader.result.to_string();
                 self.def_group_1_rule_1();
                 self.reader.set_result_length(0);
+                // What determines that the rewinder gets used here?
                 self.reader.rewinder.set_matched();
                 LexerStageStatus::ExitSuccess
             }
@@ -454,61 +467,6 @@ impl Lexer<AST> {
     // TODO [AA] Generated code
     fn def_group_1_rule_2(&mut self) -> () {
         self.def_on_no_err_suffix();
-    }
-}
-
-#[allow(missing_docs)]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct TestReader {
-    rewinder:Rewinder,
-    char_code:u32,
-    result:String
-}
-#[allow(missing_docs)]
-impl TestReader {
-    pub const ENDOFINPUT:u32 = 0;
-
-    pub fn is_finished(&self) -> bool {
-        self.char_code == TestReader::ENDOFINPUT
-    }
-
-    pub fn append_code_point(&mut self,_code_point:u32) {
-        unimplemented!()
-    }
-
-    pub fn next_char(&mut self) {
-        unimplemented!()
-    }
-
-    pub fn set_result_length(&mut self,_len:usize) {
-        unimplemented!()
-    }
-}
-impl Default for TestReader {
-    fn default() -> Self {
-        unimplemented!()
-    }
-}
-
-#[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct Rewinder {}
-#[allow(missing_docs)]
-impl Rewinder {
-    pub fn is_rewinded(&self) -> bool {
-        unimplemented!()
-    }
-
-    pub fn set_rule(&self) {
-        unimplemented!()
-    }
-
-    pub fn run_rule(&self) {
-        unimplemented!()
-    }
-
-    pub fn set_matched(&self) {
-        unimplemented!()
     }
 }
 
