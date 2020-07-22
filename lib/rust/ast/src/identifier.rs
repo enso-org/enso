@@ -1,9 +1,13 @@
+//! This module exports ast shapes for basic identifiers.
+
+// ===================
 // === Identifiers ===
+// ===================
 
 /// The ast node for the underscore `_`.
 #[allow(missing_docs)]
 #[derive(Debug,Clone,Copy)]
-pub struct Blank {}
+pub struct Blank();
 
 /// The ast node for a variable.
 #[allow(missing_docs)]

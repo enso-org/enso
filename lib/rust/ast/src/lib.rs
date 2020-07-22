@@ -18,6 +18,14 @@ pub mod invalid;
 pub mod number;
 pub mod text;
 
+use application::*;
+use block::*;
+use definition::*;
+use identifier::*;
+use invalid::*;
+use number::*;
+use text::*;
+
 use uuid::Uuid;
 
 
@@ -46,17 +54,20 @@ pub struct Ast<Shape> {
 #[allow(missing_docs)]
 #[derive(Debug,Clone)]
 pub enum Shape {
-    Unrecognized(invalid::Unrecognized),
-    Blank(identifier::Blank),
-    Var(identifier::Var),
-    Cons(identifier::Cons),
-    Opr(identifier::Opr),
-    Number(number::Number),
-    Text(text::Text),
-    Prefix(application::Prefix),
-    Infix(application::Infix),
-    Module(block::Module),
-    Block(block::Block),
+    Unrecognized(Unrecognized),
+    Blank(Blank),
+    Var(Var),
+    Cons(Cons),
+    Opr(Opr),
+    Number(Number),
+    Text(Text),
+    Prefix(Prefix),
+    Infix(Infix),
+    Module(Module),
+    Block(Block),
+    FunDef(FunDef),
+    OprDef(OprDef),
+    VarDef(VarDef),
 }
 
 
@@ -73,6 +84,9 @@ impl From<Prefix>       for Shape { fn from(val:Prefix)       -> Self { Self::Pr
 impl From<Infix>        for Shape { fn from(val:Infix)        -> Self { Self::Infix       (val) } }
 impl From<Module>       for Shape { fn from(val:Module)       -> Self { Self::Module      (val) } }
 impl From<Block>        for Shape { fn from(val:Block)        -> Self { Self::Block       (val) } }
+impl From<FunDef>       for Shape { fn from(val:FunDef)       -> Self { Self::FunDef      (val) } }
+impl From<OprDef>       for Shape { fn from(val:OprDef)       -> Self { Self::OprDef      (val) } }
+impl From<VarDef>       for Shape { fn from(val:VarDef)       -> Self { Self::VarDef      (val) } }
 
 
 
@@ -83,11 +97,7 @@ impl From<Block>        for Shape { fn from(val:Block)        -> Self { Self::Bl
 impl AnyAst {
     /// Creates a new ast node with random `Uuid` from `Shape`.
     pub fn new(ast:impl Into<Shape>) -> Self {
-        Self::new_with_id(ast, Some(Uuid::new_v4()))
-    }
-    /// Creates a new ast node with given `Uuid` from given `Shape`.
-    pub fn new_with_id(ast:impl Into<Shape>, uid:Option<Uuid>) -> Self {
-        Self {uid, len:0, ast:ast.into()}
+        Self {ast:ast.into(), uid: Some(Uuid::new_v4()), len:0, off:0 }
     }
 
     /// Creates a new ast node with `Shape::Unrecognized`.
@@ -97,7 +107,7 @@ impl AnyAst {
 
     /// Creates a new ast node with `Shape::Blank`.
     pub fn blank() -> Self {
-        Self::new(Blank{})
+        Self::new(Blank())
     }
 
     /// Creates a new ast node with `Shape::Var`.
@@ -123,45 +133,5 @@ impl AnyAst {
     /// Creates a new ast node with `Shape::Text`.
     pub fn text(text:String) -> Self {
         Self::new(Text{text})
-    }
-}
-
-impl Prefix {
-    /// Creates an `Prefix` shape with spacing=0.
-    pub fn from_vars(func:AnyAst, arg:AnyAst) -> Self {
-        Self {func:Box::new(func), off:0, arg:Box::new(arg)}
-    }
-}
-
-impl Infix {
-    /// Creates an `Infix` shape with spacing=0.
-    pub fn from_vars(larg:AnyAst, opr:AnyAst, rarg:AnyAst) -> Infix {
-        Infix {larg:Box::new(larg), loff:0, opr:Box::new(opr), roff:1, rarg:Box::new(rarg)}
-    }
-}
-
-
-impl Module {
-    /// Creates a `Module` shape with lines storing given ASTs.
-    pub fn from_lines(lines:&[Option<AnyAst>]) -> Self {
-        Self {lines: lines.iter().cloned().map(Line::new).collect()}
-    }
-}
-
-impl Block {
-    /// Creates a `Block` shape with lines storing given ASTs.
-    pub fn new(indent:usize, first_line:AnyAst, tail_lines:&[Option<AnyAst>]) -> Self {
-        let empty_lines = Vec::new();
-        let first_line  = Box::new(Line::new(first_line));
-        let lines       = tail_lines.iter().cloned().map(Line::new).collect();
-
-        Self {indent,empty_lines,first_line,lines}
-    }
-}
-
-impl<T> Line<T> {
-    /// Creates a `Line` shape with zero offset from the given ast.
-    pub fn new(ast:T) -> Self {
-        Self {ast, off:0}
     }
 }

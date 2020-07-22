@@ -1,4 +1,14 @@
+//! This module exports ast shapes that represent function application.
+
+use crate::Ast;
+use crate::AnyAst;
+use crate::identifier::Opr;
+
+
+
+// ===================
 // === Application ===
+// ===================
 
 /// The ast node for application.
 #[allow(missing_docs)]

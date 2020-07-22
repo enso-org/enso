@@ -1,4 +1,12 @@
+//! This module exports ast shapes that are represented as sequence of equally indented lines.
+
+use crate::AnyAst;
+
+
+
+// ==============
 // === Module ===
+// ==============
 
 /// The ast node for a module that represents the file's root block.
 ///
@@ -8,7 +16,10 @@
 pub struct Module { pub lines: Vec<Option<AnyAst>> }
 
 
+
+// =============
 // === Block ===
+// =============
 
 /// The ast node for a block that represents a sequence of equally indented lines.
 ///
