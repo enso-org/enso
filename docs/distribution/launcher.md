@@ -196,6 +196,22 @@ description and return with exit code 0, for the plugin to be considered
 supported. That description will be included in the command listing printed by
 `enso help`.
 
+#### Testing plugins
+
+When testing the launcher, we want to test plugin discovery. To do so, we
+override the `PATH` of the tested launcher to a directory containing prepared
+plugins. On Windows, the environment variables are usually treated as
+case-insensitive but not all the time. When launching a process with an added
+environment variable called `PATH`, that process actually has two variables in
+its environment - the original `Path` and the overriden `PATH`. This can be seen
+when querying `System.getenv()` - the returned map contains both `Path` and
+`PATH` with their respective values. However, `System.getenv("PATH")` uses some
+platform specific logic, and even if both variables are present in the
+environment, it actually returns the value corresponding to `Path`. This is
+likely the expected behaviour on Windows. So to successfully override the system
+path on Windows, we need to override `Path`, not `PATH` like on Unix-based
+systems.
+
 ## Global User Configuration
 
 The launcher allows to edit global user configuration, saved in the `config`

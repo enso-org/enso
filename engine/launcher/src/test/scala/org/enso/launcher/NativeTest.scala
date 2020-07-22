@@ -37,17 +37,44 @@ trait NativeTest extends AnyWordSpec with Matchers {
   def returnSuccess: RunSuccessMatcher.type = RunSuccessMatcher
 
   /**
+    * Specifies if the current OS is Windows.
+    */
+  val isWindows: Boolean =
+    System.getProperty("os.name").toLowerCase().contains("windows")
+
+  private val launcherCommand = "./enso"
+
+  /**
     * Runs the native launcher binary with the specified arguments and captures
     * its output.
     *
     * @param args arguments to forward to the launcher
-    * @param extraEnv additional environment variables that should be overriden
-    *                 for the launcher binary
-    * @return
     */
   def runLauncher(
+    args: Seq[String]
+  ): RunResult = {
+    run(Seq(launcherCommand) ++ args, Seq())
+  }
+
+  /**
+    * Runs the native launcher binary with the specified arguments and captures
+    * its output.
+    *
+    * @param args arguments to forward to the launcher
+    * @param pathOverride the system PATH that should be set for the launched
+    *                     program
+    */
+  def runLauncherWithPath(
     args: Seq[String],
-    extraEnv: (String, String)*
+    pathOverride: String
+  ): RunResult = {
+    val pathName = if (isWindows) "Path" else "PATH" // Note [Windows Path]
+    run(Seq(launcherCommand) ++ args, Seq(pathName -> pathOverride))
+  }
+
+  private def run(
+    command: Seq[String],
+    extraEnv: Seq[(String, String)]
   ): RunResult = {
     val stdout = new StringBuilder
     val stderr = new StringBuilder
@@ -60,7 +87,6 @@ trait NativeTest extends AnyWordSpec with Matchers {
     }
 
     try {
-      val command  = Seq("./enso") ++ args
       val exitCode = Process(command, None, extraEnv: _*).!(logger)
       RunResult(exitCode, stdout.toString(), stderr.toString())
     } catch {
@@ -69,3 +95,18 @@ trait NativeTest extends AnyWordSpec with Matchers {
     }
   }
 }
+
+/* Note [Windows Path]
+ * ~~~~~~~~~~~~~~~~~~~
+ * On Windows, the environment variables are usually treated as case-insensitive
+ * but not all the time. When launching a process with an added environment
+ * variable called `PATH`, that process actually has two variables in its
+ * environment - the original `Path` and the overriden `PATH`. This can be seen
+ * when querying `System.getenv()` - the returned map contains both `Path` and
+ * `PATH` with their respective values. However, `System.getenv("PATH")` uses
+ * some platform specific logic, and even if both variables are present in the
+ * environment, it actually returns the value corresponding to `Path`. This is
+ * likely the expected behaviour on Windows. So to successfully override the
+ * system path on Windows, we need to override `Path`, not `PATH` like on
+ * Unix-based systems.
+ */
