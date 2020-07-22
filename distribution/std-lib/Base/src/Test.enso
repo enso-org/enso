@@ -96,6 +96,8 @@ Text.it ~behavior =
 
 ## Runs a suite of tests, consisting of multiple `describe` blocks.
 
+   Returns a `Suite` object containing the test report.
+
    > Example
          Suite.run <|
              describe "Number" <|
@@ -107,5 +109,20 @@ Suite.run ~specs =
     r = State.run Suite (Suite Nil) <|
         specs
         State.get Suite
-    code = if r.is_fail then 1 else 0
-    System.exit code
+    r
+
+## Runs a suite of tests, consisting of multiple `describe` blocks.
+
+   Exits the process with code `1` if the suite failed and `0` otherwise.
+
+   > Example
+         Suite.run <|
+             describe "Number" <|
+                 it "should define addition" <|
+                     2+3 . should_equal 5
+                 it "should define multiplication" <|
+                     2*3 . should_equal 6
+Suite.runMain ~specs =
+   r = this.run specs
+   code = if r.is_fail then 1 else 0
+   System.exit code

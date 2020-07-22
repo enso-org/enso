@@ -18,6 +18,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.pkg.QualifiedName;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -180,5 +181,10 @@ public class AtomConstructor implements TruffleObject {
       return cachedInstance;
     }
     return newInstance(arguments);
+  }
+
+  /** @return the fully qualified name of this constructor. */
+  public QualifiedName getQualifiedName() {
+    return definitionScope.getModule().getName().createChild(getName());
   }
 }
