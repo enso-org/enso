@@ -29,10 +29,16 @@ Enso project:
 
 It is broken up into categories as follows:
 
+- [**Debugger:**](./debugger) A specification of Enso's debugger.
+- [**Development:**](./development) Development practices for working on the
+  Enso codebase.
 - [**Distribution:**](./distirbution) Information on how we distribute Enso to
   our users, and how Enso packages themselves work.
+- [**Infrastructure:**](./infrastructure) Description of the infrastructure for
+  building Enso.
 - [**Language Server:**](./language-server) Information on the Enso language
   server, its protocol, and how it integrates with the runtime.
+- [**Parser:**](./parser) Design and specification of the Enso parser.
 - [**Polyglot:**](./polyglot) Information on Enso's polyglot functionality, and
   how it is integrated into the surface Enso language.
 - [**RFCs:**](./rfcs) RFCs for Enso's development and evolution.
@@ -43,7 +49,3 @@ It is broken up into categories as follows:
   of the Enso project.
 - [**Syntax:**](./syntax) A specification of Enso's syntax.
 - [**Types:**](./types) A specification of Enso's type system and type theory.
-- [**Debugger:**](./debugger) A specification of Enso's debugger.
-- [**Parser:**](./parser) Design and specification of the Enso parser.
-- [**Infrastructure:**](./infrastructure) Description of the infrastructure for
-  building Enso.
