@@ -22,7 +22,6 @@ import org.enso.interpreter.instrument.{
   Visualisation
 }
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
-import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 
@@ -255,10 +254,9 @@ trait ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Option[Api.MethodPointer] =
     for {
       call          <- Option(value.getCallInfo)
-      qualifiedName <- QualifiedName.fromString(call.getCallTargetName)
-      moduleName    <- qualifiedName.getParent
-      functionName  <- QualifiedName.fromString(call.getFunctionName)
-      typeName      <- functionName.getParent
+      moduleName    <- Option(call.getModuleName)
+      functionName  = call.getFunctionName
+      typeName      <- Option(call.getTypeName).map(_.item)
       module <- OptionConverters.toScala(
         ctx.executionService.getContext.getTopScope
           .getModule(moduleName.toString)
@@ -266,8 +264,8 @@ trait ProgramExecutionSupport {
       modulePath <- Option(module.getPath)
     } yield Api.MethodPointer(
       new File(modulePath),
-      typeName.toString,
-      functionName.module
+      typeName,
+      functionName
     )
 }
 

@@ -10,8 +10,9 @@ import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
-import org.graalvm.polyglot.Value
+import org.graalvm.polyglot.{PolyglotException, Value}
 
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 /** The main CLI entry point class. */
@@ -143,7 +144,10 @@ object Main {
     new HelpFormatter().printHelp(LanguageInfo.ID, options)
 
   /** Terminates the process with a failure exit code. */
-  private def exitFail(): Unit = System.exit(1)
+  private def exitFail(): Nothing = {
+    System.exit(1)
+    throw new IllegalStateException("impossible to reach here")
+  }
 
   /** Terminates the process with a success exit code. */
   private def exitSuccess(): Unit = System.exit(0)
@@ -189,7 +193,7 @@ object Main {
       }
       val mainFile       = main.get
       val mainModuleName = pkg.get.moduleNameForFile(mainFile).toString
-      runPackage(context, mainModuleName)
+      runPackage(context, mainModuleName, file)
     } else {
       runSingleFile(context, file)
     }
@@ -198,22 +202,81 @@ object Main {
 
   private def runPackage(
     context: PolyglotContext,
-    mainModuleName: String
+    mainModuleName: String,
+    projectPath: File
   ): Unit = {
     val topScope   = context.getTopScope
     val mainModule = topScope.getModule(mainModuleName)
-    runMain(mainModule)
+    runMain(mainModule, Some(projectPath))
   }
 
   private def runSingleFile(context: PolyglotContext, file: File): Unit = {
     val mainModule = context.evalModule(file)
-    runMain(mainModule)
+    runMain(mainModule, Some(file))
   }
 
-  private def runMain(mainModule: Module): Value = {
+  private def printPolyglotException(
+    exception: PolyglotException,
+    relativeTo: Option[File]
+  ): Unit = {
+    val fullStack = exception.getPolyglotStackTrace.asScala.toList
+    val dropInitJava = fullStack.reverse
+      .dropWhile(_.getLanguage.getId != LanguageInfo.ID)
+      .reverse
+    println(s"Execution finished with an error: ${exception.getMessage}")
+    dropInitJava.foreach { frame =>
+      val langId =
+        if (frame.isHostFrame) "java" else frame.getLanguage.getId
+      val fmtFrame = if (frame.getLanguage.getId == LanguageInfo.ID) {
+        val fName = frame.getRootName
+        val src = Option(frame.getSourceLocation)
+          .map { sourceLoc =>
+            val ident = Option(sourceLoc.getSource.getPath)
+              .map { path =>
+                relativeTo match {
+                  case None => path
+                  case Some(root) =>
+                    val absRoot = root.getAbsoluteFile
+                    if (path.startsWith(absRoot.getAbsolutePath)) {
+                      val rootDir =
+                        if (absRoot.isDirectory) absRoot
+                        else absRoot.getParentFile
+                      rootDir.toPath.relativize(new File(path).toPath).toString
+                    } else {
+                      path
+                    }
+                }
+              }
+              .getOrElse(sourceLoc.getSource.getName)
+            val loc = if (sourceLoc.getStartLine == sourceLoc.getEndLine) {
+              val line  = sourceLoc.getStartLine
+              val start = sourceLoc.getStartColumn
+              val end   = sourceLoc.getEndColumn
+              s"$line:$start-$end"
+            } else {
+              s"${sourceLoc.getStartLine}-${sourceLoc.getEndLine}"
+            }
+            s"$ident:$loc"
+          }
+          .getOrElse("Internal")
+        s"$fName($src)"
+      } else {
+        frame.toString
+      }
+      println(s"        at <$langId> $fmtFrame")
+    }
+  }
+
+  private def runMain(mainModule: Module, rootPkgPath: Option[File]): Value = {
     val mainCons = mainModule.getAssociatedConstructor
     val mainFun  = mainModule.getMethod(mainCons, "main")
-    mainFun.execute(mainCons.newInstance())
+    try {
+      mainFun.execute(mainCons.newInstance())
+    } catch {
+      case e: PolyglotException =>
+        printPolyglotException(e, rootPkgPath)
+        exitFail()
+    }
   }
 
   /**
@@ -226,7 +289,7 @@ object Main {
       new ContextFactory().create("", System.in, System.out, Repl(TerminalIO()))
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
-    runMain(mainModule)
+    runMain(mainModule, None)
     exitSuccess()
   }
 
@@ -299,7 +362,6 @@ object Main {
     val line: CommandLine = Try(parser.parse(options, args)).getOrElse {
       printHelp(options)
       exitFail()
-      return
     }
     if (line.hasOption(HELP_OPTION)) {
       printHelp(options)
