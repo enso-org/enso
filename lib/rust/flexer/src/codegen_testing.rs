@@ -16,15 +16,13 @@
 //! - Docs are intentionally missing for now in many places.
 
 use crate::prelude::*;
-use unicode_segmentation::UnicodeSegmentation;
+use lazy_reader::Reader;
 
 #[allow(missing_docs)]
 pub fn test_run() -> Vec<AST> {
-    let reader = unimplemented!();
+    let string = "aaaaa bbbbb aaa bbbb a bbbbb";
+    let reader = TestReader::default();
     let mut lexer:Lexer<AST> = Lexer::new(reader);
-
-    let root_state = lexer.define_state("ROOT");
-    let seen_first_word_state = lexer.define_state("SEEN FIRST WORD");
 
     unimplemented!()
 }
@@ -61,29 +59,38 @@ impl PartialEq for State {
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Lexer<T> {
-    registry: Vec<State>,
     state_stack: Vec<usize>,
-    reader: Reader,
+    reader: TestReader,
     current_match: String,
-    phantom: std::marker::PhantomData<T>,
     status:LexerStageStatus,
-    def_current:Option<AST>,
-    tokens:Vec<AST>
+    tokens:Vec<T>,
+    def_current:Option<T>,
+    def_initial_state: State,
+    def_seen_first_word_state: State
 }
 
 impl <T> Lexer<T> {
-    pub fn new(reader:Reader) -> Lexer<T> {
-        let status = LexerStageStatus::ExitSuccess;
-        let phantom = PhantomData;
+    pub fn new(reader: TestReader) -> Lexer<T> {
+        let mut state_stack = Vec::new();
+        state_stack.reserve(1024);
         let current_match = String::from("");
-        let mut registry = Vec::new();
-        let root_index = registry.len();
-        let root_state = State::new("ROOT", root_index);
-        registry.push(root_state);
-        let state_stack = vec![root_index];
+        let status = LexerStageStatus::Initial;
+        let mut tokens = Vec::new();
+        tokens.reserve(1024);
         let def_current = None;
-        let tokens = Vec::new();
-        Lexer{registry,state_stack,reader,current_match,phantom,status,def_current,tokens}
+        let def_initial_state = State::new("INITIAL",0);
+        let def_seen_first_word_state = State::new("SEEN FIRST WORD",1);
+        state_stack.push(def_initial_state.index);
+
+        Lexer{
+             state_stack
+            ,reader
+            ,current_match
+            ,status
+            ,tokens
+            ,def_current
+            ,def_initial_state
+            ,def_seen_first_word_state}
     }
 }
 
@@ -92,7 +99,6 @@ impl Lexer<AST> {
 
     // TODO [AA] Lexer interface
     pub fn run(&mut self) -> LexerResult<Vec<AST>> {
-        self.state_stack.reserve(1014);
         self.reader.rewinder.set_matched();
         self.reader.next_char();
 
@@ -115,63 +121,45 @@ impl Lexer<AST> {
 
     // TODO [AA] Lexer interface
     pub fn root_state(&self) -> &State {
-        self.registry.first().expect("The root state should always exist.")
+        &self.def_initial_state
     }
 
     // TODO [AA] Lexer interface
-    pub fn define_state(&mut self, name: &str) -> &State {
-        let state = State::new(name, self.registry.len());
-        self.registry.push(state);
-        self.registry.last().expect("There should always be one state in the registry.")
-    }
-
-    // TODO [AA] Lexer interface
-    pub fn begin_state(&mut self, state: &State) {
-        self.state_stack.push(state.index);
+    pub fn begin_state(&mut self,state:usize) {
+        self.state_stack.push(state);
     }
 
     // TODO [AA] Lexer interfaec
-    pub fn current_state(&self) -> &State {
-        let ix = *self.state_stack.last().expect("There should always be one state on the stack.");
-        self.state_for(ix)
+    pub fn current_state(&self) -> usize {
+        *self.state_stack.last().expect("There should always be one state on the stack.")
     }
 
     // TODO [AA] Lexer interface
-    pub fn end_state(&mut self) -> Option<&State> {
+    pub fn end_state(&mut self) -> Option<usize> {
         if self.state_stack.len() > 1 {
             let ix = self.state_stack.pop().expect("There should be an item to pop.");
-            Some(self.state_for(ix))
+            Some(ix)
         } else {
             None
         }
     }
 
     // TODO [AA] Lexer interface
-    pub fn end_states_until(&mut self, state: &State) -> Vec<&State> {
+    pub fn end_states_until(&mut self, state: usize) -> Vec<usize> {
         // Never drop the root state
         let position_of_target =
-            self.state_stack.iter().positions(|elem| *elem == state.index).last().unwrap_or(0);
+            self.state_stack.iter().positions(|elem| *elem == state).last().unwrap_or(0);
         let range = (position_of_target + 1)..self.state_stack.len();
         let ended_indices: Vec<usize> = self.state_stack.drain(range).collect();
         let mut ended_states = Vec::new();
         for ix in ended_indices {
-            ended_states.push(self.state_for(ix));
+            ended_states.push(ix);
         }
         ended_states
     }
 
-    // TODO [AA] Internal helper
-    fn state_for(&self,ix:usize) -> &State {
-        self.registry.get(ix).expect("The state for the index should always exist.")
-    }
-
-    // TODO [AA] Internal helper
-    fn current_state_ix(&self) -> usize {
-        self.current_state().index
-    }
-
     // TODO [AA] Lexer interface
-    pub fn in_state(&mut self, state: &State) -> bool {
+    pub fn in_state(&mut self, state: usize) -> bool {
         self.current_state() == state
     }
 
@@ -183,8 +171,7 @@ impl Lexer<AST> {
 
         while self.status.is_valid() {
             let status = self.status.value().expect("Value guaranteed to exist as `is_valid()`.");
-            let state_from_status = self.state_for(status).index;
-            self.status = self.def_step(state_from_status);
+            self.status = self.def_step(status);
 
             if is_finished && !self.reader.rewinder.is_rewinded() {
                 self.status = LexerStageStatus::ExitFinished
@@ -205,11 +192,9 @@ impl Lexer<AST> {
 
     // TODO [AA] Generated code
     fn def_step(&mut self, new_state_index:usize) -> LexerStageStatus {
-        let current_state_index = self.current_state_ix();
+        let current_state_index = self.current_state();
 
         // This match should be generated
-        // TODO [AA] Use unreachable_unchecked. Write macro for panic in debug / this in prod
-        //  builds. Should take string.
         match current_state_index {
             0 => self.def_dispatch_in_state_0(new_state_index),
             1 => self.def_dispatch_in_state_1(new_state_index),
@@ -307,7 +292,7 @@ impl Lexer<AST> {
 
     pub fn def_on_first_word(&mut self,ast:AST) {
         self.def_current = Some(ast);
-        let state = unimplemented!(); // ???????????????????
+        let state = self.def_seen_first_word_state.index;
         self.begin_state(state);
     }
 
@@ -474,17 +459,17 @@ impl Lexer<AST> {
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Reader {
+pub struct TestReader {
     rewinder:Rewinder,
     char_code:u32,
     result:String
 }
 #[allow(missing_docs)]
-impl Reader {
+impl TestReader {
     pub const ENDOFINPUT:u32 = 0;
 
     pub fn is_finished(&self) -> bool {
-        self.char_code == Reader::ENDOFINPUT
+        self.char_code == TestReader::ENDOFINPUT
     }
 
     pub fn append_code_point(&mut self,_code_point:u32) {
@@ -499,7 +484,7 @@ impl Reader {
         unimplemented!()
     }
 }
-impl Default for Reader {
+impl Default for TestReader {
     fn default() -> Self {
         unimplemented!()
     }
