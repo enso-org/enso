@@ -8,10 +8,14 @@ import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.pkg.QualifiedName;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -114,7 +118,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
   /** Information about the function call. */
   public static class FunctionCallInfo {
 
-    private final String callTargetName;
+    private final QualifiedName moduleName;
+    private final QualifiedName typeName;
     private final String functionName;
 
     /**
@@ -123,16 +128,34 @@ public class IdExecutionInstrument extends TruffleInstrument {
      * @param call the function call.
      */
     public FunctionCallInfo(FunctionCallInstrumentationNode.FunctionCall call) {
-      this.callTargetName = call.getFunction().getCallTarget().getRootNode().getQualifiedName();
-      this.functionName = call.getFunction().getName();
+      RootNode rootNode = call.getFunction().getCallTarget().getRootNode();
+      if (rootNode instanceof MethodRootNode) {
+        MethodRootNode methodNode = (MethodRootNode) rootNode;
+        moduleName = methodNode.getModuleScope().getModule().getName();
+        typeName = methodNode.getAtomConstructor().getQualifiedName();
+        functionName = methodNode.getMethodName();
+      } else if (rootNode instanceof EnsoRootNode) {
+        moduleName = ((EnsoRootNode) rootNode).getModuleScope().getModule().getName();
+        typeName = null;
+        functionName = rootNode.getName();
+      } else {
+        moduleName = null;
+        typeName = null;
+        functionName = rootNode.getQualifiedName();
+      }
     }
 
-    /** @return call target name. */
-    public String getCallTargetName() {
-      return callTargetName;
+    /** @return the name of the module this function was defined in, or null if not available. */
+    public QualifiedName getModuleName() {
+      return moduleName;
     }
 
-    /** @return function name. */
+    /** @return the name of the type this method was defined for, or null if not a method. */
+    public QualifiedName getTypeName() {
+      return typeName;
+    }
+
+    /** @return the name of this function. */
     public String getFunctionName() {
       return functionName;
     }

@@ -39,10 +39,10 @@ public class Module implements TruffleObject {
   private boolean isParsed = false;
   private boolean isIndexed = false;
   private IR ir;
-  private final QualifiedName name;
+  private QualifiedName name;
 
-  private Module(TruffleFile sourceFile, Rope literalSource,
-                boolean isParsed, IR ir, QualifiedName name) {
+  private Module(
+      TruffleFile sourceFile, Rope literalSource, boolean isParsed, IR ir, QualifiedName name) {
     this.sourceFile = sourceFile;
     this.literalSource = literalSource;
     this.isParsed = isParsed;
@@ -205,17 +205,10 @@ public class Module implements TruffleObject {
   /**
    * Renames a project part of the QualifiedName of this module.
    *
-   * @param oldName the old project name
    * @param newName the new project name
-   * @return a module with the updated QualifiedName
    */
-  public Module renameProject(String oldName, String newName) {
-    if (name.path().head().equals(oldName)) {
-      QualifiedName renamed = name.renameProject(oldName, newName);
-      return new Module(sourceFile, literalSource, false, ir, renamed);
-    } else {
-      return this;
-    }
+  public void renameProject(String newName) {
+    this.name = name.renameProject(newName);
   }
 
   /** @return the indexed flag. */

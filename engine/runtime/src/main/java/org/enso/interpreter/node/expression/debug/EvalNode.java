@@ -58,9 +58,7 @@ public abstract class EvalNode extends BaseNode {
 
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
     LocalScope localScope = scope.createChild();
-    InlineContext inlineContext =
-        InlineContext.fromJava(
-            localScope, moduleScope, isTail());
+    InlineContext inlineContext = InlineContext.fromJava(localScope, moduleScope, isTail());
     ExpressionNode expr =
         lookupContextReference(Language.class)
             .get()
@@ -81,8 +79,7 @@ public abstract class EvalNode extends BaseNode {
             moduleScope,
             expr,
             null,
-            "<dynamic_eval>",
-            null);
+            "<eval>");
     return Truffle.getRuntime().createCallTarget(framedNode);
   }
 

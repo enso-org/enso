@@ -39,6 +39,7 @@ import org.enso.interpreter.node.expression.literal.{
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.node.{
   ClosureRootNode,
+  MethodRootNode,
   ExpressionNode => RuntimeExpression
 }
 import org.enso.interpreter.runtime.Context
@@ -217,34 +218,39 @@ class IrToTruffle(
         dataflowInfo
       )
 
-      val funNode = methodDef.body match {
+      val cons = moduleScope
+        .getConstructor(typeName)
+        .orElseThrow(() =>
+          new VariableDoesNotExistException(methodDef.typeName.name)
+        )
+
+      val function = methodDef.body match {
         case fn: IR.Function =>
-          expressionProcessor.processFunctionBody(
-            fn.arguments,
-            fn.body,
-            methodDef.location,
-            Some(methodDef.methodName.name)
+          val (body, arguments) =
+            expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
+          val rootNode = MethodRootNode.build(
+            language,
+            expressionProcessor.scope,
+            moduleScope,
+            body,
+            makeSection(methodDef.location),
+            cons,
+            methodDef.methodName.name
+          )
+          val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
+          new RuntimeFunction(
+            callTarget,
+            null,
+            new FunctionSchema(
+              FunctionSchema.CallStrategy.CALL_LOOP,
+              arguments: _*
+            )
           )
         case _ =>
           throw new CompilerError(
             "Method bodies must be functions at the point of codegen."
           )
       }
-
-      val function = new RuntimeFunction(
-        funNode.getCallTarget,
-        null,
-        new FunctionSchema(
-          FunctionSchema.CallStrategy.CALL_LOOP,
-          funNode.getArgs: _*
-        )
-      )
-
-      val cons = moduleScope
-        .getConstructor(typeName)
-        .orElseThrow(() =>
-          new VariableDoesNotExistException(methodDef.typeName.name)
-        )
       moduleScope.registerMethod(cons, methodDef.methodName.name, function)
     })
   }
@@ -300,7 +306,7 @@ class IrToTruffle(
     val scopeName: String
   ) {
 
-    private var currentVarName = "anonymous"
+    private var currentVarName = "<anonymous>"
 
     // === Construction =======================================================
 
@@ -412,15 +418,14 @@ class IrToTruffle(
           childScope,
           moduleScope,
           blockNode,
-          null,
-          s"default::$scopeName",
-          null
+          makeSection(block.location),
+          currentVarName
         )
 
         val callTarget = Truffle.getRuntime.createCallTarget(defaultRootNode)
         setLocation(CreateThunkNode.build(callTarget), block.location)
       } else {
-        val statementExprs = block.expressions.map(this.run(_)).toArray
+        val statementExprs = block.expressions.map(this.run).toArray
         val retExpr        = this.run(block.returnValue)
 
         val blockNode = BlockNode.build(statementExprs, retExpr)
@@ -520,8 +525,7 @@ class IrToTruffle(
           val branchCodeNode = childProcessor.processFunctionBody(
             arg,
             branch.expression,
-            branch.location,
-            None
+            branch.location
           )
 
           val branchNode = CatchAllBranchNode.build(branchCodeNode)
@@ -542,8 +546,7 @@ class IrToTruffle(
           val branchCodeNode = childProcessor.processFunctionBody(
             fieldsAsArgs,
             branch.expression,
-            branch.location,
-            None
+            branch.location
           )
 
           moduleScope.getConstructor(constructor.name).toScala match {
@@ -659,8 +662,7 @@ class IrToTruffle(
       val fn = child.processFunctionBody(
         function.arguments,
         function.body,
-        function.location,
-        None
+        function.location
       )
 
       fn
@@ -755,20 +757,19 @@ class IrToTruffle(
       setLocation(ErrorNode.build(payload), error.location)
     }
 
-    /** Generates code for an Enso function body.
+    /**
+      * Processes function arguments, generates arguments reads and creates
+      * a node to represent the whole method body.
       *
-      * @param arguments the arguments to the function
-      * @param body the body of the function
-      * @param location the location at which the function exists in the source
-      * @param name the name of the function
-      * @return a truffle node representing the described function
+      * @param arguments the argument definitions
+      * @param body the body definition
+      * @return a node for the final shape of function body and pre-processed
+      *         argument definitions.
       */
-    def processFunctionBody(
+    def buildFunctionBody(
       arguments: List[IR.DefinitionArgument],
-      body: IR.Expression,
-      location: Option[IdentifiedLocation],
-      name: Option[String]
-    ): CreateFunctionNode = {
+      body: IR.Expression
+    ): (BlockNode, Array[ArgumentDefinition]) = {
       val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
 
       val argDefinitions = new Array[ArgumentDefinition](arguments.size)
@@ -809,23 +810,34 @@ class IrToTruffle(
       val bodyExpr = this.run(body)
 
       val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
+      fnBodyNode.setTail(bodyIsTail)
+      (fnBodyNode, argDefinitions)
+    }
+
+    /** Generates code for an Enso function body.
+      *
+      * @param arguments the arguments to the function
+      * @param body the body of the function
+      * @param location the location at which the function exists in the source
+      * @return a truffle node representing the described function
+      */
+    def processFunctionBody(
+      arguments: List[IR.DefinitionArgument],
+      body: IR.Expression,
+      location: Option[IdentifiedLocation]
+    ): CreateFunctionNode = {
+      val (fnBodyNode, argDefinitions) = buildFunctionBody(arguments, body)
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,
         moduleScope,
         fnBodyNode,
         makeSection(location),
-        scopeName,
-        name
-          .map(moduleScope.getModule.getName.createChild)
-          .map(_.toString)
-          .orNull
+        scopeName
       )
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
 
       val expr = CreateFunctionNode.build(callTarget, argDefinitions)
-
-      fnBodyNode.setTail(bodyIsTail)
 
       setLocation(expr, location)
     }
@@ -987,7 +999,7 @@ class IrToTruffle(
             argumentExpression.setTail(argExpressionIsTail)
 
             val displayName =
-              s"call_argument<${name.getOrElse(String.valueOf(position))}>"
+              s"argument<${name.getOrElse(String.valueOf(position))}>"
 
             val section = value.location
               .map(loc => source.createSection(loc.start, loc.end))
@@ -1000,8 +1012,7 @@ class IrToTruffle(
                 moduleScope,
                 argumentExpression,
                 section,
-                displayName,
-                null
+                displayName
               )
             )
 
@@ -1077,8 +1088,7 @@ class IrToTruffle(
               moduleScope,
               defaultExpression,
               null,
-              s"default::$scopeName::${arg.name}",
-              null
+              s"<default::$scopeName::${arg.name}>"
             )
 
             CreateThunkNode.build(
