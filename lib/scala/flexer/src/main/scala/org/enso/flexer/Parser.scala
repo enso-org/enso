@@ -75,7 +75,7 @@ trait Parser[T] {
         stack   = tail
     }
 
-    final def endTill(s: State): Unit = logger.trace {
+    def endTill(s: State): Unit = logger.trace {
       while (s != state.current) {
         state.current.finish()
         state.end()

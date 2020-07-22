@@ -20,15 +20,6 @@ use lazy_reader::{Reader, BookmarkId};
 use lazy_reader::decoder::DecoderUTF8;
 
 #[allow(missing_docs)]
-pub fn test_run() -> Vec<AST> {
-    let string = String::from("aaaaa bbbbb aaa bbbb a bbbbb");
-    let reader = Reader::new(string,DecoderUTF8,0);
-    let mut lexer:Lexer<AST> = Lexer::new(reader);
-
-    unimplemented!()
-}
-
-#[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum AST {
     Word(String),
@@ -58,10 +49,10 @@ impl PartialEq for State {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Debug, PartialEq)]
-pub struct Lexer<T> {
+#[derive(Clone, Debug)]
+pub struct Lexer<'a, T> {
     state_stack: Vec<usize>,
-    reader: Reader<DecoderUTF8,String>,
+    reader: Reader<DecoderUTF8,&'a [u8]>,
     current_match: String,
     status:LexerStageStatus,
     tokens:Vec<T>,
@@ -72,8 +63,8 @@ pub struct Lexer<T> {
     def_rule_bookmark: BookmarkId
 }
 
-impl <T> Lexer<T> {
-    pub fn new(reader: TestReader) -> Lexer<T> {
+impl <T> Lexer<'_,T> {
+    pub fn new(mut reader: Reader<DecoderUTF8, &[u8]>) -> Lexer<T> {
         let mut state_stack = Vec::new();
         state_stack.reserve(1024);
         let current_match = String::from("");
@@ -84,8 +75,8 @@ impl <T> Lexer<T> {
         let def_initial_state = State::new("INITIAL",0);
         let def_seen_first_word_state = State::new("SEEN FIRST WORD",1);
         state_stack.push(def_initial_state.index);
-        let def_matched_bookmark = BookmarkId::new(0);
-        let def_rule_bookmark = BookmarkId::new(1);
+        let def_matched_bookmark = reader.add_bookmark();
+        let def_rule_bookmark = reader.add_bookmark();
 
         Lexer{
              state_stack
@@ -102,7 +93,7 @@ impl <T> Lexer<T> {
 }
 
 #[allow(missing_docs)]
-impl Lexer<AST> {
+impl Lexer<'_,AST> {
 
     // TODO [AA] Lexer interface
     pub fn run(&mut self) -> LexerResult<Vec<AST>> {
@@ -183,7 +174,7 @@ impl Lexer<AST> {
             }
 
             if self.status.is_valid() {
-                if let Some(char) = self.reader.character.char {
+                if let Ok(char) = self.reader.character.char {
                     self.reader.result.push(char);
                 }
                 self.reader.next_char();
@@ -360,7 +351,7 @@ impl Lexer<AST> {
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_2();
-                
+
                 self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
@@ -373,10 +364,9 @@ impl Lexer<AST> {
             97 => LexerStageStatus::ContinueWith(2),
             98 => LexerStageStatus::ContinueWith(3),
             _  => {
-                self.reader.rewinder.run_rule();
+                self.reader.bookmark(self.def_rule_bookmark);
                 self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_2();
-                
                 self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
@@ -390,7 +380,7 @@ impl Lexer<AST> {
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_0();
-                
+
                 self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
@@ -404,7 +394,7 @@ impl Lexer<AST> {
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_1();
-                
+
                 // What determines that the rewinder gets used here?
                 self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
@@ -419,7 +409,7 @@ impl Lexer<AST> {
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_0();
-                
+
                 self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
@@ -433,7 +423,6 @@ impl Lexer<AST> {
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_1();
-                
                 self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
@@ -491,4 +480,27 @@ pub enum LexerResult<T> {
     Failure(Option<T>)
 }
 
-mod test {}
+mod test {
+    use super::*;
+    use lazy_reader::{Reader, BookmarkId};
+    use lazy_reader::decoder::DecoderUTF8;
+
+    #[allow(missing_docs)]
+    fn run_test_on(str:&str) -> Vec<AST> {
+        let reader = Reader::new(str.as_bytes(),DecoderUTF8());
+        let mut lexer:Lexer<AST> = Lexer::new(reader);
+
+        match lexer.run() {
+            LexerResult::Success(tokens) => tokens,
+            _ => vec![]
+        }
+    }
+
+    #[test]
+    fn test_single_word() {
+        let input = "aaaaa";
+        let expected_output = vec![AST::Word(String::from(input))];
+        let result = run_test_on(input);
+        assert_eq!(result,expected_output);
+    }
+}

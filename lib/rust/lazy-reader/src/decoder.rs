@@ -31,7 +31,7 @@ pub trait Decoder {
 // === Char ===
 
 /// The result of `decoder.decode`.
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug,Clone,Copy,PartialEq)]
 pub struct Char<Error> {
     /// The decoded character.
     pub char: Result<char,Error>,

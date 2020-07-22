@@ -71,7 +71,7 @@ pub enum Error {
 }
 
 /// Strongly typed identifier of `Bookmark`
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug,Clone,Copy,PartialEq)]
 pub struct BookmarkId {
     #[allow(missing_docs)]
     id: usize
@@ -84,7 +84,7 @@ impl BookmarkId {
 }
 
 /// Bookmarks a specific character in buffer, so that `LazyReader` can return to it when needed.
-#[derive(Debug,Clone,Copy,Default)]
+#[derive(Debug,Clone,Copy,Default,PartialEq)]
 pub struct Bookmark {
     /// The position of bookmarked character in `reader.buffer`.
     offset: usize,
@@ -92,6 +92,7 @@ pub struct Bookmark {
     length: usize,
 }
 
+// TODO [AA] Move constant into module.
 /// The default size of buffer.
 pub const BUFFER_SIZE: usize = 32768;
 
@@ -99,7 +100,7 @@ pub const BUFFER_SIZE: usize = 32768;
 ///
 /// It supports various encodings via `Decoder` and also bookmarks which allow it to return
 /// back to a character at specific offset.
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub struct Reader<D:Decoder,Read> {
     /// The reader that holds the input.
     pub reader: Read,
@@ -118,22 +119,31 @@ pub struct Reader<D:Decoder,Read> {
 }
 
 impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
-    /// Returns new instance of `LazyReader`.
-    pub fn new(reader:R, _decoder:D, bookmarks:usize) -> Self {
+    /// Returns a new instance of `LazyReader`.
+    pub fn new(reader:R, _decoder:D) -> Self {
         let mut reader = Reader::<D,R> {
             reader,
             buffer    : vec![D::Word::default(); BUFFER_SIZE],
             result    : String::from(""),
             offset    : 0,
             length    : 0,
-            bookmark  : vec![Bookmark::default();bookmarks],
+            bookmark  : Vec::new(),
             character : decoder::Char{char:Err(Error::EOF), size:0},
         };
         reader.length = reader.reader.read(&mut reader.buffer[..]);
         reader
     }
 
+    /// Creates a new bookmark, providing a handle so it can be marked later.
+    pub fn add_bookmark(&mut self) -> BookmarkId {
+        self.bookmark.push(Bookmark::default());
+        BookmarkId::new(self.bookmark.len() - 1)
+    }
+
+    // TODO [AA] Should this panic?
     /// Bookmarks the current character, so that the reader can return to it later with `rewind()`.
+    ///
+    /// Panics if `bookmark` refers to a nonexistent bookmark.
     pub fn bookmark(&mut self, bookmark:BookmarkId) {
         self.bookmark[bookmark.id].offset = self.offset - self.character.size;
         self.bookmark[bookmark.id].length = self.result.len();
@@ -332,7 +342,7 @@ mod tests {
     #[test]
     fn test_reader_small_input() {
         let     str    = "a.b^c! #𤭢界んにち𤭢#𤭢";
-        let mut reader = Reader::new(str.as_bytes(), DecoderUTF8(), 0);
+        let mut reader = Reader::new(str.as_bytes(), DecoderUTF8());
         let mut result = String::from("");
         while let Ok(char) = reader.next_char() {
             result.push(char);
@@ -343,7 +353,7 @@ mod tests {
     #[test]
     fn test_reader_big_input() {
         let     str    = "a.b^c! #𤭢界んにち𤭢#𤭢".repeat(10_000);
-        let mut reader = Reader::new(str.as_bytes(), DecoderUTF8(), 0);
+        let mut reader = Reader::new(str.as_bytes(), DecoderUTF8());
         let mut result = String::from("");
         while let Ok(char) = reader.next_char() {
             result.push(char);
@@ -357,7 +367,7 @@ mod tests {
     fn bench_reader(bencher:&mut Bencher) {
         let run = || {
             let     str    = repeat("Hello, World!".as_bytes().to_vec(), 10_000_000);
-            let mut reader = Reader::new(str, DecoderUTF8(), 0);
+            let mut reader = Reader::new(str, DecoderUTF8());
             let mut count  = 0;
             while reader.next_char() != Err(Error::EOF) {
                 count += 1;
