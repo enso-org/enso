@@ -106,7 +106,7 @@ impl Lexer<AST> {
 
     // TODO [AA] Lexer interface
     pub fn run(&mut self) -> LexerResult<Vec<AST>> {
-        self.reader.rewinder.set_matched();
+        self.reader.bookmark(self.def_matched_bookmark);
         self.reader.next_char();
 
         while self.run_current_state() == LexerStageStatus::ExitSuccess {}
@@ -233,7 +233,7 @@ impl Lexer<AST> {
 
     // TODO [AA] Generated code
     fn def_state_0_to_1(&mut self) -> LexerStageStatus {
-        match self.reader.char_code {
+        match u32::from(self.reader.character) {
             97 => LexerStageStatus::ContinueWith(3),
             _  => {
                 self.current_match = self.reader.pop_result();
@@ -246,7 +246,7 @@ impl Lexer<AST> {
 
     // TODO [AA] Generated code
     fn def_state_0_to_2(&mut self) -> LexerStageStatus {
-        match self.reader.char_code {
+        match u32::from(self.reader.character) {
             98 => LexerStageStatus::ContinueWith(4),
             _  => {
                 self.current_match = self.reader.pop_result();
@@ -259,7 +259,7 @@ impl Lexer<AST> {
 
     // TODO [AA] Generated code
     fn def_state_0_to_3(&mut self) -> LexerStageStatus {
-        match self.reader.char_code {
+        match u32::from(self.reader.character) {
             97 => LexerStageStatus::ContinueWith(3),
             _  => {
                 self.current_match = self.reader.pop_result();
@@ -272,7 +272,7 @@ impl Lexer<AST> {
 
     // TODO [AA] Generated code
     fn def_state_0_to_4(&mut self) -> LexerStageStatus {
-        match self.reader.char_code {
+        match u32::from(self.reader.character) {
             98 => LexerStageStatus::ContinueWith(4),
             _  => {
                 self.current_match = self.reader.pop_result();
@@ -351,17 +351,17 @@ impl Lexer<AST> {
 
     // TODO [AA] Generated code
     fn def_state_1_to_0(&mut self) -> LexerStageStatus {
-        match self.reader.char_code {
+        match u32::from(self.reader.character) {
             32 => {
                 // We bookmark in the case of overlapping rules.
                 self.reader.bookmark(self.def_rule_bookmark);
                 LexerStageStatus::ContinueWith(1)
             }
             _  => {
-                self.current_match = self.reader.result.to_string();
+                self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_2();
-                self.reader.set_result_length(0);
-                self.reader.rewinder.set_matched();
+                
+                self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }
@@ -369,15 +369,15 @@ impl Lexer<AST> {
 
     // TODO [AA] Generated code
     fn def_state_1_to_1(&mut self) -> LexerStageStatus {
-        match self.reader.char_code {
+        match u32::from(self.reader.character) {
             97 => LexerStageStatus::ContinueWith(2),
             98 => LexerStageStatus::ContinueWith(3),
             _  => {
                 self.reader.rewinder.run_rule();
-                self.current_match = self.reader.result.to_string();
+                self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_2();
-                self.reader.set_result_length(0);
-                self.reader.rewinder.set_matched();
+                
+                self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }
@@ -385,13 +385,13 @@ impl Lexer<AST> {
 
     // TODO [AA] Generated code
     fn def_state_1_to_2(&mut self) -> LexerStageStatus {
-        match self.reader.char_code {
+        match u32::from(self.reader.character) {
             97 => LexerStageStatus::ContinueWith(4),
             _  => {
-                self.current_match = self.reader.result.to_string();
+                self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_0();
-                self.reader.set_result_length(0);
-                self.reader.rewinder.set_matched();
+                
+                self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }
@@ -399,14 +399,14 @@ impl Lexer<AST> {
 
     // TODO [AA] Generated code
     fn def_state_1_to_3(&mut self) -> LexerStageStatus {
-        match self.reader.char_code {
+        match u32::from(self.reader.character) {
             98 => LexerStageStatus::ContinueWith(5),
             _  => {
-                self.current_match = self.reader.result.to_string();
+                self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_1();
-                self.reader.set_result_length(0);
+                
                 // What determines that the rewinder gets used here?
-                self.reader.rewinder.set_matched();
+                self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }
@@ -414,13 +414,13 @@ impl Lexer<AST> {
 
     // TODO [AA] Generated code
     fn def_state_1_to_4(&mut self) -> LexerStageStatus {
-        match self.reader.char_code {
+        match u32::from(self.reader.character) {
             97 => LexerStageStatus::ContinueWith(4),
             _  => {
-                self.current_match = self.reader.result.to_string();
+                self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_0();
-                self.reader.set_result_length(0);
-                self.reader.rewinder.set_matched();
+                
+                self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }
@@ -428,13 +428,13 @@ impl Lexer<AST> {
 
     // TODO [AA] Generated code
     fn def_state_1_to_5(&mut self) -> LexerStageStatus {
-        match self.reader.char_code {
+        match u32::from(self.reader.character) {
             98 => LexerStageStatus::ContinueWith(5),
             _  => {
-                self.current_match = self.reader.result.to_string();
+                self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_1();
-                self.reader.set_result_length(0);
-                self.reader.rewinder.set_matched();
+                
+                self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }
