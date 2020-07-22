@@ -5,26 +5,28 @@ category: rfcs
 tags: [rfcs, specification]
 order: 1 # Should match the RFC Number
 ---
----
 
-> **Feature Name:** A unique name for the feature
-> **Start Date:** Today's date (YYYY-MM-DD)
-> **Change Type:** Breaking / Non-Breaking (delete as appropriate)
-> **RFC Dependencies:** List any RFCs that this one depends on.
-> **RFC PR:** Leave Empty
-> **Enso Issue:** Leave Empty
-> **Implemented:** Leave blank, this will be filled with the first version of
-  the relevant tool where it is implemented.
+> - **Feature Name:** A unique name for the feature
+> - **Start Date:** Today's date (YYYY-MM-DD)
+> - **Change Type:** Breaking / Non-Breaking (delete as appropriate)
+> - **RFC Dependencies:** List any RFCs that this one depends on.
+> - **RFC PR:** Leave Empty
+> - **Enso Issue:** Leave Empty
+> - **Implemented:** Leave blank, this will be filled with the first version of
+>   the relevant tool where it is implemented.
 
 # Summary
+
 A one-paragraph, high-level summary of the proposal.
 
 # Motivation
+
 Why should we make this change? What use-cases does it support? What benefits
 does it bring to the ecosystem? Explain why the status quo is insufficient or
 not ideal.
 
 # Guide-Level Explanation
+
 Explain the proposal as if teaching the feature(s) to a newcomer to Enso. This
 should usually include:
 
@@ -44,6 +46,7 @@ impact. For policy-level RFCs, this section should provide an example-driven
 introduction to the policy, and explain its impact in concrete terms.
 
 # Specification-Level Explanation
+
 This is the technical portion of the RFC and should be written as a
 specification of the new feature(s). It should provide a syntax-agnostic
 description of the planned feature, and include sufficient detail to address the
@@ -62,10 +65,12 @@ include where relevant:
 - The types and semantics of any new library interfaces.
 
 # Drawbacks
+
 A description of why we _should not_ do this. Write this section as if you are
 picking apart your proposal.
 
 # Rationale and Alternatives
+
 A few paragraphs addressing the rationale for why this design is the best
 possible design for this feature in its design space. It should address how the
 proposed design resolves the motivating factors.
@@ -76,6 +81,7 @@ for not choosing them.
 A paragraph or two addressing the impact of not including this feature.
 
 # Unresolved Questions
+
 This section should address any unresolved questions you have with the RFC at
 the current time. Some examples include:
 

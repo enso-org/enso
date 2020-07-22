@@ -7,6 +7,7 @@ order: 7
 ---
 
 # Types and Type Signatures
+
 Enso is a statically typed language, meaning that every variable is associated
 with information about the possible values it can take. In Enso, the type
 language is the same as the term language, with no artificial separation. For
@@ -37,9 +38,10 @@ is a useful way of thinking about things when discussing type signatures.
 <!-- /MarkdownTOC -->
 
 ## Type Signatures
+
 Enso allows users to provide explicit type signatures for values through use of
-the type ascription operator `:`. The expression `a : b` says that the value
-`a` has the type `b` attributed to it.
+the type ascription operator `:`. The expression `a : b` says that the value `a`
+has the type `b` attributed to it.
 
 ```ruby
 foo : (m : Monoid) -> m.this
@@ -64,24 +66,25 @@ Type signatures in Enso have some special syntax:
   ```
 
 ### Type Operators
+
 Please note that `:`, `in`, and `!` all behave as _standard operators_ in Enso.
 This means that you can section them, which is incredibly useful for programming
 with types. In addition, Enso supports a number of additional operators for
 working with types. These are listed below.
 
-| Operator | Precedence Relations          | Level | Assoc. | Description                                                                 |
-|:--------:|:-----------------------------:|:-----:|:------:|:----------------------------------------------------------------------------|
-| `:`      | `> =`                         |  0    | Left   | Ascribes the type (the right operand) to the value of the left operand.     |
-| `in`     | `> :`, `> !`                  |  3    | Left   | Ascribes the context (the right operand) to the value of the left operand.  |
-| `!`      | `> :`, `> ->`                 |  2    | Left   | Combines the left operand with the right operand as an error value.         |
-| `->`     | `> :`                         |  1    | Left   | Represents a mapping from the left operand to the right operand (function). |
-| `<:`     | `> !`, `< \|`, `> in`         |  4    | Left   | Asserts that the left operand is structurally subsumed by the right.        |
-| `~`      | `== <:`                       |  4    | Left   | Asserts that the left and right operands are structurally equal.            |
-| `;`      | `< :`, `> =`                  | -2    | Left   | Concatenates the left and right operand typesets to create a new typeset.   |
-| `\|`     | `> <:`, `> !`, `> in`, `> :`  |  5    | Left   | Computes the union of the left and right operand typesets.                  |
-| `&`      | `> \|`                        |  6    | Left   | Computes the intersection of the left and right operand typesets.           |
-| `\`      | `> &`                         |  7    | Left   | Computes the subtraction of the right typeset from the left typeset.        |
-| `:=`     | `< :`, `> =`, `> ;`           | -1    | Left   | Creates a typeset member by assigning a value to a label.                   |
+|                                           Operator                                            |     Precedence Relations     | Level | Assoc. | Description                                                                 |
+| :-------------------------------------------------------------------------------------------: | :--------------------------: | :---: | :----: | :-------------------------------------------------------------------------- |
+|                                              `:`                                              |            `> =`             |   0   |  Left  | Ascribes the type (the right operand) to the value of the left operand.     |
+|                                             `in`                                              |         `> :`, `> !`         |   3   |  Left  | Ascribes the context (the right operand) to the value of the left operand.  |
+|                                              `!`                                              |        `> :`, `> ->`         |   2   |  Left  | Combines the left operand with the right operand as an error value.         |
+|                                             `->`                                              |            `> :`             |   1   |  Left  | Represents a mapping from the left operand to the right operand (function). |
+|                                             `<:`                                              |    `> !`, `< \|`, `> in`     |   4   |  Left  | Asserts that the left operand is structurally subsumed by the right.        |
+|                                              `~`                                              |           `== <:`            |   4   |  Left  | Asserts that the left and right operands are structurally equal.            |
+|                                              `;`                                              |         `< :`, `> =`         |  -2   |  Left  | Concatenates the left and right operand typesets to create a new typeset.   |
+|                                             `\|`                                              | `> <:`, `> !`, `> in`, `> :` |   5   |  Left  | Computes the union of the left and right operand typesets.                  |
+|                                              `&`                                              |            `> \|`            |   6   |  Left  | Computes the intersection of the left and right operand typesets.           |
+| `\` | `> &` | 7 | Left | Computes the subtraction of the right typeset from the left typeset. |
+|                                             `:=`                                              |     `< :`, `> =`, `> ;`      |  -1   |  Left  | Creates a typeset member by assigning a value to a label.                   |
 
 Solving this set of inequalities produces the _relative_ precedence levels for
 these operators shown in the table above. In order to check this, you can use
@@ -137,13 +140,15 @@ A permalink to the program using an online Z3 console can be found
 > - Decide which of these should be exposed in the surface syntax.
 
 ### Typeset Literals
+
 Sometimes it is useful or necessary to write a typeset _literal_ in your code.
 These work as follows.
 
 - **Typeset Member:** Syntax for typeset members have three components:
-  + **Label:** The name of the member. This must always be present.
-  + **Type:** The type of the member. This need not be present.
-  + **Value:** A value for the member. This need not be present.
+
+  - **Label:** The name of the member. This must always be present.
+  - **Type:** The type of the member. This need not be present.
+  - **Value:** A value for the member. This need not be present.
 
   This looks like the following:
 
@@ -175,6 +180,7 @@ Typeset literals are considered to be a
 apply.
 
 ### Writing Type Signatures
+
 When ascribing a type to a value, there are two main ways in which it can be
 done. Both of these ways are _semantically_ equivalent, and ascribe the type
 given by the signature (to the right of the `:`) to the expression to the left
@@ -187,9 +193,9 @@ of the `:`.
     my_expr : Type
     ```
 
-2.  **Freestanding Ascription:**  Using the type ascription operator to
-    associate a type with a name. The name must be defined on _the line below_
-    the ascription.
+2.  **Freestanding Ascription:** Using the type ascription operator to associate
+    a type with a name. The name must be defined on _the line below_ the
+    ascription.
 
     ```ruby
     a : Type
@@ -211,6 +217,7 @@ of the `:`.
 >   directly adjacent to the ascribed value?
 
 ### Behaviour of Type Signatures
+
 In Enso, a type signature operates to constrain the values that a given variable
 can hold. Type signatures are _always_ checked, but Enso may maintain more
 specific information in the type inference and checking engines about the type
@@ -244,6 +251,7 @@ properties:
 > - Does this differ for root and non-root definitions?
 
 ## Operations on Types
+
 Enso also provides a set of rich operations on its underlying type-system notion
 of typesets. Their syntax is as follows:
 
@@ -260,10 +268,11 @@ of typesets. Their syntax is as follows:
 >   supersedes this section while this actionable exists.
 
 ## Type Definitions
+
 Types in Enso are defined by using the `type` reserved name. This works in a
 context-dependent manner that is discussed properly in the
-[type system design document](../types/README.md), but is summarised
-briefly below.
+[type system design document](../types/README.md), but is summarised briefly
+below.
 
 - **Name and Fields:** When you provide the keyword with only a name and some
   field names, this creates an atom.
@@ -314,6 +323,7 @@ type Monoid
 ```
 
 ### Visibility and Access Modifiers
+
 While we don't usually like making things private in a programming language, it
 sometimes the case that it is necessary to indicate that certain fields should
 not be touched (as this might break invariants and such like). To this end, we

@@ -7,6 +7,7 @@ order: 2
 ---
 
 # The Enso Type Hierarchy
+
 Enso is a statically typed language based upon a theory of set-based typing,
 what we call `typesets`. This is a novel approach, and it is key to our intent
 for Enso to _feel_ like a dynamic language while still bringing enhanced safety.
@@ -30,15 +31,16 @@ for Enso to _feel_ like a dynamic language while still bringing enhanced safety.
 <!-- /MarkdownTOC -->
 
 ## Typeset Theory
+
 - All types are denoted by a set of constructors, which represent the atomic
   values of that type. We call these 'atoms'. For example, the typeset `Nat` is
   made up of the atoms `1, 2, 3, ...` and so on.
 - Constructors are grouped into typesets.
 - These typesets are arranged into a modular lattice:
-  + The type `Any` is the typeset of all typesets.
-  + The type `Void` is the empty typeset.
-  + All atoms are typesets, but not all typesets are atoms.
-  + This lattice is ordered using the `<:` subsumption judgement. For more
+  - The type `Any` is the typeset of all typesets.
+  - The type `Void` is the empty typeset.
+  - All atoms are typesets, but not all typesets are atoms.
+  - This lattice is ordered using the `<:` subsumption judgement. For more
     information please see [typeset subsumption](#typeset-subsumption).
 
 All in all, this means that a value in Enso can have myriad different types
@@ -60,6 +62,7 @@ A brief note on naming (for more, please see the
   identifier is assumed to be in scope.
 
 ## Atoms
+
 Atoms are the fundamental building blocks of types in Enso, so named because
 they are small units of 'type', but nonetheless may be separated further. In
 Enso's type hierarchy, atoms are the typesets that are unified _nominally_,
@@ -85,6 +88,7 @@ v = V3 1 2 3 : V3 1 2 3 : V3 Int Int Int : V3 Any Any Any : Any
 ```
 
 ## Typesets
+
 Typesets in Enso are an entity unique to Enso's type system. They are a
 fundamental recognition of types as 'sets of values' in Enso, and while they
 share some similarities with records they are a far more general notion.
@@ -164,9 +168,10 @@ Just.nothing = not isJust
 >   constraints on initialisation (partial type constructors style).
 
 ### Typeset Operators
+
 Enso defines a set of operations on typesets that can be used to combine and
-manipulate them. Any use of these operators introduces typing evidence which
-may later be discharged through pattern matching.
+manipulate them. Any use of these operators introduces typing evidence which may
+later be discharged through pattern matching.
 
 They are as follows:
 
@@ -207,6 +212,7 @@ design documentation.
 > - Are `<:` and `:` equivalent in the surface syntax?
 
 ### Typeset Subsumption
+
 For two typesets `a` and `b`, `a` is said to be subsumed by `b` (written using
 the notation `a <: b`) if the following hold recursively. This can be thought of
 as a 'can behave as' relation.
@@ -228,8 +234,8 @@ as a 'can behave as' relation.
         - If `t` contains defaulted arguments, not present in `q`, then these
           can be ignored for the purposes of determining whether `t <: q`. For
           example, `f : a -> b = x -> c` is subsumed by `f : a -> c`.
-        - For the _argument_ position of both `t` and `q`, `t.arg <: q.arg`
-          (the argument position is covariant).
+        - For the _argument_ position of both `t` and `q`, `t.arg <: q.arg` (the
+          argument position is covariant).
         - For the _return_ position of both `t` and `q`, if it is not a function
           type, then `t.ret <: q.ret` (the return position is covariant). If it
           is a function type then recurse.
@@ -251,8 +257,8 @@ Two typesets `A` and `B` are defined to be structurally equal if `A <: B` and
 >
 > - Fix the above. It isn't 100% correct, but should convey a general gist. Use
 >   examples including all the operators.
-> - Ensure that co- and contra-variance are handled properly. They are a bit
->   odd under this theory.
+> - Ensure that co- and contra-variance are handled properly. They are a bit odd
+>   under this theory.
 > - Do we need explicit variance annotations?
 > - How do constraints factor in?
 > - We want users not to have to think about the difference between `~`, `:` and
@@ -267,6 +273,7 @@ Two typesets `A` and `B` are defined to be structurally equal if `A <: B` and
 >   theory we may.
 
 ### Unsafe Typeset Field Mutation
+
 For performance it is sometimes necessary to have the ability to _directly_
 _mutate_ the field of a typeset. This is most often necessary for atoms
 themselves, but as atoms are typesets this also applies.
@@ -278,6 +285,7 @@ themselves, but as atoms are typesets this also applies.
   marked `unsafe` (see [access modifiers](./access-modifiers.md) for more).
 
 ## Dependent Lists
+
 The most-specific type of an Enso list is the list of the types of the list's
 elements. By way of example, the following are true:
 
@@ -289,6 +297,7 @@ elements. By way of example, the following are true:
 This means that Enso's lists _fully subsume_ the use cases for standard tuples.
 
 ## Interfaces
+
 Because typesets can be matched _structurally_, all typesets implicitly define
 interfaces. A type `t` conforming to an interface `i` in Enso is as simple as
 the relation `i <: t` (as in [typeset subsumption](#typeset-subsumption))
@@ -296,8 +305,8 @@ holding.
 
 This means that types need not _explicitly_ implement interfaces, which can be
 thought of as a form of static duck typing. However, when defining a new type,
-users may choose to explicitly state that it defines an interface. This has
-two main benefits:
+users may choose to explicitly state that it defines an interface. This has two
+main benefits:
 
 - We can include default implementations from the interface definition.
 - We can provide better diagnostics in the compiler as we can point to the
@@ -326,10 +335,12 @@ As an aside, it should be noted that the nature of Enso's typesets means that it
 is easy to express far more general interfaces than Haskell's typeclasses can.
 
 ### Special Interfaces
+
 In order to aid usability we include a few special interfaces in the standard
 library that have special support in the compiler.
 
 #### Wrapper
+
 In a language where composition is queen and inheritance doesn't exist there
 needs to be an easy way for users to compose typesets without having to define
 wrappers for the contained types. This is a big usability bonus for Enso.
@@ -342,8 +353,8 @@ type Wrapper
 ```
 
 `Wrapper` is an interface implemented implicitly for all typesets, and boils
-down to delegating to the contained members if a given label is not found on
-the top typeset. This delegation only occurs on the this type.
+down to delegating to the contained members if a given label is not found on the
+top typeset. This delegation only occurs on the this type.
 
 A usage example is as follows:
 
@@ -364,6 +375,7 @@ main =
 ```
 
 #### Convertible
+
 Also useful in a language for data science is the ability to have the compiler
 help you by automatically converting between types that have sensible coercions
 between them. This interface is known as `Convertible`, and defines a one-way
@@ -383,8 +395,8 @@ There are a few key points of this design that must be considered carefully:
   at which the conversion takes place should propagate outwards as far as
   possible. This is very important for proper definition of controls in the GUI.
 - `Convertible t` can also be implemented by a function that accepts arguments
-  _iff_ all of the arguments have default values associated with them. In such
-  a case, the GUI should display conversion controls with a checkbox that, when
+  _iff_ all of the arguments have default values associated with them. In such a
+  case, the GUI should display conversion controls with a checkbox that, when
   checked, can be converted to an explicit conversion call.
 - We will need some limited mechanism for doing this even without type inference
   as it forms the backbone of good API design for the graphical interface. This
@@ -420,6 +432,7 @@ main =
 >   see the additional defaulted parameters and conversion types in the UI.
 
 #### Destruct
+
 While it is a common idiom in functional languages to implement the `bracket`
 pattern for acquiring and releasing resources, but this isn't such a good fit
 for a language where many users aren't going to be used to thinking about
@@ -443,8 +456,8 @@ principle, this should be a familiar sight. It works as follows:
 3.  When a type goes out of scope, its `destroy` method is called, allowing it
     to clean up any resources that it owns.
 
-Initially, going out of scope will be defined as the point at which the
-instance is garbage collected, while later, once we are able to perform more
+Initially, going out of scope will be defined as the point at which the instance
+is garbage collected, while later, once we are able to perform more
 sophisticated analysis, it will instead be defined as the point at which the
 instance's lexical lifetime ends.
 
@@ -458,6 +471,7 @@ and re-open in the same block).
 > - Determine how this interacts with copying and moving.
 
 ## Type Ascription
+
 Like all statically-typed programming languages, Enso provides the means for the
 user to ascribe a type to a value. In Enso, this is done using the `:` operator.
 An expression `a : b` says that the expression denoted by `a` has the type
@@ -484,6 +498,7 @@ contain arbitrary Enso expressions. The type-checking of such signatures is
 discussed further in the section on [dependency](./dependent-typing.md).
 
 ### Scoping in Type Ascription
+
 Enso intends to support some form of mutual scoping between the left and right
 sides of the type ascription operator. This introduces some complexity into the
 typechecker but brings some significant benefits.
@@ -500,16 +515,17 @@ typechecker but brings some significant benefits.
   `>>=` and `fix`.
 
 ## Projections
+
 In order to work efficiently with typesets, we need the ability to seamlessly
 access and modify (immutably) their properties. In the context of our type
 theory, this functionality is known as a _projection_, in that it projects a
 value from (or into) a typeset.
 
-Coming from Haskell, we are well-versed with the flexibility of lenses, and
-more generally _optics_. To that end, we base our projection operations on
-standard theories of optics. While we _do_ need to formalise this, for now we
-provide examples of the expected basic usage. This only covers lenses, while in
-the future we will likely want prisms and other more-advanced optics.
+Coming from Haskell, we are well-versed with the flexibility of lenses, and more
+generally _optics_. To that end, we base our projection operations on standard
+theories of optics. While we _do_ need to formalise this, for now we provide
+examples of the expected basic usage. This only covers lenses, while in the
+future we will likely want prisms and other more-advanced optics.
 
 A projection is generated for each field of a typeset.
 
@@ -523,6 +539,7 @@ A projection is generated for each field of a typeset.
 > - How (if at all) do lenses differ for atoms and typesets?
 
 ### Special Fields
+
 We also define special projections from typesets:
 
 - `index`: The expression `t.n`, where `n` is of type `Number` is translated to

@@ -11,24 +11,17 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired
 }
-import org.enso.languageserver.data.{
-  CapabilityRegistration,
-  Config,
-  DirectoriesConfig,
-  ExecutionContextConfig,
-  FileManagerConfig,
-  PathWatcherConfig,
-  ReceivesSuggestionsDatabaseUpdates
-}
+import org.enso.languageserver.data._
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
+import org.enso.languageserver.runtime.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
+import org.enso.searcher.SuggestionsRepo
 import org.enso.searcher.sql.SqlSuggestionsRepo
-import org.enso.text.editing.model.Position
 import org.enso.testkit.RetrySpec
+import org.enso.text.editing.model.Position
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -162,7 +155,7 @@ class SuggestionsHandlerSpec
         expectMsg(
           SearchProtocol.GetSuggestionsDatabaseResult(
             1,
-            Seq(SuggestionEntry(1L, Suggestions.atom))
+            Seq(SuggestionDatabaseEntry(1L, Suggestions.atom))
           )
         )
     }

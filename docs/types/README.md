@@ -7,6 +7,7 @@ order: 0
 ---
 
 # Enso's Type System
+
 On the spectrum of programming type systems ranging from dynamically typed to
 statically typed, one likes to think that there is a happy medium between the
 two. A language that _feels_ dynamic, with high levels of type inference, but
@@ -31,19 +32,19 @@ many syntactic language features upon inference and type checking, and is
 instrumental for ensuring that we build the right language.
 
 > #### A Note on Syntax
+>
 > In the aid of precision, this document will use syntax that _may not_ be
 > exposed to users. The appearance of a piece of syntax here that is not
-> described in the [syntax](../syntax/README.md) document makes no promises as 
+> described in the [syntax](../syntax/README.md) document makes no promises as
 > to whether said syntax will be exposed in the surface language.
 
-> **Please Note:**
-> The designs in this section are currently very exploratory as the type system
-> is not slated from implementation until after 2.0.
+> **Please Note:** The designs in this section are currently very exploratory as
+> the type system is not slated from implementation until after 2.0.
 
 Information on the type system is broken up into the following sections:
 
-- [**Goals for the Type System:**](./goals.md) The goals for the
-  Enso type system, particularly around usability and user experience.
+- [**Goals for the Type System:**](./goals.md) The goals for the Enso type
+  system, particularly around usability and user experience.
 - [**The Type Hierarchy:**](./hierarchy.md) The type hierarchy in Enso.
 - [**Function Types:**](./function-types.md) Function types in Enso.
 - [**Access Modification:**](./access-modifiers.md) Access modifiers in Enso
@@ -60,8 +61,8 @@ Information on the type system is broken up into the following sections:
 - [**Analysing Parallelism:**](./parallelism.md) A description of how the type
   system interacts with the planned automated parallelism analysis.
 - [**Type-Directed Programming:**](./type-directed-programming.md) A description
-  of how the type system aids type-directed programming, and the features it
-  has to support this approach.
+  of how the type system aids type-directed programming, and the features it has
+  to support this approach.
 - [**Errors:**](./errors.md) The interaction between Enso's errors and the type
   system.
 - [**Type Inference and Checking:**](./inference-and-checking.md) A description

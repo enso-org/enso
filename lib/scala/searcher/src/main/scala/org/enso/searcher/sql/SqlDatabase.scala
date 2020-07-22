@@ -1,5 +1,7 @@
 package org.enso.searcher.sql
 
+import java.io.File
+
 import com.typesafe.config.{Config, ConfigFactory}
 import org.enso.searcher.Database
 import slick.dbio.DBIO
@@ -12,7 +14,7 @@ import scala.concurrent.Future
   *
   * @param config the configuration
   */
-final private[sql] class SqlDatabase(config: Option[Config] = None)
+final class SqlDatabase(config: Option[Config] = None)
     extends Database[DBIO, Future] {
 
   val db = SQLiteProfile.backend.Database
@@ -35,6 +37,14 @@ object SqlDatabase {
 
   private val configPath: String =
     "searcher.db"
+
+  /** Create [[SqlDatabase]] instance.
+    *
+    * @param filename the database file path
+    * @return new sql database instance
+    */
+  def apply(filename: File): SqlDatabase =
+    apply(filename.toString)
 
   /** Create [[SqlDatabase]] instance.
     *

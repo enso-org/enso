@@ -7,6 +7,7 @@ order: 1
 ---
 
 # Polyglot Bindings
+
 This document deals with the specification and design for the polyglot interop
 system provided in the Enso runtime. This system allows users to connect Enso to
 other supported programming languages, to both provide access to a wealth of
@@ -36,6 +37,7 @@ main mechanisms:
 <!-- /MarkdownTOC -->
 
 ## Impedance Mismatch
+
 Polyglot interoperation in Enso has a significant impedance mismatch. In
 essence, this means that there is a mismatch between Enso's language semantics
 and the semantics of the foreign languages that are being worked with.
@@ -49,6 +51,7 @@ represented by Enso.
 > - Expand on the impedance mismatch and how it leads to the defined semantics.
 
 ## The Polyglot FFI
+
 The low-level polyglot FFI mechanism refers to a way to use polyglot objects
 directly in Enso code. This can be used to underlie a library implementaion in
 Enso, or to interoperate with code running in other languages.
@@ -57,6 +60,7 @@ The mechanism provides users with the facilities to import bindings from other
 languages and call them via a generic mechanism.
 
 ### Importing Polyglot Bindings
+
 When importing a polyglot binding into scope in an Enso file, this introduces a
 _polyglot object_ into scope. This object will have appropriate fields and/or
 methods defined on it, as described by the foreign language implementation.
@@ -67,6 +71,7 @@ methods defined on it, as described by the foreign language implementation.
 >   clearer.
 
 ### Using Polyglot Bindings
+
 With a polyglot object in scope, the user is free to call methods on it
 directly. These polyglot objects are inherently dynamically typed, meaning that
 any operation may _fail_ at runtime.
@@ -93,6 +98,7 @@ two things which have no real equivalent in the Enso type system.
 > - Determine how to make the inherent 'failability' of polyglot objects safer.
 
 ### Importing Polyglot Bindings (Syntax)
+
 Polyglot bindings can be imported using a polyglot import directive. This is
 constructed as follows:
 
@@ -112,6 +118,7 @@ polyglot c import struct NetworkPacket as NetworkPacketC
 ```
 
 ### Using Polyglot Bindings (Syntax)
+
 A polyglot binding is a polyglot object that has methods and/or fields defined
 on it. Due to an impedance mismatch between languages, Enso implements a
 variadic syntax for calling these polyglot bindings using vectors.
@@ -142,6 +149,7 @@ main =
 ```
 
 ### Finding Polyglot Bindings
+
 Polyglot objects for various languages are found in the `polyglot` subdirectory
 of an Enso project. This folder is subdivided into directories based on the
 polyglot language. The name of each subdirectory must match the language
@@ -152,18 +160,20 @@ implementation for that particular language needing to specify it. Please see
 the language-specific documentation for details.
 
 ## Embedded Syntax
+
 The term "Embedded Syntax" is our terminology for the ability to use foreign
 language syntaxes from directly inside `.enso` files. This system builds upon
 the more generic mechanisms used by the [polyglot FFI](#the-polyglot-ffi) to
 provide a truly seamless user experience.
 
 ### Embedded Syntax Usage (Syntax)
+
 A polyglot block is introduced as follows:
 
 - The `polyglot` keyword starts a block.
 - This must be followed by a language identifier (e.g. `java`).
-- After the language identifier, the remaining syntax behaves like it is an
-  Enso function definition until the `=`.
+- After the language identifier, the remaining syntax behaves like it is an Enso
+  function definition until the `=`.
 - After the `=`, the user may write their foreign code.
 
 ```ruby

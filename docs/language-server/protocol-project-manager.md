@@ -7,6 +7,7 @@ order: 3
 ---
 
 # Enso Protocol Project Manager Message Specification
+
 This document contains the specification of the Enso protocol messages that
 pertain to the project manager component. Please familiarise yourself with the
 [common](./protocol-common.md) features of the protocol before reading this
@@ -42,10 +43,12 @@ transport formats, please look [here](./protocol-architecture).
 <!-- /MarkdownTOC -->
 
 ## Types
+
 There are a number of types that are used only within the project server's
 protocol messages. These are specified here.
 
 ### `ProjectMetadata`
+
 This type represents information about a project.
 
 #### Format
@@ -59,10 +62,12 @@ interface ProjectMetadata {
 ```
 
 ## Project Management Operations
+
 The primary responsibility of the project managers is to allow users to manage
 their projects.
 
 ### `project/open`
+
 This message requests that the project manager open a specified project. This
 operation also includes spawning an instance of the language server open on the
 specified project.
@@ -90,6 +95,7 @@ interface ProjectOpenResult {
 ```
 
 #### Errors
+
 - [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
   doesn't exist.
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
@@ -97,6 +103,7 @@ interface ProjectOpenResult {
 - [`ProjectOpenError`](#projectopenerror) to signal failures during server boot.
 
 ### `project/close`
+
 This message requests that the project manager close a specified project. This
 operation includes shutting down the language server gracefully so that it can
 persist state to disk as needed.
@@ -117,10 +124,12 @@ interface ProjectCloseRequest {
 #### Result
 
 ```typescript
-{}
+{
+}
 ```
 
 #### Errors
+
 - [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
   doesn't exist.
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
@@ -129,11 +138,12 @@ interface ProjectCloseRequest {
   during language server stoppage.
 - [`ProjectNotOpenError`](#projectnotopenerror) to signal cannot close a project
   that is not open.
-- [`ProjectOpenByOtherPeersError`](#projectopenbyotherpeerserror) to signal
-  that cannot close a project that is open by other clients.
+- [`ProjectOpenByOtherPeersError`](#projectopenbyotherpeerserror) to signal that
+  cannot close a project that is open by other clients.
 
 ### `project/list`
-This message requests that the project manager lists all user's projects. The 
+
+This message requests that the project manager lists all user's projects. The
 list of projects is sorted by the open time.
 
 - **Type:** Request
@@ -158,10 +168,12 @@ interface ProjectListResponse {
 ```
 
 #### Errors
+
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
   underlying data store.
 
 ### `project/create`
+
 This message requests the creation of a new project.
 
 - **Type:** Request
@@ -186,14 +198,16 @@ interface ProjectOpenResponse {
 ```
 
 #### Errors
+
 - [`ProjectNameValidationError`](#projectnamevalidationerror) to signal
   validation failures.
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
   underlying data store.
-- [`ProjectExistsError`](#projectexistserror) to signal that the project
-  already exists.
+- [`ProjectExistsError`](#projectexistserror) to signal that the project already
+  exists.
 
 ### `project/rename`
+
 This message requests the renaming of a project.
 
 - **Type:** Request
@@ -217,18 +231,19 @@ null
 ```
 
 #### Errors
+
 - [`ProjectNameValidationError`](#projectnamevalidationerror) to signal
   validation failures.
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
   underlying data store.
 - [`ProjectExistsError`](#projectexistserror) to signal that the project with
   the provided name already exists.
-- [`ServiceError`](#serviceerror) to signal that the 
-  the operation timed out.
+- [`ServiceError`](#serviceerror) to signal that the the operation timed out.
 - [`LanguageServerError`](#languageservererror) to signal generic language
   server failures.
 
 ### `project/delete`
+
 This message requests the deletion of a project.
 
 - **Type:** Request
@@ -247,10 +262,12 @@ interface ProjectDeleteRequest {
 #### Result
 
 ```typescript
-{}
+{
+}
 ```
 
 #### Errors
+
 - [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
   underlying data store.
 - [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
@@ -258,8 +275,8 @@ interface ProjectDeleteRequest {
 - [`CannotRemoveOpenProjectError`](#cannotremoveopenprojecterror) to signal that
   the project cannot be removed, because is open by at least one user.
 
-
 ### `project/listSample`
+
 This request lists the sample projects that are available to the user.
 
 - **Type:** Request
@@ -284,9 +301,11 @@ interface ProjectListSampleResponse {
 ```
 
 #### Errors
+
 TBC
 
 ## Language Server Management
+
 The project manager is also responsible for managing the language server. This
 means that it needs to be able to spawn the process, but also tell the process
 when to shut down.
@@ -297,11 +316,12 @@ when to shut down.
 >   relationship is going to work.
 
 ## Errors
+
 The project manager component has its own set of errors. This section is not a
 complete specification and will be updated as new errors are added.
 
-
 ### `ProjectNameValidationError`
+
 Signals validation failures.
 
 ```typescript
@@ -312,6 +332,7 @@ Signals validation failures.
 ```
 
 ### `ProjectDataStoreError`
+
 Signals problems with underlying data store.
 
 ```typescript
@@ -322,6 +343,7 @@ Signals problems with underlying data store.
 ```
 
 ### `ProjectExistsError`
+
 Signals that the project already exists.
 
 ```typescript
@@ -332,6 +354,7 @@ Signals that the project already exists.
 ```
 
 ### `ProjectNotFoundError`
+
 Signals that the project doesn't exist.
 
 ```typescript
@@ -341,8 +364,8 @@ Signals that the project doesn't exist.
 }
 ```
 
-
 ### `ProjectOpenError`
+
 Signals that the project cannot be open due to boot failures.
 
 ```typescript
@@ -353,6 +376,7 @@ Signals that the project cannot be open due to boot failures.
 ```
 
 ### `ProjectNotOpenError`
+
 Signals that cannot close project that is not open.
 
 ```typescript
@@ -363,6 +387,7 @@ Signals that cannot close project that is not open.
 ```
 
 ### `ProjectOpenByOtherPeersError`
+
 Signals that cannot close a project that is open by other clients.
 
 ```typescript
@@ -373,6 +398,7 @@ Signals that cannot close a project that is open by other clients.
 ```
 
 ### `CannotRemoveOpenProjectError`
+
 Signals that cannot remove open project.
 
 ```typescript
@@ -383,6 +409,7 @@ Signals that cannot remove open project.
 ```
 
 ### `ProjectCloseError`
+
 Signals failures during shutdown of a server.
 
 ```typescript
@@ -393,6 +420,7 @@ Signals failures during shutdown of a server.
 ```
 
 ### `LanguageServerError`
+
 Signals generic language server errors.
 
 ```typescript

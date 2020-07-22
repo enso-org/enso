@@ -7,6 +7,7 @@ order: 7
 ---
 
 # Construct Resolution
+
 Construct resolution is the process of turning the low-level AST format into the
 full high-level AST format that represents both all of Enso's language
 constructs and contains rich error nodes.
@@ -23,6 +24,7 @@ constructs and contains rich error nodes.
 >   all known current use cases.
 
 ## Syntax Errors
+
 It is very important that Enso is able to provide descriptive and useful syntax
 errors to its users. Doing so requires that it has a full understanding of the
 language's syntax, but also that it is designed in such a fashion that it will

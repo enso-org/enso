@@ -7,6 +7,7 @@ order: 0
 ---
 
 # Enso Runtime
+
 The Enso runtime refers to both the compiler and the optimising JIT runtime for
 Enso. While this might seem like a strange choice, it makes sense internally as
 the components are integrated to a level not seen in most languages. It

@@ -7,6 +7,7 @@ order: 2
 ---
 
 # Parser Architecture Overview
+
 The Enso parser is designed in a highly modular fashion, with separate crates
 responsible for the component's various responsibilities. The overall
 architecture for the parser is described in this document.
@@ -18,6 +19,7 @@ architecture for the parser is described in this document.
 <!-- /MarkdownTOC -->
 
 ## Overall Architecture
+
 The overall architecture of the parser subsystem can be visualised as follows.
 
 ```

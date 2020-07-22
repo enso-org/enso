@@ -173,7 +173,13 @@ final class SuggestionsHandler(
 
     case GetSuggestionsDatabase =>
       repo.getAll
-        .map(GetSuggestionsDatabaseResult.tupled)
+        .map {
+          case (version, entries) =>
+            GetSuggestionsDatabaseResult(
+              version,
+              entries.map(SuggestionDatabaseEntry(_))
+            )
+        }
         .pipeTo(sender())
 
     case Completion(path, pos, selfType, returnType, tags) =>

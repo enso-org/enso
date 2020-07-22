@@ -3,11 +3,12 @@ package org.enso.languageserver.runtime
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.runtime.SearchProtocol.{
+  SuggestionDatabaseEntry,
   SuggestionId,
   SuggestionKind,
   SuggestionsDatabaseUpdate
 }
-import org.enso.searcher.SuggestionEntry
+
 import org.enso.text.editing.model.Position
 
 /**
@@ -34,7 +35,7 @@ object SearchApi {
       extends Method("search/getSuggestionsDatabase") {
 
     case class Result(
-      entries: Seq[SuggestionEntry],
+      entries: Seq[SuggestionDatabaseEntry],
       currentVersion: Long
     )
 

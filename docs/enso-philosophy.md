@@ -7,6 +7,7 @@ order: 1
 ---
 
 # Enso: Simplicity and Correctness
+
 Enso is an award-winning, general-purpose, purely functional programming
 language with equivalent, first-class visual and textual representations and a
 highly expressive and novel type system.
@@ -23,10 +24,10 @@ From a technical point of view, Enso incorporates many of the recent innovations
 in the design and development of programming languages to improve the user
 experience. It provides higher-order functions, strict semantics with opt-in
 laziness, and opt-in algebraic data types, all under the auspices of a novel
-type system that merges dependent typing with a great user experience. Enso
-is the culmination of many years of research into functional programming
-languages, consolidating the work trail-blazed by Haskell, Idris and Agda, but
-also improvements in user-experience and ergonomics.
+type system that merges dependent typing with a great user experience. Enso is
+the culmination of many years of research into functional programming languages,
+consolidating the work trail-blazed by Haskell, Idris and Agda, but also
+improvements in user-experience and ergonomics.
 
 All in all, Enso is a programming language unlike any other before it, a
 seamless blend of code and visual communication that can span organisations.
@@ -57,6 +58,7 @@ seamless blend of code and visual communication that can span organisations.
 <!-- /MarkdownTOC -->
 
 ## Why a New Programming Language?
+
 Since the 1980s, the way that programmers work and the tools that they use have
 changed remarkably little. However, there is a small but growing chorus that
 worries that the status quo is unsustainable: programmers are having problems
@@ -72,6 +74,7 @@ same way that writing and speaking coexist, there are times where code is more
 convenient than any other approach.
 
 ## Software Correctness Matters
+
 "In September 2007, Jean Bookout was driving on the highway with her best friend
 in a Toyota Camry when the accelerator seemed to get stuck. When she took her
 foot off the pedal, the car didn't slow down. She tried the brakes but they
@@ -119,10 +122,12 @@ correctness and provide as much valuable information to the user as possible in
 as automated and intuitive a fashion as possible.
 
 ## Connections to your Data
+
 Software creation is a very creative process. However, while using conventional
 languages, programmers are like chess players trying to play with a blindfold on
+
 - so much of their mental energy is spent just trying to picture where the
-pieces are that there’s hardly any left over to think about the game itself.
+  pieces are that there’s hardly any left over to think about the game itself.
 
 Enso was designed around the idea that _people need an immediate connection to
 what they are making_, as described by by Brett Victor in his amazing talk
@@ -141,6 +146,7 @@ environment for the modelling of data flows, with extensive inbuilt capabilities
 for data visualisation and manipulation.
 
 ## Tenets of Enso
+
 The design of a tool can have a _drastic_ effect on the
 [cognitive load](https://en.wikipedia.org/wiki/Cognitive_load) experienced by
 users. As we design Enso, we rely on a small set of principles to guide the
@@ -177,10 +183,11 @@ the cognitive load for users. They are elucidated below
   possible.
 
 ### Visual and Textual
+
 While Enso _is_ a programming language, the visual environment with which it
-ships is just as important. This means that when designing the language, and
-any new feature for the language, we need to explicitly account for how it works
-in both the visual and textual syntaxes.
+ships is just as important. This means that when designing the language, and any
+new feature for the language, we need to explicitly account for how it works in
+both the visual and textual syntaxes.
 
 - **Necessity:** Is this functionality necessary in both environments, or is it
   compensating for a deficiency in one environment.
@@ -194,6 +201,7 @@ so any functionality from one syntax that doesn't fit in the other should be
 rejected.
 
 ### Unified Syntax
+
 With the syntax being the primary mode of interaction between users and Enso,
 whether it be visual or textual, it is important that it is consistent within
 itself. This is quite a nebulous concept, but it boils down to a few main
@@ -214,6 +222,7 @@ to be remembered, so it is incredibly important to find a happy middle ground
 between _too many_ and _not enough_ syntactic constructs.
 
 ### Visual Communication
+
 Humans are inherently visual creatures, and Enso is designed to enable a
 _visual_ style of communication. When designing new language features, it is
 overwhelmingly important to consider their impact on Enso's visualisation
@@ -223,6 +232,7 @@ functionality.
 - _How_ they can be visualised themselves.
 
 ### One Right Way
+
 Choice in a language inherently creates myriad ways to do things. This is
 singularly unhelpful in any programming language, let alone one intended to span
 all experience levels, as it increases the cognitive burden of using the
@@ -239,18 +249,20 @@ weighted, and a decision made based on the balance between complexity and
 ergonomics.
 
 ### Help the User
+
 Features with significant usability benefits for users should be weighted very
 highly in Enso's design. This is true _even_ when adding such a feature may
 bring significant complexity to the implementation of the language or tooling,
 as the user experience is paramount.
 
-That is not to say, however, that _any and all_ complexity should be accepted
-in the aid of user experience. If the maintenance burden is too great, then it
-is likely that introducing such a photo will impact future UX improvements. To
-this end, it is always a careful balancing act, even if we tilt the scales
-heavily in favour of UX over simplicity of the implementation.
+That is not to say, however, that _any and all_ complexity should be accepted in
+the aid of user experience. If the maintenance burden is too great, then it is
+likely that introducing such a photo will impact future UX improvements. To this
+end, it is always a careful balancing act, even if we tilt the scales heavily in
+favour of UX over simplicity of the implementation.
 
 ### Simple Complexity
+
 A big part of Enso's design is the notion of employing sophisticated and
 cutting-edge techniques in programming language design. However, many languages
 that employ these techniques do so to the _detriment_ of the user experience.
@@ -266,6 +278,7 @@ Enso should provide a good user experience, it should also not stand in the way
 of power users.
 
 ### Powerful When Necessary
+
 While we want to provide a simple tool to our users, this should not induce the
 language to shy away from necessary power.
 
@@ -276,6 +289,7 @@ should be opt-in, with users not wanting the enhancements to expressiveness not
 having to know or care about it.
 
 ### Performance and Predictability
+
 There is little that is more frustrating than the code you write running slowly
 for no explicable reason.
 
@@ -287,6 +301,7 @@ aim for a sensible mapping from source code to machine execution, and aim to
 ensure that seemingly innocuous changes do not impact Enso's performance.
 
 ### Explicit Over Implicit
+
 When designing Enso and its libraries, we don't want to have any behaviour of a
 function that is not recorded in its type, or its defaults. This gives rise to
 two main principles for designing Enso's APIs:
@@ -335,6 +350,7 @@ reading and writing, can call it as follows: `openHandle path (fileMode = RWA)`,
 or just `openHandle path RWA`.
 
 ### Guidance Over On-Boarding
+
 While it is important to have an on-boarding process to help bring new users up
 to speed, that process cannot be the only guidance that users of Enso get.
 
@@ -348,6 +364,7 @@ In essence, it means designing for the _enduring_ user experience of Enso,
 rather than purely the initial user experience.
 
 ## Designing Enso
+
 As Enso's design and functionality evolves, we have to take the utmost care to
 ensure that it doesn't balloon beyond control. As a result, every new feature
 that we contemplate adding to the language should advance these core tenets, and

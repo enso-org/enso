@@ -7,6 +7,7 @@ order: 13
 ---
 
 # Comments
+
 Enso supports a variety of types of comments:
 
 - **Disable Comments:** TODO
@@ -33,6 +34,7 @@ Enso supports a variety of types of comments:
 <!-- /MarkdownTOC -->
 
 ## Disable Comments
+
 Disable comments are the standard form of comment seen in a programming language
 in that they prevent a given piece of code from executing. In Enso, they are
 created by prefixing the expression to disable with the `#` character.
@@ -46,6 +48,7 @@ These aren't _exactly_ like most language's disable comments however:
   in the visual syntax.
 
 ## Documentation Comments
+
 Documentation comments allow users to attach documentation to Enso language
 constructs that can later be displayed in a rich format for users of the API.
 Such comments are automatically connected to the language construct, and can be
@@ -70,6 +73,7 @@ mistakes will be highlighted to the user.
 The documentation syntax is broken down into the following elements.
 
 ### Tags
+
 Tags allow users to annotate their construct with information about its usage
 state. The documentation syntax supports the following tags:
 
@@ -95,6 +99,7 @@ If the user provides an unknown tag the documentation will contain that tag, but
 it will be undefined.
 
 ### Sections
+
 Documentation comments can be broken up into sections, with each section
 delineated by significant whitespace.
 
@@ -123,6 +128,7 @@ different types of section:
   section, prefix the title with `>`.
 
 ### Links
+
 Users are able to embed links and images into their documentation. These links
 can serve to provide access to external resources or demonstrations, and also
 link between various program constructs.
@@ -138,6 +144,7 @@ displayed like standard hyperlinks.
 > - We probably want a construct that lets you reference other API constructs.
 
 ### Lists
+
 The Enso documentation syntax also supports ordered and unordered lists. These
 can be nested, and the nesting may swap the types. Both list types must be
 intended some multiple of 2 spaces from the left margin of the documentation
@@ -150,6 +157,7 @@ To nest a list inside another list, add another 2-character indent to the nested
 list.
 
 ### Code
+
 The Enso documentation syntax allows users to write code that will be displayed
 as code rather than prose. It supports two types of code.
 
@@ -158,8 +166,9 @@ as code rather than prose. It supports two types of code.
   section will be formatted as a code block.
 
 ### Text Formatting
-Enso's documentation syntax also supports some basic syntax for adding rich
-text formatting to the documentation.
+
+Enso's documentation syntax also supports some basic syntax for adding rich text
+formatting to the documentation.
 
 - **Italics:** Enclosing text in `_` (e.g. `_Italics_`).
 - **Bold:** Enclosing text in `*` (e.g. `*Bold*`).
@@ -168,4 +177,3 @@ text formatting to the documentation.
 These syntaxes may be combined, and the order of opening need not equal the
 order of closing. However, if the formatting syntaxes are not closed, this will
 result in an error.
-

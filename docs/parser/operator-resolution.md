@@ -7,6 +7,7 @@ order: 6
 ---
 
 # Operator Resolution
+
 Operator resolution is the process of resolving applications of operators into
 specific nodes on the AST.
 
@@ -17,6 +18,7 @@ specific nodes on the AST.
 <!-- /MarkdownTOC -->
 
 ## Resolution Algorithm
+
 The operator resolution process uses a version of the classic
 [shunting-yard algorithm](https://en.wikipedia.org/wiki/Shunting-yard_algorithm)
 with modifications to support operator sections.
