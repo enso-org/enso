@@ -1397,7 +1397,7 @@ class RuntimeServerTest
     )
     context.pkg.rename("Foo")
     context.send(Api.Request(requestId, Api.RenameProject("Test", "Foo")))
-    context.receive(1) should contain theSameElementsAs Seq(
+    context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.ProjectRenamed("Foo"))
     )
 
@@ -1406,7 +1406,7 @@ class RuntimeServerTest
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
 
-    context.receive(1) should contain(
+    context.receive(2) should contain(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
 
@@ -1420,7 +1420,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
+    context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       context.Main.Update.mainX(contextId),
       context.Main.Update.mainY(contextId),
