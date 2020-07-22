@@ -13,6 +13,79 @@ object SearchProtocol {
 
   type SuggestionId = Long
 
+  private object CodecField {
+
+    val Type = "type"
+  }
+
+  private object CodecType {
+
+    val Add = "Add"
+
+    val Remove = "Remove"
+
+    val Modify = "Modify"
+  }
+
+  private object SuggestionType {
+
+    val Atom = "atom"
+
+    val Method = "method"
+
+    val Function = "function"
+
+    val Local = "local"
+  }
+
+  implicit val suggestionEncoder: Encoder[Suggestion] =
+    Encoder.instance[Suggestion] {
+      case atom: Suggestion.Atom =>
+        Encoder[Suggestion.Atom]
+          .apply(atom)
+          .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Atom.asJson))
+          .dropNullValues
+
+      case method: Suggestion.Method =>
+        Encoder[Suggestion.Method]
+          .apply(method)
+          .deepMerge(
+            Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
+          )
+          .dropNullValues
+
+      case function: Suggestion.Function =>
+        Encoder[Suggestion.Function]
+          .apply(function)
+          .deepMerge(
+            Json.obj(CodecField.Type -> SuggestionType.Function.asJson)
+          )
+          .dropNullValues
+
+      case local: Suggestion.Local =>
+        Encoder[Suggestion.Local]
+          .apply(local)
+          .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Local.asJson))
+          .dropNullValues
+    }
+
+  implicit val suggestionDecoder: Decoder[Suggestion] =
+    Decoder.instance { cursor =>
+      cursor.downField(CodecField.Type).as[String].flatMap {
+        case SuggestionType.Atom =>
+          Decoder[Suggestion.Atom].tryDecode(cursor)
+
+        case SuggestionType.Method =>
+          Decoder[Suggestion.Method].tryDecode(cursor)
+
+        case SuggestionType.Function =>
+          Decoder[Suggestion.Function].tryDecode(cursor)
+
+        case SuggestionType.Local =>
+          Decoder[Suggestion.Local].tryDecode(cursor)
+      }
+    }
+
   sealed trait SuggestionsDatabaseUpdate
   object SuggestionsDatabaseUpdate {
 
@@ -37,20 +110,6 @@ object SearchProtocol {
       */
     case class Modify(id: SuggestionId, returnType: String)
         extends SuggestionsDatabaseUpdate
-
-    private object CodecField {
-
-      val Type = "type"
-    }
-
-    private object CodecType {
-
-      val Add = "Add"
-
-      val Remove = "Remove"
-
-      val Modify = "Modify"
-    }
 
     implicit val decoder: Decoder[SuggestionsDatabaseUpdate] =
       Decoder.instance { cursor =>
@@ -84,65 +143,6 @@ object SearchProtocol {
             .apply(modify)
             .deepMerge(Json.obj(CodecField.Type -> CodecType.Modify.asJson))
             .dropNullValues
-      }
-
-    private object SuggestionType {
-
-      val Atom = "atom"
-
-      val Method = "method"
-
-      val Function = "function"
-
-      val Local = "local"
-    }
-
-    implicit val suggestionEncoder: Encoder[Suggestion] =
-      Encoder.instance[Suggestion] {
-        case atom: Suggestion.Atom =>
-          Encoder[Suggestion.Atom]
-            .apply(atom)
-            .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Atom.asJson))
-            .dropNullValues
-
-        case method: Suggestion.Method =>
-          Encoder[Suggestion.Method]
-            .apply(method)
-            .deepMerge(
-              Json.obj(CodecField.Type -> SuggestionType.Method.asJson)
-            )
-            .dropNullValues
-
-        case function: Suggestion.Function =>
-          Encoder[Suggestion.Function]
-            .apply(function)
-            .deepMerge(
-              Json.obj(CodecField.Type -> SuggestionType.Function.asJson)
-            )
-            .dropNullValues
-
-        case local: Suggestion.Local =>
-          Encoder[Suggestion.Local]
-            .apply(local)
-            .deepMerge(Json.obj(CodecField.Type -> SuggestionType.Local.asJson))
-            .dropNullValues
-      }
-
-    implicit val suggestionDecoder: Decoder[Suggestion] =
-      Decoder.instance { cursor =>
-        cursor.downField(CodecField.Type).as[String].flatMap {
-          case SuggestionType.Atom =>
-            Decoder[Suggestion.Atom].tryDecode(cursor)
-
-          case SuggestionType.Method =>
-            Decoder[Suggestion.Method].tryDecode(cursor)
-
-          case SuggestionType.Function =>
-            Decoder[Suggestion.Function].tryDecode(cursor)
-
-          case SuggestionType.Local =>
-            Decoder[Suggestion.Local].tryDecode(cursor)
-        }
       }
   }
 
@@ -193,6 +193,49 @@ object SearchProtocol {
       }
   }
 
+  /**
+    * The entry in the suggestions database.
+    *
+    * @param id the suggestion id
+    * @param suggestion the suggestion
+    */
+  case class SuggestionDatabaseEntry(id: SuggestionId, suggestion: Suggestion)
+
+  object SuggestionDatabaseEntry {
+
+    /**
+      * Create the database entry from the polyglot suggestion entry.
+      *
+      * @param entry the suggestion entry
+      * @return the database entry
+      */
+    def apply(entry: SuggestionEntry): SuggestionDatabaseEntry =
+      new SuggestionDatabaseEntry(entry.id, entry.suggestion)
+
+    private object CodecField {
+
+      val Id = "id"
+
+      val Suggestion = "suggestion"
+    }
+
+    implicit val encoder: Encoder[SuggestionDatabaseEntry] =
+      Encoder.instance { entry =>
+        Json.obj(
+          CodecField.Id         -> entry.id.asJson,
+          CodecField.Suggestion -> Encoder[Suggestion].apply(entry.suggestion)
+        )
+      }
+
+    implicit val decoder: Decoder[SuggestionDatabaseEntry] =
+      Decoder.instance { cursor =>
+        for {
+          id         <- cursor.downField(CodecField.Id).as[SuggestionId]
+          suggestion <- cursor.downField(CodecField.Suggestion).as[Suggestion]
+        } yield SuggestionDatabaseEntry(id, suggestion)
+      }
+  }
+
   /** A notification about changes in the suggestions database.
     *
     * @param currentVersion current version of the suggestions database
@@ -213,7 +256,7 @@ object SearchProtocol {
     */
   case class GetSuggestionsDatabaseResult(
     currentVersion: Long,
-    entries: Seq[SuggestionEntry]
+    entries: Seq[SuggestionDatabaseEntry]
   )
 
   /** The request to receive the current version of the suggestions database. */
