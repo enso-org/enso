@@ -90,7 +90,7 @@ jobs:
           echo '::set-env name=CI_TEST_TIMEFACTOR::2'
           echo '::set-env name=CI_TEST_FLAKY_ENABLE::true'
       - name: Test Enso
-        run: sbt --no-colors test
+        run: sbt --no-colors "set Global / parallelExecution := false; test"
       - name: Check Runtime Benchmark Compilation
         run: sbt -no-colors runtime/Benchmark/compile
       - name: Check Language Server Benchmark Compilation
