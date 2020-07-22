@@ -210,6 +210,7 @@ impl Lexer<'_,AST> {
 
     // TODO [AA] Generated code
     fn def_state_0_to_0(&mut self) -> LexerStageStatus {
+        let temp = u32::from(self.reader.character);
         match u32::from(self.reader.character) {
             97 => LexerStageStatus::ContinueWith(1),
             98 => LexerStageStatus::ContinueWith(2),
@@ -480,7 +481,10 @@ pub enum LexerResult<T> {
     Failure(Option<T>)
 }
 
+#[cfg(test)]
 mod test {
+    extern crate test;
+
     use super::*;
     use lazy_reader::{Reader, BookmarkId};
     use lazy_reader::decoder::DecoderUTF8;
