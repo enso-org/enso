@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 @ExportLibrary(InteropLibrary.class)
 public class Atom implements TruffleObject {
   private final AtomConstructor constructor;
-  private @CompilationFinal(dimensions = 1) Object[] fields;
+  private final Object[] fields;
 
   /**
    * Creates a new Atom for a given constructor.

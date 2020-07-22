@@ -5,6 +5,7 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
+import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.refactoring.RefactoringApi.RenameProject
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
@@ -46,7 +47,8 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case Api.Response(_, Api.ProjectRenamed()) =>
+    case Api.Response(_, Api.ProjectRenamed(name)) =>
+      context.system.eventStream.publish(ProjectNameChangedEvent(name))
       replyTo ! ResponseResult(RenameProject, id, Unused)
       cancellable.cancel()
       context.stop(self)

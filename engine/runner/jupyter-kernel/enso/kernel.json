@@ -1,10 +1,9 @@
 {
   "argv": [
     "java",
-    "-XX:-UseJVMCIClassLoader",
     "-Dgraalvm.locatorDisabled=true",
     "-jar",
-    "<ABSOLUTE_PATH_TO_ENSO_JAR>",
+    "<ABSOLUTE_PATH_TO_RUNNER_JAR>",
     "--jupyter-kernel",
     "{connection_file}"
   ],

@@ -7,6 +7,7 @@ order: 6
 ---
 
 # Assignment Expressions
+
 Assignment syntax in Enso is fairly magical, given that it is the language's
 syntax for monadic bind.
 
@@ -23,6 +24,7 @@ syntax for monadic bind.
 <!-- /MarkdownTOC -->
 
 ## How Assignment Works
+
 Assignment in Enso operates as follows:
 
 - An assignment is an _expression_.
@@ -40,10 +42,11 @@ functions, extension methods, and to perform pattern matching. Each different
 case will see an appropriate desugaring applied (see below).
 
 Please note that not _all_ occurrences of the `=` operator are assignments in
-the general sense. The above rules do not apply when using said operator to
-pass arguments by name.
+the general sense. The above rules do not apply when using said operator to pass
+arguments by name.
 
 ## Function Definitions
+
 If the left hand side of an assignment is syntactically a prefix application
 chain, where the left-most name is a _variable_ name, the assignment is
 considered to introduce a _function definition_ (the syntax sugared version).
@@ -65,6 +68,7 @@ Please note that by the rules of naming specified previously, if an operator
 occurs in the same position as `a` it will also be defined.
 
 ## Pattern Match Bindings
+
 If the left hand side of an assignment is syntactically a prefix application
 chain, where the left-most name is a _type_ name, the assignment is considered
 to introduce a pattern match binding.
@@ -91,6 +95,7 @@ This also works for operators in an infix position, where its operands will be
 matched against.
 
 ## Extension Methods
+
 There are two cases where an assignment creates an extension method:
 
 1. **Method Syntax:** If the left-hand-side of an assignment is syntactically a
@@ -98,12 +103,13 @@ There are two cases where an assignment creates an extension method:
    application of `.`, this assignment is considered to introduce an extension
    method.
 2. **Function Syntax:** If the left hand side of an assignment is syntactically
-  a prefix application chain where the left-most expression is a variable
-  identifier and the second expression from the left is a variable named `this`
-  with an explicit type ascription, this is also considered to introduce an
-  extension method.
+   a prefix application chain where the left-most expression is a variable
+   identifier and the second expression from the left is a variable named `this`
+   with an explicit type ascription, this is also considered to introduce an
+   extension method.
 
 ### Method Syntax
+
 This syntax for extension methods works as follows:
 
 - The target of the method syntax (left argument to `.`) defines the type on
@@ -117,6 +123,7 @@ My_Type.method_name a b c = ...
 ```
 
 ### Function Syntax
+
 This syntax for extension methods works as follows:
 
 - The `this` argument type is used to define the type on which the extension
@@ -128,6 +135,7 @@ method_name (this : My_Type) a b c = ...
 ```
 
 ## Top-Level Assignments
+
 In order to aid with disambiguation, any binding made in the root scope without
 an explicit target is implicitly defined on a type representing the current
 module. For example, a binding `main = ...` is implicitly `here.main = ...`.

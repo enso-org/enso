@@ -17,11 +17,11 @@ import scala.jdk.OptionConverters._
 class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])
     extends EnsureCompiledJob(EnsureCompiledStackJob.extractFiles(stack)) {
 
-  /** @inheritdoc **/
-  override def runInvalidation(
+  /** @inheritdoc */
+  override def ensureCompiled(
     files: Iterable[File]
   )(implicit ctx: RuntimeContext): Unit = {
-    super.runInvalidation(files)
+    super.ensureCompiled(files)
     getCacheMetadata(stack).foreach { metadata =>
       CacheInvalidation.run(
         stack,

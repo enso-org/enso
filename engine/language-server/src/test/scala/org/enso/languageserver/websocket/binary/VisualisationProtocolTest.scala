@@ -3,7 +3,6 @@ package org.enso.languageserver.websocket.binary
 import java.nio.ByteBuffer
 import java.util.UUID
 
-import org.enso.jsonrpc.test.FlakySpec
 import org.enso.languageserver.protocol.binary.{
   OutboundMessage,
   OutboundPayload,
@@ -13,6 +12,7 @@ import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualisationContext,
   VisualisationUpdate
 }
+import org.enso.testkit.FlakySpec
 import org.scalatest.concurrent.Eventually
 
 class VisualisationProtocolTest

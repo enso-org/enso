@@ -15,9 +15,9 @@ import scala.collection.mutable
   *
   * @param source the text source
   * @param ir the IR node
-  * @tparam A a source type
+  * @tparam A the source type
   */
-final class Changeset[A: TextEditor: IndexedSource](val source: A, ir: IR) {
+final class Changeset[A: TextEditor: IndexedSource](val source: A, val ir: IR) {
 
   /** Traverses the IR and returns a list of all IR nodes affected by the edit
     * using the [[DataflowAnalysis]] information.
@@ -66,6 +66,14 @@ final class Changeset[A: TextEditor: IndexedSource](val source: A, ir: IR) {
     val tree = Changeset.buildTree(ir)
     go(tree, source, mutable.Queue.from(edits), mutable.HashSet())
   }
+
+  /** Apply the list of edits to the source file.
+    *
+    * @param edits the text edits
+    * @return the source file after applying the edits
+    */
+  def applyEdits(edits: Iterable[TextEdit]): A =
+    edits.foldLeft(source)(TextEditor[A].edit)
 
 }
 

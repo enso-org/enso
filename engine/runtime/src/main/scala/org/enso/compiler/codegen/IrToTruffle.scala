@@ -437,6 +437,7 @@ class IrToTruffle(
       setLocation(
         ErrorNode.build(
           context.getBuiltins
+            .error()
             .syntaxError()
             .newInstance(
               "Type operators are not currently supported at runtime."
@@ -479,6 +480,7 @@ class IrToTruffle(
             val message = invalidBranches.map(_.message).mkString(", ")
 
             val error = context.getBuiltins
+              .error()
               .compileError()
               .newInstance(message)
 
@@ -738,17 +740,17 @@ class IrToTruffle(
         case Error.InvalidIR(_, _, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: Error.Syntax =>
-          context.getBuiltins.syntaxError().newInstance(err.message)
+          context.getBuiltins.error().syntaxError().newInstance(err.message)
         case err: Error.Redefined.Binding =>
-          context.getBuiltins.compileError().newInstance(err.message)
+          context.getBuiltins.error().compileError().newInstance(err.message)
         case err: Error.Redefined.Method =>
-          context.getBuiltins.compileError().newInstance(err.message)
+          context.getBuiltins.error().compileError().newInstance(err.message)
         case err: Error.Redefined.Atom =>
-          context.getBuiltins.compileError().newInstance(err.message)
+          context.getBuiltins.error().compileError().newInstance(err.message)
         case err: Error.Redefined.ThisArg =>
-          context.getBuiltins.compileError().newInstance(err.message)
+          context.getBuiltins.error().compileError().newInstance(err.message)
         case err: Error.Unexpected.TypeSignature =>
-          context.getBuiltins.compileError().newInstance(err.message)
+          context.getBuiltins.error().compileError().newInstance(err.message)
       }
       setLocation(ErrorNode.build(payload), error.location)
     }
@@ -899,6 +901,7 @@ class IrToTruffle(
           setLocation(
             ErrorNode.build(
               context.getBuiltins
+                .error()
                 .syntaxError()
                 .newInstance(
                   "Typeset literals are not yet supported at runtime."

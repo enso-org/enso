@@ -38,6 +38,7 @@ trait Parser[T] {
     Result(reader.offset, value)
   }
 
+  // Rewind is a mechanism that allows for arbitrary lookahead.
   final def rewind(): Unit =
     reader.rewind.matched.run()
 

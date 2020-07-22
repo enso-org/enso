@@ -5,7 +5,9 @@ repository:
   name: enso
   description: Hybrid visual and textual functional programming.
   homepage: https://enso.org
-  topics: enso, visual, textual, hybrid, functional, language, compiler, interpreter, rts, jit, polyglot
+  topics:
+    enso, visual, textual, hybrid, functional, language, compiler, interpreter,
+    rts, jit, polyglot
 
   private: false
 
@@ -76,7 +78,8 @@ labels:
     description: A change that will break a public API or user-facing behaviour
   - name: "Change: Non-Breaking"
     color: "#ffdce5"
-    description: A change that will not break a public API or user-facing behaviour
+    description:
+      A change that will not break a public API or user-facing behaviour
 
   - name: "Difficulty: Beginner"
     color: "#d1e9c4"
@@ -208,17 +211,17 @@ branches:
         # Require branches to be up to date before merging.
         strict: true
         contexts:
-        - "Test Engine (macOS-latest)"
-        - "Test Engine (ubuntu-latest)"
-        - "Test Engine (windows-latest)"
-        - "Build Engine"
-        - "Rust Check"
-        - "Rust Lint"
-        - "Rust Test Native (macOS-latest)"
-        - "Rust Test Native (ubuntu-latest)"
-        - "Rust Test Native (windows-latest)"
-        - "Rust Test WASM"
-        - "license/cla"
+          - "Test Engine (macOS-latest)"
+          - "Test Engine (ubuntu-latest)"
+          - "Test Engine (windows-latest)"
+          - "Build Engine"
+          - "Rust Check"
+          - "Rust Lint"
+          - "Rust Test Native (macOS-latest)"
+          - "Rust Test Native (ubuntu-latest)"
+          - "Rust Test Native (windows-latest)"
+          - "Rust Test WASM"
+          - "license/cla"
       enforce_admins: null
       restrictions: null
   - name: "release/*"
@@ -233,17 +236,17 @@ branches:
         # Require branches to be up to date before merging.
         strict: true
         contexts:
-        - "Test Engine (macOS-latest)"
-        - "Test Engine (ubuntu-latest)"
-        - "Test Engine (windows-latest)"
-        - "Build Engine"
-        - "Rust Check"
-        - "Rust Lint"
-        - "Rust Test Native (macOS-latest)"
-        - "Rust Test Native (ubuntu-latest)"
-        - "Rust Test Native (windows-latest)"
-        - "Rust Test WASM"
-        - "license/cla"
-        - "Vulnerability Scan"
+          - "Test Engine (macOS-latest)"
+          - "Test Engine (ubuntu-latest)"
+          - "Test Engine (windows-latest)"
+          - "Build Engine"
+          - "Rust Check"
+          - "Rust Lint"
+          - "Rust Test Native (macOS-latest)"
+          - "Rust Test Native (ubuntu-latest)"
+          - "Rust Test Native (windows-latest)"
+          - "Rust Test WASM"
+          - "license/cla"
+          - "Vulnerability Scan"
       enforce_admins: null
       restrictions: null

@@ -7,6 +7,7 @@ order: 2
 ---
 
 # Typing the Polyglot Bindings
+
 The polyglot bindings inherently provide a problem for the Enso type system.
 When many of the languages with which we can interoperate are highly dynamic and
 flexible, or have significant mismatches between their type system and Enso's,
@@ -18,11 +19,12 @@ boundary.
 - [Enso Values](#enso-values)
 - [Polyglot Values](#polyglot-values)
 - [Dynamic](#dynamic)
-    - [The Enso Boundary](#the-enso-boundary)
+  - [The Enso Boundary](#the-enso-boundary)
 
 <!-- /MarkdownTOC -->
 
 ## Enso Values
+
 The underlying nature of our runtime allows us to pass Enso values across the
 polyglot boundary while ensuring that they aren't modified. This means that the
 typing information known about a value `v` _before_ it is passed to a polyglot
@@ -41,10 +43,11 @@ case, the value needs to be treated as `Dynamic` after its use.
 > - Think much more on this.
 
 ## Polyglot Values
+
 In the presence of a polyglot value, however, there is very little that we can
 determine about a value with which we are working. This means that we need to
-have a principled way to assert properties on a polyglot object that can then
-be reflected in the Enso type system. This mechanism needs to deal with:
+have a principled way to assert properties on a polyglot object that can then be
+reflected in the Enso type system. This mechanism needs to deal with:
 
 - Concurrent access to polyglot objects.
 - Mutation and modification of polyglot objects.
@@ -56,6 +59,7 @@ be reflected in the Enso type system. This mechanism needs to deal with:
 >   could take to it.
 
 ## Dynamic
+
 As Enso can seamlessly interoperate with other programming languages, we need a
 principled way of handling dynamic types that we don't really know anything
 about. This mechanism needs:
@@ -90,6 +94,7 @@ obj.model =
 >   could self-modify underneath us.
 
 ### The Enso Boundary
+
 Fortunately, we can at least avoid foreign languages modifying memory owned by
 the Enso interpreter. As part of the interop library, Graal lets us mark memory
 as read-only. This means that the majority of data passed out (from a functional

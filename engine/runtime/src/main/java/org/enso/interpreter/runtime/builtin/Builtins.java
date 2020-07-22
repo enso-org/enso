@@ -6,18 +6,22 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.*;
+import org.enso.interpreter.node.expression.builtin.function.ApplicationOperatorMethodGen;
 import org.enso.interpreter.node.expression.builtin.function.ExplicitCallFunctionMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.generic.*;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatchNode;
 import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
 import org.enso.interpreter.node.expression.builtin.io.*;
 import org.enso.interpreter.node.expression.builtin.number.*;
+import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.*;
+import org.enso.interpreter.node.expression.builtin.system.ExitMethodGen;
 import org.enso.interpreter.node.expression.builtin.system.NanoTimeMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.*;
 import org.enso.interpreter.node.expression.builtin.text.*;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
+import org.enso.interpreter.node.expression.builtin.unsafe.SetAtomFieldMethodGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -47,9 +51,7 @@ public class Builtins {
   private final AtomConstructor function;
   private final AtomConstructor text;
   private final AtomConstructor debug;
-  private final AtomConstructor syntaxError;
-  private final AtomConstructor compileError;
-  private final AtomConstructor inexhaustivePatternMatchError;
+  private final Error error;
   private final Bool bool;
 
   private final RootCallTarget interopDispatchRoot;
@@ -70,28 +72,17 @@ public class Builtins {
     any = new AtomConstructor("Any", scope).initializeFields();
     number = new AtomConstructor("Number", scope).initializeFields();
     bool = new Bool(language, scope);
+    error = new Error(language, scope);
     function = new AtomConstructor("Function", scope).initializeFields();
     text = new AtomConstructor("Text", scope).initializeFields();
     debug = new AtomConstructor("Debug", scope).initializeFields();
-    syntaxError =
-        new AtomConstructor("Syntax_Error", scope)
-            .initializeFields(
-                new ArgumentDefinition(0, "message", ArgumentDefinition.ExecutionMode.EXECUTE));
-    compileError =
-        new AtomConstructor("Compile_Error", scope)
-            .initializeFields(
-                new ArgumentDefinition(0, "message", ArgumentDefinition.ExecutionMode.EXECUTE));
-    inexhaustivePatternMatchError =
-        new AtomConstructor("Inexhaustive_Pattern_Match_Error", scope)
-            .initializeFields(
-                new ArgumentDefinition(0, "scrutinee", ArgumentDefinition.ExecutionMode.EXECUTE));
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
         new AtomConstructor("Cons", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "head", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(1, "rest", ArgumentDefinition.ExecutionMode.EXECUTE));
+                new ArgumentDefinition(1, "tail", ArgumentDefinition.ExecutionMode.EXECUTE));
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
     AtomConstructor system = new AtomConstructor("System", scope).initializeFields();
     AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
@@ -101,6 +92,8 @@ public class Builtins {
 
     AtomConstructor java = new AtomConstructor("Java", scope).initializeFields();
     AtomConstructor thread = new AtomConstructor("Thread", scope).initializeFields();
+
+    AtomConstructor unsafe = new AtomConstructor("Unsafe", scope).initializeFields();
 
     scope.registerConstructor(unit);
     scope.registerConstructor(any);
@@ -118,11 +111,10 @@ public class Builtins {
     scope.registerConstructor(system);
     scope.registerConstructor(runtime);
 
-    scope.registerConstructor(syntaxError);
-    scope.registerConstructor(compileError);
-
     scope.registerConstructor(java);
     scope.registerConstructor(thread);
+
+    scope.registerConstructor(unsafe);
 
     createPolyglot(language);
 
@@ -131,7 +123,9 @@ public class Builtins {
     scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
 
     scope.registerMethod(system, "nano_time", NanoTimeMethodGen.makeFunction(language));
+    scope.registerMethod(system, "exit", ExitMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
+    scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
 
     scope.registerMethod(panic, "throw", ThrowPanicMethodGen.makeFunction(language));
     scope.registerMethod(panic, "recover", CatchPanicMethodGen.makeFunction(language));
@@ -154,6 +148,7 @@ public class Builtins {
     scope.registerMethod(debug, "breakpoint", DebugBreakpointMethodGen.makeFunction(language));
 
     scope.registerMethod(function, "call", ExplicitCallFunctionMethodGen.makeFunction(language));
+    scope.registerMethod(function, "<|", ApplicationOperatorMethodGen.makeFunction(language));
 
     scope.registerMethod(text, "+", ConcatMethodGen.makeFunction(language));
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
@@ -164,6 +159,8 @@ public class Builtins {
 
     scope.registerMethod(
         thread, "with_interrupt_handler", WithInterruptHandlerMethodGen.makeFunction(language));
+
+    scope.registerMethod(unsafe, "set_atom_field", SetAtomFieldMethodGen.makeFunction(language));
 
     interopDispatchRoot = Truffle.getRuntime().createCallTarget(MethodDispatchNode.build(language));
     interopDispatchSchema =
@@ -234,6 +231,11 @@ public class Builtins {
     return bool;
   }
 
+  /** @return the builtin Error types container. */
+  public Error error() {
+    return error;
+  }
+
   /**
    * Returns the {@code Any} atom constructor.
    *
@@ -250,21 +252,6 @@ public class Builtins {
    */
   public AtomConstructor debug() {
     return debug;
-  }
-
-  /** @return the builtin {@code Syntax_Error} atom constructor. */
-  public AtomConstructor syntaxError() {
-    return syntaxError;
-  }
-
-  /** @return the builtin {@code Compile_Error} atom constructor. */
-  public AtomConstructor compileError() {
-    return compileError;
-  }
-
-  /** @return the builtin {@code Inexhaustive_Pattern_Match_Error} atom constructor. */
-  public AtomConstructor inexhaustivePatternMatchError() {
-    return inexhaustivePatternMatchError;
   }
 
   /**

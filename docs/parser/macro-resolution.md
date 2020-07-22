@@ -7,6 +7,7 @@ order: 5
 ---
 
 # Macro Resolution
+
 Macro resolution is the process of taking the structured token stream from the
 [lexer](./lexer.md), and resolving it into the [ast](./ast.md) through the
 process of resolving macros. This process produces a chunked AST stream,
@@ -20,6 +21,7 @@ including spacing-unaware elements.
 <!-- /MarkdownTOC -->
 
 ## Functionality
+
 The current functionality of the macro resolver is as follows:
 
 - TBC
@@ -36,6 +38,7 @@ The current overview of the macro resolution process can be found in the scala
 > - Create a detailed design for how macro resolution should work.
 
 ## Errors During Macro Resolution
+
 It is very important that, during macro resolution, the resolver produces
 descriptive errors for error conditions in the macro resolver.
 

@@ -6,7 +6,6 @@ import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
 import org.apache.commons.io.FileUtils
-import org.enso.jsonrpc.test.FlakySpec
 import org.enso.languageserver.protocol.binary.{
   InboundPayload,
   OutboundMessage,
@@ -19,6 +18,7 @@ import org.enso.languageserver.websocket.binary.factory.{
   ReadFileCommandFactory,
   WriteFileCommandFactory
 }
+import org.enso.testkit.FlakySpec
 
 import scala.io.Source
 

@@ -9,6 +9,7 @@ import io.circe.generic.auto._
 import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
+import org.enso.projectmanager.boot.Globals.{ConfigFilename, ConfigNamespace}
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.control.effect.ZioEnvExec
 import org.enso.projectmanager.infrastructure.file.{
@@ -16,24 +17,23 @@ import org.enso.projectmanager.infrastructure.file.{
   SynchronizedFileStorage
 }
 import org.enso.projectmanager.infrastructure.languageserver.{
+  LanguageServerGatewayImpl,
   LanguageServerRegistry,
-  LanguageServerRegistryProxy
+  ShutdownHookActivator
 }
+import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
   ProjectIndex
 }
-import org.enso.projectmanager.infrastructure.shutdown.ShutdownHookProcessor
 import org.enso.projectmanager.protocol.{
   JsonRpc,
   ManagerClientControllerFactory
 }
 import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
-import org.enso.projectmanager.test.{
-  NopLogging,
-  ObservableGenerator,
-  ProgrammableClock
-}
+import org.enso.projectmanager.test.{ObservableGenerator, ProgrammableClock}
+import pureconfig.ConfigSource
+import pureconfig.generic.auto._
 import zio.interop.catz.core._
 import zio.{Runtime, Semaphore, ZEnv, ZIO}
 
@@ -43,6 +43,13 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   override def protocol: Protocol = JsonRpc.protocol
 
+  val config: ProjectManagerConfig =
+    ConfigSource
+      .resources(ConfigFilename)
+      .withFallback(ConfigSource.systemProperties)
+      .at(ConfigNamespace)
+      .loadOrThrow[ProjectManagerConfig]
+
   val testClock =
     new ProgrammableClock[ZEnv](OffsetDateTime.now(ZoneOffset.UTC))
 
@@ -51,7 +58,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val gen = new ObservableGenerator[ZEnv]()
 
   val testProjectsRoot = Files.createTempDirectory(null).toFile
-  testProjectsRoot.deleteOnExit()
+  sys.addShutdownHook(FileUtils.deleteQuietly(testProjectsRoot))
 
   val userProjectDir = new File(testProjectsRoot, "projects")
 
@@ -63,15 +70,13 @@ class BaseServerSpec extends JsonRpcServerTestKit {
     userProjectsPath = userProjectDir
   )
 
-  lazy val bootloaderConfig = BootloaderConfig(3, 1.second)
+  lazy val bootloaderConfig = config.bootloader
 
-  lazy val timeoutConfig =
-    TimeoutConfig(3.seconds, 3.seconds, 3.seconds, 5.seconds, 2.seconds)
+  lazy val timeoutConfig = config.timeout
 
-  lazy val netConfig = NetworkConfig("127.0.0.1", 40000, 60000)
+  lazy val netConfig = config.network
 
-  lazy val supervisionConfig =
-    SupervisionConfig(5.seconds, 10.seconds, 5.seconds, 3, 1.seconds)
+  lazy val supervisionConfig = config.supervision
 
   implicit val exec = new ZioEnvExec(Runtime.default)
 
@@ -101,24 +106,25 @@ class BaseServerSpec extends JsonRpcServerTestKit {
         .props(netConfig, bootloaderConfig, supervisionConfig, timeoutConfig)
     )
 
-  lazy val languageServerService =
-    new LanguageServerRegistryProxy[ZIO[ZEnv, +*, +*]](
+  lazy val shutdownHookActivator =
+    system.actorOf(ShutdownHookActivator.props[ZIO[ZEnv, +*, +*]]())
+
+  lazy val languageServerGateway =
+    new LanguageServerGatewayImpl[ZIO[ZEnv, +*, +*]](
       languageServerRegistry,
+      shutdownHookActivator,
+      system,
       timeoutConfig
     )
-
-  lazy val shutdownHookProcessor =
-    new ShutdownHookProcessor[ZIO[ZEnv, +*, +*]](new NopLogging[ZEnv])
 
   lazy val projectService =
     new ProjectService[ZIO[ZEnv, +*, +*]](
       projectValidator,
       projectRepository,
-      new NopLogging[ZEnv],
+      new Slf4jLogging[ZIO[ZEnv, +*, +*]],
       testClock,
       gen,
-      languageServerService,
-      shutdownHookProcessor
+      languageServerGateway
     )
 
   override def clientControllerFactory: ClientControllerFactory = {
@@ -131,7 +137,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   override def afterEach(): Unit = {
     super.afterEach()
-    FileUtils.deleteDirectory(testProjectsRoot)
+    FileUtils.deleteQuietly(testProjectsRoot)
   }
 
 }

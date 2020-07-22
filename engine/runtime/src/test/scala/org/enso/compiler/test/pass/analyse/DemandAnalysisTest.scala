@@ -61,9 +61,15 @@ class DemandAnalysisTest extends CompilerTest {
     *
     * @return a new inline context
     */
-  def mkContext: InlineContext = {
+  def mkInlineContext: InlineContext = {
     InlineContext(
       localScope      = Some(LocalScope.root),
+      freshNameSupply = Some(new FreshNameSupply)
+    )
+  }
+
+  def mkModuleContext: ModuleContext = {
+    ModuleContext(
       freshNameSupply = Some(new FreshNameSupply)
     )
   }
@@ -72,7 +78,7 @@ class DemandAnalysisTest extends CompilerTest {
 
   "Suspended arguments" should {
     "be forced when assigned" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -95,7 +101,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "work correctly when deeply nested" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -111,7 +117,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "not be forced when passed to functions" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -134,7 +140,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "be forced when used in vector literals" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -153,7 +159,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "be marked as not to suspend during codegen when passed to a function" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -177,7 +183,7 @@ class DemandAnalysisTest extends CompilerTest {
   }
 
   "Non-suspended arguments" should {
-    implicit val ctx: InlineContext = mkContext
+    implicit val ctx: InlineContext = mkInlineContext
 
     val ir =
       """x -> y ->
@@ -225,7 +231,7 @@ class DemandAnalysisTest extends CompilerTest {
 
   "Suspended blocks" should {
     "be forced when used" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -250,7 +256,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "not be forced when passed to a function" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -272,7 +278,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "be marked as not to suspend during codegen when passed to a function" in {
-      implicit val ctx: InlineContext = mkContext
+      implicit val ctx: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -291,6 +297,33 @@ class DemandAnalysisTest extends CompilerTest {
         .head
         .asInstanceOf[IR.CallArgument.Specified]
         .shouldBeSuspended shouldEqual Some(false)
+    }
+
+    "force terms in blocks passed directly as arguments" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
+      val ir =
+        """
+          |bar ~x = foo <|
+          |    x
+          |""".stripMargin.preprocessModule.analyse
+
+      val barFunc = ir.bindings.head
+        .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
+      val oprCall = barFunc.body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Application.Prefix]
+
+      oprCall.function.asInstanceOf[IR.Name].name shouldEqual "<|"
+      oprCall.arguments.length shouldEqual 2
+
+      val xArg = oprCall.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+
+      xArg.value shouldBe an[IR.Expression.Block]
+      xArg.value
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue shouldBe an[IR.Application.Force]
     }
   }
 }

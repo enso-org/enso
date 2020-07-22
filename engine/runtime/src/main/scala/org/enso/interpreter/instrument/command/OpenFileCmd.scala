@@ -12,16 +12,20 @@ import scala.concurrent.{ExecutionContext, Future}
   */
 class OpenFileCmd(request: Api.OpenFileNotification) extends Command(None) {
 
-  /** @inheritdoc **/
-  override def execute(
-    implicit ctx: RuntimeContext,
+  /** @inheritdoc */
+  override def execute(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
     Future {
       ctx.locking.acquireFileLock(request.path)
       ctx.locking.acquireReadCompilationLock()
       try {
-        ctx.executionService.setModuleSources(request.path, request.contents)
+        ctx.executionService.setModuleSources(
+          request.path,
+          request.contents,
+          request.isIndexed
+        )
       } finally {
         ctx.locking.releaseReadCompilationLock()
         ctx.locking.releaseFileLock(request.path)

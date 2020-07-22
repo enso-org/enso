@@ -4,8 +4,10 @@ import akka.actor._
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.{
+  FileDeletedEvent,
   FileManagerProtocol,
-  FileSystemFailureMapper
+  FileSystemFailureMapper,
+  Path
 }
 import org.enso.languageserver.filemanager.FileManagerApi.DeleteFile
 import org.enso.languageserver.requesthandler.RequestTimeout
@@ -27,13 +29,14 @@ class DeleteFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
       fileManager ! FileManagerProtocol.DeleteFile(params.path)
       val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
+      context.become(responseStage(id, sender(), cancellable, params.path))
   }
 
   private def responseStage(
     id: Id,
     replyTo: ActorRef,
-    cancellable: Cancellable
+    cancellable: Cancellable,
+    path: Path
   ): Receive = {
     case Status.Failure(ex) =>
       log.error(s"Failure during $DeleteFile operation:", ex)
@@ -55,6 +58,7 @@ class DeleteFileHandler(requestTimeout: FiniteDuration, fileManager: ActorRef)
       context.stop(self)
 
     case FileManagerProtocol.DeleteFileResult(Right(())) =>
+      context.system.eventStream.publish(FileDeletedEvent(path))
       replyTo ! ResponseResult(DeleteFile, id, Unused)
       cancellable.cancel()
       context.stop(self)

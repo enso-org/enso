@@ -32,14 +32,16 @@ class LanguageServerComponent(config: LanguageServerConfig)
 
   implicit private val ec = config.computeExecutionContext
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     for {
       module      <- Future { new MainModule(config) }
+      _           <- Future { logger.debug("MainModule created") }
       jsonBinding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
-      binaryBinding <- module.binaryServer
-        .bind(config.interface, config.dataPort)
+      binaryBinding <-
+        module.binaryServer
+          .bind(config.interface, config.dataPort)
       _ <- Future {
         maybeServerCtx = Some(ServerContext(module, jsonBinding, binaryBinding))
       }
@@ -52,7 +54,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
     } yield ComponentStarted
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def stop(): Future[ComponentStopped.type] =
     maybeServerCtx match {
       case None =>
@@ -62,9 +64,16 @@ class LanguageServerComponent(config: LanguageServerConfig)
         for {
           _ <- terminateTruffle(serverContext)
           _ <- terminateAkka(serverContext)
+          _ <- releaseResources(serverContext)
           _ <- Future { maybeServerCtx = None }
         } yield ComponentStopped
     }
+
+  private def releaseResources(serverContext: ServerContext): Future[Unit] =
+    for {
+      _ <- Future(serverContext.mainModule.close()).recover(logError)
+      _ <- Future { logger.info("Terminated main module") }
+    } yield ()
 
   private def terminateAkka(serverContext: ServerContext): Future[Unit] = {
     for {
@@ -72,12 +81,13 @@ class LanguageServerComponent(config: LanguageServerConfig)
       _ <- Future { logger.info("Terminated json connections") }
       _ <- serverContext.binaryBinding.terminate(2.seconds).recover(logError)
       _ <- Future { logger.info("Terminated binary connections") }
-      _ <- Await
-        .ready(
-          serverContext.mainModule.system.terminate().recover(logError),
-          2.seconds
-        )
-        .recover(logError)
+      _ <-
+        Await
+          .ready(
+            serverContext.mainModule.system.terminate().recover(logError),
+            2.seconds
+          )
+          .recover(logError)
       _ <- Future { logger.info("Terminated actor system") }
     } yield ()
   }
@@ -94,7 +104,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
     } yield ()
   }
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def restart(): Future[ComponentRestarted.type] =
     for {
       _ <- stop()

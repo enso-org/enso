@@ -7,6 +7,7 @@ order: 0
 ---
 
 # The Enso RFC Process
+
 Like any Open Source language, Enso welcomes interaction from the community, as
 we believe that only through the community's suggestions and feedback can we
 make Enso the best it can be.
@@ -14,8 +15,8 @@ make Enso the best it can be.
 To this end, this repository defines a process to be followed for those people
 that want to make 'substantial' changes to the Enso language, the Enso compiler
 and runtime, or even this RFC process itself. What we define as a 'substantial'
-change is in flux based on community norms and in relation to the portion of
-the ecosystem being changed.
+change is in flux based on community norms and in relation to the portion of the
+ecosystem being changed.
 
 Substantial changes may thus include the following:
 
@@ -54,15 +55,17 @@ you have signed the [CLA](../CONTRIBUTING.md#the-contributor-license-agreement).
 <!-- /MarkdownTOC -->
 
 ## Creating an RFC
+
 While informal, we do aim to provide a basic outline for the process of creating
 an RFC. The intention of this process is that RFCs arrive in a state with enough
 detail to spark discussion, and then evolve through discussion with all
 interested parties.
 
 ### Before Creating an RFC
+
 Keep in mind that a hastily-created RFC can hurt discussion and its chances of
-being accepted, even if the idea proposed is excellent! A half-baked proposal,
-a previously-rejected idea, or a feature that doesn't align with our vision for
+being accepted, even if the idea proposed is excellent! A half-baked proposal, a
+previously-rejected idea, or a feature that doesn't align with our vision for
 Enso could be rejected swiftly, making the unprepared contributor feel
 demotivated. Doing a little bit of preparatory legwork can make the RFC process
 that much more smooth.
@@ -75,6 +78,7 @@ If the idea receives encouraging feedback from the core team, as well as the
 community, it is an indication that the RFC is worth pursuing.
 
 ### The RFC Process
+
 To summarise the end goal of the RFC process, the aim is to merge the proposal
 (as a markdown file) into the RFC Repository. At this point, the RFC becomes
 'Active', and may then be implemented.
@@ -94,11 +98,11 @@ The process for creating an RFC can be outlined as follows:
    of the key points for considering RFCs is how they fit with the vision for
    Enso as a whole.
 4. Submit a [Pull Request](https://github.com/enso-org/enso/pulls). Please give
-   the PR a descriptive title (`RFC: My Feature`). The Pull Request will be
-   open for feedback and discussion from the community and core team, and the
-   author should be open to revising it in response to this feedback. The RFC
-   will be assigned a shepherd from the core team who will be responsible for
-   managing the RFC alongside the author.
+   the PR a descriptive title (`RFC: My Feature`). The Pull Request will be open
+   for feedback and discussion from the community and core team, and the author
+   should be open to revising it in response to this feedback. The RFC will be
+   assigned a shepherd from the core team who will be responsible for managing
+   the RFC alongside the author.
 5. Evolve the RFC. Build consensus around the feature through your revisions.
    Feel free to reach out to the shepherd assigned to your proposal for
    discussion, as well as help identifying the key stakeholders and obstacles.
@@ -117,12 +121,14 @@ The process for creating an RFC can be outlined as follows:
    Postponed, where the PR is tagged and closed, or Rejected and closed.
 
 ### Reviewing RFCs
+
 While the RFC pull request is under discussion, the shepherd may organise
 meetings with the author and stakeholders to discuss the issue(s) in more
 detail. A summary from this meeting will be compiled by the shepherd and posted
 back to the pull request.
 
 ## The RFC Life-Cycle
+
 RFCs proceed through their life-cycle in this repository as follows:
 
 1. The Pull Request is submitted. The repository manager assigns appropriate
@@ -136,6 +142,7 @@ RFCs proceed through their life-cycle in this repository as follows:
 5. Once merged, implementation can be commenced and pull requested.
 
 ### Active RFCs
+
 An RFC being 'Active' should not be viewed as a rubber stamp, and in particular
 it does _not_ mean that the feature will be ultimately merged into Enso. It does
 mean that, in principle, stakeholders are in agreement on the feature and are
@@ -157,6 +164,7 @@ substantial changes are required, they should take place as a new RFC, linked to
 and from the old.
 
 ### RFC Implementation
+
 Some accepted RFCs are vital features that need to be implemented as soon as
 possible, while others can wait until a so-inclined developer comes along. Every
 accepted RFC is assigned a tracking issue in the
@@ -172,6 +180,7 @@ cannot determine if someone else is already working on it, feel free to ask
 (e.g. by leaving a comment on the associated issue).
 
 ### RFC Postponement
+
 Some RFC pull requests are tagged with the 'Postponed' label when they are
 closed (as part of the rejection process). This label implies that we neither
 want to think about evaluating the proposal or implementing it until some time
@@ -182,6 +191,7 @@ is usually given because the time is not right to consider or implement such a
 feature for now.
 
 ## Credits
+
 This repository and process takes significant inspiration from the
 [Rust RFCs](https://github.com/rust-lang/rfcs) process, and the
 [GHC Proposals](https://github.com/ghc-proposals/ghc-proposals) process, so

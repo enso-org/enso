@@ -55,7 +55,7 @@ object FileEventKind extends Enum[FileEventKind] with CirceEnum[FileEventKind] {
     */
   case object Modified extends FileEventKind
 
-  val values = findValues
+  override val values = findValues
 
   /**
     * Create [[FileEventKind]] from [[WatcherAdapter.EventType]].

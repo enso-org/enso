@@ -7,6 +7,7 @@ order: 0
 ---
 
 # Debugger
+
 The Enso Debugger allows amongst other things, to execute arbitrary expressions
 in a given execution context - this is used to implement a debugging REPL. The
 REPL can be launched when triggering a breakpoint in the code.

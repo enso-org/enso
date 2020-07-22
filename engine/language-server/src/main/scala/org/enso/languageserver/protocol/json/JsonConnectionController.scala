@@ -185,8 +185,8 @@ class JsonConnectionController(
       )
 
     case SearchProtocol.SuggestionsDatabaseUpdateNotification(
-          updates,
-          version
+          version,
+          updates
         ) =>
       webActor ! Notification(
         SearchApi.SuggestionsDatabaseUpdates,

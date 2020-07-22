@@ -89,8 +89,8 @@ case object DemandAnalysis extends IRPass {
       case block @ IR.Expression.Block(expressions, retVal, _, _, _, _) =>
         block.copy(
           expressions =
-            expressions.map(x => analyseExpression(x, isInsideCallArgument)),
-          returnValue = analyseExpression(retVal, isInsideCallArgument)
+            expressions.map(x => analyseExpression(x, isInsideCallArgument = false)),
+          returnValue = analyseExpression(retVal, isInsideCallArgument = false)
         )
       case binding @ IR.Expression.Binding(_, expression, _, _, _) =>
         binding.copy(expression =

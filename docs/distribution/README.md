@@ -7,6 +7,7 @@ order: 0
 ---
 
 # Enso Distribution
+
 Documents in this section deal with the process of packaging both Enso and its
 dependencies, and Enso projects for use by our users.
 
@@ -20,3 +21,5 @@ dependencies, and Enso projects for use by our users.
   tool for launching various components and managing Enso versions.
 - [**Launcher CLI:**](./launcher-cli.md) Explanation of the command-line
   interface of the launcher.
+- [**Licences:**](licences.md) Information on gathering license information of
+  dependencies included in the distribution.

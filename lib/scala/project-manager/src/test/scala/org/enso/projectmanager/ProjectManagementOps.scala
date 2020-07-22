@@ -46,12 +46,14 @@ trait ProjectManagementOps { this: BaseServerSpec =>
             }
           """)
     val Right(openReply) = parse(client.expectMessage(10.seconds))
-    val socketField = openReply.hcursor
-      .downField("result")
-      .downField("languageServerJsonAddress")
-    val Right(host) = socketField.downField("host").as[String]
-    val Right(port) = socketField.downField("port").as[Int]
-    Socket(host, port)
+    val socket = for {
+      result <- openReply.hcursor.downExpectedField("result")
+      addr   <- result.downExpectedField("languageServerJsonAddress")
+      host   <- addr.downField("host").as[String]
+      port   <- addr.downField("port").as[Int]
+    } yield Socket(host, port)
+
+    socket.fold(fail(s"Failed to decode json: $openReply", _), identity)
   }
 
   def closeProject(

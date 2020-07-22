@@ -1,9 +1,12 @@
 package org.enso.syntax.text.spec
 
+import org.enso.flexer
 import org.enso.flexer.State
 import org.enso.syntax.text.AST
 
-final class __Parser__ extends org.enso.syntax.text.spec.ParserDef {
+import scala.annotation.tailrec
+
+final class __Parser__ extends flexer.Parser[AST.Module] {
 
   final object Word {
     var current: Option[AST.Ident] = None
@@ -45,7 +48,7 @@ final class __Parser__ extends org.enso.syntax.text.spec.ParserDef {
 
     def submit(): Unit =
       logger.trace {
-        result.app(unwrap(current))
+        result.app(current.get)
         current = None
       }
 
@@ -63,6 +66,8 @@ final class __Parser__ extends org.enso.syntax.text.spec.ParserDef {
       case 4 => state0_4
     }
 
+  // Write this as comparisons.
+  // Leave state numbers uncapped
   def state0_0 =
     reader.charCode match {
       case (-1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
@@ -160,6 +165,7 @@ final class __Parser__ extends org.enso.syntax.text.spec.ParserDef {
           242 | 243 | 244 | 245 | 246 | 247 | 248 | 249 | 250 | 251 | 252 |
           253 | 254 | 255) =>
         state.call(group0_rule1)
+        // Redundant
       case (charCode @ _) =>
         if (charCode.<=(-2))
           state.call(group0_rule1)
@@ -489,4 +495,46 @@ final class __Parser__ extends org.enso.syntax.text.spec.ParserDef {
     )
 
   def group1_rule2() = Word.onNoErrSuffix()
+
+  final object result {
+
+    var current: Option[AST]     = None
+    var stack: List[Option[AST]] = Nil
+
+    def push(): Unit = logger.trace {
+      logger.log(s"Pushed: $current")
+      stack +:= current
+      current = None
+    }
+
+    def pop(): Unit = logger.trace {
+      current = stack.head
+      stack   = stack.tail
+      logger.log(s"New result: ${current.map(_.show()).getOrElse("None")}")
+    }
+
+    def app(fn: String => AST): Unit =
+      app(fn(currentMatch))
+
+    def app(ast: AST): Unit = logger.trace {
+      current = Some(current match {
+        case None    => ast
+        case Some(r) => AST.App.Prefix(r, ast)
+      })
+    }
+
+    def last(): Option[AST] = {
+      @tailrec
+      def go(ast: AST): AST = ast match {
+        case AST.App.Prefix.any(t) => go(t.arg)
+        case t                     => t
+      }
+      current.map(go)
+    }
+  }
+
+  override def getResult() = result.current.flatMap {
+    case AST.Module.any(mod) => Some(mod)
+    case _                   => None
+  }
 }
