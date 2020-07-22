@@ -4,11 +4,11 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Status}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.runtime.SearchApi.{
+import org.enso.languageserver.search.SearchApi.{
   GetSuggestionsDatabase,
   SuggestionsDatabaseError
 }
-import org.enso.languageserver.runtime.{SearchFailureMapper, SearchProtocol}
+import org.enso.languageserver.search.{SearchFailureMapper, SearchProtocol}
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration

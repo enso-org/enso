@@ -35,13 +35,9 @@ import org.enso.languageserver.requesthandler.visualisation.{
   DetachVisualisationHandler,
   ModifyVisualisationHandler
 }
-import org.enso.languageserver.runtime.{
-  ContextRegistryProtocol,
-  SearchApi,
-  SearchProtocol
-}
+import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.SearchApi.{
+import org.enso.languageserver.search.SearchApi.{
   Completion,
   GetSuggestionsDatabase,
   GetSuggestionsDatabaseVersion
@@ -51,6 +47,7 @@ import org.enso.languageserver.runtime.VisualisationApi.{
   DetachVisualisation,
   ModifyVisualisation
 }
+import org.enso.languageserver.search.{SearchApi, SearchProtocol}
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionApi.{
   InitProtocolConnection,

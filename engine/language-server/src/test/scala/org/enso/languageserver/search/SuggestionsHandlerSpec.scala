@@ -1,4 +1,4 @@
-package org.enso.languageserver.runtime
+package org.enso.languageserver.search
 
 import java.io.File
 import java.nio.file.Files
@@ -12,9 +12,10 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityAcquired
 }
 import org.enso.languageserver.data._
+import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
-import org.enso.languageserver.runtime.SearchProtocol.SuggestionDatabaseEntry
+import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.polyglot.runtime.Runtime.Api
@@ -28,6 +29,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import scala.util.{Failure, Success}
 
 class SuggestionsHandlerSpec
     extends TestKit(ActorSystem("TestSystem"))
@@ -258,7 +260,12 @@ class SuggestionsHandlerSpec
     val router  = TestProbe("session-router")
     val repo    = SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)
     val handler = newSuggestionsHandler(config, router, repo)
-    Await.ready(repo.init, Timeout)
+    repo.init.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize Suggestions repo")
+    }
 
     try test(config, repo, router, handler)
     finally {

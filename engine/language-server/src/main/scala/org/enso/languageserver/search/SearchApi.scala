@@ -1,8 +1,8 @@
-package org.enso.languageserver.runtime
+package org.enso.languageserver.search
 
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.filemanager.Path
-import org.enso.languageserver.runtime.SearchProtocol.{
+import org.enso.languageserver.search.SearchProtocol.{
   SuggestionDatabaseEntry,
   SuggestionId,
   SuggestionKind,

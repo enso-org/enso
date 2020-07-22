@@ -35,16 +35,29 @@ class LanguageServerComponent(config: LanguageServerConfig)
   /** @inheritdoc */
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
+    val module = new MainModule(config)
+    val initMainModule =
+      for {
+        _ <- module.init
+        _ <- Future { logger.debug("Main module initialized") }
+      } yield ()
+    val bindJsonServer =
+      for {
+        binding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
+        _       <- Future { logger.debug("Json RPC server initialized") }
+      } yield binding
+    val bindBinaryServer =
+      for {
+        binding <- module.binaryServer.bind(config.interface, config.dataPort)
+        _       <- Future { logger.debug("Binary server initialized") }
+      } yield binding
     for {
-      module      <- Future { new MainModule(config) }
-      _           <- Future { logger.debug("MainModule created") }
-      jsonBinding <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
-      binaryBinding <-
-        module.binaryServer
-          .bind(config.interface, config.dataPort)
+      jsonBinding   <- bindJsonServer
+      binaryBinding <- bindBinaryServer
       _ <- Future {
         maybeServerCtx = Some(ServerContext(module, jsonBinding, binaryBinding))
       }
+      _ <- initMainModule
       _ <- Future {
         logger.info(
           s"Started server at json:${config.interface}:${config.rpcPort}, " +

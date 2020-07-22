@@ -14,7 +14,7 @@ import scala.concurrent.duration._
 
 class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
-  val Timeout: FiniteDuration = 10.seconds
+  val Timeout: FiniteDuration = 20.seconds
 
   val tmpdir: Path = {
     val tmp = Files.createTempDirectory("suggestions-repo-test")
@@ -39,6 +39,10 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
   }
 
   "SuggestionsRepo" should {
+
+    "init idempotent" taggedAs Retry in withRepo { repo =>
+      Await.result(repo.init, Timeout)
+    }
 
     "get all suggestions" taggedAs Retry in withRepo { repo =>
       val action =
