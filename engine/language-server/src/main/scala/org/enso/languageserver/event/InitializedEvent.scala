@@ -5,6 +5,6 @@ sealed trait InitializedEvent extends Event
 
 object InitializedEvent {
 
-  case object SuggestionsRepo  extends InitializedEvent
-  case object FileVersionsRepo extends InitializedEvent
+  case object SuggestionsRepoInitialized  extends InitializedEvent
+  case object FileVersionsRepoInitialized extends InitializedEvent
 }

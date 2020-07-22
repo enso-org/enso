@@ -87,7 +87,7 @@ final class SuggestionsHandler(
     context.system.eventStream.subscribe(self, classOf[ProjectNameChangedEvent])
     context.system.eventStream.subscribe(self, classOf[FileDeletedEvent])
     context.system.eventStream
-      .subscribe(self, InitializedEvent.SuggestionsRepo.getClass)
+      .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
 
     config.contentRoots.foreach {
       case (_, contentRoot) =>
@@ -102,10 +102,12 @@ final class SuggestionsHandler(
 
   def initializing(init: SuggestionsHandler.Initialization): Receive = {
     case ProjectNameChangedEvent(name) =>
-      becomeInitialized(init.copy(project = Some(name)))
-    case InitializedEvent.SuggestionsRepo =>
-      becomeInitialized(
-        init.copy(suggestions = Some(InitializedEvent.SuggestionsRepo))
+      tryInitialize(init.copy(project = Some(name)))
+    case InitializedEvent.SuggestionsRepoInitialized =>
+      tryInitialize(
+        init.copy(suggestions =
+          Some(InitializedEvent.SuggestionsRepoInitialized)
+        )
       )
     case _ => stash()
   }
@@ -252,9 +254,7 @@ final class SuggestionsHandler(
     *
     * @param state current initialization state
     */
-  private def becomeInitialized(
-    state: SuggestionsHandler.Initialization
-  ): Unit = {
+  private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
     state.initialized.fold(context.become(initializing(state))) { name =>
       context.become(initialized(name, Set()))
       unstashAll()
@@ -370,8 +370,8 @@ object SuggestionsHandler {
     * @param suggestions the initialization event of the suggestions repo
     */
   private case class Initialization(
-    project: Option[String]                                    = None,
-    suggestions: Option[InitializedEvent.SuggestionsRepo.type] = None
+    project: Option[String]                                               = None,
+    suggestions: Option[InitializedEvent.SuggestionsRepoInitialized.type] = None
   ) {
 
     /**

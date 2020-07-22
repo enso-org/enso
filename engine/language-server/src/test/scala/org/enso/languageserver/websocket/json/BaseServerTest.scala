@@ -125,7 +125,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
     val suggestionsRepoInit = suggestionsRepo.init
     suggestionsRepoInit.onComplete {
       case Success(()) =>
-        system.eventStream.publish(InitializedEvent.SuggestionsRepo)
+        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
       case Failure(ex) =>
         system.log.error(ex, "Failed to initialize Suggestions repo")
     }(system.dispatcher)
@@ -133,7 +133,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
     val versionsRepoInit = versionsRepo.init
     versionsRepoInit.onComplete {
       case Success(()) =>
-        system.eventStream.publish(InitializedEvent.FileVersionsRepo)
+        system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
       case Failure(ex) =>
         system.log.error(ex, "Failed to initialize FileVersions repo")
     }(system.dispatcher)

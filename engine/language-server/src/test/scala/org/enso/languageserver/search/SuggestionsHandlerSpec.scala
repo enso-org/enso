@@ -262,7 +262,7 @@ class SuggestionsHandlerSpec
     val handler = newSuggestionsHandler(config, router, repo)
     repo.init.onComplete {
       case Success(()) =>
-        system.eventStream.publish(InitializedEvent.SuggestionsRepo)
+        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
       case Failure(ex) =>
         system.log.error(ex, "Failed to initialize Suggestions repo")
     }
