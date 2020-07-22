@@ -14,14 +14,26 @@ producing a clear history for a given project.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
+- [Where these Guidelines Apply](#where-these-guidelines-apply)
 - [Formatting Your Commit Messages](#formatting-your-commit-messages)
   - [Summary Line](#summary-line)
   - [Detailed Explanation](#detailed-explanation)
   - [Issue Number](#issue-number)
   - [General Formatting](#general-formatting)
-- [Where these Guidelines Apply](#where-these-guidelines-apply)
 
 <!-- /MarkdownTOC -->
+
+## Where these Guidelines Apply
+
+These guidelines apply to the following branches in the Enso repository:
+
+- The main branch (`main`).
+- Release branches (those beginning with `release/`, as specified in the
+  [release policy](../distribution/release-policy.md#release-branches)).
+
+This means that you _must_ be careful to apply these guidelines when creating
+the squash commit to merge your PRs into `main`, as that commit message must
+follow the guidelines.
 
 ## Formatting Your Commit Messages
 
@@ -57,18 +69,27 @@ Resolves #211
 Resolves #283
 ```
 
+> #### On GitHub
+>
+> When merging a PR on GitHub you are given _two_ boxes. The small, single-line
+> one is where the summary line goes. The larger box should contain the
+> remaining content.
+
 ### Summary Line
 
 The summary line is a short descriptor of the commit. It must meet the following
 requirements:
 
-1.  It is written as an imperative "Create a new API for
-    $foo", not "Creates a new API for $foo".
-2.  It is less than 50 characters long.
+1.  It is written as an imperative "Create a new API for foo", not "Creates a
+    new API for foo".
+2.  It is <= 50 characters long.
 3.  It begins with a capital letter.
 4.  It _does not_ end with a full stop (`.`).
 5.  It should specify the commit type(s) from the list of
     [commit types](#commit-types) in square brackets (`[]`) at the start.
+6.  It does not contain spurious capitalisation. It isn't a title (and so should
+    not be in title case), but is instead a summary. Capitalise proper nouns and
+    the first word, but that's it.
 
 For example:
 
@@ -86,7 +107,7 @@ The following commit types are allowable in commit messages:
 - `Fix`: A fix to a bug.
 - `Ref`: A refactor.
 - `Style`: Changes related to code style in code otherwise untouched.
-- `Test`: Related to testing _only_. Do not use this tag if another fits.
+- `Test`: Related to testing _only_. Do not use this tag if another one applies.
 - `Tool`: Related to tooling and CI.
 
 ### Detailed Explanation
@@ -137,9 +158,3 @@ Your commit messages should obey the following formatting guidelines:
 - There should be no trailing whitespace in the commit message.
 - All unnecessary punctuation should be removed.
 - Use markdown syntax for formatting in the body, but not in the subject line.
-
-## Where these Guidelines Apply
-
-These guidelines apply to _all branches_ in the Enso repository, except:
-
-- Those beginning with `wip/*`.
