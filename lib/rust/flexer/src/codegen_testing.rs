@@ -172,26 +172,19 @@ impl Lexer<AST> {
 
     // TODO [AA] Internal helper
     fn run_current_state(&mut self) -> LexerStageStatus {
-        let mut is_finished = false;
-
         self.status = LexerStageStatus::Initial;
 
         while self.status.is_valid() {
             let status = self.status.value().expect("Value guaranteed to exist as `is_valid()`.");
             self.status = self.def_step(status);
 
-            // TODO [JV]
-            if is_finished && !self.reader.rewinder.is_rewinded() {
+            if self.reader.empty() {
                 self.status = LexerStageStatus::ExitFinished
             }
 
-            // TODO [JV]
-            is_finished = self.reader.is_finished();
-
             if self.status.is_valid() {
-                if !self.reader.empty() {
-                    // TODO [JV]
-                    self.reader.append_code_point(self.reader.char_code);
+                if let Some(char) = self.reader.character.char {
+                    self.reader.result.push(char);
                 }
                 self.reader.next_char();
             }
@@ -226,14 +219,12 @@ impl Lexer<AST> {
 
     // TODO [AA] Generated code
     fn def_state_0_to_0(&mut self) -> LexerStageStatus {
-        match self.reader.char_code {
+        match u32::from(self.reader.character) {
             97 => LexerStageStatus::ContinueWith(1),
             98 => LexerStageStatus::ContinueWith(2),
             _  => {
-                self.current_match = self.reader.result.to_string();
+                self.current_match = self.reader.pop_result();
                 self.def_group_0_rule_2();
-                // TODO [JV]
-                self.reader.set_result_length(0);
                 self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
@@ -245,10 +236,9 @@ impl Lexer<AST> {
         match self.reader.char_code {
             97 => LexerStageStatus::ContinueWith(3),
             _  => {
-                self.current_match = self.reader.result.to_string();
+                self.current_match = self.reader.pop_result();
                 self.def_group_0_rule_0();
-                self.reader.set_result_length(0);
-                self.reader.rewinder.set_matched();
+                self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }
@@ -259,10 +249,9 @@ impl Lexer<AST> {
         match self.reader.char_code {
             98 => LexerStageStatus::ContinueWith(4),
             _  => {
-                self.current_match = self.reader.result.to_string();
+                self.current_match = self.reader.pop_result();
                 self.def_group_0_rule_1();
-                self.reader.set_result_length(0);
-                self.reader.rewinder.set_matched();
+                self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }
@@ -273,10 +262,9 @@ impl Lexer<AST> {
         match self.reader.char_code {
             97 => LexerStageStatus::ContinueWith(3),
             _  => {
-                self.current_match = self.reader.result.to_string();
+                self.current_match = self.reader.pop_result();
                 self.def_group_0_rule_0();
-                self.reader.set_result_length(0);
-                self.reader.rewinder.set_matched();
+                self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }
@@ -287,11 +275,9 @@ impl Lexer<AST> {
         match self.reader.char_code {
             98 => LexerStageStatus::ContinueWith(4),
             _  => {
-                // TODO [JV] currently matched str
-                self.current_match = self.reader.result.to_string();
+                self.current_match = self.reader.pop_result();
                 self.def_group_0_rule_1();
-                self.reader.set_result_length(0);
-                self.reader.rewinder.set_matched();
+                self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }

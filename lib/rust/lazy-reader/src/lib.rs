@@ -13,7 +13,7 @@
 pub mod decoder;
 
 use decoder::Decoder;
-
+use crate::decoder::{Char, InvalidChar};
 
 
 // ============
@@ -84,10 +84,12 @@ impl BookmarkId {
 }
 
 /// Bookmarks a specific character in buffer, so that `LazyReader` can return to it when needed.
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug,Clone,Copy,Default)]
 pub struct Bookmark {
     /// The position of bookmarked character in `reader.buffer`.
     offset: usize,
+    /// The length of `reader.result` up to the bookmarked character.
+    length: usize,
 }
 
 /// The default size of buffer.
@@ -103,16 +105,16 @@ pub struct Reader<D:Decoder,Read> {
     pub reader: Read,
     /// The buffer that stores the input data.
     pub buffer: Vec<D::Word>,
+    /// The string representation of data that has been read.
+    pub result: String,
     /// The buffer offset of the current element read.
     pub offset: usize,
     /// The number of elements stored in buffer.
     pub length: usize,
     /// Flag that is true iff the reader was just rewinded and no new chars were read.
-    pub rewinded: bool,
-    /// Bookmarks allow reader to return to a character at specific offset.
     pub bookmark: Vec<Bookmark>,
     /// The last character read.
-    pub character: decoder::Char,
+    pub character: decoder::Char<Error>,
 }
 
 impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
@@ -121,11 +123,11 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
         let mut reader = Reader::<D,R> {
             reader,
             buffer    : vec![D::Word::default(); BUFFER_SIZE],
+            result    : String::from(""),
             offset    : 0,
             length    : 0,
-            rewinded  : false,
-            bookmark  : vec![Bookmark{offset:0};bookmarks],
-            character : decoder::Char{char:None, size:0},
+            bookmark  : vec![Bookmark::default();bookmarks],
+            character : decoder::Char{char:Err(Error::EOF), size:0},
         };
         reader.length = reader.reader.read(&mut reader.buffer[..]);
         reader
@@ -134,13 +136,14 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
     /// Bookmarks the current character, so that the reader can return to it later with `rewind()`.
     pub fn bookmark(&mut self, bookmark:BookmarkId) {
         self.bookmark[bookmark.id].offset = self.offset - self.character.size;
+        self.bookmark[bookmark.id].length = self.result.len();
     }
 
     /// Returns to the bookmarked character.
     pub fn rewind(&mut self, bookmark:BookmarkId) {
         self.offset = self.bookmark[bookmark.id].offset;
+        self.result.truncate(self.bookmark[bookmark.id].length);
         let _ = self.next_char();
-        self.rewinded = true;
     }
 
     /// How many words could be rewinded
@@ -182,31 +185,46 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
 
     /// Reads the next char from input.
     pub fn next_char(&mut self) -> Result<char,Error> {
-        if self.empty() { return Err(Error::EOF) }
+        if self.empty() { self.character.char = Err(Error::EOF); return Err(Error::EOF) }
 
         if self.offset >= self.buffer.len() - D::MAX_CODEPOINT_LEN {
             self.fill();
         }
 
-        self.character = D::decode(&self.buffer[self.offset..]);
-        self.rewinded  = false;
+        self.character = D::decode(&self.buffer[self.offset..]).into();
         self.offset    = self.offset + self.character.size;
 
-        match self.character.char {
-            Some(char) => Ok(char),
-            None       => Err(Error::InvalidChar)
-        }
+        self.character.char
+    }
+
+    /// Returns `self.result` and reassigns it a new empty string.
+    pub fn pop_result(&mut self) -> String {
+        let str = self.result.clone();
+        self.result.truncate(0);
+        str
     }
 }
 
 
 // === Trait Impls ===
 
-impl From<Error> for u32 {
-    fn from(error: Error) -> Self {
-        match error {
-            Error::EOF         => u32::max_value(),
-            Error::InvalidChar => u32::max_value() - 1,
+impl From<decoder::Char<decoder::InvalidChar>> for decoder::Char<Error> {
+    fn from(char:Char<InvalidChar>) -> Self {
+        let size = char.size;
+        let char = match char.char {
+            Ok(char) => Ok(char),
+            Err(_)   => Err(Error::InvalidChar),
+        };
+        decoder::Char{char,size}
+    }
+}
+
+impl From<decoder::Char<Error>> for u32 {
+    fn from(char:decoder::Char<Error>) -> Self {
+        match char.char {
+            Ok (char)               => char as u32,
+            Err(Error::EOF)         => u32::max_value(),
+            Err(Error::InvalidChar) => u32::max_value() - 1,
         }
     }
 }
