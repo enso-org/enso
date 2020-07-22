@@ -97,14 +97,14 @@ class Application[Config](
     * available commands and top-level options.
     */
   def renderHelp(): String = {
-    val usageOptions = topLevelOpts.commandLineOptions()
+    val usageOptions = topLevelOpts.commandLineOptions().stripLeading()
     val usage        = s"Usage: $commandName\t${usageOptions} COMMAND [ARGS]\n"
 
     val subCommands = commands.map(_.topLevelHelp) ++ pluginManager
         .map(_.pluginsHelp())
         .getOrElse(Seq())
     val commandDescriptions =
-      subCommands.map(_.toString).map(CLIOutput.indent + _).mkString("\n")
+      subCommands.map(_.toString).map(CLIOutput.indent + _ + "\n").mkString
 
     val topLevelOptionsHelp =
       topLevelOpts.helpExplanations(addHelpOption = false)
@@ -113,7 +113,7 @@ class Application[Config](
     sb.append(helpHeader + "\n")
     sb.append(usage)
     sb.append("\nAvailable commands:\n")
-    sb.append(commandDescriptions + "\n")
+    sb.append(commandDescriptions)
     sb.append(topLevelOptionsHelp)
     sb.append(
       s"\nFor more information on a specific command listed above," +

@@ -27,12 +27,10 @@ class PluginManagerSpec
     val shebang = if (isWindows) "@echo off" else "#!/bin/sh"
     val content =
       Seq(shebang) ++ makePluginCode(name)
-    val prefix = if (prefixed) "enso-" else ""
-    val filename = prefix + name +
-      LocalSystemEnvironment.getPluginExtensions.headOption
-        .map("." + _)
-        .getOrElse("")
-    val filePath = path.resolve(filename).toAbsolutePath
+    val prefix    = if (prefixed) "enso-" else ""
+    val extension = if (isWindows) ".bat" else ""
+    val filename  = prefix + name + extension
+    val filePath  = path.resolve(filename).toAbsolutePath
     Files.write(filePath, content.asJava)
     if (!isWindows) {
       if (Seq("chmod", "+x", filePath.toString).! != 0) {
@@ -58,7 +56,7 @@ class PluginManagerSpec
     }
 
     "allow to run a plugin" in {
-      val path = getTestDirectory
+      val path = getTestDirectory.toAbsolutePath
       writePlugin(path, "plugin1")
 
       val run = runLauncher(Seq("plugin1"), "PATH" -> path.toString)
@@ -67,7 +65,7 @@ class PluginManagerSpec
     }
 
     "suggest similar plugin name on typo" in {
-      val path = getTestDirectory
+      val path = getTestDirectory.toAbsolutePath
       writePlugin(path, "plugin1")
       val run = runLauncher(Seq("plugin2"), "PATH" -> path.toString)
       run.exitCode should not equal 0

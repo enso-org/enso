@@ -31,9 +31,10 @@ case class Command[A](
     val padding   = " " * firstLine.length
     val usage =
       firstLine + usages.head +
-      usages.tail.map("\n" + padding + _).mkString + "\n\n"
+      usages.tail.map("\n" + padding + _).mkString + "\n"
 
-    comment + "\n" + usage + opts.helpExplanations(addHelpOption = true)
+    comment + "\n" + usage +
+    opts.helpExplanations(addHelpOption = true).stripTrailing()
   }
 
   /**

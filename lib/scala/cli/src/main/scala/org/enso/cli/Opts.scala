@@ -172,17 +172,18 @@ trait Opts[A] {
       additionalHelpOption ++ availableOptionsHelp()
     val options = optionExplanations.map(CLIOutput.indent + _).mkString("\n")
     val optionsHelp =
-      if (options.isEmpty) "" else "Available options:\n" + options + "\n\n"
+      if (options.isEmpty) "" else "\nAvailable options:\n" + options + "\n"
 
     val prefixed =
       availablePrefixedParametersHelp().map(CLIOutput.indent + _).mkString("\n")
     val prefixedHelp =
       if (prefixed.isEmpty) ""
       else
-        "Prefixed parameters (may occur multiple times):\n" + prefixed + "\n\n"
+        "\nPrefixed parameters (may occur multiple times):\n" + prefixed + "\n"
 
-    val additional = additionalHelp().map(_ + "\n").mkString
-    optionsHelp + prefixedHelp + additional
+    val additional     = additionalHelp().map(_ + "\n").mkString
+    val additionalText = if (additional.isEmpty) "" else "\n" + additional
+    optionsHelp + prefixedHelp + additionalText
   }
 }
 
