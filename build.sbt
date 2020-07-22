@@ -10,7 +10,7 @@ import sbt.Keys.scalacOptions
 import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-import com.typesafe.sbt.license.{DepModuleInfo, LicenseInfo}
+import com.typesafe.sbt.license.DepModuleInfo
 
 // ============================================================================
 // === Global Configuration ===================================================
@@ -127,6 +127,7 @@ lazy val enso = (project in file("."))
     graph,
     logger.jvm,
     pkg,
+    cli,
     `version-output`,
     runner,
     runtime,
@@ -475,6 +476,18 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     libraryDependencies ++= circe ++ Seq(
         "io.circe"  %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
         "commons-io" % "commons-io" % commonsIoVersion
+      )
+  )
+  .settings(licenseSettings)
+
+lazy val cli = project
+  .in(file("lib/scala/cli"))
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    libraryDependencies ++= Seq(
+        "org.scalatest" %% "scalatest" % scalatestVersion % Test,
+        "org.typelevel" %% "cats-core" % catsVersion
       )
   )
   .settings(licenseSettings)
@@ -966,13 +979,23 @@ lazy val launcher = project
   .settings(
     libraryDependencies ++= Seq(
         "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-        "com.monovore"  %% "decline"   % declineVersion,
         "org.typelevel" %% "cats-core" % catsVersion
       )
   )
   .settings(
     buildNativeImage := NativeImage.buildNativeImage(staticOnLinux = true).value
   )
+  .settings(
+    (Test / test) := (Test / test)
+        .dependsOn(
+          NativeImage.incrementalNativeImageBuild(
+            buildNativeImage,
+            "enso"
+          )
+        )
+        .value
+  )
   .settings(licenseSettings)
+  .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(pkg)

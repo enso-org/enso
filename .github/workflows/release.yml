@@ -34,9 +34,11 @@ jobs:
       - name: Install FlatBuffers Compiler
         run: conda install flatbuffers=1.12.0
       - name: Setup GraalVM Environment
-        uses: DeLaGuardo/setup-graalvm@2.0
+        uses: ayltai/setup-graalvm@v1
         with:
-          graalvm-version: ${{ env.graalVersion }}.java${{ env.javaVersion }}
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: false
       - name: Set Up SBT
         run: |
           curl -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
@@ -131,15 +133,11 @@ jobs:
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.3.0
       - name: Setup GraalVM Environment
-        uses: DeLaGuardo/setup-graalvm@2.0
+        uses: ayltai/setup-graalvm@v1
         with:
-          graalvm-version: ${{ env.graalVersion }}.java${{ env.javaVersion }}
-      - name: Set Up Native Image (Windows)
-        if: runner.os == 'Windows'
-        run: gu.cmd -N install -n native-image
-      - name: Set Up Native Image (non-Windows)
-        if: runner.os != 'Windows'
-        run: gu -N install -n native-image
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
       - name: Set Up SBT
         run: |
           curl -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
