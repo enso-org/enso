@@ -14,7 +14,7 @@ class PluginManagerSpec
     with WithTemporaryDirectory {
 
   def makePluginCode(name: String): Seq[String] =
-    Seq(s"""echo "Plugin $name."""")
+    Seq(s"""echo Plugin $name.""")
 
   def writePlugin(
     path: Path,
@@ -24,9 +24,9 @@ class PluginManagerSpec
     val isWindows =
       System.getProperty("os.name").toLowerCase().contains("windows")
 
-    val shebang = if (!isWindows) Some("#!/bin/sh") else None
+    val shebang = if (isWindows) "@echo off" else "#!/bin/sh"
     val content =
-      shebang.toSeq ++ makePluginCode(name)
+      Seq(shebang) ++ makePluginCode(name)
     val prefix = if (prefixed) "enso-" else ""
     val filename = prefix + name +
       LocalSystemEnvironment.getPluginExtensions.headOption

@@ -27,16 +27,31 @@ trait SystemEnvironment {
   def getSystemPath: Option[String]
 
   /**
+    * Checks if the application is being run on Windows.
+    */
+  def isWindows: Boolean =
+    System.getProperty("os.name").toLowerCase.contains("windows")
+
+  /**
     * Returns a list of system-dependent plugin extensions.
     *
     * By default, on Unix plugins should have no extensions. On Windows, `.exe`
-    * and `.bat` are supported.
+    * `.bat` and `.cmd` are supported.
     */
   def getPluginExtensions: Seq[String] =
-    if (System.getProperty("os.name").toLowerCase.contains("windows"))
-      Seq("bat", "exe")
+    if (isWindows)
+      Seq(".exe", ".bat", ".cmd")
     else Seq()
 
+  /**
+    * Returns a list of directories that can be ignored when traversing the
+    * system PATH looking for plugins.
+    *
+    * These could be system directories that should not contain plguins anyway,
+    * but traversing them would greatly slow down plugin discovery.
+    */
+  def getIgnoredPathDirectories: Seq[Path] =
+    if (isWindows) Seq(Path.of("C:\\Windows")) else Seq()
 }
 
 /**
@@ -47,6 +62,7 @@ class PluginManagerImplementation(environment: SystemEnvironment)
 
   /**
     * Checks if the provided name represents a valid plugin and tries to run it.
+    *
     * @param name name of the plugin
     * @param args arguments that should be passed to it
     * @return
@@ -55,11 +71,14 @@ class PluginManagerImplementation(environment: SystemEnvironment)
     name: String,
     args: Seq[String]
   ): PluginBehaviour =
-    if (hasPlugin(name)) {
-      val exitCode = (Seq(pluginCommandForName(name)) ++ args).!
-      System.exit(exitCode)
-      PluginInterceptedFlow
-    } else PluginNotFound
+    findPlugin(name) match {
+      case Some(PluginDescription(commandName, _)) =>
+        val exitCode = (Seq(commandName) ++ args).!
+        System.exit(exitCode)
+        PluginInterceptedFlow
+      case None =>
+        PluginNotFound
+    }
 
   private val pluginPrefix           = "enso-"
   private val synopsisOption: String = "--synopsis"
@@ -87,21 +106,33 @@ class PluginManagerImplementation(environment: SystemEnvironment)
       .map(_.split(File.pathSeparatorChar).toSeq.flatMap(safeParsePath))
       .getOrElse(Seq())
 
+    def isIgnored(directory: Path): Boolean =
+      environment.getIgnoredPathDirectories.exists(directory.startsWith)
+
     for {
       directory <- paths if Files.isDirectory(directory)
-      file      <- Files.list(directory).toScala(Factory.arrayFactory)
+      if !isIgnored(directory)
+      file <- Files.list(directory).toScala(Factory.arrayFactory)
       if Files.isExecutable(file)
       pluginName  <- pluginNameForExecutable(file.getFileName.toString)
-      description <- tryDescribingPlugin(pluginName)
-    } yield CommandHelp(pluginName, description)
+      description <- findPlugin(pluginName)
+    } yield CommandHelp(pluginName, description.synopsis)
   }
 
   override def pluginsNames(): Seq[String] = pluginsHelp().map(_.name)
 
-  private def hasPlugin(name: String): Boolean =
-    tryDescribingPlugin(name).isDefined
+  case class PluginDescription(executableName: String, synopsis: String)
 
-  private def tryDescribingPlugin(name: String): Option[String] = {
+  /**
+    * Checks if the plugin with the given name is installed and valid. It tries
+    * to execute it (checking various command extensions depending on the OS)
+    * and check if it returns a synopsis.
+    *
+    * @param name name of the plugin
+    * @return PluginDescription containing the command name that should be used
+    *         to call the plugin and its synopsis
+    */
+  private def findPlugin(name: String): Option[PluginDescription] = {
     def canonicalizeDescription(description: String): String =
       description.replace("\n", " ").trim
     val noOpLogger = new ProcessLogger {
@@ -109,11 +140,30 @@ class PluginManagerImplementation(environment: SystemEnvironment)
       override def err(s: => String): Unit = {}
       override def buffer[T](f: => T): T = f
     }
-    val command = Seq(pluginCommandForName(name), synopsisOption)
-    Try(command.!!(noOpLogger)).toOption.map(canonicalizeDescription)
+
+    def getSynopsis(commandName: String): Option[String] = {
+      val command = Seq(commandName, synopsisOption)
+      Try(command.!!(noOpLogger)).toOption.map(canonicalizeDescription)
+    }
+
+    for (commandName <- pluginCommandsForName(name)) {
+      val synopsis = getSynopsis(commandName)
+      synopsis match {
+        case Some(value) => return Some(PluginDescription(commandName, value))
+        case None        =>
+      }
+    }
+
+    None
   }
 
-  private def pluginCommandForName(name: String): String = pluginPrefix + name
+  /**
+    * Returns a sequence of possible commands a plugin with the given name may
+    * be called by.
+    */
+  private def pluginCommandsForName(name: String): Seq[String] =
+    Seq(pluginPrefix + name) ++
+    environment.getPluginExtensions.map(ext => pluginPrefix + name + ext)
 
   private def pluginNameForExecutable(executableName: String): Option[String] =
     if (executableName.startsWith(pluginPrefix)) {
