@@ -34,7 +34,7 @@ import scala.util.{Failure, Success}
 
 class BaseServerTest extends JsonRpcServerTestKit {
 
-  val timeout: FiniteDuration = 3.seconds
+  val timeout: FiniteDuration = 10.seconds
 
   val testContentRoot       = Files.createTempDirectory(null).toRealPath()
   val testContentRootId     = UUID.randomUUID()
