@@ -689,7 +689,8 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
 
 val truffleRunOptions = Seq(
   "-Dpolyglot.engine.IterativePartialEscape=true",
-  "-Dpolyglot.engine.BackgroundCompilation=false"
+  "-Dpolyglot.engine.BackgroundCompilation=false",
+  "-agentlib:jdwp=transport=dt_socket,server=n,address=localhost:5005,suspend=y"
 )
 
 val truffleRunOptionsSettings = Seq(
