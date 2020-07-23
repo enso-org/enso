@@ -378,8 +378,8 @@ pub mod test {
     impl Default for MockData {
         fn default() -> Self {
             Self {
-                path     : Path::from_mock_module_name("Main"),
-                code     : "main = 2 + 2".into(),
+                path     : crate::test::mock::data::module_path(),
+                code     : crate::test::mock::data::CODE.to_owned(),
                 id_map   : default(),
                 metadata : default(),
             }

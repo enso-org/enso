@@ -225,8 +225,7 @@ pub struct Searcher {
     logger          : Logger,
     data            : Rc<RefCell<Data>>,
     notifier        : notification::Publisher<Notification>,
-    module          : model::module::Path,
-    position        : Immutable<TextLocation>,
+    graph           : controller::ExecutedGraph,
     database        : Rc<model::SuggestionDatabase>,
     language_server : Rc<language_server::Connection>,
     parser          : Parser,
@@ -234,16 +233,22 @@ pub struct Searcher {
 
 impl Searcher {
     /// Create new Searcher Controller.
-    pub fn new
+    pub async fn new
     ( parent   : impl AnyLogger
     , project  : &model::Project
-    , module   : model::module::Path
-    , position : TextLocation
-    ) -> Self {
+    , method   : language_server::MethodPointer
+    ) -> FallibleResult<Self> {
+        let graph = controller::ExecutedGraph::new(&parent,project.clone_ref(),method).await?;
+        Ok(Self::new_from_graph_controller(parent,project,graph))
+    }
+
+    /// Create new Searcher Controller, when you have Executed Graph Controller handy.
+    pub fn new_from_graph_controller
+    (parent:impl AnyLogger, project:&model::Project, graph:controller::ExecutedGraph)
+    -> Self {
+        let logger = Logger::sub(parent,"Searcher Controller");
         let this = Self {
-            module,
-            position        : Immutable(position),
-            logger          : Logger::sub(parent,"Searcher Controller"),
+            logger,graph,
             data            : default(),
             notifier        : default(),
             database        : project.suggestion_db(),
@@ -332,7 +337,9 @@ impl Searcher {
     fn reload_list(&self) {
         let next_completion = self.data.borrow().input.next_completion_id();
         let new_suggestions = if next_completion == CompletedFragmentId::Function {
-            self.get_suggestion_list_from_engine(None,None);
+            if let Err(err) = self.get_suggestion_list_from_engine(None,None) {
+                error!(self.logger,"Cannot request engine for suggestions: {err}");
+            }
             Suggestions::Loading
         } else {
             // TODO[ao] Requesting for argument.
@@ -342,16 +349,21 @@ impl Searcher {
     }
 
     fn get_suggestion_list_from_engine
-    (&self, return_type:Option<String>, tags:Option<Vec<language_server::SuggestionEntryType>>) {
-        let ls          = &self.language_server;
-        let module      = self.module.file_path();
-        let self_type   = None;
-        let position    = self.position.deref().into();
-        let request     = ls.completion(module,&position,&self_type,&return_type,&tags);
-        let data        = self.data.clone_ref();
-        let database    = self.database.clone_ref();
-        let logger      = self.logger.clone_ref();
-        let notifier    = self.notifier.clone_ref();
+    (&self, return_type:Option<String>, tags:Option<Vec<language_server::SuggestionEntryType>>)
+    -> FallibleResult<()> {
+        let ls             = &self.language_server;
+        let graph          = self.graph.graph();
+        let graph_id       = &*graph.id;
+        let module_ast     = graph.module.ast();
+        let file           = graph.module.path().file_path();
+        let self_type      = None;
+        let def_span       = double_representation::module::definition_span(&module_ast,&graph_id)?;
+        let position       = TextLocation::convert_span(module_ast.repr(),&def_span).end.into();
+        let request        = ls.completion(&file,&position,&self_type,&return_type,&tags);
+        let data           = self.data.clone_ref();
+        let database       = self.database.clone_ref();
+        let logger         = self.logger.clone_ref();
+        let notifier       = self.notifier.clone_ref();
         executor::global::spawn(async move {
             info!(logger,"Requesting new suggestion list.");
             let response = request.await;
@@ -374,8 +386,10 @@ impl Searcher {
             data.borrow_mut().suggestions = new_suggestions;
             notifier.publish(Notification::NewSuggestionList).await;
         });
+        Ok(())
     }
 }
+
 
 
 // =============
@@ -387,8 +401,8 @@ mod test {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
-    use crate::model::module::Path;
 
+    use controller::graph::executed::tests::MockData as ExecutedGraphMockData;
     use json_rpc::expect_call;
     use utils::test::traits::*;
 
@@ -400,16 +414,16 @@ mod test {
     }
 
     impl Fixture {
-        fn new(client_setup:impl FnOnce(&mut language_server::MockClient)) -> Self {
-            let mut client  = language_server::MockClient::default();
-            let module_path = Path::from_mock_module_name("Test");
-            client_setup(&mut client);
+        fn new_custom<F>(client_setup:F) -> Self
+        where F : FnOnce(&mut ExecutedGraphMockData,&mut language_server::MockClient) {
+            let mut graph_data = controller::graph::executed::tests::MockData::default();
+            let mut client     = language_server::MockClient::default();
+            client_setup(&mut graph_data,&mut client);
             let searcher = Searcher {
                 logger          : default(),
                 data            : default(),
                 notifier        : default(),
-                module          : module_path,
-                position        : Immutable(TextLocation::at_document_begin()),
+                graph           : graph_data.controller(),
                 database        : default(),
                 language_server : language_server::Connection::new_mock_rc(client),
                 parser          : Parser::new_or_panic(),
@@ -438,20 +452,27 @@ mod test {
             let entry9 = searcher.database.get(9).unwrap();
             Fixture{searcher,entry1,entry2,entry9}
         }
+
+        fn new() -> Self {
+            Self::new_custom(|_,_| {})
+        }
     }
 
 
     #[wasm_bindgen_test]
     fn loading_list() {
         let mut test = TestWithLocalPoolExecutor::set_up();
-        let Fixture{searcher,entry1,entry9,..} = Fixture::new(|client| {
+        let Fixture{searcher,entry1,entry9,..} = Fixture::new_custom(|data,client| {
             let completion_response = language_server::response::Completion {
                 results: vec![1,5,9],
                 current_version: default(),
             };
+
+            let file_end          = data.module.code.chars().count();
+            let expected_location = TextLocation {line:0, column:file_end};
             expect_call!(client.completion(
-                module      = Path::from_mock_module_name("Test").file_path().clone(),
-                position    = TextLocation::at_document_begin().into(),
+                module      = data.module.path.file_path().clone(),
+                position    = expected_location.into(),
                 self_type   = None,
                 return_type = None,
                 tag         = None
@@ -540,7 +561,7 @@ mod test {
 
     #[wasm_bindgen_test]
     fn picked_completions_list_maintaining() {
-        let Fixture{searcher,entry1,entry2,..} = Fixture::new(|_|{});
+        let Fixture{searcher,entry1,entry2,..} = Fixture::new();
         let frags_borrow = || Ref::map(searcher.data.borrow(),|d| &d.fragments_added_by_picking);
 
         // Picking first suggestion.

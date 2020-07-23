@@ -21,15 +21,16 @@
 #![warn(missing_debug_implementations)]
 
 pub mod config;
+pub mod constants;
 pub mod controller;
 pub mod double_representation;
 pub mod executor;
+pub mod ide;
 pub mod model;
 pub mod notification;
+pub mod test;
 pub mod transport;
 pub mod view;
-pub mod constants;
-pub mod ide;
 
 pub use crate::ide::IdeInitializer;
 

@@ -90,6 +90,8 @@ impl TestWithLocalPoolExecutor {
 impl Drop for TestWithLocalPoolExecutor {
     fn drop(&mut self) {
         // We should be able to finish test.
-        self.expect_finished();
+        if !std::thread::panicking() {
+            self.expect_finished();
+        }
     }
 }

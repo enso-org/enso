@@ -80,6 +80,8 @@ pub type Synchronized = synchronized::Project;
 pub mod test {
     use super::*;
 
+    use futures::future::ready;
+
     /// Sets up parser expectation on the mock project.
     pub fn expect_parser(project:&mut MockAPI, parser:&Parser) {
         let parser = parser.clone_ref();
@@ -91,6 +93,14 @@ pub mod test {
         let module_path = module.path().clone_ref();
         project.expect_module()
             .withf_st    (move |path| path == &module_path)
-            .returning_st(move |_path| futures::future::ready(Ok(module.clone_ref())).boxed_local());
+            .returning_st(move |_path| ready(Ok(module.clone_ref())).boxed_local());
+    }
+
+    /// Sets up module expectation on the mock project, returning a give module.
+    pub fn expect_execution_ctx(project:&mut MockAPI, ctx:model::ExecutionContext) {
+        let ctx2 = ctx.clone_ref();
+        project.expect_create_execution_context()
+            .withf_st    (move |root_definition| root_definition == &ctx.current_method())
+            .returning_st(move |_root_definition| ready(Ok(ctx2.clone_ref())).boxed_local());
     }
 }

@@ -199,7 +199,7 @@ impl Handle {
 // ============
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
@@ -210,6 +210,30 @@ mod tests {
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
     wasm_bindgen_test_configure!(run_in_browser);
+
+    #[derive(Debug,Default)]
+    pub struct MockData {
+        pub graph  : controller::graph::tests::MockData,
+        pub module : model::module::test::MockData,
+        pub ctx    : model::execution_context::plain::test::MockData,
+    }
+
+    impl MockData {
+        pub fn controller(&self) -> Handle {
+            let parser      = parser::Parser::new_or_panic();
+            let module      = self.module.plain(&parser);
+            let method      = self.graph.method();
+            let mut project = model::project::MockAPI::new();
+            let ctx         = Rc::new(self.ctx.create());
+            model::project::test::expect_parser(&mut project,&parser);
+            model::project::test::expect_module(&mut project,module);
+            model::project::test::expect_execution_ctx(&mut project,ctx);
+
+            let project = Rc::new(project);
+            Handle::new(Logger::default(),project.clone_ref(),method).boxed_local().expect_ok()
+        }
+
+    }
 
     // Test that checks that value computed notification is properly relayed by the executed graph.
     #[wasm_bindgen_test]

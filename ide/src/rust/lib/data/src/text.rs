@@ -396,6 +396,13 @@ impl TextLocation {
         Self::from_index(content,range.start)..Self::from_index(content,range.end)
     }
 
+    /// Converts a span into a range of TextLocation. It iterates over all characters before range's
+    /// end.
+    pub fn convert_span(content:impl Str, span:&Span) -> Range<Self> {
+        let range = span.index..span.end();
+        Self::convert_range(content,&range)
+    }
+
     /// Converts a range in bytes into a range of TextLocation. It iterates over all characters
     /// before range's end.
     pub fn convert_byte_range(content:impl Str, range:&Range<ByteIndex>) -> Range<Self> {
