@@ -26,13 +26,6 @@ case class DistributionPaths(
        |)""".stripMargin
 }
 
-sealed trait OS
-object OS {
-  case object Linux   extends OS
-  case object MacOS   extends OS
-  case object Windows extends OS
-}
-
 object DistributionManager {
 
   /**
@@ -61,21 +54,10 @@ object DistributionManager {
     paths
   }
 
-  def operatingSystem: OS = {
-    val name = System.getProperty("os.name").toLowerCase
-    if (name.contains("linux")) OS.Linux
-    else if (name.contains("mac")) OS.MacOS
-    else if (name.contains("windows")) OS.Windows
-    else
-      throw new RuntimeException(
-        s"fatal error: os.name `$name` is not recognized."
-      )
-  }
-
   private val PORTABLE_MARK_FILENAME = ".enso.portable"
-  private val ENGINES_DIRECTORY      = "dist"
-  private val RUNTIMES_DIRECTORY     = "runtime"
-  private val CONFIG_DIRECTORY       = "config"
+  val ENGINES_DIRECTORY              = "dist"
+  val RUNTIMES_DIRECTORY             = "runtime"
+  val CONFIG_DIRECTORY               = "config"
   val BIN_DIRECTORY                  = "bin"
 
   private def detectPortable(): Boolean = Files.exists(portableMarkFilePath)
@@ -129,7 +111,7 @@ object DistributionManager {
 
     def dataDirectory: Path = {
       getEnvPath(ENSO_DATA_DIRECTORY).getOrElse {
-        operatingSystem match {
+        Environment.operatingSystem match {
           case OS.Linux =>
             getEnvPath(XDG_DATA_DIRECTORY)
               .map(_ / LINUX_ENSO_DIRECTORY)
@@ -146,7 +128,7 @@ object DistributionManager {
 
     def configDirectory: Path = {
       getEnvPath(ENSO_CONFIG_DIRECTORY).getOrElse {
-        operatingSystem match {
+        Environment.operatingSystem match {
           case OS.Linux =>
             getEnvPath(XDG_CONFIG_DIRECTORY)
               .map(_ / LINUX_ENSO_DIRECTORY)
@@ -163,7 +145,7 @@ object DistributionManager {
 
     def binDirectory: Path = {
       getEnvPath(ENSO_BIN_DIRECTORY).getOrElse {
-        operatingSystem match {
+        Environment.operatingSystem match {
           case OS.Linux =>
             getEnvPath(XDG_BIN_DIRECTORY)
               .getOrElse {
@@ -178,7 +160,7 @@ object DistributionManager {
     }
 
     private def executableName: String =
-      if (operatingSystem == OS.Windows) WINDOWS_EXECUTABLE_NAME
+      if (Environment.operatingSystem == OS.Windows) WINDOWS_EXECUTABLE_NAME
       else UNIX_EXECUTABLE_NAME
 
     def binaryExecutable: Path = {
@@ -186,7 +168,7 @@ object DistributionManager {
     }
 
     def installedDistributionExists: Boolean = {
-      val exists = Files.exists(dataDirectory)
+      val exists = Files.isDirectory(dataDirectory.toAbsolutePath)
       Logger.debug(s"installed root = $dataDirectory, exists? $exists")
 
       exists
@@ -219,7 +201,7 @@ object DistributionManager {
   }
 
   private def getHome: Path = {
-    if (operatingSystem == OS.Windows)
+    if (Environment.operatingSystem == OS.Windows)
       throw new IllegalStateException(
         "fatal error: HOME should not be queried on Windows"
       )
@@ -235,7 +217,7 @@ object DistributionManager {
   }
 
   private def getLocalAppData: Path = {
-    if (operatingSystem != OS.Windows)
+    if (Environment.operatingSystem != OS.Windows)
       throw new IllegalStateException(
         "fatal error: LocalAppData should be queried only on Windows"
       )

@@ -14,12 +14,14 @@ import org.enso.cli.{
 }
 import org.enso.cli.Opts.implicits._
 import cats.implicits._
+import org.enso.launcher.installation.DistributionInstaller
 
 object Main {
   private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =
     Opts.flag("json", "Use JSON instead of plain text for output.", showInUsage)
 
-  type Config = Unit
+  case class GlobalConfig(yes: Boolean)
+  type Config = GlobalConfig
 
   private def versionCommand: Command[Config => Unit] =
     Command(
@@ -172,8 +174,8 @@ object Main {
 
   private def installDistributionCommand: Subcommand[Config => Unit] =
     Subcommand("distribution") {
-      Opts.pure { (_: Config) =>
-        println(s"Install distribution")
+      Opts.pure { (config: Config) =>
+        new DistributionInstaller(config.yes).install()
       }
     }
 
@@ -239,7 +241,7 @@ object Main {
 
   private def helpCommand: Command[Config => Unit] =
     Command("help", "Display summary of available commands.") {
-      Opts.pure(()) map { (_: Config) => (_: Config) => printTopLevelHelp() }
+      Opts.pure(()) map { _ => (_: Config) => printTopLevelHelp() }
     }
 
   private def topLevelOpts: Opts[() => TopLevelBehavior[Config]] = {
@@ -254,7 +256,7 @@ object Main {
     )
     val yes = Opts.flag(
       "yes",
-      "Forces force-portable to proceed without asking questions. Use with care.",
+      "Proceeds without asking questions. Use with care.",
       showInUsage = false
     )
     (help, version, json, forcePortable, yes) mapN {
@@ -269,7 +271,7 @@ object Main {
         } else if (version) {
           Launcher.displayVersion(useJSON)
           TopLevelBehavior.Halt
-        } else TopLevelBehavior.Continue(())
+        } else TopLevelBehavior.Continue(GlobalConfig(yes))
     }
   }
 

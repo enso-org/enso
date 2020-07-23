@@ -1,10 +1,9 @@
 package org.enso.launcher.installation
 
-import java.io.PrintWriter
 import java.nio.file.Files
 
 import org.enso.cli.CLIOutput
-import org.enso.launcher.{DistributionManager, Logger}
+import org.enso.launcher.{DistributionManager, FileSystem, Logger}
 
 object ForcePortable {
   def run(force: Boolean): Unit = {
@@ -98,12 +97,10 @@ object ForcePortable {
   }
 
   private def createPortableMarkFile(): Unit = {
-    val path   = DistributionManager.portableMarkFilePath
-    val writer = new PrintWriter(path.toFile)
-    try {
-      writer.println("ENSO DISTRIBUTION PORTABLE MODE MARK FILE")
-    } finally {
-      writer.close()
-    }
+    val path = DistributionManager.portableMarkFilePath
+    FileSystem.writeTextFile(
+      path,
+      "ENSO DISTRIBUTION PORTABLE MODE MARK FILE\n"
+    )
   }
 }
