@@ -38,6 +38,7 @@ case class ParserDefSmall() extends flexer.Parser[AST.Module] {
   val space: Pattern       = ' '
   val spacedAWord: Pattern = space >> aWord
   val spacedBWord: Pattern = space >> bWord
+  val end: Pattern         = eof
 
   final object Word {
     var current: Option[AST.Ident] = None
@@ -88,10 +89,12 @@ case class ParserDefSmall() extends flexer.Parser[AST.Module] {
 
   ROOT                 || aWord       || Word.onFirstWord(AST.Var(_))
   ROOT                 || bWord       || Word.onFirstWord(AST.Var(_))
+  ROOT                 || eof         || Word.onNoErrSuffix()
   ROOT                 || always      || Word.onErrSuffix()
   Word.SEEN_FIRST_WORD || spacedAWord || Word.onSpacedWord(AST.Var(_))
   Word.SEEN_FIRST_WORD || spacedBWord || Word.onSpacedWord(AST.Var(_))
-  Word.SEEN_FIRST_WORD || always      || Word.onNoErrSuffix()
+  Word.SEEN_FIRST_WORD || eof         || Word.onNoErrSuffix()
+  Word.SEEN_FIRST_WORD || always      || Word.onErrSuffix()
 
   ////////////////
   //// Result ////
