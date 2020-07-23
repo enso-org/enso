@@ -68,7 +68,25 @@ class ParserTest extends AnyFlatSpec with Matchers {
   }
 
   "Thingy" should "thingy" in {
-    val input = "a"
+    val input = "aaaaa"
+    val parser = Parser()
+    val result = parser.run(input)
+    val dropped = parser.dropMacroMeta(result)
+
+    println(dropped)
+  }
+
+  "Test" should "test" in {
+    val input = "aaaaa bb a a bbbbb a bbbb"
+    val parser = Parser()
+    val result = parser.run(input)
+    val dropped = parser.dropMacroMeta(result)
+
+    println(dropped)
+  }
+
+  "Thing" should "fail" in {
+    val input = "aaaa c"
     val parser = Parser()
     val result = parser.run(input)
     val dropped = parser.dropMacroMeta(result)

@@ -224,9 +224,11 @@ class Parser {
   def run(input: Reader, @unused idMap: IDMap): AST.Module = {
     val tokenStream = engine.run(input).map(InHoisting.run)
 
-    println(tokenStream)
-
-    ???
+    tokenStream match {
+      case flexer.Parser.Result(_, flexer.Parser.Result.Success(result)) =>
+        result
+      case _ => throw ParsingFailed
+    }
   }
 
   /**

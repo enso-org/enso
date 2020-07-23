@@ -59,6 +59,8 @@ object Macro {
 
     val finalCode = q"$tgtDef; () => { new __Parser__() }"
 
+    println(showCode(finalCode))
+
     c.Expr[() => P](finalCode)
   }
 }

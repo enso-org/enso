@@ -419,6 +419,12 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
   .settings(licenseSettings)
+  .settings(
+    Test / fork := true,
+    Test / javaOptions += {
+      "-agentlib:jdwp=transport=dt_socket,server=n,address=localhost:5005,suspend=y"
+    }
+  )
 
 lazy val `parser-service` = (project in file("lib/scala/parser-service"))
   .dependsOn(syntax.jvm)
@@ -689,8 +695,7 @@ lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
 
 val truffleRunOptions = Seq(
   "-Dpolyglot.engine.IterativePartialEscape=true",
-  "-Dpolyglot.engine.BackgroundCompilation=false",
-  "-agentlib:jdwp=transport=dt_socket,server=n,address=localhost:5005,suspend=y"
+  "-Dpolyglot.engine.BackgroundCompilation=false"
 )
 
 val truffleRunOptionsSettings = Seq(

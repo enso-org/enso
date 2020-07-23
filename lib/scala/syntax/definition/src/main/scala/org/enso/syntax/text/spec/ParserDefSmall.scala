@@ -41,8 +41,6 @@ case class ParserDefSmall() extends flexer.Parser[AST.Module] {
   val end: Pattern         = eof
 
   final object Word {
-    var current: Option[AST.Ident] = None
-
     def onFirstWord(word: String => AST.Ident): Unit =
       logger.trace_ {
         onFirstWord(word(currentMatch))
@@ -50,7 +48,7 @@ case class ParserDefSmall() extends flexer.Parser[AST.Module] {
 
     def onFirstWord(ast: AST.Ident): Unit =
       logger.trace {
-        current = Some(ast)
+        result.app(ast)
         state.begin(SEEN_FIRST_WORD)
       }
 
@@ -61,40 +59,45 @@ case class ParserDefSmall() extends flexer.Parser[AST.Module] {
 
     def onSpacedWord(ast: AST.Ident): Unit =
       logger.trace {
-        current = Some(ast)
+        result.app(ast)
+      }
+
+    def onNoErrSuffixFirstWord(): Unit =
+      logger.trace {
+        submit()
       }
 
     def onNoErrSuffix(): Unit =
       logger.trace {
-        submit()
+        onNoErrSuffixFirstWord()
         state.end()
+      }
+
+    def onErrSuffixFirstWord(): Unit =
+      logger.trace {
+        val ast = AST.Invalid.Unrecognized(currentMatch)
+        result.app(ast)
       }
 
     def onErrSuffix(): Unit =
       logger.trace {
-        val ast = AST.Invalid.Unrecognized(currentMatch)
-        result.app(ast)
-        current = None
+        onNoErrSuffixFirstWord()
         state.end()
       }
 
-    def submit(): Unit =
-      logger.trace {
-        result.app(unwrap(current))
-        current = None
-      }
+    def submit(): Unit = logger.trace {}
 
     val SEEN_FIRST_WORD: State = state.define("Inside Word")
   }
 
   ROOT                 || aWord       || Word.onFirstWord(AST.Var(_))
   ROOT                 || bWord       || Word.onFirstWord(AST.Var(_))
-  ROOT                 || eof         || Word.onNoErrSuffix()
-  ROOT                 || always      || Word.onErrSuffix()
+  ROOT                 || eof         || Word.onNoErrSuffixFirstWord()
+  ROOT                 || any         || Word.onErrSuffixFirstWord()
   Word.SEEN_FIRST_WORD || spacedAWord || Word.onSpacedWord(AST.Var(_))
   Word.SEEN_FIRST_WORD || spacedBWord || Word.onSpacedWord(AST.Var(_))
   Word.SEEN_FIRST_WORD || eof         || Word.onNoErrSuffix()
-  Word.SEEN_FIRST_WORD || always      || Word.onErrSuffix()
+  Word.SEEN_FIRST_WORD || any         || Word.onErrSuffix()
 
   ////////////////
   //// Result ////
@@ -103,7 +106,9 @@ case class ParserDefSmall() extends flexer.Parser[AST.Module] {
   override def getResult() =
     result.current.flatMap {
       case AST.Module.any(mod) => Some(mod)
-      case _                   => None
+      case a =>
+        val line = AST.Block.OptLine(a)
+        Some(AST.Module(line, List()))
     }
 
   final object result {
