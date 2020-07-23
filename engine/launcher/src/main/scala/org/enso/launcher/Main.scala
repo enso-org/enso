@@ -67,8 +67,10 @@ object Main {
       val additionalArgs = Opts.additionalArguments()
       (pathOpt, jvmArgs, additionalArgs) mapN {
         (path, jvmArgs, additionalArgs) => (_: Config) =>
+          val enginesRoot = DistributionManager.paths.engines
           println(s"Launch runner for $path")
           println(s"JVM=$jvmArgs, additionalArgs=$additionalArgs")
+          println(s"Engines are located at $enginesRoot")
       }
     }
 
@@ -245,14 +247,29 @@ object Main {
     val version =
       Opts.flag("version", 'V', "Display version.", showInUsage = true)
     val json = jsonFlag(showInUsage = false)
-    (help, version, json) mapN { (help, version, useJSON) => () =>
-      if (help) {
-        printTopLevelHelp()
-        TopLevelBehavior.Halt
-      } else if (version) {
-        Launcher.displayVersion(useJSON)
-        TopLevelBehavior.Halt
-      } else TopLevelBehavior.Continue(())
+    val forcePortable = Opts.flag(
+      "force-portable",
+      "Ensures that the launcher is run in portable mode.",
+      showInUsage = false
+    )
+    val yes = Opts.flag(
+      "yes",
+      "Forces force-portable to proceed without asking questions. Use with care.",
+      showInUsage = false
+    )
+    (help, version, json, forcePortable, yes) mapN {
+      (help, version, useJSON, forcePortable, yes) => () =>
+        if (forcePortable) {
+          Launcher.forcePortable(yes)
+        }
+
+        if (help) {
+          printTopLevelHelp()
+          TopLevelBehavior.Halt
+        } else if (version) {
+          Launcher.displayVersion(useJSON)
+          TopLevelBehavior.Halt
+        } else TopLevelBehavior.Continue(())
     }
   }
 

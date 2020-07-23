@@ -53,6 +53,23 @@ object CLIOutput {
     Predef.println(alignAndWrap(text))
   }
 
+  def askConfirmation(
+    question: String,
+    yesDefault: Boolean = false
+  ): Boolean = {
+    val prompt = if (yesDefault) "[Y / n]" else "[y / N]"
+    val text   = alignAndWrap(question + " " + prompt + " ")
+    Predef.print(text)
+    val line = Console.in.readLine().strip().toLowerCase
+    if (line.isEmpty) yesDefault
+    else if (line == "y") true
+    else if (line == "n") false
+    else {
+      println(s"Unexpected answer `$line`.")
+      askConfirmation(question, yesDefault)
+    }
+  }
+
   /**
     * Default indentation used for printing lists.
     */

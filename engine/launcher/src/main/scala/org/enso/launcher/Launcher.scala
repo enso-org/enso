@@ -34,4 +34,8 @@ object Launcher {
 
     println(versionDescription.asString(useJSON))
   }
+
+  def forcePortable(force: Boolean): Unit =
+    installation.ForcePortable.run(force)
+
 }

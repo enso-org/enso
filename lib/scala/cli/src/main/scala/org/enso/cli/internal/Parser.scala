@@ -366,10 +366,10 @@ object Parser {
   }
 
   private val shortParam             = """-(\w)""".r
-  private val longParam              = """--([\w.]+)""".r
-  private val paramWithValue         = """--([\w.]+)=(.*)""".r
-  private val mistypedLongParam      = """-([\w.]+)""".r
-  private val mistypedParamWithValue = """-([\w.]+)=(.*)""".r
+  private val longParam              = """--([\w-.]+)""".r
+  private val paramWithValue         = """--([\w-.]+)=(.*)""".r
+  private val mistypedLongParam      = """-([\w-.]+)""".r
+  private val mistypedParamWithValue = """-([\w-.]+)=(.*)""".r
   def tokenize(args: Seq[String]): (Seq[Token], Seq[String]) = {
     def toToken(arg: String): Token =
       arg match {
