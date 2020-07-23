@@ -401,10 +401,11 @@ impl EndpointInfo {
 /// Handle providing graph controller interface.
 #[derive(Clone,CloneRef,Debug)]
 pub struct Handle {
+    /// Identifier of the graph accessed through this controller.
+    pub id     : Rc<Id>,
     /// Model of the module which this graph belongs to.
     pub module : model::Module,
     parser     : Parser,
-    id         : Rc<Id>,
     logger     : Logger,
 }
 
@@ -764,6 +765,7 @@ pub mod tests {
     use ast::test_utils::expect_shape;
     use data::text::Index;
     use data::text::TextChange;
+    use enso_protocol::language_server::MethodPointer;
     use parser::Parser;
     use utils::test::ExpectTuple;
     use wasm_bindgen_test::wasm_bindgen_test;
@@ -782,19 +784,20 @@ pub mod tests {
         /// node.
         pub fn new() -> Self {
             MockData {
-                module_path  : model::module::Path::from_mock_module_name("Main"),
-                graph_id     : Id::new_plain_name("main"),
-                project_name : "MockProject".to_string(),
-                code         : "main = 2 + 2".to_string(),
+                module_path  : crate::test::mock::data::module_path(),
+                graph_id     : crate::test::mock::data::graph_id(),
+                project_name : crate::test::mock::data::PROJECT_NAME.to_owned(),
+                code         : crate::test::mock::data::CODE.to_owned(),
             }
         }
 
         /// Creates a mock data with the main function being an inline definition.
         ///
         /// The single node's expression is taken as the argument.
-        pub fn new_inline(main_body:impl Into<String>) -> Self {
+        pub fn new_inline(main_body:impl AsRef<str>) -> Self {
+            let definition_name = crate::test::mock::data::DEFINITION_NAME;
             MockData {
-                code : format!("main = {}", main_body.into()),
+                code : format!("{} = {}",definition_name,main_body.as_ref()),
                 ..Self::new()
             }
         }
@@ -814,6 +817,10 @@ pub mod tests {
             let module = self.module_data().plain(&parser);
             let id     = self.graph_id.clone();
             Handle::new(logger,module,parser,id).unwrap()
+        }
+
+        pub fn method(&self) -> MethodPointer {
+            self.module_path.method_pointer(self.graph_id.to_string())
         }
     }
 

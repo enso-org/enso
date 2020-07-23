@@ -184,7 +184,6 @@ pub mod test {
     use super::*;
 
     use crate::double_representation::definition::DefinitionName;
-    use crate::constants::DEFAULT_PROJECT_NAME;
 
     #[derive(Clone,Derivative)]
     #[derivative(Debug)]
@@ -205,9 +204,9 @@ pub mod test {
         pub fn new() -> MockData {
             MockData {
                 context_id      : model::execution_context::Id::new_v4(),
-                module_path     : model::module::Path::from_mock_module_name("Test"),
-                root_definition : DefinitionName::new_plain("main"),
-                project_name    : DEFAULT_PROJECT_NAME.to_string(),
+                module_path     : crate::test::mock::data::module_path(),
+                root_definition : crate::test::mock::data::definition_name(),
+                project_name    : crate::test::mock::data::PROJECT_NAME.to_owned(),
             }
         }
 
