@@ -24,6 +24,8 @@ import scala.concurrent.duration._
   * and send updates to the client. The listener is created per context, and
   * only handles the notifications with the given `contextId`.
   *
+  * Expression updates are collected and sent to the user in a batch.
+  *
   * @param repo the suggestions repo
   * @param rpcSession reference to the client
   * @param contextId exectuion context identifier
@@ -35,20 +37,23 @@ final class ContextEventsListener(
   rpcSession: JsonSession,
   contextId: ContextId,
   sessionRouter: ActorRef,
-  updatesSendRate: FiniteDuration = 1.second
+  updatesSendRate: FiniteDuration
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
+  import ContextEventsListener.RunExpressionUpdates
   import context.dispatcher
 
   override def preStart(): Unit = {
-    context.system.scheduler.scheduleWithFixedDelay(
-      updatesSendRate,
-      updatesSendRate,
-      self,
-      ContextEventsListener.RunBatch
-    )
+    if (updatesSendRate.length > 0) {
+      context.system.scheduler.scheduleWithFixedDelay(
+        updatesSendRate,
+        updatesSendRate,
+        self,
+        RunExpressionUpdates
+      )
+    }
   }
 
   override def receive: Receive = withState(Vector())
@@ -83,7 +88,7 @@ final class ContextEventsListener(
 
       sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
 
-    case ContextEventsListener.RunBatch =>
+    case RunExpressionUpdates if expressionUpdates.nonEmpty =>
       val updateIds = expressionUpdates.map(_.expressionId)
       repo
         .getAllByExternalIds(updateIds)
@@ -104,13 +109,15 @@ final class ContextEventsListener(
         }
         .pipeTo(sessionRouter)
       context.become(withState(Vector()))
+
+    case RunExpressionUpdates if expressionUpdates.isEmpty =>
   }
 }
 
 object ContextEventsListener {
 
-  /** The action to run the batch. */
-  private case object RunBatch
+  /** The action to process the expression updates. */
+  case object RunExpressionUpdates
 
   /**
     * Creates a configuration object used to create a [[ContextEventsListener]].
@@ -119,19 +126,22 @@ object ContextEventsListener {
     * @param rpcSession reference to the client
     * @param contextId exectuion context identifier
     * @param sessionRouter the session router
+    * @param updatesSendRate how often send the updates to the user
     */
   def props(
     repo: SuggestionsRepo[Future],
     rpcSession: JsonSession,
     contextId: ContextId,
-    sessionRouter: ActorRef
+    sessionRouter: ActorRef,
+    updatesSendRate: FiniteDuration = 1.second
   ): Props =
     Props(
       new ContextEventsListener(
         repo,
         rpcSession,
         contextId,
-        sessionRouter: ActorRef
+        sessionRouter: ActorRef,
+        updatesSendRate
       )
     )
 
