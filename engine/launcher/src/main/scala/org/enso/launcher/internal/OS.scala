@@ -25,4 +25,7 @@ object OS {
         s"fatal error: os.name `$name` is not recognized."
       )
   }
+
+  def executableName(baseName: String): String =
+    if (isWindows) baseName + ".exe" else baseName
 }

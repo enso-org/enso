@@ -61,6 +61,7 @@ class DistributionInstaller(
         sys.exit(1)
       }
     }
+
     if (
       Files.exists(installed.configDirectory) &&
       installed.configDirectory.toFile.exists()
@@ -140,6 +141,13 @@ class DistributionInstaller(
     Files.createDirectories(runtimesDirectory)
     Files.createDirectories(enginesDirectory)
     Files.createDirectories(installed.configDirectory)
+
+    if (installed.dataDirectory != manager.paths.dataRoot) {
+      copyNonEssentialFiles()
+    }
+  }
+
+  private def copyNonEssentialFiles(): Unit = {
     for (file <- nonEssentialFiles) {
       try {
         FileSystem.copyFile(

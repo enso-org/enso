@@ -127,9 +127,6 @@ class DistributionManager(val env: Environment) {
     private val MACOS_ENSO_DIRECTORY   = "org.enso"
     private val WINDOWS_ENSO_DIRECTORY = "enso"
 
-    private val UNIX_EXECUTABLE_NAME    = "enso"
-    private val WINDOWS_EXECUTABLE_NAME = "enso.exe"
-
     def dataDirectory: Path =
       env
         .getEnvPath(ENSO_DATA_DIRECTORY)
@@ -190,8 +187,7 @@ class DistributionManager(val env: Environment) {
         .toAbsolutePath
 
     private def executableName: String =
-      if (OS.operatingSystem == OS.Windows) WINDOWS_EXECUTABLE_NAME
-      else UNIX_EXECUTABLE_NAME
+      OS.executableName("enso")
 
     /**
       * The path where the binary executable of the installed distribution
