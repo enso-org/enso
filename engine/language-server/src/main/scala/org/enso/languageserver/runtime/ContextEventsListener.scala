@@ -1,7 +1,7 @@
 package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import org.enso.languageserver.data.Config
+import akka.pattern.pipe
 import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualisationContext,
   VisualisationUpdate
@@ -14,38 +14,48 @@ import org.enso.languageserver.session.SessionRouter.{
 }
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.searcher.SuggestionsRepo
+
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 /**
   * EventListener listens event stream for the notifications from the runtime
   * and send updates to the client. The listener is created per context, and
   * only handles the notifications with the given `contextId`.
   *
-  * @param config configuration
+  * @param repo the suggestions repo
   * @param rpcSession reference to the client
   * @param contextId exectuion context identifier
   * @param sessionRouter the session router
+  * @param updatesSendRate how often send the updates to the user
   */
 final class ContextEventsListener(
-  config: Config,
+  repo: SuggestionsRepo[Future],
   rpcSession: JsonSession,
   contextId: ContextId,
-  sessionRouter: ActorRef
+  sessionRouter: ActorRef,
+  updatesSendRate: FiniteDuration = 1.second
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
+  import context.dispatcher
+
   override def preStart(): Unit = {
-    context.system.eventStream
-      .subscribe(self, classOf[Api.ExpressionValuesComputed])
-    context.system.eventStream
-      .subscribe(self, classOf[Api.VisualisationUpdate])
-    context.system.eventStream
-      .subscribe(self, classOf[Api.ExecutionFailed])
-    context.system.eventStream
-      .subscribe(self, classOf[Api.VisualisationEvaluationFailed])
+    context.system.scheduler.scheduleWithFixedDelay(
+      updatesSendRate,
+      updatesSendRate,
+      self,
+      ContextEventsListener.RunBatch
+    )
   }
 
-  override def receive: Receive = {
+  override def receive: Receive = withState(Vector())
+
+  def withState(
+    expressionUpdates: Vector[Api.ExpressionValueUpdate]
+  ): Receive = {
     case Api.VisualisationUpdate(ctx, data) if ctx.contextId == contextId =>
       val payload =
         VisualisationUpdate(
@@ -59,20 +69,7 @@ final class ContextEventsListener(
       sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
 
     case Api.ExpressionValuesComputed(`contextId`, apiUpdates) =>
-      val updates = apiUpdates.flatMap { update =>
-        toRuntimeUpdate(update) match {
-          case None =>
-            log.error(s"Failed to convert $update")
-            None
-          case runtimeUpdate =>
-            runtimeUpdate
-        }
-      }
-      rpcSession.rpcController ! ContextRegistryProtocol
-        .ExpressionValuesComputedNotification(
-          contextId,
-          updates
-        )
+      context.become(withState(expressionUpdates :++ apiUpdates))
 
     case Api.ExecutionFailed(`contextId`, msg) =>
       val payload =
@@ -86,69 +83,52 @@ final class ContextEventsListener(
 
       sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
 
-    case _: Api.ExpressionValuesComputed      =>
-    case _: Api.VisualisationUpdate           =>
-    case _: Api.ExecutionFailed               =>
-    case _: Api.VisualisationEvaluationFailed =>
-  }
-
-  private def toRuntimeUpdate(
-    update: Api.ExpressionValueUpdate
-  ): Option[ExpressionValueUpdate] = {
-    update.methodCall match {
-      case None =>
-        Some(
-          ExpressionValueUpdate(
-            update.expressionId,
-            update.expressionType,
-            update.shortValue,
-            None
-          )
-        )
-      case Some(methodCall) =>
-        toRuntimePointer(methodCall).map { pointer =>
-          ExpressionValueUpdate(
-            update.expressionId,
-            update.expressionType,
-            update.shortValue,
-            Some(pointer)
-          )
+    case ContextEventsListener.RunBatch =>
+      val updateIds = expressionUpdates.map(_.expressionId)
+      repo
+        .getAllByExternalIds(updateIds)
+        .map { suggestionIds =>
+          val valueUpdates = updateIds.zip(suggestionIds).flatMap {
+            case (_, Some(suggestionId)) =>
+              Some(ExpressionValueUpdate(suggestionId))
+            case (id, None) =>
+              log.error("Unable to find suggestion with expression id: {}", id)
+              None
+          }
+          val payload =
+            ContextRegistryProtocol.ExpressionValuesComputedNotification(
+              contextId,
+              valueUpdates
+            )
+          DeliverToJsonController(rpcSession.clientId, payload)
         }
-    }
+        .pipeTo(sessionRouter)
+      context.become(withState(Vector()))
   }
-
-  private def toRuntimePointer(
-    pointer: Api.MethodPointer
-  ): Option[MethodPointer] =
-    config.findRelativePath(pointer.file).map { relativePath =>
-      MethodPointer(
-        file          = relativePath,
-        definedOnType = pointer.definedOnType,
-        name          = pointer.name
-      )
-    }
-
 }
 
 object ContextEventsListener {
 
+  /** The action to run the batch. */
+  private case object RunBatch
+
   /**
     * Creates a configuration object used to create a [[ContextEventsListener]].
     *
-    * @param config configuration
+    * @param repo the suggestions repo
     * @param rpcSession reference to the client
     * @param contextId exectuion context identifier
     * @param sessionRouter the session router
     */
   def props(
-    config: Config,
+    repo: SuggestionsRepo[Future],
     rpcSession: JsonSession,
     contextId: ContextId,
     sessionRouter: ActorRef
   ): Props =
     Props(
       new ContextEventsListener(
-        config,
+        repo,
         rpcSession,
         contextId,
         sessionRouter: ActorRef
