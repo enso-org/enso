@@ -301,7 +301,8 @@ impl Lexer<'_,AST> {
 
     fn gen_state_0_to_1(&mut self) -> LexerStageStatus {
         // Code similar to this is duplicated _a lot_. This is intentional, as I can't find a way to
-        // remove the duplication that doesn't incur dynamic dispatch overhead.
+        // remove the duplication that doesn't incur dynamic dispatch overhead or run afoul of
+        // borrowck.
         self.current_match = self.reader.pop_result();
         self.gen_group_0_rule_2();
         self.reader.bookmark(self.def_matched_bookmark);
