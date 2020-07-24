@@ -2,12 +2,7 @@ package org.enso.launcher.internal
 
 import java.nio.file.{Files, Path}
 
-import org.enso.cli.{
-  CommandHelp,
-  PluginBehaviour,
-  PluginInterceptedFlow,
-  PluginNotFound
-}
+import org.enso.cli.{CommandHelp, PluginBehaviour, PluginNotFound}
 import org.enso.launcher.FileSystem
 
 import scala.sys.process._
@@ -33,8 +28,7 @@ class PluginManager(env: Environment) extends org.enso.cli.PluginManager {
     findPlugin(name) match {
       case Some(PluginDescription(commandName, _)) =>
         val exitCode = (Seq(commandName) ++ args).!
-        System.exit(exitCode)
-        PluginInterceptedFlow
+        sys.exit(exitCode)
       case None =>
         PluginNotFound
     }

@@ -6,93 +6,226 @@ import org.enso.cli.CLIOutput
 import org.enso.launcher.internal.installation.DistributionManager
 import org.enso.launcher.{FileSystem, Logger}
 import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.launcher.internal.OS
+
+import scala.util.control.NonFatal
 
 class DistributionInstaller(
   manager: DistributionManager,
   autoConfirm: Boolean,
-  bundleAction: Option[DistributionInstaller.BundleAction]
+  bundleActionOption: Option[DistributionInstaller.BundleAction]
 ) {
   private val env = manager.env
 
   def install(): Unit = {
-    prepare()
-    createDirectories()
-    installBinary()
-    installBundles()
-    Logger.info("Installation succeeded.")
+    try {
+      prepare()
+      installBinary()
+      createDirectoryStructure()
+      installBundles()
+      Logger.info("Installation succeeded.")
+      maybeRemoveInstaller()
+    } catch {
+      case NonFatal(e) =>
+        val message = s"Installation failed with error: $e."
+        Logger.error(message)
+        CLIOutput.println(message)
+        sys.exit(1)
+    }
+
   }
 
-  final private val locally = manager.LocallyInstalledDirectories
+  /**
+    * Names of additional files that are not essential to running the
+    * distribution, but should be copied over to the data root if possible.
+    * These files are assumed to be located at the data root.
+    */
+  private val nonEssentialFiles       = Seq("README.md", "NOTICE")
+  private val nonEssentialDirectories = Seq("components-licences")
+
+  final private val installed = manager.LocallyInstalledDirectories
 
   private def prepare(): Unit = {
-    if (Files.exists(locally.dataDirectory)) {
-      Logger.warn(s"${locally.dataDirectory} already exists.")
+    if (Files.exists(installed.dataDirectory)) {
+      Logger.warn(s"${installed.dataDirectory} already exists.")
+      if (!Files.isDirectory(installed.dataDirectory)) {
+        Logger.error(
+          s"${installed.dataDirectory} already exists but is not a " +
+          s"directory. Please remove it or change the installation " +
+          s"location by setting `${installed.ENSO_DATA_DIRECTORY}`."
+        )
+        sys.exit(1)
+      }
     }
-    if (Files.exists(locally.configDirectory)) {
-      Logger.warn(s"${locally.configDirectory} already exists.")
+    if (
+      Files.exists(installed.configDirectory) &&
+      installed.configDirectory.toFile.exists()
+    ) {
+      Logger.warn(s"${installed.configDirectory} already exists.")
+      if (!Files.isDirectory(installed.configDirectory)) {
+        Logger.error(
+          s"${installed.configDirectory} already exists but is not a " +
+          s"directory. Please remove it or change the installation " +
+          s"location by setting `${installed.ENSO_CONFIG_DIRECTORY}`."
+        )
+        sys.exit(1)
+      }
+    }
+
+    for (file <- nonEssentialFiles) {
+      val f = manager.paths.dataRoot / file
+      if (!Files.exists(f)) {
+        Logger.warn(s"$f does not exist, it will be skipped.")
+      }
+    }
+
+    for (dir <- nonEssentialDirectories) {
+      val f = manager.paths.dataRoot / dir
+      if (!Files.isDirectory(f)) {
+        Logger.warn(s"$f does not exist, it will be skipped.")
+      }
     }
 
     val message =
       s"""The installer will create the following directories:
-         |data directory = `${locally.dataDirectory}`,
-         |config directory = `${locally.configDirectory}`
-         |and put the launcher binary in `${locally.binDirectory}`.""".stripMargin
+         |data directory = `${installed.dataDirectory}`,
+         |config directory = `${installed.configDirectory}`
+         |and put the launcher binary in `${installed.binDirectory}`.""".stripMargin
 
-    val binMessage =
+    val pathMessage =
       if (isBinOnSystemPath) None
       else
         Some(
-          s"${locally.binDirectory} is not on system PATH. You may have to " +
+          s"`${installed.binDirectory}` is not on system PATH. You may have to " +
           s"add it to the PATH to be able to launch `enso` from anywhere."
         )
 
+    val binMessage =
+      if (Files.exists(installed.binaryExecutable))
+        Some(
+          s"`${installed.binaryExecutable}` already exists and will be " +
+          s"overwritten."
+        )
+      else None
+
+    val additionalMessages = pathMessage.toSeq ++ binMessage.toSeq
+
     Logger.info(message)
-    binMessage.foreach(msg => Logger.warn(msg))
+    additionalMessages.foreach(msg => Logger.warn(msg))
 
     if (!autoConfirm) {
-      CLIOutput.println(message + binMessage.map("\n" + _).getOrElse(""))
-      if (
-        !CLIOutput.askConfirmation(
-          "Do you want to proceed with the installation?",
-          yesDefault = binMessage.isEmpty
-        )
-      ) {}
+      CLIOutput.println(message + additionalMessages.map("\n" + _).mkString)
+      val proceed = CLIOutput.askConfirmation(
+        "Do you want to proceed with the installation?",
+        yesDefault = binMessage.isEmpty
+      )
+      if (!proceed) {
+        CLIOutput.println("Installation has been cancelled.")
+        sys.exit(1)
+      }
     }
   }
 
   private def isBinOnSystemPath: Boolean = {
     val paths = env.getSystemPath
-    paths.contains(locally.binDirectory)
+    paths.contains(installed.binDirectory)
   }
 
-  private def createDirectories(): Unit = {
+  private val enginesDirectory =
+    installed.dataDirectory / manager.ENGINES_DIRECTORY
+  private val runtimesDirectory =
+    installed.dataDirectory / manager.RUNTIMES_DIRECTORY
+  private def createDirectoryStructure(): Unit = {
+    Files.createDirectories(installed.dataDirectory)
+    Files.createDirectories(runtimesDirectory)
+    Files.createDirectories(enginesDirectory)
+    Files.createDirectories(installed.configDirectory)
+    for (file <- nonEssentialFiles) {
+      try {
+        FileSystem.copyFile(
+          manager.paths.dataRoot / file,
+          installed.dataDirectory / file
+        )
+      } catch {
+        case NonFatal(e) =>
+          Logger.warn(
+            s"An exception $e prevented some non-essential " +
+            s"documentation files from being copied."
+          )
+      }
+    }
 
-    Files.createDirectories(locally.dataDirectory)
-    Files.createDirectories(
-      locally.dataDirectory / DistributionManager.RUNTIMES_DIRECTORY
-    )
-    Files.createDirectories(
-      locally.dataDirectory / DistributionManager.ENGINES_DIRECTORY
-    )
-    Files.createDirectories(locally.configDirectory)
+    for (dir <- nonEssentialDirectories) {
+      try {
+        FileSystem.copyDirectory(
+          manager.paths.dataRoot / dir,
+          installed.dataDirectory / dir
+        )
+      } catch {
+        case NonFatal(e) =>
+          Logger.warn(
+            s"An exception $e prevented some non-essential directories from " +
+            s"being copied."
+          )
+      }
+    }
   }
 
-  private def installBinary(): Unit = {}
+  private def installBinary(): Unit = {
+    Files.createDirectories(installed.binDirectory)
+    FileSystem.copyFile(
+      manager.getPathToRunningBinaryExecutable,
+      installed.binaryExecutable
+    )
+    FileSystem.ensureIsExecutable(installed.binaryExecutable)
+  }
 
   private def installBundles(): Unit = {
-    if (DistributionManager.isRunningPortable) {
+    if (manager.isRunningPortable) {
       val runtimes =
-        FileSystem.listDirectory(DistributionManager.paths.runtimes)
-      val engines = FileSystem.listDirectory(DistributionManager.paths.engines)
+        FileSystem.listDirectory(manager.paths.runtimes)
+      val engines = FileSystem.listDirectory(manager.paths.engines)
       if (runtimes.length + engines.length > 0) {
-        val _ = CLIOutput.askConfirmation(
-          "Found bundled engine and/or runtime, do you want to move them to " +
-          "the installation directory?"
-        )
-        // TODO [RW] continue
+        val bundleAction = bundleActionOption.getOrElse {
+          CLIOutput.askQuestion(
+            "Found engine/runtime components bundled with the installation. " +
+            "How do you want to proceed?",
+            Seq(
+              DistributionInstaller.MoveBundles,
+              DistributionInstaller.CopyBundles,
+              DistributionInstaller.IgnoreBundles
+            )
+          )
+        }
+
+        if (bundleAction.copy) {
+          for (engine <- engines) {
+            Logger.info(s"Copying bundled Enso engine ${engine.getFileName}")
+            FileSystem.copyDirectory(
+              engine,
+              enginesDirectory / engine.getFileName
+            )
+          }
+          for (runtime <- runtimes) {
+            Logger.info(s"Copying bundled runtime ${runtime.getFileName}")
+            FileSystem.copyDirectory(
+              runtime,
+              runtimesDirectory / runtime.getFileName
+            )
+          }
+        }
+
+        if (bundleAction.delete) {
+          engines.foreach(FileSystem.removeDirectory)
+          runtimes.foreach(FileSystem.removeDirectory)
+
+          Logger.info(
+            "Cleaned bundled files from the original distribution packages."
+          )
+        }
       }
     } else {
-      bundleAction match {
+      bundleActionOption match {
         case Some(value) if value != DistributionInstaller.IgnoreBundles =>
           Logger.warn(
             s"Installer was asked to ${value.description}, but it seems to " +
@@ -102,20 +235,51 @@ class DistributionInstaller(
       }
     }
   }
+
+  private def maybeRemoveInstaller(): Unit = {
+    def askForRemoval(): Boolean =
+      CLIOutput.askConfirmation(
+        s"Do you want to remove the original launcher that was used for " +
+        s"installation? (It is not needed anymore, as the launcher has been " +
+        s"copied to `${installed.binaryExecutable}`)"
+      )
+
+    if (autoConfirm || askForRemoval()) {
+      removeItselfAndExit()
+    }
+  }
+
+  private def removeItselfAndExit(): Unit =
+    if (OS.isWindows) {
+      ??? // TODO
+    } else {
+      Files.delete(manager.getPathToRunningBinaryExecutable)
+      sys.exit()
+    }
+
 }
 
 object DistributionInstaller {
-  trait BundleAction extends CLIOutput.Answer
+  trait BundleAction extends CLIOutput.Answer {
+    def copy:   Boolean
+    def delete: Boolean
+  }
   case object CopyBundles extends BundleAction {
     override def key: String         = "c"
     override def description: String = "copy bundles"
+    def copy: Boolean                = true
+    def delete: Boolean              = false
   }
   case object MoveBundles extends BundleAction {
     override def key: String         = "m"
     override def description: String = "move bundles"
+    def copy: Boolean                = true
+    def delete: Boolean              = true
   }
   case object IgnoreBundles extends BundleAction {
     override def key: String         = "i"
     override def description: String = "ignore bundles"
+    def copy: Boolean                = false
+    def delete: Boolean              = false
   }
 }

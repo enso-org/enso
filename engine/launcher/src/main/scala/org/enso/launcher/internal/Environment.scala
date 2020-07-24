@@ -7,13 +7,6 @@ import org.enso.launcher.Logger
 
 import scala.util.Try
 
-sealed trait OS
-object OS {
-  case object Linux   extends OS
-  case object MacOS   extends OS
-  case object Windows extends OS
-}
-
 trait Environment {
 
   /**
@@ -35,33 +28,13 @@ trait Environment {
     Try(Path.of(str)).toOption
 
   /**
-    * Checks if the application is being run on Windows.
-    */
-  def isWindows: Boolean =
-    operatingSystem == OS.Windows
-
-  /**
-    * Returns which [[OS]] this program is running on.
-    */
-  def operatingSystem: OS = {
-    val name = System.getProperty("os.name").toLowerCase
-    if (name.contains("linux")) OS.Linux
-    else if (name.contains("mac")) OS.MacOS
-    else if (name.contains("windows")) OS.Windows
-    else
-      throw new RuntimeException(
-        s"fatal error: os.name `$name` is not recognized."
-      )
-  }
-
-  /**
     * Returns a list of system-dependent plugin extensions.
     *
     * By default, on Unix plugins should have no extensions. On Windows, `.exe`
     * `.bat` and `.cmd` are supported.
     */
   def getPluginExtensions: Seq[String] =
-    if (isWindows)
+    if (OS.isWindows)
       Seq(".exe", ".bat", ".cmd")
     else Seq()
 
@@ -73,7 +46,7 @@ trait Environment {
     * but traversing them would greatly slow down plugin discovery.
     */
   def getIgnoredPathDirectories: Seq[Path] =
-    if (isWindows) Seq(Path.of("C:\\Windows")) else Seq()
+    if (OS.isWindows) Seq(Path.of("C:\\Windows")) else Seq()
 
   /**
     * Queries the system environment for the given variable. If it is not defined
@@ -91,14 +64,19 @@ trait Environment {
     * path, returns None.
     */
   def getEnvPath(key: String): Option[Path] = {
-    val result = getEnvVar(key).flatMap(safeParsePath)
-    if (result.isEmpty) {
-      Logger.warn(
-        s"System variable `$key` was set, but it did not represent a valid " +
-        s"path, so it has been ignored."
-      )
+    def parsePathWithWarning(str: String): Option[Path] = {
+      val result = safeParsePath(str)
+      if (result.isEmpty) {
+        Logger.warn(
+          s"System variable `$key` was set (to value `$str`), but it did not " +
+          s"represent a valid path, so it has been ignored."
+        )
+      }
+
+      result
     }
-    result
+
+    getEnvVar(key).flatMap(parsePathWithWarning)
   }
 
   /**
@@ -108,7 +86,7 @@ trait Environment {
     * differently there.
     */
   def getHome: Path = {
-    if (operatingSystem == OS.Windows)
+    if (OS.isWindows)
       throw new IllegalStateException(
         "fatal error: HOME should not be queried on Windows"
       )
@@ -129,7 +107,7 @@ trait Environment {
     * than Windows, as this concept is defined in different ways there.
     */
   def getLocalAppData: Path = {
-    if (operatingSystem != OS.Windows)
+    if (!OS.isWindows)
       throw new IllegalStateException(
         "fatal error: LocalAppData should be queried only on Windows"
       )

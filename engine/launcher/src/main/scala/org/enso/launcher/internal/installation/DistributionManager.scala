@@ -40,14 +40,27 @@ class DistributionManager(val env: Environment) {
     val portable = detectPortable()
     Logger.debug(s"Launcher portable mode = $portable")
     if (portable && LocallyInstalledDirectories.installedDistributionExists) {
-      val installedRoot = LocallyInstalledDirectories.dataDirectory
-      // TODO [RW] should this be a warn or debug level?
-      // It is reasonable for people to use both distributions at the same time,
-      // so a warning may be annoying.
-      Logger.warn(
+      val installedRoot   = LocallyInstalledDirectories.dataDirectory
+      val installedBinary = LocallyInstalledDirectories.binaryExecutable
+
+      Logger.debug(
         s"The launcher is run in portable mode, but an installed distribution" +
         s" is available at $installedRoot."
       )
+
+      if (Files.exists(installedBinary)) {
+        if (installedBinary == getPathToRunningBinaryExecutable) {
+          Logger.debug(
+            "That distribution seems to be corresponding to this launcher " +
+            "executable, that is running in portable mode."
+          )
+        } else {
+          Logger.debug(
+            s"However, that installed distribution most likely uses another " +
+            s"launcher executable, located at $installedBinary."
+          )
+        }
+      }
     }
     portable
   }
@@ -65,11 +78,11 @@ class DistributionManager(val env: Environment) {
   val BIN_DIRECTORY                  = "bin"
 
   private def detectPortable(): Boolean = Files.exists(portableMarkFilePath)
+  private def possiblePortableRoot: Path =
+    getPathToRunningBinaryExecutable.getParent.getParent
 
-  def portableMarkFilePath: Path = {
-    val possibleRoot = getPathToRunningBinaryExecutable.getParent.getParent
-    possibleRoot / PORTABLE_MARK_FILENAME
-  }
+  def portableMarkFilePath: Path =
+    possiblePortableRoot / PORTABLE_MARK_FILENAME
 
   private def detectPaths(): DistributionPaths =
     if (isRunningPortable) {
@@ -94,13 +107,13 @@ class DistributionManager(val env: Environment) {
   def getPathToRunningBinaryExecutable: Path = {
     val codeSource =
       this.getClass.getProtectionDomain.getCodeSource
-    Path.of(codeSource.getLocation.getPath)
+    Path.of(codeSource.getLocation.getPath).toAbsolutePath
   }
 
   object LocallyInstalledDirectories {
-    private val ENSO_DATA_DIRECTORY   = "ENSO_DATA_DIRECTORY"
-    private val ENSO_CONFIG_DIRECTORY = "ENSO_CONFIG_DIRECTORY"
-    private val ENSO_BIN_DIRECTORY    = "ENSO_BIN_DIRECTORY"
+    val ENSO_DATA_DIRECTORY   = "ENSO_DATA_DIRECTORY"
+    val ENSO_CONFIG_DIRECTORY = "ENSO_CONFIG_DIRECTORY"
+    val ENSO_BIN_DIRECTORY    = "ENSO_BIN_DIRECTORY"
 
     private val XDG_DATA_DIRECTORY   = "XDG_DATA_DIRECTORY"
     private val XDG_CONFIG_DIRECTORY = "XDG_CONFIG_DIRECTORY"
@@ -113,61 +126,67 @@ class DistributionManager(val env: Environment) {
     private val UNIX_EXECUTABLE_NAME    = "enso"
     private val WINDOWS_EXECUTABLE_NAME = "enso.exe"
 
-    def dataDirectory: Path = {
-      env.getEnvPath(ENSO_DATA_DIRECTORY).getOrElse {
-        env.operatingSystem match {
-          case OS.Linux =>
-            env
-              .getEnvPath(XDG_DATA_DIRECTORY)
-              .map(_ / LINUX_ENSO_DIRECTORY)
-              .getOrElse {
-                env.getHome / ".local" / "share" / LINUX_ENSO_DIRECTORY
-              }
-          case OS.MacOS =>
-            env.getHome / "Library" / "Application Support" / MACOS_ENSO_DIRECTORY
-          case OS.Windows =>
-            env.getLocalAppData / WINDOWS_ENSO_DIRECTORY
+    def dataDirectory: Path =
+      env
+        .getEnvPath(ENSO_DATA_DIRECTORY)
+        .getOrElse {
+          OS.operatingSystem match {
+            case OS.Linux =>
+              env
+                .getEnvPath(XDG_DATA_DIRECTORY)
+                .map(_ / LINUX_ENSO_DIRECTORY)
+                .getOrElse {
+                  env.getHome / ".local" / "share" / LINUX_ENSO_DIRECTORY
+                }
+            case OS.MacOS =>
+              env.getHome / "Library" / "Application Support" / MACOS_ENSO_DIRECTORY
+            case OS.Windows =>
+              env.getLocalAppData / WINDOWS_ENSO_DIRECTORY
+          }
         }
-      }
-    }
+        .toAbsolutePath
 
-    def configDirectory: Path = {
-      env.getEnvPath(ENSO_CONFIG_DIRECTORY).getOrElse {
-        env.operatingSystem match {
-          case OS.Linux =>
-            env
-              .getEnvPath(XDG_CONFIG_DIRECTORY)
-              .map(_ / LINUX_ENSO_DIRECTORY)
-              .getOrElse {
-                env.getHome / ".config" / LINUX_ENSO_DIRECTORY
-              }
-          case OS.MacOS =>
-            env.getHome / "Library" / "Preferences" / MACOS_ENSO_DIRECTORY
-          case OS.Windows =>
-            env.getLocalAppData / WINDOWS_ENSO_DIRECTORY / CONFIG_DIRECTORY
+    def configDirectory: Path =
+      env
+        .getEnvPath(ENSO_CONFIG_DIRECTORY)
+        .getOrElse {
+          OS.operatingSystem match {
+            case OS.Linux =>
+              env
+                .getEnvPath(XDG_CONFIG_DIRECTORY)
+                .map(_ / LINUX_ENSO_DIRECTORY)
+                .getOrElse {
+                  env.getHome / ".config" / LINUX_ENSO_DIRECTORY
+                }
+            case OS.MacOS =>
+              env.getHome / "Library" / "Preferences" / MACOS_ENSO_DIRECTORY
+            case OS.Windows =>
+              env.getLocalAppData / WINDOWS_ENSO_DIRECTORY / CONFIG_DIRECTORY
+          }
         }
-      }
-    }
+        .toAbsolutePath
 
-    def binDirectory: Path = {
-      env.getEnvPath(ENSO_BIN_DIRECTORY).getOrElse {
-        env.operatingSystem match {
-          case OS.Linux =>
-            env
-              .getEnvPath(XDG_BIN_DIRECTORY)
-              .getOrElse {
-                env.getHome / ".local" / "bin"
-              }
-          case OS.MacOS =>
-            env.getHome / ".local" / "bin"
-          case OS.Windows =>
-            env.getLocalAppData / WINDOWS_ENSO_DIRECTORY / BIN_DIRECTORY
+    def binDirectory: Path =
+      env
+        .getEnvPath(ENSO_BIN_DIRECTORY)
+        .getOrElse {
+          OS.operatingSystem match {
+            case OS.Linux =>
+              env
+                .getEnvPath(XDG_BIN_DIRECTORY)
+                .getOrElse {
+                  env.getHome / ".local" / "bin"
+                }
+            case OS.MacOS =>
+              env.getHome / ".local" / "bin"
+            case OS.Windows =>
+              env.getLocalAppData / WINDOWS_ENSO_DIRECTORY / BIN_DIRECTORY
+          }
         }
-      }
-    }
+        .toAbsolutePath
 
     private def executableName: String =
-      if (env.operatingSystem == OS.Windows) WINDOWS_EXECUTABLE_NAME
+      if (OS.operatingSystem == OS.Windows) WINDOWS_EXECUTABLE_NAME
       else UNIX_EXECUTABLE_NAME
 
     def binaryExecutable: Path = {

@@ -57,7 +57,7 @@ object CLIOutput {
     question: String,
     yesDefault: Boolean = false
   ): Boolean = {
-    val prompt = if (yesDefault) "[Y / n]" else "[y / N]"
+    val prompt = if (yesDefault) "[Y/n]" else "[y/N]"
     val text   = alignAndWrap(question + " " + prompt + " ")
     Predef.print(text)
     val line = Console.in.readLine().strip().toLowerCase
@@ -74,7 +74,28 @@ object CLIOutput {
     def key:         String
     def description: String
   }
-  def askQuestion[A <: Answer](question: String, answers: Seq[A]): A = { ??? }
+  def askQuestion[A <: Answer](question: String, answers: Seq[A]): A = {
+    val explanations =
+      "(" +
+      answers
+        .map(a => a.key.toLowerCase + " - " + a.description)
+        .mkString(", ") +
+      ")"
+    val shortcuts = "[" + answers.map(_.key.toLowerCase).mkString("/") + "]"
+    val prompt =
+      CLIOutput.alignAndWrap(
+        question + " " + explanations + " " + shortcuts + " "
+      )
+    Predef.print(prompt)
+    val line = Console.in.readLine().strip().toLowerCase
+    if (line.isEmpty)
+      answers.head
+    else
+      answers.find(_.key.toLowerCase == line).getOrElse {
+        CLIOutput.println(s"`$line` is not a valid option.")
+        askQuestion(question, answers)
+      }
+  }
 
   /**
     * Default indentation used for printing lists.

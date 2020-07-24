@@ -19,6 +19,7 @@ import org.enso.launcher.installation.{
   DistributionManager
 }
 import org.enso.launcher.PluginManager
+import org.enso.launcher.installation.DistributionInstaller.BundleAction
 
 object Main {
   private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =
@@ -178,8 +179,37 @@ object Main {
 
   private def installDistributionCommand: Subcommand[Config => Unit] =
     Subcommand("distribution") {
-      Opts.pure { (_: Config) =>
-        new DistributionInstaller(DistributionManager, false, None).install()
+      val autoConfirm = Opts.flag(
+        "auto-confirm",
+        "Proceeds with installation without asking confirmation questions. " +
+        "On success, the installer will remove itself to avoid conflicts " +
+        "with the installed launcher executable.",
+        showInUsage = false
+      )
+      implicit val bundleActionParser: Argument[BundleAction] = {
+        case "move"   => DistributionInstaller.MoveBundles.asRight
+        case "copy"   => DistributionInstaller.CopyBundles.asRight
+        case "ignore" => DistributionInstaller.IgnoreBundles.asRight
+        case other =>
+          List(
+            s"`$other` is not a valid bundle-install-mode value. " +
+            s"Possible values are: `move`, `copy`, `ignore`."
+          ).asLeft
+      }
+      val bundleAction = Opts.optionalParameter[BundleAction](
+        "bundle-install-mode",
+        "(move | copy | ignore)",
+        "Specifies how bundled engines and runtimes should be treated. " +
+        "If `auto-confirm` is set, defaults to move.",
+        showInUsage = false
+      )
+      (autoConfirm, bundleAction) mapN {
+        (autoConfirm, bundleAction) => (_: Config) =>
+          new DistributionInstaller(
+            DistributionManager,
+            autoConfirm,
+            bundleAction
+          ).install()
       }
     }
 
@@ -306,7 +336,7 @@ object Main {
     application.run(args) match {
       case Left(errors) =>
         CLIOutput.println(errors.mkString("\n"))
-        System.exit(1)
+        sys.exit(1)
       case Right(()) =>
     }
   }
