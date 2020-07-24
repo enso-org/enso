@@ -3,21 +3,23 @@ package org.enso.syntax.text
 import java.util.UUID
 
 import cats.Foldable
-import cats.implicits._
-import io.circe
-import io.circe.{Encoder, Json}
-import io.circe.generic.auto._
-import io.circe.parser._
-import org.enso.data.{List1, Span}
+import org.enso.data.List1
+import org.enso.data.Span
 import org.enso.flexer
 import org.enso.flexer.Reader
-import org.enso.syntax.text.AST.App
-import org.enso.syntax.text.AST.Block.{Line, OptLine}
+import org.enso.syntax.text.AST.Block.Line
+import org.enso.syntax.text.AST.Block.OptLine
 import org.enso.syntax.text.AST.Macro.Match.SegmentOps
+import org.enso.syntax.text.AST.App
 import org.enso.syntax.text.ast.meta.Builtin
+import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.spec.ParserDef
-
-import scala.annotation.unused
+import cats.implicits._
+import io.circe
+import io.circe.Encoder
+import io.circe.Json
+import io.circe.generic.auto._
+import io.circe.parser._
 
 ////////////////////////////////
 
@@ -221,14 +223,17 @@ class Parser {
     run(new Reader(new CommentRemover(input).run), Nil)
 
   /** Parse input with provided IdMap into AST */
-  def run(input: Reader, @unused idMap: IDMap): AST.Module = {
+  def run(input: Reader, idMap: IDMap): AST.Module = {
     val tokenStream = engine.run(input).map(InHoisting.run)
 
-    tokenStream match {
-      case flexer.Parser.Result(_, flexer.Parser.Result.Success(result)) =>
-        result
+    val spanned = tokenStream.map(attachModuleLocations)
+    val resolved = spanned.map(Macro.run) match {
+      case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
+        val mod2 = annotateModule(idMap, mod)
+        resolveMacros(mod2).asInstanceOf[AST.Module]
       case _ => throw ParsingFailed
     }
+    resolved
   }
 
   /**
