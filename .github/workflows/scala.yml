@@ -44,15 +44,23 @@ jobs:
         with:
           update-conda: false
           conda-channels: anaconda, conda-forge
-      - name: Setup Conda Environment on Windows
+      - name: Setup Conda Environment (Windows)
         if: runner.os == 'Windows'
+        shell: bash -l {0}
         run: |
           conda create --name enso
-          conda init powershell
-      - name: Activate Conda Environment on Windows
+          conda init bash
+      - name: Activate Conda Environment (Windows)
         if: runner.os == 'Windows'
+        shell: bash -l {0}
         run: conda activate enso
+      - name: Install FlatBuffers Compiler (Windows)
+        if: runner.os == 'Windows'
+        shell: bash -l {0}
+        run: conda install --freeze-installed flatbuffers=1.12.0
       - name: Install FlatBuffers Compiler
+        if: runner.os != 'Windows'
+        shell: bash -l {0}
         run: conda install --freeze-installed flatbuffers=1.12.0
       - name: Setup GraalVM Environment
         uses: ayltai/setup-graalvm@v1
@@ -78,27 +86,70 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Build
-      - name: Bootstrap Enso project
-        run: sbt --no-colors bootstrap
-      - name: Build Enso
-        run: sbt --no-colors compile
-
-      # Tests
-      - name: Setup Tests on Windows
+      - name: Setup Environment (Windows)
         if: runner.os == 'Windows'
+        shell: bash
         run: |
           echo '::set-env name=CI_TEST_TIMEFACTOR::2'
           echo '::set-env name=CI_TEST_FLAKY_ENABLE::true'
-      - name: Test Enso
+
+      - name: Bootstrap Enso project (Windows)
+        if: runner.os == 'Windows'
+        shell: bash -l {0}
+        run: sbt --no-colors bootstrap
+      - name: Bootstrap Enso project
+        if: runner.os != 'Windows'
+        run: sbt --no-colors bootstrap
+
+      - name: Build Enso (Windows)
+        if: runner.os == 'Windows'
+        shell: bash -l {0}
+        run: sbt --no-colors compile
+      - name: Build Enso
+        if: runner.os != 'Windows'
+        run: sbt --no-colors compile
+
+      # Tests
+      - name: Test Enso (Windows)
+        if: runner.os == 'Windows'
+        shell: bash -l {0}
         run: sbt --no-colors "set Global / parallelExecution := false; test"
-      - name: Check Runtime Benchmark Compilation
+      - name: Test Enso
+        if: runner.os != 'Windows'
+        run: sbt --no-colors "set Global / parallelExecution := false; test"
+
+      - name: Check Runtime Benchmark Compilation (Windows)
+        if: runner.os == 'Windows'
+        shell: bash -l {0}
         run: sbt -no-colors runtime/Benchmark/compile
-      - name: Check Language Server Benchmark Compilation
+      - name: Check Runtime Benchmark Compilation
+        if: runner.os != 'Windows'
+        run: sbt -no-colors runtime/Benchmark/compile
+
+      - name: Check Language Server Benchmark Compilation (Windows)
+        if: runner.os == 'Windows'
+        shell: bash -l {0}
         run: sbt -no-colors language-server/Benchmark/compile
-      - name: Check Searcher Benchmark Compilation
+      - name: Check Language Server Benchmark Compilation
+        if: runner.os != 'Windows'
+        run: sbt -no-colors language-server/Benchmark/compile
+
+      - name: Check Searcher Benchmark Compilation (Windows)
+        if: runner.os == 'Windows'
+        shell: bash -l {0}
         run: sbt -no-colors searcher/Benchmark/compile
-      - name: Build the Uberjar
+      - name: Check Searcher Benchmark Compilation
+        if: runner.os != 'Windows'
+        run: sbt -no-colors searcher/Benchmark/compile
+
+      - name: Build the Uberjar (Windows)
+        if: runner.os == 'Windows'
+        shell: bash -l {0}
         run: sbt -no-colors runner/assembly
+      - name: Build the Uberjar
+        if: runner.os != 'Windows'
+        run: sbt -no-colors runner/assembly
+
       - name: Test the Uberjar
         run: ./runner.jar --run tools/ci/Test.enso
       - name: Test the Repl in the Uberjar
