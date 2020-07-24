@@ -18,7 +18,6 @@ import org.enso.launcher.installation.{
   DistributionInstaller,
   DistributionManager
 }
-import org.enso.launcher.PluginManager
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 
 object Main {
@@ -208,7 +207,9 @@ object Main {
           new DistributionInstaller(
             DistributionManager,
             autoConfirm,
-            bundleAction
+            if (autoConfirm)
+              Some(bundleAction.getOrElse(DistributionInstaller.MoveBundles))
+            else bundleAction
           ).install()
       }
     }
