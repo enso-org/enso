@@ -214,6 +214,11 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
         self.character.char
     }
 
+    /// Advances along the input without returning the character.
+    pub fn advance_char(&mut self) {
+        let _ = self.next_char();
+    }
+
     /// Returns `self.result` and reassigns it a new empty string.
     pub fn pop_result(&mut self) -> String {
         let str = self.result.clone();
