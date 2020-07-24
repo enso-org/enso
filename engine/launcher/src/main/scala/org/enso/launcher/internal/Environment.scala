@@ -10,24 +10,6 @@ import scala.util.Try
 trait Environment {
 
   /**
-    * Returns the system PATH, if available.
-    */
-  def getSystemPath: Seq[Path] =
-    Option(System.getenv("PATH"))
-      .map(_.split(File.pathSeparatorChar).toSeq.flatMap(safeParsePath))
-      .getOrElse(Seq())
-
-  /**
-    * Tries to parse a path string and returns Some(path) on success.
-    *
-    * We prefer silent failures here (returning None and skipping that entry),
-    * as we don't want to fail the whole command if the PATH contains some
-    * unparseable entries.
-    */
-  private def safeParsePath(str: String): Option[Path] =
-    Try(Path.of(str)).toOption
-
-  /**
     * Returns a list of system-dependent plugin extensions.
     *
     * By default, on Unix plugins should have no extensions. On Windows, `.exe`
@@ -49,16 +31,6 @@ trait Environment {
     if (OS.isWindows) Seq(Path.of("C:\\Windows")) else Seq()
 
   /**
-    * Queries the system environment for the given variable. If it is not defined
-    * or empty, returns None.
-    */
-  def getEnvVar(key: String): Option[String] = {
-    val value = System.getenv(key)
-    if (value == null || value == "") None
-    else Some(value)
-  }
-
-  /**
     * Queries the system environment for the given variable that should
     * represent a valid filesystem path. If it is not defined or is not a valid
     * path, returns None.
@@ -78,6 +50,14 @@ trait Environment {
 
     getEnvVar(key).flatMap(parsePathWithWarning)
   }
+
+  /**
+    * Returns the system PATH, if available.
+    */
+  def getSystemPath: Seq[Path] =
+    getEnvVar("PATH")
+      .map(_.split(File.pathSeparatorChar).toSeq.flatMap(safeParsePath))
+      .getOrElse(Seq())
 
   /**
     * Returns the location of the HOME directory on Unix systems.
@@ -120,5 +100,31 @@ trait Environment {
           )
       }
     }
+  }
+
+  /**
+    * Queries the system environment for the given variable. If it is not defined
+    * or empty, returns None.
+    */
+  def getEnvVar(key: String): Option[String] = {
+    val value = System.getenv(key)
+    if (value == null || value == "") None
+    else Some(value)
+  }
+
+  /**
+    * Tries to parse a path string and returns Some(path) on success.
+    *
+    * We prefer silent failures here (returning None and skipping that entry),
+    * as we don't want to fail the whole command if the PATH contains some
+    * unparseable entries.
+    */
+  private def safeParsePath(str: String): Option[Path] =
+    Try(Path.of(str)).toOption
+
+  def getPathToRunningBinaryExecutable: Path = {
+    val codeSource =
+      this.getClass.getProtectionDomain.getCodeSource
+    Path.of(codeSource.getLocation.getPath).toAbsolutePath
   }
 }

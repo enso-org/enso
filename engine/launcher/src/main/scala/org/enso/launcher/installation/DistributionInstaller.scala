@@ -3,10 +3,10 @@ package org.enso.launcher.installation
 import java.nio.file.Files
 
 import org.enso.cli.CLIOutput
-import org.enso.launcher.internal.installation.DistributionManager
-import org.enso.launcher.{FileSystem, Logger}
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.internal.OS
+import org.enso.launcher.internal.installation.DistributionManager
+import org.enso.launcher.{FileSystem, Logger}
 
 import scala.util.control.NonFatal
 
@@ -15,7 +15,21 @@ class DistributionInstaller(
   autoConfirm: Boolean,
   bundleActionOption: Option[DistributionInstaller.BundleAction]
 ) {
-  private val env = manager.env
+  final private val installed = manager.LocallyInstalledDirectories
+  private val env             = manager.env
+
+  /**
+    * Names of additional files that are not essential to running the
+    * distribution, but should be copied over to the data root if possible.
+    * These files are assumed to be located at the data root.
+    */
+  private val nonEssentialFiles       = Seq("README.md", "NOTICE")
+  private val nonEssentialDirectories = Seq("components-licences")
+
+  private val enginesDirectory =
+    installed.dataDirectory / manager.ENGINES_DIRECTORY
+  private val runtimesDirectory =
+    installed.dataDirectory / manager.RUNTIMES_DIRECTORY
 
   def install(): Unit = {
     try {
@@ -34,16 +48,6 @@ class DistributionInstaller(
     }
 
   }
-
-  /**
-    * Names of additional files that are not essential to running the
-    * distribution, but should be copied over to the data root if possible.
-    * These files are assumed to be located at the data root.
-    */
-  private val nonEssentialFiles       = Seq("README.md", "NOTICE")
-  private val nonEssentialDirectories = Seq("components-licences")
-
-  final private val installed = manager.LocallyInstalledDirectories
 
   private def prepare(): Unit = {
     if (Files.exists(installed.dataDirectory)) {
@@ -131,10 +135,6 @@ class DistributionInstaller(
     paths.contains(installed.binDirectory)
   }
 
-  private val enginesDirectory =
-    installed.dataDirectory / manager.ENGINES_DIRECTORY
-  private val runtimesDirectory =
-    installed.dataDirectory / manager.RUNTIMES_DIRECTORY
   private def createDirectoryStructure(): Unit = {
     Files.createDirectories(installed.dataDirectory)
     Files.createDirectories(runtimesDirectory)
@@ -174,7 +174,7 @@ class DistributionInstaller(
   private def installBinary(): Unit = {
     Files.createDirectories(installed.binDirectory)
     FileSystem.copyFile(
-      manager.getPathToRunningBinaryExecutable,
+      env.getPathToRunningBinaryExecutable,
       installed.binaryExecutable
     )
     FileSystem.ensureIsExecutable(installed.binaryExecutable)
@@ -253,7 +253,7 @@ class DistributionInstaller(
     if (OS.isWindows) {
       ??? // TODO
     } else {
-      Files.delete(manager.getPathToRunningBinaryExecutable)
+      Files.delete(env.getPathToRunningBinaryExecutable)
       sys.exit()
     }
 

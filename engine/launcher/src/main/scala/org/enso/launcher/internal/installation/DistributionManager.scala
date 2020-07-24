@@ -49,7 +49,7 @@ class DistributionManager(val env: Environment) {
       )
 
       if (Files.exists(installedBinary)) {
-        if (installedBinary == getPathToRunningBinaryExecutable) {
+        if (installedBinary == env.getPathToRunningBinaryExecutable) {
           Logger.debug(
             "That distribution seems to be corresponding to this launcher " +
             "executable, that is running in portable mode."
@@ -65,6 +65,9 @@ class DistributionManager(val env: Environment) {
     portable
   }
 
+  /**
+    * Determines paths that should be used by the launcher.
+    */
   lazy val paths: DistributionPaths = {
     val paths = detectPaths()
     Logger.debug(s"Detected paths are: $paths")
@@ -79,14 +82,14 @@ class DistributionManager(val env: Environment) {
 
   private def detectPortable(): Boolean = Files.exists(portableMarkFilePath)
   private def possiblePortableRoot: Path =
-    getPathToRunningBinaryExecutable.getParent.getParent
+    env.getPathToRunningBinaryExecutable.getParent.getParent
 
-  def portableMarkFilePath: Path =
+  private def portableMarkFilePath: Path =
     possiblePortableRoot / PORTABLE_MARK_FILENAME
 
   private def detectPaths(): DistributionPaths =
     if (isRunningPortable) {
-      val root = getPathToRunningBinaryExecutable.getParent.getParent
+      val root = env.getPathToRunningBinaryExecutable.getParent.getParent
       DistributionPaths(
         dataRoot = root,
         runtimes = root / RUNTIMES_DIRECTORY,
@@ -104,12 +107,13 @@ class DistributionManager(val env: Environment) {
       )
     }
 
-  def getPathToRunningBinaryExecutable: Path = {
-    val codeSource =
-      this.getClass.getProtectionDomain.getCodeSource
-    Path.of(codeSource.getLocation.getPath).toAbsolutePath
-  }
-
+  /**
+    * A helper for managing directories of the local installation.
+    *
+    * It returns paths of the local installation even if the launcher is running
+    * in portable mode, so that this helper can be used by the installer to
+    * determine destination for installed files.
+    */
   object LocallyInstalledDirectories {
     val ENSO_DATA_DIRECTORY   = "ENSO_DATA_DIRECTORY"
     val ENSO_CONFIG_DIRECTORY = "ENSO_CONFIG_DIRECTORY"
@@ -189,15 +193,19 @@ class DistributionManager(val env: Environment) {
       if (OS.operatingSystem == OS.Windows) WINDOWS_EXECUTABLE_NAME
       else UNIX_EXECUTABLE_NAME
 
+    /**
+      * The path where the binary executable of the installed distribution
+      * should be placed by default.
+      */
     def binaryExecutable: Path = {
       binDirectory / executableName
     }
 
-    def installedDistributionExists: Boolean = {
-      val exists = Files.isDirectory(dataDirectory.toAbsolutePath)
-      Logger.debug(s"installed root = $dataDirectory, exists? $exists")
-
-      exists
-    }
+    /**
+      * Determines whether a locally installed distribution exists on the
+      * system.
+      */
+    def installedDistributionExists: Boolean =
+      Files.isDirectory(dataDirectory.toAbsolutePath)
   }
 }

@@ -18,5 +18,5 @@ trait WithTemporaryDirectory extends Suite with BeforeAndAfterEach {
     FileUtils.deleteDirectory(testDirectory.toFile)
   }
 
-  def getTestDirectory: Path = testDirectory
+  def getTestDirectory: Path = testDirectory.toAbsolutePath
 }
