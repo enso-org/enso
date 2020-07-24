@@ -184,8 +184,8 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
         for i in 1..=self.offset {
             self.buffer[self.offset - i] = self.buffer[len - i];
         }
-        self.length = self.offset + self.reader.read(&mut self.buffer[self.offset..]);
-        self.offset = self.offset - words;
+        self.length  = self.offset + self.reader.read(&mut self.buffer[self.offset..]);
+        self.offset -= words;
     }
 
     /// Is the reader empty.
@@ -202,7 +202,7 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
         }
 
         self.character = D::decode(&self.buffer[self.offset..]).into();
-        self.offset    = self.offset + self.character.size;
+        self.offset   += self.character.size;
 
         self.character.char
     }

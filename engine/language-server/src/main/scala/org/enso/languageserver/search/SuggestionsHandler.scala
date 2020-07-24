@@ -1,6 +1,6 @@
-package org.enso.languageserver.runtime
+package org.enso.languageserver.search
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import akka.pattern.pipe
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
@@ -14,9 +14,10 @@ import org.enso.languageserver.data.{
   Config,
   ReceivesSuggestionsDatabaseUpdates
 }
+import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{FileDeletedEvent, Path}
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
-import org.enso.languageserver.runtime.SearchProtocol._
+import org.enso.languageserver.search.SearchProtocol._
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.pkg.PackageManager
@@ -70,6 +71,7 @@ final class SuggestionsHandler(
   repo: SuggestionsRepo[Future],
   sessionRouter: ActorRef
 ) extends Actor
+    with Stash
     with ActorLogging
     with UnhandledLogging {
 
@@ -84,6 +86,8 @@ final class SuggestionsHandler(
       .subscribe(self, classOf[Api.SuggestionsDatabaseReIndexNotification])
     context.system.eventStream.subscribe(self, classOf[ProjectNameChangedEvent])
     context.system.eventStream.subscribe(self, classOf[FileDeletedEvent])
+    context.system.eventStream
+      .subscribe(self, InitializedEvent.SuggestionsRepoInitialized.getClass)
 
     config.contentRoots.foreach {
       case (_, contentRoot) =>
@@ -93,13 +97,19 @@ final class SuggestionsHandler(
     }
   }
 
-  override def receive: Receive = {
-    case ProjectNameChangedEvent(name) =>
-      context.become(initialized(name, Set()))
+  override def receive: Receive =
+    initializing(SuggestionsHandler.Initialization())
 
-    case msg =>
-      log.warning("Unhandled message: {}", msg)
-      sender() ! ProjectNotFoundError
+  def initializing(init: SuggestionsHandler.Initialization): Receive = {
+    case ProjectNameChangedEvent(name) =>
+      tryInitialize(init.copy(project = Some(name)))
+    case InitializedEvent.SuggestionsRepoInitialized =>
+      tryInitialize(
+        init.copy(suggestions =
+          Some(InitializedEvent.SuggestionsRepoInitialized)
+        )
+      )
+    case _ => stash()
   }
 
   def initialized(projectName: String, clients: Set[ClientId]): Receive = {
@@ -240,6 +250,18 @@ final class SuggestionsHandler(
   }
 
   /**
+    * Transition the initialization process.
+    *
+    * @param state current initialization state
+    */
+  private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
+    state.initialized.fold(context.become(initializing(state))) { name =>
+      context.become(initialized(name, Set()))
+      unstashAll()
+    }
+  }
+
+  /**
     * Handle the suggestions database re-index update.
     *
     * Function clears existing module suggestions from the database, inserts new
@@ -340,6 +362,29 @@ final class SuggestionsHandler(
 }
 
 object SuggestionsHandler {
+
+  /**
+    * The initialization state of the handler.
+    *
+    * @param project the project name
+    * @param suggestions the initialization event of the suggestions repo
+    */
+  private case class Initialization(
+    project: Option[String]                                               = None,
+    suggestions: Option[InitializedEvent.SuggestionsRepoInitialized.type] = None
+  ) {
+
+    /**
+      * Check if all the components are initialized.
+      *
+      * @return the project name
+      */
+    def initialized: Option[String] =
+      for {
+        _    <- suggestions
+        name <- project
+      } yield name
+  }
 
   /**
     * Creates a configuration object used to create a [[SuggestionsHandler]].

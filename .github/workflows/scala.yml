@@ -10,7 +10,7 @@ env:
   # Please ensure that this is in sync with graalVersion in build.sbt
   graalVersion: 20.1.0
   # Please ensure that this is in sync with javaVersion in build.sbt
-  javaVersion: java11
+  javaVersion: 11
   # Please ensure that this is in sync with project/build.properties
   sbtVersion: 1.3.13
   excludedPaths: |
@@ -37,6 +37,8 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
+      - name: Enable Developer Command Prompt (Windows)
+        uses: ilammy/msvc-dev-cmd@v1.3.0
       - name: Setup conda
         uses: s-weigand/setup-conda@v1
         with:
@@ -53,9 +55,11 @@ jobs:
       - name: Install FlatBuffers Compiler
         run: conda install --freeze-installed flatbuffers=1.12.0
       - name: Setup GraalVM Environment
-        uses: DeLaGuardo/setup-graalvm@2.0
+        uses: ayltai/setup-graalvm@v1
         with:
-          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
       - name: Set Up SBT
         run: |
           curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
@@ -86,7 +90,7 @@ jobs:
           echo '::set-env name=CI_TEST_TIMEFACTOR::2'
           echo '::set-env name=CI_TEST_FLAKY_ENABLE::true'
       - name: Test Enso
-        run: sbt --no-colors test
+        run: sbt --no-colors "set Global / parallelExecution := false; test"
       - name: Check Runtime Benchmark Compilation
         run: sbt -no-colors runtime/Benchmark/compile
       - name: Check Language Server Benchmark Compilation
@@ -126,9 +130,11 @@ jobs:
       - name: Install FlatBuffers Compiler
         run: conda install flatbuffers=1.12.0
       - name: Setup GraalVM Environment
-        uses: DeLaGuardo/setup-graalvm@2.0
+        uses: ayltai/setup-graalvm@v1
         with:
-          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: false
       - name: Set Up SBT
         run: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
@@ -256,15 +262,11 @@ jobs:
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.3.0
       - name: Setup GraalVM Environment
-        uses: DeLaGuardo/setup-graalvm@2.0
+        uses: ayltai/setup-graalvm@v1
         with:
-          graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-      - name: Set Up Native Image (Windows)
-        if: runner.os == 'Windows'
-        run: gu.cmd -N install -n native-image
-      - name: Set Up Native Image (non-Windows)
-        if: runner.os != 'Windows'
-        run: gu -N install -n native-image
+          graalvm-version: ${{ env.graalVersion }}
+          java-version: ${{ env.javaVersion }}
+          native-image: true
       - name: Set Up SBT
         run: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
@@ -319,6 +321,7 @@ jobs:
           mkdir ${{ env.DIST_DIR }}/bin
           mkdir ${{ env.DIST_DIR }}/dist
           mkdir ${{ env.DIST_DIR }}/runtime
+          cp distribution/launcher/.enso.portable ${{ env.DIST_DIR }}
           cp distribution/launcher/README.md ${{ env.DIST_DIR }}
           cp distribution/launcher/NOTICE ${{ env.DIST_DIR }}
           cp -r distribution/launcher/components-licences ${{ env.DIST_DIR }}

@@ -1,4 +1,4 @@
-package org.enso.languageserver.runtime
+package org.enso.languageserver.search
 
 import enumeratum._
 import io.circe.generic.auto._

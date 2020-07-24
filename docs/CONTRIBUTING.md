@@ -476,8 +476,10 @@ Below are options uses by the Language Server:
 - `--path <path>`: Path to the content root.
 - `--interface <interface>`: Interface for processing all incoming connections.
   Default value is 127.0.0.1
-- `--port <port>`: Port for processing all incoming connections. Default value
-  is 8080.
+- `--rpc-port <port>`: RPC port for processing all incoming connections. Default
+  value is 8080.
+- `--data-port <port>`: Data port for visualisation protocol. Default value
+  is 8081.
 
 To run the Language Server on 127.0.0.1:8080 type:
 

@@ -10,19 +10,11 @@ class SuggestionsHandlerTest extends BaseServerTest with FlakySpec {
 
   "SuggestionsHandler" must {
 
-    "reply with error when uninitialized" in {
+    "stash messages when initializing" in {
       val client = getInitialisedWsClient()
 
       client.send(json.getSuggestionsDatabaseVersion(0))
-      client.expectJson(json"""
-          { "jsonrpc" : "2.0",
-            "id" : 0,
-            "error" : {
-              "code" : 7002,
-              "message" : "Project not found in the root directory"
-            }
-          }
-      """)
+      client.expectNoMessage()
     }
 
     "get initial suggestions database version" in {

@@ -8,6 +8,7 @@ import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
+import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{
   FileManager,
   FileSystem,
@@ -24,6 +25,7 @@ import org.enso.languageserver.protocol.json.{
   JsonRpc
 }
 import org.enso.languageserver.runtime._
+import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
@@ -32,7 +34,9 @@ import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 /**
   * A main module containing all components of the server.
@@ -64,21 +68,10 @@ class MainModule(serverConfig: LanguageServerConfig) {
       Some(serverConfig.computeExecutionContext)
     )
 
-  val sqlDatabase = SqlDatabase(
-    languageServerConfig.directories.suggestionsDatabaseFile
-  )
-  system.log.debug("Sql database created")
-  val suggestionsRepo = {
-    val repo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
-    repo.init
-    repo
-  }
-
-  val versionsRepo = {
-    val repo = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
-    repo.init
-    repo
-  }
+  val sqlDatabase =
+    SqlDatabase(languageServerConfig.directories.suggestionsDatabaseFile)
+  val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
+  val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
   system.log.debug("Sql repos created")
 
   lazy val sessionRouter =
@@ -214,6 +207,31 @@ class MainModule(serverConfig: LanguageServerConfig) {
       BinaryEncoder.empty,
       new BinaryConnectionControllerFactory(fileManager)
     )
+
+  /** Initialize the module. */
+  def init: Future[Unit] = {
+    import system.dispatcher
+
+    val suggestionsRepoInit = suggestionsRepo.init
+    suggestionsRepoInit.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize SQL suggestions repo")
+    }
+
+    val versionsRepoInit = versionsRepo.init
+    versionsRepoInit.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize SQL versions repo")
+    }(system.dispatcher)
+
+    Future
+      .sequence(Seq(suggestionsRepoInit, versionsRepoInit))
+      .map(_ => ())
+  }
 
   /** Close the main module releasing all resources. */
   def close(): Unit = {

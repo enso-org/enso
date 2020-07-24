@@ -15,7 +15,7 @@ import scala.util.Random
 
 class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
-  val Timeout: FiniteDuration = 5.seconds
+  val Timeout: FiniteDuration = 20.seconds
 
   val tmpdir: Path = {
     val tmp = Files.createTempDirectory("versions-repo-test")
@@ -43,6 +43,10 @@ class FileVersionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
     Random.nextBytes(28)
 
   "FileVersionsRepo" should {
+
+    "init idempotent" in withRepo { repo =>
+      Await.result(repo.init, Timeout)
+    }
 
     "insert digest" taggedAs Retry in withRepo { repo =>
       val file   = new File("/foo/bar")

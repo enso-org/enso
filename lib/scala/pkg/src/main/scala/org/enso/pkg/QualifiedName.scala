@@ -1,15 +1,15 @@
 package org.enso.pkg
 
 /**
-  * Represents a qualified name of a source module.
+  * Represents a qualified name of a source item.
   *
-  * @param path the names of the package and directories the module is
+  * @param path the names of the package and directories the item is
   *             contained in
-  * @param module the name of the module
+  * @param item the name of the item
   */
-case class QualifiedName(path: List[String], module: String) {
+case class QualifiedName(path: List[String], item: String) {
   override def toString: String =
-    (path :+ module).mkString(QualifiedName.separator)
+    (path :+ item).mkString(QualifiedName.separator)
 
   /**
     * Get the parent of this qualified name.
@@ -26,21 +26,16 @@ case class QualifiedName(path: List[String], module: String) {
     * @return a new qualified name based on this name.
     */
   def createChild(name: String): QualifiedName =
-    QualifiedName(path :+ module, name)
+    QualifiedName(path :+ item, name)
 
   /**
     * Renames a project part of this [[QualifiedName]].
     *
-    * @param oldName the old project name
     * @param newName the new project name
     * @return a [[QualifiedName]] with the updated project name
     */
-  def renameProject(oldName: String, newName: String): QualifiedName = {
-    if (path.head == oldName) {
-      this.copy(path = newName :: path.tail)
-    } else {
-      this
-    }
+  def renameProject(newName: String): QualifiedName = {
+    this.copy(path = newName :: path.tail)
   }
 
 }

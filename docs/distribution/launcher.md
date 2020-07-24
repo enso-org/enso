@@ -15,24 +15,24 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Launcher Distribution](#launcher-distribution)
-  - [Using Multiple Launcher Versions Side-By-Side](#using-multiple-launcher-versions-side-by-side)
-  - [Detecting Portable Distribution](#detecting-portable-distribution)
+    - [Using Multiple Launcher Versions Side-By-Side](#using-multiple-launcher-versions-side-by-side)
+    - [Detecting Portable Distribution](#detecting-portable-distribution)
 - [Launcher Build](#launcher-build)
-  - [Portability](#portability)
+    - [Portability](#portability)
 - [Project Management](#project-management)
-  - [Creating a Project](#creating-a-project)
-  - [Per-Project Enso Version](#per-project-enso-version)
-  - [Project Configuration](#project-configuration)
+    - [Creating a Project](#creating-a-project)
+    - [Per-Project Enso Version](#per-project-enso-version)
+    - [Project Configuration](#project-configuration)
 - [Enso and Graal Version Management](#enso-and-graal-version-management)
-  - [GraalVM Override](#graalvm-override)
-  - [Downloading Enso Releases](#downloading-enso-releases)
-  - [Downloading GraalVM Releases](#downloading-graalvm-releases)
+    - [GraalVM Override](#graalvm-override)
+    - [Downloading Enso Releases](#downloading-enso-releases)
+    - [Downloading GraalVM Releases](#downloading-graalvm-releases)
 - [Running Enso Components](#running-enso-components)
-  - [Running Plugins](#running-plugins)
+    - [Running Plugins](#running-plugins)
 - [Global User Configuration](#global-user-configuration)
 - [Updating the Launcher](#updating-the-launcher)
-  - [Minimal Required Launcher Version](#minimal-required-launcher-version)
-  - [Downloading Launcher Releases](#downloading-launcher-releases)
+    - [Minimal Required Launcher Version](#minimal-required-launcher-version)
+    - [Downloading Launcher Releases](#downloading-launcher-releases)
 
 <!-- /MarkdownTOC -->
 
@@ -195,6 +195,22 @@ For a plugin to be recognized by the launcher, it needs to support a
 description and return with exit code 0, for the plugin to be considered
 supported. That description will be included in the command listing printed by
 `enso help`.
+
+#### Testing plugins
+
+When testing the launcher, we want to test plugin discovery. To do so, we
+override the `PATH` of the tested launcher to a directory containing prepared
+plugins. On Windows, the environment variables are usually treated as
+case-insensitive but not all the time. When launching a process with an added
+environment variable called `PATH`, that process actually has two variables in
+its environment - the original `Path` and the overriden `PATH`. This can be seen
+when querying `System.getenv()` - the returned map contains both `Path` and
+`PATH` with their respective values. However, `System.getenv("PATH")` uses some
+platform specific logic, and even if both variables are present in the
+environment, it actually returns the value corresponding to `Path`. This is
+likely the expected behaviour on Windows. So to successfully override the system
+path on Windows, we need to override `Path`, not `PATH` like on Unix-based
+systems.
 
 ## Global User Configuration
 

@@ -5,6 +5,7 @@ import java.util.UUID
 
 import org.enso.polyglot.Suggestion
 import org.enso.searcher.{SuggestionEntry, SuggestionsRepo}
+import slick.jdbc.SQLiteProfile
 import slick.jdbc.SQLiteProfile.api._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -99,8 +100,14 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(insertBatchQuery(suggestions))
 
   /** The query to initialize the repo. */
-  private def initQuery: DBIO[Unit] =
-    (Suggestions.schema ++ Arguments.schema ++ SuggestionsVersions.schema).createIfNotExists
+  private def initQuery: DBIO[Unit] = {
+    // Initialize schema suppressing errors. Workaround for slick/slick#1999.
+    def initSchema(schema: SQLiteProfile.SchemaDescription) =
+      schema.createIfNotExists.asTry >> DBIO.successful(())
+    val schemas =
+      Seq(Suggestions.schema, Arguments.schema, SuggestionsVersions.schema)
+    DBIO.sequence(schemas.map(initSchema)) >> DBIO.successful(())
+  }
 
   /** The query to clean the repo. */
   private def cleanQuery: DBIO[Unit] =
