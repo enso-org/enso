@@ -19,4 +19,8 @@ object FileSystem {
       writer.close()
     }
   }
+
+  implicit class PathSyntax(val path: Path) extends AnyVal {
+    def /(other: String): Path = path.resolve(other)
+  }
 }

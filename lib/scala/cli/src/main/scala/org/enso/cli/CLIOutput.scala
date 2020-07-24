@@ -70,6 +70,12 @@ object CLIOutput {
     }
   }
 
+  trait Answer {
+    def key:         String
+    def description: String
+  }
+  def askQuestion[A <: Answer](question: String, answers: Seq[A]): A = { ??? }
+
   /**
     * Default indentation used for printing lists.
     */

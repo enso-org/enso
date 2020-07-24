@@ -2,6 +2,7 @@ package org.enso.launcher
 
 import java.nio.file.Path
 
+import org.enso.launcher.installation.DistributionManager
 import org.enso.pkg.PackageManager
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
@@ -35,7 +36,14 @@ object Launcher {
     println(versionDescription.asString(useJSON))
   }
 
-  def forcePortable(force: Boolean): Unit =
-    installation.ForcePortable.run(force)
+  def ensurePortable(): Unit = {
+    if (!DistributionManager.isRunningPortable) {
+      Logger.error(
+        "`--ensure-portable` is set, but the launcher is not running in " +
+        "portable mode. Terminating."
+      )
+      sys.exit(1)
+    }
+  }
 
 }

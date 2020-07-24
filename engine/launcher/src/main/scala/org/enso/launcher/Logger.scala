@@ -5,9 +5,17 @@ package org.enso.launcher
   * actual logging service.
   */
 object Logger {
-  // TODO [RW] logging
-  def debug(msg: String): Unit = System.err.println("[debug] " + msg)
-  def info(msg: String): Unit  = System.err.println("[info] " + msg)
-  def warn(msg: String): Unit  = System.err.println("[warn] " + msg)
-  def error(msg: String): Unit = System.err.println("[error] " + msg)
+  // TODO [RW] this should be replaced with the proper logging service once it
+  //  is implemented
+
+  private val enabled: Boolean = true
+
+  def debug(msg: => String): Unit =
+    if (enabled) System.err.println("[debug] " + msg)
+  def info(msg: => String): Unit =
+    if (enabled) System.err.println("[info] " + msg)
+  def warn(msg: => String): Unit =
+    if (enabled) System.err.println("[warn] " + msg)
+  def error(msg: => String): Unit =
+    if (enabled) System.err.println("[error] " + msg)
 }

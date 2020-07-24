@@ -14,13 +14,17 @@ import org.enso.cli.{
 }
 import org.enso.cli.Opts.implicits._
 import cats.implicits._
-import org.enso.launcher.installation.DistributionInstaller
+import org.enso.launcher.installation.{
+  DistributionInstaller,
+  DistributionManager
+}
+import org.enso.launcher.PluginManager
 
 object Main {
   private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =
     Opts.flag("json", "Use JSON instead of plain text for output.", showInUsage)
 
-  case class GlobalConfig(yes: Boolean)
+  case class GlobalConfig()
   type Config = GlobalConfig
 
   private def versionCommand: Command[Config => Unit] =
@@ -174,8 +178,8 @@ object Main {
 
   private def installDistributionCommand: Subcommand[Config => Unit] =
     Subcommand("distribution") {
-      Opts.pure { (config: Config) =>
-        new DistributionInstaller(config.yes).install()
+      Opts.pure { (_: Config) =>
+        new DistributionInstaller(DistributionManager, false, None).install()
       }
     }
 
@@ -249,20 +253,16 @@ object Main {
     val version =
       Opts.flag("version", 'V', "Display version.", showInUsage = true)
     val json = jsonFlag(showInUsage = false)
-    val forcePortable = Opts.flag(
-      "force-portable",
+    val ensurePortable = Opts.flag(
+      "ensure-portable",
       "Ensures that the launcher is run in portable mode.",
       showInUsage = false
     )
-    val yes = Opts.flag(
-      "yes",
-      "Proceeds without asking questions. Use with care.",
-      showInUsage = false
-    )
-    (help, version, json, forcePortable, yes) mapN {
-      (help, version, useJSON, forcePortable, yes) => () =>
-        if (forcePortable) {
-          Launcher.forcePortable(yes)
+
+    (help, version, json, ensurePortable) mapN {
+      (help, version, useJSON, shouldEnsurePortable) => () =>
+        if (shouldEnsurePortable) {
+          Launcher.ensurePortable()
         }
 
         if (help) {
@@ -271,7 +271,7 @@ object Main {
         } else if (version) {
           Launcher.displayVersion(useJSON)
           TopLevelBehavior.Halt
-        } else TopLevelBehavior.Continue(GlobalConfig(yes))
+        } else TopLevelBehavior.Continue(GlobalConfig())
     }
   }
 
