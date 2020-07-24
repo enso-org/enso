@@ -118,37 +118,40 @@ jobs:
         if: runner.os != 'Windows'
         run: sbt --no-colors "set Global / parallelExecution := false; test"
 
+      - name: Test Launcher
+        run: sbt --no-colors launcher/test
+
       - name: Check Runtime Benchmark Compilation (Windows)
         if: runner.os == 'Windows'
         shell: bash -l {0}
-        run: sbt -no-colors runtime/Benchmark/compile
+        run: sbt --no-colors runtime/Benchmark/compile
       - name: Check Runtime Benchmark Compilation
         if: runner.os != 'Windows'
-        run: sbt -no-colors runtime/Benchmark/compile
+        run: sbt --no-colors runtime/Benchmark/compile
 
       - name: Check Language Server Benchmark Compilation (Windows)
         if: runner.os == 'Windows'
         shell: bash -l {0}
-        run: sbt -no-colors language-server/Benchmark/compile
+        run: sbt --no-colors language-server/Benchmark/compile
       - name: Check Language Server Benchmark Compilation
         if: runner.os != 'Windows'
-        run: sbt -no-colors language-server/Benchmark/compile
+        run: sbt --no-colors language-server/Benchmark/compile
 
       - name: Check Searcher Benchmark Compilation (Windows)
         if: runner.os == 'Windows'
         shell: bash -l {0}
-        run: sbt -no-colors searcher/Benchmark/compile
+        run: sbt --no-colors searcher/Benchmark/compile
       - name: Check Searcher Benchmark Compilation
         if: runner.os != 'Windows'
-        run: sbt -no-colors searcher/Benchmark/compile
+        run: sbt --no-colors searcher/Benchmark/compile
 
       - name: Build the Uberjar (Windows)
         if: runner.os == 'Windows'
         shell: bash -l {0}
-        run: sbt -no-colors runner/assembly
+        run: sbt --no-colors runner/assembly
       - name: Build the Uberjar
         if: runner.os != 'Windows'
-        run: sbt -no-colors runner/assembly
+        run: sbt --no-colors runner/assembly
 
       - name: Test the Uberjar
         run: ./runner.jar --run tools/ci/Test.enso

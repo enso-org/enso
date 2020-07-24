@@ -132,7 +132,6 @@ lazy val enso = (project in file("."))
     runner,
     runtime,
     searcher,
-    launcher,
     syntax.jvm,
     testkit
   )
