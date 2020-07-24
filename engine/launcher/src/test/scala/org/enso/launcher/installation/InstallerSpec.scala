@@ -1,10 +1,12 @@
 package org.enso.launcher.installation
 
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 
 import org.enso.launcher.{FileSystem, NativeTest, WithTemporaryDirectory}
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.internal.OS
+
+import scala.io.Source
 
 class InstallerSpec extends NativeTest with WithTemporaryDirectory {
   def portableRoot = getTestDirectory / "portable"
@@ -14,6 +16,11 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
   def preparePortableDistribution(): Unit = {
     copyLauncherTo(portableLauncher)
     FileSystem.writeTextFile(portableRoot / ".enso.portable", "mark")
+    Files.createDirectories(portableRoot / "config")
+    FileSystem.writeTextFile(
+      portableRoot / "config" / "global-config.yml",
+      "what: ever"
+    )
   }
 
   def installedRoot = getTestDirectory / "installed"
@@ -35,6 +42,15 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
     FileSystem.writeTextFile(runtimeBundle / "jvm.txt", "")
   }
 
+  def readFileContent(path: Path): String = {
+    val source = Source.fromFile(path.toFile)
+    try {
+      source.getLines().mkString("\n")
+    } finally {
+      source.close()
+    }
+  }
+
   "enso install distribution" should {
     "install itself" in {
       preparePortableDistribution()
@@ -49,6 +65,10 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
         Files.isExecutable(installedRoot / "bin" / OS.executableName("enso")),
         "The installed file should be executable."
       )
+
+      val config = installedRoot / "config" / "global-config.yml"
+      config.toFile should exist
+      readFileContent(config).stripTrailing() shouldEqual "what: ever"
 
       assert(
         Files.notExists(portableLauncher),

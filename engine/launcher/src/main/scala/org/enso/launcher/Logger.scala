@@ -6,7 +6,7 @@ package org.enso.launcher
   */
 object Logger {
   // TODO [RW] this should be replaced with the proper logging service once it
-  //  is implemented
+  //  is implemented in #1031
 
   private case class Level(name: String, level: Int)
   private val Debug   = Level("debug", 1)

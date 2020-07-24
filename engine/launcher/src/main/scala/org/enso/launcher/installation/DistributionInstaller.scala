@@ -6,7 +6,7 @@ import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.internal.OS
 import org.enso.launcher.internal.installation.DistributionManager
-import org.enso.launcher.{FileSystem, Logger}
+import org.enso.launcher.{FileSystem, GlobalConfigurationManager, Logger}
 
 import scala.util.control.NonFatal
 
@@ -31,6 +31,11 @@ class DistributionInstaller(
   private val runtimesDirectory =
     installed.dataDirectory / manager.RUNTIMES_DIRECTORY
 
+  /**
+    * Installs the distribution under configured location.
+    * Unless [[autoConfirm]] is true, asks the user to confirm the action after
+    * printing where it plans to install itself.
+    */
   def install(): Unit = {
     try {
       prepare()
@@ -49,6 +54,11 @@ class DistributionInstaller(
 
   }
 
+  /**
+    * Prepares for the installation - find and report possible conflicts, and
+    * ask the user if they want to proceed (unless [[autoConfirm]] is set, in
+    * which case it only reports conflicts).
+    */
   private def prepare(): Unit = {
     if (Files.exists(installed.dataDirectory)) {
       Logger.warn(s"${installed.dataDirectory} already exists.")
@@ -131,11 +141,32 @@ class DistributionInstaller(
     }
   }
 
+  /**
+    * Checks if system PATH includes the directory that the binary will be
+    * installed into.
+    */
   private def isBinOnSystemPath: Boolean = {
     val paths = env.getSystemPath
     paths.contains(installed.binDirectory)
   }
 
+  /**
+    * Copies the binary into the destination directory and ensure that it is
+    * executable.
+    */
+  private def installBinary(): Unit = {
+    Files.createDirectories(installed.binDirectory)
+    FileSystem.copyFile(
+      env.getPathToRunningBinaryExecutable,
+      installed.binaryExecutable
+    )
+    FileSystem.ensureIsExecutable(installed.binaryExecutable)
+  }
+
+  /**
+    * Creates the basic directory structure and copy documentation files if
+    * present.
+    */
   private def createDirectoryStructure(): Unit = {
     Files.createDirectories(installed.dataDirectory)
     Files.createDirectories(runtimesDirectory)
@@ -144,9 +175,21 @@ class DistributionInstaller(
 
     if (installed.dataDirectory != manager.paths.dataRoot) {
       copyNonEssentialFiles()
+
+      val configName = GlobalConfigurationManager.globalConfigName
+      if (Files.exists(manager.paths.config / configName)) {
+        Files.copy(
+          manager.paths.config / configName,
+          installed.configDirectory / configName
+        )
+      }
     }
   }
 
+  /**
+    * Copies non-essential files like README etc. Failure to find/copy one of
+    * these is reported as a warning, but does not stop the installation.
+    */
   private def copyNonEssentialFiles(): Unit = {
     for (file <- nonEssentialFiles) {
       try {
@@ -179,15 +222,10 @@ class DistributionInstaller(
     }
   }
 
-  private def installBinary(): Unit = {
-    Files.createDirectories(installed.binDirectory)
-    FileSystem.copyFile(
-      env.getPathToRunningBinaryExecutable,
-      installed.binaryExecutable
-    )
-    FileSystem.ensureIsExecutable(installed.binaryExecutable)
-  }
-
+  /**
+    * Copies (and possibly removes the originals) bundled engine and runtime
+    * components.
+    */
   private def installBundles(): Unit = {
     if (manager.isRunningPortable) {
       val runtimes =
@@ -244,6 +282,9 @@ class DistributionInstaller(
     }
   }
 
+  /**
+    * If the user wants to, removes the installer.
+    */
   private def maybeRemoveInstaller(): Unit = {
     def askForRemoval(): Boolean =
       CLIOutput.askConfirmation(
@@ -259,7 +300,8 @@ class DistributionInstaller(
 
   private def removeItselfAndExit(): Unit =
     if (OS.isWindows) {
-      ??? // TODO
+      println("Removal is not implemented on Windows, pleas do it manually.")
+      // TODO [RW]
     } else {
       Files.delete(env.getPathToRunningBinaryExecutable)
       sys.exit()

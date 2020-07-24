@@ -26,6 +26,10 @@ object OS {
       )
   }
 
+  /**
+    * Wraps the base executable name with an optional platform-dependent
+    * extension.
+    */
   def executableName(baseName: String): String =
     if (isWindows) baseName + ".exe" else baseName
 }
