@@ -14,6 +14,7 @@ pub mod decoder;
 
 use decoder::Decoder;
 use crate::decoder::{Char, InvalidChar};
+use crate::Error::EOF;
 
 
 // ============
@@ -78,6 +79,7 @@ pub struct BookmarkId {
 }
 
 impl BookmarkId {
+    /// Creates a new bookmark handle using the specified identifier.
     pub fn new(id:usize) -> BookmarkId {
         BookmarkId{id}
     }
@@ -191,6 +193,11 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
     /// Is the reader empty.
     pub fn empty(&self) -> bool {
         self.length < self.buffer.len() && self.length <= self.offset
+    }
+
+    /// Has the reader finished reading.
+    pub fn finished(&self) -> bool {
+        self.empty() && self.character.char == Err(EOF)
     }
 
     /// Reads the next char from input.

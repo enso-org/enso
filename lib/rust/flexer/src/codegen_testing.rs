@@ -14,10 +14,13 @@
 //!
 //! - Logging is being ignored for now.
 //! - Docs are intentionally missing for now in many places.
+//!
+//! RUNNING: cargo test -p flexer --lib
 
 use crate::prelude::*;
 use lazy_reader::{Reader, BookmarkId};
 use lazy_reader::decoder::DecoderUTF8;
+use lazy_reader::Error::EOF;
 
 #[allow(missing_docs)]
 #[derive(Clone, Debug, PartialEq)]
@@ -30,21 +33,21 @@ pub enum AST {
 #[derive(Clone, Debug, Default)]
 pub struct State {
     pub name: String,
-    index: usize, // rename to id
+    id: usize,
 }
 
 #[allow(missing_docs)]
 impl State {
     pub fn new(name: &str, index: usize) -> State {
         let name = String::from(name);
-        State{name,index}
+        State{name, id: index }
     }
 }
 
 #[allow(missing_docs)]
 impl PartialEq for State {
     fn eq(&self, other: &Self) -> bool {
-        self.index == other.index
+        self.id == other.id
     }
 }
 
@@ -56,13 +59,13 @@ pub struct Lexer<'a, T> {
     current_match: String,
     status:LexerStageStatus,
     tokens:Vec<T>,
-    def_current:Option<T>,
     def_initial_state: State,
     def_seen_first_word_state: State,
     def_matched_bookmark: BookmarkId,
     def_rule_bookmark: BookmarkId
 }
 
+#[allow(missing_docs)]
 impl <T> Lexer<'_,T> {
     pub fn new(mut reader: Reader<DecoderUTF8, &[u8]>) -> Lexer<T> {
         let mut state_stack = Vec::new();
@@ -71,10 +74,9 @@ impl <T> Lexer<'_,T> {
         let status = LexerStageStatus::Initial;
         let mut tokens = Vec::new();
         tokens.reserve(1024);
-        let def_current = None;
         let def_initial_state = State::new("INITIAL",0);
         let def_seen_first_word_state = State::new("SEEN FIRST WORD",1);
-        state_stack.push(def_initial_state.index);
+        state_stack.push(def_initial_state.id);
         let def_matched_bookmark = reader.add_bookmark();
         let def_rule_bookmark = reader.add_bookmark();
 
@@ -84,7 +86,6 @@ impl <T> Lexer<'_,T> {
             ,current_match
             ,status
             ,tokens
-            ,def_current
             ,def_initial_state
             ,def_seen_first_word_state
             ,def_matched_bookmark
@@ -95,14 +96,13 @@ impl <T> Lexer<'_,T> {
 #[allow(missing_docs)]
 impl Lexer<'_,AST> {
 
-    // TODO [AA] Lexer interface
     pub fn run(&mut self) -> LexerResult<Vec<AST>> {
         self.reader.bookmark(self.def_matched_bookmark);
         self.reader.next_char();
 
         while self.run_current_state() == LexerStageStatus::ExitSuccess {}
 
-        match self.get_result() {
+        match self.def_get_result() {
             Some(res) => match self.status {
                 LexerStageStatus::ExitFinished => LexerResult::Success(res),
                 LexerStageStatus::ExitFail     => LexerResult::Failure(Some(res)),
@@ -112,27 +112,22 @@ impl Lexer<'_,AST> {
         }
     }
 
-    // TODO [AA] Internal helper (generated)
-    fn get_result(&mut self) -> Option<Vec<AST>> {
+    fn def_get_result(&mut self) -> Option<Vec<AST>> {
         Some(self.tokens.clone())
     }
 
-    // TODO [AA] Lexer interface
     pub fn root_state(&self) -> &State {
         &self.def_initial_state
     }
 
-    // TODO [AA] Lexer interface
     pub fn begin_state(&mut self,state:usize) {
         self.state_stack.push(state);
     }
 
-    // TODO [AA] Lexer interfaec
     pub fn current_state(&self) -> usize {
         *self.state_stack.last().expect("There should always be one state on the stack.")
     }
 
-    // TODO [AA] Lexer interface
     pub fn end_state(&mut self) -> Option<usize> {
         if self.state_stack.len() > 1 {
             let ix = self.state_stack.pop().expect("There should be an item to pop.");
@@ -142,7 +137,6 @@ impl Lexer<'_,AST> {
         }
     }
 
-    // TODO [AA] Lexer interface
     pub fn end_states_until(&mut self, state: usize) -> Vec<usize> {
         // Never drop the root state
         let position_of_target =
@@ -156,24 +150,21 @@ impl Lexer<'_,AST> {
         ended_states
     }
 
-    // TODO [AA] Lexer interface
     pub fn in_state(&mut self, state: usize) -> bool {
         self.current_state() == state
     }
 
-    // TODO [AA] Internal helper
     fn run_current_state(&mut self) -> LexerStageStatus {
         self.status = LexerStageStatus::Initial;
 
-        while self.status.is_valid() {
-            let status = self.status.value().expect("Value guaranteed to exist as `is_valid()`.");
-            self.status = self.def_step(status);
+        while let Some(next_state) = self.status.continue_as() {
+            self.status = self.def_step(next_state);
 
-            if self.reader.empty() {
+            if self.reader.finished() {
                 self.status = LexerStageStatus::ExitFinished
             }
 
-            if self.status.is_valid() {
+            if self.status.should_continue() {
                 if let Ok(char) = self.reader.character.char {
                     self.reader.result.push(char);
                 }
@@ -184,19 +175,57 @@ impl Lexer<'_,AST> {
         self.status
     }
 
-    // TODO [AA] Generated code
-    fn def_step(&mut self, new_state_index:usize) -> LexerStageStatus {
-        let current_state_index = self.current_state();
+    pub fn def_on_first_word_str(&mut self,str:String) {
+        let ast = AST::Word(str);
+        self.def_on_first_word(ast);
+    }
+
+    pub fn def_on_first_word(&mut self,ast:AST) {
+        self.tokens.push(ast);
+        self.begin_state(self.def_seen_first_word_state.id);
+    }
+
+    pub fn def_on_spaced_word_str(&mut self,str:String) {
+        let ast = AST::Word(String::from(str.trim()));
+        self.def_on_spaced_word(ast);
+    }
+
+    pub fn def_on_spaced_word(&mut self,ast:AST) {
+        self.tokens.push(ast);
+    }
+
+    pub fn def_on_err_suffix_first_word(&mut self) {
+        let ast = AST::Unrecognised(self.current_match.clone());
+        self.tokens.push(ast);
+    }
+
+    pub fn def_on_err_suffix(&mut self) {
+        self.def_on_err_suffix_first_word();
+        self.end_state();
+    }
+
+    pub fn def_on_no_err_suffix_first_word(&mut self) {
+        self.def_submit();
+    }
+
+    pub fn def_on_no_err_suffix(&mut self) {
+        self.def_on_no_err_suffix_first_word();
+        self.end_state();
+    }
+
+    pub fn def_submit(&mut self) {}
+
+    fn def_step(&mut self, next_state:usize) -> LexerStageStatus {
+        let current_state = self.current_state();
 
         // This match should be generated
-        match current_state_index {
-            0 => self.def_dispatch_in_state_0(new_state_index),
-            1 => self.def_dispatch_in_state_1(new_state_index),
+        match current_state {
+            0 => self.def_dispatch_in_state_0(next_state),
+            1 => self.def_dispatch_in_state_1(next_state),
             _ => unreachable_panic!("Unreachable state reached in lexer.")
         }
     }
 
-    // TODO [AA] Generated code
     fn def_dispatch_in_state_0(&mut self, new_state_index:usize) -> LexerStageStatus {
         match new_state_index {
             0 => self.def_state_0_to_0(),
@@ -204,55 +233,37 @@ impl Lexer<'_,AST> {
             2 => self.def_state_0_to_2(),
             3 => self.def_state_0_to_3(),
             4 => self.def_state_0_to_4(),
+            5 => self.def_state_0_to_5(),
+            6 => self.def_state_0_to_6(),
             _ => unreachable_panic!("Unreachable state reached in lexer.")
         }
     }
 
-    // TODO [AA] Generated code
     fn def_state_0_to_0(&mut self) -> LexerStageStatus {
-        let temp = u32::from(self.reader.character);
-        match u32::from(self.reader.character) {
-            97 => LexerStageStatus::ContinueWith(1),
-            98 => LexerStageStatus::ContinueWith(2),
-            _  => {
-                self.current_match = self.reader.pop_result();
-                self.def_group_0_rule_2();
-                self.reader.bookmark(self.def_matched_bookmark);
-                LexerStageStatus::ExitSuccess
-            }
-        }
-    }
-
-    // TODO [AA] Generated code
-    fn def_state_0_to_1(&mut self) -> LexerStageStatus {
         match u32::from(self.reader.character) {
             97 => LexerStageStatus::ContinueWith(3),
-            _  => {
-                self.current_match = self.reader.pop_result();
-                self.def_group_0_rule_0();
-                self.reader.bookmark(self.def_matched_bookmark);
-                LexerStageStatus::ExitSuccess
-            }
-        }
-    }
-
-    // TODO [AA] Generated code
-    fn def_state_0_to_2(&mut self) -> LexerStageStatus {
-        match u32::from(self.reader.character) {
             98 => LexerStageStatus::ContinueWith(4),
-            _  => {
-                self.current_match = self.reader.pop_result();
-                self.def_group_0_rule_1();
-                self.reader.bookmark(self.def_matched_bookmark);
-                LexerStageStatus::ExitSuccess
-            }
+            _  => LexerStageStatus::ContinueWith(2)
         }
     }
 
-    // TODO [AA] Generated code
+    fn def_state_0_to_1(&mut self) -> LexerStageStatus {
+        self.current_match = self.reader.pop_result();
+        self.def_group_0_rule_2();
+        self.reader.bookmark(self.def_matched_bookmark);
+        LexerStageStatus::ExitSuccess
+    }
+
+    fn def_state_0_to_2(&mut self) -> LexerStageStatus {
+        self.current_match = self.reader.pop_result();
+        self.def_group_0_rule_3();
+        self.reader.bookmark(self.def_matched_bookmark);
+        LexerStageStatus::ExitSuccess
+    }
+
     fn def_state_0_to_3(&mut self) -> LexerStageStatus {
         match u32::from(self.reader.character) {
-            97 => LexerStageStatus::ContinueWith(3),
+            97 => LexerStageStatus::ContinueWith(5),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.def_group_0_rule_0();
@@ -262,10 +273,9 @@ impl Lexer<'_,AST> {
         }
     }
 
-    // TODO [AA] Generated code
     fn def_state_0_to_4(&mut self) -> LexerStageStatus {
         match u32::from(self.reader.character) {
-            98 => LexerStageStatus::ContinueWith(4),
+            98 => LexerStageStatus::ContinueWith(6),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.def_group_0_rule_1();
@@ -275,60 +285,46 @@ impl Lexer<'_,AST> {
         }
     }
 
-    pub fn def_on_first_word_str(&mut self,str:String) {
-        let ast = AST::Word(str);
-        self.def_on_first_word(ast)
+    fn def_state_0_to_5(&mut self) -> LexerStageStatus {
+        match u32::from(self.reader.character) {
+            97 => LexerStageStatus::ContinueWith(5),
+            _ => {
+                self.current_match = self.reader.pop_result();
+                self.def_group_0_rule_0();
+                self.reader.bookmark(self.def_matched_bookmark);
+                LexerStageStatus::ExitSuccess
+            }
+        }
     }
 
-    pub fn def_on_first_word(&mut self,ast:AST) {
-        self.def_current = Some(ast);
-        let state = self.def_seen_first_word_state.index;
-        self.begin_state(state);
+    fn def_state_0_to_6(&mut self) -> LexerStageStatus {
+        match u32::from(self.reader.character) {
+            98 => LexerStageStatus::ContinueWith(6),
+            _ => {
+                self.current_match = self.reader.pop_result();
+                self.def_group_0_rule_1();
+                self.reader.bookmark(self.def_matched_bookmark);
+                LexerStageStatus::ExitSuccess
+            }
+        }
     }
 
-    pub fn def_on_spaced_word_str(&mut self,str:String) {
-        let ast = AST::Word(String::from(str.trim_end()));
-        self.def_on_spaced_word(ast);
-    }
-
-    pub fn def_on_spaced_word(&mut self,ast:AST) {
-        self.def_current = Some(ast);
-    }
-
-    pub fn def_on_no_err_suffix(&mut self) {
-        self.def_submit();
-        self.end_state();
-    }
-
-    pub fn def_on_err_suffix(&mut self) {
-        let ast = AST::Unrecognised(self.current_match.clone());
-        self.tokens.push(ast);
-        self.def_current = None;
-        self.end_state();
-    }
-
-    pub fn def_submit(&mut self) {
-        let token = self.def_current.as_ref().unwrap().clone();
-        self.tokens.push(token);
-        self.def_current = None;
-    }
-
-    // TODO [AA] Generated code
     fn def_group_0_rule_0(&mut self) -> () {
         self.def_on_first_word_str(self.current_match.clone())
     }
 
-    // TODO [AA] Generated code
     fn def_group_0_rule_1(&mut self) -> () {
         self.def_on_first_word_str(self.current_match.clone())
     }
 
-    // TODO [AA] Generated code
     fn def_group_0_rule_2(&mut self) -> () {
-        self.def_on_err_suffix()
+        self.def_on_err_suffix_first_word()
     }
 
-    // TODO [AA] Generated code
+    fn def_group_0_rule_3(&mut self) {
+        self.def_on_err_suffix_first_word()
+    }
+
     fn def_dispatch_in_state_1(&mut self, new_state_index:usize) -> LexerStageStatus {
         match new_state_index {
             0 => self.def_state_1_to_0(),
@@ -337,90 +333,61 @@ impl Lexer<'_,AST> {
             3 => self.def_state_1_to_3(),
             4 => self.def_state_1_to_4(),
             5 => self.def_state_1_to_5(),
+            6 => self.def_state_1_to_6(),
+            7 => self.def_state_1_to_7(),
             _ => unreachable_panic!("Unreachable state reached in lexer.")
         }
     }
 
-    // TODO [AA] Generated code
     fn def_state_1_to_0(&mut self) -> LexerStageStatus {
         match u32::from(self.reader.character) {
-            32 => {
-                // We bookmark in the case of overlapping rules.
-                self.reader.bookmark(self.def_rule_bookmark);
-                LexerStageStatus::ContinueWith(1)
-            }
-            _  => {
-                self.current_match = self.reader.pop_result();
-                self.def_group_1_rule_2();
-
-                self.reader.bookmark(self.def_matched_bookmark);
-                LexerStageStatus::ExitSuccess
-            }
+            32 => LexerStageStatus::ContinueWith(3),
+            _  => LexerStageStatus::ContinueWith(2)
         }
     }
 
-    // TODO [AA] Generated code
     fn def_state_1_to_1(&mut self) -> LexerStageStatus {
-        match u32::from(self.reader.character) {
-            97 => LexerStageStatus::ContinueWith(2),
-            98 => LexerStageStatus::ContinueWith(3),
-            _  => {
-                self.reader.bookmark(self.def_rule_bookmark);
-                self.current_match = self.reader.pop_result();
-                self.def_group_1_rule_2();
-                self.reader.bookmark(self.def_matched_bookmark);
-                LexerStageStatus::ExitSuccess
-            }
-        }
+        self.current_match = self.reader.pop_result();
+        self.def_group_1_rule_2();
+        self.reader.bookmark(self.def_matched_bookmark);
+        LexerStageStatus::ExitSuccess
     }
 
-    // TODO [AA] Generated code
     fn def_state_1_to_2(&mut self) -> LexerStageStatus {
-        match u32::from(self.reader.character) {
-            97 => LexerStageStatus::ContinueWith(4),
-            _  => {
-                self.current_match = self.reader.pop_result();
-                self.def_group_1_rule_0();
-
-                self.reader.bookmark(self.def_matched_bookmark);
-                LexerStageStatus::ExitSuccess
-            }
-        }
+        self.current_match = self.reader.pop_result();
+        self.def_group_1_rule_3();
+        self.reader.bookmark(self.def_matched_bookmark);
+        LexerStageStatus::ExitSuccess
     }
 
-    // TODO [AA] Generated code
     fn def_state_1_to_3(&mut self) -> LexerStageStatus {
         match u32::from(self.reader.character) {
+            97 => LexerStageStatus::ContinueWith(4),
             98 => LexerStageStatus::ContinueWith(5),
             _  => {
                 self.current_match = self.reader.pop_result();
-                self.def_group_1_rule_1();
-
-                // What determines that the rewinder gets used here?
+                self.def_group_1_rule_3();
                 self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }
     }
 
-    // TODO [AA] Generated code
     fn def_state_1_to_4(&mut self) -> LexerStageStatus {
         match u32::from(self.reader.character) {
-            97 => LexerStageStatus::ContinueWith(4),
+            97 => LexerStageStatus::ContinueWith(6),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_0();
-
                 self.reader.bookmark(self.def_matched_bookmark);
                 LexerStageStatus::ExitSuccess
             }
         }
     }
 
-    // TODO [AA] Generated code
     fn def_state_1_to_5(&mut self) -> LexerStageStatus {
         match u32::from(self.reader.character) {
-            98 => LexerStageStatus::ContinueWith(5),
+            98 => LexerStageStatus::ContinueWith(7),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.def_group_1_rule_1();
@@ -430,19 +397,44 @@ impl Lexer<'_,AST> {
         }
     }
 
-    // TODO [AA] Generated code
+    fn def_state_1_to_6(&mut self) -> LexerStageStatus {
+        match u32::from(self.reader.character) {
+            97 => LexerStageStatus::ContinueWith(6),
+            _  => {
+                self.current_match = self.reader.pop_result();
+                self.def_group_1_rule_0();
+                self.reader.bookmark(self.def_matched_bookmark);
+                LexerStageStatus::ExitSuccess
+            }
+        }
+    }
+
+    fn def_state_1_to_7(&mut self) -> LexerStageStatus {
+        match u32::from(self.reader.character) {
+            98 => LexerStageStatus::ContinueWith(7),
+            _  => {
+                self.current_match = self.reader.pop_result();
+                self.def_group_1_rule_1();
+                self.reader.bookmark(self.def_matched_bookmark);
+                LexerStageStatus::ExitSuccess
+            }
+        }
+    }
+
     fn def_group_1_rule_0(&mut self) {
         self.def_on_spaced_word_str(self.current_match.clone());
     }
 
-    // TODO [AA] Generated code
     fn def_group_1_rule_1(&mut self) -> () {
         self.def_on_spaced_word_str(self.current_match.clone());
     }
 
-    // TODO [AA] Generated code
-    fn def_group_1_rule_2(&mut self) -> () {
+    fn def_group_1_rule_2(&mut self) {
         self.def_on_no_err_suffix();
+    }
+
+    fn def_group_1_rule_3(&mut self) {
+        self.def_on_err_suffix()
     }
 }
 
@@ -455,16 +447,14 @@ pub enum LexerStageStatus {
     ExitFinished,
     ContinueWith(usize)
 }
+
 #[allow(missing_docs)]
 impl LexerStageStatus {
-    pub fn is_valid(&self) -> bool {
-        match self {
-            LexerStageStatus::Initial => true,
-            LexerStageStatus::ContinueWith(_) => true,
-            _ => false,
-        }
+    pub fn should_continue(&self) -> bool {
+        self.continue_as().is_some()
     }
-    pub fn value(&self) -> Option<usize> {
+
+    pub fn continue_as(&self) -> Option<usize> {
         match self {
             LexerStageStatus::Initial => Some(0),
             LexerStageStatus::ContinueWith(val) => Some(*val),
@@ -501,9 +491,75 @@ mod test {
     }
 
     #[test]
-    fn test_single_word() {
+    fn test_single_a_word() {
         let input = "aaaaa";
         let expected_output = vec![AST::Word(String::from(input))];
+        let result = run_test_on(input);
+        assert_eq!(result,expected_output);
+    }
+
+    #[test]
+    fn test_single_b_word() {
+        let input = "bbbbb";
+        let expected_output = vec![AST::Word(String::from(input))];
+        let result = run_test_on(input);
+        assert_eq!(result,expected_output);
+    }
+
+    #[test]
+    fn test_two_word() {
+        let input = "aaaaa bbbbb";
+        let expected_output =
+            vec![AST::Word(String::from("aaaaa")),AST::Word(String::from("bbbbb"))];
+        let result = run_test_on(input);
+        assert_eq!(result,expected_output);
+    }
+
+    #[test]
+    fn test_multi_word() {
+        let input = "bbb aa a b bbbbb aa";
+        let expected_output = vec![
+            AST::Word(String::from("bbb")),
+            AST::Word(String::from("aa")),
+            AST::Word(String::from("a")),
+            AST::Word(String::from("b")),
+            AST::Word(String::from("bbbbb")),
+            AST::Word(String::from("aa"))
+        ];
+        let result = run_test_on(input);
+        assert_eq!(result,expected_output);
+    }
+
+    #[test]
+    fn test_invalid_single_word() {
+        let input = "c";
+        let expected_output = vec![AST::Unrecognised(String::from(input))];
+        let result = run_test_on(input);
+        assert_eq!(result,expected_output);
+    }
+
+    #[test]
+    fn test_multi_word_invalid() {
+        let input = "aaaaaa c bbbbbb";
+        let expected_output = vec![
+            AST::Word(String::from("aaaaaa")),
+            AST::Unrecognised(String::from(" ")),
+            AST::Unrecognised(String::from("c")),
+            AST::Unrecognised(String::from(" ")),
+            AST::Word(String::from("bbbbbb")),
+        ];
+        let result = run_test_on(input);
+        assert_eq!(result,expected_output);
+    }
+
+    #[test]
+    fn test_end_invalid() {
+        let input = "bbbbbb c";
+        let expected_output = vec![
+            AST::Word(String::from("bbbbbb")),
+            AST::Unrecognised(String::from(" ")),
+            AST::Unrecognised(String::from("c")),
+        ];
         let result = run_test_on(input);
         assert_eq!(result,expected_output);
     }

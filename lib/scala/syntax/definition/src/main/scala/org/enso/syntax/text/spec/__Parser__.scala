@@ -105,7 +105,8 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
       case _                   => None
     }
 
-  stateDefs.update(0, nextState0);
+  stateDefs.update(0, nextState0)
+
   def nextState0(state: Int): Int =
     state match {
       case 0 => state0_0
@@ -115,7 +116,8 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
       case 4 => state0_4
       case 5 => state0_5
       case 6 => state0_6
-    };
+    }
+
   def state0_0 =
     reader.charCode match {
       case -1 => 1
@@ -150,9 +152,12 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
           -2
         else
           2
-    };
-  def state0_1 = state.call(group0_rule2);
-  def state0_2 = state.call(group0_rule3);
+    }
+
+  def state0_1 = state.call(group0_rule2)
+
+  def state0_2 = state.call(group0_rule3)
+
   def state0_3 =
     reader.charCode match {
       case (-1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
@@ -185,7 +190,8 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
           state.call(group0_rule0)
         else
           state.call(group0_rule0)
-    };
+    }
+
   def state0_4 =
     reader.charCode match {
       case (-1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
@@ -219,7 +225,8 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
           state.call(group0_rule1)
         else
           state.call(group0_rule1)
-    };
+    }
+
   def state0_5 =
     reader.charCode match {
       case (-1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
@@ -252,7 +259,8 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
           state.call(group0_rule0)
         else
           state.call(group0_rule0)
-    };
+    }
+
   def state0_6 =
     reader.charCode match {
       case (-1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
@@ -286,19 +294,24 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
           state.call(group0_rule1)
         else
           state.call(group0_rule1)
-    };
+    }
+
   def group0_rule0() =
     Word.onFirstWord(
       ((x$1: String) => org.enso.syntax.text.AST.Var.apply(x$1))
-    );
+    )
+
   def group0_rule1() =
     Word.onFirstWord(
       ((x$2: String) => org.enso.syntax.text.AST.Var.apply(x$2))
-    );
-  def group0_rule2() = Word.onNoErrSuffixFirstWord();
-  def group0_rule3() = Word.onErrSuffixFirstWord();
+    )
 
-  stateDefs.update(1, nextState1);
+  def group0_rule2() = Word.onNoErrSuffixFirstWord()
+
+  def group0_rule3() = Word.onErrSuffixFirstWord()
+
+  stateDefs.update(1, nextState1)
+
   def nextState1(state: Int): Int =
     state match {
       case 0 => state1_0
@@ -309,7 +322,8 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
       case 5 => state1_5
       case 6 => state1_6
       case 7 => state1_7
-    };
+    }
+
   def state1_0 =
     reader.charCode match {
       case -1 => 1
@@ -344,9 +358,12 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
           -2
         else
           2
-    };
-  def state1_1 = state.call(group1_rule2);
-  def state1_2 = state.call(group1_rule3);
+    }
+
+  def state1_1 = state.call(group1_rule2)
+
+  def state1_2 = state.call(group1_rule3)
+
   def state1_3 =
     reader.charCode match {
       case (-1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
@@ -380,7 +397,8 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
           state.call(group1_rule3)
         else
           state.call(group1_rule3)
-    };
+    }
+
   def state1_4 =
     reader.charCode match {
       case (-1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
@@ -413,7 +431,8 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
           state.call(group1_rule0)
         else
           state.call(group1_rule0)
-    };
+    }
+
   def state1_5 =
     reader.charCode match {
       case (-1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
@@ -447,7 +466,8 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
           state.call(group1_rule1)
         else
           state.call(group1_rule1)
-    };
+    }
+
   def state1_6 =
     reader.charCode match {
       case (-1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
@@ -480,7 +500,8 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
           state.call(group1_rule0)
         else
           state.call(group1_rule0)
-    };
+    }
+
   def state1_7 =
     reader.charCode match {
       case (-1 | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
@@ -514,15 +535,19 @@ final class __Parser__ extends flexer.Parser[AST.Module] {
           state.call(group1_rule1)
         else
           state.call(group1_rule1)
-    };
+    }
+
   def group1_rule0() =
     Word.onSpacedWord(
       ((x$3: String) => org.enso.syntax.text.AST.Var.apply(x$3))
-    );
+    )
+
   def group1_rule1() =
     Word.onSpacedWord(
       ((x$4: String) => org.enso.syntax.text.AST.Var.apply(x$4))
-    );
-  def group1_rule2() = Word.onNoErrSuffix();
-  def group1_rule3() = Word.onErrSuffix();
+    )
+
+  def group1_rule2() = Word.onNoErrSuffix()
+
+  def group1_rule3() = Word.onErrSuffix()
 }
