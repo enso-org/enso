@@ -3,6 +3,7 @@
 use crate::prelude::*;
 
 use crate::double_representation::module::QualifiedName;
+use crate::model::module::MethodId;
 
 use enso_protocol::language_server;
 use language_server::types::SuggestionsDatabaseVersion;
@@ -12,6 +13,7 @@ use parser::DocParser;
 pub use language_server::types::SuggestionEntryArgument as Argument;
 pub use language_server::types::SuggestionEntryId as EntryId;
 pub use language_server::types::SuggestionsDatabaseUpdate as Update;
+
 
 
 // =============
@@ -106,6 +108,23 @@ impl Entry {
     /// Returns entry with the changed name.
     pub fn with_name(self, name:impl Into<String>) -> Self {
         Self {name:name.into(),..self}
+    }
+
+    /// Return the Method Id of suggested method.
+    ///
+    /// Returns none, if this is not suggestion for a method.
+    pub fn method_id(&self) -> Option<MethodId> {
+        if self.kind != EntryKind::Method {
+            None
+        } else if let Some(self_type) = &self.self_type {
+            Some(MethodId {
+                module          : self.module.clone(),
+                defined_on_type : self_type.clone(),
+                name            : self.name.clone(),
+            })
+        } else {
+            None
+        }
     }
 
     /// Generates HTML documentation for documented suggestion.
@@ -203,6 +222,11 @@ impl SuggestionDatabase {
         self.version.set(event.current_version);
     }
 
+    /// Search the database for an entry of method identified by given id.
+    pub fn lookup_method(&self, id:MethodId) -> Option<Rc<Entry>> {
+        self.entries.borrow().values().cloned().find(|entry| entry.method_id().contains(&id))
+    }
+
     /// Put the entry to the database. Using this function likely break the synchronization between
     /// Language Server and IDE, and should be used only in tests.
     #[cfg(test)]
@@ -264,6 +288,32 @@ mod test {
         assert_eq!(atom_entry.code_to_insert()         , "Atom".to_string());
         assert_eq!(method_entry.code_to_insert()       , "method".to_string());
         assert_eq!(module_method_entry.code_to_insert(), "Main.moduleMethod".to_string());
+    }
+
+    #[test]
+    fn method_id_from_entry() {
+        let non_method = Entry {
+            name          : "function".to_string(),
+            kind          : EntryKind::Function,
+            module        : "Test.Test".to_string().try_into().unwrap(),
+            arguments     : vec![],
+            return_type   : "Number".to_string(),
+            documentation : None,
+            self_type     : None
+        };
+        let method = Entry {
+            name      : "method".to_string(),
+            kind      : EntryKind::Method,
+            self_type : Some("Number".to_string()),
+            ..non_method.clone()
+        };
+        let expected = MethodId {
+            module          : "Test.Test".to_string().try_into().unwrap(),
+            defined_on_type : "Number".to_string(),
+            name            : "method".to_string()
+        };
+        assert_eq!(non_method.method_id() , None);
+        assert_eq!(method.method_id()     , Some(expected));
     }
 
     #[wasm_bindgen_test]

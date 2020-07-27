@@ -262,10 +262,15 @@ pub struct IdeMetadata {
 }
 
 /// Metadata of specific node.
-#[derive(Debug,Clone,Copy,Default,Serialize,Deserialize,Shrinkwrap)]
+#[derive(Debug,Clone,Default,Serialize,Deserialize)]
 pub struct NodeMetadata {
     /// Position in x,y coordinates.
-    pub position: Option<Position>
+    pub position:Option<Position>,
+    /// A method which user intends this node to be, e.g. by picking specific suggestion in
+    /// Searcher Panel.
+    ///
+    /// The methods may be defined for different types, so the name alone don't specify them.
+    pub intended_method:Option<MethodId>,
 }
 
 /// Used for storing node position.
@@ -281,6 +286,18 @@ impl Position {
         let vector = Vector2::new(x,y);
         Position {vector}
     }
+}
+
+/// A structure identifying a method.
+///
+/// It is very similar to MethodPointer from language_server API, however it may point to the method
+/// outside the currently opened project.
+#[derive(Clone,Debug,Deserialize,Eq,Hash,PartialEq,Serialize)]
+#[allow(missing_docs)]
+pub struct MethodId {
+    pub module          : QualifiedName,
+    pub defined_on_type : String,
+    pub name            : String,
 }
 
 

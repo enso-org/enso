@@ -3,9 +3,6 @@
 
 use crate::prelude::*;
 
-use crate::controller::graph::LocationHint;
-use crate::controller::graph::NewNodeInfo;
-use crate::model::module::NodeMetadata;
 use crate::model::module::Position;
 use crate::view::node_editor::NodeEditor;
 
@@ -62,20 +59,19 @@ impl NodeSearcher {
             // If the text edit callback is called, the TextEdit must be still alive.
             let field_content = node_searcher.text_field.get_content();
             let expression    = field_content.split('\n').next().unwrap();
-            if change.inserted == "\n" {
-                let position      = node_searcher.display_object.position();
-                let position      = position - node_searcher.node_editor.position();
-                let position      = Some(Position{vector:Vector2::new(position.x,position.y)});
-                let metadata      = Some(NodeMetadata{position});
-                let id            = None;
-                let location_hint = LocationHint::End;
-                let expression    = expression.to_string();
-                let new_node      = NewNodeInfo { expression,metadata,id,location_hint };
-                node_searcher.node_editor.graph.controller().graph().add_node(new_node);
-                node_searcher.hide();
-            } else {
-                // Keep only one line.
-                node_searcher.text_field.set_content(expression);
+            if let Some(controller) = node_searcher.controller.get() {
+                controller.set_input(expression.to_string());
+                if change.inserted == "\n" {
+                    match controller.commit_node() {
+                        Ok(_)    => { node_searcher.hide(); }
+                        Err(err) => {
+                            error!(node_searcher.logger,"Error when creating node: {err}.")
+                        }
+                    }
+                } else {
+                    // Keep only one line.
+                    node_searcher.text_field.set_content(expression);
+                }
             }
         });
         self
@@ -84,28 +80,38 @@ impl NodeSearcher {
     /// Show NodeSearcher if it is invisible.
     pub fn show(&mut self) {
         if !self.is_shown() {
-            //FIXME:Use add_child(&text_field) when replaced by TextField 2.0
-            self.display_object.add_child(&self.text_field.display_object());
-            self.text_field.clear_content();
-            self.text_field.set_focus();
-            let graph      = self.node_editor.graph.controller().clone_ref();
-            let controller = controller::Searcher::new_from_graph_controller(&self.logger,&self.project,graph);
             let logger     = self.logger.clone_ref();
+            let position   = self.position() - self.node_editor.position();
+            let position   = Some(Position::new(position.x,position.y));
+            let graph      = self.node_editor.graph.controller().clone_ref();
+            let mode       = controller::searcher::Mode::NewNode {position};
+            let controller = controller::Searcher::new_from_graph_controller(&logger,&self.project,
+                graph,mode);
             let weak       = Rc::downgrade(&self.controller);
-            executor::global::spawn(controller.subscribe().for_each(move |notification| {
-                if let Some(opt_controller) = weak.upgrade() {
-                    if let Some(controller) = opt_controller.get() {
-                        match notification {
-                            controller::searcher::Notification::NewSuggestionList => {
-                                let list = controller.suggestions();
-                                info!(logger,"New list in Searcher: {list:?}");
+            match controller {
+                Ok(controller) => {
+                    executor::global::spawn(controller.subscribe().for_each(move |notification| {
+                        let opt_controller = weak.upgrade().and_then(|controller| controller.get());
+                        if let Some(controller) = opt_controller {
+                            match notification {
+                                controller::searcher::Notification::NewSuggestionList => {
+                                    let list = controller.suggestions();
+                                    info!(logger,"New list in Searcher: {list:?}");
+                                }
                             }
                         }
-                    }
+                        futures::future::ready(())
+                    }));
+                    self.controller.set(Some(controller));
+                    //FIXME:Use add_child(&text_field) when replaced by TextField 2.0
+                    self.display_object.add_child(&self.text_field.display_object());
+                    self.text_field.clear_content();
+                    self.text_field.set_focus();
+                },
+                Err(err) => {
+                    error!(logger,"Error while creating Searcher Controller: {err}");
                 }
-                futures::future::ready(())
-            }));
-            self.controller.set(Some(controller))
+            }
         }
     }
 

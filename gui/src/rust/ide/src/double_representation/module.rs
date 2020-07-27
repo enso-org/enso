@@ -9,8 +9,11 @@ use ast::crumbs::ChildAst;
 use ast::crumbs::ModuleCrumb;
 use ast::known;
 use ast::BlockLine;
-use enso_protocol::language_server;
 use data::text::ByteIndex;
+use enso_protocol::language_server;
+use serde::Deserialize;
+use serde::Serialize;
+
 
 
 // =====================
@@ -32,7 +35,9 @@ pub enum InvalidQualifiedName {
 ///
 /// See https://dev.enso.org/docs/distribution/packaging.html for more information about the
 /// package structure.
-#[derive(Clone,Debug,Shrinkwrap)]
+#[derive(Clone,Debug,Deserialize,Shrinkwrap,Serialize)]
+#[serde(into="String")]
+#[serde(try_from="String")]
 pub struct QualifiedName {
     #[shrinkwrap(main_field)]
     text      : String,
@@ -76,6 +81,12 @@ impl TryFrom<String> for QualifiedName {
     }
 }
 
+impl Into<String> for QualifiedName {
+    fn into(self) -> String {
+        self.text
+    }
+}
+
 impl Display for QualifiedName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.text,f)
@@ -90,6 +101,13 @@ impl PartialEq<QualifiedName> for QualifiedName {
 
 impl Eq for QualifiedName {}
 
+impl Hash for QualifiedName {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.text.hash(state)
+    }
+}
+
+
 
 // ==================
 // === ImportInfo ===
@@ -100,7 +118,7 @@ impl Eq for QualifiedName {}
 // Currently only supports the unqualified imports like `import Foo.Bar`. Qualified, restricted and
 // and hiding imports are not supported by the parser yet. In future when parser and engine
 // supports them, this structure should be adjusted as well.
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone,Debug,Eq,PartialEq)]
 pub struct ImportInfo {
     /// The segments of the qualified name of the imported target.
     ///
@@ -224,6 +242,9 @@ impl Info {
     }
 
     /// Add a new import declaration to a module.
+    ///
+    /// This function will try to keep imports in lexicographic order. It returns the index where
+    /// import was added (index of import - an element on the list returned by `enumerate_imports`).
     // TODO [mwu]
     //   Ideally we should not require parser but should use some sane way of generating AST from
     //   the `ImportInfo` value.

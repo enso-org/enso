@@ -387,7 +387,7 @@ pub struct VisualisationConfiguration {
 #[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct LocalCall {
-    pub expression_id: ExpressionId
+    pub expression_id:ExpressionId
 }
 
 /// Points to a method definition.
@@ -395,9 +395,9 @@ pub struct LocalCall {
 #[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct MethodPointer {
-    pub file: Path,
-    pub defined_on_type: String,
-    pub name: String
+    pub file            : Path,
+    pub defined_on_type : String,
+    pub name            : String
 }
 
 /// Used for entering a method. The first item on the execution context stack should always be
