@@ -1,6 +1,6 @@
 package org.enso.launcher
 
-import java.io.IOError
+import java.io.IOException
 import java.nio.file.{Files, NoSuchFileException, Path}
 
 import org.enso.cli.Opts
@@ -37,7 +37,7 @@ object InternalOpts {
     def removeOldExecutableAndExit(oldExecutablePath: Path): Nothing = {
       val command = Seq(
         pathToNewLauncher.toAbsolutePath.toString,
-        REMOVE_OLD_EXECUTABLE,
+        "--" + REMOVE_OLD_EXECUTABLE,
         oldExecutablePath.toAbsolutePath.toString
       )
       runDetachedAndExit(command)
@@ -51,8 +51,9 @@ object InternalOpts {
         Files.delete(oldExecutablePath)
       } catch {
         case _: NoSuchFileException =>
-        case e: IOError =>
+        case e: IOException =>
           if (retries > 0) {
+            e.printStackTrace()
             Thread.sleep(500)
             tryDeleting(retries - 1)
           } else {
@@ -65,7 +66,7 @@ object InternalOpts {
       }
     }
 
-    tryDeleting(10)
+    tryDeleting(30)
   }
 
   private def runDetachedAndExit(command: Seq[String]): Nothing = {

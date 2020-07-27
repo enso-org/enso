@@ -138,7 +138,11 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     )
   }
 
-  private val launcherDebugLogging = true
+  /**
+    * This property can be temporarily set to true to allow for easier debugging
+    * of native tests.
+    */
+  private val launcherDebugLogging = false
 
   private def run(
     command: Seq[String],

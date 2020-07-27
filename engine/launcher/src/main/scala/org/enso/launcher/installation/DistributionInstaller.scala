@@ -291,12 +291,13 @@ class DistributionInstaller(
   /**
     * If the user wants to, removes the installer.
     */
-  private def maybeRemoveInstaller(): Unit = {
+  private def maybeRemoveInstaller(): Nothing = {
     def askForRemoval(): Boolean =
       CLIOutput.askConfirmation(
         s"Do you want to remove the original launcher that was used for " +
         s"installation? (It is not needed anymore, as the launcher has been " +
-        s"copied to `${installed.binaryExecutable}`)"
+        s"copied to `${installed.binaryExecutable}`)",
+        yesDefault = true
       )
 
     val currentPath   = env.getPathToRunningBinaryExecutable
@@ -309,10 +310,10 @@ class DistributionInstaller(
             .removeOldExecutableAndExit(currentPath)
         } else {
           Files.delete(currentPath)
-          sys.exit()
         }
       }
     }
+    sys.exit()
   }
 
 }

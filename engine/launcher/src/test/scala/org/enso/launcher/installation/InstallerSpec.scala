@@ -70,6 +70,7 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
       config.toFile should exist
       readFileContent(config).stripTrailing() shouldEqual "what: ever"
 
+      Thread.sleep(700)
       assert(
         Files.notExists(portableLauncher),
         "The installer should remove itself."
