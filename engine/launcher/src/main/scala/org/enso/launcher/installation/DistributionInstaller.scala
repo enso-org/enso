@@ -6,7 +6,12 @@ import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.internal.OS
 import org.enso.launcher.internal.installation.DistributionManager
-import org.enso.launcher.{FileSystem, GlobalConfigurationManager, Logger}
+import org.enso.launcher.{
+  FileSystem,
+  GlobalConfigurationManager,
+  InternalOpts,
+  Logger
+}
 
 import scala.util.control.NonFatal
 
@@ -294,19 +299,21 @@ class DistributionInstaller(
         s"copied to `${installed.binaryExecutable}`)"
       )
 
-    if (autoConfirm || askForRemoval()) {
-      removeItselfAndExit()
+    val currentPath   = env.getPathToRunningBinaryExecutable
+    val installedPath = installed.binaryExecutable
+    if (installedPath != currentPath) {
+      if (autoConfirm || askForRemoval()) {
+        if (OS.isWindows) {
+          InternalOpts
+            .runWithNewLauncher(installedPath)
+            .removeOldExecutableAndExit(currentPath)
+        } else {
+          Files.delete(currentPath)
+          sys.exit()
+        }
+      }
     }
   }
-
-  private def removeItselfAndExit(): Unit =
-    if (OS.isWindows) {
-      println("Removal is not implemented on Windows, pleas do it manually.")
-      // TODO [RW]
-    } else {
-      Files.delete(env.getPathToRunningBinaryExecutable)
-      sys.exit()
-    }
 
 }
 

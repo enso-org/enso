@@ -263,6 +263,15 @@ object Opts {
       def withDefault(defaultValue: => A): Opts[A] =
         opts.map(_.getOrElse(defaultValue))
     }
+
+    implicit class HiddenSyntax[A](val opts: Opts[A]) {
+
+      /**
+        * Makes options from this Opts instance hidden in any help messages. Can
+        * be used for internal configuration.
+        */
+      def hidden: Opts[A] = new HiddenOpts(opts)
+    }
   }
 
   /**

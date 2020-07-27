@@ -289,9 +289,10 @@ object Main {
       "Ensures that the launcher is run in portable mode.",
       showInUsage = false
     )
+    val internalOpts = InternalOpts.topLevelOptions
 
-    (help, version, json, ensurePortable) mapN {
-      (help, version, useJSON, shouldEnsurePortable) => () =>
+    (internalOpts, help, version, json, ensurePortable) mapN {
+      (_, help, version, useJSON, shouldEnsurePortable) => () =>
         if (shouldEnsurePortable) {
           Launcher.ensurePortable()
         }
