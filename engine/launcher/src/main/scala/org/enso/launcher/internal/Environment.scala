@@ -123,8 +123,16 @@ trait Environment {
     Try(Path.of(str)).toOption
 
   def getPathToRunningBinaryExecutable: Path = {
-    val codeSource =
-      this.getClass.getProtectionDomain.getCodeSource
-    Path.of(codeSource.getLocation.getPath).toAbsolutePath
+    try {
+      val codeSource =
+        this.getClass.getProtectionDomain.getCodeSource
+      Path.of(codeSource.getLocation.toURI).toAbsolutePath
+    } catch {
+      case e: Exception =>
+        throw new IllegalStateException(
+          "Cannot locate the path of the launched executable",
+          e
+        )
+    }
   }
 }

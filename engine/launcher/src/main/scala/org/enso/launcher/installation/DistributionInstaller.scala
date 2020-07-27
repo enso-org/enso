@@ -49,6 +49,7 @@ class DistributionInstaller(
         val message = s"Installation failed with error: $e."
         Logger.error(message)
         CLIOutput.println(message)
+        e.printStackTrace()
         sys.exit(1)
     }
 

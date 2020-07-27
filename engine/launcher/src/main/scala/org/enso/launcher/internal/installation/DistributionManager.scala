@@ -202,6 +202,6 @@ class DistributionManager(val env: Environment) {
       * system.
       */
     def installedDistributionExists: Boolean =
-      Files.isDirectory(dataDirectory.toAbsolutePath)
+      Files.isDirectory(dataDirectory)
   }
 }

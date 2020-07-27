@@ -11,6 +11,8 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.sys.process._
 import org.scalatest.time.SpanSugar._
 
+import org.enso.launcher.internal.OS
+
 /**
   * Contains helper methods for creating tests that need to run the native
   * launcher binary.
@@ -102,7 +104,8 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     * Native Image. This binary can be copied into various places to test its
     * functionality.
     */
-  def baseLauncherLocation: Path = Path.of("./enso")
+  def baseLauncherLocation: Path =
+    Path.of(".").resolve(OS.executableName("enso"))
 
   /**
     * Creates a copy of the tested launcher binary at the specified location.
@@ -135,6 +138,8 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     )
   }
 
+  private val launcherDebugLogging = true
+
   private def run(
     command: Seq[String],
     extraEnv: Seq[(String, String)]
@@ -143,10 +148,16 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     val stderr = new StringBuilder
     val logger = new ProcessLogger {
       override def out(s: => String): Unit = {
+        if (launcherDebugLogging) {
+          System.err.println(s)
+        }
         stdout.append(s + "\n")
       }
 
       override def err(s: => String): Unit = {
+        if (launcherDebugLogging) {
+          System.err.println(s)
+        }
         stderr.append(s + "\n")
       }
 
