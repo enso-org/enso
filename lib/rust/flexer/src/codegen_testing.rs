@@ -71,11 +71,10 @@ impl PartialEq for State {
 
 
 
-
-
-pub trait Definition {
+pub trait TMP_LexerState {
+    // FIXME: I don't like it. This function should not need `reader` as input. It sohuld be implemented as `Default` instead.
+    //        Check why its needed and ficx it if possible.
     fn new(reader:&mut Reader<DecoderUTF8,&[u8]>) -> Self;
-    fn initial_state(&self) -> &State;
 }
 
 
@@ -102,6 +101,8 @@ pub struct Lexer<'a,Def,T> {
     status: LexerStageStatus,
     /// The tokens that have been lexed.
     tokens: Vec<T>,
+    /// The initial state of the defined lexer.
+    def_initial_state: State,
 
     definition: Def
 }
@@ -120,7 +121,7 @@ impl<'a,Def,T> DerefMut for Lexer<'a,Def,T> {
 }
 
 impl<Def,T> Lexer<'_,Def,T>
-where Def : Definition {
+where Def : TMP_LexerState {
     /// Creates a new lexer instance.
     ///
     /// Please note that the `reader` argument is currently hard-coded for testing purposes. This is
@@ -133,30 +134,16 @@ where Def : Definition {
         let mut tokens = Vec::new();
         tokens.reserve(1024);
         let definition = Def::new(&mut reader);
-        state_stack.push(definition.initial_state().id);
+        let def_initial_state = State::new("INITIAL",0);
+        state_stack.push(def_initial_state.id);
 
-        Lexer{state_stack,reader,current_match,status,tokens,definition}
+        Lexer{state_stack,reader,current_match,status,tokens,def_initial_state,definition}
     }
 }
 
 /// This block is things that are part of the lexer's interface and functionality.
-impl<Def:Definition> Lexer<'_,Def,AST> where Self:LexerImpl {
-    /// Executes the lexer on the input provided by the reader, resulting in a
-    /// series of tokens.
-    pub fn run(&mut self) -> LexerResult<AST> {
-        self.reader.advance_char();
+impl<Def:TMP_LexerState> Lexer<'_,Def,AST> {
 
-        while self.run_current_state() == LexerStageStatus::ExitSuccess {}
-
-        match self.get_result() {
-            Some(res) => match self.status {
-                LexerStageStatus::ExitFinished => LexerResult::Success(res),
-                LexerStageStatus::ExitFail => LexerResult::Failure(Some(res)),
-                _ => LexerResult::Partial(res)
-            }
-            None => LexerResult::Failure(None)
-        }
-    }
 
     /// Gets the lexer result.
     fn get_result(&mut self) -> Option<Vec<AST>> {
@@ -165,7 +152,7 @@ impl<Def:Definition> Lexer<'_,Def,AST> where Self:LexerImpl {
 
     /// Gets the lexer's root state.
     pub fn root_state(&self) -> &State {
-        &self.initial_state()
+        &self.def_initial_state
     }
 
     /// Gets the state that the lexer is currently in.
@@ -210,32 +197,7 @@ impl<Def:Definition> Lexer<'_,Def,AST> where Self:LexerImpl {
         self.current_state() == state
     }
 
-    /// Executes the lexer in the current state.
-    fn run_current_state(&mut self) -> LexerStageStatus {
-        self.status = LexerStageStatus::Initial;
 
-        // Runs until reaching a state that no longer says to continue.
-        while let Some(next_state) = self.status.continue_as() {
-            self.status = self.gen_step(next_state);
-
-            if self.reader.finished() {
-                self.status = LexerStageStatus::ExitFinished
-            }
-
-            if self.status.should_continue() {
-                if let Ok(char) = self.reader.character.char {
-                    self.reader.result.push(char);
-                }
-                self.reader.advance_char();
-            }
-        }
-
-        self.status
-    }
-}
-
-trait LexerImpl {
-    fn gen_step(&mut self,next_state:usize) -> LexerStageStatus;
 }
 
 
@@ -304,36 +266,30 @@ pub enum LexerResult<T> {
 // ==================
 
 #[derive(Debug)]
-pub struct Enso {
-    /// The initial state of the defined lexer.
-    def_initial_state: State,
+pub struct EnsoLexerState {
+
     /// The state entered when the first word has been seen.
     def_seen_first_word_state: State,
     /// A bookmark that is set when a match occurs, allowing for rewinding if necessary.
     def_matched_bookmark: BookmarkId,
 }
 
-impl Definition for Enso {
+impl TMP_LexerState for EnsoLexerState {
     fn new(reader:&mut Reader<DecoderUTF8,&[u8]>) -> Self {
-        let def_initial_state = State::new("INITIAL",0);
         let def_seen_first_word_state = State::new("SEEN FIRST WORD",1);
         let def_matched_bookmark = reader.add_bookmark();
-        Self {def_initial_state,def_seen_first_word_state,def_matched_bookmark}
-    }
-
-    fn initial_state(&self) -> &State {
-        &self.def_initial_state
+        Self {def_seen_first_word_state,def_matched_bookmark}
     }
 }
 
 
 
 pub struct EnsoLexer<'t> {
-    lexer : Lexer<'t,Enso,AST>
+    lexer : Lexer<'t,EnsoLexerState,AST>
 }
 
 impl<'a> Deref for EnsoLexer<'a> {
-    type Target = Lexer<'a,Enso,AST>;
+    type Target = Lexer<'a,EnsoLexerState,AST>;
     fn deref(&self) -> &Self::Target {
         &self.lexer
     }
@@ -350,9 +306,9 @@ impl<'a> DerefMut for EnsoLexer<'a> {
 
 ///// This impl block contains functionality that should be generated.
 //#[allow(missing_docs)]
-//impl Lexer<'_,Enso,AST> where Self:LexerImpl {
+//impl Lexer<'_,EnsoLexerState,AST> where Self:LexerImpl {
 
-impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
+impl<'t> EnsoLexer<'t> {
     // === Defined Actions ===
 
     pub fn def_on_first_word_str(&mut self,str:String) {
@@ -395,13 +351,16 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 
 
 
-//// =================
-//// =================
-//// === GENERATED ===
-//// =================
-//// =================
+////// =================
+////// =================
+////// === GENERATED ===
+////// =================
+////// =================
 //
-//impl<'a> LexerImpl for Lexer<'a,Enso,AST> {
+//
+//#[allow(missing_docs)]
+//impl<'t> EnsoLexer<'t> {
+//
 //    fn gen_step(&mut self,next_state:usize) -> LexerStageStatus {
 //        let current_state = self.current_state();
 //
@@ -412,10 +371,47 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //            _ => unreachable_panic!("Unreachable state reached in lexer.")
 //        }
 //    }
+//
+///// Executes the lexer on the input provided by the reader, resulting in a
+///// series of tokens.
+//pub fn run(&mut self) -> LexerResult<AST> {
+//    self.reader.advance_char();
+//
+//    while self.run_current_state() == LexerStageStatus::ExitSuccess {}
+//
+//    match self.get_result() {
+//        Some(res) => match self.status {
+//            LexerStageStatus::ExitFinished => LexerResult::Success(res),
+//            LexerStageStatus::ExitFail => LexerResult::Failure(Some(res)),
+//            _ => LexerResult::Partial(res)
+//        }
+//        None => LexerResult::Failure(None)
+//    }
 //}
 //
-//#[allow(missing_docs)]
-//impl Lexer<'_,Enso,AST> {
+///// Executes the lexer in the current state.
+//fn run_current_state(&mut self) -> LexerStageStatus {
+//    self.status = LexerStageStatus::Initial;
+//
+//    // Runs until reaching a state that no longer says to continue.
+//    while let Some(next_state) = self.status.continue_as() {
+//        self.status = self.gen_step(next_state);
+//
+//        if self.reader.finished() {
+//            self.status = LexerStageStatus::ExitFinished
+//        }
+//
+//        if self.status.should_continue() {
+//            if let Ok(char) = self.reader.character.char {
+//                self.reader.result.push(char);
+//            }
+//            self.reader.advance_char();
+//        }
+//    }
+//
+//    self.status
+//}
+//
 //    // === DFA Steps ===
 //
 //    fn gen_dispatch_in_state_0(&mut self,new_state_index:usize) -> LexerStageStatus {
@@ -445,14 +441,16 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //        // borrowck.
 //        self.current_match = self.reader.pop_result();
 //        self.gen_group_0_rule_2();
-//        self.reader.bookmark(self.def_matched_bookmark);
+//        let t = self.def_matched_bookmark;
+//        self.reader.bookmark(t);
 //        LexerStageStatus::ExitSuccess
 //    }
 //
 //    fn gen_state_0_to_2(&mut self) -> LexerStageStatus {
 //        self.current_match = self.reader.pop_result();
 //        self.gen_group_0_rule_3();
-//        self.reader.bookmark(self.def_matched_bookmark);
+//        let t = self.def_matched_bookmark;
+//        self.reader.bookmark(t);
 //        LexerStageStatus::ExitSuccess
 //    }
 //
@@ -462,7 +460,8 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //            _  => {
 //                self.current_match = self.reader.pop_result();
 //                self.gen_group_0_rule_0();
-//                self.reader.bookmark(self.def_matched_bookmark);
+//                let t = self.def_matched_bookmark;
+//                self.reader.bookmark(t);
 //                LexerStageStatus::ExitSuccess
 //            }
 //        }
@@ -474,7 +473,8 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //            _  => {
 //                self.current_match = self.reader.pop_result();
 //                self.gen_group_0_rule_1();
-//                self.reader.bookmark(self.def_matched_bookmark);
+//                let t = self.def_matched_bookmark;
+//                self.reader.bookmark(t);
 //                LexerStageStatus::ExitSuccess
 //            }
 //        }
@@ -486,7 +486,8 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //            _ => {
 //                self.current_match = self.reader.pop_result();
 //                self.gen_group_0_rule_0();
-//                self.reader.bookmark(self.def_matched_bookmark);
+//                let t = self.def_matched_bookmark;
+//                self.reader.bookmark(t);
 //                LexerStageStatus::ExitSuccess
 //            }
 //        }
@@ -498,7 +499,8 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //            _ => {
 //                self.current_match = self.reader.pop_result();
 //                self.gen_group_0_rule_1();
-//                self.reader.bookmark(self.def_matched_bookmark);
+//                let t = self.def_matched_bookmark;
+//                self.reader.bookmark(t);
 //                LexerStageStatus::ExitSuccess
 //            }
 //        }
@@ -544,14 +546,16 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //    fn gen_state_1_to_1(&mut self) -> LexerStageStatus {
 //        self.current_match = self.reader.pop_result();
 //        self.gen_group_1_rule_2();
-//        self.reader.bookmark(self.def_matched_bookmark);
+//        let t = self.def_matched_bookmark;
+//        self.reader.bookmark(t);
 //        LexerStageStatus::ExitSuccess
 //    }
 //
 //    fn gen_state_1_to_2(&mut self) -> LexerStageStatus {
 //        self.current_match = self.reader.pop_result();
 //        self.gen_group_1_rule_3();
-//        self.reader.bookmark(self.def_matched_bookmark);
+//        let t = self.def_matched_bookmark;
+//        self.reader.bookmark(t);
 //        LexerStageStatus::ExitSuccess
 //    }
 //
@@ -562,7 +566,8 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //            _  => {
 //                self.current_match = self.reader.pop_result();
 //                self.gen_group_1_rule_3();
-//                self.reader.bookmark(self.def_matched_bookmark);
+//                let t = self.def_matched_bookmark;
+//                self.reader.bookmark(t);
 //                LexerStageStatus::ExitSuccess
 //            }
 //        }
@@ -574,7 +579,8 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //            _  => {
 //                self.current_match = self.reader.pop_result();
 //                self.gen_group_1_rule_0();
-//                self.reader.bookmark(self.def_matched_bookmark);
+//                let t = self.def_matched_bookmark;
+//                self.reader.bookmark(t);
 //                LexerStageStatus::ExitSuccess
 //            }
 //        }
@@ -586,7 +592,8 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //            _  => {
 //                self.current_match = self.reader.pop_result();
 //                self.gen_group_1_rule_1();
-//                self.reader.bookmark(self.def_matched_bookmark);
+//                let t = self.def_matched_bookmark;
+//                self.reader.bookmark(t);
 //                LexerStageStatus::ExitSuccess
 //            }
 //        }
@@ -598,7 +605,8 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //            _  => {
 //                self.current_match = self.reader.pop_result();
 //                self.gen_group_1_rule_0();
-//                self.reader.bookmark(self.def_matched_bookmark);
+//                let t = self.def_matched_bookmark;
+//                self.reader.bookmark(t);
 //                LexerStageStatus::ExitSuccess
 //            }
 //        }
@@ -610,7 +618,8 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //            _  => {
 //                self.current_match = self.reader.pop_result();
 //                self.gen_group_1_rule_1();
-//                self.reader.bookmark(self.def_matched_bookmark);
+//                let t = self.def_matched_bookmark;
+//                self.reader.bookmark(t);
 //                LexerStageStatus::ExitSuccess
 //            }
 //        }
@@ -632,7 +641,7 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 //        self.def_on_err_suffix()
 //    }
 //}
-
+//
 
 
 
@@ -644,19 +653,20 @@ impl<'t> EnsoLexer<'t> where Lexer<'t,Enso,AST> : LexerImpl {
 
 #[cfg(test)]
 mod test {
-//    extern crate test;
-//
-//    use super::*;
-//    use lazy_reader::Reader;
-//    use lazy_reader::decoder::DecoderUTF8;
-//
-//
-//
+    extern crate test;
+
+    use super::*;
+    use lazy_reader::Reader;
+    use lazy_reader::decoder::DecoderUTF8;
+
+
+
 //    /// Executes the test on the provided input string slice.
 //    fn run_test_on(str:&str) -> Vec<AST> {
 //        // Hardcoded for ease of use here.
 //        let reader = Reader::new(str.as_bytes(),DecoderUTF8());
-//        let mut lexer:Lexer<Enso,AST> = Lexer::new(reader);
+//        let mut lexer:Lexer<EnsoLexerState,AST> = Lexer::new(reader);
+//        let mut lexer = EnsoLexer{lexer};
 //
 //        match lexer.run() {
 //            LexerResult::Success(tokens) => tokens,
