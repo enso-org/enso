@@ -24,8 +24,7 @@ object Main {
   private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =
     Opts.flag("json", "Use JSON instead of plain text for output.", showInUsage)
 
-  case class GlobalConfig()
-  type Config = GlobalConfig
+  type Config = Unit
 
   private def versionCommand: Command[Config => Unit] =
     Command(
@@ -303,7 +302,7 @@ object Main {
         } else if (version) {
           Launcher.displayVersion(useJSON)
           TopLevelBehavior.Halt
-        } else TopLevelBehavior.Continue(GlobalConfig())
+        } else TopLevelBehavior.Continue(())
     }
   }
 

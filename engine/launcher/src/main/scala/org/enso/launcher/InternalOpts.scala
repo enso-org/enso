@@ -7,11 +7,15 @@ import org.enso.cli.Opts
 import org.enso.cli.Opts.implicits._
 import cats.implicits._
 import org.enso.launcher.internal.OS
-import sys.process._
 
 object InternalOpts {
-  private def REMOVE_OLD_EXECUTABLE = "internal-remove-old-executable"
+  private val REMOVE_OLD_EXECUTABLE = "internal-remove-old-executable"
 
+  /**
+    * Additional top level options that are internal to the launcher and should
+    * not be used by users directly. They are used to implement workarounds for
+    * install / upgrade on Windows.
+    */
   def topLevelOptions: Opts[Unit] = {
     val removeOldExecutableOpt = Opts
       .optionalParameter[Path](
@@ -30,14 +34,24 @@ object InternalOpts {
     }
   }
 
+  /**
+    * Returns a helper class that allows to run the launcher located at the
+    * provided path invoking the internal options.
+    */
   def runWithNewLauncher(pathToNewLauncher: Path): Runner =
     new Runner(pathToNewLauncher)
 
   class Runner private[InternalOpts] (pathToNewLauncher: Path) {
+
+    /**
+      * Tells the installed launcher to try to remove the old launcher
+      * executable. It retries for a few seconds to give the process running the
+      * old launcher to terminate and release the lock on its file.
+      */
     def removeOldExecutableAndExit(oldExecutablePath: Path): Nothing = {
       val command = Seq(
         pathToNewLauncher.toAbsolutePath.toString,
-        "--" + REMOVE_OLD_EXECUTABLE,
+        s"--$REMOVE_OLD_EXECUTABLE",
         oldExecutablePath.toAbsolutePath.toString
       )
       runDetachedAndExit(command)
@@ -45,6 +59,7 @@ object InternalOpts {
   }
 
   private def removeOldExecutable(oldExecutablePath: Path): Unit = {
+    val retryBaseAmount = 30
     @scala.annotation.tailrec
     def tryDeleting(retries: Int): Unit = {
       try {
@@ -52,21 +67,27 @@ object InternalOpts {
       } catch {
         case _: NoSuchFileException =>
         case e: IOException =>
+          if (retries == retryBaseAmount) {
+            System.err.println(
+              s"Could not remove $oldExecutablePath, will retry several " +
+              s"times for 15s..."
+            )
+          }
+
           if (retries > 0) {
-            e.printStackTrace()
             Thread.sleep(500)
             tryDeleting(retries - 1)
           } else {
-            println(
+            e.printStackTrace()
+            System.err.println(
               s"Cannot delete old executable at $oldExecutablePath after " +
               s"multiple retries. Please try removing it manually."
             )
-            e.printStackTrace()
           }
       }
     }
 
-    tryDeleting(30)
+    tryDeleting(retryBaseAmount)
   }
 
   private def runDetachedAndExit(command: Seq[String]): Nothing = {
@@ -77,7 +98,9 @@ object InternalOpts {
       )
     }
 
-    command.run()
+    val pb = new java.lang.ProcessBuilder(command: _*)
+    pb.redirectOutput(java.lang.ProcessBuilder.Redirect.INHERIT)
+    pb.start()
     sys.exit()
   }
 }

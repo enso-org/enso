@@ -1,7 +1,7 @@
 package org.enso.launcher
 
 /**
-  * This is a temporary object that should be at some point replace with the
+  * This is a temporary object that should be at some point replaced with the
   * actual logging service.
   */
 object Logger {

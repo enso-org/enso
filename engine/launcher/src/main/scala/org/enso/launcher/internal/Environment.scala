@@ -7,6 +7,11 @@ import org.enso.launcher.Logger
 
 import scala.util.Try
 
+/**
+  * Gathers some helper methods querying the system environment. The default
+  * implementations should be used most of the time, but it is a trait so that
+  * the functions can be overridden in tests.
+  */
 trait Environment {
 
   /**

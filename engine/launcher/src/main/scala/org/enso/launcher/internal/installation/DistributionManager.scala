@@ -30,6 +30,10 @@ case class DistributionPaths(
        |)""".stripMargin
 }
 
+/**
+  * A helper class that detects if a portable or installed distribution is run
+  * and encapsulates management of paths to components of the distribution.
+  */
 class DistributionManager(val env: Environment) {
 
   /**
@@ -127,6 +131,9 @@ class DistributionManager(val env: Environment) {
     private val MACOS_ENSO_DIRECTORY   = "org.enso"
     private val WINDOWS_ENSO_DIRECTORY = "enso"
 
+    /**
+      * Data directory for an installed distribution.
+      */
     def dataDirectory: Path =
       env
         .getEnvPath(ENSO_DATA_DIRECTORY)
@@ -147,6 +154,9 @@ class DistributionManager(val env: Environment) {
         }
         .toAbsolutePath
 
+    /**
+      * Config directory for an installed distribution.
+      */
     def configDirectory: Path =
       env
         .getEnvPath(ENSO_CONFIG_DIRECTORY)
@@ -167,6 +177,10 @@ class DistributionManager(val env: Environment) {
         }
         .toAbsolutePath
 
+    /**
+      * The directory where the launcher binary will be placed for an installed
+      * distribution.
+      */
     def binDirectory: Path =
       env
         .getEnvPath(ENSO_BIN_DIRECTORY)

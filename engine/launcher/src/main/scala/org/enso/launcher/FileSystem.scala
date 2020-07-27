@@ -12,10 +12,19 @@ import scala.jdk.StreamConverters._
 import sys.process._
 
 object FileSystem {
+
+  /**
+    * Returns a sequence of files in the given directory (without traversing it
+    * recursively). If the directory does not exist, returns an empty sequence.
+    */
   def listDirectory(dir: Path): Seq[Path] =
     if (!Files.exists(dir)) Seq()
     else Files.list(dir).toScala(Factory.arrayFactory).toSeq
 
+  /**
+    * Writes a String to a file at the given `path`, creating the file if
+    * necessary.
+    */
   def writeTextFile(path: Path, content: String): Unit = {
     val writer = new PrintWriter(path.toFile)
     try {
@@ -25,15 +34,27 @@ object FileSystem {
     }
   }
 
+  /**
+    * Copies a directory recursively.
+    */
   def copyDirectory(source: Path, destination: Path): Unit =
     FileUtils.copyDirectory(source.toFile, destination.toFile)
 
+  /**
+    * Removes a directory recursively.
+    */
   def removeDirectory(dir: Path): Unit =
     FileUtils.deleteDirectory(dir.toFile)
 
+  /**
+    * Copies a file, overwriting the destination if it already existed.
+    */
   def copyFile(source: Path, destination: Path): Unit =
     FileUtils.copyFile(source.toFile, destination.toFile)
 
+  /**
+    * Checks if the given `file` is executable and tries to fix it if it is not.
+    */
   def ensureIsExecutable(file: Path): Unit = {
     if (!Files.isExecutable(file)) {
       def tryChmod(): Boolean = {
@@ -41,9 +62,7 @@ object FileSystem {
       }
 
       if (OS.isWindows || !tryChmod()) {
-        throw new IllegalStateException(
-          "Cannot ensure the launcher binary is executable."
-        )
+        Logger.error("Cannot ensure the launcher binary is executable.")
       }
     }
   }
