@@ -227,7 +227,7 @@ impl Client {
         Ok(client)
     }
 
-    /// Sends a request to parser service to parse Enso code
+    /// Sends a request to parser service to parse Enso code.
     pub fn parse(&mut self, program:String, ids:IdMap) -> api::Result<Ast> {
         let request  = Request::ParseRequest {program,ids};
         let response = self.rpc_call::<serde_json::Value>(request)?;
@@ -237,7 +237,7 @@ impl Client {
         }
     }
 
-    /// Sends a request to parser service to parse code with metadata
+    /// Sends a request to parser service to parse code with metadata.
     pub fn parse_with_metadata<M:Metadata>
     (&mut self, program:String) -> api::Result<ParsedSourceFile<M>> {
         let request  = Request::ParseRequestWithMetadata {content:program};
@@ -248,7 +248,7 @@ impl Client {
         }
     }
 
-    /// Sends a request to parser service to generate HTML code from documented Enso code
+    /// Sends a request to parser service to generate HTML code from documented Enso code.
     pub fn generate_html_docs(&mut self, program:String) -> api::Result<String> {
         let request      = Request::DocParserGenerateHtmlSource {program};
         let response_doc = self.rpc_call_doc(request)?;
@@ -258,7 +258,7 @@ impl Client {
         }
     }
 
-    /// Sends a request to parser service to generate HTML code from pure documentation code
+    /// Sends a request to parser service to generate HTML code from pure documentation code.
     pub fn generate_html_doc_pure(&mut self, code:String) -> api::Result<String> {
         let request      = Request::DocParserGenerateHtmlFromDoc {code};
         let response_doc = self.rpc_call_doc(request)?;

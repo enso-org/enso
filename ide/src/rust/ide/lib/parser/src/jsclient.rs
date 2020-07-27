@@ -61,12 +61,12 @@ extern "C" {
 pub struct Client {}
 
 impl Client {
-    /// Creates a `Client`
+    /// Creates a `Client`.
     pub fn new() -> Result<Client> {
         Ok(Client {})
     }
 
-    /// Parses Enso code with JS-based parser
+    /// Parses Enso code with JS-based parser.
     pub fn parse(&self, program:String, ids:IdMap) -> api::Result<Ast> {
         let ast = || {
             let json_ids = serde_json::to_string(&ids)?;
@@ -77,7 +77,7 @@ impl Client {
         Ok(ast()?)
     }
 
-    /// Parses Enso code with metadata
+    /// Parses Enso code with metadata.
     pub fn parse_with_metadata<M:api::Metadata>
     (&self, program:String) -> api::Result<api::ParsedSourceFile<M>> {
         let result = || {
@@ -88,7 +88,7 @@ impl Client {
         Ok(result()?)
     }
 
-    /// Calls JS doc parser to generate HTML from documented Enso code
+    /// Calls JS doc parser to generate HTML from documented Enso code.
     pub fn generate_html_docs(&self, program:String) -> api::Result<String> {
         let html_code = || {
             let html_code = doc_parser_generate_html_source(program)?;
@@ -97,7 +97,7 @@ impl Client {
         Ok(html_code()?)
     }
 
-    /// Calls JS doc parser to generate HTML from pure doc code w/o Enso's AST
+    /// Calls JS doc parser to generate HTML from pure doc code without Enso's AST.
     pub fn generate_html_doc_pure(&self, code:String) -> api::Result<String> {
         let html_code = || {
             let html_code = doc_parser_generate_html_from_doc(code)?;
