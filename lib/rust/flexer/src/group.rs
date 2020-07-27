@@ -45,8 +45,21 @@ pub struct Group {
 
 impl Group {
 
+    /// Creates a new group.
+    pub fn new(id:usize,name:String,parent:Option<Box<Group>>) -> Self {
+        let rules = Vec::new();
+        Group{id,name,parent,rules}
+    }
+
     /// Adds a new rule to the current group.
     pub fn add_rule(&mut self, rule:Rule) {
+        self.rules.push(rule)
+    }
+
+    /// Creates a new rule.
+    pub fn create_rule(&mut self,pattern:&Pattern,code:&str) {
+        let pattern_clone = pattern.clone();
+        let rule = Rule::new(pattern_clone,String::from(code));
         self.rules.push(rule)
     }
 
@@ -164,10 +177,10 @@ pub mod tests {
 
         for ix in 0..count {
             let string  = ix.to_string();
-            let all     = Pattern::all(&string);
-            let any     = Pattern::any(&string);
-            let none    = Pattern::none(&string);
-            let pattern = Pattern::many(all & any & none);
+            let all     = Pattern::all_of(&string);
+            let any     = Pattern::any_of(&string);
+            let none    = Pattern::none_of(&string);
+            let pattern = Pattern::many(all >> any >> none);
             group.add_rule(Rule{pattern:pattern.clone(),callback:"".into()})
         }
         group

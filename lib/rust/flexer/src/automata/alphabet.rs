@@ -8,9 +8,9 @@ use std::ops::RangeInclusive;
 
 
 
-// ================
-// === Alphabet ===
-// ================
+// ====================
+// === Segmentation ===
+// ====================
 
 /// A representation of the distinct intervals over the input alphabet for a given finite state
 /// automaton.

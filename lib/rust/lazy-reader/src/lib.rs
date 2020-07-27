@@ -142,7 +142,6 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
         BookmarkId::new(self.bookmark.len() - 1)
     }
 
-    // TODO [AA] Should this panic?
     /// Bookmarks the current character, so that the reader can return to it later with `rewind()`.
     ///
     /// Panics if `bookmark` refers to a nonexistent bookmark.

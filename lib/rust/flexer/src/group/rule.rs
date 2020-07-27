@@ -21,6 +21,15 @@ pub struct Rule {
     pub callback: String,
 }
 
+impl Rule {
+
+    // TODO [AA] Make this prettier.
+    /// Creates a new rule.
+    pub fn new(pattern:Pattern,callback:String) -> Self {
+        Rule{pattern,callback}
+    }
+}
+
 /// A builder that allows us to add a [`Rule`] to [`crate::group::Group`] in an elegant way.
 #[derive(Clone,Debug)]
 pub struct Builder<Callback> {

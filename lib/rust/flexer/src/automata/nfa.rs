@@ -101,7 +101,7 @@ impl NFA {
                 self.connect(s3,s1);
                 s3
             },
-            Pattern::And(patterns) => {
+            Pattern::Seq(patterns) => {
                 patterns.iter().fold(current,|s,pat| self.new_pattern(s,pat))
             },
             Pattern::Or(patterns) => {
