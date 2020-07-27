@@ -51,6 +51,14 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
     }
   }
 
+  private def notExistsAfterSomeTime(path: Path, retry: Int = 5): Boolean = {
+    if (Files.notExists(path)) true
+    else if (retry > 0) {
+      Thread.sleep(200)
+      notExistsAfterSomeTime(path, retry - 1)
+    } else false
+  }
+
   "enso install distribution" should {
     "install itself" in {
       preparePortableDistribution()
@@ -70,9 +78,8 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
       config.toFile should exist
       readFileContent(config).stripTrailing() shouldEqual "what: ever"
 
-      Thread.sleep(700)
       assert(
-        Files.notExists(portableLauncher),
+        notExistsAfterSomeTime(portableLauncher),
         "The installer should remove itself."
       )
     }

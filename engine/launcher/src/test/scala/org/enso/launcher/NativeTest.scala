@@ -19,7 +19,7 @@ import org.enso.launcher.internal.OS
   */
 trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
 
-  override val timeLimit: Span               = 3 seconds
+  override val timeLimit: Span               = 15 seconds
   override val defaultTestSignaler: Signaler = _.interrupt()
 
   /**
