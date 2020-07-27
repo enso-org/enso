@@ -53,6 +53,18 @@ object CLIOutput {
     Predef.println(alignAndWrap(text))
   }
 
+  /**
+    * Prints out the given question and asks the user to confirm the action by
+    * typing 'y' or 'n'.
+    *
+    * Also handles uppercase variants. An empty line defaults to the default
+    * option specified by `yesDefault`. Other inputs result in the question
+    * being asked again.
+    *
+    * @param question The question to print.
+    * @param yesDefault Specifies if an empty line defaults to true or false.
+    */
+  @scala.annotation.tailrec
   def askConfirmation(
     question: String,
     yesDefault: Boolean = false
@@ -70,10 +82,37 @@ object CLIOutput {
     }
   }
 
+  /**
+    * A type for [[askQuestion]] which specifies how to display the possible
+    * answers.
+    */
   trait Answer {
-    def key:         String
+
+    /**
+      * The key that is associated with this answer. Should be a single
+      * character.
+      */
+    def key: String
+
+    /**
+      * A short description of this answer.
+      */
     def description: String
   }
+
+  /**
+    * Asks the user to choose one of the possible answers.
+    *
+    * The first answer in the provided sequence is treated as the default and it
+    * is returned if the user inputs an empty line. If the user inputs a
+    * non-empty value that does not fit any answer, the question is asked again.
+    *
+    * @param question The question to print.
+    * @param answers A sequence of possible answers. No two answers should have
+    *                the same key.
+    * @tparam A The type of possible answers. Must be a sub-type of [[Answer]].
+    * @return The answer chosen by the user.
+    */
   def askQuestion[A <: Answer](question: String, answers: Seq[A]): A = {
     val explanations =
       "(" +

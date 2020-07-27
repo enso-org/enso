@@ -164,6 +164,12 @@ trait Opts[A] {
     NonEmptyList.one(sb.toString().stripLeading())
   }
 
+  /**
+    * Generates explanations of parameters to be included in the help message.
+    *
+    * @param addHelpOption specifies whether an additional `--help` option
+    *                      should be included
+    */
   def helpExplanations(addHelpOption: Boolean): String = {
     val additionalHelpOption =
       if (addHelpOption) Seq("[--help | -h]\tPrint this help message.")

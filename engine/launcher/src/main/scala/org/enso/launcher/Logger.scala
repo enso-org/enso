@@ -3,11 +3,10 @@ package org.enso.launcher
 /**
   * This is a temporary object that should be at some point replaced with the
   * actual logging service.
+  * TODO [RW] this should be replaced with the proper logging service once it
+  *  is implemented in #1031
   */
 object Logger {
-  // TODO [RW] this should be replaced with the proper logging service once it
-  //  is implemented in #1031
-
   private case class Level(name: String, level: Int)
   private val Debug   = Level("debug", 1)
   private val Info    = Level("info", 2)
@@ -19,8 +18,23 @@ object Logger {
     if (level.level >= logLevel.level)
       System.err.println(s"[${level.name}] $msg")
 
+  /**
+    * Logs a debug level message.
+    */
   def debug(msg: => String): Unit = log(Debug, msg)
-  def info(msg: => String): Unit  = log(Info, msg)
-  def warn(msg: => String): Unit  = log(Warning, msg)
+
+  /**
+    * Logs an info level message.
+    */
+  def info(msg: => String): Unit = log(Info, msg)
+
+  /**
+    * Logs a warning level message.
+    */
+  def warn(msg: => String): Unit = log(Warning, msg)
+
+  /**
+    * Logs an error level message.
+    */
   def error(msg: => String): Unit = log(Error, msg)
 }

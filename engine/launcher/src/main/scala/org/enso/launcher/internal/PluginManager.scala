@@ -19,7 +19,6 @@ class PluginManager(env: Environment) extends org.enso.cli.PluginManager {
     *
     * @param name name of the plugin
     * @param args arguments that should be passed to it
-    * @return
     */
   override def tryRunningPlugin(
     name: String,
