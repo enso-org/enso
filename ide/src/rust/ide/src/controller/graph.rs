@@ -400,10 +400,10 @@ impl EndpointInfo {
 
 /// Handle providing graph controller interface.
 #[derive(Clone,CloneRef,Debug)]
+#[allow(missing_docs)]
 pub struct Handle {
     /// Identifier of the graph accessed through this controller.
     pub id     : Rc<Id>,
-    /// Model of the module which this graph belongs to.
     pub module : model::Module,
     parser     : Parser,
     logger     : Logger,
@@ -989,7 +989,7 @@ main =
             // === Add node ===
             let id       = ast::Id::new_v4();
             let position = Some(model::module::Position::new(10.0,20.0));
-            let metadata = NodeMetadata {position};
+            let metadata = NodeMetadata {position,..default()};
             let info     = NewNodeInfo {
                 expression    : "a+b".into(),
                 metadata      : Some(metadata),

@@ -168,7 +168,7 @@ mod test {
 
         // Metadata update
         let id            = Uuid::new_v4();
-        let node_metadata = NodeMetadata {position:Some(Position::new(1.0, 2.0))};
+        let node_metadata = NodeMetadata {position:Some(Position::new(1.0, 2.0)),..default()};
         module.set_node_metadata(id.clone(),node_metadata.clone());
         assert_eq!(Some(Notification::MetadataChanged),test.expect_completion(subscription.next()));
         subscription.expect_pending();
@@ -200,7 +200,7 @@ mod test {
         let initial_md = module.node_metadata(id.clone());
         assert!(initial_md.is_err());
 
-        let md_to_set = NodeMetadata {position:Some(Position::new(1.0, 2.0))};
+        let md_to_set = NodeMetadata {position:Some(Position::new(1.0, 2.0)),..default()};
         module.set_node_metadata(id.clone(),md_to_set.clone());
         assert_eq!(md_to_set.position, module.node_metadata(id.clone()).unwrap().position);
 

@@ -364,7 +364,7 @@ impl GraphEditorIntegratedWithControllerModel {
         let displayed_id = self.editor.add_node();
         self.refresh_node_view(displayed_id, info, trees);
         // If position wasn't present in metadata, we must initialize it.
-        if info.metadata.and_then(|md| md.position).is_none() {
+        if info.metadata.as_ref().and_then(|md| md.position).is_none() {
             self.editor.frp.inputs.set_node_position.emit_event(&(displayed_id,default_pos));
         }
         self.node_views.borrow_mut().insert(id, displayed_id);
@@ -403,7 +403,7 @@ impl GraphEditorIntegratedWithControllerModel {
 
     fn refresh_node_view
     (&self, id:graph_editor::NodeId, node:&controller::graph::Node, trees:NodeTrees) {
-        let position = node.metadata.and_then(|md| md.position);
+        let position = node.metadata.as_ref().and_then(|md| md.position);
         if let Some(position) = position {
             self.editor.frp.inputs.set_node_position.emit_event(&(id,position.vector));
         }
