@@ -115,9 +115,6 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
         env
       )
 
-//      import sys.process._
-//      println(Seq("tree", getTestDirectory.toString).!!)
-
       (installedRoot / "data" / "dist" / "engine1" / "engine.txt").toFile should
       exist
       (installedRoot / "data" / "runtime" / "jvm1" / "jvm.txt").toFile should
