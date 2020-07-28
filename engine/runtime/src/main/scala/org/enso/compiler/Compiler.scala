@@ -142,9 +142,9 @@ class Compiler(private val context: Context) {
   def generateIR(sourceAST: AST): IR.Module =
     AstToIr.translate(sourceAST)
 
-  def recognizeBindings(module: IR.Module, moduleContext: ModuleContext): IR.Module = {
-    passManager
-  }
+//  def recognizeBindings(module: IR.Module, moduleContext: ModuleContext): IR.Module = {
+//    passManager
+//  }
 
   /**
     * Lowers the input AST to the compiler's high-level intermediate
@@ -165,7 +165,8 @@ class Compiler(private val context: Context) {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    passManager.runPassesOnModule(ir, moduleContext)
+    // TODO Fixme
+    passManager.runPassesOnModule(ir, moduleContext, passes.passOrdering.head)
   }
 
   /** Runs the various compiler passes in an inline context.
@@ -179,7 +180,8 @@ class Compiler(private val context: Context) {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    passManager.runPassesInline(ir, inlineContext)
+    // TODO Fixme
+    passManager.runPassesInline(ir, inlineContext, passes.passOrdering.head)
   }
 
   /**
