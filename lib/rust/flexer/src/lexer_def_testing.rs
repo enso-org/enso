@@ -33,57 +33,9 @@ impl Lexer {
 
     pub fn specialize(&self) -> String {
         let group_nfa:Vec<NFA> = self.groups.iter().map(|group|group.into()).collect();
-        let group_dfa:Vec<DFA> = group_nfa.iter().map(|nfa|nfa.into()).collect();
+        let _group_dfa:Vec<DFA> = group_nfa.iter().map(|nfa|nfa.into()).collect();
         let str = String::new();
         str
-    }
-}
-
-#[allow(missing_docs)]
-mod generate {
-    use crate::automata::dfa::DFA;
-
-    pub fn generate_imports() -> String {
-        let str = r#"
-        import enso_prelude::unreachable_panic;
-        "#;
-        String::from(str)
-    }
-
-    pub fn gen_dispatch_name(state_id:usize) -> String {
-        format!("gen_dispatch_in_state_{}",state_id)
-    }
-
-    pub fn generate_match(scrutinee:String,branches:Vec<String>) -> String {
-        let branches_str = "";
-        let match_str = format!(r#"
-        match {} {{
-            {}
-        }}
-        "#,scrutinee,branches_str);
-        unimplemented!()
-    }
-
-    pub fn generate_step(num_branches:usize) -> String {
-        let match_branches:Vec<String> = (0..num_branches).map(|num|{
-            let num_str = num.to_string();
-            let branch_str = format!("self.gen_dispatch_in_state_{}",num);
-            gen_match_branch(num_str,branch_str)
-        }).collect();
-        let match_str = "";
-        let func = format!(r#"
-        fn gen_step(&mut self,next_state:usize) -> LexerStageStatus {{
-            let current_state = self.current_state();
-
-            {}
-        }}
-        "#,match_str);
-
-        unimplemented!()
-    }
-
-    pub fn gen_match_branch(scrutinee:String,branch:String) -> String {
-        format!("{} => {}",scrutinee,branch)
     }
 }
 
@@ -97,7 +49,6 @@ mod generate {
 mod tests {
     use crate::lexer_def_testing::Lexer;
     use crate::automata::pattern::Pattern;
-    use crate::group::rule::Rule;
 
 
 
@@ -120,11 +71,11 @@ mod tests {
         root_group.create_rule(&end,"3 + 3");
         root_group.create_rule(&any,"4 + 4");
 
-        // let seen_first_word_group = lexer.define_group("SEEN_FIRST_WORD");
-        // seen_first_word_group.create_rule(&spaced_a_word,"5 + 5");
-        // seen_first_word_group.create_rule(&spaced_b_word,"6 + 6");
-        // seen_first_word_group.create_rule(&end,"7 + 7");
-        // seen_first_word_group.create_rule(&any,"8 + 8");
+        let seen_first_word_group = lexer.define_group("SEEN_FIRST_WORD");
+        seen_first_word_group.create_rule(&spaced_a_word,"5 + 5");
+        seen_first_word_group.create_rule(&spaced_b_word,"6 + 6");
+        seen_first_word_group.create_rule(&end,"7 + 7");
+        seen_first_word_group.create_rule(&any,"8 + 8");
 
         let result = lexer.specialize();
         let expected = String::from("");

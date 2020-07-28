@@ -71,6 +71,10 @@ impl PartialEq for State {
 
 
 
+// ==================
+// === LexerState ===
+// ==================
+
 pub trait LexerState {
     fn new(reader:&mut Reader<DecoderUTF8,&[u8]>) -> Self;
 }
@@ -83,12 +87,16 @@ pub trait LexerState {
 // === Lexer ===
 // =============
 
+// TODO [AA] Extract reader
+// TODO [AA] Move to correct files
+// TODO [AA] Move functions around
+
 /// The lexer implementation.
 ///
 /// Please note that every method and member prefixed with `def_` are user-defined, and those
 /// prefixed with `gen_` are generated from the lexer definition.
 #[derive(Clone,Debug)]
-pub struct Lexer<'a,Def,T> {
+pub struct Lexer<'a,Definition,T> {
     /// The stack of states that are active during lexer execution.
     state_stack: Vec<usize>,
     /// A reader for the input.
@@ -101,25 +109,25 @@ pub struct Lexer<'a,Def,T> {
     tokens: Vec<T>,
     /// The initial state of the defined lexer.
     initial_state: State,
-
-    definition: Def
+    /// The definition of the lexer.
+    definition: Definition
 }
 
-impl<'a,Def,T> Deref for Lexer<'a,Def,T> {
-    type Target = Def;
+impl<'a, Definition,T> Deref for Lexer<'a, Definition,T> {
+    type Target = Definition;
     fn deref(&self) -> &Self::Target {
         &self.definition
     }
 }
 
-impl<'a,Def,T> DerefMut for Lexer<'a,Def,T> {
+impl<'a, Definition,T> DerefMut for Lexer<'a, Definition,T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.definition
     }
 }
 
-impl<Def,T> Lexer<'_,Def,T>
-where Def : LexerState {
+impl<Def,T> Lexer<'_,Def,T> where Def : LexerState {
+
     /// Creates a new lexer instance.
     ///
     /// Please note that the `reader` argument is currently hard-coded for testing purposes. This is
@@ -194,10 +202,7 @@ impl<Def: LexerState> Lexer<'_,Def,AST> {
     pub fn in_state(&mut self,state:usize) -> bool {
         self.current_state() == state
     }
-
-
 }
-
 
 
 
@@ -255,8 +260,6 @@ pub enum LexerResult<T> {
 
 
 
-
-
 // ==================
 // ==================
 // === DEFINITION ===
@@ -285,7 +288,7 @@ impl LexerState for Enso {
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct EnsoLexer<'t> {
-    lexer : Lexer<'t, Enso,AST>
+    lexer : Lexer<'t,Enso,AST>
 }
 
 #[allow(missing_docs)]
@@ -657,7 +660,7 @@ mod test {
    fn run_test_on(str:&str) -> Vec<AST> {
        // Hardcoded for ease of use here.
        let reader = Reader::new(str.as_bytes(),DecoderUTF8());
-       let mut lexer:Lexer<Enso,AST> = Lexer::new(reader);
+       let lexer:Lexer<Enso,AST> = Lexer::new(reader);
        let mut lexer = EnsoLexer{lexer};
 
        match lexer.run() {
