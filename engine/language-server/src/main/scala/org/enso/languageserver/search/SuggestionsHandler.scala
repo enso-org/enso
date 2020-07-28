@@ -284,6 +284,7 @@ final class SuggestionsHandler(
     */
   private def tryInitialize(state: SuggestionsHandler.Initialization): Unit = {
     state.initialized.fold(context.become(initializing(state))) { name =>
+      log.debug("Initialized")
       context.become(initialized(name, Set()))
       unstashAll()
     }
