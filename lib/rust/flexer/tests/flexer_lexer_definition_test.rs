@@ -10,6 +10,7 @@
 //! spaced-word = space, word;
 //! language    = word, spaced-word*;
 
+use flexer::*;
 use flexer::automata::dfa::DFA;
 use flexer::automata::nfa::NFA;
 use flexer::automata::pattern::Pattern;

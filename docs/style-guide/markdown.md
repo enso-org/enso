@@ -17,8 +17,8 @@ documentation is very important.
 
 - [Automated Formatting](#automated-formatting)
 - [Manual Formatting](#manual-formatting)
-  - [Title Case](#title-case)
-  - [Table of Contents](#table-of-contents)
+    - [Title Case](#title-case)
+    - [Table of Contents](#table-of-contents)
 - [In the Future](#in-the-future)
 
 <!-- /MarkdownTOC -->
@@ -64,7 +64,7 @@ and three. This should be placed _directly before_ the first level-two heading.
 It should be formatted as follows, with the key elements being:
 
 - Each entry should be a bullet point, with level 2 entries against the baseline
-  and level 3 entries indented by four spaces.
+  and level 3 entries indented by two spaces.
 - The entries should be internal-document links to each of the sections.
 - The title of the entry should match the title of the section to which it is
   linking.
