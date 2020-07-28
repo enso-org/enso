@@ -66,9 +66,8 @@ class DistributionInstaller(
     } catch {
       case NonFatal(e) =>
         val message = s"Installation failed with error: $e."
-        Logger.error(message)
+        Logger.error(message, e)
         CLIOutput.println(message)
-        e.printStackTrace()
         sys.exit(1)
     }
 

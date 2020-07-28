@@ -340,11 +340,16 @@ object Main {
   }
 
   def main(args: Array[String]): Unit = {
-    application.run(args) match {
-      case Left(errors) =>
-        CLIOutput.println(errors.mkString("\n"))
-        sys.exit(1)
-      case Right(()) =>
+    try {
+      application.run(args) match {
+        case Left(errors) =>
+          CLIOutput.println(errors.mkString("\n"))
+          sys.exit(1)
+        case Right(()) =>
+      }
+    } catch {
+      case e: RuntimeException =>
+        Logger.error(s"A fatal error has occurred: $e", e)
     }
   }
 }

@@ -6,6 +6,8 @@ import org.enso.launcher.Logger
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.internal.{Environment, OS}
 
+import scala.util.Try
+
 /**
   * Gathers filesystem paths used by the launcher.
   *
@@ -152,6 +154,12 @@ class DistributionManager(val env: Environment) {
               env.getHome / "Library" / "Application Support" / MACOS_ENSO_DIRECTORY
             case OS.Windows =>
               env.getLocalAppData / WINDOWS_ENSO_DIRECTORY
+            case OS.Unknown =>
+              throw new RuntimeException(
+                "Could not determine the default installation location as " +
+                s"the operating system is not recognized. Please set the" +
+                s"`$ENSO_DATA_DIRECTORY` environment variable."
+              )
           }
         }
         .toAbsolutePath
@@ -175,6 +183,12 @@ class DistributionManager(val env: Environment) {
               env.getHome / "Library" / "Preferences" / MACOS_ENSO_DIRECTORY
             case OS.Windows =>
               env.getLocalAppData / WINDOWS_ENSO_DIRECTORY / CONFIG_DIRECTORY
+            case OS.Unknown =>
+              throw new RuntimeException(
+                "Could not determine the default installation location as " +
+                s"the operating system is not recognized. Please set the" +
+                s"`$ENSO_CONFIG_DIRECTORY` environment variable."
+              )
           }
         }
         .toAbsolutePath
@@ -198,6 +212,12 @@ class DistributionManager(val env: Environment) {
               env.getHome / ".local" / "bin"
             case OS.Windows =>
               env.getLocalAppData / WINDOWS_ENSO_DIRECTORY / BIN_DIRECTORY
+            case OS.Unknown =>
+              throw new RuntimeException(
+                "Could not determine the default installation location as " +
+                s"the operating system is not recognized. Please set the" +
+                s"`$ENSO_BIN_DIRECTORY` environment variable."
+              )
           }
         }
         .toAbsolutePath
@@ -214,10 +234,20 @@ class DistributionManager(val env: Environment) {
     }
 
     /**
+      * The safe version of [[dataDirectory]] which returns None if the
+      * directory cannot be determined.
+      *
+      * Should be used in places where not being able to determine the data
+      * directory is not a fatal error.
+      */
+    def safeDataDirectory: Option[Path] =
+      Try(dataDirectory).toOption
+
+    /**
       * Determines whether a locally installed distribution exists on the
       * system.
       */
     def installedDistributionExists: Boolean =
-      Files.isDirectory(dataDirectory)
+      safeDataDirectory.exists(Files.isDirectory(_))
   }
 }

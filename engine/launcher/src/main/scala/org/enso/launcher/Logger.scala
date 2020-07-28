@@ -38,4 +38,20 @@ object Logger {
     * Logs an error level message.
     */
   def error(msg: => String): Unit = log(Error, msg)
+
+  /**
+    * Logs an error level message and attaches an optional, debug-level stack
+    * trace.
+    */
+  def error(msg: => String, throwable: => Throwable): Unit = {
+    log(Error, msg)
+    trace(throwable)
+  }
+
+  /**
+    * Logs a stack trace of an exception.
+    */
+  def trace(throwable: => Throwable): Unit =
+    if (Debug.level >= logLevel.level)
+      throwable.printStackTrace()
 }
