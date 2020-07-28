@@ -6,7 +6,7 @@ import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
 }
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
-import sbt.Keys.scalacOptions
+import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
@@ -306,6 +306,7 @@ val zio = Seq(
 // === Other ==================================================================
 
 val bcpkixJdk15Version      = "1.65"
+val bumpVersion             = "0.1.3"
 val declineVersion          = "1.2.0"
 val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
@@ -797,7 +798,7 @@ lazy val ast = (project in file("lib/scala/ast"))
   .settings(
     version := ensoVersion,
     GenerateAST.rustVersion := rustVersion,
-    Compile / sourceGenerators += GenerateAST.task,
+    Compile / sourceGenerators += GenerateAST.task
   )
 
 lazy val runtime = (project in file("engine/runtime"))
@@ -992,9 +993,11 @@ lazy val launcher = project
   .in(file("engine/launcher"))
   .configs(Test)
   .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
         "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-        "org.typelevel" %% "cats-core" % catsVersion
+        "org.typelevel" %% "cats-core" % catsVersion,
+        "nl.gn0s1s"     %% "bump"      % bumpVersion
       )
   )
   .settings(

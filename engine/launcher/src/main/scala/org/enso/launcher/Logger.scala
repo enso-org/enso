@@ -14,7 +14,7 @@ object Logger {
   private val Warning = Level("warn", 3)
   private val Error   = Level("error", 4)
 
-  private val logLevel = Warning
+  private val logLevel = Debug
   private def log(level: Level, msg: => String): Unit =
     if (level.level >= logLevel.level)
       System.err.println(s"[${level.name}] $msg")
@@ -23,6 +23,14 @@ object Logger {
     * Logs a debug level message.
     */
   def debug(msg: => String): Unit = log(Debug, msg)
+
+  /**
+    * Logs a debug level message and attaches a stack trace.
+    */
+  def debug(msg: => String, throwable: => Throwable): Unit = {
+    log(Debug, msg)
+    trace(throwable)
+  }
 
   /**
     * Logs an info level message.

@@ -5,8 +5,15 @@ import java.nio.file.Path
 import org.enso.launcher.installation.DistributionManager
 import org.enso.pkg.PackageManager
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
+import buildinfo.Info
+import nl.gn0s1s.bump.SemVer
+import org.enso.launcher.components.ComponentsManager
 
 object Launcher {
+  val version: SemVer = SemVer(Info.ensoVersion).getOrElse {
+    throw new IllegalStateException("Cannot parse the built-in version.")
+  }
+
   private val packageManager = PackageManager.Default
 
   private def workingDirectory: Path = Path.of(".")
@@ -63,4 +70,32 @@ object Launcher {
     }
   }
 
+  def listEngines(): Unit = {
+    for (engine <- ComponentsManager.listInstalledEngines()) {
+      println(engine.version.toString)
+    }
+  }
+
+  def listRuntimes(): Unit = {
+    for (runtime <- ComponentsManager.listInstalledRuntimes()) {
+      val engines = ComponentsManager.findEnginesUsingRuntime(runtime)
+      val usedBy = {
+        val plural =
+          if (engines.length != 1) "s"
+          else ""
+        s"(used by ${engines.length} Enso installation$plural)"
+      }
+      println(s"$runtime $usedBy")
+    }
+  }
+
+  def listSummary(): Unit = {
+    for (engine <- ComponentsManager.listInstalledEngines()) {
+      val runtime = ComponentsManager.findRuntime(engine)
+      val runtimeName = runtime
+        .map(_.toString)
+        .getOrElse("no runtime found for this distribution")
+      println(s"Enso ${engine.version} -> $runtimeName")
+    }
+  }
 }

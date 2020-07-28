@@ -250,9 +250,9 @@ object Main {
       )
       what map { what => (_: Config) =>
         what match {
-          case Some(EnsoComponents)    => println("List enso")
-          case Some(RuntimeComponents) => println("List runtime")
-          case None                    => println("List summary")
+          case Some(EnsoComponents)    => Launcher.listEngines()
+          case Some(RuntimeComponents) => Launcher.listRuntimes()
+          case None                    => Launcher.listSummary()
         }
       }
     }
