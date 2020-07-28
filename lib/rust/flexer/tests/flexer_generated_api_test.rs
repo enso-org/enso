@@ -1,5 +1,5 @@
-//! This file contains tests for the intended generated code of the flexer, based on a very small
-//! language.
+//! This file contains tests for the intended generated code using the flexer, based on the
+//! following small language.
 //!
 //! The language here is being defined as follows:
 //!
@@ -9,10 +9,6 @@
 //! space       = ' ';
 //! spaced-word = space, word;
 //! language    = word, spaced-word*;
-//!
-//! PLEASE NOTE THE FOLLOWING:
-//!
-//! - Logging is being ignored for now.
 
 use flexer::*;
 use flexer::prelude::*;
@@ -43,15 +39,15 @@ pub enum AST {
 // TODO [AA] Rename
 #[derive(Debug)]
 #[allow(missing_docs)]
-pub struct EnsoLexer<Reader:LazyReader> {
-    lexer : Flexer<Enso,AST,Reader>
+pub struct TestLexer<Reader:LazyReader> {
+    lexer: Flexer<TestState,AST,Reader>
 }
 
 /// Implementations of functionality used by the lexer.
 ///
 /// These functions are provided by the user, by hand.
 #[allow(missing_docs)]
-impl<Reader:LazyReader> EnsoLexer<Reader> {
+impl<Reader:LazyReader> TestLexer<Reader> {
     pub fn def_on_first_word_str(&mut self,str:String) {
         let ast = AST::Word(str);
         self.def_on_first_word(ast);
@@ -92,7 +88,7 @@ impl<Reader:LazyReader> EnsoLexer<Reader> {
 
 /// Generated functionality used at runtime by the lexer.
 #[allow(missing_docs)]
-impl<Reader:LazyReader> EnsoLexer<Reader> {
+impl<Reader:LazyReader> TestLexer<Reader> {
 
     /// Executes the lexer on the input provided by the reader, resulting in a
     /// series of tokens.
@@ -379,14 +375,14 @@ impl<Reader:LazyReader> EnsoLexer<Reader> {
 
 // === Trait Impls ===
 
-impl<Reader:LazyReader> Deref for EnsoLexer<Reader> {
-    type Target = Flexer<Enso,AST,Reader>;
+impl<Reader:LazyReader> Deref for TestLexer<Reader> {
+    type Target = Flexer<TestState,AST,Reader>;
     fn deref(&self) -> &Self::Target {
         &self.lexer
     }
 }
 
-impl<Reader:LazyReader> DerefMut for EnsoLexer<Reader> {
+impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.lexer
     }
@@ -398,10 +394,9 @@ impl<Reader:LazyReader> DerefMut for EnsoLexer<Reader> {
 // === Lexer State ===
 // ===================
 
-// TODO [AA] Rename to test
+/// The stateful components of the test lexer.
 #[derive(Debug)]
-#[allow(missing_docs)]
-pub struct Enso {
+pub struct TestState {
     /// The state entered when the first word has been seen.
     def_seen_first_word_state: LexingState,
     /// A bookmark that is set when a match occurs, allowing for rewinding if necessary.
@@ -411,7 +406,7 @@ pub struct Enso {
 
 // === Trait Impls ===
 
-impl <Reader:LazyReader> FlexerState<Reader> for Enso {
+impl <Reader:LazyReader> FlexerState<Reader> for TestState {
     fn new(reader:&mut Reader) -> Self {
         let def_seen_first_word_state = LexingState::new("SEEN FIRST WORD", 1);
         let def_matched_bookmark = reader.add_bookmark();
@@ -429,8 +424,8 @@ impl <Reader:LazyReader> FlexerState<Reader> for Enso {
 fn run_test_on(str:&str) -> Vec<AST> {
     // Hardcoded for ease of use here.
     let reader = Reader::new(str.as_bytes(),DecoderUTF8());
-    let lexer: Flexer<Enso,AST,Reader<DecoderUTF8,&[u8]>> = Flexer::new(reader);
-    let mut lexer = EnsoLexer{lexer};
+    let lexer: Flexer<TestState,AST,Reader<DecoderUTF8,&[u8]>> = Flexer::new(reader);
+    let mut lexer = TestLexer {lexer};
 
     match lexer.run() {
         FlexerResult::Success(tokens) => tokens,

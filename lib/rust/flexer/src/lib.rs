@@ -24,9 +24,6 @@ pub mod automata;
 pub mod data;
 pub mod group;
 
-// TODO [AA] Remove these
-pub mod lexer_def_testing;
-
 #[allow(missing_docs)]
 pub mod prelude {
     pub use enso_prelude::*;
