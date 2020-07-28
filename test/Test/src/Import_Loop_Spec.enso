@@ -1,0 +1,5 @@
+import Base.Test
+
+spec = describe "Looping Imports" <|
+    it "should behave correctly and not loop the compiler" <|
+        B.baz . should_equal 11

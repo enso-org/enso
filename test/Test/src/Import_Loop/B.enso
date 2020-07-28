@@ -1,0 +1,5 @@
+import Test.Import_Loop.A
+
+bar x = x + 1
+
+baz = A.foo

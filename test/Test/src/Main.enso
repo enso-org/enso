@@ -1,7 +1,9 @@
 import Base.Test
 import Test.List_Spec
 import Test.Number_Spec
+import Test.Import_Loop_Spec
 
 main = Suite.runMain <|
     List_Spec.spec
     Number_Spec.spec
+    Import_Loop_Spec.spec

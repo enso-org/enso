@@ -172,7 +172,7 @@ public class Module implements TruffleObject {
    *
    * @param context the language context.
    */
-  private void ensureScopeExists(Context context) {
+  public void ensureScopeExists(Context context) {
     if (scope == null) {
       scope = context.createScope(this);
       isParsed = false;
@@ -186,15 +186,19 @@ public class Module implements TruffleObject {
     if (literalSource != null) {
       Source source =
           Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
-      ir = context.getCompiler().run(source, scope);
+      ir = context.getCompiler().run(source, this);
     } else if (sourceFile != null) {
-      ir = context.getCompiler().run(sourceFile, scope);
+      ir = context.getCompiler().run(sourceFile, this);
     }
   }
 
   /** @return IR defined by this module. */
   public IR getIr() {
     return ir;
+  }
+
+  public ModuleScope getScope() {
+    return scope;
   }
 
   /** @return the qualified name of this module. */
@@ -246,17 +250,6 @@ public class Module implements TruffleObject {
         throws ArityException, UnsupportedTypeException {
       String name = Types.extractArguments(args, String.class);
       return scope.getConstructors().get(name);
-    }
-
-    private static Module patch(Module module, Object[] args, Context context)
-        throws ArityException, UnsupportedTypeException {
-      ModuleScope scope = module.parseScope(context);
-      String sourceString = Types.extractArguments(args, String.class);
-      Source source =
-          Source.newBuilder(LanguageInfo.ID, sourceString, scope.getAssociatedType().getName())
-              .build();
-      context.getCompiler().run(source, scope);
-      return module;
     }
 
     private static Module reparse(Module module, Object[] args, Context context)
@@ -317,8 +310,6 @@ public class Module implements TruffleObject {
           return getMethod(scope, arguments);
         case MethodNames.Module.GET_CONSTRUCTOR:
           return getConstructor(scope, arguments);
-        case MethodNames.Module.PATCH:
-          return patch(module, arguments, context);
         case MethodNames.Module.REPARSE:
           return reparse(module, arguments, context);
         case MethodNames.Module.SET_SOURCE:
@@ -355,7 +346,6 @@ public class Module implements TruffleObject {
   boolean isMemberInvocable(String member) {
     return member.equals(MethodNames.Module.GET_METHOD)
         || member.equals(MethodNames.Module.GET_CONSTRUCTOR)
-        || member.equals(MethodNames.Module.PATCH)
         || member.equals(MethodNames.Module.REPARSE)
         || member.equals(MethodNames.Module.SET_SOURCE)
         || member.equals(MethodNames.Module.SET_SOURCE_FILE)
@@ -374,7 +364,6 @@ public class Module implements TruffleObject {
     return new Vector(
         MethodNames.Module.GET_METHOD,
         MethodNames.Module.GET_CONSTRUCTOR,
-        MethodNames.Module.PATCH,
         MethodNames.Module.REPARSE,
         MethodNames.Module.SET_SOURCE,
         MethodNames.Module.SET_SOURCE_FILE,

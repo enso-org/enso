@@ -7,13 +7,14 @@ import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIr, IrToTruffle}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.{Expression, Module}
+import org.enso.compiler.core.IR.Expression
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
+import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.Parser.IDMap
@@ -35,20 +36,20 @@ class Compiler(private val context: Context) {
     * given scope.
     *
     * @param source the source code to be processed
-    * @param scope the scope into which new bindings are registered
+    * @param module the scope into which new bindings are registered
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, scope: ModuleScope): IR = {
+  def run(source: Source, module: Module): IR = {
     val moduleContext = ModuleContext(
-      moduleScope     = Some(scope),
+      moduleScope     = Some(module.getScope),
       freshNameSupply = Some(freshNameSupply)
     )
     val parsedAST      = parse(source)
     val expr           = generateIR(parsedAST)
     val compilerOutput = runCompilerPhases(expr, moduleContext)
     runErrorHandling(compilerOutput, source, moduleContext)
-    truffleCodegen(compilerOutput, source, scope)
+    truffleCodegen(compilerOutput, source, module.getScope)
     compilerOutput
   }
 
@@ -57,12 +58,12 @@ class Compiler(private val context: Context) {
     * bindings in the given scope.
     *
     * @param file the file containing the source code
-    * @param scope the scope into which new bindings are registered
+    * @param module the scope into which new bindings are registered
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile, scope: ModuleScope): IR = {
-    run(Source.newBuilder(LanguageInfo.ID, file).build, scope)
+  def run(file: TruffleFile, module: Module): IR = {
+    run(Source.newBuilder(LanguageInfo.ID, file).build, module)
   }
 
   /**
@@ -138,8 +139,12 @@ class Compiler(private val context: Context) {
     * @param sourceAST the parser AST input
     * @return an IR representation of the program represented by `sourceAST`
     */
-  def generateIR(sourceAST: AST): Module =
+  def generateIR(sourceAST: AST): IR.Module =
     AstToIr.translate(sourceAST)
+
+  def recognizeBindings(module: IR.Module, moduleContext: ModuleContext): IR.Module = {
+    passManager
+  }
 
   /**
     * Lowers the input AST to the compiler's high-level intermediate
