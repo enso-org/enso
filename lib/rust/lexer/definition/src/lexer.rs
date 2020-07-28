@@ -1,6 +1,6 @@
 //! This module exposes the definition of the Enso lexer.
 
-use flexer::Flexer;
+use flexer::FlexerTemp;
 
 
 
@@ -15,7 +15,7 @@ use flexer::Flexer;
 #[derive(Debug,Clone,Copy)]
 pub struct Lexer {}
 
-impl Flexer for Lexer {
+impl FlexerTemp for Lexer {
     fn new() -> Self {
         Lexer{}
     }
