@@ -12,9 +12,11 @@ object Launcher {
   private def workingDirectory: Path = Path.of(".")
 
   /**
-    * Creates a new project with the given `name` in the given `path`. If `path`
-    * is not set, the project is created in a directory called `name` in the
-    * current directory.
+    * Creates a new project with the given `name` in the given `path`.
+    *
+    * If `path` is not set, the project is created in a directory called `name`
+    * in the current directory.
+    *
     * TODO [RW] this is not the final implementation, it will be finished in
     *  #977
     */

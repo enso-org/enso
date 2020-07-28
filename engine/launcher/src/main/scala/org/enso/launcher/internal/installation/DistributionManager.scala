@@ -7,6 +7,8 @@ import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.internal.{Environment, OS}
 
 /**
+  * Gathers filesystem paths used by the launcher.
+  *
   * @param runtimes location of runtimes, corresponding to `runtime` directory
   * @param engines location of engine versions, corresponding to `dist`
   *                directory
@@ -53,7 +55,7 @@ class DistributionManager(val env: Environment) {
       )
 
       if (Files.exists(installedBinary)) {
-        if (installedBinary == env.getPathToRunningBinaryExecutable) {
+        if (installedBinary == env.getPathToRunningExecutable) {
           Logger.debug(
             "That distribution seems to be corresponding to this launcher " +
             "executable, that is running in portable mode."
@@ -86,14 +88,14 @@ class DistributionManager(val env: Environment) {
 
   private def detectPortable(): Boolean = Files.exists(portableMarkFilePath)
   private def possiblePortableRoot: Path =
-    env.getPathToRunningBinaryExecutable.getParent.getParent
+    env.getPathToRunningExecutable.getParent.getParent
 
   private def portableMarkFilePath: Path =
     possiblePortableRoot / PORTABLE_MARK_FILENAME
 
   private def detectPaths(): DistributionPaths =
     if (isRunningPortable) {
-      val root = env.getPathToRunningBinaryExecutable.getParent.getParent
+      val root = env.getPathToRunningExecutable.getParent.getParent
       DistributionPaths(
         dataRoot = root,
         runtimes = root / RUNTIMES_DIRECTORY,

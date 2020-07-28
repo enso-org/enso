@@ -15,6 +15,18 @@ import org.enso.launcher.{
 
 import scala.util.control.NonFatal
 
+/**
+  * Allows to locally [[install]] a portable distribution.
+  *
+  * @param manager a distribution manager instance which defines locations for
+  *                the source portable distribution and the installation
+  *                location
+  * @param autoConfirm if set to true, the installer will use defaults instead
+  *                    of asking questions
+  * @param bundleActionOption defines how bundled components are added, if
+  *                           [[autoConfirm]] is set, defaults to a move,
+  *                           otherwise explicitly asks the user
+  */
 class DistributionInstaller(
   manager: DistributionManager,
   autoConfirm: Boolean,
@@ -26,6 +38,7 @@ class DistributionInstaller(
   /**
     * Names of additional files that are not essential to running the
     * distribution, but should be copied over to the data root if possible.
+    *
     * These files are assumed to be located at the data root.
     */
   private val nonEssentialFiles       = Seq("README.md", "NOTICE")
@@ -38,6 +51,7 @@ class DistributionInstaller(
 
   /**
     * Installs the distribution under configured location.
+    *
     * Unless [[autoConfirm]] is true, asks the user to confirm the action after
     * printing where it plans to install itself.
     */
@@ -60,12 +74,25 @@ class DistributionInstaller(
 
   }
 
+  private val currentLauncherPath   = env.getPathToRunningExecutable
+  private val installedLauncherPath = installed.binaryExecutable
+
   /**
-    * Prepares for the installation - find and report possible conflicts, and
-    * ask the user if they want to proceed (unless [[autoConfirm]] is set, in
-    * which case it only reports conflicts).
+    * Prepares for the installation.
+    *
+    * Finds and reports possible conflicts, and asks the user if they want to
+    * proceed (unless [[autoConfirm]] is set, in which case it only reports
+    * conflicts).
     */
   private def prepare(): Unit = {
+    if (installedLauncherPath == currentLauncherPath) {
+      Logger.error(
+        "The installation source and destination are the same. Nothing to " +
+        "install."
+      )
+      sys.exit(1)
+    }
+
     if (Files.exists(installed.dataDirectory)) {
       Logger.warn(s"${installed.dataDirectory} already exists.")
       if (!Files.isDirectory(installed.dataDirectory)) {
@@ -157,20 +184,20 @@ class DistributionInstaller(
   }
 
   /**
-    * Copies the binary into the destination directory and ensure that it is
+    * Copies the binary into the destination directory and ensures that it is
     * executable.
     */
   private def installBinary(): Unit = {
     Files.createDirectories(installed.binDirectory)
     FileSystem.copyFile(
-      env.getPathToRunningBinaryExecutable,
+      env.getPathToRunningExecutable,
       installed.binaryExecutable
     )
     FileSystem.ensureIsExecutable(installed.binaryExecutable)
   }
 
   /**
-    * Creates the basic directory structure and copy documentation files if
+    * Creates the basic directory structure and copies documentation files if
     * present.
     */
   private def createDirectoryStructure(): Unit = {
@@ -184,7 +211,7 @@ class DistributionInstaller(
 
       val configName = GlobalConfigurationManager.globalConfigName
       if (Files.exists(manager.paths.config / configName)) {
-        Files.copy(
+        FileSystem.copyFile(
           manager.paths.config / configName,
           installed.configDirectory / configName
         )
@@ -193,8 +220,10 @@ class DistributionInstaller(
   }
 
   /**
-    * Copies non-essential files like README etc. Failure to find/copy one of
-    * these is reported as a warning, but does not stop the installation.
+    * Copies non-essential files like README etc.
+    *
+    * Failure to find/copy one of these is reported as a warning, but does not
+    * stop the installation.
     */
   private def copyNonEssentialFiles(): Unit = {
     for (file <- nonEssentialFiles) {
@@ -235,8 +264,14 @@ class DistributionInstaller(
   private def installBundles(): Unit = {
     if (manager.isRunningPortable) {
       val runtimes =
-        FileSystem.listDirectory(manager.paths.runtimes)
-      val engines = FileSystem.listDirectory(manager.paths.engines)
+        if (runtimesDirectory != manager.paths.runtimes)
+          FileSystem.listDirectory(manager.paths.runtimes)
+        else Seq()
+      val engines =
+        if (enginesDirectory != manager.paths.engines)
+          FileSystem.listDirectory(manager.paths.engines)
+        else Seq()
+
       if (runtimes.length + engines.length > 0) {
         val bundleAction = bundleActionOption.getOrElse {
           CLIOutput.askQuestion(
@@ -300,16 +335,14 @@ class DistributionInstaller(
         yesDefault = true
       )
 
-    val currentPath   = env.getPathToRunningBinaryExecutable
-    val installedPath = installed.binaryExecutable
-    if (installedPath != currentPath) {
+    if (installedLauncherPath != currentLauncherPath) {
       if (autoConfirm || askForRemoval()) {
         if (OS.isWindows) {
           InternalOpts
-            .runWithNewLauncher(installedPath)
-            .removeOldExecutableAndExit(currentPath)
+            .runWithNewLauncher(installedLauncherPath)
+            .removeOldExecutableAndExit(currentLauncherPath)
         } else {
-          Files.delete(currentPath)
+          Files.delete(currentLauncherPath)
         }
       }
     }
@@ -319,10 +352,26 @@ class DistributionInstaller(
 }
 
 object DistributionInstaller {
+
+  /**
+    * Defines the set of possible actions to take when installing the bundled
+    * components.
+    */
   trait BundleAction extends CLIOutput.Answer {
-    def copy:   Boolean
+
+    /**
+      * Specifies whether this action requires copying the bundles to the
+      * installed location.
+      */
+    def copy: Boolean
+
+    /**
+      * Specifies whether this action requires to remove the original bundle
+      * files afterwards.
+      */
     def delete: Boolean
   }
+
   case object CopyBundles extends BundleAction {
     override def key: String         = "c"
     override def description: String = "copy bundles"

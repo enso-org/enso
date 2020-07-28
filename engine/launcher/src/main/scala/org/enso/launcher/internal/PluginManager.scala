@@ -61,13 +61,14 @@ class PluginManager(env: Environment) extends org.enso.cli.PluginManager {
   case class PluginDescription(executableName: String, synopsis: String)
 
   /**
-    * Checks if the plugin with the given name is installed and valid. It tries
-    * to execute it (checking various command extensions depending on the OS)
-    * and check if it returns a synopsis.
+    * Checks if the plugin with the given name is installed and valid.
+    *
+    * It tries to execute it (checking various command extensions depending on
+    * the OS) and check if it returns a synopsis.
     *
     * @param name name of the plugin
-    * @return PluginDescription containing the command name that should be used
-    *         to call the plugin and its synopsis
+    * @return [[PluginDescription]] containing the command name that should be
+    *        used to call the plugin and its synopsis
     */
   private def findPlugin(name: String): Option[PluginDescription] = {
     def canonicalizeDescription(description: String): String =

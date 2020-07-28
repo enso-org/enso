@@ -13,8 +13,9 @@ object InternalOpts {
 
   /**
     * Additional top level options that are internal to the launcher and should
-    * not be used by users directly. They are used to implement workarounds for
-    * install / upgrade on Windows.
+    * not be used by users directly.
+    *
+    * They are used to implement workarounds for install / upgrade on Windows.
     */
   def topLevelOptions: Opts[Unit] = {
     val removeOldExecutableOpt = Opts
@@ -45,8 +46,10 @@ object InternalOpts {
 
     /**
       * Tells the installed launcher to try to remove the old launcher
-      * executable. It retries for a few seconds to give the process running the
-      * old launcher to terminate and release the lock on its file.
+      * executable.
+      *
+      * It retries for a few seconds to give the process running the old
+      * launcher to terminate and release the lock on its file.
       */
     def removeOldExecutableAndExit(oldExecutablePath: Path): Nothing = {
       val command = Seq(

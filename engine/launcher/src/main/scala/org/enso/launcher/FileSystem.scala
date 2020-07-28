@@ -11,11 +11,17 @@ import scala.collection.Factory
 import scala.jdk.StreamConverters._
 import sys.process._
 
+/**
+  * Gathers some helper methods that are used for interaction with the
+  * filesystem.
+  */
 object FileSystem {
 
   /**
     * Returns a sequence of files in the given directory (without traversing it
-    * recursively). If the directory does not exist, returns an empty sequence.
+    * recursively).
+    *
+    * If the directory does not exist, returns an empty sequence.
     */
   def listDirectory(dir: Path): Seq[Path] =
     if (!Files.exists(dir)) Seq()
@@ -67,6 +73,9 @@ object FileSystem {
     }
   }
 
+  /**
+    * Allows to write nested paths in a more readable and concise way.
+    */
   implicit class PathSyntax(val path: Path) extends AnyVal {
     def /(other: String): Path = path.resolve(other)
     def /(other: Path): Path   = path.resolve(other)

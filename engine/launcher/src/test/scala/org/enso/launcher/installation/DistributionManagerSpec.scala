@@ -24,7 +24,7 @@ class DistributionManagerSpec
     "detect portable distribution" in {
       val executable = fakeExecutablePath()
       val fakeEnvironment = new Environment {
-        override def getPathToRunningBinaryExecutable: Path = executable
+        override def getPathToRunningExecutable: Path = executable
       }
       FileSystem.writeTextFile(getTestDirectory / ".enso.portable", "mark")
 
@@ -40,7 +40,7 @@ class DistributionManagerSpec
     "detect installed distribution" in {
       val executable = fakeExecutablePath()
       val fakeEnvironment = new Environment {
-        override def getPathToRunningBinaryExecutable: Path = executable
+        override def getPathToRunningExecutable: Path = executable
       }
 
       val distributionManager = new DistributionManager(fakeEnvironment)
@@ -54,7 +54,7 @@ class DistributionManagerSpec
       val configDir  = getTestDirectory / "test_config"
       val binDir     = getTestDirectory / "test_bin"
       val fakeEnvironment = new Environment {
-        override def getPathToRunningBinaryExecutable: Path = executable
+        override def getPathToRunningExecutable: Path = executable
 
         override def getEnvVar(key: String): Option[String] =
           key match {

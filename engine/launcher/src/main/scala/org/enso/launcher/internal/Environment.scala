@@ -8,9 +8,10 @@ import org.enso.launcher.Logger
 import scala.util.Try
 
 /**
-  * Gathers some helper methods querying the system environment. The default
-  * implementations should be used most of the time, but it is a trait so that
-  * the functions can be overridden in tests.
+  * Gathers some helper methods querying the system environment.
+  *
+  * The default implementations should be used most of the time, but it is a
+  * trait so that the functions can be overridden in tests.
   */
 trait Environment {
 
@@ -37,8 +38,9 @@ trait Environment {
 
   /**
     * Queries the system environment for the given variable that should
-    * represent a valid filesystem path. If it is not defined or is not a valid
-    * path, returns None.
+    * represent a valid filesystem path.
+    *
+    * If it is not defined or is not a valid path, returns None.
     */
   def getEnvPath(key: String): Option[Path] = {
     def parsePathWithWarning(str: String): Option[Path] = {
@@ -88,8 +90,10 @@ trait Environment {
 
   /**
     * Returns the location of the local application data directory
-    * (`%LocalAppData%`) on Windows. Should not be called on platforms other
-    * than Windows, as this concept is defined in different ways there.
+    * (`%LocalAppData%`) on Windows.
+    *
+    * Should not be called on platforms other than Windows, as this concept is
+    * defined in different ways there.
     */
   def getLocalAppData: Path = {
     if (!OS.isWindows)
@@ -108,8 +112,9 @@ trait Environment {
   }
 
   /**
-    * Queries the system environment for the given variable. If it is not defined
-    * or empty, returns None.
+    * Queries the system environment for the given variable.
+    *
+    * If it is not defined or empty, returns None.
     */
   def getEnvVar(key: String): Option[String] = {
     val value = System.getenv(key)
@@ -127,7 +132,15 @@ trait Environment {
   private def safeParsePath(str: String): Option[Path] =
     Try(Path.of(str)).toOption
 
-  def getPathToRunningBinaryExecutable: Path = {
+  /**
+    * Returns the path to the running program.
+    *
+    * It is intended for usage in native binary builds, where it returns the
+    * path to the binary executable that is running. When running on the JVM,
+    * returns a path to the root of the classpath for the `org.enso.launcher`
+    * package or a built JAR.
+    */
+  def getPathToRunningExecutable: Path = {
     try {
       val codeSource =
         this.getClass.getProtectionDomain.getCodeSource

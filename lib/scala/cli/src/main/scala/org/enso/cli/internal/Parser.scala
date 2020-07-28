@@ -274,9 +274,7 @@ object Parser {
     tokens match {
       case Seq() =>
         singleError(
-          s"Expected a command. " +
-          s"See `${application.commandName} --help` " +
-          s"for a list of available commands."
+          s"Expected a command.\n\n" + application.renderHelp()
         )
       case Seq(PlainToken(commandName), commandArgs @ _*) =>
         application.commands.find(_.name == commandName) match {

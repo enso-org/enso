@@ -3,6 +3,7 @@ package org.enso.launcher
 /**
   * This is a temporary object that should be at some point replaced with the
   * actual logging service.
+  *
   * TODO [RW] this should be replaced with the proper logging service once it
   *  is implemented in #1031
   */

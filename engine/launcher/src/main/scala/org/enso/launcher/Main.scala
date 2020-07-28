@@ -22,7 +22,11 @@ import org.enso.launcher.installation.DistributionInstaller.BundleAction
 
 object Main {
   private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =
-    Opts.flag("json", "Use JSON instead of plain text for output.", showInUsage)
+    Opts.flag(
+      "json",
+      "Use JSON instead of plain text for version output.",
+      showInUsage
+    )
 
   type Config = Unit
 
@@ -180,8 +184,10 @@ object Main {
       val autoConfirm = Opts.flag(
         "auto-confirm",
         "Proceeds with installation without asking confirmation questions. " +
-        "On success, the installer will remove itself to avoid conflicts " +
-        "with the installed launcher executable.",
+        "If bundled components are present, this flag will move them by " +
+        "default, unless overridden by an explicit setting of " +
+        "`--install-bundle-mode`. On success, the installer will remove " +
+        "itself to avoid conflicts with the installed launcher executable.",
         showInUsage = false
       )
       implicit val bundleActionParser: Argument[BundleAction] = {
