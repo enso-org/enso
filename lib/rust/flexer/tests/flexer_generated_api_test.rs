@@ -166,9 +166,6 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     }
 
     fn gen_state_0_to_1(&mut self) -> FlexerStageStatus {
-        // Code similar to this is duplicated _a lot_. This is intentional, as I can't find a way to
-        // remove the duplication that doesn't incur dynamic dispatch overhead or run afoul of
-        // borrowck.
         self.current_match = self.reader.pop_result();
         self.gen_group_0_rule_2();
         let t = self.def_matched_bookmark;
@@ -252,7 +249,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
         self.def_on_err_suffix_first_word()
     }
 
-    fn gen_dispatch_in_state_1(&mut self, new_state_index:usize) -> FlexerStageStatus {
+    fn gen_dispatch_in_state_1(&mut self,new_state_index:usize) -> FlexerStageStatus {
         match new_state_index {
             0 => self.gen_state_1_to_0(),
             1 => self.gen_state_1_to_1(),

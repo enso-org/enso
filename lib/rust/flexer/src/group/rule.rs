@@ -35,7 +35,6 @@ impl Rule {
 pub struct Builder<Callback> {
     /// The pattern that triggers the callback.
     pub pattern: Pattern,
-
     /// The callback containing a closure
     pub callback: Callback,
 }

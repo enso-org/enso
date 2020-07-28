@@ -5,8 +5,8 @@ use crate::automata::symbol::Symbol;
 use core::iter;
 use itertools::Itertools;
 use std::ops::BitOr;
-use std::ops::Shr;
 use std::ops::RangeInclusive;
+use std::ops::Shr;
 
 use Pattern::*;
 
@@ -88,12 +88,12 @@ impl Pattern {
 
     /// Pattern that triggers when sequence of characters given by `chars` is encountered.
     pub fn all_of(chars:&str) -> Self {
-        chars.chars().fold(Self::never(), |pat,char| pat >> Self::char(char))
+        chars.chars().fold(Self::never(),|pat,char| pat >> Self::char(char))
     }
 
     /// The pattern that triggers on any characters contained in `chars`.
     pub fn any_of(chars:&str) -> Self {
-        chars.chars().fold(Self::never(), |pat,char| pat | Self::char(char))
+        chars.chars().fold(Self::never(),|pat,char| pat | Self::char(char))
     }
 
     /// The pattern that doesn't trigger on any character contained in `chars`.
@@ -104,7 +104,7 @@ impl Pattern {
         let mut codes  = char_iter2.collect_vec();
 
         codes.sort();
-        codes.iter().tuple_windows().fold(Self::never(), |pat,(start,end)| {
+        codes.iter().tuple_windows().fold(Self::never(),|pat,(start,end)| {
             if end < start {pat} else {
                 pat | Pattern::symbols(Symbol::from(*start)..=Symbol::from(*end))
             }
@@ -118,12 +118,12 @@ impl Pattern {
 
     /// The pattern that triggers on `num` repetitions of `pat`.
     pub fn repeat(pat:Pattern, num:usize) -> Self {
-        (0..num).fold(Self::always(), |p,_| p >> pat.clone())
+        (0..num).fold(Self::always(),|p,_| p >> pat.clone())
     }
 
     /// Pattern that triggers on `min`..`max` repetitions of `pat`.
     pub fn repeat_between(pat:Pattern, min:usize, max:usize) -> Self {
-        (min..max).fold(Self::never(), |p,n| p | Self::repeat(pat.clone(),n))
+        (min..max).fold(Self::never(),|p,n| p | Self::repeat(pat.clone(),n))
     }
 }
 
@@ -146,7 +146,7 @@ impl Shr<Pattern> for Pattern {
     type Output = Pattern;
     fn shr(self, rhs: Pattern) -> Self::Output {
         match (self, rhs) {
-            (Seq(mut lhs), Seq(rhs)) => {lhs.extend(rhs) ; Seq(lhs)},
+            (Seq(mut lhs), Seq(rhs))     => {lhs.extend(rhs) ; Seq(lhs)},
             (Seq(mut lhs), rhs         ) => {lhs.push(rhs)   ; Seq(lhs)},
             (lhs         , Seq(mut rhs)) => {rhs.push(lhs)   ; Seq(rhs)},
             (lhs         , rhs         ) => Seq(vec![lhs, rhs]),

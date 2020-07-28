@@ -62,7 +62,7 @@ impl NFA {
     ///
     /// Whenever the automaton happens to be in `source` state it can immediately transition to the
     /// `target` state. It is, however, not _required_ to do so.
-    pub fn connect(&mut self, source:state::Identifier, target:state::Identifier) {
+    pub fn connect(&mut self,source:state::Identifier,target:state::Identifier) {
         self.states[source.id].epsilon_links.push(target);
     }
 
@@ -76,13 +76,13 @@ impl NFA {
     , target_state:state::Identifier
     , symbols:&RangeInclusive<Symbol>) {
         self.alphabet_segmentation.insert(symbols.clone());
-        self.states[source.id].links.push(Transition{symbols:symbols.clone(), target_state});
+        self.states[source.id].links.push(Transition{symbols:symbols.clone(),target_state});
     }
 
     /// Transforms a pattern to an NFA using the algorithm described
     /// [here](https://www.youtube.com/watch?v=RYNN-tb9WxI).
     /// The asymptotic complexity is linear in number of symbols.
-    pub fn new_pattern(&mut self, source:state::Identifier, pattern:&Pattern) -> state::Identifier {
+    pub fn new_pattern(&mut self,source:state::Identifier,pattern:&Pattern) -> state::Identifier {
         let current = self.new_state();
         self.connect(source,current);
         match pattern {
@@ -189,7 +189,7 @@ impl From<&NFA> for DFA {
                     dfa_mat[(i,voc_ix)] = match dfa_eps_map.get(&eps_set) {
                         Some(&id) => id,
                         None => {
-                            let id = state::Identifier {id:dfa_eps_ixs.len()};
+                            let id = state::Identifier{id:dfa_eps_ixs.len()};
                             dfa_eps_ixs.push(eps_set.clone());
                             dfa_eps_map.insert(eps_set,id);
                             id
@@ -206,7 +206,7 @@ impl From<&NFA> for DFA {
             let has_name = |&key:&state::Identifier| nfa.states[key.id].name.is_some();
             if let Some(eps) = epss.into_iter().find(has_name) {
                 let rule = nfa.states[eps.id].name.as_ref().cloned().unwrap();
-                callbacks[dfa_ix] = Some(RuleExecutable{ code:rule,priority});
+                callbacks[dfa_ix] = Some(RuleExecutable{code:rule,priority});
             }
         }
 

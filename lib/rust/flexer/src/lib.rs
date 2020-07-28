@@ -17,8 +17,9 @@
 
 // TODO [AA] Logging https://github.com/enso-org/ide/blob/main/src/rust/ide/src/model/execution_context/synchronized.rs#L45
 
-use lazy_reader::LazyReader;
 use crate::prelude::*;
+
+use lazy_reader::LazyReader;
 
 pub mod automata;
 pub mod data;
@@ -135,9 +136,9 @@ where Definition:FlexerState<Reader>,Reader:LazyReader,Output:Clone {
         // Never drop the root state
         let position_of_target =
             self.state_stack.iter().positions(|elem| *elem == state).last().unwrap_or(0);
-        let range = (position_of_target + 1)..self.state_stack.len();
+        let range                     = (position_of_target + 1)..self.state_stack.len();
         let ended_indices: Vec<usize> = self.state_stack.drain(range).collect();
-        let mut ended_states = Vec::new();
+        let mut ended_states          = Vec::new();
         for ix in ended_indices {
             ended_states.push(ix);
         }
@@ -203,9 +204,9 @@ impl FlexerStageStatus {
     /// Obtains the state to which the lexer should transition, iff the lexer should continue.
     pub fn continue_as(&self) -> Option<usize> {
         match self {
-            FlexerStageStatus::Initial => Some(0),
+            FlexerStageStatus::Initial           => Some(0),
             FlexerStageStatus::ContinueWith(val) => Some(*val),
-            _ => None
+            _                                    => None
         }
     }
 }

@@ -1,7 +1,7 @@
 //! This module provides an API for grouping multiple flexer rules.
 
-use crate::automata::pattern::Pattern;
 use crate::automata::nfa::NFA;
+use crate::automata::pattern::Pattern;
 use crate::group::rule::Rule;
 
 use itertools::Itertools;
@@ -52,7 +52,7 @@ impl Group {
     }
 
     /// Adds a new rule to the current group.
-    pub fn add_rule(&mut self, rule:Rule) {
+    pub fn add_rule(&mut self,rule:Rule) {
         self.rules.push(rule)
     }
 
@@ -64,13 +64,14 @@ impl Group {
     }
 
     /// Returns a rule builder for the given pattern.
-    pub fn rule(&mut self, pattern:Pattern) -> rule::Builder<impl FnMut(Rule) + '_> {
-        rule::Builder{pattern, callback:move |rule| self.add_rule(rule)}
+    pub fn rule(&mut self,pattern:Pattern) -> rule::Builder<impl FnMut(Rule) + '_> {
+        let callback = move |rule| self.add_rule(rule);
+        rule::Builder{pattern,callback}
     }
 
     /// The canonical name for a given rule.
-    fn callback_name(&self, rule_ix:usize) -> String {
-        format!("group{}_rule{}", self.id, rule_ix)
+    fn callback_name(&self,rule_ix:usize) -> String {
+        format!("group{}_rule{}",self.id,rule_ix)
     }
 }
 
@@ -108,7 +109,7 @@ impl From<&Group> for NFA {
         let end     = nfa.new_state();
         for (ix, state) in states.into_iter().enumerate() {
             nfa.states[state.id].name = Some(group.callback_name(ix));
-            nfa.connect(state, end);
+            nfa.connect(state,end);
         }
         nfa
     }

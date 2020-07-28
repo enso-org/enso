@@ -10,7 +10,7 @@ use std::fmt::Debug;
 // === Decoder ===
 // ===============
 
-/// The error for invalid character.
+/// The error for an invalid character.
 #[derive(Debug,Clone,Copy)]
 pub struct InvalidChar();
 

@@ -10,7 +10,6 @@
 //! spaced-word = space, word;
 //! language    = word, spaced-word*;
 
-use flexer::*;
 use flexer::automata::dfa::DFA;
 use flexer::automata::nfa::NFA;
 use flexer::automata::pattern::Pattern;
@@ -37,14 +36,14 @@ impl Lexer {
 
     // TODO [AA] Parent groups.
     pub fn define_group(&mut self,name:&str) -> &mut Group {
-        let id = self.groups.len();
+        let id    = self.groups.len();
         let group = Group::new(id,String::from(name),None);
         self.groups.push(group);
         self.groups.get_mut(id).expect("Has just been pushed so should always exist.")
     }
 
     pub fn specialize(&self) -> String {
-        let group_nfa:Vec<NFA> = self.groups.iter().map(|group|group.into()).collect();
+        let group_nfa:Vec<NFA>  = self.groups.iter().map(|group|group.into()).collect();
         let _group_dfa:Vec<DFA> = group_nfa.iter().map(|nfa|nfa.into()).collect();
         let str = String::new();
         str
@@ -82,7 +81,7 @@ fn try_generate_code() {
     seen_first_word_group.create_rule(&end,"7 + 7");
     seen_first_word_group.create_rule(&any,"8 + 8");
 
-    let result = lexer.specialize();
+    let result   = lexer.specialize();
     let expected = String::from("");
 
     assert_eq!(result,expected)

@@ -32,7 +32,7 @@ pub trait Read {
     ///
     /// In case it isn't possible to fill the whole buffer (i.e. if an error like EOF is encountered),
     /// the buffer will be filled with all the data read before encountering such error.
-    fn read(&mut self, buffer:&mut [Self::Item]) -> usize;
+    fn read(&mut self,buffer:&mut [Self::Item]) -> usize;
 }
 
 
@@ -41,7 +41,7 @@ pub trait Read {
 impl<R:std::io::Read> Read for R {
     type Item = u8;
 
-    fn read(&mut self, mut buffer:&mut [u8]) -> usize {
+    fn read(&mut self,mut buffer:&mut [u8]) -> usize {
         let length = buffer.len();
         while !buffer.is_empty() {
             match self.read(buffer) {
@@ -116,46 +116,35 @@ pub struct Bookmark {
 pub trait LazyReader {
     /// Creates a new bookmark, providing a handle so it can be used later.
     fn add_bookmark(&mut self) -> BookmarkId;
-
     /// Bookmarks the current character using the provided `bookmark`, so that the reader can later
     /// return to it using `rewind()`.
     ///
     /// Panics if `bookmark` refers to a nonexistent bookmark.
     fn bookmark(&mut self,bookmark:BookmarkId);
-
     /// Returns the reader to the character bookmarked using `bookmark`.
     fn rewind(&mut self,bookmark:BookmarkId);
-
     /// The maximum number of words that may be rewound in the buffer.
     fn max_possible_rewind_len(&self) -> usize;
-
     /// Decrease the offset for all bookmarks.
     fn decrease_offset(&mut self,off:usize);
-
     /// Fill the buffer with words from the input.
     fn fill(&mut self);
-
     /// Checks if the reader is empty.
     fn empty(&self) -> bool;
-
     /// Checks if the reader has finished reading.
     fn finished(&self) -> bool;
-
     /// Reads the next character from input.
     fn next_char(&mut self) -> Result<char,Error>;
-
     /// Gets the current character from the reader.
     fn character(&self) -> decoder::Char<Error>;
-
     /// Advances along the input without returning the character.
     fn advance_char(&mut self);
-
     /// Appends the provided character to the reader's result.
     fn append_result(&mut self,char:char);
-
     /// Returns `self.result` and sets the internal result to empty.
     fn pop_result(&mut self) -> String;
 }
+
 impl dyn LazyReader {
     /// The default size of the buffer.
     pub const BUFFER_SIZE: usize = 32768;
@@ -214,12 +203,12 @@ impl<D:Decoder,R: Read<Item=D::Word>> LazyReader for Reader<D,R> {
         BookmarkId::new(self.bookmark.len() - 1)
     }
 
-    fn bookmark(&mut self, bookmark:BookmarkId) {
+    fn bookmark(&mut self,bookmark:BookmarkId) {
         self.bookmark[bookmark.id].offset = self.offset - self.character.size;
         self.bookmark[bookmark.id].length = self.result.len();
     }
 
-    fn rewind(&mut self, bookmark:BookmarkId) {
+    fn rewind(&mut self,bookmark:BookmarkId) {
         self.offset = self.bookmark[bookmark.id].offset;
         self.result.truncate(self.bookmark[bookmark.id].length);
         let _ = self.next_char();
@@ -232,7 +221,7 @@ impl<D:Decoder,R: Read<Item=D::Word>> LazyReader for Reader<D,R> {
         D::MAX_CODEPOINT_LEN
     }
 
-    fn decrease_offset(&mut self, off:usize) {
+    fn decrease_offset(&mut self,off:usize) {
         for bookmark in self.bookmark.iter_mut() {
             bookmark.offset -= off
         }
