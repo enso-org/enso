@@ -14,7 +14,6 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.Path
-import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
@@ -229,7 +228,7 @@ class SuggestionsHandlerSpec
   ): ActorRef = {
     val handler =
       system.actorOf(SuggestionsHandler.props(config, repo, sessionRouter.ref))
-    handler ! ProjectNameChangedEvent("Test")
+    handler ! SuggestionsHandler.ProjectNameUpdated("Test")
     handler
   }
 

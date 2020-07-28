@@ -75,6 +75,7 @@ final class SuggestionsHandler(
     with ActorLogging
     with UnhandledLogging {
 
+  import SuggestionsHandler.ProjectNameUpdated
   import context.dispatcher
 
   override def preStart(): Unit = {
@@ -93,7 +94,7 @@ final class SuggestionsHandler(
       case (_, contentRoot) =>
         PackageManager.Default
           .fromDirectory(contentRoot)
-          .foreach(pkg => self ! ProjectNameChangedEvent(pkg.config.name))
+          .foreach(pkg => self ! ProjectNameUpdated(pkg.config.name))
     }
   }
 
@@ -101,7 +102,12 @@ final class SuggestionsHandler(
     initializing(SuggestionsHandler.Initialization())
 
   def initializing(init: SuggestionsHandler.Initialization): Receive = {
-    case ProjectNameChangedEvent(name) =>
+    case ProjectNameChangedEvent(oldName, newName) =>
+      repo
+        .renameProject(oldName, newName)
+        .map(_ => ProjectNameUpdated(newName))
+        .pipeTo(self)
+    case ProjectNameUpdated(name) =>
       tryInitialize(init.copy(project = Some(name)))
     case InitializedEvent.SuggestionsRepoInitialized =>
       tryInitialize(
@@ -193,7 +199,7 @@ final class SuggestionsHandler(
         .pipeTo(sender())
 
     case Completion(path, pos, selfType, returnType, tags) =>
-      getModule(projectName, path)
+      getModuleName(projectName, path)
         .fold(
           Future.successful,
           module =>
@@ -210,7 +216,7 @@ final class SuggestionsHandler(
         .pipeTo(sender())
 
     case FileDeletedEvent(path) =>
-      getModule(projectName, path)
+      getModuleName(projectName, path)
         .fold(
           err => Future.successful(Left(err)),
           module =>
@@ -245,7 +251,13 @@ final class SuggestionsHandler(
             )
         }
 
-    case ProjectNameChangedEvent(name) =>
+    case ProjectNameChangedEvent(oldName, newName) =>
+      repo
+        .renameProject(oldName, newName)
+        .map(_ => ProjectNameUpdated(newName))
+        .pipeTo(self)
+
+    case ProjectNameUpdated(name) =>
       context.become(initialized(name, clients))
   }
 
@@ -345,7 +357,7 @@ final class SuggestionsHandler(
     * @param path the requested file path
     * @return the module name
     */
-  private def getModule(
+  private def getModuleName(
     projectName: String,
     path: Path
   ): Either[SearchFailure, String] =
@@ -362,6 +374,13 @@ final class SuggestionsHandler(
 }
 
 object SuggestionsHandler {
+
+  /**
+    * The notification about the project name update.
+    *
+    * @param projectName the new project name
+    */
+  case class ProjectNameUpdated(projectName: String)
 
   /**
     * The initialization state of the handler.

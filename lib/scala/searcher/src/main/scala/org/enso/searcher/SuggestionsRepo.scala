@@ -81,4 +81,11 @@ trait SuggestionsRepo[F[_]] {
   def updateAll(
     expressions: Seq[(Suggestion.ExternalId, String)]
   ): F[(Long, Seq[Option[Long]])]
+
+  /** Update the suggestions with the new project name.
+    *
+    * @param oldName the old name of the project
+    * @param newName the new project name
+    */
+  def renameProject(oldName: String, newName: String): F[Unit]
 }
