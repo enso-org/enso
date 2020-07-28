@@ -58,9 +58,9 @@ impl<R:std::io::Read> Read for R {
 
 
 
-/// ==================
-/// === LazyReader ===
-/// ==================
+// =============
+// === Error ===
+// =============
 
 /// Set of errors returned by lazy reader.
 #[derive(Debug,Clone,Copy,PartialEq,Eq)]
@@ -70,6 +70,12 @@ pub enum Error {
     /// Couldn't decode character.
     InvalidChar,
 }
+
+
+
+// ==================
+// === BookmarkId ===
+// ==================
 
 /// Strongly typed identifier of `Bookmark`
 #[derive(Debug,Clone,Copy,PartialEq)]
@@ -85,6 +91,12 @@ impl BookmarkId {
     }
 }
 
+
+
+// ================
+// === Bookmark ===
+// ================
+
 /// Bookmarks a specific character in buffer, so that `LazyReader` can return to it when needed.
 #[derive(Debug,Clone,Copy,Default,PartialEq)]
 pub struct Bookmark {
@@ -94,11 +106,13 @@ pub struct Bookmark {
     length: usize,
 }
 
-// TODO [AA] Move constant into module.
-// TODO [AA] Reorganise this file.
-/// The default size of buffer.
-pub const BUFFER_SIZE: usize = 32768;
 
+
+// ==================
+// === LazyReader ===
+// ==================
+
+/// The behaviour needed by the lazy reader interface.
 pub trait LazyReader {
     /// Creates a new bookmark, providing a handle so it can be used later.
     fn add_bookmark(&mut self) -> BookmarkId;
@@ -143,6 +157,11 @@ pub trait LazyReader {
     fn pop_result(&mut self) -> String;
 }
 
+
+// ==============
+// === Reader ===
+// ==============
+
 /// A buffered reader able to efficiently read big inputs in constant memory.
 ///
 /// It supports various encodings via `Decoder` and also bookmarks which allow it to return
@@ -170,7 +189,7 @@ impl<D:Decoder,R:Read<Item=D::Word>> Reader<D,R> {
     pub fn new(reader:R, _decoder:D) -> Self {
         let mut reader = Reader::<D,R> {
             reader,
-            buffer    : vec![D::Word::default(); BUFFER_SIZE],
+            buffer    : vec![D::Word::default(); Reader::<D,R>::BUFFER_SIZE],
             result    : String::from(""),
             offset    : 0,
             length    : 0,
@@ -180,7 +199,13 @@ impl<D:Decoder,R:Read<Item=D::Word>> Reader<D,R> {
         reader.length = reader.reader.read(&mut reader.buffer[..]);
         reader
     }
+
+    /// The default size of the buffer.
+    pub const BUFFER_SIZE: usize = 32768;
 }
+
+
+// === Trait Impls ===
 
 impl<D:Decoder,R: Read<Item=D::Word>> LazyReader for Reader<D,R> {
     fn add_bookmark(&mut self) -> BookmarkId {
@@ -267,9 +292,6 @@ impl<D:Decoder,R: Read<Item=D::Word>> LazyReader for Reader<D,R> {
         str
     }
 }
-
-
-// === Trait Impls ===
 
 impl From<decoder::Char<decoder::InvalidChar>> for decoder::Char<Error> {
     fn from(char:Char<InvalidChar>) -> Self {

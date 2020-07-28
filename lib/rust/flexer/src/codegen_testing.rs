@@ -18,8 +18,7 @@
 //! RUNNING: cargo test -p flexer --lib
 
 use crate::prelude::*;
-use lazy_reader::{Reader, BookmarkId, LazyReader};
-use lazy_reader::decoder::DecoderUTF8;
+use lazy_reader::{BookmarkId, LazyReader};
 
 
 
@@ -75,11 +74,11 @@ impl PartialEq for State {
 // === LexerState ===
 // ==================
 
+/// Contains the state needed by any given lexer implementation.
 pub trait LexerState<Reader:LazyReader> {
+    /// Creates a new instance of the lexer's state.
     fn new(reader:&mut Reader) -> Self;
 }
-
-
 
 
 
@@ -88,6 +87,7 @@ pub trait LexerState<Reader:LazyReader> {
 // =============
 
 // TODO [AA] Move to correct files
+// TODO [AA] Logging https://github.com/enso-org/ide/blob/main/src/rust/ide/src/model/execution_context/synchronized.rs#L45
 
 /// The lexer implementation.
 ///

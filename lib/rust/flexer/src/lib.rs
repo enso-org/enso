@@ -22,6 +22,7 @@ pub mod group;
 pub mod data;
 
 // TODO [AA] Remove these
+// TODO [AA] Add logging
 pub mod codegen_testing;
 pub mod lexer_def_testing;
 
