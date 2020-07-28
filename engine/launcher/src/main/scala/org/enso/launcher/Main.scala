@@ -14,10 +14,19 @@ import org.enso.cli.{
 }
 import org.enso.cli.Opts.implicits._
 import cats.implicits._
+import org.enso.launcher.installation.{
+  DistributionInstaller,
+  DistributionManager
+}
+import org.enso.launcher.installation.DistributionInstaller.BundleAction
 
 object Main {
   private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =
-    Opts.flag("json", "Use JSON instead of plain text for output.", showInUsage)
+    Opts.flag(
+      "json",
+      "Use JSON instead of plain text for version output.",
+      showInUsage
+    )
 
   type Config = Unit
 
@@ -67,8 +76,10 @@ object Main {
       val additionalArgs = Opts.additionalArguments()
       (pathOpt, jvmArgs, additionalArgs) mapN {
         (path, jvmArgs, additionalArgs) => (_: Config) =>
+          val enginesRoot = DistributionManager.paths.engines
           println(s"Launch runner for $path")
           println(s"JVM=$jvmArgs, additionalArgs=$additionalArgs")
+          println(s"Engines are located at $enginesRoot")
       }
     }
 
@@ -170,8 +181,41 @@ object Main {
 
   private def installDistributionCommand: Subcommand[Config => Unit] =
     Subcommand("distribution") {
-      Opts.pure { (_: Config) =>
-        println(s"Install distribution")
+      val autoConfirm = Opts.flag(
+        "auto-confirm",
+        "Proceeds with installation without asking confirmation questions. " +
+        "If bundled components are present, this flag will move them by " +
+        "default, unless overridden by an explicit setting of " +
+        "`--install-bundle-mode`. On success, the installer will remove " +
+        "itself to avoid conflicts with the installed launcher executable.",
+        showInUsage = false
+      )
+      implicit val bundleActionParser: Argument[BundleAction] = {
+        case "move"   => DistributionInstaller.MoveBundles.asRight
+        case "copy"   => DistributionInstaller.CopyBundles.asRight
+        case "ignore" => DistributionInstaller.IgnoreBundles.asRight
+        case other =>
+          List(
+            s"`$other` is not a valid bundle-install-mode value. " +
+            s"Possible values are: `move`, `copy`, `ignore`."
+          ).asLeft
+      }
+      val bundleAction = Opts.optionalParameter[BundleAction](
+        "bundle-install-mode",
+        "(move | copy | ignore)",
+        "Specifies how bundled engines and runtimes should be treated. " +
+        "If `auto-confirm` is set, defaults to move.",
+        showInUsage = false
+      )
+      (autoConfirm, bundleAction) mapN {
+        (autoConfirm, bundleAction) => (_: Config) =>
+          new DistributionInstaller(
+            DistributionManager,
+            autoConfirm,
+            if (autoConfirm)
+              Some(bundleAction.getOrElse(DistributionInstaller.MoveBundles))
+            else bundleAction
+          ).install()
       }
     }
 
@@ -237,7 +281,7 @@ object Main {
 
   private def helpCommand: Command[Config => Unit] =
     Command("help", "Display summary of available commands.") {
-      Opts.pure(()) map { (_: Config) => (_: Config) => printTopLevelHelp() }
+      Opts.pure(()) map { _ => (_: Config) => printTopLevelHelp() }
     }
 
   private def topLevelOpts: Opts[() => TopLevelBehavior[Config]] = {
@@ -245,14 +289,26 @@ object Main {
     val version =
       Opts.flag("version", 'V', "Display version.", showInUsage = true)
     val json = jsonFlag(showInUsage = false)
-    (help, version, json) mapN { (help, version, useJSON) => () =>
-      if (help) {
-        printTopLevelHelp()
-        TopLevelBehavior.Halt
-      } else if (version) {
-        Launcher.displayVersion(useJSON)
-        TopLevelBehavior.Halt
-      } else TopLevelBehavior.Continue(())
+    val ensurePortable = Opts.flag(
+      "ensure-portable",
+      "Ensures that the launcher is run in portable mode.",
+      showInUsage = false
+    )
+    val internalOpts = InternalOpts.topLevelOptions
+
+    (internalOpts, help, version, json, ensurePortable) mapN {
+      (_, help, version, useJSON, shouldEnsurePortable) => () =>
+        if (shouldEnsurePortable) {
+          Launcher.ensurePortable()
+        }
+
+        if (help) {
+          printTopLevelHelp()
+          TopLevelBehavior.Halt
+        } else if (version) {
+          Launcher.displayVersion(useJSON)
+          TopLevelBehavior.Halt
+        } else TopLevelBehavior.Continue(())
     }
   }
 
@@ -284,11 +340,16 @@ object Main {
   }
 
   def main(args: Array[String]): Unit = {
-    application.run(args) match {
-      case Left(errors) =>
-        CLIOutput.println(errors.mkString("\n"))
-        System.exit(1)
-      case Right(()) =>
+    try {
+      application.run(args) match {
+        case Left(errors) =>
+          CLIOutput.println(errors.mkString("\n"))
+          sys.exit(1)
+        case Right(()) =>
+      }
+    } catch {
+      case e: RuntimeException =>
+        Logger.error(s"A fatal error has occurred: $e", e)
     }
   }
 }
