@@ -17,11 +17,11 @@ from which it then generates code for a highly-optimised lexer.
 - [Pattern Description](#pattern-description)
 - [State Management](#state-management)
 - [Code Generation](#code-generation)
-    - [Automated Code Generation](#automated-code-generation)
-    - [Notes on Code Generation](#notes-on-code-generation)
+  - [Automated Code Generation](#automated-code-generation)
+  - [Notes on Code Generation](#notes-on-code-generation)
 - [Structuring the Flexer Code](#structuring-the-flexer-code)
-    - [Supporting the Definition of Lexers](#supporting-the-definition-of-lexers)
-    - [Supporting Code Generation](#supporting-code-generation)
+  - [Supporting the Definition of Lexers](#supporting-the-definition-of-lexers)
+  - [Supporting Code Generation](#supporting-code-generation)
 - [An Example](#an-example)
 
 <!-- /MarkdownTOC -->
