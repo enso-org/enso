@@ -53,6 +53,21 @@ class PassManager(
     passes
   }
 
+  /** Executes all pass groups on the [[IR.Module]].
+    *
+    * @param ir the module to execute the compiler passes on
+    * @param moduleContext the module context in which the passes are executed
+    * @return the result of executing `passGroup` on `ir`
+    */
+  def runPassesOnModule(
+    ir: IR.Module,
+    moduleContext: ModuleContext
+  ): IR.Module = {
+    passes.foldLeft(ir)((ir, group) =>
+      runPassesOnModule(ir, moduleContext, group)
+    )
+  }
+
   /** Executes the provided `passGroup` on the [[IR.Module]].
     *
     * @param ir the module to execute the compiler passes on
@@ -86,6 +101,21 @@ class PassManager(
         pass.runModule(intermediateIR, newContext)
       }
     }
+  }
+
+  /** Executes all passes on the [[IR.Expression]].
+    *
+    * @param ir the expression to execute the compiler passes on
+    * @param inlineContext the inline context in which the passes are executed
+    * @return the result of executing `passGroup` on `ir`
+    */
+  def runPassesInline(
+    ir: IR.Expression,
+    inlineContext: InlineContext
+  ): IR.Expression = {
+    passes.foldLeft(ir)((ir, group) =>
+      runPassesInline(ir, inlineContext, group)
+    )
   }
 
   /** Executes the provided `passGroup` on the [[IR.Expression]].

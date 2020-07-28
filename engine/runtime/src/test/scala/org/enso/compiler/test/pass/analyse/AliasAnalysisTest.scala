@@ -9,7 +9,7 @@ import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
 class AliasAnalysisTest extends CompilerTest {
@@ -19,14 +19,14 @@ class AliasAnalysisTest extends CompilerTest {
   val passes = new Passes
 
   /** The passes that need to be run before the alias analysis pass. */
-  val precursorPasses: List[IRPass] = passes.getPrecursors(AliasAnalysis).get
+  val precursorPasses: PassGroup = passes.getPrecursors(AliasAnalysis).get
 
   val passConfig: PassConfiguration = PassConfiguration(
     AliasAnalysis -->> AliasAnalysis.Configuration(true)
   )
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfig)
+    new PassManager(List(precursorPasses), passConfig)
 
   /** Adds an extension method to run alias analysis on an [[IR.Module]].
     *

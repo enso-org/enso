@@ -9,7 +9,7 @@ import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 
@@ -35,7 +35,7 @@ class TailCallTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: List[IRPass] = passes.getPrecursors(TailCall).get
+  val precursorPasses: PassGroup = passes.getPrecursors(TailCall).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
     AliasAnalysis         -->> AliasAnalysis.Configuration(),
@@ -43,7 +43,7 @@ class TailCallTest extends CompilerTest {
   )
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfiguration)
+    new PassManager(List(precursorPasses), passConfiguration)
 
   /** Adds an extension method to analyse an Enso module.
     *

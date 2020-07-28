@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.DocumentationComments
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.scalatest.Inside
 
@@ -12,11 +12,10 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
 
   // === Test Setup ===========================================================
 
-  val precursorPasses: List[IRPass] = List()
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfig)
+    new PassManager(List(), passConfig)
 
   /** Resolves documentation comments in a module.
     *

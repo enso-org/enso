@@ -17,7 +17,6 @@ import org.enso.compiler.pass.{
   PassManager
 }
 
-// TODO [AA] Change me
 class Passes(passes: Option[List[PassGroup]] = None) {
 
   /** A list of the compiler phases, in the order they should be run.
@@ -80,15 +79,13 @@ class Passes(passes: Option[List[PassGroup]] = None) {
     * @param pass the pass to get the precursors for
     * @return the precursors to the first instance of `pass`
     */
-  def getPrecursors(pass: IRPass): Option[List[PassGroup]] = {
-    // TODO [AA] Fixme
-//    val result = passOrdering.takeWhile(_ != pass)
-//
-//    if (result.length != passOrdering.length) {
-//      Some(result)
-//    } else {
-//      None
-//    }
-    ???
+  def getPrecursors(pass: IRPass): Option[PassGroup] = {
+    val allPasses = passOrdering.flatMap(_.passes)
+    val result    = allPasses.takeWhile(_ != pass)
+    if (result.length != allPasses.length) {
+      Some(new PassGroup(result))
+    } else {
+      None
+    }
   }
 }

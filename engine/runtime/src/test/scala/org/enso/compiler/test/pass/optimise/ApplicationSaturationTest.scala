@@ -63,7 +63,7 @@ class ApplicationSaturationTest extends CompilerTest {
     ApplicationSaturation -->> knownFunctions,
     AliasAnalysis         -->> AliasAnalysis.Configuration()
   )
-  val passManagerKnown = new PassManager(precursorPasses, knownPassConfig)
+  val passManagerKnown = new PassManager(List(precursorPasses), knownPassConfig)
 
   val localScope: Option[LocalScope] = Some(LocalScope.root)
 

@@ -43,7 +43,7 @@ class PassesTest extends CompilerTest {
     val passes = new Passes
 
     "get the precursors of a given pass" in {
-      passes.getPrecursors(AliasAnalysis) shouldEqual Some(
+      passes.getPrecursors(AliasAnalysis).map(_.passes) shouldEqual Some(
         List(
           DocumentationComments,
           ComplexType,
