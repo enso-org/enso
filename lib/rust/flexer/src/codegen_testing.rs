@@ -87,9 +87,7 @@ pub trait LexerState<Reader:LazyReader> {
 // === Lexer ===
 // =============
 
-// TODO [AA] Extract reader
 // TODO [AA] Move to correct files
-// TODO [AA] Move functions around
 
 /// The lexer implementation.
 ///
@@ -149,10 +147,10 @@ where Definition: LexerState<Reader> {
 }
 
 /// This block is things that are part of the lexer's interface and functionality.
-impl<Def: LexerState<Reader>,Reader:LazyReader> Lexer<Def,AST,Reader> {
+impl<Definition:LexerState<Reader>,Reader:LazyReader,Output:Clone> Lexer<Definition,Output,Reader> {
 
     /// Gets the lexer result.
-    fn get_result(&mut self) -> Option<Vec<AST>> {
+    fn get_result(&mut self) -> Option<Vec<Output>> {
         Some(self.tokens.clone())
     }
 
