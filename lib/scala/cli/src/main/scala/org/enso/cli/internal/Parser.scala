@@ -116,7 +116,7 @@ object Parser {
     var suppressUnexpectedArgument = false
     def reportUnknownParameter(
       parameter: String,
-      dash: String = "--"
+      original: String
     ): Unit = {
       val similar =
         Spelling
@@ -135,10 +135,10 @@ object Parser {
 
       suppressUnexpectedArgument = true
       addError(
-        s"Unknown option `$dash$parameter`." + suggestions + additional
+        s"Unknown option `$original`." + suggestions + additional
       )
     }
-    def reportUnknownPrefix(prefix: String, dash: String = "--"): Unit = {
+    def reportUnknownPrefix(prefix: String, original: String): Unit = {
       val similar = Spelling
         .selectClosestMatchesWithMetadata(prefix, opts.gatherPrefixedParameters)
         .map(_._2)
@@ -149,7 +149,7 @@ object Parser {
           similar.map(CLIOutput.indent + _ + "\n").mkString
 
       addError(
-        s"Unknown parameter prefix `$dash$prefix`." + suggestions
+        s"Unknown parameter prefix `$original`." + suggestions
       )
     }
 
@@ -175,15 +175,15 @@ object Parser {
             addError(s"Unexpected argument `$value`.")
           }
           suppressUnexpectedArgument = false
-        case MistypedParameter(parameter) =>
+        case token @ MistypedParameter(parameter) =>
           if (hasPrefix(parameter)) {
             val (prefix, _) = splitPrefix(parameter)
-            reportUnknownPrefix(prefix, dash = "-")
+            reportUnknownPrefix(prefix, token.originalValue)
           } else {
-            reportUnknownParameter(parameter, dash = "-")
+            reportUnknownParameter(parameter, token.originalValue)
           }
           suppressUnexpectedArgument = false
-        case ParameterOrFlag(parameter) =>
+        case token @ ParameterOrFlag(parameter) =>
           suppressUnexpectedArgument = false
           if (opts.flags.contains(parameter)) {
             opts.flags(parameter)()
@@ -202,12 +202,12 @@ object Parser {
                 )
               ) opts.prefixedParameters(prefix)(rest, value)
             } else {
-              reportUnknownPrefix(prefix)
+              reportUnknownPrefix(prefix, token.originalValue)
             }
           } else {
-            reportUnknownParameter(parameter)
+            reportUnknownParameter(parameter, token.originalValue)
           }
-        case ParameterWithValue(parameter, value) =>
+        case token @ ParameterWithValue(parameter, value) =>
           suppressUnexpectedArgument = false
           if (opts.parameters.contains(parameter)) {
             opts.parameters(parameter)(value)
@@ -216,10 +216,10 @@ object Parser {
             if (opts.prefixedParameters.contains(prefix)) {
               opts.prefixedParameters(prefix)(rest, value)
             } else {
-              reportUnknownPrefix(prefix)
+              reportUnknownPrefix(prefix, token.originalValue)
             }
           } else {
-            reportUnknownParameter(parameter)
+            reportUnknownParameter(parameter, token.originalValue)
           }
       }
     }
@@ -274,9 +274,7 @@ object Parser {
     tokens match {
       case Seq() =>
         singleError(
-          s"Expected a command. " +
-          s"See `${application.commandName} --help` " +
-          s"for a list of available commands."
+          s"Expected a command.\n\n" + application.renderHelp()
         )
       case Seq(PlainToken(commandName), commandArgs @ _*) =>
         application.commands.find(_.name == commandName) match {
@@ -366,10 +364,10 @@ object Parser {
   }
 
   private val shortParam             = """-(\w)""".r
-  private val longParam              = """--([\w.]+)""".r
-  private val paramWithValue         = """--([\w.]+)=(.*)""".r
-  private val mistypedLongParam      = """-([\w.]+)""".r
-  private val mistypedParamWithValue = """-([\w.]+)=(.*)""".r
+  private val longParam              = """--([\w-.]+)""".r
+  private val paramWithValue         = """--([\w-.]+)=(.*)""".r
+  private val mistypedLongParam      = """-([\w-.]+)""".r
+  private val mistypedParamWithValue = """-([\w-.]+)=(.*)""".r
   def tokenize(args: Seq[String]): (Seq[Token], Seq[String]) = {
     def toToken(arg: String): Token =
       arg match {
