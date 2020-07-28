@@ -265,6 +265,7 @@ pub enum LexerResult<T> {
 // ==================
 
 #[derive(Debug)]
+#[allow(missing_docs)]
 pub struct Enso {
 
     /// The state entered when the first word has been seen.
@@ -303,9 +304,8 @@ impl<Reader:LazyReader> DerefMut for EnsoLexer<Reader> {
     }
 }
 
+#[allow(missing_docs)]
 impl<Reader:LazyReader> EnsoLexer<Reader> {
-    // === Defined Actions ===
-
     pub fn def_on_first_word_str(&mut self,str:String) {
         let ast = AST::Word(str);
         self.def_on_first_word(ast);
@@ -361,7 +361,7 @@ impl<Reader:LazyReader> EnsoLexer<Reader> {
     pub fn run(&mut self) -> LexerResult<AST> {
         self.reader.advance_char();
 
-        while self.run_current_state() == LexerStageStatus::ExitSuccess {}
+        while self.gen_run_current_state() == LexerStageStatus::ExitSuccess {}
 
         match self.get_result() {
             Some(res) => match self.status {
@@ -374,7 +374,7 @@ impl<Reader:LazyReader> EnsoLexer<Reader> {
     }
 
     // Executes the lexer in the current state.
-    fn run_current_state(&mut self) -> LexerStageStatus {
+    fn gen_run_current_state(&mut self) -> LexerStageStatus {
         self.status = LexerStageStatus::Initial;
 
         // Runs until reaching a state that no longer says to continue.

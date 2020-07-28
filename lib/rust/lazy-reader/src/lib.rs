@@ -156,6 +156,10 @@ pub trait LazyReader {
     /// Returns `self.result` and sets the internal result to empty.
     fn pop_result(&mut self) -> String;
 }
+impl dyn LazyReader {
+    /// The default size of the buffer.
+    pub const BUFFER_SIZE: usize = 32768;
+}
 
 
 // ==============
@@ -189,7 +193,7 @@ impl<D:Decoder,R:Read<Item=D::Word>> Reader<D,R> {
     pub fn new(reader:R, _decoder:D) -> Self {
         let mut reader = Reader::<D,R> {
             reader,
-            buffer    : vec![D::Word::default(); Reader::<D,R>::BUFFER_SIZE],
+            buffer    : vec![D::Word::default(); LazyReader::BUFFER_SIZE],
             result    : String::from(""),
             offset    : 0,
             length    : 0,
@@ -199,9 +203,6 @@ impl<D:Decoder,R:Read<Item=D::Word>> Reader<D,R> {
         reader.length = reader.reader.read(&mut reader.buffer[..]);
         reader
     }
-
-    /// The default size of the buffer.
-    pub const BUFFER_SIZE: usize = 32768;
 }
 
 
@@ -435,7 +436,7 @@ mod tests {
         }
         assert_eq!(&result, &str);
         assert_eq!(reader.bookmark.len(), 0);
-        assert_eq!(reader.buffer.len(), BUFFER_SIZE);
+        assert_eq!(reader.buffer.len(), LazyReader::BUFFER_SIZE);
     }
 
     #[bench]
