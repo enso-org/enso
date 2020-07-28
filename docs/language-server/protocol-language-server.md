@@ -213,10 +213,8 @@ interface MethodPointer {
 
 ```typescript
 interface ExpressionValueUpdate {
-  id: ExpressionId;
-  type?: String;
-  shortValue?: String;
-  methodCall?: MethodPointer;
+  /** The updated suggestion id */
+  suggestionId: number;
 }
 ```
 
@@ -290,7 +288,6 @@ type SuggestionEntry
   | SuggestionEntryFunction
   // A local value
   | SuggestionEntryLocal;
-}
 
 interface SuggestionEntryAtom {
   name: string;

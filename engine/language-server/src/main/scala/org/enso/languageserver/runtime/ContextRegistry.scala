@@ -14,6 +14,9 @@ import org.enso.languageserver.runtime.handler._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
+import org.enso.searcher.SuggestionsRepo
+
+import scala.concurrent.Future
 
 /**
   * Registry handles execution context requests and communicates with runtime
@@ -49,11 +52,13 @@ import org.enso.polyglot.runtime.Runtime.Api.ContextId
   *
   * }}}
   *
+  * @param repo the suggestions repo
   * @param config configuration
   * @param runtime reference to the [[RuntimeConnector]]
   * @param sessionRouter the session router
   */
 final class ContextRegistry(
+  repo: SuggestionsRepo[Future],
   config: Config,
   runtime: ActorRef,
   sessionRouter: ActorRef
@@ -65,6 +70,17 @@ final class ContextRegistry(
 
   private val timeout = config.executionContext.requestTimeout
 
+  override def preStart(): Unit = {
+    context.system.eventStream
+      .subscribe(self, classOf[Api.ExpressionValuesComputed])
+    context.system.eventStream
+      .subscribe(self, classOf[Api.VisualisationUpdate])
+    context.system.eventStream
+      .subscribe(self, classOf[Api.ExecutionFailed])
+    context.system.eventStream
+      .subscribe(self, classOf[Api.VisualisationEvaluationFailed])
+  }
+
   override def receive: Receive =
     withStore(ContextRegistry.Store())
 
@@ -72,13 +88,27 @@ final class ContextRegistry(
     case Ping =>
       sender() ! Pong
 
+    case update: Api.ExpressionValuesComputed =>
+      store.getListener(update.contextId).foreach(_ ! update)
+
+    case update: Api.VisualisationUpdate =>
+      store
+        .getListener(update.visualisationContext.contextId)
+        .foreach(_ ! update)
+
+    case update: Api.ExecutionFailed =>
+      store.getListener(update.contextId).foreach(_ ! update)
+
+    case update: Api.VisualisationEvaluationFailed =>
+      store.getListener(update.contextId).foreach(_ ! update)
+
     case CreateContextRequest(client) =>
       val contextId = UUID.randomUUID()
       val handler =
         context.actorOf(CreateContextHandler.props(timeout, runtime))
       val listener =
         context.actorOf(
-          ContextEventsListener.props(config, client, contextId, sessionRouter)
+          ContextEventsListener.props(repo, client, contextId, sessionRouter)
         )
       handler.forward(Api.CreateContextRequest(contextId))
       context.become(
@@ -152,10 +182,10 @@ final class ContextRegistry(
       }
 
     case DetachVisualisation(
-        clientId,
-        contextId,
-        visualisationId,
-        expressionId
+          clientId,
+          contextId,
+          visualisationId,
+          expressionId
         ) =>
       if (store.hasContext(clientId, contextId)) {
         val handler =
@@ -241,7 +271,7 @@ object ContextRegistry {
       listener: ActorRef
     ): Store =
       copy(
-        contexts  = contexts + (client     -> (getContexts(client) + contextId)),
+        contexts  = contexts + (client -> (getContexts(client) + contextId)),
         listeners = listeners + (contextId -> listener)
       )
 
@@ -270,10 +300,16 @@ object ContextRegistry {
   /**
     * Creates a configuration object used to create a [[ContextRegistry]].
     *
+    * @param repo the suggestions repo
     * @param config language server configuration
     * @param runtime reference to the [[RuntimeConnector]]
     * @param sessionRouter the session router
     */
-  def props(config: Config, runtime: ActorRef, sessionRouter: ActorRef): Props =
-    Props(new ContextRegistry(config, runtime, sessionRouter))
+  def props(
+    repo: SuggestionsRepo[Future],
+    config: Config,
+    runtime: ActorRef,
+    sessionRouter: ActorRef
+  ): Props =
+    Props(new ContextRegistry(repo, config, runtime, sessionRouter))
 }
