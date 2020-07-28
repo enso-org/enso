@@ -25,7 +25,6 @@ pub mod data;
 pub mod group;
 
 // TODO [AA] Remove these
-pub mod codegen_testing;
 pub mod lexer_def_testing;
 
 #[allow(missing_docs)]
@@ -47,17 +46,17 @@ pub mod prelude {
 #[derive(Clone,Debug)]
 pub struct Flexer<Definition,Output,Reader> where Reader:LazyReader {
     /// The stack of states that are active during lexer execution.
-    state_stack: Vec<usize>,
+    pub state_stack: Vec<usize>,
     /// A reader for the input.
-    reader: Reader,
+    pub reader: Reader,
     /// The current match of the lexer.
-    current_match: String,
+    pub current_match: String,
     /// The result of the current stage of the DFA.
-    status: FlexerStageStatus,
+    pub status: FlexerStageStatus,
     /// The tokens that have been lexed.
-    tokens: Vec<Output>,
+    pub tokens: Vec<Output>,
     /// The initial state of the defined lexer.
-    initial_state: LexingState,
+    pub initial_state: LexingState,
     /// The definition of the lexer.
     definition: Definition
 }
@@ -102,7 +101,7 @@ where Definition: FlexerState<Reader>,Reader:LazyReader {
 impl<Definition,Reader,Output> Flexer<Definition,Output,Reader>
 where Definition:FlexerState<Reader>,Reader:LazyReader,Output:Clone {
     /// Gets the lexer result.
-    fn get_result(&mut self) -> Option<Vec<Output>> {
+    pub fn get_result(&mut self) -> Option<Vec<Output>> {
         Some(self.tokens.clone())
     }
 
@@ -166,7 +165,7 @@ pub struct LexingState {
     /// The name of the state, useful for debugging.
     pub name: String,
     /// The identifier of the state.
-    id: usize,
+    pub id: usize,
 }
 
 impl LexingState {
