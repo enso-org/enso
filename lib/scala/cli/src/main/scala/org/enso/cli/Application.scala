@@ -171,6 +171,9 @@ trait PluginManager {
 
   /**
     * Tries to run a given plugin with provided arguments.
+    *
+    * @param name name of the plugin
+    * @param args arguments that should be passed to it
     */
   def tryRunningPlugin(name: String, args: Seq[String]): PluginBehaviour
 

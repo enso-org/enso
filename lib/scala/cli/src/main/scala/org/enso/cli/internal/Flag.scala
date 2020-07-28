@@ -22,7 +22,8 @@ class Flag(
   override private[cli] val usageOptions =
     if (showInUsage) Seq(s"[--$name]") else Seq()
   override private[cli] def gatherOptions =
-    Seq(name -> s"--$name")
+    Seq(name -> s"--$name") ++
+    short.map(char => char.toString -> s"-$char").toSeq
 
   val empty                                = Right(false)
   var value: Either[List[String], Boolean] = empty
