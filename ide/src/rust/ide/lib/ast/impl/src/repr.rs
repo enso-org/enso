@@ -331,10 +331,14 @@ has_tokens!(Ambiguous<T>, self.segs);
 
 spaceless_ast!(Comment);
 spaceless_ast!(Import<T>);
+spaceless_ast!(JavaImport<T>);
 spaceless_ast!(Mixfix<T>);
 spaceless_ast!(Group<T>);
+spaceless_ast!(SequenceLiteral<T>);
+spaceless_ast!(TypesetLiteral<T>);
 spaceless_ast!(Def<T>);
 spaceless_ast!(Foreign);
+spaceless_ast!(Modified<T>);
 
 
 

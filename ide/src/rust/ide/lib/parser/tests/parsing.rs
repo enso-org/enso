@@ -360,7 +360,11 @@ impl Fixture {
     /// match node. Node contents is not covered.
     fn deserialize_macro_matches(&mut self) {
         let macro_usages = vec!
-            [ "foo -> bar"
+            [ "[]", "[1,2,3]"
+            , "{x}"
+            , "unsafe x", "private x"
+            , "polyglot java import com.example.MyClass"
+            , "foo -> bar"
             , "()"
             , "(foo -> bar)"
             , "a b c -> bar"

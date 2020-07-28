@@ -500,12 +500,16 @@ pub enum Shape<T> {
                   , paths    : Tree<Ast, Unit>                         },
 
     // === Spaceless AST ===
-    Comment       (Comment),
-    Import        (Import<T>),
-    Mixfix        (Mixfix<T>),
-    Group         (Group<T>),
-    Def           (Def<T>),
-    Foreign       (Foreign),
+    Comment        (Comment),
+    Import         (Import<T>),
+    JavaImport     (JavaImport<T>),
+    Mixfix         (Mixfix<T>),
+    Group          (Group<T>),
+    SequenceLiteral(SequenceLiteral<T>),
+    TypesetLiteral (TypesetLiteral<T>),
+    Def            (Def<T>),
+    Foreign        (Foreign),
+    Modified       (Modified<T>),
 }
 
 /// Macrot that calls its argument (possibly other macro
@@ -757,6 +761,10 @@ pub enum MacroPatternMatchRaw<T> {
     pub path:T
 }
 
+#[ast] pub struct JavaImport<T> {
+    pub path:Vec<T>,
+}
+
 #[ast] pub struct Mixfix<T> {
     pub name: Vec<T>,
     pub args: Vec<T>,
@@ -764,6 +772,14 @@ pub enum MacroPatternMatchRaw<T> {
 
 #[ast] pub struct Group<T> {
     pub body: Option<T>,
+}
+
+#[ast] pub struct SequenceLiteral<T> {
+    pub items:Vec<T>,
+}
+
+#[ast] pub struct TypesetLiteral<T> {
+    pub expression:Option<T>,
 }
 
 #[ast] pub struct Def<T> {
@@ -776,6 +792,11 @@ pub enum MacroPatternMatchRaw<T> {
     pub indent : usize,
     pub lang   : String,
     pub code   : Vec<String>
+}
+
+#[ast] pub struct Modified<T> {
+    pub modifier:String,
+    pub definition:T,
 }
 
 
