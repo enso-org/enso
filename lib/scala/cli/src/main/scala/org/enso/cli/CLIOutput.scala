@@ -54,6 +54,89 @@ object CLIOutput {
   }
 
   /**
+    * Prints out the given question and asks the user to confirm the action by
+    * typing 'y' or 'n'.
+    *
+    * Also handles uppercase variants. An empty line defaults to the default
+    * option specified by `yesDefault`. Other inputs result in the question
+    * being asked again.
+    *
+    * @param question The question to print.
+    * @param yesDefault Specifies if an empty line defaults to true or false.
+    */
+  @scala.annotation.tailrec
+  def askConfirmation(
+    question: String,
+    yesDefault: Boolean = false
+  ): Boolean = {
+    val prompt = if (yesDefault) "[Y/n]" else "[y/N]"
+    val text   = alignAndWrap(question + " " + prompt + " ")
+    Predef.print(text)
+    val line = Console.in.readLine().strip().toLowerCase
+    if (line.isEmpty) yesDefault
+    else if (line == "y") true
+    else if (line == "n") false
+    else {
+      println(s"Unexpected answer `$line`.")
+      askConfirmation(question, yesDefault)
+    }
+  }
+
+  /**
+    * A type for [[askQuestion]] which specifies how to display the possible
+    * answers.
+    */
+  trait Answer {
+
+    /**
+      * The key that is associated with this answer. Should be a single
+      * character.
+      */
+    def key: String
+
+    /**
+      * A short description of this answer.
+      */
+    def description: String
+  }
+
+  /**
+    * Asks the user to choose one of the possible answers.
+    *
+    * The first answer in the provided sequence is treated as the default and it
+    * is returned if the user inputs an empty line. If the user inputs a
+    * non-empty value that does not fit any answer, the question is asked again.
+    *
+    * @param question The question to print.
+    * @param answers A sequence of possible answers. No two answers should have
+    *                the same key.
+    * @tparam A The type of possible answers. Must be a sub-type of [[Answer]].
+    * @return The answer chosen by the user.
+    */
+  def askQuestion[A <: Answer](question: String, answers: Seq[A]): A = {
+    val explanations =
+      "(" +
+      answers
+        .map(a => a.key.toLowerCase + " - " + a.description)
+        .mkString(", ") +
+      ")"
+    val shortcuts = "[" + answers.map(_.key.toLowerCase).mkString("/") + "]"
+    val prompt =
+      CLIOutput.alignAndWrap(
+        question + " " + explanations + " " + shortcuts + " "
+      )
+    Predef.print(prompt)
+    val line = Console.in.readLine().strip().toLowerCase
+    if (line.isEmpty)
+      answers.head
+    else
+      answers.find(_.key.toLowerCase == line).getOrElse {
+        CLIOutput.println(s"`$line` is not a valid option.")
+        askQuestion(question, answers)
+      }
+  }
+
+  /**
     * Default indentation used for printing lists.
     */
   val indent: String = "    "
