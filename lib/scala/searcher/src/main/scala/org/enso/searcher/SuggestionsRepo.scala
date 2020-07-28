@@ -82,6 +82,9 @@ trait SuggestionsRepo[F[_]] {
     expressions: Seq[(Suggestion.ExternalId, String)]
   ): F[(Long, Seq[Option[Long]])]
 
+  /** Cleans the repo resetting the version. */
+  def clean: F[Unit]
+
   /** Update the suggestions with the new project name.
     *
     * @param oldName the old name of the project

@@ -31,8 +31,8 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   def init: Future[Unit] =
     db.run(initQuery)
 
-  /** Clean the repo. */
-  def clean: Future[Unit] =
+  /** @inheritdoc */
+  override def clean: Future[Unit] =
     db.run(cleanQuery)
 
   /** @inheritdoc */
@@ -114,12 +114,13 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   }
 
   /** The query to clean the repo. */
-  private def cleanQuery: DBIO[Unit] =
+  private def cleanQuery: DBIO[Unit] = {
     for {
       _ <- Suggestions.delete
       _ <- Arguments.delete
       _ <- SuggestionsVersions.delete
     } yield ()
+  }
 
   /** Get all suggestions.
     *

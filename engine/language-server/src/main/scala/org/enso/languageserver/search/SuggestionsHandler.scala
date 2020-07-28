@@ -18,12 +18,13 @@ import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.{FileDeletedEvent, Path}
 import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol._
+import org.enso.languageserver.search.handler.InvalidateModulesIndexHandler
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.pkg.PackageManager
 import org.enso.polyglot.Suggestion
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.searcher.SuggestionsRepo
+import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
 import org.enso.text.editing.model.Position
 
 import scala.concurrent.Future
@@ -63,13 +64,16 @@ import scala.util.{Failure, Success}
   * }}
   *
   * @param config the server configuration
-  * @param repo the suggestions repo
+  * @param suggestionsRepo the suggestions repo
   * @param sessionRouter the session router
+  * @param runtimeConnector the runtime connector
   */
 final class SuggestionsHandler(
   config: Config,
-  repo: SuggestionsRepo[Future],
-  sessionRouter: ActorRef
+  suggestionsRepo: SuggestionsRepo[Future],
+  fileVersionsRepo: FileVersionsRepo[Future],
+  sessionRouter: ActorRef,
+  runtimeConnector: ActorRef
 ) extends Actor
     with Stash
     with ActorLogging
@@ -77,6 +81,8 @@ final class SuggestionsHandler(
 
   import SuggestionsHandler.ProjectNameUpdated
   import context.dispatcher
+
+  private val timeout = config.executionContext.requestTimeout
 
   override def preStart(): Unit = {
     context.system.eventStream
@@ -103,7 +109,7 @@ final class SuggestionsHandler(
 
   def initializing(init: SuggestionsHandler.Initialization): Receive = {
     case ProjectNameChangedEvent(oldName, newName) =>
-      repo
+      suggestionsRepo
         .renameProject(oldName, newName)
         .map(_ => ProjectNameUpdated(newName))
         .pipeTo(self)
@@ -171,7 +177,7 @@ final class SuggestionsHandler(
       val types = updates.flatMap(update =>
         update.expressionType.map(update.expressionId -> _)
       )
-      repo
+      suggestionsRepo
         .updateAll(types)
         .map {
           case (version, updatedIds) =>
@@ -183,12 +189,12 @@ final class SuggestionsHandler(
         }
 
     case GetSuggestionsDatabaseVersion =>
-      repo.currentVersion
+      suggestionsRepo.currentVersion
         .map(GetSuggestionsDatabaseVersionResult)
         .pipeTo(sender())
 
     case GetSuggestionsDatabase =>
-      repo.getAll
+      suggestionsRepo.getAll
         .map {
           case (version, entries) =>
             GetSuggestionsDatabaseResult(
@@ -203,7 +209,7 @@ final class SuggestionsHandler(
         .fold(
           Future.successful,
           module =>
-            repo
+            suggestionsRepo
               .search(
                 Some(module),
                 selfType,
@@ -220,7 +226,7 @@ final class SuggestionsHandler(
         .fold(
           err => Future.successful(Left(err)),
           module =>
-            repo
+            suggestionsRepo
               .removeByModule(module)
               .map {
                 case (version, ids) =>
@@ -251,8 +257,18 @@ final class SuggestionsHandler(
             )
         }
 
+    case InvalidateSuggestionsDatabase =>
+      val action = for {
+        _ <- suggestionsRepo.clean
+        _ <- fileVersionsRepo.clean
+      } yield SearchProtocol.InvalidateModulesIndex
+
+      val handler = context.system
+        .actorOf(InvalidateModulesIndexHandler.props(timeout, runtimeConnector))
+      action.pipeTo(handler)(sender())
+
     case ProjectNameChangedEvent(oldName, newName) =>
-      repo
+      suggestionsRepo
         .renameProject(oldName, newName)
         .map(_ => ProjectNameUpdated(newName))
         .pipeTo(self)
@@ -290,8 +306,8 @@ final class SuggestionsHandler(
   ): Future[SuggestionsDatabaseUpdateNotification] = {
     val added = updates.map(_.suggestion)
     for {
-      (_, removedIds)     <- repo.removeByModule(moduleName)
-      (version, addedIds) <- repo.insertAll(added)
+      (_, removedIds)     <- suggestionsRepo.removeByModule(moduleName)
+      (version, addedIds) <- suggestionsRepo.insertAll(added)
     } yield {
       val updatesRemoved = removedIds.map(SuggestionsDatabaseUpdate.Remove)
       val updatesAdded = (addedIds zip added).flatMap {
@@ -329,8 +345,8 @@ final class SuggestionsHandler(
       }
 
     for {
-      (_, removedIds)     <- repo.removeAll(removed)
-      (version, addedIds) <- repo.insertAll(added)
+      (_, removedIds)     <- suggestionsRepo.removeAll(removed)
+      (version, addedIds) <- suggestionsRepo.insertAll(added)
     } yield {
       val updatesRemoved = removedIds.collect {
         case Some(id) => SuggestionsDatabaseUpdate.Remove(id)
@@ -409,14 +425,26 @@ object SuggestionsHandler {
     * Creates a configuration object used to create a [[SuggestionsHandler]].
     *
     * @param config the server configuration
-    * @param repo the suggestions repo
+    * @param suggestionsRepo the suggestions repo
+    * @param fileVersionsRepo the file versions repo
     * @param sessionRouter the session router
+    * @param runtimeConnector the runtime connector
     */
   def props(
     config: Config,
-    repo: SuggestionsRepo[Future],
-    sessionRouter: ActorRef
+    suggestionsRepo: SuggestionsRepo[Future],
+    fileVersionsRepo: FileVersionsRepo[Future],
+    sessionRouter: ActorRef,
+    runtimeConnector: ActorRef
   ): Props =
-    Props(new SuggestionsHandler(config, repo, sessionRouter))
+    Props(
+      new SuggestionsHandler(
+        config,
+        suggestionsRepo,
+        fileVersionsRepo,
+        sessionRouter,
+        runtimeConnector
+      )
+    )
 
 }
