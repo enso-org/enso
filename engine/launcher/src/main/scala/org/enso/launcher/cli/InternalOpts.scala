@@ -1,4 +1,4 @@
-package org.enso.launcher
+package org.enso.launcher.cli
 
 import java.io.IOException
 import java.nio.file.{Files, NoSuchFileException, Path}
@@ -6,7 +6,7 @@ import java.nio.file.{Files, NoSuchFileException, Path}
 import org.enso.cli.Opts
 import org.enso.cli.Opts.implicits._
 import cats.implicits._
-import org.enso.launcher.internal.OS
+import org.enso.launcher.OS
 
 object InternalOpts {
   private val REMOVE_OLD_EXECUTABLE = "internal-remove-old-executable"

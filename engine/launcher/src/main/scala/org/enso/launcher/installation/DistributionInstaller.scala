@@ -4,14 +4,8 @@ import java.nio.file.Files
 
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.internal.OS
-import org.enso.launcher.internal.installation.DistributionManager
-import org.enso.launcher.{
-  FileSystem,
-  GlobalConfigurationManager,
-  InternalOpts,
-  Logger
-}
+import org.enso.launcher.cli.InternalOpts
+import org.enso.launcher.{FileSystem, GlobalConfigurationManager, Logger, OS}
 
 import scala.util.control.NonFatal
 

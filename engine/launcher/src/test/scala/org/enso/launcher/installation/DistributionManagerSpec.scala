@@ -2,12 +2,10 @@ package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
 
-import org.enso.launcher.{FileSystem, WithTemporaryDirectory}
+import org.enso.launcher.{Environment, FileSystem, WithTemporaryDirectory}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.internal.Environment
-import org.enso.launcher.internal.installation.DistributionManager
 
 class DistributionManagerSpec
     extends AnyWordSpec

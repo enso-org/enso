@@ -1,24 +1,17 @@
-package org.enso.launcher
+package org.enso.launcher.cli
 
 import java.nio.file.Path
 import java.util.UUID
 
-import org.enso.cli.{
-  Application,
-  Argument,
-  CLIOutput,
-  Command,
-  Opts,
-  Subcommand,
-  TopLevelBehavior
-}
-import org.enso.cli.Opts.implicits._
-import cats.implicits._
+import org.enso.cli._
+import org.enso.launcher.{Launcher, Logger}
+import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
   DistributionManager
 }
-import org.enso.launcher.installation.DistributionInstaller.BundleAction
+import org.enso.cli.Opts.implicits._
+import cats.implicits._
 
 object Main {
   private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =

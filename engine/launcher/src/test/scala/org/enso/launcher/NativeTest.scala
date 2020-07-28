@@ -11,8 +11,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.sys.process._
 import org.scalatest.time.SpanSugar._
 
-import org.enso.launcher.internal.OS
-
 /**
   * Contains helper methods for creating tests that need to run the native
   * launcher binary.

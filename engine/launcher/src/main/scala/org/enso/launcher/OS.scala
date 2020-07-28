@@ -1,6 +1,4 @@
-package org.enso.launcher.internal
-
-import org.enso.launcher.Logger
+package org.enso.launcher
 
 sealed trait OS
 object OS {

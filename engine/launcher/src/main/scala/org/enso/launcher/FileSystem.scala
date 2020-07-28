@@ -5,8 +5,6 @@ import java.io.PrintWriter
 import org.apache.commons.io.FileUtils
 import java.nio.file.{Files, Path}
 
-import org.enso.launcher.internal.OS
-
 import scala.collection.Factory
 import scala.jdk.StreamConverters._
 import sys.process._

@@ -2,9 +2,8 @@ package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
 
-import org.enso.launcher.{FileSystem, NativeTest, WithTemporaryDirectory}
+import org.enso.launcher.{FileSystem, NativeTest, OS, WithTemporaryDirectory}
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.internal.OS
 
 import scala.io.Source
 
