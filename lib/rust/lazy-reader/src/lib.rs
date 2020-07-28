@@ -95,8 +95,53 @@ pub struct Bookmark {
 }
 
 // TODO [AA] Move constant into module.
+// TODO [AA] Reorganise this file.
 /// The default size of buffer.
 pub const BUFFER_SIZE: usize = 32768;
+
+pub trait LazyReader {
+    /// Creates a new bookmark, providing a handle so it can be used later.
+    fn add_bookmark(&mut self) -> BookmarkId;
+
+    /// Bookmarks the current character using the provided `bookmark`, so that the reader can later
+    /// return to it using `rewind()`.
+    ///
+    /// Panics if `bookmark` refers to a nonexistent bookmark.
+    fn bookmark(&mut self,bookmark:BookmarkId);
+
+    /// Returns the reader to the character bookmarked using `bookmark`.
+    fn rewind(&mut self,bookmark:BookmarkId);
+
+    /// The maximum number of words that may be rewound in the buffer.
+    fn max_possible_rewind_len(&self) -> usize;
+
+    /// Decrease the offset for all bookmarks.
+    fn decrease_offset(&mut self,off:usize);
+
+    /// Fill the buffer with words from the input.
+    fn fill(&mut self);
+
+    /// Checks if the reader is empty.
+    fn empty(&self) -> bool;
+
+    /// Checks if the reader has finished reading.
+    fn finished(&self) -> bool;
+
+    /// Reads the next character from input.
+    fn next_char(&mut self) -> Result<char,Error>;
+
+    /// Gets the current character from the reader.
+    fn character(&self) -> decoder::Char<Error>;
+
+    /// Advances along the input without returning the character.
+    fn advance_char(&mut self);
+
+    /// Appends the provided character to the reader's result.
+    fn append_result(&mut self,char:char);
+
+    /// Returns `self.result` and sets the internal result to empty.
+    fn pop_result(&mut self) -> String;
+}
 
 /// A buffered reader able to efficiently read big inputs in constant memory.
 ///
@@ -120,8 +165,8 @@ pub struct Reader<D:Decoder,Read> {
     pub character: decoder::Char<Error>,
 }
 
-impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
-    /// Returns a new instance of `LazyReader`.
+impl<D:Decoder,R:Read<Item=D::Word>> Reader<D,R> {
+    /// Creates a new instance of the reader.
     pub fn new(reader:R, _decoder:D) -> Self {
         let mut reader = Reader::<D,R> {
             reader,
@@ -135,29 +180,25 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
         reader.length = reader.reader.read(&mut reader.buffer[..]);
         reader
     }
+}
 
-    /// Creates a new bookmark, providing a handle so it can be marked later.
-    pub fn add_bookmark(&mut self) -> BookmarkId {
+impl<D:Decoder,R: Read<Item=D::Word>> LazyReader for Reader<D,R> {
+    fn add_bookmark(&mut self) -> BookmarkId {
         self.bookmark.push(Bookmark::default());
         BookmarkId::new(self.bookmark.len() - 1)
     }
 
-    /// Bookmarks the current character, so that the reader can return to it later with `rewind()`.
-    ///
-    /// Panics if `bookmark` refers to a nonexistent bookmark.
-    pub fn bookmark(&mut self, bookmark:BookmarkId) {
+    fn bookmark(&mut self, bookmark:BookmarkId) {
         self.bookmark[bookmark.id].offset = self.offset - self.character.size;
         self.bookmark[bookmark.id].length = self.result.len();
     }
 
-    /// Returns to the bookmarked character.
-    pub fn rewind(&mut self, bookmark:BookmarkId) {
+    fn rewind(&mut self, bookmark:BookmarkId) {
         self.offset = self.bookmark[bookmark.id].offset;
         self.result.truncate(self.bookmark[bookmark.id].length);
         let _ = self.next_char();
     }
 
-    /// How many words could be rewinded
     fn max_possible_rewind_len(&self) -> usize {
         if let Some(offset) = self.bookmark.iter().map(|b| b.offset).min() {
             return self.buffer.len() - offset
@@ -165,15 +206,13 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
         D::MAX_CODEPOINT_LEN
     }
 
-    /// Decrease the offset all bookmarks.
-    pub fn decrease_offset(&mut self, off:usize) {
+    fn decrease_offset(&mut self, off:usize) {
         for bookmark in self.bookmark.iter_mut() {
             bookmark.offset -= off
         }
     }
 
-    /// Fill the buffer with words from input.
-    pub fn fill(&mut self) {
+    fn fill(&mut self) {
         let len     = self.buffer.len();
         let words   = len - self.offset;
         self.offset = self.max_possible_rewind_len();
@@ -189,18 +228,15 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
         self.offset -= words;
     }
 
-    /// Is the reader empty.
-    pub fn empty(&self) -> bool {
+    fn empty(&self) -> bool {
         self.length < self.buffer.len() && self.length <= self.offset
     }
 
-    /// Has the reader finished reading.
-    pub fn finished(&self) -> bool {
+    fn finished(&self) -> bool {
         self.empty() && self.character.char == Err(EOF)
     }
 
-    /// Reads the next char from input.
-    pub fn next_char(&mut self) -> Result<char,Error> {
+    fn next_char(&mut self) -> Result<char,Error> {
         if self.empty() { self.character.char = Err(Error::EOF); return Err(Error::EOF) }
 
         if self.offset >= self.buffer.len() - D::MAX_CODEPOINT_LEN {
@@ -213,13 +249,19 @@ impl<D:Decoder,R: Read<Item=D::Word>> Reader<D,R> {
         self.character.char
     }
 
-    /// Advances along the input without returning the character.
-    pub fn advance_char(&mut self) {
+    fn character(&self) -> Char<Error> {
+        self.character
+    }
+
+    fn advance_char(&mut self) {
         let _ = self.next_char();
     }
 
-    /// Returns `self.result` and reassigns it a new empty string.
-    pub fn pop_result(&mut self) -> String {
+    fn append_result(&mut self,char:char) {
+        self.result.push(char);
+    }
+
+    fn pop_result(&mut self) -> String {
         let str = self.result.clone();
         self.result.truncate(0);
         str

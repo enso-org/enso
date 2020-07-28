@@ -18,7 +18,7 @@
 //! RUNNING: cargo test -p flexer --lib
 
 use crate::prelude::*;
-use lazy_reader::{Reader, BookmarkId};
+use lazy_reader::{Reader, BookmarkId, LazyReader};
 use lazy_reader::decoder::DecoderUTF8;
 
 
@@ -75,8 +75,8 @@ impl PartialEq for State {
 // === LexerState ===
 // ==================
 
-pub trait LexerState {
-    fn new(reader:&mut Reader<DecoderUTF8,&[u8]>) -> Self;
+pub trait LexerState<Reader:LazyReader> {
+    fn new(reader:&mut Reader) -> Self;
 }
 
 
@@ -96,50 +96,51 @@ pub trait LexerState {
 /// Please note that every method and member prefixed with `def_` are user-defined, and those
 /// prefixed with `gen_` are generated from the lexer definition.
 #[derive(Clone,Debug)]
-pub struct Lexer<'a,Definition,T> {
+pub struct Lexer<Definition,Output,Reader:LazyReader> {
     /// The stack of states that are active during lexer execution.
     state_stack: Vec<usize>,
     /// A reader for the input.
-    reader: Reader<DecoderUTF8,&'a [u8]>,
+    reader: Reader,
     /// The current match of the lexer.
     current_match: String,
     /// The result of the current stage of the DFA.
     status: LexerStageStatus,
     /// The tokens that have been lexed.
-    tokens: Vec<T>,
+    tokens: Vec<Output>,
     /// The initial state of the defined lexer.
     initial_state: State,
     /// The definition of the lexer.
     definition: Definition
 }
 
-impl<'a, Definition,T> Deref for Lexer<'a, Definition,T> {
+impl<Definition, Output,Reader:LazyReader> Deref for Lexer<Definition,Output,Reader> {
     type Target = Definition;
     fn deref(&self) -> &Self::Target {
         &self.definition
     }
 }
 
-impl<'a, Definition,T> DerefMut for Lexer<'a, Definition,T> {
+impl<Definition,Output,Reader:LazyReader> DerefMut for Lexer<Definition,Output,Reader> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.definition
     }
 }
 
-impl<Def,T> Lexer<'_,Def,T> where Def : LexerState {
+impl<Definition,Output,Reader:LazyReader> Lexer<Definition,Output,Reader>
+where Definition: LexerState<Reader> {
 
     /// Creates a new lexer instance.
     ///
     /// Please note that the `reader` argument is currently hard-coded for testing purposes. This is
     /// not the intention for the eventual design.
-    pub fn new(mut reader:Reader<DecoderUTF8,&[u8]>) -> Lexer<Def,T> {
+    pub fn new(mut reader:Reader) -> Lexer<Definition,Output,Reader> {
         let mut state_stack = Vec::new();
         state_stack.reserve(1024);
         let current_match = String::from("");
         let status = LexerStageStatus::Initial;
         let mut tokens = Vec::new();
         tokens.reserve(1024);
-        let definition = Def::new(&mut reader);
+        let definition = Definition::new(&mut reader);
         let def_initial_state = State::new("INITIAL",0);
         state_stack.push(def_initial_state.id);
 
@@ -148,8 +149,7 @@ impl<Def,T> Lexer<'_,Def,T> where Def : LexerState {
 }
 
 /// This block is things that are part of the lexer's interface and functionality.
-impl<Def: LexerState> Lexer<'_,Def,AST> {
-
+impl<Def: LexerState<Reader>,Reader:LazyReader> Lexer<Def,AST,Reader> {
 
     /// Gets the lexer result.
     fn get_result(&mut self) -> Option<Vec<AST>> {
@@ -275,8 +275,8 @@ pub struct Enso {
     def_matched_bookmark: BookmarkId,
 }
 
-impl LexerState for Enso {
-    fn new(reader:&mut Reader<DecoderUTF8,&[u8]>) -> Self {
+impl <Reader:LazyReader> LexerState<Reader> for Enso {
+    fn new(reader:&mut Reader) -> Self {
         let def_seen_first_word_state = State::new("SEEN FIRST WORD",1);
         let def_matched_bookmark = reader.add_bookmark();
         Self {def_seen_first_word_state,def_matched_bookmark}
@@ -287,26 +287,25 @@ impl LexerState for Enso {
 
 #[derive(Debug)]
 #[allow(missing_docs)]
-pub struct EnsoLexer<'t> {
-    lexer : Lexer<'t,Enso,AST>
+pub struct EnsoLexer<Reader:LazyReader> {
+    lexer : Lexer<Enso,AST,Reader>
 }
 
-#[allow(missing_docs)]
-impl<'a> Deref for EnsoLexer<'a> {
-    type Target = Lexer<'a, Enso,AST>;
+impl<Reader:LazyReader> Deref for EnsoLexer<Reader> {
+    type Target = Lexer<Enso,AST,Reader>;
     fn deref(&self) -> &Self::Target {
         &self.lexer
     }
 }
 
 #[allow(missing_docs)]
-impl<'a> DerefMut for EnsoLexer<'a> {
+impl<Reader:LazyReader> DerefMut for EnsoLexer<Reader> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.lexer
     }
 }
 
-impl<'t> EnsoLexer<'t> {
+impl<Reader:LazyReader> EnsoLexer<Reader> {
     // === Defined Actions ===
 
     pub fn def_on_first_word_str(&mut self,str:String) {
@@ -357,7 +356,7 @@ impl<'t> EnsoLexer<'t> {
 
 
 #[allow(missing_docs)]
-impl<'t> EnsoLexer<'t> {
+impl<Reader:LazyReader> EnsoLexer<Reader> {
 
     // Executes the lexer on the input provided by the reader, resulting in a
     // series of tokens.
@@ -389,8 +388,8 @@ impl<'t> EnsoLexer<'t> {
             }
 
             if self.status.should_continue() {
-                if let Ok(char) = self.reader.character.char {
-                    self.reader.result.push(char);
+                if let Ok(char) = self.reader.character().char {
+                    self.reader.append_result(char);
                 }
                 self.reader.advance_char();
             }
@@ -426,7 +425,7 @@ impl<'t> EnsoLexer<'t> {
    }
 
    fn gen_state_0_to_0(&mut self) -> LexerStageStatus {
-       match u32::from(self.reader.character) {
+       match u32::from(self.reader.character()) {
            97 => LexerStageStatus::ContinueWith(3),
            98 => LexerStageStatus::ContinueWith(4),
            _  => LexerStageStatus::ContinueWith(2)
@@ -453,7 +452,7 @@ impl<'t> EnsoLexer<'t> {
    }
 
    fn gen_state_0_to_3(&mut self) -> LexerStageStatus {
-       match u32::from(self.reader.character) {
+       match u32::from(self.reader.character()) {
            97 => LexerStageStatus::ContinueWith(5),
            _  => {
                self.current_match = self.reader.pop_result();
@@ -466,7 +465,7 @@ impl<'t> EnsoLexer<'t> {
    }
 
    fn gen_state_0_to_4(&mut self) -> LexerStageStatus {
-       match u32::from(self.reader.character) {
+       match u32::from(self.reader.character()) {
            98 => LexerStageStatus::ContinueWith(6),
            _  => {
                self.current_match = self.reader.pop_result();
@@ -479,7 +478,7 @@ impl<'t> EnsoLexer<'t> {
    }
 
    fn gen_state_0_to_5(&mut self) -> LexerStageStatus {
-       match u32::from(self.reader.character) {
+       match u32::from(self.reader.character()) {
            97 => LexerStageStatus::ContinueWith(5),
            _ => {
                self.current_match = self.reader.pop_result();
@@ -492,7 +491,7 @@ impl<'t> EnsoLexer<'t> {
    }
 
    fn gen_state_0_to_6(&mut self) -> LexerStageStatus {
-       match u32::from(self.reader.character) {
+       match u32::from(self.reader.character()) {
            98 => LexerStageStatus::ContinueWith(6),
            _ => {
                self.current_match = self.reader.pop_result();
@@ -535,7 +534,7 @@ impl<'t> EnsoLexer<'t> {
    }
 
    fn gen_state_1_to_0(&mut self) -> LexerStageStatus {
-       match u32::from(self.reader.character) {
+       match u32::from(self.reader.character()) {
            32 => LexerStageStatus::ContinueWith(3),
            _  => LexerStageStatus::ContinueWith(2)
        }
@@ -558,7 +557,7 @@ impl<'t> EnsoLexer<'t> {
    }
 
    fn gen_state_1_to_3(&mut self) -> LexerStageStatus {
-       match u32::from(self.reader.character) {
+       match u32::from(self.reader.character()) {
            97 => LexerStageStatus::ContinueWith(4),
            98 => LexerStageStatus::ContinueWith(5),
            _  => {
@@ -572,7 +571,7 @@ impl<'t> EnsoLexer<'t> {
    }
 
    fn gen_state_1_to_4(&mut self) -> LexerStageStatus {
-       match u32::from(self.reader.character) {
+       match u32::from(self.reader.character()) {
            97 => LexerStageStatus::ContinueWith(6),
            _  => {
                self.current_match = self.reader.pop_result();
@@ -585,7 +584,7 @@ impl<'t> EnsoLexer<'t> {
    }
 
    fn gen_state_1_to_5(&mut self) -> LexerStageStatus {
-       match u32::from(self.reader.character) {
+       match u32::from(self.reader.character()) {
            98 => LexerStageStatus::ContinueWith(7),
            _  => {
                self.current_match = self.reader.pop_result();
@@ -598,7 +597,7 @@ impl<'t> EnsoLexer<'t> {
    }
 
    fn gen_state_1_to_6(&mut self) -> LexerStageStatus {
-       match u32::from(self.reader.character) {
+       match u32::from(self.reader.character()) {
            97 => LexerStageStatus::ContinueWith(6),
            _  => {
                self.current_match = self.reader.pop_result();
@@ -611,7 +610,7 @@ impl<'t> EnsoLexer<'t> {
    }
 
    fn gen_state_1_to_7(&mut self) -> LexerStageStatus {
-       match u32::from(self.reader.character) {
+       match u32::from(self.reader.character()) {
            98 => LexerStageStatus::ContinueWith(7),
            _  => {
                self.current_match = self.reader.pop_result();
@@ -660,7 +659,7 @@ mod test {
    fn run_test_on(str:&str) -> Vec<AST> {
        // Hardcoded for ease of use here.
        let reader = Reader::new(str.as_bytes(),DecoderUTF8());
-       let lexer:Lexer<Enso,AST> = Lexer::new(reader);
+       let lexer:Lexer<Enso,AST,Reader<DecoderUTF8,&[u8]>> = Lexer::new(reader);
        let mut lexer = EnsoLexer{lexer};
 
        match lexer.run() {
