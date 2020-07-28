@@ -34,8 +34,6 @@ impl Lexer {
     pub fn specialize(&self) -> String {
         let group_nfa:Vec<NFA> = self.groups.iter().map(|group|group.into()).collect();
         let group_dfa:Vec<DFA> = group_nfa.iter().map(|nfa|nfa.into()).collect();
-        // group_dfa.iter().for_each(|a|println!("{:?}",a));
-        generate::generate_step(group_dfa.len());
         let str = String::new();
         str
     }
@@ -57,7 +55,7 @@ mod generate {
     }
 
     pub fn generate_match(scrutinee:String,branches:Vec<String>) -> String {
-        let branches_str = branches.iter().fold("",|l,r|l + ",\n" + r);
+        let branches_str = "";
         let match_str = format!(r#"
         match {} {{
             {}
@@ -67,7 +65,7 @@ mod generate {
     }
 
     pub fn generate_step(num_branches:usize) -> String {
-        let match_branches = (0..num_branches).map(|num|{
+        let match_branches:Vec<String> = (0..num_branches).map(|num|{
             let num_str = num.to_string();
             let branch_str = format!("self.gen_dispatch_in_state_{}",num);
             gen_match_branch(num_str,branch_str)

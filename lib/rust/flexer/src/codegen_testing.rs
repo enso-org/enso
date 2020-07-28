@@ -71,9 +71,7 @@ impl PartialEq for State {
 
 
 
-pub trait TMP_LexerState {
-    // FIXME: I don't like it. This function should not need `reader` as input. It sohuld be implemented as `Default` instead.
-    //        Check why its needed and ficx it if possible.
+pub trait LexerState {
     fn new(reader:&mut Reader<DecoderUTF8,&[u8]>) -> Self;
 }
 
@@ -102,7 +100,7 @@ pub struct Lexer<'a,Def,T> {
     /// The tokens that have been lexed.
     tokens: Vec<T>,
     /// The initial state of the defined lexer.
-    def_initial_state: State,
+    initial_state: State,
 
     definition: Def
 }
@@ -121,7 +119,7 @@ impl<'a,Def,T> DerefMut for Lexer<'a,Def,T> {
 }
 
 impl<Def,T> Lexer<'_,Def,T>
-where Def : TMP_LexerState {
+where Def : LexerState {
     /// Creates a new lexer instance.
     ///
     /// Please note that the `reader` argument is currently hard-coded for testing purposes. This is
@@ -137,12 +135,12 @@ where Def : TMP_LexerState {
         let def_initial_state = State::new("INITIAL",0);
         state_stack.push(def_initial_state.id);
 
-        Lexer{state_stack,reader,current_match,status,tokens,def_initial_state,definition}
+        Lexer{state_stack,reader,current_match,status,tokens, initial_state: def_initial_state,definition}
     }
 }
 
 /// This block is things that are part of the lexer's interface and functionality.
-impl<Def:TMP_LexerState> Lexer<'_,Def,AST> {
+impl<Def: LexerState> Lexer<'_,Def,AST> {
 
 
     /// Gets the lexer result.
@@ -152,7 +150,7 @@ impl<Def:TMP_LexerState> Lexer<'_,Def,AST> {
 
     /// Gets the lexer's root state.
     pub fn root_state(&self) -> &State {
-        &self.def_initial_state
+        &self.initial_state
     }
 
     /// Gets the state that the lexer is currently in.
@@ -266,7 +264,7 @@ pub enum LexerResult<T> {
 // ==================
 
 #[derive(Debug)]
-pub struct EnsoLexerState {
+pub struct Enso {
 
     /// The state entered when the first word has been seen.
     def_seen_first_word_state: State,
@@ -274,7 +272,7 @@ pub struct EnsoLexerState {
     def_matched_bookmark: BookmarkId,
 }
 
-impl TMP_LexerState for EnsoLexerState {
+impl LexerState for Enso {
     fn new(reader:&mut Reader<DecoderUTF8,&[u8]>) -> Self {
         let def_seen_first_word_state = State::new("SEEN FIRST WORD",1);
         let def_matched_bookmark = reader.add_bookmark();
@@ -284,29 +282,26 @@ impl TMP_LexerState for EnsoLexerState {
 
 
 
+#[derive(Debug)]
+#[allow(missing_docs)]
 pub struct EnsoLexer<'t> {
-    lexer : Lexer<'t,EnsoLexerState,AST>
+    lexer : Lexer<'t, Enso,AST>
 }
 
+#[allow(missing_docs)]
 impl<'a> Deref for EnsoLexer<'a> {
-    type Target = Lexer<'a,EnsoLexerState,AST>;
+    type Target = Lexer<'a, Enso,AST>;
     fn deref(&self) -> &Self::Target {
         &self.lexer
     }
 }
 
+#[allow(missing_docs)]
 impl<'a> DerefMut for EnsoLexer<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.lexer
     }
 }
-
-
-
-
-///// This impl block contains functionality that should be generated.
-//#[allow(missing_docs)]
-//impl Lexer<'_,EnsoLexerState,AST> where Self:LexerImpl {
 
 impl<'t> EnsoLexer<'t> {
     // === Defined Actions ===
@@ -356,294 +351,291 @@ impl<'t> EnsoLexer<'t> {
 ////// === GENERATED ===
 ////// =================
 ////// =================
-//
-//
-//#[allow(missing_docs)]
-//impl<'t> EnsoLexer<'t> {
-//
-//    fn gen_step(&mut self,next_state:usize) -> LexerStageStatus {
-//        let current_state = self.current_state();
-//
-//        // This match should be generated
-//        match current_state {
-//            0 => self.gen_dispatch_in_state_0(next_state),
-//            1 => self.gen_dispatch_in_state_1(next_state),
-//            _ => unreachable_panic!("Unreachable state reached in lexer.")
-//        }
-//    }
-//
-///// Executes the lexer on the input provided by the reader, resulting in a
-///// series of tokens.
-//pub fn run(&mut self) -> LexerResult<AST> {
-//    self.reader.advance_char();
-//
-//    while self.run_current_state() == LexerStageStatus::ExitSuccess {}
-//
-//    match self.get_result() {
-//        Some(res) => match self.status {
-//            LexerStageStatus::ExitFinished => LexerResult::Success(res),
-//            LexerStageStatus::ExitFail => LexerResult::Failure(Some(res)),
-//            _ => LexerResult::Partial(res)
-//        }
-//        None => LexerResult::Failure(None)
-//    }
-//}
-//
-///// Executes the lexer in the current state.
-//fn run_current_state(&mut self) -> LexerStageStatus {
-//    self.status = LexerStageStatus::Initial;
-//
-//    // Runs until reaching a state that no longer says to continue.
-//    while let Some(next_state) = self.status.continue_as() {
-//        self.status = self.gen_step(next_state);
-//
-//        if self.reader.finished() {
-//            self.status = LexerStageStatus::ExitFinished
-//        }
-//
-//        if self.status.should_continue() {
-//            if let Ok(char) = self.reader.character.char {
-//                self.reader.result.push(char);
-//            }
-//            self.reader.advance_char();
-//        }
-//    }
-//
-//    self.status
-//}
-//
-//    // === DFA Steps ===
-//
-//    fn gen_dispatch_in_state_0(&mut self,new_state_index:usize) -> LexerStageStatus {
-//        match new_state_index {
-//            0 => self.gen_state_0_to_0(),
-//            1 => self.gen_state_0_to_1(),
-//            2 => self.gen_state_0_to_2(),
-//            3 => self.gen_state_0_to_3(),
-//            4 => self.gen_state_0_to_4(),
-//            5 => self.gen_state_0_to_5(),
-//            6 => self.gen_state_0_to_6(),
-//            _ => unreachable_panic!("Unreachable state reached in lexer.")
-//        }
-//    }
-//
-//    fn gen_state_0_to_0(&mut self) -> LexerStageStatus {
-//        match u32::from(self.reader.character) {
-//            97 => LexerStageStatus::ContinueWith(3),
-//            98 => LexerStageStatus::ContinueWith(4),
-//            _  => LexerStageStatus::ContinueWith(2)
-//        }
-//    }
-//
-//    fn gen_state_0_to_1(&mut self) -> LexerStageStatus {
-//        // Code similar to this is duplicated _a lot_. This is intentional, as I can't find a way to
-//        // remove the duplication that doesn't incur dynamic dispatch overhead or run afoul of
-//        // borrowck.
-//        self.current_match = self.reader.pop_result();
-//        self.gen_group_0_rule_2();
-//        let t = self.def_matched_bookmark;
-//        self.reader.bookmark(t);
-//        LexerStageStatus::ExitSuccess
-//    }
-//
-//    fn gen_state_0_to_2(&mut self) -> LexerStageStatus {
-//        self.current_match = self.reader.pop_result();
-//        self.gen_group_0_rule_3();
-//        let t = self.def_matched_bookmark;
-//        self.reader.bookmark(t);
-//        LexerStageStatus::ExitSuccess
-//    }
-//
-//    fn gen_state_0_to_3(&mut self) -> LexerStageStatus {
-//        match u32::from(self.reader.character) {
-//            97 => LexerStageStatus::ContinueWith(5),
-//            _  => {
-//                self.current_match = self.reader.pop_result();
-//                self.gen_group_0_rule_0();
-//                let t = self.def_matched_bookmark;
-//                self.reader.bookmark(t);
-//                LexerStageStatus::ExitSuccess
-//            }
-//        }
-//    }
-//
-//    fn gen_state_0_to_4(&mut self) -> LexerStageStatus {
-//        match u32::from(self.reader.character) {
-//            98 => LexerStageStatus::ContinueWith(6),
-//            _  => {
-//                self.current_match = self.reader.pop_result();
-//                self.gen_group_0_rule_1();
-//                let t = self.def_matched_bookmark;
-//                self.reader.bookmark(t);
-//                LexerStageStatus::ExitSuccess
-//            }
-//        }
-//    }
-//
-//    fn gen_state_0_to_5(&mut self) -> LexerStageStatus {
-//        match u32::from(self.reader.character) {
-//            97 => LexerStageStatus::ContinueWith(5),
-//            _ => {
-//                self.current_match = self.reader.pop_result();
-//                self.gen_group_0_rule_0();
-//                let t = self.def_matched_bookmark;
-//                self.reader.bookmark(t);
-//                LexerStageStatus::ExitSuccess
-//            }
-//        }
-//    }
-//
-//    fn gen_state_0_to_6(&mut self) -> LexerStageStatus {
-//        match u32::from(self.reader.character) {
-//            98 => LexerStageStatus::ContinueWith(6),
-//            _ => {
-//                self.current_match = self.reader.pop_result();
-//                self.gen_group_0_rule_1();
-//                let t = self.def_matched_bookmark;
-//                self.reader.bookmark(t);
-//                LexerStageStatus::ExitSuccess
-//            }
-//        }
-//    }
-//
-//    fn gen_group_0_rule_0(&mut self) -> () {
-//        self.def_on_first_word_str(self.current_match.clone())
-//    }
-//
-//    fn gen_group_0_rule_1(&mut self) -> () {
-//        self.def_on_first_word_str(self.current_match.clone())
-//    }
-//
-//    fn gen_group_0_rule_2(&mut self) -> () {
-//        self.def_on_err_suffix_first_word()
-//    }
-//
-//    fn gen_group_0_rule_3(&mut self) {
-//        self.def_on_err_suffix_first_word()
-//    }
-//
-//    fn gen_dispatch_in_state_1(&mut self, new_state_index:usize) -> LexerStageStatus {
-//        match new_state_index {
-//            0 => self.gen_state_1_to_0(),
-//            1 => self.gen_state_1_to_1(),
-//            2 => self.gen_state_1_to_2(),
-//            3 => self.gen_state_1_to_3(),
-//            4 => self.gen_state_1_to_4(),
-//            5 => self.gen_state_1_to_5(),
-//            6 => self.gen_state_1_to_6(),
-//            7 => self.gen_state_1_to_7(),
-//            _ => unreachable_panic!("Unreachable state reached in lexer.")
-//        }
-//    }
-//
-//    fn gen_state_1_to_0(&mut self) -> LexerStageStatus {
-//        match u32::from(self.reader.character) {
-//            32 => LexerStageStatus::ContinueWith(3),
-//            _  => LexerStageStatus::ContinueWith(2)
-//        }
-//    }
-//
-//    fn gen_state_1_to_1(&mut self) -> LexerStageStatus {
-//        self.current_match = self.reader.pop_result();
-//        self.gen_group_1_rule_2();
-//        let t = self.def_matched_bookmark;
-//        self.reader.bookmark(t);
-//        LexerStageStatus::ExitSuccess
-//    }
-//
-//    fn gen_state_1_to_2(&mut self) -> LexerStageStatus {
-//        self.current_match = self.reader.pop_result();
-//        self.gen_group_1_rule_3();
-//        let t = self.def_matched_bookmark;
-//        self.reader.bookmark(t);
-//        LexerStageStatus::ExitSuccess
-//    }
-//
-//    fn gen_state_1_to_3(&mut self) -> LexerStageStatus {
-//        match u32::from(self.reader.character) {
-//            97 => LexerStageStatus::ContinueWith(4),
-//            98 => LexerStageStatus::ContinueWith(5),
-//            _  => {
-//                self.current_match = self.reader.pop_result();
-//                self.gen_group_1_rule_3();
-//                let t = self.def_matched_bookmark;
-//                self.reader.bookmark(t);
-//                LexerStageStatus::ExitSuccess
-//            }
-//        }
-//    }
-//
-//    fn gen_state_1_to_4(&mut self) -> LexerStageStatus {
-//        match u32::from(self.reader.character) {
-//            97 => LexerStageStatus::ContinueWith(6),
-//            _  => {
-//                self.current_match = self.reader.pop_result();
-//                self.gen_group_1_rule_0();
-//                let t = self.def_matched_bookmark;
-//                self.reader.bookmark(t);
-//                LexerStageStatus::ExitSuccess
-//            }
-//        }
-//    }
-//
-//    fn gen_state_1_to_5(&mut self) -> LexerStageStatus {
-//        match u32::from(self.reader.character) {
-//            98 => LexerStageStatus::ContinueWith(7),
-//            _  => {
-//                self.current_match = self.reader.pop_result();
-//                self.gen_group_1_rule_1();
-//                let t = self.def_matched_bookmark;
-//                self.reader.bookmark(t);
-//                LexerStageStatus::ExitSuccess
-//            }
-//        }
-//    }
-//
-//    fn gen_state_1_to_6(&mut self) -> LexerStageStatus {
-//        match u32::from(self.reader.character) {
-//            97 => LexerStageStatus::ContinueWith(6),
-//            _  => {
-//                self.current_match = self.reader.pop_result();
-//                self.gen_group_1_rule_0();
-//                let t = self.def_matched_bookmark;
-//                self.reader.bookmark(t);
-//                LexerStageStatus::ExitSuccess
-//            }
-//        }
-//    }
-//
-//    fn gen_state_1_to_7(&mut self) -> LexerStageStatus {
-//        match u32::from(self.reader.character) {
-//            98 => LexerStageStatus::ContinueWith(7),
-//            _  => {
-//                self.current_match = self.reader.pop_result();
-//                self.gen_group_1_rule_1();
-//                let t = self.def_matched_bookmark;
-//                self.reader.bookmark(t);
-//                LexerStageStatus::ExitSuccess
-//            }
-//        }
-//    }
-//
-//    fn gen_group_1_rule_0(&mut self) {
-//        self.def_on_spaced_word_str(self.current_match.clone());
-//    }
-//
-//    fn gen_group_1_rule_1(&mut self) -> () {
-//        self.def_on_spaced_word_str(self.current_match.clone());
-//    }
-//
-//    fn gen_group_1_rule_2(&mut self) {
-//        self.def_on_no_err_suffix();
-//    }
-//
-//    fn gen_group_1_rule_3(&mut self) {
-//        self.def_on_err_suffix()
-//    }
-//}
-//
 
 
+#[allow(missing_docs)]
+impl<'t> EnsoLexer<'t> {
+
+    // Executes the lexer on the input provided by the reader, resulting in a
+    // series of tokens.
+    pub fn run(&mut self) -> LexerResult<AST> {
+        self.reader.advance_char();
+
+        while self.run_current_state() == LexerStageStatus::ExitSuccess {}
+
+        match self.get_result() {
+            Some(res) => match self.status {
+                LexerStageStatus::ExitFinished => LexerResult::Success(res),
+                LexerStageStatus::ExitFail => LexerResult::Failure(Some(res)),
+                _ => LexerResult::Partial(res)
+            }
+            None => LexerResult::Failure(None)
+        }
+    }
+
+    // Executes the lexer in the current state.
+    fn run_current_state(&mut self) -> LexerStageStatus {
+        self.status = LexerStageStatus::Initial;
+
+        // Runs until reaching a state that no longer says to continue.
+        while let Some(next_state) = self.status.continue_as() {
+            self.status = self.gen_step(next_state);
+
+            if self.reader.finished() {
+                self.status = LexerStageStatus::ExitFinished
+            }
+
+            if self.status.should_continue() {
+                if let Ok(char) = self.reader.character.char {
+                    self.reader.result.push(char);
+                }
+                self.reader.advance_char();
+            }
+        }
+
+        self.status
+    }
+
+   fn gen_step(&mut self,next_state:usize) -> LexerStageStatus {
+       let current_state = self.current_state();
+
+       // This match should be generated
+       match current_state {
+           0 => self.gen_dispatch_in_state_0(next_state),
+           1 => self.gen_dispatch_in_state_1(next_state),
+           _ => unreachable_panic!("Unreachable state reached in lexer.")
+       }
+   }
+
+   // === DFA Steps ===
+
+   fn gen_dispatch_in_state_0(&mut self,new_state_index:usize) -> LexerStageStatus {
+       match new_state_index {
+           0 => self.gen_state_0_to_0(),
+           1 => self.gen_state_0_to_1(),
+           2 => self.gen_state_0_to_2(),
+           3 => self.gen_state_0_to_3(),
+           4 => self.gen_state_0_to_4(),
+           5 => self.gen_state_0_to_5(),
+           6 => self.gen_state_0_to_6(),
+           _ => unreachable_panic!("Unreachable state reached in lexer.")
+       }
+   }
+
+   fn gen_state_0_to_0(&mut self) -> LexerStageStatus {
+       match u32::from(self.reader.character) {
+           97 => LexerStageStatus::ContinueWith(3),
+           98 => LexerStageStatus::ContinueWith(4),
+           _  => LexerStageStatus::ContinueWith(2)
+       }
+   }
+
+   fn gen_state_0_to_1(&mut self) -> LexerStageStatus {
+       // Code similar to this is duplicated _a lot_. This is intentional, as I can't find a way to
+       // remove the duplication that doesn't incur dynamic dispatch overhead or run afoul of
+       // borrowck.
+       self.current_match = self.reader.pop_result();
+       self.gen_group_0_rule_2();
+       let t = self.def_matched_bookmark;
+       self.reader.bookmark(t);
+       LexerStageStatus::ExitSuccess
+   }
+
+   fn gen_state_0_to_2(&mut self) -> LexerStageStatus {
+       self.current_match = self.reader.pop_result();
+       self.gen_group_0_rule_3();
+       let t = self.def_matched_bookmark;
+       self.reader.bookmark(t);
+       LexerStageStatus::ExitSuccess
+   }
+
+   fn gen_state_0_to_3(&mut self) -> LexerStageStatus {
+       match u32::from(self.reader.character) {
+           97 => LexerStageStatus::ContinueWith(5),
+           _  => {
+               self.current_match = self.reader.pop_result();
+               self.gen_group_0_rule_0();
+               let t = self.def_matched_bookmark;
+               self.reader.bookmark(t);
+               LexerStageStatus::ExitSuccess
+           }
+       }
+   }
+
+   fn gen_state_0_to_4(&mut self) -> LexerStageStatus {
+       match u32::from(self.reader.character) {
+           98 => LexerStageStatus::ContinueWith(6),
+           _  => {
+               self.current_match = self.reader.pop_result();
+               self.gen_group_0_rule_1();
+               let t = self.def_matched_bookmark;
+               self.reader.bookmark(t);
+               LexerStageStatus::ExitSuccess
+           }
+       }
+   }
+
+   fn gen_state_0_to_5(&mut self) -> LexerStageStatus {
+       match u32::from(self.reader.character) {
+           97 => LexerStageStatus::ContinueWith(5),
+           _ => {
+               self.current_match = self.reader.pop_result();
+               self.gen_group_0_rule_0();
+               let t = self.def_matched_bookmark;
+               self.reader.bookmark(t);
+               LexerStageStatus::ExitSuccess
+           }
+       }
+   }
+
+   fn gen_state_0_to_6(&mut self) -> LexerStageStatus {
+       match u32::from(self.reader.character) {
+           98 => LexerStageStatus::ContinueWith(6),
+           _ => {
+               self.current_match = self.reader.pop_result();
+               self.gen_group_0_rule_1();
+               let t = self.def_matched_bookmark;
+               self.reader.bookmark(t);
+               LexerStageStatus::ExitSuccess
+           }
+       }
+   }
+
+   fn gen_group_0_rule_0(&mut self) -> () {
+       self.def_on_first_word_str(self.current_match.clone())
+   }
+
+   fn gen_group_0_rule_1(&mut self) -> () {
+       self.def_on_first_word_str(self.current_match.clone())
+   }
+
+   fn gen_group_0_rule_2(&mut self) -> () {
+       self.def_on_err_suffix_first_word()
+   }
+
+   fn gen_group_0_rule_3(&mut self) {
+       self.def_on_err_suffix_first_word()
+   }
+
+   fn gen_dispatch_in_state_1(&mut self, new_state_index:usize) -> LexerStageStatus {
+       match new_state_index {
+           0 => self.gen_state_1_to_0(),
+           1 => self.gen_state_1_to_1(),
+           2 => self.gen_state_1_to_2(),
+           3 => self.gen_state_1_to_3(),
+           4 => self.gen_state_1_to_4(),
+           5 => self.gen_state_1_to_5(),
+           6 => self.gen_state_1_to_6(),
+           7 => self.gen_state_1_to_7(),
+           _ => unreachable_panic!("Unreachable state reached in lexer.")
+       }
+   }
+
+   fn gen_state_1_to_0(&mut self) -> LexerStageStatus {
+       match u32::from(self.reader.character) {
+           32 => LexerStageStatus::ContinueWith(3),
+           _  => LexerStageStatus::ContinueWith(2)
+       }
+   }
+
+   fn gen_state_1_to_1(&mut self) -> LexerStageStatus {
+       self.current_match = self.reader.pop_result();
+       self.gen_group_1_rule_2();
+       let t = self.def_matched_bookmark;
+       self.reader.bookmark(t);
+       LexerStageStatus::ExitSuccess
+   }
+
+   fn gen_state_1_to_2(&mut self) -> LexerStageStatus {
+       self.current_match = self.reader.pop_result();
+       self.gen_group_1_rule_3();
+       let t = self.def_matched_bookmark;
+       self.reader.bookmark(t);
+       LexerStageStatus::ExitSuccess
+   }
+
+   fn gen_state_1_to_3(&mut self) -> LexerStageStatus {
+       match u32::from(self.reader.character) {
+           97 => LexerStageStatus::ContinueWith(4),
+           98 => LexerStageStatus::ContinueWith(5),
+           _  => {
+               self.current_match = self.reader.pop_result();
+               self.gen_group_1_rule_3();
+               let t = self.def_matched_bookmark;
+               self.reader.bookmark(t);
+               LexerStageStatus::ExitSuccess
+           }
+       }
+   }
+
+   fn gen_state_1_to_4(&mut self) -> LexerStageStatus {
+       match u32::from(self.reader.character) {
+           97 => LexerStageStatus::ContinueWith(6),
+           _  => {
+               self.current_match = self.reader.pop_result();
+               self.gen_group_1_rule_0();
+               let t = self.def_matched_bookmark;
+               self.reader.bookmark(t);
+               LexerStageStatus::ExitSuccess
+           }
+       }
+   }
+
+   fn gen_state_1_to_5(&mut self) -> LexerStageStatus {
+       match u32::from(self.reader.character) {
+           98 => LexerStageStatus::ContinueWith(7),
+           _  => {
+               self.current_match = self.reader.pop_result();
+               self.gen_group_1_rule_1();
+               let t = self.def_matched_bookmark;
+               self.reader.bookmark(t);
+               LexerStageStatus::ExitSuccess
+           }
+       }
+   }
+
+   fn gen_state_1_to_6(&mut self) -> LexerStageStatus {
+       match u32::from(self.reader.character) {
+           97 => LexerStageStatus::ContinueWith(6),
+           _  => {
+               self.current_match = self.reader.pop_result();
+               self.gen_group_1_rule_0();
+               let t = self.def_matched_bookmark;
+               self.reader.bookmark(t);
+               LexerStageStatus::ExitSuccess
+           }
+       }
+   }
+
+   fn gen_state_1_to_7(&mut self) -> LexerStageStatus {
+       match u32::from(self.reader.character) {
+           98 => LexerStageStatus::ContinueWith(7),
+           _  => {
+               self.current_match = self.reader.pop_result();
+               self.gen_group_1_rule_1();
+               let t = self.def_matched_bookmark;
+               self.reader.bookmark(t);
+               LexerStageStatus::ExitSuccess
+           }
+       }
+   }
+
+   fn gen_group_1_rule_0(&mut self) {
+       self.def_on_spaced_word_str(self.current_match.clone());
+   }
+
+   fn gen_group_1_rule_1(&mut self) -> () {
+       self.def_on_spaced_word_str(self.current_match.clone());
+   }
+
+   fn gen_group_1_rule_2(&mut self) {
+       self.def_on_no_err_suffix();
+   }
+
+   fn gen_group_1_rule_3(&mut self) {
+       self.def_on_err_suffix()
+   }
+}
 
 
 
@@ -661,90 +653,90 @@ mod test {
 
 
 
-//    /// Executes the test on the provided input string slice.
-//    fn run_test_on(str:&str) -> Vec<AST> {
-//        // Hardcoded for ease of use here.
-//        let reader = Reader::new(str.as_bytes(),DecoderUTF8());
-//        let mut lexer:Lexer<EnsoLexerState,AST> = Lexer::new(reader);
-//        let mut lexer = EnsoLexer{lexer};
-//
-//        match lexer.run() {
-//            LexerResult::Success(tokens) => tokens,
-//            _ => vec![]
-//        }
-//    }
-//
-//    #[test]
-//    fn test_single_a_word() {
-//        let input = "aaaaa";
-//        let expected_output = vec![AST::Word(String::from(input))];
-//        let result = run_test_on(input);
-//        assert_eq!(result,expected_output);
-//    }
-//
-//    #[test]
-//    fn test_single_b_word() {
-//        let input = "bbbbb";
-//        let expected_output = vec![AST::Word(String::from(input))];
-//        let result = run_test_on(input);
-//        assert_eq!(result,expected_output);
-//    }
-//
-//    #[test]
-//    fn test_two_word() {
-//        let input = "aaaaa bbbbb";
-//        let expected_output =
-//            vec![AST::Word(String::from("aaaaa")),AST::Word(String::from("bbbbb"))];
-//        let result = run_test_on(input);
-//        assert_eq!(result,expected_output);
-//    }
-//
-//    #[test]
-//    fn test_multi_word() {
-//        let input = "bbb aa a b bbbbb aa";
-//        let expected_output = vec![
-//            AST::Word(String::from("bbb")),
-//            AST::Word(String::from("aa")),
-//            AST::Word(String::from("a")),
-//            AST::Word(String::from("b")),
-//            AST::Word(String::from("bbbbb")),
-//            AST::Word(String::from("aa"))
-//        ];
-//        let result = run_test_on(input);
-//        assert_eq!(result,expected_output);
-//    }
-//
-//    #[test]
-//    fn test_invalid_single_word() {
-//        let input = "c";
-//        let expected_output = vec![AST::Unrecognised(String::from(input))];
-//        let result = run_test_on(input);
-//        assert_eq!(result,expected_output);
-//    }
-//
-//    #[test]
-//    fn test_multi_word_invalid() {
-//        let input = "aaaaaa c bbbbbb";
-//        let expected_output = vec![
-//            AST::Word(String::from("aaaaaa")),
-//            AST::Unrecognised(String::from(" ")),
-//            AST::Unrecognised(String::from("c")),
-//            AST::Unrecognised(String::from(" ")),
-//            AST::Word(String::from("bbbbbb")),
-//        ];
-//        let result = run_test_on(input);
-//        assert_eq!(result,expected_output);
-//    }
-//
-//    #[test]
-//    fn test_end_invalid() {
-//        let input = "bbbbbb c";
-//        let expected_output = vec![
-//            AST::Word(String::from("bbbbbb")),
-//            AST::Unrecognised(String::from(" ")),
-//            AST::Unrecognised(String::from("c")),
-//        ];
-//        let result = run_test_on(input);
-//        assert_eq!(result,expected_output);
-//    }
+   /// Executes the test on the provided input string slice.
+   fn run_test_on(str:&str) -> Vec<AST> {
+       // Hardcoded for ease of use here.
+       let reader = Reader::new(str.as_bytes(),DecoderUTF8());
+       let mut lexer:Lexer<Enso,AST> = Lexer::new(reader);
+       let mut lexer = EnsoLexer{lexer};
+
+       match lexer.run() {
+           LexerResult::Success(tokens) => tokens,
+           _ => vec![]
+       }
+   }
+
+   #[test]
+   fn test_single_a_word() {
+       let input = "aaaaa";
+       let expected_output = vec![AST::Word(String::from(input))];
+       let result = run_test_on(input);
+       assert_eq!(result,expected_output);
+   }
+
+   #[test]
+   fn test_single_b_word() {
+       let input = "bbbbb";
+       let expected_output = vec![AST::Word(String::from(input))];
+       let result = run_test_on(input);
+       assert_eq!(result,expected_output);
+   }
+
+   #[test]
+   fn test_two_word() {
+       let input = "aaaaa bbbbb";
+       let expected_output =
+           vec![AST::Word(String::from("aaaaa")),AST::Word(String::from("bbbbb"))];
+       let result = run_test_on(input);
+       assert_eq!(result,expected_output);
+   }
+
+   #[test]
+   fn test_multi_word() {
+       let input = "bbb aa a b bbbbb aa";
+       let expected_output = vec![
+           AST::Word(String::from("bbb")),
+           AST::Word(String::from("aa")),
+           AST::Word(String::from("a")),
+           AST::Word(String::from("b")),
+           AST::Word(String::from("bbbbb")),
+           AST::Word(String::from("aa"))
+       ];
+       let result = run_test_on(input);
+       assert_eq!(result,expected_output);
+   }
+
+   #[test]
+   fn test_invalid_single_word() {
+       let input = "c";
+       let expected_output = vec![AST::Unrecognised(String::from(input))];
+       let result = run_test_on(input);
+       assert_eq!(result,expected_output);
+   }
+
+   #[test]
+   fn test_multi_word_invalid() {
+       let input = "aaaaaa c bbbbbb";
+       let expected_output = vec![
+           AST::Word(String::from("aaaaaa")),
+           AST::Unrecognised(String::from(" ")),
+           AST::Unrecognised(String::from("c")),
+           AST::Unrecognised(String::from(" ")),
+           AST::Word(String::from("bbbbbb")),
+       ];
+       let result = run_test_on(input);
+       assert_eq!(result,expected_output);
+   }
+
+   #[test]
+   fn test_end_invalid() {
+       let input = "bbbbbb c";
+       let expected_output = vec![
+           AST::Word(String::from("bbbbbb")),
+           AST::Unrecognised(String::from(" ")),
+           AST::Unrecognised(String::from("c")),
+       ];
+       let result = run_test_on(input);
+       assert_eq!(result,expected_output);
+   }
 }
