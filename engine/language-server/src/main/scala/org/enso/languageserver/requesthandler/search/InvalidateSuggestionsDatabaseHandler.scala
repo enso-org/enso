@@ -4,6 +4,10 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Status}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
+import org.enso.languageserver.runtime.{
+  ContextRegistryProtocol,
+  RuntimeFailureMapper
+}
 import org.enso.languageserver.search.SearchApi.{
   InvalidateSuggestionsDatabase,
   SuggestionsDatabaseError
@@ -56,6 +60,11 @@ class InvalidateSuggestionsDatabaseHandler(
 
     case msg: SearchProtocol.SearchFailure =>
       replyTo ! ResponseError(Some(id), SearchFailureMapper.mapFailure(msg))
+
+    case error: ContextRegistryProtocol.Failure =>
+      replyTo ! ResponseError(Some(id), RuntimeFailureMapper.mapFailure(error))
+      cancellable.cancel()
+      context.stop(self)
 
     case SearchProtocol.InvalidateSuggestionsDatabaseResult =>
       replyTo ! ResponseResult(InvalidateSuggestionsDatabase, id, Unused)
