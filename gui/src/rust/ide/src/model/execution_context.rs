@@ -10,11 +10,11 @@ use crate::notification::Publisher;
 
 use enso_protocol::language_server;
 use enso_protocol::language_server::ExpressionValueUpdate;
-use enso_protocol::language_server::ExpressionValuesComputed;
 use enso_protocol::language_server::MethodPointer;
 use enso_protocol::language_server::VisualisationConfiguration;
 use flo_stream::Subscriber;
 use std::collections::HashMap;
+use utils::future::ready_boxed;
 use uuid::Uuid;
 
 
@@ -95,10 +95,10 @@ impl ComputedValueInfoRegistry {
     }
 
     /// Store the information from the given update received from the Language Server.
-    pub fn apply_update(&self, values_computed:ExpressionValuesComputed) {
-        let updated_expressions = values_computed.updates.iter().map(|update| update.id).collect();
+    pub fn apply_updates(&self, values_computed:Vec<ExpressionValueUpdate>) {
+        let updated_expressions = values_computed.iter().map(|update| update.id).collect();
         with(self.map.borrow_mut(), |mut map| {
-            for update in values_computed.updates {
+            for update in values_computed {
                 let id   = update.id;
                 let info = Rc::new(ComputedValueInfo::from(update));
                 map.insert(id,info);
@@ -115,6 +115,39 @@ impl ComputedValueInfoRegistry {
     /// Look up the registry for information about given expression.
     pub fn get(&self, id:&ExpressionId) -> Option<Rc<ComputedValueInfo>> {
         self.map.borrow_mut().get(id).cloned()
+    }
+
+    /// Obtain a `Future` with data from this registry. If data is not available yet, the future
+    /// will be ready once the data becomes available.
+    ///
+    /// The given function `F` should attempt retrieving desired information from the computed value
+    /// entry. Returning `None` means that desired information is not available yet.
+    ///
+    /// The `Future` yields `None` only when this registry itself has been dropped.
+    pub fn get_from_info<F,T>(self:&Rc<Self>, id:ExpressionId, mut f:F) -> StaticBoxFuture<Option<T>>
+    where F : FnMut(Rc<ComputedValueInfo>) -> Option<T> + 'static,
+          T : 'static {
+        let weak = Rc::downgrade(&self);
+        if let Some(ret) = self.get(&id).and_then(&mut f) {
+            ready_boxed(Some(ret))
+        } else {
+            let info_updates = self.subscribe().filter_map(move |update| {
+                let result = update.contains(&id).and_option_from(|| {
+                    weak.upgrade().and_then(|this| this.get(&id)).and_then(&mut f)
+                });
+                futures::future::ready(result)
+            });
+            let ret = info_updates.into_future().map(|(head_value,_stream_tail)| head_value);
+            ret.boxed_local()
+        }
+    }
+
+    /// Get a future that yields a typename information for given expression as soon as it is
+    /// available.
+    ///
+    /// The `Future` yields `None` only when this registry itself has been dropped.
+    pub fn get_type(self:&Rc<Self>, id:ExpressionId) -> StaticBoxFuture<Option<ImString>> {
+        self.get_from_info(id, |info| info.typename.clone())
     }
 }
 
@@ -252,7 +285,7 @@ pub trait API : Debug {
     fn active_visualizations(&self) -> Vec<VisualizationId>;
 
     /// Get the registry of computed values.
-    fn computed_value_info_registry(&self) -> &ComputedValueInfoRegistry;
+    fn computed_value_info_registry(&self) -> &Rc<ComputedValueInfoRegistry>;
 
     /// Get all items on stack.
     fn stack_items<'a>(&'a self) -> Box<dyn Iterator<Item=LocalCall> + 'a>;
@@ -298,3 +331,46 @@ pub type ExecutionContext = Rc<dyn API>;
 pub type Plain = plain::ExecutionContext;
 /// Execution Context Model which synchronizes all changes with Language Server.
 pub type Synchronized = synchronized::ExecutionContext;
+
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::executor::test_utils::TestWithLocalPoolExecutor;
+
+    use enso_protocol::language_server::types::test::value_update_with_type;
+
+    #[test]
+    fn getting_future_type_from_registry() {
+        let mut fixture = TestWithLocalPoolExecutor::set_up();
+
+        use utils::test::traits::*;
+        let registry = Rc::new(ComputedValueInfoRegistry::default());
+        let weak     = Rc::downgrade(&registry);
+        let id1      = Id::new_v4();
+        let id2      = Id::new_v4();
+        let mut type_future1 = registry.get_type(id1);
+        let mut type_future2 = registry.get_type(id2);
+        type_future1.expect_pending();
+        type_future2.expect_pending();
+        let typename = crate::test::mock::data::TYPE_NAME;
+        let update1  = value_update_with_type(id1,typename);
+        registry.apply_updates(vec![update1]);
+        assert_eq!(fixture.expect_completion(type_future1), Some(typename.into()));
+        type_future2.expect_pending();
+        // Next attempt should return value immediately, as it is already in the registry.
+        assert_eq!(fixture.expect_completion(registry.get_type(id1)), Some(typename.into()));
+        // The value for other id should not be obtainable though.
+        fixture.expect_pending(registry.get_type(id2));
+
+        drop(registry);
+        assert!(weak.upgrade().is_none()); // make sure we had not leaked handles to registry
+        assert_eq!(fixture.expect_completion(type_future2), None);
+    }
+}

@@ -85,6 +85,16 @@ impl TestWithLocalPoolExecutor {
         self.run_until_stalled();
         fut.boxed_local().expect_ready()
     }
+
+    /// Run all tasks until stalled and try retrieving value from the future.
+    /// Panics if the future is able to complete then.
+    ///
+    /// This function is useful when testing that some values are not immediately available, when we
+    /// don't care what this value will be eventually (as this function consumes the Future).
+    pub fn expect_pending<R>(&mut self, fut:impl Future<Output=R>) {
+        self.run_until_stalled();
+        fut.boxed_local().expect_pending()
+    }
 }
 
 impl Drop for TestWithLocalPoolExecutor {

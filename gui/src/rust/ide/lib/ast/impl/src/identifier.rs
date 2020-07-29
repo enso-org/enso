@@ -19,3 +19,11 @@ pub fn name(ast:&Ast) -> Option<&String> {
         _                         => None,
     }
 }
+
+/// If the node is a variable (lower-cased) identifier, return the name.
+pub fn as_var(ast:&Ast) -> Option<&String> {
+    match ast.shape() {
+        Shape::Var(val) => Some(&val.name),
+        _               => None,
+    }
+}

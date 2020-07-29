@@ -629,3 +629,21 @@ pub struct SuggestionDatabaseUpdatesEvent {
     pub updates         : Vec<SuggestionsDatabaseUpdate>,
     pub current_version : SuggestionsDatabaseVersion,
 }
+
+/// Utilities for testing code using the LS types.
+pub mod test {
+    use super::*;
+
+    use crate::language_server::ExpressionId;
+
+    /// Generate `ExpressionValueUpdate` with update for a single expression bringing only the
+    /// typename.
+    pub fn value_update_with_type(id:ExpressionId, typename:impl Into<String>) -> ExpressionValueUpdate {
+        ExpressionValueUpdate {
+            id,
+            typename    : Some(typename.into()),
+            method_call : None,
+            short_value : None,
+        }
+    }
+}

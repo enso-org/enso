@@ -546,11 +546,16 @@ impl Handle {
     pub fn introduce_name_on(&self, id:node::Id) -> FallibleResult<ast::known::Var> {
         let node = self.node(id)?;
         let name = self.variable_name_for(&node.info)?;
-        self.update_node(id, |mut node| {
-            node.set_pattern(name.ast().clone());
-            node
-        })?;
+        self.set_pattern_on(id,name.ast().clone())?;
         Ok(name)
+    }
+
+    /// Set a new pattern on the node with given id. Discards any previously set pattern.
+    pub fn set_pattern_on(&self, id:node::Id, pattern:Ast) -> FallibleResult<()> {
+        self.update_node(id, |mut node| {
+            node.set_pattern(pattern);
+            node
+        })
     }
 
     /// Obtains information for connection's destination endpoint.
@@ -640,11 +645,17 @@ impl Handle {
         self.set_expression_ast(connection.destination.node, updated_expression)
     }
 
+    /// Obtain the definition information for this graph from the module's AST.
+    pub fn definition(&self) -> FallibleResult<definition::ChildDefinition> {
+        let module_ast = self.module.ast();
+        module::locate(&module_ast, &self.id)
+    }
+
     /// Updates the AST of the definition of this graph.
     pub fn update_definition_ast<F>(&self, f:F) -> FallibleResult<()>
     where F:FnOnce(definition::DefinitionInfo) -> FallibleResult<definition::DefinitionInfo> {
         let ast_so_far     = self.module.ast();
-        let definition     = module::locate(&ast_so_far, &self.id)?;
+        let definition     = self.definition()?;
         let new_definition = f(definition.item)?;
         info!(self.logger, "Applying graph changes onto definition");
         let new_ast    = new_definition.ast.into();

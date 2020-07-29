@@ -1047,10 +1047,6 @@ impl GraphEditorModel {
     pub fn all_nodes(&self) -> Vec<NodeId> {
         self.nodes.all.keys()
     }
-
-    pub fn selected_nodes(&self) -> Vec<NodeId> {
-        self.nodes.selected.items()
-    }
 }
 
 
@@ -1073,7 +1069,11 @@ impl GraphEditorModel {
         }
     }
 
-    fn last_selected_node(&self) -> Option<NodeId> {
+    pub fn selected_nodes(&self) -> Vec<NodeId> {
+        self.nodes.selected.items()
+    }
+
+    pub fn last_selected_node(&self) -> Option<NodeId> {
         self.nodes.selected.last_cloned()
     }
 }

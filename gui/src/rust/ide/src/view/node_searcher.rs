@@ -80,13 +80,17 @@ impl NodeSearcher {
     /// Show NodeSearcher if it is invisible.
     pub fn show(&mut self) {
         if !self.is_shown() {
-            let logger     = self.logger.clone_ref();
             let position   = self.position() - self.node_editor.position();
             let position   = Some(Position::new(position.x,position.y));
             let graph      = self.node_editor.graph.controller().clone_ref();
             let mode       = controller::searcher::Mode::NewNode {position};
-            let controller = controller::Searcher::new_from_graph_controller(&logger,&self.project,
-                graph,mode);
+            let selected_nodes = self.node_editor.selected_nodes().unwrap_or_else(|e| {
+                error!(self.logger,"Failed to obtain information about selected nodes. {e}");
+                default()
+            });
+            let controller = controller::Searcher::new_from_graph_controller(&self.logger,
+                &self.project,graph,mode,selected_nodes);
+            let logger     = self.logger.clone_ref();
             let weak       = Rc::downgrade(&self.controller);
             match controller {
                 Ok(controller) => {

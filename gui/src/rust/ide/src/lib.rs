@@ -1,6 +1,7 @@
 //! Main library crate for IDE. It includes implementation of
 //! controllers, view logic and code that wraps them all together.
 //!
+#![feature(arbitrary_self_types)]
 #![feature(async_closure)]
 #![feature(associated_type_bounds)]
 #![feature(bool_to_option)]
@@ -10,6 +11,7 @@
 #![feature(iter_order_by)]
 #![feature(option_result_contains)]
 #![feature(trait_alias)]
+#![feature(matches_macro)]
 #![recursion_limit="256"]
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
