@@ -14,7 +14,7 @@ use flexer::*;
 use flexer::prelude::*;
 use lazy_reader::decoder::DecoderUTF8;
 use lazy_reader::{BookmarkId,LazyReader,Reader};
-use flexer::group::Group;
+use flexer::group::GroupRegistry;
 
 
 // ===========
@@ -55,7 +55,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     pub fn def_on_first_word(&mut self,ast:AST) {
         self.tokens.push(ast);
-        let id = self.seen_first_word_state.id;
+        let id = self.seen_first_word_state;
         self.begin_state(id);
     }
 
@@ -395,10 +395,12 @@ impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
 /// The stateful components of the test lexer.
 #[derive(Debug)]
 pub struct TestState {
+    /// The registry for groups in the lexer.
+    lexer_states: GroupRegistry,
     /// The initial state of the lexer.
-    initial_state: Group,
+    initial_state: usize,
     /// The state entered when the first word has been seen.
-    seen_first_word_state: Group,
+    seen_first_word_state: usize,
     /// A bookmark that is set when a match occurs, allowing for rewinding if necessary.
     matched_bookmark: BookmarkId,
 }
@@ -408,18 +410,19 @@ pub struct TestState {
 
 impl <Reader:LazyReader> FlexerState<Reader> for TestState {
     fn new(reader:&mut Reader) -> Self {
-        let initial_state         = Group::new(0,String::from("ROOT"),None);
-        let seen_first_word_state = Group::new(1,String::from("SEEN FIRST WORD"),None);
+        let mut lexer_states      = GroupRegistry::default();
+        let initial_state         = lexer_states.define_group("ROOT".into(),None);
+        let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(),None);
         let matched_bookmark      = reader.add_bookmark();
-        Self{initial_state,seen_first_word_state,matched_bookmark}
+        Self{lexer_states,initial_state,seen_first_word_state,matched_bookmark}
     }
 
-    fn initial_state(&self) -> &Group {
-        &self.initial_state
+    fn initial_state(&self) -> usize {
+        self.initial_state
     }
 
-    fn groups(&self) -> Vec<&Group> {
-        vec![&self.initial_state,&self.seen_first_word_state]
+    fn groups(&self) -> &GroupRegistry {
+        &self.lexer_states
     }
 }
 

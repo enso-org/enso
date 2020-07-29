@@ -20,7 +20,7 @@
 use crate::prelude::*;
 
 use lazy_reader::LazyReader;
-use crate::group::Group;
+use crate::group::GroupRegistry;
 
 pub mod automata;
 pub mod data;
@@ -87,7 +87,7 @@ where Definition: FlexerState<Reader>,Reader:LazyReader {
         let mut tokens = Vec::new();
         tokens.reserve(1024);
         let definition = Definition::new(&mut reader);
-        let initial_state_id = definition.initial_state().id;
+        let initial_state_id = definition.initial_state();
         state_stack.push(initial_state_id);
 
         Flexer {state_stack,reader,current_match,status,tokens,definition}
@@ -103,8 +103,8 @@ where Definition:FlexerState<Reader>,Reader:LazyReader,Output:Clone {
     }
 
     /// Gets the lexer's root state.
-    pub fn root_state(&self) -> &Group {
-        &self.definition.initial_state()
+    pub fn root_state(&self) -> usize {
+        self.definition.initial_state()
     }
 
     /// Gets the state that the lexer is currently in.
@@ -215,9 +215,9 @@ pub trait FlexerState<Reader:LazyReader> {
     /// Creates a new instance of the lexer's state.
     fn new(reader:&mut Reader) -> Self;
     /// Returns the _initial_ lexing state.
-    fn initial_state(&self) -> &Group;
+    fn initial_state(&self) -> usize;
     /// Returns references to all of the groups for a given lexer state.
-    fn groups(&self) -> Vec<&Group>;
+    fn groups(&self) -> &GroupRegistry;
 }
 
 

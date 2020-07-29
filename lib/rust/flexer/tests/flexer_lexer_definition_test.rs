@@ -11,13 +11,10 @@
 //! language    = word, spaced-word*;
 
 use flexer::prelude::*;
-use flexer::automata::dfa::DFA;
-use flexer::automata::nfa::NFA;
-use flexer::group::Group;
+use flexer::group::{Group, GroupRegistry};
 use lazy_reader::{BookmarkId, LazyReader, Reader};
 use flexer::{FlexerState, Flexer};
 use lazy_reader::decoder::DecoderUTF8;
-use flexer::automata::pattern::Pattern;
 
 
 // ===========
@@ -59,13 +56,6 @@ impl Lexer {
         self.groups.push(group);
         self.groups.get_mut(id).expect("Has just been pushed so should always exist.")
     }
-
-    pub fn specialize(&self) -> String {
-        let group_nfa:Vec<NFA>  = self.groups.iter().map(|group|group.into()).collect();
-        let _group_dfa:Vec<DFA> = group_nfa.iter().map(|nfa|nfa.into()).collect();
-        let str = String::new();
-        str
-    }
 }
 
 #[derive(Debug)]
@@ -94,7 +84,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     pub fn def_on_first_word(&mut self,ast:AST) {
         self.tokens.push(ast);
-        let id = self.seen_first_word_group.id;
+        let id = self.seen_first_word_group;
         self.begin_state(id);
     }
 
@@ -145,27 +135,28 @@ impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct TestState {
-    root_group: Group,
-    seen_first_word_group: Group,
+    lexer_states: GroupRegistry,
+    root_group: usize,
+    seen_first_word_group: usize,
     matched_bookmark: BookmarkId
 }
 
 impl<Reader:LazyReader> FlexerState<Reader> for TestState {
     // TODO [AA] Could the definition happen here?
     fn new(reader: &mut Reader) -> Self {
-        let root_group = Group::new(0,String::from("ROOT"),None);
-        // TODO [AA] The parent here is just for compilation testing. It doesn't lex properly.
-        let seen_first_word_group = Group::new(1,String::from("SEEN FIRST WORD"),None);
-        let matched_bookmark = reader.add_bookmark();
-        TestState{root_group,seen_first_word_group,matched_bookmark}
+        let mut lexer_states      = GroupRegistry::default();
+        let root_group            = lexer_states.define_group("ROOT".into(),None);
+        let seen_first_word_group = lexer_states.define_group("SEEN FIRST WORD".into(),None);
+        let matched_bookmark      = reader.add_bookmark();
+        TestState{lexer_states,root_group,seen_first_word_group,matched_bookmark}
     }
 
-    fn initial_state(&self) -> &Group {
-        &self.root_group
+    fn initial_state(&self) -> usize {
+        self.root_group
     }
 
-    fn groups(&self) -> Vec<&Group> {
-        vec![&self.root_group,&self.seen_first_word_group]
+    fn groups(&self) -> &GroupRegistry {
+        &self.lexer_states
     }
 }
 
@@ -175,27 +166,21 @@ impl<Reader:LazyReader> FlexerState<Reader> for TestState {
 // === Tests ===
 // =============
 
-// #[test]
-// fn test_lexer_definition() {
-//     // TODO [AA] Needing a dummy reader to define the lexer is awkward.
-//     let str = "aaaaa".as_bytes();
-//     let reader = Reader::new(str,DecoderUTF8());
-//     let mut lexer = TestLexer::new(reader);
-//
-//     let a_word        = Pattern::char('a').many1();
-//     let b_word        = Pattern::char('b').many1();
-//     let space         = Pattern::char(' ');
-//     let spaced_a_word = space.clone() >> a_word.clone();
-//     let spaced_b_word = space.clone() >> b_word.clone();
-//     let any           = Pattern::any();
-//     let end           = Pattern::eof();
-//
-//     // TODO [AA] Can't use this, because it requires no additional refs be held.
-//     // TODO [AA] Needs to be RefCell.
-//     // let root_group = Rc::get_mut(&mut lexer.root_group).unwrap();
-//     // TODO [AA] The functions used in callbacks must take no arguments other than self.
-//     // root_group.create_rule(&a_word,"lexer.on_first_word_str()")
-// }
+#[test]
+fn test_lexer_definition() {
+    // TODO [AA] Needing a dummy reader to define the lexer is awkward.
+    let str = "aaaaa".as_bytes();
+    let reader = Reader::new(str,DecoderUTF8());
+    let mut _lexer = TestLexer::new(reader);
+
+    // let a_word        = Pattern::char('a').many1();
+    // let b_word        = Pattern::char('b').many1();
+    // let space         = Pattern::char(' ');
+    // let spaced_a_word = space.clone() >> a_word.clone();
+    // let spaced_b_word = space.clone() >> b_word.clone();
+    // let any           = Pattern::any();
+    // let end           = Pattern::eof();
+}
 
 // #[test]
 // fn try_generate_code() {

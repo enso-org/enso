@@ -14,25 +14,28 @@ pub mod rule;
 // === GroupRegistry ===
 // =====================
 
-#[allow(missing_docs)]
+/// The Group Registry is a container for [`Group`]s in the flexer implementation.
+///
+/// It allows groups to contain associations between themselves, and also implements useful
+/// conversions for groups.
 #[derive(Clone,Debug,Default)]
 pub struct GroupRegistry {
-    pub groups: Vec<Group>
+    /// The groups defined for the lexer.
+    groups: Vec<Group>
 }
 
-#[allow(missing_docs)]
 impl GroupRegistry {
-    fn next_id(&self) -> usize {
-        self.groups.len()
-    }
-
-    pub fn create_group(&mut self,name:String,parent_index:Option<usize>) -> usize {
+    /// Defines a new group of rules for the lexer with the specified `name` and `parent`.
+    ///
+    /// It returns the identifier of the newly-created group.
+    pub fn define_group(&mut self,name:String,parent_index:Option<usize>) -> usize {
         let id = self.next_id();
         let group = Group::new(id,name,parent_index);
         self.groups.push(group);
         id
     }
 
+    /// Adds an existing `group` to the registry, updating and returning its identifier.
     pub fn add_group(&mut self,mut group:Group) -> usize {
         let new_id = self.next_id();
         group.id = new_id;
@@ -40,20 +43,28 @@ impl GroupRegistry {
         new_id
     }
 
-    // TODO [AA] Should this panic?
+    /// Creates a rule that matches `pattern` for the group identified by `group_id`.
+    ///
+    /// Panics if `group_id` refers to a nonexistent group.
     pub fn create_rule(&mut self,group_id:usize,pattern:&Pattern,callback:String) {
-        let err = format!("The provided group_id {} is invalid",group_id);
+        let err = format!("The provided group_id {} is invalid.",group_id);
         let group = self.group_fom_id_mut(group_id).expect(&err);
         group.create_rule(pattern,callback);
     }
 
-    // TODO [AA] Should this panic?
+    /// Associates the provided `rule` with the group identified by `group_id`.
+    ///
+    /// Panics if `group_id` refers to a nonexistent group.
     pub fn add_rule(&mut self,group_id:usize,rule:Rule) {
-        let err = format!("The provided group_id {} is invalid",group_id);
+        let err = format!("The provided group_id {} is invalid.",group_id);
         let group = self.group_fom_id_mut(group_id).expect(&err);
         group.add_rule(rule);
     }
 
+    /// Collates the entire set of rules that are matchable when the lexer has the group identified
+    /// by `group_id` as active.
+    ///
+    /// This set of rules includes the rules inherited from any parent groups.
     pub fn rules_for(&self,group_id:usize) -> Option<Vec<&Rule>> {
         self.group_from_id(group_id).map(|group| {
             let mut parent = group.parent_index.and_then(|ix|self.group_from_id(ix));
@@ -70,14 +81,19 @@ impl GroupRegistry {
         })
     }
 
+    /// Obtains a reference to the group for the given `group_id`.
     pub fn group_from_id(&self,group_id:usize) -> Option<&Group> {
         self.groups.get(group_id)
     }
 
+    /// Obtains a mutable reference to the group for the given `group_id`.
     pub fn group_fom_id_mut(&mut self,group_id:usize) -> Option<&mut Group> {
         self.groups.get_mut(group_id)
     }
 
+    /// Converts the group identified by `group_id` into an NFA.
+    ///
+    /// Returns `None` if the group does not exist, or if the conversion fails.
     pub fn to_nfa_from(&self,group_id:usize) -> Option<NFA> {
         let group = self.group_from_id(group_id);
         group.map(|group| {
@@ -93,6 +109,11 @@ impl GroupRegistry {
             }
             nfa
         })
+    }
+
+    /// Generates the next group identifier for this registry.
+    fn next_id(&self) -> usize {
+        self.groups.len()
     }
 }
 
@@ -119,7 +140,6 @@ impl GroupRegistry {
 /// current group or even enter a new one. As a result, groups allow us to elegantly model a
 /// situation where certain parts of a program (e.g. within a string literal) have very different
 /// lexing rules than other portions of a program (e.g. the body of a function).
-// TODO [AA] Make private - only access should be through the registry
 #[derive(Clone,Debug,Default)]
 pub struct Group {
     /// A unique identifier for the group.
@@ -163,54 +183,6 @@ impl Group {
     /// The canonical name for a given rule.
     pub fn callback_name(&self,rule_ix:usize) -> String {
         format!("group{}_rule{}",self.id,rule_ix)
-    }
-}
-
-
-// === Getters ===
-
-// TODO [AA] Delete
-impl Group {
-
-    /// The full set of rules, including parent rules.
-    ///
-    /// Note that this function will explicitly panic if you have a cycle of
-    /// parent links between groups.
-    fn rules(&self) -> Vec<&Rule> {
-        unimplemented!()
-        // let mut parent = &self.parent;
-        // let mut rules  = (&self.rules).iter().collect_vec();
-        // while let Some(state) = parent {
-        //     if state.id == self.id {
-        //         panic!("There should not be cycles in parent links for lexer groups.")
-        //     }
-        //     rules.extend((&state.rules).iter());
-        //     parent = &state.parent;
-        // }
-        // rules
-    }
-}
-
-
-// === Trait Impls ===
-
-impl From<&Group> for NFA {
-    /// Transforms the input group into an NFA.
-    ///
-    /// The algorithm is based on this algorithm for
-    /// [converting a regular expression to an NFA](https://www.youtube.com/watch?v=RYNN-tb9WxI).
-    /// The asymptotic complexity is linear in number of symbols.
-    fn from(group:&Group) -> Self {
-        let mut nfa = NFA::default();
-        let start   = nfa.new_state();
-        let build   = |rule:&Rule| nfa.new_pattern(start,&rule.pattern);
-        let states  = group.rules().into_iter().map(build).collect_vec();
-        let end     = nfa.new_state();
-        for (ix, state) in states.into_iter().enumerate() {
-            nfa.states[state.id].name = Some(group.callback_name(ix));
-            nfa.connect(state,end);
-        }
-        nfa
     }
 }
 
