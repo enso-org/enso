@@ -63,6 +63,42 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       )
     }
 
+    "get suggestions by external ids" taggedAs Retry in withRepo { repo =>
+      val action = for {
+        (_, ids) <- repo.insertAll(
+          Seq(
+            suggestion.atom,
+            suggestion.method,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        results <- repo.getAllByExternalIds(
+          Seq(suggestion.method.externalId.get, suggestion.local.externalId.get)
+        )
+      } yield (ids, results)
+
+      val (ids, results) = Await.result(action, Timeout)
+      results should contain theSameElementsAs Seq(ids(1), ids(3))
+    }
+
+    "get suggestions by empty external ids" taggedAs Retry in withRepo { repo =>
+      val action = for {
+        _ <- repo.insertAll(
+          Seq(
+            suggestion.atom,
+            suggestion.method,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        results <- repo.getAllByExternalIds(Seq())
+      } yield results
+
+      val results = Await.result(action, Timeout)
+      results.isEmpty shouldEqual true
+    }
+
     "fail to insert duplicate suggestion" taggedAs Retry in withRepo { repo =>
       val action =
         for {
@@ -329,6 +365,42 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
         val (updatedIds, v1, v2) = Await.result(action, Timeout)
         updatedIds shouldEqual Seq(None)
         v1 shouldEqual v2
+    }
+
+    "rename the module" taggedAs Retry in withRepo { repo =>
+      val newModuleName = "Best.Main"
+      val action = for {
+        _ <- repo.insertAll(
+          Seq(
+            suggestion.atom,
+            suggestion.method,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        _        <- repo.renameProject("Test", "Best")
+        (_, res) <- repo.getAll
+      } yield res
+
+      val res = Await.result(action, Timeout)
+      res.map(_.suggestion) should contain theSameElementsAs Seq(
+        suggestion.atom.copy(module     = newModuleName),
+        suggestion.method.copy(module   = newModuleName),
+        suggestion.function.copy(module = newModuleName),
+        suggestion.local.copy(module    = newModuleName)
+      )
+    }
+
+    "not change version after renaming the module" taggedAs Retry in withRepo {
+      repo =>
+        val action = for {
+          v1 <- repo.insert(suggestion.atom)
+          _  <- repo.renameProject("Test", "Zest")
+          v2 <- repo.currentVersion
+        } yield (v1, v2)
+
+        val (v1, v2) = Await.result(action, Timeout)
+        v1 shouldEqual Some(v2)
     }
 
     "search suggestion by empty query" taggedAs Retry in withRepo { repo =>
