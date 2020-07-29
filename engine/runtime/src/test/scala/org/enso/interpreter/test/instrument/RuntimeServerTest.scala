@@ -367,6 +367,158 @@ class RuntimeServerTest
     )
   }
 
+  it should "not send updates when the type is not changed" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val idMain     = context.Main.metadata.addItem(7, 47)
+    val idMainUpdate =
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
+        )
+      )
+    val contents = context.Main.code
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receive shouldEqual None
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.receive(7) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      idMainUpdate,
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idMain),
+                moduleName,
+                "main",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                moduleName,
+                "foo",
+                Seq(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("x", "Any", false, false, None)
+                ),
+                "Number",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idMainX),
+                moduleName,
+                "x",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idMainY),
+                moduleName,
+                "y",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idMainZ),
+                moduleName,
+                "z",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idFooY),
+                moduleName,
+                "y",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(10, 5))
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idFooZ),
+                moduleName,
+                "z",
+                "Any",
+                Suggestion.Scope(
+                  Suggestion.Position(7, 17),
+                  Suggestion.Position(10, 5)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+
+    // push foo call
+    val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item2))
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.fooY(contextId),
+      context.Main.Update.fooZ(contextId)
+    )
+
+    // pop foo call
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      idMainUpdate
+    )
+
+    // pop main
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId))
+    )
+  }
+
   it should "support file modification operations" in {
     val fooFile   = new File(context.pkg.sourceDir, "Foo.enso")
     val contextId = UUID.randomUUID()
