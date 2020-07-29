@@ -1,11 +1,12 @@
 //! This module exports scala ast generator.
 
+#![allow(unused_must_use)]
+
+use itertools::Itertools;
 use std::collections::HashMap;
-use std::fmt;
 use std::fmt::Write;
 use std::fs::File;
 use std::io::prelude::*;
-use itertools::Itertools;
 use syn;
 use syn::Ident;
 
@@ -15,9 +16,9 @@ use syn::Ident;
 // === Scala Generator ===
 // =======================
 
-/// A builder of a scala file.
+/// A scala ast generator.
 #[derive(Debug,Clone,Default)]
-pub struct ScalaBuilder {
+pub struct ScalaGenerator {
     /// The content of the file.
     code: String,
     /// Current indentation.
@@ -26,18 +27,17 @@ pub struct ScalaBuilder {
     extends: HashMap<Ident,Ident>
 }
 
-impl ScalaBuilder {
-
-    /// Generates a scala ast.
-    pub fn generate_scala_ast() -> String {
+impl ScalaGenerator {
+    /// Generates a scala ast from `lib/rust/ast/src/lib.rs`.
+    pub fn ast() -> std::io::Result<String> {
         let mut content = String::new();
-        let mut file = File::open("lib/rust/ast/impl/src/lib.rs").unwrap();
+        let mut file = File::open("lib/rust/ast/src/ast.rs")?;
         file.read_to_string(&mut content);
 
-        ScalaBuilder::file(syn::parse_file(content.as_str()).unwrap())
+        Ok(Self::file(syn::parse_file(content.as_str()).unwrap()))
     }
 
-    /// Generates a content of scala file from given content of parsed rust file.
+    /// Generates a scala ast definition from a parsed rust ast definition.
     pub fn file(file:syn::File) -> String {
         let mut this = Self::default();
         this.block(&file.items[..]);
@@ -50,6 +50,7 @@ impl ScalaBuilder {
             match item {
                 syn::Item::Enum  (val) => self.adt(&val),
                 syn::Item::Type  (val) => {
+                    write!(self.code, "\n");
                     write!(self.code, "{:i$}type ", "", i=self.indent);
                     self.typ_name(&val.ident);
                     self.generics(&val.generics);
@@ -58,6 +59,7 @@ impl ScalaBuilder {
                     write!(self.code, "\n");
                 }
                 syn::Item::Struct(val) => {
+                    write!(self.code, "\n");
                     if let syn::Fields::Named(fields) = &val.fields {
                         self.class(&val.ident, &val.generics, fields);
                     } else {
@@ -65,7 +67,10 @@ impl ScalaBuilder {
                     }
                 }
                 syn::Item::Mod(val) => {
-                    write!(self.code, "{:i$}object {} {{\n" , "", val.ident, i=self.indent);
+                    write!(self.code, "\n");
+                    write!(self.code, "{:i$}object " , "", i=self.indent);
+                    self.typ_name(&val.ident);
+                    write!(self.code, " {{\n");
                     self.indent += 2;
                     write!(self.code, "{:i$}sealed trait ", "", i=self.indent);
                     self.typ_name(&val.ident);
@@ -83,6 +88,8 @@ impl ScalaBuilder {
     }
 
     /// Generates a scala case class.
+    ///
+    /// `struct Foo { bar:Bar, baz:Baz }` => `case class Foo(bar:Bar, baz:Baz)`
     fn class(&mut self, ident:&Ident, generics:&syn::Generics, fields:&syn::FieldsNamed) {
         write!(self.code, "{:i$}case class ", "", i=self.indent);
         self.typ_name(ident);
@@ -134,6 +141,7 @@ impl ScalaBuilder {
     /// }
     /// ```
     fn adt(&mut self, adt:&syn::ItemEnum) {
+        write!(self.code, "\n");
         write!(self.code, "{:i$}sealed trait {}", "", adt.ident, i=self.indent);
         self.generics(&adt.generics);
         self.extends(&adt.ident);
@@ -162,9 +170,9 @@ impl ScalaBuilder {
     ///
     /// `foo` => `extends Foo`
     fn extends(&mut self, ident:&Ident) {
-        if let Some(name) = self.extends.get(&ident) {
+        if let Some(name) = self.extends.get(&ident).cloned() {
             write!(self.code, " extends ");
-            self.typ_name(&name.clone());
+            self.typ_name(&name);
         }
     }
 
@@ -203,10 +211,11 @@ impl ScalaBuilder {
     ///
     /// `Foo<Bar<Baz>>` => `Foo[Bar[Baz]]`
     fn typ_segment(&mut self, typ:&syn::PathSegment) {
-        self.typ_name(&typ.ident);
+        let boxed = typ.ident.to_string().as_str() == "Box";
+        if !boxed { self.typ_name(&typ.ident); }
         match &typ.arguments {
             syn::PathArguments::AngleBracketed(typ) => {
-                write!(self.code, "[");
+                if !boxed { write!(self.code, "["); }
                 for (i, typ) in typ.args.iter().enumerate() {
                     if i != 0 { write!(self.code, ", "); }
                     match typ {
@@ -214,7 +223,7 @@ impl ScalaBuilder {
                         _ => (),
                     }
                 }
-                write!(self.code, "]");
+                if !boxed { write!(self.code, "]"); }
             }
             _ => (),
         }
