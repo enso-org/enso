@@ -10,10 +10,28 @@
 //! spaced-word = space, word;
 //! language    = word, spaced-word*;
 
+use flexer::prelude::*;
 use flexer::automata::dfa::DFA;
 use flexer::automata::nfa::NFA;
 use flexer::automata::pattern::Pattern;
 use flexer::group::Group;
+use lazy_reader::{BookmarkId,LazyReader,Reader};
+use flexer::{FlexerState, Flexer, LexingState};
+use lazy_reader::decoder::DecoderUTF8;
+
+
+// ===========
+// === AST ===
+// ===========
+
+/// A very simple AST, sufficient for the simple lexer being defined.
+#[derive(Clone,Debug,PartialEq)]
+pub enum AST {
+    /// A word from the input, consisting of a sequence of all `a` or all `b`.
+    Word(String),
+    /// A token that the lexer is unable to recognise.
+    Unrecognised(String)
+}
 
 
 
@@ -50,6 +68,50 @@ impl Lexer {
     }
 }
 
+#[derive(Debug)]
+#[allow(missing_docs)]
+pub struct TestLexer<Reader:LazyReader> {
+    lexer: Flexer<TestState,AST,Reader>
+}
+
+impl<Reader:LazyReader> TestLexer<Reader> {
+
+}
+
+// === Trait Impls ===
+
+impl<Reader:LazyReader> Deref for TestLexer<Reader> {
+    type Target = Flexer<TestState,AST,Reader>;
+    fn deref(&self) -> &Self::Target {
+        &self.lexer
+    }
+}
+
+impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.lexer
+    }
+}
+
+// TODO [AA] _Where_ do I want to write the definition?
+// TODO [AA] All groups probably need to be present _here_ in order to allow for parent groups.
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct TestState {
+    root_group: Group,
+    seen_first_word_group: Group,
+    matched_bookmark: BookmarkId
+}
+
+impl <Reader:LazyReader> FlexerState<Reader> for TestState {
+    fn new(reader: &mut Reader) -> Self {
+        unimplemented!()
+    }
+
+    fn initial_state(&self) -> &LexingState {
+        unimplemented!()
+    }
+}
 
 
 // =============
@@ -57,32 +119,37 @@ impl Lexer {
 // =============
 
 #[test]
-fn try_generate_code() {
-    let mut lexer = Lexer::new();
+fn test() {
 
-    let a_word        = Pattern::char('a').many1();
-    let b_word        = Pattern::char('b').many1();
-    let space         = Pattern::char(' ');
-    let spaced_a_word = space.clone() >> a_word.clone();
-    let spaced_b_word = space.clone() >> b_word.clone();
-    let any           = Pattern::any();
-    let end           = Pattern::eof();
-
-    // The ordering here is necessary.
-    let root_group = lexer.define_group("ROOT");
-    root_group.create_rule(&a_word,"1 + 1");
-    root_group.create_rule(&b_word,"2 + 2");
-    root_group.create_rule(&end,"3 + 3");
-    root_group.create_rule(&any,"4 + 4");
-
-    let seen_first_word_group = lexer.define_group("SEEN_FIRST_WORD");
-    seen_first_word_group.create_rule(&spaced_a_word,"5 + 5");
-    seen_first_word_group.create_rule(&spaced_b_word,"6 + 6");
-    seen_first_word_group.create_rule(&end,"7 + 7");
-    seen_first_word_group.create_rule(&any,"8 + 8");
-
-    let result   = lexer.specialize();
-    let expected = String::from("");
-
-    assert_eq!(result,expected)
 }
+
+// #[test]
+// fn try_generate_code() {
+//     let mut lexer = Lexer::new();
+//
+//     let a_word        = Pattern::char('a').many1();
+//     let b_word        = Pattern::char('b').many1();
+//     let space         = Pattern::char(' ');
+//     let spaced_a_word = space.clone() >> a_word.clone();
+//     let spaced_b_word = space.clone() >> b_word.clone();
+//     let any           = Pattern::any();
+//     let end           = Pattern::eof();
+//
+//     // The ordering here is necessary.
+//     let root_group = lexer.define_group("ROOT");
+//     root_group.create_rule(&a_word,"1 + 1");
+//     root_group.create_rule(&b_word,"2 + 2");
+//     root_group.create_rule(&end,"3 + 3");
+//     root_group.create_rule(&any,"4 + 4");
+//
+//     let seen_first_word_group = lexer.define_group("SEEN_FIRST_WORD");
+//     seen_first_word_group.create_rule(&spaced_a_word,"5 + 5");
+//     seen_first_word_group.create_rule(&spaced_b_word,"6 + 6");
+//     seen_first_word_group.create_rule(&end,"7 + 7");
+//     seen_first_word_group.create_rule(&any,"8 + 8");
+//
+//     let result   = lexer.specialize();
+//     let expected = String::from("");
+//
+//     assert_eq!(result,expected)
+// }

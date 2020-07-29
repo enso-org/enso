@@ -36,7 +36,6 @@ pub enum AST {
 // === Test Lexer ===
 // ==================
 
-// TODO [AA] Rename
 #[derive(Debug)]
 #[allow(missing_docs)]
 pub struct TestLexer<Reader:LazyReader> {
@@ -55,7 +54,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     pub fn def_on_first_word(&mut self,ast:AST) {
         self.tokens.push(ast);
-        let id = self.def_seen_first_word_state.id;
+        let id = self.seen_first_word_state.id;
         self.begin_state(id);
     }
 
@@ -168,7 +167,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     fn gen_state_0_to_1(&mut self) -> FlexerStageStatus {
         self.current_match = self.reader.pop_result();
         self.gen_group_0_rule_2();
-        let t = self.def_matched_bookmark;
+        let t = self.matched_bookmark;
         self.reader.bookmark(t);
         FlexerStageStatus::ExitSuccess
     }
@@ -176,7 +175,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     fn gen_state_0_to_2(&mut self) -> FlexerStageStatus {
         self.current_match = self.reader.pop_result();
         self.gen_group_0_rule_3();
-        let t = self.def_matched_bookmark;
+        let t = self.matched_bookmark;
         self.reader.bookmark(t);
         FlexerStageStatus::ExitSuccess
     }
@@ -187,7 +186,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_0_rule_0();
-                let t = self.def_matched_bookmark;
+                let t = self.matched_bookmark;
                 self.reader.bookmark(t);
                 FlexerStageStatus::ExitSuccess
             }
@@ -200,7 +199,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_0_rule_1();
-                let t = self.def_matched_bookmark;
+                let t = self.matched_bookmark;
                 self.reader.bookmark(t);
                 FlexerStageStatus::ExitSuccess
             }
@@ -213,7 +212,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
             _ => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_0_rule_0();
-                let t = self.def_matched_bookmark;
+                let t = self.matched_bookmark;
                 self.reader.bookmark(t);
                 FlexerStageStatus::ExitSuccess
             }
@@ -226,7 +225,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
             _ => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_0_rule_1();
-                let t = self.def_matched_bookmark;
+                let t = self.matched_bookmark;
                 self.reader.bookmark(t);
                 FlexerStageStatus::ExitSuccess
             }
@@ -273,7 +272,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     fn gen_state_1_to_1(&mut self) -> FlexerStageStatus {
         self.current_match = self.reader.pop_result();
         self.gen_group_1_rule_2();
-        let t = self.def_matched_bookmark;
+        let t = self.matched_bookmark;
         self.reader.bookmark(t);
         FlexerStageStatus::ExitSuccess
     }
@@ -281,7 +280,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     fn gen_state_1_to_2(&mut self) -> FlexerStageStatus {
         self.current_match = self.reader.pop_result();
         self.gen_group_1_rule_3();
-        let t = self.def_matched_bookmark;
+        let t = self.matched_bookmark;
         self.reader.bookmark(t);
         FlexerStageStatus::ExitSuccess
     }
@@ -293,7 +292,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_3();
-                let t = self.def_matched_bookmark;
+                let t = self.matched_bookmark;
                 self.reader.bookmark(t);
                 FlexerStageStatus::ExitSuccess
             }
@@ -306,7 +305,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_0();
-                let t = self.def_matched_bookmark;
+                let t = self.matched_bookmark;
                 self.reader.bookmark(t);
                 FlexerStageStatus::ExitSuccess
             }
@@ -319,7 +318,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_1();
-                let t = self.def_matched_bookmark;
+                let t = self.matched_bookmark;
                 self.reader.bookmark(t);
                 FlexerStageStatus::ExitSuccess
             }
@@ -332,7 +331,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_0();
-                let t = self.def_matched_bookmark;
+                let t = self.matched_bookmark;
                 self.reader.bookmark(t);
                 FlexerStageStatus::ExitSuccess
             }
@@ -345,7 +344,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_1();
-                let t = self.def_matched_bookmark;
+                let t = self.matched_bookmark;
                 self.reader.bookmark(t);
                 FlexerStageStatus::ExitSuccess
             }
@@ -394,10 +393,12 @@ impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
 /// The stateful components of the test lexer.
 #[derive(Debug)]
 pub struct TestState {
+    /// The initial state of the lexer.
+    initial_state: LexingState,
     /// The state entered when the first word has been seen.
-    def_seen_first_word_state: LexingState,
+    seen_first_word_state: LexingState,
     /// A bookmark that is set when a match occurs, allowing for rewinding if necessary.
-    def_matched_bookmark: BookmarkId,
+    matched_bookmark: BookmarkId,
 }
 
 
@@ -405,9 +406,14 @@ pub struct TestState {
 
 impl <Reader:LazyReader> FlexerState<Reader> for TestState {
     fn new(reader:&mut Reader) -> Self {
-        let def_seen_first_word_state = LexingState::new("SEEN FIRST WORD", 1);
-        let def_matched_bookmark = reader.add_bookmark();
-        Self {def_seen_first_word_state,def_matched_bookmark}
+        let initial_state = LexingState::new("ROOT",0);
+        let seen_first_word_state = LexingState::new("SEEN FIRST WORD",1);
+        let matched_bookmark = reader.add_bookmark();
+        Self{initial_state,seen_first_word_state,matched_bookmark}
+    }
+
+    fn initial_state(&self) -> &LexingState {
+        &self.initial_state
     }
 }
 

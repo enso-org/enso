@@ -53,8 +53,6 @@ pub struct Flexer<Definition,Output,Reader> where Reader:LazyReader {
     pub status: FlexerStageStatus,
     /// The tokens that have been lexed.
     pub tokens: Vec<Output>,
-    /// The initial state of the defined lexer.
-    pub initial_state: LexingState,
     /// The definition of the lexer.
     definition: Definition
 }
@@ -88,10 +86,10 @@ where Definition: FlexerState<Reader>,Reader:LazyReader {
         let mut tokens = Vec::new();
         tokens.reserve(1024);
         let definition = Definition::new(&mut reader);
-        let initial_state = LexingState::new("INITIAL", 0);
-        state_stack.push(initial_state.id);
+        let initial_state_id = definition.initial_state().id;
+        state_stack.push(initial_state_id);
 
-        Flexer {state_stack,reader,current_match,status,tokens,initial_state,definition}
+        Flexer {state_stack,reader,current_match,status,tokens,definition}
     }
 }
 
@@ -105,7 +103,7 @@ where Definition:FlexerState<Reader>,Reader:LazyReader,Output:Clone {
 
     /// Gets the lexer's root state.
     pub fn root_state(&self) -> &LexingState {
-        &self.initial_state
+        &self.definition.initial_state()
     }
 
     /// Gets the state that the lexer is currently in.
@@ -247,6 +245,8 @@ pub enum FlexerResult<T> {
 pub trait FlexerState<Reader:LazyReader> {
     /// Creates a new instance of the lexer's state.
     fn new(reader:&mut Reader) -> Self;
+    /// Returns the _initial_ lexing state.
+    fn initial_state(&self) -> &LexingState;
 }
 
 
