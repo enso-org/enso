@@ -153,12 +153,6 @@ class DistributionManager(val env: Environment) {
               env.getHome / "Library" / "Application Support" / MACOS_ENSO_DIRECTORY
             case OS.Windows =>
               env.getLocalAppData / WINDOWS_ENSO_DIRECTORY
-            case OS.Unknown =>
-              throw new RuntimeException(
-                "Could not determine the default installation location as " +
-                s"the operating system is not recognized. Please set the" +
-                s"`$ENSO_DATA_DIRECTORY` environment variable."
-              )
           }
         }
         .toAbsolutePath
@@ -182,12 +176,6 @@ class DistributionManager(val env: Environment) {
               env.getHome / "Library" / "Preferences" / MACOS_ENSO_DIRECTORY
             case OS.Windows =>
               env.getLocalAppData / WINDOWS_ENSO_DIRECTORY / CONFIG_DIRECTORY
-            case OS.Unknown =>
-              throw new RuntimeException(
-                "Could not determine the default installation location as " +
-                s"the operating system is not recognized. Please set the" +
-                s"`$ENSO_CONFIG_DIRECTORY` environment variable."
-              )
           }
         }
         .toAbsolutePath
@@ -211,12 +199,6 @@ class DistributionManager(val env: Environment) {
               env.getHome / ".local" / "bin"
             case OS.Windows =>
               env.getLocalAppData / WINDOWS_ENSO_DIRECTORY / BIN_DIRECTORY
-            case OS.Unknown =>
-              throw new RuntimeException(
-                "Could not determine the default installation location as " +
-                s"the operating system is not recognized. Please set the" +
-                s"`$ENSO_BIN_DIRECTORY` environment variable."
-              )
           }
         }
         .toAbsolutePath
