@@ -21,7 +21,7 @@ use flexer::group::GroupRegistry;
 // === AST ===
 // ===========
 
-/// A very simple AST, sufficient for the simple lexer being defined.
+/// A very simple AST, sufficient for the simple language being defined.
 #[derive(Clone,Debug,PartialEq)]
 pub enum AST {
     /// A word from the input, consisting of a sequence of all `a` or all `b`.
@@ -36,8 +36,8 @@ pub enum AST {
 // === Test Lexer ===
 // ==================
 
+/// The definition of a test lexer for the above-described language.
 #[derive(Debug)]
-#[allow(missing_docs)]
 pub struct TestLexer<Reader:LazyReader> {
     lexer: Flexer<TestState,AST,Reader>
 }
@@ -423,6 +423,10 @@ impl <Reader:LazyReader> FlexerState<Reader> for TestState {
 
     fn groups(&self) -> &GroupRegistry {
         &self.lexer_states
+    }
+
+    fn groups_mut(&mut self) -> &mut GroupRegistry {
+        &mut self.lexer_states
     }
 }
 

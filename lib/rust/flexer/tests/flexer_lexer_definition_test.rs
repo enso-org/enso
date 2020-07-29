@@ -15,6 +15,7 @@ use flexer::group::{Group, GroupRegistry};
 use lazy_reader::{BookmarkId, LazyReader, Reader};
 use flexer::{FlexerState, Flexer};
 use lazy_reader::decoder::DecoderUTF8;
+use flexer::automata::pattern::Pattern;
 
 
 // ===========
@@ -142,7 +143,6 @@ pub struct TestState {
 }
 
 impl<Reader:LazyReader> FlexerState<Reader> for TestState {
-    // TODO [AA] Could the definition happen here?
     fn new(reader: &mut Reader) -> Self {
         let mut lexer_states      = GroupRegistry::default();
         let root_group            = lexer_states.define_group("ROOT".into(),None);
@@ -158,6 +158,10 @@ impl<Reader:LazyReader> FlexerState<Reader> for TestState {
     fn groups(&self) -> &GroupRegistry {
         &self.lexer_states
     }
+
+    fn groups_mut(&mut self) -> &mut GroupRegistry {
+        &mut self.lexer_states
+    }
 }
 
 
@@ -171,15 +175,18 @@ fn test_lexer_definition() {
     // TODO [AA] Needing a dummy reader to define the lexer is awkward.
     let str = "aaaaa".as_bytes();
     let reader = Reader::new(str,DecoderUTF8());
-    let mut _lexer = TestLexer::new(reader);
+    let mut lexer = TestLexer::new(reader);
 
-    // let a_word        = Pattern::char('a').many1();
-    // let b_word        = Pattern::char('b').many1();
-    // let space         = Pattern::char(' ');
-    // let spaced_a_word = space.clone() >> a_word.clone();
-    // let spaced_b_word = space.clone() >> b_word.clone();
-    // let any           = Pattern::any();
-    // let end           = Pattern::eof();
+    let a_word        = Pattern::char('a').many1();
+    let b_word        = Pattern::char('b').many1();
+    let space         = Pattern::char(' ');
+    let spaced_a_word = space.clone() >> a_word.clone();
+    let spaced_b_word = space.clone() >> b_word.clone();
+    let any           = Pattern::any();
+    let end           = Pattern::eof();
+
+    let group_registry: &mut GroupRegistry = lexer.groups_mut();
+    let root_group = group_registry.group_from_id_mut(lexer.root_group).unwrap();
 }
 
 // #[test]

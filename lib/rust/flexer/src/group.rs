@@ -48,7 +48,7 @@ impl GroupRegistry {
     /// Panics if `group_id` refers to a nonexistent group.
     pub fn create_rule(&mut self,group_id:usize,pattern:&Pattern,callback:String) {
         let err = format!("The provided group_id {} is invalid.",group_id);
-        let group = self.group_fom_id_mut(group_id).expect(&err);
+        let group = self.group_from_id_mut(group_id).expect(&err);
         group.create_rule(pattern,callback);
     }
 
@@ -57,7 +57,7 @@ impl GroupRegistry {
     /// Panics if `group_id` refers to a nonexistent group.
     pub fn add_rule(&mut self,group_id:usize,rule:Rule) {
         let err = format!("The provided group_id {} is invalid.",group_id);
-        let group = self.group_fom_id_mut(group_id).expect(&err);
+        let group = self.group_from_id_mut(group_id).expect(&err);
         group.add_rule(rule);
     }
 
@@ -87,7 +87,7 @@ impl GroupRegistry {
     }
 
     /// Obtains a mutable reference to the group for the given `group_id`.
-    pub fn group_fom_id_mut(&mut self,group_id:usize) -> Option<&mut Group> {
+    pub fn group_from_id_mut(&mut self,group_id:usize) -> Option<&mut Group> {
         self.groups.get_mut(group_id)
     }
 

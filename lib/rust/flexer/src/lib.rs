@@ -58,21 +58,6 @@ pub struct Flexer<Definition,Output,Reader> where Reader:LazyReader {
     definition: Definition
 }
 
-impl<Definition,Output,Reader> Deref for Flexer<Definition,Output,Reader>
-where Reader:LazyReader {
-    type Target = Definition;
-    fn deref(&self) -> &Self::Target {
-        &self.definition
-    }
-}
-
-impl<Definition,Output,Reader> DerefMut for Flexer<Definition,Output,Reader>
-where Reader:LazyReader {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.definition
-    }
-}
-
 impl<Definition,Output,Reader> Flexer<Definition,Output,Reader>
 where Definition: FlexerState<Reader>,Reader:LazyReader {
     /// Creates a new lexer instance.
@@ -150,6 +135,23 @@ where Definition:FlexerState<Reader>,Reader:LazyReader,Output:Clone {
     }
 }
 
+// === Trait Impls ===
+
+impl<Definition,Output,Reader> Deref for Flexer<Definition,Output,Reader>
+    where Reader:LazyReader {
+    type Target = Definition;
+    fn deref(&self) -> &Self::Target {
+        &self.definition
+    }
+}
+
+impl<Definition,Output,Reader> DerefMut for Flexer<Definition,Output,Reader>
+    where Reader:LazyReader {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.definition
+    }
+}
+
 
 
 // =========================
@@ -216,8 +218,10 @@ pub trait FlexerState<Reader:LazyReader> {
     fn new(reader:&mut Reader) -> Self;
     /// Returns the _initial_ lexing state.
     fn initial_state(&self) -> usize;
-    /// Returns references to all of the groups for a given lexer state.
+    /// Returns a reference to the group registry for a given lexer.
     fn groups(&self) -> &GroupRegistry;
+    /// Returns a mutable reference to the group registry for a given lexer.
+    fn groups_mut(&mut self) -> &mut GroupRegistry;
 }
 
 
