@@ -174,12 +174,6 @@ impl Group {
         self.rules.push(rule)
     }
 
-    /// Returns a rule builder for the given pattern.
-    pub fn rule(&mut self,pattern:Pattern) -> rule::Builder<impl FnMut(Rule) + '_> {
-        let callback = move |rule| self.add_rule(rule);
-        rule::Builder{pattern,callback}
-    }
-
     /// The canonical name for a given rule.
     pub fn callback_name(&self,rule_ix:usize) -> String {
         format!("group{}_rule{}",self.id,rule_ix)

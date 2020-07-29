@@ -61,7 +61,7 @@ impl Segmentation {
         }
     }
 
-    /// Creates an [`AlphabetSegmentation`] from an input set of divisions.
+    /// Creates a [`Segmentation`] from an input set of divisions.
     pub fn from_divisions(divisions:&[u32]) -> Self {
         let mut dict = Self::default();
         for val in divisions {

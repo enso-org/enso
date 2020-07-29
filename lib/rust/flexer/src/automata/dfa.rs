@@ -30,8 +30,8 @@ pub struct DFA {
     ///
     /// For example, the transition matrix for an automaton that accepts the language
     /// `{"A" | "B"}*"` would appear as follows, with `-` denoting
-    /// [the invalid state](state::INVALID). The leftmost column encodes the input state, while the
-    /// topmost row encodes the input symbols.
+    /// [the invalid state](state::Identifier::INVALID). The leftmost column encodes the input
+    /// state, while the topmost row encodes the input symbols.
     ///
     /// |   | A | B |
     /// |:-:|:-:|:-:|
