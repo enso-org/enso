@@ -5,6 +5,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.server.Directives.{handleWebSocketMessages, path}
 import akka.stream.scaladsl.{Flow, Sink}
+import akka.testkit._
 import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSocketServer.{
   Behaviour,
   Reject,
@@ -14,8 +15,8 @@ import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSock
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class ProgrammableWebSocketServer(interface: String, port: Int)(
-  implicit system: ActorSystem
+class ProgrammableWebSocketServer(interface: String, port: Int)(implicit
+  system: ActorSystem
 ) {
 
   @volatile
@@ -55,14 +56,14 @@ class ProgrammableWebSocketServer(interface: String, port: Int)(
     val binding =
       Await.result(
         Http().bindAndHandle(websocketRoute, interface, port),
-        3.seconds
+        3.seconds.dilated
       )
     maybeBinding = Some(binding)
   }
 
   def stop(): Unit =
     maybeBinding.foreach { binding =>
-      Await.result(binding.unbind(), 5.seconds)
+      Await.result(binding.unbind(), 5.seconds.dilated)
     }
 
 }
