@@ -2,15 +2,15 @@ package org.enso.compiler
 
 import java.io.StringReader
 
-import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.codegen.{AstToIr, IrToTruffle}
+import org.enso.compiler.codegen.{AstToIr, IrToTruffle, TruffleStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Expression
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
+import org.enso.compiler.phase.ImportResolver
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
@@ -19,6 +19,8 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.Parser.IDMap
 import org.enso.syntax.text.{AST, Parser}
+
+import scala.jdk.OptionConverters._
 
 /** This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
@@ -30,6 +32,9 @@ class Compiler(private val context: Context) {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
   private val passes: Passes                   = new Passes
   private val passManager: PassManager         = passes.passManager
+  private val importResolver: ImportResolver   = new ImportResolver(this)
+  private val stubsGenerator: TruffleStubsGenerator =
+    new TruffleStubsGenerator()
 
   /**
     * Processes the provided language sources, registering any bindings in the
@@ -40,30 +45,50 @@ class Compiler(private val context: Context) {
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, module: Module): IR = {
+  def run(source: Source, module: Module): Unit = {
     val moduleContext = ModuleContext(
       moduleScope     = Some(module.getScope),
       freshNameSupply = Some(freshNameSupply)
     )
-    val parsedAST      = parse(source)
-    val expr           = generateIR(parsedAST)
-    val compilerOutput = runCompilerPhases(expr, moduleContext)
-    runErrorHandling(compilerOutput, source, moduleContext)
-    truffleCodegen(compilerOutput, source, module.getScope)
-    compilerOutput
+    parseModule(module)
+    val requiredModules = importResolver.mapImports(module)
+    requiredModules.foreach(_.ensureScopeExists(context))
+    requiredModules.foreach { module =>
+      val compilerOutput = runCompilerPhases(module.getIr, moduleContext)
+      module.setIr(compilerOutput)
+      module.setCompilationStage(Module.CompilationStage.AFTER_STATIC_PASSES)
+    }
+    // TODO[MK] Run all at once
+    requiredModules.foreach { module =>
+      runErrorHandling(module.getIr, source, moduleContext)
+    }
+    requiredModules.foreach(stubsGenerator.run)
+    requiredModules.foreach { module =>
+      truffleCodegen(module.getIr, source, module.getScope)
+      module.setCompilationStage(Module.CompilationStage.COMPILED)
+    }
   }
 
-  /**
-    * Processes the language sources in the provided file, registering any
-    * bindings in the given scope.
-    *
-    * @param file the file containing the source code
-    * @param module the scope into which new bindings are registered
-    * @return an interpreter node whose execution corresponds to the top-level
-    *         executable functionality in the module corresponding to `source`.
-    */
-  def run(file: TruffleFile, module: Module): IR = {
-    run(Source.newBuilder(LanguageInfo.ID, file).build, module)
+  def parseModule(module: Module): Unit = {
+    val moduleContext = ModuleContext(
+      moduleScope     = Some(module.getScope),
+      freshNameSupply = Some(freshNameSupply)
+    )
+    val parsedAST        = parse(module.getSource)
+    val expr             = generateIR(parsedAST)
+    val discoveredModule = recognizeBindings(expr, moduleContext)
+    module.setIr(discoveredModule)
+    module.setCompilationStage(Module.CompilationStage.PARSED)
+  }
+
+  def getModule(name: String): Option[Module] = {
+    context.getTopScope.getModule(name).toScala
+  }
+
+  def ensureParsed(module: Module): Unit = {
+    if (!module.getCompilationStage.isAtLeast(Module.CompilationStage.PARSED)) {
+      parseModule(module)
+    }
   }
 
   /**
@@ -106,12 +131,20 @@ class Compiler(private val context: Context) {
     * @return the scope containing all definitions in the requested module
     */
   def processImport(qualifiedName: String): ModuleScope = {
-    val module = context.getTopScope.getModule(qualifiedName)
-    if (module.isPresent) {
-      module.get().parseScope(context)
-    } else {
-      throw new ModuleDoesNotExistException(qualifiedName)
+    val module = context.getTopScope
+      .getModule(qualifiedName)
+      .toScala
+      .getOrElse(throw new ModuleDoesNotExistException(qualifiedName))
+    if (
+      !module.getCompilationStage.isAtLeast(
+        Module.CompilationStage.RUNTIME_STUBS_GENERATED
+      )
+    ) {
+      throw new CompilerError(
+        "Trying to use a module in codegen without generating runtime stubs"
+      )
     }
+    module.getScope
   }
 
   /**
@@ -142,9 +175,16 @@ class Compiler(private val context: Context) {
   def generateIR(sourceAST: AST): IR.Module =
     AstToIr.translate(sourceAST)
 
-//  def recognizeBindings(module: IR.Module, moduleContext: ModuleContext): IR.Module = {
-//    passManager
-//  }
+  def recognizeBindings(
+    module: IR.Module,
+    moduleContext: ModuleContext
+  ): IR.Module = {
+    passManager.runPassesOnModule(
+      module,
+      moduleContext,
+      passes.moduleDiscoveryPasses
+    )
+  }
 
   /**
     * Lowers the input AST to the compiler's high-level intermediate
@@ -165,8 +205,7 @@ class Compiler(private val context: Context) {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
-    // TODO Fixme
-    passManager.runPassesOnModule(ir, moduleContext, passes.passOrdering.head)
+    passManager.runPassesOnModule(ir, moduleContext, passes.functionBodyPasses)
   }
 
   /** Runs the various compiler passes in an inline context.
@@ -181,7 +220,7 @@ class Compiler(private val context: Context) {
     inlineContext: InlineContext
   ): IR.Expression = {
     // TODO Fixme
-    passManager.runPassesInline(ir, inlineContext, passes.passOrdering.head)
+    passManager.runPassesInline(ir, inlineContext)
   }
 
   /**

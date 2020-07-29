@@ -108,7 +108,7 @@ class EnsureCompiledJob(protected val files: List[File])
     * @return the compiled module
     */
   private def compile(module: Module)(implicit ctx: RuntimeContext): Module =
-    module.parseScope(ctx.executionService.getContext).getModule
+    module.compileScope(ctx.executionService.getContext).getModule
 
   /**
     * Apply pending edits to the file.

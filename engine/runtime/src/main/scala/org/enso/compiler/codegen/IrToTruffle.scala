@@ -48,7 +48,6 @@ import org.enso.interpreter.runtime.callable.argument.{
   ArgumentDefinition,
   CallArgument
 }
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
   Function => RuntimeFunction
@@ -153,8 +152,7 @@ class IrToTruffle(
 
     // Register the atoms and their constructors in scope
     val atomConstructors =
-      atomDefs.map(t => new AtomConstructor(t.name.name, moduleScope))
-    atomConstructors.foreach(moduleScope.registerConstructor)
+      atomDefs.map(cons => moduleScope.getConstructors.get(cons.name.name))
 
     atomConstructors
       .zip(atomDefs)
@@ -532,7 +530,7 @@ class IrToTruffle(
           branchNode.setTail(branchIsTail)
 
           Right(branchNode)
-        case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
+        case cons @ Pattern.Constructor(constructor, _, _, _, _) =>
           if (!cons.isDesugared) {
             throw new CompilerError(
               "Nested patterns desugaring must have taken place by the " +
@@ -551,18 +549,19 @@ class IrToTruffle(
 
           moduleScope.getConstructor(constructor.name).toScala match {
             case Some(atomCons) =>
-              val numExpectedArgs = atomCons.getArity
-              val numProvidedArgs = fields.length
-
-              if (numProvidedArgs != numExpectedArgs) {
-                Left(
-                  BadPatternMatch.WrongArgCount(
-                    constructor.name,
-                    numExpectedArgs,
-                    numProvidedArgs
-                  )
-                )
-              } else {
+              // TODO[MK] Make this check static
+//              val numExpectedArgs = atomCons.getArity
+//              val numProvidedArgs = fields.length
+//
+//              if (numProvidedArgs != numExpectedArgs) {
+//                Left(
+//                  BadPatternMatch.WrongArgCount(
+//                    constructor.name,
+//                    numExpectedArgs,
+//                    numProvidedArgs
+//                  )
+//                )
+//              } else {
                 val bool = context.getBuiltins.bool()
                 val branchNode: BranchNode =
                   if (atomCons == bool.getTrue) {
@@ -575,7 +574,7 @@ class IrToTruffle(
                 branchNode.setTail(branchIsTail)
 
                 Right(branchNode)
-              }
+//              }
             case None =>
               Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
           }

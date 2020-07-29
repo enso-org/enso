@@ -1,5 +1,7 @@
 import Test.Import_Loop.A
 
-bar x = x + 1
+type My_Type
 
-baz = A.foo
+My_Type.bar x = x + 1
+
+My_Type.baz = A.foo

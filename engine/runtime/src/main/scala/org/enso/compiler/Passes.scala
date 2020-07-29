@@ -19,6 +19,44 @@ import org.enso.compiler.pass.{
 
 class Passes(passes: Option[List[PassGroup]] = None) {
 
+  val moduleDiscoveryPasses = new PassGroup(
+    List(
+      DocumentationComments,
+      ComplexType,
+      FunctionBinding,
+      GenerateMethodBodies,
+      BindingResolution
+    )
+  )
+
+  val functionBodyPasses = new PassGroup(
+    List(
+      SectionsToBinOp,
+      OperatorToFunction,
+      LambdaShorthandToLambda,
+      ShadowedPatternFields,
+      UnreachableMatchBranches,
+      NestedPatternMatch,
+      IgnoredBindings,
+      TypeFunctions,
+      TypeSignatures,
+      AliasAnalysis,
+      LambdaConsolidate,
+      AliasAnalysis,
+      SuspendedArguments,
+      OverloadsResolution,
+      AliasAnalysis,
+      DemandAnalysis,
+      AliasAnalysis,
+      ApplicationSaturation,
+      TailCall,
+      AliasAnalysis,
+      DataflowAnalysis,
+      CachePreferenceAnalysis,
+      UnusedBindings
+    )
+  )
+
   /** A list of the compiler phases, in the order they should be run.
     *
     * The pass manager checks at runtime whether the provided order respects the
@@ -26,39 +64,7 @@ class Passes(passes: Option[List[PassGroup]] = None) {
     * these dependencies.
     */
   val passOrdering: List[PassGroup] = passes.getOrElse(
-    List(
-      new PassGroup(
-        List(
-          DocumentationComments,
-          ComplexType,
-          FunctionBinding,
-          GenerateMethodBodies,
-          SectionsToBinOp,
-          OperatorToFunction,
-          LambdaShorthandToLambda,
-          ShadowedPatternFields,
-          UnreachableMatchBranches,
-          NestedPatternMatch,
-          IgnoredBindings,
-          TypeFunctions,
-          TypeSignatures,
-          AliasAnalysis,
-          LambdaConsolidate,
-          AliasAnalysis,
-          SuspendedArguments,
-          OverloadsResolution,
-          AliasAnalysis,
-          DemandAnalysis,
-          AliasAnalysis,
-          ApplicationSaturation,
-          TailCall,
-          AliasAnalysis,
-          DataflowAnalysis,
-          CachePreferenceAnalysis,
-          UnusedBindings
-        )
-      )
-    )
+    List(moduleDiscoveryPasses, functionBodyPasses)
   )
 
   /** Configuration for the passes. */

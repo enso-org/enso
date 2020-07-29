@@ -13,6 +13,8 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import java.io.File;
+import java.io.IOException;
+
 import org.enso.compiler.core.IR;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
@@ -33,22 +35,32 @@ import org.enso.text.buffer.Rope;
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
 public class Module implements TruffleObject {
+  public enum CompilationStage {
+    NONE(0),
+    PARSED(1),
+    IMPORTS_RESOLVED(2),
+    AFTER_STATIC_PASSES(3),
+    RUNTIME_STUBS_GENERATED(4),
+    COMPILED(5);
+
+    private final int ordinal;
+
+    CompilationStage(int ordinal) {
+      this.ordinal = ordinal;
+    }
+
+    public boolean isAtLeast(CompilationStage stage) {
+      return ordinal >= stage.ordinal;
+    }
+  }
+
   private ModuleScope scope;
   private TruffleFile sourceFile;
   private Rope literalSource;
-  private boolean isParsed = false;
+  private CompilationStage compilationStage = CompilationStage.NONE;
   private boolean isIndexed = false;
-  private IR ir;
+  private IR.Module ir;
   private QualifiedName name;
-
-  private Module(
-      TruffleFile sourceFile, Rope literalSource, boolean isParsed, IR ir, QualifiedName name) {
-    this.sourceFile = sourceFile;
-    this.literalSource = literalSource;
-    this.isParsed = isParsed;
-    this.ir = ir;
-    this.name = name;
-  }
 
   /**
    * Creates a new module.
@@ -91,7 +103,7 @@ public class Module implements TruffleObject {
   private Module(QualifiedName name) {
     this.name = name;
     this.scope = new ModuleScope(this);
-    this.isParsed = true;
+    this.compilationStage = CompilationStage.COMPILED;
   }
 
   /**
@@ -107,7 +119,7 @@ public class Module implements TruffleObject {
   /** Clears any literal source set for this module. */
   public void unsetLiteralSource() {
     this.literalSource = null;
-    this.isParsed = false;
+    this.compilationStage = CompilationStage.NONE;
   }
 
   /** @return the literal source of this module. */
@@ -131,7 +143,7 @@ public class Module implements TruffleObject {
    */
   public void setLiteralSource(Rope source) {
     this.literalSource = source;
-    this.isParsed = false;
+    this.compilationStage = CompilationStage.NONE;
   }
 
   /**
@@ -142,7 +154,7 @@ public class Module implements TruffleObject {
   public void setSourceFile(TruffleFile file) {
     this.literalSource = null;
     this.sourceFile = file;
-    this.isParsed = false;
+    this.compilationStage = CompilationStage.NONE;
   }
 
   /** @return the location of this module. */
@@ -159,10 +171,13 @@ public class Module implements TruffleObject {
    * @param context context in which the parsing should take place
    * @return the scope defined by this module
    */
-  public ModuleScope parseScope(Context context) {
+  public ModuleScope compileScope(Context context) {
     ensureScopeExists(context);
-    if (!isParsed) {
-      parse(context);
+    if (!compilationStage.isAtLeast(CompilationStage.COMPILED)) {
+      try {
+        compile(context);
+      } catch (IOException ignored) {
+      }
     }
     return scope;
   }
@@ -175,26 +190,48 @@ public class Module implements TruffleObject {
   public void ensureScopeExists(Context context) {
     if (scope == null) {
       scope = context.createScope(this);
-      isParsed = false;
+      compilationStage = CompilationStage.NONE;
     }
   }
 
-  private void parse(Context context) {
-    ensureScopeExists(context);
-    context.resetScope(scope);
-    isParsed = true;
+  public boolean isCompiled() {
+    return compilationStage.isAtLeast(CompilationStage.COMPILED);
+  }
+
+  public Source getSource() throws IOException {
     if (literalSource != null) {
-      Source source =
-          Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
-      ir = context.getCompiler().run(source, this);
+      return Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString())
+          .build();
     } else if (sourceFile != null) {
-      ir = context.getCompiler().run(sourceFile, this);
+      return Source.newBuilder(LanguageInfo.ID, sourceFile).build();
     }
+    return null;
+  }
+
+  private void compile(Context context) throws IOException {
+    ensureScopeExists(context);
+    Source source = getSource();
+    if (source == null) return;
+    context.resetScope(scope);
+    compilationStage = CompilationStage.NONE;
+    context.getCompiler().run(source, this);
   }
 
   /** @return IR defined by this module. */
-  public IR getIr() {
+  public IR.Module getIr() {
     return ir;
+  }
+
+  public CompilationStage getCompilationStage() {
+    return compilationStage;
+  }
+
+  public void setCompilationStage(CompilationStage compilationStage) {
+    this.compilationStage = compilationStage;
+  }
+
+  public void setIr(IR.Module ir) {
+    this.ir = ir;
   }
 
   public ModuleScope getScope() {
@@ -255,7 +292,10 @@ public class Module implements TruffleObject {
     private static Module reparse(Module module, Object[] args, Context context)
         throws ArityException {
       Types.extractArguments(args);
-      module.parse(context);
+      try {
+        module.compile(context);
+      } catch (IOException ignored) {
+      }
       return module;
     }
 
@@ -304,7 +344,7 @@ public class Module implements TruffleObject {
         @CachedContext(Language.class) Context context,
         @Cached LoopingCallOptimiserNode callOptimiserNode)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
-      ModuleScope scope = module.parseScope(context);
+      ModuleScope scope = module.compileScope(context);
       switch (member) {
         case MethodNames.Module.GET_METHOD:
           return getMethod(scope, arguments);
