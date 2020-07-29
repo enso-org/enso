@@ -105,6 +105,7 @@ transport formats, please look [here](./protocol-architecture).
 - [Search Operations](#search-operations)
   - [Suggestions Database Example](#suggestionsdatabaseexample)
   - [`search/getSuggestionsDatabase`](#searchgetsuggestionsdatabase)
+  - [`search/invalidateSuggestionsDatabase`](#invalidatesuggestionsdatabase)
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/completion`](#searchcompletion)
@@ -2595,7 +2596,7 @@ Sent from client to the server to receive the full suggestions database.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Binary
+- **Connection:** Protocol
 - **Visibility:** Public
 
 #### Parameters
@@ -2622,6 +2623,33 @@ null;
 - [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
   root directory
 
+### `search/invalidateSuggestionsDatabase`
+
+Sent from client to the server to clean the suggestions database resetting the
+version.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+null;
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
+  suggestions database
+
 ### `search/getSuggestionsDatabaseVersion`
 
 Sent from client to the server to receive the current version of the suggestions
@@ -2629,7 +2657,7 @@ database.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Binary
+- **Connection:** Protocol
 - **Visibility:** Public
 
 #### Parameters
@@ -2661,7 +2689,7 @@ database.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
-- **Connection:** Binary
+- **Connection:** Protocol
 - **Visibility:** Public
 
 #### Parameters
@@ -2683,7 +2711,7 @@ Sent from client to the server to receive the autocomplete suggestion.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Binary
+- **Connection:** Protocol
 - **Visibility:** Public
 
 #### Parameters

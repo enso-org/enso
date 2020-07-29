@@ -31,8 +31,8 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   def init: Future[Unit] =
     db.run(initQuery)
 
-  /** Clean the repo. */
-  def clean: Future[Unit] =
+  /** @inheritdoc */
+  override def clean: Future[Unit] =
     db.run(cleanQuery)
 
   /** @inheritdoc */
@@ -90,6 +90,10 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(updateAllQuery(expressions))
 
   /** @inheritdoc */
+  override def renameProject(oldName: String, newName: String): Future[Unit] =
+    db.run(renameProjectQuery(oldName, newName))
+
+  /** @inheritdoc */
   override def currentVersion: Future[Long] =
     db.run(currentVersionQuery)
 
@@ -116,12 +120,13 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   }
 
   /** The query to clean the repo. */
-  private def cleanQuery: DBIO[Unit] =
+  private def cleanQuery: DBIO[Unit] = {
     for {
       _ <- Suggestions.delete
       _ <- Arguments.delete
       _ <- SuggestionsVersions.delete
     } yield ()
+  }
 
   /** Get all suggestions.
     *
@@ -340,6 +345,22 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
         else currentVersionQuery
     } yield (version, ids)
     query.transactionally
+  }
+
+  /** The query to update the project name.
+    *
+    * @param oldName the old name of the project
+    * @param newName the new project name
+    */
+  private def renameProjectQuery(
+    oldName: String,
+    newName: String
+  ): DBIO[Unit] = {
+    val updateQuery =
+      sqlu"""update suggestions
+          set module = replace(module, $oldName, $newName)
+          where module like '#$oldName%'"""
+    updateQuery >> DBIO.successful(())
   }
 
   /** The query to get current version of the repo. */

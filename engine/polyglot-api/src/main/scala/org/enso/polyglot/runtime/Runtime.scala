@@ -167,6 +167,14 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.SuggestionsDatabaseReIndexNotification],
         name  = "suggestionsDatabaseReindexNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.InvalidateModulesIndexRequest],
+        name  = "invalidateModulesIndexRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.InvalidateModulesIndexResponse],
+        name  = "invalidateModulesIndexResponse"
       )
     )
   )
@@ -710,6 +718,12 @@ object Runtime {
       val mapper  = new ObjectMapper(factory) with ScalaObjectMapper
       mapper.registerModule(DefaultScalaModule)
     }
+
+    /** A request to invalidate the indexed flag of the modules. */
+    case class InvalidateModulesIndexRequest() extends ApiRequest
+
+    /** Signals that the module indexes has been invalidated. */
+    case class InvalidateModulesIndexResponse() extends ApiResponse
 
     /**
       * Serializes a Request into a byte buffer.

@@ -60,6 +60,17 @@ object SearchApi {
     }
   }
 
+  case object InvalidateSuggestionsDatabase
+      extends Method("search/invalidateSuggestionsDatabase") {
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
   case object Completion extends Method("search/completion") {
 
     case class Params(
