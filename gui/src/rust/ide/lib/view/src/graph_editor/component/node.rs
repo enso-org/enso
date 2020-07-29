@@ -21,12 +21,11 @@ use ensogl::display::traits::*;
 use ensogl::display;
 use ensogl::gui::component::Animation;
 use ensogl::gui::component;
-use std::num::NonZeroU32;
 
 use super::edge;
 use crate::graph_editor::component::visualization;
 use crate::graph_editor::component::node::port::output::OutputPorts;
-
+use crate::graph_editor::Type;
 
 
 // =================
@@ -129,21 +128,23 @@ pub mod drag_area {
 #[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct InputEvents {
-    pub select            : frp::Source,
-    pub deselect          : frp::Source,
-    pub set_expression    : frp::Source<Expression>,
-    pub set_visualization : frp::Source<Option<visualization::Instance>>,
+    pub select              : frp::Source,
+    pub deselect            : frp::Source,
+    pub set_expression      : frp::Source<Expression>,
+    pub set_expression_type : frp::Source<(ast::Id,Option<Type>)>,
+    pub set_visualization   : frp::Source<Option<visualization::Instance>>,
 }
 
 impl InputEvents {
     pub fn new(network:&frp::Network) -> Self {
         frp::extend! { network
-            def select            = source();
-            def deselect          = source();
-            def set_expression    = source();
-            def set_visualization = source();
+            def select              = source();
+            def deselect            = source();
+            def set_expression      = source();
+            def set_expression_type = source();
+            def set_visualization   = source();
         }
-        Self {select,deselect,set_expression,set_visualization}
+        Self {select,deselect,set_expression,set_expression_type,set_visualization}
     }
 }
 
@@ -257,7 +258,7 @@ impl NodeModel {
 
 
         // TODO: Determine number of output ports based on node semantics.
-        let output_ports = OutputPorts::new(&scene, NonZeroU32::new(10).unwrap());
+        let output_ports = OutputPorts::new(&scene);
         display_object.add_child(&output_ports);
 
 
@@ -280,7 +281,9 @@ impl NodeModel {
 
     fn set_expression(&self, expr:impl Into<Expression>) {
         let expr = expr.into();
+        self.output_ports.set_pattern_span_tree(&expr.output_span_tree);
         self.ports.set_expression(expr);
+
 
         let width = self.width();
         let height = self.height();
@@ -317,6 +320,10 @@ impl Node {
             eval_ inputs.deselect (selection.set_target_value(0.0));
 
             eval inputs.set_expression ((expr) model.set_expression(expr));
+            eval inputs.set_expression_type (((ast_id,maybe_type)) {
+                model.ports.set_expression_type(*ast_id,maybe_type.clone());
+                model.output_ports.set_pattern_type(*ast_id,maybe_type.clone())
+            });
 
             eval inputs.set_visualization ((content)
                 model.visualization.frp.set_visualization.emit(content)

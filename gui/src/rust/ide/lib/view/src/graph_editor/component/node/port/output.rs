@@ -22,10 +22,14 @@ use ensogl::display;
 use ensogl::gui::component::Animation;
 use ensogl::gui::component::Tween;
 use ensogl::gui::component;
-use std::num::NonZeroU32;
+use span_tree::SpanTree;
+use span_tree;
 
+use crate::graph_editor::Type;
+use crate::graph_editor::component::node::port::get_id_for_crumbs;
+use crate::graph_editor::component::type_coloring::MISSING_TYPE_COLOR;
+use crate::graph_editor::component::type_coloring::TypeColorMap;
 use crate::graph_editor::node;
-
 
 
 // =================
@@ -217,7 +221,7 @@ pub mod multi_port_area {
 
     ensogl::define_shape_system! {
         (style:Style, grow:f32, index:f32, port_num:f32, opacity:f32, padding_left:f32,
-        padding_right:f32) {
+        padding_right:f32, color_rgb:Vector3<f32>) {
             let overall_width  : Var<Pixels> = "input_size.x".into();
             let overall_height : Var<Pixels> = "input_size.y".into();
 
@@ -245,8 +249,7 @@ pub mod multi_port_area {
             let port_area = port_area.difference(&left_shape_crop);
             let port_area = port_area.intersection(&right_shape_crop);
 
-            // FIXME: Use color from style and apply transparency there.
-            let color     = Var::<color::Rgba>::from("srgba(0.25,0.58,0.91,input_opacity)");
+            let color     = Var::<color::Rgba>::from("srgba(input_color_rgb,input_opacity)");
             let port_area = port_area.fill(color);
 
             (port_area + hover_area).into()
@@ -277,15 +280,14 @@ pub mod single_port_area {
     use ensogl::display::shape::*;
 
     ensogl::define_shape_system! {
-        (style:Style, grow:f32, opacity:f32) {
+        (style:Style, grow:f32, opacity:f32, color_rgb:Vector3<f32>) {
             let overall_width  : Var<Pixels> = "input_size.x".into();
             let overall_height : Var<Pixels> = "input_size.y".into();
 
             let base_shape_data = BaseShapeData::new(&overall_width,&overall_height,&grow);
             let BaseShapeData{ port_area,hover_area, .. } = base_shape_data;
 
-            // FIXME: Use color from style and apply transparency there.
-            let color     = Var::<color::Rgba>::from("srgba(0.25,0.58,0.91,input_opacity)");
+            let color     = Var::<color::Rgba>::from("srgba(input_color_rgb,input_opacity)");
             let port_area = port_area.fill(color);
 
             let hover_area = hover_area.fill(color::Rgba::new(0.0,0.0,0.0,0.000_001));
@@ -323,10 +325,9 @@ enum ShapeView {
 }
 
 impl ShapeView {
-    /// Constructor.
-    fn new(number_of_ports:NonZeroU32, logger:&Logger, scene:&Scene) -> Self {
-        let number_of_ports = number_of_ports.get();
-        if number_of_ports == 1 {
+    /// Constructor. If the port count is 0, we will still show a single port.
+    fn new(number_of_ports:u32, logger:&Logger, scene:&Scene) -> Self {
+        if number_of_ports <= 1 {
             ShapeView::Single { view: component::ShapeView::new(&logger,&scene) }
         } else {
             let display_object  = display::object::Instance::new(logger);
@@ -354,11 +355,11 @@ impl ShapeView {
     /// parameters.
     fn update_shape_layout_based_on_size_and_gap(&self, size:Vector2<f32>, gap_width:f32) {
         match self {
-            ShapeView::Single { view } => {
+            ShapeView::Single{ view } => {
                 let shape = &view.shape;
                 shape.sprite.size.set(size);
             }
-            ShapeView::Multi { views, .. } => {
+            ShapeView::Multi{ views, .. } => {
                 let port_num  = views.len() as f32;
                 for (index,view) in views.iter().enumerate(){
                     let shape = &view.shape;
@@ -373,13 +374,32 @@ impl ShapeView {
             }
         }
     }
+
+    fn set_color<C:Into<color::Rgba>>(&self, port_id:PortId, color:C) {
+        let color = color.into();
+        let color = Vector3::<f32>::new(color.red,color.green,color.blue);
+        match self {
+            ShapeView::Single{ view } => {
+                if port_id.index == 0 {
+                    let shape = &view.shape;
+                    shape.color_rgb.set(color)
+                }
+            }
+            ShapeView::Multi{ views, .. } => {
+                if let Some(view) = views.get(port_id.index) {
+                    let shape = &view.shape;
+                    shape.color_rgb.set(color)
+                }
+            }
+        }
+    }
 }
 
 impl display::Object for ShapeView {
     fn display_object(&self) -> &display::object::Instance {
         match self {
-            ShapeView::Single { view }               => view.display_object(),
-            ShapeView::Multi  { display_object, .. } => display_object,
+            ShapeView::Single{ view }              => view.display_object(),
+            ShapeView::Multi{ display_object, .. } => display_object,
         }
     }
 }
@@ -391,7 +411,7 @@ impl display::Object for ShapeView {
 // ===============
 
 /// Id of a specific port inside of `OutPutPortsData`.
-#[derive(Clone,Copy,Default,Debug,Eq,PartialEq)]
+#[derive(Clone,Copy,Default,Debug,Eq,Hash,PartialEq)]
 pub struct PortId {
     index: usize,
 }
@@ -484,15 +504,12 @@ pub struct Frp {
     /// Update the size of the `OutPutPorts`. Should match the size of the parent node for visual
     /// correctness.
     pub set_size        : frp::Source<Vector2<f32>>,
-    /// Emitted whenever one of the ports receives a `MouseDown` event. The `PortId` indicates the
-    /// source port.
-    pub port_mouse_down : frp::Stream<PortId>,
-    /// Emitted whenever one of the ports receives a `MouseOver` event. The `PortId` indicates the
-    /// source port.
-    pub port_mouse_over : frp::Stream<PortId>,
-    /// Emitted whenever one of the ports receives a `MouseOut` event. The `PortId` indicates the
-    /// source port.
-    pub port_mouse_out  : frp::Stream<PortId>,
+    /// Emitted whenever one of the ports receives a `MouseDown` event.
+    pub port_mouse_down : frp::Stream<span_tree::Crumbs>,
+    /// Emitted whenever one of the ports receives a `MouseOver` event.
+    pub port_mouse_over : frp::Stream<span_tree::Crumbs>,
+    /// Emitted whenever one of the ports receives a `MouseOut` event.
+    pub port_mouse_out  : frp::Stream<span_tree::Crumbs>,
 
     on_port_mouse_down  : frp::Source<PortId>,
     on_port_mouse_over  : frp::Source<PortId>,
@@ -500,16 +517,16 @@ pub struct Frp {
 }
 
 impl Frp {
-    fn new(network: &frp::Network) -> Self {
+    fn new(network: &frp::Network, id_map:&SharedIdCrumbMap) -> Self {
         frp::extend! { network
             def set_size           = source();
             def on_port_mouse_down = source();
             def on_port_mouse_over = source();
             def on_port_mouse_out  = source();
 
-            let port_mouse_down = on_port_mouse_down.clone_ref().into();
-            let port_mouse_over = on_port_mouse_over.clone_ref().into();
-            let port_mouse_out  = on_port_mouse_out.clone_ref().into();
+            port_mouse_down <- on_port_mouse_down.map(f!((port_id) id_map.borrow().get(port_id).cloned())).unwrap();
+            port_mouse_over <- on_port_mouse_over.map(f!((port_id) id_map.borrow().get(port_id).cloned())).unwrap();
+            port_mouse_out <- on_port_mouse_out.map(f!((port_id) id_map.borrow().get(port_id).cloned())).unwrap();
         }
         Self{set_size,on_port_mouse_down,on_port_mouse_over,on_port_mouse_out,
              port_mouse_down,port_mouse_over,port_mouse_out}
@@ -530,19 +547,21 @@ pub struct OutputPortsData {
     size           : Cell<Vector2<f32>>,
     gap_width      : Cell<f32>,
     ports          : RefCell<ShapeView>,
+    scene          : Scene
 }
 
 impl OutputPortsData {
 
-    fn new(scene:&Scene, number_of_ports:NonZeroU32) -> Self {
+    fn new(scene:&Scene, number_of_ports:u32) -> Self {
         let logger         = Logger::new("OutputPorts");
         let display_object = display::object::Instance::new(&logger);
         let size           = Cell::new(Vector2::zero());
         let gap_width      = Cell::new(SEGMENT_GAP_WIDTH);
         let ports          = ShapeView::new(number_of_ports,&logger,scene);
         let ports          = RefCell::new(ports);
+        let scene          = scene.clone_ref();
 
-        OutputPortsData {display_object,logger,size,ports,gap_width}.init()
+        OutputPortsData {display_object,logger,size,ports,gap_width,scene}.init()
     }
 
     fn init(self) -> Self {
@@ -561,6 +580,15 @@ impl OutputPortsData {
         self.size.set(size);
         self.update_shape_layout_based_on_size_and_gap();
     }
+
+    /// Change show many separate output ports exist on the `OutputPort` shape.
+    fn set_number_of_output_ports(&self, number_of_ports:u32) {
+        self.ports.borrow().display_object().unset_parent();
+        let ports = ShapeView::new(number_of_ports,&self.logger,&self.scene);
+        *self.ports.borrow_mut() = ports;
+        self.ports.borrow().display_object().set_parent(&self.display_object);
+        self.update_shape_layout_based_on_size_and_gap();
+    }
 }
 
 
@@ -568,6 +596,8 @@ impl OutputPortsData {
 // ===================
 // === OutputPorts ===
 // ===================
+
+type SharedIdCrumbMap = Rc<RefCell<HashMap<PortId,span_tree::Crumbs>>>;
 
 /// Implements the segmented output port area. Provides shapes that can be attached to a `Node` to
 /// add an interactive area with output ports.
@@ -582,30 +612,36 @@ impl OutputPortsData {
 #[derive(Debug,Clone,CloneRef)]
 pub struct OutputPorts {
     /// The FRP api of the `OutPutPorts`.
-    pub frp     : Frp,
-        network : frp::Network,
-        data    : Rc<OutputPortsData>,
+    pub frp               : Frp,
+        network           : frp::Network,
+        // This network will be re-created whenever we change the number of ports.
+        port_network      : Rc<RefCell<frp::Network>>,
+        data              : Rc<OutputPortsData>,
+        type_color_map    : TypeColorMap,
+        pattern_span_tree : Rc<RefCell<SpanTree>>,
+        scene             : Scene,
+        id_map            : SharedIdCrumbMap,
+        delay_show        : Tween,
+        delay_hide        : Tween
 }
 
 impl OutputPorts {
     /// Constructor.
-    pub fn new(scene:&Scene, number_of_ports:NonZeroU32) -> Self {
-        let network = default();
-        let frp     = Frp::new(&network);
-        let data    = OutputPortsData::new(scene,number_of_ports);
-        let data    = Rc::new(data);
-        OutputPorts {data,network,frp}.init()
-    }
+    pub fn new(scene:&Scene) -> Self {
+        let pattern_span_tree  = SpanTree::default();
+        let network            = default();
+        let id_map             = default();
+        let frp                = Frp::new(&network,&id_map);
+        let number_of_ports    = pattern_span_tree.root_ref().leaf_iter().count();
+        let data               = OutputPortsData::new(scene,number_of_ports as u32);
+        let data               = Rc::new(data);
+        let type_color_map     = default();
+        let pattern_span_tree = Rc::new(RefCell::new(pattern_span_tree));
+        let scene              = scene.clone_ref();
+        let port_network       = default();
 
-    fn init(self) -> Self {
-        let network = &self.network;
-        let frp     = &self.frp;
-        let data    = &self.data;
 
-        // Used to set and detect the end of the tweens. The actual value is irrelevant, only the
-        // duration of the tween matters and that this value is reached after that time.
-        const TWEEN_END_VALUE:f32 = 1.0;
-
+        // TODO memory leak from tween?
         // Timer used to measure whether the hover has been long enough to show the ports.
         let delay_show = Tween::new(&network);
         delay_show.set_duration(SHOW_DELAY_DURATION);
@@ -614,11 +650,60 @@ impl OutputPorts {
         let delay_hide = Tween::new(&network);
         delay_hide.set_duration(HIDE_DELAY_DURATION);
 
+
+        OutputPorts{scene,data,network,frp,pattern_span_tree,type_color_map,port_network,id_map,
+                     delay_show,delay_hide}
+    }
+
+    // TODO: Implement proper sorting and remove.
+    /// Hack function used to register the elements for the sorting purposes. To be removed.
+    pub(crate) fn order_hack(scene:&Scene) {
+        let logger = Logger::new("output shape order hack");
+        component::ShapeView::<multi_port_area::Shape>::new(&logger,scene);
+        component::ShapeView::<single_port_area::Shape>::new(&logger,scene);
+    }
+
+    /// Set the pattern for which output ports should be presented. Triggers a rebinding of the
+    /// internal FRP and updates the shape appearance.
+    pub fn set_pattern_span_tree(&self, pattern_span_tree:&SpanTree) {
+
+        // === Update data / shapes ===
+
+        // We want to be able to match each `PortId` to a `Crumb` from the expression, including
+        // the root.
+        let number_of_ports     = 1 + pattern_span_tree.root_ref().leaf_iter().count() as u32;
+        let expression_nodes    = pattern_span_tree.root_ref().leaf_iter();
+        // Create a `PortId` for every leaf and store them in tuples.
+        let port_ids_for_crumbs = expression_nodes.enumerate().map(|(index, node)| {
+            (PortId::new(index + 1), node.crumbs)
+        });
+        let mut id_map = HashMap::<PortId,span_tree::Crumbs>::from_iter(port_ids_for_crumbs);
+        // Also add the root node.
+        id_map.insert(PortId::new(0), pattern_span_tree.root_ref().crumbs);
+
+        let id_map = id_map;
+        *self.id_map.borrow_mut() = id_map;
+
+        self.data.set_number_of_output_ports(number_of_ports);
+        *self.pattern_span_tree.borrow_mut() = pattern_span_tree.clone();
+
+
+        // === Update FRP bindings ===
+        let data    = &self.data;
+        let frp     = &self.frp;
+
+        // Used to set and detect the end of the tweens. The actual value is irrelevant, only the
+        // duration of the tween matters and that this value is reached after that time.
+        const TWEEN_END_VALUE:f32 = 1.0;
+
+        let delay_show = &self.delay_show;
+        let delay_hide = &self.delay_show;
+
         let mouse_down = frp.on_port_mouse_down.clone_ref();
         let mouse_over = frp.on_port_mouse_over.clone_ref();
         let mouse_out  = frp.on_port_mouse_out.clone_ref();
 
-        frp::extend! { network
+        frp::new_network! { network_internal
 
             // === Size Change Handling == ///
 
@@ -659,10 +744,12 @@ impl OutputPorts {
 
         let port_frp = PortFrp {mouse_down,mouse_over,mouse_out,
             hide: hide_all,
-            activate_and_highlight_selected
+            activate_and_highlight_selected,
         };
 
-        data.ports.borrow().init_frp(&network,port_frp);
+        data.ports.borrow().init_frp(&network_internal,port_frp);
+
+        *self.port_network.borrow_mut() = network_internal;
 
         // // FIXME this is a hack to ensure the ports are invisible at startup.
         // // Right now we get some of FRP mouse events on startup that leave the
@@ -670,15 +757,26 @@ impl OutputPorts {
         // // Once that is fixed, remove this line.
         delay_hide.from_now_to(TWEEN_END_VALUE);
 
-        self
+        self.set_port_colors_based_on_available_types()
     }
 
-    // TODO: Implement proper sorting and remove.
-    /// Hack function used to register the elements for the sorting purposes. To be removed.
-    pub(crate) fn order_hack(scene:&Scene) {
-        let logger = Logger::new("output shape order hack");
-        component::ShapeView::<multi_port_area::Shape>::new(&logger,scene);
-        component::ShapeView::<single_port_area::Shape>::new(&logger,scene);
+    fn set_port_colors_based_on_available_types(&self) {
+        self.id_map.borrow().iter().for_each(|(id, crumb)|{
+            let color = self.get_port_color(crumb).unwrap_or(MISSING_TYPE_COLOR);
+            self.data.ports.borrow().set_color(*id,color);
+        })
+    }
+
+    /// Return the color of the port indicated by the given `Crumb`.
+    pub fn get_port_color(&self, crumbs:&[span_tree::Crumb]) -> Option<color::Lcha> {
+        let ast_id = get_id_for_crumbs(&self.pattern_span_tree.borrow(),&crumbs)?;
+        self.type_color_map.type_color(ast_id)
+    }
+
+    /// Set the type information for the given `ast::Id`.
+    pub fn set_pattern_type(&self, id:ast::Id, maybe_type:Option<Type>) {
+        self.type_color_map.update_entry(id,maybe_type);
+        self.set_port_colors_based_on_available_types();
     }
 }
 

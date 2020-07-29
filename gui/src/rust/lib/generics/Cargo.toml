@@ -7,4 +7,5 @@ edition = "2018"
 [lib]
 
 [dependencies]
-nalgebra = { version = "0.21.1" }
+serde    = { version = "1.0.0"  , features = ["derive"]          }
+nalgebra = { version = "0.21.1" , features = ["serde-serialize"] }

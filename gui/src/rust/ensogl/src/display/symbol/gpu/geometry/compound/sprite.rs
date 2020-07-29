@@ -119,6 +119,20 @@ impl Size {
 }
 
 
+// === Getters ===
+
+#[allow(missing_docs)]
+impl Size {
+    #[deprecated(note = "This will be removed without replacement soon.\
+    Internally this will be changed to use `Var` values, which means it will be impossible to \
+    return concrete values.")]
+    pub fn get(&self) -> Vector2<f32>{
+        if self.hidden.get() { self.value.get() }
+        else                 { self.attr.get()  }
+    }
+}
+
+
 // === Private API ===
 
 impl Size {
