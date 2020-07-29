@@ -10,6 +10,8 @@
 
 //! This module exports the implementation of the enso abstract syntax tree.
 
+pub mod generation;
+
 use application::*;
 use block::*;
 use definition::*;
@@ -46,20 +48,20 @@ pub struct Ast<Shape> {
 #[allow(missing_docs)]
 #[derive(Debug,Clone)]
 pub enum Shape {
-    Unrecognized(Unrecognized),
-    Blank(Blank),
-    Var(Var),
-    Cons(Cons),
-    Opr(Opr),
-    Number(Number),
-    Text(Text),
-    Prefix(Prefix),
-    Infix(Infix),
-    Module(Module),
-    Block(Block),
-    FunDef(FunDef),
-    OprDef(OprDef),
-    VarDef(VarDef),
+    Unrecognized(invalid::Unrecognized),
+    Blank(identifier::Blank),
+    Var(identifier::Var),
+    Cons(identifier::Cons),
+    Opr(identifier::Opr),
+    Number(number::Number),
+    Text(text::Text),
+    Prefix(application::Prefix),
+    Infix(application::Infix),
+    Module(block::Module),
+    Block(block::Block),
+    FunDef(definition::FunDef),
+    OprDef(definition::OprDef),
+    VarDef(definition::VarDef),
 }
 
 
@@ -161,7 +163,7 @@ pub mod identifier {
     /// The ast node for the underscore `_`.
     #[allow(missing_docs)]
     #[derive(Debug,Clone,Copy)]
-    pub struct Blank();
+    pub struct Blank{}
 
     /// The ast node for a variable.
     #[allow(missing_docs)]
@@ -258,7 +260,7 @@ impl AnyAst {
 
     /// Creates a new ast node with `Shape::Blank`.
     pub fn blank() -> Self {
-        Self::new(Blank())
+        Self::new(Blank{})
     }
 
     /// Creates a new ast node with `Shape::Var`.
