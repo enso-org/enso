@@ -47,42 +47,34 @@ pub struct TestLexer<Reader:LazyReader> {
 /// These functions are provided by the user, by hand.
 #[allow(missing_docs)]
 impl<Reader:LazyReader> TestLexer<Reader> {
-    pub fn def_on_first_word_str(&mut self) {
+    pub fn on_first_word(&mut self) {
         let str = self.current_match.clone();
         let ast = AST::Word(str);
-        self.def_on_first_word(ast);
-    }
-
-    pub fn def_on_first_word(&mut self,ast:AST) {
         self.tokens.push(ast);
         let id = self.seen_first_word_state;
         self.begin_state(id);
     }
 
-    pub fn def_on_spaced_word_str(&mut self) {
+    pub fn on_spaced_word(&mut self) {
         let str = self.current_match.clone();
         let ast = AST::Word(String::from(str.trim()));
-        self.def_on_spaced_word(ast);
-    }
-
-    pub fn def_on_spaced_word(&mut self,ast:AST) {
         self.tokens.push(ast);
     }
 
-    pub fn def_on_err_suffix_first_word(&mut self) {
+    pub fn on_err_suffix_first_word(&mut self) {
         let ast = AST::Unrecognised(self.current_match.clone());
         self.tokens.push(ast);
     }
 
-    pub fn def_on_err_suffix(&mut self) {
-        self.def_on_err_suffix_first_word();
+    pub fn on_err_suffix(&mut self) {
+        self.on_err_suffix_first_word();
         self.end_state();
     }
 
-    pub fn def_on_no_err_suffix_first_word(&mut self) {}
+    pub fn on_no_err_suffix_first_word(&mut self) {}
 
-    pub fn def_on_no_err_suffix(&mut self) {
-        self.def_on_no_err_suffix_first_word();
+    pub fn on_no_err_suffix(&mut self) {
+        self.on_no_err_suffix_first_word();
         self.end_state();
     }
 }
@@ -235,19 +227,19 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     }
 
     fn gen_group_0_rule_0(&mut self) -> () {
-        self.def_on_first_word_str()
+        self.on_first_word()
     }
 
     fn gen_group_0_rule_1(&mut self) -> () {
-        self.def_on_first_word_str()
+        self.on_first_word()
     }
 
     fn gen_group_0_rule_2(&mut self) -> () {
-        self.def_on_err_suffix_first_word()
+        self.on_err_suffix_first_word()
     }
 
     fn gen_group_0_rule_3(&mut self) {
-        self.def_on_err_suffix_first_word()
+        self.on_err_suffix_first_word()
     }
 
     fn gen_dispatch_in_state_1(&mut self,new_state_index:usize) -> FlexerStageStatus {
@@ -354,19 +346,19 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     }
 
     fn gen_group_1_rule_0(&mut self) {
-        self.def_on_spaced_word_str();
+        self.on_spaced_word();
     }
 
     fn gen_group_1_rule_1(&mut self) -> () {
-        self.def_on_spaced_word_str();
+        self.on_spaced_word();
     }
 
     fn gen_group_1_rule_2(&mut self) {
-        self.def_on_no_err_suffix();
+        self.on_no_err_suffix();
     }
 
     fn gen_group_1_rule_3(&mut self) {
-        self.def_on_err_suffix()
+        self.on_err_suffix()
     }
 }
 
@@ -408,8 +400,8 @@ pub struct TestState {
 
 // === Trait Impls ===
 
-impl <Reader:LazyReader> FlexerState<Reader> for TestState {
-    fn new(reader:&mut Reader) -> Self {
+impl FlexerState for TestState {
+    fn new<Reader:LazyReader>(reader: &mut Reader) -> Self {
         let mut lexer_states      = GroupRegistry::default();
         let initial_state         = lexer_states.define_group("ROOT".into(),None);
         let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(),None);

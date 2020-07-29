@@ -59,7 +59,7 @@ pub struct Flexer<Definition,Output,Reader> where Reader:LazyReader {
 }
 
 impl<Definition,Output,Reader> Flexer<Definition,Output,Reader>
-where Definition: FlexerState<Reader>,Reader:LazyReader {
+where Definition: FlexerState,Reader:LazyReader {
     /// Creates a new lexer instance.
     ///
     /// Please note that the `reader` argument is currently hard-coded for testing purposes. This is
@@ -81,7 +81,7 @@ where Definition: FlexerState<Reader>,Reader:LazyReader {
 
 /// This block is things that are part of the lexer's interface and functionality.
 impl<Definition,Reader,Output> Flexer<Definition,Output,Reader>
-where Definition:FlexerState<Reader>,Reader:LazyReader,Output:Clone {
+where Definition:FlexerState,Reader:LazyReader,Output:Clone {
     /// Gets the lexer result.
     pub fn get_result(&mut self) -> Option<Vec<Output>> {
         Some(self.tokens.clone())
@@ -213,9 +213,9 @@ pub enum FlexerResult<T> {
 // ===================
 
 /// Contains the state needed by any given lexer implementation.
-pub trait FlexerState<Reader:LazyReader> {
+pub trait FlexerState {
     /// Creates a new instance of the lexer's state.
-    fn new(reader:&mut Reader) -> Self;
+    fn new<Reader:LazyReader>(reader:&mut Reader) -> Self;
     /// Returns the _initial_ lexing state.
     fn initial_state(&self) -> usize;
     /// Returns a reference to the group registry for a given lexer.

@@ -46,7 +46,7 @@ impl GroupRegistry {
     /// Creates a rule that matches `pattern` for the group identified by `group_id`.
     ///
     /// Panics if `group_id` refers to a nonexistent group.
-    pub fn create_rule(&mut self,group_id:usize,pattern:&Pattern,callback:String) {
+    pub fn create_rule(&mut self,group_id:usize,pattern:&Pattern,callback:&str) {
         let err = format!("The provided group_id {} is invalid.",group_id);
         let group = self.group_from_id_mut(group_id).expect(&err);
         group.create_rule(pattern,callback);
@@ -168,9 +168,9 @@ impl Group {
     }
 
     /// Creates a new rule.
-    pub fn create_rule(&mut self,pattern:&Pattern,code:String) {
+    pub fn create_rule(&mut self,pattern:&Pattern,code:&str) {
         let pattern_clone = pattern.clone();
-        let rule = Rule::new(pattern_clone,code);
+        let rule = Rule::new(pattern_clone,code.into());
         self.rules.push(rule)
     }
 

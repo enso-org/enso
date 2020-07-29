@@ -77,42 +77,34 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 /// Implementation helpers.
 #[allow(missing_docs)]
 impl<Reader:LazyReader> TestLexer<Reader> {
-    pub fn def_on_first_word_str(&mut self) {
+    pub fn on_first_word(&mut self) {
         let str = self.current_match.clone();
         let ast = AST::Word(str);
-        self.def_on_first_word(ast);
-    }
-
-    pub fn def_on_first_word(&mut self,ast:AST) {
         self.tokens.push(ast);
-        let id = self.seen_first_word_group;
+        let id = self.seen_first_word_state;
         self.begin_state(id);
     }
 
-    pub fn def_on_spaced_word_str(&mut self) {
+    pub fn on_spaced_word(&mut self) {
         let str = self.current_match.clone();
         let ast = AST::Word(String::from(str.trim()));
-        self.def_on_spaced_word(ast);
-    }
-
-    pub fn def_on_spaced_word(&mut self,ast:AST) {
         self.tokens.push(ast);
     }
 
-    pub fn def_on_err_suffix_first_word(&mut self) {
+    pub fn on_err_suffix_first_word(&mut self) {
         let ast = AST::Unrecognised(self.current_match.clone());
         self.tokens.push(ast);
     }
 
-    pub fn def_on_err_suffix(&mut self) {
-        self.def_on_err_suffix_first_word();
+    pub fn on_err_suffix(&mut self) {
+        self.on_err_suffix_first_word();
         self.end_state();
     }
 
-    pub fn def_on_no_err_suffix_first_word(&mut self) {}
+    pub fn on_no_err_suffix_first_word(&mut self) {}
 
-    pub fn def_on_no_err_suffix(&mut self) {
-        self.def_on_no_err_suffix_first_word();
+    pub fn on_no_err_suffix(&mut self) {
+        self.on_no_err_suffix_first_word();
         self.end_state();
     }
 }
@@ -132,27 +124,26 @@ impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
     }
 }
 
-// TODO [AA] _Where_ do I want to write the definition?
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct TestState {
     lexer_states: GroupRegistry,
-    root_group: usize,
-    seen_first_word_group: usize,
+    initial_state: usize,
+    seen_first_word_state: usize,
     matched_bookmark: BookmarkId
 }
 
-impl<Reader:LazyReader> FlexerState<Reader> for TestState {
-    fn new(reader: &mut Reader) -> Self {
+impl FlexerState for TestState {
+    fn new<Reader:LazyReader>(reader: &mut Reader) -> Self {
         let mut lexer_states      = GroupRegistry::default();
-        let root_group            = lexer_states.define_group("ROOT".into(),None);
-        let seen_first_word_group = lexer_states.define_group("SEEN FIRST WORD".into(),None);
+        let initial_state         = lexer_states.define_group("ROOT".into(), None);
+        let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(), None);
         let matched_bookmark      = reader.add_bookmark();
-        TestState{lexer_states,root_group,seen_first_word_group,matched_bookmark}
+        TestState{lexer_states,initial_state,seen_first_word_state,matched_bookmark}
     }
 
     fn initial_state(&self) -> usize {
-        self.root_group
+        self.initial_state
     }
 
     fn groups(&self) -> &GroupRegistry {
@@ -185,37 +176,18 @@ fn test_lexer_definition() {
     let any           = Pattern::any();
     let end           = Pattern::eof();
 
-    let group_registry: &mut GroupRegistry = lexer.groups_mut();
-    let root_group = group_registry.group_from_id_mut(lexer.root_group).unwrap();
-}
+    let root_group_id = lexer.initial_state;
+    let root_group    = lexer.groups_mut().group_from_id_mut(root_group_id).unwrap();
+    root_group.create_rule(&a_word,"self.on_first_word()");
+    root_group.create_rule(&b_word,"self.on_first_word()");
+    root_group.create_rule(&end,   "self.on_no_err_suffix_first_word()");
+    root_group.create_rule(&any,   "self.on_err_suffix_first_word()");
 
-// #[test]
-// fn try_generate_code() {
-//     let mut lexer = Lexer::new();
-//
-//     let a_word        = Pattern::char('a').many1();
-//     let b_word        = Pattern::char('b').many1();
-//     let space         = Pattern::char(' ');
-//     let spaced_a_word = space.clone() >> a_word.clone();
-//     let spaced_b_word = space.clone() >> b_word.clone();
-//     let any           = Pattern::any();
-//     let end           = Pattern::eof();
-//
-//     // The ordering here is necessary.
-//     let root_group = lexer.define_group("ROOT");
-//     root_group.create_rule(&a_word,"1 + 1");
-//     root_group.create_rule(&b_word,"2 + 2");
-//     root_group.create_rule(&end,"3 + 3");
-//     root_group.create_rule(&any,"4 + 4");
-//
-//     let seen_first_word_group = lexer.define_group("SEEN_FIRST_WORD");
-//     seen_first_word_group.create_rule(&spaced_a_word,"5 + 5");
-//     seen_first_word_group.create_rule(&spaced_b_word,"6 + 6");
-//     seen_first_word_group.create_rule(&end,"7 + 7");
-//     seen_first_word_group.create_rule(&any,"8 + 8");
-//
-//     let result   = lexer.specialize();
-//     let expected = String::from("");
-//
-//     assert_eq!(result,expected)
-// }
+    let seen_first_word_group_id = lexer.seen_first_word_state;
+    let seen_first_word_group =
+        lexer.groups_mut().group_from_id_mut(seen_first_word_group_id).unwrap();
+    seen_first_word_group.create_rule(&spaced_a_word,"self.on_spaced_word()");
+    seen_first_word_group.create_rule(&spaced_b_word,"self.on_spaced_word()");
+    seen_first_word_group.create_rule(&end,          "self.on_no_err_suffix()");
+    seen_first_word_group.create_rule(&any,          "self.on_err_suffix()");
+}
