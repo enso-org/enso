@@ -123,7 +123,7 @@ class RuntimeServerTest
 
       object Update {
 
-        def mainX(contextId: UUID, value: String = "6") =
+        def mainX(contextId: UUID) =
           Api.Response(
             Api.ExpressionValuesComputed(
               contextId,
@@ -131,14 +131,13 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idMainX,
                   Some("Number"),
-                  Some(value),
                   None
                 )
               )
             )
           )
 
-        def mainY(contextId: UUID, value: String = "45") =
+        def mainY(contextId: UUID) =
           Api.Response(
             Api.ExpressionValuesComputed(
               contextId,
@@ -146,14 +145,13 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idMainY,
                   Some("Number"),
-                  Some(value),
                   Some(Api.MethodPointer(pkg.mainFile, "Number", "foo"))
                 )
               )
             )
           )
 
-        def mainZ(contextId: UUID, value: String = "50") =
+        def mainZ(contextId: UUID) =
           Api.Response(
             Api.ExpressionValuesComputed(
               contextId,
@@ -161,14 +159,13 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idMainZ,
                   Some("Number"),
-                  Some(value),
                   None
                 )
               )
             )
           )
 
-        def fooY(contextId: UUID, value: String = "9") =
+        def fooY(contextId: UUID) =
           Api.Response(
             Api.ExpressionValuesComputed(
               contextId,
@@ -176,14 +173,13 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idFooY,
                   Some("Number"),
-                  Some(value),
                   None
                 )
               )
             )
           )
 
-        def fooZ(contextId: UUID, value: String = "45") =
+        def fooZ(contextId: UUID) =
           Api.Response(
             Api.ExpressionValuesComputed(
               contextId,
@@ -191,7 +187,6 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idFooZ,
                   Some("Number"),
-                  Some(value),
                   None
                 )
               )
@@ -226,7 +221,7 @@ class RuntimeServerTest
 
       object Update {
 
-        def mainY(contextId: UUID, value: String = "15") =
+        def mainY(contextId: UUID) =
           Api.Response(
             Api.ExpressionValuesComputed(
               contextId,
@@ -234,14 +229,13 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   idMainY,
                   Some("Number"),
-                  Some(value),
                   Some(Api.MethodPointer(pkg.mainFile, "Main", "foo"))
                 )
               )
             )
           )
 
-        def mainZ(contextId: UUID, value: String = "75") =
+        def mainZ(contextId: UUID) =
           Api.Response(
             Api.ExpressionValuesComputed(
               contextId,
@@ -249,7 +243,6 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   idMainZ,
                   Some("Number"),
-                  Some(value),
                   Some(Api.MethodPointer(pkg.mainFile, "Main", "bar"))
                 )
               )
@@ -509,7 +502,7 @@ class RuntimeServerTest
         Api.ExpressionValuesComputed(
           contextId,
           Vector(
-            Api.ExpressionValueUpdate(idMain, Some("Number"), Some("84"), None)
+            Api.ExpressionValueUpdate(idMain, Some("Number"), None)
           )
         )
       ),
@@ -551,9 +544,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(
-            Api.ExpressionValueUpdate(idMain, Some("Number"), Some("42"), None)
-          )
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
         )
       )
     )
@@ -567,14 +558,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              idMain,
-              Some("Number"),
-              Some("50"),
-              None
-            )
-          )
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
         )
       )
 

@@ -137,23 +137,24 @@ trait ProgramExecutionSupport {
     val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
     for {
       stackItem <- Either.fromOption(explicitCallOpt, "stack is empty")
-      _ <- Either
-        .catchNonFatal(
-          runProgram(
-            stackItem,
-            localCalls,
-            onExpressionValueComputed(contextId, _),
-            visualisationUpdateCallback
+      _ <-
+        Either
+          .catchNonFatal(
+            runProgram(
+              stackItem,
+              localCalls,
+              onExpressionValueComputed(contextId, _),
+              visualisationUpdateCallback
+            )
           )
-        )
-        .leftMap { ex =>
-          ctx.executionService.getLogger.log(
-            Level.FINE,
-            s"Error executing a function '${getName(stackItem.item)}'",
-            ex
-          )
-          s"error in function: ${getName(stackItem.item)}"
-        }
+          .leftMap { ex =>
+            ctx.executionService.getLogger.log(
+              Level.FINE,
+              s"Error executing a function '${getName(stackItem.item)}'",
+              ex
+            )
+            s"error in function: ${getName(stackItem.item)}"
+          }
     } yield ()
   }
 
@@ -183,7 +184,6 @@ trait ProgramExecutionSupport {
             Api.ExpressionValueUpdate(
               value.getExpressionId,
               OptionConverters.toScala(value.getType),
-              Some(value.getValue.toString),
               toMethodPointer(value)
             )
           )
@@ -253,10 +253,10 @@ trait ProgramExecutionSupport {
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Option[Api.MethodPointer] =
     for {
-      call          <- Option(value.getCallInfo)
-      moduleName    <- Option(call.getModuleName)
-      functionName  = call.getFunctionName
-      typeName      <- Option(call.getTypeName).map(_.item)
+      call       <- Option(value.getCallInfo)
+      moduleName <- Option(call.getModuleName)
+      functionName = call.getFunctionName
+      typeName <- Option(call.getTypeName).map(_.item)
       module <- OptionConverters.toScala(
         ctx.executionService.getContext.getTopScope
           .getModule(moduleName.toString)

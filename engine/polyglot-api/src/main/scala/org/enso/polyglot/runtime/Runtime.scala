@@ -240,13 +240,11 @@ object Runtime {
       *
       * @param expressionId expression id.
       * @param expressionType the type of expression.
-      * @param shortValue the value of expression.
       * @param methodCall the pointer to a method definition.
       */
     case class ExpressionValueUpdate(
       expressionId: ExpressionId,
       expressionType: Option[String],
-      shortValue: Option[String],
       methodCall: Option[MethodPointer]
     )
 
