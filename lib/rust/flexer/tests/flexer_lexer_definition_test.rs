@@ -9,9 +9,13 @@
 //! space       = ' ';
 //! spaced-word = space, word;
 //! language    = word, spaced-word*;
+//!
+//! Please note that there is a fair amount of duplicated code between this test and the
+//! `lexer_generated_api_test` file. This is to present the full view of what each portion of the
+//! process looks like.
 
 use flexer::prelude::*;
-use flexer::group::{Group, GroupRegistry};
+use flexer::group::GroupRegistry;
 use lazy_reader::{BookmarkId, LazyReader, Reader};
 use flexer::{FlexerState, Flexer};
 use lazy_reader::decoder::DecoderUTF8;
@@ -33,48 +37,27 @@ pub enum AST {
 
 
 
-// =============
-// === Lexer ===
-// =============
+// ==================
+// === Test Lexer ===
+// ==================
 
-#[allow(missing_docs)]
-#[derive(Clone,Debug)]
-pub struct Lexer {
-    groups: Vec<Group>
-}
-
-#[allow(missing_docs)]
-impl Lexer {
-    pub fn new() -> Self {
-        let groups = Vec::new();
-        Lexer{groups}
-    }
-
-    // TODO [AA] Parent groups.
-    pub fn define_group(&mut self,name:&str) -> &mut Group {
-        let id    = self.groups.len();
-        let group = Group::new(id,String::from(name),None);
-        self.groups.push(group);
-        self.groups.get_mut(id).expect("Has just been pushed so should always exist.")
-    }
-}
-
+/// The definition of a test lexer for the above-described language.
 #[derive(Debug)]
-#[allow(missing_docs)]
 pub struct TestLexer<Reader:LazyReader> {
     lexer: Flexer<TestState,AST,Reader>
 }
 
-/// The definition?
-#[allow(missing_docs)]
 impl<Reader:LazyReader> TestLexer<Reader> {
+    /// Creates a new instance of this lexer.
     pub fn new(reader:Reader) -> Self {
         let lexer = Flexer::new(reader);
         TestLexer{lexer}
     }
 }
 
-/// Implementation helpers.
+/// Implementations of functionality used by the lexer.
+///
+/// These functions are provided by the user, by hand.
 #[allow(missing_docs)]
 impl<Reader:LazyReader> TestLexer<Reader> {
     pub fn on_first_word(&mut self) {
@@ -109,6 +92,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     }
 }
 
+
 // === Trait Impls ===
 
 impl<Reader:LazyReader> Deref for TestLexer<Reader> {
@@ -124,22 +108,35 @@ impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
     }
 }
 
-#[allow(missing_docs)]
+
+
+// ===================
+// === Lexer State ===
+// ===================
+
+/// The stateful components of the test lexer.
 #[derive(Debug)]
 pub struct TestState {
+    /// The registry for groups in the lexer.
     lexer_states: GroupRegistry,
+    /// The initial state of the lexer.
     initial_state: usize,
+    /// The state entered when the first word has been seen.
     seen_first_word_state: usize,
-    matched_bookmark: BookmarkId
+    /// A bookmark that is set when a match occurs, allowing for rewinding if necessary.
+    matched_bookmark: BookmarkId,
 }
+
+
+// === Trait Impls ===
 
 impl FlexerState for TestState {
     fn new<Reader:LazyReader>(reader: &mut Reader) -> Self {
         let mut lexer_states      = GroupRegistry::default();
-        let initial_state         = lexer_states.define_group("ROOT".into(), None);
-        let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(), None);
+        let initial_state         = lexer_states.define_group("ROOT".into(),None);
+        let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(),None);
         let matched_bookmark      = reader.add_bookmark();
-        TestState{lexer_states,initial_state,seen_first_word_state,matched_bookmark}
+        Self{lexer_states,initial_state,seen_first_word_state,matched_bookmark}
     }
 
     fn initial_state(&self) -> usize {
@@ -163,6 +160,7 @@ impl FlexerState for TestState {
 
 #[test]
 fn test_lexer_definition() {
+    // FIXME [AA] Work out how to best-define the lexer.
     // TODO [AA] Needing a dummy reader to define the lexer is awkward.
     let str = "aaaaa".as_bytes();
     let reader = Reader::new(str,DecoderUTF8());

@@ -49,6 +49,7 @@ pub struct Flexer<Definition,Output,Reader> where Reader:LazyReader {
     /// A reader for the input.
     pub reader: Reader,
     /// The current match of the lexer.
+    // TODO [AA] Should become part of the defined lexer state.
     pub current_match: String,
     /// The result of the current stage of the DFA.
     pub status: FlexerStageStatus,

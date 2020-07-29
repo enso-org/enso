@@ -9,6 +9,10 @@
 //! space       = ' ';
 //! spaced-word = space, word;
 //! language    = word, spaced-word*;
+//!
+//! Please note that there is a fair amount of duplicated code between this test and the
+//! `flexer_lexer_definition_test` file. This is to present the full view of what each portion of
+//! the process looks like.
 
 use flexer::*;
 use flexer::prelude::*;
@@ -40,6 +44,14 @@ pub enum AST {
 #[derive(Debug)]
 pub struct TestLexer<Reader:LazyReader> {
     lexer: Flexer<TestState,AST,Reader>
+}
+
+impl<Reader:LazyReader> TestLexer<Reader> {
+    /// Creates a new instance of this lexer.
+    pub fn new(reader:Reader) -> Self {
+        let lexer = Flexer::new(reader);
+        TestLexer{lexer}
+    }
 }
 
 /// Implementations of functionality used by the lexer.
@@ -432,8 +444,7 @@ impl FlexerState for TestState {
 fn run_test_on(str:&str) -> Vec<AST> {
     // Hardcoded for ease of use here.
     let reader = Reader::new(str.as_bytes(),DecoderUTF8());
-    let lexer: Flexer<TestState,AST,Reader<DecoderUTF8,&[u8]>> = Flexer::new(reader);
-    let mut lexer = TestLexer {lexer};
+    let mut lexer = TestLexer::new(reader);
 
     match lexer.run() {
         FlexerResult::Success(tokens) => tokens,
