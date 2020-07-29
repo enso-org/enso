@@ -109,30 +109,30 @@ impl ScalaGenerator {
     ///
     /// 1) When the rust enum variant has named fields:
     /// ```
-    /// enum Foo { Bar{x:X}, Baz{y:Y} }
+    /// enum Foo { Bar{x:isize}, Baz{y:isize} }
     /// ```
     /// ===>
-    /// ```
+    /// ```scala
     /// sealed trait Foo
-    /// case class Bar(x:X) extends Foo
-    /// case class Baz(y:Y) extends Foo
+    /// case class Bar(x:Int) extends Foo
+    /// case class Baz(y:Int) extends Foo
     /// ```
     ///
     /// 2) When the rust enum variant has one unnamed field with qualified type:
     /// ```
     /// enum Foo { Bar(barz::Bar), Baz(barz::Baz) }
     /// mod barz {
-    ///     struct Bar {x:X}
-    ///     struct Baz {y:Y}
+    ///     pub struct Bar {       }
+    ///     pub struct Baz {y:isize}
     /// }
     /// ```
     /// ===>
-    /// ```
+    /// ```scala
     /// sealed trait Foo
     /// object barz {
     ///     sealed trait Barz extends Foo
-    ///     case class Bar(x:X) extends Barz
-    ///     case class Baz(y:Y) extends Barz
+    ///     case class Bar() extends Barz
+    ///     case class Baz(y:size) extends Barz
     /// }
     /// ```
     fn adt(&mut self, adt:&syn::ItemEnum) {
@@ -275,7 +275,7 @@ mod tests {
 
 
     #[test]
-    fn test_names() {
+    fn test_file() {
         let rust = syn::parse_quote! {
             pub enum FooBarBaz {
                 Foo(a::Foo),
