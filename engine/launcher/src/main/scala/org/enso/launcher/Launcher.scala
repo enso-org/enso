@@ -98,4 +98,12 @@ object Launcher {
       println(s"Enso ${engine.version} -> $runtimeName")
     }
   }
+
+  def installEngine(version: SemVer, showProgress: Boolean): Unit =
+    ComponentsManager.installEngine(version, showProgress)
+
+  def installEngineLatest(showProgress: Boolean): Unit = {
+    val latest = ComponentsManager.fetchLatestEngineVersion()
+    ComponentsManager.installEngine(latest, showProgress)
+  }
 }

@@ -67,6 +67,18 @@ object OS {
   }
 
   /**
+    * Name of the architecture that the program is running on.
+    */
+  lazy val architecture: String = detectArchitecture
+
+  private def detectArchitecture: String =
+    Option(System.getProperty("os.arch")).getOrElse {
+      throw new IllegalStateException(
+        "Could not determine architecture of your OS."
+      )
+    }
+
+  /**
     * Wraps the base executable name with an optional platform-dependent
     * extension.
     */

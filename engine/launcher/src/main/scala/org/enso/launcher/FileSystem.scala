@@ -71,6 +71,17 @@ object FileSystem {
     }
   }
 
+  def withTemporaryDirectory[T](
+    prefix: String = "enso"
+  )(action: Path => T): T = {
+    val dir = Files.createTempDirectory(prefix)
+    try {
+      action(dir)
+    } finally {
+      removeDirectory(dir)
+    }
+  }
+
   /**
     * Allows to write nested paths in a more readable and concise way.
     */

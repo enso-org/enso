@@ -8,7 +8,6 @@ import org.enso.cli.ProgressBar.TaskProgress
 import scala.util.{Failure, Success, Try}
 
 trait PendingDownload[A] extends TaskProgress[A] {
-  def waitForResult(): Try[A] = ProgressBar.waitForTask(this)
   def flatMap[B](f: A => Try[B]): PendingDownload[B] =
     new MappedDownload(this, f)
   def map[B](f: A => B): PendingDownload[B] = flatMap(a => Success(f(a)))

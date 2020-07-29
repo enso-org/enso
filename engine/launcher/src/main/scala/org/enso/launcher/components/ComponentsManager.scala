@@ -6,6 +6,11 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.{FileSystem, Launcher, Logger}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.launcher.releases.{
+  EngineReleaseProvider,
+  GraalCEReleaseProvider,
+  RuntimeReleaseProvider
+}
 
 case class Runtime(version: RuntimeVersion, path: Path) {
   override def toString: String =
@@ -13,7 +18,11 @@ case class Runtime(version: RuntimeVersion, path: Path) {
 }
 case class Engine(version: SemVer, path: Path, manifest: Manifest)
 
-class ComponentsManager(distributionManager: DistributionManager) {
+class ComponentsManager(
+  distributionManager: DistributionManager,
+  engineReleaseProvider: EngineReleaseProvider,
+  runtimeReleaseProvider: RuntimeReleaseProvider
+) {
   def listInstalledEngines(): Seq[Engine] =
     FileSystem
       .listDirectory(distributionManager.paths.engines)
@@ -24,8 +33,11 @@ class ComponentsManager(distributionManager: DistributionManager) {
       .listDirectory(distributionManager.paths.runtimes)
       .flatMap(parseGraalRuntime)
 
-  def findRuntime(engine: Engine): Option[Runtime] = {
-    val name = runtimeNameForVersion(engine.manifest.runtimeVersion)
+  def findRuntime(engine: Engine): Option[Runtime] =
+    findRuntime(engine.manifest.runtimeVersion)
+
+  def findRuntime(version: RuntimeVersion): Option[Runtime] = {
+    val name = runtimeNameForVersion(version)
     val path = distributionManager.paths.runtimes / name
     parseGraalRuntime(path)
   }
@@ -35,6 +47,33 @@ class ComponentsManager(distributionManager: DistributionManager) {
 
   def findEnginesUsingRuntime(runtime: Runtime): Seq[Engine] =
     listInstalledEngines().filter(_.manifest.runtimeVersion == runtime.version)
+
+  def fetchLatestEngineVersion(): SemVer =
+    engineReleaseProvider.findLatest().get
+
+  def installEngine(version: SemVer, showProgress: Boolean): Unit = {
+    val engineRelease = engineReleaseProvider.getRelease(version).get
+    FileSystem.withTemporaryDirectory("enso-install") { directory =>
+      Logger.debug(s"Downloading packages to $directory")
+      val enginePackage = directory / engineRelease.packageFileName
+      Logger.info(s"Downloading $enginePackage")
+      engineReleaseProvider
+        .downloadPackage(engineRelease, enginePackage)
+        .waitForResult(showProgress)
+        .get
+
+      val runtimeVersion = engineRelease.manifest.runtimeVersion
+      val runtimePackage =
+        directory / runtimeReleaseProvider.packageFileName(runtimeVersion)
+      Logger.info(s"Downloading $runtimePackage")
+      runtimeReleaseProvider
+        .downloadPackage(runtimeVersion, runtimePackage)
+        .waitForResult(showProgress)
+        .get
+
+    // TODO
+    }
+  }
 
   private def parseEngine(path: Path): Option[Engine] =
     for {
@@ -92,4 +131,9 @@ class ComponentsManager(distributionManager: DistributionManager) {
   }
 }
 
-object ComponentsManager extends ComponentsManager(DistributionManager)
+object ComponentsManager
+    extends ComponentsManager(
+      DistributionManager,
+      EngineReleaseProvider,
+      GraalCEReleaseProvider
+    )

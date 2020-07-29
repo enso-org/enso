@@ -24,6 +24,9 @@ object ProgressBar {
       * often [[ProgressListener.progressUpdate]] is called.
       */
     def addProgressListener(listener: ProgressListener[A]): Unit
+
+    def waitForResult(showProgress: Boolean = false): Try[A] =
+      if (showProgress) waitWithProgress(this) else waitForTask(this)
   }
 
   def waitForTask[A](task: TaskProgress[A]): Try[A] = {

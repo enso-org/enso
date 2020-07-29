@@ -26,7 +26,7 @@ object NativeImage {
 
         val cmd =
           s"$nativeImagePath $additionalParameters $resourcesGlobOpt " +
-          s"--no-fallback --initialize-at-build-time" +
+          s"--no-fallback --initialize-at-build-time --enable-https" +
           s" -cp $classPath ${(Compile / mainClass).value.get} enso"
 
         if (!file(nativeImagePath).exists()) {

@@ -10,19 +10,28 @@ import org.enso.launcher.components.Manifest
 
 import scala.util.{Failure, Success, Try}
 
-case class EngineRelease(version: SemVer, manifest: Manifest, release: Release)
+case class EngineRelease(
+  version: SemVer,
+  manifest: Manifest,
+  release: Release
+) {
+  def packageFileName: String = s"enso-engine-$version.zip"
+}
 
 class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
+  private val tagPrefix = "enso-"
+
   def findLatest(): Try[SemVer] =
     releaseProvider.listReleases().flatMap { releases =>
-      val versions = releases.map(_.tag).flatMap(SemVer(_))
+      val versions =
+        releases.map(_.tag.stripPrefix(tagPrefix)).flatMap(SemVer(_))
       versions.sorted.lastOption.map(Success(_)).getOrElse {
         Failure(new RuntimeException("No valid engine versions were found"))
       }
     }
 
   def getRelease(version: SemVer): Try[EngineRelease] = {
-    val tag = s"enso-$version"
+    val tag = tagPrefix + version.toString
     for {
       release <- releaseProvider.releaseForVersion(tag)
       manifestAsset <-
@@ -48,8 +57,7 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
     release: EngineRelease,
     destination: Path
   ): PendingDownload[Unit] = {
-    val version     = release.version
-    val packageName = s"enso-engine-$version.zip"
+    val packageName = release.packageFileName
     release.release.assets
       .find(_.fileName == packageName)
       .map(_.downloadTo(destination))
@@ -65,5 +73,8 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
 
 object EngineReleaseProvider
     extends EngineReleaseProvider(
-      new GithubReleaseProvider("enso-org", "enso")
+      new GithubReleaseProvider(
+        "enso-org",
+        "enso-staging"
+      ) // TODO [RW] move from staging to the main repository
     )

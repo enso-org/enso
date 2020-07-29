@@ -30,7 +30,16 @@ object GithubAPI {
       Logger.debug(uri.toASCIIString)
       HTTPDownload
         .fetchString(request)
-        .flatMap(content => parse(content).flatMap(_.as[Seq[Release]]).toTry)
+        .flatMap(content =>
+          parse(content)
+            .flatMap(
+              _.as[Seq[Release]].left
+                .map(err =>
+                  new RuntimeException(s"Cannot fetch release list.", err)
+                )
+            )
+            .toTry
+        )
         .waitForResult()
     }
 
@@ -55,7 +64,13 @@ object GithubAPI {
         .build()
     HTTPDownload
       .fetchString(request)
-      .flatMap(content => parse(content).flatMap(_.as[Release]).toTry)
+      .flatMap(content =>
+        parse(content)
+          .flatMap(_.as[Release])
+          .left
+          .map(err => new RuntimeException(s"Cannot find release `$tag`.", err))
+          .toTry
+      )
   }
 
   def fetchTextAsset(asset: Asset): PendingDownload[String] = {

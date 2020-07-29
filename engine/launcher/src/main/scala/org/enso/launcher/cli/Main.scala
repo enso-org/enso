@@ -4,7 +4,8 @@ import java.nio.file.Path
 import java.util.UUID
 
 import org.enso.cli._
-import org.enso.launcher.{Launcher, Logger, OS}
+import org.enso.launcher.{Launcher, Logger}
+import org.enso.launcher.cli.Arguments._
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
@@ -12,6 +13,7 @@ import org.enso.launcher.installation.{
 }
 import org.enso.cli.Opts.implicits._
 import cats.implicits._
+import nl.gn0s1s.bump.SemVer
 
 object Main {
   private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =
@@ -166,9 +168,24 @@ object Main {
 
   private def installEngineCommand: Subcommand[Config => Unit] =
     Subcommand("engine") {
-      val version = Opts.positionalArgument[String]("VERSION")
-      version map { version => (_: Config) =>
-        println(s"Install $version")
+      val version = Opts.optionalArgument[SemVer](
+        "VERSION",
+        "Version to install. If not provided, the latest version is installed."
+      )
+      val quiet = Opts.flag(
+        "quiet",
+        "If set, does not print download progress.",
+        showInUsage = true
+      )
+      (version, quiet) mapN { (version, quiet) => (_: Config) =>
+        val showProgress = !quiet
+        version match {
+          case Some(value) =>
+            Launcher.installEngine(value, showProgress)
+          case None =>
+            Launcher.installEngineLatest(showProgress)
+        }
+
       }
     }
 
@@ -334,7 +351,6 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     try {
-      println(OS.operatingSystem)
       application.run(args) match {
         case Left(errors) =>
           CLIOutput.println(errors.mkString("\n"))
