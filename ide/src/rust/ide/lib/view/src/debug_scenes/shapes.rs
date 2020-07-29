@@ -7,6 +7,7 @@
 use crate::prelude::*;
 
 use crate::graph_editor::GraphEditor;
+use crate::graph_editor::Type;
 
 use enso_frp as frp;
 use ensogl::display::navigation::navigator::Navigator;
@@ -53,6 +54,30 @@ where T:frp::HasOutput<Output=Out>, T:Into<frp::Stream<Out>>, Out:frp::Data {
 }
 
 
+
+// ==================
+// === Mock Types ===
+// ==================
+
+/// Allows the creation of arbitrary unique `Type`s.
+#[derive(Clone,Debug,Default)]
+struct DummyTypeGenerator {
+    type_counter : u32
+}
+
+impl DummyTypeGenerator {
+    fn get_dummy_type(&mut self) -> Type {
+        self.type_counter += 1;
+        Type::from(format!("dummy_type_{}",self.type_counter))
+    }
+}
+
+
+
+// ========================
+// === Init Application ===
+// ========================
+
 fn init(app:&Application) {
 
     let mut dark = theme::Theme::new();
@@ -71,7 +96,6 @@ fn init(app:&Application) {
     let _bg = app.display.scene().style_sheet.var("application.background.color");
 
 
-
     let world     = &app.display;
     let scene     = world.scene();
     let camera    = scene.camera();
@@ -85,12 +109,40 @@ fn init(app:&Application) {
 
     let node1_id = graph_editor.add_node();
     let node2_id = graph_editor.add_node();
-//
+
     graph_editor.frp.set_node_position.emit((node1_id,Vector2(-150.0,50.0)));
     graph_editor.frp.set_node_position.emit((node2_id,Vector2(50.0,50.0)));
-//
-    graph_editor.frp.set_node_expression.emit((node1_id,expression_mock()));
-    graph_editor.frp.set_node_expression.emit((node2_id,expression_mock2()));
+
+    let mut dummy_type_generator = DummyTypeGenerator::default();
+    let expression_1 = expression_mock();
+    graph_editor.frp.set_node_expression.emit((node1_id,expression_1.clone()));
+    expression_1.input_span_tree.root_ref().leaf_iter().for_each(|node|{
+        if let  Some(expr_id) = node.expression_id {
+            let dummy_type = Some(dummy_type_generator.get_dummy_type());
+            graph_editor.frp.set_expression_type.emit((node1_id,expr_id,dummy_type));
+        }
+    });
+    expression_1.output_span_tree.root_ref().leaf_iter().for_each(|node|{
+        if let  Some(expr_id) = node.expression_id {
+            let dummy_type = Some(dummy_type_generator.get_dummy_type());
+            graph_editor.frp.set_expression_type.emit((node1_id,expr_id,dummy_type));
+        }
+    });
+
+    let expression_2 = expression_mock2();
+    graph_editor.frp.set_node_expression.emit((node2_id,expression_2.clone()));
+    expression_2.input_span_tree.root_ref().leaf_iter().for_each(|node|{
+        if let  Some(expr_id) = node.expression_id {
+            let dummy_type = Some(dummy_type_generator.get_dummy_type());
+            graph_editor.frp.set_expression_type.emit((node2_id,expr_id,dummy_type));
+        }
+    });
+    expression_2.output_span_tree.root_ref().leaf_iter().for_each(|node|{
+        if let  Some(expr_id) = node.expression_id {
+            let dummy_type = Some(dummy_type_generator.get_dummy_type());
+            graph_editor.frp.set_expression_type.emit((node2_id,expr_id,dummy_type));
+        }
+    });
 
 //    frp::new_network! { network
 //        def trigger = source::<()>();
@@ -165,20 +217,26 @@ fn init(app:&Application) {
 
 use crate::graph_editor::component::node::port::Expression;
 
-use ast::crumbs::PatternMatchCrumb::*;
 use ast::crumbs::*;
+use ast::crumbs::PatternMatchCrumb::*;
+use enso_protocol::prelude::Uuid;
 use ensogl_core_msdf_sys::run_once_initialized;
 use span_tree::traits::*;
 
 
 pub fn expression_mock() -> Expression {
     let code             = "open \"data.csv\"".into();
-    let output_span_tree = default();
+    let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree  = span_tree::builder::TreeBuilder::new(15)
-        .add_leaf(0,4,span_tree::node::Kind::Operation,PrefixCrumb::Func)
+        .add_child(0,4,span_tree::node::Kind::Operation,PrefixCrumb::Func)
+        .set_expression_id(Uuid::new_v4())
+        .done()
         .add_empty_child(5,span_tree::node::InsertType::BeforeTarget)
-        .add_leaf(5,10,span_tree::node::Kind::Target{is_removable:false},PrefixCrumb::Arg)
+        .add_child(5,10,span_tree::node::Kind::Target{is_removable:false},PrefixCrumb::Arg)
+        .set_expression_id(Uuid::new_v4())
+        .done()
         .add_empty_child(15,span_tree::node::InsertType::Append)
+        .set_expression_id(Uuid::new_v4())
         .build();
     Expression {code,input_span_tree,output_span_tree}
 }
@@ -188,22 +246,33 @@ pub fn expression_mock2() -> Expression {
     let val              = ast::crumbs::SegmentMatchCrumb::Body {val:pattern_cr};
     let parens_cr        = ast::crumbs::MatchCrumb::Segs {val,index:0};
     let code             = "make_maps size (distribution normal)".into();
-    let output_span_tree = default();
+    let output_span_tree = span_tree::SpanTree::default();
     let input_span_tree  = span_tree::builder::TreeBuilder::new(36)
         .add_child(0,14,span_tree::node::Kind::Chained,PrefixCrumb::Func)
-        .add_leaf(0,9,span_tree::node::Kind::Operation,PrefixCrumb::Func)
-        .add_empty_child(10,span_tree::node::InsertType::BeforeTarget)
-        .add_leaf(10,4,span_tree::node::Kind::Target {is_removable:true},PrefixCrumb::Arg)
-        .add_empty_child(14,span_tree::node::InsertType::Append)
-        .done()
+            .add_child(0,9,span_tree::node::Kind::Operation,PrefixCrumb::Func)
+                .set_expression_id(Uuid::new_v4())
+                .done()
+            .add_empty_child(10,span_tree::node::InsertType::BeforeTarget)
+            .add_child(10,4,span_tree::node::Kind::Target {is_removable:true},PrefixCrumb::Arg)
+                .set_expression_id(Uuid::new_v4())
+                .done()
+            .add_empty_child(14,span_tree::node::InsertType::Append)
+            .set_expression_id(Uuid::new_v4())
+            .done()
         .add_child(15,21,span_tree::node::Kind::Argument {is_removable:true},PrefixCrumb::Arg)
-        .add_child(1,19,span_tree::node::Kind::Argument {is_removable:false},parens_cr)
-        .add_leaf(0,12,span_tree::node::Kind::Operation,PrefixCrumb::Func)
-        .add_empty_child(13,span_tree::node::InsertType::BeforeTarget)
-        .add_leaf(13,6,span_tree::node::Kind::Target {is_removable:false},PrefixCrumb::Arg)
-        .add_empty_child(19,span_tree::node::InsertType::Append)
-        .done()
-        .done()
+            .set_expression_id(Uuid::new_v4())
+            .add_child(1,19,span_tree::node::Kind::Argument {is_removable:false},parens_cr)
+                .set_expression_id(Uuid::new_v4())
+                .add_child(0,12,span_tree::node::Kind::Operation,PrefixCrumb::Func)
+                    .set_expression_id(Uuid::new_v4())
+                    .done()
+                .add_empty_child(13,span_tree::node::InsertType::BeforeTarget)
+                .add_child(13,6,span_tree::node::Kind::Target {is_removable:false},PrefixCrumb::Arg)
+                    .set_expression_id(Uuid::new_v4())
+                    .done()
+                .add_empty_child(19,span_tree::node::InsertType::Append)
+                .done()
+            .done()
         .add_empty_child(36,span_tree::node::InsertType::Append)
         .build();
     Expression {code,input_span_tree,output_span_tree}

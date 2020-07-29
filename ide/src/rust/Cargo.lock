@@ -491,6 +491,7 @@ name = "enso-generics"
 version = "0.1.0"
 dependencies = [
  "nalgebra 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.114 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

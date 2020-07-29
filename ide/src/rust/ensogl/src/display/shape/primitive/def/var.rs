@@ -619,3 +619,12 @@ impl From<Var<f32>> for Var<Pixels> {
         }
     }
 }
+
+impl From<Var<Vector4<f32>>> for Var<color::Rgba> {
+    fn from(other:Var<Vector4<f32>>) -> Self {
+        match other {
+            Var::Static  (t) => Var::Static(color::Rgba::new(t.x,t.y,t.z,t.w)),
+            Var::Dynamic (t) => Var::Dynamic(format!("srgba({0}.x,{0}.y,{0}.z,{0}.w)",t).into()),
+        }
+    }
+}

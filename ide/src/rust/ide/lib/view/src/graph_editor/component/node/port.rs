@@ -12,17 +12,21 @@ use enso_frp;
 use ensogl::data::color;
 use ensogl::display::Attribute;
 use ensogl::display::Buffer;
+use ensogl::display::Sprite;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
 use ensogl::display::shape::text::glyph::system::GlyphSystem;
-use ensogl::display::Sprite;
 use ensogl::display::traits::*;
 use ensogl::display;
 use ensogl::gui::component;
 use ensogl::gui::cursor;
+use span_tree::SpanTree;
 
 use super::super::node;
-use span_tree::SpanTree;
+
+use crate::graph_editor::Type;
+use crate::graph_editor::component::type_coloring::MISSING_TYPE_COLOR;
+use crate::graph_editor::component::type_coloring::TypeColorMap;
 
 
 
@@ -40,7 +44,6 @@ pub mod shape {
             let height : Var<Pixels> = "input_size.y".into();
             let radius = 6.px();
             let shape  = Rect((&width,&height)).corners_radius(radius);
-            // let color  : Var<color::Rgba> = "srgba(1.0,1.0,1.0,0.00001 + 0.1*input_hover)".into();
             let color  : Var<color::Rgba> = "srgba(1.0,1.0,1.0,0.00001)".into();
             let shape  = shape.fill(color);
             shape.into()
@@ -142,6 +145,16 @@ impl Expression {
     }
 }
 
+fn get_id_for_crumbs(span_tree:&SpanTree, crumbs:&[span_tree::Crumb]) -> Option<ast::Id> {
+    if span_tree.root_ref().crumbs == crumbs {
+        return span_tree.root.expression_id
+    };
+    let span_tree_descendant = span_tree.root_ref().get_descendant(crumbs);
+    let expression_id        = span_tree_descendant.map(|node|{node.expression_id});
+    expression_id.ok().flatten()
+}
+
+
 impl Debug for Expression {
     fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f,"Expression({})",self.code)
@@ -170,6 +183,7 @@ pub struct Manager {
     ports          : Rc<RefCell<Vec<component::ShapeView<shape::Shape>>>>,
     width          : Rc<Cell<f32>>,
     port_networks  : Rc<RefCell<Vec<frp::Network>>>,
+    type_color_map : TypeColorMap,
     pub frp        : Events,
 }
 
@@ -186,6 +200,7 @@ impl Manager {
         let scene          = scene.clone_ref();
         let expression     = default();
         let port_networks  = default();
+        let type_color_map = default();
         let label          = component::ShapeView::<label::Shape>::new(&logger,&scene);
         let ports          = default();
         let width          = default();
@@ -199,7 +214,7 @@ impl Manager {
 
         display_object.add_child(&label);
 
-        Self {logger,display_object,frp,label,ports,width,scene,expression,port_networks}
+        Self {logger,display_object,frp,label,ports,width,scene,expression,port_networks,type_color_map}
     }
 
     pub fn set_expression(&self, expression:impl Into<Expression>) {
@@ -225,27 +240,36 @@ impl Manager {
                     let contains_root = span.index.value == 0;
                     let skip          = node.kind.is_empty() || contains_root;
                     if !skip {
-                        let logger = Logger::sub(&self.logger,"port");
-                        let port   = component::ShapeView::<shape::Shape>::new(&logger,&self.scene);
-                        let unit   = 7.224_609_4;
-                        let width  = unit * span.size.value as f32;
-                        let width2  = width + 8.0;
+                        let logger      = Logger::sub(&self.logger,"port");
+                        let port        = component::ShapeView::<shape::Shape>::new(&logger,&self.scene);
+                        let type_map    = &self.type_color_map;
+
+                        let unit        = 7.224_609_4;
+                        let width       = unit * span.size.value as f32;
+                        let width2      = width + 8.0;
                         let node_height = 28.0;
-                        let height = 18.0;
+                        let height      = 18.0;
                         port.shape.sprite.size.set(Vector2::new(width2,node_height));
                         let x = width/2.0 + unit * span.index.value as f32;
                         port.mod_position(|t| t.x = x);
                         self.add_child(&port);
 
-//                        let network = &port.events.network;
                         let hover   = &port.shape.hover;
                         let crumbs  = node.crumbs.clone();
+                        let ast_id   = get_id_for_crumbs(&expression.input_span_tree,&crumbs);
                         frp::new_network! { port_network
                             def _foo = port.events.mouse_over . map(f_!(hover.set(1.0);));
                             def _foo = port.events.mouse_out  . map(f_!(hover.set(0.0);));
 
                             def out  = port.events.mouse_out.constant(cursor::Style::default());
-                            def over = port.events.mouse_over.constant(cursor::Style::new_highlight(&port,Vector2::new(width2,height),Some(color::Lcha::new(0.6,0.5,0.76,1.0))));
+                            def over = port.events.mouse_over.map(f_!([type_map,port]{
+                                if let Some(ast_id) = ast_id {
+                                    if let Some(port_color) = type_map.type_color(ast_id) {
+                                        return cursor::Style::new_highlight(&port,Vector2::new(width2,height),Some(port_color))
+                                    }
+                                }
+                                cursor::Style::new_highlight(&port,Vector2::new(width2,height),Some(MISSING_TYPE_COLOR))
+                            }));
                             // FIXME: the following lines leak memory in the current FRP
                             // implementation because self.frp does not belong to this network and
                             // we are attaching node there. Nothing bad should happen though.
@@ -285,8 +309,17 @@ impl Manager {
         }).ok()
     }
 
+    pub fn get_port_color(&self, crumbs:&[span_tree::Crumb]) -> Option<color::Lcha> {
+        let ast_id = get_id_for_crumbs(&self.expression.borrow().input_span_tree,&crumbs)?;
+        self.type_color_map.type_color(ast_id)
+    }
+
     pub fn width(&self) -> f32 {
         self.width.get()
+    }
+
+    pub fn set_expression_type(&self, id:ast::Id, maybe_type:Option<Type>) {
+        self.type_color_map.update_entry(id,maybe_type);
     }
 }
 

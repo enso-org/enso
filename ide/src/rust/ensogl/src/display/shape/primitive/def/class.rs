@@ -174,6 +174,20 @@ macro_rules! define_shape_operator {
                 self.$shape(that)
             }
         }
+
+        impl<S:IntoOwned> $op_trait<S> for &AnyShape {
+            type Output = $shape_trait<AnyShape,Owned<S>>;
+            fn $op(self, that:S) -> Self::Output {
+                self.$shape(that)
+            }
+        }
+
+        impl<S:IntoOwned> $op_trait<S> for AnyShape {
+            type Output = $shape_trait<AnyShape,Owned<S>>;
+            fn $op(self, that:S) -> Self::Output {
+                self.$shape(that)
+            }
+        }
     )*}
 }
 
