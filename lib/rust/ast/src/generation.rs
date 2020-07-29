@@ -50,16 +50,14 @@ impl ScalaGenerator {
             match item {
                 syn::Item::Enum  (val) => self.adt(&val),
                 syn::Item::Type  (val) => {
-                    write!(self.code, "\n");
-                    write!(self.code, "{:i$}type ", "", i=self.indent);
+                    write!(self.code, "\n{:i$}type ", "", i=self.indent);
                     self.typ_name(&val.ident);
                     self.generics(&val.generics);
                     write!(self.code, " = ");
                     self.typ(val.ty.as_ref());
-                    write!(self.code, "\n");
+                    writeln!(self.code, "");
                 }
                 syn::Item::Struct(val) => {
-                    write!(self.code, "\n");
                     if let syn::Fields::Named(fields) = &val.fields {
                         self.class(&val.ident, &val.generics, fields);
                     } else {
@@ -67,20 +65,18 @@ impl ScalaGenerator {
                     }
                 }
                 syn::Item::Mod(val) => {
-                    write!(self.code, "\n");
-                    write!(self.code, "{:i$}object " , "", i=self.indent);
+                    write!(self.code, "\n{:i$}object " , "", i=self.indent);
                     self.typ_name(&val.ident);
-                    write!(self.code, " {{\n");
-                    self.indent += 2;
+                    writeln!(self.code, " {{");
+                    self.indent += 4;
                     write!(self.code, "{:i$}sealed trait ", "", i=self.indent);
                     self.typ_name(&val.ident);
                     self.extends(&val.ident);
-                    write!(self.code, "\n");
                     if let Some(content) = &val.content {
                         self.block(&content.1[..]);
                     };
-                    self.indent -= 2;
-                    write!(self.code, "{:i$}}}\n", "", i=self.indent);
+                    self.indent -= 4;
+                    writeln!(self.code, "{:i$}}}", "", i=self.indent);
                 }
                 _ => (),
             }
@@ -105,7 +101,6 @@ impl ScalaGenerator {
         }
         write!(self.code, ")");
         self.extends(ident);
-        write!(self.code, "\n");
     }
 
     /// Generates scala ADT - case classes extending a sealed trait.
@@ -141,11 +136,9 @@ impl ScalaGenerator {
     /// }
     /// ```
     fn adt(&mut self, adt:&syn::ItemEnum) {
-        write!(self.code, "\n");
-        write!(self.code, "{:i$}sealed trait {}", "", adt.ident, i=self.indent);
+        write!(self.code, "\n{:i$}sealed trait {}", "", adt.ident, i=self.indent);
         self.generics(&adt.generics);
         self.extends(&adt.ident);
-        write!(self.code, "\n");
         for variant in &adt.variants {
             match &variant.fields {
                 syn::Fields::Named  (fields) => {
@@ -174,6 +167,7 @@ impl ScalaGenerator {
             write!(self.code, " extends ");
             self.typ_name(&name);
         }
+        writeln!(self.code, "");
     }
 
     /// Generates scala type parameters.
@@ -254,7 +248,7 @@ impl ScalaGenerator {
     fn typ_name(&mut self, ident:&Ident) {
         let name = match ident.to_string().as_str() {
             "usize" | "isize" | "u64" | "u32" | "u16" | "i64" | "i32" | "i16" | "i8" => "Int",
-            "u8"   => "byte",
+            "u8"   => "Byte",
             "char" => "Char",
             "Vec"  => "Vector",
             name   => {
@@ -266,5 +260,61 @@ impl ScalaGenerator {
             }
         };
         write!(self.code, "{}", name);
+    }
+}
+
+
+
+// =============
+// === Tests ===
+// =============
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+
+
+    #[test]
+    fn test_names() {
+        let rust = syn::parse_quote! {
+            pub enum FooBarBaz {
+                Foo(a::Foo),
+                Bar(a::Bar),
+                Baz(b::Baz),
+            }
+            mod a {
+                struct Foo {}
+                struct Bar {x:usize, y:u8, z:b::Type}
+            }
+            mod b {
+                type Type = Baz;
+
+                enum Baz {
+                    Baz1 {},
+                    Baz2 {foo_bar:Box<Vec<T>>},
+                }
+            }
+        };
+
+        let scala = "
+sealed trait FooBarBaz
+
+object A {
+    sealed trait A extends FooBarBaz
+    case class Foo() extends A
+    case class Bar(x: Int, y: Byte, z: B.Type) extends A
+}
+
+object B {
+    sealed trait B extends FooBarBaz
+
+    type Type = Baz
+
+    sealed trait Baz extends B
+    case class Baz1() extends Baz
+    case class Baz2(fooBar: Vector[T]) extends Baz
+}
+";
+        assert_eq!(ScalaGenerator::file(rust), scala);
     }
 }
