@@ -1,5 +1,7 @@
 package org.enso.launcher.releases.github
 
+object Placeholder1
+/*
 import org.enso.launcher.releases.{Release, ReleaseProvider}
 
 import scala.annotation.unused
@@ -14,3 +16,4 @@ class GithubReleaseProvider(
   // TODO possibly change to `listReleases`
   override def latestRelease(): Option[Release] = ???
 }
+ */

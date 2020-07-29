@@ -1,5 +1,7 @@
 package org.enso.launcher.releases
 
+object Placeholder2
+/*
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
@@ -18,3 +20,4 @@ object EngineReleaseManager
     extends EngineReleaseManager(
       new GithubReleaseProvider("enso-org", "enso")
     )
+ */

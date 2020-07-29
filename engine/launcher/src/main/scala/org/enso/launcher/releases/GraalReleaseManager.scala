@@ -1,5 +1,7 @@
 package org.enso.launcher.releases
 
+object Placeholder3
+/*
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
@@ -15,3 +17,4 @@ object GraalReleaseManager
     extends GraalReleaseManager(
       new GithubReleaseProvider("graalvm", "graalvm-ce-builds")
     )
+ */

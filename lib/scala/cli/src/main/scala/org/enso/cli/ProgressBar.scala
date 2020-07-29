@@ -10,8 +10,8 @@ object ProgressBar {
     * Clients can implement this trait to get progress updates.
     */
   trait ProgressListener[A] {
-    def progressUpdate(done: Int, total: Int): Unit
-    def done(result: Try[A]):                  Unit
+    def progressUpdate(done: Long, total: Option[Long]): Unit
+    def done(result: Try[A]):                            Unit
   }
   trait TaskProgress[A] {
 
@@ -29,7 +29,7 @@ object ProgressBar {
   def waitForTask[A](task: TaskProgress[A]): Try[A] = {
     val queue = new LinkedTransferQueue[Try[A]]()
     task.addProgressListener(new ProgressListener[A] {
-      override def progressUpdate(done: Int, total: Int): Unit = {}
+      override def progressUpdate(done: Long, total: Option[Long]): Unit = {}
       override def done(result: Try[A]): Unit =
         queue.put(result)
     })
@@ -38,23 +38,29 @@ object ProgressBar {
   }
 
   def waitWithProgress[A](task: TaskProgress[A]): Try[A] = {
+    startProgress()
+
     sealed trait Update
-    case class Progress(done: Int, total: Int) extends Update
-    case class Done(result: Try[A])            extends Update
+    case class Progress(done: Long, total: Option[Long]) extends Update
+    case class Done(result: Try[A])                      extends Update
 
     val queue = new LinkedTransferQueue[Update]()
     task.addProgressListener(new ProgressListener[A] {
-      override def progressUpdate(done: Int, total: Int): Unit =
+      override def progressUpdate(done: Long, total: Option[Long]): Unit =
         queue.put(Progress(done, total))
       override def done(result: Try[A]): Unit =
         queue.put(Done(result))
     })
 
     var result: Option[Try[A]] = None
+    var unknownCounter         = 0
     while (result.isEmpty) {
       queue.take() match {
-        case Progress(done, total) =>
+        case Progress(done, Some(total)) =>
           showProgress(100.0f * done / total)
+        case Progress(_, None) =>
+          unknownCounter += 1
+          showUnknownProgress(unknownCounter)
         case Done(incomingResult) =>
           finishProgress(if (incomingResult.isSuccess) "done" else "failed")
           result = Some(incomingResult)
@@ -73,6 +79,14 @@ object ProgressBar {
       (percentage / 100.0f * totalStates).floor.toInt,
       s"${percentage.toInt}%"
     )
+  }
+
+  def showUnknownProgress(state: Int): Unit = {
+    val pos    = state % progressWidth
+    val prefix = " " * pos
+    val suffix = " " * (progressWidth - pos - 1)
+    val bar    = s"[$prefix?$suffix]\r"
+    print(bar)
   }
 
   def finishProgress(comment: String): Unit = {
@@ -98,5 +112,14 @@ object ProgressBar {
     val padding = " " * 5
     val line    = s"[$bar$rest] $comment$padding\r"
     print(line)
+  }
+
+  def simulate(): Unit = {
+    startProgress()
+    for (i <- 1 to 100) {
+      showUnknownProgress(i)
+      Thread.sleep(100)
+    }
+    finishProgress("hmm")
   }
 }
