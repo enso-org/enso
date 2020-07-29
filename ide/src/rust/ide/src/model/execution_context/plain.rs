@@ -53,7 +53,7 @@ pub struct ExecutionContext {
     /// Set of active visualizations.
     visualizations: RefCell<HashMap<VisualizationId,AttachedVisualization>>,
     /// Storage for information about computed values (like their types).
-    pub computed_value_info_registry: ComputedValueInfoRegistry,
+    pub computed_value_info_registry:Rc<ComputedValueInfoRegistry>,
 }
 
 impl ExecutionContext {
@@ -132,7 +132,7 @@ impl model::execution_context::API for ExecutionContext {
         self.visualizations.borrow().keys().copied().collect_vec()
     }
 
-    fn computed_value_info_registry(&self) -> &ComputedValueInfoRegistry {
+    fn computed_value_info_registry(&self) -> &Rc<ComputedValueInfoRegistry> {
         &self.computed_value_info_registry
     }
 

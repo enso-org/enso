@@ -184,8 +184,14 @@ impl<'a> Ref<'a> {
     }
 
     /// Iterator over all leaves of subtree rooted in the `self`.
-    pub fn leaf_iter(self) -> impl Iterator<Item=Ref<'a>> {
-        LeafIterator::new(self, TreeFragment::AllNodes)
+    pub fn leaf_iter(self) -> Box<dyn Iterator<Item=Ref<'a>> + 'a> {
+        // FIXME rather should be part of the `LeafIterator`,
+        //       see https://github.com/enso-org/ide/issues/698
+        if self.children.is_empty() {
+            Box::new(std::iter::once(self))
+        } else {
+            Box::new(LeafIterator::new(self, TreeFragment::AllNodes))
+        }
     }
 
     /// Iterator over all children of operator/prefix chain starting from this node. See crate's

@@ -6,6 +6,7 @@ pub trait OptionOps {
     fn map_ref      <U,F> (&self , f:F) -> Option<U> where F : FnOnce(&Self::Item) -> U;
     fn for_each     <U,F> (self  , f:F)              where F : FnOnce(Self::Item)  -> U;
     fn for_each_ref <U,F> (&self , f:F)              where F : FnOnce(&Self::Item) -> U;
+    fn map_none     <F>   (self  , f:F) -> Self      where F : FnOnce();
 }
 
 impl<T> OptionOps for Option<T> {
@@ -21,5 +22,12 @@ impl<T> OptionOps for Option<T> {
 
     fn for_each_ref<U,F>(&self, f:F) where F : FnOnce(&Self::Item) -> U {
         if let Some(x) = self { f(x); }
+    }
+
+    fn map_none<F>(self, f:F) -> Self where F : FnOnce(), T : Sized {
+        if self.is_none() {
+            f();
+        }
+        self
     }
 }
