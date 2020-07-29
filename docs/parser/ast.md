@@ -14,6 +14,7 @@ containing robust and descriptive parser errors directly in the AST.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Functionality](#functionality)
+- [Generation](#generation)
 
 <!-- /MarkdownTOC -->
 
@@ -40,3 +41,86 @@ Each node should contain:
 >
 > - Flesh out the design for the AST based on the requirements of the various
 >   parser phases.
+
+## Generation
+
+The single source of truth for the AST is its rust implementation. Therefore, in
+order to not get out of sync, the scala AST implementation is generated during
+compilation directly from the rust ast source file.
+
+The command for generating the scala ast and storing it in the file
+`foo/ast .scala` is following:
+`cargo run -p ast -- --generate-scala-ast foo/ast.scala`.
+
+Since there isn't 1-1 mapping between rust and scala, only a subset of rust
+structures is supported:
+
+##### Structures with named fields:
+
+```
+struct Foo<X> { x: X<z::Y>, .. }
+```
+
+Is converted into:
+
+```
+case class Foo[X](x: X[Z.Y], ..)
+```
+
+##### Modules:
+
+```
+mod foo { .. }
+```
+
+Is converted into:
+
+```
+object Foo { sealed trait Foo; .. }
+```
+
+##### Enums with named fields:
+
+```
+enum Foo{ Bar{x:X}, Baz{y:Y, z:Z} }
+```
+
+Is converted into:
+
+```
+sealed trait Foo
+case class Bar(x:X) extends Foo
+case class Baz(y:Y, z:Z) extends Foo
+```
+
+##### Enums with one unnamed field:
+
+```
+enum Enum { Foo(x::Foo), Bar(x::Bar), Baz(y::Baz) }
+
+mod x {
+    pub struct Foo { .. }
+    pub struct Bar { .. }
+}
+
+mod y {
+    pub struct Baz { .. }
+}
+```
+
+Is converted into:
+
+```
+sealed trait Enum
+
+object X {
+    sealed trait X extends Enum
+    case class Foo(..) extends X
+    case class Bar(..) extends X
+}
+
+object Y {
+    sealed trait Y extends Enum
+    case class Baz(..) extends Y
+}
+```
