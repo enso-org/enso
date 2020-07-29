@@ -1,6 +1,5 @@
 package org.enso.launcher.releases.github
 
-import java.net.URI
 import java.net.http.{HttpClient, HttpRequest, HttpResponse}
 import java.net.http.HttpClient.Redirect
 import java.net.http.HttpResponse.{BodyHandler, BodyHandlers}
@@ -40,7 +39,7 @@ class HTTPDownload[A] private[github] (
     }
   }
 
-  private[github] def start(): Unit = {
+  private[this] def start(): Unit = {
     val response =
       client.sendAsync(request, new ProgressHandlerWrapper(baseHandler))
     response.whenCompleteAsync { (response, error) =>
@@ -111,17 +110,18 @@ object HTTPDownload {
   private lazy val client =
     HttpClient.newBuilder().followRedirects(Redirect.NORMAL).build()
 
-  def get(uri: URI, sizeHint: Option[Long] = None): HTTPDownload[String] = {
-    val request = HttpRequest.newBuilder(uri).GET().build()
+  def fetchString(
+    request: HttpRequest,
+    sizeHint: Option[Long] = None
+  ): HTTPDownload[String] = {
     new HTTPDownload[String](client, request, BodyHandlers.ofString(), sizeHint)
   }
 
   def download(
-    uri: URI,
+    request: HttpRequest,
     destination: Path,
     sizeHint: Option[Long] = None
   ): HTTPDownload[Path] = {
-    val request = HttpRequest.newBuilder(uri).GET().build()
     new HTTPDownload[Path](
       client,
       request,

@@ -1,19 +1,40 @@
 package org.enso.launcher.releases.github
 
-object Placeholder1
-/*
-import org.enso.launcher.releases.{Release, ReleaseProvider}
+import java.nio.file.Path
 
-import scala.annotation.unused
+import org.enso.launcher.releases.{
+  Asset,
+  PendingDownload,
+  Release,
+  ReleaseProvider
+}
+
+import scala.util.Try
 
 class GithubReleaseProvider(
-  @unused organisation: String,
-  @unused projectName: String
+  organisation: String,
+  projectName: String
 ) extends ReleaseProvider {
-  override def releaseForVersion(tag: String): Option[Release] =
-    ???
+  private val repo = GithubAPI.Repository(organisation, projectName)
 
-  // TODO possibly change to `listReleases`
-  override def latestRelease(): Option[Release] = ???
+  override def releaseForVersion(tag: String): Try[Release] =
+    GithubAPI.getRelease(repo, tag).waitForResult().map(wrapRelease)
+
+  override def listReleases(): Try[Seq[Release]] =
+    GithubAPI.listReleases(repo).map(_.map(wrapRelease))
+
+  private def wrapRelease(release: GithubAPI.Release): Release =
+    new Release {
+      override def tag: String        = release.tag
+      override def assets: Seq[Asset] = release.assets.map(wrapAsset)
+    }
+
+  private def wrapAsset(asset: GithubAPI.Asset): Asset =
+    new Asset {
+      override def fileName: String = asset.name
+      override def downloadTo(path: Path): PendingDownload[Unit] =
+        GithubAPI.downloadAsset(asset, path)
+      override def fetchAsText(): PendingDownload[String] =
+        GithubAPI.fetchTextAsset(asset)
+    }
 }
- */

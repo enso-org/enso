@@ -1,72 +1,107 @@
 package org.enso.launcher.releases.github
 
-import java.net.{URI, URLEncoder}
+import java.net.URI
+import java.net.http.HttpRequest
 import java.nio.file.Path
 
 import io.circe._
 import io.circe.parser._
-import org.enso.cli.ProgressBar
+
+import scala.util.{Success, Try}
+//import org.enso.cli.ProgressBar
 import org.enso.launcher.Logger
 import org.enso.launcher.releases.PendingDownload
 
 object GithubAPI {
   case class Repository(owner: String, name: String)
-  case class Release(assets: Seq[Asset])
+  case class Release(tag: String, assets: Seq[Asset])
   case class Asset(name: String, url: String, size: Long)
 
-  def listReleases(repo: Repository): PendingDownload[Seq[String]] = {
-    /*val uri     = projectURI(repo) / "releases"
-    val request = HttpRequest.newBuilder(uri).GET().build()
-    println(request.uri())
-    val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-    case class Releases(tags: Seq[String])
-    implicit val decoder: Decoder[Releases] = { json =>
-      for {
-        tags <- json.get[Seq[]]
-      }
+  def listReleases(repo: Repository): Try[Seq[Release]] = {
+    val perPage = 100
+    def listPage(page: Int): Try[Seq[Release]] = {
+      val uri = (projectURI(repo) / "releases") ?
+        ("per_page" -> perPage.toString) ? ("page" -> page.toString)
+      val request =
+        HttpRequest
+          .newBuilder(uri)
+          .GET()
+          .build()
+      Logger.debug(uri.toASCIIString)
+      HTTPDownload
+        .fetchString(request)
+        .flatMap(content => parse(content).flatMap(_.as[Seq[Release]]).toTry)
+        .waitForResult()
     }
-    Logger.debug(response.body())
-    parse(response.body()).flatMap(_.as[Release])*/
-    // TODO
-    ???
+
+    def listAllPages(from: Int): Try[Seq[Release]] =
+      listPage(from).flatMap { current =>
+        if (current.length == perPage)
+          listAllPages(from + 1).map(current ++ _)
+        else
+          Success(current)
+      }
+
+    listAllPages(1)
   }
+
   def getRelease(repo: Repository, tag: String): PendingDownload[Release] = {
-    val uri = projectURI(repo) / "releases/" / "tags/" / encode(tag)
+    val uri = projectURI(repo) / "releases/" / "tags/" / tag
     Logger.debug(uri.toString)
+    val request =
+      HttpRequest
+        .newBuilder(uri)
+        .GET()
+        .build()
     HTTPDownload
-      .get(uri)
+      .fetchString(request)
       .flatMap(content => parse(content).flatMap(_.as[Release]).toTry)
   }
 
-  def simulate(): Unit = {
-    val download = HTTPDownload.download(
-      URI.create(
-        "https://github.com/Luna-Tensorflow/Luna-Tensorflow/releases/download/betav1.3.1/tensorflow_luna_linux.tar.gz"
-      ),
-      Path.of("ltf.tar.gz")
-    )
-    val result = ProgressBar.waitWithProgress(download)
-    println(result)
+  def fetchTextAsset(asset: Asset): PendingDownload[String] = {
+    val request =
+      HttpRequest
+        .newBuilder(URI.create(asset.url))
+        .GET()
+        .setHeader("Accept", "application/octet-stream")
+        .build()
+    HTTPDownload.fetchString(request, Some(asset.size))
   }
 
-  def fetchTextAsset(asset: Asset): PendingDownload[String] = {
-    ???
+  def downloadAsset(asset: Asset, path: Path): PendingDownload[Unit] = {
+    val request =
+      HttpRequest
+        .newBuilder(URI.create(asset.url))
+        .GET()
+        .setHeader("Accept", "application/octet-stream")
+        .build()
+    HTTPDownload.download(request, path, Some(asset.size)).map(_ => ())
   }
-  def downloadAsset(asset: Asset, path: Path): PendingDownload[Unit] = ???
 
   private val baseUrl: URI = URI.create("https://api.github.com/")
   private def projectURI(project: Repository): URI = {
-    val owner = s"${encode(project.owner)}/"
-    val name  = s"${encode(project.name)}/"
+    val owner = s"${project.owner}/"
+    val name  = s"${project.name}/"
     baseUrl / "repos/" / owner / name
   }
-
-  private def encode(rawString: String): String =
-    URLEncoder.encode(rawString, "UTF-8")
 
   implicit class URISyntax(uri: URI) {
     def /(part: String): URI =
       uri.resolve(part)
+    def ?(query: (String, String)): URI = {
+      val part = s"${query._1}=${query._2}"
+      val newQuery =
+        if (uri.getQuery == null) part else uri.getQuery + "&" + part
+      new URI(
+        uri.getScheme,
+        uri.getUserInfo,
+        uri.getHost,
+        uri.getPort,
+        uri.getPath,
+        newQuery,
+        uri.getFragment
+      )
+    }
   }
 
   implicit val assetDecoder: Decoder[Asset] = { json =>
@@ -74,12 +109,13 @@ object GithubAPI {
       url  <- json.get[String]("url")
       name <- json.get[String]("name")
       size <- json.get[Long]("size")
-    } yield Asset(url, name, size)
+    } yield Asset(name = name, url = url, size = size)
   }
 
   implicit val releaseDecoder: Decoder[Release] = { json =>
     for {
+      tag    <- json.get[String]("tag_name")
       assets <- json.get[Seq[Asset]]("assets")
-    } yield Release(assets)
+    } yield Release(tag, assets)
   }
 }

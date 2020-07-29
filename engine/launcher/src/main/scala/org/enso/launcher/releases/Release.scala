@@ -5,7 +5,7 @@ import java.nio.file.Path
 import org.enso.cli.ProgressBar
 import org.enso.cli.ProgressBar.TaskProgress
 
-import scala.util.{Success, Try}
+import scala.util.{Failure, Success, Try}
 
 trait PendingDownload[A] extends TaskProgress[A] {
   def waitForResult(): Try[A] = ProgressBar.waitForTask(this)
@@ -27,6 +27,17 @@ private class MappedDownload[A, B](source: PendingDownload[A], f: A => Try[B])
     })
 }
 
+object PendingDownload {
+  def immediateFailure[A](throwable: Throwable): PendingDownload[A] =
+    new PendingDownload[A] {
+      override def addProgressListener(
+        listener: ProgressBar.ProgressListener[A]
+      ): Unit = {
+        listener.done(Failure(throwable))
+      }
+    }
+}
+
 trait Asset {
   def fileName:               String
   def downloadTo(path: Path): PendingDownload[Unit]
@@ -35,10 +46,10 @@ trait Asset {
 
 trait Release {
   def tag:    String
-  def assets: Seq[String]
+  def assets: Seq[Asset]
 }
 
 trait ReleaseProvider {
-  def releaseForVersion(tag: String): PendingDownload[Release]
-  def latestRelease():                PendingDownload[Release]
+  def releaseForVersion(tag: String): Try[Release]
+  def listReleases():                 Try[Seq[Release]]
 }

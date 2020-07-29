@@ -4,7 +4,7 @@ import java.nio.file.Path
 import java.util.UUID
 
 import org.enso.cli._
-import org.enso.launcher.{Launcher, Logger}
+import org.enso.launcher.{Launcher, Logger, OS}
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
@@ -334,6 +334,7 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     try {
+      println(OS.operatingSystem)
       application.run(args) match {
         case Left(errors) =>
           CLIOutput.println(errors.mkString("\n"))
