@@ -14,7 +14,7 @@ use flexer::*;
 use flexer::prelude::*;
 use lazy_reader::decoder::DecoderUTF8;
 use lazy_reader::{BookmarkId,LazyReader,Reader};
-
+use flexer::group::Group;
 
 
 // ===========
@@ -394,9 +394,9 @@ impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
 #[derive(Debug)]
 pub struct TestState {
     /// The initial state of the lexer.
-    initial_state: LexingState,
+    initial_state: Group,
     /// The state entered when the first word has been seen.
-    seen_first_word_state: LexingState,
+    seen_first_word_state: Group,
     /// A bookmark that is set when a match occurs, allowing for rewinding if necessary.
     matched_bookmark: BookmarkId,
 }
@@ -406,13 +406,13 @@ pub struct TestState {
 
 impl <Reader:LazyReader> FlexerState<Reader> for TestState {
     fn new(reader:&mut Reader) -> Self {
-        let initial_state = LexingState::new("ROOT",0);
-        let seen_first_word_state = LexingState::new("SEEN FIRST WORD",1);
-        let matched_bookmark = reader.add_bookmark();
+        let initial_state         = Group::new(0,String::from("ROOT"),None);
+        let seen_first_word_state = Group::new(1,String::from("SEEN FIRST WORD"),None);
+        let matched_bookmark      = reader.add_bookmark();
         Self{initial_state,seen_first_word_state,matched_bookmark}
     }
 
-    fn initial_state(&self) -> &LexingState {
+    fn initial_state(&self) -> &Group {
         &self.initial_state
     }
 }

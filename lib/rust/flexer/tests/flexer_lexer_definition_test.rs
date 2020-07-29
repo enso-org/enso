@@ -13,11 +13,9 @@
 use flexer::prelude::*;
 use flexer::automata::dfa::DFA;
 use flexer::automata::nfa::NFA;
-use flexer::automata::pattern::Pattern;
 use flexer::group::Group;
-use lazy_reader::{BookmarkId,LazyReader,Reader};
-use flexer::{FlexerState, Flexer, LexingState};
-use lazy_reader::decoder::DecoderUTF8;
+use lazy_reader::{BookmarkId,LazyReader};
+use flexer::{FlexerState, Flexer};
 
 
 // ===========
@@ -94,7 +92,8 @@ impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
 }
 
 // TODO [AA] _Where_ do I want to write the definition?
-// TODO [AA] All groups probably need to be present _here_ in order to allow for parent groups.
+// TODO [AA] Probably need a function to return all groups for generation.
+// TODO [AA] Probably need to hold parent groups by ref rather than boxed.
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct TestState {
@@ -103,12 +102,16 @@ pub struct TestState {
     matched_bookmark: BookmarkId
 }
 
-impl <Reader:LazyReader> FlexerState<Reader> for TestState {
+impl<Reader:LazyReader> FlexerState<Reader> for TestState {
     fn new(reader: &mut Reader) -> Self {
-        unimplemented!()
+        let root_group = Group::new(0,String::from("ROOT"),None);
+        let seen_first_word_group = Group::new(0,String::from("SEEN FIRST WORD"),None);
+        let matched_bookmark = reader.add_bookmark();
+        TestState{root_group,seen_first_word_group,matched_bookmark}
     }
 
-    fn initial_state(&self) -> &LexingState {
+    fn initial_state(&self) -> &Group {
+        // TODO [AA] Needs to actually return a group reference.
         unimplemented!()
     }
 }

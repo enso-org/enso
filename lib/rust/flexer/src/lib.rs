@@ -20,6 +20,7 @@
 use crate::prelude::*;
 
 use lazy_reader::LazyReader;
+use crate::group::Group;
 
 pub mod automata;
 pub mod data;
@@ -102,7 +103,7 @@ where Definition:FlexerState<Reader>,Reader:LazyReader,Output:Clone {
     }
 
     /// Gets the lexer's root state.
-    pub fn root_state(&self) -> &LexingState {
+    pub fn root_state(&self) -> &Group {
         &self.definition.initial_state()
     }
 
@@ -151,29 +152,6 @@ where Definition:FlexerState<Reader>,Reader:LazyReader,Output:Clone {
 
 
 
-// ===================
-// === LexingState ===
-// ===================
-
-/// A container for state identifiers in the lexer.
-#[derive(Clone,Debug,Default)]
-pub struct LexingState {
-    /// The name of the state, useful for debugging.
-    pub name: String,
-    /// The identifier of the state.
-    pub id: usize,
-}
-
-impl LexingState {
-    /// Creates a new state with the specified name and identifier.
-    pub fn new(name:&str,id:usize) -> LexingState {
-        let name = String::from(name);
-        LexingState {name,id}
-    }
-}
-
-
-
 // =========================
 // === FlexerStageStatus ===
 // =========================
@@ -210,15 +188,6 @@ impl FlexerStageStatus {
 }
 
 
-// === Trait Impls ===
-
-impl PartialEq for LexingState {
-    fn eq(&self,other:&Self) -> bool {
-        self.id == other.id
-    }
-}
-
-
 
 // ====================
 // === FlexerResult ===
@@ -246,7 +215,7 @@ pub trait FlexerState<Reader:LazyReader> {
     /// Creates a new instance of the lexer's state.
     fn new(reader:&mut Reader) -> Self;
     /// Returns the _initial_ lexing state.
-    fn initial_state(&self) -> &LexingState;
+    fn initial_state(&self) -> &Group;
 }
 
 
