@@ -32,7 +32,8 @@ class ProgrammableWebSocketServer(interface: String, port: Int)(implicit
   private val handler: Flow[Message, Message, Any] =
     Flow[Message].mapConcat {
       case tm: TextMessage =>
-        val payload = Await.result(tm.toStrict(3.seconds), 3.seconds).text
+        val payload =
+          Await.result(tm.toStrict(3.seconds.dilated), 3.seconds.dilated).text
         if (behaviour.isDefinedAt(payload)) {
           behaviour.apply(payload) match {
             case Reject           => Nil
