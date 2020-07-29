@@ -92,7 +92,6 @@ impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
 }
 
 // TODO [AA] _Where_ do I want to write the definition?
-// TODO [AA] Probably need a function to return all groups for generation.
 // TODO [AA] Probably need to hold parent groups by ref rather than boxed.
 #[allow(missing_docs)]
 #[derive(Debug)]
@@ -105,16 +104,20 @@ pub struct TestState {
 impl<Reader:LazyReader> FlexerState<Reader> for TestState {
     fn new(reader: &mut Reader) -> Self {
         let root_group = Group::new(0,String::from("ROOT"),None);
-        let seen_first_word_group = Group::new(0,String::from("SEEN FIRST WORD"),None);
+        let seen_first_word_group = Group::new(1,String::from("SEEN FIRST WORD"),None);
         let matched_bookmark = reader.add_bookmark();
         TestState{root_group,seen_first_word_group,matched_bookmark}
     }
 
     fn initial_state(&self) -> &Group {
-        // TODO [AA] Needs to actually return a group reference.
-        unimplemented!()
+        &self.root_group
+    }
+
+    fn groups(&self) -> Vec<&Group> {
+        vec![&self.root_group,&self.seen_first_word_group]
     }
 }
+
 
 
 // =============

@@ -415,6 +415,10 @@ impl <Reader:LazyReader> FlexerState<Reader> for TestState {
     fn initial_state(&self) -> &Group {
         &self.initial_state
     }
+
+    fn groups(&self) -> Vec<&Group> {
+        vec![&self.initial_state,&self.seen_first_word_state]
+    }
 }
 
 

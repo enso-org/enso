@@ -216,6 +216,8 @@ pub trait FlexerState<Reader:LazyReader> {
     fn new(reader:&mut Reader) -> Self;
     /// Returns the _initial_ lexing state.
     fn initial_state(&self) -> &Group;
+    /// Returns references to all of the groups for a given lexer state.
+    fn groups(&self) -> Vec<&Group>;
 }
 
 
