@@ -291,6 +291,15 @@ object SearchProtocol {
     */
   case class CompletionResult(currentVersion: Long, results: Seq[SuggestionId])
 
+  /** The request to invalidate the modules index. */
+  case object InvalidateModulesIndex
+
+  /** The request to invalidate the suggestions database. */
+  case object InvalidateSuggestionsDatabase
+
+  /** The reply to the invalidate request. */
+  case object InvalidateSuggestionsDatabaseResult
+
   /** Base trait for search request errors. */
   sealed trait SearchFailure
 
