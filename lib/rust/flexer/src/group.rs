@@ -5,9 +5,96 @@ use crate::automata::pattern::Pattern;
 use crate::group::rule::Rule;
 
 use itertools::Itertools;
-use wasm_bindgen::__rt::std::rc::Rc;
 
 pub mod rule;
+
+
+
+// =====================
+// === GroupRegistry ===
+// =====================
+
+#[allow(missing_docs)]
+#[derive(Clone,Debug,Default)]
+pub struct GroupRegistry {
+    pub groups: Vec<Group>
+}
+
+#[allow(missing_docs)]
+impl GroupRegistry {
+    fn next_id(&self) -> usize {
+        self.groups.len()
+    }
+
+    pub fn create_group(&mut self,name:String,parent_index:Option<usize>) -> usize {
+        let id = self.next_id();
+        let group = Group::new(id,name,parent_index);
+        self.groups.push(group);
+        id
+    }
+
+    pub fn add_group(&mut self,mut group:Group) -> usize {
+        let new_id = self.next_id();
+        group.id = new_id;
+        self.groups.push(group);
+        new_id
+    }
+
+    // TODO [AA] Should this panic?
+    pub fn create_rule(&mut self,group_id:usize,pattern:&Pattern,callback:String) {
+        let err = format!("The provided group_id {} is invalid",group_id);
+        let group = self.group_fom_id_mut(group_id).expect(&err);
+        group.create_rule(pattern,callback);
+    }
+
+    // TODO [AA] Should this panic?
+    pub fn add_rule(&mut self,group_id:usize,rule:Rule) {
+        let err = format!("The provided group_id {} is invalid",group_id);
+        let group = self.group_fom_id_mut(group_id).expect(&err);
+        group.add_rule(rule);
+    }
+
+    pub fn rules_for(&self,group_id:usize) -> Option<Vec<&Rule>> {
+        self.group_from_id(group_id).map(|group| {
+            let mut parent = group.parent_index.and_then(|ix|self.group_from_id(ix));
+            let mut rules = (&group.rules).iter().collect_vec();
+            while let Some(parent_group) = parent {
+                if parent_group.id == group.id {
+                    panic!("There should not be cycles in parent links for lexer groups.")
+                }
+                rules.extend((&parent_group.rules).iter());
+                parent = parent_group.parent_index.and_then(|ix|self.group_from_id(ix));
+            }
+
+            rules
+        })
+    }
+
+    pub fn group_from_id(&self,group_id:usize) -> Option<&Group> {
+        self.groups.get(group_id)
+    }
+
+    pub fn group_fom_id_mut(&mut self,group_id:usize) -> Option<&mut Group> {
+        self.groups.get_mut(group_id)
+    }
+
+    pub fn to_nfa_from(&self,group_id:usize) -> Option<NFA> {
+        let group = self.group_from_id(group_id);
+        group.map(|group| {
+            let mut nfa = NFA::default();
+            let start   = nfa.new_state();
+            let build   = |rule:&Rule| nfa.new_pattern(start,&rule.pattern);
+            let rules   = self.rules_for(group_id).expect("Group exists.");
+            let states  = rules.into_iter().map(build).collect_vec();
+            let end     = nfa.new_state();
+            for (ix,state) in states.into_iter().enumerate() {
+                nfa.states[state.id].name = Some(group.callback_name(ix));
+                nfa.connect(state,end);
+            }
+            nfa
+        })
+    }
+}
 
 
 
@@ -32,6 +119,7 @@ pub mod rule;
 /// current group or even enter a new one. As a result, groups allow us to elegantly model a
 /// situation where certain parts of a program (e.g. within a string literal) have very different
 /// lexing rules than other portions of a program (e.g. the body of a function).
+// TODO [AA] Make private - only access should be through the registry
 #[derive(Clone,Debug,Default)]
 pub struct Group {
     /// A unique identifier for the group.
@@ -41,7 +129,7 @@ pub struct Group {
     /// The parent group from which rules are inherited.
     ///
     /// It is ensured that the group is held mutably.
-    pub parent: Option<Rc<Group>>,
+    pub parent_index: Option<usize>,
     /// A set of flexer rules.
     pub rules: Vec<Rule>,
 }
@@ -49,9 +137,9 @@ pub struct Group {
 impl Group {
 
     /// Creates a new group.
-    pub fn new(id:usize,name:String,parent:Option<Rc<Group>>) -> Self {
+    pub fn new(id:usize,name:String,parent_index:Option<usize>) -> Self {
         let rules = Vec::new();
-        Group{id,name,parent,rules}
+        Group{id,name,parent_index,rules}
     }
 
     /// Adds a new rule to the current group.
@@ -60,9 +148,9 @@ impl Group {
     }
 
     /// Creates a new rule.
-    pub fn create_rule(&mut self,pattern:&Pattern,code:&str) {
+    pub fn create_rule(&mut self,pattern:&Pattern,code:String) {
         let pattern_clone = pattern.clone();
-        let rule = Rule::new(pattern_clone,String::from(code));
+        let rule = Rule::new(pattern_clone,code);
         self.rules.push(rule)
     }
 
@@ -73,7 +161,7 @@ impl Group {
     }
 
     /// The canonical name for a given rule.
-    fn callback_name(&self,rule_ix:usize) -> String {
+    pub fn callback_name(&self,rule_ix:usize) -> String {
         format!("group{}_rule{}",self.id,rule_ix)
     }
 }
@@ -81,23 +169,25 @@ impl Group {
 
 // === Getters ===
 
+// TODO [AA] Delete
 impl Group {
 
     /// The full set of rules, including parent rules.
     ///
     /// Note that this function will explicitly panic if you have a cycle of
     /// parent links between groups.
-    pub fn rules(&self) -> Vec<&Rule> {
-        let mut parent = &self.parent;
-        let mut rules  = (&self.rules).iter().collect_vec();
-        while let Some(state) = parent {
-            if state.id == self.id {
-                panic!("There should not be cycles in parent links for lexer groups.")
-            }
-            rules.extend((&state.rules).iter());
-            parent = &state.parent;
-        }
-        rules
+    fn rules(&self) -> Vec<&Rule> {
+        unimplemented!()
+        // let mut parent = &self.parent;
+        // let mut rules  = (&self.rules).iter().collect_vec();
+        // while let Some(state) = parent {
+        //     if state.id == self.id {
+        //         panic!("There should not be cycles in parent links for lexer groups.")
+        //     }
+        //     rules.extend((&state.rules).iter());
+        //     parent = &state.parent;
+        // }
+        // rules
     }
 }
 
@@ -134,44 +224,48 @@ impl From<&Group> for NFA {
 pub mod tests {
     extern crate test;
 
-    use crate::automata::dfa::DFA;
     use crate::automata::nfa;
-    use crate::automata::nfa::NFA;
     use crate::automata::pattern::Pattern;
-    use crate::group::Group;
+    use crate::group::{Group, GroupRegistry};
     use crate::group::rule::Rule;
 
     use std::default::Default;
     use test::Bencher;
 
-    fn newline() -> Group {
+    fn newline() -> GroupRegistry {
         let     pattern = Pattern::char('\n');
         let mut group   = Group::default();
 
         group.add_rule(Rule{pattern,callback:"".into()});
 
-        group
+        let mut registry = GroupRegistry::default();
+        registry.add_group(group);
+        registry
     }
 
-    fn letter() -> Group {
+    fn letter() -> GroupRegistry {
         let     pattern = Pattern::range('a'..='z');
         let mut group   = Group::default();
 
         group.add_rule(Rule{pattern,callback:"".into()});
 
-        group
+        let mut registry = GroupRegistry::default();
+        registry.add_group(group);
+        registry
     }
 
-    fn spaces() -> Group {
+    fn spaces() -> GroupRegistry {
         let     pattern = Pattern::char(' ').many1();
         let mut group   = Group::default();
 
         group.add_rule(Rule{pattern,callback:"".into()});
 
-        group
+        let mut registry = GroupRegistry::default();
+        registry.add_group(group);
+        registry
     }
 
-    fn letter_and_spaces() -> Group {
+    fn letter_and_spaces() -> GroupRegistry {
         let     letter = Pattern::range('a'..='z');
         let     spaces = Pattern::char(' ').many1();
         let mut group  = Group::default();
@@ -179,10 +273,12 @@ pub mod tests {
         group.add_rule(Rule{pattern:letter,callback:"".into()});
         group.add_rule(Rule{pattern:spaces,callback:"".into()});
 
-        group
+        let mut registry = GroupRegistry::default();
+        registry.add_group(group);
+        registry
     }
 
-    fn complex_rules(count:usize) -> Group {
+    fn complex_rules(count:usize) -> GroupRegistry {
         let mut group   = Group::default();
 
         for ix in 0..count {
@@ -193,61 +289,64 @@ pub mod tests {
             let pattern = Pattern::many(all >> any >> none);
             group.add_rule(Rule{pattern:pattern.clone(),callback:"".into()})
         }
-        group
+
+        let mut registry = GroupRegistry::default();
+        registry.add_group(group);
+        registry
     }
 
     #[test]
     fn test_to_nfa_newline() {
-        assert_eq!(NFA::from(&newline()), nfa::tests::newline());
+        assert_eq!(newline().to_nfa_from(0).unwrap(),nfa::tests::newline());
     }
 
     #[test]
     fn test_to_nfa_letter() {
-        assert_eq!(NFA::from(&letter()), nfa::tests::letter());
+        assert_eq!(letter().to_nfa_from(0).unwrap(),nfa::tests::letter());
     }
 
     #[test]
     fn test_to_nfa_spaces() {
-        assert_eq!(NFA::from(&spaces()), nfa::tests::spaces());
+        assert_eq!(spaces().to_nfa_from(0).unwrap(),nfa::tests::spaces());
     }
 
     #[test]
     fn test_to_nfa_letter_and_spaces() {
-        assert_eq!(NFA::from(&letter_and_spaces()), nfa::tests::letter_and_spaces());
+        assert_eq!(letter_and_spaces().to_nfa_from(0).unwrap(),nfa::tests::letter_and_spaces());
     }
 
     #[bench]
     fn bench_to_nfa_newline(bencher:&mut Bencher) {
-        bencher.iter(|| NFA::from(&newline()))
+        bencher.iter(|| newline().to_nfa_from(0))
     }
 
     #[bench]
     fn bench_to_nfa_letter(bencher:&mut Bencher) {
-        bencher.iter(|| NFA::from(&letter()))
+        bencher.iter(|| letter().to_nfa_from(0))
     }
 
     #[bench]
     fn bench_to_nfa_spaces(bencher:&mut Bencher) {
-        bencher.iter(|| NFA::from(&spaces()))
+        bencher.iter(|| spaces().to_nfa_from(0))
     }
 
     #[bench]
     fn bench_to_nfa_letter_and_spaces(bencher:&mut Bencher) {
-        bencher.iter(|| NFA::from(&letter_and_spaces()))
+        bencher.iter(|| letter_and_spaces().to_nfa_from(0))
     }
 
     #[bench]
     fn bench_ten_rules(bencher:&mut Bencher) {
-        bencher.iter(|| DFA::from(&NFA::from(&complex_rules(10))));
+        bencher.iter(|| complex_rules(10).to_nfa_from(0))
     }
 
     #[bench]
     fn bench_hundred_rules(bencher:&mut Bencher) {
-        bencher.iter(|| DFA::from(&NFA::from(&complex_rules(100))));
+        bencher.iter(|| complex_rules(100).to_nfa_from(0))
     }
 
     #[bench]
     fn bench_thousand_rules(bencher:&mut Bencher) {
-        bencher.iter(|| DFA::from(&NFA::from(&complex_rules(1000))));
+        bencher.iter(|| complex_rules(1000).to_nfa_from(0))
     }
 }

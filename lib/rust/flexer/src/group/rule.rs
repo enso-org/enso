@@ -16,6 +16,8 @@ use crate::automata::pattern::Pattern;
 pub struct Rule {
     /// The pattern that triggers the callback.
     pub pattern: Pattern,
+
+    // TODO [AA] Clarify what scope the code must be valid in.
     /// The code to execute when [`Rule::pattern`] matches, containing rust code as a
     /// [`std::string::String`].
     pub callback: String,
