@@ -14,8 +14,10 @@ use flexer::prelude::*;
 use flexer::automata::dfa::DFA;
 use flexer::automata::nfa::NFA;
 use flexer::group::Group;
-use lazy_reader::{BookmarkId,LazyReader};
+use lazy_reader::{BookmarkId, LazyReader, Reader};
 use flexer::{FlexerState, Flexer};
+use lazy_reader::decoder::DecoderUTF8;
+use flexer::automata::pattern::Pattern;
 
 
 // ===========
@@ -72,8 +74,56 @@ pub struct TestLexer<Reader:LazyReader> {
     lexer: Flexer<TestState,AST,Reader>
 }
 
+/// The definition?
+#[allow(missing_docs)]
 impl<Reader:LazyReader> TestLexer<Reader> {
+    pub fn new(reader:Reader) -> Self {
+        let lexer = Flexer::new(reader);
+        TestLexer{lexer}
+    }
+}
 
+/// Implementation helpers.
+#[allow(missing_docs)]
+impl<Reader:LazyReader> TestLexer<Reader> {
+    pub fn def_on_first_word_str(&mut self) {
+        let str = self.current_match.clone();
+        let ast = AST::Word(str);
+        self.def_on_first_word(ast);
+    }
+
+    pub fn def_on_first_word(&mut self,ast:AST) {
+        self.tokens.push(ast);
+        let id = self.seen_first_word_group.id;
+        self.begin_state(id);
+    }
+
+    pub fn def_on_spaced_word_str(&mut self) {
+        let str = self.current_match.clone();
+        let ast = AST::Word(String::from(str.trim()));
+        self.def_on_spaced_word(ast);
+    }
+
+    pub fn def_on_spaced_word(&mut self,ast:AST) {
+        self.tokens.push(ast);
+    }
+
+    pub fn def_on_err_suffix_first_word(&mut self) {
+        let ast = AST::Unrecognised(self.current_match.clone());
+        self.tokens.push(ast);
+    }
+
+    pub fn def_on_err_suffix(&mut self) {
+        self.def_on_err_suffix_first_word();
+        self.end_state();
+    }
+
+    pub fn def_on_no_err_suffix_first_word(&mut self) {}
+
+    pub fn def_on_no_err_suffix(&mut self) {
+        self.def_on_no_err_suffix_first_word();
+        self.end_state();
+    }
 }
 
 // === Trait Impls ===
@@ -92,19 +142,20 @@ impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
 }
 
 // TODO [AA] _Where_ do I want to write the definition?
-// TODO [AA] Probably need to hold parent groups by ref rather than boxed.
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub struct TestState {
-    root_group: Group,
-    seen_first_word_group: Group,
+    root_group: Rc<Group>,
+    seen_first_word_group: Rc<Group>,
     matched_bookmark: BookmarkId
 }
 
 impl<Reader:LazyReader> FlexerState<Reader> for TestState {
     fn new(reader: &mut Reader) -> Self {
-        let root_group = Group::new(0,String::from("ROOT"),None);
-        let seen_first_word_group = Group::new(1,String::from("SEEN FIRST WORD"),None);
+        // TODO [AA] Parent groups need to be mutable as held.
+        let root_group = Rc::new(Group::new(0,String::from("ROOT"),None));
+        // TODO [AA] The parent here is just for compilation testing. It doesn't lex properly.
+        let seen_first_word_group = Rc::new(Group::new(1,String::from("SEEN FIRST WORD"),Some(root_group.clone())));
         let matched_bookmark = reader.add_bookmark();
         TestState{root_group,seen_first_word_group,matched_bookmark}
     }
@@ -125,8 +176,25 @@ impl<Reader:LazyReader> FlexerState<Reader> for TestState {
 // =============
 
 #[test]
-fn test() {
+fn test_lexer_definition() {
+    // TODO [AA] Needing a dummy reader to define the lexer is awkward.
+    let str = "aaaaa".as_bytes();
+    let reader = Reader::new(str,DecoderUTF8());
+    let mut lexer = TestLexer::new(reader);
 
+    let a_word        = Pattern::char('a').many1();
+    let b_word        = Pattern::char('b').many1();
+    let space         = Pattern::char(' ');
+    let spaced_a_word = space.clone() >> a_word.clone();
+    let spaced_b_word = space.clone() >> b_word.clone();
+    let any           = Pattern::any();
+    let end           = Pattern::eof();
+
+    // TODO [AA] Can't use this, because it requires no additional refs be held.
+    // TODO [AA] Needs to be RefCell.
+    // let root_group = Rc::get_mut(&mut lexer.root_group).unwrap();
+    // TODO [AA] The functions used in callbacks must take no arguments other than self.
+    // root_group.create_rule(&a_word,"lexer.on_first_word_str()")
 }
 
 // #[test]

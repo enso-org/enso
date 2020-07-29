@@ -47,7 +47,8 @@ pub struct TestLexer<Reader:LazyReader> {
 /// These functions are provided by the user, by hand.
 #[allow(missing_docs)]
 impl<Reader:LazyReader> TestLexer<Reader> {
-    pub fn def_on_first_word_str(&mut self,str:String) {
+    pub fn def_on_first_word_str(&mut self) {
+        let str = self.current_match.clone();
         let ast = AST::Word(str);
         self.def_on_first_word(ast);
     }
@@ -58,7 +59,8 @@ impl<Reader:LazyReader> TestLexer<Reader> {
         self.begin_state(id);
     }
 
-    pub fn def_on_spaced_word_str(&mut self,str:String) {
+    pub fn def_on_spaced_word_str(&mut self) {
+        let str = self.current_match.clone();
         let ast = AST::Word(String::from(str.trim()));
         self.def_on_spaced_word(ast);
     }
@@ -233,11 +235,11 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     }
 
     fn gen_group_0_rule_0(&mut self) -> () {
-        self.def_on_first_word_str(self.current_match.clone())
+        self.def_on_first_word_str()
     }
 
     fn gen_group_0_rule_1(&mut self) -> () {
-        self.def_on_first_word_str(self.current_match.clone())
+        self.def_on_first_word_str()
     }
 
     fn gen_group_0_rule_2(&mut self) -> () {
@@ -352,11 +354,11 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     }
 
     fn gen_group_1_rule_0(&mut self) {
-        self.def_on_spaced_word_str(self.current_match.clone());
+        self.def_on_spaced_word_str();
     }
 
     fn gen_group_1_rule_1(&mut self) -> () {
-        self.def_on_spaced_word_str(self.current_match.clone());
+        self.def_on_spaced_word_str();
     }
 
     fn gen_group_1_rule_2(&mut self) {
@@ -394,9 +396,9 @@ impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
 #[derive(Debug)]
 pub struct TestState {
     /// The initial state of the lexer.
-    initial_state: Group,
+    initial_state: Rc<Group>,
     /// The state entered when the first word has been seen.
-    seen_first_word_state: Group,
+    seen_first_word_state: Rc<Group>,
     /// A bookmark that is set when a match occurs, allowing for rewinding if necessary.
     matched_bookmark: BookmarkId,
 }
@@ -406,8 +408,8 @@ pub struct TestState {
 
 impl <Reader:LazyReader> FlexerState<Reader> for TestState {
     fn new(reader:&mut Reader) -> Self {
-        let initial_state         = Group::new(0,String::from("ROOT"),None);
-        let seen_first_word_state = Group::new(1,String::from("SEEN FIRST WORD"),None);
+        let initial_state         = Rc::new(Group::new(0,String::from("ROOT"),None));
+        let seen_first_word_state = Rc::new(Group::new(1,String::from("SEEN FIRST WORD"),None));
         let matched_bookmark      = reader.add_bookmark();
         Self{initial_state,seen_first_word_state,matched_bookmark}
     }

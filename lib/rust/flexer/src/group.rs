@@ -5,6 +5,7 @@ use crate::automata::pattern::Pattern;
 use crate::group::rule::Rule;
 
 use itertools::Itertools;
+use wasm_bindgen::__rt::std::rc::Rc;
 
 pub mod rule;
 
@@ -38,7 +39,9 @@ pub struct Group {
     /// A name for the group (useful in debugging).
     pub name: String,
     /// The parent group from which rules are inherited.
-    pub parent: Option<Box<Group>>,
+    ///
+    /// It is ensured that the group is held mutably.
+    pub parent: Option<Rc<Group>>,
     /// A set of flexer rules.
     pub rules: Vec<Rule>,
 }
@@ -46,7 +49,7 @@ pub struct Group {
 impl Group {
 
     /// Creates a new group.
-    pub fn new(id:usize,name:String,parent:Option<Box<Group>>) -> Self {
+    pub fn new(id:usize,name:String,parent:Option<Rc<Group>>) -> Self {
         let rules = Vec::new();
         Group{id,name,parent,rules}
     }
@@ -81,10 +84,16 @@ impl Group {
 impl Group {
 
     /// The full set of rules, including parent rules.
+    ///
+    /// Note that this function will explicitly panic if you have a cycle of
+    /// parent links between groups.
     pub fn rules(&self) -> Vec<&Rule> {
         let mut parent = &self.parent;
         let mut rules  = (&self.rules).iter().collect_vec();
         while let Some(state) = parent {
+            if state.id == self.id {
+                panic!("There should not be cycles in parent links for lexer groups.")
+            }
             rules.extend((&state.rules).iter());
             parent = &state.parent;
         }
