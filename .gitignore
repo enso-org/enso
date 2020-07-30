@@ -81,7 +81,12 @@ bench-report.xml
 ##############
 
 /enso
+*.exe
+/enso.exp
+/enso.lib
+*.pdb
 *.jar
+
 
 #########
 ## IDE ##

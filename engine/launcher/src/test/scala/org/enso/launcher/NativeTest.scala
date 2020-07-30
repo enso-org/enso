@@ -1,16 +1,26 @@
 package org.enso.launcher
 
+import java.nio.file.{Files, Path}
+
+import org.scalatest.concurrent.{Signaler, TimeLimitedTests}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.matchers.{MatchResult, Matcher}
+import org.scalatest.time.Span
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.sys.process._
+import org.scalatest.time.SpanSugar._
+
+import org.enso.launcher.internal.OS
 
 /**
   * Contains helper methods for creating tests that need to run the native
   * launcher binary.
   */
-trait NativeTest extends AnyWordSpec with Matchers {
+trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
+
+  override val timeLimit: Span               = 15 seconds
+  override val defaultTestSignaler: Signaler = _.interrupt()
 
   /**
     * A result of running the native launcher binary.
@@ -42,18 +52,71 @@ trait NativeTest extends AnyWordSpec with Matchers {
   val isWindows: Boolean =
     System.getProperty("os.name").toLowerCase().contains("windows")
 
-  private val launcherCommand = "./enso"
-
   /**
     * Runs the native launcher binary with the specified arguments and captures
     * its output.
     *
     * @param args arguments to forward to the launcher
+    * @param extraEnv environment variables to override for the launched
+    *                 program, do not use these to override PATH
     */
   def runLauncher(
-    args: Seq[String]
+    args: Seq[String],
+    extraEnv: Map[String, String] = Map.empty
   ): RunResult = {
-    run(Seq(launcherCommand) ++ args, Seq())
+    if (extraEnv.contains("PATH")) {
+      throw new IllegalArgumentException(
+        "To override path, use [[runLauncherWithPath]]."
+      )
+    }
+
+    run(
+      Seq(baseLauncherLocation.toAbsolutePath.toString) ++ args,
+      extraEnv.toSeq
+    )
+  }
+
+  /**
+    * Runs the native launcher binary located at `pathToLauncher` with the
+    * specified arguments and captures its output.
+    *
+    * @param pathToLauncher path to the launcher executable to run
+    * @param args arguments to forward to the launcher
+    * @param extraEnv environment variables to override for the launched
+    *                 program, do not use these to override PATH
+    */
+  def runLauncherAt(
+    pathToLauncher: Path,
+    args: Seq[String],
+    extraEnv: Map[String, String] = Map.empty
+  ): RunResult = {
+    if (extraEnv.contains("PATH")) {
+      throw new IllegalArgumentException(
+        "To override path, use [[runLauncherWithPath]]."
+      )
+    }
+
+    run(Seq(pathToLauncher.toAbsolutePath.toString) ++ args, extraEnv.toSeq)
+  }
+
+  /**
+    * Returns the expected location of the launcher binary compiled by the
+    * Native Image. This binary can be copied into various places to test its
+    * functionality.
+    */
+  def baseLauncherLocation: Path =
+    Path.of(".").resolve(OS.executableName("enso"))
+
+  /**
+    * Creates a copy of the tested launcher binary at the specified location.
+    */
+  def copyLauncherTo(path: Path): Unit = {
+    val parent = path.getParent
+    Files.createDirectories(parent)
+    Files.copy(baseLauncherLocation, path)
+    if (!Files.isExecutable(path)) {
+      throw new RuntimeException("Failed to make it executable...")
+    }
   }
 
   /**
@@ -69,8 +132,17 @@ trait NativeTest extends AnyWordSpec with Matchers {
     pathOverride: String
   ): RunResult = {
     val pathName = if (isWindows) "Path" else "PATH" // Note [Windows Path]
-    run(Seq(launcherCommand) ++ args, Seq(pathName -> pathOverride))
+    run(
+      Seq(baseLauncherLocation.toAbsolutePath.toString) ++ args,
+      Seq(pathName -> pathOverride)
+    )
   }
+
+  /**
+    * This property can be temporarily set to true to allow for easier debugging
+    * of native tests.
+    */
+  private val launcherDebugLogging = false
 
   private def run(
     command: Seq[String],
@@ -79,16 +151,35 @@ trait NativeTest extends AnyWordSpec with Matchers {
     val stdout = new StringBuilder
     val stderr = new StringBuilder
     val logger = new ProcessLogger {
-      override def out(s: => String): Unit = stdout.append(s + "\n")
+      override def out(s: => String): Unit = {
+        if (launcherDebugLogging) {
+          System.err.println(s)
+        }
+        stdout.append(s + "\n")
+      }
 
-      override def err(s: => String): Unit = stderr.append(s + "\n")
+      override def err(s: => String): Unit = {
+        if (launcherDebugLogging) {
+          System.err.println(s)
+        }
+        stderr.append(s + "\n")
+      }
 
       override def buffer[T](f: => T): T = f
     }
 
     try {
-      val exitCode = Process(command, None, extraEnv: _*).!(logger)
-      RunResult(exitCode, stdout.toString(), stderr.toString())
+      val process = Process(command, None, extraEnv: _*).run(logger)
+      try {
+        RunResult(process.exitValue(), stdout.toString(), stderr.toString())
+      } catch {
+        case e: InterruptedException =>
+          if (process.isAlive()) {
+            println("Killing the timed-out process")
+            process.destroy()
+          }
+          throw e
+      }
     } catch {
       case e: Exception =>
         throw new RuntimeException("Cannot run the Native Image binary", e)

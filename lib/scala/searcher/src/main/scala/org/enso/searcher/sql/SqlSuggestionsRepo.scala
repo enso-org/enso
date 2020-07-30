@@ -31,13 +31,19 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   def init: Future[Unit] =
     db.run(initQuery)
 
-  /** Clean the repo. */
-  def clean: Future[Unit] =
+  /** @inheritdoc */
+  override def clean: Future[Unit] =
     db.run(cleanQuery)
 
   /** @inheritdoc */
   override def getAll: Future[(Long, Seq[SuggestionEntry])] =
     db.run(getAllQuery)
+
+  /** @inheritdoc */
+  override def getAllByExternalIds(
+    ids: Seq[Suggestion.ExternalId]
+  ): Future[Seq[Option[Long]]] =
+    db.run(getAllByExternalIdsQuery(ids))
 
   /** @inheritdoc */
   override def search(
@@ -84,6 +90,10 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(updateAllQuery(expressions))
 
   /** @inheritdoc */
+  override def renameProject(oldName: String, newName: String): Future[Unit] =
+    db.run(renameProjectQuery(oldName, newName))
+
+  /** @inheritdoc */
   override def currentVersion: Future[Long] =
     db.run(currentVersionQuery)
 
@@ -110,12 +120,13 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   }
 
   /** The query to clean the repo. */
-  private def cleanQuery: DBIO[Unit] =
+  private def cleanQuery: DBIO[Unit] = {
     for {
       _ <- Suggestions.delete
       _ <- Arguments.delete
       _ <- SuggestionsVersions.delete
     } yield ()
+  }
 
   /** Get all suggestions.
     *
@@ -128,6 +139,37 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     } yield (version, suggestions)
     query.transactionally
   }
+
+  /** The query to get suggestions by external ids.
+    *
+    * @param ids the list of external ids
+    * @return the list of found suggestion ids
+    */
+  private def getAllByExternalIdsQuery(
+    ids: Seq[Suggestion.ExternalId]
+  ): DBIO[Seq[Option[Long]]] =
+    if (ids.isEmpty) {
+      DBIO.successful(Seq())
+    } else {
+      val bits =
+        ids.map(id => (id.getLeastSignificantBits, id.getMostSignificantBits))
+      val query = Suggestions
+        .filter { row =>
+          bits
+            .map {
+              case (least, most) =>
+                row.externalIdLeast === least && row.externalIdMost === most
+            }
+            .reduce(_ || _)
+        }
+        .map(row => (row.id, row.externalIdLeast, row.externalIdMost))
+      query.result.map { triples =>
+        val result = triples.flatMap {
+          case (id, least, most) => toUUID(least, most).map(_ -> id)
+        }.toMap
+        ids.map(result.get)
+      }
+    }
 
   /** The query to search suggestion by various parameters.
     *
@@ -303,6 +345,22 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
         else currentVersionQuery
     } yield (version, ids)
     query.transactionally
+  }
+
+  /** The query to update the project name.
+    *
+    * @param oldName the old name of the project
+    * @param newName the new project name
+    */
+  private def renameProjectQuery(
+    oldName: String,
+    newName: String
+  ): DBIO[Unit] = {
+    val updateQuery =
+      sqlu"""update suggestions
+          set module = replace(module, $oldName, $newName)
+          where module like '#$oldName%'"""
+    updateQuery >> DBIO.successful(())
   }
 
   /** The query to get current version of the repo. */

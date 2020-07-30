@@ -55,7 +55,7 @@ The directory structure is as follows:
 ```
 extraction-location
 ├── bin
-│   └── enso                # The universal launcher, responsible for choosing the appropriate compiler version (TODO [RW] it may be stored in a different place).
+│   └── enso                # The universal launcher, responsible for choosing the appropriate compiler version.
 ├── config
 │   └── global-config.yaml  # Global user configuration.
 ├── dist                    # Per-compiler-version distribution directories.
@@ -113,7 +113,7 @@ ENSO_CONFIG_DIRECTORY
 └── global-config.yaml      # Global user configuration.
 
 ENSO_BIN_DIRECTORY
-└── enso                    # The universal launcher, responsible for choosing the appropriate compiler version (TODO [RW] it may be stored in a different place).
+└── enso                    # The universal launcher, responsible for choosing the appropriate compiler version.
 ```
 
 Where `ENSO_DATA_DIRECTORY`, `ENSO_CONFIG_DIRECTORY` and `ENSO_BIN_DIRECTORY`

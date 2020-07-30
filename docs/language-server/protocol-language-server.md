@@ -105,6 +105,7 @@ transport formats, please look [here](./protocol-architecture).
 - [Search Operations](#search-operations)
   - [Suggestions Database Example](#suggestionsdatabaseexample)
   - [`search/getSuggestionsDatabase`](#searchgetsuggestionsdatabase)
+  - [`search/invalidateSuggestionsDatabase`](#invalidatesuggestionsdatabase)
   - [`search/getSuggestionsDatabaseVersion`](#searchgetsuggestionsdatabaseversion)
   - [`search/suggestionsDatabaseUpdate`](#searchsuggestionsdatabaseupdate)
   - [`search/completion`](#searchcompletion)
@@ -212,10 +213,11 @@ interface MethodPointer {
 
 ```typescript
 interface ExpressionValueUpdate {
-  id: ExpressionId;
-  type?: String;
-  shortValue?: String;
-  methodCall?: MethodPointer;
+  /** The id of updated expression */
+  expressionId: ExpressionId;
+
+  /** The updated suggestion id */
+  suggestionId: number;
 }
 ```
 
@@ -272,7 +274,6 @@ The language construct that can be returned as a suggestion.
 ```typescript
 // The definition scope
 interface SuggestionEntryScope {
-
   // The start position of the definition scope
   start: Position;
   // The end position of the definition scope
@@ -280,16 +281,15 @@ interface SuggestionEntryScope {
 }
 
 // A type of suggestion entries.
-type SuggestionEntry
+type SuggestionEntry =
   // A value constructor
-  = SuggestionEntryAtom
+  | SuggestionEntryAtom
   // A method defined on a type
   | SuggestionEntryMethod
   // A function
   | SuggestionEntryFunction
   // A local value
   | SuggestionEntryLocal;
-}
 
 interface SuggestionEntryAtom {
   name: string;
@@ -2598,7 +2598,7 @@ Sent from client to the server to receive the full suggestions database.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Binary
+- **Connection:** Protocol
 - **Visibility:** Public
 
 #### Parameters
@@ -2625,6 +2625,33 @@ null;
 - [`ProjectNotFoundError`](#projectnotfounderror) project is not found in the
   root directory
 
+### `search/invalidateSuggestionsDatabase`
+
+Sent from client to the server to clean the suggestions database resetting the
+version.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+#### Parameters
+
+```typescript
+null;
+```
+
+#### Result
+
+```typescript
+null;
+```
+
+#### Errors
+
+- [`SuggestionsDatabaseError`](#suggestionsdatabaseerror) an error accessing the
+  suggestions database
+
 ### `search/getSuggestionsDatabaseVersion`
 
 Sent from client to the server to receive the current version of the suggestions
@@ -2632,7 +2659,7 @@ database.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Binary
+- **Connection:** Protocol
 - **Visibility:** Public
 
 #### Parameters
@@ -2664,7 +2691,7 @@ database.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
-- **Connection:** Binary
+- **Connection:** Protocol
 - **Visibility:** Public
 
 #### Parameters
@@ -2686,7 +2713,7 @@ Sent from client to the server to receive the autocomplete suggestion.
 
 - **Type:** Request
 - **Direction:** Client -> Server
-- **Connection:** Binary
+- **Connection:** Protocol
 - **Visibility:** Public
 
 #### Parameters

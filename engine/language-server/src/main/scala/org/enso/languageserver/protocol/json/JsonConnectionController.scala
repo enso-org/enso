@@ -40,7 +40,8 @@ import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.search.SearchApi.{
   Completion,
   GetSuggestionsDatabase,
-  GetSuggestionsDatabaseVersion
+  GetSuggestionsDatabaseVersion,
+  InvalidateSuggestionsDatabase
 }
 import org.enso.languageserver.runtime.VisualisationApi.{
   AttachVisualisation,
@@ -266,6 +267,8 @@ class JsonConnectionController(
       GetSuggestionsDatabaseVersion -> search.GetSuggestionsDatabaseVersionHandler
         .props(requestTimeout, suggestionsHandler),
       GetSuggestionsDatabase -> search.GetSuggestionsDatabaseHandler
+        .props(requestTimeout, suggestionsHandler),
+      InvalidateSuggestionsDatabase -> search.InvalidateSuggestionsDatabaseHandler
         .props(requestTimeout, suggestionsHandler),
       Completion -> search.CompletionHandler
         .props(requestTimeout, suggestionsHandler),

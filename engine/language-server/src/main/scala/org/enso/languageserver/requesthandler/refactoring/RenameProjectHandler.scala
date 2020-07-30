@@ -34,11 +34,19 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
       runtimeConnector ! Api.Request(UUID.randomUUID(), payload)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
+      context.become(
+        responseStage(
+          id,
+          ProjectNameChangedEvent(params.oldName, params.newName),
+          sender(),
+          cancellable
+        )
+      )
   }
 
   private def responseStage(
     id: Id,
+    nameChangedEvent: ProjectNameChangedEvent,
     replyTo: ActorRef,
     cancellable: Cancellable
   ): Receive = {
@@ -47,8 +55,8 @@ class RenameProjectHandler(timeout: FiniteDuration, runtimeConnector: ActorRef)
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case Api.Response(_, Api.ProjectRenamed(name)) =>
-      context.system.eventStream.publish(ProjectNameChangedEvent(name))
+    case Api.Response(_, Api.ProjectRenamed(_)) =>
+      context.system.eventStream.publish(nameChangedEvent)
       replyTo ! ResponseResult(RenameProject, id, Unused)
       cancellable.cancel()
       context.stop(self)

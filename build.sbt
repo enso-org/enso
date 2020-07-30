@@ -19,7 +19,7 @@ import com.typesafe.sbt.license.DepModuleInfo
 val scalacVersion = "2.13.3"
 val graalVersion  = "20.1.0"
 val javaVersion   = "11"
-val ensoVersion   = "0.0.1"
+val ensoVersion   = "0.1.0"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 val licenseSettings = Seq(

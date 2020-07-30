@@ -1290,7 +1290,7 @@ class RuntimeServerTest
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
-    context.receive shouldEqual Some(
+    context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 

@@ -1,7 +1,7 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import akka.testkit._
 import com.miguno.akka.testing.VirtualTime
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
@@ -148,7 +148,7 @@ class ProjectRenameActionSpec
 
     def virtualTimeAdvances(step: FiniteDuration): Unit = {
       //I need to wait some time to give actors time to reply
-      Thread.sleep(1000)
+      Thread.sleep(1.second.dilated.toMillis)
       virtualTime.advance(step)
     }
 

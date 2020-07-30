@@ -164,6 +164,12 @@ trait Opts[A] {
     NonEmptyList.one(sb.toString().stripLeading())
   }
 
+  /**
+    * Generates explanations of parameters to be included in the help message.
+    *
+    * @param addHelpOption specifies whether an additional `--help` option
+    *                      should be included
+    */
   def helpExplanations(addHelpOption: Boolean): String = {
     val additionalHelpOption =
       if (addHelpOption) Seq("[--help | -h]\tPrint this help message.")
@@ -262,6 +268,15 @@ object Opts {
         */
       def withDefault(defaultValue: => A): Opts[A] =
         opts.map(_.getOrElse(defaultValue))
+    }
+
+    implicit class HiddenSyntax[A](val opts: Opts[A]) {
+
+      /**
+        * Makes options from this Opts instance hidden in any help messages. Can
+        * be used for internal configuration.
+        */
+      def hidden: Opts[A] = new HiddenOpts(opts)
     }
   }
 
