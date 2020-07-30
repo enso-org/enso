@@ -6,11 +6,10 @@ import java.nio.file.Path
 
 import io.circe._
 import io.circe.parser._
+import org.enso.cli.TaskProgress
 
 import scala.util.{Success, Try}
-//import org.enso.cli.ProgressBar
 import org.enso.launcher.Logger
-import org.enso.launcher.releases.PendingDownload
 
 object GithubAPI {
   case class Repository(owner: String, name: String)
@@ -54,7 +53,7 @@ object GithubAPI {
     listAllPages(1)
   }
 
-  def getRelease(repo: Repository, tag: String): PendingDownload[Release] = {
+  def getRelease(repo: Repository, tag: String): TaskProgress[Release] = {
     val uri = projectURI(repo) / "releases/" / "tags/" / tag
     Logger.debug(uri.toString)
     val request =
@@ -73,7 +72,7 @@ object GithubAPI {
       )
   }
 
-  def fetchTextAsset(asset: Asset): PendingDownload[String] = {
+  def fetchTextAsset(asset: Asset): TaskProgress[String] = {
     val request =
       HttpRequest
         .newBuilder(URI.create(asset.url))
@@ -83,7 +82,7 @@ object GithubAPI {
     HTTPDownload.fetchString(request, Some(asset.size))
   }
 
-  def downloadAsset(asset: Asset, path: Path): PendingDownload[Unit] = {
+  def downloadAsset(asset: Asset, path: Path): TaskProgress[Unit] = {
     val request =
       HttpRequest
         .newBuilder(URI.create(asset.url))

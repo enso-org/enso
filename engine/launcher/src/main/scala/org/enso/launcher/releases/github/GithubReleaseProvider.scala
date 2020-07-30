@@ -2,12 +2,8 @@ package org.enso.launcher.releases.github
 
 import java.nio.file.Path
 
-import org.enso.launcher.releases.{
-  Asset,
-  PendingDownload,
-  Release,
-  ReleaseProvider
-}
+import org.enso.cli.TaskProgress
+import org.enso.launcher.releases.{Asset, Release, ReleaseProvider}
 
 import scala.util.Try
 
@@ -32,9 +28,9 @@ class GithubReleaseProvider(
   private def wrapAsset(asset: GithubAPI.Asset): Asset =
     new Asset {
       override def fileName: String = asset.name
-      override def downloadTo(path: Path): PendingDownload[Unit] =
+      override def downloadTo(path: Path): TaskProgress[Unit] =
         GithubAPI.downloadAsset(asset, path)
-      override def fetchAsText(): PendingDownload[String] =
+      override def fetchAsText(): TaskProgress[String] =
         GithubAPI.fetchTextAsset(asset)
     }
 }

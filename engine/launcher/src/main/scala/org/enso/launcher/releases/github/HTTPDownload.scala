@@ -9,8 +9,7 @@ import java.util
 import java.util.concurrent.{CompletionStage, Flow}
 
 import scala.jdk.CollectionConverters._
-import org.enso.cli.ProgressBar
-import org.enso.launcher.releases.PendingDownload
+import org.enso.cli.{ProgressListener, TaskProgress}
 
 import scala.util.{Failure, Success, Try}
 
@@ -19,14 +18,14 @@ class HTTPDownload[A] private[github] (
   request: HttpRequest,
   baseHandler: BodyHandler[A],
   sizeHint: Option[Long]
-) extends PendingDownload[A] {
+) extends TaskProgress[A] {
 
-  private var listeners: List[ProgressBar.ProgressListener[A]] = Nil
-  private var result: Option[Try[A]]                           = None
+  private var listeners: List[ProgressListener[A]] = Nil
+  private var result: Option[Try[A]]               = None
   start()
 
   override def addProgressListener(
-    listener: ProgressBar.ProgressListener[A]
+    listener: ProgressListener[A]
   ): Unit = {
     this.synchronized {
       result match {

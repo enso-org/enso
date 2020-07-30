@@ -2,6 +2,7 @@ package org.enso.launcher.releases
 
 import java.nio.file.Path
 
+import org.enso.cli.TaskProgress
 import org.enso.launcher.OS
 import org.enso.launcher.components.RuntimeVersion
 import org.enso.launcher.releases.github.GithubReleaseProvider
@@ -28,19 +29,19 @@ class GraalCEReleaseProvider(releaseProvider: ReleaseProvider)
   def downloadPackage(
     version: RuntimeVersion,
     path: Path
-  ): PendingDownload[Unit] = {
+  ): TaskProgress[Unit] = {
     val tagName     = s"vm-${version.graal}"
     val packageName = packageFileName(version)
     val release     = releaseProvider.releaseForVersion(tagName)
     release match {
       case Failure(exception) =>
-        PendingDownload.immediateFailure(exception)
+        TaskProgress.immediateFailure(exception)
       case Success(release) =>
         release.assets
           .find(_.fileName == packageName)
           .map(_.downloadTo(path))
           .getOrElse {
-            PendingDownload.immediateFailure(
+            TaskProgress.immediateFailure(
               new RuntimeException(
                 s"Cannot find package `$packageName` in the release."
               )

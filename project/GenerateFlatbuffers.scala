@@ -3,7 +3,6 @@ import java.io.IOException
 import sbt.Keys._
 import sbt._
 import sbt.internal.util.ManagedLogger
-import sbt.util.FilesInfo
 
 import scala.sys.process._
 

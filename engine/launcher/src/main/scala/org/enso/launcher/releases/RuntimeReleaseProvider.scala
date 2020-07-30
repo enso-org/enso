@@ -2,6 +2,7 @@ package org.enso.launcher.releases
 
 import java.nio.file.Path
 
+import org.enso.cli.TaskProgress
 import org.enso.launcher.components.RuntimeVersion
 
 trait RuntimeReleaseProvider {
@@ -10,5 +11,5 @@ trait RuntimeReleaseProvider {
   def downloadPackage(
     version: RuntimeVersion,
     path: Path
-  ): PendingDownload[Unit]
+  ): TaskProgress[Unit]
 }

@@ -6,40 +6,6 @@ import scala.util.Try
 
 object ProgressBar {
 
-  /**
-    * Clients can implement this trait to get progress updates.
-    */
-  trait ProgressListener[A] {
-    def progressUpdate(done: Long, total: Option[Long]): Unit
-    def done(result: Try[A]):                            Unit
-  }
-  trait TaskProgress[A] {
-
-    /**
-      * Adds a progress listener to this task.
-      *
-      * Even if the task is already finished, the [[ProgressListener.done]]
-      * method should be fired with the result. This way, `done` is fired
-      * exactly once for each attached listener. There are no guarantees on how
-      * often [[ProgressListener.progressUpdate]] is called.
-      */
-    def addProgressListener(listener: ProgressListener[A]): Unit
-
-    def waitForResult(showProgress: Boolean = false): Try[A] =
-      if (showProgress) waitWithProgress(this) else waitForTask(this)
-  }
-
-  def waitForTask[A](task: TaskProgress[A]): Try[A] = {
-    val queue = new LinkedTransferQueue[Try[A]]()
-    task.addProgressListener(new ProgressListener[A] {
-      override def progressUpdate(done: Long, total: Option[Long]): Unit = {}
-      override def done(result: Try[A]): Unit =
-        queue.put(result)
-    })
-
-    queue.take()
-  }
-
   def waitWithProgress[A](task: TaskProgress[A]): Try[A] = {
     startProgress()
 
@@ -102,9 +68,11 @@ object ProgressBar {
   private val totalStates    = progressWidth * progressStates.length
 
   private def drawProgressBar(state: Int, comment: String): Unit = {
-    val full = progressStates.last * (state / progressStates.length)
+    val stateClamped = Seq(Seq(state, 0).max, totalStates).min
+    val full =
+      progressStates.last * (stateClamped / progressStates.length)
     val partial = {
-      val idx = state % progressStates.length
+      val idx = stateClamped % progressStates.length
       if (idx > 0) {
         progressStates(idx - 1)
       } else ""
@@ -115,14 +83,5 @@ object ProgressBar {
     val padding = " " * 5
     val line    = s"[$bar$rest] $comment$padding\r"
     print(line)
-  }
-
-  def simulate(): Unit = {
-    startProgress()
-    for (i <- 1 to 100) {
-      showUnknownProgress(i)
-      Thread.sleep(100)
-    }
-    finishProgress("hmm")
   }
 }

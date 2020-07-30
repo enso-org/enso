@@ -5,6 +5,7 @@ object Placeholder2
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.cli.TaskProgress
 import org.enso.launcher.releases.github.GithubReleaseProvider
 import org.enso.launcher.components.Manifest
 
@@ -56,13 +57,13 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
   def downloadPackage(
     release: EngineRelease,
     destination: Path
-  ): PendingDownload[Unit] = {
+  ): TaskProgress[Unit] = {
     val packageName = release.packageFileName
     release.release.assets
       .find(_.fileName == packageName)
       .map(_.downloadTo(destination))
       .getOrElse {
-        PendingDownload.immediateFailure(
+        TaskProgress.immediateFailure(
           new RuntimeException(
             s"Cannot find package `$packageName` in the release."
           )
