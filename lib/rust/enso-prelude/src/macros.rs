@@ -180,15 +180,9 @@ macro_rules! f_ {
 #[macro_export]
 macro_rules! unreachable_panic {
     () => (
-        if cfg!(debug_assertions) {
-            panic!("This code should not be reachable.")
-        } else {
-            use std::hint::unreachable_unchecked;
-            #[allow(unsafe_code)]
-            unsafe { unreachable_unchecked() }
-        }
+        unreachable_panic!("This code should not be reachable.")
     );
-    ($msg:expr) => (
+    ($msg:tt) => (
         if cfg!(debug_assertions) {
             panic!($msg)
         } else {

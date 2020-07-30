@@ -28,7 +28,7 @@ impl GroupRegistry {
     /// Defines a new group of rules for the lexer with the specified `name` and `parent`.
     ///
     /// It returns the identifier of the newly-created group.
-    pub fn define_group(&mut self,name:String,parent_index:Option<usize>) -> usize {
+    pub fn define_group(&mut self, name:String, parent_index:Option<usize>) -> usize {
         let id = self.next_id();
         let group = Group::new(id,name,parent_index);
         self.groups.push(group);
@@ -36,7 +36,7 @@ impl GroupRegistry {
     }
 
     /// Adds an existing `group` to the registry, updating and returning its identifier.
-    pub fn add_group(&mut self,mut group:Group) -> usize {
+    pub fn add_group(&mut self, mut group:Group) -> usize {
         let new_id = self.next_id();
         group.id = new_id;
         self.groups.push(group);
@@ -46,7 +46,7 @@ impl GroupRegistry {
     /// Creates a rule that matches `pattern` for the group identified by `group_id`.
     ///
     /// Panics if `group_id` refers to a nonexistent group.
-    pub fn create_rule(&mut self,group_id:usize,pattern:&Pattern,callback:&str) {
+    pub fn create_rule(&mut self, group_id:usize, pattern:&Pattern, callback:&str) {
         let err = format!("The provided group_id {} is invalid.",group_id);
         let group = self.group_from_id_mut(group_id).expect(&err);
         group.create_rule(pattern,callback);
@@ -55,7 +55,7 @@ impl GroupRegistry {
     /// Associates the provided `rule` with the group identified by `group_id`.
     ///
     /// Panics if `group_id` refers to a nonexistent group.
-    pub fn add_rule(&mut self,group_id:usize,rule:Rule) {
+    pub fn add_rule(&mut self, group_id:usize, rule:Rule) {
         let err = format!("The provided group_id {} is invalid.",group_id);
         let group = self.group_from_id_mut(group_id).expect(&err);
         group.add_rule(rule);
@@ -65,7 +65,7 @@ impl GroupRegistry {
     /// by `group_id` as active.
     ///
     /// This set of rules includes the rules inherited from any parent groups.
-    pub fn rules_for(&self,group_id:usize) -> Option<Vec<&Rule>> {
+    pub fn rules_for(&self, group_id:usize) -> Option<Vec<&Rule>> {
         self.group_from_id(group_id).map(|group| {
             let mut parent = group.parent_index.and_then(|ix|self.group_from_id(ix));
             let mut rules = (&group.rules).iter().collect_vec();
@@ -82,19 +82,19 @@ impl GroupRegistry {
     }
 
     /// Obtains a reference to the group for the given `group_id`.
-    pub fn group_from_id(&self,group_id:usize) -> Option<&Group> {
+    pub fn group_from_id(&self, group_id:usize) -> Option<&Group> {
         self.groups.get(group_id)
     }
 
     /// Obtains a mutable reference to the group for the given `group_id`.
-    pub fn group_from_id_mut(&mut self,group_id:usize) -> Option<&mut Group> {
+    pub fn group_from_id_mut(&mut self, group_id:usize) -> Option<&mut Group> {
         self.groups.get_mut(group_id)
     }
 
     /// Converts the group identified by `group_id` into an NFA.
     ///
     /// Returns `None` if the group does not exist, or if the conversion fails.
-    pub fn to_nfa_from(&self,group_id:usize) -> Option<NFA> {
+    pub fn to_nfa_from(&self, group_id:usize) -> Option<NFA> {
         let group = self.group_from_id(group_id);
         group.map(|group| {
             let mut nfa = NFA::default();
@@ -157,25 +157,25 @@ pub struct Group {
 impl Group {
 
     /// Creates a new group.
-    pub fn new(id:usize,name:String,parent_index:Option<usize>) -> Self {
+    pub fn new(id:usize, name:String, parent_index:Option<usize>) -> Self {
         let rules = Vec::new();
         Group{id,name,parent_index,rules}
     }
 
     /// Adds a new rule to the current group.
-    pub fn add_rule(&mut self,rule:Rule) {
+    pub fn add_rule(&mut self, rule:Rule) {
         self.rules.push(rule)
     }
 
     /// Creates a new rule.
-    pub fn create_rule(&mut self,pattern:&Pattern,code:&str) {
+    pub fn create_rule(&mut self, pattern:&Pattern, code:&str) {
         let pattern_clone = pattern.clone();
         let rule = Rule::new(pattern_clone,code.into());
         self.rules.push(rule)
     }
 
     /// The canonical name for a given rule.
-    pub fn callback_name(&self,rule_ix:usize) -> String {
+    pub fn callback_name(&self, rule_ix:usize) -> String {
         format!("group{}_rule{}",self.id,rule_ix)
     }
 }

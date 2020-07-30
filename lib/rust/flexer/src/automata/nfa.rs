@@ -62,7 +62,7 @@ impl NFA {
     ///
     /// Whenever the automaton happens to be in `source` state it can immediately transition to the
     /// `target` state. It is, however, not _required_ to do so.
-    pub fn connect(&mut self,source:state::Identifier,target:state::Identifier) {
+    pub fn connect(&mut self, source:state::Identifier, target:state::Identifier) {
         self.states[source.id].epsilon_links.push(target);
     }
 
@@ -82,7 +82,7 @@ impl NFA {
     /// Transforms a pattern to an NFA using the algorithm described
     /// [here](https://www.youtube.com/watch?v=RYNN-tb9WxI).
     /// The asymptotic complexity is linear in number of symbols.
-    pub fn new_pattern(&mut self,source:state::Identifier,pattern:&Pattern) -> state::Identifier {
+    pub fn new_pattern(&mut self, source:state::Identifier, pattern:&Pattern) -> state::Identifier {
         let current = self.new_state();
         self.connect(source,current);
         match pattern {

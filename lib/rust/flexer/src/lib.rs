@@ -62,9 +62,6 @@ pub struct Flexer<Definition,Output,Reader> where Reader:LazyReader {
 impl<Definition,Output,Reader> Flexer<Definition,Output,Reader>
 where Definition: FlexerState,Reader:LazyReader {
     /// Creates a new lexer instance.
-    ///
-    /// Please note that the `reader` argument is currently hard-coded for testing purposes. This is
-    /// not the intention for the eventual design.
     pub fn new(mut reader:Reader) -> Flexer<Definition,Output,Reader> {
         let mut state_stack = Vec::new();
         state_stack.reserve(1024);
@@ -99,7 +96,7 @@ where Definition:FlexerState,Reader:LazyReader,Output:Clone {
     }
 
     /// Tells the lexer to enter the state described by `state`.
-    pub fn begin_state(&mut self,state:usize) {
+    pub fn begin_state(&mut self, state:usize) {
         self.state_stack.push(state);
     }
 
@@ -117,7 +114,7 @@ where Definition:FlexerState,Reader:LazyReader,Output:Clone {
     ///
     /// If `state` does not exist on the lexer's stack, then the lexer will be left in the root
     /// state.
-    pub fn end_states_until(&mut self,state:usize) -> Vec<usize> {
+    pub fn end_states_until(&mut self, state:usize) -> Vec<usize> {
         // Never drop the root state
         let position_of_target =
             self.state_stack.iter().positions(|elem| *elem == state).last().unwrap_or(0);
@@ -131,7 +128,7 @@ where Definition:FlexerState,Reader:LazyReader,Output:Clone {
     }
 
     /// Checks if the lexer is currently in the state described by `state`.
-    pub fn in_state(&mut self,state:usize) -> bool {
+    pub fn in_state(&mut self, state:usize) -> bool {
         self.current_state() == state
     }
 }

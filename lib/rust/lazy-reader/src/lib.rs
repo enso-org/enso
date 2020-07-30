@@ -120,13 +120,13 @@ pub trait LazyReader {
     /// return to it using `rewind()`.
     ///
     /// Panics if `bookmark` refers to a nonexistent bookmark.
-    fn bookmark(&mut self,bookmark:BookmarkId);
+    fn bookmark(&mut self, bookmark:BookmarkId);
     /// Returns the reader to the character bookmarked using `bookmark`.
-    fn rewind(&mut self,bookmark:BookmarkId);
+    fn rewind(&mut self, bookmark:BookmarkId);
     /// The maximum number of words that may be rewound in the buffer.
     fn max_possible_rewind_len(&self) -> usize;
     /// Decrease the offset for all bookmarks.
-    fn decrease_offset(&mut self,off:usize);
+    fn decrease_offset(&mut self, off:usize);
     /// Fill the buffer with words from the input.
     fn fill(&mut self);
     /// Checks if the reader is empty.
@@ -140,7 +140,7 @@ pub trait LazyReader {
     /// Advances along the input without returning the character.
     fn advance_char(&mut self);
     /// Appends the provided character to the reader's result.
-    fn append_result(&mut self,char:char);
+    fn append_result(&mut self, char:char);
     /// Returns `self.result` and sets the internal result to empty.
     fn pop_result(&mut self) -> String;
 }
@@ -196,18 +196,18 @@ impl<D:Decoder,R:Read<Item=D::Word>> Reader<D,R> {
 
 // === Trait Impls ===
 
-impl<D:Decoder,R: Read<Item=D::Word>> LazyReader for Reader<D,R> {
+impl<D:Decoder, R:Read<Item=D::Word>> LazyReader for Reader<D,R> {
     fn add_bookmark(&mut self) -> BookmarkId {
         self.bookmark.push(Bookmark::default());
         BookmarkId::new(self.bookmark.len() - 1)
     }
 
-    fn bookmark(&mut self,bookmark:BookmarkId) {
+    fn bookmark(&mut self, bookmark:BookmarkId) {
         self.bookmark[bookmark.id].offset = self.offset - self.character.size;
         self.bookmark[bookmark.id].length = self.result.len();
     }
 
-    fn rewind(&mut self,bookmark:BookmarkId) {
+    fn rewind(&mut self, bookmark:BookmarkId) {
         self.offset = self.bookmark[bookmark.id].offset;
         self.result.truncate(self.bookmark[bookmark.id].length);
         let _ = self.next_char();
@@ -220,7 +220,7 @@ impl<D:Decoder,R: Read<Item=D::Word>> LazyReader for Reader<D,R> {
         D::MAX_CODEPOINT_LEN
     }
 
-    fn decrease_offset(&mut self,off:usize) {
+    fn decrease_offset(&mut self, off:usize) {
         for bookmark in self.bookmark.iter_mut() {
             bookmark.offset -= off
         }

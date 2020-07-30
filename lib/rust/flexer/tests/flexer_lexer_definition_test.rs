@@ -131,7 +131,7 @@ pub struct TestState {
 // === Trait Impls ===
 
 impl FlexerState for TestState {
-    fn new<Reader:LazyReader>(reader: &mut Reader) -> Self {
+    fn new<Reader:LazyReader>(reader:&mut Reader) -> Self {
         let mut lexer_states      = GroupRegistry::default();
         let initial_state         = lexer_states.define_group("ROOT".into(),None);
         let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(),None);
@@ -162,8 +162,8 @@ impl FlexerState for TestState {
 fn test_lexer_definition() {
     // FIXME [AA] Work out how to best-define the lexer.
     // TODO [AA] Needing a dummy reader to define the lexer is awkward.
-    let str = "aaaaa".as_bytes();
-    let reader = Reader::new(str,DecoderUTF8());
+    let str       = "aaaaa".as_bytes();
+    let reader    = Reader::new(str,DecoderUTF8());
     let mut lexer = TestLexer::new(reader);
 
     let a_word        = Pattern::char('a').many1();

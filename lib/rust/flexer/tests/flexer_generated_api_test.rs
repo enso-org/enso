@@ -136,7 +136,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     }
 
     /// The step function for the generated lexer.
-    fn gen_step(&mut self,next_state:usize) -> FlexerStageStatus {
+    fn gen_step(&mut self, next_state:usize) -> FlexerStageStatus {
         let current_state = self.current_state();
 
         // This match should be generated
@@ -149,7 +149,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     // === DFA Steps ===
 
-    fn gen_dispatch_in_state_0(&mut self,new_state_index:usize) -> FlexerStageStatus {
+    fn gen_dispatch_in_state_0(&mut self, new_state_index:usize) -> FlexerStageStatus {
         match new_state_index {
             0 => self.gen_state_0_to_0(),
             1 => self.gen_state_0_to_1(),
@@ -254,7 +254,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
         self.on_err_suffix_first_word()
     }
 
-    fn gen_dispatch_in_state_1(&mut self,new_state_index:usize) -> FlexerStageStatus {
+    fn gen_dispatch_in_state_1(&mut self, new_state_index:usize) -> FlexerStageStatus {
         match new_state_index {
             0 => self.gen_state_1_to_0(),
             1 => self.gen_state_1_to_1(),
