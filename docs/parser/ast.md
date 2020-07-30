@@ -67,8 +67,6 @@ Is converted into:
 case class Foo[X](x: X[Z.Y], ..)
 ```
 
-
-
 ##### Enums With Named Fields
 
 ```
