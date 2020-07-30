@@ -247,11 +247,12 @@ impl ScalaGenerator {
     /// Converts rust primitives into scala primitives i.e. `usize` => `Int`
     fn typ_name(&mut self, ident:&Ident) {
         let name = match ident.to_string().as_str() {
-            "usize" | "isize" | "u64" | "u32" | "u16" | "i64" | "i32" | "i16" | "i8" => "Int",
-            "u8"   => "Byte",
-            "char" => "Char",
-            "Vec"  => "Vector",
-            name   => {
+            "u32"   | "i32"   | "u16" | "i16" | "i8" => "Int",
+            "usize" | "isize" | "u64" | "i64"        => "Long",
+            "u8"                                     => "Byte",
+            "char"                                   => "Char",
+            "Vec"                                    => "Vector",
+            name => {
                 let mut chars = name.chars();
                 if let Some(char) = chars.next() {
                    write!(self.code, "{}", char.to_uppercase().to_string() + chars.as_str());

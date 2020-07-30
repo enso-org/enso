@@ -44,16 +44,29 @@ Each node should contain:
 
 ## Generation
 
-The single source of truth for the AST is its rust implementation. Therefore, in
-order to not get out of sync, the scala AST implementation is generated during
-compilation directly from the rust ast source file.
+The single source of truth for the AST is its Rust implementation. Therefore, in
+order to not get out of sync, the Scala AST implementation is generated during
+compilation directly from the Rust ast source file.
 
-The command for generating the scala ast and storing it in the file
-`foo/ast .scala` is following:
+The command for generating the Scala ast and storing it in the file
+`foo/ast.scala` is following:
 `cargo run -p ast -- --generate-scala-ast foo/ast.scala`.
 
-Since there isn't 1-1 mapping between rust and scala, only a subset of rust
-structures is supported:
+Since there isn't 1:1 mapping between Rust and Scala, only a subset of Rust's
+structures is supported. These are follows.
+
+##### Primitives
+
+```
+u32   | i32   | u16 | i16 | i8 => Int,
+usize | isize | u64 | i64      => Long,
+u8                             => Byte,
+char                           => Char,
+Vec                            => Vector,
+```
+
+*Note: It is assumed, that Enso runs on 64bit platforms. Therefore, `usize` and
+`isize` are converted to `Long`.*
 
 ##### Structures With Named Fields
 

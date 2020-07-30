@@ -22,7 +22,7 @@ pub type AnyAst = Ast<Shape>;
 /// An ast node with an unique id and length.
 #[derive(Debug,Clone)]
 pub struct Ast<Shape> {
-    /// An unique identifier.
+    /// A unique identifier.
     uid: Option<Uuid>,
     /// Length in number of chars of this ast node.
     len: usize,
@@ -67,12 +67,19 @@ pub mod app {
     /// The ast node for application.
     #[allow(missing_docs)]
     #[derive(Debug,Clone)]
-    pub struct Prefix { pub func: Box<AnyAst>, pub arg: Box<AnyAst> }
+    pub struct Prefix {
+        pub func : Box<AnyAst>,
+        pub arg  : Box<AnyAst>,
+    }
 
     /// The ast node for an infix operator application.
     #[allow(missing_docs)]
     #[derive(Debug,Clone)]
-    pub struct Infix { pub larg: Box<AnyAst>, pub opr: Box<Ast<name::Opr>>, pub rarg: Box<AnyAst> }
+    pub struct Infix {
+        pub larg: Box<AnyAst>,
+        pub opr: Box<Ast<name::Opr>>,
+        pub rarg: Box<AnyAst>,
+    }
 }
 
 
@@ -127,17 +134,28 @@ pub mod def {
     /// The ast node for a method definition.
     #[allow(missing_docs)]
     #[derive(Debug,Clone)]
-    pub struct FunDef { pub name: Box<Ast<name::Var>>, pub args: Vec<AnyAst>, pub body: Box<AnyAst> }
+    pub struct FunDef {
+        pub name: Box<Ast<name::Var>>,
+        pub args: Vec<AnyAst>,
+        pub body: Box<AnyAst>,
+    }
 
     /// The ast node for an operator definition.
     #[allow(missing_docs)]
     #[derive(Debug,Clone)]
-    pub struct OprDef { pub name: Box<Ast<name::Opr>>, pub args: Vec<AnyAst>, pub body: Box<AnyAst> }
+    pub struct OprDef {
+        pub name: Box<Ast<name::Opr>>,
+        pub args: Vec<AnyAst>,
+        pub body: Box<AnyAst>,
+    }
 
     /// The ast node for a variable definition.
     #[allow(missing_docs)]
     #[derive(Debug,Clone)]
-    pub struct VarDef { pub name: Box<Ast<name::Var>>, pub value: Box<AnyAst> }
+    pub struct VarDef {
+        pub name: Box<Ast<name::Var>>,
+        pub value: Box<AnyAst>,
+    }
 }
 
 
@@ -151,7 +169,7 @@ pub mod name {
     /// The ast node for the underscore `_`.
     #[allow(missing_docs)]
     #[derive(Debug,Clone,Copy)]
-    pub struct Blank{}
+    pub struct Blank { }
 
     /// The ast node for a variable.
     #[allow(missing_docs)]

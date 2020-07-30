@@ -1,18 +1,22 @@
 use ast::generation::ScalaGenerator;
 
-use std::env;
+use clap;
 use std::fs::File;
 use std::io::Write;
-use itertools::Itertools;
+
 
 
 pub fn main() -> std::io::Result<()> {
-    let args = env::args().collect_vec();
+    let matches = clap::App::new("Enso AST")
+        .version("1.0")
+        .author("Enso Team <enso-dev@enso.org>")
+        .about("Enso AST generator.")
+        .args_from_usage("--generate-scala-ast [FILE] 'Generates a scala ast in specified file.'")
+        .get_matches();
 
-    if Some("--generate-scala-ast") == args.get(1).map(|s| s.as_str()) {
-        let file = args.get(2).expect("Output file wasn't given.");
-
+    if let Some(file) = matches.value_of("generate-scala-ast") {
         File::create(file)?.write_all(ScalaGenerator::ast()?.as_bytes())?;
+        println!("Generated scala ast at path: {}", file);
     }
     Ok(())
 }
