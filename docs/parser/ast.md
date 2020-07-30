@@ -55,7 +55,7 @@ The command for generating the scala ast and storing it in the file
 Since there isn't 1-1 mapping between rust and scala, only a subset of rust
 structures is supported:
 
-##### Structures with named fields:
+##### Structures With Named Fields
 
 ```
 struct Foo<X> { x: X<z::Y>, .. }
@@ -67,19 +67,9 @@ Is converted into:
 case class Foo[X](x: X[Z.Y], ..)
 ```
 
-##### Modules:
 
-```
-mod foo { .. }
-```
 
-Is converted into:
-
-```
-object Foo { sealed trait Foo; .. }
-```
-
-##### Enums with named fields:
+##### Enums With Named Fields
 
 ```
 enum Foo{ Bar{x:X}, Baz{y:Y, z:Z} }
@@ -93,7 +83,7 @@ case class Bar(x:X) extends Foo
 case class Baz(y:Y, z:Z) extends Foo
 ```
 
-##### Enums with one unnamed field:
+##### Enums With One Unnamed Qualified Field
 
 ```
 enum Enum { Foo(x::Foo), Bar(x::Bar), Baz(y::Baz) }
@@ -123,4 +113,28 @@ object Y {
     sealed trait Y extends Enum
     case class Baz(..) extends Y
 }
+```
+
+##### Modules
+
+```
+mod foo { .. }
+```
+
+Is converted into:
+
+```
+object Foo { sealed trait Foo; .. }
+```
+
+##### Type Aliases
+
+```
+type A<X> = B<X,Y>;
+```
+
+Is converted into:
+
+```
+type A[X] = B[X, Y]
 ```

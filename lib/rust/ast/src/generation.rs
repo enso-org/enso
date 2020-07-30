@@ -277,6 +277,8 @@ mod tests {
     #[test]
     fn test_file() {
         let rust = syn::parse_quote! {
+            type A<X> = B<X,Y>;
+
             pub enum FooBarBaz {
                 Foo(a::Foo),
                 Bar(a::Bar),
@@ -297,6 +299,8 @@ mod tests {
         };
 
         let scala = "
+type A[X] = B[X, Y]
+
 sealed trait FooBarBaz
 
 object A {
