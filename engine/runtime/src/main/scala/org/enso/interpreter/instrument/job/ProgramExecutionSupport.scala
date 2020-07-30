@@ -176,20 +176,22 @@ trait ProgramExecutionSupport {
     contextId: ContextId,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
-    ctx.endpoint.sendToClient(
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              value.getExpressionId,
-              OptionConverters.toScala(value.getType),
-              toMethodPointer(value)
+    if (value.getType ne null) {
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          Api.ExpressionValuesComputed(
+            contextId,
+            Vector(
+              Api.ExpressionValueUpdate(
+                value.getExpressionId,
+                Some(value.getType),
+                toMethodPointer(value)
+              )
             )
           )
         )
       )
-    )
+    }
   }
 
   private def fireVisualisationUpdates(

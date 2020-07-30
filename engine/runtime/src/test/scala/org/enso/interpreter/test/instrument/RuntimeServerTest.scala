@@ -507,9 +507,8 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receive(3) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PopContextResponse(contextId)),
-      idMainUpdate
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId))
     )
 
     // pop main
@@ -692,14 +691,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
-        )
-      )
-    )
+    context.receive shouldEqual None
   }
 
   it should "send suggestion notifications when file executed" in {
@@ -846,9 +838,8 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receive(3) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PopContextResponse(contextId)),
-      idMainUpdate
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId))
     )
 
     // pop main

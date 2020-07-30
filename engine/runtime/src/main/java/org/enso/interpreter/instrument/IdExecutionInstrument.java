@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstanceVisitor;
@@ -19,7 +18,7 @@ import org.enso.pkg.QualifiedName;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -99,9 +98,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
     }
 
     /** @return the computed type of the expression. */
-    @CompilerDirectives.TruffleBoundary
-    public Optional<String> getType() {
-      return Optional.ofNullable(type);
+    public String getType() {
+      return type;
     }
 
     /** @return the computed value of the expression. */
@@ -222,8 +220,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       // able to continue the stack execution, and unwind later from the `onReturnValue` callback.
       if (result != null && !nodeId.equals(nextExecutionItem)) {
         visualisationCallback.accept(
-            new ExpressionValue(
-                nodeId, Types.getName(result).orElse(null), result, calls.get(nodeId)));
+            new ExpressionValue(nodeId, Types.getName(result), result, calls.get(nodeId)));
         throw context.createUnwind(result);
       }
     }
@@ -257,10 +254,15 @@ public class IdExecutionInstrument extends TruffleInstrument {
         }
       } else if (node instanceof ExpressionNode) {
         UUID nodeId = ((ExpressionNode) node).getId();
+        String resultType = Types.getName(result);
         cache.offer(nodeId, result);
+        String cachedType = cache.putType(nodeId, resultType);
         valueCallback.accept(
             new ExpressionValue(
-                nodeId, Types.getName(result).orElse(null), result, calls.get(nodeId)));
+                nodeId,
+                (cachedType != null && Objects.equals(resultType, cachedType)) ? null : resultType,
+                result,
+                calls.get(nodeId)));
       }
     }
 
