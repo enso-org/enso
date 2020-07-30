@@ -301,7 +301,7 @@ mod tests {
 
                 enum Baz {
                     Baz1 {},
-                    Baz2 {foo_bar:Box<Vec<T>>},
+                    Baz2 {foo_bar:Box<Vec<i32>>},
                 }
             }
         };
@@ -314,7 +314,7 @@ sealed trait FooBarBaz
 object A {
     sealed trait A extends FooBarBaz
     case class Foo() extends A
-    case class Bar(x: Int, y: Byte, z: B.Type) extends A
+    case class Bar(x: Long, y: Byte, z: B.Type) extends A
 }
 
 object B {
@@ -324,7 +324,7 @@ object B {
 
     sealed trait Baz extends B
     case class Baz1() extends Baz
-    case class Baz2(fooBar: Vector[T]) extends Baz
+    case class Baz2(fooBar: Vector[Int]) extends Baz
 }
 ";
         assert_eq!(ScalaGenerator::file(rust), scala);
