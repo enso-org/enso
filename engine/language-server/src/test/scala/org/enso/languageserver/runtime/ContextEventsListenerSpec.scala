@@ -86,7 +86,12 @@ class ContextEventsListenerSpec
             clientId,
             ContextRegistryProtocol.ExpressionValuesComputedNotification(
               contextId,
-              Vector(ExpressionValueUpdate(suggestionIds(1).get))
+              Vector(
+                ExpressionValueUpdate(
+                  Suggestions.method.externalId.get,
+                  suggestionIds(1).get
+                )
+              )
             )
           )
         )
@@ -138,8 +143,14 @@ class ContextEventsListenerSpec
             ExpressionValuesComputedNotification(
               contextId,
               Vector(
-                ExpressionValueUpdate(suggestionIds(1).get),
-                ExpressionValueUpdate(suggestionIds(3).get)
+                ExpressionValueUpdate(
+                  Suggestions.method.externalId.get,
+                  suggestionIds(1).get
+                ),
+                ExpressionValueUpdate(
+                  Suggestions.local.externalId.get,
+                  suggestionIds(3).get
+                )
               )
             )
           )
