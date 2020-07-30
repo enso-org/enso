@@ -173,7 +173,7 @@ class EnsureCompiledJob(protected val files: List[File])
   private def runInvalidationCommands(
     invalidationCommands: Iterable[CacheInvalidation]
   )(implicit ctx: RuntimeContext): Unit = {
-    ctx.contextManager.getAll.valuesIterator
+    ctx.contextManager.getAll.values
       .collect {
         case stack if stack.nonEmpty =>
           CacheInvalidation.runAll(stack, invalidationCommands)

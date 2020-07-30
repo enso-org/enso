@@ -3,6 +3,7 @@ package org.enso.interpreter.test.instrument
 import java.io.{ByteArrayOutputStream, File}
 import java.nio.ByteBuffer
 import java.nio.file.Files
+import java.util
 import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
@@ -691,7 +692,14 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual None
+    context.receive shouldEqual Some(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
+        )
+      )
+    )
   }
 
   it should "send suggestion notifications when file executed" in {
@@ -1281,6 +1289,211 @@ class RuntimeServerTest
         data
     }
     data2.sameElements("6".getBytes) shouldBe true
+  }
+
+  it should "emit visualisation update without value update" in {
+    val contents   = context.Main.code
+    val moduleName = "Test.Main"
+    val mainFile   = context.writeMain(contents)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // open files
+    context.send(
+      Api.Request(
+        Api.OpenFileNotification(
+          visualisationFile,
+          context.Visualisation.code,
+          false
+        )
+      )
+    )
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receive shouldEqual None
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                moduleName,
+                "main",
+                List(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                moduleName,
+                "foo",
+                List(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("x", "Any", false, false, None)
+                ),
+                "Number",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idMainX),
+                "Test.Main",
+                "x",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idMainY),
+                moduleName,
+                "y",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idMainZ),
+                moduleName,
+                "z",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idFooY),
+                moduleName,
+                "y",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(10, 5))
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(context.Main.idFooZ),
+                moduleName,
+                "z",
+                "Any",
+                Suggestion
+                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(10, 5))
+              )
+            )
+          )
+        )
+      )
+    )
+
+    // attach visualization
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idMainX,
+          Api.VisualisationConfiguration(
+            contextId,
+            "Test.Visualisation",
+            "x -> here.encode x"
+          )
+        )
+      )
+    )
+    val attachVisualisationResponses = context.receive(2)
+    attachVisualisationResponses should contain(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    val expectedExpressionId = context.Main.idMainX
+    val Some(data) = attachVisualisationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    util.Arrays.equals(data, "6".getBytes) shouldBe true
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(2, 8), model.Position(2, 9)),
+              "5"
+            )
+          )
+        )
+      )
+    )
+
+    val editResult = context.receive(4)
+    editResult should contain allOf (
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainY(contextId),
+      context.Main.Update.mainZ(contextId),
+    )
+    val Some(data1) = editResult.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                `visualisationId`,
+                `contextId`,
+                `expectedExpressionId`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    util.Arrays.equals(data1, "5".getBytes) shouldBe true
   }
 
   it should "be able to modify visualisations" in {
