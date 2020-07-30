@@ -424,7 +424,7 @@ mod tests {
         }
         assert_eq!(&result, &str);
         assert_eq!(reader.bookmark.len(), 0);
-        assert_eq!(reader.buffer.len(), LazyReader::BUFFER_SIZE);
+        assert_eq!(reader.buffer.len(), BUFFER_SIZE);
     }
 
     #[bench]
