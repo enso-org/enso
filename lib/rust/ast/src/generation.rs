@@ -16,7 +16,7 @@ use syn::Ident;
 // === Scala Generator ===
 // =======================
 
-/// A scala ast generator.
+/// A Scala ast generator.
 #[derive(Debug,Clone,Default)]
 pub struct ScalaGenerator {
     /// The content of the file.
@@ -28,7 +28,7 @@ pub struct ScalaGenerator {
 }
 
 impl ScalaGenerator {
-    /// Generates a scala ast from `lib/rust/ast/src/lib.rs`.
+    /// Generates a Scala ast from `lib/rust/ast/src/lib.rs`.
     pub fn ast() -> std::io::Result<String> {
         let mut content = String::new();
         let mut file = File::open("lib/rust/ast/src/ast.rs")?;
@@ -37,14 +37,14 @@ impl ScalaGenerator {
         Ok(Self::file(syn::parse_file(content.as_str()).unwrap()))
     }
 
-    /// Generates a scala ast definition from a parsed rust ast definition.
+    /// Generates a Scala ast definition from a parsed Rust ast definition.
     pub fn file(file:syn::File) -> String {
         let mut this = Self::default();
         this.block(&file.items[..]);
         this.code
     }
 
-    /// Generates a block of scala code.
+    /// Generates a block of Scala code.
     fn block(&mut self, lines:&[syn::Item]) {
         for item in lines {
             match item {
@@ -83,7 +83,7 @@ impl ScalaGenerator {
         }
     }
 
-    /// Generates a scala case class.
+    /// Generates a Scala case class.
     ///
     /// `struct Foo { bar:Bar, baz:Baz }` => `case class Foo(bar:Bar, baz:Baz)`
     fn class(&mut self, ident:&Ident, generics:&syn::Generics, fields:&syn::FieldsNamed) {
@@ -103,11 +103,11 @@ impl ScalaGenerator {
         self.extends(ident);
     }
 
-    /// Generates scala ADT - case classes extending a sealed trait.
+    /// Generates Scala ADT - case classes extending a sealed trait.
     ///
     /// There are two modes of conversion:
     ///
-    /// 1) When the rust enum variant has named fields:
+    /// 1) When the Rust enum variant has named fields:
     /// ```
     /// enum Foo { Bar{x:isize}, Baz{y:isize} }
     /// ```
@@ -118,7 +118,7 @@ impl ScalaGenerator {
     /// case class Baz(y:Int) extends Foo
     /// ```
     ///
-    /// 2) When the rust enum variant has one unnamed field with qualified type:
+    /// 2) When the Rust enum variant has one unnamed field with qualified type:
     /// ```
     /// enum Foo { Bar(barz::Bar), Baz(barz::Baz) }
     /// mod barz {
@@ -159,7 +159,7 @@ impl ScalaGenerator {
         }
     }
 
-    /// Generates scala class extension.
+    /// Generates Scala class extension.
     ///
     /// `foo` => `extends Foo`
     fn extends(&mut self, ident:&Ident) {
@@ -170,7 +170,7 @@ impl ScalaGenerator {
         writeln!(self.code, "");
     }
 
-    /// Generates scala type parameters.
+    /// Generates Scala type parameters.
     ///
     /// `<Foo, Bar>` = `[Foo, Bar]`
     fn generics(&mut self, generics:&syn::Generics) {
@@ -201,7 +201,7 @@ impl ScalaGenerator {
         }
     }
 
-    /// Generates a scala type with type arguments.
+    /// Generates a Scala type with type arguments.
     ///
     /// `Foo<Bar<Baz>>` => `Foo[Bar[Baz]]`
     fn typ_segment(&mut self, typ:&syn::PathSegment) {
@@ -223,7 +223,7 @@ impl ScalaGenerator {
         }
     }
 
-    /// Generates a scala variable name (camel case).
+    /// Generates a Scala variable name (camel case).
     ///
     /// `foo_bar` => `fooBar`
     fn var_name(&mut self, ident:&Ident) {
@@ -242,9 +242,16 @@ impl ScalaGenerator {
         }
     }
 
-    /// Generates a scala type name.
+    /// Generates a Scala type name.
     ///
-    /// Converts rust primitives into scala primitives i.e. `usize` => `Int`
+    /// The following Rust types are automatically converted to Scala types:
+    /// ```code
+    /// u32   | i32   | u16 | i16 | i8 => Int,
+    /// usize | isize | u64 | i64      => Long,
+    /// u8                             => Byte,
+    /// char                           => Char,
+    /// Vec                            => Vector,
+    /// ```
     fn typ_name(&mut self, ident:&Ident) {
         let name = match ident.to_string().as_str() {
             "u32"   | "i32"   | "u16" | "i16" | "i8" => "Int",
