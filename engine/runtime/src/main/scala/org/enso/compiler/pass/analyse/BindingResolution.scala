@@ -33,7 +33,8 @@ object BindingResolution extends IRPass {
     moduleContext: ModuleContext
   ): IR.Module = {
     val definedConstructors = ir.bindings.collect {
-      case cons: IR.Module.Scope.Definition.Atom => Cons(cons.name)
+      case cons: IR.Module.Scope.Definition.Atom =>
+        Cons(cons.name, cons.arguments.length)
     }
     val definedMethods = ir.bindings.collect {
       case method: IR.Module.Scope.Definition.Method =>
@@ -139,7 +140,7 @@ object BindingResolution extends IRPass {
     }
   }
 
-  case class Cons(name: IR.Name)
+  case class Cons(name: IR.Name, arity: Int)
   case class Method(ref: IR.Name.MethodReference)
   sealed trait ResolvedName
   case class ResolvedConstructor(definitionModule: Module, cons: Cons)

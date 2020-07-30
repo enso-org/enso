@@ -51,6 +51,7 @@ class Passes(passes: Option[List[PassGroup]] = None) {
       AliasAnalysis,
       ApplicationSaturation,
       TailCall,
+      PatternResolution,
       AliasAnalysis,
       DataflowAnalysis,
       CachePreferenceAnalysis,

@@ -15,8 +15,10 @@ import org.enso.compiler.pass.analyse.BindingResolution.{
 import org.enso.compiler.pass.analyse.MethodDefinitionResolution.Resolution
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
+  BindingResolution,
   DataflowAnalysis,
   MethodDefinitionResolution,
+  PatternResolution,
   TailCall
 }
 import org.enso.compiler.pass.optimise.ApplicationSaturation
@@ -58,9 +60,7 @@ import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
   Function => RuntimeFunction
 }
-import org.enso.interpreter.runtime.error.{
-  DuplicateArgumentNameException
-}
+import org.enso.interpreter.runtime.error.DuplicateArgumentNameException
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
 
@@ -208,14 +208,15 @@ class IrToTruffle(
       )
 
       val consOpt =
-        methodDef.methodReference.typePointer.getMetadata(MethodDefinitionResolution).map {
-          case Resolution(ResolvedModule(module)) =>
-            module.getScope.getAssociatedType
-          case Resolution(ResolvedConstructor(definitionModule, cons)) =>
-            definitionModule.getScope.getConstructors.get(cons.name.name)
-        }
+        methodDef.methodReference.typePointer
+          .getMetadata(MethodDefinitionResolution)
+          .map {
+            case Resolution(ResolvedModule(module)) =>
+              module.getScope.getAssociatedType
+            case Resolution(ResolvedConstructor(definitionModule, cons)) =>
+              definitionModule.getScope.getConstructors.get(cons.name.name)
+          }
 
-      println(s"CONSOPT $consOpt")
       consOpt.foreach {
         cons =>
           val expressionProcessor = new ExpressionProcessor(
@@ -468,8 +469,6 @@ class IrToTruffle(
           val maybeCases    = branches.map(processCaseBranch)
           val allCasesValid = maybeCases.forall(_.isRight)
 
-          // TODO [AA] This is until we can resolve this statically in the
-          //  compiler. Doing so requires fixing issues around cyclical imports.
           if (allCasesValid) {
             val cases = maybeCases
               .collect {
@@ -543,6 +542,24 @@ class IrToTruffle(
             )
           }
 
+          val runtimeConsOpt = constructor match {
+            case err: IR.Error.Resolution =>
+              Left(BadPatternMatch.NonVisibleConstructor(err.name))
+            case _ =>
+              constructor.getMetadata(PatternResolution) match {
+                case None =>
+                  Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
+                case Some(Resolution(BindingResolution.ResolvedModule(mod))) =>
+                  Right(mod.getScope.getAssociatedType)
+                case Some(
+                      Resolution(
+                        BindingResolution.ResolvedConstructor(mod, cons)
+                      )
+                    ) =>
+                  Right(mod.getScope.getConstructors.get(cons.name.name))
+              }
+          }
+
           val fieldNames   = cons.unsafeFieldsAsNamed
           val fieldsAsArgs = fieldNames.map(genArgFromMatchField)
 
@@ -552,41 +569,32 @@ class IrToTruffle(
             branch.location
           )
 
-          moduleScope.getConstructor(constructor.name).toScala match {
-            case Some(atomCons) =>
-              // TODO[MK] Make this check static
-//              val numExpectedArgs = atomCons.getArity
-//              val numProvidedArgs = fields.length
-//
-//              if (numProvidedArgs != numExpectedArgs) {
-//                Left(
-//                  BadPatternMatch.WrongArgCount(
-//                    constructor.name,
-//                    numExpectedArgs,
-//                    numProvidedArgs
-//                  )
-//                )
-//              } else {
-              val bool = context.getBuiltins.bool()
-              val branchNode: BranchNode =
-                if (atomCons == bool.getTrue) {
-                  BooleanBranchNode.build(true, branchCodeNode)
-                } else if (atomCons == bool.getFalse) {
-                  BooleanBranchNode.build(false, branchCodeNode)
-                } else {
-                  ConstructorBranchNode.build(atomCons, branchCodeNode)
-                }
-              branchNode.setTail(branchIsTail)
+          runtimeConsOpt.map { atomCons =>
+            val bool = context.getBuiltins.bool()
+            val branchNode: BranchNode =
+              if (atomCons == bool.getTrue) {
+                BooleanBranchNode.build(true, branchCodeNode)
+              } else if (atomCons == bool.getFalse) {
+                BooleanBranchNode.build(false, branchCodeNode)
+              } else {
+                ConstructorBranchNode.build(atomCons, branchCodeNode)
+              }
+            branchNode.setTail(branchIsTail)
 
-              Right(branchNode)
-//              }
-            case None =>
-              Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
+            branchNode
           }
         case _: Pattern.Documentation =>
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
+        case IR.Error.Pattern(
+              _,
+              IR.Error.Pattern.WrongArity(name, expected, actual),
+              _,
+              _
+            ) =>
+          Left(BadPatternMatch.WrongArgCount(name, expected, actual))
+
       }
     }
 
@@ -763,6 +771,10 @@ class IrToTruffle(
         case err: Error.Unexpected.TypeSignature =>
           context.getBuiltins.error().compileError().newInstance(err.message)
         case _: Error.Resolution => throw new RuntimeException("bleee")
+        case _: Error.Pattern =>
+          throw new CompilerError(
+            "Impossible here, should be handled in the pattern match."
+          )
       }
       setLocation(ErrorNode.build(payload), error.location)
     }

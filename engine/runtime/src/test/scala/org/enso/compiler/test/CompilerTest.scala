@@ -8,6 +8,7 @@ import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.pkg.QualifiedName
 
 trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
@@ -217,6 +218,23 @@ trait CompilerRunner {
       module            = Module.empty(QualifiedName.simpleName("Test_Module")),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration
+    )
+  }
+
+  def buildInlineContext(
+    localScope: Option[LocalScope]               = None,
+    isInTailPosition: Option[Boolean]            = None,
+    freshNameSupply: Option[FreshNameSupply]     = None,
+    passConfiguration: Option[PassConfiguration] = None
+  ): InlineContext = {
+    val mod = Module.empty(QualifiedName.simpleName("Test_Module"))
+    mod.buildIrStub()
+    InlineContext(
+      module            = mod,
+      freshNameSupply   = freshNameSupply,
+      passConfiguration = passConfiguration,
+      localScope        = localScope,
+      isInTailPosition  = isInTailPosition
     )
   }
 }

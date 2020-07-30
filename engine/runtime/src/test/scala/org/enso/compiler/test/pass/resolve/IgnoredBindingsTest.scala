@@ -44,7 +44,7 @@ class IgnoredBindingsTest extends CompilerTest {
     * @return a new inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(freshNameSupply = Some(new FreshNameSupply))
+    buildInlineContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================

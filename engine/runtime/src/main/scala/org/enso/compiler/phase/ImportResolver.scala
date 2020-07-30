@@ -23,7 +23,6 @@ class ImportResolver(compiler: Compiler) {
         ) {
           break()
         }
-        println(s"Import resolver. Processing ${current.getName}")
         compiler.ensureParsed(current)
         val ir = current.getIr
         val currentLocal = ir.unsafeGetMetadata(

@@ -62,7 +62,7 @@ class DemandAnalysisTest extends CompilerTest {
     * @return a new inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(
+    buildInlineContext(
       localScope      = Some(LocalScope.root),
       freshNameSupply = Some(new FreshNameSupply)
     )

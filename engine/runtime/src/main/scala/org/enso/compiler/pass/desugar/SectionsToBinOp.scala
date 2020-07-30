@@ -47,7 +47,10 @@ case object SectionsToBinOp extends IRPass {
     ir.mapExpressions(
       runExpression(
         _,
-        new InlineContext(freshNameSupply = moduleContext.freshNameSupply)
+        new InlineContext(
+          moduleContext.module,
+          freshNameSupply = moduleContext.freshNameSupply
+        )
       )
     )
 

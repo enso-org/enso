@@ -358,6 +358,8 @@ case object TailCall extends IRPass {
             fields      = fields.map(analysePattern)
           )
           .updateMetadata(this -->> TailPosition.NotTail)
+      case err: IR.Error.Pattern =>
+        err.updateMetadata(this -->> TailPosition.NotTail)
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

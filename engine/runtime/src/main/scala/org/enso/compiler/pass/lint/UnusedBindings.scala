@@ -47,7 +47,7 @@ case object UnusedBindings extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module =
-    ir.mapExpressions(runExpression(_, InlineContext()))
+    ir.mapExpressions(runExpression(_, InlineContext(moduleContext.module)))
 
   /** Lints an arbitrary expression.
     *
@@ -234,6 +234,7 @@ case object UnusedBindings extends IRPass {
         cons.copy(
           fields = fields.map(lintPattern)
         )
+      case err: IR.Error.Pattern => err
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

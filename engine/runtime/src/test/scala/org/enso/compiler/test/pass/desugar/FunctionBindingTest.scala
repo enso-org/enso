@@ -69,7 +69,7 @@ class FunctionBindingTest extends CompilerTest {
     * @return a defaulted inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext()
+    buildInlineContext()
   }
 
   // === The Tests ============================================================

@@ -586,6 +586,7 @@ case object AliasAnalysis extends IRPass {
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."
         )
+      case err: IR.Error.Pattern => err
     }
   }
 

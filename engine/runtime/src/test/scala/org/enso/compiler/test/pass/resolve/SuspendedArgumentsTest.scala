@@ -74,7 +74,7 @@ class SuspendedArgumentsTest extends CompilerTest {
     * @return a defaulted inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(
+    buildInlineContext(
       freshNameSupply = Some(new FreshNameSupply),
       localScope      = Some(LocalScope.root)
     )

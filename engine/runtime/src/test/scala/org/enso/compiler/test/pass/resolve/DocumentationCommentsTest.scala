@@ -62,7 +62,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     * @return a defaulted inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext()
+    buildInlineContext()
   }
 
   /**

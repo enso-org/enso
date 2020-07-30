@@ -360,11 +360,7 @@ class Compiler(val context: Context) {
     new IrToTruffle(
       context,
       source,
-      inlineContext.moduleScope.getOrElse(
-        throw new CompilerError(
-          "Cannot perform inline codegen with a missing module scope."
-        )
-      )
+      inlineContext.module.getScope
     ).runInline(
       ir,
       inlineContext.localScope.getOrElse(LocalScope.root),

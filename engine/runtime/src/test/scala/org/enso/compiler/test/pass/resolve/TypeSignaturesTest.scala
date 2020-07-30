@@ -67,7 +67,7 @@ class TypeSignaturesTest extends CompilerTest {
     * @return a defaulted inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(freshNameSupply = Some(new FreshNameSupply))
+    buildInlineContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================

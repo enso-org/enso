@@ -11,7 +11,8 @@ object StubIrBuilder {
     val ir = IR.Module(List(), List(), None)
     val definedConstructors: List[BindingResolution.Cons] =
       module.getScope.getConstructors.asScala.toList.map {
-        case (name, _) => BindingResolution.Cons(IR.Name.Literal(name, None))
+        case (name, cons) =>
+          BindingResolution.Cons(IR.Name.Literal(name, None), cons.getArity)
       }
     val definedMethods: List[BindingResolution.Method] =
       module.getScope.getMethods.asScala.toList.flatMap {

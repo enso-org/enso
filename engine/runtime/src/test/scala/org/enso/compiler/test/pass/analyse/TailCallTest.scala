@@ -21,13 +21,13 @@ class TailCallTest extends CompilerTest {
     freshNameSupply = Some(new FreshNameSupply)
   )
 
-  val tailCtx: InlineContext = InlineContext(
+  val tailCtx: InlineContext = buildInlineContext(
     localScope       = Some(LocalScope.root),
     isInTailPosition = Some(true),
     freshNameSupply  = Some(new FreshNameSupply)
   )
 
-  val noTailCtx: InlineContext = InlineContext(
+  val noTailCtx: InlineContext = buildInlineContext(
     localScope       = Some(LocalScope.root),
     isInTailPosition = Some(false),
     freshNameSupply  = Some(new FreshNameSupply)

@@ -4464,6 +4464,7 @@ object IR {
               "Branch documentation should not be present " +
               "inside a constructor pattern."
             )
+          case _: Error.Pattern => true
         }
       }
 
@@ -4994,9 +4995,71 @@ object IR {
         def explain(originalName: IR.Name): String
       }
 
-      case class ResolverError(err: BindingResolution.ResolutionError) extends Reason {
-        override def explain(originalName: Name): String = s"There's an oopsie $err"
+      case class ResolverError(err: BindingResolution.ResolutionError)
+          extends Reason {
+        override def explain(originalName: Name): String =
+          s"There's an oopsie $err"
       }
+    }
+
+    object Pattern {
+      sealed trait Reason {
+        def explain: String
+      }
+
+      case class WrongArity(consName: String, expected: Int, actual: Int)
+          extends Reason {
+        override def explain: String =
+          s"Wrong arity when matching on $consName" +
+          s" Expected $expected fields, but provided $actual."
+      }
+    }
+
+    sealed case class Pattern(
+      originalPattern: IR.Pattern,
+      reason: Pattern.Reason,
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Error
+        with Diagnostic.Kind.Interactive
+        with IR.Pattern {
+      override def mapExpressions(fn: Expression => Expression): Pattern =
+        copy(originalPattern = originalPattern.mapExpressions(fn))
+
+      override def setLocation(location: Option[IdentifiedLocation]): Pattern =
+        copy(originalPattern = originalPattern.setLocation(location))
+
+      override def duplicate(
+        keepLocations: Boolean,
+        keepMetadata: Boolean,
+        keepDiagnostics: Boolean
+      ): Pattern = this
+
+      /**
+        * @return a human-readable description of this error condition.
+        */
+      override def message: String = reason.explain
+
+      /** The location at which the diagnostic occurs. */
+      override val location: Option[IdentifiedLocation] =
+        originalPattern.location
+
+      /** Gets the list of all children IR nodes of this node.
+        *
+        * @return this node's children.
+        */
+      override def children: List[IR] = List(originalPattern)
+
+      /** A unique identifier for a piece of IR. */
+      override protected var id: Identifier = randomId
+
+      /** Shows the IR as code.
+        *
+        * @param indent the current indentation level
+        * @return a string representation of `this`
+        */
+      override def showCode(indent: Int): String =
+        originalPattern.showCode(indent)
     }
 
     /** A representation of an Enso syntax error.

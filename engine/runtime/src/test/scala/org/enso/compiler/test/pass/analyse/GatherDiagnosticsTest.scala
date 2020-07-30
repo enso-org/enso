@@ -1,7 +1,7 @@
 package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.CallArgument
 import org.enso.compiler.pass.PassManager
@@ -40,7 +40,7 @@ class GatherDiagnosticsTest extends CompilerTest {
     )
 
     "work with expression flow" in {
-      val result = GatherDiagnostics.runExpression(lam, new InlineContext())
+      val result = GatherDiagnostics.runExpression(lam, buildInlineContext())
       val errors = result
         .unsafeGetMetadata(GatherDiagnostics, "Impossible")
         .diagnostics
