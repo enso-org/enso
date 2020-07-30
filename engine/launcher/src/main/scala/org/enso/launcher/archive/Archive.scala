@@ -54,6 +54,9 @@ object Archive {
         case None        => identity[Path]
       }
 
+      Logger.debug(s"Extracting $archivePath to $destinationDirectory")
+      var missingPermissions: Int = 0
+
       val result = withOpenArchive(archivePath, format) { (archive, progress) =>
         for (entry <- ArchiveIterator(archive)) {
           if (!archive.canReadEntryData(entry)) {
@@ -81,7 +84,7 @@ object Archive {
                   val permissions = FileSystem.decodePOSIXPermissions(mode)
                   Files.setPosixFilePermissions(destinationPath, permissions)
                 case None =>
-                  Logger.debug(s"Could not find permissions for $path")
+                  missingPermissions += 1
               }
             }
           }
@@ -92,6 +95,15 @@ object Archive {
           )
         }
       }
+
+      if (missingPermissions > 0) {
+        Logger.warn(
+          s"Could not find permissions for $missingPermissions files in " +
+          s"archive `$archivePath`, some files may not have been marked as " +
+          s"executable."
+        )
+      }
+
       taskProgress.setComplete(result)
     }
     val thread = new Thread(() => runExtraction())

@@ -7,16 +7,63 @@ import org.enso.pkg.PackageManager
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 import buildinfo.Info
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.components.ComponentsManager
+import org.enso.launcher.cli.GlobalCLIOptions
+import org.enso.launcher.components.DefaultComponentsManager
+
+case class Launcher(cliOptions: GlobalCLIOptions) {
+  private lazy val componentsManager = DefaultComponentsManager(cliOptions)
+
+  def listEngines(): Unit = {
+    for (engine <- componentsManager.listInstalledEngines()) {
+      println(engine.version.toString)
+    }
+  }
+
+  def listRuntimes(): Unit = {
+    for (runtime <- componentsManager.listInstalledRuntimes()) {
+      val engines = componentsManager.findEnginesUsingRuntime(runtime)
+      val usedBy = {
+        val plural =
+          if (engines.length != 1) "s"
+          else ""
+        s"(used by ${engines.length} Enso installation$plural)"
+      }
+      println(s"$runtime $usedBy")
+    }
+  }
+
+  def listSummary(): Unit = {
+    for (engine <- componentsManager.listInstalledEngines()) {
+      val runtime = componentsManager.findRuntime(engine)
+      val runtimeName = runtime
+        .map(_.toString)
+        .getOrElse("no runtime found for this distribution")
+      println(s"Enso ${engine.version} -> $runtimeName")
+    }
+  }
+
+  def installEngine(version: SemVer): Unit = {
+    val existing = componentsManager.findEngine(version)
+    if (existing.isDefined) {
+      Logger.info(s"Engine $version is already installed.")
+    } else {
+      componentsManager.installEngine(version)
+    }
+  }
+
+  def installEngineLatest(): Unit = {
+    val latest = componentsManager.fetchLatestEngineVersion()
+    installEngine(latest)
+  }
+}
 
 object Launcher {
   val version: SemVer = SemVer(Info.ensoVersion).getOrElse {
     throw new IllegalStateException("Cannot parse the built-in version.")
   }
 
-  private val packageManager = PackageManager.Default
-
-  private def workingDirectory: Path = Path.of(".")
+  private val packageManager         = PackageManager.Default
+  private val workingDirectory: Path = Path.of(".")
 
   /**
     * Creates a new project with the given `name` in the given `path`.
@@ -68,42 +115,5 @@ object Launcher {
       )
       sys.exit(1)
     }
-  }
-
-  def listEngines(): Unit = {
-    for (engine <- ComponentsManager.listInstalledEngines()) {
-      println(engine.version.toString)
-    }
-  }
-
-  def listRuntimes(): Unit = {
-    for (runtime <- ComponentsManager.listInstalledRuntimes()) {
-      val engines = ComponentsManager.findEnginesUsingRuntime(runtime)
-      val usedBy = {
-        val plural =
-          if (engines.length != 1) "s"
-          else ""
-        s"(used by ${engines.length} Enso installation$plural)"
-      }
-      println(s"$runtime $usedBy")
-    }
-  }
-
-  def listSummary(): Unit = {
-    for (engine <- ComponentsManager.listInstalledEngines()) {
-      val runtime = ComponentsManager.findRuntime(engine)
-      val runtimeName = runtime
-        .map(_.toString)
-        .getOrElse("no runtime found for this distribution")
-      println(s"Enso ${engine.version} -> $runtimeName")
-    }
-  }
-
-  def installEngine(version: SemVer, showProgress: Boolean): Unit =
-    ComponentsManager.installEngine(version, showProgress)
-
-  def installEngineLatest(showProgress: Boolean): Unit = {
-    val latest = ComponentsManager.fetchLatestEngineVersion()
-    ComponentsManager.installEngine(latest, showProgress)
   }
 }

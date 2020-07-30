@@ -34,7 +34,7 @@ object Manifest {
       }
     } catch {
       case e: IOException =>
-        Logger.debug(s"Cannot load file `$path`.", e)
+        Logger.debug(s"Cannot load file `$path`: $e", e)
         None
     }
 

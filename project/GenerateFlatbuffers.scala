@@ -50,8 +50,8 @@ object GenerateFlatbuffers {
 
         val projectName = name.value
         log.info(
-          "*** Flatbuffers code generation generated " +
-          s"${generatedSources.size} files in project $projectName"
+          s"Flatbuffers code generation generated ${generatedSources.size} " +
+          s"files in project $projectName."
         )
       }
     }

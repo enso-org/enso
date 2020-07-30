@@ -10,6 +10,7 @@ import java.util.concurrent.{CompletionStage, Flow}
 
 import scala.jdk.CollectionConverters._
 import org.enso.cli.TaskProgressImplementation
+import org.enso.launcher.Logger
 
 import scala.util.{Failure, Success}
 
@@ -86,6 +87,7 @@ object HTTPDownload {
     request: HttpRequest,
     sizeHint: Option[Long] = None
   ): HTTPDownload[String] = {
+    Logger.debug(s"Fetching ${request.uri().toASCIIString}")
     new HTTPDownload[String](client, request, BodyHandlers.ofString(), sizeHint)
   }
 
@@ -94,6 +96,10 @@ object HTTPDownload {
     destination: Path,
     sizeHint: Option[Long] = None
   ): HTTPDownload[Path] = {
+    Logger.debug(
+      s"Downloading ${request.uri().toASCIIString} " +
+      s"to ${destination.toAbsolutePath}"
+    )
     new HTTPDownload[Path](
       client,
       request,

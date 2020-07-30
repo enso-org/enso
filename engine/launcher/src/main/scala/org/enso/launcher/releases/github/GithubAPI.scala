@@ -9,7 +9,6 @@ import io.circe.parser._
 import org.enso.cli.TaskProgress
 
 import scala.util.{Success, Try}
-import org.enso.launcher.Logger
 
 object GithubAPI {
   case class Repository(owner: String, name: String)
@@ -26,7 +25,6 @@ object GithubAPI {
           .newBuilder(uri)
           .GET()
           .build()
-      Logger.debug(uri.toASCIIString)
       HTTPDownload
         .fetchString(request)
         .flatMap(content =>
@@ -55,7 +53,6 @@ object GithubAPI {
 
   def getRelease(repo: Repository, tag: String): TaskProgress[Release] = {
     val uri = projectURI(repo) / "releases/" / "tags/" / tag
-    Logger.debug(uri.toString)
     val request =
       HttpRequest
         .newBuilder(uri)
