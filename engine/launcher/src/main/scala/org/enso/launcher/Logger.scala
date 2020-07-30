@@ -16,8 +16,10 @@ object Logger {
 
   private val logLevel = Debug
   private def log(level: Level, msg: => String): Unit =
-    if (level.level >= logLevel.level)
+    if (level.level >= logLevel.level) {
       System.err.println(s"[${level.name}] $msg")
+      System.err.flush()
+    }
 
   /**
     * Logs a debug level message.

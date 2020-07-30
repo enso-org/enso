@@ -63,7 +63,7 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
       preparePortableDistribution()
       runLauncherAt(
         portableLauncher,
-        Seq("install", "distribution", "--auto-confirm"),
+        Seq("--auto-confirm", "install", "distribution"),
         env
       )
 
@@ -88,7 +88,7 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
       prepareBundles()
       runLauncherAt(
         portableLauncher,
-        Seq("install", "distribution", "--auto-confirm"),
+        Seq("--auto-confirm", "install", "distribution"),
         env
       )
 
@@ -113,9 +113,9 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
       runLauncherAt(
         portableLauncher,
         Seq(
+          "--auto-confirm",
           "install",
           "distribution",
-          "--auto-confirm",
           "--bundle-install-mode=copy"
         ),
         env
@@ -138,9 +138,9 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
       runLauncherAt(
         portableLauncher,
         Seq(
+          "--auto-confirm",
           "install",
           "distribution",
-          "--auto-confirm",
           "--bundle-install-mode=ignore"
         ),
         env

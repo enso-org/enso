@@ -78,6 +78,7 @@ class OptsSpec
   "positionalArgument" should {
     val opt = Opts.positionalArgument[Int]("arg")
     "be required" in {
+      System.out.println("test")
       opt.parseFailing("").head should include("Missing")
     }
 

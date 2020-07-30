@@ -371,6 +371,7 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     try {
+      //Archive.test()
       application.run(args) match {
         case Left(errors) =>
           CLIOutput.println(errors.mkString("\n"))

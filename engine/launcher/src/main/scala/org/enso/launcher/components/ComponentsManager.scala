@@ -1,6 +1,6 @@
 package org.enso.launcher.components
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.CLIOutput
@@ -35,7 +35,11 @@ class ComponentsManager(
   def findRuntime(version: RuntimeVersion): Option[Runtime] = {
     val name = runtimeNameForVersion(version)
     val path = distributionManager.paths.runtimes / name
-    parseGraalRuntime(path)
+    if (Files.exists(path)) {
+      // TODO [RW] add a sanity check if runtime is in a working state - check
+      //  if it at least has the `java` executable, for #976
+      parseGraalRuntime(path)
+    } else None
   }
 
   def findOrInstallRuntime(
@@ -67,7 +71,9 @@ class ComponentsManager(
   def findEngine(version: SemVer): Option[Engine] = {
     val name = engineNameForVersion(version)
     val path = distributionManager.paths.engines / name
-    parseEngine(path)
+    if (Files.exists(path))
+      parseEngine(path)
+    else None
   }
 
   def findOrInstallEngine(version: SemVer): Engine =

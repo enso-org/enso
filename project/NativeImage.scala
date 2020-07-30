@@ -18,6 +18,9 @@ object NativeImage {
         val classPath =
           (Runtime / fullClasspath).value.files.mkString(File.pathSeparator)
 
+        val includeDebugInfo = true // TODO [RW] configure this
+        val debugParameters =
+          if (includeDebugInfo) "-H:GenerateDebugInfo=1" else ""
         val additionalParameters =
           if (staticOnLinux && isLinux)
             "--static"
@@ -25,7 +28,8 @@ object NativeImage {
         val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
 
         val cmd =
-          s"$nativeImagePath $additionalParameters $resourcesGlobOpt " +
+          s"$nativeImagePath $additionalParameters $debugParameters " +
+          s"$resourcesGlobOpt -H:ConfigurationFileDirectories=engine/launcher/target/scala-2.13/ni-config " + // TODO [RW] WIP configs
           s"--no-fallback --initialize-at-build-time --enable-https" +
           s" -cp $classPath ${(Compile / mainClass).value.get} enso"
 

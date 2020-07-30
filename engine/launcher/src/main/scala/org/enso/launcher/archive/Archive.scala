@@ -58,7 +58,10 @@ object Archive {
       var missingPermissions: Int = 0
 
       val result = withOpenArchive(archivePath, format) { (archive, progress) =>
+        Logger.debug(s"Opened $archivePath with format $format - $archive")
         for (entry <- ArchiveIterator(archive)) {
+          Logger.debug("Henlo")
+          Logger.debug(s"Seeing ${entry.getName}")
           if (!archive.canReadEntryData(entry)) {
             throw new RuntimeException(
               s"Cannot read ${entry.getName} from $archivePath. " +
@@ -111,6 +114,23 @@ object Archive {
     taskProgress
   }
 
+  def test(): Unit = {
+    FileSystem.withTemporaryDirectory("enso-what") { dir =>
+      val src =
+        Path.of("/home/radeusgd/NBO/releasesci/override/enso-engine-0.1.0.zip")
+      val tmp = dir.resolve("tmp.zip")
+      FileSystem.copyFile(src, tmp)
+      Archive
+        .extractArchive(
+          tmp,
+          Path.of("./test_archive_dbg"),
+          None
+        )
+        .waitForResult(true)
+        .get
+    }
+  }
+
   private def getMode(entry: ArchiveEntry): Option[Int] =
     entry match {
       case entry: TarArchiveEntry =>
@@ -126,7 +146,9 @@ object Archive {
   def withOpenArchive[R](path: Path, format: ArchiveFormat)(
     action: (ArchiveInputStream, ReadProgress) => R
   ): Try[R] = {
+    Logger.debug(s"Opening $path")
     Using(new FileProgressInputStream(path)) { progressInputStream =>
+      Logger.debug(s"Created progress-reported stream $progressInputStream")
       Using(new BufferedInputStream(progressInputStream)) { buffered =>
         format match {
           case ArchiveFormat.ZIP =>
