@@ -62,7 +62,7 @@ class NestedPatternMatchTest extends CompilerTest {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+    buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   /** Creates a defaulted inline context.

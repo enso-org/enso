@@ -61,7 +61,7 @@ class FunctionBindingTest extends CompilerTest {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext()
+    buildModuleContext()
   }
 
   /** Creates a defaulted inline context.

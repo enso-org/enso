@@ -116,14 +116,14 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     externalId: Option[IR.ExternalId],
     module: String,
     name: IR.Name,
-    typeRef: Seq[IR.Name],
+    typeRef: IR.Name,
     args: Seq[IR.DefinitionArgument],
     doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata]
   ): Suggestion.Method = {
     typeSignature match {
       case Some(TypeSignatures.Signature(typeExpr)) =>
-        val selfType = buildSelfType(typeRef)
+        val selfType = typeRef.name
         val typeSig  = buildTypeSignature(typeExpr)
         val (methodArgs, returnTypeDef) =
           buildMethodArguments(args, typeSig, selfType)
@@ -142,7 +142,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           module        = module,
           name          = name.name,
           arguments     = args.map(buildArgument),
-          selfType      = buildSelfType(typeRef),
+          selfType      = typeRef.name,
           returnType    = Any,
           documentation = doc
         )
@@ -342,9 +342,6 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       case Some(TypeArg(name, _)) => name
       case None                   => Any
     }
-
-  private def buildSelfType(ref: Seq[IR.Name]): String =
-    ref.map(_.name).mkString(".")
 
   private def buildDefaultValue(expr: IR): Option[String] =
     expr match {

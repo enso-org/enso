@@ -65,9 +65,17 @@ class GatherDiagnosticsTest extends CompilerTest {
       val fooName     = IR.Name.Literal("foo", None)
 
       val method1Ref =
-        IR.Name.MethodReference(List(typeName), method1Name, None)
+        IR.Name.MethodReference(
+          IR.Name.Qualified(List(typeName), None),
+          method1Name,
+          None
+        )
       val method2Ref =
-        IR.Name.MethodReference(List(typeName), method2Name, None)
+        IR.Name.MethodReference(
+          IR.Name.Qualified(List(typeName), None),
+          method2Name,
+          None
+        )
 
       val module = IR.Module(
         List(),
@@ -88,7 +96,7 @@ class GatherDiagnosticsTest extends CompilerTest {
         None
       )
 
-      val result = GatherDiagnostics.runModule(module, ModuleContext())
+      val result = GatherDiagnostics.runModule(module, buildModuleContext())
       val errors = result
         .unsafeGetMetadata(GatherDiagnostics, "Impossible")
         .diagnostics
@@ -101,7 +109,7 @@ class GatherDiagnosticsTest extends CompilerTest {
         new Passes().passManager
 
       implicit val moduleContext: ModuleContext =
-        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
 
       val ir =
         """

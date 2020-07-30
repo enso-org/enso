@@ -256,7 +256,7 @@ case object ComplexType extends IRPass {
     signature: Option[IR.Type.Ascription]
   ): List[IR.Module.Scope.Definition] = {
     val methodRef = IR.Name.MethodReference(
-      List(typeName),
+      IR.Name.Qualified(List(typeName), typeName.location),
       name,
       MethodReference.genLocation(List(typeName, name))
     )

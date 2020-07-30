@@ -98,7 +98,7 @@ class DataflowAnalysisTest extends CompilerTest {
     def analyse: IR.Module = {
       DataflowAnalysis.runModule(
         ir,
-        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
       )
     }
   }
@@ -153,7 +153,7 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a new module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext(
+    buildModuleContext(
       freshNameSupply = Some(new FreshNameSupply)
     )
   }

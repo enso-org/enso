@@ -1,7 +1,7 @@
 package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -38,7 +38,7 @@ class LambdaConsolidateTest extends CompilerTest {
     def optimise: IR.Module = {
       LambdaConsolidate.runModule(
         ir,
-        ModuleContext(passConfiguration = Some(passConfiguration))
+        buildModuleContext(passConfiguration = Some(passConfiguration))
       )
     }
   }

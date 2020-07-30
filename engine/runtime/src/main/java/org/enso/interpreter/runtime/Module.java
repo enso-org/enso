@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.enso.compiler.core.IR;
+import org.enso.compiler.phase.StubIrBuilder;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
@@ -260,6 +261,11 @@ public class Module implements TruffleObject {
   /** Set the indexed flag. */
   public void setIndexed(boolean indexed) {
     isIndexed = indexed;
+  }
+
+  public void buildIrStub() {
+    ir = StubIrBuilder.build(this);
+    compilationStage = CompilationStage.COMPILED;
   }
 
   /**

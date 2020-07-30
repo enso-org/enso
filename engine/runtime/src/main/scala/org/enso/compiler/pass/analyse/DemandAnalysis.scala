@@ -167,6 +167,12 @@ case object DemandAnalysis extends IRPass {
               "Method references should not be present by the time demand " +
               "analysis runs."
             )
+          case _: IR.Name.Qualified =>
+            throw new CompilerError(
+              "Qualified names should not be present by the time demand " +
+                "analysis runs."
+            )
+          case err: IR.Error.Resolution => err
           case _: IR.Name.Blank =>
             throw new CompilerError(
               "Blanks should not be present by the time demand analysis runs."

@@ -41,7 +41,7 @@ class AliasAnalysisTest extends CompilerTest {
     def analyse: IR.Module = {
       AliasAnalysis.runModule(
         ir,
-        ModuleContext(passConfiguration = Some(passConfig))
+        buildModuleContext(passConfiguration = Some(passConfig))
       )
     }
   }
@@ -68,7 +68,7 @@ class AliasAnalysisTest extends CompilerTest {
     * @return a module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+    buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================

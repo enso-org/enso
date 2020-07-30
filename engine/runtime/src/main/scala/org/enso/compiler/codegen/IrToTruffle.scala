@@ -8,9 +8,15 @@ import org.enso.compiler.core.IR.{Error, IdentifiedLocation, Pattern}
 import org.enso.compiler.exception.{BadPatternMatch, CompilerError}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
+import org.enso.compiler.pass.analyse.BindingResolution.{
+  ResolvedConstructor,
+  ResolvedModule
+}
+import org.enso.compiler.pass.analyse.MethodDefinitionResolution.Resolution
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
+  MethodDefinitionResolution,
   TailCall
 }
 import org.enso.compiler.pass.optimise.ApplicationSaturation
@@ -53,8 +59,7 @@ import org.enso.interpreter.runtime.callable.function.{
   Function => RuntimeFunction
 }
 import org.enso.interpreter.runtime.error.{
-  DuplicateArgumentNameException,
-  VariableDoesNotExistException
+  DuplicateArgumentNameException
 }
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
@@ -202,54 +207,54 @@ class IrToTruffle(
         "Method definition missing dataflow information."
       )
 
-      val typeName =
-        if (methodDef.typeName.name == Constants.Names.CURRENT_MODULE) {
-          moduleScope.getAssociatedType.getName
-        } else {
-          methodDef.typeName.name
+      val consOpt =
+        methodDef.methodReference.typePointer.getMetadata(MethodDefinitionResolution).map {
+          case Resolution(ResolvedModule(module)) =>
+            module.getScope.getAssociatedType
+          case Resolution(ResolvedConstructor(definitionModule, cons)) =>
+            definitionModule.getScope.getConstructors.get(cons.name.name)
         }
 
-      val expressionProcessor = new ExpressionProcessor(
-        typeName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
-        scopeInfo.graph,
-        scopeInfo.graph.rootScope,
-        dataflowInfo
-      )
+      println(s"CONSOPT $consOpt")
+      consOpt.foreach {
+        cons =>
+          val expressionProcessor = new ExpressionProcessor(
+            cons.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
+            scopeInfo.graph,
+            scopeInfo.graph.rootScope,
+            dataflowInfo
+          )
 
-      val cons = moduleScope
-        .getConstructor(typeName)
-        .orElseThrow(() =>
-          new VariableDoesNotExistException(methodDef.typeName.name)
-        )
-
-      val function = methodDef.body match {
-        case fn: IR.Function =>
-          val (body, arguments) =
-            expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
-          val rootNode = MethodRootNode.build(
-            language,
-            expressionProcessor.scope,
-            moduleScope,
-            body,
-            makeSection(methodDef.location),
-            cons,
-            methodDef.methodName.name
-          )
-          val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
-          new RuntimeFunction(
-            callTarget,
-            null,
-            new FunctionSchema(
-              FunctionSchema.CallStrategy.CALL_LOOP,
-              arguments: _*
-            )
-          )
-        case _ =>
-          throw new CompilerError(
-            "Method bodies must be functions at the point of codegen."
-          )
+          val function = methodDef.body match {
+            case fn: IR.Function =>
+              val (body, arguments) =
+                expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
+              val rootNode = MethodRootNode.build(
+                language,
+                expressionProcessor.scope,
+                moduleScope,
+                body,
+                makeSection(methodDef.location),
+                cons,
+                methodDef.methodName.name
+              )
+              val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
+              new RuntimeFunction(
+                callTarget,
+                null,
+                new FunctionSchema(
+                  FunctionSchema.CallStrategy.CALL_LOOP,
+                  arguments: _*
+                )
+              )
+            case _ =>
+              throw new CompilerError(
+                "Method bodies must be functions at the point of codegen."
+              )
+          }
+          moduleScope.registerMethod(cons, methodDef.methodName.name, function)
       }
-      moduleScope.registerMethod(cons, methodDef.methodName.name, function)
+
     })
   }
 
@@ -562,18 +567,18 @@ class IrToTruffle(
 //                  )
 //                )
 //              } else {
-                val bool = context.getBuiltins.bool()
-                val branchNode: BranchNode =
-                  if (atomCons == bool.getTrue) {
-                    BooleanBranchNode.build(true, branchCodeNode)
-                  } else if (atomCons == bool.getFalse) {
-                    BooleanBranchNode.build(false, branchCodeNode)
-                  } else {
-                    ConstructorBranchNode.build(atomCons, branchCodeNode)
-                  }
-                branchNode.setTail(branchIsTail)
+              val bool = context.getBuiltins.bool()
+              val branchNode: BranchNode =
+                if (atomCons == bool.getTrue) {
+                  BooleanBranchNode.build(true, branchCodeNode)
+                } else if (atomCons == bool.getFalse) {
+                  BooleanBranchNode.build(false, branchCodeNode)
+                } else {
+                  ConstructorBranchNode.build(atomCons, branchCodeNode)
+                }
+              branchNode.setTail(branchIsTail)
 
-                Right(branchNode)
+              Right(branchNode)
 //              }
             case None =>
               Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
@@ -712,6 +717,11 @@ class IrToTruffle(
           throw new CompilerError(
             "Method references should not be present at codegen time."
           )
+        case _: IR.Name.Qualified =>
+          throw new CompilerError(
+            "Qualified names should not be present at codegen time."
+          )
+        case _: IR.Error.Resolution => throw new RuntimeException("todo")
       }
 
       setLocation(nameExpr, name.location)
@@ -752,6 +762,7 @@ class IrToTruffle(
           context.getBuiltins.error().compileError().newInstance(err.message)
         case err: Error.Unexpected.TypeSignature =>
           context.getBuiltins.error().compileError().newInstance(err.message)
+        case _: Error.Resolution => throw new RuntimeException("bleee")
       }
       setLocation(ErrorNode.build(payload), error.location)
     }

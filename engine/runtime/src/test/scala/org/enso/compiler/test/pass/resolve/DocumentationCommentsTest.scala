@@ -54,7 +54,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext()
+    buildModuleContext()
   }
 
   /** Creates a defaulted inline context.
@@ -186,7 +186,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       implicit val passManager: PassManager =
         new Passes().passManager
       implicit val moduleContext: ModuleContext =
-        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
 
       val module =
         """## The foo
@@ -199,7 +199,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
         new Passes().passManager
 
       implicit val moduleContext: ModuleContext =
-        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
 
       val ir =
         """

@@ -44,7 +44,7 @@ class ComplexTypeTest extends CompilerTest {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext()
+    buildModuleContext()
   }
 
   // === The Tests ============================================================

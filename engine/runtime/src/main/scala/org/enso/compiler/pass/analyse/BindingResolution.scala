@@ -40,7 +40,11 @@ object BindingResolution extends IRPass {
         Method(method.methodReference)
     }
     ir.updateMetadata(
-      this -->> LocalBindings(definedConstructors, definedMethods)
+      this -->> LocalBindings(
+        definedConstructors,
+        definedMethods,
+        moduleContext.module
+      )
     )
   }
 
@@ -58,8 +62,11 @@ object BindingResolution extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression = ir
 
-  case class LocalBindings(types: List[Cons], methods: List[Method])
-      extends IRPass.Metadata {
+  case class LocalBindings(
+    types: List[Cons],
+    methods: List[Method],
+    currentModule: Module
+  ) extends IRPass.Metadata {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "Local Bindings"
@@ -73,11 +80,74 @@ object BindingResolution extends IRPass {
       * @return Some duplicate of this metadata or None if this metadata should
       *         not be preserved
       */
-    override def duplicate(): Option[IRPass.Metadata] = Some(this.copy(types, methods))
+    override def duplicate(): Option[IRPass.Metadata] =
+      Some(this.copy(types, methods))
 
     var resolvedImports: List[Module] = List()
+
+    def findConstructorCandidates(name: String): List[ResolvedConstructor] = {
+      types
+        .filter(_.name.name == name)
+        .map(ResolvedConstructor(currentModule, _))
+    }
+
+    def findLocalCandidates(name: String): List[ResolvedName] = {
+      if (currentModule.getName.item == name) {
+        List(ResolvedModule(currentModule))
+      } else {
+        findConstructorCandidates(name)
+      }
+    }
+
+    def findQualifiedImportCandidates(name: String): List[ResolvedName] = {
+      resolvedImports.filter(_.getName.item == name).map(ResolvedModule)
+    }
+
+    def findExportedCandidatesInImports(name: String): List[ResolvedName] = {
+      resolvedImports
+        .map { mod =>
+          mod.getIr.unsafeGetMetadata(
+            BindingResolution,
+            "Wrong pass ordering. Running resolution on an unparsed module"
+          )
+        }
+        .flatMap(_.findConstructorCandidates(name))
+    }
+
+    def handleAmbiguity(
+      candidates: List[ResolvedName]
+    ): Either[ResolutionError, ResolvedName] = {
+      candidates match {
+        case List()   => Left(ResolutionNotFound)
+        case List(it) => Right(it)
+        case items    => Left(ResolutionAmbiguous(items))
+      }
+    }
+
+    def resolveUppercaseName(
+      name: String
+    ): Either[ResolutionError, ResolvedName] = {
+      val local = findLocalCandidates(name)
+      if (local.nonEmpty) {
+        return handleAmbiguity(local)
+      }
+      val qualifiedImps = findQualifiedImportCandidates(name)
+      if (qualifiedImps.nonEmpty) {
+        return handleAmbiguity(qualifiedImps)
+      }
+      handleAmbiguity(findExportedCandidatesInImports(name))
+    }
   }
 
   case class Cons(name: IR.Name)
   case class Method(ref: IR.Name.MethodReference)
+  sealed trait ResolvedName
+  case class ResolvedConstructor(definitionModule: Module, cons: Cons)
+      extends ResolvedName
+  case class ResolvedModule(module: Module) extends ResolvedName
+
+  sealed trait ResolutionError
+  case class ResolutionAmbiguous(candidates: List[ResolvedName])
+      extends ResolutionError
+  case object ResolutionNotFound extends ResolutionError
 }

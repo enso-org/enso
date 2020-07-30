@@ -14,7 +14,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
   val passes = new Passes
 
-  implicit val ctx: ModuleContext = ModuleContext()
+  implicit val ctx: ModuleContext = buildModuleContext()
 
   val precursorPasses: PassGroup =
     passes.getPrecursors(GenerateMethodBodies).get

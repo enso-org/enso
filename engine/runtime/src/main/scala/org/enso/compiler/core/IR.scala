@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.BindingResolution
 import org.enso.syntax.text.{AST, Debug, Location}
 
 import scala.annotation.unused
@@ -810,7 +811,7 @@ object IR {
             keepDiagnostics: Boolean = true
           ): Method
 
-          def typeName: IR.Name   = methodReference.typePointerAsName
+          def typeName: IR.Name   = methodReference.typePointer
           def methodName: IR.Name = methodReference.methodName
         }
         object Method {
@@ -1469,7 +1470,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class MethodReference(
-      typePointer: List[IR.Name],
+      typePointer: IR.Name,
       methodName: IR.Name,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -1490,7 +1491,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        typePointer: List[IR.Name]           = typePointer,
+        typePointer: IR.Name                 = typePointer,
         methodName: IR.Name                  = methodName,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
@@ -1531,7 +1532,7 @@ object IR {
         fn: Expression => Expression
       ): MethodReference =
         copy(
-          typePointer = typePointer.map(_.mapExpressions(fn)),
+          typePointer = typePointer.mapExpressions(fn),
           methodName  = methodName.mapExpressions(fn)
         )
 
@@ -1553,25 +1554,11 @@ object IR {
         |)
         |""".toSingleLine
 
-      override def children: List[IR] = typePointer :+ methodName
+      override def children: List[IR] = List(typePointer, methodName)
 
       override def showCode(indent: Int): String = {
-        val tPointer = typePointer.map(_.showCode(indent)).mkString(".")
+        val tPointer = typePointer.showCode(indent)
         s"$tPointer.${methodName.showCode(indent)}"
-      }
-
-      /** Constructs a name literal from the type name segments.
-        *
-        * @return a name literal representing [[typePointer]]
-        */
-      def typePointerAsName: IR.Name = {
-        val nameStr = typePointer.map(_.name).mkString(".")
-        val newLoc  = MethodReference.genLocation(typePointer)
-
-        IR.Name.Literal(
-          nameStr,
-          newLoc
-        )
       }
 
       /** Checks whether `this` and `that` reference the same method.
@@ -1581,15 +1568,7 @@ object IR {
         *         otherwise `false`
         */
       def isSameReferenceAs(that: MethodReference): Boolean = {
-        if (this.typePointer.length == that.typePointer.length) {
-          val pathsAreSame = this.typePointer.zip(that.typePointer).forall {
-            case (l, r) => l.name == r.name
-          }
-
-          pathsAreSame && (this.methodName.name == that.methodName.name)
-        } else {
-          false
-        }
+        typePointer.name == that.typePointer.name && (this.methodName.name == that.methodName.name)
       }
     }
     object MethodReference {
@@ -1617,6 +1596,44 @@ object IR {
           }
         )
       }
+    }
+
+    sealed case class Qualified(
+      parts: List[IR.Name],
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Name
+        with IRKind.Primitive {
+
+      override val name: String = parts.map(_.name).mkString(".")
+
+      override def mapExpressions(fn: Expression => Expression): Name = this
+
+      override def setLocation(location: Option[IdentifiedLocation]): Name =
+        copy(location = location)
+
+      override def duplicate(
+        keepLocations: Boolean,
+        keepMetadata: Boolean,
+        keepDiagnostics: Boolean
+      ): Name = this
+
+      /** Gets the list of all children IR nodes of this node.
+        *
+        * @return this node's children.
+        */
+      override def children: List[IR] = parts
+
+      /** A unique identifier for a piece of IR. */
+      override protected var id: Identifier = randomId
+
+      /** Shows the IR as code.
+        *
+        * @param indent the current indentation level
+        * @return a string representation of `this`
+        */
+      override def showCode(indent: Int): String = name
     }
 
     /** Represents occurrences of blank (`_`) expressions.
@@ -4921,6 +4938,66 @@ object IR {
     ): Error
   }
   object Error {
+
+    sealed case class Resolution(
+      originalName: IR.Name,
+      reason: Resolution.Reason,
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Error
+        with Diagnostic.Kind.Interactive
+        with IRKind.Primitive
+        with IR.Name {
+      override val name: String = originalName.name
+
+      override def mapExpressions(fn: Expression => Expression): Resolution =
+        this
+
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Resolution =
+        copy(originalName = originalName.setLocation(location))
+
+      override def duplicate(
+        keepLocations: Boolean,
+        keepMetadata: Boolean,
+        keepDiagnostics: Boolean
+      ): Resolution = this
+
+      /** Gets the list of all children IR nodes of this node.
+        *
+        * @return this node's children.
+        */
+      override def children: List[IR] = List(originalName)
+
+      /** A unique identifier for a piece of IR. */
+      override protected var id: Identifier = randomId
+
+      /** Shows the IR as code.
+        *
+        * @param indent the current indentation level
+        * @return a string representation of `this`
+        */
+      override def showCode(indent: Int): String = originalName.showCode(indent)
+
+      /**
+        * @return a human-readable description of this error condition.
+        */
+      override def message: String = reason.explain(originalName)
+
+      /** The location at which the diagnostic occurs. */
+      override val location: Option[IdentifiedLocation] = originalName.location
+    }
+
+    object Resolution {
+      sealed trait Reason {
+        def explain(originalName: IR.Name): String
+      }
+
+      case class ResolverError(err: BindingResolution.ResolutionError) extends Reason {
+        override def explain(originalName: Name): String = s"There's an oopsie $err"
+      }
+    }
 
     /** A representation of an Enso syntax error.
       *

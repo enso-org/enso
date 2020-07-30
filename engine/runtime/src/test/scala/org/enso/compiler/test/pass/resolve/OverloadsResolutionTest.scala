@@ -43,7 +43,7 @@ class OverloadsResolutionTest extends CompilerTest {
     * @return a new module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+    buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================

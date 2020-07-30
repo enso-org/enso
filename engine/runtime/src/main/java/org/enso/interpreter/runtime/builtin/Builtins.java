@@ -175,6 +175,8 @@ public class Builtins {
             new boolean[] {false, true, false},
             new CallArgumentInfo[0]);
     newInstanceFunction = ConstructorDispatchNode.makeFunction(language);
+
+    module.buildIrStub();
   }
 
   private void createPolyglot(Language language) {

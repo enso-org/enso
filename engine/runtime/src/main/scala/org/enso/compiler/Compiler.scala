@@ -28,7 +28,7 @@ import scala.jdk.OptionConverters._
   *
   * @param context the language context
   */
-class Compiler(private val context: Context) {
+class Compiler(val context: Context) {
   private val freshNameSupply: FreshNameSupply = new FreshNameSupply
   private val passes: Passes                   = new Passes
   private val passManager: PassManager         = passes.passManager
@@ -46,20 +46,24 @@ class Compiler(private val context: Context) {
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source, module: Module): Unit = {
-    val moduleContext = ModuleContext(
-      moduleScope     = Some(module.getScope),
-      freshNameSupply = Some(freshNameSupply)
-    )
     parseModule(module)
     val requiredModules = importResolver.mapImports(module)
     requiredModules.foreach(_.ensureScopeExists(context))
     requiredModules.foreach { module =>
+      val moduleContext = ModuleContext(
+        module          = module,
+        freshNameSupply = Some(freshNameSupply)
+      )
       val compilerOutput = runCompilerPhases(module.getIr, moduleContext)
       module.setIr(compilerOutput)
       module.setCompilationStage(Module.CompilationStage.AFTER_STATIC_PASSES)
     }
     // TODO[MK] Run all at once
     requiredModules.foreach { module =>
+      val moduleContext = ModuleContext(
+        module          = module,
+        freshNameSupply = Some(freshNameSupply)
+      )
       runErrorHandling(module.getIr, source, moduleContext)
     }
     requiredModules.foreach(stubsGenerator.run)
@@ -71,7 +75,7 @@ class Compiler(private val context: Context) {
 
   def parseModule(module: Module): Unit = {
     val moduleContext = ModuleContext(
-      moduleScope     = Some(module.getScope),
+      module          = module,
       freshNameSupply = Some(freshNameSupply)
     )
     val parsedAST        = parse(module.getSource)

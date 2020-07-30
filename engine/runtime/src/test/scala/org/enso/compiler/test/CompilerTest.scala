@@ -1,12 +1,14 @@
 package org.enso.compiler.test
 
 import org.enso.compiler.codegen.AstToIr
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.PassManager
+import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.enso.interpreter.runtime.Module
+import org.enso.pkg.QualifiedName
 
 trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
@@ -164,7 +166,7 @@ trait CompilerRunner {
     def asMethod: IR.Module.Scope.Definition.Method = {
       IR.Module.Scope.Definition.Method.Explicit(
         IR.Name.MethodReference(
-          List(IR.Name.Literal("TestType", None)),
+          IR.Name.Qualified(List(IR.Name.Literal("TestType", None)), None),
           IR.Name.Literal("testMethod", None),
           None
         ),
@@ -205,5 +207,16 @@ trait CompilerRunner {
     def asModuleDefs: IR.Module = {
       IR.Module(List(), List(ir.asAtomDefaultArg, ir.asMethod), None)
     }
+  }
+
+  def buildModuleContext(
+    freshNameSupply: Option[FreshNameSupply]     = None,
+    passConfiguration: Option[PassConfiguration] = None
+  ): ModuleContext = {
+    ModuleContext(
+      module            = Module.empty(QualifiedName.simpleName("Test_Module")),
+      freshNameSupply   = freshNameSupply,
+      passConfiguration = passConfiguration
+    )
   }
 }

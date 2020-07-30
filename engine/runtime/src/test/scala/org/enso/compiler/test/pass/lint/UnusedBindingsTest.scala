@@ -80,7 +80,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
     * @return a new inline context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+    buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================

@@ -17,7 +17,7 @@ class TailCallTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val modCtx: ModuleContext = ModuleContext(
+  val modCtx: ModuleContext = buildModuleContext(
     freshNameSupply = Some(new FreshNameSupply)
   )
 

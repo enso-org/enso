@@ -36,7 +36,7 @@ class DemandAnalysisTest extends CompilerTest {
       * @return [[ir]], transformed by the demand analysis pass
       */
     def analyse: IR.Module = {
-      DemandAnalysis.runModule(ir, ModuleContext())
+      DemandAnalysis.runModule(ir, buildModuleContext())
     }
   }
 
@@ -69,7 +69,7 @@ class DemandAnalysisTest extends CompilerTest {
   }
 
   def mkModuleContext: ModuleContext = {
-    ModuleContext(
+    buildModuleContext(
       freshNameSupply = Some(new FreshNameSupply)
     )
   }

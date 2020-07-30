@@ -1,7 +1,7 @@
 package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -73,7 +73,7 @@ class ApplicationSaturationTest extends CompilerTest {
     passConfiguration = Some(knownPassConfig)
   )
 
-  val moduleCtx = new ModuleContext(
+  val moduleCtx = buildModuleContext(
     passConfiguration = Some(knownPassConfig),
     freshNameSupply   = Some(new FreshNameSupply)
   )

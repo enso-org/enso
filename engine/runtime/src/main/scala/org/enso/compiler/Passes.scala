@@ -31,6 +31,7 @@ class Passes(passes: Option[List[PassGroup]] = None) {
 
   val functionBodyPasses = new PassGroup(
     List(
+      MethodDefinitionResolution,
       SectionsToBinOp,
       OperatorToFunction,
       LambdaShorthandToLambda,

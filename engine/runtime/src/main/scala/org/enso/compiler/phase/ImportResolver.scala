@@ -35,7 +35,8 @@ class ImportResolver(compiler: Compiler) {
         }
         // TODO[MK] COMPLAIN ABOUT MISSING
         val importedModules = importedModuleNames.flatMap(compiler.getModule)
-        currentLocal.resolvedImports = importedModules
+        // TODO[MK] Remove when No Implicit Prelude
+        currentLocal.resolvedImports = compiler.context.getTopScope.getBuiltins.getModule :: importedModules
         current.setCompilationStage(Module.CompilationStage.IMPORTS_RESOLVED)
         seen += current
         stack = importedModules ++ stack
