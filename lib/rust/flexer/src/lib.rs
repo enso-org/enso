@@ -61,7 +61,7 @@ mod constants {
 /// state. The user may cause the lexer to transition between states by pushing and popping states
 /// on the stack, thus allowing a much more flexible lexing engine than pure regular grammars.
 #[derive(Clone,Debug)]
-pub struct Flexer<Definition,Output,Reader> where Reader:LazyReader {
+pub struct Flexer<Definition,Output,Reader> {
     /// The stack of states that are active during lexer execution.
     pub state_stack: Vec<group::Identifier>,
     /// A reader for the input.
@@ -75,7 +75,7 @@ pub struct Flexer<Definition,Output,Reader> where Reader:LazyReader {
 }
 
 impl<Definition,Output,Reader> Flexer<Definition,Output,Reader>
-where Definition: State, Reader:LazyReader {
+where Definition:State, Reader:LazyReader {
     /// Creates a new lexer instance.
     pub fn new(mut reader:Reader) -> Flexer<Definition,Output,Reader> {
         let mut state_stack = Vec::default();
@@ -93,7 +93,7 @@ where Definition: State, Reader:LazyReader {
 
 /// This block is things that are part of the lexer's interface and functionality.
 impl<Definition,Reader,Output> Flexer<Definition,Output,Reader>
-where Definition: State, Reader:LazyReader, Output:Clone {
+where Definition: State, Output:Clone {
     /// Gets the lexer result.
     pub fn get_result(&mut self) -> &Vec<Output> {
         &self.output
@@ -143,16 +143,14 @@ where Definition: State, Reader:LazyReader, Output:Clone {
 
 // === Trait Impls ===
 
-impl<Definition,Output,Reader> Deref for Flexer<Definition,Output,Reader>
-    where Reader:LazyReader {
+impl<Definition,Output,Reader> Deref for Flexer<Definition,Output,Reader> {
     type Target = Definition;
     fn deref(&self) -> &Self::Target {
         &self.definition
     }
 }
 
-impl<Definition,Output,Reader> DerefMut for Flexer<Definition,Output,Reader>
-    where Reader:LazyReader {
+impl<Definition,Output,Reader> DerefMut for Flexer<Definition,Output,Reader> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.definition
     }
