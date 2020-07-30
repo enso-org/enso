@@ -20,6 +20,9 @@ object OS {
   def isWindows: Boolean =
     operatingSystem == OS.Windows
 
+  def isPOSIX: Boolean =
+    operatingSystem == OS.Linux || operatingSystem == OS.MacOS
+
   /**
     * Returns which [[OS]] this program is running on.
     */

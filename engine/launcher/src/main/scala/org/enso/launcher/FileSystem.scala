@@ -1,13 +1,14 @@
 package org.enso.launcher
 
 import java.io.PrintWriter
+import java.nio.file.attribute.{PosixFilePermission, PosixFilePermissions}
 import java.nio.file.{Files, Path}
+import java.util
 
 import org.apache.commons.io.FileUtils
 
 import scala.collection.Factory
 import scala.jdk.StreamConverters._
-import scala.sys.process._
 import scala.util.Using
 
 /**
@@ -51,14 +52,64 @@ object FileSystem {
     */
   def ensureIsExecutable(file: Path): Unit = {
     if (!Files.isExecutable(file)) {
-      def tryChmod(): Boolean = {
-        Seq("chmod", "+x", file.toAbsolutePath.toString).! == 0
-      }
-
-      if (OS.isWindows || !tryChmod()) {
+      if (OS.isWindows) {
         Logger.error("Cannot ensure the launcher binary is executable.")
+      } else {
+        try {
+          Files.setPosixFilePermissions(
+            file.toAbsolutePath,
+            PosixFilePermissions.fromString("rwxrwxr-x")
+          )
+        } catch {
+          case e: Exception =>
+            Logger.error(
+              s"Cannot ensure the launcher binary is executable: $e",
+              e
+            )
+        }
       }
     }
+  }
+
+  def decodePOSIXPermissions(mode: Int): java.util.Set[PosixFilePermission] = {
+    val res =
+      util.EnumSet.noneOf[PosixFilePermission](classOf[PosixFilePermission])
+
+    val others = mode & 7
+    val group  = (mode >> 3) & 7
+    val owner  = mode >> 6
+
+    if ((owner & 4) != 0) {
+      res.add(PosixFilePermission.OWNER_READ)
+    }
+    if ((owner & 2) != 0) {
+      res.add(PosixFilePermission.OWNER_WRITE)
+    }
+    if ((owner & 1) != 0) {
+      res.add(PosixFilePermission.OWNER_EXECUTE)
+    }
+
+    if ((group & 4) != 0) {
+      res.add(PosixFilePermission.GROUP_READ)
+    }
+    if ((group & 2) != 0) {
+      res.add(PosixFilePermission.GROUP_WRITE)
+    }
+    if ((group & 1) != 0) {
+      res.add(PosixFilePermission.GROUP_EXECUTE)
+    }
+
+    if ((others & 4) != 0) {
+      res.add(PosixFilePermission.OTHERS_READ)
+    }
+    if ((others & 2) != 0) {
+      res.add(PosixFilePermission.OTHERS_WRITE)
+    }
+    if ((others & 1) != 0) {
+      res.add(PosixFilePermission.OTHERS_EXECUTE)
+    }
+
+    res
   }
 
   def withTemporaryDirectory[T](

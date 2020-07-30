@@ -11,8 +11,8 @@ private[archive] class FileProgressInputStream(path: Path) extends InputStream {
   private var bytesRead: Long = 0
 
   private val readProgress = new ReadProgress {
-    override def alreadyRead(): Long = bytesRead
-    override def total(): Long       = size
+    override def alreadyRead(): Long   = bytesRead
+    override def total(): Option[Long] = Some(size)
   }
 
   def progress: ReadProgress = readProgress

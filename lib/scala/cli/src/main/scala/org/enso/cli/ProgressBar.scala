@@ -31,7 +31,12 @@ object ProgressBar {
           unknownCounter += 1
           showUnknownProgress(unknownCounter)
         case Done(incomingResult) =>
-          finishProgress(if (incomingResult.isSuccess) "done" else "failed")
+          if (incomingResult.isSuccess) {
+            showSuccessfulProgress("done")
+          } else {
+            showFailedProgress(incomingResult.failed.get.toString)
+          }
+
           result = Some(incomingResult)
       }
     }
@@ -58,7 +63,12 @@ object ProgressBar {
     print(bar)
   }
 
-  def finishProgress(comment: String): Unit = {
+  def showFailedProgress(comment: String): Unit = {
+    val bar = s"[${"-" * progressWidth}] $comment"
+    println(bar)
+  }
+
+  def showSuccessfulProgress(comment: String): Unit = {
     drawProgressBar(totalStates, comment)
     println()
   }
