@@ -8,8 +8,5 @@ import org.enso.launcher.components.RuntimeVersion
 trait RuntimeReleaseProvider {
   def packageFileName(version: RuntimeVersion): String
 
-  def downloadPackage(
-    version: RuntimeVersion,
-    path: Path
-  ): TaskProgress[Unit]
+  def downloadPackage(version: RuntimeVersion, path: Path): TaskProgress[Unit]
 }

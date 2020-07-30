@@ -1,6 +1,6 @@
 package org.enso.launcher
 
-import java.io.{FileInputStream, PrintWriter}
+import java.io.{BufferedInputStream, FileInputStream, InputStream, PrintWriter}
 
 import org.apache.commons.io.FileUtils
 import java.nio.file.{Files, Path}
@@ -9,10 +9,11 @@ import org.apache.commons.compress.archivers.{ArchiveEntry, ArchiveInputStream}
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
+import org.enso.cli.{TaskProgress, TaskProgressImplementation}
 
 import scala.collection.Factory
 import scala.jdk.StreamConverters._
-import scala.util.Using
+import scala.util.{Try, Using}
 import sys.process._
 
 /**
@@ -88,22 +89,74 @@ object FileSystem {
     case object ZIP   extends ArchiveFormat
     case object TarGz extends ArchiveFormat
   }
+
+  trait ReadProgress {
+    def alreadyRead(): Long
+    def total():       Long
+  }
+
+  private class FileProgressInputStream(path: Path) extends InputStream {
+    private val size: Long      = Files.size(path)
+    private val in              = new FileInputStream(path.toFile)
+    private var bytesRead: Long = 0
+
+    private val readProgress = new ReadProgress {
+      override def alreadyRead(): Long = bytesRead
+      override def total(): Long       = size
+    }
+
+    def progress: ReadProgress = readProgress
+
+    override def available: Int =
+      in.available()
+
+    override def read: Int = {
+      bytesRead += 1
+      in.read()
+    }
+
+    override def read(b: Array[Byte]): Int = {
+      val bytes = in.read(b)
+      bytesRead += bytes
+      bytes
+    }
+
+    override def read(b: Array[Byte], off: Int, len: Int): Int = {
+      val bytes = in.read(b, off, len)
+      bytesRead += bytes
+      bytes
+    }
+
+    override def skip(n: Long): Long = {
+      val skipped = in.skip(n)
+      bytesRead += skipped
+      skipped
+    }
+
+    override def close(): Unit =
+      in.close()
+  }
+
   def withOpenArchive[R](path: Path, format: ArchiveFormat)(
-    action: ArchiveInputStream => R
-  ): R = {
-    Using(new FileInputStream(path.toFile)) { fileInputStream =>
-      format match {
-        case ArchiveFormat.ZIP =>
-          Using(new ZipArchiveInputStream(fileInputStream))(action).get
-        case ArchiveFormat.TarGz =>
-          Using(new GzipCompressorInputStream(fileInputStream)) {
-            compressorInputStream =>
-              Using(new TarArchiveInputStream(compressorInputStream))(
-                action
-              ).get
-          }.get
-      }
-    }.get
+    action: (ArchiveInputStream, ReadProgress) => R
+  ): Try[R] = {
+    Using(new FileProgressInputStream(path)) { progressInputStream =>
+      Using(new BufferedInputStream(progressInputStream)) { buffered =>
+        format match {
+          case ArchiveFormat.ZIP =>
+            Using(new ZipArchiveInputStream(buffered))(
+              action(_, progressInputStream.progress)
+            ).get
+          case ArchiveFormat.TarGz =>
+            Using(new GzipCompressorInputStream(buffered)) {
+              compressorInputStream =>
+                Using(new TarArchiveInputStream(compressorInputStream))(
+                  action(_, progressInputStream.progress)
+                ).get
+            }.get
+        }
+      }.get
+    }
   }
 
   def repl(): Unit = {
@@ -117,16 +170,17 @@ object FileSystem {
 //      ),
 //      None
 //    )
+    // "/home/radeusgd/NBO/releasesci/enso-engine-0.1.0.zip"
     extractArchive(
       Path.of(
-        "/home/radeusgd/NBO/releasesci/enso-engine-0.1.0.zip"
+        "/home/radeusgd/NBO/JVM/graalvm-ce-java11-linux-amd64-20.1.0.tar.gz"
       ),
-      ArchiveFormat.ZIP,
+      ArchiveFormat.TarGz,
       Path.of(
         "./test_archive"
       ),
       None
-    )
+    ).waitForResult(true)
   }
 
   def extractArchive(
@@ -134,21 +188,36 @@ object FileSystem {
     format: ArchiveFormat,
     destinationDirectory: Path,
     renameRootFolder: Option[String]
-  ): Unit = {
-    val _ = (destinationDirectory, renameRootFolder)
-    withOpenArchive(archivePath, format) { archive =>
-      for (entry <- ArchiveIterator(archive)) {
-        if (!archive.canReadEntryData(entry)) {
-          Logger.warn(
-            s"Cannot read ${entry.getName} from $archivePath. " +
-            s"The archive may be corrupted."
+  ): TaskProgress[Unit] = {
+    val _            = (destinationDirectory, renameRootFolder)
+    val taskProgress = new TaskProgressImplementation[Unit]
+    def runExtraction(): Unit = {
+      val result = withOpenArchive(archivePath, format) { (archive, progress) =>
+        for (entry <- ArchiveIterator(archive)) {
+          if (!archive.canReadEntryData(entry)) {
+            Logger.warn(
+              s"Cannot read ${entry.getName} from $archivePath. " +
+              s"The archive may be corrupted."
+            )
+          } else {
+            // Logger.debug(s"Extracting ${entry.getName}")
+          }
+
+          taskProgress.reportProgress(
+            progress.alreadyRead(),
+            Some(progress.total())
           )
-        } else {
-          Logger.debug(s"Extracting ${entry.getName}")
         }
       }
+      taskProgress.setComplete(result)
     }
+    val thread = new Thread(() => runExtraction())
+    thread.start()
+    taskProgress
   }
+
+  private def parseArchiveName(name: String): Path =
+    Path.of(name)
 
 //  private def resolvePathFromArchive(
 //    fileName: String,

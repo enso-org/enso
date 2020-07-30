@@ -9,34 +9,18 @@ import java.util
 import java.util.concurrent.{CompletionStage, Flow}
 
 import scala.jdk.CollectionConverters._
-import org.enso.cli.{ProgressListener, TaskProgress}
+import org.enso.cli.TaskProgressImplementation
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 
 class HTTPDownload[A] private[github] (
   client: HttpClient,
   request: HttpRequest,
   baseHandler: BodyHandler[A],
   sizeHint: Option[Long]
-) extends TaskProgress[A] {
+) extends TaskProgressImplementation[A] {
 
-  private var listeners: List[ProgressListener[A]] = Nil
-  private var result: Option[Try[A]]               = None
   start()
-
-  override def addProgressListener(
-    listener: ProgressListener[A]
-  ): Unit = {
-    this.synchronized {
-      result match {
-        case Some(value) =>
-          listener.done(value)
-        case None =>
-      }
-
-      listeners ::= listener
-    }
-  }
 
   private[this] def start(): Unit = {
     val response =
@@ -46,17 +30,6 @@ class HTTPDownload[A] private[github] (
         if (error != null) Failure(error) else Success(response.body())
       setComplete(result)
     }
-  }
-
-  private def setComplete(result: Try[A]): Unit = {
-    this.synchronized {
-      this.result = Some(result)
-      listeners.foreach(_.done(result))
-    }
-  }
-
-  private def reportProgress(done: Long, total: Option[Long]): Unit = {
-    listeners.foreach(_.progressUpdate(done, total))
   }
 
   private class ProgressHandlerWrapper(originalHandler: BodyHandler[A])

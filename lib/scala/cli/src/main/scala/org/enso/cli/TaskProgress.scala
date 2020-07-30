@@ -67,3 +67,33 @@ private class MappedTask[A, B](source: TaskProgress[A], f: A => Try[B])
         listener.done(result.flatMap(f))
     })
 }
+
+class TaskProgressImplementation[A] extends TaskProgress[A] {
+  private var listeners: List[ProgressListener[A]] = Nil
+  private var result: Option[Try[A]]               = None
+
+  override def addProgressListener(
+    listener: ProgressListener[A]
+  ): Unit = {
+    this.synchronized {
+      result match {
+        case Some(value) =>
+          listener.done(value)
+        case None =>
+      }
+
+      listeners ::= listener
+    }
+  }
+
+  def setComplete(result: Try[A]): Unit = {
+    this.synchronized {
+      this.result = Some(result)
+      listeners.foreach(_.done(result))
+    }
+  }
+
+  def reportProgress(done: Long, total: Option[Long]): Unit = {
+    listeners.foreach(_.progressUpdate(done, total))
+  }
+}
