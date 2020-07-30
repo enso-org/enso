@@ -89,13 +89,13 @@ final class ContextEventsListener(
       sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
 
     case RunExpressionUpdates if expressionUpdates.nonEmpty =>
-      val updateIds = expressionUpdates.map(_.expressionId)
+      val updatedExpressionIds = expressionUpdates.map(_.expressionId)
       repo
-        .getAllByExternalIds(updateIds)
+        .getAllByExternalIds(updatedExpressionIds)
         .map { suggestionIds =>
-          val valueUpdates = updateIds.zip(suggestionIds).flatMap {
-            case (_, Some(suggestionId)) =>
-              Some(ExpressionValueUpdate(suggestionId))
+          val valueUpdates = updatedExpressionIds.zip(suggestionIds).flatMap {
+            case (expressionId, Some(suggestionId)) =>
+              Some(ExpressionValueUpdate(expressionId, suggestionId))
             case (id, None) =>
               log.error("Unable to find suggestion with expression id: {}", id)
               None

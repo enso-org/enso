@@ -213,6 +213,9 @@ interface MethodPointer {
 
 ```typescript
 interface ExpressionValueUpdate {
+  /** The id of updated expression */
+  expressionId: ExpressionId;
+
   /** The updated suggestion id */
   suggestionId: number;
 }
@@ -271,7 +274,6 @@ The language construct that can be returned as a suggestion.
 ```typescript
 // The definition scope
 interface SuggestionEntryScope {
-
   // The start position of the definition scope
   start: Position;
   // The end position of the definition scope
@@ -279,9 +281,9 @@ interface SuggestionEntryScope {
 }
 
 // A type of suggestion entries.
-type SuggestionEntry
+type SuggestionEntry =
   // A value constructor
-  = SuggestionEntryAtom
+  | SuggestionEntryAtom
   // A method defined on a type
   | SuggestionEntryMethod
   // A function
