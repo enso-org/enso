@@ -15,9 +15,10 @@
 //! process looks like.
 
 use flexer::prelude::*;
+use flexer::group;
 use flexer::group::GroupRegistry;
 use lazy_reader::{BookmarkId, LazyReader, Reader};
-use flexer::{FlexerState, Flexer};
+use flexer::{State, Flexer};
 use lazy_reader::decoder::DecoderUTF8;
 use flexer::automata::pattern::Pattern;
 
@@ -63,32 +64,32 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     pub fn on_first_word(&mut self) {
         let str = self.current_match.clone();
         let ast = AST::Word(str);
-        self.tokens.push(ast);
+        self.output.push(ast);
         let id = self.seen_first_word_state;
-        self.begin_state(id);
+        self.push_state(id);
     }
 
     pub fn on_spaced_word(&mut self) {
         let str = self.current_match.clone();
         let ast = AST::Word(String::from(str.trim()));
-        self.tokens.push(ast);
+        self.output.push(ast);
     }
 
     pub fn on_err_suffix_first_word(&mut self) {
         let ast = AST::Unrecognised(self.current_match.clone());
-        self.tokens.push(ast);
+        self.output.push(ast);
     }
 
     pub fn on_err_suffix(&mut self) {
         self.on_err_suffix_first_word();
-        self.end_state();
+        self.pop_state();
     }
 
     pub fn on_no_err_suffix_first_word(&mut self) {}
 
     pub fn on_no_err_suffix(&mut self) {
         self.on_no_err_suffix_first_word();
-        self.end_state();
+        self.pop_state();
     }
 }
 
@@ -120,26 +121,29 @@ pub struct TestState {
     /// The registry for groups in the lexer.
     lexer_states: GroupRegistry,
     /// The initial state of the lexer.
-    initial_state: usize,
+    initial_state: group::Identifier,
     /// The state entered when the first word has been seen.
-    seen_first_word_state: usize,
+    seen_first_word_state: group::Identifier,
     /// A bookmark that is set when a match occurs, allowing for rewinding if necessary.
     matched_bookmark: BookmarkId,
+    /// The current textual match of the lexer.
+    current_match: String
 }
 
 
 // === Trait Impls ===
 
-impl FlexerState for TestState {
+impl flexer::State for TestState {
     fn new<Reader:LazyReader>(reader:&mut Reader) -> Self {
         let mut lexer_states      = GroupRegistry::default();
         let initial_state         = lexer_states.define_group("ROOT".into(),None);
         let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(),None);
         let matched_bookmark      = reader.add_bookmark();
-        Self{lexer_states,initial_state,seen_first_word_state,matched_bookmark}
+        let current_match         = default();
+        Self{lexer_states,initial_state,seen_first_word_state,matched_bookmark,current_match}
     }
 
-    fn initial_state(&self) -> usize {
+    fn initial_state(&self) -> group::Identifier {
         self.initial_state
     }
 

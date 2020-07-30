@@ -62,32 +62,32 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     pub fn on_first_word(&mut self) {
         let str = self.current_match.clone();
         let ast = AST::Word(str);
-        self.tokens.push(ast);
+        self.output.push(ast);
         let id = self.seen_first_word_state;
-        self.begin_state(id);
+        self.push_state(id);
     }
 
     pub fn on_spaced_word(&mut self) {
         let str = self.current_match.clone();
         let ast = AST::Word(String::from(str.trim()));
-        self.tokens.push(ast);
+        self.output.push(ast);
     }
 
     pub fn on_err_suffix_first_word(&mut self) {
         let ast = AST::Unrecognised(self.current_match.clone());
-        self.tokens.push(ast);
+        self.output.push(ast);
     }
 
     pub fn on_err_suffix(&mut self) {
         self.on_err_suffix_first_word();
-        self.end_state();
+        self.pop_state();
     }
 
     pub fn on_no_err_suffix_first_word(&mut self) {}
 
     pub fn on_no_err_suffix(&mut self) {
         self.on_no_err_suffix_first_word();
-        self.end_state();
+        self.pop_state();
     }
 }
 
@@ -97,31 +97,28 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     /// Executes the lexer on the input provided by the reader, resulting in a
     /// series of tokens.
-    pub fn run(&mut self) -> FlexerResult<AST> {
+    pub fn run(&mut self) -> Result<AST> {
         self.reader.advance_char();
 
-        while self.gen_run_current_state() == FlexerStageStatus::ExitSuccess {}
+        while self.gen_run_current_state() == StageStatus::ExitSuccess {}
 
-        match self.get_result() {
-            Some(res) => match self.status {
-                FlexerStageStatus::ExitFinished => FlexerResult::Success(res),
-                FlexerStageStatus::ExitFail => FlexerResult::Failure(Some(res)),
-                _ => FlexerResult::Partial(res)
+            match self.status {
+                StageStatus::ExitFinished => Result::Success(self.get_result().clone()),
+                StageStatus::ExitFail     => Result::Failure(self.get_result().clone()),
+                _                         => Result::Partial(self.get_result().clone())
             }
-            None => FlexerResult::Failure(None)
-        }
     }
 
     /// Executes the lexer in the current state.
-    fn gen_run_current_state(&mut self) -> FlexerStageStatus {
-        self.status = FlexerStageStatus::Initial;
+    fn gen_run_current_state(&mut self) -> StageStatus {
+        self.status = StageStatus::Initial;
 
         // Runs until reaching a state that no longer says to continue.
         while let Some(next_state) = self.status.continue_as() {
             self.status = self.gen_step(next_state);
 
             if self.reader.finished() {
-                self.status = FlexerStageStatus::ExitFinished
+                self.status = StageStatus::ExitFinished
             }
 
             if self.status.should_continue() {
@@ -136,8 +133,8 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     }
 
     /// The step function for the generated lexer.
-    fn gen_step(&mut self, next_state:usize) -> FlexerStageStatus {
-        let current_state = self.current_state();
+    fn gen_step(&mut self, next_state:usize) -> StageStatus {
+        let current_state:usize = self.current_state().into();
 
         // This match should be generated
         match current_state {
@@ -149,7 +146,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     // === DFA Steps ===
 
-    fn gen_dispatch_in_state_0(&mut self, new_state_index:usize) -> FlexerStageStatus {
+    fn gen_dispatch_in_state_0(&mut self, new_state_index:usize) -> StageStatus {
         match new_state_index {
             0 => self.gen_state_0_to_0(),
             1 => self.gen_state_0_to_1(),
@@ -162,78 +159,78 @@ impl<Reader:LazyReader> TestLexer<Reader> {
         }
     }
 
-    fn gen_state_0_to_0(&mut self) -> FlexerStageStatus {
+    fn gen_state_0_to_0(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            97 => FlexerStageStatus::ContinueWith(3),
-            98 => FlexerStageStatus::ContinueWith(4),
-            _  => FlexerStageStatus::ContinueWith(2)
+            97 => StageStatus::ContinueWith(3),
+            98 => StageStatus::ContinueWith(4),
+            _  => StageStatus::ContinueWith(2)
         }
     }
 
-    fn gen_state_0_to_1(&mut self) -> FlexerStageStatus {
+    fn gen_state_0_to_1(&mut self) -> StageStatus {
         self.current_match = self.reader.pop_result();
         self.gen_group_0_rule_2();
         let t = self.matched_bookmark;
         self.reader.bookmark(t);
-        FlexerStageStatus::ExitSuccess
+        StageStatus::ExitSuccess
     }
 
-    fn gen_state_0_to_2(&mut self) -> FlexerStageStatus {
+    fn gen_state_0_to_2(&mut self) -> StageStatus {
         self.current_match = self.reader.pop_result();
         self.gen_group_0_rule_3();
         let t = self.matched_bookmark;
         self.reader.bookmark(t);
-        FlexerStageStatus::ExitSuccess
+        StageStatus::ExitSuccess
     }
 
-    fn gen_state_0_to_3(&mut self) -> FlexerStageStatus {
+    fn gen_state_0_to_3(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            97 => FlexerStageStatus::ContinueWith(5),
+            97 => StageStatus::ContinueWith(5),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_0_rule_0();
                 let t = self.matched_bookmark;
                 self.reader.bookmark(t);
-                FlexerStageStatus::ExitSuccess
+                StageStatus::ExitSuccess
             }
         }
     }
 
-    fn gen_state_0_to_4(&mut self) -> FlexerStageStatus {
+    fn gen_state_0_to_4(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            98 => FlexerStageStatus::ContinueWith(6),
+            98 => StageStatus::ContinueWith(6),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_0_rule_1();
                 let t = self.matched_bookmark;
                 self.reader.bookmark(t);
-                FlexerStageStatus::ExitSuccess
+                StageStatus::ExitSuccess
             }
         }
     }
 
-    fn gen_state_0_to_5(&mut self) -> FlexerStageStatus {
+    fn gen_state_0_to_5(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            97 => FlexerStageStatus::ContinueWith(5),
+            97 => StageStatus::ContinueWith(5),
             _ => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_0_rule_0();
                 let t = self.matched_bookmark;
                 self.reader.bookmark(t);
-                FlexerStageStatus::ExitSuccess
+                StageStatus::ExitSuccess
             }
         }
     }
 
-    fn gen_state_0_to_6(&mut self) -> FlexerStageStatus {
+    fn gen_state_0_to_6(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            98 => FlexerStageStatus::ContinueWith(6),
+            98 => StageStatus::ContinueWith(6),
             _ => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_0_rule_1();
                 let t = self.matched_bookmark;
                 self.reader.bookmark(t);
-                FlexerStageStatus::ExitSuccess
+                StageStatus::ExitSuccess
             }
         }
     }
@@ -254,7 +251,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
         self.on_err_suffix_first_word()
     }
 
-    fn gen_dispatch_in_state_1(&mut self, new_state_index:usize) -> FlexerStageStatus {
+    fn gen_dispatch_in_state_1(&mut self, new_state_index:usize) -> StageStatus {
         match new_state_index {
             0 => self.gen_state_1_to_0(),
             1 => self.gen_state_1_to_1(),
@@ -268,91 +265,91 @@ impl<Reader:LazyReader> TestLexer<Reader> {
         }
     }
 
-    fn gen_state_1_to_0(&mut self) -> FlexerStageStatus {
+    fn gen_state_1_to_0(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            32 => FlexerStageStatus::ContinueWith(3),
-            _  => FlexerStageStatus::ContinueWith(2)
+            32 => StageStatus::ContinueWith(3),
+            _  => StageStatus::ContinueWith(2)
         }
     }
 
-    fn gen_state_1_to_1(&mut self) -> FlexerStageStatus {
+    fn gen_state_1_to_1(&mut self) -> StageStatus {
         self.current_match = self.reader.pop_result();
         self.gen_group_1_rule_2();
         let t = self.matched_bookmark;
         self.reader.bookmark(t);
-        FlexerStageStatus::ExitSuccess
+        StageStatus::ExitSuccess
     }
 
-    fn gen_state_1_to_2(&mut self) -> FlexerStageStatus {
+    fn gen_state_1_to_2(&mut self) -> StageStatus {
         self.current_match = self.reader.pop_result();
         self.gen_group_1_rule_3();
         let t = self.matched_bookmark;
         self.reader.bookmark(t);
-        FlexerStageStatus::ExitSuccess
+        StageStatus::ExitSuccess
     }
 
-    fn gen_state_1_to_3(&mut self) -> FlexerStageStatus {
+    fn gen_state_1_to_3(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            97 => FlexerStageStatus::ContinueWith(4),
-            98 => FlexerStageStatus::ContinueWith(5),
+            97 => StageStatus::ContinueWith(4),
+            98 => StageStatus::ContinueWith(5),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_3();
                 let t = self.matched_bookmark;
                 self.reader.bookmark(t);
-                FlexerStageStatus::ExitSuccess
+                StageStatus::ExitSuccess
             }
         }
     }
 
-    fn gen_state_1_to_4(&mut self) -> FlexerStageStatus {
+    fn gen_state_1_to_4(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            97 => FlexerStageStatus::ContinueWith(6),
+            97 => StageStatus::ContinueWith(6),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_0();
                 let t = self.matched_bookmark;
                 self.reader.bookmark(t);
-                FlexerStageStatus::ExitSuccess
+                StageStatus::ExitSuccess
             }
         }
     }
 
-    fn gen_state_1_to_5(&mut self) -> FlexerStageStatus {
+    fn gen_state_1_to_5(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            98 => FlexerStageStatus::ContinueWith(7),
+            98 => StageStatus::ContinueWith(7),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_1();
                 let t = self.matched_bookmark;
                 self.reader.bookmark(t);
-                FlexerStageStatus::ExitSuccess
+                StageStatus::ExitSuccess
             }
         }
     }
 
-    fn gen_state_1_to_6(&mut self) -> FlexerStageStatus {
+    fn gen_state_1_to_6(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            97 => FlexerStageStatus::ContinueWith(6),
+            97 => StageStatus::ContinueWith(6),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_0();
                 let t = self.matched_bookmark;
                 self.reader.bookmark(t);
-                FlexerStageStatus::ExitSuccess
+                StageStatus::ExitSuccess
             }
         }
     }
 
-    fn gen_state_1_to_7(&mut self) -> FlexerStageStatus {
+    fn gen_state_1_to_7(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            98 => FlexerStageStatus::ContinueWith(7),
+            98 => StageStatus::ContinueWith(7),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_1();
                 let t = self.matched_bookmark;
                 self.reader.bookmark(t);
-                FlexerStageStatus::ExitSuccess
+                StageStatus::ExitSuccess
             }
         }
     }
@@ -402,26 +399,29 @@ pub struct TestState {
     /// The registry for groups in the lexer.
     lexer_states: GroupRegistry,
     /// The initial state of the lexer.
-    initial_state: usize,
+    initial_state: group::Identifier,
     /// The state entered when the first word has been seen.
-    seen_first_word_state: usize,
+    seen_first_word_state: group::Identifier,
     /// A bookmark that is set when a match occurs, allowing for rewinding if necessary.
     matched_bookmark: BookmarkId,
+    /// The current textual match of the lexer.
+    current_match: String
 }
 
 
 // === Trait Impls ===
 
-impl FlexerState for TestState {
-    fn new<Reader:LazyReader>(reader: &mut Reader) -> Self {
+impl flexer::State for TestState {
+    fn new<Reader:LazyReader>(reader:&mut Reader) -> Self {
         let mut lexer_states      = GroupRegistry::default();
         let initial_state         = lexer_states.define_group("ROOT".into(),None);
         let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(),None);
         let matched_bookmark      = reader.add_bookmark();
-        Self{lexer_states,initial_state,seen_first_word_state,matched_bookmark}
+        let current_match         = default();
+        Self{lexer_states,initial_state,seen_first_word_state,matched_bookmark,current_match}
     }
 
-    fn initial_state(&self) -> usize {
+    fn initial_state(&self) -> group::Identifier {
         self.initial_state
     }
 
@@ -447,8 +447,8 @@ fn run_test_on(str:&str) -> Vec<AST> {
     let mut lexer = TestLexer::new(reader);
 
     match lexer.run() {
-        FlexerResult::Success(tokens) => tokens,
-        _ => vec![]
+        Result::Success(tokens) => tokens,
+        _                       => default()
     }
 }
 
