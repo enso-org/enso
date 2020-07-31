@@ -18,7 +18,7 @@ class ImportResolver(compiler: Compiler) {
       breakable {
         if (
           seen.contains(current) || current.getCompilationStage.isAtLeast(
-            Module.CompilationStage.IMPORTS_RESOLVED
+            Module.CompilationStage.AFTER_IMPORT_RESOLUTION
           )
         ) {
           break()
@@ -36,7 +36,7 @@ class ImportResolver(compiler: Compiler) {
         val importedModules = importedModuleNames.flatMap(compiler.getModule)
         // TODO[MK] Remove when No Implicit Prelude
         currentLocal.resolvedImports = compiler.context.getTopScope.getBuiltins.getModule :: importedModules
-        current.setCompilationStage(Module.CompilationStage.IMPORTS_RESOLVED)
+        current.setCompilationStage(Module.CompilationStage.AFTER_IMPORT_RESOLUTION)
         seen += current
         stack = importedModules ++ stack
       }

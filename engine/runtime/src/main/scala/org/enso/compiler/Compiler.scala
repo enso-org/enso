@@ -64,32 +64,29 @@ class Compiler(val context: Context) {
         module.setCompilationStage(Module.CompilationStage.AFTER_STATIC_PASSES)
       }
     }
-    // TODO[MK] Run all at once
-    requiredModules.foreach { module =>
-      val moduleContext = ModuleContext(
-        module          = module,
-        freshNameSupply = Some(freshNameSupply)
-      )
-      runErrorHandling(module.getIr, source, moduleContext)
-    }
+
+    runErrorHandling(requiredModules)
+
     requiredModules.foreach { module =>
       if (
         !module.getCompilationStage.isAtLeast(
-          Module.CompilationStage.RUNTIME_STUBS_GENERATED
+          Module.CompilationStage.AFTER_RUNTIME_STUBS
         )
       ) {
         stubsGenerator.run(module)
         module.setCompilationStage(
-          Module.CompilationStage.RUNTIME_STUBS_GENERATED
+          Module.CompilationStage.AFTER_RUNTIME_STUBS
         )
       }
     }
     requiredModules.foreach { module =>
       if (
-        !module.getCompilationStage.isAtLeast(Module.CompilationStage.COMPILED)
+        !module.getCompilationStage.isAtLeast(
+          Module.CompilationStage.AFTER_CODEGEN
+        )
       ) {
         truffleCodegen(module.getIr, source, module.getScope)
-        module.setCompilationStage(Module.CompilationStage.COMPILED)
+        module.setCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
       }
     }
   }
@@ -105,15 +102,30 @@ class Compiler(val context: Context) {
     val expr             = generateIR(parsedAST)
     val discoveredModule = recognizeBindings(expr, moduleContext)
     module.setIr(discoveredModule)
-    module.setCompilationStage(Module.CompilationStage.PARSED)
+    module.setCompilationStage(Module.CompilationStage.AFTER_PARSING)
   }
 
+  /**
+    * Gets a module definition by name.
+    *
+    * @param name the name of module to look up
+    * @return the module corresponding to the provided name, if exists
+    */
   def getModule(name: String): Option[Module] = {
     context.getTopScope.getModule(name).toScala
   }
 
+  /**
+    * Ensures the passed module is in at least the parsed compilation stage.
+    *
+    * @param module the module to ensure is parsed.
+    */
   def ensureParsed(module: Module): Unit = {
-    if (!module.getCompilationStage.isAtLeast(Module.CompilationStage.PARSED)) {
+    if (
+      !module.getCompilationStage.isAtLeast(
+        Module.CompilationStage.AFTER_PARSING
+      )
+    ) {
       parseModule(module)
     }
   }
@@ -164,7 +176,7 @@ class Compiler(val context: Context) {
       .getOrElse(throw new ModuleDoesNotExistException(qualifiedName))
     if (
       !module.getCompilationStage.isAtLeast(
-        Module.CompilationStage.RUNTIME_STUBS_GENERATED
+        Module.CompilationStage.AFTER_RUNTIME_STUBS
       )
     ) {
       throw new CompilerError(
@@ -270,32 +282,57 @@ class Compiler(val context: Context) {
           "No diagnostics metadata right after the gathering pass."
         )
         .diagnostics
-      reportDiagnostics(errors, source)
+      if (reportDiagnostics(errors, source)) {
+        throw new CompilationAbortedException
+      }
     }
 
   /**
     * Runs the strict error handling mechanism (if enabled in the language
     * context) for the module-level compiler flow.
     *
-    * @param ir the IR after compilation passes.
-    * @param source the original source code.
-    * @param moduleContext the module context
+    * @param modules the modules to check against errors
     */
   def runErrorHandling(
-    ir: IR.Module,
-    source: Source,
-    moduleContext: ModuleContext
-  ): Unit =
+    modules: List[Module]
+  ): Unit = {
     if (context.isStrictErrors) {
-      val errors = GatherDiagnostics
-        .runModule(ir, moduleContext)
-        .unsafeGetMetadata(
-          GatherDiagnostics,
-          "No diagnostics metadata right after the gathering pass."
-        )
-        .diagnostics
-      reportDiagnostics(errors, source)
+      val diagnostics = modules.map { module =>
+        val errors = GatherDiagnostics
+          .runModule(module.getIr, new ModuleContext(module))
+          .unsafeGetMetadata(
+            GatherDiagnostics,
+            "No diagnostics metadata right after the gathering pass."
+          )
+          .diagnostics
+        (module, errors)
+      }
+      if (reportDiagnostics(diagnostics)) {
+        throw new CompilationAbortedException
+      }
     }
+  }
+
+  /**
+    * Reports diagnostics from multiple modules.
+    *
+    * @param diagnostics the mapping between modules and existing diagnostics.
+    * @return whether any errors were encountered.
+    */
+  def reportDiagnostics(
+    diagnostics: List[(Module, List[IR.Diagnostic])]
+  ): Boolean = {
+    val results = diagnostics.map {
+      case (mod, diags) =>
+        if (diags.nonEmpty) {
+          context.getOut.println(s"In module ${mod.getName}:")
+          reportDiagnostics(diags, mod.getSource)
+        } else {
+          false
+        }
+    }
+    results.exists(r => r)
+  }
 
   /**
     * Reports compilation diagnostics to the standard output and throws an
@@ -303,11 +340,12 @@ class Compiler(val context: Context) {
     *
     * @param diagnostics all the diagnostics found in the program IR.
     * @param source the original source code.
+    * @return whether any errors were encountered.
     */
   def reportDiagnostics(
     diagnostics: List[IR.Diagnostic],
     source: Source
-  ): Unit = {
+  ): Boolean = {
     val errors   = diagnostics.collect { case e: IR.Error => e }
     val warnings = diagnostics.collect { case w: IR.Warning => w }
 
@@ -323,7 +361,9 @@ class Compiler(val context: Context) {
       errors.foreach { error =>
         context.getOut.println(formatDiagnostic(error, source))
       }
-      throw new CompilationAbortedException
+      true
+    } else {
+      false
     }
   }
 
