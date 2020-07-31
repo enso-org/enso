@@ -323,7 +323,6 @@ import java.util.UUID
 
 
 object Ast {
-  sealed trait Ast
 
   type A[X] = B[X, Y]
 

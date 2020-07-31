@@ -13,8 +13,9 @@ object GenerateAST {
 
   lazy val task = Def.task {
     val log    = state.value.log
-    val source = file("lib/rust/ast/src/ast.rs")
-    val output = file("lib/scala/ast/src/main/scala/org/enso/ast/Ast.scala")
+    val lib    = baseDirectory.value.getParentFile.getParentFile / "lib"
+    val source = lib / "rust/ast/src/ast.rs"
+    val output = lib / "scala/ast/src/main/scala/org/enso/ast/Ast.scala"
     val cache  = streams.value.cacheStoreFactory.make("ast_source")
 
     verifyRustVersion(rustVersion.value) match {
