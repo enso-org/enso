@@ -2,9 +2,14 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies}
+import org.enso.compiler.pass.desugar.{
+  ComplexType,
+  FunctionBinding,
+  GenerateMethodBodies
+}
 import org.enso.compiler.pass.resolve.{MethodDefinitions, Patterns}
 
 /**
