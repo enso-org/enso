@@ -51,7 +51,7 @@ object MethodDefinitionResolution extends IRPass {
           case tp @ IR.Name.Qualified(List(item), _, _, _) =>
             availableSymbolsMap.resolveUppercaseName(item.name) match {
               case Left(err) =>
-                IR.Error.Resolution(tp, IR.Error.Resolution.ResolverError(err))
+                IR.Error.Resolution(tp, IR.Error.Resolution.Reason(err))
               case Right(candidate) =>
                 tp.updateMetadata(this -->> Resolution(candidate))
             }

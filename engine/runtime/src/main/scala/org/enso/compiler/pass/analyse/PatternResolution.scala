@@ -56,7 +56,7 @@ object PatternResolution extends IRPass {
                     case Left(err) =>
                       IR.Error.Resolution(
                         consPat.constructor,
-                        IR.Error.Resolution.ResolverError(err)
+                        IR.Error.Resolution.Reason(err)
                       )
                     case Right(value) =>
                       lit.updateMetadata(

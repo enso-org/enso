@@ -153,7 +153,7 @@ class PassManager(
     }
   }
 
-  /** Determines whetehr the run at index `indexOfPassInGroup` is the last run
+  /** Determines whether the run at index `indexOfPassInGroup` is the last run
     * of that pass in the overall pass ordering.
     *
     * @param indexOfPassInGroup the index of `pass` in `passGroup`
