@@ -666,20 +666,17 @@ impl OutputPorts {
     /// Set the pattern for which output ports should be presented. Triggers a rebinding of the
     /// internal FRP and updates the shape appearance.
     pub fn set_pattern_span_tree(&self, pattern_span_tree:&SpanTree) {
-
         // === Update data / shapes ===
 
         // We want to be able to match each `PortId` to a `Crumb` from the expression, including
         // the root.
-        let number_of_ports     = 1 + pattern_span_tree.root_ref().leaf_iter().count() as u32;
+        let number_of_ports     = pattern_span_tree.root_ref().leaf_iter().count() as u32;
         let expression_nodes    = pattern_span_tree.root_ref().leaf_iter();
         // Create a `PortId` for every leaf and store them in tuples.
         let port_ids_for_crumbs = expression_nodes.enumerate().map(|(index, node)| {
-            (PortId::new(index + 1), node.crumbs)
+            (PortId::new(index), node.crumbs)
         });
-        let mut id_map = HashMap::<PortId,span_tree::Crumbs>::from_iter(port_ids_for_crumbs);
-        // Also add the root node.
-        id_map.insert(PortId::new(0), pattern_span_tree.root_ref().crumbs);
+        let id_map = HashMap::<PortId,span_tree::Crumbs>::from_iter(port_ids_for_crumbs);
 
         let id_map = id_map;
         *self.id_map.borrow_mut() = id_map;
@@ -697,7 +694,7 @@ impl OutputPorts {
         const TWEEN_END_VALUE:f32 = 1.0;
 
         let delay_show = &self.delay_show;
-        let delay_hide = &self.delay_show;
+        let delay_hide = &self.delay_hide;
 
         let mouse_down = frp.on_port_mouse_down.clone_ref();
         let mouse_over = frp.on_port_mouse_over.clone_ref();
