@@ -15,12 +15,12 @@ structured and how it should behave.
 
 - [Universal Launcher](#universal-launcher)
 - [Enso Distribution Layout](#enso-distribution-layout)
-    - [Portable Enso Distribution Layout](#portable-enso-distribution-layout)
-    - [Installed Enso Distribution Layout](#installed-enso-distribution-layout)
-    - [Installing from a Portable Distribution](#installing-from-a-portable-distribution)
+  - [Portable Enso Distribution Layout](#portable-enso-distribution-layout)
+  - [Installed Enso Distribution Layout](#installed-enso-distribution-layout)
+  - [Installing from a Portable Distribution](#installing-from-a-portable-distribution)
 - [Layout of an Enso Version Package](#layout-of-an-enso-version-package)
-    - [Standard Library](#standard-library)
-    - [Resolvers](#resolvers)
+  - [Standard Library](#standard-library)
+  - [Resolvers](#resolvers)
 
 <!-- /MarkdownTOC -->
 
