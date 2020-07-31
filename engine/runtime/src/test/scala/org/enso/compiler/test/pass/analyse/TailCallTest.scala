@@ -17,21 +17,24 @@ class TailCallTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val modCtx: ModuleContext = buildModuleContext(
-    freshNameSupply = Some(new FreshNameSupply)
-  )
+  def mkModuleContext: ModuleContext =
+    buildModuleContext(
+      freshNameSupply = Some(new FreshNameSupply)
+    )
 
-  val tailCtx: InlineContext = buildInlineContext(
-    localScope       = Some(LocalScope.root),
-    isInTailPosition = Some(true),
-    freshNameSupply  = Some(new FreshNameSupply)
-  )
+  def mkTailContext: InlineContext =
+    buildInlineContext(
+      localScope       = Some(LocalScope.root),
+      isInTailPosition = Some(true),
+      freshNameSupply  = Some(new FreshNameSupply)
+    )
 
-  val noTailCtx: InlineContext = buildInlineContext(
-    localScope       = Some(LocalScope.root),
-    isInTailPosition = Some(false),
-    freshNameSupply  = Some(new FreshNameSupply)
-  )
+  def mkNoTailContext: InlineContext =
+    buildInlineContext(
+      localScope       = Some(LocalScope.root),
+      isInTailPosition = Some(false),
+      freshNameSupply  = Some(new FreshNameSupply)
+    )
 
   val passes = new Passes
 
@@ -80,7 +83,7 @@ class TailCallTest extends CompilerTest {
   // === The Tests ============================================================
 
   "Tail call analysis on modules" should {
-    implicit val ctx: ModuleContext = modCtx
+    implicit val ctx: ModuleContext = mkModuleContext
 
     val ir =
       """
@@ -112,14 +115,14 @@ class TailCallTest extends CompilerTest {
         |""".stripMargin
 
     "mark the expression as tail if the context requires it" in {
-      implicit val ctx: InlineContext = tailCtx
+      implicit val ctx: InlineContext = mkTailContext
       val ir                          = code.preprocessExpression.get.analyse
 
       ir.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
     }
 
     "not mark the expression as tail if the context doesn't require it" in {
-      implicit val ctx: InlineContext = noTailCtx
+      implicit val ctx: InlineContext = mkNoTailContext
       val ir                          = code.preprocessExpression.get.analyse
 
       ir.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
@@ -127,7 +130,7 @@ class TailCallTest extends CompilerTest {
   }
 
   "Tail call analysis on functions" should {
-    implicit val ctx: InlineContext = tailCtx
+    implicit val ctx: InlineContext = mkTailContext
 
     val ir =
       """
@@ -157,7 +160,7 @@ class TailCallTest extends CompilerTest {
 
   "Tail call analysis on case expressions" should {
     "not mark any portion of the branch functions as tail by default" in {
-      implicit val ctx: ModuleContext = modCtx
+      implicit val ctx: ModuleContext = mkModuleContext
 
       val ir =
         """
@@ -196,7 +199,7 @@ class TailCallTest extends CompilerTest {
     }
 
     "only mark the branches as tail if the expression is in tail position" in {
-      implicit val ctx: ModuleContext = modCtx
+      implicit val ctx: ModuleContext = mkModuleContext
 
       val ir =
         """
@@ -230,7 +233,7 @@ class TailCallTest extends CompilerTest {
     }
 
     "mark patters and pattern elements as not tail" in {
-      implicit val ctx: InlineContext = tailCtx
+      implicit val ctx: InlineContext = mkTailContext
 
       val ir =
         """
@@ -260,7 +263,7 @@ class TailCallTest extends CompilerTest {
   }
 
   "Tail call analysis on function calls" should {
-    implicit val ctx: ModuleContext = modCtx
+    implicit val ctx: ModuleContext = mkModuleContext
 
     val tailCall =
       """
@@ -322,7 +325,7 @@ class TailCallTest extends CompilerTest {
   }
 
   "Tail call analysis on blocks" should {
-    implicit val ctx: ModuleContext = modCtx
+    implicit val ctx: ModuleContext = mkModuleContext
 
     val ir =
       """

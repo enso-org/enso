@@ -1,26 +1,27 @@
-package org.enso.compiler.test.pass.analyse
+package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.Cons
-import org.enso.compiler.pass.analyse.MethodDefinitionResolution
+import org.enso.compiler.pass.resolve.MethodDefinitions
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
-class MethodDefinitionResolutionTest extends CompilerTest {
+class MethodDefinitionsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val modCtx: ModuleContext = buildModuleContext(
-    freshNameSupply = Some(new FreshNameSupply)
-  )
+  def mkModuleContext: ModuleContext =
+    buildModuleContext(
+      freshNameSupply = Some(new FreshNameSupply)
+    )
 
   val passes = new Passes
 
   val precursorPasses: PassGroup =
-    passes.getPrecursors(MethodDefinitionResolution).get
+    passes.getPrecursors(MethodDefinitions).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
@@ -39,14 +40,14 @@ class MethodDefinitionResolutionTest extends CompilerTest {
       * @return [[ir]], with tail call analysis metadata attached
       */
     def analyse(implicit context: ModuleContext) = {
-      MethodDefinitionResolution.runModule(ir, context)
+      MethodDefinitions.runModule(ir, context)
     }
   }
 
   // === The Tests ============================================================
 
   "Method definition resolution" should {
-    implicit val ctx: ModuleContext = modCtx
+    implicit val ctx: ModuleContext = mkModuleContext
 
     val ir =
       """
@@ -66,27 +67,30 @@ class MethodDefinitionResolutionTest extends CompilerTest {
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
         .typePointer
-        .getMetadata(MethodDefinitionResolution) shouldEqual Some(
+        .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
-          BindingsMap.ResolvedConstructor(modCtx.module, Cons("Foo", 3))
+          BindingsMap.ResolvedConstructor(
+            mkModuleContext.module,
+            Cons("Foo", 3)
+          )
         )
       )
       ir.bindings(2)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
         .typePointer
-        .getMetadata(MethodDefinitionResolution) shouldEqual Some(
+        .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
-          BindingsMap.ResolvedModule(modCtx.module)
+          BindingsMap.ResolvedModule(mkModuleContext.module)
         )
       )
       ir.bindings(3)
         .asInstanceOf[IR.Module.Scope.Definition.Method.Explicit]
         .methodReference
         .typePointer
-        .getMetadata(MethodDefinitionResolution) shouldEqual Some(
+        .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
-          BindingsMap.ResolvedModule(modCtx.module)
+          BindingsMap.ResolvedModule(mkModuleContext.module)
         )
       )
       ir.bindings(4)

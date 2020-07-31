@@ -1,29 +1,25 @@
-package org.enso.compiler.pass.analyse
+package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.IRPass
-import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
-import org.enso.compiler.pass.desugar.{
-  ComplexType,
-  FunctionBinding,
-  GenerateMethodBodies
-}
+import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.BindingAnalysis
+import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies}
 
 /**
   * Resolves the correct `this` argument type for methods definitions
   * and stores the resolution in the method's metadata.
   */
-case object MethodDefinitionResolution extends IRPass {
+case object MethodDefinitions extends IRPass {
 
   override type Metadata = BindingsMap.Resolution
 
   override type Config = IRPass.Configuration.Default
 
   override val precursorPasses: Seq[IRPass] =
-    List(ComplexType, FunctionBinding, GenerateMethodBodies, BindingResolution)
+    List(ComplexType, FunctionBinding, GenerateMethodBodies, BindingAnalysis)
 
   override val invalidatedPasses: Seq[IRPass] = List()
 
@@ -41,7 +37,7 @@ case object MethodDefinitionResolution extends IRPass {
     moduleContext: ModuleContext
   ): IR.Module = {
     val availableSymbolsMap = ir.unsafeGetMetadata(
-      BindingResolution,
+      BindingAnalysis,
       "MethodDefinitionResolution is being run before BindingResolution"
     )
     val newDefs = ir.bindings.map {
@@ -66,7 +62,6 @@ case object MethodDefinitionResolution extends IRPass {
             throw new CompilerError(
               "Unexpected kind of name for method reference"
             )
-
         }
         val resolvedMethodRef = methodRef.copy(typePointer = resolvedTypeRef)
         val resolvedMethod    = method.copy(methodReference = resolvedMethodRef)

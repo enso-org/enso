@@ -1,11 +1,12 @@
 package org.enso.compiler.data
 
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.BindingResolution
+import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
 /**
   * A utility structure for resolving symbols in a given module.
+  *
   * @param types the types defined in the current module
   * @param currentModule the module holding these bindings
   */
@@ -52,7 +53,7 @@ case class BindingsMap(
     resolvedImports
       .map { mod =>
         mod.getIr.unsafeGetMetadata(
-          BindingResolution,
+          BindingAnalysis,
           "Wrong pass ordering. Running resolution on an unparsed module"
         )
       }
@@ -71,6 +72,7 @@ case class BindingsMap(
 
   /**
     * Resolves a name in the context of current module.
+    *
     * @param name the name to resolve.
     * @return a resolution for [[name]] or an error, if the name could not be
     *         resolved.
@@ -107,6 +109,7 @@ object BindingsMap {
 
   /**
     * A representation of a name being resolved to a constructor.
+    *
     * @param definitionModule the module the constructor is defined in.
     * @param cons a representation of the constructor.
     */
@@ -115,6 +118,7 @@ object BindingsMap {
 
   /**
     * A representation of a name being resolved to a module.
+    *
     * @param module the module the name resolved to.
     */
   case class ResolvedModule(module: Module) extends ResolvedName
@@ -126,6 +130,7 @@ object BindingsMap {
 
   /**
     * A representation of a resolution error due to symbol ambiguity.
+    *
     * @param candidates all the possible resolutions for the name.
     */
   case class ResolutionAmbiguous(candidates: List[ResolvedName])

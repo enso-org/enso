@@ -1,7 +1,7 @@
 package org.enso.compiler.codegen
 
+import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
-import org.enso.compiler.pass.analyse.BindingResolution
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
 
 /**
@@ -9,7 +9,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor
   * [[IrToTruffle the code generator]] to refer to constructors that are not
   * fully generated yet.
   */
-class TruffleStubsGenerator() {
+class RuntimeStubsGenerator() {
 
   /**
     * Runs the stage on the given module.
@@ -20,7 +20,7 @@ class TruffleStubsGenerator() {
     val ir    = module.getIr
     val scope = module.getScope
     val localBindings = ir.unsafeGetMetadata(
-      BindingResolution,
+      BindingAnalysis,
       "Non-parsed module used in stubs generator"
     )
     localBindings.types.foreach { tp =>

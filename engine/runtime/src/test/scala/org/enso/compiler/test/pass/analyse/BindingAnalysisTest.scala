@@ -5,22 +5,22 @@ import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.Cons
-import org.enso.compiler.pass.analyse.BindingResolution
-
+import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
-class BindingResolutionTest extends CompilerTest {
+class BindingAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val modCtx: ModuleContext = buildModuleContext(
-    freshNameSupply = Some(new FreshNameSupply)
-  )
+  def mkModuleContext: ModuleContext =
+    buildModuleContext(
+      freshNameSupply = Some(new FreshNameSupply)
+    )
 
   val passes = new Passes
 
-  val precursorPasses: PassGroup = passes.getPrecursors(BindingResolution).get
+  val precursorPasses: PassGroup = passes.getPrecursors(BindingAnalysis).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
@@ -39,30 +39,30 @@ class BindingResolutionTest extends CompilerTest {
       * @return [[ir]], with tail call analysis metadata attached
       */
     def analyse(implicit context: ModuleContext) = {
-      BindingResolution.runModule(ir, context)
+      BindingAnalysis.runModule(ir, context)
     }
   }
 
   // === The Tests ============================================================
 
   "Module binding resolution" should {
-    implicit val ctx: ModuleContext = modCtx
+    implicit val ctx: ModuleContext = mkModuleContext
 
     val ir =
       """
         |type Foo a b c
         |type Bar
         |type Baz x y
-        | 
+        |
         |Baz.foo = 123
         |Bar.baz = Baz 1 2 . foo
         |""".stripMargin.preprocessModule.analyse
 
     "discover all atoms in a module" in {
-      ir.getMetadata(BindingResolution) shouldEqual Some(
+      ir.getMetadata(BindingAnalysis) shouldEqual Some(
         BindingsMap(
           List(Cons("Foo", 3), Cons("Bar", 0), Cons("Baz", 2)),
-          modCtx.module
+          mkModuleContext.module
         )
       )
     }

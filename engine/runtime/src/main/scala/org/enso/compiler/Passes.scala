@@ -25,13 +25,13 @@ class Passes(passes: Option[List[PassGroup]] = None) {
       ComplexType,
       FunctionBinding,
       GenerateMethodBodies,
-      BindingResolution
+      BindingAnalysis
     )
   )
 
   val functionBodyPasses = new PassGroup(
     List(
-      MethodDefinitionResolution,
+      MethodDefinitions,
       SectionsToBinOp,
       OperatorToFunction,
       LambdaShorthandToLambda,
@@ -51,7 +51,7 @@ class Passes(passes: Option[List[PassGroup]] = None) {
       AliasAnalysis,
       ApplicationSaturation,
       TailCall,
-      PatternResolution,
+      Patterns,
       AliasAnalysis,
       DataflowAnalysis,
       CachePreferenceAnalysis,

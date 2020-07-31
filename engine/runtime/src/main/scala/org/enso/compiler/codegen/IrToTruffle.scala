@@ -12,11 +12,10 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
-  MethodDefinitionResolution,
-  PatternResolution,
   TailCall
 }
 import org.enso.compiler.pass.optimise.ApplicationSaturation
+import org.enso.compiler.pass.resolve.{MethodDefinitions, Patterns}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -204,7 +203,7 @@ class IrToTruffle(
 
       val consOpt =
         methodDef.methodReference.typePointer
-          .getMetadata(MethodDefinitionResolution)
+          .getMetadata(MethodDefinitions)
           .map {
             case BindingsMap.Resolution(BindingsMap.ResolvedModule(module)) =>
               module.getScope.getAssociatedType
@@ -543,7 +542,7 @@ class IrToTruffle(
             case err: IR.Error.Resolution =>
               Left(BadPatternMatch.NonVisibleConstructor(err.name))
             case _ =>
-              constructor.getMetadata(PatternResolution) match {
+              constructor.getMetadata(Patterns) match {
                 case None =>
                   Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
                 case Some(

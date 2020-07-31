@@ -210,6 +210,13 @@ trait CompilerRunner {
     }
   }
 
+  /**
+    * Builds a module context with a mocked module for testing purposes.
+    *
+    * @param freshNameSupply the fresh name supply to use in tests.
+    * @param passConfiguration any additional pass configuration.
+    * @return an instance of module context.
+    */
   def buildModuleContext(
     freshNameSupply: Option[FreshNameSupply]     = None,
     passConfiguration: Option[PassConfiguration] = None
@@ -221,6 +228,16 @@ trait CompilerRunner {
     )
   }
 
+  /**
+    * Builds an inline context with a mocked module for testing purposes.
+    *
+    * @param localScope the local scope for variable resolution.
+    * @param isInTailPosition whether the expression is being evaluated in
+    *                         a tail position.
+    * @param freshNameSupply the fresh name supply to use for name generation.
+    * @param passConfiguration any additional pass configuration.
+    * @return an instance of inline context.
+    */
   def buildInlineContext(
     localScope: Option[LocalScope]               = None,
     isInTailPosition: Option[Boolean]            = None,
@@ -228,7 +245,7 @@ trait CompilerRunner {
     passConfiguration: Option[PassConfiguration] = None
   ): InlineContext = {
     val mod = Module.empty(QualifiedName.simpleName("Test_Module"))
-    mod.buildIrStub()
+    mod.unsafeBuildIrStub()
     InlineContext(
       module            = mod,
       freshNameSupply   = freshNameSupply,

@@ -3,7 +3,7 @@ package org.enso.compiler
 import java.io.StringReader
 
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.codegen.{AstToIr, IrToTruffle, TruffleStubsGenerator}
+import org.enso.compiler.codegen.{AstToIr, IrToTruffle, RuntimeStubsGenerator}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Expression
@@ -33,8 +33,8 @@ class Compiler(val context: Context) {
   private val passes: Passes                   = new Passes
   private val passManager: PassManager         = passes.passManager
   private val importResolver: ImportResolver   = new ImportResolver(this)
-  private val stubsGenerator: TruffleStubsGenerator =
-    new TruffleStubsGenerator()
+  private val stubsGenerator: RuntimeStubsGenerator =
+    new RuntimeStubsGenerator()
 
   /**
     * Processes the provided language sources, registering any bindings in the
@@ -60,8 +60,10 @@ class Compiler(val context: Context) {
           freshNameSupply = Some(freshNameSupply)
         )
         val compilerOutput = runCompilerPhases(module.getIr, moduleContext)
-        module.setIr(compilerOutput)
-        module.setCompilationStage(Module.CompilationStage.AFTER_STATIC_PASSES)
+        module.unsafeSetIr(compilerOutput)
+        module.unsafeSetCompilationStage(
+          Module.CompilationStage.AFTER_STATIC_PASSES
+        )
       }
     }
 
@@ -74,7 +76,7 @@ class Compiler(val context: Context) {
         )
       ) {
         stubsGenerator.run(module)
-        module.setCompilationStage(
+        module.unsafeSetCompilationStage(
           Module.CompilationStage.AFTER_RUNTIME_STUBS
         )
       }
@@ -86,7 +88,7 @@ class Compiler(val context: Context) {
         )
       ) {
         truffleCodegen(module.getIr, source, module.getScope)
-        module.setCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
+        module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_CODEGEN)
       }
     }
   }
@@ -101,8 +103,8 @@ class Compiler(val context: Context) {
     val parsedAST        = parse(module.getSource)
     val expr             = generateIR(parsedAST)
     val discoveredModule = recognizeBindings(expr, moduleContext)
-    module.setIr(discoveredModule)
-    module.setCompilationStage(Module.CompilationStage.AFTER_PARSING)
+    module.unsafeSetIr(discoveredModule)
+    module.unsafeSetCompilationStage(Module.CompilationStage.AFTER_PARSING)
   }
 
   /**

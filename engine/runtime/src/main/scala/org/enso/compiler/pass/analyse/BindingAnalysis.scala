@@ -2,20 +2,16 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.IRPass
-import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.pass.desugar.{
-  ComplexType,
-  FunctionBinding,
-  GenerateMethodBodies
-}
+import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies}
+import org.enso.compiler.pass.resolve.{MethodDefinitions, Patterns}
 
 /**
   * Recognizes all defined bindings in the current module and constructs
-  * a mapping data structure, that can later be used for symbol resolution.
+  * a mapping data structure that can later be used for symbol resolution.
   */
-case object BindingResolution extends IRPass {
+case object BindingAnalysis extends IRPass {
 
   override type Metadata = BindingsMap
 
@@ -28,7 +24,7 @@ case object BindingResolution extends IRPass {
 
   /** The passes that are invalidated by running this pass. */
   override val invalidatedPasses: Seq[IRPass] =
-    Seq(MethodDefinitionResolution, PatternResolution)
+    Seq(MethodDefinitions, Patterns)
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.

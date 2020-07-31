@@ -1,22 +1,22 @@
-package org.enso.compiler.pass.analyse
+package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.IRPass
-import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.compiler.pass.desugar.{GenerateMethodBodies, NestedPatternMatch}
 
 /**
   * Resolves constructors in pattern matches and validates their arity.
   */
-object PatternResolution extends IRPass {
+object Patterns extends IRPass {
 
   override type Metadata = BindingsMap.Resolution
   override type Config   = IRPass.Configuration.Default
 
   override val precursorPasses: Seq[IRPass] =
-    Seq(NestedPatternMatch, GenerateMethodBodies, BindingResolution)
+    Seq(NestedPatternMatch, GenerateMethodBodies, BindingAnalysis)
   override val invalidatedPasses: Seq[IRPass] = Seq(AliasAnalysis)
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -33,10 +33,30 @@ object PatternResolution extends IRPass {
     moduleContext: ModuleContext
   ): IR.Module = {
     val bindings = ir.unsafeGetMetadata(
-      BindingResolution,
+      BindingAnalysis,
       "Binding resolution was not run before pattern resolution"
     )
     ir.mapExpressions(doExpression(_, bindings))
+  }
+
+  /** Executes the pass on the provided `ir`, and returns a possibly transformed
+    * or annotated version of `ir` in an inline context.
+    *
+    * @param ir            the Enso IR to process
+    * @param inlineContext a context object that contains the information needed
+    *                      for inline evaluation
+    * @return `ir`, possibly having made transformations or annotations to that
+    *         IR.
+    */
+  override def runExpression(
+    ir: IR.Expression,
+    inlineContext: InlineContext
+  ): IR.Expression = {
+    val bindings = inlineContext.module.getIr.unsafeGetMetadata(
+      BindingAnalysis,
+      "Binding resolution was not run before pattern resolution"
+    )
+    doExpression(ir, bindings)
   }
 
   private def doExpression(
@@ -97,25 +117,5 @@ object PatternResolution extends IRPass {
         caseExpr.copy(branches = newBranches)
 
     }
-  }
-
-  /** Executes the pass on the provided `ir`, and returns a possibly transformed
-    * or annotated version of `ir` in an inline context.
-    *
-    * @param ir            the Enso IR to process
-    * @param inlineContext a context object that contains the information needed
-    *                      for inline evaluation
-    * @return `ir`, possibly having made transformations or annotations to that
-    *         IR.
-    */
-  override def runExpression(
-    ir: IR.Expression,
-    inlineContext: InlineContext
-  ): IR.Expression = {
-    val bindings = inlineContext.module.getIr.unsafeGetMetadata(
-      BindingResolution,
-      "Binding resolution was not run before pattern resolution"
-    )
-    doExpression(ir, bindings)
   }
 }

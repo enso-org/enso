@@ -2,10 +2,10 @@ package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.analyse.BindingResolution
+import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
-import util.control.Breaks._
 
+import util.control.Breaks._
 import scala.collection.mutable
 
 /**
@@ -13,10 +13,9 @@ import scala.collection.mutable
   * collects all modules that are reachable from it.
   *
   * Each of the reachable modules will be parsed and will have imported modules
-  * injected into its metadata. In effect, after running this, every module
-  * that could ever be necessary for the entry point compilation will be
-  * brought to at least the [[Module.CompilationStage.AFTER_IMPORT_RESOLUTION]]
-  * stage.
+  * injected into its metadata. In effect, running this will bring every module
+  * that could ever be necessary for the entry point compilation to at least
+  * the [[Module.CompilationStage.AFTER_IMPORT_RESOLUTION]] stage.
   *
   * @param compiler the compiler instance for the compiling context.
   */
@@ -46,7 +45,7 @@ class ImportResolver(compiler: Compiler) {
         compiler.ensureParsed(current)
         val ir = current.getIr
         val currentLocal = ir.unsafeGetMetadata(
-          BindingResolution,
+          BindingAnalysis,
           "Non-parsed module used in ImportResolver"
         )
         val importedModuleNames = ir.imports.collect {
@@ -56,7 +55,7 @@ class ImportResolver(compiler: Compiler) {
         // TODO[MK] Remove when No Implicit Prelude
         currentLocal.resolvedImports =
           compiler.context.getTopScope.getBuiltins.getModule :: importedModules
-        current.setCompilationStage(
+        current.unsafeSetCompilationStage(
           Module.CompilationStage.AFTER_IMPORT_RESOLUTION
         )
         seen += current

@@ -250,7 +250,7 @@ public class Module implements TruffleObject {
    *
    * @param compilationStage the new compilation stage for the module.
    */
-  public void setCompilationStage(CompilationStage compilationStage) {
+  public void unsafeSetCompilationStage(CompilationStage compilationStage) {
     this.compilationStage = compilationStage;
   }
 
@@ -258,12 +258,12 @@ public class Module implements TruffleObject {
    * Sets the IR for this module.
    *
    * <p>Note that the IR should correspond to the current {@link
-   * #setCompilationStage(CompilationStage) compilation stage} and should only be set by the {@link
-   * org.enso.compiler.Compiler}.
+   * #unsafeSetCompilationStage(CompilationStage) compilation stage} and should only be set by the
+   * {@link org.enso.compiler.Compiler}.
    *
    * @param ir the new IR for the module.
    */
-  public void setIr(IR.Module ir) {
+  public void unsafeSetIr(IR.Module ir) {
     this.ir = ir;
   }
 
@@ -301,7 +301,7 @@ public class Module implements TruffleObject {
    *
    * <p>Should only be used for source-less modules (e.g. {@link Builtins}).
    */
-  public void buildIrStub() {
+  public void unsafeBuildIrStub() {
     ir = StubIrBuilder.build(this);
     compilationStage = CompilationStage.AFTER_CODEGEN;
   }

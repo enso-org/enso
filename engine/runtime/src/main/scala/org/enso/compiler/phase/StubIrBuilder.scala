@@ -4,7 +4,7 @@ import org.enso.compiler.core.IR
 import org.enso.interpreter.runtime.Module
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.pass.analyse.BindingResolution
+import org.enso.compiler.pass.analyse.BindingAnalysis
 
 import scala.jdk.CollectionConverters._
 
@@ -31,6 +31,6 @@ object StubIrBuilder {
       definedConstructors,
       module
     )
-    ir.updateMetadata(BindingResolution -->> meta)
+    ir.updateMetadata(BindingAnalysis -->> meta)
   }
 }

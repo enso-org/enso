@@ -1,4 +1,4 @@
-package org.enso.compiler.test.pass.analyse
+package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
@@ -9,23 +9,25 @@ import org.enso.compiler.data.BindingsMap.{
   ResolvedConstructor
 }
 import org.enso.compiler.pass.PassConfiguration.ToPair
-import org.enso.compiler.pass.analyse.{AliasAnalysis, PatternResolution}
+import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.ApplicationSaturation
+import org.enso.compiler.pass.resolve.Patterns
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
-class PatternResolutionTest extends CompilerTest {
+class PatternsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val modCtx: ModuleContext = buildModuleContext(
-    freshNameSupply = Some(new FreshNameSupply)
-  )
+  def mkModuleContext: ModuleContext =
+    buildModuleContext(
+      freshNameSupply = Some(new FreshNameSupply)
+    )
 
   val passes = new Passes
 
   val precursorPasses: PassGroup =
-    passes.getPrecursors(PatternResolution).get
+    passes.getPrecursors(Patterns).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
     AliasAnalysis         -->> AliasAnalysis.Configuration(),
@@ -47,19 +49,19 @@ class PatternResolutionTest extends CompilerTest {
       * @return [[ir]], with tail call analysis metadata attached
       */
     def analyse(implicit context: ModuleContext) = {
-      PatternResolution.runModule(ir, context)
+      Patterns.runModule(ir, context)
     }
   }
 
   // === The Tests ============================================================
 
   "Pattern resolution" should {
-    implicit val ctx: ModuleContext = modCtx
+    implicit val ctx: ModuleContext = mkModuleContext
 
     val ir =
       """
         |type Foo a b c
-        | 
+        |
         |main = case this of
         |    Foo a b c -> a + b + c
         |    Foo a b -> a + b
@@ -82,8 +84,8 @@ class PatternResolutionTest extends CompilerTest {
       patterns(0)
         .asInstanceOf[IR.Pattern.Constructor]
         .constructor
-        .getMetadata(PatternResolution) shouldEqual Some(
-        Resolution(ResolvedConstructor(modCtx.module, Cons("Foo", 3)))
+        .getMetadata(Patterns) shouldEqual Some(
+        Resolution(ResolvedConstructor(mkModuleContext.module, Cons("Foo", 3)))
       )
       patterns(1) shouldBe a[IR.Error.Pattern]
       patterns(2)
