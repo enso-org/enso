@@ -5,20 +5,19 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.pass.desugar.{GenerateMethodBodies, NestedPatternMatch}
 
+/**
+  * Resolves constructors in pattern matches and validates their arity.
+  */
 object PatternResolution extends IRPass {
 
-  /** The type of the metadata object that the pass writes to the IR. */
   override type Metadata = BindingsMap.Resolution
+  override type Config   = IRPass.Configuration.Default
 
-  /** The type of configuration for the pass. */
-  override type Config = IRPass.Configuration.Default
-
-  /** The passes that this pass depends _directly_ on to run. */
-  override val precursorPasses: Seq[IRPass] = Seq()
-
-  /** The passes that are invalidated by running this pass. */
-  override val invalidatedPasses: Seq[IRPass] = Seq()
+  override val precursorPasses: Seq[IRPass] =
+    Seq(NestedPatternMatch, GenerateMethodBodies, BindingResolution)
+  override val invalidatedPasses: Seq[IRPass] = Seq(AliasAnalysis)
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.
