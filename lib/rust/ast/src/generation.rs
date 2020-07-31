@@ -68,7 +68,7 @@ impl ScalaGenerator {
                     self.generics(&val.generics);
                     write!(self.code, " = ");
                     self.typ(val.ty.as_ref());
-                    writeln!(self.code, "");
+                    writeln!(self.code);
                 }
                 syn::Item::Struct(val) => {
                     if let syn::Fields::Named(fields) = &val.fields {
@@ -174,7 +174,7 @@ impl ScalaGenerator {
             write!(self.code, " extends ");
             self.typ_name(&name);
         }
-        writeln!(self.code, "");
+        writeln!(self.code);
     }
 
     /// Generates Scala type parameters.
@@ -185,9 +185,8 @@ impl ScalaGenerator {
         write!(self.code, "[");
         for (i, param) in generics.params.iter().enumerate() {
             if i != 0 { write!(self.code, ", "); }
-            match param {
-                syn::GenericParam::Type(typ) => self.typ_name(&typ.ident),
-                _ => (),
+            if let syn::GenericParam::Type(typ) = param {
+                self.typ_name(&typ.ident)
             }
         }
         write!(self.code, "]");
@@ -197,14 +196,11 @@ impl ScalaGenerator {
     ///
     /// `foo::Bar<Baz>` => `Foo.Bar[Baz]`
     fn typ(&mut self, typ:&syn::Type) {
-        match typ {
-            syn::Type::Path(path) => {
-                for (i, typ) in path.path.segments.iter().enumerate() {
-                    if i != 0 { write!(self.code, "."); }
-                    self.typ_segment(typ);
-                }
+        if let syn::Type::Path(path) = typ {
+            for (i, typ) in path.path.segments.iter().enumerate() {
+                if i != 0 { write!(self.code, "."); }
+                self.typ_segment(typ);
             }
-            _ => (),
         }
     }
 
@@ -214,19 +210,15 @@ impl ScalaGenerator {
     fn typ_segment(&mut self, typ:&syn::PathSegment) {
         let boxed = typ.ident.to_string().as_str() == "Box";
         if !boxed { self.typ_name(&typ.ident); }
-        match &typ.arguments {
-            syn::PathArguments::AngleBracketed(typ) => {
-                if !boxed { write!(self.code, "["); }
-                for (i, typ) in typ.args.iter().enumerate() {
-                    if i != 0 { write!(self.code, ", "); }
-                    match typ {
-                        syn::GenericArgument::Type(typ) => self.typ(typ),
-                        _ => (),
-                    }
+        if let syn::PathArguments::AngleBracketed(typ) = &typ.arguments {
+            if !boxed { write!(self.code, "["); }
+            for (i, typ) in typ.args.iter().enumerate() {
+                if i != 0 { write!(self.code, ", "); }
+                if let syn::GenericArgument::Type(typ) = typ{
+                    self.typ(typ);
                 }
-                if !boxed { write!(self.code, "]"); }
             }
-            _ => (),
+            if !boxed { write!(self.code, "]"); }
         }
     }
 
