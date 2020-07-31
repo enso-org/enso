@@ -8,7 +8,18 @@ import org.enso.compiler.pass.analyse.BindingResolution
 
 import scala.jdk.CollectionConverters._
 
+/**
+  * Builds an IR stub. This is useful for source-less modules (such as
+  * [[org.enso.interpreter.runtime.builtin.Builtins]]). Having a stub IR
+  * guarantees that other modules can compile against it.
+  */
 object StubIrBuilder {
+
+  /**
+    * Build the stub IR for a given module.
+    * @param module the module to build IR for.
+    * @return the built stub IR.
+    */
   def build(module: Module): IR.Module = {
     val ir = IR.Module(List(), List(), None)
     val definedConstructors: List[BindingsMap.Cons] =

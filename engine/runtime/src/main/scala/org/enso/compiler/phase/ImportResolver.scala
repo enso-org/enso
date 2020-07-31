@@ -8,7 +8,27 @@ import util.control.Breaks._
 
 import scala.collection.mutable
 
+/**
+  * Runs imports resolution. Starts from a given module and then recursively
+  * collects all modules that are reachable from it.
+  *
+  * Each of the reachable modules will be parsed and will have imported modules
+  * injected into its metadata. In effect, after running this, every module
+  * that could ever be necessary for the entry point compilation will be
+  * brought to at least the [[Module.CompilationStage.AFTER_IMPORT_RESOLUTION]]
+  * stage.
+  *
+  * @param compiler the compiler instance for the compiling context.
+  */
 class ImportResolver(compiler: Compiler) {
+
+  /**
+    * Runs the import mapping logic.
+    *
+    * @param module the entry-point module.
+    * @return a list of all modules that need to be compiled in order to run
+    *         the program.
+    */
   def mapImports(module: Module): List[Module] = {
     val seen: mutable.Set[Module] = mutable.Set()
     var stack: List[Module]       = List(module)
@@ -32,11 +52,13 @@ class ImportResolver(compiler: Compiler) {
         val importedModuleNames = ir.imports.collect {
           case imp: IR.Module.Scope.Import.Module => imp.name
         }
-        // TODO[MK] COMPLAIN ABOUT MISSING
         val importedModules = importedModuleNames.flatMap(compiler.getModule)
         // TODO[MK] Remove when No Implicit Prelude
-        currentLocal.resolvedImports = compiler.context.getTopScope.getBuiltins.getModule :: importedModules
-        current.setCompilationStage(Module.CompilationStage.AFTER_IMPORT_RESOLUTION)
+        currentLocal.resolvedImports =
+          compiler.context.getTopScope.getBuiltins.getModule :: importedModules
+        current.setCompilationStage(
+          Module.CompilationStage.AFTER_IMPORT_RESOLUTION
+        )
         seen += current
         stack = importedModules ++ stack
       }
