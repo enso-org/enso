@@ -14,13 +14,12 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.InitializedEvent
 import org.enso.languageserver.filemanager.Path
-import org.enso.languageserver.refactoring.ProjectNameChangedEvent
 import org.enso.languageserver.search.SearchProtocol.SuggestionDatabaseEntry
 import org.enso.languageserver.session.JsonSession
 import org.enso.languageserver.session.SessionRouter.DeliverToJsonController
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.searcher.SuggestionsRepo
-import org.enso.searcher.sql.SqlSuggestionsRepo
+import org.enso.searcher.{FileVersionsRepo, SuggestionsRepo}
+import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.enso.testkit.RetrySpec
 import org.enso.text.editing.model.Position
 import org.scalatest.BeforeAndAfterAll
@@ -50,7 +49,7 @@ class SuggestionsHandlerSpec
   "SuggestionsHandler" should {
 
     "subscribe to notification updates" taggedAs Retry in withDb {
-      (_, _, _, handler) =>
+      (_, _, _, _, handler) =>
         val clientId = UUID.randomUUID()
 
         handler ! AcquireCapability(
@@ -61,7 +60,7 @@ class SuggestionsHandlerSpec
     }
 
     "receive runtime updates" taggedAs Retry in withDb {
-      (_, repo, router, handler) =>
+      (_, repo, router, _, handler) =>
         val clientId = UUID.randomUUID()
 
         // acquire capability
@@ -95,7 +94,7 @@ class SuggestionsHandlerSpec
     }
 
     "apply runtime updates in correct order" taggedAs Retry in withDb {
-      (_, repo, router, handler) =>
+      (_, repo, router, _, handler) =>
         val clientId = UUID.randomUUID()
 
         // acquire capability
@@ -128,14 +127,14 @@ class SuggestionsHandlerSpec
     }
 
     "get initial suggestions database version" taggedAs Retry in withDb {
-      (_, _, _, handler) =>
+      (_, _, _, _, handler) =>
         handler ! SearchProtocol.GetSuggestionsDatabaseVersion
 
         expectMsg(SearchProtocol.GetSuggestionsDatabaseVersionResult(0))
     }
 
     "get suggestions database version" taggedAs Retry in withDb {
-      (_, repo, _, handler) =>
+      (_, repo, _, _, handler) =>
         Await.ready(repo.insert(Suggestions.atom), Timeout)
         handler ! SearchProtocol.GetSuggestionsDatabaseVersion
 
@@ -143,14 +142,14 @@ class SuggestionsHandlerSpec
     }
 
     "get initial suggestions database" taggedAs Retry in withDb {
-      (_, _, _, handler) =>
+      (_, _, _, _, handler) =>
         handler ! SearchProtocol.GetSuggestionsDatabase
 
         expectMsg(SearchProtocol.GetSuggestionsDatabaseResult(0, Seq()))
     }
 
     "get suggestions database" taggedAs Retry in withDb {
-      (_, repo, _, handler) =>
+      (_, repo, _, _, handler) =>
         Await.ready(repo.insert(Suggestions.atom), Timeout)
         handler ! SearchProtocol.GetSuggestionsDatabase
 
@@ -162,8 +161,23 @@ class SuggestionsHandlerSpec
         )
     }
 
+    "invalidate suggestions database" taggedAs Retry in withDb {
+      (_, repo, _, connector, handler) =>
+        Await.ready(repo.insert(Suggestions.atom), Timeout)
+        handler ! SearchProtocol.InvalidateSuggestionsDatabase
+
+        connector.expectMsgClass(classOf[Api.Request]) match {
+          case Api.Request(_, Api.InvalidateModulesIndexRequest()) =>
+          case Api.Request(_, msg) =>
+            fail(s"Runtime connector receive unexpected message: $msg")
+        }
+        connector.reply(Api.Response(Api.InvalidateModulesIndexResponse()))
+
+        expectMsg(SearchProtocol.InvalidateSuggestionsDatabaseResult)
+    }
+
     "search entries by empty search query" taggedAs Retry in withDb {
-      (config, repo, _, handler) =>
+      (config, repo, _, _, handler) =>
         Await.ready(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
           file       = mkModulePath(config, "Foo", "Main.enso"),
@@ -177,7 +191,7 @@ class SuggestionsHandlerSpec
     }
 
     "search entries by self type" taggedAs Retry in withDb {
-      (config, repo, _, handler) =>
+      (config, repo, _, _, handler) =>
         val (_, Seq(_, methodId, _, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
@@ -192,7 +206,7 @@ class SuggestionsHandlerSpec
     }
 
     "search entries by return type" taggedAs Retry in withDb {
-      (config, repo, _, handler) =>
+      (config, repo, _, _, handler) =>
         val (_, Seq(_, _, functionId, _)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
@@ -207,7 +221,7 @@ class SuggestionsHandlerSpec
     }
 
     "search entries by tags" taggedAs Retry in withDb {
-      (config, repo, _, handler) =>
+      (config, repo, _, _, handler) =>
         val (_, Seq(_, _, _, localId)) =
           Await.result(repo.insertAll(Suggestions.all), Timeout)
         handler ! SearchProtocol.Completion(
@@ -225,11 +239,21 @@ class SuggestionsHandlerSpec
   def newSuggestionsHandler(
     config: Config,
     sessionRouter: TestProbe,
-    repo: SuggestionsRepo[Future]
+    runtimeConnector: TestProbe,
+    suggestionsRepo: SuggestionsRepo[Future],
+    fileVersionsRepo: FileVersionsRepo[Future]
   ): ActorRef = {
     val handler =
-      system.actorOf(SuggestionsHandler.props(config, repo, sessionRouter.ref))
-    handler ! ProjectNameChangedEvent("Test")
+      system.actorOf(
+        SuggestionsHandler.props(
+          config,
+          suggestionsRepo,
+          fileVersionsRepo,
+          sessionRouter.ref,
+          runtimeConnector.ref
+        )
+      )
+    handler ! SuggestionsHandler.ProjectNameUpdated("Test")
     handler
   }
 
@@ -252,25 +276,46 @@ class SuggestionsHandlerSpec
     JsonSession(clientId, TestProbe().ref)
 
   def withDb(
-    test: (Config, SuggestionsRepo[Future], TestProbe, ActorRef) => Any
+    test: (
+      Config,
+      SuggestionsRepo[Future],
+      TestProbe,
+      TestProbe,
+      ActorRef
+    ) => Any
   ): Unit = {
     val testContentRoot = Files.createTempDirectory(null).toRealPath()
     sys.addShutdownHook(FileUtils.deleteQuietly(testContentRoot.toFile))
-    val config  = newConfig(testContentRoot.toFile)
-    val router  = TestProbe("session-router")
-    val repo    = SqlSuggestionsRepo(config.directories.suggestionsDatabaseFile)
-    val handler = newSuggestionsHandler(config, router, repo)
-    repo.init.onComplete {
+    val config          = newConfig(testContentRoot.toFile)
+    val router          = TestProbe("session-router")
+    val connector       = TestProbe("runtime-connector")
+    val sqlDatabase     = SqlDatabase(config.directories.suggestionsDatabaseFile)
+    val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)
+    val versionsRepo    = new SqlVersionsRepo(sqlDatabase)
+    val handler = newSuggestionsHandler(
+      config,
+      router,
+      connector,
+      suggestionsRepo,
+      versionsRepo
+    )
+    suggestionsRepo.init.onComplete {
       case Success(()) =>
         system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
       case Failure(ex) =>
         system.log.error(ex, "Failed to initialize Suggestions repo")
     }
+    versionsRepo.init.onComplete {
+      case Success(()) =>
+        system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
+      case Failure(ex) =>
+        system.log.error(ex, "Failed to initialize FileVersions repo")
+    }
 
-    try test(config, repo, router, handler)
+    try test(config, suggestionsRepo, router, connector, handler)
     finally {
       system.stop(handler)
-      repo.close()
+      sqlDatabase.close()
     }
   }
 

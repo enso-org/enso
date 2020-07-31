@@ -104,12 +104,23 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
     val contextRegistry =
       system.actorOf(
-        ContextRegistry.props(config, runtimeConnectorProbe.ref, sessionRouter)
+        ContextRegistry.props(
+          suggestionsRepo,
+          config,
+          runtimeConnectorProbe.ref,
+          sessionRouter
+        )
       )
 
     val suggestionsHandler =
       system.actorOf(
-        SuggestionsHandler.props(config, suggestionsRepo, sessionRouter)
+        SuggestionsHandler.props(
+          config,
+          suggestionsRepo,
+          versionsRepo,
+          sessionRouter,
+          runtimeConnectorProbe.ref
+        )
       )
 
     val capabilityRouter =

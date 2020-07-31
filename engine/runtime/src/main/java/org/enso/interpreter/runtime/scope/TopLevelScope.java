@@ -9,9 +9,9 @@ import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.QualifiedName;
@@ -19,9 +19,7 @@ import org.enso.pkg.QualifiedName$;
 import org.enso.polyglot.MethodNames;
 
 import java.io.File;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
@@ -49,6 +47,11 @@ public class TopLevelScope implements TruffleObject {
    */
   public Scope getScope() {
     return scope;
+  }
+
+  /** @return the list of modules in the scope. */
+  public Collection<Module> getModules() {
+    return modules.values();
   }
 
   /**

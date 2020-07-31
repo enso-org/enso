@@ -55,7 +55,7 @@ The directory structure is as follows:
 ```
 extraction-location
 ├── bin
-│   └── enso                # The universal launcher, responsible for choosing the appropriate compiler version (TODO [RW] it may be stored in a different place).
+│   └── enso                # The universal launcher, responsible for choosing the appropriate compiler version.
 ├── config
 │   └── global-config.yaml  # Global user configuration.
 ├── dist                    # Per-compiler-version distribution directories.
@@ -78,7 +78,7 @@ extraction-location
 │   ├── lts-1.56.7.yaml
 │   └── lts-2.0.8.yaml
 ├── README.md               # Information on layout and usage of the Enso distribution.
-├── .enso.portable          # An empty file that allows the universal launcher to detect that if it is run from this directory, it should run in portable distribution mode.
+├── .enso.portable          # A file that allows the universal launcher to detect that if it is run from this directory, it should run in portable distribution mode.
 ├── NOTICE                  # A copyright notice regarding components that are included in the distribution of the universal launcher.
 └── components-licences     # Contains licences of distributed components, as described in the NOTICE.
 ```
@@ -113,7 +113,7 @@ ENSO_CONFIG_DIRECTORY
 └── global-config.yaml      # Global user configuration.
 
 ENSO_BIN_DIRECTORY
-└── enso                    # The universal launcher, responsible for choosing the appropriate compiler version (TODO [RW] it may be stored in a different place).
+└── enso                    # The universal launcher, responsible for choosing the appropriate compiler version.
 ```
 
 Where `ENSO_DATA_DIRECTORY`, `ENSO_CONFIG_DIRECTORY` and `ENSO_BIN_DIRECTORY`

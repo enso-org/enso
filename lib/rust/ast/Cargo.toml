@@ -10,7 +10,7 @@ homepage     = "https://github.com/enso-org/enso/lib/rust/ast"
 repository   = "https://github.com/enso-org/enso"
 license-file = "../../../LICENSE"
 
-keywords = ["ast"]
+keywords   = ["ast"]
 categories = ["parsing"]
 
 publish = false
@@ -22,4 +22,7 @@ test       = true
 bench      = true
 
 [dependencies]
-uuid         = { version  = "0.8.1", features = ["serde","v4","wasm-bindgen"] }
+clap        = { version = "2.33.1"                                                            }
+itertools   = { version = "0.9.0"                                                             }
+syn         = { version = "1.0.12", features = ["full", "extra-traits", "visit-mut", "visit"] }
+uuid        = { version = "0.8.1" , features = ["serde","v4","wasm-bindgen"]                  }

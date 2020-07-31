@@ -25,4 +25,7 @@ trait FileVersionsRepo[F[_]] {
     * @param file the file path
     */
   def remove(file: File): F[Unit]
+
+  /** Clean the repo. */
+  def clean: F[Unit]
 }

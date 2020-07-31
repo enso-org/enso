@@ -101,7 +101,13 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val suggestionsHandler =
     system.actorOf(
       SuggestionsHandler
-        .props(languageServerConfig, suggestionsRepo, sessionRouter),
+        .props(
+          languageServerConfig,
+          suggestionsRepo,
+          versionsRepo,
+          sessionRouter,
+          runtimeConnector
+        ),
       "suggestions-handler"
     )
 
@@ -118,7 +124,12 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val contextRegistry =
     system.actorOf(
       ContextRegistry
-        .props(languageServerConfig, runtimeConnector, sessionRouter),
+        .props(
+          suggestionsRepo,
+          languageServerConfig,
+          runtimeConnector,
+          sessionRouter
+        ),
       "context-registry"
     )
 
@@ -193,7 +204,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     runtimeConnector
   )
 
-  lazy val jsonRpcServer =
+  val jsonRpcServer =
     new JsonRpcServer(
       JsonRpc.protocol,
       jsonRpcControllerFactory,
@@ -201,7 +212,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
         .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds)
     )
 
-  lazy val binaryServer =
+  val binaryServer =
     new BinaryWebSocketServer(
       InboundMessageDecoder,
       BinaryEncoder.empty,

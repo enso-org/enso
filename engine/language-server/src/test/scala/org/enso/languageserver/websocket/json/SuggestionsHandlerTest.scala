@@ -19,7 +19,7 @@ class SuggestionsHandlerTest extends BaseServerTest with FlakySpec {
 
     "get initial suggestions database version" in {
       val client = getInitialisedWsClient()
-      system.eventStream.publish(ProjectNameChangedEvent("Test"))
+      system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
 
       client.send(json.getSuggestionsDatabaseVersion(0))
       client.expectJson(json"""
@@ -34,7 +34,7 @@ class SuggestionsHandlerTest extends BaseServerTest with FlakySpec {
 
     "get initial suggestions database" taggedAs Flaky in {
       val client = getInitialisedWsClient()
-      system.eventStream.publish(ProjectNameChangedEvent("Test"))
+      system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
 
       client.send(json.getSuggestionsDatabase(0))
       client.expectJson(json"""
@@ -51,7 +51,7 @@ class SuggestionsHandlerTest extends BaseServerTest with FlakySpec {
 
     "reply to completion request" taggedAs Flaky in {
       val client = getInitialisedWsClient()
-      system.eventStream.publish(ProjectNameChangedEvent("Test"))
+      system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
 
       client.send(json"""
         { "jsonrpc": "2.0",
@@ -110,7 +110,7 @@ class SuggestionsHandlerTest extends BaseServerTest with FlakySpec {
 
     "reply with error when project root not found" taggedAs Flaky in {
       val client = getInitialisedWsClient()
-      system.eventStream.publish(ProjectNameChangedEvent("Test"))
+      system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
 
       client.send(json"""
         { "jsonrpc": "2.0",

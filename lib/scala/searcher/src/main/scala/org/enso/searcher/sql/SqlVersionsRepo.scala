@@ -29,8 +29,8 @@ final class SqlVersionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
   override def remove(file: File): Future[Unit] =
     db.run(removeQuery(file))
 
-  /** Clean the database. */
-  def clean: Future[Unit] =
+  /** @inheritdoc */
+  override def clean: Future[Unit] =
     db.run(cleanQuery)
 
   /** Close the database. */

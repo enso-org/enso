@@ -13,7 +13,7 @@ class SuggestionsHandlerEventsTest extends BaseServerTest with FlakySpec {
 
     "send suggestions database notifications" taggedAs Flaky in {
       val client = getInitialisedWsClient()
-      system.eventStream.publish(ProjectNameChangedEvent("Test"))
+      system.eventStream.publish(ProjectNameChangedEvent("Test", "Test"))
 
       client.send(json.acquireSuggestionsDatabaseUpdatesCapability(0))
       client.expectJson(json.ok(0))

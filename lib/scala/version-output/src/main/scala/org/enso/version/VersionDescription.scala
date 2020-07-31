@@ -60,8 +60,7 @@ object VersionDescription {
         val dirtyStr = if (Info.isDirty) "*" else ""
         val parameters =
           formatParameters(formatParameterAsHumanReadableString, "\n")
-        s"""
-           |$header
+        s"""$header
            |Version:    $version
            |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
            |Built from: ${Info.ref}$dirtyStr @ ${Info.commit}
