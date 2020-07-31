@@ -103,8 +103,8 @@ pub mod lines {
 
     /// The ast node for a block that represents a sequence of equally indented lines.
     ///
-    /// Lines may contain some child ast or be empty. Block is used for all code blocks except for
-    /// the root one, which uses `Module`.
+    /// Lines may contain some child ast or be empty. Block is used for all code blocks except
+    /// for the root one, which uses `Module`.
     #[derive(Debug,Clone)]
     pub struct Block {
         /// Absolute's block indent, counting from the module's root.

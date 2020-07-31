@@ -3,6 +3,7 @@
 #![allow(unused_must_use)]
 
 use itertools::Itertools;
+use proc_macro2::Span;
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::fs::File;
@@ -31,21 +32,33 @@ impl ScalaGenerator {
     /// Generates a Scala ast from `lib/rust/ast/src/lib.rs`.
     pub fn ast() -> std::io::Result<String> {
         let mut content = String::new();
-        let mut file = File::open("lib/rust/ast/src/ast.rs")?;
+        let mut file    = File::open("lib/rust/ast/src/ast.rs")?;
         file.read_to_string(&mut content);
 
-        Ok(Self::file(syn::parse_file(content.as_str()).unwrap()))
+        Ok(Self::file("ast", syn::parse_file(content.as_str()).unwrap()))
     }
 
     /// Generates a Scala ast definition from a parsed Rust ast definition.
-    pub fn file(file:syn::File) -> String {
+    pub fn file(name:&str, file:syn::File) -> String {
         let mut this = Self::default();
-        this.block(&file.items[..]);
+        writeln!(this.code, "package org.enso.ast\n");
+        writeln!(this.code, "import java.util.UUID\n\n");
+        this.block(&Ident::new(name, Span::call_site()), &file.items[..]);
         this.code
     }
 
     /// Generates a block of Scala code.
-    fn block(&mut self, lines:&[syn::Item]) {
+    fn block(&mut self, ident:&Ident, lines:&[syn::Item]) {
+        write!(self.code, "\n{:i$}object " , "", i=self.indent);
+        self.typ_name(&ident);
+        writeln!(self.code, " {{");
+        self.indent += 2;
+        if self.extends.contains_key(&ident) {
+            write!(self.code, "{:i$}sealed trait ", "", i=self.indent);
+            self.typ_name(&ident);
+            self.extends(&ident);
+        }
+
         for item in lines {
             match item {
                 syn::Item::Enum  (val) => self.adt(&val),
@@ -65,22 +78,16 @@ impl ScalaGenerator {
                     }
                 }
                 syn::Item::Mod(val) => {
-                    write!(self.code, "\n{:i$}object " , "", i=self.indent);
-                    self.typ_name(&val.ident);
-                    writeln!(self.code, " {{");
-                    self.indent += 4;
-                    write!(self.code, "{:i$}sealed trait ", "", i=self.indent);
-                    self.typ_name(&val.ident);
-                    self.extends(&val.ident);
                     if let Some(content) = &val.content {
-                        self.block(&content.1[..]);
+                        self.block(&val.ident, &content.1[..]);
                     };
-                    self.indent -= 4;
-                    writeln!(self.code, "{:i$}}}", "", i=self.indent);
                 }
                 _ => (),
             }
         }
+
+        self.indent -= 2;
+        writeln!(self.code, "{:i$}}}", "", i=self.indent);
     }
 
     /// Generates a Scala case class.
@@ -251,6 +258,7 @@ impl ScalaGenerator {
     /// u8                             => Byte,
     /// char                           => Char,
     /// Vec                            => Vector,
+    /// Uuid                           => UUID,
     /// ```
     fn typ_name(&mut self, ident:&Ident) {
         let name = match ident.to_string().as_str() {
@@ -259,6 +267,7 @@ impl ScalaGenerator {
             "u8"                                     => "Byte",
             "char"                                   => "Char",
             "Vec"                                    => "Vector",
+            "Uuid"                                   => "UUID",
             name => {
                 let mut chars = name.chars();
                 if let Some(char) = chars.next() {
@@ -306,18 +315,27 @@ mod tests {
             }
         };
 
-        let scala = "
-type A[X] = B[X, Y]
+        let scala = "\
+package org.enso.ast
 
-sealed trait FooBarBaz
+import java.util.UUID
 
-object A {
+
+
+object Ast {
+  sealed trait Ast
+
+  type A[X] = B[X, Y]
+
+  sealed trait FooBarBaz
+
+  object A {
     sealed trait A extends FooBarBaz
     case class Foo() extends A
     case class Bar(x: Long, y: Byte, z: B.Type) extends A
-}
+  }
 
-object B {
+  object B {
     sealed trait B extends FooBarBaz
 
     type Type = Baz
@@ -325,8 +343,9 @@ object B {
     sealed trait Baz extends B
     case class Baz1() extends Baz
     case class Baz2(fooBar: Vector[Int]) extends Baz
+  }
 }
 ";
-        assert_eq!(ScalaGenerator::file(rust), scala);
+        assert_eq!(ScalaGenerator::file("ast", rust), scala);
     }
 }
