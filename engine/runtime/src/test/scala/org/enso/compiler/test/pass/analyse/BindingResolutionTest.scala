@@ -45,7 +45,7 @@ class BindingResolutionTest extends CompilerTest {
 
   // === The Tests ============================================================
 
-  "Tail call analysis on modules" should {
+  "Module binding resolution" should {
     implicit val ctx: ModuleContext = modCtx
 
     val ir =

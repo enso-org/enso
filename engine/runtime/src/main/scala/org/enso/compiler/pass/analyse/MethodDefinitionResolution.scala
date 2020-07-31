@@ -6,19 +6,25 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.pass.desugar.{
+  ComplexType,
+  FunctionBinding,
+  GenerateMethodBodies
+}
 
+/**
+  * Resolves the correct `this` argument type for methods definitions
+  * and stores the resolution in the method's metadata.
+  */
 case object MethodDefinitionResolution extends IRPass {
 
-  /** The type of the metadata object that the pass writes to the IR. */
   override type Metadata = BindingsMap.Resolution
 
-  /** The type of configuration for the pass. */
   override type Config = IRPass.Configuration.Default
 
-  /** The passes that this pass depends _directly_ on to run. */
-  override val precursorPasses: Seq[IRPass] = List()
+  override val precursorPasses: Seq[IRPass] =
+    List(ComplexType, FunctionBinding, GenerateMethodBodies, BindingResolution)
 
-  /** The passes that are invalidated by running this pass. */
   override val invalidatedPasses: Seq[IRPass] = List()
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
