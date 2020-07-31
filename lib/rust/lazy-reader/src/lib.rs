@@ -30,8 +30,9 @@ pub trait Read {
 
     /// Fills the buffer and returns amount of elements read.
     ///
-    /// In case it isn't possible to fill the whole buffer (i.e. if an error like EOF is encountered),
-    /// the buffer will be filled with all the data read before encountering such error.
+    /// In case it isn't possible to fill the whole buffer (i.e. if an error like EOF is
+    /// encountered), the buffer will be filled with all the data read before encountering such an
+    /// error.
     fn read(&mut self,buffer:&mut [Self::Item]) -> usize;
 }
 

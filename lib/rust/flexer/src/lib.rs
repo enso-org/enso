@@ -70,8 +70,10 @@ pub struct Flexer<Definition,Output,Reader> {
     pub status: StageStatus,
     /// The tokens that have been lexed.
     pub output: Vec<Output>,
+    /// The text of the current match of the lexer.
+    pub current_match: String,
     /// The definition of the user-provided state for the lexer.
-    definition: Definition
+    definition: Definition,
 }
 
 impl<Definition,Output,Reader> Flexer<Definition,Output,Reader>
@@ -86,8 +88,9 @@ where Definition:State, Reader:LazyReader {
         let definition       = Definition::new(&mut reader);
         let initial_state_id = definition.initial_state();
         state_stack.push(initial_state_id);
+        let current_match = default();
 
-        Flexer{state_stack,reader,status,output,definition}
+        Flexer{state_stack,reader,status,output,definition,current_match}
     }
 }
 

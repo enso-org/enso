@@ -1,4 +1,4 @@
-//! This file contains tests for the intended defnition code of a lexer using the flexer, based on
+//! This file contains tests for the intended definition code of a lexer using the flexer, based on
 //! the following small language.
 //!
 //! The language here is being defined as follows:
@@ -126,8 +126,6 @@ pub struct TestState {
     seen_first_word_state: group::Identifier,
     /// A bookmark that is set when a match occurs, allowing for rewinding if necessary.
     matched_bookmark: BookmarkId,
-    /// The current textual match of the lexer.
-    current_match: String
 }
 
 
@@ -139,8 +137,7 @@ impl flexer::State for TestState {
         let initial_state         = lexer_states.define_group("ROOT".into(),None);
         let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(),None);
         let matched_bookmark      = reader.add_bookmark();
-        let current_match         = default();
-        Self{lexer_states,initial_state,seen_first_word_state,matched_bookmark,current_match}
+        Self{lexer_states,initial_state,seen_first_word_state,matched_bookmark}
     }
 
     fn initial_state(&self) -> group::Identifier {
@@ -161,6 +158,14 @@ impl flexer::State for TestState {
 // =============
 // === Tests ===
 // =============
+
+// TODO [AA] Need to work out an extensible way to define the lexer.
+// TODO [AA] Passing the reader into `run` like the Scala version does enables the correct dynamism,
+//  but results in problems with the definition. I can't think of a non-unsafe approach to this that
+//  doesn't require handing the reader through all of the calls. That is _possible_, I suppose, but
+//  definitely requires moving the bookmarking machinery out into Flexer.
+// TODO [AA] Do the bookmarks _need_ to be dynamic? Can the code generator rely on the presence of
+//  any of them? Does it _need_ to? Yes, probably the two that are hard-coded in the Scala impl...
 
 #[test]
 fn test_lexer_definition() {

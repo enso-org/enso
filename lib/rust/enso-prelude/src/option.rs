@@ -1,4 +1,4 @@
-//! This module defines utilities for working with the `Option` type.
+//! This module defines utilities for working with the [`std::option::Option`] type.
 
 /// Adds mapping methods to the `Option` type.
 pub trait OptionOps {

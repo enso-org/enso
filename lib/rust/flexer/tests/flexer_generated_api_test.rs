@@ -404,8 +404,6 @@ pub struct TestState {
     seen_first_word_state: group::Identifier,
     /// A bookmark that is set when a match occurs, allowing for rewinding if necessary.
     matched_bookmark: BookmarkId,
-    /// The current textual match of the lexer.
-    current_match: String
 }
 
 
@@ -417,8 +415,7 @@ impl flexer::State for TestState {
         let initial_state         = lexer_states.define_group("ROOT".into(),None);
         let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(),None);
         let matched_bookmark      = reader.add_bookmark();
-        let current_match         = default();
-        Self{lexer_states,initial_state,seen_first_word_state,matched_bookmark,current_match}
+        Self{lexer_states,initial_state,seen_first_word_state,matched_bookmark}
     }
 
     fn initial_state(&self) -> group::Identifier {
