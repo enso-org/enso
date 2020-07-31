@@ -60,6 +60,11 @@ public class RuntimeCache {
     return types.put(key, typeName);
   }
 
+  /** @return the cached type of the expression */
+  public String getType(UUID key) {
+    return types.get(key);
+  }
+
   /** Remove the type associated with the provided key. */
   public void removeType(UUID key) {
     types.remove(key);

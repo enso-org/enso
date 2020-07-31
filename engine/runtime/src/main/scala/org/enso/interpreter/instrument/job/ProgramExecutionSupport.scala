@@ -1,7 +1,7 @@
 package org.enso.interpreter.instrument.job
 
 import java.io.File
-import java.util.UUID
+import java.util.{Objects, UUID}
 import java.util.function.Consumer
 import java.util.logging.Level
 
@@ -129,9 +129,15 @@ trait ProgramExecutionSupport {
         case ExecutionItem.CallData(call)         => call.getFunction.getName
       }
 
-    val visualisationUpdateCallback: Consumer[ExpressionValue] = { value =>
-      if (updatedVisualisations.contains(value.getExpressionId))
-        onVisualisationUpdate(contextId, value)
+    val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
+      if (updatedVisualisations.contains(value.getExpressionId)) {
+        fireVisualisationUpdates(contextId, value)
+      }
+    }
+
+    val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
+      sendValueUpdate(contextId, value)
+      fireVisualisationUpdates(contextId, value)
     }
 
     val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
@@ -143,8 +149,8 @@ trait ProgramExecutionSupport {
             runProgram(
               stackItem,
               localCalls,
-              onExpressionValueComputed(contextId, _),
-              visualisationUpdateCallback
+              onComputedValueCallback,
+              onCachedValueCallback
             )
           )
           .leftMap { ex =>
@@ -158,25 +164,11 @@ trait ProgramExecutionSupport {
     } yield ()
   }
 
-  private def onVisualisationUpdate(
-    contextId: Api.ContextId,
-    value: ExpressionValue
-  )(implicit ctx: RuntimeContext): Unit =
-    fireVisualisationUpdates(contextId, value)
-
-  private def onExpressionValueComputed(
-    contextId: Api.ContextId,
-    value: ExpressionValue
-  )(implicit ctx: RuntimeContext): Unit = {
-    sendValueUpdate(contextId, value)
-    fireVisualisationUpdates(contextId, value)
-  }
-
   private def sendValueUpdate(
     contextId: ContextId,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
-    if (value.getType ne null) {
+    if (!Objects.equals(value.getValueType, value.getCachedType)) {
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionValuesComputed(
@@ -184,7 +176,7 @@ trait ProgramExecutionSupport {
             Vector(
               Api.ExpressionValueUpdate(
                 value.getExpressionId,
-                Some(value.getType),
+                Some(value.getValueType),
                 toMethodPointer(value)
               )
             )

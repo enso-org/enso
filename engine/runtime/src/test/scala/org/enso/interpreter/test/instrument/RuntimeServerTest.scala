@@ -692,14 +692,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive shouldEqual Some(
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
-        )
-      )
-    )
+    context.receive shouldEqual None
   }
 
   it should "send suggestion notifications when file executed" in {
@@ -1045,11 +1038,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.Main.Update.mainX(contextId),
-      context.Main.Update.mainY(contextId),
-      context.Main.Update.mainZ(contextId)
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
   }
 
@@ -1092,9 +1082,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.Main.Update.mainZ(contextId)
+    context.receive(1) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
   }
 
@@ -1269,10 +1258,9 @@ class RuntimeServerTest
         )
       )
     )
-    val recomputeResponses2 = context.receive(4)
-    recomputeResponses2 should contain allOf (
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.Main.Update.mainX(contextId),
+    val recomputeResponses2 = context.receive(3)
+    recomputeResponses2 should contain(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
     val Some(data2) = recomputeResponses2.collectFirst {
       case Api.Response(
@@ -1473,13 +1461,7 @@ class RuntimeServerTest
       )
     )
 
-    val editResult = context.receive(4)
-    editResult should contain allOf (
-      context.Main.Update.mainX(contextId),
-      context.Main.Update.mainY(contextId),
-      context.Main.Update.mainZ(contextId),
-    )
-    val Some(data1) = editResult.collectFirst {
+    val Some(data1) = context.receive(1).collectFirst {
       case Api.Response(
             None,
             Api.VisualisationUpdate(
@@ -1703,9 +1685,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(3) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.Main.Update.mainX(contextId)
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
   }
 
@@ -1745,8 +1726,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-
-    context.receive(2) should contain(
+    context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
 
@@ -1760,11 +1740,8 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(4) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      context.Main.Update.mainX(contextId),
-      context.Main.Update.mainY(contextId),
-      context.Main.Update.mainZ(contextId)
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
   }
 

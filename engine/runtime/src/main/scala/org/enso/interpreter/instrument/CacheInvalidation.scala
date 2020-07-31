@@ -34,6 +34,9 @@ object CacheInvalidation {
 
     /** Invalidate the types index. */
     case object Types extends IndexSelector
+
+    /** Invalidate the weights index. */
+    case object Weights extends IndexSelector
   }
 
   /** Base trait for cache invalidation commands. Commands describe how the
@@ -99,7 +102,7 @@ object CacheInvalidation {
     elements: StackSelector,
     command: Command
   ): CacheInvalidation =
-    new CacheInvalidation(elements, command, Set(IndexSelector.Types))
+    new CacheInvalidation(elements, command, Set())
 
   /** Run a sequence of invalidation instructions on an execution stack.
     *
@@ -179,10 +182,12 @@ object CacheInvalidation {
     */
   private def clearIndex(selector: IndexSelector, cache: RuntimeCache): Unit =
     selector match {
-      case IndexSelector.Types =>
-        cache.clearTypes()
       case IndexSelector.All =>
         cache.clearTypes()
         cache.clearWeights()
+      case IndexSelector.Weights =>
+        cache.clearWeights()
+      case IndexSelector.Types =>
+        cache.clearTypes()
     }
 }
