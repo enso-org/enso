@@ -62,7 +62,7 @@ public class ExecutionService {
 
   private Optional<FunctionCallInstrumentationNode.FunctionCall> prepareFunctionCall(
       Module module, String consName, String methodName) {
-    ModuleScope scope = module.parseScope(context);
+    ModuleScope scope = module.compileScope(context);
     Optional<AtomConstructor> atomConstructorMay = scope.getConstructor(consName);
     if (!atomConstructorMay.isPresent()) {
       return Optional.empty();

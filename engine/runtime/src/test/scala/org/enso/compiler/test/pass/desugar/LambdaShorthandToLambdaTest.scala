@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.desugar.LambdaShorthandToLambda
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
 class LambdaShorthandToLambdaTest extends CompilerTest {
@@ -13,13 +13,13 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: List[IRPass] =
+  val precursorPasses: PassGroup =
     passes.getPrecursors(LambdaShorthandToLambda).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfiguration)
+    new PassManager(List(precursorPasses), passConfiguration)
 
   /** Adds an extension method for running desugaring on the input IR.
     *
@@ -43,7 +43,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
     * @return a new inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(freshNameSupply = Some(new FreshNameSupply))
+    buildInlineContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================
@@ -235,8 +235,10 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val body = rightArgLambda.body.asInstanceOf[IR.Application.Prefix]
       body.arguments.length shouldEqual 2
 
-      val leftCallArgName = body.arguments.head.value.asInstanceOf[IR.Name.Literal]
-      val rightCallArgName = body.arguments(1).value.asInstanceOf[IR.Name.Literal]
+      val leftCallArgName =
+        body.arguments.head.value.asInstanceOf[IR.Name.Literal]
+      val rightCallArgName =
+        body.arguments(1).value.asInstanceOf[IR.Name.Literal]
 
       underscoreArgName.name shouldEqual leftCallArgName.name
       rightArgLambdaArgName.name shouldEqual rightCallArgName.name

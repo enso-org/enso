@@ -5,7 +5,7 @@ import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.pass.desugar.GenerateMethodBodies
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
 class GenerateMethodBodiesTest extends CompilerTest {
@@ -14,14 +14,14 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
   val passes = new Passes
 
-  implicit val ctx: ModuleContext = ModuleContext()
+  implicit val ctx: ModuleContext = buildModuleContext()
 
-  val precursorPasses: List[IRPass] =
+  val precursorPasses: PassGroup =
     passes.getPrecursors(GenerateMethodBodies).get
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfig)
+    new PassManager(List(precursorPasses), passConfig)
 
   /** Adds an extension method to run method and method body generation on an
     * [[IR.Module]].

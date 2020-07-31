@@ -1,12 +1,12 @@
 package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.Passes
-import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.LambdaConsolidate
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 class LambdaConsolidateTest extends CompilerTest {
@@ -15,7 +15,7 @@ class LambdaConsolidateTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: List[IRPass] =
+  val precursorPasses: PassGroup =
     passes.getPrecursors(LambdaConsolidate).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
@@ -23,7 +23,7 @@ class LambdaConsolidateTest extends CompilerTest {
   )
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfiguration)
+    new PassManager(List(precursorPasses), passConfiguration)
 
   /** Adds an extension method to run lambda consolidation on an [[IR.Module]].
     *
@@ -38,7 +38,7 @@ class LambdaConsolidateTest extends CompilerTest {
     def optimise: IR.Module = {
       LambdaConsolidate.runModule(
         ir,
-        ModuleContext(passConfiguration = Some(passConfiguration))
+        buildModuleContext(passConfiguration = Some(passConfiguration))
       )
     }
   }
@@ -66,7 +66,7 @@ class LambdaConsolidateTest extends CompilerTest {
     * @return a default inline context
     */
   def mkContext: InlineContext = {
-    InlineContext(
+    buildInlineContext(
       localScope        = Some(LocalScope.root),
       freshNameSupply   = Some(new FreshNameSupply),
       passConfiguration = Some(passConfiguration)

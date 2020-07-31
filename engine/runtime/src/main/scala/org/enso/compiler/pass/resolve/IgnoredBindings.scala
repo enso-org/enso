@@ -61,7 +61,10 @@ case object IgnoredBindings extends IRPass {
     ir.mapExpressions(
       runExpression(
         _,
-        InlineContext(freshNameSupply = moduleContext.freshNameSupply)
+        InlineContext(
+          moduleContext.module,
+          freshNameSupply = moduleContext.freshNameSupply
+        )
       )
     )
 
@@ -322,6 +325,7 @@ case object IgnoredBindings extends IRPass {
         cons.copy(
           fields = fields.map(resolvePattern(_, supply))
         )
+      case err: IR.Error.Pattern => err
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

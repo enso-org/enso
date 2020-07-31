@@ -5,6 +5,7 @@ import java.util.UUID
 import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.syntax.text.{AST, Debug, Location}
@@ -810,7 +811,7 @@ object IR {
             keepDiagnostics: Boolean = true
           ): Method
 
-          def typeName: IR.Name   = methodReference.typePointerAsName
+          def typeName: IR.Name   = methodReference.typePointer
           def methodName: IR.Name = methodReference.methodName
         }
         object Method {
@@ -1469,7 +1470,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class MethodReference(
-      typePointer: List[IR.Name],
+      typePointer: IR.Name,
       methodName: IR.Name,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
@@ -1490,7 +1491,7 @@ object IR {
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        typePointer: List[IR.Name]           = typePointer,
+        typePointer: IR.Name                 = typePointer,
         methodName: IR.Name                  = methodName,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
@@ -1531,7 +1532,7 @@ object IR {
         fn: Expression => Expression
       ): MethodReference =
         copy(
-          typePointer = typePointer.map(_.mapExpressions(fn)),
+          typePointer = typePointer.mapExpressions(fn),
           methodName  = methodName.mapExpressions(fn)
         )
 
@@ -1553,25 +1554,11 @@ object IR {
         |)
         |""".toSingleLine
 
-      override def children: List[IR] = typePointer :+ methodName
+      override def children: List[IR] = List(typePointer, methodName)
 
       override def showCode(indent: Int): String = {
-        val tPointer = typePointer.map(_.showCode(indent)).mkString(".")
+        val tPointer = typePointer.showCode(indent)
         s"$tPointer.${methodName.showCode(indent)}"
-      }
-
-      /** Constructs a name literal from the type name segments.
-        *
-        * @return a name literal representing [[typePointer]]
-        */
-      def typePointerAsName: IR.Name = {
-        val nameStr = typePointer.map(_.name).mkString(".")
-        val newLoc  = MethodReference.genLocation(typePointer)
-
-        IR.Name.Literal(
-          nameStr,
-          newLoc
-        )
       }
 
       /** Checks whether `this` and `that` reference the same method.
@@ -1581,15 +1568,7 @@ object IR {
         *         otherwise `false`
         */
       def isSameReferenceAs(that: MethodReference): Boolean = {
-        if (this.typePointer.length == that.typePointer.length) {
-          val pathsAreSame = this.typePointer.zip(that.typePointer).forall {
-            case (l, r) => l.name == r.name
-          }
-
-          pathsAreSame && (this.methodName.name == that.methodName.name)
-        } else {
-          false
-        }
+        typePointer.name == that.typePointer.name && this.methodName.name == that.methodName.name
       }
     }
     object MethodReference {
@@ -1617,6 +1596,80 @@ object IR {
           }
         )
       }
+    }
+
+    /** A representation of a qualified (multi-part) name.
+      *
+      * @param parts the segments of the name
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      * @return a copy of `this`, updated with the specified values
+      */
+    sealed case class Qualified(
+      parts: List[IR.Name],
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Name
+        with IRKind.Primitive {
+
+      override val name: String = parts.map(_.name).mkString(".")
+
+      override def mapExpressions(fn: Expression => Expression): Name = this
+
+      override def setLocation(location: Option[IdentifiedLocation]): Name =
+        copy(location = location)
+
+      /** Creates a copy of `this`.
+        *
+        * @param parts the segments of the name
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        parts: List[IR.Name]                 = parts,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Qualified = {
+        val res =
+          Qualified(
+            parts,
+            location,
+            passData,
+            diagnostics
+          )
+        res.id = id
+        res
+      }
+
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Qualified =
+        copy(
+          parts = parts.map(
+            _.duplicate(keepLocations, keepMetadata, keepDiagnostics)
+          ),
+          location = if (keepLocations) location else None,
+          passData =
+            if (keepMetadata) passData.duplicate else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          id = randomId
+        )
+
+      override def children: List[IR] = parts
+
+      override protected var id: Identifier = randomId
+
+      override def showCode(indent: Int): String = name
     }
 
     /** Represents occurrences of blank (`_`) expressions.
@@ -4447,6 +4500,7 @@ object IR {
               "Branch documentation should not be present " +
               "inside a constructor pattern."
             )
+          case _: Error.Pattern => true
         }
       }
 
@@ -4921,6 +4975,216 @@ object IR {
     ): Error
   }
   object Error {
+
+    /** A representation of an error resulting from name resolution.
+      *
+      * @param originalName the original name that could not be resolved
+      * @param reason the cause of this error
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      * @return a copy of `this`, updated with the specified values
+      */
+    sealed case class Resolution(
+      originalName: IR.Name,
+      reason: Resolution.Reason,
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Error
+        with Diagnostic.Kind.Interactive
+        with IRKind.Primitive
+        with IR.Name {
+      override val name: String = originalName.name
+
+      override def mapExpressions(fn: Expression => Expression): Resolution =
+        this
+
+      override def setLocation(
+        location: Option[IdentifiedLocation]
+      ): Resolution =
+        copy(originalName = originalName.setLocation(location))
+
+      /** Creates a copy of `this`.
+        *
+        * @param originalName the original name that could not be resolved
+        * @param reason the cause of this error
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        originalName: IR.Name          = originalName,
+        reason: Resolution.Reason      = reason,
+        passData: MetadataStorage      = passData,
+        diagnostics: DiagnosticStorage = diagnostics,
+        id: Identifier                 = id
+      ): Resolution = {
+        val res = Resolution(originalName, reason, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Resolution =
+        copy(
+          originalName = originalName
+            .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          passData =
+            if (keepMetadata) passData.duplicate else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          id = randomId
+        )
+
+      override def children: List[IR] = List(originalName)
+
+      override protected var id: Identifier = randomId
+
+      override def showCode(indent: Int): String = originalName.showCode(indent)
+
+      override def message: String = reason.explain(originalName)
+
+      override val location: Option[IdentifiedLocation] = originalName.location
+    }
+
+    object Resolution {
+
+      /**
+        * An error coming from name resolver.
+        *
+        * @param err the original error.
+        */
+      case class Reason(err: BindingsMap.ResolutionError) {
+
+        /**
+          * Provides a human-readable explanation of the error.
+          * @param originalName the original unresolved name.
+          * @return a human-readable message.
+          */
+        def explain(originalName: IR.Name): String =
+          err match {
+            case BindingsMap.ResolutionAmbiguous(candidates) =>
+              val firstLine =
+                s"The name ${originalName.name} is ambiguous. Possible candidates are:"
+              val lines = candidates.map {
+                case BindingsMap.ResolvedConstructor(
+                      definitionModule,
+                      cons
+                    ) =>
+                  s"    Type ${cons.name} defined in module ${definitionModule.getName};"
+                case BindingsMap.ResolvedModule(module) =>
+                  s"    The module ${module.getName};"
+              }
+              (firstLine :: lines).mkString("\n")
+            case BindingsMap.ResolutionNotFound =>
+              s"The name ${originalName.name} could not be found."
+          }
+
+      }
+    }
+
+    /** A representation of an error resulting from wrong pattern matches.
+      *
+      * @param originalPattern pattern that resulted in the error
+      * @param reason the cause of this error
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      * @return a copy of `this`, updated with the specified values
+      */
+    sealed case class Pattern(
+      originalPattern: IR.Pattern,
+      reason: Pattern.Reason,
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Error
+        with Diagnostic.Kind.Interactive
+        with IR.Pattern {
+      override def mapExpressions(fn: Expression => Expression): Pattern =
+        copy(originalPattern = originalPattern.mapExpressions(fn))
+
+      override def setLocation(location: Option[IdentifiedLocation]): Pattern =
+        copy(originalPattern = originalPattern.setLocation(location))
+
+      /** Creates a copy of `this`.
+        *
+        * @param originalPattern the pattern that resulted in the error
+        * @param reason the cause of this error
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        originalPattern: IR.Pattern    = originalPattern,
+        reason: Pattern.Reason         = reason,
+        passData: MetadataStorage      = passData,
+        diagnostics: DiagnosticStorage = diagnostics,
+        id: Identifier                 = id
+      ): Pattern = {
+        val res = Pattern(originalPattern, reason, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def duplicate(
+        keepLocations: Boolean   = true,
+        keepMetadata: Boolean    = true,
+        keepDiagnostics: Boolean = true
+      ): Pattern =
+        copy(
+          originalPattern = originalPattern
+            .duplicate(keepLocations, keepMetadata, keepDiagnostics),
+          passData =
+            if (keepMetadata) passData.duplicate else MetadataStorage(),
+          diagnostics =
+            if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+          id = randomId
+        )
+
+      override def message: String = reason.explain
+
+      override val location: Option[IdentifiedLocation] =
+        originalPattern.location
+
+      override def children: List[IR] = List(originalPattern)
+
+      override protected var id: Identifier = randomId
+
+      override def showCode(indent: Int): String =
+        originalPattern.showCode(indent)
+    }
+
+    object Pattern {
+
+      /**
+        * A representation of the reason the pattern is erroneous.
+        */
+      sealed trait Reason {
+
+        /**
+          * Provides a human-readable explanation of the error.
+          * @return
+          */
+        def explain: String
+      }
+
+      /**
+        * A reason for pattern failing due to wrong arity.
+        *
+        * @param consName the constructor name.
+        * @param expected expected field count.
+        * @param actual actual field count.
+        */
+      case class WrongArity(consName: String, expected: Int, actual: Int)
+          extends Reason {
+        override def explain: String =
+          s"Wrong number of fields when matching on $consName." +
+          s" Expected $expected fields, but provided $actual."
+      }
+    }
 
     /** A representation of an Enso syntax error.
       *

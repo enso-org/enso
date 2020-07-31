@@ -8,7 +8,7 @@ import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.scalatest.Inside
@@ -19,7 +19,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
 
   val passes = new Passes
 
-  val precursorPasses: List[IRPass] = passes.getPrecursors(UnusedBindings).get
+  val precursorPasses: PassGroup = passes.getPrecursors(UnusedBindings).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
     ApplicationSaturation -->> ApplicationSaturation.Configuration(),
@@ -27,7 +27,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
   )
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfiguration)
+    new PassManager(List(precursorPasses), passConfiguration)
 
   /** Adds an extension method for running linting on the input IR.
     *
@@ -51,7 +51,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
     * @return a new inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(
+    buildInlineContext(
       localScope       = Some(LocalScope.root),
       isInTailPosition = Some(false),
       freshNameSupply  = Some(new FreshNameSupply)
@@ -80,7 +80,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
     * @return a new inline context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+    buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================

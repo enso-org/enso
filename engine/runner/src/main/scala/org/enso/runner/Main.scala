@@ -22,7 +22,6 @@ object Main {
   private val HELP_OPTION            = "help"
   private val NEW_OPTION             = "new"
   private val REPL_OPTION            = "repl"
-  private val JUPYTER_OPTION         = "jupyter-kernel"
   private val LANGUAGE_SERVER_OPTION = "server"
   private val INTERFACE_OPTION       = "interface"
   private val RPC_PORT_OPTION        = "rpc-port"
@@ -60,13 +59,6 @@ object Main {
       .argName("path")
       .longOpt(NEW_OPTION)
       .desc("Creates a new Enso project.")
-      .build
-    val jupyterOption = CliOption.builder
-      .hasArg(true)
-      .numberOfArgs(1)
-      .argName("connection file")
-      .longOpt(JUPYTER_OPTION)
-      .desc("Runs Enso Jupyter Kernel.")
       .build
     val lsOption = CliOption.builder
       .longOpt(LANGUAGE_SERVER_OPTION)
@@ -122,7 +114,6 @@ object Main {
       .addOption(repl)
       .addOption(run)
       .addOption(newOpt)
-      .addOption(jupyterOption)
       .addOption(lsOption)
       .addOption(interfaceOption)
       .addOption(rpcPortOption)
@@ -379,9 +370,6 @@ object Main {
     }
     if (line.hasOption(REPL_OPTION)) {
       runRepl()
-    }
-    if (line.hasOption(JUPYTER_OPTION)) {
-      new JupyterKernel().run(line.getOptionValue(JUPYTER_OPTION))
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line)

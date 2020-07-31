@@ -1,6 +1,5 @@
 package org.enso.compiler.test.pass.desugar
 
-import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.IdentifiedLocation
 import org.enso.compiler.pass.desugar.OperatorToFunction
@@ -11,8 +10,8 @@ class OperatorToFunctionTest extends CompilerTest {
 
   // === Utilities ============================================================
 
-  val ctx    = InlineContext()
-  val modCtx = ModuleContext()
+  val ctx    = buildInlineContext()
+  val modCtx = buildModuleContext()
 
   /** Generates an operator and its corresponding function.
     *

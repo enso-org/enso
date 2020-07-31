@@ -5,7 +5,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Pattern, Warning}
 import org.enso.compiler.pass.lint.ShadowedPatternFields
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
 class ShadowedPatternFieldsTest extends CompilerTest {
@@ -14,12 +14,12 @@ class ShadowedPatternFieldsTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: List[IRPass] =
+  val precursorPasses: PassGroup =
     passes.getPrecursors(ShadowedPatternFields).get
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfig)
+    new PassManager(List(precursorPasses), passConfig)
 
   /** Creates an extension method for linting an expression for shadowed pattern
     * variables.
@@ -43,7 +43,7 @@ class ShadowedPatternFieldsTest extends CompilerTest {
     * @return a defaulted inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(freshNameSupply = Some(new FreshNameSupply))
+    buildInlineContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================

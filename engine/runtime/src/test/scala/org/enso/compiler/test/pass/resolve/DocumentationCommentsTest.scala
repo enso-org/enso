@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.resolve.DocumentationComments
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.scalatest.Inside
 
@@ -12,11 +12,10 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
 
   // === Test Setup ===========================================================
 
-  val precursorPasses: List[IRPass] = List()
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfig)
+    new PassManager(List(), passConfig)
 
   /** Resolves documentation comments in a module.
     *
@@ -55,7 +54,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext()
+    buildModuleContext()
   }
 
   /** Creates a defaulted inline context.
@@ -63,7 +62,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     * @return a defaulted inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext()
+    buildInlineContext()
   }
 
   /**
@@ -187,7 +186,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       implicit val passManager: PassManager =
         new Passes().passManager
       implicit val moduleContext: ModuleContext =
-        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
 
       val module =
         """## The foo
@@ -200,7 +199,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
         new Passes().passManager
 
       implicit val moduleContext: ModuleContext =
-        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
 
       val ir =
         """

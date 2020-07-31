@@ -67,7 +67,7 @@ public class Builtins {
     Language language = context.getLanguage();
 
     module = Module.empty(QualifiedName.simpleName(MODULE_NAME));
-    scope = module.parseScope(context);
+    scope = module.compileScope(context);
     unit = new AtomConstructor("Unit", scope).initializeFields();
     any = new AtomConstructor("Any", scope).initializeFields();
     number = new AtomConstructor("Number", scope).initializeFields();
@@ -175,6 +175,8 @@ public class Builtins {
             new boolean[] {false, true, false},
             new CallArgumentInfo[0]);
     newInstanceFunction = ConstructorDispatchNode.makeFunction(language);
+
+    module.unsafeBuildIrStub();
   }
 
   private void createPolyglot(Language language) {
