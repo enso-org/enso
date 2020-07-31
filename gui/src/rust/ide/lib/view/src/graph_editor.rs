@@ -2339,8 +2339,8 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
         [ cursor_on_drag
         , cursor_selection
         , cursor_press
-        , cursor_style_edge_drag
         , node_cursor_style
+        , cursor_style_edge_drag
         ].fold();
 
     eval cursor_style ((style) cursor.frp.set_style.emit(style));
