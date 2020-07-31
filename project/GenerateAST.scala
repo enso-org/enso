@@ -32,7 +32,7 @@ object GenerateAST {
       }
     }
 
-    Seq(source)
+    Seq(output)
   }
 
   /**
