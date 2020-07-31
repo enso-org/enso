@@ -13,6 +13,5 @@ class TruffleStubsGenerator() {
       val constructor = new AtomConstructor(tp.name.name, scope)
       scope.registerConstructor(constructor)
     }
-    module.setCompilationStage(Module.CompilationStage.RUNTIME_STUBS_GENERATED)
   }
 }

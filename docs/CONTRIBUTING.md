@@ -302,23 +302,6 @@ Running the tests for the JVM enso components is as simple as running
 `sbt / test`. To test the Rust components you can run `cargo test`. Finally, you
 can run the WASM tests for the rust components by using `./run --test-wasm`.
 
-#### Installing the Jupyter kernel
-
-Enso has a highly experimental and not-actively-maintained Jupyer Kernel. To run
-it:
-
-1. Build (or download from the CI server) the CLI Fat Jar.
-2. Fill in the `engine/language-server/jupyter-kernel/enso/kernel.json` file,
-   providing correct paths to the `runner.jar` distribution and GraalVM
-   `JAVA_HOME`.
-3. Run:
-
-```bash
-jupyter kernelspec install <ROOT_OF_THIS_REPO>/engine/language-server/jupyter-kernel/enso
-```
-
-Congratulations, your Jupyter Kernel should now be installed and ready to use.
-
 #### Passing Debug Options
 
 GraalVM provides some useful debugging options, including the ability to output

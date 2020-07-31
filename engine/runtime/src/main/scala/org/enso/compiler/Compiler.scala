@@ -48,15 +48,21 @@ class Compiler(val context: Context) {
   def run(source: Source, module: Module): Unit = {
     parseModule(module)
     val requiredModules = importResolver.mapImports(module)
-    requiredModules.foreach(_.ensureScopeExists(context))
     requiredModules.foreach { module =>
-      val moduleContext = ModuleContext(
-        module          = module,
-        freshNameSupply = Some(freshNameSupply)
-      )
-      val compilerOutput = runCompilerPhases(module.getIr, moduleContext)
-      module.setIr(compilerOutput)
-      module.setCompilationStage(Module.CompilationStage.AFTER_STATIC_PASSES)
+      if (
+        !module.getCompilationStage.isAtLeast(
+          Module.CompilationStage.AFTER_STATIC_PASSES
+        )
+      ) {
+
+        val moduleContext = ModuleContext(
+          module          = module,
+          freshNameSupply = Some(freshNameSupply)
+        )
+        val compilerOutput = runCompilerPhases(module.getIr, moduleContext)
+        module.setIr(compilerOutput)
+        module.setCompilationStage(Module.CompilationStage.AFTER_STATIC_PASSES)
+      }
     }
     // TODO[MK] Run all at once
     requiredModules.foreach { module =>
@@ -66,14 +72,31 @@ class Compiler(val context: Context) {
       )
       runErrorHandling(module.getIr, source, moduleContext)
     }
-    requiredModules.foreach(stubsGenerator.run)
     requiredModules.foreach { module =>
-      truffleCodegen(module.getIr, source, module.getScope)
-      module.setCompilationStage(Module.CompilationStage.COMPILED)
+      if (
+        !module.getCompilationStage.isAtLeast(
+          Module.CompilationStage.RUNTIME_STUBS_GENERATED
+        )
+      ) {
+        stubsGenerator.run(module)
+        module.setCompilationStage(
+          Module.CompilationStage.RUNTIME_STUBS_GENERATED
+        )
+      }
+    }
+    requiredModules.foreach { module =>
+      if (
+        !module.getCompilationStage.isAtLeast(Module.CompilationStage.COMPILED)
+      ) {
+        truffleCodegen(module.getIr, source, module.getScope)
+        module.setCompilationStage(Module.CompilationStage.COMPILED)
+      }
     }
   }
 
-  def parseModule(module: Module): Unit = {
+  private def parseModule(module: Module): Unit = {
+    module.ensureScopeExists(context)
+    context.resetScope(module.getScope)
     val moduleContext = ModuleContext(
       module          = module,
       freshNameSupply = Some(freshNameSupply)
@@ -179,7 +202,7 @@ class Compiler(val context: Context) {
   def generateIR(sourceAST: AST): IR.Module =
     AstToIr.translate(sourceAST)
 
-  def recognizeBindings(
+  private def recognizeBindings(
     module: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
@@ -223,7 +246,6 @@ class Compiler(val context: Context) {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    // TODO Fixme
     passManager.runPassesInline(ir, inlineContext)
   }
 
