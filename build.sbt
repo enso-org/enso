@@ -308,6 +308,7 @@ val newtypeVersion              = "0.4.4"
 val pprintVersion               = "0.5.9"
 val pureconfigVersion           = "0.13.0"
 val refinedVersion              = "0.9.14"
+val rustVersion                 = "1.40.0-nightly"
 val scalacheckVersion           = "1.14.3"
 val scalacticVersion            = "3.3.0-SNAP2"
 val scalaLoggingVersion         = "3.9.2"
@@ -765,7 +766,10 @@ lazy val `language-server` = (project in file("engine/language-server"))
     testOptions in Test += Tests
         .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
-    sourceGenerators in Compile += GenerateFlatbuffers.task
+    GenerateAST.rustVersion := rustVersion,
+    sourceGenerators in Compile += GenerateFlatbuffers.task,
+    sourceGenerators in Compile += GenerateAST.task
+
   )
   .configs(Benchmark)
   .settings(

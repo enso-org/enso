@@ -13,6 +13,7 @@ graal_dumps/
 target/
 *.class
 *.log
+/lib/scala/ast/ast.scala
 
 ##########
 ## Rust ##
