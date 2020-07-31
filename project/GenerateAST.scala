@@ -12,7 +12,10 @@ object GenerateAST {
   private val cargoCmd = "cargo"
 
   lazy val task = Def.task {
-    val log = state.value.log
+    val log    = state.value.log
+    val source = file("lib/rust/ast/src/ast.rs")
+    val output = file("lib/scala/ast/ast.scala")
+    val cache  = streams.value.cacheStoreFactory.make("ast_source")
 
     verifyRustVersion(rustVersion.value) match {
       case Left(explanation) =>
@@ -21,7 +24,14 @@ object GenerateAST {
       case Right(_) =>
     }
 
-    Seq(generateAST(new File("lib/scala/ast/ast.scala"), log))
+    Tracked.diffInputs(cache, FileInfo.lastModified)(Set(source))
+    { source: ChangeReport[File] =>
+      if (source.modified.nonEmpty) {
+          generateAST(output, log)
+      }
+    }
+
+    Seq(source)
   }
 
   /**
@@ -56,9 +66,8 @@ object GenerateAST {
     * reported in stderr and rise a runtime exception.
     *
     * @param out the file where the generated AST is going to be placed
-    * @return the file containing generated AST
     */
-  private def generateAST(out: File, log: ManagedLogger): File = {
+  private def generateAST(out: File, log: ManagedLogger): Unit = {
     val command = s"$cargoCmd run -p ast -- --generate-scala-ast $out"
 
     log.info(s"Generating AST with the command: $command:")
@@ -68,6 +77,5 @@ object GenerateAST {
         log.error(s"Generation of the Scala AST failed.")
         throw ex
     }
-    out
   }
 }

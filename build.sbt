@@ -766,10 +766,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     testOptions in Test += Tests
         .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
-    GenerateAST.rustVersion := rustVersion,
     sourceGenerators in Compile += GenerateFlatbuffers.task,
-    sourceGenerators in Compile += GenerateAST.task
-
   )
   .configs(Benchmark)
   .settings(
@@ -815,7 +812,9 @@ lazy val runtime = (project in file("engine/runtime"))
         "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
         "org.typelevel"      %% "cats-core"             % catsVersion,
         "eu.timepit"         %% "refined"               % refinedVersion
-      ),
+    ),
+    GenerateAST.rustVersion := rustVersion,
+    Compile / sourceGenerators += GenerateAST.task,
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
