@@ -1,35 +1,23 @@
 package org.enso.compiler.phase
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.analyse.BindingResolution
 import org.enso.interpreter.runtime.Module
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.pass.analyse.BindingResolution
+
 import scala.jdk.CollectionConverters._
 
 object StubIrBuilder {
   def build(module: Module): IR.Module = {
     val ir = IR.Module(List(), List(), None)
-    val definedConstructors: List[BindingResolution.Cons] =
+    val definedConstructors: List[BindingsMap.Cons] =
       module.getScope.getConstructors.asScala.toList.map {
         case (name, cons) =>
-          BindingResolution.Cons(IR.Name.Literal(name, None), cons.getArity)
+          BindingsMap.Cons(name, cons.getArity)
       }
-    val definedMethods: List[BindingResolution.Method] =
-      module.getScope.getMethods.asScala.toList.flatMap {
-        case (cons, methods) =>
-          val consName =
-            IR.Name.Qualified(List(IR.Name.Literal(cons.getName, None)), None)
-          methods.asScala.toList.map {
-            case (name, _) =>
-              BindingResolution.Method(
-                IR.Name
-                  .MethodReference(consName, IR.Name.Literal(name, None), None)
-              )
-          }
-      }
-    val meta = BindingResolution.LocalBindings(
+    val meta = BindingsMap(
       definedConstructors,
-      definedMethods,
       module
     )
     ir.updateMetadata(BindingResolution -->> meta)

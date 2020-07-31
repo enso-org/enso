@@ -4,13 +4,13 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
-import org.enso.compiler.pass.analyse.BindingResolution.ResolvedModule
 
-object MethodDefinitionResolution extends IRPass {
+case object MethodDefinitionResolution extends IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
-  override type Metadata = Resolution
+  override type Metadata = BindingsMap.Resolution
 
   /** The type of configuration for the pass. */
   override type Config = IRPass.Configuration.Default
@@ -44,8 +44,8 @@ object MethodDefinitionResolution extends IRPass {
         val resolvedTypeRef = methodRef.typePointer match {
           case tp: IR.Name.Here =>
             tp.updateMetadata(
-              this -->> Resolution(
-                ResolvedModule(availableSymbolsMap.currentModule)
+              this -->> BindingsMap.Resolution(
+                BindingsMap.ResolvedModule(availableSymbolsMap.currentModule)
               )
             )
           case tp @ IR.Name.Qualified(List(item), _, _, _) =>
@@ -53,7 +53,7 @@ object MethodDefinitionResolution extends IRPass {
               case Left(err) =>
                 IR.Error.Resolution(tp, IR.Error.Resolution.Reason(err))
               case Right(candidate) =>
-                tp.updateMetadata(this -->> Resolution(candidate))
+                tp.updateMetadata(this -->> BindingsMap.Resolution(candidate))
             }
           case tp: IR.Error.Resolution => tp
           case _ =>
@@ -85,21 +85,4 @@ object MethodDefinitionResolution extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression = ir
 
-  case class Resolution(target: BindingResolution.ResolvedName)
-      extends IRPass.Metadata {
-
-    /** The name of the metadata as a string. */
-    override val metadataName: String = "DefinedOn"
-
-    /** Creates a duplicate of this metadata if applicable.
-      *
-      * This method should employ deep-copy semantics where appropriate. It may
-      * return None to indicate that this metadata should not be preserved
-      * during duplication.
-      *
-      * @return Some duplicate of this metadata or None if this metadata should
-      *         not be preserved
-      */
-    override def duplicate(): Option[IRPass.Metadata] = Some(this)
-  }
 }

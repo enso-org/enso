@@ -5,17 +5,12 @@ import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
 import org.enso.compiler.core.IR.{Error, IdentifiedLocation, Pattern}
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.{BadPatternMatch, CompilerError}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
-import org.enso.compiler.pass.analyse.BindingResolution.{
-  ResolvedConstructor,
-  ResolvedModule
-}
-import org.enso.compiler.pass.analyse.MethodDefinitionResolution.Resolution
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
-  BindingResolution,
   DataflowAnalysis,
   MethodDefinitionResolution,
   PatternResolution,
@@ -211,10 +206,12 @@ class IrToTruffle(
         methodDef.methodReference.typePointer
           .getMetadata(MethodDefinitionResolution)
           .map {
-            case Resolution(ResolvedModule(module)) =>
+            case BindingsMap.Resolution(BindingsMap.ResolvedModule(module)) =>
               module.getScope.getAssociatedType
-            case Resolution(ResolvedConstructor(definitionModule, cons)) =>
-              definitionModule.getScope.getConstructors.get(cons.name.name)
+            case BindingsMap.Resolution(
+                  BindingsMap.ResolvedConstructor(definitionModule, cons)
+                ) =>
+              definitionModule.getScope.getConstructors.get(cons.name)
           }
 
       consOpt.foreach {
@@ -549,14 +546,16 @@ class IrToTruffle(
               constructor.getMetadata(PatternResolution) match {
                 case None =>
                   Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
-                case Some(Resolution(BindingResolution.ResolvedModule(mod))) =>
+                case Some(
+                      BindingsMap.Resolution(BindingsMap.ResolvedModule(mod))
+                    ) =>
                   Right(mod.getScope.getAssociatedType)
                 case Some(
-                      Resolution(
-                        BindingResolution.ResolvedConstructor(mod, cons)
+                      BindingsMap.Resolution(
+                        BindingsMap.ResolvedConstructor(mod, cons)
                       )
                     ) =>
-                  Right(mod.getScope.getConstructors.get(cons.name.name))
+                  Right(mod.getScope.getConstructors.get(cons.name))
               }
           }
 

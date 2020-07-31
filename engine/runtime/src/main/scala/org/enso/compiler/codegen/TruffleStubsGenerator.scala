@@ -24,7 +24,7 @@ class TruffleStubsGenerator() {
       "Non-parsed module used in stubs generator"
     )
     localBindings.types.foreach { tp =>
-      val constructor = new AtomConstructor(tp.name.name, scope)
+      val constructor = new AtomConstructor(tp.name, scope)
       scope.registerConstructor(constructor)
     }
   }

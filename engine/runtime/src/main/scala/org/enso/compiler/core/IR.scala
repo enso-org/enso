@@ -5,9 +5,9 @@ import java.util.UUID
 import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.compiler.core.ir.{DiagnosticStorage, MetadataStorage}
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.BindingResolution
 import org.enso.syntax.text.{AST, Debug, Location}
 
 import scala.annotation.unused
@@ -5057,7 +5057,7 @@ object IR {
         *
         * @param err the original error.
         */
-      case class Reason(err: BindingResolution.ResolutionError) {
+      case class Reason(err: BindingsMap.ResolutionError) {
 
         /**
           * Provides a human-readable explanation of the error.
@@ -5066,20 +5066,20 @@ object IR {
           */
         def explain(originalName: IR.Name): String =
           err match {
-            case BindingResolution.ResolutionAmbiguous(candidates) =>
+            case BindingsMap.ResolutionAmbiguous(candidates) =>
               val firstLine =
                 s"The name ${originalName.name} is ambiguous. Possible candidates are:"
               val lines = candidates.map {
-                case BindingResolution.ResolvedConstructor(
+                case BindingsMap.ResolvedConstructor(
                       definitionModule,
                       cons
                     ) =>
-                  s"    Type ${cons.name.name} defined in module ${definitionModule.getName};"
-                case BindingResolution.ResolvedModule(module) =>
+                  s"    Type ${cons.name} defined in module ${definitionModule.getName};"
+                case BindingsMap.ResolvedModule(module) =>
                   s"    The module ${module.getName};"
               }
               (firstLine :: lines).mkString("\n")
-            case BindingResolution.ResolutionNotFound =>
+            case BindingsMap.ResolutionNotFound =>
               s"The name ${originalName.name} could not be found."
           }
 

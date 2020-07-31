@@ -4,12 +4,12 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.core.ir.MetadataStorage._
-import org.enso.compiler.pass.analyse.BindingResolution.ResolvedConstructor
+import org.enso.compiler.data.BindingsMap
 
 object PatternResolution extends IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
-  override type Metadata = MethodDefinitionResolution.Resolution
+  override type Metadata = BindingsMap.Resolution
 
   /** The type of configuration for the pass. */
   override type Config = IRPass.Configuration.Default
@@ -42,7 +42,7 @@ object PatternResolution extends IRPass {
 
   private def doExpression(
     expr: IR.Expression,
-    bindings: BindingResolution.LocalBindings
+    bindings: BindingsMap
   ): IR.Expression = {
     expr.transformExpressions {
       case caseExpr: IR.Case.Expr =>
@@ -60,7 +60,7 @@ object PatternResolution extends IRPass {
                       )
                     case Right(value) =>
                       lit.updateMetadata(
-                        this -->> MethodDefinitionResolution.Resolution(value)
+                        this -->> BindingsMap.Resolution(value)
                       )
                   }
                 case other => other
@@ -68,8 +68,8 @@ object PatternResolution extends IRPass {
               val resolution = resolvedName.getMetadata(this)
               val expectedArity = resolution.map { res =>
                 res.target match {
-                  case ResolvedConstructor(_, cons)        => cons.arity
-                  case BindingResolution.ResolvedModule(_) => 0
+                  case BindingsMap.ResolvedConstructor(_, cons) => cons.arity
+                  case BindingsMap.ResolvedModule(_)            => 0
                 }
               }
               expectedArity match {
