@@ -154,4 +154,4 @@ Is converted into:
 type A[X] = B[X, Y]
 ```
 
-Note that compared to Rust, Scala doesn't support types outside objects.
+Note that in contrast to Rust, Scala doesn't support types outside objects.
