@@ -70,7 +70,7 @@ class MethodDefinitionsTest extends CompilerTest {
         .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
           BindingsMap.ResolvedConstructor(
-            mkModuleContext.module,
+            ctx.module,
             Cons("Foo", 3)
           )
         )
@@ -81,7 +81,7 @@ class MethodDefinitionsTest extends CompilerTest {
         .typePointer
         .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
-          BindingsMap.ResolvedModule(mkModuleContext.module)
+          BindingsMap.ResolvedModule(ctx.module)
         )
       )
       ir.bindings(3)
@@ -90,7 +90,7 @@ class MethodDefinitionsTest extends CompilerTest {
         .typePointer
         .getMetadata(MethodDefinitions) shouldEqual Some(
         BindingsMap.Resolution(
-          BindingsMap.ResolvedModule(mkModuleContext.module)
+          BindingsMap.ResolvedModule(ctx.module)
         )
       )
       ir.bindings(4)

@@ -85,7 +85,7 @@ class PatternsTest extends CompilerTest {
         .asInstanceOf[IR.Pattern.Constructor]
         .constructor
         .getMetadata(Patterns) shouldEqual Some(
-        Resolution(ResolvedConstructor(mkModuleContext.module, Cons("Foo", 3)))
+        Resolution(ResolvedConstructor(ctx.module, Cons("Foo", 3)))
       )
       patterns(1) shouldBe a[IR.Error.Pattern]
       patterns(2)

@@ -62,7 +62,7 @@ class BindingAnalysisTest extends CompilerTest {
       ir.getMetadata(BindingAnalysis) shouldEqual Some(
         BindingsMap(
           List(Cons("Foo", 3), Cons("Bar", 0), Cons("Baz", 2)),
-          mkModuleContext.module
+          ctx.module
         )
       )
     }
