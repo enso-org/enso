@@ -75,7 +75,6 @@ class ContextEventsListenerSpec
             Api.ExpressionValueUpdate(
               Suggestions.method.externalId.get,
               None,
-              None,
               None
             )
           )
@@ -117,7 +116,6 @@ class ContextEventsListenerSpec
             Api.ExpressionValueUpdate(
               Suggestions.method.externalId.get,
               None,
-              None,
               None
             )
           )
@@ -128,7 +126,6 @@ class ContextEventsListenerSpec
           Vector(
             Api.ExpressionValueUpdate(
               Suggestions.local.externalId.get,
-              None,
               None,
               None
             )
