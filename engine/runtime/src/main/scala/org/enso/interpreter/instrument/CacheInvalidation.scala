@@ -35,6 +35,9 @@ object CacheInvalidation {
     /** Invalidate the types index. */
     case object Types extends IndexSelector
 
+    /** Invalidate the calls index. */
+    case object Calls extends IndexSelector
+
     /** Invalidate the weights index. */
     case object Weights extends IndexSelector
   }
@@ -185,9 +188,12 @@ object CacheInvalidation {
       case IndexSelector.All =>
         cache.clearTypes()
         cache.clearWeights()
+        cache.clearCalls()
       case IndexSelector.Weights =>
         cache.clearWeights()
       case IndexSelector.Types =>
         cache.clearTypes()
+      case IndexSelector.Calls =>
+        cache.clearCalls()
     }
 }

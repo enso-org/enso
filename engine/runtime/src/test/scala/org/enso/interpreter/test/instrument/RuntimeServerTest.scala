@@ -9,8 +9,8 @@ import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.{Package, PackageManager}
-import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot._
+import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
 import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
@@ -19,9 +19,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.annotation.nowarn
-
-@nowarn("msg=multiarg infix syntax")
+@scala.annotation.nowarn("msg=multiarg infix syntax")
 class RuntimeServerTest
     extends AnyFlatSpec
     with Matchers
@@ -368,6 +366,127 @@ class RuntimeServerTest
     )
   }
 
+  it should "send updates when the type is changed" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata  = new Metadata
+    val idResult  = metadata.addItem(20, 4)
+    val idPrintln = metadata.addItem(29, 17)
+    val idMain    = metadata.addItem(6, 40)
+    val code =
+      """main =
+        |    result = 1337
+        |    IO.println result
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receive shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(mainFile, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idResult, Some("Number"), None))
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idPrintln, Some("Unit"), None))
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+        )
+      ),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idMain),
+                moduleName,
+                "main",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(idResult),
+                moduleName,
+                "result",
+                "Any",
+                Suggestion.Scope(
+                  Suggestion.Position(0, 6),
+                  Suggestion.Position(2, 21)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("1337")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(1, 13), model.Position(1, 17)),
+              "\"Hi\""
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idResult, Some("Text"), None))
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("Hi")
+  }
+
   it should "not send updates when the type is not changed" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -389,19 +508,25 @@ class RuntimeServerTest
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
+    // open file
     context.send(
       Api.Request(Api.OpenFileNotification(mainFile, contents, false))
     )
     context.receive shouldEqual None
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
-      None,
-      Vector()
-    )
     context.send(
-      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(mainFile, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
     )
     context.receive(7) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
@@ -517,6 +642,320 @@ class RuntimeServerTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId))
     )
+  }
+
+  it should "send updates when the method pointer is changed" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata = new Metadata
+    val idMain   = metadata.addItem(6, 35)
+    val idMainA  = metadata.addItem(15, 8)
+    val idMainP  = metadata.addItem(28, 12)
+    val idPie    = metadata.addItem(45 + 8, 1)
+    val idUwu    = metadata.addItem(58 + 8, 1)
+    val idHie    = metadata.addItem(71 + 8, 6)
+    val idXxx    = metadata.addItem(91 + 8, 1)
+    val code =
+      """main =
+        |    a = 123 + 21
+        |    IO.println a
+        |
+        |Main.pie = 3
+        |Main.uwu = 7
+        |Main.hie = "hie!"
+        |Number.x y = y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receive shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(mainFile, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMainA, Some("Number"), None))
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMainP, Some("Unit"), None))
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+        )
+      ),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idMain),
+                moduleName,
+                "main",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idPie),
+                moduleName,
+                "pie",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "Main",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idUwu),
+                moduleName,
+                "uwu",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "Main",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idHie),
+                moduleName,
+                "hie",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "Main",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idXxx),
+                moduleName,
+                "x",
+                Seq(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("y", "Any", false, false, None)
+                ),
+                "Number",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(idMainA),
+                moduleName,
+                "a",
+                "Any",
+                Suggestion.Scope(
+                  Suggestion.Position(0, 6),
+                  Suggestion.Position(3, 0)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("144")
+
+    // Edit s/123 + 21/1234.x 4/
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(1, 8), model.Position(1, 16)),
+              "1234.x 4"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainA,
+              Some("Number"),
+              Some(Api.MethodPointer(mainFile, "Number", "x"))
+            )
+          )
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("4")
+
+    // Edit s/1234.x 4/1000.x 5/
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(1, 8), model.Position(1, 16)),
+              "1000.x 5"
+            )
+          )
+        )
+      )
+    )
+    context.receive shouldEqual None
+    context.consumeOut shouldEqual List("5")
+
+    // Edit s/1000.x 5/Main.pie/
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(1, 8), model.Position(1, 16)),
+              "Main.pie"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainA,
+              Some("Number"),
+              Some(Api.MethodPointer(mainFile, "Main", "pie"))
+            )
+          )
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("3")
+
+    // Edit s/Main.pie/Main.uwu/
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(1, 8), model.Position(1, 16)),
+              "Main.uwu"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainA,
+              Some("Number"),
+              Some(Api.MethodPointer(mainFile, "Main", "uwu"))
+            )
+          )
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("7")
+
+    // Edit s/Main.uwu/Main.hie/
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(1, 8), model.Position(1, 16)),
+              "Main.hie"
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainA,
+              Some("Text"),
+              Some(Api.MethodPointer(mainFile, "Main", "hie"))
+            )
+          )
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("hie!")
+
+    // Edit s/Main.hie/"Hello!"/
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(1, 8), model.Position(1, 16)),
+              "\"Hello!\""
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMainA, Some("Text"), None))
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("Hello!")
   }
 
   it should "support file modification operations" in {

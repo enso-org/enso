@@ -18,6 +18,7 @@ import org.enso.pkg.QualifiedName;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -72,30 +73,45 @@ public class IdExecutionInstrument extends TruffleInstrument {
   public static class ExpressionValue {
     private final UUID expressionId;
     private final Object value;
-    private final String valueType;
+    private final String type;
     private final String cachedType;
     private final FunctionCallInfo callInfo;
+    private final FunctionCallInfo cachedCallInfo;
 
     /**
      * Creates a new instance of this class.
      *
      * @param expressionId the id of the expression being computed.
      * @param value the value returned by computing the expression.
-     * @param valueType the type of the returned value.
+     * @param type the type of the returned value.
      * @param cachedType the cached type of the value.
      * @param callInfo the function call data.
      */
     public ExpressionValue(
         UUID expressionId,
         Object value,
-        String valueType,
+        String type,
         String cachedType,
-        FunctionCallInfo callInfo) {
+        FunctionCallInfo callInfo,
+        FunctionCallInfo cachedCallInfo) {
       this.expressionId = expressionId;
       this.value = value;
-      this.valueType = valueType;
+      this.type = type;
       this.cachedType = cachedType;
       this.callInfo = callInfo;
+      this.cachedCallInfo = cachedCallInfo;
+    }
+
+    @Override
+    public String toString() {
+      return "ExpressionValue{" +
+          "expressionId=" + expressionId +
+          ", value=" + value +
+          ", type='" + type + '\'' +
+          ", cachedType='" + cachedType + '\'' +
+          ", callInfo=" + callInfo +
+          ", cachedCallInfo=" + cachedCallInfo +
+          '}';
     }
 
     /** @return the id of the expression computed. */
@@ -104,8 +120,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
     }
 
     /** @return the type of the returned value. */
-    public String getValueType() {
-      return valueType;
+    public String getType() {
+      return type;
     }
 
     /** @return the cached type of the value. */
@@ -121,6 +137,11 @@ public class IdExecutionInstrument extends TruffleInstrument {
     /** @return the function call data. */
     public FunctionCallInfo getCallInfo() {
       return callInfo;
+    }
+
+    /** @return the function call data previously associated with the expression. */
+    public FunctionCallInfo getCachedCallInfo() {
+      return cachedCallInfo;
     }
   }
 
@@ -152,6 +173,30 @@ public class IdExecutionInstrument extends TruffleInstrument {
         typeName = null;
         functionName = rootNode.getQualifiedName();
       }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      FunctionCallInfo that = (FunctionCallInfo) o;
+      return Objects.equals(moduleName, that.moduleName) &&
+          Objects.equals(typeName, that.typeName) &&
+          functionName.equals(that.functionName);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(moduleName, typeName, functionName);
+    }
+
+    @Override
+    public String toString() {
+      return moduleName + "::" + typeName + "::" + functionName;
     }
 
     /** @return the name of the module this function was defined in, or null if not available. */
@@ -232,7 +277,12 @@ public class IdExecutionInstrument extends TruffleInstrument {
       if (result != null && !nodeId.equals(nextExecutionItem)) {
         onCachedCallback.accept(
             new ExpressionValue(
-                nodeId, result, cache.getType(nodeId), Types.getName(result), calls.get(nodeId)));
+                nodeId,
+                result,
+                cache.getType(nodeId),
+                Types.getName(result),
+                calls.get(nodeId),
+                cache.getCall(nodeId)));
         throw context.createUnwind(result);
       }
     }
@@ -269,8 +319,10 @@ public class IdExecutionInstrument extends TruffleInstrument {
         String resultType = Types.getName(result);
         cache.offer(nodeId, result);
         String cachedType = cache.putType(nodeId, resultType);
+        FunctionCallInfo call = calls.get(nodeId);
+        FunctionCallInfo cachedCall = cache.putCall(nodeId, call);
         onComputedCallback.accept(
-            new ExpressionValue(nodeId, result, resultType, cachedType, calls.get(nodeId)));
+            new ExpressionValue(nodeId, result, resultType, cachedType, call, cachedCall));
       }
     }
 

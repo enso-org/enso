@@ -131,11 +131,13 @@ trait ProgramExecutionSupport {
 
     val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
       if (updatedVisualisations.contains(value.getExpressionId)) {
+        ctx.executionService.getLogger.finer(s"ON_CACHED $value")
         fireVisualisationUpdates(contextId, value)
       }
     }
 
     val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
+      ctx.executionService.getLogger.finer(s"ON_COMPUTED $value")
       sendValueUpdate(contextId, value)
       fireVisualisationUpdates(contextId, value)
     }
@@ -168,7 +170,10 @@ trait ProgramExecutionSupport {
     contextId: ContextId,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
-    if (!Objects.equals(value.getValueType, value.getCachedType)) {
+    if (
+      !Objects.equals(value.getType, value.getCachedType) ||
+      !Objects.equals(value.getCallInfo, value.getCachedCallInfo)
+    ) {
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionValuesComputed(
@@ -176,7 +181,7 @@ trait ProgramExecutionSupport {
             Vector(
               Api.ExpressionValueUpdate(
                 value.getExpressionId,
-                Some(value.getValueType),
+                Some(value.getType),
                 toMethodPointer(value)
               )
             )
