@@ -8,9 +8,9 @@ use std::ops::RangeInclusive;
 
 
 
-// ================
-// === Alphabet ===
-// ================
+// ====================
+// === Segmentation ===
+// ====================
 
 /// A representation of the distinct intervals over the input alphabet for a given finite state
 /// automaton.
@@ -61,7 +61,7 @@ impl Segmentation {
         }
     }
 
-    /// Creates an [`AlphabetSegmentation`] from an input set of divisions.
+    /// Creates a [`Segmentation`] from an input set of divisions.
     pub fn from_divisions(divisions:&[u32]) -> Self {
         let mut dict = Self::default();
         for val in divisions {

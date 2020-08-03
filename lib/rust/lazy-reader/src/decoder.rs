@@ -10,6 +10,10 @@ use std::fmt::Debug;
 // === Decoder ===
 // ===============
 
+/// The error for an invalid character.
+#[derive(Debug,Clone,Copy)]
+pub struct InvalidChar();
+
 /// Trait for decoding UTF32 characters.
 pub trait Decoder {
     /// The input of the decoder.
@@ -20,17 +24,17 @@ pub trait Decoder {
     /// Decodes the first symbol from the slice and returns it with its length (in words).
     ///
     /// This function can panic if `words.len() < MAX_CODEPOINT_LEN`.
-    fn decode(words:&[Self::Word]) -> Char;
+    fn decode(words:&[Self::Word]) -> Char<InvalidChar>;
 }
 
 
 // === Char ===
 
 /// The result of `decoder.decode`.
-#[derive(Debug,Clone,Copy)]
-pub struct Char {
+#[derive(Debug,Clone,Copy,PartialEq)]
+pub struct Char<Error> {
     /// The decoded character.
-    pub char: Option<char>,
+    pub char: Result<char,Error>,
     /// The number of words read.
     pub size: usize,
 }
@@ -55,7 +59,7 @@ impl Decoder for DecoderUTF8 {
 
     const MAX_CODEPOINT_LEN: usize = 4;
 
-    fn decode(words: &[u8]) -> Char {
+    fn decode(words: &[u8]) -> Char<InvalidChar> {
         let size = match !words[0] >> 4 {
             0     => 4,
             1     => 3,
@@ -68,7 +72,7 @@ impl Decoder for DecoderUTF8 {
             char = char << 6 | (word & 0b_0011_1111) as u32;
         }
 
-        Char{char:std::char::from_u32(char),size}
+        Char{char:std::char::from_u32(char).ok_or_else(InvalidChar),size}
     }
 }
 
@@ -92,14 +96,14 @@ impl Decoder for DecoderUTF16 {
 
     const MAX_CODEPOINT_LEN: usize = 2;
 
-    fn decode(words: &[u16]) -> Char {
+    fn decode(words: &[u16]) -> Char<InvalidChar> {
         if words[0] < 0xD800 || 0xDFFF < words[0] {
-            let char = Some(unsafe{std::char::from_u32_unchecked(words[0] as u32)});
+            let char = Ok(unsafe{std::char::from_u32_unchecked(words[0] as u32)});
             return Char{char,size:1};
         }
         let char = (((words[0] - 0xD800) as u32) << 10 | (words[1] - 0xDC00) as u32) + 0x1_0000;
 
-        Char{char:std::char::from_u32(char), size:2}
+        Char{char:std::char::from_u32(char).ok_or_else(InvalidChar), size:2}
     }
 }
 
@@ -121,8 +125,8 @@ impl Decoder for DecoderUTF32 {
 
     const MAX_CODEPOINT_LEN: usize = 1;
 
-    fn decode(words: &[char]) -> Char {
-        Char{char:Some(words[0]), size:1}
+    fn decode(words: &[char]) -> Char<InvalidChar> {
+        Char{char:Ok(words[0]), size:1}
     }
 }
 

@@ -102,8 +102,8 @@ pub trait AnyLogger {
 
 impl<T:AnyLogger> AnyLogger for &T {
     type Owned = T::Owned;
-    fn path        (&self) -> &str { T::path(self) }
     fn new         (path:impl Into<ImString>) -> Self::Owned { T::new(path) }
+    fn path        (&self) -> &str { T::path(self) }
     fn trace       (&self, msg:impl Message) { T::trace       (self,msg) }
     fn debug       (&self, msg:impl Message) { T::debug       (self,msg) }
     fn info        (&self, msg:impl Message) { T::info        (self,msg) }

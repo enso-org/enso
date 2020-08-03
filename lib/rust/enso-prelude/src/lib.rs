@@ -3,6 +3,7 @@
 //! defines several aliases and utils which may find their place in new
 //! libraries in the future.
 
+#![feature(test)]
 #![warn(unsafe_code)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
@@ -19,6 +20,7 @@ mod reference;
 mod std_reexports;
 mod string;
 mod tp;
+mod vec;
 mod wrapper;
 
 pub use clone::*;
@@ -31,6 +33,7 @@ pub use reference::*;
 pub use std_reexports::*;
 pub use string::*;
 pub use tp::*;
+pub use vec::*;
 pub use wrapper::*;
 
 pub use boolinator::Boolinator;
