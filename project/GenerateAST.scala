@@ -33,8 +33,8 @@ object GenerateAST {
 
 
   /**
-    * Generates the Scala AST in specified file. All encountered errors are
-    * reported in stderr and rise a runtime exception.
+    * Generates the Scala AST in the specified file. All errors are reported in 
+    * stderr and raise a runtime exception.
     *
     * @param out the file where the generated AST is going to be placed
     */
