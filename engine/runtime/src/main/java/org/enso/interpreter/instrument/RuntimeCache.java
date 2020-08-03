@@ -10,6 +10,8 @@ import java.util.UUID;
 public class RuntimeCache {
 
   private final Map<UUID, SoftReference<Object>> cache = new HashMap<>();
+  private final Map<UUID, String> types = new HashMap<>();
+  private final Map<UUID, IdExecutionInstrument.FunctionCallInfo> calls = new HashMap<>();
   private Map<UUID, Double> weights = new HashMap<>();
 
   /**
@@ -48,6 +50,52 @@ public class RuntimeCache {
   /** Clear the cached values. */
   public void clear() {
     cache.clear();
+  }
+
+  /**
+   * Cache the type of expression.
+   *
+   * @return the previously cached type.
+   */
+  public String putType(UUID key, String typeName) {
+    return types.put(key, typeName);
+  }
+
+  /** @return the cached type of the expression */
+  public String getType(UUID key) {
+    return types.get(key);
+  }
+
+  /**
+   * Cache the function call
+   *
+   * @param key the expression associated with the function call.
+   * @param call the function call.
+   * @return the function call that was previously associated with this expression.
+   */
+  public IdExecutionInstrument.FunctionCallInfo putCall(
+      UUID key, IdExecutionInstrument.FunctionCallInfo call) {
+    return calls.put(key, call);
+  }
+
+  /** @return the cached function call associated with the expression. */
+  public IdExecutionInstrument.FunctionCallInfo getCall(UUID key) {
+    return calls.get(key);
+  }
+
+  /** Clear the cached calls. */
+  public void clearCalls() {
+    calls.clear();
+  }
+
+  /** Remove the type associated with the provided key. */
+  public void removeType(UUID key) {
+    types.remove(key);
+  }
+
+  /** Clear the cached types. */
+  public void clearTypes() {
+    types.clear();
   }
 
   /** @return the weights of this cache. */

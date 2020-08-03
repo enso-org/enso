@@ -84,16 +84,16 @@ public class ExecutionService {
    * @param call the call metadata.
    * @param cache the precomputed expression values.
    * @param nextExecutionItem the next item scheduled for execution.
-   * @param valueCallback the consumer for expression value events.
-   * @param visualisationCallback the consumer of the node visualisation events.
+   * @param onComputedCallback the consumer of the computed value events.
+   * @param onCachedCallback the consumer of the cached value events.
    * @param funCallCallback the consumer for function call events.
    */
   public void execute(
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
       UUID nextExecutionItem,
-      Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
 
@@ -108,8 +108,8 @@ public class ExecutionService {
             src.getCharLength(),
             cache,
             nextExecutionItem,
-            valueCallback,
-            visualisationCallback,
+            onComputedCallback,
+            onCachedCallback,
             funCallCallback);
     interopLibrary.execute(call);
     listener.dispose();
@@ -124,8 +124,8 @@ public class ExecutionService {
    * @param methodName the method name.
    * @param cache the precomputed expression values.
    * @param nextExecutionItem the next item scheduled for execution.
-   * @param valueCallback the consumer for expression value events.
-   * @param visualisationCallback the consumer of the node visualisation events.
+   * @param onComputedCallback the consumer of the computed value events.
+   * @param onCachedCallback the consumer of the cached value events.
    * @param funCallCallback the consumer for function call events.
    */
   public void execute(
@@ -134,8 +134,8 @@ public class ExecutionService {
       String methodName,
       RuntimeCache cache,
       UUID nextExecutionItem,
-      Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
     Optional<FunctionCallInstrumentationNode.FunctionCall> callMay =
@@ -149,8 +149,8 @@ public class ExecutionService {
         callMay.get(),
         cache,
         nextExecutionItem,
-        valueCallback,
-        visualisationCallback,
+        onComputedCallback,
+        onCachedCallback,
         funCallCallback);
   }
 

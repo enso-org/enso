@@ -33,10 +33,12 @@ final class Changeset[A: TextEditor: IndexedSource](val source: A, val ir: IR) {
         DataflowAnalysis,
         "Empty dataflow analysis metadata during changeset calculation."
       )
-    invalidated(edits)
+    val direct = invalidated(edits)
+    val transitive = direct
       .map(Changeset.toDataflowDependencyType)
       .flatMap(metadata.getExternal)
       .flatten
+    direct.flatMap(_.externalId) ++ transitive
   }
 
   /** Traverses the IR and returns a list of the most specific (the innermost)

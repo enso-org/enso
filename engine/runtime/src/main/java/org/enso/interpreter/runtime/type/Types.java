@@ -101,23 +101,27 @@ public class Types {
    * @param value an object of interest.
    * @return the string representation of object's type.
    */
-  public static Optional<String> getName(Object value) {
-    if (TypesGen.isLong(value)) {
-      return Optional.of("Number");
+  public static String getName(Object value) {
+    if (TypesGen.isLong(value) || TypesGen.isImplicitLong(value)) {
+      return "Number";
+    } else if (TypesGen.isBoolean(value)) {
+      return "Boolean";
     } else if (TypesGen.isString(value)) {
-      return Optional.of("Text");
+      return "Text";
     } else if (TypesGen.isFunction(value)) {
-      return Optional.of("Function");
+      return "Function";
     } else if (TypesGen.isAtom(value)) {
-      return Optional.of(TypesGen.asAtom(value).getConstructor().getName());
+      return TypesGen.asAtom(value).getConstructor().getName();
     } else if (TypesGen.isAtomConstructor(value)) {
-      return Optional.of(TypesGen.asAtomConstructor(value).getName());
+      return TypesGen.asAtomConstructor(value).getName();
     } else if (TypesGen.isThunk(value)) {
-      return Optional.of("Thunk");
+      return "Thunk";
     } else if (TypesGen.isRuntimeError(value)) {
-      return Optional.of("Error " + TypesGen.asRuntimeError(value).getPayload().toString());
+      return "Error " + TypesGen.asRuntimeError(value).getPayload().toString();
+    } else if (TypesGen.isVector(value)) {
+      return "Vector";
     } else {
-      return Optional.empty();
+      return null;
     }
   }
 
