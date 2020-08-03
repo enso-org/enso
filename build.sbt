@@ -301,7 +301,6 @@ val directoryWatcherVersion     = "0.9.10"
 val flatbuffersVersion          = "1.12.0"
 val guavaVersion                = "29.0-jre"
 val jlineVersion                = "3.15.0"
-val jupyterJvmBasekernelVersion = "2.3.0"
 val kindProjectorVersion        = "0.11.0"
 val mockitoScalaVersion         = "1.14.8"
 val newtypeVersion              = "0.4.4"
@@ -950,7 +949,6 @@ lazy val runner = project
         "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
         "commons-cli"           % "commons-cli"            % commonsCliVersion,
         "com.monovore"         %% "decline"                % declineVersion,
-        "io.github.spencerpark" % "jupyter-jvm-basekernel" % jupyterJvmBasekernelVersion,
         "org.jline"             % "jline"                  % jlineVersion,
         "org.typelevel"        %% "cats-core"              % catsVersion,
         "com.typesafe.slick"   %% "slick-hikaricp"         % slickVersion % Runtime

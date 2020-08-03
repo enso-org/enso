@@ -9,7 +9,7 @@ import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis}
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.interpreter.test.Metadata
@@ -22,7 +22,7 @@ class DataflowAnalysisTest extends CompilerTest {
   val passes = new Passes
 
   /** The passes that must be run before the dataflow analysis pass. */
-  val precursorPasses: List[IRPass] =
+  val precursorPasses: PassGroup =
     passes.getPrecursors(DataflowAnalysis).get
 
   val passConfig: PassConfiguration = PassConfiguration(
@@ -31,7 +31,7 @@ class DataflowAnalysisTest extends CompilerTest {
   )
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfig)
+    new PassManager(List(precursorPasses), passConfig)
 
   /** Generates an identifier dependency.
     *
@@ -98,7 +98,7 @@ class DataflowAnalysisTest extends CompilerTest {
     def analyse: IR.Module = {
       DataflowAnalysis.runModule(
         ir,
-        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+        buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
       )
     }
   }
@@ -141,7 +141,7 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a new inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(
+    buildInlineContext(
       localScope       = Some(LocalScope.root),
       isInTailPosition = Some(false),
       freshNameSupply  = Some(new FreshNameSupply)
@@ -153,7 +153,7 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a new module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext(
+    buildModuleContext(
       freshNameSupply = Some(new FreshNameSupply)
     )
   }

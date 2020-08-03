@@ -179,7 +179,7 @@ public class Context {
    */
   public Module createModule(QualifiedName name) {
     Module module = Module.empty(name);
-    initializeScope(module.parseScope(this));
+    initializeScope(module.compileScope(this));
     return module;
   }
 

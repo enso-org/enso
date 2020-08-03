@@ -157,21 +157,25 @@ object AstToIr {
               getIdentifiedLocation(nameStr)
             )
 
+          val typeSegments = methodSegments.init
+
           Name.MethodReference(
-            methodSegments.init,
+            IR.Name.Qualified(
+              typeSegments,
+              MethodReference.genLocation(typeSegments)
+            ),
             methodSegments.last,
             MethodReference.genLocation(methodSegments)
           )
         } else {
-          val methodSegments = List(
-            Name.Here(None),
+          val typeName = Name.Here(None)
+          val methodName =
             Name.Literal(nameStr.name, getIdentifiedLocation(nameStr))
-          )
 
           Name.MethodReference(
-            List(methodSegments.head),
-            methodSegments.last,
-            MethodReference.genLocation(methodSegments)
+            typeName,
+            methodName,
+            methodName.location
           )
         }
 
@@ -182,14 +186,13 @@ object AstToIr {
           getIdentifiedLocation(inputAst)
         )
       case AstView.FunctionSugar(name, args, body) =>
-        val methodSegments = List(
-          Name.Here(None),
-          Name.Literal(name.name, getIdentifiedLocation(name))
-        )
+        val typeName   = Name.Here(None)
+        val methodName = Name.Literal(name.name, getIdentifiedLocation(name))
+
         val methodReference = Name.MethodReference(
-          List(methodSegments.head),
-          methodSegments.last,
-          MethodReference.genLocation(methodSegments)
+          typeName,
+          methodName,
+          methodName.location
         )
 
         Module.Scope.Definition.Method.Binding(
@@ -202,14 +205,12 @@ object AstToIr {
       case AstView.TypeAscription(typed, sig) =>
         typed match {
           case AST.Ident.any(ident) =>
-            val methodSegments = List(
-              Name.Here(None),
-              Name.Literal(ident.name, getIdentifiedLocation(ident))
-            )
+            val typeName = Name.Here(None)
+            val methodName = Name.Literal(ident.name, getIdentifiedLocation(ident))
             val methodReference = Name.MethodReference(
-              List(methodSegments.head),
-              methodSegments.last,
-              MethodReference.genLocation(methodSegments)
+                typeName,
+              methodName,
+              methodName.location
             )
 
             IR.Type.Ascription(
@@ -287,8 +288,9 @@ object AstToIr {
   def translateMethodReference(inputAst: AST): IR.Name.MethodReference = {
     inputAst match {
       case AstView.MethodReference(path, methodName) =>
+        val typeParts = path.map(translateExpression(_).asInstanceOf[IR.Name])
         IR.Name.MethodReference(
-          path.map(translateExpression(_).asInstanceOf[IR.Name]),
+          IR.Name.Qualified(typeParts, MethodReference.genLocation(typeParts)),
           translateExpression(methodName).asInstanceOf[IR.Name],
           getIdentifiedLocation(inputAst)
         )

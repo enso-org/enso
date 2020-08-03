@@ -3,7 +3,7 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.pass.resolve.TypeSignatures
 import org.enso.compiler.test.CompilerTest
 
@@ -13,12 +13,12 @@ class TypeSignaturesTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: List[IRPass] = passes.getPrecursors(TypeSignatures).get
+  val precursorPasses: PassGroup = passes.getPrecursors(TypeSignatures).get
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfiguration)
+    new PassManager(List(precursorPasses), passConfiguration)
 
   /** Adds an extension method to a module for performing type signature
     * resolution.
@@ -59,7 +59,7 @@ class TypeSignaturesTest extends CompilerTest {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+    buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   /** Creates a defaulted inline context.
@@ -67,7 +67,7 @@ class TypeSignaturesTest extends CompilerTest {
     * @return a defaulted inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(freshNameSupply = Some(new FreshNameSupply))
+    buildInlineContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================
