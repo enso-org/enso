@@ -91,7 +91,7 @@ where Definition:State, Reader:LazyReader {
         state_stack.reserve(constants::STATE_STACK_RESERVATION);
         output.reserve(constants::OUTPUT_BUFFER_RESERVATION);
         state_stack.push(initial_state_id);
-        Flexer{state_stack,reader,status,output,definition,current_match}
+        Flexer {state_stack,reader,status,output,definition,current_match}
     }
 }
 
@@ -119,8 +119,10 @@ where Definition:State, Output:Clone {
     }
 
     /// End the current state, returning the popped state identifier if one was ended.
+    ///
+    /// It will never end the initial state of the lexer.
     pub fn pop_state(&mut self) -> Option<group::Identifier> {
-        (self.state_stack.len() > 1).as_some(self.state_stack.pop().expect("Item exists."))
+        self.state_stack.pop()
     }
 
     /// End states until the specified `state` is reached, leaving the lexer in `state`.

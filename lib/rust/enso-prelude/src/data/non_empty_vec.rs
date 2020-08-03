@@ -156,6 +156,8 @@ impl<T> NonEmptyVec<T> {
 
     /// Remove an element from the back of the collection, returning it.
     ///
+    /// Will not pop any item if there is only one item left in the vector.
+    ///
     /// # Examples
     ///
     /// ```
