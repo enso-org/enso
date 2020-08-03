@@ -10,26 +10,26 @@ pub trait VecOps {
 
     /// Pushes the provided `item` onto the [`std::vec::Vec`], and then returns an immutable
     /// reference to the item.
-    fn push_and_get(&mut self, item:Self::Item) -> Option<&Self::Item>;
+    fn push_and_get(&mut self, item:Self::Item) -> &Self::Item;
 
     /// Pushes the provided `item` onto the [`std::vec::Vec`], and then returns a mutable reference
     /// to the item.
-    fn push_and_get_mut(&mut self, item:Self::Item) -> Option<&mut Self::Item>;
+    fn push_and_get_mut(&mut self, item:Self::Item) -> &mut Self::Item;
 }
 
 impl <T> VecOps for Vec<T> {
     type Item = T;
 
-    fn push_and_get(&mut self, item:Self::Item) -> Option<&Self::Item> {
+    fn push_and_get(&mut self, item:Self::Item) -> &Self::Item {
         self.push(item);
         let item_ix = self.len() - 1;
-        self.get(item_ix)
+        self.get(item_ix).expect("Item should be presend as it has just been imported.")
     }
 
-    fn push_and_get_mut(&mut self, item:Self::Item) -> Option<&mut Self::Item> {
+    fn push_and_get_mut(&mut self, item:Self::Item) -> &mut Self::Item {
         self.push(item);
         let item_ix = self.len() - 1;
-        self.get_mut(item_ix)
+        self.get_mut(item_ix).expect("Item should be present as it has just been imported.")
     }
 }
 
@@ -47,16 +47,12 @@ mod tests {
         pub item: usize
     }
 
-
-
     #[test]
     fn test_push_and_get() {
         let mut vec = Vec::new();
         let item = Test {item:10};
         let item_in_vec = vec.push_and_get(item);
-
-        assert!(item_in_vec.is_some());
-        assert_eq!(item_in_vec.unwrap().item, 10)
+        assert_eq!(item_in_vec.item, 10)
     }
 
     #[test]
@@ -64,12 +60,7 @@ mod tests {
         let mut vec = Vec::new();
         let item = Test {item:10};
         let item_in_vec = vec.push_and_get_mut(item);
-
-        assert!(item_in_vec.is_some());
-
-        let item_ref = item_in_vec.unwrap();
-
-        item_ref.item = 20;
-        assert_eq!(item_ref.item, 20);
+        item_in_vec.item = 20;
+        assert_eq!(item_in_vec.item, 20);
     }
 }

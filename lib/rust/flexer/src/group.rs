@@ -10,26 +10,26 @@ pub mod rule;
 
 
 
-// =====================
-// === GroupRegistry ===
-// =====================
+// ================
+// === Registry ===
+// ================
 
-/// The Group Registry is a container for [`Group`]s in the flexer implementation.
+/// The group Registry is a container for [`Group`]s in the flexer implementation.
 ///
 /// It allows groups to contain associations between themselves, and also implements useful
 /// conversions for groups.
 #[derive(Clone,Debug,Default)]
-pub struct GroupRegistry {
+pub struct Registry {
     /// The groups defined for the lexer.
     groups: Vec<Group>
 }
 
-impl GroupRegistry {
+impl Registry {
     /// Defines a new group of rules for the lexer with the specified `name` and `parent`.
     ///
     /// It returns the identifier of the newly-created group.
     pub fn define_group(&mut self, name:String, parent_index:Option<usize>) -> Identifier {
-        let id = self.next_id().into();
+        let id    = self.next_id();
         let group = Group::new(id,name,parent_index);
         self.groups.push(group);
         id
@@ -37,8 +37,8 @@ impl GroupRegistry {
 
     /// Adds an existing `group` to the registry, updating and returning its identifier.
     pub fn add_group(&mut self, mut group:Group) -> Identifier {
-        let new_id = self.next_id().into();
-        group.id = new_id;
+        let new_id = self.next_id();
+        group.id   = new_id;
         self.groups.push(group);
         new_id
     }
@@ -47,8 +47,8 @@ impl GroupRegistry {
     ///
     /// Panics if `group_id` refers to a nonexistent group.
     pub fn create_rule(&mut self, group:Identifier, pattern:&Pattern, callback:&str) {
-        let err = format!("The provided group_id {:?} is invalid.",group);
-        let group = self.group_from_id_mut(group).expect(&err);
+        let err   = format!("The provided group_id {:?} is invalid.",group);
+        let group = self.get_group_mut(group).expect(&err);
         group.create_rule(pattern,callback);
     }
 
@@ -56,8 +56,8 @@ impl GroupRegistry {
     ///
     /// Panics if `group_id` refers to a nonexistent group.
     pub fn add_rule(&mut self, group:Identifier, rule:Rule) {
-        let err = format!("The provided group_id {:?} is invalid.",group);
-        let group = self.group_from_id_mut(group).expect(&err);
+        let err   = format!("The provided group_id {:?} is invalid.",group);
+        let group = self.get_group_mut(group).expect(&err);
         group.add_rule(rule);
     }
 
@@ -66,28 +66,27 @@ impl GroupRegistry {
     ///
     /// This set of rules includes the rules inherited from any parent groups.
     pub fn rules_for(&self, group:Identifier) -> Option<Vec<&Rule>> {
-        self.group_from_id(group).map(|group| {
-            let mut parent = group.parent_index.and_then(|ix|self.group_from_id(ix.into()));
-            let mut rules = (&group.rules).iter().collect_vec();
+        self.get_group(group).map(|group| {
+            let mut parent = group.parent_index.and_then(|ix|self.get_group(ix.into()));
+            let mut rules  = (&group.rules).iter().collect_vec();
             while let Some(parent_group) = parent {
                 if parent_group.id == group.id {
                     panic!("There should not be cycles in parent links for lexer groups.")
                 }
                 rules.extend((&parent_group.rules).iter());
-                parent = parent_group.parent_index.and_then(|ix|self.group_from_id(ix.into()));
+                parent = parent_group.parent_index.and_then(|ix|self.get_group(ix.into()));
             }
-
             rules
         })
     }
 
     /// Obtains a reference to the group for the given `group_id`.
-    pub fn group_from_id(&self, group:Identifier) -> Option<&Group> {
+    pub fn get_group(&self, group:Identifier) -> Option<&Group> {
         self.groups.get(group.val)
     }
 
     /// Obtains a mutable reference to the group for the given `group_id`.
-    pub fn group_from_id_mut(&mut self, group:Identifier) -> Option<&mut Group> {
+    pub fn get_group_mut(&mut self, group:Identifier) -> Option<&mut Group> {
         self.groups.get_mut(group.val)
     }
 
@@ -95,7 +94,7 @@ impl GroupRegistry {
     ///
     /// Returns `None` if the group does not exist, or if the conversion fails.
     pub fn to_nfa_from(&self, group:Identifier) -> Option<NFA> {
-        let group = self.group_from_id(group);
+        let group = self.get_group(group);
         group.map(|group| {
             let mut nfa = NFA::default();
             let start   = nfa.new_state();
@@ -112,8 +111,8 @@ impl GroupRegistry {
     }
 
     /// Generates the next group identifier for this registry.
-    fn next_id(&self) -> usize {
-        self.groups.len()
+    fn next_id(&self) -> Identifier {
+        Identifier::new(self.groups.len())
     }
 }
 
@@ -141,8 +140,14 @@ impl Identifier {
 // === Trait Impls ===
 
 impl From<usize> for Identifier {
-    fn from(id: usize) -> Self {
+    fn from(id:usize) -> Self {
         Identifier::new(id)
+    }
+}
+
+impl From<&usize> for Identifier {
+    fn from(id:&usize) -> Self {
+        Identifier::new(*id)
     }
 }
 
@@ -192,9 +197,9 @@ pub struct Group {
 impl Group {
 
     /// Creates a new group.
-    pub fn new(id:Identifier, name:String, parent_index:Option<usize>) -> Self {
+    pub fn new(id:Identifier, name:impl Into<String>, parent_index:Option<usize>) -> Self {
         let rules = Vec::new();
-        Group{id,name,parent_index,rules}
+        Group{id,name:name.into(),parent_index,rules}
     }
 
     /// Adds a new rule to the current group.
@@ -205,13 +210,23 @@ impl Group {
     /// Creates a new rule.
     pub fn create_rule(&mut self, pattern:&Pattern, code:&str) {
         let pattern_clone = pattern.clone();
-        let rule = Rule::new(pattern_clone,code.into());
+        let rule          = Rule::new(pattern_clone,code);
         self.rules.push(rule)
     }
 
     /// The canonical name for a given rule.
     pub fn callback_name(&self, rule_ix:usize) -> String {
         format!("group{}_rule{}",self.id.val,rule_ix)
+    }
+}
+
+// === Trait Impls ===
+
+impl Into<Registry> for Group {
+    fn into(self) -> Registry {
+        let mut registry = Registry::default();
+        registry.add_group(self);
+        registry
     }
 }
 
@@ -227,95 +242,78 @@ pub mod tests {
 
     use crate::automata::nfa;
     use crate::automata::pattern::Pattern;
-    use crate::group::{Group, GroupRegistry};
+    use crate::group::Group;
+    use crate::group::Registry;
     use crate::group::rule::Rule;
 
     use std::default::Default;
     use test::Bencher;
     use enso_prelude::default;
 
-    fn newline() -> GroupRegistry {
+    fn newline() -> Registry {
         let     pattern = Pattern::char('\n');
         let mut group   = Group::default();
-
-        group.add_rule(Rule{pattern,callback:"".into()});
-
-        let mut registry = GroupRegistry::default();
+        group.add_rule(Rule::new(pattern,""));
+        let mut registry = Registry::default();
         registry.add_group(group);
         registry
     }
 
-    fn letter() -> GroupRegistry {
+    fn letter() -> Registry {
         let     pattern = Pattern::range('a'..='z');
         let mut group   = Group::default();
-
-        group.add_rule(Rule{pattern,callback:"".into()});
-
-        let mut registry = GroupRegistry::default();
-        registry.add_group(group);
-        registry
+        group.add_rule(Rule::new(pattern,""));
+        group.into()
     }
 
-    fn spaces() -> GroupRegistry {
+    fn spaces() -> Registry {
         let     pattern = Pattern::char(' ').many1();
         let mut group   = Group::default();
-
-        group.add_rule(Rule{pattern,callback:"".into()});
-
-        let mut registry = GroupRegistry::default();
-        registry.add_group(group);
-        registry
+        group.add_rule(Rule::new(pattern,""));
+        group.into()
     }
 
-    fn letter_and_spaces() -> GroupRegistry {
+    fn letter_and_spaces() -> Registry {
         let     letter = Pattern::range('a'..='z');
         let     spaces = Pattern::char(' ').many1();
         let mut group  = Group::default();
-
-        group.add_rule(Rule{pattern:letter,callback:"".into()});
-        group.add_rule(Rule{pattern:spaces,callback:"".into()});
-
-        let mut registry = GroupRegistry::default();
-        registry.add_group(group);
-        registry
+        group.add_rule(Rule::new(letter,""));
+        group.add_rule(Rule::new(spaces,""));
+        group.into()
     }
 
-    fn complex_rules(count:usize) -> GroupRegistry {
+    fn complex_rules(count:usize) -> Registry {
         let mut group   = Group::default();
-
         for ix in 0..count {
             let string  = ix.to_string();
             let all     = Pattern::all_of(&string);
             let any     = Pattern::any_of(&string);
             let none    = Pattern::none_of(&string);
             let pattern = Pattern::many(all >> any >> none);
-            group.add_rule(Rule{pattern:pattern.clone(),callback:"".into()})
+            group.add_rule(Rule::new(pattern.clone(),""));
         }
-
-        let mut registry = GroupRegistry::default();
-        registry.add_group(group);
-        registry
+        group.into()
     }
 
     #[test]
     fn test_to_nfa_newline() {
-        assert_eq!(newline().to_nfa_from(default()).unwrap(),nfa::tests::newline());
+        assert_eq!(newline().to_nfa_from(default()),Some(nfa::tests::newline()));
     }
 
     #[test]
     fn test_to_nfa_letter() {
-        assert_eq!(letter().to_nfa_from(default()).unwrap(),nfa::tests::letter());
+        assert_eq!(letter().to_nfa_from(default()),Some(nfa::tests::letter()));
     }
 
     #[test]
     fn test_to_nfa_spaces() {
-        assert_eq!(spaces().to_nfa_from(default()).unwrap(),nfa::tests::spaces());
+        assert_eq!(spaces().to_nfa_from(default()),Some(nfa::tests::spaces()));
     }
 
     #[test]
     fn test_to_nfa_letter_and_spaces() {
         let expected = nfa::tests::letter_and_spaces();
-        assert_eq!(letter_and_spaces().to_nfa_from(default()).unwrap(),expected);
+        assert_eq!(letter_and_spaces().to_nfa_from(default()),Some(expected));
     }
 
     #[bench]

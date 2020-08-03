@@ -18,7 +18,7 @@ use flexer::*;
 use flexer::prelude::*;
 use lazy_reader::decoder::DecoderUTF8;
 use lazy_reader::{BookmarkId,LazyReader,Reader};
-use flexer::group::GroupRegistry;
+use flexer::group;
 
 
 // ===========
@@ -91,6 +91,19 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     }
 }
 
+impl<Reader:LazyReader> Deref for TestLexer<Reader> {
+    type Target = Flexer<TestState,AST,Reader>;
+    fn deref(&self) -> &Self::Target {
+        &self.lexer
+    }
+}
+
+impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.lexer
+    }
+}
+
 /// Generated functionality used at runtime by the lexer.
 #[allow(missing_docs)]
 impl<Reader:LazyReader> TestLexer<Reader> {
@@ -103,9 +116,9 @@ impl<Reader:LazyReader> TestLexer<Reader> {
         while self.gen_run_current_state() == StageStatus::ExitSuccess {}
 
             match self.status {
-                StageStatus::ExitFinished => Result::Success(self.get_result().clone()),
-                StageStatus::ExitFail     => Result::Failure(self.get_result().clone()),
-                _                         => Result::Partial(self.get_result().clone())
+                StageStatus::ExitFinished => Result::Success(self.result().clone()),
+                StageStatus::ExitFail     => Result::Failure(self.result().clone()),
+                _                         => Result::Partial(self.result().clone())
             }
     }
 
@@ -133,7 +146,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
     }
 
     /// The step function for the generated lexer.
-    fn gen_step(&mut self, next_state:usize) -> StageStatus {
+    fn gen_step(&mut self, next_state:group::Identifier) -> StageStatus {
         let current_state:usize = self.current_state().into();
 
         // This match should be generated
@@ -146,8 +159,8 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     // === DFA Steps ===
 
-    fn gen_dispatch_in_state_0(&mut self, new_state_index:usize) -> StageStatus {
-        match new_state_index {
+    fn gen_dispatch_in_state_0(&mut self, new_state_index:group::Identifier) -> StageStatus {
+        match new_state_index.into() {
             0 => self.gen_state_0_to_0(),
             1 => self.gen_state_0_to_1(),
             2 => self.gen_state_0_to_2(),
@@ -161,9 +174,9 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     fn gen_state_0_to_0(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            97 => StageStatus::ContinueWith(3),
-            98 => StageStatus::ContinueWith(4),
-            _  => StageStatus::ContinueWith(2)
+            97 => StageStatus::ContinueWith(3.into()),
+            98 => StageStatus::ContinueWith(4.into()),
+            _  => StageStatus::ContinueWith(2.into())
         }
     }
 
@@ -185,7 +198,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     fn gen_state_0_to_3(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            97 => StageStatus::ContinueWith(5),
+            97 => StageStatus::ContinueWith(5.into()),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_0_rule_0();
@@ -198,7 +211,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     fn gen_state_0_to_4(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            98 => StageStatus::ContinueWith(6),
+            98 => StageStatus::ContinueWith(6.into()),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_0_rule_1();
@@ -211,7 +224,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     fn gen_state_0_to_5(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            97 => StageStatus::ContinueWith(5),
+            97 => StageStatus::ContinueWith(5.into()),
             _ => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_0_rule_0();
@@ -224,7 +237,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     fn gen_state_0_to_6(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            98 => StageStatus::ContinueWith(6),
+            98 => StageStatus::ContinueWith(6.into()),
             _ => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_0_rule_1();
@@ -251,8 +264,8 @@ impl<Reader:LazyReader> TestLexer<Reader> {
         self.on_err_suffix_first_word()
     }
 
-    fn gen_dispatch_in_state_1(&mut self, new_state_index:usize) -> StageStatus {
-        match new_state_index {
+    fn gen_dispatch_in_state_1(&mut self, new_state_index:group::Identifier) -> StageStatus {
+        match new_state_index.into() {
             0 => self.gen_state_1_to_0(),
             1 => self.gen_state_1_to_1(),
             2 => self.gen_state_1_to_2(),
@@ -267,8 +280,8 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     fn gen_state_1_to_0(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            32 => StageStatus::ContinueWith(3),
-            _  => StageStatus::ContinueWith(2)
+            32 => StageStatus::ContinueWith(3.into()),
+            _  => StageStatus::ContinueWith(2.into())
         }
     }
 
@@ -290,8 +303,8 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     fn gen_state_1_to_3(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            97 => StageStatus::ContinueWith(4),
-            98 => StageStatus::ContinueWith(5),
+            97 => StageStatus::ContinueWith(4.into()),
+            98 => StageStatus::ContinueWith(5.into()),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_3();
@@ -304,7 +317,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     fn gen_state_1_to_4(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            97 => StageStatus::ContinueWith(6),
+            97 => StageStatus::ContinueWith(6.into()),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_0();
@@ -317,7 +330,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     fn gen_state_1_to_5(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            98 => StageStatus::ContinueWith(7),
+            98 => StageStatus::ContinueWith(7.into()),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_1();
@@ -330,7 +343,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     fn gen_state_1_to_6(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            97 => StageStatus::ContinueWith(6),
+            97 => StageStatus::ContinueWith(6.into()),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_0();
@@ -343,7 +356,7 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 
     fn gen_state_1_to_7(&mut self) -> StageStatus {
         match u32::from(self.reader.character()) {
-            98 => StageStatus::ContinueWith(7),
+            98 => StageStatus::ContinueWith(7.into()),
             _  => {
                 self.current_match = self.reader.pop_result();
                 self.gen_group_1_rule_1();
@@ -372,22 +385,6 @@ impl<Reader:LazyReader> TestLexer<Reader> {
 }
 
 
-// === Trait Impls ===
-
-impl<Reader:LazyReader> Deref for TestLexer<Reader> {
-    type Target = Flexer<TestState,AST,Reader>;
-    fn deref(&self) -> &Self::Target {
-        &self.lexer
-    }
-}
-
-impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.lexer
-    }
-}
-
-
 
 // ===================
 // === Lexer State ===
@@ -397,7 +394,7 @@ impl<Reader:LazyReader> DerefMut for TestLexer<Reader> {
 #[derive(Debug)]
 pub struct TestState {
     /// The registry for groups in the lexer.
-    lexer_states: GroupRegistry,
+    lexer_states: group::Registry,
     /// The initial state of the lexer.
     initial_state: group::Identifier,
     /// The state entered when the first word has been seen.
@@ -411,7 +408,7 @@ pub struct TestState {
 
 impl flexer::State for TestState {
     fn new<Reader:LazyReader>(reader:&mut Reader) -> Self {
-        let mut lexer_states      = GroupRegistry::default();
+        let mut lexer_states      = group::Registry::default();
         let initial_state         = lexer_states.define_group("ROOT".into(),None);
         let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(),None);
         let matched_bookmark      = reader.add_bookmark();
@@ -422,11 +419,11 @@ impl flexer::State for TestState {
         self.initial_state
     }
 
-    fn groups(&self) -> &GroupRegistry {
+    fn groups(&self) -> &group::Registry {
         &self.lexer_states
     }
 
-    fn groups_mut(&mut self) -> &mut GroupRegistry {
+    fn groups_mut(&mut self) -> &mut group::Registry {
         &mut self.lexer_states
     }
 }

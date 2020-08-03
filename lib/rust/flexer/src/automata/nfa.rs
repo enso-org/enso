@@ -189,7 +189,7 @@ impl From<&NFA> for DFA {
                     dfa_mat[(i,voc_ix)] = match dfa_eps_map.get(&eps_set) {
                         Some(&id) => id,
                         None => {
-                            let id = state::Identifier{id:dfa_eps_ixs.len()};
+                            let id = state::Identifier::new(dfa_eps_ixs.len());
                             dfa_eps_ixs.push(eps_set.clone());
                             dfa_eps_map.insert(eps_set,id);
                             id

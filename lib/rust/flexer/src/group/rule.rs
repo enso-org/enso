@@ -28,7 +28,7 @@ pub struct Rule {
 
 impl Rule {
     /// Creates a new rule.
-    pub fn new(pattern:Pattern, callback:String) -> Self {
-        Rule{pattern,callback}
+    pub fn new(pattern:Pattern, callback:impl Into<String>) -> Self {
+        Rule{pattern,callback:callback.into()}
     }
 }

@@ -95,6 +95,11 @@ impl Identifier {
     ///
     /// When in an invalid state, a finite automaton will reject the sequence of input symbols.
     pub const INVALID:Identifier = Identifier{id:usize::max_value()};
+
+    /// Constructs a new state identifier.
+    pub fn new(id:usize) -> Identifier {
+        Identifier{id}
+    }
 }
 
 // === Trait Impls ===

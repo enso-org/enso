@@ -19,7 +19,6 @@
 use crate::prelude::*;
 
 use lazy_reader::LazyReader;
-use crate::group::GroupRegistry;
 
 pub mod automata;
 pub mod data;
@@ -37,9 +36,11 @@ pub mod prelude {
 // =================
 
 mod constants {
-    /// The number of 'frames' to reserve in the state stack.
+    /// The number of 'frames' to reserve in the state stack, aiming to avoid re-allocation in hot
+    /// code paths.
     pub const STATE_STACK_RESERVATION:usize = 1024;
-    /// The size of the output buffer (in tokens) to reserve.
+    /// The size of the output buffer (in tokens) to reserve, aiming to avoid re-allocation of the
+    /// output buffer for common usage cases.
     pub const OUTPUT_BUFFER_RESERVATION:usize = 1024;
 }
 
@@ -78,56 +79,51 @@ pub struct Flexer<Definition,Output,Reader> {
 
 impl<Definition,Output,Reader> Flexer<Definition,Output,Reader>
 where Definition:State, Reader:LazyReader {
-    /// Creates a new lexer instance.
+    /// Create a new lexer instance.
     pub fn new(mut reader:Reader) -> Flexer<Definition,Output,Reader> {
-        let mut state_stack = Vec::default();
-        state_stack.reserve(constants::STATE_STACK_RESERVATION);
-        let status     = default();
-        let mut output = Vec::default();
-        output.reserve(constants::OUTPUT_BUFFER_RESERVATION);
+        let mut state_stack  = Vec::default();
+        let status           = default();
+        let mut output       = Vec::default();
         let definition       = Definition::new(&mut reader);
         let initial_state_id = definition.initial_state();
-        state_stack.push(initial_state_id);
-        let current_match = default();
+        let current_match    = default();
 
+        state_stack.reserve(constants::STATE_STACK_RESERVATION);
+        output.reserve(constants::OUTPUT_BUFFER_RESERVATION);
+        state_stack.push(initial_state_id);
         Flexer{state_stack,reader,status,output,definition,current_match}
     }
 }
 
 /// This block is things that are part of the lexer's interface and functionality.
 impl<Definition,Reader,Output> Flexer<Definition,Output,Reader>
-where Definition: State, Output:Clone {
-    /// Gets the lexer result.
-    pub fn get_result(&mut self) -> &Vec<Output> {
+where Definition:State, Output:Clone {
+    /// Get the lexer result.
+    pub fn result(&mut self) -> &Vec<Output> {
         &self.output
     }
 
-    /// Gets the lexer's root state.
-    pub fn root_state(&self) -> group::Identifier {
+    /// Get the lexer's initial state.
+    pub fn initial_state(&self) -> group::Identifier {
         self.definition.initial_state()
     }
 
-    /// Gets the state that the lexer is currently in.
+    /// Get the state that the lexer is currently in.
     pub fn current_state(&self) -> group::Identifier {
         *self.state_stack.last().expect("There should always be one state on the stack.")
     }
 
-    /// Tells the lexer to enter the state described by `state`.
+    /// Tell the lexer to enter the state described by `state`.
     pub fn push_state(&mut self, state:group::Identifier) {
         self.state_stack.push(state);
     }
 
-    /// Ends the current state, returning the popped state identifier if one was ended.
+    /// End the current state, returning the popped state identifier if one was ended.
     pub fn pop_state(&mut self) -> Option<group::Identifier> {
-        if self.state_stack.len() > 1 {
-            let ix = self.state_stack.pop().expect("There should be an item to pop.");
-            Some(ix)
-        } else {
-            None
-        }
+        (self.state_stack.len() > 1).as_some(self.state_stack.pop().expect("Item exists."))
     }
 
-    /// Ends states until the specified `state` is reached, leaving the lexer in `state`.
+    /// End states until the specified `state` is reached, leaving the lexer in `state`.
     ///
     /// If `state` does not exist on the lexer's stack, then the lexer will be left in the root
     /// state.
@@ -138,8 +134,8 @@ where Definition: State, Output:Clone {
         self.state_stack.drain(range).collect()
     }
 
-    /// Checks if the lexer is currently in the state described by `state`.
-    pub fn in_state(&mut self, state:group::Identifier) -> bool {
+    /// Check if the lexer is currently in the state described by `state`.
+    pub fn is_in_state(&self, state:group::Identifier) -> bool {
         self.current_state() == state
     }
 }
@@ -166,7 +162,7 @@ impl<Definition,Output,Reader> DerefMut for Flexer<Definition,Output,Reader> {
 // ===================
 
 /// The result of executing a single step of the DFA.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone,Copy,Debug,PartialEq)]
 pub enum StageStatus {
     /// The initial state of a lexer stage.
     Initial,
@@ -177,19 +173,19 @@ pub enum StageStatus {
     /// A single step of the DFA has executed successfully.
     ExitFinished,
     /// The lexer should continue, transitioning to the included state.
-    ContinueWith(usize)
+    ContinueWith(group::Identifier)
 }
 
 impl StageStatus {
-    /// Checks if the lexer stage should continue.
+    /// Check if the lexer stage should continue.
     pub fn should_continue(&self) -> bool {
         self.continue_as().is_some()
     }
 
-    /// Obtains the state to which the lexer should transition, iff the lexer should continue.
-    pub fn continue_as(&self) -> Option<usize> {
+    /// Obtain the state to which the lexer should transition, iff the lexer should continue.
+    pub fn continue_as(&self) -> Option<group::Identifier> {
         match self {
-            StageStatus::Initial           => Some(0),
+            StageStatus::Initial           => Some(group::Identifier::new(0)),
             StageStatus::ContinueWith(val) => Some(*val),
             _                              => None
         }
@@ -230,14 +226,14 @@ pub enum Result<T> {
 
 /// Contains the state needed by any given lexer implementation.
 pub trait State {
-    /// Creates a new instance of the lexer's state.
+    /// Create a new instance of the lexer's state.
     fn new<Reader:LazyReader>(reader:&mut Reader) -> Self;
-    /// Returns the _initial_ lexing state.
+    /// Return the _initial_ lexing state.
     fn initial_state(&self) -> group::Identifier;
-    /// Returns a reference to the group registry for a given lexer.
-    fn groups(&self) -> &GroupRegistry;
-    /// Returns a mutable reference to the group registry for a given lexer.
-    fn groups_mut(&mut self) -> &mut GroupRegistry;
+    /// Return a reference to the group registry for a given lexer.
+    fn groups(&self) -> &group::Registry;
+    /// Return a mutable reference to the group registry for a given lexer.
+    fn groups_mut(&mut self) -> &mut group::Registry;
 }
 
 
