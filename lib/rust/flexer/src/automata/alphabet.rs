@@ -1,8 +1,9 @@
 //! Exports an alphabet for an arbitrary finite state automaton.
 
+use crate::prelude::*;
+
 use crate::automata::symbol::Symbol;
 
-use crate::prelude::*;
 use std::collections::BTreeSet;
 use std::ops::RangeInclusive;
 
@@ -49,15 +50,15 @@ use std::ops::RangeInclusive;
 #[derive(Clone,Debug,PartialEq,Eq)]
 #[allow(missing_docs)]
 pub struct Segmentation {
-    pub divisions: BTreeSet<Symbol>
+    pub divisions:BTreeSet<Symbol>
 }
 
 impl Segmentation {
     /// Inserts a range of symbols into the alphabet.
     pub fn insert(&mut self, range:RangeInclusive<Symbol>) {
         self.divisions.insert(Symbol::from(range.start()));
-        if range.end().val != Symbol::EOF_CODE.val {
-            self.divisions.insert(Symbol{val:range.end().val + 1});
+        if range.end().value != Symbol::EOF_CODE.value {
+            self.divisions.insert(Symbol{ value:range.end().value + 1});
         }
     }
 
@@ -68,6 +69,11 @@ impl Segmentation {
             dict.divisions.insert(Symbol::from(*val));
         }
         dict
+    }
+
+    /// Obtains the divisions in the alphabet segmentation as a vector.
+    pub fn divisions_as_vec(&self) -> Vec<(usize, Symbol)> {
+        self.divisions.iter().copied().enumerate().collect()
     }
 }
 

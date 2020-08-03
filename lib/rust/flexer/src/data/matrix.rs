@@ -1,6 +1,6 @@
 //! An efficient representation of a 2D matrix.
 
-use enso_prelude::default;
+use crate::prelude::*;
 
 use std::ops::Index;
 use std::ops::IndexMut;
@@ -15,11 +15,28 @@ use std::ops::IndexMut;
 #[derive(Clone,Debug,Default,PartialEq,Eq)]
 pub struct Matrix<T> {
     /// The number of rows in the matrix.
-    rows: usize,
+    rows:usize,
     /// The number of columns in the matrix.
-    columns: usize,
+    columns:usize,
     /// The matrix.
-    matrix: Vec<T>,
+    matrix:Vec<T>,
+}
+
+impl<T> Matrix<T> {
+    /// Get the number of rows in the matrix.
+    pub fn rows(&self) -> usize {
+        self.rows
+    }
+
+    /// Get the number of columns in the matrix.
+    pub fn columns(&self) -> usize {
+        self.columns
+    }
+
+    /// Obtain the indices for the rows in this matrix.
+    pub fn row_indices(&self) -> Range<usize> {
+        0..self.rows()
+    }
 }
 
 impl<T:Default> Matrix<T> {

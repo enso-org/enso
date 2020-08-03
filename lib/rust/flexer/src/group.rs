@@ -21,14 +21,18 @@ pub mod rule;
 #[derive(Clone,Debug,Default)]
 pub struct Registry {
     /// The groups defined for the lexer.
-    groups: Vec<Group>
+    groups:Vec<Group>
 }
 
 impl Registry {
     /// Defines a new group of rules for the lexer with the specified `name` and `parent`.
     ///
     /// It returns the identifier of the newly-created group.
-    pub fn define_group(&mut self, name:impl Into<String>, parent_index:Option<usize>) -> Identifier {
+    pub fn define_group
+    ( &mut self
+    , name         : impl Into<String>
+    , parent_index : Option<Identifier>
+    ) -> Identifier {
         let id    = self.next_id();
         let group = Group::new(id,name.into(),parent_index);
         self.groups.push(group);
@@ -47,8 +51,7 @@ impl Registry {
     ///
     /// Panics if `group_id` refers to a nonexistent group.
     pub fn create_rule(&mut self, group:Identifier, pattern:&Pattern, callback:impl AsRef<str>) {
-        let err   = format!("The provided group_id {:?} is invalid.",group);
-        let group = self.group_mut(group).expect(&err);
+        let group = self.group_mut(group);
         group.create_rule(pattern,callback.as_ref());
     }
 
@@ -56,8 +59,7 @@ impl Registry {
     ///
     /// Panics if `group_id` refers to a nonexistent group.
     pub fn add_rule(&mut self, group:Identifier, rule:Rule) {
-        let err   = format!("The provided group_id {:?} is invalid.",group);
-        let group = self.group_mut(group).expect(&err);
+        let group = self.group_mut(group);
         group.add_rule(rule);
     }
 
@@ -65,54 +67,65 @@ impl Registry {
     /// by `group_id` as active.
     ///
     /// This set of rules includes the rules inherited from any parent groups.
-    pub fn rules_for(&self, group:Identifier) -> Option<Vec<&Rule>> {
-        self.group(group).map(|group| {
-            let mut parent = group.parent_index.and_then(|ix|self.group(ix.into()));
-            let mut rules  = (&group.rules).iter().collect_vec();
-            while let Some(parent_group) = parent {
-                if parent_group.id == group.id {
-                    panic!("There should not be cycles in parent links for lexer groups.")
-                }
-                rules.extend((&parent_group.rules).iter());
-                parent = parent_group.parent_index.and_then(|ix|self.group(ix.into()));
+    pub fn rules_for(&self, group:Identifier) -> Vec<&Rule> {
+        let group_handle = self.group(group);
+        let mut parent   = group_handle.parent_index.map(|p| self.group(p));
+        let mut rules    = (&group_handle.rules).iter().collect_vec();
+        while let Some(parent_group) = parent {
+            if parent_group.id == group_handle.id {
+                panic!("There should not be cycles in parent links for lexer groups.")
             }
-            rules
-        })
+            rules.extend((&parent_group.rules).iter());
+            parent = parent_group.parent_index.map(|p| self.group(p));
+        }
+        rules
     }
 
     /// Obtains a reference to the group for the given `group_id`.
-    pub fn group(&self, group:Identifier) -> Option<&Group> {
-        self.groups.get(group.val)
+    ///
+    /// As group identifiers can only be created by use of this `Registry`, this will always
+    /// succeed.
+    pub fn group(&self, group:Identifier) -> &Group {
+        self.groups.get(group.0).expect("The group must exist.")
     }
 
     /// Obtains a mutable reference to the group for the given `group_id`.
-    pub fn group_mut(&mut self, group:Identifier) -> Option<&mut Group> {
-        self.groups.get_mut(group.val)
+    ///
+    /// As group identifiers can only be created by use of this `Registry`, this will always
+    /// succeed.
+    pub fn group_mut(&mut self, group:Identifier) -> &mut Group {
+        self.groups.get_mut(group.0).expect("The group should exist.")
     }
 
     /// Converts the group identified by `group_id` into an NFA.
     ///
     /// Returns `None` if the group does not exist, or if the conversion fails.
-    pub fn to_nfa_from(&self, group:Identifier) -> Option<NFA> {
-        let group = self.group(group);
-        group.map(|group| {
-            let mut nfa = NFA::default();
-            let start   = nfa.new_state();
-            let build   = |rule:&Rule| nfa.new_pattern(start,&rule.pattern);
-            let rules   = self.rules_for(group.id).expect("Group exists.");
-            let states  = rules.into_iter().map(build).collect_vec();
-            let end     = nfa.new_state();
-            for (ix,state) in states.into_iter().enumerate() {
-                nfa.states[state.id].name = Some(group.callback_name(ix));
-                nfa.connect(state,end);
-            }
-            nfa
-        })
+    pub fn to_nfa_from(&self, group:Identifier) -> NFA {
+        let group     = self.group(group);
+        let mut nfa   = NFA::default();
+        let start     = nfa.new_state();
+        let build     = |rule:&Rule| nfa.new_pattern(start,&rule.pattern);
+        let rules     = self.rules_for(group.id);
+        let callbacks = rules.iter().map(|r| r.callback.clone()).collect_vec();
+        let states    = rules.into_iter().map(build).collect_vec();
+        let end       = nfa.new_state();
+        for (ix,state) in states.into_iter().enumerate() {
+            nfa.states[state.id].name     = Some(group.callback_name(ix));
+            nfa.states[state.id].callback = callbacks.get(ix).unwrap().clone();
+            nfa.connect(state,end);
+        }
+        nfa
     }
 
     /// Generates the next group identifier for this registry.
     fn next_id(&self) -> Identifier {
-        Identifier::new(self.groups.len())
+        let val = self.groups.len();
+        Identifier(val)
+    }
+
+    /// Get an immutable reference to the groups contained within the registry.
+    pub fn all(&self) -> &Vec<Group> {
+        &self.groups
     }
 }
 
@@ -125,35 +138,26 @@ impl Registry {
 /// An identifier for a group.
 #[allow(missing_docs)]
 #[derive(Copy,Clone,Debug,Default,Eq,PartialEq)]
-pub struct Identifier {
-    val:usize
-}
-
-impl Identifier {
-    /// Creates a new identifier.
-    pub fn new(val:usize) -> Identifier {
-        Identifier{val}
-    }
-}
+pub struct Identifier(usize);
 
 
 // === Trait Impls ===
 
 impl From<usize> for Identifier {
     fn from(id:usize) -> Self {
-        Identifier::new(id)
+        Identifier(id)
     }
 }
 
 impl From<&usize> for Identifier {
     fn from(id:&usize) -> Self {
-        Identifier::new(*id)
+        Identifier(*id)
     }
 }
 
 impl Into<usize> for Identifier {
     fn into(self) -> usize {
-        self.val
+        self.0
     }
 }
 
@@ -183,21 +187,21 @@ impl Into<usize> for Identifier {
 #[derive(Clone,Debug,Default)]
 pub struct Group {
     /// A unique identifier for the group.
-    pub id: Identifier,
+    pub id:Identifier,
     /// A name for the group (useful in debugging).
-    pub name: String,
+    pub name:String,
     /// The parent group from which rules are inherited.
     ///
     /// It is ensured that the group is held mutably.
-    pub parent_index: Option<usize>,
+    pub parent_index:Option<Identifier>,
     /// A set of flexer rules.
-    pub rules: Vec<Rule>,
+    pub rules:Vec<Rule>,
 }
 
 impl Group {
 
     /// Creates a new group.
-    pub fn new(id:Identifier, name:impl Into<String>, parent_index:Option<usize>) -> Self {
+    pub fn new(id:Identifier, name:impl Into<String>, parent_index:Option<Identifier>) -> Self {
         let rules = Vec::new();
         Group{id,name:name.into(),parent_index,rules}
     }
@@ -216,7 +220,7 @@ impl Group {
 
     /// The canonical name for a given rule.
     pub fn callback_name(&self, rule_ix:usize) -> String {
-        format!("group{}_rule{}",self.id.val,rule_ix)
+        format!("group_{}_rule_{}",self.id.0,rule_ix)
     }
 }
 
@@ -297,23 +301,23 @@ pub mod tests {
 
     #[test]
     fn test_to_nfa_newline() {
-        assert_eq!(newline().to_nfa_from(default()),Some(nfa::tests::newline()));
+        assert_eq!(newline().to_nfa_from(default()),nfa::tests::newline());
     }
 
     #[test]
     fn test_to_nfa_letter() {
-        assert_eq!(letter().to_nfa_from(default()),Some(nfa::tests::letter()));
+        assert_eq!(letter().to_nfa_from(default()),nfa::tests::letter());
     }
 
     #[test]
     fn test_to_nfa_spaces() {
-        assert_eq!(spaces().to_nfa_from(default()),Some(nfa::tests::spaces()));
+        assert_eq!(spaces().to_nfa_from(default()),nfa::tests::spaces());
     }
 
     #[test]
     fn test_to_nfa_letter_and_spaces() {
         let expected = nfa::tests::letter_and_spaces();
-        assert_eq!(letter_and_spaces().to_nfa_from(default()),Some(expected));
+        assert_eq!(letter_and_spaces().to_nfa_from(default()),expected);
     }
 
     #[bench]

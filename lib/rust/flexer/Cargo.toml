@@ -22,10 +22,16 @@ test       = true
 bench      = true
 
 [dependencies]
-enso-prelude         = { path = "../enso-prelude", version = "0.1.0" }
+enso-logger      = { path = "../enso-logger", version = "0.1.0" }
+enso-prelude     = { path = "../enso-prelude", version = "0.1.0" }
+lazy-reader      = { path = "../lazy-reader", version = "0.1.0" }
+enso-macro-utils = { path = "../enso-macro-utils", version = "0.1.0" }
+
 itertools            = "0.8"
-lazy-reader          = { path = "../lazy-reader", version = "0.1.0" }
+proc-macro2          = "1.0.19"
 nonempty             = "0.1.5"
+quote                = "1.0"
+syn                  = { version = "1.0.12", features = ["full", "extra-traits", "visit-mut", "visit", "parsing", "printing"] }
 unicode-segmentation = "1.6.0"
 wasm-bindgen         = "0.2"
 

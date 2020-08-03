@@ -21,4 +21,5 @@ test       = true
 bench      = true
 
 [dependencies]
-itertools = "0.8"
+itertools    = "0.8"
+enso-prelude = { path = "../enso-prelude", version = "0.1.0" }
