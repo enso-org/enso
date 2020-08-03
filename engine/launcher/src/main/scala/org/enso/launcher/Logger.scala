@@ -14,11 +14,11 @@ object Logger {
   private val Warning = Level("warn", 3)
   private val Error   = Level("error", 4)
 
-  private val logLevel = Debug
+  private val logLevel = Info
   private def log(level: Level, msg: => String): Unit =
     if (level.level >= logLevel.level) {
-      System.err.println(s"[${level.name}] $msg")
-      System.err.flush()
+      System.out.println(s"[${level.name}] $msg")
+      System.out.flush()
     }
 
   /**

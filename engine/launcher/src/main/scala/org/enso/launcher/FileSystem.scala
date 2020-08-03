@@ -2,7 +2,7 @@ package org.enso.launcher
 
 import java.io.PrintWriter
 import java.nio.file.attribute.{PosixFilePermission, PosixFilePermissions}
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, StandardCopyOption}
 import java.util
 
 import org.apache.commons.io.FileUtils
@@ -128,6 +128,9 @@ object FileSystem {
     */
   def removeDirectory(dir: Path): Unit =
     FileUtils.deleteDirectory(dir.toFile)
+
+  def atomicMove(source: Path, destination: Path): Unit =
+    Files.move(source, destination, StandardCopyOption.ATOMIC_MOVE)
 
   /**
     * Allows to write nested paths in a more readable and concise way.

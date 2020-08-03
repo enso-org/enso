@@ -47,7 +47,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     if (existing.isDefined) {
       Logger.info(s"Engine $version is already installed.")
     } else {
-      componentsManager.findOrInstallEngine(version)
+      componentsManager.findOrInstallEngine(version, complain = false)
     }
   }
 
@@ -56,6 +56,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     Logger.info(s"Installing Enso engine $latest")
     installEngine(latest)
   }
+
+  def uninstallEngine(version: SemVer): Unit =
+    componentsManager.uninstallEngine(version)
 }
 
 object Launcher {

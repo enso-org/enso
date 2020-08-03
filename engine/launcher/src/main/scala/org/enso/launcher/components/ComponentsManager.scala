@@ -118,6 +118,17 @@ class ComponentsManager(
   def fetchLatestEngineVersion(): SemVer =
     engineReleaseProvider.findLatest().get
 
+  def uninstallEngine(version: SemVer): Unit = {
+    val engine = findEngine(version).getOrElse {
+      Logger.warn(s"Enso Engine $version is not installed.")
+      sys.exit(1)
+    }
+
+    safelyRemoveComponent(engine.path)
+    Logger.info(s"Uninstalled $engine.")
+    cleanupRuntimes()
+  }
+
   private def installEngine(version: SemVer): Engine = {
     val engineRelease = engineReleaseProvider.getRelease(version).get
     FileSystem.withTemporaryDirectory("enso-install") { directory =>
@@ -170,7 +181,7 @@ class ComponentsManager(
         findOrInstallRuntime(temporaryEngine, complain = false)
 
         val enginePath = distributionManager.paths.engines / engineDirectoryName
-        Files.move(engineTemporaryPath, enginePath)
+        FileSystem.atomicMove(engineTemporaryPath, enginePath)
         val engine = findEngine(version).getOrElse {
           Logger.error(
             "fatal: Could not load the installed engine." +
@@ -304,7 +315,7 @@ class ComponentsManager(
 
         val runtimePath =
           distributionManager.paths.runtimes / runtimeDirectoryName
-        Files.move(runtimeTemporaryPath, runtimePath)
+        FileSystem.atomicMove(runtimeTemporaryPath, runtimePath)
         val runtime = parseGraalRuntime(runtimePath).getOrElse {
           FileSystem.removeDirectory(runtimePath)
           throw new InstallationError(
@@ -333,7 +344,21 @@ class ComponentsManager(
   }
 
   private def cleanupRuntimes(): Unit = {
-    // TODO
+    for (runtime <- listInstalledRuntimes()) {
+      if (findEnginesUsingRuntime(runtime).isEmpty) {
+        Logger.info(
+          s"Removing $runtime, because it is not used by any engines anymore."
+        )
+        safelyRemoveComponent(runtime.path)
+      }
+    }
+  }
+
+  private def safelyRemoveComponent(path: Path): Unit = {
+    val temporaryPath =
+      distributionManager.paths.temporaryDirectory / path.getFileName
+    FileSystem.atomicMove(path, temporaryPath)
+    FileSystem.removeDirectory(temporaryPath)
   }
 }
 

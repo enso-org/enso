@@ -1,0 +1,3 @@
+minimum-launcher-version: 0.0.1
+graal-vm-version: 2.0.0
+graal-java-version: 11

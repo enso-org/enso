@@ -222,12 +222,29 @@ object Main {
       Opts.subcommands(installEngineCommand, installDistributionCommand)
     }
 
-  private def uninstallCommand: Command[Config => Unit] =
-    Command("uninstall", "Uninstall an Enso version.") {
-      val version = Opts.positionalArgument[String]("VERSION")
-      version map { version => (_: Config) =>
-        println(s"Uninstall $version")
+  private def uninstallEngineCommand: Subcommand[Config => Unit] =
+    Subcommand("engine") {
+      val version = Opts.positionalArgument[SemVer]("VERSION")
+      version map { version => (config: Config) =>
+        Launcher(config).uninstallEngine(version)
       }
+    }
+
+  private def uninstallDistributionCommand: Subcommand[Config => Unit] =
+    Subcommand("distribution") {
+      Opts.pure(()) map { (_: Unit) => (_: Config) =>
+        Logger.error("Not implemented yet.")
+        sys.exit(1)
+      }
+    }
+
+  private def uninstallCommand: Command[Config => Unit] =
+    Command(
+      "uninstall",
+      "Uninstall a version of engine or uninstall the locally installed " +
+      "distribution."
+    ) {
+      Opts.subcommands(uninstallEngineCommand, uninstallDistributionCommand)
     }
 
   private def listCommand: Command[Config => Unit] =
@@ -236,18 +253,18 @@ object Main {
       case object EnsoComponents    extends Components
       case object RuntimeComponents extends Components
       implicit val argumentComponent: Argument[Components] = {
-        case "enso"    => EnsoComponents.asRight
+        case "engine"  => EnsoComponents.asRight
         case "runtime" => RuntimeComponents.asRight
         case other =>
           List(
-            s"Unknown argument `$other` - expected `enso`, `runtime` " +
+            s"Unknown argument `$other` - expected `engine`, `runtime` " +
             "or no argument to print a general summary."
           ).asLeft
       }
 
       val what = Opts.optionalArgument[Components](
         "COMPONENT",
-        "COMPONENT can be either `enso`, `runtime` or none. " +
+        "COMPONENT can be either `engine`, `runtime` or none. " +
         "If not specified, prints a summary of all installed components."
       )
       what map { what => (config: Config) =>
