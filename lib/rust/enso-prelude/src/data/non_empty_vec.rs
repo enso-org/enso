@@ -50,11 +50,11 @@ impl<T> NonEmptyVec<T> {
     ///
     /// ```
     /// use enso_prelude::NonEmptyVec;
-    /// let vec = NonEmptyVec::init(0);
+    /// let vec = NonEmptyVec::singleton(0);
     /// assert_eq!(vec.get(0),Some(&0));
     /// assert_eq!(vec.len(),1);
     /// ```
-    pub fn init(first:T) -> NonEmptyVec<T> {
+    pub fn singleton(first:T) -> NonEmptyVec<T> {
         NonEmptyVec::new(first,vec![])
     }
 
@@ -90,7 +90,7 @@ impl<T> NonEmptyVec<T> {
     /// ```
     pub fn with_capacity(first:T, capacity:usize) -> NonEmptyVec<T> {
         if capacity == 0 {
-            panic!("Capacity must be greater than zero for a NonEmptyVec");
+            panic!("Capacity must be greater than zero for a NonEmptyVec.");
         }
         let mut elems = Vec::with_capacity(capacity);
         elems.push(first);
@@ -150,7 +150,7 @@ impl<T> NonEmptyVec<T> {
     /// vec.push(3);
     /// assert_eq!(vec.len(),4);
     /// ```
-    pub fn push(&mut self,value:T) {
+    pub fn push(&mut self, value:T) {
         self.elems.push(value)
     }
 
@@ -167,11 +167,7 @@ impl<T> NonEmptyVec<T> {
     /// assert!(vec.pop().is_none());
     /// ```
     pub fn pop(&mut self) -> Option<T> {
-        if self.len() == 1 {
-            None
-        } else {
-            self.elems.pop()
-        }
+        (self.len() != 1).and_option(self.elems.pop())
     }
 
     /// Obtain a mutable reference to teh element in the vector at the specified `index`.
@@ -297,9 +293,8 @@ impl<T> NonEmptyVec<T> {
     /// assert_eq!(yielded,&[0,1])
     /// ```
     pub fn splice<R,I>(&mut self, range:R, replace_with:I) -> Splice<<I as IntoIterator>::IntoIter>
-    where
-        I: IntoIterator<Item = T>,
-        R: RangeBounds<usize> {
+    where I: IntoIterator<Item = T>,
+          R: RangeBounds<usize> {
         self.elems.splice(range,replace_with)
     }
 }

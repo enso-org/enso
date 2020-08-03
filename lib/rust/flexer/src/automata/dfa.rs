@@ -81,7 +81,8 @@ pub struct RuleExecutable {
 
 impl RuleExecutable {
     /// Creates a new rule executable with the provided `priority` and `code`.
-    pub fn new(priority:usize, code:String) -> RuleExecutable {
+    pub fn new(priority:usize, code_str:impl Into<String>) -> RuleExecutable {
+        let code = code_str.into();
         RuleExecutable{priority,code}
     }
 }

@@ -180,7 +180,7 @@ macro_rules! f_ {
 #[macro_export]
 macro_rules! unreachable_panic {
     () => (
-        unreachable_panic!("This code should not be reachable.")
+        unreachable_panic!("This code was marked as unreachable.")
     );
     ($msg:tt) => (
         if cfg!(debug_assertions) {

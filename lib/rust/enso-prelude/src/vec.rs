@@ -5,6 +5,8 @@
 // === VecOps ===
 // ==============
 
+use failure::_core::hint::unreachable_unchecked;
+
 pub trait VecOps {
     type Item;
 
@@ -23,13 +25,15 @@ impl <T> VecOps for Vec<T> {
     fn push_and_get(&mut self, item:Self::Item) -> &Self::Item {
         self.push(item);
         let item_ix = self.len() - 1;
-        self.get(item_ix).expect("Item should be presend as it has just been imported.")
+        #[allow(unsafe_code)]
+        unsafe { self.get(item_ix).unwrap_or_else(||unreachable_unchecked()) }
     }
 
     fn push_and_get_mut(&mut self, item:Self::Item) -> &mut Self::Item {
         self.push(item);
         let item_ix = self.len() - 1;
-        self.get_mut(item_ix).expect("Item should be present as it has just been imported.")
+        #[allow(unsafe_code)]
+        unsafe { self.get_mut(item_ix).unwrap_or_else(||unreachable_unchecked()) }
     }
 }
 
@@ -49,17 +53,17 @@ mod tests {
 
     #[test]
     fn test_push_and_get() {
-        let mut vec = Vec::new();
-        let item = Test {item:10};
+        let mut vec     = Vec::new();
+        let item        = Test {item:10};
         let item_in_vec = vec.push_and_get(item);
         assert_eq!(item_in_vec.item, 10)
     }
 
     #[test]
     fn test_push_and_get_mut() {
-        let mut vec = Vec::new();
-        let item = Test {item:10};
-        let item_in_vec = vec.push_and_get_mut(item);
+        let mut vec      = Vec::new();
+        let item         = Test {item:10};
+        let item_in_vec  = vec.push_and_get_mut(item);
         item_in_vec.item = 20;
         assert_eq!(item_in_vec.item, 20);
     }

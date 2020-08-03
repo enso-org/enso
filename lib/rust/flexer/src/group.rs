@@ -28,9 +28,9 @@ impl Registry {
     /// Defines a new group of rules for the lexer with the specified `name` and `parent`.
     ///
     /// It returns the identifier of the newly-created group.
-    pub fn define_group(&mut self, name:String, parent_index:Option<usize>) -> Identifier {
+    pub fn define_group(&mut self, name:impl Into<String>, parent_index:Option<usize>) -> Identifier {
         let id    = self.next_id();
-        let group = Group::new(id,name,parent_index);
+        let group = Group::new(id,name.into(),parent_index);
         self.groups.push(group);
         id
     }
@@ -46,10 +46,10 @@ impl Registry {
     /// Creates a rule that matches `pattern` for the group identified by `group_id`.
     ///
     /// Panics if `group_id` refers to a nonexistent group.
-    pub fn create_rule(&mut self, group:Identifier, pattern:&Pattern, callback:&str) {
+    pub fn create_rule(&mut self, group:Identifier, pattern:&Pattern, callback:impl AsRef<str>) {
         let err   = format!("The provided group_id {:?} is invalid.",group);
-        let group = self.get_group_mut(group).expect(&err);
-        group.create_rule(pattern,callback);
+        let group = self.group_mut(group).expect(&err);
+        group.create_rule(pattern,callback.as_ref());
     }
 
     /// Associates the provided `rule` with the group identified by `group_id`.
@@ -57,7 +57,7 @@ impl Registry {
     /// Panics if `group_id` refers to a nonexistent group.
     pub fn add_rule(&mut self, group:Identifier, rule:Rule) {
         let err   = format!("The provided group_id {:?} is invalid.",group);
-        let group = self.get_group_mut(group).expect(&err);
+        let group = self.group_mut(group).expect(&err);
         group.add_rule(rule);
     }
 
@@ -66,27 +66,27 @@ impl Registry {
     ///
     /// This set of rules includes the rules inherited from any parent groups.
     pub fn rules_for(&self, group:Identifier) -> Option<Vec<&Rule>> {
-        self.get_group(group).map(|group| {
-            let mut parent = group.parent_index.and_then(|ix|self.get_group(ix.into()));
+        self.group(group).map(|group| {
+            let mut parent = group.parent_index.and_then(|ix|self.group(ix.into()));
             let mut rules  = (&group.rules).iter().collect_vec();
             while let Some(parent_group) = parent {
                 if parent_group.id == group.id {
                     panic!("There should not be cycles in parent links for lexer groups.")
                 }
                 rules.extend((&parent_group.rules).iter());
-                parent = parent_group.parent_index.and_then(|ix|self.get_group(ix.into()));
+                parent = parent_group.parent_index.and_then(|ix|self.group(ix.into()));
             }
             rules
         })
     }
 
     /// Obtains a reference to the group for the given `group_id`.
-    pub fn get_group(&self, group:Identifier) -> Option<&Group> {
+    pub fn group(&self, group:Identifier) -> Option<&Group> {
         self.groups.get(group.val)
     }
 
     /// Obtains a mutable reference to the group for the given `group_id`.
-    pub fn get_group_mut(&mut self, group:Identifier) -> Option<&mut Group> {
+    pub fn group_mut(&mut self, group:Identifier) -> Option<&mut Group> {
         self.groups.get_mut(group.val)
     }
 
@@ -94,7 +94,7 @@ impl Registry {
     ///
     /// Returns `None` if the group does not exist, or if the conversion fails.
     pub fn to_nfa_from(&self, group:Identifier) -> Option<NFA> {
-        let group = self.get_group(group);
+        let group = self.group(group);
         group.map(|group| {
             let mut nfa = NFA::default();
             let start   = nfa.new_state();

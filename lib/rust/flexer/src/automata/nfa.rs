@@ -205,8 +205,8 @@ impl From<&NFA> for DFA {
         for (dfa_ix, epss) in dfa_eps_ixs.into_iter().enumerate() {
             let has_name = |&key:&state::Identifier| nfa.states[key.id].name.is_some();
             if let Some(eps) = epss.into_iter().find(has_name) {
-                let rule = nfa.states[eps.id].name.as_ref().cloned().unwrap();
-                callbacks[dfa_ix] = Some(RuleExecutable{code:rule,priority});
+                let code          = nfa.states[eps.id].name.as_ref().cloned().unwrap();
+                callbacks[dfa_ix] = Some(RuleExecutable {code,priority});
             }
         }
 

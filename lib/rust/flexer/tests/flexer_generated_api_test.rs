@@ -116,9 +116,9 @@ impl<Reader:LazyReader> TestLexer<Reader> {
         while self.gen_run_current_state() == StageStatus::ExitSuccess {}
 
             match self.status {
-                StageStatus::ExitFinished => Result::Success(self.result().clone()),
-                StageStatus::ExitFail     => Result::Failure(self.result().clone()),
-                _                         => Result::Partial(self.result().clone())
+                StageStatus::ExitFinished => Result::success(mem::replace(&mut self.output,vec![])),
+                StageStatus::ExitFail     => Result::failure(mem::replace(&mut self.output,vec![])),
+                _                         => Result::partial(mem::replace(&mut self.output,vec![]))
             }
     }
 
@@ -409,8 +409,8 @@ pub struct TestState {
 impl flexer::State for TestState {
     fn new<Reader:LazyReader>(reader:&mut Reader) -> Self {
         let mut lexer_states      = group::Registry::default();
-        let initial_state         = lexer_states.define_group("ROOT".into(),None);
-        let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(),None);
+        let initial_state         = lexer_states.define_group("ROOT",None);
+        let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD",None);
         let matched_bookmark      = reader.add_bookmark();
         Self{lexer_states,initial_state,seen_first_word_state,matched_bookmark}
     }
@@ -435,14 +435,15 @@ impl flexer::State for TestState {
 // =============
 
 /// Executes the test on the provided input string slice.
-fn run_test_on(str:&str) -> Vec<AST> {
+fn run_test_on(str:impl AsRef<str>) -> Vec<AST> {
     // Hardcoded for ease of use here.
-    let reader = Reader::new(str.as_bytes(),DecoderUTF8());
-    let mut lexer = TestLexer::new(reader);
+    let reader     = Reader::new(str.as_ref().as_bytes(),DecoderUTF8());
+    let mut lexer  = TestLexer::new(reader);
+    let run_result = lexer.run();
 
-    match lexer.run() {
-        Result::Success(tokens) => tokens,
-        _                       => default()
+    match run_result.kind {
+        flexer::ResultKind::Success => run_result.tokens,
+        _                           => default()
     }
 }
 

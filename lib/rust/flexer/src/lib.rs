@@ -85,7 +85,7 @@ where Definition:State, Reader:LazyReader {
         let mut output       = Vec::default();
         let definition       = Definition::new(&mut reader);
         let initial_state_id = definition.initial_state();
-        let mut state_stack  = NonEmptyVec::init(initial_state_id);
+        let mut state_stack  = NonEmptyVec::singleton(initial_state_id);
         let current_match    = default();
 
         state_stack.reserve(constants::STATE_STACK_RESERVATION);
@@ -210,14 +210,45 @@ impl Default for StageStatus {
 // ==============
 
 /// The result of executing the lexer on a given input.
+#[allow(missing_docs)]
 #[derive(Clone,Debug)]
-pub enum Result<T> {
+pub struct Result<T> {
+    pub kind: ResultKind,
+    pub tokens: Vec<T>
+}
+
+impl<T> Result<T> {
+
+    /// Create a new lexer result using the provided `kind` and `tokens`.
+    pub fn new(kind:ResultKind,tokens:Vec<T>) -> Result<T> {
+        Result {kind,tokens}
+    }
+
+    /// Create a new success result, with the provided `tokens`.
+    pub fn success(tokens:Vec<T>) -> Result<T> {
+        Result::new(ResultKind::Success,tokens)
+    }
+
+    /// Create a new partial lex result, with the provided `tokens`.
+    pub fn partial(tokens:Vec<T>) -> Result<T> {
+        Result::new(ResultKind::Partial,tokens)
+    }
+
+    /// Create a failure result, with the `tokens` it _did_ manage to consume.
+    pub fn failure(tokens:Vec<T>) -> Result<T> {
+        Result::new(ResultKind::Failure,tokens)
+    }
+}
+
+/// The kind of lexer result.
+#[derive(Copy,Clone,Debug)]
+pub enum ResultKind {
     /// The lexer succeeded, returning the contained token stream.
-    Success(Vec<T>),
+    Success,
     /// The lexer succeeded on part of the input, returning the contained token stream.
-    Partial(Vec<T>),
+    Partial,
     /// The lexer failed on the input, returning any tokens it _did_ manage to consume.
-    Failure(Vec<T>)
+    Failure
 }
 
 

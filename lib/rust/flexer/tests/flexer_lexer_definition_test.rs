@@ -130,8 +130,8 @@ pub struct TestState {
 impl flexer::State for TestState {
     fn new<Reader:LazyReader>(reader:&mut Reader) -> Self {
         let mut lexer_states      = group::Registry::default();
-        let initial_state         = lexer_states.define_group("ROOT".into(),None);
-        let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD".into(),None);
+        let initial_state         = lexer_states.define_group("ROOT",None);
+        let seen_first_word_state = lexer_states.define_group("SEEN FIRST WORD",None);
         let matched_bookmark      = reader.add_bookmark();
         Self{lexer_states,initial_state,seen_first_word_state,matched_bookmark}
     }
@@ -172,7 +172,7 @@ fn test_lexer_definition() {
     let end           = Pattern::eof();
 
     let root_group_id = lexer.initial_state;
-    let root_group    = lexer.groups_mut().get_group_mut(root_group_id).unwrap();
+    let root_group    = lexer.groups_mut().group_mut(root_group_id).unwrap();
     root_group.create_rule(&a_word,"self.on_first_word()");
     root_group.create_rule(&b_word,"self.on_first_word()");
     root_group.create_rule(&end,   "self.on_no_err_suffix_first_word()");
@@ -180,7 +180,7 @@ fn test_lexer_definition() {
 
     let seen_first_word_group_id = lexer.seen_first_word_state;
     let seen_first_word_group =
-        lexer.groups_mut().get_group_mut(seen_first_word_group_id).unwrap();
+        lexer.groups_mut().group_mut(seen_first_word_group_id).unwrap();
     seen_first_word_group.create_rule(&spaced_a_word,"self.on_spaced_word()");
     seen_first_word_group.create_rule(&spaced_b_word,"self.on_spaced_word()");
     seen_first_word_group.create_rule(&end,          "self.on_no_err_suffix()");
