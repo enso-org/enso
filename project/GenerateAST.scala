@@ -29,9 +29,6 @@ object GenerateAST {
     Seq(output)
   }
 
-
-
-
   /**
     * Generates the Scala AST in the specified file. All errors are reported in 
     * stderr and raise a runtime exception.
