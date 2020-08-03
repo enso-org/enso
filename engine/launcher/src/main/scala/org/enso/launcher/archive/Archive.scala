@@ -54,7 +54,7 @@ object Archive {
         case None        => identity[Path]
       }
 
-      Logger.debug(s"Extracting $archivePath to $destinationDirectory")
+      Logger.debug(s"Extracting `$archivePath` to `$destinationDirectory`.")
       var missingPermissions: Int = 0
 
       val result = withOpenArchive(archivePath, format) { (archive, progress) =>
@@ -109,23 +109,6 @@ object Archive {
     val thread = new Thread(() => runExtraction(), "Extracting-Archive")
     thread.start()
     taskProgress
-  }
-
-  def test(): Unit = {
-    FileSystem.withTemporaryDirectory("enso-what") { dir =>
-      val src =
-        Path.of("/home/radeusgd/NBO/releasesci/override/enso-engine-0.1.0.zip")
-      val tmp = dir.resolve("tmp.zip")
-      FileSystem.copyFile(src, tmp)
-      Archive
-        .extractArchive(
-          tmp,
-          Path.of("./test_archive_dbg"),
-          None
-        )
-        .waitForResult(true)
-        .get
-    }
   }
 
   private def getMode(entry: ArchiveEntry): Option[Int] =

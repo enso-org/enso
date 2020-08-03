@@ -15,11 +15,16 @@ import org.enso.launcher.releases.{
 }
 import org.enso.launcher.{FileSystem, Launcher, Logger}
 
+import scala.util.control.NonFatal
+
 case class Runtime(version: RuntimeVersion, path: Path) {
   override def toString: String =
     s"GraalVM ${version.graal}-java${version.java}"
 }
-case class Engine(version: SemVer, path: Path, manifest: Manifest)
+case class Engine(version: SemVer, path: Path, manifest: Manifest) {
+  override def toString: String =
+    s"Enso Engine $version"
+}
 
 class ComponentsManager(
   cliOptions: GlobalCLIOptions,
@@ -37,7 +42,9 @@ class ComponentsManager(
     val path = distributionManager.paths.runtimes / name
     if (Files.exists(path)) {
       // TODO [RW] add a sanity check if runtime is in a working state - check
-      //  if it at least has the `java` executable, for #976
+      //  if it at least has the `java` executable, in #976 do the check and
+      //  throw an exception on failure, in #1052 offer to repair the broken
+      //  installation
       parseGraalRuntime(path)
     } else None
   }
@@ -76,7 +83,7 @@ class ComponentsManager(
     else None
   }
 
-  def findOrInstallEngine(version: SemVer): Engine =
+  def findOrInstallEngine(version: SemVer, complain: Boolean = true): Engine =
     findEngine(version) match {
       case Some(found) => found
       case None =>
@@ -88,7 +95,7 @@ class ComponentsManager(
           )
         }
 
-        if (complainAndAsk()) {
+        if (!complain || complainAndAsk()) {
           installEngine(version)
         } else {
           throw new RuntimeException(s"No engine $version. Cannot continue.")
@@ -111,7 +118,7 @@ class ComponentsManager(
   def fetchLatestEngineVersion(): SemVer =
     engineReleaseProvider.findLatest().get
 
-  def installEngine(version: SemVer): Engine = {
+  private def installEngine(version: SemVer): Engine = {
     val engineRelease = engineReleaseProvider.getRelease(version).get
     FileSystem.withTemporaryDirectory("enso-install") { directory =>
       Logger.debug(s"Downloading packages to $directory")
@@ -129,27 +136,30 @@ class ComponentsManager(
       Archive
         .extractArchive(
           enginePackage,
-          distributionManager.paths.engines,
+          distributionManager.paths.temporaryDirectory,
           Some(engineDirectoryName)
         )
         .waitForResult(showProgress)
         .get
 
-      val enginePath = distributionManager.paths.engines / engineDirectoryName
-      def undoEngine(): Unit = {
-        FileSystem.removeDirectory(enginePath)
+      val engineTemporaryPath =
+        distributionManager.paths.temporaryDirectory / engineDirectoryName
+      def undoTemporaryEngine(): Unit = {
+        if (Files.exists(engineTemporaryPath)) {
+          FileSystem.removeDirectory(engineTemporaryPath)
+        }
       }
 
-      val engine = parseEngine(enginePath).getOrElse {
-        undoEngine()
+      val temporaryEngine = parseEngine(engineTemporaryPath).getOrElse {
+        undoTemporaryEngine()
         throw new InstallationError(
           "Cannot load downloaded engine. Installation reverted."
         )
       }
 
       try {
-        if (engine.manifest != engineRelease.manifest) {
-          undoEngine()
+        if (temporaryEngine.manifest != engineRelease.manifest) {
+          undoTemporaryEngine()
           throw new InstallationError(
             "Manifest of installed engine does not match the published " +
             "manifest. This may lead to version inconsistencies; the package " +
@@ -157,13 +167,27 @@ class ComponentsManager(
           )
         }
 
-        findOrInstallRuntime(engine, complain = false)
+        findOrInstallRuntime(temporaryEngine, complain = false)
 
-        Logger.info(s"Enso engine ${engineRelease.version} has been installed.")
+        val enginePath = distributionManager.paths.engines / engineDirectoryName
+        Files.move(engineTemporaryPath, enginePath)
+        val engine = findEngine(version).getOrElse {
+          Logger.error(
+            "fatal: Could not load the installed engine." +
+            "Reverting the installation."
+          )
+          FileSystem.removeDirectory(enginePath)
+          cleanupRuntimes()
+          throw new InstallationError(
+            "fatal: Could not load the installed engine"
+          )
+        }
+
+        Logger.info(s"Installed $engine.")
         engine
       } catch {
         case e: Exception =>
-          undoEngine()
+          undoTemporaryEngine()
           throw e
       }
     }
@@ -176,13 +200,21 @@ class ComponentsManager(
     s"graalvm-ce-java${version.java}-${version.graal}"
 
   private def parseGraalRuntime(path: Path): Option[Runtime] = {
+    val name = path.getFileName.toString
+    for {
+      version <- parseGraalRuntimeVersionString(name)
+    } yield Runtime(version, path)
+  }
+
+  private def parseGraalRuntimeVersionString(
+    name: String
+  ): Option[RuntimeVersion] = {
     val regex = """graalvm-ce-java(\d+)-(.+)""".r
-    val name  = path.getFileName.toString
     name match {
       case regex(javaVersionString, graalVersionString) =>
         SemVer(graalVersionString) match {
           case Some(graalVersion) =>
-            Some(Runtime(RuntimeVersion(graalVersion, javaVersionString), path))
+            Some(RuntimeVersion(graalVersion, javaVersionString))
           case None =>
             Logger.warn(
               s"Invalid runtime version string `$graalVersionString`."
@@ -246,29 +278,47 @@ class ComponentsManager(
       Archive
         .extractArchive(
           runtimePackage,
-          distributionManager.paths.runtimes,
+          distributionManager.paths.temporaryDirectory,
           Some(runtimeDirectoryName)
         )
         .waitForResult(showProgress)
         .get
 
-      val runtimePath =
-        distributionManager.paths.runtimes / runtimeDirectoryName
+      val runtimeTemporaryPath =
+        distributionManager.paths.temporaryDirectory / runtimeDirectoryName
 
-      def undoRuntime(): Unit = {
-        FileSystem.removeDirectory(runtimePath)
+      def undoTemporaryRuntime(): Unit = {
+        if (Files.exists(runtimeTemporaryPath)) {
+          FileSystem.removeDirectory(runtimeTemporaryPath)
+        }
       }
 
-      val runtime = parseGraalRuntime(runtimePath)
-      if (runtime.isEmpty) {
-        undoRuntime()
-        throw new InstallationError(
-          "Cannot load the installed runtime. The package may have been " +
-          "corrupted. Reverting installation."
-        )
-      }
+      try {
+        val temporaryRuntime = parseGraalRuntime(runtimeTemporaryPath)
+        if (temporaryRuntime.isEmpty) {
+          throw new InstallationError(
+            "Cannot load the installed runtime. The package may have been " +
+            "corrupted. Reverting installation."
+          )
+        }
 
-      runtime.get
+        val runtimePath =
+          distributionManager.paths.runtimes / runtimeDirectoryName
+        Files.move(runtimeTemporaryPath, runtimePath)
+        val runtime = parseGraalRuntime(runtimePath).getOrElse {
+          FileSystem.removeDirectory(runtimePath)
+          throw new InstallationError(
+            "fatal: Cannot load the installed runtime."
+          )
+        }
+
+        Logger.info(s"Installed $runtime.")
+        runtime
+      } catch {
+        case NonFatal(e) =>
+          undoTemporaryRuntime()
+          throw e
+      }
     }
 
   private def engineDirectoryNameForVersion(version: SemVer): Path =
@@ -280,6 +330,10 @@ class ComponentsManager(
   class InstallationError(message: String, cause: Throwable = null)
       extends RuntimeException(message, cause) {
     override def toString: String = s"Installation failed: $message"
+  }
+
+  private def cleanupRuntimes(): Unit = {
+    // TODO
   }
 }
 

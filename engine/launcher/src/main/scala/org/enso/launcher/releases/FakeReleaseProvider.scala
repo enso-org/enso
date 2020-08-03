@@ -5,7 +5,7 @@ import org.enso.cli.{ProgressListener, TaskProgress}
 import org.enso.launcher.FileSystem
 
 import scala.io.Source
-import scala.util.{Failure, Success, Try, Using}
+import scala.util.{Success, Try, Using}
 
 case class FakeReleaseProvider(releasesRoot: Path) extends ReleaseProvider {
   private val releases = FileSystem.listDirectory(releasesRoot).map(FakeRelease)

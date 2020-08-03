@@ -47,7 +47,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     if (existing.isDefined) {
       Logger.info(s"Engine $version is already installed.")
     } else {
-      componentsManager.installEngine(version)
+      componentsManager.findOrInstallEngine(version)
     }
   }
 

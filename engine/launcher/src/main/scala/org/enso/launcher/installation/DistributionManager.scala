@@ -2,6 +2,7 @@ package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
 
+import org.enso.launcher.FileSystem
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.{Environment, Logger, OS}
 
@@ -10,27 +11,45 @@ import scala.util.Try
 /**
   * Gathers filesystem paths used by the launcher.
   *
+  * @param dataRoot the root of the data directory; for a portable distribution
+  *                 this is the root of the distribution, for a locally
+  *                 installed distribution, it corresponds to `ENSO_DATA_DIR`
   * @param runtimes location of runtimes, corresponding to `runtime` directory
   * @param engines location of engine versions, corresponding to `dist`
   *                directory
   * @param config location of configuration
-  * @param dataRoot the root of the data directory; for a portable distribution
-  *                 this is the root of the distribution, for a locally
-  *                 installed distribution, it corresponds to `ENSO_DATA_DIR`
+  * @param tmp a directory for storing temporary files that is located on the
+  *            same filesystem as `runtimes` and `engines`, used for
+  *            installation
   */
 case class DistributionPaths(
   dataRoot: Path,
   runtimes: Path,
   engines: Path,
-  config: Path
+  config: Path,
+  private val tmp: Path
 ) {
   override def toString: String =
     s"""DistributionPaths(
        |  dataRoot = $dataRoot,
        |  runtimes = $runtimes,
        |  engines  = $engines,
-       |  config   = $config
+       |  config   = $config,
+       |  tmp      = $tmp
        |)""".stripMargin
+
+  lazy val temporaryDirectory: Path = {
+    runCleanup()
+    tmp
+  }
+
+  private def runCleanup(): Unit = {
+    if (Files.exists(tmp)) {
+      Logger.info("Cleaning up temporary files from a previous installation.")
+      FileSystem.removeDirectory(tmp)
+      Files.createDirectories(tmp)
+    }
+  }
 }
 
 /**
@@ -78,6 +97,7 @@ class DistributionManager(val env: Environment) {
   lazy val paths: DistributionPaths = {
     val paths = detectPaths()
     Logger.debug(s"Detected paths are: $paths")
+
     paths
   }
 
@@ -86,6 +106,7 @@ class DistributionManager(val env: Environment) {
   val RUNTIMES_DIRECTORY             = "runtime"
   val CONFIG_DIRECTORY               = "config"
   val BIN_DIRECTORY                  = "bin"
+  private val TMP_DIRECTORY          = "tmp"
 
   private def detectPortable(): Boolean = Files.exists(portableMarkFilePath)
   private def possiblePortableRoot: Path =
@@ -101,7 +122,8 @@ class DistributionManager(val env: Environment) {
         dataRoot = root,
         runtimes = root / RUNTIMES_DIRECTORY,
         engines  = root / ENGINES_DIRECTORY,
-        config   = root / CONFIG_DIRECTORY
+        config   = root / CONFIG_DIRECTORY,
+        tmp      = root / TMP_DIRECTORY
       )
     } else {
       val dataRoot   = LocallyInstalledDirectories.dataDirectory
@@ -110,7 +132,8 @@ class DistributionManager(val env: Environment) {
         dataRoot = dataRoot,
         runtimes = dataRoot / RUNTIMES_DIRECTORY,
         engines  = dataRoot / ENGINES_DIRECTORY,
-        config   = configRoot
+        config   = configRoot,
+        tmp      = dataRoot / TMP_DIRECTORY
       )
     }
 
