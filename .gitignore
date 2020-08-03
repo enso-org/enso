@@ -13,7 +13,6 @@ graal_dumps/
 target/
 *.class
 *.log
-lib/scala/ast/src/main/scala/org/enso/ast/Ast.scala
 
 ##########
 ## Rust ##

@@ -236,7 +236,7 @@ npx prettier --write <dir>
 
 There are multiple projects in this repository, but all can be built, run and
 tested using `sbt`. As long as your configuration is correct, with the correct
-versions of SBT and GraalVM, the same steps can be followed on all of our
+versions of SBT, Rust and GraalVM, the same steps can be followed on all of our
 supported platforms (Linux, MacOS and Windows).
 
 SBT will handle downloading and building library dependencies as needed, meaning
