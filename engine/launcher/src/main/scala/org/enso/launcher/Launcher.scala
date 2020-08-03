@@ -53,6 +53,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
 
   def installEngineLatest(): Unit = {
     val latest = componentsManager.fetchLatestEngineVersion()
+    Logger.info(s"Installing Enso engine $latest")
     installEngine(latest)
   }
 }

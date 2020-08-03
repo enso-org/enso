@@ -53,5 +53,6 @@ class GraalCEReleaseProvider(releaseProvider: ReleaseProvider)
 
 object GraalCEReleaseProvider
     extends GraalCEReleaseProvider(
+//      FakeReleaseProvider
       new GithubReleaseProvider("graalvm", "graalvm-ce-builds")
     )
