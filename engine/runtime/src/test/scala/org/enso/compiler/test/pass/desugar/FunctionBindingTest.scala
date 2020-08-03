@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.desugar.FunctionBinding
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
 class FunctionBindingTest extends CompilerTest {
@@ -13,11 +13,11 @@ class FunctionBindingTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: List[IRPass] = passes.getPrecursors(FunctionBinding).get
+  val precursorPasses: PassGroup = passes.getPrecursors(FunctionBinding).get
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfig)
+    new PassManager(List(precursorPasses), passConfig)
 
   /** Adds an extension method to run method and function desugaring on an
     * [[IR.Module]].
@@ -61,7 +61,7 @@ class FunctionBindingTest extends CompilerTest {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext()
+    buildModuleContext()
   }
 
   /** Creates a defaulted inline context.
@@ -69,7 +69,7 @@ class FunctionBindingTest extends CompilerTest {
     * @return a defaulted inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext()
+    buildInlineContext()
   }
 
   // === The Tests ============================================================

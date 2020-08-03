@@ -13,7 +13,10 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import java.io.File;
+import java.io.IOException;
+
 import org.enso.compiler.core.IR;
+import org.enso.compiler.phase.StubIrBuilder;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
@@ -33,22 +36,41 @@ import org.enso.text.buffer.Rope;
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
 public class Module implements TruffleObject {
+
+  /** Defines a stage of compilation of the module. */
+  public enum CompilationStage {
+    INITIAL(0),
+    AFTER_PARSING(1),
+    AFTER_IMPORT_RESOLUTION(2),
+    AFTER_STATIC_PASSES(3),
+    AFTER_RUNTIME_STUBS(4),
+    AFTER_CODEGEN(5);
+
+    private final int ordinal;
+
+    CompilationStage(int ordinal) {
+      this.ordinal = ordinal;
+    }
+
+    /**
+     * Checks whether the current compilation stage is at least as advanced as the provided one.
+     *
+     * @param stage the stage to compare to
+     * @return whether or not {@code this} is at least as advanced as {@code stage}.
+     */
+    public boolean isAtLeast(CompilationStage stage) {
+      return ordinal >= stage.ordinal;
+    }
+  }
+
   private ModuleScope scope;
   private TruffleFile sourceFile;
   private Rope literalSource;
-  private boolean isParsed = false;
+  private Source cachedSource;
+  private CompilationStage compilationStage = CompilationStage.INITIAL;
   private boolean isIndexed = false;
-  private IR ir;
+  private IR.Module ir;
   private QualifiedName name;
-
-  private Module(
-      TruffleFile sourceFile, Rope literalSource, boolean isParsed, IR ir, QualifiedName name) {
-    this.sourceFile = sourceFile;
-    this.literalSource = literalSource;
-    this.isParsed = isParsed;
-    this.ir = ir;
-    this.name = name;
-  }
 
   /**
    * Creates a new module.
@@ -91,7 +113,7 @@ public class Module implements TruffleObject {
   private Module(QualifiedName name) {
     this.name = name;
     this.scope = new ModuleScope(this);
-    this.isParsed = true;
+    this.compilationStage = CompilationStage.AFTER_CODEGEN;
   }
 
   /**
@@ -107,7 +129,8 @@ public class Module implements TruffleObject {
   /** Clears any literal source set for this module. */
   public void unsetLiteralSource() {
     this.literalSource = null;
-    this.isParsed = false;
+    this.cachedSource = null;
+    this.compilationStage = CompilationStage.INITIAL;
   }
 
   /** @return the literal source of this module. */
@@ -131,7 +154,8 @@ public class Module implements TruffleObject {
    */
   public void setLiteralSource(Rope source) {
     this.literalSource = source;
-    this.isParsed = false;
+    this.compilationStage = CompilationStage.INITIAL;
+    this.cachedSource = null;
   }
 
   /**
@@ -142,7 +166,8 @@ public class Module implements TruffleObject {
   public void setSourceFile(TruffleFile file) {
     this.literalSource = null;
     this.sourceFile = file;
-    this.isParsed = false;
+    this.compilationStage = CompilationStage.INITIAL;
+    this.cachedSource = null;
   }
 
   /** @return the location of this module. */
@@ -159,10 +184,13 @@ public class Module implements TruffleObject {
    * @param context context in which the parsing should take place
    * @return the scope defined by this module
    */
-  public ModuleScope parseScope(Context context) {
+  public ModuleScope compileScope(Context context) {
     ensureScopeExists(context);
-    if (!isParsed) {
-      parse(context);
+    if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
+      try {
+        compile(context);
+      } catch (IOException ignored) {
+      }
     }
     return scope;
   }
@@ -172,29 +200,76 @@ public class Module implements TruffleObject {
    *
    * @param context the language context.
    */
-  private void ensureScopeExists(Context context) {
+  public void ensureScopeExists(Context context) {
     if (scope == null) {
       scope = context.createScope(this);
-      isParsed = false;
+      compilationStage = CompilationStage.INITIAL;
     }
   }
 
-  private void parse(Context context) {
-    ensureScopeExists(context);
-    context.resetScope(scope);
-    isParsed = true;
-    if (literalSource != null) {
-      Source source =
-          Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
-      ir = context.getCompiler().run(source, scope);
-    } else if (sourceFile != null) {
-      ir = context.getCompiler().run(sourceFile, scope);
+  /**
+   * @return The truffle-wrapped sources of this module.
+   * @throws IOException when the source comes from a file that can't be read.
+   */
+  public Source getSource() throws IOException {
+    if (cachedSource != null) {
+      return cachedSource;
     }
+    if (literalSource != null) {
+      cachedSource =
+          Source.newBuilder(LanguageInfo.ID, literalSource.characters(), name.toString()).build();
+    } else if (sourceFile != null) {
+      cachedSource = Source.newBuilder(LanguageInfo.ID, sourceFile).build();
+    }
+    return cachedSource;
+  }
+
+  private void compile(Context context) throws IOException {
+    ensureScopeExists(context);
+    Source source = getSource();
+    if (source == null) return;
+    context.resetScope(scope);
+    compilationStage = CompilationStage.INITIAL;
+    context.getCompiler().run(source, this);
   }
 
   /** @return IR defined by this module. */
-  public IR getIr() {
+  public IR.Module getIr() {
     return ir;
+  }
+
+  /** @return the current compilation stage of this module. */
+  public CompilationStage getCompilationStage() {
+    return compilationStage;
+  }
+
+  /**
+   * Sets the current compilation stage of this module.
+   *
+   * <p>Note that this method should only be used by the {@link org.enso.compiler.Compiler}.
+   *
+   * @param compilationStage the new compilation stage for the module.
+   */
+  public void unsafeSetCompilationStage(CompilationStage compilationStage) {
+    this.compilationStage = compilationStage;
+  }
+
+  /**
+   * Sets the IR for this module.
+   *
+   * <p>Note that the IR should correspond to the current {@link
+   * #unsafeSetCompilationStage(CompilationStage) compilation stage} and should only be set by the
+   * {@link org.enso.compiler.Compiler}.
+   *
+   * @param ir the new IR for the module.
+   */
+  public void unsafeSetIr(IR.Module ir) {
+    this.ir = ir;
+  }
+
+  /** @return the runtime scope of this module. */
+  public ModuleScope getScope() {
+    return scope;
   }
 
   /** @return the qualified name of this module. */
@@ -222,12 +297,21 @@ public class Module implements TruffleObject {
   }
 
   /**
+   * Builds an IR stub for this module.
+   *
+   * <p>Should only be used for source-less modules (e.g. {@link Builtins}).
+   */
+  public void unsafeBuildIrStub() {
+    ir = StubIrBuilder.build(this);
+    compilationStage = CompilationStage.AFTER_CODEGEN;
+  }
+
+  /**
    * Handles member invocations through the polyglot API.
    *
    * <p>The exposed members are:
    * <li>{@code get_method(AtomConstructor, String)}
    * <li>{@code get_constructor(String)}
-   * <li>{@code patch(String)}
    * <li>{@code get_associated_constructor()}
    * <li>{@code eval_expression(String)}
    */
@@ -248,21 +332,14 @@ public class Module implements TruffleObject {
       return scope.getConstructors().get(name);
     }
 
-    private static Module patch(Module module, Object[] args, Context context)
-        throws ArityException, UnsupportedTypeException {
-      ModuleScope scope = module.parseScope(context);
-      String sourceString = Types.extractArguments(args, String.class);
-      Source source =
-          Source.newBuilder(LanguageInfo.ID, sourceString, scope.getAssociatedType().getName())
-              .build();
-      context.getCompiler().run(source, scope);
-      return module;
-    }
-
     private static Module reparse(Module module, Object[] args, Context context)
         throws ArityException {
       Types.extractArguments(args);
-      module.parse(context);
+      module.cachedSource = null;
+      try {
+        module.compile(context);
+      } catch (IOException ignored) {
+      }
       return module;
     }
 
@@ -311,14 +388,12 @@ public class Module implements TruffleObject {
         @CachedContext(Language.class) Context context,
         @Cached LoopingCallOptimiserNode callOptimiserNode)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
-      ModuleScope scope = module.parseScope(context);
+      ModuleScope scope = module.compileScope(context);
       switch (member) {
         case MethodNames.Module.GET_METHOD:
           return getMethod(scope, arguments);
         case MethodNames.Module.GET_CONSTRUCTOR:
           return getConstructor(scope, arguments);
-        case MethodNames.Module.PATCH:
-          return patch(module, arguments, context);
         case MethodNames.Module.REPARSE:
           return reparse(module, arguments, context);
         case MethodNames.Module.SET_SOURCE:
@@ -355,7 +430,6 @@ public class Module implements TruffleObject {
   boolean isMemberInvocable(String member) {
     return member.equals(MethodNames.Module.GET_METHOD)
         || member.equals(MethodNames.Module.GET_CONSTRUCTOR)
-        || member.equals(MethodNames.Module.PATCH)
         || member.equals(MethodNames.Module.REPARSE)
         || member.equals(MethodNames.Module.SET_SOURCE)
         || member.equals(MethodNames.Module.SET_SOURCE_FILE)
@@ -374,7 +448,6 @@ public class Module implements TruffleObject {
     return new Vector(
         MethodNames.Module.GET_METHOD,
         MethodNames.Module.GET_CONSTRUCTOR,
-        MethodNames.Module.PATCH,
         MethodNames.Module.REPARSE,
         MethodNames.Module.SET_SOURCE,
         MethodNames.Module.SET_SOURCE_FILE,

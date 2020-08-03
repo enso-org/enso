@@ -68,7 +68,10 @@ case object LambdaShorthandToLambda extends IRPass {
     ir.mapExpressions(
       runExpression(
         _,
-        InlineContext(freshNameSupply = moduleContext.freshNameSupply)
+        InlineContext(
+          moduleContext.module,
+          freshNameSupply = moduleContext.freshNameSupply
+        )
       )
     )
 

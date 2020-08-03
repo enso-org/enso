@@ -5,7 +5,7 @@ import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition
 import org.enso.compiler.pass.desugar.ComplexType
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
 class ComplexTypeTest extends CompilerTest {
@@ -14,12 +14,12 @@ class ComplexTypeTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: List[IRPass] = passes.getPrecursors(ComplexType).get
+  val precursorPasses: PassGroup = passes.getPrecursors(ComplexType).get
 
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(precursorPasses, passConfig)
+    new PassManager(List(precursorPasses), passConfig)
 
   /** Adds an extension method to run complex type desugaring on an
     * [[IR.Module]].
@@ -44,7 +44,7 @@ class ComplexTypeTest extends CompilerTest {
     * @return a defaulted module context
     */
   def mkModuleContext: ModuleContext = {
-    ModuleContext()
+    buildModuleContext()
   }
 
   // === The Tests ============================================================

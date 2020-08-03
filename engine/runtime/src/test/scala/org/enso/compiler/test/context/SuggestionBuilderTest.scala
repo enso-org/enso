@@ -606,5 +606,5 @@ class SuggestionBuilderTest extends CompilerTest {
     SuggestionBuilder(source).build(Module, ir)
 
   private def freshModuleContext: ModuleContext =
-    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+    buildModuleContext(freshNameSupply = Some(new FreshNameSupply))
 }

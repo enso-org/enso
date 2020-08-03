@@ -35,17 +35,6 @@ class Module(private val value: Value) {
     new Function(value.invokeMember(GET_METHOD, constructor, name))
 
   /**
-    * Parses additional source code in the context of this module.
-    *
-    * Updates the module with any new methods and imports from the new
-    * source.
-    *
-    * @param additionalSource the new source to parse
-    */
-  def patch(additionalSource: String): Unit =
-    value.invokeMember(PATCH, additionalSource): Unit
-
-  /**
     * Evaluates an arbitrary expression as if it were placed in a function
     * body inside this module.
     * @param code the expression to evaluate

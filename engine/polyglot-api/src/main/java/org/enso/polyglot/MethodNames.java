@@ -14,7 +14,6 @@ public class MethodNames {
     public static final String GET_ASSOCIATED_CONSTRUCTOR = "get_associated_constructor";
     public static final String GET_METHOD = "get_method";
     public static final String GET_CONSTRUCTOR = "get_constructor";
-    public static final String PATCH = "patch";
     public static final String REPARSE = "reparse";
     public static final String SET_SOURCE = "set_source";
     public static final String SET_SOURCE_FILE = "set_source_file";

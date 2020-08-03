@@ -5,6 +5,7 @@ import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Import
 import org.enso.compiler.core.IR.{Error, IdentifiedLocation, Pattern}
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.exception.{BadPatternMatch, CompilerError}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
@@ -14,6 +15,7 @@ import org.enso.compiler.pass.analyse.{
   TailCall
 }
 import org.enso.compiler.pass.optimise.ApplicationSaturation
+import org.enso.compiler.pass.resolve.{MethodDefinitions, Patterns}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -48,15 +50,11 @@ import org.enso.interpreter.runtime.callable.argument.{
   ArgumentDefinition,
   CallArgument
 }
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
   Function => RuntimeFunction
 }
-import org.enso.interpreter.runtime.error.{
-  DuplicateArgumentNameException,
-  VariableDoesNotExistException
-}
+import org.enso.interpreter.runtime.error.DuplicateArgumentNameException
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
 
@@ -153,8 +151,7 @@ class IrToTruffle(
 
     // Register the atoms and their constructors in scope
     val atomConstructors =
-      atomDefs.map(t => new AtomConstructor(t.name.name, moduleScope))
-    atomConstructors.foreach(moduleScope.registerConstructor)
+      atomDefs.map(cons => moduleScope.getConstructors.get(cons.name.name))
 
     atomConstructors
       .zip(atomDefs)
@@ -204,54 +201,57 @@ class IrToTruffle(
         "Method definition missing dataflow information."
       )
 
-      val typeName =
-        if (methodDef.typeName.name == Constants.Names.CURRENT_MODULE) {
-          moduleScope.getAssociatedType.getName
-        } else {
-          methodDef.typeName.name
-        }
+      val consOpt =
+        methodDef.methodReference.typePointer
+          .getMetadata(MethodDefinitions)
+          .map {
+            case BindingsMap.Resolution(BindingsMap.ResolvedModule(module)) =>
+              module.getScope.getAssociatedType
+            case BindingsMap.Resolution(
+                  BindingsMap.ResolvedConstructor(definitionModule, cons)
+                ) =>
+              definitionModule.getScope.getConstructors.get(cons.name)
+          }
 
-      val expressionProcessor = new ExpressionProcessor(
-        typeName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
-        scopeInfo.graph,
-        scopeInfo.graph.rootScope,
-        dataflowInfo
-      )
+      consOpt.foreach {
+        cons =>
+          val expressionProcessor = new ExpressionProcessor(
+            cons.getName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
+            scopeInfo.graph,
+            scopeInfo.graph.rootScope,
+            dataflowInfo
+          )
 
-      val cons = moduleScope
-        .getConstructor(typeName)
-        .orElseThrow(() =>
-          new VariableDoesNotExistException(methodDef.typeName.name)
-        )
-
-      val function = methodDef.body match {
-        case fn: IR.Function =>
-          val (body, arguments) =
-            expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
-          val rootNode = MethodRootNode.build(
-            language,
-            expressionProcessor.scope,
-            moduleScope,
-            body,
-            makeSection(methodDef.location),
-            cons,
-            methodDef.methodName.name
-          )
-          val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
-          new RuntimeFunction(
-            callTarget,
-            null,
-            new FunctionSchema(
-              FunctionSchema.CallStrategy.CALL_LOOP,
-              arguments: _*
-            )
-          )
-        case _ =>
-          throw new CompilerError(
-            "Method bodies must be functions at the point of codegen."
-          )
+          val function = methodDef.body match {
+            case fn: IR.Function =>
+              val (body, arguments) =
+                expressionProcessor.buildFunctionBody(fn.arguments, fn.body)
+              val rootNode = MethodRootNode.build(
+                language,
+                expressionProcessor.scope,
+                moduleScope,
+                body,
+                makeSection(methodDef.location),
+                cons,
+                methodDef.methodName.name
+              )
+              val callTarget = Truffle.getRuntime.createCallTarget(rootNode)
+              new RuntimeFunction(
+                callTarget,
+                null,
+                new FunctionSchema(
+                  FunctionSchema.CallStrategy.CALL_LOOP,
+                  arguments: _*
+                )
+              )
+            case _ =>
+              throw new CompilerError(
+                "Method bodies must be functions at the point of codegen."
+              )
+          }
+          moduleScope.registerMethod(cons, methodDef.methodName.name, function)
       }
-      moduleScope.registerMethod(cons, methodDef.methodName.name, function)
+
     })
   }
 
@@ -465,8 +465,6 @@ class IrToTruffle(
           val maybeCases    = branches.map(processCaseBranch)
           val allCasesValid = maybeCases.forall(_.isRight)
 
-          // TODO [AA] This is until we can resolve this statically in the
-          //  compiler. Doing so requires fixing issues around cyclical imports.
           if (allCasesValid) {
             val cases = maybeCases
               .collect {
@@ -532,12 +530,32 @@ class IrToTruffle(
           branchNode.setTail(branchIsTail)
 
           Right(branchNode)
-        case cons @ Pattern.Constructor(constructor, fields, _, _, _) =>
+        case cons @ Pattern.Constructor(constructor, _, _, _, _) =>
           if (!cons.isDesugared) {
             throw new CompilerError(
               "Nested patterns desugaring must have taken place by the " +
               "point of code generation."
             )
+          }
+
+          val runtimeConsOpt = constructor match {
+            case err: IR.Error.Resolution =>
+              Left(BadPatternMatch.NonVisibleConstructor(err.name))
+            case _ =>
+              constructor.getMetadata(Patterns) match {
+                case None =>
+                  Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
+                case Some(
+                      BindingsMap.Resolution(BindingsMap.ResolvedModule(mod))
+                    ) =>
+                  Right(mod.getScope.getAssociatedType)
+                case Some(
+                      BindingsMap.Resolution(
+                        BindingsMap.ResolvedConstructor(mod, cons)
+                      )
+                    ) =>
+                  Right(mod.getScope.getConstructors.get(cons.name))
+              }
           }
 
           val fieldNames   = cons.unsafeFieldsAsNamed
@@ -549,40 +567,32 @@ class IrToTruffle(
             branch.location
           )
 
-          moduleScope.getConstructor(constructor.name).toScala match {
-            case Some(atomCons) =>
-              val numExpectedArgs = atomCons.getArity
-              val numProvidedArgs = fields.length
-
-              if (numProvidedArgs != numExpectedArgs) {
-                Left(
-                  BadPatternMatch.WrongArgCount(
-                    constructor.name,
-                    numExpectedArgs,
-                    numProvidedArgs
-                  )
-                )
+          runtimeConsOpt.map { atomCons =>
+            val bool = context.getBuiltins.bool()
+            val branchNode: BranchNode =
+              if (atomCons == bool.getTrue) {
+                BooleanBranchNode.build(true, branchCodeNode)
+              } else if (atomCons == bool.getFalse) {
+                BooleanBranchNode.build(false, branchCodeNode)
               } else {
-                val bool = context.getBuiltins.bool()
-                val branchNode: BranchNode =
-                  if (atomCons == bool.getTrue) {
-                    BooleanBranchNode.build(true, branchCodeNode)
-                  } else if (atomCons == bool.getFalse) {
-                    BooleanBranchNode.build(false, branchCodeNode)
-                  } else {
-                    ConstructorBranchNode.build(atomCons, branchCodeNode)
-                  }
-                branchNode.setTail(branchIsTail)
-
-                Right(branchNode)
+                ConstructorBranchNode.build(atomCons, branchCodeNode)
               }
-            case None =>
-              Left(BadPatternMatch.NonVisibleConstructor(constructor.name))
+            branchNode.setTail(branchIsTail)
+
+            branchNode
           }
         case _: Pattern.Documentation =>
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
+        case IR.Error.Pattern(
+              _,
+              IR.Error.Pattern.WrongArity(name, expected, actual),
+              _,
+              _
+            ) =>
+          Left(BadPatternMatch.WrongArgCount(name, expected, actual))
+
       }
     }
 
@@ -713,6 +723,11 @@ class IrToTruffle(
           throw new CompilerError(
             "Method references should not be present at codegen time."
           )
+        case _: IR.Name.Qualified =>
+          throw new CompilerError(
+            "Qualified names should not be present at codegen time."
+          )
+        case _: IR.Error.Resolution => throw new RuntimeException("todo")
       }
 
       setLocation(nameExpr, name.location)
@@ -753,6 +768,11 @@ class IrToTruffle(
           context.getBuiltins.error().compileError().newInstance(err.message)
         case err: Error.Unexpected.TypeSignature =>
           context.getBuiltins.error().compileError().newInstance(err.message)
+        case _: Error.Resolution => throw new RuntimeException("bleee")
+        case _: Error.Pattern =>
+          throw new CompilerError(
+            "Impossible here, should be handled in the pattern match."
+          )
       }
       setLocation(ErrorNode.build(payload), error.location)
     }
