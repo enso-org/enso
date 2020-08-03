@@ -155,10 +155,15 @@ class EnsureCompiledJob(protected val files: List[File])
       .map(_._2)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(scopeIds)
-    Seq(invalidateExpressionsCommand, invalidateStaleCommand).map(
+    Seq(
       CacheInvalidation(
         CacheInvalidation.StackSelector.All,
-        _,
+        invalidateExpressionsCommand,
+        Set(CacheInvalidation.IndexSelector.Weights)
+      ),
+      CacheInvalidation(
+        CacheInvalidation.StackSelector.All,
+        invalidateStaleCommand,
         Set(CacheInvalidation.IndexSelector.All)
       )
     )
@@ -173,7 +178,7 @@ class EnsureCompiledJob(protected val files: List[File])
   private def runInvalidationCommands(
     invalidationCommands: Iterable[CacheInvalidation]
   )(implicit ctx: RuntimeContext): Unit = {
-    ctx.contextManager.getAll.valuesIterator
+    ctx.contextManager.getAll.values
       .collect {
         case stack if stack.nonEmpty =>
           CacheInvalidation.runAll(stack, invalidationCommands)
