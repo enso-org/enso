@@ -975,7 +975,7 @@ lazy val runner = project
   )
   .settings(
     buildNativeImage := NativeImage
-        .buildNativeImage(staticOnLinux = false)
+        .buildNativeImage("enso", staticOnLinux = false)
         .value
   )
   .settings(
@@ -1002,7 +1002,9 @@ lazy val launcher = project
       )
   )
   .settings(
-    buildNativeImage := NativeImage.buildNativeImage(staticOnLinux = true).value
+    buildNativeImage := NativeImage
+        .buildNativeImage("enso", staticOnLinux = true)
+        .value
   )
   .settings(
     (Test / test) := (Test / test)

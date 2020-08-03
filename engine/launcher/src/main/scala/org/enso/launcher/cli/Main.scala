@@ -342,11 +342,6 @@ object Main {
     }
   }
 
-  private def debugConsoleCommand =
-    Command("debug-console", "Starts a debug console.") {
-      Opts.pure(()) map { _ => (_: Config) => DebugConsole.run() }
-    }
-
   private val application: Application[Config] =
     Application(
       "enso",
@@ -365,8 +360,7 @@ object Main {
         uninstallCommand,
         upgradeCommand,
         listCommand,
-        configCommand,
-        debugConsoleCommand
+        configCommand
       ),
       PluginManager
     )

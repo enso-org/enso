@@ -1,7 +1,7 @@
 import java.io.File
 import java.nio.file.Path
 
-import sbt.{File, _}
+import sbt.{Def, File, _}
 import sbt.Keys._
 import sbt.internal.util.ManagedLogger
 
@@ -15,7 +15,19 @@ object NativeImage {
     */
   private val includeDebugInfo: Boolean = false
 
+  /**
+    * Creates a task that builds a native image for the current project.
+    *
+    * @param artifactName name of the artifact to create
+    * @param staticOnLinux specifies whether to link statically (applies only
+    *                      on Linux)
+    * @param enableHTTPS specifies whether to enable HTTPS support in the built
+    *                    image (this increases the build size significantly, so
+    *                    should be used only when really needed, but is
+    *                    necessary for any applications using HTTP connectivity)
+    */
   def buildNativeImage(
+    artifactName: String,
     staticOnLinux: Boolean,
     enableHTTPS: Boolean = true
   ): Def.Initialize[Task[Unit]] =
@@ -57,7 +69,7 @@ object NativeImage {
         val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
 
         val configLocation =
-          subProjectRoot / "src" / "main" / "resources" / "native-image-config"
+          subProjectRoot / "native-image-config"
         val configs =
           if (configLocation.exists()) {
             val path = configLocation.toPath.toAbsolutePath
@@ -87,10 +99,20 @@ object NativeImage {
       }
       .dependsOn(Compile / compile)
 
+  /**
+    * Creates a task which watches for changes of any compiled files or
+    * dependencies and triggers a rebuild if and only if there are any changes.
+    *
+    * @param actualBuild reference to the task doing the actual Native Image
+    *                    build, usually one returned by [[buildNativeImage]]
+    * @param artifactName name of the artifact that is expected to be created
+    *                     by the native image build
+    * @return
+    */
   def incrementalNativeImageBuild(
     actualBuild: TaskKey[Unit],
     artifactName: String
-  ) =
+  ): Def.Initialize[Task[Unit]] =
     Def.taskDyn {
       def rebuild(reason: String) = {
         streams.value.log.info(
@@ -201,5 +223,16 @@ object NativeImage {
 
 /* Note [Static Build On Linux]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * TODO [RW]
+ * The default `glibc` contains a bug that would cause crashes when downloading
+ * files form the internet, which is a crucial Launcher functionality. Instead,
+ * `musl` is suggested by Graal as an alternative libc. The sbt task
+ * automatically downloads a bundle containing all requirements for a static
+ * build with `musl`.
+ *
+ * Currently, to use `musl`, the `-H:UseMuslC=/path/to/musl/bundle` option has
+ * to be added to the build. In the future, a `--libc=musl` option may be
+ * preferred instead, as described at
+ * https://github.com/oracle/graal/blob/master/substratevm/STATIC-IMAGES.md
+ * or even `musl` may be included by default. This task may thus need an update
+ * when moving to a newer version of Graal.
  */

@@ -74,7 +74,6 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
 
 object EngineReleaseProvider
     extends EngineReleaseProvider(
-//      FakeReleaseProvider
       new GithubReleaseProvider(
         "enso-org",
         "enso-staging"

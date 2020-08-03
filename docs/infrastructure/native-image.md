@@ -41,6 +41,13 @@ suggested by Graal as an alternative. The sbt task automatically downloads a
 bundle containing all requirements for a static build with `musl`. It only
 requires a `tar` command to be available to extract the bundle.
 
+Currently, to enable compiling with `musl`, `-H:UseMuslC=/path/to/musl/bundle`
+option is added to the `native-image` command. In the future, the command may
+use a different option for enabling `musl` or even enable it by default, so the
+Native Image task may need updating with a newer Graal release. More information
+may be found
+[in the Native Image documentation](https://github.com/oracle/graal/blob/master/substratevm/STATIC-IMAGES.md).
+
 ## Static Builds
 
 The task is parametrized with `staticOnLinux` parameter which if set to `true`,
@@ -55,11 +62,39 @@ be built for the platform and architecture that the build is running on.
 
 ## Configuration
 
-// TODO [RW] explain reflection config
+As the Native Image builds a native binary, certain capabilities, like
+[reflection](https://github.com/oracle/graal/blob/master/substratevm/REFLECTION.md),
+may be limited. The build system tries to automatically detect some reflective
+accesses, but it cannot detect everything. It is possible for the built binary
+to fail with the following error:
+```
+java.lang.InstantiationException: Type `XYZ` can not be instantiated reflectively as it does not have a no-parameter constructor or the no-parameter constructor has not been added explicitly to the native image.`
+```
+
+To avoid such issues, additional configuration has to be added to the Native
+Image build so that it can include the missing constructors.
+
+This can be done manually by creating a file `reflect-config.json`. The build
+task looks for the configuration files in a directory called
+`native-image-config` inside the root of the compiled sub-project.
+
+Creating the configuration manually may be tedious and error-prone, so GraalVM
+includes
+[a tool for assisted configuration](https://github.com/oracle/graal/blob/master/substratevm/CONFIGURE.md).
+The link describes in detail how the tool can be used. The gist is, the JVM
+version of the application can be run with a special agentlib in order to trace
+reflective accesses and save the generated configuration to the provided
+directory. To run the tool it is easiest to assemble the application into a JAR
+and run it with the following command:
 
 ```bash
 java \
   -agentlib:native-image-agent=config-merge-dir=/path/to/native-image-config \
-  -jar launcher.jar \
-  <program arguments>
+  -jar /path/to/application.jar \
+  <application arguments>
 ```
+
+The command may need to be re-run with different arguments to ensure that all
+execution paths that use reflection are covered. The configuration files between
+consecutive runs will be merged (a warning may be issued for the first run if
+the configuration files did not exist, this is not a problem).
