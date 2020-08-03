@@ -43,10 +43,10 @@ jobs:
 
       # Set Up Environment
       - name: Install Rust
-          uses: actions-rs/toolchain@v1
-          with:
-            toolchain: ${{ env.rustToolchain }}
-            override: true
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.rustToolchain }}
+          override: true
       - name: Setup conda
         uses: s-weigand/setup-conda@v1
         with:
