@@ -155,14 +155,6 @@ impl flexer::State for TestState {
 // === Tests ===
 // =============
 
-// TODO [AA] Need to work out an extensible way to define the lexer.
-// TODO [AA] Passing the reader into `run` like the Scala version does enables the correct dynamism,
-//  but results in problems with the definition. I can't think of a non-unsafe approach to this that
-//  doesn't require handing the reader through all of the calls. That is _possible_, I suppose, but
-//  definitely requires moving the bookmarking machinery out into Flexer.
-// TODO [AA] Do the bookmarks _need_ to be dynamic? Can the code generator rely on the presence of
-//  any of them? Does it _need_ to? Yes, probably the two that are hard-coded in the Scala impl...
-
 #[test]
 fn test_lexer_definition() {
     // FIXME [AA] Work out how to best-define the lexer.
