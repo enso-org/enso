@@ -63,6 +63,7 @@ usize | isize | u64 | i64      => Long,
 u8                             => Byte,
 char                           => Char,
 Vec                            => Vector,
+Uuid                           => UUID,
 ```
 
 *Note: It is assumed, that Enso runs on 64bit platforms. Therefore, `usize` and
@@ -135,8 +136,11 @@ mod foo { .. }
 Is converted into:
 
 ```
-object Foo { sealed trait Foo; .. }
+object Foo { .. }
 ```
+
+Furthermore, the content of `ast.rs` is wrapped inside additional `object Ast`,
+in order to support top level type aliases.
 
 ##### Type Aliases
 
@@ -149,3 +153,5 @@ Is converted into:
 ```
 type A[X] = B[X, Y]
 ```
+
+Note that in contrast to Rust, Scala doesn't support types outside objects.

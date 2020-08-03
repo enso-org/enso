@@ -172,9 +172,9 @@ git clone git@github.com:enso-org/enso.git
 
 ### Getting Set Up (Rust)
 
-This project currently requires a specific nightly rust toolchain, as well as a
-special set-up step in SBT. To get this project set up, you can run the
-following commands:
+The SBT project requires a specific nightly rust toolchain. To get it set up, 
+you will need to install [rustup](https://rustup.rs/) and then run the following 
+commands:
 
 ```bash
 rustup toolchain install nightly-2019-11-04
@@ -186,9 +186,6 @@ You will also need `node` in order to run the `wasm` tests. We only support the
 latest LTS version of [NodeJS](https://nodejs.org/en/download) and NPM. We
 recommend using [`nvm`](https://github.com/nvm-sh/nvm) to manage node versions.
 The current LTS is `v12.18.0`.
-
-Please note that once the parser is integrated into the SBT build, the
-rust-related commands will be automatically performed for you.
 
 ### Getting Set Up (JVM)
 
@@ -236,7 +233,7 @@ npx prettier --write <dir>
 
 There are multiple projects in this repository, but all can be built, run and
 tested using `sbt`. As long as your configuration is correct, with the correct
-versions of SBT and GraalVM, the same steps can be followed on all of our
+versions of SBT, Rust and GraalVM, the same steps can be followed on all of our
 supported platforms (Linux, MacOS and Windows).
 
 SBT will handle downloading and building library dependencies as needed, meaning
