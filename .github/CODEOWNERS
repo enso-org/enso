@@ -2,19 +2,19 @@
 * @iamrecursion @kustosz
 
 # Distribution
-/distribution @iamrecursion @kustosz
+/distribution @iamrecursion @kustosz @radeusgd
 
 # Scala Libraries
 /common/scala/core-definition @iamrecursion @kustosz
 /common/scala/flexer @iamrecursion @kustosz
 /common/scala/graph @iamrecursion @kustosz
 /common/scala/interpreter-dsl @iamrecursion @kustosz
-/common/scala/json-rpc-server @lolczak @4e6
-/common/scala/json-rpc-server-test @lolczak @4e6
+/common/scala/json-rpc-server @lolczak @4e6 @iamrecursion
+/common/scala/json-rpc-server-test @lolczak @4e6 @iamrecursion
 /common/scala/logger @kustosz @iamrecursion
 /common/scala/parser-service @kustosz @iamrecursion
 /common/scala/pkg @iamrecursion @kustosz
-/common/scala/project-manager @lolczak @4e6
+/common/scala/project-manager @lolczak @4e6 @kustosz
 /common/scala/searcher @4e6 @lolczak
 /common/scala/syntax @iamrecursion @kustosz
 /common/scala/text-buffer @iamrecursion @kustosz
@@ -23,9 +23,9 @@
 /lib/rust/ @iamrecursion @wdanilo
 
 # Main Project
-/engine/language-server @lolczak @4e6
+/engine/language-server @lolczak @4e6 @kustosz
 /engine/polyglot-api @iamrecursion @kustosz
-/engine/runner @iamrecursion @kustosz @lolczak @4e6
+/engine/runner @iamrecursion @kustosz @radeusgd
 /engine/runtime @iamrecursion @kustosz @radeusgd
 
 # Documentation
