@@ -64,7 +64,7 @@ mod constants {
 #[derive(Clone,Debug)]
 pub struct Flexer<Definition,Output,Reader> {
     /// The stack of states that are active during lexer execution.
-    pub state_stack: Vec<group::Identifier>,
+    pub state_stack: NonEmptyVec<group::Identifier>,
     /// A reader for the input.
     pub reader: Reader,
     /// The result of the current stage of the DFA.
@@ -81,11 +81,11 @@ impl<Definition,Output,Reader> Flexer<Definition,Output,Reader>
 where Definition:State, Reader:LazyReader {
     /// Create a new lexer instance.
     pub fn new(mut reader:Reader) -> Flexer<Definition,Output,Reader> {
-        let mut state_stack  = Vec::default();
         let status           = default();
         let mut output       = Vec::default();
         let definition       = Definition::new(&mut reader);
         let initial_state_id = definition.initial_state();
+        let mut state_stack  = NonEmptyVec::init(initial_state_id);
         let current_match    = default();
 
         state_stack.reserve(constants::STATE_STACK_RESERVATION);
@@ -110,7 +110,7 @@ where Definition:State, Output:Clone {
 
     /// Get the state that the lexer is currently in.
     pub fn current_state(&self) -> group::Identifier {
-        *self.state_stack.last().expect("There should always be one state on the stack.")
+        *self.state_stack.last()
     }
 
     /// Tell the lexer to enter the state described by `state`.
