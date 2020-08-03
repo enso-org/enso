@@ -21,7 +21,7 @@ import scala.jdk.OptionConverters._
   *
   * @param files a files to compile
   */
-class EnsureCompiledJob(protected val files: List[File])
+class EnsureCompiledJob(protected val files: Iterable[File])
     extends Job[Unit](List.empty, true, false) {
 
   /**

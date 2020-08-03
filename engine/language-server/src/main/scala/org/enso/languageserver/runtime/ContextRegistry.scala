@@ -8,7 +8,6 @@ import org.enso.languageserver.event.{
   ExecutionContextCreated,
   ExecutionContextDestroyed
 }
-import org.enso.languageserver.filemanager.FileSystemFailure
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.runtime.handler._
 import org.enso.languageserver.util.UnhandledLogging
@@ -134,14 +133,11 @@ final class ContextRegistry(
 
     case PushContextRequest(client, contextId, stackItem) =>
       if (store.hasContext(client.clientId, contextId)) {
-        getRuntimeStackItem(stackItem) match {
-          case Right(stackItem) =>
-            val handler =
-              context.actorOf(PushContextHandler.props(timeout, runtime))
-            handler.forward(Api.PushContextRequest(contextId, stackItem))
-          case Left(error) =>
-            sender() ! FileSystemError(error)
-        }
+        val item = getRuntimeStackItem(stackItem)
+        val handler =
+          context.actorOf(PushContextHandler.props(timeout, runtime))
+        handler.forward(Api.PushContextRequest(contextId, item))
+
       } else {
         sender() ! AccessDenied
       }
@@ -224,27 +220,24 @@ final class ContextRegistry(
 
   private def getRuntimeStackItem(
     stackItem: StackItem
-  ): Either[FileSystemFailure, Api.StackItem] =
+  ): Api.StackItem =
     stackItem match {
       case StackItem.ExplicitCall(pointer, argument, arguments) =>
-        getRuntimeMethodPointer(pointer).map { methodPointer =>
-          Api.StackItem.ExplicitCall(methodPointer, argument, arguments)
-        }
+        val methodPointer = getRuntimeMethodPointer(pointer)
+        Api.StackItem.ExplicitCall(methodPointer, argument, arguments)
 
       case StackItem.LocalCall(expressionId) =>
-        Right(Api.StackItem.LocalCall(expressionId))
+        Api.StackItem.LocalCall(expressionId)
     }
 
   private def getRuntimeMethodPointer(
     pointer: MethodPointer
-  ): Either[FileSystemFailure, Api.MethodPointer] =
-    config.findContentRoot(pointer.file.rootId).map { rootPath =>
-      Api.MethodPointer(
-        file          = pointer.file.toFile(rootPath),
-        definedOnType = pointer.definedOnType,
-        name          = pointer.name
-      )
-    }
+  ): Api.MethodPointer =
+    Api.MethodPointer(
+      module        = pointer.module,
+      definedOnType = pointer.definedOnType,
+      name          = pointer.name
+    )
 
   private def toRuntimeInvalidatedExpressions(
     expressions: InvalidatedExpressions

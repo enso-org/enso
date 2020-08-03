@@ -46,6 +46,12 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(getAllByExternalIdsQuery(ids))
 
   /** @inheritdoc */
+  override def getAllMethods(
+    calls: Seq[(String, String, String)]
+  ): Future[Seq[Option[Long]]] =
+    db.run(getAllMethodsQuery(calls))
+
+  /** @inheritdoc */
   override def search(
     module: Option[String],
     selfType: Option[String],
@@ -168,6 +174,35 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
           case (id, least, most) => toUUID(least, most).map(_ -> id)
         }.toMap
         ids.map(result.get)
+      }
+    }
+
+  /** The query to get the suggestions by the method call info.
+    *
+    * @param calls the triples containing module name, self type, method name
+    * @return the list of found suggestion ids
+    */
+  def getAllMethodsQuery(
+    calls: Seq[(String, String, String)]
+  ): DBIO[Seq[Option[Long]]] =
+    if (calls.isEmpty) {
+      DBIO.successful(Seq())
+    } else {
+      val query = Suggestions
+        .filter { row =>
+          calls
+            .map {
+              case (module, selfType, name) =>
+                row.module === module && row.selfType === selfType && row.name === name
+            }
+            .reduce(_ || _)
+        }
+        .map(row => (row.id, row.module, row.selfType, row.name))
+      query.result.map { tuples =>
+        val result = tuples.map {
+          case (id, module, selfType, name) => (module, selfType, name) -> id
+        }.toMap
+        calls.map(result.get)
       }
     }
 

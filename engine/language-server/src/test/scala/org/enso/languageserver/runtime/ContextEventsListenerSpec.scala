@@ -74,8 +74,14 @@ class ContextEventsListenerSpec
           Vector(
             Api.ExpressionValueUpdate(
               Suggestions.method.externalId.get,
-              None,
-              None
+              Some(Suggestions.method.returnType),
+              Some(
+                Api.MethodPointer(
+                  Suggestions.method.module,
+                  Suggestions.method.selfType,
+                  Suggestions.method.name
+                )
+              )
             )
           )
         )
@@ -88,7 +94,8 @@ class ContextEventsListenerSpec
               Vector(
                 ExpressionValueUpdate(
                   Suggestions.method.externalId.get,
-                  suggestionIds(1).get
+                  Some(Suggestions.method.returnType),
+                  Some(suggestionIds(1).get)
                 )
               )
             )
@@ -98,7 +105,7 @@ class ContextEventsListenerSpec
 
     "send expression updates grouped" taggedAs Retry in withDb(0.seconds) {
       (clientId, contextId, repo, router, listener) =>
-        val (_, suggestionIds) = Await.result(
+        Await.result(
           repo.insertAll(
             Seq(
               Suggestions.atom,
@@ -142,11 +149,13 @@ class ContextEventsListenerSpec
               Vector(
                 ExpressionValueUpdate(
                   Suggestions.method.externalId.get,
-                  suggestionIds(1).get
+                  None,
+                  None
                 ),
                 ExpressionValueUpdate(
                   Suggestions.local.externalId.get,
-                  suggestionIds(3).get
+                  None,
+                  None
                 )
               )
             )

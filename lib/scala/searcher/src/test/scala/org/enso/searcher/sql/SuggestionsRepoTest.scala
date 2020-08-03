@@ -79,7 +79,7 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       } yield (ids, results)
 
       val (ids, results) = Await.result(action, Timeout)
-      results should contain theSameElementsAs Seq(ids(1), ids(3))
+      results should contain theSameElementsInOrderAs Seq(ids(1), ids(3))
     }
 
     "get suggestions by empty external ids" taggedAs Retry in withRepo { repo =>
@@ -97,6 +97,43 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
 
       val results = Await.result(action, Timeout)
       results.isEmpty shouldEqual true
+    }
+
+    "get suggestions by method call info" taggedAs Retry in withRepo { repo =>
+      val action = for {
+        (_, ids) <- repo.insertAll(
+          Seq(
+            suggestion.atom,
+            suggestion.method,
+            suggestion.function,
+            suggestion.local
+          )
+        )
+        results <- repo.getAllMethods(
+          Seq(("Test.Main", "Main", "main"), ("Test.Main", "Main", "foo"))
+        )
+      } yield (ids, results)
+
+      val (ids, results) = Await.result(action, Timeout)
+      results should contain theSameElementsInOrderAs Seq(ids(1), None)
+    }
+
+    "get suggestions by empty method call info" taggedAs Retry in withRepo {
+      repo =>
+        val action = for {
+          _ <- repo.insertAll(
+            Seq(
+              suggestion.atom,
+              suggestion.method,
+              suggestion.function,
+              suggestion.local
+            )
+          )
+          results <- repo.getAllMethods(Seq())
+        } yield results
+
+        val results = Await.result(action, Timeout)
+        results.isEmpty shouldEqual true
     }
 
     "fail to insert duplicate suggestion" taggedAs Retry in withRepo { repo =>

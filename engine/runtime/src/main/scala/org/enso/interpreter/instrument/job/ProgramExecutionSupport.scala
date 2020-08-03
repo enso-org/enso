@@ -1,6 +1,5 @@
 package org.enso.interpreter.instrument.job
 
-import java.io.File
 import java.util.{Objects, UUID}
 import java.util.function.Consumer
 import java.util.logging.Level
@@ -24,8 +23,6 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
-
-import scala.jdk.javaapi.OptionConverters
 
 /**
   * Provides support for executing Enso code. Adds convenient methods to
@@ -56,9 +53,12 @@ trait ProgramExecutionSupport {
         enterables += fun.getExpressionId -> fun.getCall
       }
     executionFrame match {
-      case ExecutionFrame(ExecutionItem.Method(file, cons, function), cache) =>
+      case ExecutionFrame(
+            ExecutionItem.Method(module, cons, function),
+            cache
+          ) =>
         ctx.executionService.execute(
-          file,
+          module,
           cons,
           function,
           cache,
@@ -250,21 +250,15 @@ trait ProgramExecutionSupport {
 
   private def toMethodPointer(
     value: ExpressionValue
-  )(implicit ctx: RuntimeContext): Option[Api.MethodPointer] =
+  ): Option[Api.MethodPointer] =
     for {
       call       <- Option(value.getCallInfo)
       moduleName <- Option(call.getModuleName)
-      functionName = call.getFunctionName
-      typeName <- Option(call.getTypeName).map(_.item)
-      module <- OptionConverters.toScala(
-        ctx.executionService.getContext.getTopScope
-          .getModule(moduleName.toString)
-      )
-      modulePath <- Option(module.getPath)
+      typeName   <- Option(call.getTypeName).map(_.item)
     } yield Api.MethodPointer(
-      new File(modulePath),
+      moduleName.toString,
       typeName,
-      functionName
+      call.getFunctionName
     )
 }
 
@@ -296,11 +290,11 @@ object ProgramExecutionSupport {
 
     /** The explicit method call.
       *
-      * @param file the file containing the method
+      * @param module the module containing the method
       * @param constructor the type on which the method is defined
       * @param function the method name
       */
-    case class Method(file: File, constructor: String, function: String)
+    case class Method(module: String, constructor: String, function: String)
         extends ExecutionItem
 
     object Method {
@@ -312,7 +306,7 @@ object ProgramExecutionSupport {
         */
       def apply(call: Api.StackItem.ExplicitCall): Method =
         Method(
-          call.methodPointer.file,
+          call.methodPointer.module,
           call.methodPointer.definedOnType,
           call.methodPointer.name
         )

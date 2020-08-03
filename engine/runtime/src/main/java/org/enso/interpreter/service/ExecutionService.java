@@ -119,7 +119,7 @@ public class ExecutionService {
    * Executes a method described by its name, constructor it's defined on and the module it's
    * defined in.
    *
-   * @param modulePath the path to the module where the method is defined.
+   * @param moduleName the module where the method is defined.
    * @param consName the name of the constructor the method is defined on.
    * @param methodName the method name.
    * @param cache the precomputed expression values.
@@ -129,7 +129,7 @@ public class ExecutionService {
    * @param funCallCallback the consumer for function call events.
    */
   public void execute(
-      File modulePath,
+      String moduleName,
       String consName,
       String methodName,
       RuntimeCache cache,
@@ -140,7 +140,7 @@ public class ExecutionService {
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
     Optional<FunctionCallInstrumentationNode.FunctionCall> callMay =
         context
-            .getModuleForFile(modulePath)
+            .findModule(moduleName)
             .flatMap(module -> prepareFunctionCall(module, consName, methodName));
     if (!callMay.isPresent()) {
       return;
