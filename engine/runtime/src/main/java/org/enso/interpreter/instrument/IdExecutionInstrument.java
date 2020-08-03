@@ -232,8 +232,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
      * @param cache the precomputed expression values.
      * @param nextExecutionItem the next item scheduled for execution.
      * @param functionCallCallback the consumer of function call events.
-     * @param onComputedCallback the consumer of the node value events.
-     * @param onCachedCallback the consumer of the node visualisation events.
+     * @param onComputedCallback the consumer of the computed value events.
+     * @param onCachedCallback the consumer of the cached value events.
      */
     public IdExecutionEventListener(
         CallTarget entryCallTarget,
@@ -369,8 +369,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
    * @param funSourceLength the length of the observed source range.
    * @param cache the precomputed expression values.
    * @param nextExecutionItem the next item scheduled for execution.
-   * @param valueCallback the consumer of the node value events.
-   * @param visualisationCallback the consumer of the node visualisation events.
+   * @param onComputedCallback the consumer of the computed value events.
+   * @param onCachedCallback the consumer of the cached value events.
    * @param functionCallCallback the consumer of function call events.
    * @return a reference to the attached event listener.
    */
@@ -380,8 +380,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
       int funSourceLength,
       RuntimeCache cache,
       UUID nextExecutionItem,
-      Consumer<ExpressionValue> valueCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
+      Consumer<ExpressionValue> onComputedCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
       Consumer<ExpressionCall> functionCallCallback) {
     SourceSectionFilter filter =
         SourceSectionFilter.newBuilder()
@@ -399,8 +399,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
                     cache,
                     nextExecutionItem,
                     functionCallCallback,
-                    valueCallback,
-                    visualisationCallback));
+                    onComputedCallback,
+                    onCachedCallback));
     return binding;
   }
 }

@@ -38,19 +38,19 @@ trait ProgramExecutionSupport {
     *
     * @param executionFrame an execution frame
     * @param callStack a call stack
-    * @param valueCallback a listener of computed values
-    * @param visualisationCallback a listener of fired visualisations
+    * @param onComputedCallback a listener of computed values
+    * @param onCachedCallback a listener of cached values
     */
   @scala.annotation.tailrec
   final private def runProgram(
     executionFrame: ExecutionFrame,
     callStack: List[LocalCallFrame],
-    valueCallback: Consumer[ExpressionValue],
-    visualisationCallback: Consumer[ExpressionValue]
+    onComputedCallback: Consumer[ExpressionValue],
+    onCachedCallback: Consumer[ExpressionValue]
   )(implicit ctx: RuntimeContext): Unit = {
     var enterables: Map[UUID, FunctionCall] = Map()
-    val valsCallback: Consumer[ExpressionValue] =
-      if (callStack.isEmpty) valueCallback else _ => ()
+    val computedCallback: Consumer[ExpressionValue] =
+      if (callStack.isEmpty) onComputedCallback else _ => ()
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
         enterables += fun.getExpressionId -> fun.getCall
@@ -63,8 +63,8 @@ trait ProgramExecutionSupport {
           function,
           cache,
           callStack.headOption.map(_.expressionId).orNull,
-          valsCallback,
-          visualisationCallback,
+          computedCallback,
+          onCachedCallback,
           callablesCallback
         )
       case ExecutionFrame(ExecutionItem.CallData(callData), cache) =>
@@ -72,8 +72,8 @@ trait ProgramExecutionSupport {
           callData,
           cache,
           callStack.headOption.map(_.expressionId).orNull,
-          valsCallback,
-          visualisationCallback,
+          computedCallback,
+          onCachedCallback,
           callablesCallback
         )
     }
@@ -86,8 +86,8 @@ trait ProgramExecutionSupport {
             runProgram(
               ExecutionFrame(ExecutionItem.CallData(call), item.cache),
               tail,
-              valueCallback,
-              visualisationCallback
+              onComputedCallback,
+              onCachedCallback
             )
           case None =>
             ()
