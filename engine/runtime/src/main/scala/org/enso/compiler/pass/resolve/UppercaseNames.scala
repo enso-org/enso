@@ -75,14 +75,17 @@ case object UppercaseNames extends IRPass {
               "no alias analysis info on a name"
             )
             .unsafeAs[AliasAnalysis.Info.Occurrence]
-          val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id )
+          val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id)
           if (defLink.isDefined) {
             lit
           } else {
             val resolution = bindings.resolveUppercaseName(lit.name)
             resolution match {
               case Left(error) =>
-                IR.Error.Resolution(lit, IR.Error.Resolution.Reason(error))
+                IR.Error.Resolution(
+                  lit,
+                  IR.Error.Resolution.ResolverError(error)
+                )
               case Right(value) =>
                 lit.updateMetadata(this -->> BindingsMap.Resolution(value))
             }

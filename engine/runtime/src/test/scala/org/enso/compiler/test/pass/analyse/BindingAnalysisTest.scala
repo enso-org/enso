@@ -4,7 +4,7 @@ import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.Cons
+import org.enso.compiler.data.BindingsMap.{Cons, PolyglotSymbol}
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -50,6 +50,8 @@ class BindingAnalysisTest extends CompilerTest {
 
     val ir =
       """
+        |polyglot java import foo.bar.baz.MyClass
+        |
         |type Foo a b c
         |type Bar
         |type Baz x y
@@ -58,10 +60,11 @@ class BindingAnalysisTest extends CompilerTest {
         |Bar.baz = Baz 1 2 . foo
         |""".stripMargin.preprocessModule.analyse
 
-    "discover all atoms in a module" in {
+    "discover all atoms and polyglot symbols in a module" in {
       ir.getMetadata(BindingAnalysis) shouldEqual Some(
         BindingsMap(
           List(Cons("Foo", 3), Cons("Bar", 0), Cons("Baz", 2)),
+          List(PolyglotSymbol("MyClass")),
           ctx.module
         )
       )

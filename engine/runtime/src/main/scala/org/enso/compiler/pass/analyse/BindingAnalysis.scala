@@ -2,14 +2,11 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Import.Polyglot
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.desugar.{
-  ComplexType,
-  FunctionBinding,
-  GenerateMethodBodies
-}
+import org.enso.compiler.pass.desugar.{ComplexType, FunctionBinding, GenerateMethodBodies}
 import org.enso.compiler.pass.resolve.{MethodDefinitions, Patterns}
 
 /**
@@ -48,9 +45,17 @@ case object BindingAnalysis extends IRPass {
       case cons: IR.Module.Scope.Definition.Atom =>
         BindingsMap.Cons(cons.name.name, cons.arguments.length)
     }
+    val importedPolyglot = ir.imports.collect {
+      case poly: IR.Module.Scope.Import.Polyglot =>
+        val sym = poly.entity match {
+          case Polyglot.Java(_, className) => className
+        }
+        BindingsMap.PolyglotSymbol(sym)
+    }
     ir.updateMetadata(
       this -->> BindingsMap(
         definedConstructors,
+        importedPolyglot,
         moduleContext.module
       )
     )

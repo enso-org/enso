@@ -64,7 +64,6 @@ import org.enso.interpreter.{Constants, Language}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.jdk.OptionConverters._
 
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle [[org.enso.compiler.core.Core.Node]] structures that
@@ -209,12 +208,17 @@ class IrToTruffle(
         methodDef.methodReference.typePointer
           .getMetadata(MethodDefinitions)
           .map {
-            case BindingsMap.Resolution(BindingsMap.ResolvedModule(module)) =>
-              module.getScope.getAssociatedType
-            case BindingsMap.Resolution(
-                  BindingsMap.ResolvedConstructor(definitionModule, cons)
-                ) =>
-              definitionModule.getScope.getConstructors.get(cons.name)
+            res =>
+              res.target match {
+                case BindingsMap.ResolvedModule(module) =>
+                  module.getScope.getAssociatedType
+                case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
+                  definitionModule.getScope.getConstructors.get(cons.name)
+                case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+                  throw new CompilerError(
+                    "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
+                  )
+              }
           }
 
       consOpt.foreach {
@@ -559,6 +563,14 @@ class IrToTruffle(
                       )
                     ) =>
                   Right(mod.getScope.getConstructors.get(cons.name))
+                case Some(
+                      BindingsMap.Resolution(
+                        BindingsMap.ResolvedPolyglotSymbol(_, _)
+                      )
+                    ) =>
+                  throw new CompilerError(
+                    "Impossible polyglot symbol here, should be caught by Patterns resolution pass."
+                  )
               }
           }
 
@@ -697,22 +709,24 @@ class IrToTruffle(
             )
             .unsafeAs[AliasAnalysis.Info.Occurrence]
 
-          val slot       = scope.getFramePointer(useInfo.id)
-          val global     = name.getMetadata(UppercaseNames)
-          val polySymbol = moduleScope.lookupPolyglotSymbol(nameStr).toScala
+          val slot   = scope.getFramePointer(useInfo.id)
+          val global = name.getMetadata(UppercaseNames)
           if (slot.isDefined) {
             ReadLocalVariableNode.build(slot.get)
           } else if (global.isDefined) {
             val resolution = global.get.target
-            val cons = resolution match {
+            resolution match {
               case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
-                definitionModule.getScope.getConstructors.get(cons.name)
+                ConstructorNode.build(
+                  definitionModule.getScope.getConstructors.get(cons.name)
+                )
               case BindingsMap.ResolvedModule(module) =>
-                module.getScope.getAssociatedType
+                ConstructorNode.build(module.getScope.getAssociatedType)
+              case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
+                ConstantObjectNode.build(
+                  module.getScope.getPolyglotSymbols.get(symbol.name)
+                )
             }
-            ConstructorNode.build(cons)
-          } else if (polySymbol.isDefined) {
-            ConstantObjectNode.build(polySymbol.get)
           } else {
             DynamicSymbolNode.build(
               UnresolvedSymbol.build(nameStr, moduleScope)
@@ -736,7 +750,7 @@ class IrToTruffle(
           throw new CompilerError(
             "Qualified names should not be present at codegen time."
           )
-        case _: IR.Error.Resolution => throw new RuntimeException("todo")
+        case err: IR.Error.Resolution => processError(err)
       }
 
       setLocation(nameExpr, name.location)
@@ -777,7 +791,8 @@ class IrToTruffle(
           context.getBuiltins.error().compileError().newInstance(err.message)
         case err: Error.Unexpected.TypeSignature =>
           context.getBuiltins.error().compileError().newInstance(err.message)
-        case _: Error.Resolution => throw new RuntimeException("bleee")
+        case err: Error.Resolution =>
+          context.getBuiltins.error().compileError().newInstance(err.message)
         case _: Error.Pattern =>
           throw new CompilerError(
             "Impossible here, should be handled in the pattern match."

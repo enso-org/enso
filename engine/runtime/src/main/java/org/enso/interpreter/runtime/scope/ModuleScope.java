@@ -179,9 +179,15 @@ public class ModuleScope {
     return methods;
   }
 
+  public Map<String, Object> getPolyglotSymbols() {
+    return polyglotSymbols;
+  }
+
   public void reset() {
     imports = new HashSet<>();
     methods = new HashMap<>();
     constructors = new HashMap<>();
   }
+
+
 }

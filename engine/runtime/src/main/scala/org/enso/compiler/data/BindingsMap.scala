@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.Module
   */
 case class BindingsMap(
   types: List[BindingsMap.Cons],
+  polyglotSymbols: List[BindingsMap.PolyglotSymbol],
   currentModule: Module
 ) extends IRPass.Metadata {
   import BindingsMap._
@@ -33,11 +34,19 @@ case class BindingsMap(
       .map(ResolvedConstructor(currentModule, _))
   }
 
+  private def findPolyglotCandidates(
+    name: String
+  ): List[ResolvedPolyglotSymbol] = {
+    polyglotSymbols
+      .filter(_.name == name)
+      .map(ResolvedPolyglotSymbol(currentModule, _))
+  }
+
   private def findLocalCandidates(name: String): List[ResolvedName] = {
     if (currentModule.getName.item == name) {
       List(ResolvedModule(currentModule))
     } else {
-      findConstructorCandidates(name)
+      findConstructorCandidates(name) ++ findPolyglotCandidates(name)
     }
   }
 
@@ -103,6 +112,13 @@ object BindingsMap {
   case class Cons(name: String, arity: Int)
 
   /**
+    * A representation of an imported polyglot symbol.
+    *
+    * @param name the name of the symbol.
+    */
+  case class PolyglotSymbol(name: String)
+
+  /**
     * A result of successful name resolution.
     */
   sealed trait ResolvedName
@@ -124,6 +140,14 @@ object BindingsMap {
   case class ResolvedModule(module: Module) extends ResolvedName
 
   /**
+    * A representation of a name being resolved to a polyglot symbol.
+    *
+    * @param symbol the imported symbol name.
+    */
+  case class ResolvedPolyglotSymbol(module: Module, symbol: PolyglotSymbol)
+      extends ResolvedName
+
+  /**
     * A representation of an error during name resolution.
     */
   sealed trait ResolutionError
@@ -141,9 +165,8 @@ object BindingsMap {
     */
   case object ResolutionNotFound extends ResolutionError
 
-  /** A metadata-friendly storage for resolutions  */
-  case class Resolution(target: ResolvedName)
-    extends IRPass.Metadata {
+  /** A metadata-friendly storage for resolutions */
+  case class Resolution(target: ResolvedName) extends IRPass.Metadata {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "Resolution"

@@ -5053,18 +5053,38 @@ object IR {
     object Resolution {
 
       /**
+        * A representation of a symbol resolution error.
+        */
+      sealed trait Reason {
+        def explain(originalName: IR.Name): String
+      }
+
+      /**
+        * An error coming from an unexpected occurence of a polyglot symbol.
+        *
+        * @param context the description of a context in which the error
+        *                happened.
+        */
+      case class UnexpectedPolyglot(context: String) extends Reason {
+        override def explain(originalName: Name): String =
+          s"The name ${originalName.name} resolved to a polyglot symbol," +
+          s"but polyglot symbols are not allowed in $context."
+      }
+
+      /**
         * An error coming from name resolver.
         *
         * @param err the original error.
         */
-      case class Reason(err: BindingsMap.ResolutionError) {
+      case class ResolverError(err: BindingsMap.ResolutionError)
+          extends Reason {
 
         /**
           * Provides a human-readable explanation of the error.
           * @param originalName the original unresolved name.
           * @return a human-readable message.
           */
-        def explain(originalName: IR.Name): String =
+        override def explain(originalName: IR.Name): String =
           err match {
             case BindingsMap.ResolutionAmbiguous(candidates) =>
               val firstLine =
@@ -5077,6 +5097,8 @@ object IR {
                   s"    Type ${cons.name} defined in module ${definitionModule.getName};"
                 case BindingsMap.ResolvedModule(module) =>
                   s"    The module ${module.getName};"
+                case BindingsMap.ResolvedPolyglotSymbol(_, symbol) =>
+                  s"    The imported polyglot symbol ${symbol.name};"
               }
               (firstLine :: lines).mkString("\n")
             case BindingsMap.ResolutionNotFound =>

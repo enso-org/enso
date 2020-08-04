@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.compiler.pass.desugar.{GenerateMethodBodies, NestedPatternMatch}
@@ -76,11 +77,22 @@ object Patterns extends IRPass {
                     case Left(err) =>
                       IR.Error.Resolution(
                         consPat.constructor,
-                        IR.Error.Resolution.Reason(err)
+                        IR.Error.Resolution.ResolverError(err)
                       )
-                    case Right(value) =>
+                    case Right(value: BindingsMap.ResolvedConstructor) =>
                       lit.updateMetadata(
                         this -->> BindingsMap.Resolution(value)
+                      )
+                    case Right(value: BindingsMap.ResolvedModule) =>
+                      lit.updateMetadata(
+                        this -->> BindingsMap.Resolution(value)
+                      )
+                    case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
+                      IR.Error.Resolution(
+                        lit,
+                        IR.Error.Resolution.UnexpectedPolyglot(
+                          "a pattern match"
+                        )
                       )
                   }
                 case other => other
@@ -90,6 +102,10 @@ object Patterns extends IRPass {
                 res.target match {
                   case BindingsMap.ResolvedConstructor(_, cons) => cons.arity
                   case BindingsMap.ResolvedModule(_)            => 0
+                  case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+                    throw new CompilerError(
+                      "Impossible, should be transformed into an error before."
+                    )
                 }
               }
               expectedArity match {
