@@ -7,6 +7,7 @@ import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.compiler.context.Changeset;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
+import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.Context;
@@ -91,6 +92,7 @@ public class ExecutionService {
   public void execute(
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
+      MethodCallsCache methodCallsCache,
       UUID nextExecutionItem,
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
@@ -107,6 +109,7 @@ public class ExecutionService {
             src.getCharIndex(),
             src.getCharLength(),
             cache,
+            methodCallsCache,
             nextExecutionItem,
             onComputedCallback,
             onCachedCallback,
@@ -133,6 +136,7 @@ public class ExecutionService {
       String consName,
       String methodName,
       RuntimeCache cache,
+      MethodCallsCache methodCallsCache,
       UUID nextExecutionItem,
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
@@ -148,6 +152,7 @@ public class ExecutionService {
     execute(
         callMay.get(),
         cache,
+        methodCallsCache,
         nextExecutionItem,
         onComputedCallback,
         onCachedCallback,

@@ -17,6 +17,7 @@ import org.enso.interpreter.instrument.job.ProgramExecutionSupport.{
 }
 import org.enso.interpreter.instrument.{
   InstrumentFrame,
+  MethodCallsCache,
   RuntimeCache,
   Visualisation
 }
@@ -39,13 +40,15 @@ trait ProgramExecutionSupport {
     * @param onCachedCallback a listener of cached values
     */
   @scala.annotation.tailrec
-  final private def runProgram(
+  final private def executeProgram(
     executionFrame: ExecutionFrame,
     callStack: List[LocalCallFrame],
+    cachedMethodCallsCallback: Consumer[ExpressionValue],
     onComputedCallback: Consumer[ExpressionValue],
     onCachedCallback: Consumer[ExpressionValue]
   )(implicit ctx: RuntimeContext): Unit = {
-    var enterables: Map[UUID, FunctionCall] = Map()
+    val methodCallsCache = new MethodCallsCache
+    var enterables       = Map[UUID, FunctionCall]()
     val computedCallback: Consumer[ExpressionValue] =
       if (callStack.isEmpty) onComputedCallback else _ => ()
     val callablesCallback: Consumer[ExpressionCall] = fun =>
@@ -62,6 +65,7 @@ trait ProgramExecutionSupport {
           cons,
           function,
           cache,
+          methodCallsCache,
           callStack.headOption.map(_.expressionId).orNull,
           computedCallback,
           onCachedCallback,
@@ -71,6 +75,7 @@ trait ProgramExecutionSupport {
         ctx.executionService.execute(
           callData,
           cache,
+          methodCallsCache,
           callStack.headOption.map(_.expressionId).orNull,
           computedCallback,
           onCachedCallback,
@@ -79,13 +84,32 @@ trait ProgramExecutionSupport {
     }
 
     callStack match {
-      case Nil => ()
+      case Nil =>
+        //import scala.jdk.CollectionConverters._
+//        println("CACHED_CALLS")
+//        executionFrame.cache.getCalls.forEach { callId =>
+//          println(s"$callId -> ${executionFrame.cache.getCall(callId)}")
+//        }
+        methodCallsCache
+          .getNotExecuted(executionFrame.cache.getCalls)
+          .forEach { expressionId =>
+            val value = new ExpressionValue(
+              expressionId,
+              null,
+              executionFrame.cache.getType(expressionId),
+              null,
+              executionFrame.cache.getCall(expressionId),
+              null
+            )
+            cachedMethodCallsCallback.accept(value)
+          }
       case item :: tail =>
         enterables.get(item.expressionId) match {
           case Some(call) =>
-            runProgram(
+            executeProgram(
               ExecutionFrame(ExecutionItem.CallData(call), item.cache),
               tail,
+              cachedMethodCallsCallback,
               onComputedCallback,
               onCachedCallback
             )
@@ -101,13 +125,16 @@ trait ProgramExecutionSupport {
     * @param contextId an identifier of an execution context
     * @param stack a call stack
     * @param updatedVisualisations a list of updated visualisations
+    * @param sendMethodCallUpdates a flag to send the method calls of the
+    * executed frame as a value updates
     * @param ctx a runtime context
     * @return either an error message or Unit signaling completion of a program
     */
   final def runProgram(
     contextId: Api.ContextId,
     stack: List[InstrumentFrame],
-    updatedVisualisations: Seq[Api.ExpressionId]
+    updatedVisualisations: Seq[Api.ExpressionId],
+    sendMethodCallUpdates: Boolean
   )(implicit ctx: RuntimeContext): Either[String, Unit] = {
     @scala.annotation.tailrec
     def unwind(
@@ -129,6 +156,11 @@ trait ProgramExecutionSupport {
         case ExecutionItem.CallData(call)         => call.getFunction.getName
       }
 
+    val cachedMethodCallsCallback: Consumer[ExpressionValue] =
+      if (sendMethodCallUpdates)
+        sendMethodPointerUpdate(contextId, _)
+      else { _ => () }
+
     val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
       if (updatedVisualisations.contains(value.getExpressionId)) {
         ctx.executionService.getLogger.finer(s"ON_CACHED $value")
@@ -148,9 +180,10 @@ trait ProgramExecutionSupport {
       _ <-
         Either
           .catchNonFatal(
-            runProgram(
+            executeProgram(
               stackItem,
               localCalls,
+              cachedMethodCallsCallback,
               onComputedValueCallback,
               onCachedValueCallback
             )
@@ -164,6 +197,29 @@ trait ProgramExecutionSupport {
             s"error in function: ${getName(stackItem.item)}"
           }
     } yield ()
+  }
+
+  private def sendMethodPointerUpdate(
+    contextId: ContextId,
+    value: ExpressionValue
+  )(implicit ctx: RuntimeContext): Unit = {
+    toMethodPointer(value).foreach { ptr =>
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          Api.ExpressionValuesComputed(
+            contextId,
+            Vector(
+              Api.ExpressionValueUpdate(
+                value.getExpressionId,
+                None,
+                Some(ptr)
+              )
+            )
+          )
+        )
+      )
+    }
+
   }
 
   private def sendValueUpdate(
@@ -181,7 +237,7 @@ trait ProgramExecutionSupport {
             Vector(
               Api.ExpressionValueUpdate(
                 value.getExpressionId,
-                Some(value.getType),
+                Option(value.getType),
                 toMethodPointer(value)
               )
             )

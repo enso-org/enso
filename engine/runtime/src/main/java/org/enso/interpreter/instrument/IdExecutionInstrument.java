@@ -222,6 +222,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final Consumer<ExpressionValue> onComputedCallback;
     private final Consumer<ExpressionValue> onCachedCallback;
     private final RuntimeCache cache;
+    private final MethodCallsCache callsCache;
     private final UUID nextExecutionItem;
     private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
 
@@ -238,12 +239,14 @@ public class IdExecutionInstrument extends TruffleInstrument {
     public IdExecutionEventListener(
         CallTarget entryCallTarget,
         RuntimeCache cache,
+        MethodCallsCache methodCallsCache,
         UUID nextExecutionItem,
         Consumer<ExpressionCall> functionCallCallback,
         Consumer<ExpressionValue> onComputedCallback,
         Consumer<ExpressionValue> onCachedCallback) {
       this.entryCallTarget = entryCallTarget;
       this.cache = cache;
+      this.callsCache = methodCallsCache;
       this.nextExecutionItem = nextExecutionItem;
       this.functionCallCallback = functionCallCallback;
       this.onComputedCallback = onComputedCallback;
@@ -314,6 +317,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
         if (cachedResult != null) {
           throw context.createUnwind(cachedResult);
         }
+        callsCache.setExecuted(nodeId);
       } else if (node instanceof ExpressionNode) {
         UUID nodeId = ((ExpressionNode) node).getId();
         String resultType = Types.getName(result);
@@ -379,6 +383,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       int funSourceStart,
       int funSourceLength,
       RuntimeCache cache,
+      MethodCallsCache methodCallsCache,
       UUID nextExecutionItem,
       Consumer<ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
@@ -397,6 +402,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
                 new IdExecutionEventListener(
                     entryCallTarget,
                     cache,
+                    methodCallsCache,
                     nextExecutionItem,
                     functionCallCallback,
                     onComputedCallback,
