@@ -99,6 +99,15 @@ case class BindingsMap(
     }
     handleAmbiguity(findExportedCandidatesInImports(name))
   }
+
+  def resolveExportedName(
+    name: String
+  ): Either[ResolutionError, ResolvedName] = {
+    val matchingConses = types
+      .filter(_.name.toLowerCase == name.toLowerCase)
+      .map(ResolvedConstructor(currentModule, _))
+    handleAmbiguity(matchingConses)
+  }
 }
 
 object BindingsMap {

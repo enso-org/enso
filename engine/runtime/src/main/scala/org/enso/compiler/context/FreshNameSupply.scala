@@ -26,4 +26,10 @@ class FreshNameSupply {
 
     mkName(num)
   }
+
+  def newReferantName(): IR.Name.Literal = {
+    val num = counter
+    counter += 1
+    IR.Name.Literal(s"Ref<$num>", None)
+  }
 }
