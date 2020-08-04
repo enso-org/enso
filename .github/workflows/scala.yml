@@ -284,6 +284,7 @@ jobs:
         with:
           name: ${{ env.LAUNCHER_DIST_ROOT }}
           path: ${{ env.LAUNCHER_DIST_ROOT }}
+
       - name: Prepare the FlatBuffers Schemas for Upload
         # The builds are run on 3 platforms, but Flatbuffer schemas are platform
         # agnostic, so they just need to be uploaded from one of the runners.
@@ -315,8 +316,11 @@ jobs:
         with:
           name: manifest
           path: manifest.yaml
+
+      # Publish FlatBuffer Schemas and Parser Bundle to S3
       - name: Prepare AWS Session
         shell: bash
+        if: runner.os == 'Linux'
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
           ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
@@ -334,12 +338,9 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-      - name: Upload Distribution to S3
-        shell: bash
-        run: |
-          aws s3 sync ${{ env.ENGINE_DIST_DIR }} s3://packages-luna/project-manager/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
       - name: Teardown AWS Session
         shell: bash
+        if: runner.os == 'Linux'
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
           null
