@@ -13,6 +13,7 @@ import org.enso.interpreter.runtime.Module
 case class BindingsMap(
   types: List[BindingsMap.Cons],
   polyglotSymbols: List[BindingsMap.PolyglotSymbol],
+  moduleMethods: List[BindingsMap.ModuleMethod],
   currentModule: Module
 ) extends IRPass.Metadata {
   import BindingsMap._
@@ -42,11 +43,20 @@ case class BindingsMap(
       .map(ResolvedPolyglotSymbol(currentModule, _))
   }
 
+  private def findMethodCandidates(name: String): List[ResolvedName] = {
+    moduleMethods
+      .filter(_.name.toLowerCase == name.toLowerCase)
+      .map(ResolvedMethod(currentModule, _))
+  }
+
   private def findLocalCandidates(name: String): List[ResolvedName] = {
     if (currentModule.getName.item == name) {
       List(ResolvedModule(currentModule))
     } else {
-      findConstructorCandidates(name) ++ findPolyglotCandidates(name)
+      val conses   = findConstructorCandidates(name)
+      val polyglot = findPolyglotCandidates(name)
+      val methods  = findMethodCandidates(name)
+      conses ++ polyglot ++ methods
     }
   }
 
@@ -66,7 +76,7 @@ case class BindingsMap(
           "Wrong pass ordering. Running resolution on an unparsed module"
         )
       }
-      .flatMap(_.findConstructorCandidates(name))
+      .flatMap(_.findExportedSymbolsFor(name))
   }
 
   private def handleAmbiguity(
@@ -125,13 +135,20 @@ case class BindingsMap(
         Left(ResolutionNotFound)
     }
 
-  def resolveExportedName(
-    name: String
-  ): Either[ResolutionError, ResolvedName] = {
+  private def findExportedSymbolsFor(name: String): List[ResolvedName] = {
     val matchingConses = types
       .filter(_.name.toLowerCase == name.toLowerCase)
       .map(ResolvedConstructor(currentModule, _))
-    handleAmbiguity(matchingConses)
+    val matchingMethods = moduleMethods
+      .filter(_.name.toLowerCase == name.toLowerCase)
+      .map(ResolvedMethod(currentModule, _))
+    matchingConses ++ matchingMethods
+  }
+
+  def resolveExportedName(
+    name: String
+  ): Either[ResolutionError, ResolvedName] = {
+    handleAmbiguity(findExportedSymbolsFor(name))
   }
 }
 
@@ -153,6 +170,13 @@ object BindingsMap {
   case class PolyglotSymbol(name: String)
 
   /**
+    * A representation of a method defined on the current module.
+    *
+    * @param name the name of the method.
+    */
+  case class ModuleMethod(name: String)
+
+  /**
     * A result of successful name resolution.
     */
   sealed trait ResolvedName
@@ -172,6 +196,9 @@ object BindingsMap {
     * @param module the module the name resolved to.
     */
   case class ResolvedModule(module: Module) extends ResolvedName
+
+  case class ResolvedMethod(module: Module, method: ModuleMethod)
+      extends ResolvedName
 
   /**
     * A representation of a name being resolved to a polyglot symbol.

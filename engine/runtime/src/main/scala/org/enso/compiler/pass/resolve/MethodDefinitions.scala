@@ -75,6 +75,13 @@ case object MethodDefinitions extends IRPass {
                     "a method definition target"
                   )
                 )
+              case Right(_: BindingsMap.ResolvedMethod) =>
+                IR.Error.Resolution(
+                  tp,
+                  IR.Error.Resolution.UnexpectedMethod(
+                    "a method definition target"
+                  )
+                )
             }
           case tp: IR.Error.Resolution => tp
           case _ =>

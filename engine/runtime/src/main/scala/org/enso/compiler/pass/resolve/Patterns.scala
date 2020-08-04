@@ -101,6 +101,13 @@ object Patterns extends IRPass {
                         "a pattern match"
                       )
                     )
+                  case Right(_: BindingsMap.ResolvedMethod) =>
+                    IR.Error.Resolution(
+                      consName,
+                      IR.Error.Resolution.UnexpectedMethod(
+                        "a pattern match"
+                      )
+                    )
                 }
                 .getOrElse(consName)
 
@@ -110,6 +117,10 @@ object Patterns extends IRPass {
                   case BindingsMap.ResolvedConstructor(_, cons) => cons.arity
                   case BindingsMap.ResolvedModule(_)            => 0
                   case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+                    throw new CompilerError(
+                      "Impossible, should be transformed into an error before."
+                    )
+                  case BindingsMap.ResolvedMethod(_, _) =>
                     throw new CompilerError(
                       "Impossible, should be transformed into an error before."
                     )

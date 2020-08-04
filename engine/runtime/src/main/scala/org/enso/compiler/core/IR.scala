@@ -5072,6 +5072,18 @@ object IR {
       }
 
       /**
+        * An error coming from an unexpected occurence of a static method.
+        *
+        * @param context the description of a context in which the error
+        *                happened.
+        */
+      case class UnexpectedMethod(context: String) extends Reason {
+        override def explain(originalName: Name): String =
+          s"The name ${originalName.name} resolved to a method," +
+          s"but methods are not allowed in $context."
+      }
+
+      /**
         * An error coming from name resolver.
         *
         * @param err the original error.
@@ -5099,6 +5111,8 @@ object IR {
                   s"    The module ${module.getName};"
                 case BindingsMap.ResolvedPolyglotSymbol(_, symbol) =>
                   s"    The imported polyglot symbol ${symbol.name};"
+                case BindingsMap.ResolvedMethod(module, symbol) =>
+                  s"    The method ${symbol.name} defined in module ${module.getName}"
               }
               (firstLine :: lines).mkString("\n")
             case BindingsMap.ResolutionNotFound =>

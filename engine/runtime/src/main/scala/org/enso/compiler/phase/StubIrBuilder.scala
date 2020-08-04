@@ -30,6 +30,7 @@ object StubIrBuilder {
     val meta = BindingsMap(
       definedConstructors,
       List(),
+      List(),
       module
     )
     ir.updateMetadata(BindingAnalysis -->> meta)

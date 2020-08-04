@@ -90,6 +90,23 @@ case object UppercaseNames extends IRPass {
                 lit,
                 IR.Error.Resolution.ResolverError(error)
               )
+            case Right(BindingsMap.ResolvedMethod(mod, method)) =>
+              val self = freshNameSupply
+                .newReferantName()
+                .updateMetadata(
+                  this -->> BindingsMap.Resolution(
+                    BindingsMap.ResolvedModule(mod)
+                  )
+                )
+              val fun = lit.copy(name = method.name)
+              val app = IR.Application.Prefix(
+                fun,
+                List(IR.CallArgument.Specified(None, self, None)),
+                hasDefaultsSuspended = false,
+                None
+              )
+              app
+
             case Right(value) =>
               lit.updateMetadata(this -->> BindingsMap.Resolution(value))
           }

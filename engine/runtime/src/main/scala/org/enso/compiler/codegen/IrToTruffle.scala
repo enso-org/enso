@@ -218,6 +218,10 @@ class IrToTruffle(
                   throw new CompilerError(
                     "Impossible polyglot symbol, should be caught by MethodDefinitions pass."
                   )
+                case _: BindingsMap.ResolvedMethod =>
+                  throw new CompilerError(
+                    "Impossible here, should be caught by MethodDefinitions pass."
+                  )
               }
           }
 
@@ -571,6 +575,14 @@ class IrToTruffle(
                   throw new CompilerError(
                     "Impossible polyglot symbol here, should be caught by Patterns resolution pass."
                   )
+                case Some(
+                      BindingsMap.Resolution(
+                        BindingsMap.ResolvedMethod(_, _)
+                      )
+                    ) =>
+                  throw new CompilerError(
+                    "Impossible method here, should be caught by Patterns resolution pass."
+                  )
               }
           }
 
@@ -725,6 +737,10 @@ class IrToTruffle(
               case BindingsMap.ResolvedPolyglotSymbol(module, symbol) =>
                 ConstantObjectNode.build(
                   module.getScope.getPolyglotSymbols.get(symbol.name)
+                )
+              case BindingsMap.ResolvedMethod(_, _) =>
+                throw new CompilerError(
+                  "Impossible here, should be desugared by UppercaseNames resolver"
                 )
             }
           } else {
