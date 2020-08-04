@@ -25,6 +25,12 @@ public class AtomBenchmarks {
     main.mainFunction().value().execute(main.mainConstructor(), fixtures.million());
   }
 
+  @Benchmark
+  public void benchGenerateListQual() {
+    DefaultInterpreterRunner.MainMethod main = fixtures.generateListQual();
+    main.mainFunction().value().execute(main.mainConstructor(), fixtures.million());
+  }
+
   private void benchOnList(DefaultInterpreterRunner.MainMethod main) {
     main.mainFunction().value().execute(main.mainConstructor(), fixtures.millionElementList());
   }
@@ -32,6 +38,11 @@ public class AtomBenchmarks {
   @Benchmark
   public void benchReverseList() {
     benchOnList(fixtures.reverseList());
+  }
+
+  @Benchmark
+  public void benchReverseListQual() {
+    benchOnList(fixtures.reverseListQual());
   }
 
   @Benchmark

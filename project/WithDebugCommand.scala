@@ -43,22 +43,26 @@ object WithDebugCommand {
 
   val printAssemblyOption = "--printAssembly"
 
+  val debuggerOption = "--debugger"
+
   val argSeparator = "--"
 
   val commandName = "withDebug"
 
   val benchOnlyCommandName = "benchOnly"
   val runCommandName       = "run"
+  val testOnlyCommandName  = "testOnly"
 
   /** The main logic for parsing and transforming the debug flags into JVM level flags */
-  def withDebug: Command = Command.args(commandName, "<arguments>") {
-    (state, args) =>
+  def withDebug: Command =
+    Command.args(commandName, "<arguments>") { (state, args) =>
       val (debugFlags, prefixedRunArgs) = args.span(_ != argSeparator)
       val runArgs                       = " " + prefixedRunArgs.drop(1).mkString(" ")
 
       val taskKey =
         if (debugFlags.contains(benchOnlyCommandName)) BenchTasks.benchOnly
         else if (debugFlags.contains(runCommandName)) Compile / Keys.run
+        else if (debugFlags.contains(testOnlyCommandName)) Test / Keys.testOnly
         else throw new IllegalArgumentException("Invalid command name.")
 
       val dumpGraphsOpts =
@@ -72,11 +76,18 @@ object WithDebugCommand {
         if (debugFlags.contains(printAssemblyOption))
           trufflePrintAssemblyOptions
         else Seq()
+      val debuggerOpts =
+        if (debugFlags.contains(debuggerOption))
+          Seq(
+            "-agentlib:jdwp=transport=dt_socket,server=n,address=localhost:5005,suspend=y"
+          )
+        else Seq()
       val javaOpts: Seq[String] = Seq(
         truffleNoBackgroundCompilationOptions,
         dumpGraphsOpts,
         showCompilationsOpts,
-        printAssemblyOpts
+        printAssemblyOpts,
+        debuggerOpts
       ).flatten
 
       val extracted = Project.extract(state)
@@ -88,5 +99,5 @@ object WithDebugCommand {
         .extract(withJavaOpts)
         .runInputTask(taskKey, runArgs, withJavaOpts)
       state
-  }
+    }
 }

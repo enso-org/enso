@@ -29,6 +29,16 @@ class AtomFixtures extends DefaultInterpreterRunner {
     """.stripMargin
   val generateList = getMain(generateListCode)
 
+  val generateListCodeQual =
+    """
+      |main = length ->
+      |    generator = acc -> i -> if i == 0 then acc else generator (Builtins.cons i acc) (i - 1)
+      |
+      |    res = generator Builtins.nil length
+      |    res
+    """.stripMargin
+  val generateListQual = getMain(generateListCodeQual)
+
   val reverseListCode =
     """
       |main = list ->
@@ -40,6 +50,18 @@ class AtomFixtures extends DefaultInterpreterRunner {
       |    res
     """.stripMargin
   val reverseList = getMain(reverseListCode)
+
+  val reverseListCodeQual =
+    """
+      |main = list ->
+      |    reverser = acc -> list -> case list of
+      |        Cons h t -> reverser (Builtins.cons h acc) t
+      |        Nil -> acc
+      |
+      |    res = reverser Builtins.nil list
+      |    res
+    """.stripMargin
+  val reverseListQual = getMain(reverseListCodeQual)
 
   val reverseListMethodsCode =
     """

@@ -15,7 +15,11 @@ import org.enso.compiler.pass.analyse.{
   TailCall
 }
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.resolve.{MethodDefinitions, Patterns}
+import org.enso.compiler.pass.resolve.{
+  MethodDefinitions,
+  Patterns,
+  UppercaseNames
+}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -694,14 +698,19 @@ class IrToTruffle(
             .unsafeAs[AliasAnalysis.Info.Occurrence]
 
           val slot       = scope.getFramePointer(useInfo.id)
-          val atomCons   = moduleScope.getConstructor(nameStr).toScala
+          val global     = name.getMetadata(UppercaseNames)
           val polySymbol = moduleScope.lookupPolyglotSymbol(nameStr).toScala
-          if (nameStr == Constants.Names.CURRENT_MODULE) {
-            ConstructorNode.build(moduleScope.getAssociatedType)
-          } else if (slot.isDefined) {
+          if (slot.isDefined) {
             ReadLocalVariableNode.build(slot.get)
-          } else if (atomCons.isDefined) {
-            ConstructorNode.build(atomCons.get)
+          } else if (global.isDefined) {
+            val resolution = global.get.target
+            val cons = resolution match {
+              case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
+                definitionModule.getScope.getConstructors.get(cons.name)
+              case BindingsMap.ResolvedModule(module) =>
+                module.getScope.getAssociatedType
+            }
+            ConstructorNode.build(cons)
           } else if (polySymbol.isDefined) {
             ConstantObjectNode.build(polySymbol.get)
           } else {
