@@ -124,6 +124,16 @@ compiler that they relate to.
 
 ### System Requirements
 
+The following operating systems are supported for developing Enso:
+
+- Windows 10
+- macOS 10.14 and above
+- Linux 4.4 and above
+
+Currently only x86_64 (amd64) architecture is supported. You may be able to
+develop Enso on other systems, but issues arising from unsupported
+configurations will not be fixed by the core team.
+
 In order to build and run Enso you will need the following tools:
 
 - [sbt](https://www.scala-sbt.org/) with the same version as specified in
@@ -172,8 +182,8 @@ git clone git@github.com:enso-org/enso.git
 
 ### Getting Set Up (Rust)
 
-The SBT project requires a specific nightly rust toolchain. To get it set up, 
-you will need to install [rustup](https://rustup.rs/) and then run the following 
+The SBT project requires a specific nightly rust toolchain. To get it set up,
+you will need to install [rustup](https://rustup.rs/) and then run the following
 commands:
 
 ```bash
