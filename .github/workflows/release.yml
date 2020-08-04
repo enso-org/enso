@@ -145,6 +145,11 @@ jobs:
           graalvm-version: ${{ env.graalVersion }}
           java-version: ${{ env.javaVersion }}
           native-image: true
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.rustToolchain }}
+          override: true
       - name: Set Up SBT
         run: |
           curl -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
