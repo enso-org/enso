@@ -171,8 +171,9 @@ case object UppercaseNames extends IRPass {
 
   private def asGlobalVar(ir: IR): Option[IR.Name.Literal] =
     ir match {
-      case name: IR.Name.Literal => if (isLocalVar(name)) None else Some(name)
-      case _                     => None
+      case name: IR.Name.Literal =>
+        if (isLocalVar(name) || name.isReferant) None else Some(name)
+      case _ => None
     }
 
   private def isLocalVar(name: IR.Name.Literal): Boolean = {

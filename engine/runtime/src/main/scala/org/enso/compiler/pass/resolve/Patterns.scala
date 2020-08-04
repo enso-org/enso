@@ -70,35 +70,42 @@ object Patterns extends IRPass {
         val newBranches = caseExpr.branches.map { branch =>
           val resolvedPattern = branch.pattern match {
             case consPat: IR.Pattern.Constructor =>
-              val resolvedName = consPat.constructor match {
+              val consName = consPat.constructor
+              val resolution = consName match {
+                case qual: IR.Name.Qualified =>
+                  val parts = qual.parts.map(_.name)
+                  Some(bindings.resolveQualifiedName(parts))
                 case lit: IR.Name.Literal =>
-                  val resolution = bindings.resolveUppercaseName(lit.name)
-                  resolution match {
-                    case Left(err) =>
-                      IR.Error.Resolution(
-                        consPat.constructor,
-                        IR.Error.Resolution.ResolverError(err)
-                      )
-                    case Right(value: BindingsMap.ResolvedConstructor) =>
-                      lit.updateMetadata(
-                        this -->> BindingsMap.Resolution(value)
-                      )
-                    case Right(value: BindingsMap.ResolvedModule) =>
-                      lit.updateMetadata(
-                        this -->> BindingsMap.Resolution(value)
-                      )
-                    case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
-                      IR.Error.Resolution(
-                        lit,
-                        IR.Error.Resolution.UnexpectedPolyglot(
-                          "a pattern match"
-                        )
-                      )
-                  }
-                case other => other
+                  Some(bindings.resolveUppercaseName(lit.name))
+                case _ => None
               }
-              val resolution = resolvedName.getMetadata(this)
-              val expectedArity = resolution.map { res =>
+              val resolvedName = resolution
+                .map {
+                  case Left(err) =>
+                    IR.Error.Resolution(
+                      consPat.constructor,
+                      IR.Error.Resolution.ResolverError(err)
+                    )
+                  case Right(value: BindingsMap.ResolvedConstructor) =>
+                    consName.updateMetadata(
+                      this -->> BindingsMap.Resolution(value)
+                    )
+                  case Right(value: BindingsMap.ResolvedModule) =>
+                    consName.updateMetadata(
+                      this -->> BindingsMap.Resolution(value)
+                    )
+                  case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
+                    IR.Error.Resolution(
+                      consName,
+                      IR.Error.Resolution.UnexpectedPolyglot(
+                        "a pattern match"
+                      )
+                    )
+                }
+                .getOrElse(consName)
+
+              val actualResolution = resolvedName.getMetadata(this)
+              val expectedArity = actualResolution.map { res =>
                 res.target match {
                   case BindingsMap.ResolvedConstructor(_, cons) => cons.arity
                   case BindingsMap.ResolvedModule(_)            => 0

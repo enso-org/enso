@@ -206,9 +206,10 @@ object AstToIr {
         typed match {
           case AST.Ident.any(ident) =>
             val typeName = Name.Here(None)
-            val methodName = Name.Literal(ident.name, getIdentifiedLocation(ident))
+            val methodName =
+              Name.Literal(ident.name, getIdentifiedLocation(ident))
             val methodReference = Name.MethodReference(
-                typeName,
+              typeName,
               methodName,
               methodName.location
             )
@@ -366,7 +367,7 @@ object AstToIr {
 
         // Note [Uniform Call Syntax Translation]
         Application.Prefix(
-          translateExpression(name),
+          translateIdent(name),
           (target :: validArguments).map(translateCallArgument),
           hasDefaultsSuspended = hasDefaultsSuspended,
           getIdentifiedLocation(inputAst)
@@ -802,9 +803,14 @@ object AstToIr {
     */
   def translatePattern(pattern: AST): Pattern = {
     AstView.MaybeManyParensed.unapply(pattern).getOrElse(pattern) match {
-      case AstView.ConstructorPattern(cons, fields) =>
+      case AstView.ConstructorPattern(conses, fields) =>
+        val irConses = conses.map(translateIdent(_).asInstanceOf[IR.Name])
+        val name = irConses match {
+          case List(n) => n
+          case _       => IR.Name.Qualified(irConses, None)
+        }
         Pattern.Constructor(
-          translateIdent(cons).asInstanceOf[IR.Name],
+          name,
           fields.map(translatePattern),
           getIdentifiedLocation(pattern)
         )

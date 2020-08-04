@@ -79,6 +79,13 @@ case class BindingsMap(
     }
   }
 
+  private def getBindingsOf(module: Module): BindingsMap = {
+    module.getIr.unsafeGetMetadata(
+      BindingAnalysis,
+      "imported module has no binding map info"
+    )
+  }
+
   /**
     * Resolves a name in the context of current module.
     *
@@ -99,6 +106,24 @@ case class BindingsMap(
     }
     handleAmbiguity(findExportedCandidatesInImports(name))
   }
+
+  def resolveQualifiedName(
+    name: List[String]
+  ): Either[ResolutionError, ResolvedName] =
+    name match {
+      case List()     => Left(ResolutionNotFound)
+      case List(item) => resolveUppercaseName(item)
+      case List(module, cons) =>
+        resolveUppercaseName(module).flatMap {
+          case ResolvedModule(mod) =>
+            getBindingsOf(mod).resolveExportedName(cons)
+          case _ => Left(ResolutionNotFound)
+        }
+      case _ =>
+        // TODO[MK] Implement when exports possible. Currently this has
+        // no viable interpretation.
+        Left(ResolutionNotFound)
+    }
 
   def resolveExportedName(
     name: String
