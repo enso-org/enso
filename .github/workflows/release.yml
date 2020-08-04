@@ -223,7 +223,7 @@ jobs:
   create-release:
     name: Prepare Release
     runs-on: ubuntu-latest
-    needs: build-engine
+    needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
