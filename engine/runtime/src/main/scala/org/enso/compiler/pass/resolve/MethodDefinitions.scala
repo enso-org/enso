@@ -55,8 +55,9 @@ case object MethodDefinitions extends IRPass {
                 BindingsMap.ResolvedModule(availableSymbolsMap.currentModule)
               )
             )
-          case tp @ IR.Name.Qualified(List(item), _, _, _) =>
-            availableSymbolsMap.resolveUppercaseName(item.name) match {
+          case tp @ IR.Name.Qualified(names, _, _, _) =>
+            val items = names.map(_.name)
+            availableSymbolsMap.resolveQualifiedName(items) match {
               case Left(err) =>
                 IR.Error.Resolution(tp, IR.Error.Resolution.ResolverError(err))
               case Right(value: BindingsMap.ResolvedConstructor) =>
