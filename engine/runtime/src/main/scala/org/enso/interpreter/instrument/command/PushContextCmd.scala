@@ -18,7 +18,7 @@ class PushContextCmd(
   request: Api.PushContextRequest
 ) extends Command(maybeRequestId) {
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def execute(implicit
     ctx: RuntimeContext,
     ec: ExecutionContext

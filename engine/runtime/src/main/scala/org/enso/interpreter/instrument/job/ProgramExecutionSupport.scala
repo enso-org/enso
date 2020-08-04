@@ -36,6 +36,7 @@ trait ProgramExecutionSupport {
     *
     * @param executionFrame an execution frame
     * @param callStack a call stack
+    * @param cachedMethodCallsCallback a listener for cached method calls
     * @param onComputedCallback a listener of computed values
     * @param onCachedCallback a listener of cached values
     */
@@ -85,23 +86,19 @@ trait ProgramExecutionSupport {
 
     callStack match {
       case Nil =>
-        //import scala.jdk.CollectionConverters._
-//        println("CACHED_CALLS")
-//        executionFrame.cache.getCalls.forEach { callId =>
-//          println(s"$callId -> ${executionFrame.cache.getCall(callId)}")
-//        }
         methodCallsCache
           .getNotExecuted(executionFrame.cache.getCalls)
           .forEach { expressionId =>
-            val value = new ExpressionValue(
-              expressionId,
-              null,
-              executionFrame.cache.getType(expressionId),
-              null,
-              executionFrame.cache.getCall(expressionId),
-              null
+            cachedMethodCallsCallback.accept(
+              new ExpressionValue(
+                expressionId,
+                null,
+                executionFrame.cache.getType(expressionId),
+                null,
+                executionFrame.cache.getCall(expressionId),
+                null
+              )
             )
-            cachedMethodCallsCallback.accept(value)
           }
       case item :: tail =>
         enterables.get(item.expressionId) match {

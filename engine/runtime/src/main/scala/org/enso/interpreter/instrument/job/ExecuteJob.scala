@@ -31,7 +31,7 @@ class ExecuteJob(
       exe.sendMethodCallUpdates
     )
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Unit = {
     ctx.locking.acquireContextLock(contextId)
     ctx.locking.acquireReadCompilationLock()

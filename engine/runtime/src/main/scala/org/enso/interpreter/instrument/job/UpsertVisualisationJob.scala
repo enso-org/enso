@@ -38,7 +38,7 @@ class UpsertVisualisationJob(
       false
     ) {
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
     ctx.locking.acquireContextLock(config.executionContextId)
     ctx.locking.acquireWriteCompilationLock()

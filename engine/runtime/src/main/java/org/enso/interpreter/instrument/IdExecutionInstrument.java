@@ -231,6 +231,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
      *
      * @param entryCallTarget the call target being observed.
      * @param cache the precomputed expression values.
+     * @param methodCallsCache the storage tracking the executed method calls.
      * @param nextExecutionItem the next item scheduled for execution.
      * @param functionCallCallback the consumer of function call events.
      * @param onComputedCallback the consumer of the computed value events.
@@ -372,6 +373,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
    * @param funSourceStart the source start of the observed range of ids.
    * @param funSourceLength the length of the observed source range.
    * @param cache the precomputed expression values.
+   * @param methodCallsCache the storage tracking the executed method calls.
    * @param nextExecutionItem the next item scheduled for execution.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
