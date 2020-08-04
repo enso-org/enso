@@ -11,9 +11,6 @@ object SuggestionRandom {
   def nextUpdateAllInput(): Seq[(UUID, String)] =
     Seq(UUID.randomUUID() -> nextString())
 
-  def nextGetAllByExternalIdsInput(): Seq[UUID] =
-    Seq(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
-
   def nextGetAllMethodsInput(): Seq[(String, String, String)] =
     Seq(
       (nextString(), nextString(), nextString()),

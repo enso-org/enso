@@ -32,7 +32,6 @@ public class SuggestionsRepoBenchmark {
   final Path dbfile = Path.of(System.getProperty("java.io.tmpdir"), "bench-suggestions.db");
   final Seq<Suggestion.Kind> kinds = SuggestionRandom.nextKinds();
   final Seq<scala.Tuple2<UUID, String>> updateInput = SuggestionRandom.nextUpdateAllInput();
-  final Seq<UUID> getAllByExternalIdsInput = SuggestionRandom.nextGetAllByExternalIdsInput();
   final Seq<scala.Tuple3<String, String, String>> getAllMethodsInput =
       SuggestionRandom.nextGetAllMethodsInput();
 
@@ -103,11 +102,6 @@ public class SuggestionsRepoBenchmark {
             scala.Some.apply(kinds),
             none()),
         TIMEOUT);
-  }
-
-  @Benchmark
-  public Object getAllByExternalIds() throws TimeoutException, InterruptedException {
-    return Await.result(repo.getAllByExternalIds(getAllByExternalIdsInput), TIMEOUT);
   }
 
   @Benchmark

@@ -63,42 +63,6 @@ class SuggestionsRepoTest extends AnyWordSpec with Matchers with RetrySpec {
       )
     }
 
-    "get suggestions by external ids" taggedAs Retry in withRepo { repo =>
-      val action = for {
-        (_, ids) <- repo.insertAll(
-          Seq(
-            suggestion.atom,
-            suggestion.method,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        results <- repo.getAllByExternalIds(
-          Seq(suggestion.method.externalId.get, suggestion.local.externalId.get)
-        )
-      } yield (ids, results)
-
-      val (ids, results) = Await.result(action, Timeout)
-      results should contain theSameElementsInOrderAs Seq(ids(1), ids(3))
-    }
-
-    "get suggestions by empty external ids" taggedAs Retry in withRepo { repo =>
-      val action = for {
-        _ <- repo.insertAll(
-          Seq(
-            suggestion.atom,
-            suggestion.method,
-            suggestion.function,
-            suggestion.local
-          )
-        )
-        results <- repo.getAllByExternalIds(Seq())
-      } yield results
-
-      val results = Await.result(action, Timeout)
-      results.isEmpty shouldEqual true
-    }
-
     "get suggestions by method call info" taggedAs Retry in withRepo { repo =>
       val action = for {
         (_, ids) <- repo.insertAll(

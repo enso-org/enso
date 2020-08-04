@@ -14,13 +14,6 @@ trait SuggestionsRepo[F[_]] {
     */
   def getAll: F[(Long, Seq[SuggestionEntry])]
 
-  /** Get suggestions by external ids.
-    *
-    * @param ids the list of external ids
-    * @return the list of found suggestion ids
-    */
-  def getAllByExternalIds(ids: Seq[Suggestion.ExternalId]): F[Seq[Option[Long]]]
-
   /** Get suggestions by the method call info.
     *
     * @param calls the list of triples: module, self type and method name

@@ -40,12 +40,6 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     db.run(getAllQuery)
 
   /** @inheritdoc */
-  override def getAllByExternalIds(
-    ids: Seq[Suggestion.ExternalId]
-  ): Future[Seq[Option[Long]]] =
-    db.run(getAllByExternalIdsQuery(ids))
-
-  /** @inheritdoc */
   override def getAllMethods(
     calls: Seq[(String, String, String)]
   ): Future[Seq[Option[Long]]] =
@@ -145,37 +139,6 @@ final class SqlSuggestionsRepo(db: SqlDatabase)(implicit ec: ExecutionContext)
     } yield (version, suggestions)
     query.transactionally
   }
-
-  /** The query to get suggestions by external ids.
-    *
-    * @param ids the list of external ids
-    * @return the list of found suggestion ids
-    */
-  private def getAllByExternalIdsQuery(
-    ids: Seq[Suggestion.ExternalId]
-  ): DBIO[Seq[Option[Long]]] =
-    if (ids.isEmpty) {
-      DBIO.successful(Seq())
-    } else {
-      val bits =
-        ids.map(id => (id.getLeastSignificantBits, id.getMostSignificantBits))
-      val query = Suggestions
-        .filter { row =>
-          bits
-            .map {
-              case (least, most) =>
-                row.externalIdLeast === least && row.externalIdMost === most
-            }
-            .reduce(_ || _)
-        }
-        .map(row => (row.id, row.externalIdLeast, row.externalIdMost))
-      query.result.map { triples =>
-        val result = triples.flatMap {
-          case (id, least, most) => toUUID(least, most).map(_ -> id)
-        }.toMap
-        ids.map(result.get)
-      }
-    }
 
   /** The query to get the suggestions by the method call info.
     *
