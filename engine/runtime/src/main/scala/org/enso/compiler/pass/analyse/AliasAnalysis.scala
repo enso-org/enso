@@ -666,8 +666,9 @@ case object AliasAnalysis extends IRPass {
       */
     def copy: Graph = {
       val graph = new Graph
-      graph.links     = links
-      graph.rootScope = rootScope.copy
+      graph.links         = links
+      graph.rootScope     = rootScope.copy
+      graph.nextIdCounter = nextIdCounter
 
       graph
     }
