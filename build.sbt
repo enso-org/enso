@@ -783,6 +783,11 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`searcher`)
   .dependsOn(testkit % Test)
 
+lazy val parser = (project in file("lib/scala/parser"))
+  .settings(
+    scalacOptions := Seq(),
+  )
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(

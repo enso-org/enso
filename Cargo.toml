@@ -15,6 +15,7 @@ members = [
     "lib/rust/lexer/tests",
     "lib/rust/lazy-reader",
     "lib/rust/ast",
+    "lib/rust/parser",
 ]
 
 [profile.dev]
