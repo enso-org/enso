@@ -129,7 +129,9 @@ platform. So each release should contain the following assets:
 - `enso-bundle-<version>-linux-amd64.zip`
 - `enso-bundle-<version>-macos-amd64.zip`
 - `enso-bundle-<version>-windows-amd64.zip`
-- `enso-engine-<version>.zip`
+- `enso-engine-<version>-linux-amd64.zip`
+- `enso-engine-<version>-macos-amd64.zip`
+- `enso-engine-<version>-windows-amd64.zip`
 - `enso-launcher-<version>-linux-amd64.zip`
 - `enso-launcher-<version>-macos-amd64.zip`
 - `enso-launcher-<version>-windows-amd64.zip`
