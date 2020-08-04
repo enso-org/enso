@@ -316,6 +316,7 @@ jobs:
           name: manifest
           path: manifest.yaml
       - name: Prepare AWS Session
+        shell: bash
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
           ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
@@ -324,17 +325,21 @@ jobs:
           text
           EOF
       - name: Upload Parser JS Bundle to S3
+        shell: bash
         if: runner.os == 'Linux'
         run: |
           aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
       - name: Upload FlatBuffers Schemas to S3
+        shell: bash
         if: runner.os == 'Linux'
         run: |
           aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
       - name: Upload Distribution to S3
+        shell: bash
         run: |
           aws s3 sync ${{ env.ENGINE_DIST_DIR }} s3://packages-luna/project-manager/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
       - name: Teardown AWS Session
+        shell: bash
         run: |
           aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
           null
