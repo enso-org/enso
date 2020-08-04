@@ -5,31 +5,35 @@
 /distribution @iamrecursion @kustosz @radeusgd
 
 # Scala Libraries
-/common/scala/core-definition @iamrecursion @kustosz
-/common/scala/flexer @iamrecursion @kustosz
-/common/scala/graph @iamrecursion @kustosz
-/common/scala/interpreter-dsl @iamrecursion @kustosz
-/common/scala/json-rpc-server @lolczak @4e6 @iamrecursion
-/common/scala/json-rpc-server-test @lolczak @4e6 @iamrecursion
-/common/scala/logger @kustosz @iamrecursion
-/common/scala/parser-service @kustosz @iamrecursion
-/common/scala/pkg @iamrecursion @kustosz
-/common/scala/project-manager @lolczak @4e6 @kustosz
-/common/scala/searcher @4e6 @lolczak
-/common/scala/syntax @iamrecursion @kustosz
-/common/scala/text-buffer @iamrecursion @kustosz
+/lib/scala/cli @iamrecursion @kustosz @radeusgd
+/lib/scala/core-definition @iamrecursion @kustosz
+/lib/scala/flexer @iamrecursion @kustosz
+/lib/scala/graph @iamrecursion @kustosz
+/lib/scala/interpreter-dsl @iamrecursion @kustosz
+/lib/scala/json-rpc-server @lolczak @4e6 @iamrecursion
+/lib/scala/json-rpc-server-test @lolczak @4e6 @iamrecursion
+/lib/scala/logger @kustosz @iamrecursion
+/lib/scala/parser-service @kustosz @iamrecursion
+/lib/scala/pkg @iamrecursion @kustosz
+/lib/scala/project-manager @lolczak @4e6 @kustosz
+/lib/scala/searcher @4e6 @lolczak
+/lib/scala/syntax @iamrecursion @kustosz
+/lib/scala/testkit @4e6 @kustosz
+/lib/scala/text-buffer @iamrecursion @kustosz
+/lib/scala/version-output @iamrecursion @kustosz @radeusgd
 
 # Rust Libraries
 /lib/rust/ @iamrecursion @wdanilo
 
 # Main Project
 /engine/language-server @lolczak @4e6 @kustosz
+/engine/launcher @iamrecursion @kustosz @radeusgd
 /engine/polyglot-api @iamrecursion @kustosz
 /engine/runner @iamrecursion @kustosz @radeusgd
 /engine/runtime @iamrecursion @kustosz @radeusgd
 
 # Documentation
-/doc @iamrecursion @kustosz
+/docs @iamrecursion @kustosz
 /.gitignore @iamrecursion @kustosz
 /.jvmopts @iamrecursion @kustosz
 /.scalafmt.conf @iamrecursion @kustosz
@@ -39,8 +43,9 @@ README.md @iamrecursion @kustosz
 
 # Config
 /.github @iamrecursion @kustosz
-/ci @iamrecursion @kustosz
-/project @iamrecursion @kustosz
+/.github/workflows @iamrecursion @kustosz @radeusgd
+/tools @iamrecursion @kustosz @radeusgd
+/project @iamrecursion @kustosz @radeusgd
 /build.sbt @iamrecursion @kustosz @radeusgd
 
 # Repo Configuration
