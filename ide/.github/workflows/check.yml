@@ -13,20 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-wasm-registry-${{ hashFiles('src/rust/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-wasm-registry
-
-      - name: Cache Wasm
-        uses: actions/cache@v1
-        with:
-          path: src/rust/target
-          key: ${{ runner.os }}-wasm-build-${{ hashFiles('src/rust/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-wasm-build
-
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -60,20 +46,6 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('src/rust/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-registry
-
-      - name: Cache Cargo Check
-        uses: actions/cache@v1
-        with:
-          path: src/rust/target
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('src/rust/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-build
-
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -98,20 +70,6 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
-      - name: Cache Cargo Registry
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('src/rust/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-registry
-
-      - name: Cache Cargo Test
-        uses: actions/cache@v1
-        with:
-          path: src/rust/target
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('src/rust/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-build
-
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -132,20 +90,6 @@ jobs:
     runs-on: macOS-latest
     steps:
       - uses: actions/checkout@v1
-
-      - name: Cache Cargo Registry
-        uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-wasm-test-registry-${{ hashFiles('src/rust/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-wasm-test-registry
-
-      - name: Cache Wasm Test
-        uses: actions/cache@v1
-        with:
-          path: src/rust/target
-          key: ${{ runner.os }}-wasm-test-build-${{ hashFiles('src/rust/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-wasm-test-build
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
