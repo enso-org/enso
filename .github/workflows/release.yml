@@ -12,6 +12,7 @@ env:
   javaVersion: 11
   # Please ensure that this is in sync with project/build.properties
   sbtVersion: 1.3.13
+  # Please ensure that this is in sync with rustVersion in build.sbt
   rustToolchain: nightly-2019-11-04
 
 jobs:
@@ -75,7 +76,7 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Build Artifacts
-      - name: Bootstrap the project
+      - name: Bootstrap the Project
         working-directory: repo
         run: sbt --no-colors bootstrap
       - name: Build the Runtime Uberjar
@@ -98,7 +99,7 @@ jobs:
           echo "graal-java-version: ${{ env.javaVersion }}" >> manifest.yaml
 
       # Prepare distributions
-      - name: Prepare distribution version (Unix)
+      - name: Prepare Distribution Version (Unix)
         working-directory: repo
         if: runner.os != 'Windows'
         shell: bash
@@ -107,7 +108,7 @@ jobs:
           DIST_VERSION=$(./enso version --json | jq -r '.version')
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
 
-      - name: Prepare distribution version (Windows)
+      - name: Prepare Distribution Version (Windows)
         working-directory: repo
         if: runner.os == 'Windows'
         shell: bash
@@ -116,7 +117,7 @@ jobs:
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
 
       # Currently the only architecture supported by Github runners is amd64
-      - name: Prepare distribution environment
+      - name: Prepare Distribution Environment
         working-directory: repo
         shell: bash
         run: |
@@ -131,7 +132,7 @@ jobs:
           echo ::set-env name=ENGINE_DIST_DIR::$ENGINE_DIST_DIR
           echo ::set-env name=ENGINE_DIST_ROOT::$ENGINE_DIST_ROOT
 
-      - name: Prepare Launcher distribution (common)
+      - name: Prepare Launcher Distribution (Common)
         working-directory: repo
         shell: bash
         run: |
@@ -144,14 +145,14 @@ jobs:
           cp distribution/launcher/NOTICE ${{ env.LAUNCHER_DIST_DIR }}
           cp -r distribution/launcher/components-licences ${{ env.LAUNCHER_DIST_DIR }}
 
-      - name: Prepare Launcher distribution (Unix)
+      - name: Prepare Launcher Distribution (Unix)
         working-directory: repo
         if: runner.os != 'Windows'
         shell: bash
         run: |
           cp enso ${{ env.LAUNCHER_DIST_DIR }}/bin/
 
-      - name: Prepare Launcher distribution (Windows)
+      - name: Prepare Launcher Distribution (Windows)
         working-directory: repo
         if: runner.os == 'Windows'
         shell: bash
@@ -233,11 +234,11 @@ jobs:
           path: artifacts
 
       # This jobs can be used to debug errors, it may be removed
-      - name: Display structure of downloaded files
+      - name: Display Structure of Downloaded Files
         run: ls -R
         working-directory: artifacts
 
-      - name: Save version to environment
+      - name: Save Version to Environment
         shell: bash
         run: |
           ref=${{ github.ref }}

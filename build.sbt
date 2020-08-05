@@ -17,6 +17,7 @@ import com.typesafe.sbt.license.DepModuleInfo
 // ============================================================================
 
 val scalacVersion = "2.13.3"
+val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
 val graalVersion  = "20.1.0"
 val javaVersion   = "11"
 val ensoVersion   = "0.1.0" // Note [Engine And Launcher Version]
@@ -316,7 +317,6 @@ val newtypeVersion          = "0.4.4"
 val pprintVersion           = "0.5.9"
 val pureconfigVersion       = "0.13.0"
 val refinedVersion          = "0.9.14"
-val rustVersion             = "1.40.0-nightly (b520af6fd 2019-11-03)"
 val scalacheckVersion       = "1.14.3"
 val scalacticVersion        = "3.3.0-SNAP2"
 val scalaLoggingVersion     = "3.9.2"
