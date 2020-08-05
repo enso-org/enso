@@ -15,6 +15,7 @@ import org.apache.commons.compress.archivers.zip.{
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.apache.commons.io.IOUtils
 import org.enso.cli.{TaskProgress, TaskProgressImplementation}
+import org.enso.launcher.internal.ReadProgress
 import org.enso.launcher.{FileSystem, Logger, OS}
 
 import scala.util.{Try, Using}
@@ -126,7 +127,7 @@ object Archive {
   def withOpenArchive[R](path: Path, format: ArchiveFormat)(
     action: (ArchiveInputStream, ReadProgress) => R
   ): Try[R] = {
-    Using(new FileProgressInputStream(path)) { progressInputStream =>
+    Using(FileProgressInputStream(path)) { progressInputStream =>
       Using(new BufferedInputStream(progressInputStream)) { buffered =>
         format match {
           case ArchiveFormat.ZIP =>
@@ -155,10 +156,5 @@ object Archive {
     */
   private def parseArchiveEntryName(name: String): Path =
     Path.of(name)
-
-  trait ReadProgress {
-    def alreadyRead(): Long
-    def total():       Option[Long]
-  }
 
 }

@@ -995,10 +995,11 @@ lazy val launcher = project
   .settings(
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
-        "org.scalatest"     %% "scalatest"        % scalatestVersion % Test,
-        "org.typelevel"     %% "cats-core"        % catsVersion,
-        "nl.gn0s1s"         %% "bump"             % bumpVersion,
-        "org.apache.commons" % "commons-compress" % commonsCompressVersion
+        "org.scalatest"            %% "scalatest"        % scalatestVersion % Test,
+        "org.typelevel"            %% "cats-core"        % catsVersion,
+        "nl.gn0s1s"                %% "bump"             % bumpVersion,
+        "org.apache.commons"        % "commons-compress" % commonsCompressVersion,
+        "org.apache.httpcomponents" % "httpclient"       % "4.5.12" // TODO [RW] move version
       )
   )
   .settings(

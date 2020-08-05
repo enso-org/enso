@@ -1,12 +1,15 @@
 package org.enso.launcher.releases.github
 
-import java.net.URI
-import java.net.http.HttpRequest
 import java.nio.file.Path
 
 import io.circe._
 import io.circe.parser._
 import org.enso.cli.TaskProgress
+import org.enso.launcher.internal.http.{
+  HTTPDownload,
+  HTTPRequestBuilder,
+  URIBuilder
+}
 
 import scala.util.{Success, Try}
 
@@ -20,13 +23,9 @@ object GithubAPI {
     def listPage(page: Int): Try[Seq[Release]] = {
       val uri = (projectURI(repo) / "releases") ?
         ("per_page" -> perPage.toString) ? ("page" -> page.toString)
-      val request =
-        HttpRequest
-          .newBuilder(uri)
-          .GET()
-          .build()
+
       HTTPDownload
-        .fetchString(request)
+        .fetchString(HTTPRequestBuilder.fromURI(uri.build()).GET)
         .flatMap(content =>
           parse(content)
             .flatMap(
@@ -52,14 +51,10 @@ object GithubAPI {
   }
 
   def getRelease(repo: Repository, tag: String): TaskProgress[Release] = {
-    val uri = projectURI(repo) / "releases/" / "tags/" / tag
-    val request =
-      HttpRequest
-        .newBuilder(uri)
-        .GET()
-        .build()
+    val uri = projectURI(repo) / "releases" / "tags" / tag
+
     HTTPDownload
-      .fetchString(request)
+      .fetchString(HTTPRequestBuilder.fromURI(uri.build()).GET)
       .flatMap(content =>
         parse(content)
           .flatMap(_.as[Release])
@@ -70,50 +65,29 @@ object GithubAPI {
   }
 
   def fetchTextAsset(asset: Asset): TaskProgress[String] = {
-    val request =
-      HttpRequest
-        .newBuilder(URI.create(asset.url))
-        .GET()
-        .setHeader("Accept", "application/octet-stream")
-        .build()
+    val request = HTTPRequestBuilder
+      .fromURL(asset.url)
+      .setHeader("Accept", "application/octet-stream")
+      .GET
+
     HTTPDownload.fetchString(request, Some(asset.size))
   }
 
   def downloadAsset(asset: Asset, path: Path): TaskProgress[Unit] = {
-    val request =
-      HttpRequest
-        .newBuilder(URI.create(asset.url))
-        .GET()
-        .setHeader("Accept", "application/octet-stream")
-        .build()
-    HTTPDownload.download(request, path, Some(asset.size)).map(_ => ())
+    val request = HTTPRequestBuilder
+      .fromURL(asset.url)
+      .setHeader("Accept", "application/octet-stream")
+      .GET
+
+    HTTPDownload
+      .download(request, path, Some(asset.size))
+      .map(_ => ())
   }
 
-  private val baseUrl: URI = URI.create("https://api.github.com/")
-  private def projectURI(project: Repository): URI = {
-    val owner = s"${project.owner}/"
-    val name  = s"${project.name}/"
-    baseUrl / "repos/" / owner / name
-  }
-
-  implicit class URISyntax(uri: URI) {
-    def /(part: String): URI =
-      uri.resolve(part)
-    def ?(query: (String, String)): URI = {
-      val part = s"${query._1}=${query._2}"
-      val newQuery =
-        if (uri.getQuery == null) part else uri.getQuery + "&" + part
-      new URI(
-        uri.getScheme,
-        uri.getUserInfo,
-        uri.getHost,
-        uri.getPort,
-        uri.getPath,
-        newQuery,
-        uri.getFragment
-      )
-    }
-  }
+  private val baseUrl =
+    URIBuilder.fromHost("api.github.com")
+  private def projectURI(project: Repository) =
+    baseUrl / "repos" / project.owner / project.name
 
   implicit val assetDecoder: Decoder[Asset] = { json =>
     for {
