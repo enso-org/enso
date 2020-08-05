@@ -5,10 +5,10 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 
 import org.apache.commons.io.IOUtils
-import org.apache.http.HttpResponse
 import org.apache.http.client.config.{CookieSpecs, RequestConfig}
-import org.apache.http.client.methods.{HttpGet, HttpUriRequest}
+import org.apache.http.client.methods.HttpUriRequest
 import org.apache.http.impl.client.HttpClients
+import org.apache.http.{Header, HttpResponse}
 import org.enso.cli.{TaskProgress, TaskProgressImplementation}
 import org.enso.launcher.Logger
 import org.enso.launcher.internal.{ProgressInputStream, ReadProgress}
@@ -16,13 +16,15 @@ import org.enso.launcher.internal.{ProgressInputStream, ReadProgress}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Using}
 
+case class APIResponse(content: String, headers: Seq[Header])
+
 object HTTPDownload {
   def fetchString(
     request: HttpUriRequest,
     sizeHint: Option[Long] = None
-  ): TaskProgress[String] = {
+  ): TaskProgress[APIResponse] = {
     Logger.debug(s"Fetching ${request.getURI.toASCIIString}")
-    runRequest(request, asStringHandler(sizeHint))
+    runRequest(request, asStringResponseHandler(sizeHint))
   }
 
   def download(
@@ -68,12 +70,13 @@ object HTTPDownload {
       )
       .build()
 
-  private def asStringHandler(
+  private def asStringResponseHandler(
     sizeHint: Option[Long]
-  )(response: HttpResponse, update: ReadProgress => Unit): String =
+  )(response: HttpResponse, update: ReadProgress => Unit): APIResponse =
     Using(streamOfResponse(response, update, sizeHint)) { in =>
-      val bytes = in.readAllBytes()
-      new String(bytes, StandardCharsets.UTF_8)
+      val bytes   = in.readAllBytes()
+      val content = new String(bytes, StandardCharsets.UTF_8)
+      APIResponse(content, response.getAllHeaders.toIndexedSeq)
     }.get
 
   private def asFileHandler(
@@ -101,15 +104,4 @@ object HTTPDownload {
 
     new ProgressInputStream(entity.getContent, size.orElse(sizeHint), update)
   }
-
-  def simulate(): Unit = {
-    val get = new HttpGet("https://example.com/")
-    println(fetchString(get).waitForResult(true))
-
-    val get2 = new HttpGet(
-      "https://github.com/enso-org/enso-staging/releases/download/enso-0.1.0/enso-engine-0.1.0.zip"
-    )
-    println(download(get2, Path.of("engine.zip")).waitForResult(true))
-  }
-
 }

@@ -129,8 +129,10 @@ object FileSystem {
   def removeDirectory(dir: Path): Unit =
     FileUtils.deleteDirectory(dir.toFile)
 
-  def atomicMove(source: Path, destination: Path): Unit =
+  def atomicMove(source: Path, destination: Path): Unit = {
+    Files.createDirectories(destination.getParent)
     Files.move(source, destination, StandardCopyOption.ATOMIC_MOVE)
+  }
 
   /**
     * Allows to write nested paths in a more readable and concise way.

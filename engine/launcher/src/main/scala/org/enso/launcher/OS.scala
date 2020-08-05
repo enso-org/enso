@@ -71,15 +71,17 @@ object OS {
 
   /**
     * Name of the architecture that the program is running on.
+    *
+    * Currently the Launcher Native Image builds only support amd64
+    * architecture, so it is hardcoded here. In the future, more architectures
+    * may be supported, in that case, this will need to be updated to get the
+    * target architecture from the build settings.
+    *
+    * This property should not use `System.getProperty("os.arch")` directly
+    * because it can return different values for the same architecture (for
+    * example on some systems `amd64` is called `x86_64`).
     */
-  lazy val architecture: String = detectArchitecture
-
-  private def detectArchitecture: String =
-    Option(System.getProperty("os.arch")).getOrElse {
-      throw new IllegalStateException(
-        "Could not determine architecture of your OS."
-      )
-    }
+  val architecture: String = "amd64"
 
   /**
     * Wraps the base executable name with an optional platform-dependent
