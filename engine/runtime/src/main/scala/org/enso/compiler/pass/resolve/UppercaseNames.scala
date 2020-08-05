@@ -4,7 +4,11 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.ResolvedConstructor
+import org.enso.compiler.data.BindingsMap.{
+  Resolution,
+  ResolvedConstructor,
+  ResolvedMethod
+}
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
@@ -78,7 +82,8 @@ case object UppercaseNames extends IRPass {
   private def processExpression(
     ir: IR.Expression,
     bindings: BindingsMap,
-    freshNameSupply: FreshNameSupply
+    freshNameSupply: FreshNameSupply,
+    isInsideApplication: Boolean = false
   ): IR.Expression =
     ir.transformExpressions {
       case lit: IR.Name.Literal =>
@@ -90,49 +95,107 @@ case object UppercaseNames extends IRPass {
                 lit,
                 IR.Error.Resolution.ResolverError(error)
               )
-            case Right(BindingsMap.ResolvedMethod(mod, method)) =>
-              val self = freshNameSupply
-                .newReferantName()
-                .updateMetadata(
-                  this -->> BindingsMap.Resolution(
-                    BindingsMap.ResolvedModule(mod)
-                  )
-                )
-              val fun = lit.copy(name = method.name)
-              val app = IR.Application.Prefix(
-                fun,
-                List(IR.CallArgument.Specified(None, self, None)),
-                hasDefaultsSuspended = false,
-                None
-              )
-              app
+            case Right(r @ BindingsMap.ResolvedMethod(mod, method)) =>
+              if (isInsideApplication) {
+                lit.updateMetadata(this -->> BindingsMap.Resolution(r))
 
+              } else {
+                val self = freshNameSupply
+                  .newReferantName()
+                  .updateMetadata(
+                    this -->> BindingsMap.Resolution(
+                      BindingsMap.ResolvedModule(mod)
+                    )
+                  )
+                val fun = lit.copy(name = method.name)
+                val app = IR.Application.Prefix(
+                  fun,
+                  List(IR.CallArgument.Specified(None, self, None)),
+                  hasDefaultsSuspended = false,
+                  None
+                )
+                app
+              }
             case Right(value) =>
               lit.updateMetadata(this -->> BindingsMap.Resolution(value))
           }
 
         } else { lit }
       case app: IR.Application.Prefix =>
-        val processedFun =
-          processExpression(app.function, bindings, freshNameSupply)
-        val processedArgs =
-          app.arguments.map(
-            _.mapExpressions(processExpression(_, bindings, freshNameSupply))
-          )
-        val newApp: Option[IR.Expression] = for {
-          thisArgPos <- findThisPosition(processedArgs)
-          thisArg = processedArgs(thisArgPos)
-          thisArgResolution <- thisArg.value.getMetadata(this)
-          funAsVar          <- asGlobalVar(processedFun)
-          cons              <- resolveToCons(thisArgResolution, funAsVar)
-          newFun =
-            buildSymbolFor(cons, freshNameSupply).setLocation(funAsVar.location)
-          newArgs = processedArgs.patch(thisArgPos, Nil, 1)
-        } yield buildConsApplication(app, cons.cons, newFun, newArgs)
-        newApp.getOrElse(
-          app.copy(function = processedFun, arguments = processedArgs)
-        )
+        app.function match {
+          case n: IR.Name.Literal =>
+            if (n.isReferant)
+              resolveReferantApplication(app, bindings, freshNameSupply)
+            else resolveLocalApplication(app, bindings, freshNameSupply)
+          case _ =>
+            app.mapExpressions(processExpression(_, bindings, freshNameSupply))
+
+        }
+
     }
+
+  private def resolveReferantApplication(
+    app: IR.Application.Prefix,
+    bindingsMap: BindingsMap,
+    freshNameSupply: FreshNameSupply
+  ): IR.Expression = {
+    val processedFun = processExpression(
+      app.function,
+      bindingsMap,
+      freshNameSupply,
+      isInsideApplication = true
+    )
+    val processedArgs = app.arguments.map(
+      _.mapExpressions(processExpression(_, bindingsMap, freshNameSupply))
+    )
+    processedFun.getMetadata(this) match {
+      case Some(Resolution(ResolvedMethod(mod, method))) =>
+        val self = freshNameSupply
+          .newReferantName()
+          .updateMetadata(
+            this -->> BindingsMap.Resolution(
+              BindingsMap.ResolvedModule(mod)
+            )
+          )
+        val selfArg = IR.CallArgument.Specified(None, self, None)
+        processedFun.passData.remove(this)
+        val renamed = rename(processedFun, method.name)
+        app.copy(function = renamed, arguments = selfArg :: processedArgs)
+      case _ => app.copy(function = processedFun, arguments = processedArgs)
+    }
+  }
+
+  private def rename(name: IR.Expression, newName: String): IR.Expression =
+    name match {
+      case lit: IR.Name.Literal => lit.copy(name = newName)
+      case _                    => name
+    }
+
+  private def resolveLocalApplication(
+    app: IR.Application.Prefix,
+    bindings: BindingsMap,
+    freshNameSupply: FreshNameSupply
+  ): IR.Expression = {
+    val processedFun =
+      processExpression(app.function, bindings, freshNameSupply)
+    val processedArgs =
+      app.arguments.map(
+        _.mapExpressions(processExpression(_, bindings, freshNameSupply))
+      )
+    val newApp: Option[IR.Expression] = for {
+      thisArgPos <- findThisPosition(processedArgs)
+      thisArg = processedArgs(thisArgPos)
+      thisArgResolution <- thisArg.value.getMetadata(this)
+      funAsVar          <- asGlobalVar(processedFun)
+      cons              <- resolveToCons(thisArgResolution, funAsVar)
+      newFun =
+        buildSymbolFor(cons, freshNameSupply).setLocation(funAsVar.location)
+      newArgs = processedArgs.patch(thisArgPos, Nil, 1)
+    } yield buildConsApplication(app, cons.cons, newFun, newArgs)
+    newApp.getOrElse(
+      app.copy(function = processedFun, arguments = processedArgs)
+    )
+  }
 
   private def buildConsApplication(
     originalApp: IR.Application.Prefix,
