@@ -27,6 +27,11 @@ class FreshNameSupply {
     mkName(num)
   }
 
+  /**
+    * Generates a referant name guaranteed not to exist in this program.
+    *
+    * @return a new referant name
+    */
   def newReferantName(): IR.Name.Literal = {
     val num = counter
     counter += 1

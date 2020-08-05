@@ -62,7 +62,7 @@ class BindingAnalysisTest extends CompilerTest {
         |foo = 123
         |""".stripMargin.preprocessModule.analyse
 
-    "discover all atoms and polyglot symbols in a module" in {
+    "discover all atoms, methods, and polyglot symbols in a module" in {
       ir.getMetadata(BindingAnalysis) shouldEqual Some(
         BindingsMap(
           List(Cons("Foo", 3), Cons("Bar", 0), Cons("Baz", 2)),

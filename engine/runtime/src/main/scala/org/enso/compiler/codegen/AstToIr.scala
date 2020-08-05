@@ -116,11 +116,7 @@ object AstToIr {
       case AstView.Atom(consName, args) =>
         Module.Scope.Definition
           .Atom(
-            Name.Literal(
-              consName.name,
-              isReferant(consName),
-              getIdentifiedLocation(consName)
-            ),
+            buildName(consName),
             args.map(translateArgumentDefinition(_)),
             getIdentifiedLocation(inputAst)
           )
@@ -152,7 +148,7 @@ object AstToIr {
           val pathSegments = targetPath.collect {
             case AST.Ident.Cons.any(c) => c
           }
-          val pathNames = pathSegments.map(c => buildName(c))
+          val pathNames = pathSegments.map(buildName)
 
           val methodSegments = pathNames :+ buildName(nameStr)
 

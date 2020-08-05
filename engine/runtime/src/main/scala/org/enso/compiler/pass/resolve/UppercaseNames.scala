@@ -14,6 +14,17 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.interpreter.Constants
 
+/**
+  * Resolves and desugars referant name occurences in non-pattern contexts.
+  *
+  * 1. Attaches resolution metadata to encountered constructors, modules,
+  *    and polygot symbols.
+  * 2. Desugars encountered method references into proper applications.
+  * 3. Resolves qualified calls to constructors, i.e. a call of the form
+  *    `KnownModule.consName a b c` is transformed into `KnownCons a b c`,
+  *    if `consName` refers to a constructor and `KnownModule` was successfully
+  *    resolved to a module.
+  */
 case object UppercaseNames extends IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */

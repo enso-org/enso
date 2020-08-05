@@ -8,6 +8,8 @@ import org.enso.interpreter.runtime.Module
   * A utility structure for resolving symbols in a given module.
   *
   * @param types the types defined in the current module
+  * @param polyglotSymbols the polyglot symbols imported into the scope
+  * @param moduleMethods the methods defined with current module as `this`
   * @param currentModule the module holding these bindings
   */
 case class BindingsMap(
@@ -117,6 +119,12 @@ case class BindingsMap(
     handleAmbiguity(findExportedCandidatesInImports(name))
   }
 
+  /**
+    * Resolves a qualified name to a symbol in the context of this module.
+    *
+    * @param name the name to resolve
+    * @return a resolution for `name`
+    */
   def resolveQualifiedName(
     name: List[String]
   ): Either[ResolutionError, ResolvedName] =
@@ -145,6 +153,12 @@ case class BindingsMap(
     matchingConses ++ matchingMethods
   }
 
+  /**
+    * Resolves a name exported by this module.
+    *
+    * @param name the name to resolve
+    * @return the resolution for `name`
+    */
   def resolveExportedName(
     name: String
   ): Either[ResolutionError, ResolvedName] = {
@@ -197,6 +211,11 @@ object BindingsMap {
     */
   case class ResolvedModule(module: Module) extends ResolvedName
 
+  /**
+    * A representation of a name being resolved to a method call.
+    * @param module the module defining the method.
+    * @param method the method representation.
+    */
   case class ResolvedMethod(module: Module, method: ModuleMethod)
       extends ResolvedName
 
