@@ -349,8 +349,20 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PopContextResponse(contextId))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              context.Main.idMainY,
+              None,
+              Some(Api.MethodPointer("Test.Main", "Number", "foo"))
+            )
+          )
+        )
+      )
     )
 
     // pop main
@@ -633,8 +645,20 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PopContextResponse(contextId))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              context.Main.idMainY,
+              None,
+              Some(Api.MethodPointer("Test.Main", "Number", "foo"))
+            )
+          )
+        )
+      )
     )
 
     // pop main
@@ -1278,8 +1302,20 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PopContextResponse(contextId))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              context.Main.idMainY,
+              None,
+              Some(Api.MethodPointer("Test.Main", "Number", "foo"))
+            )
+          )
+        )
+      )
     )
 
     // pop main

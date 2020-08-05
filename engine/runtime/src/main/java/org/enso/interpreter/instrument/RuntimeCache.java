@@ -1,13 +1,10 @@
 package org.enso.interpreter.instrument;
 
 import java.lang.ref.SoftReference;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /** A storage for computed values. */
-public class RuntimeCache {
+public final class RuntimeCache {
 
   private final Map<UUID, SoftReference<Object>> cache = new HashMap<>();
   private final Map<UUID, String> types = new HashMap<>();
@@ -81,6 +78,11 @@ public class RuntimeCache {
   /** @return the cached function call associated with the expression. */
   public IdExecutionInstrument.FunctionCallInfo getCall(UUID key) {
     return calls.get(key);
+  }
+
+  /** @return the cached method calls. */
+  public Set<UUID> getCalls() {
+    return calls.keySet();
   }
 
   /** Clear the cached calls. */
