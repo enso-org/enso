@@ -1004,8 +1004,17 @@ lazy val launcher = project
   )
   .settings(
     buildNativeImage := NativeImage
-        .buildNativeImage("enso", staticOnLinux = true)
-        .value
+        .buildNativeImage(
+          "enso",
+          staticOnLinux = true,
+          Seq(
+            "--enable-all-security-services",
+            "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"
+          )
+        )
+        .value,
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("launcher.jar")
   )
   .settings(
     (Test / test) := (Test / test)

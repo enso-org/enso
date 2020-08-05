@@ -17,14 +17,14 @@ private[cli] class ProgressBar {
   }
 
   def endProgress(): Unit = {
-    print("\r" + " " * paddingLength + "\r")
+    print("\r" + " " * (paddingLength + 2) + "\r")
   }
 
   def showUnknownProgress(state: Int): Unit = {
     val pos    = state % progressWidth
     val prefix = " " * pos
     val suffix = " " * (progressWidth - pos - 1)
-    val bar    = s"[$prefix?$suffix]\r"
+    val bar    = s"  [$prefix?$suffix]\r"
     print(bar)
   }
 
@@ -52,7 +52,7 @@ private[cli] class ProgressBar {
     val rest    = " " * (progressWidth - bar.length)
     val line    = s"[$bar$rest] $comment"
     val padding = " " * (paddingLength - line.length)
-    print("\r" + line + padding)
+    print("  " + line + padding + "\r")
   }
 }
 

@@ -21,15 +21,11 @@ object NativeImage {
     * @param artifactName name of the artifact to create
     * @param staticOnLinux specifies whether to link statically (applies only
     *                      on Linux)
-    * @param enableHTTPS specifies whether to enable HTTPS support in the built
-    *                    image (this increases the build size significantly, so
-    *                    should be used only when really needed, but is
-    *                    necessary for any applications using HTTP connectivity)
     */
   def buildNativeImage(
     artifactName: String,
     staticOnLinux: Boolean,
-    enableHTTPS: Boolean = true
+    additionalOptions: Seq[String] = Seq.empty
   ): Def.Initialize[Task[Unit]] =
     Def
       .task {
@@ -85,8 +81,9 @@ object NativeImage {
         val cmd =
           s"$nativeImagePath $staticParameters $debugParameters " +
           s"$resourcesGlobOpt $configs " +
-          s"--no-fallback --initialize-at-build-time --enable-https" +
-          s" -cp $classPath ${(Compile / mainClass).value.get} enso"
+          s"--no-fallback --initialize-at-build-time " +
+          s"${additionalOptions.mkString(" ")} " +
+          s"-cp $classPath ${(Compile / mainClass).value.get} enso"
 
         log.debug(cmd)
 

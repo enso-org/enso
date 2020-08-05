@@ -1,5 +1,11 @@
 [
 {
+  "name":"java.lang.String"
+},
+{
+  "name":"java.lang.String[]"
+},
+{
   "name":"java.lang.invoke.VarHandle"
 },
 {
@@ -62,6 +68,21 @@
 },
 {
   "name":"org.apache.commons.compress.archivers.zip.Zip64ExtendedInformationExtraField",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.commons.logging.LogFactory"
+},
+{
+  "name":"org.apache.commons.logging.impl.LogFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.apache.commons.logging.impl.NoOpLog",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }]
+},
+{
+  "name":"org.apache.commons.logging.impl.WeakHashtable",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 }
 ]

@@ -46,14 +46,14 @@ object HTTPDownload {
     }
 
     def run(): Unit = {
-      val client = buildClient()
-      Using(client.execute(request)) { response =>
-        try {
+      try {
+        val client = buildClient()
+        Using(client.execute(request)) { response =>
           val result = handler(response, update)
           task.setComplete(Success(result))
-        } catch {
-          case NonFatal(e) => task.setComplete(Failure(e))
         }
+      } catch {
+        case NonFatal(e) => task.setComplete(Failure(e))
       }
     }
 

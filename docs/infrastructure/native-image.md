@@ -94,6 +94,11 @@ java \
   <application arguments>
 ```
 
+For example, to update settings for the Launcher:
+```bash
+java -agentlib:native-image-agent=config-merge-dir=engine/launcher/native-image-config -jar launcher.jar <arguments>
+```
+
 The command may need to be re-run with different arguments to ensure that all
 execution paths that use reflection are covered. The configuration files between
 consecutive runs will be merged (a warning may be issued for the first run if

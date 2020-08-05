@@ -386,7 +386,14 @@ object Main {
     CLIOutput.println(application.renderHelp())
   }
 
+  private def setup(): Unit =
+    System.setProperty(
+      "org.apache.commons.logging.Log",
+      "org.apache.commons.logging.impl.NoOpLog"
+    )
+
   def main(args: Array[String]): Unit = {
+    setup()
     try {
       application.run(args) match {
         case Left(errors) =>
