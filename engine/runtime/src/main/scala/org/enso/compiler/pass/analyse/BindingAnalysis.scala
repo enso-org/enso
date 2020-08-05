@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Import.Polyglot
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.IRPass
@@ -48,9 +49,38 @@ case object BindingAnalysis extends IRPass {
       case cons: IR.Module.Scope.Definition.Atom =>
         BindingsMap.Cons(cons.name.name, cons.arguments.length)
     }
+    val importedPolyglot = ir.imports.collect {
+      case poly: IR.Module.Scope.Import.Polyglot =>
+        val sym = poly.entity match {
+          case Polyglot.Java(_, className) => className
+        }
+        BindingsMap.PolyglotSymbol(sym)
+    }
+    val moduleMethods = ir.bindings
+      .collect {
+        case method: IR.Module.Scope.Definition.Method.Explicit =>
+          val ref = method.methodReference
+          ref.typePointer match {
+            case IR.Name.Qualified(List(), _, _, _) => Some(ref.methodName.name)
+            case IR.Name.Qualified(List(n), _, _, _) =>
+              if (n.name == moduleContext.module.getName.item)
+                Some(ref.methodName.name)
+              else None
+            case IR.Name.Here(_, _, _) => Some(ref.methodName.name)
+            case IR.Name.Literal(n, _, _, _, _) =>
+              if (n == moduleContext.module.getName.item)
+                Some(ref.methodName.name)
+              else None
+            case _ => None
+          }
+      }
+      .flatten
+      .map(BindingsMap.ModuleMethod)
     ir.updateMetadata(
       this -->> BindingsMap(
         definedConstructors,
+        importedPolyglot,
+        moduleMethods,
         moduleContext.module
       )
     )

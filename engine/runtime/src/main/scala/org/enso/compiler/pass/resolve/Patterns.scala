@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage.ToPair
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.compiler.pass.desugar.{GenerateMethodBodies, NestedPatternMatch}
@@ -69,27 +70,60 @@ object Patterns extends IRPass {
         val newBranches = caseExpr.branches.map { branch =>
           val resolvedPattern = branch.pattern match {
             case consPat: IR.Pattern.Constructor =>
-              val resolvedName = consPat.constructor match {
+              val consName = consPat.constructor
+              val resolution = consName match {
+                case qual: IR.Name.Qualified =>
+                  val parts = qual.parts.map(_.name)
+                  Some(bindings.resolveQualifiedName(parts))
                 case lit: IR.Name.Literal =>
-                  val resolution = bindings.resolveUppercaseName(lit.name)
-                  resolution match {
-                    case Left(err) =>
-                      IR.Error.Resolution(
-                        consPat.constructor,
-                        IR.Error.Resolution.Reason(err)
-                      )
-                    case Right(value) =>
-                      lit.updateMetadata(
-                        this -->> BindingsMap.Resolution(value)
-                      )
-                  }
-                case other => other
+                  Some(bindings.resolveUppercaseName(lit.name))
+                case _ => None
               }
-              val resolution = resolvedName.getMetadata(this)
-              val expectedArity = resolution.map { res =>
+              val resolvedName = resolution
+                .map {
+                  case Left(err) =>
+                    IR.Error.Resolution(
+                      consPat.constructor,
+                      IR.Error.Resolution.ResolverError(err)
+                    )
+                  case Right(value: BindingsMap.ResolvedConstructor) =>
+                    consName.updateMetadata(
+                      this -->> BindingsMap.Resolution(value)
+                    )
+                  case Right(value: BindingsMap.ResolvedModule) =>
+                    consName.updateMetadata(
+                      this -->> BindingsMap.Resolution(value)
+                    )
+                  case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
+                    IR.Error.Resolution(
+                      consName,
+                      IR.Error.Resolution.UnexpectedPolyglot(
+                        "a pattern match"
+                      )
+                    )
+                  case Right(_: BindingsMap.ResolvedMethod) =>
+                    IR.Error.Resolution(
+                      consName,
+                      IR.Error.Resolution.UnexpectedMethod(
+                        "a pattern match"
+                      )
+                    )
+                }
+                .getOrElse(consName)
+
+              val actualResolution = resolvedName.getMetadata(this)
+              val expectedArity = actualResolution.map { res =>
                 res.target match {
                   case BindingsMap.ResolvedConstructor(_, cons) => cons.arity
                   case BindingsMap.ResolvedModule(_)            => 0
+                  case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+                    throw new CompilerError(
+                      "Impossible, should be transformed into an error before."
+                    )
+                  case BindingsMap.ResolvedMethod(_, _) =>
+                    throw new CompilerError(
+                      "Impossible, should be transformed into an error before."
+                    )
                 }
               }
               expectedArity match {

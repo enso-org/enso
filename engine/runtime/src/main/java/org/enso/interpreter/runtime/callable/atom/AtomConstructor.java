@@ -13,6 +13,7 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.expression.atom.GetFieldNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
+import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode;
 import org.enso.interpreter.node.expression.builtin.InstantiateAtomNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -82,9 +83,24 @@ public class AtomConstructor implements TruffleObject {
   }
 
   private void generateMethods(ArgumentDefinition[] args) {
+    generateQualifiedAccessor();
     for (ArgumentDefinition arg : args) {
       definitionScope.registerMethod(this, arg.getName(), generateGetter(arg.getPosition()));
     }
+  }
+
+  private void generateQualifiedAccessor() {
+    QualifiedAccessorNode node = new QualifiedAccessorNode(null, this);
+    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    Function function =
+        new Function(
+            callTarget,
+            null,
+            new FunctionSchema(
+                FunctionSchema.CallStrategy.ALWAYS_DIRECT,
+                new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE)));
+    definitionScope.registerMethod(
+        definitionScope.getAssociatedType(), this.name.toLowerCase(), function);
   }
 
   private Function generateGetter(int position) {

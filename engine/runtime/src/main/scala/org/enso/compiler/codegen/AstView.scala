@@ -443,6 +443,13 @@ object AstView {
 
   object MethodCall {
 
+    private def consToVar(ast: AST.Ident): AST.Ident =
+      ast match {
+        case AST.Ident.Cons(c) =>
+          AST.Ident.Var(c).setLocation(ast.location).setID(ast.id)
+        case _ => ast
+      }
+
     /** Matches on a method call.
       *
       * A method call has the form `<obj>.<fn-name> <args...>` where `<obj>` is
@@ -456,14 +463,14 @@ object AstView {
     def unapply(ast: AST): Option[(AST, AST.Ident, List[AST])] =
       ast match {
         case OperatorDot(target, Application(ConsOrVar(ident), args)) =>
-          Some((target, ident, args))
+          Some((target, consToVar(ident), args))
         case AST.App.Section.Left(
               MethodCall(target, ident, List()),
               susp @ SuspendDefaultsOperator(_)
             ) =>
           Some((target, ident, List(susp)))
         case OperatorDot(target, ConsOrVar(ident)) =>
-          Some((target, ident, List()))
+          Some((target, consToVar(ident), List()))
         case _ => None
       }
   }
@@ -792,6 +799,17 @@ object AstView {
     }
   }
 
+  object QualifiedName {
+    def unapply(ast: AST): Option[List[AST.Ident.Cons]] =
+      ast match {
+        case OperatorDot(l, AST.Ident.Cons.any(name)) =>
+          unapply(l).map(_ :+ name)
+        case AST.Ident.Cons.any(name) =>
+          Some(List(name))
+        case _ => None
+      }
+  }
+
   object ConstructorPattern {
 
     /** Matches on a constructor pattern.
@@ -803,12 +821,12 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the pattern
       */
-    def unapply(ast: AST): Option[(AST.Ident, List[AST])] = {
+    def unapply(ast: AST): Option[(List[AST.Ident.Cons], List[AST])] = {
       MaybeManyParensed.unapply(ast).getOrElse(ast) match {
-        case AST.Ident.Cons.any(cons) => Some((cons, List()))
+        case QualifiedName(cons) => Some((cons, List()))
         case SpacedList(elems) if elems.nonEmpty =>
           elems.head match {
-            case AST.Ident.Cons.any(refName) =>
+            case QualifiedName(refName) =>
               val allFieldsValid = elems.tail.forall {
                 case Pattern(_) => true
                 case _          => false

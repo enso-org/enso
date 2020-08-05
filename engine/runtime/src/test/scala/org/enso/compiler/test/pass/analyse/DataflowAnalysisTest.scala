@@ -303,7 +303,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val printlnFn = printlnExpr.function.asInstanceOf[IR.Name.Literal]
     val printlnArgIO =
       printlnExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
-    val printlnArgIOExpr = printlnArgIO.value.asInstanceOf[IR.Name.Literal]
+    val printlnArgIOExpr = printlnArgIO.value.asInstanceOf[IR.Error.Resolution]
     val printlnArgB =
       printlnExpr.arguments(1).asInstanceOf[IR.CallArgument.Specified]
     val printlnArgBExpr = printlnArgB.value.asInstanceOf[IR.Name.Literal]
