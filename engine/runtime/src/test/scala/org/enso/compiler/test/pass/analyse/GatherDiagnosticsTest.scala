@@ -16,7 +16,7 @@ class GatherDiagnosticsTest extends CompilerTest {
       AST.Invalid.Unrecognized("@@"),
       IR.Error.Syntax.UnrecognizedToken
     )
-    val plusOp = IR.Name.Literal("+", isReferant = false, None)
+    val plusOp = IR.Name.Literal("+", isReferent = false, None)
     val plusApp = IR.Application.Prefix(
       plusOp,
       List(
@@ -29,7 +29,7 @@ class GatherDiagnosticsTest extends CompilerTest {
       List(
         IR.DefinitionArgument
           .Specified(
-            IR.Name.Literal("bar", isReferant = false, None),
+            IR.Name.Literal("bar", isReferent = false, None),
             None,
             suspended = false,
             None
@@ -59,10 +59,10 @@ class GatherDiagnosticsTest extends CompilerTest {
         IR.Error.Syntax.UnexpectedExpression
       )
 
-      val typeName    = IR.Name.Literal("Foo", isReferant = false, None)
-      val method1Name = IR.Name.Literal("bar", isReferant = false, None)
-      val method2Name = IR.Name.Literal("baz", isReferant = false, None)
-      val fooName     = IR.Name.Literal("foo", isReferant = false, None)
+      val typeName    = IR.Name.Literal("Foo", isReferent = false, None)
+      val method1Name = IR.Name.Literal("bar", isReferent = false, None)
+      val method2Name = IR.Name.Literal("baz", isReferent = false, None)
+      val fooName     = IR.Name.Literal("foo", isReferent = false, None)
 
       val method1Ref =
         IR.Name.MethodReference(

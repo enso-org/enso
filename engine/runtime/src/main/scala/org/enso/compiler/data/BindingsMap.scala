@@ -91,7 +91,7 @@ case class BindingsMap(
     }
   }
 
-  private def getBindingsOf(module: Module): BindingsMap = {
+  private def getBindingsFrom(module: Module): BindingsMap = {
     module.getIr.unsafeGetMetadata(
       BindingAnalysis,
       "imported module has no binding map info"
@@ -134,7 +134,7 @@ case class BindingsMap(
       case List(module, cons) =>
         resolveUppercaseName(module).flatMap {
           case ResolvedModule(mod) =>
-            getBindingsOf(mod).resolveExportedName(cons)
+            getBindingsFrom(mod).resolveExportedName(cons)
           case _ => Left(ResolutionNotFound)
         }
       case _ =>

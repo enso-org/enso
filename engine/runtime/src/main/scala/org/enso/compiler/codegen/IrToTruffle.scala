@@ -754,7 +754,7 @@ class IrToTruffle(
           processName(
             IR.Name.Literal(
               Constants.Names.THIS_ARGUMENT,
-              isReferant = false,
+              isReferent = false,
               location,
               passData
             )

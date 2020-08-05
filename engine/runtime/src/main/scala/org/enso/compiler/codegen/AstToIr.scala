@@ -315,7 +315,7 @@ object AstToIr {
             )
           case _ =>
             IR.Application.Prefix(
-              IR.Name.Literal("negate", isReferant = false, None),
+              IR.Name.Literal("negate", isReferent = false, None),
               List(
                 IR.CallArgument.Specified(
                   None,

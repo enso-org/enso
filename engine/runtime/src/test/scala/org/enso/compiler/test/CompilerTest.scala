@@ -149,7 +149,7 @@ trait CompilerRunner {
     * @return an IR name representing the name `str`
     */
   def nameFromString(str: String): IR.Name.Literal = {
-    IR.Name.Literal(str, isReferant = false, None)
+    IR.Name.Literal(str, isReferent = false, None)
   }
 
   // === IR Testing Utils =====================================================
@@ -168,10 +168,10 @@ trait CompilerRunner {
       IR.Module.Scope.Definition.Method.Explicit(
         IR.Name.MethodReference(
           IR.Name.Qualified(
-            List(IR.Name.Literal("TestType", isReferant = true, None)),
+            List(IR.Name.Literal("TestType", isReferent = true, None)),
             None
           ),
-          IR.Name.Literal("testMethod", isReferant = false, None),
+          IR.Name.Literal("testMethod", isReferent = false, None),
           None
         ),
         ir,
@@ -185,11 +185,11 @@ trait CompilerRunner {
       */
     def asAtomDefaultArg: IR.Module.Scope.Definition.Atom = {
       IR.Module.Scope.Definition.Atom(
-        IR.Name.Literal("TestAtom", isReferant = true, None),
+        IR.Name.Literal("TestAtom", isReferent = true, None),
         List(
           IR.DefinitionArgument
             .Specified(
-              IR.Name.Literal("arg", isReferant = false, None),
+              IR.Name.Literal("arg", isReferent = false, None),
               Some(ir),
               suspended = false,
               None
