@@ -6,17 +6,26 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * A storage for computed method calls. Method calls cache is not preserved between the program
- * invocations.
+ * A storage for executed methods.
+ *
+ * <p>Tracks the encountered method calls during the invocation of the stack frame. Method calls
+ * cache is not preserved between the program invocations.
  */
-public class MethodCallsCache {
+public final class MethodCallsCache {
 
   private final Set<UUID> callsExecuted = new HashSet<>();
 
+  /** Save the executed method call. */
   public void setExecuted(UUID call) {
     callsExecuted.add(call);
   }
 
+  /**
+   * Get the subset of method calls that were not executed.
+   *
+   * @param calls the collection of all calls.
+   * @return the set of calls that were not executed.
+   */
   public Set<UUID> getNotExecuted(Collection<UUID> calls) {
     HashSet<UUID> cached = new HashSet<>(calls);
     cached.removeAll(callsExecuted);

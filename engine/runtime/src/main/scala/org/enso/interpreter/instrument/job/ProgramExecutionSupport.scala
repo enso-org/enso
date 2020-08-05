@@ -122,7 +122,7 @@ trait ProgramExecutionSupport {
     * @param contextId an identifier of an execution context
     * @param stack a call stack
     * @param updatedVisualisations a list of updated visualisations
-    * @param sendMethodCallUpdates a flag to send the method calls of the
+    * @param sendMethodCallUpdates a flag to send all the method calls of the
     * executed frame as a value updates
     * @param ctx a runtime context
     * @return either an error message or Unit signaling completion of a program

@@ -4,7 +4,7 @@ import java.lang.ref.SoftReference;
 import java.util.*;
 
 /** A storage for computed values. */
-public class RuntimeCache {
+public final class RuntimeCache {
 
   private final Map<UUID, SoftReference<Object>> cache = new HashMap<>();
   private final Map<UUID, String> types = new HashMap<>();

@@ -12,7 +12,7 @@ import org.enso.polyglot.runtime.Runtime.Api
   * @param contextId an identifier of a context to execute
   * @param stack a call stack to execute
   * @param updatedVisualisations a list of updated visualisations
-  * @param sendMethodCallUpdates a flag to send the method calls of the
+  * @param sendMethodCallUpdates a flag to send all the method calls of the
   * executed frame as a value updates
   */
 class ExecuteJob(
