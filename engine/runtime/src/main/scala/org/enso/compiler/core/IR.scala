@@ -1445,9 +1445,7 @@ object IR {
       *
       * @return `true` if `this` is in referant form, otherwise `false`
       */
-    def isReferant: Boolean = {
-      name.split("_").filterNot(_.isEmpty).forall(_.head.isUpper)
-    }
+    def isReferant: Boolean
 
     /** Checks whether a name is in variable form.
       *
@@ -1509,6 +1507,8 @@ object IR {
         res.id = id
         res
       }
+
+      override def isReferant: Boolean = true
 
       override def duplicate(
         keepLocations: Boolean   = true,
@@ -1621,6 +1621,14 @@ object IR {
       override def setLocation(location: Option[IdentifiedLocation]): Name =
         copy(location = location)
 
+      /** Checks whether a name is in referant form.
+        *
+        * Please see the syntax specification for more details on this form.
+        *
+        * @return `true` if `this` is in referant form, otherwise `false`
+        */
+      override def isReferant: Boolean = true
+
       /** Creates a copy of `this`.
         *
         * @param parts the segments of the name
@@ -1706,6 +1714,14 @@ object IR {
         res
       }
 
+      /** Checks whether a name is in referant form.
+        *
+        * Please see the syntax specification for more details on this form.
+        *
+        * @return `true` if `this` is in referant form, otherwise `false`
+        */
+      override def isReferant: Boolean = false
+
       override def duplicate(
         keepLocations: Boolean   = true,
         keepMetadata: Boolean    = true,
@@ -1744,12 +1760,14 @@ object IR {
     /** The representation of a literal name.
       *
       * @param name the literal text of the name
+      * @param isReferant is this a referant name
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Literal(
       override val name: String,
+      override val isReferant: Boolean,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -1759,6 +1777,7 @@ object IR {
       /** Creates a copy of `this`.
         *
         * @param name the literal text of the name
+        * @param isReferant is this a referant name
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
@@ -1767,12 +1786,13 @@ object IR {
         */
       def copy(
         name: String                         = name,
+        isReferant: Boolean                  = isReferant,
         location: Option[IdentifiedLocation] = location,
         passData: MetadataStorage            = passData,
         diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Literal = {
-        val res = Literal(name, location, passData, diagnostics)
+        val res = Literal(name, isReferant, location, passData, diagnostics)
         res.id = id
         res
       }
@@ -1800,6 +1820,7 @@ object IR {
         s"""
         |IR.Name.Literal(
         |name = $name,
+        |isReferant = $isReferant,
         |location = $location,
         |passData = ${this.showPassData},
         |diagnostics = $diagnostics,
@@ -1825,6 +1846,15 @@ object IR {
     ) extends Name {
       override protected var id: Identifier = randomId
       override val name: String             = "this"
+
+
+      /** Checks whether a name is in referant form.
+        *
+        * Please see the syntax specification for more details on this form.
+        *
+        * @return `true` if `this` is in referant form, otherwise `false`
+        */
+      override def isReferant: Boolean = false
 
       /** Creates a copy of `this`.
         *
@@ -1893,6 +1923,15 @@ object IR {
     ) extends Name {
       override protected var id: Identifier = randomId
       override val name: String             = "here"
+
+
+      /** Checks whether a name is in referant form.
+        *
+        * Please see the syntax specification for more details on this form.
+        *
+        * @return `true` if `this` is in referant form, otherwise `false`
+        */
+      override def isReferant: Boolean = false
 
       /** Creates a copy of `this`.
         *
@@ -4994,6 +5033,15 @@ object IR {
         with IRKind.Primitive
         with IR.Name {
       override val name: String = originalName.name
+
+
+      /** Checks whether a name is in referant form.
+        *
+        * Please see the syntax specification for more details on this form.
+        *
+        * @return `true` if `this` is in referant form, otherwise `false`
+        */
+      override def isReferant: Boolean = originalName.isReferant
 
       override def mapExpressions(fn: Expression => Expression): Resolution =
         this

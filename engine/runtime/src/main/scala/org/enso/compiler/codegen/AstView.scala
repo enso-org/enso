@@ -443,10 +443,10 @@ object AstView {
 
   object MethodCall {
 
-    private def toLowerCase(ast: AST.Ident): AST.Ident =
+    private def consToVar(ast: AST.Ident): AST.Ident =
       ast match {
         case AST.Ident.Cons(c) =>
-          AST.Ident.Var(c.toLowerCase).setLocation(ast.location).setID(ast.id)
+          AST.Ident.Var(c).setLocation(ast.location).setID(ast.id)
         case _ => ast
       }
 
@@ -463,14 +463,14 @@ object AstView {
     def unapply(ast: AST): Option[(AST, AST.Ident, List[AST])] =
       ast match {
         case OperatorDot(target, Application(ConsOrVar(ident), args)) =>
-          Some((target, toLowerCase(ident), args))
+          Some((target, consToVar(ident), args))
         case AST.App.Section.Left(
               MethodCall(target, ident, List()),
               susp @ SuspendDefaultsOperator(_)
             ) =>
           Some((target, ident, List(susp)))
         case OperatorDot(target, ConsOrVar(ident)) =>
-          Some((target, toLowerCase(ident), List()))
+          Some((target, consToVar(ident), List()))
         case _ => None
       }
   }

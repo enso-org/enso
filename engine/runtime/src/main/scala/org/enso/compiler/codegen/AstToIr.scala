@@ -116,7 +116,11 @@ object AstToIr {
       case AstView.Atom(consName, args) =>
         Module.Scope.Definition
           .Atom(
-            Name.Literal(consName.name, getIdentifiedLocation(consName)),
+            Name.Literal(
+              consName.name,
+              isReferant(consName),
+              getIdentifiedLocation(consName)
+            ),
             args.map(translateArgumentDefinition(_)),
             getIdentifiedLocation(inputAst)
           )
@@ -131,7 +135,7 @@ object AstToIr {
 
         if (containsAtomDefOrInclude && !hasArgs) {
           Module.Scope.Definition.Type(
-            Name.Literal(typeName.name, getIdentifiedLocation(typeName)),
+            buildName(typeName),
             args.map(translateArgumentDefinition(_)),
             translatedBody,
             getIdentifiedLocation(inputAst)
@@ -148,14 +152,9 @@ object AstToIr {
           val pathSegments = targetPath.collect {
             case AST.Ident.Cons.any(c) => c
           }
-          val pathNames = pathSegments.map(c =>
-            IR.Name.Literal(c.name, getIdentifiedLocation(c))
-          )
+          val pathNames = pathSegments.map(c => buildName(c))
 
-          val methodSegments = pathNames :+ Name.Literal(
-              nameStr.name,
-              getIdentifiedLocation(nameStr)
-            )
+          val methodSegments = pathNames :+ buildName(nameStr)
 
           val typeSegments = methodSegments.init
 
@@ -168,10 +167,8 @@ object AstToIr {
             MethodReference.genLocation(methodSegments)
           )
         } else {
-          val typeName = Name.Here(None)
-          val methodName =
-            Name.Literal(nameStr.name, getIdentifiedLocation(nameStr))
-
+          val typeName   = Name.Here(None)
+          val methodName = buildName(nameStr)
           Name.MethodReference(
             typeName,
             methodName,
@@ -187,7 +184,7 @@ object AstToIr {
         )
       case AstView.FunctionSugar(name, args, body) =>
         val typeName   = Name.Here(None)
-        val methodName = Name.Literal(name.name, getIdentifiedLocation(name))
+        val methodName = buildName(name)
 
         val methodReference = Name.MethodReference(
           typeName,
@@ -205,9 +202,8 @@ object AstToIr {
       case AstView.TypeAscription(typed, sig) =>
         typed match {
           case AST.Ident.any(ident) =>
-            val typeName = Name.Here(None)
-            val methodName =
-              Name.Literal(ident.name, getIdentifiedLocation(ident))
+            val typeName   = Name.Here(None)
+            val methodName = buildName(ident)
             val methodReference = Name.MethodReference(
               typeName,
               methodName,
@@ -323,7 +319,7 @@ object AstToIr {
             )
           case _ =>
             IR.Application.Prefix(
-              IR.Name.Literal("negate", None),
+              IR.Name.Literal("negate", isReferant = false, None),
               List(
                 IR.CallArgument.Specified(
                   None,
@@ -345,7 +341,7 @@ object AstToIr {
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
         Expression.Binding(
-          Name.Literal(name.name, getIdentifiedLocation(name)),
+          buildName(name),
           Expression.Block(
             lines.map(translateExpression),
             translateExpression(lastLine),
@@ -557,7 +553,7 @@ object AstToIr {
       case AstView.AssignedArgument(left, right) =>
         CallArgument
           .Specified(
-            Some(Name.Literal(left.name, getIdentifiedLocation(left))),
+            Some(buildName(left)),
             translateExpression(right),
             getIdentifiedLocation(arg)
           )
@@ -632,7 +628,7 @@ object AstToIr {
             } else {
               Application.Operator.Binary(
                 leftArg,
-                Name.Literal(fn.name, getIdentifiedLocation(fn)),
+                buildName(fn),
                 rightArg,
                 getIdentifiedLocation(callable)
               )
@@ -681,13 +677,13 @@ object AstToIr {
         } else {
           Application.Operator.Section.Left(
             leftArg,
-            Name.Literal(left.opr.name, getIdentifiedLocation(left.opr)),
+            buildName(left.opr),
             getIdentifiedLocation(left)
           )
         }
       case AST.App.Section.Sides.any(sides) =>
         Application.Operator.Section.Sides(
-          Name.Literal(sides.opr.name, getIdentifiedLocation(sides.opr)),
+          buildName(sides.opr),
           getIdentifiedLocation(sides)
         )
       case AST.App.Section.Right.any(right) =>
@@ -697,7 +693,7 @@ object AstToIr {
           Error.Syntax(section, Error.Syntax.NamedArgInSection)
         } else {
           Application.Operator.Section.Right(
-            Name.Literal(right.opr.name, getIdentifiedLocation(right.opr)),
+            buildName(right.opr),
             translateCallArgument(right.arg),
             getIdentifiedLocation(right)
           )
@@ -719,10 +715,10 @@ object AstToIr {
         } else if (name == "here") {
           Name.Here(getIdentifiedLocation(identifier))
         } else {
-          Name.Literal(name, getIdentifiedLocation(identifier))
+          buildName(identifier)
         }
-      case AST.Ident.Cons(name) =>
-        Name.Literal(name, getIdentifiedLocation(identifier))
+      case AST.Ident.Cons(_) =>
+        buildName(identifier)
       case AST.Ident.Blank(_) =>
         Name.Blank(getIdentifiedLocation(identifier))
       case AST.Ident.Opr.any(_) =>
@@ -910,4 +906,13 @@ object AstToIr {
         throw new UnhandledEntity(comment, "processComment")
     }
   }
+
+  private def isReferant(ident: AST.Ident): Boolean =
+    ident match {
+      case AST.Ident.Cons.any(_) => true
+      case _                     => false
+    }
+
+  private def buildName(ident: AST.Ident): IR.Name.Literal =
+    IR.Name.Literal(ident.name, isReferant(ident), getIdentifiedLocation(ident))
 }

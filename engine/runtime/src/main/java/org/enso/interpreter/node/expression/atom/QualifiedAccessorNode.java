@@ -9,7 +9,9 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
 
-@NodeInfo(shortName = "get_field", description = "A base for auto-generated Atom getters.")
+@NodeInfo(
+    shortName = "get_cons",
+    description = "A base for auto-generated module-level atom constructor getters.")
 public class QualifiedAccessorNode extends RootNode {
   private final AtomConstructor atomConstructor;
 
@@ -17,7 +19,7 @@ public class QualifiedAccessorNode extends RootNode {
    * Creates a new instance of this node.
    *
    * @param language the current language instance.
-   * @param index the index this node should use for field lookup.
+   * @param atomConstructor the constructor to return.
    */
   public QualifiedAccessorNode(TruffleLanguage<?> language, AtomConstructor atomConstructor) {
     super(language);
@@ -25,11 +27,10 @@ public class QualifiedAccessorNode extends RootNode {
   }
 
   /**
-   * Executes the node, by taking the first argument from the frame and plucking the proper field
-   * from it.
+   * Executes the node, returning the predefined constructor.
    *
    * @param frame current execution frame
-   * @return the field value at predefined index
+   * @return the constant constructor
    */
   public Stateful execute(VirtualFrame frame) {
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());

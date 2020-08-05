@@ -67,7 +67,7 @@ case object BindingAnalysis extends IRPass {
                 Some(ref.methodName.name)
               else None
             case IR.Name.Here(_, _, _) => Some(ref.methodName.name)
-            case IR.Name.Literal(n, _, _, _) =>
+            case IR.Name.Literal(n, _, _, _, _) =>
               if (n == moduleContext.module.getName.item)
                 Some(ref.methodName.name)
               else None

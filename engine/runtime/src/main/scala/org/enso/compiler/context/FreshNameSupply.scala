@@ -14,7 +14,7 @@ class FreshNameSupply {
     * @return a new name
     */
   private def mkName(numId: Long): IR.Name.Literal =
-    IR.Name.Literal(s"<internal-${numId}>", None)
+    IR.Name.Literal(s"<internal-${numId}>", isReferant = false, None)
 
   /** Generates a name guaranteed not to exist in this program.
     *
@@ -30,6 +30,6 @@ class FreshNameSupply {
   def newReferantName(): IR.Name.Literal = {
     val num = counter
     counter += 1
-    IR.Name.Literal(s"Ref<$num>", None)
+    IR.Name.Literal(s"Ref<$num>", isReferant = true, None)
   }
 }

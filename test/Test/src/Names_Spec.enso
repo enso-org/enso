@@ -16,7 +16,7 @@ spec =
             Definitions.Foo 1 2 3 . sum . should_equal 6
             Definitions . Foo 1 2 3 . sum . should_equal 6
         it "should allow pattern matching in a qualified manner" <|
-            v = Definitions.Foo 1 2 3
+            v = Foo 1 2 3
             res = case v of
                 Definitions.Foo a b c -> a + b + c
             res.should_equal 6

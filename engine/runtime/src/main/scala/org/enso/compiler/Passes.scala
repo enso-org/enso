@@ -29,11 +29,6 @@ class Passes(passes: Option[List[PassGroup]] = None) {
     )
   )
 
-//  UpperCaseNameResolution => "Cons a b c" => "cons Mod a b c"
-//  StaticMethodResolution => "foo Cons a b c" => "Sth a b c"
-
-
-
   val functionBodyPasses = new PassGroup(
     List(
       MethodDefinitions,
@@ -49,13 +44,6 @@ class Passes(passes: Option[List[PassGroup]] = None) {
       AliasAnalysis,
       UppercaseNames,
       AliasAnalysis,
-
-//      UCNR
-//      AA
-//      (A)SMR
-//      AA
-
-
       LambdaConsolidate,
       AliasAnalysis,
       SuspendedArguments,

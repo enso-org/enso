@@ -713,7 +713,7 @@ class IrToTruffle(
       */
     def processName(name: IR.Name): RuntimeExpression = {
       val nameExpr = name match {
-        case IR.Name.Literal(nameStr, _, _, _) =>
+        case IR.Name.Literal(nameStr, _, _, _, _) =>
           val useInfo = name
             .unsafeGetMetadata(
               AliasAnalysis,
@@ -752,7 +752,12 @@ class IrToTruffle(
           ConstructorNode.build(moduleScope.getAssociatedType)
         case IR.Name.This(location, passData, _) =>
           processName(
-            IR.Name.Literal(Constants.Names.THIS_ARGUMENT, location, passData)
+            IR.Name.Literal(
+              Constants.Names.THIS_ARGUMENT,
+              isReferant = false,
+              location,
+              passData
+            )
           )
         case _: IR.Name.Blank =>
           throw new CompilerError(
