@@ -1621,12 +1621,6 @@ object IR {
       override def setLocation(location: Option[IdentifiedLocation]): Name =
         copy(location = location)
 
-      /** Checks whether a name is in referant form.
-        *
-        * Please see the syntax specification for more details on this form.
-        *
-        * @return `true` if `this` is in referant form, otherwise `false`
-        */
       override def isReferant: Boolean = true
 
       /** Creates a copy of `this`.
@@ -1714,12 +1708,6 @@ object IR {
         res
       }
 
-      /** Checks whether a name is in referant form.
-        *
-        * Please see the syntax specification for more details on this form.
-        *
-        * @return `true` if `this` is in referant form, otherwise `false`
-        */
       override def isReferant: Boolean = false
 
       override def duplicate(
@@ -1848,12 +1836,6 @@ object IR {
       override val name: String             = "this"
 
 
-      /** Checks whether a name is in referant form.
-        *
-        * Please see the syntax specification for more details on this form.
-        *
-        * @return `true` if `this` is in referant form, otherwise `false`
-        */
       override def isReferant: Boolean = false
 
       /** Creates a copy of `this`.
@@ -1924,13 +1906,6 @@ object IR {
       override protected var id: Identifier = randomId
       override val name: String             = "here"
 
-
-      /** Checks whether a name is in referant form.
-        *
-        * Please see the syntax specification for more details on this form.
-        *
-        * @return `true` if `this` is in referant form, otherwise `false`
-        */
       override def isReferant: Boolean = false
 
       /** Creates a copy of `this`.
@@ -5034,13 +5009,6 @@ object IR {
         with IR.Name {
       override val name: String = originalName.name
 
-
-      /** Checks whether a name is in referant form.
-        *
-        * Please see the syntax specification for more details on this form.
-        *
-        * @return `true` if `this` is in referant form, otherwise `false`
-        */
       override def isReferant: Boolean = originalName.isReferant
 
       override def mapExpressions(fn: Expression => Expression): Resolution =
