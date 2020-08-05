@@ -171,3 +171,24 @@ macro_rules! f_ {
         f_! { [$name] { $name . $($toks)* } }
     };
 }
+
+/// A macro for use in situations where the code is unreachable.
+///
+/// This macro will panic in debug builds, but in release builds it expands to
+/// the unsafe [`std::hint::unreachable_unchecked()`] function, which allows the
+/// compiler to optimise more.
+#[macro_export]
+macro_rules! unreachable_panic {
+    () => (
+        unreachable_panic!("This code was marked as unreachable.")
+    );
+    ($msg:tt) => (
+        if cfg!(debug_assertions) {
+            panic!($msg)
+        } else {
+            use std::hint::unreachable_unchecked;
+            #[allow(unsafe_code)]
+            unsafe { unreachable_unchecked() }
+        }
+    )
+}

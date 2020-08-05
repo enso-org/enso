@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::prelude::*;
 use lexer_definition::lexer::Lexer;
-use flexer::Flexer;
+use flexer::FlexerTemp;
 
 
 

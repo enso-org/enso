@@ -198,7 +198,11 @@ object Runtime {
     /**
       * A representation of a pointer to a method definition.
       */
-    case class MethodPointer(file: File, definedOnType: String, name: String)
+    case class MethodPointer(
+      module: String,
+      definedOnType: String,
+      name: String
+    )
 
     /**
       * A representation of an executable position in code.
@@ -240,13 +244,11 @@ object Runtime {
       *
       * @param expressionId expression id.
       * @param expressionType the type of expression.
-      * @param shortValue the value of expression.
       * @param methodCall the pointer to a method definition.
       */
     case class ExpressionValueUpdate(
       expressionId: ExpressionId,
       expressionType: Option[String],
-      shortValue: Option[String],
       methodCall: Option[MethodPointer]
     )
 

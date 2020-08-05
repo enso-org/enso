@@ -24,6 +24,8 @@ bench      = true
 [dependencies]
 enso-prelude         = { path = "../enso-prelude", version = "0.1.0" }
 itertools            = "0.8"
+lazy-reader          = { path = "../lazy-reader", version = "0.1.0" }
+nonempty             = "0.1.5"
 unicode-segmentation = "1.6.0"
 wasm-bindgen         = "0.2"
 

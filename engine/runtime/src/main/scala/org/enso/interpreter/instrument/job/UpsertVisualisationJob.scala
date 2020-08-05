@@ -38,7 +38,7 @@ class UpsertVisualisationJob(
       false
     ) {
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def run(implicit ctx: RuntimeContext): Option[Executable] = {
     ctx.locking.acquireContextLock(config.executionContextId)
     ctx.locking.acquireWriteCompilationLock()
@@ -59,8 +59,12 @@ class UpsertVisualisationJob(
           updateVisualisation(callable)
           ctx.endpoint.sendToClient(Api.Response(requestId, response))
           val stack = ctx.contextManager.getStack(config.executionContextId)
-          val exe =
-            Executable(config.executionContextId, stack, Seq(expressionId))
+          val exe = Executable(
+            config.executionContextId,
+            stack,
+            Seq(expressionId),
+            sendMethodCallUpdates = false
+          )
           Some(exe)
       }
     } finally {
@@ -95,8 +99,8 @@ class UpsertVisualisationJob(
     )
   }
 
-  private def replyWithModuleNotFoundError()(
-    implicit ctx: RuntimeContext
+  private def replyWithModuleNotFoundError()(implicit
+    ctx: RuntimeContext
   ): Unit = {
     ctx.endpoint.sendToClient(
       Api.Response(

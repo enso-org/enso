@@ -78,7 +78,11 @@ class Reader(input: InputStream) extends ReaderUTF(input) {
     var rewinded = false
 
     lazy val rewindBy = Array(Array(0, -1), Array(0, -1))
+    // Describes the currently matched sequence of characters that corresponds
+    // to the currently matched rule.
     lazy val matched  = new Rewinder(0)
+    // Used for the implementation of overlapping rules and also for manual
+    // rewinding by the user.
     lazy val rule     = new Rewinder(1)
 
     def maxRewindOffset =

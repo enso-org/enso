@@ -13,7 +13,7 @@ class RuntimeCacheTest extends AnyFlatSpec with Matchers {
 
   "RutimeCache" should "cache items" in {
     val cache = new RuntimeCache
-    val key   = UUID.randomUUID
+    val key   = UUID.randomUUID()
     val obj   = 42
 
     cache.offer(key, obj) shouldEqual false
@@ -28,7 +28,7 @@ class RuntimeCacheTest extends AnyFlatSpec with Matchers {
 
   it should "remove items" in {
     val cache = new RuntimeCache
-    val key   = UUID.randomUUID
+    val key   = UUID.randomUUID()
     val obj   = new Object
 
     cache.setWeights(
@@ -37,5 +37,17 @@ class RuntimeCacheTest extends AnyFlatSpec with Matchers {
     cache.offer(key, obj) shouldEqual true
     cache.remove(key) shouldEqual obj
     cache.get(key) shouldEqual null
+  }
+
+  it should "cache types" in {
+    val cache = new RuntimeCache
+    val key   = UUID.randomUUID()
+    val obj   = "Number"
+
+    cache.putType(key, obj) shouldEqual null
+    cache.putType(key, obj) shouldEqual obj
+
+    cache.removeType(key)
+    cache.putType(key, obj) shouldEqual null
   }
 }

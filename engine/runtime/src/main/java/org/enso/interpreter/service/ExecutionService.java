@@ -7,6 +7,7 @@ import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.compiler.context.Changeset;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
+import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.Context;
@@ -83,17 +84,19 @@ public class ExecutionService {
    *
    * @param call the call metadata.
    * @param cache the precomputed expression values.
+   * @param methodCallsCache the storage tracking the executed method calls.
    * @param nextExecutionItem the next item scheduled for execution.
-   * @param valueCallback the consumer for expression value events.
-   * @param visualisationCallback the consumer of the node visualisation events.
+   * @param onComputedCallback the consumer of the computed value events.
+   * @param onCachedCallback the consumer of the cached value events.
    * @param funCallCallback the consumer for function call events.
    */
   public void execute(
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
+      MethodCallsCache methodCallsCache,
       UUID nextExecutionItem,
-      Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
 
@@ -107,9 +110,10 @@ public class ExecutionService {
             src.getCharIndex(),
             src.getCharLength(),
             cache,
+            methodCallsCache,
             nextExecutionItem,
-            valueCallback,
-            visualisationCallback,
+            onComputedCallback,
+            onCachedCallback,
             funCallCallback);
     interopLibrary.execute(call);
     listener.dispose();
@@ -119,28 +123,30 @@ public class ExecutionService {
    * Executes a method described by its name, constructor it's defined on and the module it's
    * defined in.
    *
-   * @param modulePath the path to the module where the method is defined.
+   * @param moduleName the module where the method is defined.
    * @param consName the name of the constructor the method is defined on.
    * @param methodName the method name.
    * @param cache the precomputed expression values.
+   * @param methodCallsCache the storage tracking the executed method calls.
    * @param nextExecutionItem the next item scheduled for execution.
-   * @param valueCallback the consumer for expression value events.
-   * @param visualisationCallback the consumer of the node visualisation events.
+   * @param onComputedCallback the consumer of the computed value events.
+   * @param onCachedCallback the consumer of the cached value events.
    * @param funCallCallback the consumer for function call events.
    */
   public void execute(
-      File modulePath,
+      String moduleName,
       String consName,
       String methodName,
       RuntimeCache cache,
+      MethodCallsCache methodCallsCache,
       UUID nextExecutionItem,
-      Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
-      Consumer<IdExecutionInstrument.ExpressionValue> visualisationCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
     Optional<FunctionCallInstrumentationNode.FunctionCall> callMay =
         context
-            .getModuleForFile(modulePath)
+            .findModule(moduleName)
             .flatMap(module -> prepareFunctionCall(module, consName, methodName));
     if (!callMay.isPresent()) {
       return;
@@ -148,9 +154,10 @@ public class ExecutionService {
     execute(
         callMay.get(),
         cache,
+        methodCallsCache,
         nextExecutionItem,
-        valueCallback,
-        visualisationCallback,
+        onComputedCallback,
+        onCachedCallback,
         funCallCallback);
   }
 

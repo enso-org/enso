@@ -307,6 +307,7 @@ val newtypeVersion              = "0.4.4"
 val pprintVersion               = "0.5.9"
 val pureconfigVersion           = "0.13.0"
 val refinedVersion              = "0.9.14"
+val rustVersion                 = "1.40.0-nightly (b520af6fd 2019-11-03)"
 val scalacheckVersion           = "1.14.3"
 val scalacticVersion            = "3.3.0-SNAP2"
 val scalaLoggingVersion         = "3.9.2"
@@ -764,7 +765,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     testOptions in Test += Tests
         .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
-    sourceGenerators in Compile += GenerateFlatbuffers.task
+    sourceGenerators in Compile += GenerateFlatbuffers.task,
   )
   .configs(Benchmark)
   .settings(
@@ -782,6 +783,12 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
   .dependsOn(testkit % Test)
+
+lazy val ast = (project in file("lib/scala/ast"))
+  .settings(
+    version := ensoVersion,
+    Compile / sourceGenerators += GenerateAST.task,
+  )
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
@@ -810,7 +817,7 @@ lazy val runtime = (project in file("engine/runtime"))
         "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
         "org.typelevel"      %% "cats-core"             % catsVersion,
         "eu.timepit"         %% "refined"               % refinedVersion
-      ),
+    ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
@@ -828,6 +835,7 @@ lazy val runtime = (project in file("engine/runtime"))
       ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
+        rustVersion,
         graalVersion,
         javaVersion
       )((Global / onLoad).value)
@@ -887,6 +895,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
+  .dependsOn(ast)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~

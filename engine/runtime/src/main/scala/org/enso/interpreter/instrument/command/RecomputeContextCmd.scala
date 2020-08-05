@@ -19,9 +19,9 @@ class RecomputeContextCmd(
   request: Api.RecomputeContextRequest
 ) extends Command(maybeRequestId) {
 
-  /** @inheritdoc **/
-  override def execute(
-    implicit ctx: RuntimeContext,
+  /** @inheritdoc */
+  override def execute(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
     if (doesContextExist) {
@@ -30,8 +30,8 @@ class RecomputeContextCmd(
       replyWithContextNotExistError()
     }
 
-  private def invalidateCache()(
-    implicit ctx: RuntimeContext,
+  private def invalidateCache()(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Boolean] = {
     Future {
@@ -55,21 +55,26 @@ class RecomputeContextCmd(
     ctx.contextManager.contains(request.contextId)
   }
 
-  private def replyWithContextNotExistError()(
-    implicit ctx: RuntimeContext,
+  private def replyWithContextNotExistError()(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
     Future {
       reply(Api.ContextNotExistError(request.contextId))
     }
 
-  private def scheduleExecutionIfNeeded(isStackNonEmpty: Boolean)(
-    implicit ctx: RuntimeContext,
+  private def scheduleExecutionIfNeeded(isStackNonEmpty: Boolean)(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     if (isStackNonEmpty) {
-      val stack      = ctx.contextManager.getStack(request.contextId)
-      val executable = Executable(request.contextId, stack, Seq())
+      val stack = ctx.contextManager.getStack(request.contextId)
+      val executable = Executable(
+        request.contextId,
+        stack,
+        Seq(),
+        sendMethodCallUpdates = false
+      )
       for {
         _ <- ctx.jobProcessor.run(new EnsureCompiledStackJob(executable.stack))
         _ <- ctx.jobProcessor.run(new ExecuteJob(executable))

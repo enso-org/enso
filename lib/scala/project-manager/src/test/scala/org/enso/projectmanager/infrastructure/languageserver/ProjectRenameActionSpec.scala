@@ -28,7 +28,7 @@ class ProjectRenameActionSpec
     with MockitoSugar
     with FlakySpec {
 
-  "A project rename action" should "delegate request to the Language Server" in new TestCtx {
+  "A project rename action" should "delegate request to the Language Server" taggedAs Flaky in new TestCtx {
     //given
     val probe = TestProbe()
     fakeServer.withBehaviour {
