@@ -19,6 +19,9 @@ from which it then generates code for a highly-optimised lexer.
 - [Code Generation](#code-generation)
   - [Automated Code Generation](#automated-code-generation)
   - [Notes on Code Generation](#notes-on-code-generation)
+- [Structuring the Flexer Code](#structuring-the-flexer-code)
+  - [Supporting the Definition of Lexers](#supporting-the-definition-of-lexers)
+  - [Supporting Code Generation](#supporting-code-generation)
 - [An Example](#an-example)
 
 <!-- /MarkdownTOC -->
@@ -136,6 +139,37 @@ The following properties are likely to hold for the code generation machinery.
   for all lexers.
 - The primary generation is in `consume_next_character`, which takes a `Lexer`
   as an argument.
+
+## Structuring the Flexer Code
+
+In order to unify the API between the definition and generated usages of the
+flexer, the API is separated into the following components:
+
+- **Flexer:** The main flexer definition itself, providing functionality common
+  to the definition and implementation of all lexers.
+- **FlexerState:** The stateful components of a lexer definition. This trait is
+  implemented for a particular lexer definition, allowing the user to store
+  arbitrary data in their lexer, as needed.
+- **User-Defined Lexer:** The user can then define a lexer that _wraps_ the
+  flexer, specialised to the particular `FlexerState` that the user has defined.
+  It is recommended to implement `Deref` and `DerefMut` between the defined
+  lexer and the `Flexer`, to allow for ease of use.
+
+### Supporting the Definition of Lexers
+
+> The actionables for this section are:
+>
+> - Fill it in as the generation solidifies.
+
+### Supporting Code Generation
+
+This architecture separates out the generated code (which can be defined purely
+on the user-defined lexer), from the code that is defined as part of the lexer
+definition. This means that the same underlying structures can be used to both
+_define_ the lexer, and be used by the generated code from that definition.
+
+For an example of how these components are used in the generated lexer, please
+see [`generated_api_test`](../../lib/rust/flexer/tests/generated_api_test.rs).
 
 ## An Example
 

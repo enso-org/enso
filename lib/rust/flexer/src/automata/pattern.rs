@@ -4,9 +4,9 @@ use crate::automata::symbol::Symbol;
 
 use core::iter;
 use itertools::Itertools;
-use std::ops::BitAnd;
 use std::ops::BitOr;
 use std::ops::RangeInclusive;
+use std::ops::Shr;
 
 use Pattern::*;
 
@@ -24,7 +24,7 @@ pub enum Pattern {
     /// The pattern that triggers on any given pattern from a sequence.
     Or(Vec<Pattern>),
     /// The pattern that triggers when a sequence of patterns is encountered.
-    And(Vec<Pattern>),
+    Seq(Vec<Pattern>),
     /// The pattern that triggers on 0..N repetitions of given pattern.
     Many(Box<Pattern>)
 }
@@ -42,7 +42,7 @@ impl Pattern {
     }
 
     /// A pattern that triggers on any character.
-    pub fn any_char() -> Self {
+    pub fn any() -> Self {
         Pattern::symbols(Symbol::from(0)..=Symbol::from(u32::max_value()))
     }
 
@@ -53,7 +53,7 @@ impl Pattern {
 
     /// A pattern that triggers on 1..N repetitions of the pattern described by `self`.
     pub fn many1(self) -> Self {
-        self.clone() & self.many()
+        self.clone() >> self.many()
     }
 
     /// A pattern that triggers on 0..=1 repetitions of the pattern described by `self`.
@@ -87,24 +87,24 @@ impl Pattern {
     }
 
     /// Pattern that triggers when sequence of characters given by `chars` is encountered.
-    pub fn all(chars:&str) -> Self {
-        chars.chars().fold(Self::never(), |pat,char| pat & Self::char(char))
+    pub fn all_of(chars:&str) -> Self {
+        chars.chars().fold(Self::never(),|pat,char| pat >> Self::char(char))
     }
 
     /// The pattern that triggers on any characters contained in `chars`.
-    pub fn any(chars:&str) -> Self {
-        chars.chars().fold(Self::never(), |pat,char| pat | Self::char(char))
+    pub fn any_of(chars:&str) -> Self {
+        chars.chars().fold(Self::never(),|pat,char| pat | Self::char(char))
     }
 
     /// The pattern that doesn't trigger on any character contained in `chars`.
-    pub fn none(chars:&str) -> Self {
+    pub fn none_of(chars:&str) -> Self {
         let max        = u32::max_value();
         let char_iter  = chars.chars().map(|char| char as u32);
         let char_iter2 = iter::once(0).chain(char_iter).chain(iter::once(max));
         let mut codes  = char_iter2.collect_vec();
 
         codes.sort();
-        codes.iter().tuple_windows().fold(Self::never(), |pat,(start,end)| {
+        codes.iter().tuple_windows().fold(Self::never(),|pat,(start,end)| {
             if end < start {pat} else {
                 pat | Pattern::symbols(Symbol::from(*start)..=Symbol::from(*end))
             }
@@ -113,17 +113,17 @@ impl Pattern {
 
     /// The pattern that triggers on any character but `char`.
     pub fn not(char:char) -> Self {
-        Self::none(&char.to_string())
+        Self::none_of(&char.to_string())
     }
 
     /// The pattern that triggers on `num` repetitions of `pat`.
     pub fn repeat(pat:Pattern, num:usize) -> Self {
-        (0..num).fold(Self::always(), |p,_| p & pat.clone())
+        (0..num).fold(Self::always(),|p,_| p >> pat.clone())
     }
 
     /// Pattern that triggers on `min`..`max` repetitions of `pat`.
     pub fn repeat_between(pat:Pattern, min:usize, max:usize) -> Self {
-        (min..max).fold(Self::never(), |p,n| p | Self::repeat(pat.clone(),n))
+        (min..max).fold(Self::never(),|p,n| p | Self::repeat(pat.clone(),n))
     }
 }
 
@@ -142,14 +142,14 @@ impl BitOr<Pattern> for Pattern {
     }
 }
 
-impl BitAnd<Pattern> for Pattern {
+impl Shr<Pattern> for Pattern {
     type Output = Pattern;
-    fn bitand(self, rhs: Pattern) -> Self::Output {
+    fn shr(self, rhs: Pattern) -> Self::Output {
         match (self, rhs) {
-            (And(mut lhs), And(    rhs)) => {lhs.extend(rhs) ; And(lhs)},
-            (And(mut lhs), rhs         ) => {lhs.push(rhs)   ; And(lhs)},
-            (lhs         , And(mut rhs)) => {rhs.push(lhs)   ; And(rhs)},
-            (lhs         , rhs         ) => And(vec![lhs,rhs]),
+            (Seq(mut lhs), Seq(rhs))     => {lhs.extend(rhs) ; Seq(lhs)},
+            (Seq(mut lhs), rhs         ) => {lhs.push(rhs)   ; Seq(lhs)},
+            (lhs         , Seq(mut rhs)) => {rhs.push(lhs)   ; Seq(rhs)},
+            (lhs         , rhs         ) => Seq(vec![lhs, rhs]),
         }
     }
 }

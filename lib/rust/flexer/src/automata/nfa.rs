@@ -76,7 +76,7 @@ impl NFA {
     , target_state:state::Identifier
     , symbols:&RangeInclusive<Symbol>) {
         self.alphabet_segmentation.insert(symbols.clone());
-        self.states[source.id].links.push(Transition{symbols:symbols.clone(), target_state});
+        self.states[source.id].links.push(Transition{symbols:symbols.clone(),target_state});
     }
 
     /// Transforms a pattern to an NFA using the algorithm described
@@ -101,7 +101,7 @@ impl NFA {
                 self.connect(s3,s1);
                 s3
             },
-            Pattern::And(patterns) => {
+            Pattern::Seq(patterns) => {
                 patterns.iter().fold(current,|s,pat| self.new_pattern(s,pat))
             },
             Pattern::Or(patterns) => {
@@ -189,7 +189,7 @@ impl From<&NFA> for DFA {
                     dfa_mat[(i,voc_ix)] = match dfa_eps_map.get(&eps_set) {
                         Some(&id) => id,
                         None => {
-                            let id = state::Identifier {id:dfa_eps_ixs.len()};
+                            let id = state::Identifier::new(dfa_eps_ixs.len());
                             dfa_eps_ixs.push(eps_set.clone());
                             dfa_eps_map.insert(eps_set,id);
                             id
@@ -205,8 +205,8 @@ impl From<&NFA> for DFA {
         for (dfa_ix, epss) in dfa_eps_ixs.into_iter().enumerate() {
             let has_name = |&key:&state::Identifier| nfa.states[key.id].name.is_some();
             if let Some(eps) = epss.into_iter().find(has_name) {
-                let rule = nfa.states[eps.id].name.as_ref().cloned().unwrap();
-                callbacks[dfa_ix] = Some(RuleExecutable{ code:rule,priority});
+                let code          = nfa.states[eps.id].name.as_ref().cloned().unwrap();
+                callbacks[dfa_ix] = Some(RuleExecutable {code,priority});
             }
         }
 

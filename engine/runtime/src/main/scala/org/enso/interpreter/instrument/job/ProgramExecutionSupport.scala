@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument.job
 
-import java.io.File
-import java.util.UUID
+import java.util.{Objects, UUID}
 import java.util.function.Consumer
 import java.util.logging.Level
 
@@ -25,8 +24,6 @@ import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.Functi
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 
-import scala.jdk.javaapi.OptionConverters
-
 /**
   * Provides support for executing Enso code. Adds convenient methods to
   * run Enso programs in a Truffle context.
@@ -38,33 +35,36 @@ trait ProgramExecutionSupport {
     *
     * @param executionFrame an execution frame
     * @param callStack a call stack
-    * @param valueCallback a listener of computed values
-    * @param visualisationCallback a listener of fired visualisations
+    * @param onComputedCallback a listener of computed values
+    * @param onCachedCallback a listener of cached values
     */
   @scala.annotation.tailrec
   final private def runProgram(
     executionFrame: ExecutionFrame,
     callStack: List[LocalCallFrame],
-    valueCallback: Consumer[ExpressionValue],
-    visualisationCallback: Consumer[ExpressionValue]
+    onComputedCallback: Consumer[ExpressionValue],
+    onCachedCallback: Consumer[ExpressionValue]
   )(implicit ctx: RuntimeContext): Unit = {
     var enterables: Map[UUID, FunctionCall] = Map()
-    val valsCallback: Consumer[ExpressionValue] =
-      if (callStack.isEmpty) valueCallback else _ => ()
+    val computedCallback: Consumer[ExpressionValue] =
+      if (callStack.isEmpty) onComputedCallback else _ => ()
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
         enterables += fun.getExpressionId -> fun.getCall
       }
     executionFrame match {
-      case ExecutionFrame(ExecutionItem.Method(file, cons, function), cache) =>
+      case ExecutionFrame(
+            ExecutionItem.Method(module, cons, function),
+            cache
+          ) =>
         ctx.executionService.execute(
-          file,
+          module,
           cons,
           function,
           cache,
           callStack.headOption.map(_.expressionId).orNull,
-          valsCallback,
-          visualisationCallback,
+          computedCallback,
+          onCachedCallback,
           callablesCallback
         )
       case ExecutionFrame(ExecutionItem.CallData(callData), cache) =>
@@ -72,8 +72,8 @@ trait ProgramExecutionSupport {
           callData,
           cache,
           callStack.headOption.map(_.expressionId).orNull,
-          valsCallback,
-          visualisationCallback,
+          computedCallback,
+          onCachedCallback,
           callablesCallback
         )
     }
@@ -86,8 +86,8 @@ trait ProgramExecutionSupport {
             runProgram(
               ExecutionFrame(ExecutionItem.CallData(call), item.cache),
               tail,
-              valueCallback,
-              visualisationCallback
+              onComputedCallback,
+              onCachedCallback
             )
           case None =>
             ()
@@ -129,67 +129,66 @@ trait ProgramExecutionSupport {
         case ExecutionItem.CallData(call)         => call.getFunction.getName
       }
 
-    val visualisationUpdateCallback: Consumer[ExpressionValue] = { value =>
-      if (updatedVisualisations.contains(value.getExpressionId))
-        onVisualisationUpdate(contextId, value)
+    val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
+      if (updatedVisualisations.contains(value.getExpressionId)) {
+        ctx.executionService.getLogger.finer(s"ON_CACHED $value")
+        fireVisualisationUpdates(contextId, value)
+      }
+    }
+
+    val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
+      ctx.executionService.getLogger.finer(s"ON_COMPUTED $value")
+      sendValueUpdate(contextId, value)
+      fireVisualisationUpdates(contextId, value)
     }
 
     val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
     for {
       stackItem <- Either.fromOption(explicitCallOpt, "stack is empty")
-      _ <- Either
-        .catchNonFatal(
-          runProgram(
-            stackItem,
-            localCalls,
-            onExpressionValueComputed(contextId, _),
-            visualisationUpdateCallback
+      _ <-
+        Either
+          .catchNonFatal(
+            runProgram(
+              stackItem,
+              localCalls,
+              onComputedValueCallback,
+              onCachedValueCallback
+            )
           )
-        )
-        .leftMap { ex =>
-          ctx.executionService.getLogger.log(
-            Level.FINE,
-            s"Error executing a function '${getName(stackItem.item)}'",
-            ex
-          )
-          s"error in function: ${getName(stackItem.item)}"
-        }
+          .leftMap { ex =>
+            ctx.executionService.getLogger.log(
+              Level.FINE,
+              s"Error executing a function '${getName(stackItem.item)}'",
+              ex
+            )
+            s"error in function: ${getName(stackItem.item)}"
+          }
     } yield ()
-  }
-
-  private def onVisualisationUpdate(
-    contextId: Api.ContextId,
-    value: ExpressionValue
-  )(implicit ctx: RuntimeContext): Unit =
-    fireVisualisationUpdates(contextId, value)
-
-  private def onExpressionValueComputed(
-    contextId: Api.ContextId,
-    value: ExpressionValue
-  )(implicit ctx: RuntimeContext): Unit = {
-    sendValueUpdate(contextId, value)
-    fireVisualisationUpdates(contextId, value)
   }
 
   private def sendValueUpdate(
     contextId: ContextId,
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
-    ctx.endpoint.sendToClient(
-      Api.Response(
-        Api.ExpressionValuesComputed(
-          contextId,
-          Vector(
-            Api.ExpressionValueUpdate(
-              value.getExpressionId,
-              OptionConverters.toScala(value.getType),
-              Some(value.getValue.toString),
-              toMethodPointer(value)
+    if (
+      !Objects.equals(value.getType, value.getCachedType) ||
+      !Objects.equals(value.getCallInfo, value.getCachedCallInfo)
+    ) {
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          Api.ExpressionValuesComputed(
+            contextId,
+            Vector(
+              Api.ExpressionValueUpdate(
+                value.getExpressionId,
+                Some(value.getType),
+                toMethodPointer(value)
+              )
             )
           )
         )
       )
-    )
+    }
   }
 
   private def fireVisualisationUpdates(
@@ -251,21 +250,15 @@ trait ProgramExecutionSupport {
 
   private def toMethodPointer(
     value: ExpressionValue
-  )(implicit ctx: RuntimeContext): Option[Api.MethodPointer] =
+  ): Option[Api.MethodPointer] =
     for {
-      call          <- Option(value.getCallInfo)
-      moduleName    <- Option(call.getModuleName)
-      functionName  = call.getFunctionName
-      typeName      <- Option(call.getTypeName).map(_.item)
-      module <- OptionConverters.toScala(
-        ctx.executionService.getContext.getTopScope
-          .getModule(moduleName.toString)
-      )
-      modulePath <- Option(module.getPath)
+      call       <- Option(value.getCallInfo)
+      moduleName <- Option(call.getModuleName)
+      typeName   <- Option(call.getTypeName).map(_.item)
     } yield Api.MethodPointer(
-      new File(modulePath),
+      moduleName.toString,
       typeName,
-      functionName
+      call.getFunctionName
     )
 }
 
@@ -297,11 +290,11 @@ object ProgramExecutionSupport {
 
     /** The explicit method call.
       *
-      * @param file the file containing the method
+      * @param module the module containing the method
       * @param constructor the type on which the method is defined
       * @param function the method name
       */
-    case class Method(file: File, constructor: String, function: String)
+    case class Method(module: String, constructor: String, function: String)
         extends ExecutionItem
 
     object Method {
@@ -313,7 +306,7 @@ object ProgramExecutionSupport {
         */
       def apply(call: Api.StackItem.ExplicitCall): Method =
         Method(
-          call.methodPointer.file,
+          call.methodPointer.module,
           call.methodPointer.definedOnType,
           call.methodPointer.name
         )
