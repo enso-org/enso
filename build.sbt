@@ -796,7 +796,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
 lazy val ast = (project in file("lib/scala/ast"))
   .settings(
     version := ensoVersion,
-    Compile / sourceGenerators += GenerateAST.task
+    GenerateAST.rustVersion := rustVersion,
+    Compile / sourceGenerators += GenerateAST.task,
   )
 
 lazy val runtime = (project in file("engine/runtime"))
@@ -904,7 +905,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
-  .dependsOn(ast)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
