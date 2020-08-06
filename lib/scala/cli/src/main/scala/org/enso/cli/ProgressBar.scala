@@ -4,23 +4,41 @@ import java.util.concurrent.LinkedTransferQueue
 
 import scala.util.Try
 
+/**
+  * Allows to display a progress bar in a terminal.
+  */
 private[cli] class ProgressBar {
-  def startProgress(): Unit = {
+
+  /**
+    * Begins drawing the progressbar.
+    */
+  def start(): Unit = {
     drawProgressBar(0, "")
   }
 
-  def showProgress(percentage: Float): Unit = {
+  /**
+    * Updates the progressbar with a percentage.
+    */
+  def updateProgress(percentage: Float): Unit = {
     drawProgressBar(
       (percentage / 100.0f * totalStates).floor.toInt,
       s"${percentage.toInt}%"
     )
   }
 
-  def endProgress(): Unit = {
+  /**
+    * Clears the progressbar.
+    */
+  def hide(): Unit = {
     print("\r" + " " * (paddingLength + 2) + "\r")
   }
 
-  def showUnknownProgress(state: Int): Unit = {
+  /**
+    * Displays a next step of animation indicating progress of a task with an
+    * unknown total.
+    */
+  def showUnknownProgress(): Unit = {
+    state += 1
     val pos    = state % progressWidth
     val prefix = " " * pos
     val suffix = " " * (progressWidth - pos - 1)
@@ -28,6 +46,7 @@ private[cli] class ProgressBar {
     print(bar)
   }
 
+  private var state               = 0
   private var longestComment: Int = 0
   def paddingLength: Int          = progressWidth + 4 + longestComment
 
@@ -60,7 +79,7 @@ object ProgressBar {
 
   def waitWithProgress[A](task: TaskProgress[A]): Try[A] = {
     val progressBar = new ProgressBar
-    progressBar.startProgress()
+    progressBar.start()
 
     sealed trait Update
     case class Progress(done: Long, total: Option[Long]) extends Update
@@ -75,16 +94,14 @@ object ProgressBar {
     })
 
     var result: Option[Try[A]] = None
-    var unknownCounter         = 0
     while (result.isEmpty) {
       queue.take() match {
         case Progress(done, Some(total)) =>
-          progressBar.showProgress(100.0f * done / total)
+          progressBar.updateProgress(100.0f * done / total)
         case Progress(_, None) =>
-          unknownCounter += 1
-          progressBar.showUnknownProgress(unknownCounter)
+          progressBar.showUnknownProgress()
         case Done(incomingResult) =>
-          progressBar.endProgress()
+          progressBar.hide()
 
           result = Some(incomingResult)
       }

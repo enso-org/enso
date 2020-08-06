@@ -16,15 +16,57 @@ import org.enso.launcher.releases.ReleaseProviderException
 
 import scala.util.{Success, Try}
 
+/**
+  * Contains functions used to query the GitHubAPI endpoints.
+  */
 object GithubAPI {
+
+  /**
+    * Represents a GitHub repository.
+    *
+    * @param owner owner of the repository
+    * @param name name of the repository
+    */
   case class Repository(owner: String, name: String)
+
+  /**
+    * Represents a GitHub release.
+    *
+    * @param tag tag associated with the release
+    * @param assets sequence of assets present in this release
+    */
   case class Release(tag: String, assets: Seq[Asset])
+
+  /**
+    * Represents an asset available in a [[Release]]
+    *
+    * @param name filename of that asset
+    * @param url URL that can be used to download this asset
+    * @param size size of the asset in bytes
+    */
   case class Asset(name: String, url: String, size: Long)
 
-  def listReleases(repo: Repository): Try[Seq[Release]] = {
+  /**
+    * Returns a list of all releases in the repository.
+    *
+    * It fetches all available pages of releases, to make sure all releases are
+    * included. This is necessary, because the GitHub API does not guarantee
+    * that the releases are returned in order. The 'empirical' order seems to be
+    * 'latest first', but even assuming that is a too weak guarantee, because
+    * *theoretically* so many patches for an earlier release could be released,
+    * that the latest release in the semver sense will not make it to the first
+    * page. So to be absolutely sure that we can find the latest release, we
+    * need to list all of them.
+    *
+    * The endpoint is blocking, because we cannot estimate how many requests
+    * will be necessary and each individual request should be quick as it just
+    * downloads some text, so there is not much gain in displaying a progress
+    * bar for this task.
+    */
+  def listReleases(repository: Repository): Try[Seq[Release]] = {
     val perPage = 100
     def listPage(page: Int): Try[Seq[Release]] = {
-      val uri = (projectURI(repo) / "releases") ?
+      val uri = (projectURI(repository) / "releases") ?
         ("per_page" -> perPage.toString) ? ("page" -> page.toString)
 
       HTTPDownload
@@ -56,6 +98,9 @@ object GithubAPI {
     listAllPages(1)
   }
 
+  /**
+    * Fetches release metadata for the release associated with the given tag.
+    */
   def getRelease(repo: Repository, tag: String): TaskProgress[Release] = {
     val uri = projectURI(repo) / "releases" / "tags" / tag
 
@@ -75,6 +120,15 @@ object GithubAPI {
       )
   }
 
+  /**
+    * A helper function that detecte a rate-limit error and tries to make a more
+    * friendly user message.
+    *
+    * If the rate-limit is hit, an error message is returned by the API which is
+    * of course not parsed correctly by a reader that expects a normal response.
+    * The rate-limit is detected and if it caused the error, the error is
+    * overridden with a message explaining the rate-limit.
+    */
   private def handleError(
     response: APIResponse,
     defaultError: => Throwable
@@ -92,23 +146,34 @@ object GithubAPI {
     }
   }
 
+  /**
+    * Fetches an asset as text.
+    *
+    * Returns a [[TaskProgress]] that will return the asset contents as a
+    * [[String]] on success.
+    */
   def fetchTextAsset(asset: Asset): TaskProgress[String] = {
     val request = HTTPRequestBuilder
-      .fromURL(asset.url)
-      .setHeader("Accept", "application/octet-stream")
+      .fromURIString(asset.url)
+      .addHeader("Accept", "application/octet-stream")
       .GET
 
     HTTPDownload.fetchString(request, Some(asset.size)).map(_.content)
   }
 
-  def downloadAsset(asset: Asset, path: Path): TaskProgress[Unit] = {
+  /**
+    * Downloads the asset to the provided `destination`.
+    *
+    * The returned [[TaskProgress]] succeeds iff the download was successful.
+    */
+  def downloadAsset(asset: Asset, destination: Path): TaskProgress[Unit] = {
     val request = HTTPRequestBuilder
-      .fromURL(asset.url)
-      .setHeader("Accept", "application/octet-stream")
+      .fromURIString(asset.url)
+      .addHeader("Accept", "application/octet-stream")
       .GET
 
     HTTPDownload
-      .download(request, path, Some(asset.size))
+      .download(request, destination, Some(asset.size))
       .map(_ => ())
   }
 
@@ -117,7 +182,7 @@ object GithubAPI {
   private def projectURI(project: Repository) =
     baseUrl / "repos" / project.owner / project.name
 
-  implicit val assetDecoder: Decoder[Asset] = { json =>
+  implicit private val assetDecoder: Decoder[Asset] = { json =>
     for {
       url  <- json.get[String]("browser_download_url")
       name <- json.get[String]("name")
@@ -125,7 +190,7 @@ object GithubAPI {
     } yield Asset(name = name, url = url, size = size)
   }
 
-  implicit val releaseDecoder: Decoder[Release] = { json =>
+  implicit private val releaseDecoder: Decoder[Release] = { json =>
     for {
       tag    <- json.get[String]("tag_name")
       assets <- json.get[Seq[Asset]]("assets")

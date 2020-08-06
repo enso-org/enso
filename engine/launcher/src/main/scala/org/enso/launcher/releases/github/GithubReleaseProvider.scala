@@ -7,13 +7,20 @@ import org.enso.launcher.releases.{Asset, Release, ReleaseProvider}
 
 import scala.util.Try
 
+/**
+  * Implements [[ReleaseProvider]] providing releases from a specified GitHub
+  * repository using the GitHub Release API.
+  *
+  * @param owner owner of the repository
+  * @param repositoryName name of the repository
+  */
 class GithubReleaseProvider(
-  organisation: String,
-  projectName: String
+  owner: String,
+  repositoryName: String
 ) extends ReleaseProvider {
-  private val repo = GithubAPI.Repository(organisation, projectName)
+  private val repo = GithubAPI.Repository(owner, repositoryName)
 
-  override def releaseForVersion(tag: String): Try[Release] =
+  override def releaseForTag(tag: String): Try[Release] =
     GithubAPI.getRelease(repo, tag).waitForResult().map(wrapRelease)
 
   override def listReleases(): Try[Seq[Release]] =

@@ -9,6 +9,10 @@ import org.enso.launcher.releases.github.GithubReleaseProvider
 
 import scala.util.{Failure, Success}
 
+/**
+  * [[RuntimeReleaseProvider]] implementation providing Graal Community Edition
+  * releases from the given [[ReleaseProvider]].
+  */
 class GraalCEReleaseProvider(releaseProvider: ReleaseProvider)
     extends RuntimeReleaseProvider {
   override def packageFileName(version: RuntimeVersion): String = {
@@ -26,20 +30,20 @@ class GraalCEReleaseProvider(releaseProvider: ReleaseProvider)
     s"graalvm-ce-java${version.java}-$os-$arch-${version.graal}$extension"
   }
 
-  def downloadPackage(
+  override def downloadPackage(
     version: RuntimeVersion,
-    path: Path
+    destination: Path
   ): TaskProgress[Unit] = {
     val tagName     = s"vm-${version.graal}"
     val packageName = packageFileName(version)
-    val release     = releaseProvider.releaseForVersion(tagName)
+    val release     = releaseProvider.releaseForTag(tagName)
     release match {
       case Failure(exception) =>
         TaskProgress.immediateFailure(exception)
       case Success(release) =>
         release.assets
           .find(_.fileName == packageName)
-          .map(_.downloadTo(path))
+          .map(_.downloadTo(destination))
           .getOrElse {
             TaskProgress.immediateFailure(
               new RuntimeException(
@@ -51,6 +55,10 @@ class GraalCEReleaseProvider(releaseProvider: ReleaseProvider)
   }
 }
 
+/**
+  * Default [[RuntimeReleaseProvider]] that provides Graal CE releases using the
+  * GitHub Release API.
+  */
 object GraalCEReleaseProvider
     extends GraalCEReleaseProvider(
       new GithubReleaseProvider("graalvm", "graalvm-ce-builds")

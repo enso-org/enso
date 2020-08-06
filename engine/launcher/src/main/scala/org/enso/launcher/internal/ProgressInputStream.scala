@@ -2,11 +2,33 @@ package org.enso.launcher.internal
 
 import java.io.InputStream
 
+/**
+  * Represents a *mutable* progress status.
+  */
 trait ReadProgress {
+
+  /**
+    * Specifies how many units have already been read.
+    *
+    * Querying this property over time may give different results as the task
+    * progresses.
+    */
   def alreadyRead(): Long
-  def total():       Option[Long]
+
+  /**
+    * Specifies how many units in total are expected, if known.
+    */
+  def total(): Option[Long]
 }
 
+/**
+  * A wrapper for an [[InputStream]] that tracks the read progresss.
+  *
+  * @param in the base stream to wrap
+  * @param totalSize total amount of bytes that are expected to be available in
+  *                  that stream
+  * @param updated a callback that is called whenever progress is made
+  */
 private[launcher] class ProgressInputStream(
   in: InputStream,
   totalSize: Option[Long],
@@ -19,6 +41,10 @@ private[launcher] class ProgressInputStream(
     override def total(): Option[Long] = totalSize
   }
 
+  /**
+    * Returns the [[ReadProgress]] instance that can be queried to check how
+    * many bytes have been read already.
+    */
   def progress: ReadProgress = readProgress
 
   override def available: Int =

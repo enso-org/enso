@@ -13,7 +13,7 @@ import sys.process._
 case class FakeReleaseProvider(releasesRoot: Path) extends ReleaseProvider {
   private val releases = FileSystem.listDirectory(releasesRoot).map(FakeRelease)
 
-  override def releaseForVersion(tag: String): Try[Release] =
+  override def releaseForTag(tag: String): Try[Release] =
     releases
       .find(_.tag == tag)
       .toRight(new RuntimeException("unknown release"))

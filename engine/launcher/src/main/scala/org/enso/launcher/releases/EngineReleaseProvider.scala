@@ -12,11 +12,25 @@ import org.enso.launcher.components.Manifest
 
 import scala.util.{Failure, Success, Try}
 
+/**
+  * Represents an engine release.
+  *
+  * @param version engine version
+  * @param manifest manifest associated with the release
+  * @param release a [[Release]] that allows to download assets
+  */
 case class EngineRelease(
   version: SemVer,
   manifest: Manifest,
   release: Release
 ) {
+
+  /**
+    * Determines the filename of the package that should be downloaded from this
+    * release.
+    *
+    * That filename may be platform specific.
+    */
   def packageFileName: String = {
     val os = OS.operatingSystem match {
       case OS.Linux   => "linux"
@@ -33,9 +47,15 @@ case class EngineRelease(
   }
 }
 
+/**
+  * Wraps a generic [[ReleaseProvider]] to provide engine releases from it.
+  */
 class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
   private val tagPrefix = "enso-"
 
+  /**
+    * Returns the version of the most recent engine release.
+    */
   def findLatest(): Try[SemVer] =
     releaseProvider.listReleases().flatMap { releases =>
       val versions =
@@ -45,10 +65,13 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
       }
     }
 
+  /**
+    * Fetches release metadata for a given version.
+    */
   def getRelease(version: SemVer): Try[EngineRelease] = {
     val tag = tagPrefix + version.toString
     for {
-      release <- releaseProvider.releaseForVersion(tag)
+      release <- releaseProvider.releaseForTag(tag)
       manifestAsset <-
         release.assets
           .find(_.fileName == Manifest.DEFAULT_MANIFEST_NAME)
@@ -70,6 +93,14 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
     } yield EngineRelease(version, manifest, release)
   }
 
+  /**
+    * Downloads the package associated with the given release into
+    * `destination`.
+    *
+    * @param release the release to download the package from
+    * @param destination name of the file that will be created to contain the
+    * downloaded package
+    */
   def downloadPackage(
     release: EngineRelease,
     destination: Path
@@ -88,10 +119,13 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
   }
 }
 
+/**
+  * Default [[EngineReleaseProvider]] that uses the GitHub Release API.
+  */
 object EngineReleaseProvider
     extends EngineReleaseProvider(
       new GithubReleaseProvider(
         "enso-org",
-        "enso-staging"
-      ) // TODO [RW] move from staging to the main repository */
+        "enso-staging" // TODO [RW] move from staging to the main repository
+      )
     )
