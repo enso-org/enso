@@ -6,6 +6,7 @@ import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
+import org.enso.launcher.OS
 import org.enso.launcher.releases.github.GithubReleaseProvider
 import org.enso.launcher.components.Manifest
 
@@ -16,7 +17,20 @@ case class EngineRelease(
   manifest: Manifest,
   release: Release
 ) {
-  def packageFileName: String = s"enso-engine-$version.zip"
+  def packageFileName: String = {
+    val os = OS.operatingSystem match {
+      case OS.Linux   => "linux"
+      case OS.MacOS   => "macos"
+      case OS.Windows => "windows"
+    }
+    val arch = OS.architecture
+    val extension = OS.operatingSystem match {
+      case OS.Linux   => ".tar.gz"
+      case OS.MacOS   => ".tar.gz"
+      case OS.Windows => ".zip"
+    }
+    s"enso-engine-$version-$os-$arch$extension"
+  }
 }
 
 class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
@@ -27,7 +41,7 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
       val versions =
         releases.map(_.tag.stripPrefix(tagPrefix)).flatMap(SemVer(_))
       versions.sorted.lastOption.map(Success(_)).getOrElse {
-        Failure(new RuntimeException("No valid engine versions were found"))
+        Failure(ReleaseProviderException("No valid engine versions were found"))
       }
     }
 
@@ -39,9 +53,9 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
         release.assets
           .find(_.fileName == Manifest.DEFAULT_MANIFEST_NAME)
           .toRight(
-            new RuntimeException(
+            ReleaseProviderException(
               s"${Manifest.DEFAULT_MANIFEST_NAME} file is mising from " +
-              s"release assets"
+              s"release assets."
             )
           )
           .toTry
@@ -49,7 +63,9 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
       manifest <-
         Manifest
           .fromYaml(manifestContent)
-          .toRight(new RuntimeException("Cannot parse manifest"))
+          .toRight(
+            ReleaseProviderException("Cannot parse attached manifest file.")
+          )
           .toTry
     } yield EngineRelease(version, manifest, release)
   }
@@ -64,7 +80,7 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
       .map(_.downloadTo(destination))
       .getOrElse {
         TaskProgress.immediateFailure(
-          new RuntimeException(
+          ReleaseProviderException(
             s"Cannot find package `$packageName` in the release."
           )
         )

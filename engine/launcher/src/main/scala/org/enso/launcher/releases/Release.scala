@@ -21,3 +21,9 @@ trait ReleaseProvider {
   def releaseForVersion(tag: String): Try[Release]
   def listReleases():                 Try[Seq[Release]]
 }
+
+case class ReleaseProviderException(message: String, cause: Throwable = null)
+    extends RuntimeException(message, cause) {
+  override def toString: String =
+    s"A problem occurred when trying to find the release: $message"
+}

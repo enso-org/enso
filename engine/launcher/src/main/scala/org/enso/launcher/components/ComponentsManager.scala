@@ -347,7 +347,8 @@ class ComponentsManager(
     for (runtime <- listInstalledRuntimes()) {
       if (findEnginesUsingRuntime(runtime).isEmpty) {
         Logger.info(
-          s"Removing $runtime, because it is not used by any engines anymore."
+          s"Removing $runtime, because it is not used by any installed Enso " +
+          s"versions."
         )
         safelyRemoveComponent(runtime.path)
       }

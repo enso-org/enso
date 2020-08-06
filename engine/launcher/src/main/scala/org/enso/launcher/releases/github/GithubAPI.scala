@@ -12,6 +12,7 @@ import org.enso.launcher.internal.http.{
   HTTPRequestBuilder,
   URIBuilder
 }
+import org.enso.launcher.releases.ReleaseProviderException
 
 import scala.util.{Success, Try}
 
@@ -35,7 +36,7 @@ object GithubAPI {
                 .map(err =>
                   handleError(
                     response,
-                    new RuntimeException(s"Cannot fetch release list.", err)
+                    ReleaseProviderException(s"Cannot fetch release list.", err)
                   )
                 )
             )
@@ -67,7 +68,7 @@ object GithubAPI {
           .map(err =>
             handleError(
               response,
-              new RuntimeException(s"Cannot find release `$tag`.", err)
+              ReleaseProviderException(s"Cannot find release `$tag`.", err)
             )
           )
           .toTry
@@ -83,7 +84,7 @@ object GithubAPI {
 
     response.headers.find(_.getName == "X-RateLimit-Remaining") match {
       case Some(header) if isLimitExceeded(header) =>
-        new RuntimeException(
+        ReleaseProviderException(
           "GitHub Release API rate limit exceeded for your IP address. " +
           "Please try again in a while."
         )
