@@ -502,7 +502,8 @@ object IR {
             |)
             |""".toSingleLine
 
-          override def children: List[IR] = List()
+          override def children: List[IR] =
+            name :: List(rename, onlyNames.flatten, hiddenNames.flatten).flatten
 
           override def showCode(indent: Int): String = {
             val renameCode = rename.map(n => s" as $n").getOrElse("")
