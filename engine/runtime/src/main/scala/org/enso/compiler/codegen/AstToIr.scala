@@ -839,9 +839,13 @@ object AstToIr {
     */
   def translateImport(imp: AST.Import): Module.Scope.Import = {
     imp match {
-      case AST.Import(path, _, _, _, _) =>
+      case AST.Import(path, rename, isAll, onlyNames, hiddenNames) =>
         IR.Module.Scope.Import.Module(
-          path.map(_.name).toList.mkString("."),
+          IR.Name.Qualified(path.map(buildName).toList, None),
+          rename.map(buildName),
+          isAll,
+          onlyNames.map(_.map(buildName).toList),
+          hiddenNames.map(_.map(buildName).toList),
           getIdentifiedLocation(imp)
         )
       case _ =>
