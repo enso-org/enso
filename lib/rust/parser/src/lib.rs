@@ -9,7 +9,7 @@
 #![warn(unused_import_braces)]
 
 //! This module exports the implementation of parser for the Enso language.
-//!
+
 use ast::AnyAst;
 use ast::Ast;
 
@@ -38,7 +38,7 @@ pub fn parse(input:String) -> AnyAst {
 #[no_mangle]
 pub extern "system" fn Java_org_enso_parser_Parser_parse(
     env: JNIEnv,
-    class: JClass,
+    _class: JClass,
     input: JString,
 ) -> jweak {
     let txt = env.new_object(
@@ -56,7 +56,7 @@ pub extern "system" fn Java_org_enso_parser_Parser_parse(
     let ast = env.new_object(
         env.find_class("org/enso/ast/Ast$Ast").unwrap(),
         "(Lscala/Option;JJLjava/lang/Object;)V",
-        &[non.into(),(0 as i64).into(),(0 as i64).into(),txt.into()],
+        &[non.into(), 0i64.into(), 0i64.into(), txt.into()],
     ).unwrap();
 
     ast.into_inner()
