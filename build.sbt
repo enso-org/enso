@@ -845,7 +845,6 @@ lazy val runtime = (project in file("engine/runtime"))
       ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
-        rustVersion,
         graalVersion,
         javaVersion
       )((Global / onLoad).value)
