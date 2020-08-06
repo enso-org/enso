@@ -47,8 +47,8 @@ directories, as explained below.
 
 ### Portable Enso Distribution Layout
 
-All files in the directory structure, except for configuration, can be safely
-removed and the launcher will re-download them if needed.
+All files in the directory structure, except for the configuration, can be safely
+removed, and the launcher will re-download them if needed.
 
 The directory structure is as follows:
 
