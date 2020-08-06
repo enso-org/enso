@@ -13,6 +13,7 @@ env:
   javaVersion: 11
   # Please ensure that this is in sync with project/build.properties
   sbtVersion: 1.3.13
+  # Please ensure that this is in sync with rustVersion in build.sbt
   rustToolchain: nightly-2019-11-04
   excludedPaths: |
     .github/PULL_REQUEST_TEMPLATE.md
@@ -117,146 +118,8 @@ jobs:
   # This job is responsible for building the artifacts
   build:
     name: Build Engine
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Checkout (PR)
-        uses: actions/checkout@v2
-        if: github.event_name == 'pull_request'
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: Checkout (Branch)
-        uses: actions/checkout@v2
-        if: github.event_name != 'pull_request'
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ env.rustToolchain }}
-          override: true
-      - name: Setup conda
-        uses: s-weigand/setup-conda@v1
-        with:
-          update-conda: true
-          conda-channels: anaconda, conda-forge
-      - name: Install FlatBuffers Compiler
-        run: conda install flatbuffers=1.12.0
-      - name: Setup GraalVM Environment
-        uses: ayltai/setup-graalvm@v1
-        with:
-          graalvm-version: ${{ env.graalVersion }}
-          java-version: ${{ env.javaVersion }}
-          native-image: false
-      - name: Set Up SBT
-        run: |
-          curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
-          tar -xzf sbt.tgz
-          echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
-
-      # Caches
-      - name: Cache SBT
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.cache
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-sbt-
-
-      # Build Artifacts
-      - name: Bootstrap the project
-        run: sbt --no-colors bootstrap
-      - name: Build the Runtime Uberjar
-        run: sbt --no-colors runtime/assembly
-      - name: Build the Runner Uberjar
-        run: sbt --no-colors runner/assembly
-      - name: Build the Project Manager Uberjar
-        run: sbt --no-colors project-manager/assembly
-      - name: Build the Manifest
-        run: |
-          cp distribution/manifest.template.yaml manifest.yaml
-          echo "graal-vm-version: $graalVersion" >> manifest.yaml
-          echo "graal-java-version: $javaVersion" >> manifest.yaml
-      - name: Prepare Distribution
-        run: |
-          DIST_VERSION=$(./runner.jar --version --json | jq -r '.version')
-          DIST_ROOT=enso-engine-$DIST_VERSION
-          DIST_DIR=$DIST_ROOT/enso-$DIST_VERSION
-          mkdir -p $DIST_DIR
-          mkdir $DIST_DIR/component
-          cp runtime.jar $DIST_DIR/component
-          mv runner.jar $DIST_DIR/component
-          mv project-manager.jar $DIST_DIR/component
-          cp -r distribution/std-lib $DIST_DIR/std-lib
-          cp -r distribution/bin $DIST_DIR/bin
-          chmod +x $DIST_DIR/bin/enso
-          chmod +x $DIST_DIR/bin/project-manager
-          cp manifest.yaml $DIST_DIR
-          echo ::set-env name=DIST_ROOT::$DIST_ROOT
-          echo ::set-env name=DIST_DIR::$DIST_DIR
-      - name: Build the Parser JS Bundle
-        run: sbt -no-colors syntaxJS/fullOptJS
-
-      # Publish
-      - name: Publish the Distribution Artifact
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: ${{ env.DIST_ROOT }}
-          path: ${{ env.DIST_ROOT }}
-      - name: Prepare the FlatBuffers Schemas for Upload
-        run: |
-          mkdir fbs-upload
-          cp -r "engine/language-server/src/main/schema" fbs-upload/fbs-schema/
-          zip -r -m -ll "fbs-upload/fbs-schema.zip" "fbs-upload/fbs-schema/"
-      - name: Publish the FlatBuffers Schemas
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: Engine Protocol FlatBuffers Schemas
-          path: ./fbs-upload/fbs-schema.zip
-      - name: Prepare Parser JS Bundle for Upload
-        run: |
-          mkdir parser-upload
-          cp ./target/scala-parser.js parser-upload
-      - name: Publish the Parser JS Bundle
-        uses: actions/upload-artifact@v1.0.0
-        with:
-          name: Parser JS Bundle
-          path: ./target/scala-parser.js
-      - name: Publish the Manifest
-        uses: actions/upload-artifact@v2
-        with:
-          name: manifest
-          path: manifest.yaml
-      - name: Prepare AWS Session
-        run: |
-          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-          ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
-          ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
-          us-west-2
-          text
-          EOF
-      - name: Upload Parser JS Bundle to S3
-        run: |
-          aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-      - name: Upload FlatBuffers Schemas to S3
-        run: |
-          aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-      - name: Upload Distribution to S3
-        run: |
-          aws s3 sync ${{ env.DIST_DIR }} s3://packages-luna/project-manager/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-      - name: Teardown AWS Session
-        run: |
-          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-          null
-          null
-          null
-          text
-          EOF
-
-  build-launcher:
-    name: Build Launcher
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
@@ -270,19 +133,34 @@ jobs:
       - name: Checkout (Branch)
         uses: actions/checkout@v2
         if: github.event_name != 'pull_request'
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ env.rustToolchain }}
+          override: true
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.3.0
+      - name: Setup conda
+        uses: s-weigand/setup-conda@v1
+        with:
+          update-conda: true
+          conda-channels: anaconda, conda-forge
+      - name: Setup Conda Environment on Windows
+        if: runner.os == 'Windows'
+        run: |
+          conda create --name enso
+          conda init powershell
+      - name: Activate Conda Environment on Windows
+        if: runner.os == 'Windows'
+        run: conda activate enso
+      - name: Install FlatBuffers Compiler
+        run: conda install flatbuffers=1.12.0
       - name: Setup GraalVM Environment
         uses: ayltai/setup-graalvm@v1
         with:
           graalvm-version: ${{ env.graalVersion }}
           java-version: ${{ env.javaVersion }}
           native-image: true
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ env.rustToolchain }}
-          override: true
       - name: Set Up SBT
         run: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
@@ -301,64 +179,173 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Build Artifacts
-      #- name: Bootstrap the project # As long as launcher doesn't depend on
-      #                              # runtime, bootstrap is not mandatory.
-      #  run: sbt --no-colors bootstrap
-      - name: Build Launcher Native Image
+      - name: Bootstrap the Project
+        run: sbt --no-colors bootstrap
+      - name: Build the Runtime Uberjar
+        run: sbt --no-colors runtime/assembly
+      - name: Build the Runner Uberjar
+        run: sbt --no-colors runner/assembly
+      - name: Build the Project Manager Uberjar
+        run: sbt --no-colors project-manager/assembly
+      - name: Build the Launcher Native Image
         run: sbt --no-colors launcher/buildNativeImage
+      - name: Build the Manifest
+        run: |
+          cp distribution/manifest.template.yaml manifest.yaml
+          echo "graal-vm-version: $graalVersion" >> manifest.yaml
+          echo "graal-java-version: $javaVersion" >> manifest.yaml
+      - name: Build the Parser JS Bundle
+        # The builds are run on 3 platforms, but Flatbuffer schemas are platform
+        # agnostic, so they just need to be uploaded from one of the runners.
+        if: runner.os == 'Linux'
+        run: sbt -no-colors syntaxJS/fullOptJS
 
-      # Publish
-      - name: Prepare distribution directory name (Unix)
+      # Prepare distributions
+      - name: Prepare Distribution Version (Unix)
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          chmod +x enso
           DIST_VERSION=$(./enso version --json | jq -r '.version')
-          DIST_ROOT=enso-launcher-$DIST_VERSION-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
-          DIST_DIR=$DIST_ROOT/enso
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
-          echo ::set-env name=DIST_DIR::$DIST_DIR
-          echo ::set-env name=DIST_ROOT::$DIST_ROOT
-      - name: Prepare distribution directory name (Windows)
+
+      - name: Prepare Distribution Version (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
           DIST_VERSION=$(./enso.exe version --json | jq -r '.version')
-          DIST_ROOT=enso-launcher-$DIST_VERSION-$(echo ${{ runner.os }} | awk '{print tolower($0)}')-amd64
-          DIST_DIR=$DIST_ROOT/enso
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
-          echo ::set-env name=DIST_DIR::$DIST_DIR
-          echo ::set-env name=DIST_ROOT::$DIST_ROOT
 
-      - name: Prepare Launcher distribution (common)
+      # Currently the only architecture supported by Github runners is amd64
+      - name: Prepare Distribution Environment
         shell: bash
         run: |
-          mkdir -p ${{ env.DIST_DIR }}
-          mkdir ${{ env.DIST_DIR }}/bin
-          mkdir ${{ env.DIST_DIR }}/dist
-          mkdir ${{ env.DIST_DIR }}/runtime
-          cp distribution/launcher/.enso.portable ${{ env.DIST_DIR }}
-          cp distribution/launcher/README.md ${{ env.DIST_DIR }}
-          cp distribution/launcher/NOTICE ${{ env.DIST_DIR }}
-          cp -r distribution/launcher/components-licences ${{ env.DIST_DIR }}
+          DIST_ARCH=amd64
+          DIST_OS=$(echo ${{ runner.os }} | awk '{print tolower($0)}')
+          LAUNCHER_DIST_ROOT=enso-launcher-$DIST_VERSION-$DIST_OS-$DIST_ARCH
+          LAUNCHER_DIST_DIR=$LAUNCHER_DIST_ROOT/enso
+          ENGINE_DIST_ROOT=enso-engine-$DIST_VERSION-$DIST_OS-$DIST_ARCH
+          ENGINE_DIST_DIR=$ENGINE_DIST_ROOT/enso-$DIST_VERSION
+          echo ::set-env name=LAUNCHER_DIST_DIR::$LAUNCHER_DIST_DIR
+          echo ::set-env name=LAUNCHER_DIST_ROOT::$LAUNCHER_DIST_ROOT
+          echo ::set-env name=ENGINE_DIST_DIR::$ENGINE_DIST_DIR
+          echo ::set-env name=ENGINE_DIST_ROOT::$ENGINE_DIST_ROOT
 
-      - name: Prepare Launcher distribution (Unix)
-        if: runner.os != 'Windows'
+      - name: Prepare Launcher Distribution (Common)
+        shell: bash
         run: |
-          cp enso ${{ env.DIST_DIR }}/bin/
+          mkdir -p ${{ env.LAUNCHER_DIST_DIR }}
+          mkdir ${{ env.LAUNCHER_DIST_DIR }}/bin
+          mkdir ${{ env.LAUNCHER_DIST_DIR }}/dist
+          mkdir ${{ env.LAUNCHER_DIST_DIR }}/runtime
+          cp distribution/launcher/.enso.portable ${{ env.LAUNCHER_DIST_DIR }}
+          cp distribution/launcher/README.md ${{ env.LAUNCHER_DIST_DIR }}
+          cp distribution/launcher/NOTICE ${{ env.LAUNCHER_DIST_DIR }}
+          cp -r distribution/launcher/components-licences ${{ env.LAUNCHER_DIST_DIR }}
 
-      - name: Prepare Launcher distribution (Windows)
+      - name: Prepare Launcher Distribution (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          cp enso ${{ env.LAUNCHER_DIST_DIR }}/bin/
+
+      - name: Prepare Launcher Distribution (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          cp enso.exe ${{ env.DIST_DIR }}/bin/
+          cp enso.exe ${{ env.LAUNCHER_DIST_DIR }}/bin/
 
       # The way artifacts are uploaded currently does not preserve the
       # executable bits for Unix. However putting artifacts into a ZIP would
       # create a twice nested ZIP file. For now, users downloading artifacts
       # from the CI builds have to set the bit themselves.
+      # So the following two lines have been removed from this step, as they do
+      # nothing useful:
+      #  chmod +x $ENGINE_DIST_DIR/bin/enso
+      #  chmod +x $ENGINE_DIST_DIR/bin/project-manager
+      - name: Prepare Engine Distribution
+        shell: bash
+        run: |
+          mkdir -p $ENGINE_DIST_DIR
+          mkdir $ENGINE_DIST_DIR/component
+          cp runtime.jar $ENGINE_DIST_DIR/component
+          mv runner.jar $ENGINE_DIST_DIR/component
+          mv project-manager.jar $ENGINE_DIST_DIR/component
+          cp -r distribution/std-lib $ENGINE_DIST_DIR/std-lib
+          cp -r distribution/bin $ENGINE_DIST_DIR/bin
+          cp manifest.yaml $ENGINE_DIST_DIR
+
+      # Publish
+      - name: Publish the Engine Distribution Artifact
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: ${{ env.ENGINE_DIST_ROOT }}
+          path: ${{ env.ENGINE_DIST_ROOT }}
       - name: Publish the Launcher Binary
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.DIST_ROOT }}
-          path: ${{ env.DIST_ROOT }}
+          name: ${{ env.LAUNCHER_DIST_ROOT }}
+          path: ${{ env.LAUNCHER_DIST_ROOT }}
+
+      - name: Prepare the FlatBuffers Schemas for Upload
+        # The builds are run on 3 platforms, but Flatbuffer schemas are platform
+        # agnostic, so they just need to be uploaded from one of the runners.
+        if: runner.os == 'Linux'
+        run: |
+          mkdir fbs-upload
+          cp -r "engine/language-server/src/main/schema" fbs-upload/fbs-schema/
+          zip -r -m -ll "fbs-upload/fbs-schema.zip" "fbs-upload/fbs-schema/"
+      - name: Publish the FlatBuffers Schemas
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: Engine Protocol FlatBuffers Schemas
+          path: ./fbs-upload/fbs-schema.zip
+      - name: Prepare Parser JS Bundle for Upload
+        if: runner.os == 'Linux'
+        run: |
+          mkdir parser-upload
+          cp ./target/scala-parser.js parser-upload
+      - name: Publish the Parser JS Bundle
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v1.0.0
+        with:
+          name: Parser JS Bundle
+          path: ./target/scala-parser.js
+      - name: Publish the Manifest
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v2
+        with:
+          name: manifest
+          path: manifest.yaml
+
+      # Publish FlatBuffer Schemas and Parser Bundle to S3
+      - name: Prepare AWS Session
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          ${{ secrets.ARTEFACT_S3_ACCESS_KEY_ID }}
+          ${{ secrets.ARTEFACT_S3_SECRET_ACCESS_KEY }}
+          us-west-2
+          text
+          EOF
+      - name: Upload Parser JS Bundle to S3
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          aws s3 sync ./parser-upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+      - name: Upload FlatBuffers Schemas to S3
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          aws s3 sync ./fbs-upload s3://packages-luna/fbs-schema/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+      - name: Teardown AWS Session
+        shell: bash
+        if: runner.os == 'Linux'
+        run: |
+          aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+          null
+          null
+          null
+          text
+          EOF

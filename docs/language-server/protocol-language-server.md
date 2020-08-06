@@ -28,6 +28,8 @@ transport formats, please look [here](./protocol-architecture).
   - [`SuggestionEntryArgument`](#suggestionentryargument)
   - [`SuggestionEntry`](#suggestionentry)
   - [`SuggestionEntryType`](#suggestionentrytype)
+  - [`SuggestionId`](#suggestionid)
+  - [`SuggestionsDatabaseEntry`](#suggestionsdatabaseentry)
   - [`SuggestionsDatabaseUpdate`](#suggestionsdatabaseupdate)
   - [`File`](#file)
   - [`DirectoryTree`](#directorytree)
@@ -203,8 +205,13 @@ Points to a method definition.
 
 ```typescript
 interface MethodPointer {
-  file: Path;
+  /** The fully qualified module name. */
+  module: String;
+
+  /** The type on which the method is defined. */
   definedOnType: String;
+
+  /** The method name. */
   name: String;
 }
 ```
@@ -216,8 +223,11 @@ interface ExpressionValueUpdate {
   /** The id of updated expression */
   expressionId: ExpressionId;
 
-  /** The updated suggestion id */
-  suggestionId: number;
+  /** The updated type of the expression */
+  type?: String;
+
+  /** The updated pointer to the method call */
+  methodPointer?: SuggestionId;
 }
 ```
 
@@ -335,6 +345,16 @@ The suggestion entry type that is used as a filter in search requests.
 type SuggestionEntryType = Atom | Method | Function | Local;
 ```
 
+### `SuggestionId`
+
+The suggestion entry id of the suggestions database.
+
+#### Format
+
+```typescript
+type SuggestionId = number;
+```
+
 ### `SuggestionsDatabaseEntry`
 
 #### Format
@@ -344,7 +364,7 @@ The entry in the suggestions database.
 ```typescript
 interface SuggestionsDatabaseEntry {
   // suggestion entry id
-  id: number;
+  id: SuggestionId;
   // suggestion entry
   suggestion: SuggestionEntry;
 }
@@ -362,19 +382,19 @@ type SuggestionsDatabaseUpdate = Add | Remove | Modify;
 
 interface Add {
   // suggestion entry id
-  id: number;
+  id: SuggestionId;
   // suggestion entry
   suggestion: SuggestionEntry;
 }
 
 interface Remove {
   // suggestion entry id
-  id: number;
+  id: SuggestionId;
 }
 
 interface Modify {
   // suggestion entry id
-  id: number;
+  id: SuggestionId;
   // new return type
   returnType: String;
 }

@@ -398,7 +398,12 @@ need to follow these steps:
    and add them to `truffleRunOptions` in [`build.sbt`](build.sbt). Remove the
    portion of these options after `suspend=y`, including the comma. They are
    placeholders that we don't use.
-6. Now, when you want to debug something, you can place a breakpoint as usual in
+6. Alternatively, certain tasks, such as `run`, `benchOnly` and `testOnly` can
+   be used through the `withDebug` SBT command. For this to work, your remote
+   configuration must specify the host of `localhost` and the port `5005`.
+   The command syntax is `withDebug --debugger TASK_NAME -- TASK_PARAMETERS`,
+   e.g. `withDebug --debugger testOnly -- *AtomConstructors*`.
+7. Now, when you want to debug something, you can place a breakpoint as usual in
    IntelliJ, and then execute your remote debugging configuration. Now, in the
    SBT shell, run a command to execute the code you want to debug (e.g.
    `testOnly *CurryingTest*`). This will open the standard debugger interface

@@ -14,8 +14,9 @@ import scala.jdk.OptionConverters._
   *
   * @param stack a call stack
   */
-class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])
-    extends EnsureCompiledJob(EnsureCompiledStackJob.extractFiles(stack)) {
+class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])(implicit
+  ctx: RuntimeContext
+) extends EnsureCompiledJob(EnsureCompiledStackJob.extractFiles(stack)) {
 
   /** @inheritdoc */
   override def ensureCompiled(
@@ -38,7 +39,7 @@ class EnsureCompiledStackJob(stack: Iterable[InstrumentFrame])
   )(implicit ctx: RuntimeContext): Option[CachePreferenceAnalysis.Metadata] =
     stack.lastOption flatMap {
       case InstrumentFrame(Api.StackItem.ExplicitCall(ptr, _, _), _) =>
-        ctx.executionService.getContext.getModuleForFile(ptr.file).toScala.map {
+        ctx.executionService.getContext.findModule(ptr.module).toScala.map {
           module =>
             module.getIr
               .unsafeGetMetadata(
@@ -58,12 +59,19 @@ object EnsureCompiledStackJob {
     * @param stack a call stack
     * @return a list of files to compile
     */
-  private def extractFiles(stack: Iterable[InstrumentFrame]): List[File] =
+  private def extractFiles(stack: Iterable[InstrumentFrame])(implicit
+    ctx: RuntimeContext
+  ): Iterable[File] =
     stack
       .map(_.item)
-      .collect {
+      .flatMap {
         case Api.StackItem.ExplicitCall(methodPointer, _, _) =>
-          methodPointer.file
+          ctx.executionService.getContext
+            .findModule(methodPointer.module)
+            .flatMap(module => java.util.Optional.ofNullable(module.getPath))
+            .map(path => new File(path))
+            .toScala
+        case _ =>
+          None
       }
-      .toList
 }

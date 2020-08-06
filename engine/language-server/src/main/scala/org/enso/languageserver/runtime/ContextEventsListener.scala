@@ -89,16 +89,41 @@ final class ContextEventsListener(
       sessionRouter ! DeliverToBinaryController(rpcSession.clientId, payload)
 
     case RunExpressionUpdates if expressionUpdates.nonEmpty =>
-      val updatedExpressionIds = expressionUpdates.map(_.expressionId)
+      def toMethodPointer(call: Api.MethodPointer): (String, String, String) =
+        (call.module, call.definedOnType, call.name)
+      val methodPointerToExpression = expressionUpdates
+        .flatMap(update =>
+          update.methodCall.map(call =>
+            toMethodPointer(call) -> update.expressionId
+          )
+        )
+        .toMap
+      val methodPointers = methodPointerToExpression.keys.toSeq
       repo
-        .getAllByExternalIds(updatedExpressionIds)
+        .getAllMethods(methodPointers)
         .map { suggestionIds =>
-          val valueUpdates = updatedExpressionIds.zip(suggestionIds).flatMap {
-            case (expressionId, Some(suggestionId)) =>
-              Some(ExpressionValueUpdate(expressionId, suggestionId))
-            case (id, None) =>
-              log.error("Unable to find suggestion with expression id: {}", id)
-              None
+          val methodPointerToSuggestion =
+            methodPointers
+              .zip(suggestionIds)
+              .collect {
+                case (ptr, Some(suggestionId)) =>
+                  ptr -> suggestionId
+              }
+              .toMap
+          val valueUpdates = expressionUpdates.map { update =>
+            ExpressionValueUpdate(
+              update.expressionId,
+              update.expressionType,
+              update.methodCall.flatMap { call =>
+                val pointer = toMethodPointer(call)
+                methodPointerToSuggestion.get(pointer) match {
+                  case suggestionId @ Some(_) => suggestionId
+                  case None =>
+                    log.error(s"Unable to find suggestion for $pointer")
+                    None
+                }
+              }
+            )
           }
           val payload =
             ContextRegistryProtocol.ExpressionValuesComputedNotification(

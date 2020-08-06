@@ -17,7 +17,7 @@ class ConstructorsTest extends InterpreterTest {
       val patternMatchingCode =
         """
           |main =
-          |    x = Cons 1 Nil
+          |    x = Builtins.Cons 1 Nil
           |    case x of
           |        Cons h t -> h
           |        Nil -> 0

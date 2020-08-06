@@ -18,9 +18,9 @@ class PopContextCmd(
   request: Api.PopContextRequest
 ) extends Command(maybeRequestId) {
 
-  /** @inheritdoc **/
-  override def execute(
-    implicit ctx: RuntimeContext,
+  /** @inheritdoc */
+  override def execute(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
     if (doesContextExist) {
@@ -29,8 +29,8 @@ class PopContextCmd(
       replyWithContextNotExistError()
     }
 
-  private def replyWithContextNotExistError()(
-    implicit ctx: RuntimeContext,
+  private def replyWithContextNotExistError()(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     Future {
@@ -38,8 +38,8 @@ class PopContextCmd(
     }
   }
 
-  private def popItemFromStack()(
-    implicit ctx: RuntimeContext,
+  private def popItemFromStack()(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] =
     Future {
@@ -56,13 +56,19 @@ class PopContextCmd(
     ctx.contextManager.contains(request.contextId)
   }
 
-  private def scheduleExecutionIfNeeded()(
-    implicit ctx: RuntimeContext,
+  private def scheduleExecutionIfNeeded()(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     val stack = ctx.contextManager.getStack(request.contextId)
     if (stack.nonEmpty) {
-      val executable = Executable(request.contextId, stack, Seq())
+      val executable =
+        Executable(
+          request.contextId,
+          stack,
+          Seq(),
+          sendMethodCallUpdates = true
+        )
       for {
         _ <- ctx.jobProcessor.run(new EnsureCompiledStackJob(executable.stack))
         _ <- ctx.jobProcessor.run(new ExecuteJob(executable))

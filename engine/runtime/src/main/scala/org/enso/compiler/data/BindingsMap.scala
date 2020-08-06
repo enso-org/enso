@@ -8,10 +8,14 @@ import org.enso.interpreter.runtime.Module
   * A utility structure for resolving symbols in a given module.
   *
   * @param types the types defined in the current module
+  * @param polyglotSymbols the polyglot symbols imported into the scope
+  * @param moduleMethods the methods defined with current module as `this`
   * @param currentModule the module holding these bindings
   */
 case class BindingsMap(
   types: List[BindingsMap.Cons],
+  polyglotSymbols: List[BindingsMap.PolyglotSymbol],
+  moduleMethods: List[BindingsMap.ModuleMethod],
   currentModule: Module
 ) extends IRPass.Metadata {
   import BindingsMap._
@@ -33,11 +37,28 @@ case class BindingsMap(
       .map(ResolvedConstructor(currentModule, _))
   }
 
+  private def findPolyglotCandidates(
+    name: String
+  ): List[ResolvedPolyglotSymbol] = {
+    polyglotSymbols
+      .filter(_.name == name)
+      .map(ResolvedPolyglotSymbol(currentModule, _))
+  }
+
+  private def findMethodCandidates(name: String): List[ResolvedName] = {
+    moduleMethods
+      .filter(_.name.toLowerCase == name.toLowerCase)
+      .map(ResolvedMethod(currentModule, _))
+  }
+
   private def findLocalCandidates(name: String): List[ResolvedName] = {
     if (currentModule.getName.item == name) {
       List(ResolvedModule(currentModule))
     } else {
-      findConstructorCandidates(name)
+      val conses   = findConstructorCandidates(name)
+      val polyglot = findPolyglotCandidates(name)
+      val methods  = findMethodCandidates(name)
+      conses ++ polyglot ++ methods
     }
   }
 
@@ -57,7 +78,7 @@ case class BindingsMap(
           "Wrong pass ordering. Running resolution on an unparsed module"
         )
       }
-      .flatMap(_.findConstructorCandidates(name))
+      .flatMap(_.findExportedSymbolsFor(name))
   }
 
   private def handleAmbiguity(
@@ -68,6 +89,13 @@ case class BindingsMap(
       case List(it) => Right(it)
       case items    => Left(ResolutionAmbiguous(items))
     }
+  }
+
+  private def getBindingsFrom(module: Module): BindingsMap = {
+    module.getIr.unsafeGetMetadata(
+      BindingAnalysis,
+      "imported module has no binding map info"
+    )
   }
 
   /**
@@ -90,6 +118,52 @@ case class BindingsMap(
     }
     handleAmbiguity(findExportedCandidatesInImports(name))
   }
+
+  /**
+    * Resolves a qualified name to a symbol in the context of this module.
+    *
+    * @param name the name to resolve
+    * @return a resolution for `name`
+    */
+  def resolveQualifiedName(
+    name: List[String]
+  ): Either[ResolutionError, ResolvedName] =
+    name match {
+      case List()     => Left(ResolutionNotFound)
+      case List(item) => resolveUppercaseName(item)
+      case List(module, cons) =>
+        resolveUppercaseName(module).flatMap {
+          case ResolvedModule(mod) =>
+            getBindingsFrom(mod).resolveExportedName(cons)
+          case _ => Left(ResolutionNotFound)
+        }
+      case _ =>
+        // TODO[MK] Implement when exports possible. Currently this has
+        // no viable interpretation.
+        Left(ResolutionNotFound)
+    }
+
+  private def findExportedSymbolsFor(name: String): List[ResolvedName] = {
+    val matchingConses = types
+      .filter(_.name.toLowerCase == name.toLowerCase)
+      .map(ResolvedConstructor(currentModule, _))
+    val matchingMethods = moduleMethods
+      .filter(_.name.toLowerCase == name.toLowerCase)
+      .map(ResolvedMethod(currentModule, _))
+    matchingConses ++ matchingMethods
+  }
+
+  /**
+    * Resolves a name exported by this module.
+    *
+    * @param name the name to resolve
+    * @return the resolution for `name`
+    */
+  def resolveExportedName(
+    name: String
+  ): Either[ResolutionError, ResolvedName] = {
+    handleAmbiguity(findExportedSymbolsFor(name))
+  }
 }
 
 object BindingsMap {
@@ -101,6 +175,20 @@ object BindingsMap {
     * @param arity the number of fields in the constructor.
     */
   case class Cons(name: String, arity: Int)
+
+  /**
+    * A representation of an imported polyglot symbol.
+    *
+    * @param name the name of the symbol.
+    */
+  case class PolyglotSymbol(name: String)
+
+  /**
+    * A representation of a method defined on the current module.
+    *
+    * @param name the name of the method.
+    */
+  case class ModuleMethod(name: String)
 
   /**
     * A result of successful name resolution.
@@ -124,6 +212,22 @@ object BindingsMap {
   case class ResolvedModule(module: Module) extends ResolvedName
 
   /**
+    * A representation of a name being resolved to a method call.
+    * @param module the module defining the method.
+    * @param method the method representation.
+    */
+  case class ResolvedMethod(module: Module, method: ModuleMethod)
+      extends ResolvedName
+
+  /**
+    * A representation of a name being resolved to a polyglot symbol.
+    *
+    * @param symbol the imported symbol name.
+    */
+  case class ResolvedPolyglotSymbol(module: Module, symbol: PolyglotSymbol)
+      extends ResolvedName
+
+  /**
     * A representation of an error during name resolution.
     */
   sealed trait ResolutionError
@@ -141,9 +245,8 @@ object BindingsMap {
     */
   case object ResolutionNotFound extends ResolutionError
 
-  /** A metadata-friendly storage for resolutions  */
-  case class Resolution(target: ResolvedName)
-    extends IRPass.Metadata {
+  /** A metadata-friendly storage for resolutions */
+  case class Resolution(target: ResolvedName) extends IRPass.Metadata {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "Resolution"

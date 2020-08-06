@@ -21,14 +21,29 @@ object StubIrBuilder {
     * @return the built stub IR.
     */
   def build(module: Module): IR.Module = {
-    val ir = IR.Module(List(), List(), None)
+    val ir        = IR.Module(List(), List(), None)
+    val scope     = module.getScope
+    val conses    = scope.getConstructors.asScala
+    val consNames = conses.keys.map(_.toLowerCase()).toSet
     val definedConstructors: List[BindingsMap.Cons] =
-      module.getScope.getConstructors.asScala.toList.map {
+      conses.toList.map {
         case (name, cons) =>
           BindingsMap.Cons(name, cons.getArity)
       }
+    val moduleMethods = Option(scope.getMethods.get(scope.getAssociatedType))
+      .map(methods =>
+        methods.asScala.keys
+          .filter(!consNames.contains(_))
+          .map(name => BindingsMap.ModuleMethod(name))
+          .toList
+      )
+      .getOrElse(List())
+    val polyglot = scope.getPolyglotSymbols.asScala.keys.toList
+      .map(BindingsMap.PolyglotSymbol)
     val meta = BindingsMap(
       definedConstructors,
+      polyglot,
+      moduleMethods,
       module
     )
     ir.updateMetadata(BindingAnalysis -->> meta)

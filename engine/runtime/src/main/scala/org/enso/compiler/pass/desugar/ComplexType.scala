@@ -133,7 +133,7 @@ case object ComplexType extends IRPass {
       val sig = lastSignature match {
         case Some(IR.Type.Ascription(typed, _, _, _, _)) =>
           typed match {
-            case IR.Name.Literal(nameStr, _, _, _) =>
+            case IR.Name.Literal(nameStr, _, _, _, _) =>
               if (name.name == nameStr) {
                 lastSignature
               } else {

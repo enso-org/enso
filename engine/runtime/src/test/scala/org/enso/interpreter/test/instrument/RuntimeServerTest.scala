@@ -144,7 +144,7 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   Main.idMainY,
                   Some("Number"),
-                  Some(Api.MethodPointer(pkg.mainFile, "Number", "foo"))
+                  Some(Api.MethodPointer("Test.Main", "Number", "foo"))
                 )
               )
             )
@@ -228,7 +228,7 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   idMainY,
                   Some("Number"),
-                  Some(Api.MethodPointer(pkg.mainFile, "Main", "foo"))
+                  Some(Api.MethodPointer("Test.Main", "Main", "foo"))
                 )
               )
             )
@@ -242,7 +242,7 @@ class RuntimeServerTest
                 Api.ExpressionValueUpdate(
                   idMainZ,
                   Some("Number"),
-                  Some(Api.MethodPointer(pkg.mainFile, "Main", "bar"))
+                  Some(Api.MethodPointer("Test.Main", "Main", "bar"))
                 )
               )
             )
@@ -284,7 +284,7 @@ class RuntimeServerTest
   }
 
   "RuntimeServer" should "push and pop functions on the stack" in {
-    val mainFile  = context.writeMain(context.Main.code)
+    context.writeMain(context.Main.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -306,7 +306,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
+      Api.MethodPointer("Test.Main", "Main", "main"),
       None,
       Vector()
     )
@@ -333,7 +333,7 @@ class RuntimeServerTest
 
     // push method pointer on top of the non-empty stack
     val invalidExplicitCall = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
+      Api.MethodPointer("Test.Main", "Main", "main"),
       None,
       Vector()
     )
@@ -349,8 +349,20 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PopContextResponse(contextId))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              context.Main.idMainY,
+              None,
+              Some(Api.MethodPointer("Test.Main", "Number", "foo"))
+            )
+          )
+        )
+      )
     )
 
     // pop main
@@ -402,7 +414,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(mainFile, "Main", "main"),
+            Api.MethodPointer(moduleName, "Main", "main"),
             None,
             Vector()
           )
@@ -521,7 +533,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(mainFile, "Main", "main"),
+            Api.MethodPointer(moduleName, "Main", "main"),
             None,
             Vector()
           )
@@ -633,8 +645,20 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PopContextResponse(contextId))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              context.Main.idMainY,
+              None,
+              Some(Api.MethodPointer("Test.Main", "Number", "foo"))
+            )
+          )
+        )
+      )
     )
 
     // pop main
@@ -689,7 +713,7 @@ class RuntimeServerTest
         Api.PushContextRequest(
           contextId,
           Api.StackItem.ExplicitCall(
-            Api.MethodPointer(mainFile, "Main", "main"),
+            Api.MethodPointer(moduleName, "Main", "main"),
             None,
             Vector()
           )
@@ -818,7 +842,7 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainA,
               Some("Number"),
-              Some(Api.MethodPointer(mainFile, "Number", "x"))
+              Some(Api.MethodPointer(moduleName, "Number", "x"))
             )
           )
         )
@@ -865,7 +889,7 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainA,
               Some("Number"),
-              Some(Api.MethodPointer(mainFile, "Main", "pie"))
+              Some(Api.MethodPointer(moduleName, "Main", "pie"))
             )
           )
         )
@@ -895,7 +919,7 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainA,
               Some("Number"),
-              Some(Api.MethodPointer(mainFile, "Main", "uwu"))
+              Some(Api.MethodPointer(moduleName, "Main", "uwu"))
             )
           )
         )
@@ -925,7 +949,7 @@ class RuntimeServerTest
             Api.ExpressionValueUpdate(
               idMainA,
               Some("Text"),
-              Some(Api.MethodPointer(mainFile, "Main", "hie"))
+              Some(Api.MethodPointer(moduleName, "Main", "hie"))
             )
           )
         )
@@ -992,7 +1016,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer(fooFile, "Foo", "main"),
+              Api.MethodPointer("Test.Foo", "Foo", "main"),
               None,
               Vector()
             )
@@ -1080,7 +1104,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer(fooFile, "Foo", "main"),
+              Api.MethodPointer("Test.Foo", "Foo", "main"),
               None,
               Vector()
             )
@@ -1168,7 +1192,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
+      Api.MethodPointer("Test.Main", "Main", "main"),
       None,
       Vector()
     )
@@ -1278,8 +1302,20 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PopContextResponse(contextId))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              context.Main.idMainY,
+              None,
+              Some(Api.MethodPointer("Test.Main", "Number", "foo"))
+            )
+          )
+        )
+      )
     )
 
     // pop main
@@ -1329,7 +1365,7 @@ class RuntimeServerTest
           contextId,
           Api.StackItem
             .ExplicitCall(
-              Api.MethodPointer(fooFile, "Foo", "main"),
+              Api.MethodPointer("Test.Foo", "Foo", "main"),
               None,
               Vector()
             )
@@ -1405,7 +1441,7 @@ class RuntimeServerTest
   }
 
   it should "recompute expressions without invalidation" in {
-    val mainFile  = context.writeMain(context.Main.code)
+    context.writeMain(context.Main.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -1417,7 +1453,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
+      Api.MethodPointer("Test.Main", "Main", "main"),
       None,
       Vector()
     )
@@ -1441,7 +1477,7 @@ class RuntimeServerTest
   }
 
   it should "recompute expressions invalidating all" in {
-    val mainFile  = context.writeMain(context.Main.code)
+    context.writeMain(context.Main.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -1453,7 +1489,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
+      Api.MethodPointer("Test.Main", "Main", "main"),
       None,
       Vector()
     )
@@ -1483,7 +1519,7 @@ class RuntimeServerTest
   }
 
   it should "recompute expressions invalidating some" in {
-    val mainFile  = context.writeMain(context.Main.code)
+    context.writeMain(context.Main.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -1495,7 +1531,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
+      Api.MethodPointer("Test.Main", "Main", "main"),
       None,
       Vector()
     )
@@ -1527,7 +1563,7 @@ class RuntimeServerTest
   }
 
   it should "return error when computing erroneous code" in {
-    val mainFile  = context.writeMain(context.MainWithError.code)
+    context.writeMain(context.MainWithError.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -1539,7 +1575,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
+      Api.MethodPointer("Test.Main", "Main", "main"),
       None,
       Vector()
     )
@@ -1562,7 +1598,7 @@ class RuntimeServerTest
   }
 
   it should "skip side effects when evaluating cached expression" in {
-    val file      = context.writeMain(context.Main2.code)
+    context.writeMain(context.Main2.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -1574,7 +1610,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(file, "Main", "main"),
+      Api.MethodPointer("Test.Main", "Main", "main"),
       None,
       Vector()
     )
@@ -1601,7 +1637,7 @@ class RuntimeServerTest
   }
 
   it should "emit visualisation update when expression is evaluated" in {
-    val mainFile = context.writeMain(context.Main.code)
+    context.writeMain(context.Main.code)
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
@@ -1627,7 +1663,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
+      Api.MethodPointer("Test.Main", "Main", "main"),
       None,
       Vector()
     )
@@ -1752,7 +1788,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
+      Api.MethodPointer(moduleName, "Main", "main"),
       None,
       Vector()
     )
@@ -1918,7 +1954,7 @@ class RuntimeServerTest
   }
 
   it should "be able to modify visualisations" in {
-    val mainFile = context.writeMain(context.Main.code)
+    context.writeMain(context.Main.code)
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
@@ -1944,7 +1980,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
+      Api.MethodPointer("Test.Main", "Main", "main"),
       None,
       Vector()
     )
@@ -2031,7 +2067,7 @@ class RuntimeServerTest
   }
 
   it should "not emit visualisation updates when visualisation is detached" in {
-    val mainFile = context.writeMain(context.Main.code)
+    context.writeMain(context.Main.code)
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
@@ -2075,7 +2111,7 @@ class RuntimeServerTest
     )
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
+      Api.MethodPointer("Test.Main", "Main", "main"),
       None,
       Vector()
     )
@@ -2130,7 +2166,7 @@ class RuntimeServerTest
   }
 
   it should "rename a project" in {
-    val mainFile  = context.writeMain(context.Main.code)
+    context.writeMain(context.Main.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -2142,7 +2178,7 @@ class RuntimeServerTest
 
     // push main
     val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
+      Api.MethodPointer("Test.Main", "Main", "main"),
       None,
       Vector()
     )

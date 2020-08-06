@@ -206,13 +206,13 @@ class LambdaConsolidateTest extends CompilerTest {
           List(
             IR.DefinitionArgument
               .Specified(
-                IR.Name.Literal("a", None),
+                IR.Name.Literal("a", isReferent = false, None),
                 None,
                 suspended = false,
                 None
               ),
             IR.DefinitionArgument.Specified(
-              IR.Name.Literal("b", None),
+              IR.Name.Literal("b", isReferent = false, None),
               None,
               suspended = false,
               None
@@ -221,13 +221,13 @@ class LambdaConsolidateTest extends CompilerTest {
           IR.Function.Lambda(
             List(
               IR.DefinitionArgument.Specified(
-                IR.Name.Literal("c", None),
+                IR.Name.Literal("c", isReferent = false, None),
                 None,
                 suspended = false,
                 None
               )
             ),
-            IR.Name.Literal("c", None),
+            IR.Name.Literal("c", isReferent = false, None),
             None
           ),
           None
