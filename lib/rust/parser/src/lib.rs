@@ -23,9 +23,27 @@ use jni::sys::*;
 // === Parser Rust API ===
 // =======================
 
-/// Parses a single source file.
-pub fn parse(input:String) -> AnyAst {
+/// Parse a content of a single source file.
+pub fn parse_str(input:String) -> AnyAst {
     Ast::new(ast::txt::Text{text:input})
+}
+
+/// Parse a single source file.
+pub fn parse_file(filename:String) -> AnyAst {
+    parse_str(filename)
+}
+
+
+// === Tokens ===
+
+/// Parse a content of single source file.
+pub fn lexe_str(input:String) -> AnyAst {
+    parse_str(input)
+}
+
+/// Parse a single source file.
+pub fn lexe_file(filename:String) -> AnyAst {
+    parse_str(filename)
 }
 
 
@@ -34,9 +52,9 @@ pub fn parse(input:String) -> AnyAst {
 // === Parser JNI API ===
 // ======================
 
-/// Parses a single source file.
+/// Parses a content a of single source file.
 #[no_mangle]
-pub extern "system" fn Java_org_enso_parser_Parser_parse(
+pub extern "system" fn Java_org_enso_parser_Parser_parseStr(
     env: JNIEnv,
     _class: JClass,
     input: JString,
@@ -60,4 +78,37 @@ pub extern "system" fn Java_org_enso_parser_Parser_parse(
     ).unwrap();
 
     ast.into_inner()
+}
+
+/// Parses a single source file.
+#[no_mangle]
+pub extern "system" fn Java_org_enso_parser_Parser_parseFile(
+    env: JNIEnv,
+    class: JClass,
+    filename: JString,
+) -> jweak {
+    Java_org_enso_parser_Parser_parseStr(env, class, filename)
+}
+
+
+// === Tokens ===
+
+/// Parses a content of a single source file into a stream of tokens.
+#[no_mangle]
+pub extern "system" fn Java_org_enso_parser_Parser_lexeStr(
+    env: JNIEnv,
+    class: JClass,
+    input: JString,
+) -> jweak {
+    Java_org_enso_parser_Parser_parseStr(env, class, input)
+}
+
+/// Parses a single source file into a stream of tokens.
+#[no_mangle]
+pub extern "system" fn Java_org_enso_parser_Parser_lexeFile(
+    env: JNIEnv,
+    class: JClass,
+    filename: JString,
+) -> jweak {
+    Java_org_enso_parser_Parser_parseStr(env, class, filename)
 }
