@@ -39,6 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Tracepath
+        shell: bash
         run: tracepath localhost
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.3.0
