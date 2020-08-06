@@ -2,7 +2,18 @@ package org.enso.launcher.archive
 
 import java.nio.file.Path
 
-private[archive] class RootRenamer(newRoot: Path) extends (Path => Path) {
+/**
+  * Acts as a function that renames the base of the provided paths to the
+  * `newBase`.
+  *
+  * It changes the first component of the provided paths to the provided
+  * `newBase`. It is meant to be used for renaming root directories of extracted
+  * archives. The provided paths should be relative.
+  *
+  * It ensures that all paths converted with this function have the same base,
+  * to avoid merging two base directories.
+  */
+private[archive] class BaseRenamer(newBase: Path) extends (Path => Path) {
   var lastRoot: Option[Path] = None
   override def apply(path: Path): Path = {
     if (path.getNameCount < 1) {
@@ -26,10 +37,10 @@ private[archive] class RootRenamer(newRoot: Path) extends (Path => Path) {
     }
 
     if (path.getNameCount == 1)
-      newRoot
+      newBase
     else {
       val remainingParts = path.subpath(1, path.getNameCount)
-      newRoot.resolve(remainingParts)
+      newBase.resolve(remainingParts)
     }
   }
 }

@@ -8,6 +8,14 @@ import org.enso.cli.Opts.implicits._
 import cats.implicits._
 import org.enso.launcher.OS
 
+/**
+  * Implements internal options that the launcher may use when running another
+  * instance of itself.
+  *
+  * These options are used primarily to implement workarounds for
+  * Windows-specific filesystem limitations. They should not be used by the
+  * users directly, so they are not displayed in the help text.
+  */
 object InternalOpts {
   private val REMOVE_OLD_EXECUTABLE = "internal-remove-old-executable"
 

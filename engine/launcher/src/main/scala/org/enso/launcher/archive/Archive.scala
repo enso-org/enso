@@ -20,7 +20,28 @@ import org.enso.launcher.{FileSystem, Logger, OS}
 
 import scala.util.{Try, Using}
 
+/**
+  * Contains utilities related to the extraction of various archive file
+  * formats.
+  *
+  * Currently it supports extracting ZIP files and gzipped TAR archives.
+  */
 object Archive {
+
+  /**
+    * Extracts the archive at `archivePath` to `destinationDirectory`.
+    *
+    * Behaves in the same way as the other [[extractArchive]] overload, but it
+    * tries to determine the archive format automatically based on the filename.
+    *
+    * @param archivePath path to the archive file
+    * @param destinationDirectory directory into which the archive contents
+    *                             will be extracted
+    * @param renameRootFolder if not None, the root folder of the archive will
+    *                         be renamed to the provided name. In such case the
+    *                         archive must contain only one root folder.
+    * @return an instance indicating the progress of extraction
+    */
   def extractArchive(
     archivePath: Path,
     destinationDirectory: Path,
@@ -41,6 +62,27 @@ object Archive {
       }
   }
 
+  /**
+    * Extracts the archive at `archivePath` to `destinationDirectory`.
+    *
+    * The extraction is run in a background thread, the function returns
+    * immediately with a [[TaskProgress]] instance that can be used to track
+    * extraction progress (for example by displaying a progress bar or just
+    * waiting for it to complete).
+    *
+    * If `renameRootFolder` is provided, the root folder of the archive is
+    * renamed to the provided value. It is an error to request root folder
+    * rename for an archive that has more than one file in the root.
+    *
+    * @param archivePath path to the archive file
+    * @param format format of the archive
+    * @param destinationDirectory directory into which the archive contents
+    *                             will be extracted
+    * @param renameRootFolder if not None, the root folder of the archive will
+    *                         be renamed to the provided name. In such case the
+    *                         archive must contain only one root folder.
+    * @return an instance indicating the progress of extraction
+    */
   def extractArchive(
     archivePath: Path,
     format: ArchiveFormat,
@@ -51,7 +93,7 @@ object Archive {
 
     def runExtraction(): Unit = {
       val rewritePath: Path => Path = renameRootFolder match {
-        case Some(value) => new RootRenamer(value)
+        case Some(value) => new BaseRenamer(value)
         case None        => identity[Path]
       }
 
@@ -112,6 +154,9 @@ object Archive {
     taskProgress
   }
 
+  /**
+    * Tries to get the POSIX file permissions associated with that `entry`.
+    */
   private def getMode(entry: ArchiveEntry): Option[Int] =
     entry match {
       case entry: TarArchiveEntry =>
@@ -124,6 +169,16 @@ object Archive {
         None
     }
 
+  /**
+    * Opens the archive at `path` and executes the provided action.
+    *
+    * The action is given an [[ArchiveInputStream]] that can be used to read
+    * from the archive and a [[ReadProgress]] instance which indicates how many
+    * bytes have already been read at a given moment.
+    *
+    * The archive and the internal streams are closed when this function exits.
+    * The `action` can throw an exception, in which case a failure is returned.
+    */
   def withOpenArchive[R](path: Path, format: ArchiveFormat)(
     action: (ArchiveInputStream, ReadProgress) => R
   ): Try[R] = {

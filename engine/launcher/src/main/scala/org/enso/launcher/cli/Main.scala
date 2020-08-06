@@ -15,6 +15,9 @@ import org.enso.launcher.installation.{
 }
 import org.enso.launcher.{Launcher, Logger}
 
+/**
+  * Defines the CLI commands and options for the program and its entry point.
+  */
 object Main {
   private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =
     Opts.flag(

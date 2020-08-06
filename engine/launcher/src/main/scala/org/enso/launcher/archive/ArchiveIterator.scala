@@ -2,6 +2,10 @@ package org.enso.launcher.archive
 
 import org.apache.commons.compress.archivers.{ArchiveEntry, ArchiveInputStream}
 
+/**
+  * Wraps an [[ArchiveInputStream]] to get an [[Iterator]] which produces
+  * non-null archive entries.
+  */
 private[archive] case class ArchiveIterator(
   archiveInputStream: ArchiveInputStream
 ) extends Iterator[ArchiveEntry] {
@@ -23,6 +27,11 @@ private[archive] case class ArchiveIterator(
 
   private var nextEntry: Option[ArchiveEntry] = None
   private var finished: Boolean               = false
+
+  /**
+    * Tries to move to the next entry. If it is `null` then it means the
+    * [[archiveInputStream]] has run out of entries.
+    */
   private def findNext(): Unit = {
     if (nextEntry.isEmpty && !finished) {
       val nextCandidate = archiveInputStream.getNextEntry

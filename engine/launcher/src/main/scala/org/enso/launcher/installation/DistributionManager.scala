@@ -18,8 +18,13 @@ import scala.util.Try
   *                directory
   * @param config location of configuration
   * @param tmp a directory for storing temporary files that is located on the
-  *            same filesystem as `runtimes` and `engines`, used for
-  *            installation
+  *            same filesystem as `runtimes` and `engines`, used during
+  *            installation to decrease the possibility of getting a broken
+  *            installation if the installation process has been abruptly
+  *            terminated. The directory is created on demand (when its path is
+  *            requested for the first time) and is removed if the application
+  *            exits normally (as long as it is empty, but normal termination of
+  *            the installation process should ensure that).
   */
 case class DistributionPaths(
   dataRoot: Path,
