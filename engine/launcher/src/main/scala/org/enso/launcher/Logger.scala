@@ -14,7 +14,7 @@ object Logger {
   private val Warning = Level("warn", 3)
   private val Error   = Level("error", 4)
 
-  private val logLevel = Debug
+  private val logLevel = Info
   private def log(level: Level, msg: => String): Unit =
     if (level.level >= logLevel.level) {
       System.out.println(s"[${level.name}] $msg")

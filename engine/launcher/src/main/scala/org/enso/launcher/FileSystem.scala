@@ -71,13 +71,17 @@ object FileSystem {
     }
   }
 
+  /**
+    * Parses POSIX file permissions stored in a binary format into a set of Java
+    * enumerations corresponding to these permissions.
+    */
   def decodePOSIXPermissions(mode: Int): java.util.Set[PosixFilePermission] = {
     val res =
       util.EnumSet.noneOf[PosixFilePermission](classOf[PosixFilePermission])
 
     val others = mode & 7
     val group  = (mode >> 3) & 7
-    val owner  = mode >> 6
+    val owner  = (mode >> 6) & 7
 
     if ((owner & 4) != 0) {
       res.add(PosixFilePermission.OWNER_READ)
@@ -112,6 +116,17 @@ object FileSystem {
     res
   }
 
+  /**
+    * Runs the `action` with a parameter representing a temporary directory
+    * created for it.
+    *
+    * The temporary directory is removed afterwards.
+    *
+    * @param prefix prefix to use for the temporary directory name
+    * @param action action to execute with the directory
+    * @tparam T type of action's result
+    * @return result of running the `action`
+    */
   def withTemporaryDirectory[T](
     prefix: String = "enso"
   )(action: Path => T): T = {
@@ -129,22 +144,35 @@ object FileSystem {
   def removeDirectory(dir: Path): Unit =
     FileUtils.deleteDirectory(dir.toFile)
 
+  /**
+    * Registers the directory to be removed when the program exits normally.
+    *
+    * The directory is only removed if it is empty.
+    */
   def removeEmptyDirectoryOnExit(dir: Path): Unit =
     dir.toFile.deleteOnExit()
 
+  /**
+    * Checks if the directory contains any entries.
+    */
   def isDirectoryEmpty(dir: Path): Boolean = {
     def hasEntries =
       Using(Files.newDirectoryStream(dir))(_.iterator().hasNext).get
     Files.isDirectory(dir) && !hasEntries
   }
 
+  /**
+    * Tries to move a directory from `source` to `destination` atomically.
+    *
+    * May not be actually atomic.
+    */
   def atomicMove(source: Path, destination: Path): Unit = {
     Files.createDirectories(destination.getParent)
     Files.move(source, destination, StandardCopyOption.ATOMIC_MOVE)
   }
 
   /**
-    * Allows to write nested paths in a more readable and concise way.
+    * Syntax allowing to write nested paths in a more readable and concise way.
     */
   implicit class PathSyntax(val path: Path) extends AnyVal {
     def /(other: String): Path = path.resolve(other)

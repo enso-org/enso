@@ -61,7 +61,9 @@ object Main {
   private def runCommand: Command[Config => Unit] =
     Command(
       "run",
-      "Run a project or Enso script.",
+      "Run a project or Enso script. " +
+      "If `auto-confirm` is set, will install missing engines or runtimes" +
+      "without asking.",
       related = Seq("exec", "execute", "build")
     ) {
       val pathOpt = Opts.optionalArgument[Path](
@@ -84,7 +86,9 @@ object Main {
   private def languageServerCommand: Command[Config => Unit] =
     Command(
       "language-server",
-      "Launch the Language Server for a given project.",
+      "Launch the Language Server for a given project." +
+      "If `auto-confirm` is set, will install missing engines or runtimes" +
+      "without asking.",
       related = Seq("server")
     ) {
       val rootId = Opts.parameter[UUID]("root-id", "UUID", "Content root id.")
@@ -129,7 +133,12 @@ object Main {
     }
 
   private def replCommand: Command[Config => Unit] =
-    Command("repl", "Launch an Enso REPL.") {
+    Command(
+      "repl",
+      "Launch an Enso REPL." +
+      "If `auto-confirm` is set, will install missing engines or runtimes" +
+      "without asking."
+    ) {
       val path           = Opts.optionalParameter[Path]("path", "PATH", "Project path.")
       val additionalArgs = Opts.additionalArguments()
       (path, jvmArgs, additionalArgs) mapN {
