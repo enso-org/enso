@@ -38,6 +38,8 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
+      - name: Tracepath
+        run: tracepath localhost
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.3.0
       - name: Install Rust
