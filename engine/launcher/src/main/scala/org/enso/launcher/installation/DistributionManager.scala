@@ -2,9 +2,8 @@ package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
 
-import org.enso.launcher.FileSystem
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.{Environment, Logger, OS}
+import org.enso.launcher.{Environment, FileSystem, Logger, OS}
 
 import scala.util.Try
 
@@ -45,9 +44,12 @@ case class DistributionPaths(
 
   private def runCleanup(): Unit = {
     if (Files.exists(tmp)) {
-      Logger.info("Cleaning up temporary files from a previous installation.")
+      if (!FileSystem.isDirectoryEmpty(tmp)) {
+        Logger.info("Cleaning up temporary files from a previous installation.")
+      }
       FileSystem.removeDirectory(tmp)
       Files.createDirectories(tmp)
+      FileSystem.removeEmptyDirectoryOnExit(tmp)
     }
   }
 }

@@ -129,6 +129,15 @@ object FileSystem {
   def removeDirectory(dir: Path): Unit =
     FileUtils.deleteDirectory(dir.toFile)
 
+  def removeEmptyDirectoryOnExit(dir: Path): Unit =
+    dir.toFile.deleteOnExit()
+
+  def isDirectoryEmpty(dir: Path): Boolean = {
+    def hasEntries =
+      Using(Files.newDirectoryStream(dir))(_.iterator().hasNext).get
+    Files.isDirectory(dir) && !hasEntries
+  }
+
   def atomicMove(source: Path, destination: Path): Unit = {
     Files.createDirectories(destination.getParent)
     Files.move(source, destination, StandardCopyOption.ATOMIC_MOVE)

@@ -3,17 +3,17 @@ package org.enso.launcher.cli
 import java.nio.file.Path
 import java.util.UUID
 
+import cats.implicits._
+import nl.gn0s1s.bump.SemVer
+import org.enso.cli.Opts.implicits._
 import org.enso.cli._
-import org.enso.launcher.{Launcher, Logger}
 import org.enso.launcher.cli.Arguments._
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
   DistributionManager
 }
-import org.enso.cli.Opts.implicits._
-import cats.implicits._
-import nl.gn0s1s.bump.SemVer
+import org.enso.launcher.{Launcher, Logger}
 
 object Main {
   private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =
@@ -394,16 +394,21 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     setup()
-    try {
-      application.run(args) match {
-        case Left(errors) =>
-          CLIOutput.println(errors.mkString("\n"))
-          sys.exit(1)
-        case Right(()) =>
+    val exitCode =
+      try {
+        application.run(args) match {
+          case Left(errors) =>
+            CLIOutput.println(errors.mkString("\n"))
+            1
+          case Right(()) =>
+            0
+        }
+      } catch {
+        case e: RuntimeException =>
+          Logger.error(s"A fatal error has occurred: $e", e)
+          1
       }
-    } catch {
-      case e: RuntimeException =>
-        Logger.error(s"A fatal error has occurred: $e", e)
-    }
+
+    sys.exit(exitCode)
   }
 }
