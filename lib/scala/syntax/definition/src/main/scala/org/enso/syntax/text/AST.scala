@@ -340,7 +340,13 @@ object Shape extends ShapeImplicit {
       with Phantom
   final case class Documented[T](doc: Doc, emptyLinesBetween: Int, ast: T)
       extends SpacelessAST[T]
-  final case class Import[T](path: AST)                  extends SpacelessAST[T]
+  final case class Import[T](
+    path: List1[AST.Ident.Cons],
+    rename: Option[AST.Ident.Cons],
+    isAll: Boolean,
+    onlyNames: Option[List1[AST.Ident.Cons]],
+    hidingNames: Option[List1[AST.Ident.Cons]]
+  )                                                      extends SpacelessAST[T]
   final case class JavaImport[T](path: List1[AST.Ident]) extends SpacelessAST[T]
   final case class Mixfix[T](name: List1[AST.Ident], args: List1[T])
       extends SpacelessAST[T]
@@ -721,9 +727,10 @@ object Shape extends ShapeImplicit {
       t => R + t.larg + t.loff + t.opr + t.roff + t.rarg
     implicit def ozip[T: HasSpan]: OffsetZip[Infix, T] =
       t => {
-        val larg = Index.Start                                       -> t.larg
-        val opr  = Index(t.larg.span() + t.loff)                       -> t.opr
-        val rarg = Index(t.larg.span() + t.loff + t.opr.span() + t.roff) -> t.rarg
+        val larg = Index.Start                   -> t.larg
+        val opr  = Index(t.larg.span() + t.loff) -> t.opr
+        val rarg =
+          Index(t.larg.span() + t.loff + t.opr.span() + t.roff) -> t.rarg
         t.copy(larg = larg, opr = opr, rarg = rarg)
       }
     implicit def span[T: HasSpan]: HasSpan[Infix[T]] =
@@ -2332,10 +2339,26 @@ object AST {
   type Import = ASTOf[Shape.Import]
 
   object Import {
-    def apply(path: AST): Import =
-      Shape.Import[AST](path)
-    def unapply(t: AST): Option[AST] =
-      Unapply[Import].run(t => t.path)(t)
+    def apply(
+      path: List1[AST.Ident.Cons],
+      rename: Option[AST.Ident.Cons],
+      isAll: Boolean,
+      onlyNames: Option[List1[AST.Ident.Cons]],
+      hidingNames: Option[List1[AST.Ident.Cons]]
+    ): Import =
+      Shape.Import[AST](path, rename, isAll, onlyNames, hidingNames)
+    def unapply(t: AST): Option[
+      (
+        List1[AST.Ident.Cons],
+        Option[AST.Ident.Cons],
+        Boolean,
+        Option[List1[AST.Ident.Cons]],
+        Option[List1[AST.Ident.Cons]]
+      )
+    ] =
+      Unapply[Import].run(t =>
+        (t.path, t.rename, t.isAll, t.onlyNames, t.hidingNames)
+      )(t)
     val any = UnapplyByType[Import]
   }
 

@@ -475,25 +475,6 @@ object AstView {
       }
   }
 
-  object ModulePath {
-
-    /** Matches on a module path of the form `A.B.C...`, as seen in an import.
-      *
-      * @param ast the structure to try and match on
-      * @return the list of segments in the module path
-      */
-    def unapply(ast: AST): Option[List[AST.Ident]] =
-      ast match {
-        case AST.Ident.Cons.any(name) => Some(List(name))
-        case OperatorDot(left, AST.Ident.Cons.any(name)) =>
-          left match {
-            case ModulePath(elems) => Some(elems :+ name)
-            case _                 => None
-          }
-        case _ => None
-      }
-  }
-
   object SuspendDefaultsOperator {
 
     /** Matches on a usage of the `...` 'suspend defaults' operator.
