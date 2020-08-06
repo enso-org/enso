@@ -115,6 +115,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     if (!Files.isExecutable(path)) {
       throw new RuntimeException("Failed to make it executable...")
     }
+    Thread.sleep(100)
   }
 
   /**
