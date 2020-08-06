@@ -81,7 +81,7 @@ case class BindingsMap(
           imp.module.getIr
             .unsafeGetMetadata(
               BindingAnalysis,
-              "Wrong pass ordering. Running resolution on an unparsed module"
+              "Wrong pass ordering. Running resolution on an unparsed module."
             )
             .findExportedSymbolsFor(name)
         } else { List() }
