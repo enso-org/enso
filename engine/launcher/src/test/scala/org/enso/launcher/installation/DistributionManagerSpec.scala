@@ -1,22 +1,22 @@
 package org.enso.launcher.installation
 
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 
-import org.enso.launcher.{Environment, FileSystem, WithTemporaryDirectory}
+import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.launcher.{
+  Environment,
+  FakeEnvironment,
+  FileSystem,
+  WithTemporaryDirectory
+}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.enso.launcher.FileSystem.PathSyntax
 
 class DistributionManagerSpec
     extends AnyWordSpec
     with Matchers
-    with WithTemporaryDirectory {
-
-  def fakeExecutablePath(): Path = {
-    val fakeBin = getTestDirectory / "bin"
-    Files.createDirectories(fakeBin)
-    fakeBin / "enso"
-  }
+    with WithTemporaryDirectory
+    with FakeEnvironment {
 
   "DistributionManager" should {
     "detect portable distribution" in {
@@ -47,23 +47,12 @@ class DistributionManagerSpec
 
     "respect environment variable overrides " +
     "for installed distribution location" in {
-      val executable = fakeExecutablePath()
-      val dataDir    = getTestDirectory / "test_data"
-      val configDir  = getTestDirectory / "test_config"
-      val binDir     = getTestDirectory / "test_bin"
-      val fakeEnvironment = new Environment {
-        override def getPathToRunningExecutable: Path = executable
+      val dataDir   = getTestDirectory / "test_data"
+      val configDir = getTestDirectory / "test_config"
+      val binDir    = getTestDirectory / "test_bin"
 
-        override def getEnvVar(key: String): Option[String] =
-          key match {
-            case "ENSO_DATA_DIRECTORY"   => Some(dataDir.toString)
-            case "ENSO_CONFIG_DIRECTORY" => Some(configDir.toString)
-            case "ENSO_BIN_DIRECTORY"    => Some(binDir.toString)
-            case _                       => super.getEnvVar(key)
-          }
-      }
-
-      val distributionManager = new DistributionManager(fakeEnvironment)
+      val distributionManager =
+        new DistributionManager(fakeInstalledEnvironment())
       distributionManager.paths.dataRoot shouldEqual dataDir
       distributionManager.paths.config shouldEqual configDir
       distributionManager.LocallyInstalledDirectories.binDirectory shouldEqual

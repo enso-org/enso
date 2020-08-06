@@ -79,7 +79,7 @@ object Archive {
               }
             }
 
-            if (OS.isPOSIX) {
+            if (OS.isUNIX) {
               getMode(entry) match {
                 case Some(mode) =>
                   val permissions = FileSystem.decodePOSIXPermissions(mode)

@@ -32,52 +32,28 @@ case class FakeAsset(source: Path) extends Asset {
   override def fileName: String = source.getFileName.toString
 
   override def downloadTo(path: Path): TaskProgress[Unit] = {
-    copyFakeAsset(path)
+    val result = Try(copyFakeAsset(path))
     new TaskProgress[Unit] {
       override def addProgressListener(
         listener: ProgressListener[Unit]
       ): Unit = {
-        listener.done(Success(()))
+        listener.done(result)
       }
     }
   }
 
   private def copyFakeAsset(destination: Path): Unit =
     if (Files.isDirectory(source)) {
-      val directoryName = source.getFileName
-      val exitCode =
-        if (directoryName.endsWith(".tar.gz"))
-          Seq(
-            "tar",
-            "-czf",
-            destination.toAbsolutePath.toString,
-            source.toAbsolutePath.toString
-          ).!
-        else if (directoryName.endsWith(".zip"))
-          if (OS.isWindows)
-            Seq(
-              "powershell",
-              "Compress-Archive",
-              "-Path",
-              source.toAbsolutePath.toString,
-              "-DestinationPath",
-              destination.toAbsolutePath.toString
-            ).!
-          else
-            Seq(
-              "zip",
-              "-q",
-              "-r",
-              destination.toAbsolutePath.toString,
-              source.toAbsolutePath.toString
-            ).!
-        else {
-          throw new IllegalArgumentException(
-            s"Unsupported fake-archive format $source"
-          )
-        }
-      if (exitCode != 0) {
-        throw new RuntimeException(s"Cannot create fake-archive for $source")
+      val directoryName = source.getFileName.toString
+      if (directoryName.endsWith(".tar.gz") && OS.isUNIX)
+        packTarGz(source, destination)
+      else if (directoryName.endsWith(".zip") && OS.isWindows)
+        packZip(source, destination)
+      else {
+        throw new IllegalArgumentException(
+          s"Fake-archive format $directoryName is not supported on " +
+          s"${OS.operatingSystem}."
+        )
       }
     } else {
       FileSystem.copyFile(source, destination)
@@ -93,6 +69,43 @@ case class FakeAsset(source: Path) extends Asset {
       ): Unit = {
         listener.done(txt)
       }
+    }
+  }
+
+  private def packTarGz(source: Path, destination: Path): Unit = {
+    val files = FileSystem.listDirectory(source)
+    val exitCode = Process(
+      Seq(
+        "tar",
+        "-czf",
+        destination.toAbsolutePath.toString
+      ) ++ files.map(_.getFileName.toString),
+      source.toFile
+    ).!
+    if (exitCode != 0) {
+      throw new RuntimeException(
+        s"tar failed. Cannot create fake-archive for $source"
+      )
+    }
+  }
+
+  private def packZip(source: Path, destination: Path): Unit = {
+    val files = FileSystem.listDirectory(source)
+    val exitCode = Process(
+      Seq(
+        "powershell",
+        "Compress-Archive",
+        "-Path",
+        files.map(_.getFileName.toString).mkString(","),
+        "-DestinationPath",
+        destination.toAbsolutePath.toString
+      ),
+      source.toFile
+    ).!
+    if (exitCode != 0) {
+      throw new RuntimeException(
+        s"tar failed. Cannot create fake-archive for $source"
+      )
     }
   }
 }

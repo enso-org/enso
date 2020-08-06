@@ -11,7 +11,7 @@ trait WithTemporaryDirectory extends Suite with BeforeAndAfterEach {
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    testDirectory = Files.createTempDirectory("tmptest")
+    testDirectory = Files.createTempDirectory("enso-test")
   }
 
   override def afterEach(): Unit = {
