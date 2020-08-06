@@ -5,6 +5,8 @@ import org.enso.ast.Ast
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+
+
 class ParserTest extends AnyFlatSpec with Matchers {
   val parser = Parser()
 
