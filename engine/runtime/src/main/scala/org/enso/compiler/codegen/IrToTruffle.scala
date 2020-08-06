@@ -148,7 +148,9 @@ class IrToTruffle(
           context.getEnvironment.lookupHostSymbol(fullName)
         )
       case i: Import.Module =>
-        this.moduleScope.addImport(context.getCompiler.processImport(i.name))
+        this.moduleScope.addImport(
+          context.getCompiler.processImport(i.name.name)
+        )
       case _: Error =>
     }
 

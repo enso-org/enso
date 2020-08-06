@@ -4,7 +4,7 @@ import Test.Number_Spec
 import Test.Import_Loop_Spec
 import Test.Names_Spec
 
-main = Suite.runMain <|
+main = Test.Suite.runMain <|
     List_Spec.spec
     Number_Spec.spec
     Import_Loop_Spec.spec

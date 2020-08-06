@@ -5,6 +5,7 @@ import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Macro.Definition
 import org.enso.syntax.text.AST.{Opr, Var}
 import org.enso.syntax.text.ast.Repr
+import org.enso.syntax.text.ast.meta.Pattern.Match
 
 import scala.annotation.{nowarn, tailrec}
 
@@ -215,14 +216,15 @@ object Builtin {
           s1.body.toStream match {
             case List(Shifted(_, body: AST)) =>
               @tailrec
-              def go(t: AST): AST = t match {
-                case AST.App.Prefix(_, arg)    => arg
-                case AST.App.Infix(self, _, _) => go(self)
-                case AST.Macro.Match.any(m)    => go(m.resolved)
-                case AST.Group(None)           => t
-                case AST.Group(Some(s))        => go(s)
-                case _                         => t
-              }
+              def go(t: AST): AST =
+                t match {
+                  case AST.App.Prefix(_, arg)    => arg
+                  case AST.App.Infix(self, _, _) => go(self)
+                  case AST.Macro.Match.any(m)    => go(m.resolved)
+                  case AST.Group(None)           => t
+                  case AST.Group(Some(s))        => go(s)
+                  case _                         => t
+                }
 
               go(body)
             case _ => internalError
@@ -267,16 +269,57 @@ object Builtin {
     }
 
     val `import` = {
+      val qualNamePat     = Pattern.SepList(Pattern.Cons(), Opr("."))
+      val rename          = Var("as") :: Pattern.Cons()
+      val all: Pattern    = Var("all")
+      val only: Pattern   = Var("only") :: Pattern.Cons().many
+      val hiding: Pattern = Var("hiding") :: Pattern.Cons().many
       Definition(
-        Var("import") -> Pattern.Expr()
+        Var(
+          "import"
+        ) -> (qualNamePat :: rename.opt :: (all :: (only | hiding).opt).opt)
       ) { ctx =>
         ctx.body match {
           case List(s1) =>
-            s1.body.toStream match {
-              case List(expr) =>
-                AST.Import(expr.wrapped)
-              case _ => internalError
+            val tup1        = s1.body.asInstanceOf[Match.Seq[Shifted[AST]]]
+            val tup2        = tup1.elem._2.asInstanceOf[Match.Seq[Shifted[AST]]]
+            val nameMatch   = tup1.elem._1
+            val renameMatch = tup2.elem._1
+            val elemsMatch  = tup2.elem._2
+            val name: List1[AST.Ident.Cons] =
+              List1(
+                nameMatch.toStream
+                  .map(_.wrapped)
+                  .flatMap(AST.Ident.Cons.any.unapply)
+              ).get
+            val rename: Option[AST.Ident.Cons] =
+              renameMatch.toStream.map(_.wrapped).collectFirst {
+                case AST.Ident.Cons.any(n) => n
+              }
+            val (isAll, only, hiding) = elemsMatch match {
+              case Match.Or(_, Left(Match.Seq(_, (_, onlyHidingMaybeMatch)))) =>
+                onlyHidingMaybeMatch match {
+                  case Match.Or(_, Left(maybeHidingMatch)) =>
+                    maybeHidingMatch match {
+                      case Match.Or(_, Left(onlyMatch)) =>
+                        val onlyConses: List[AST.Ident.Cons] =
+                          onlyMatch.toStream
+                            .map(_.wrapped)
+                            .flatMap(AST.Ident.Cons.any.unapply)
+                        (true, List1(onlyConses), None)
+                      case Match.Or(_, Right(hidingMatch)) =>
+                        val hidingConses: List[AST.Ident.Cons] =
+                          hidingMatch.toStream
+                            .map(_.wrapped)
+                            .flatMap(AST.Ident.Cons.any.unapply)
+                        (true, None, List1(hidingConses))
+                      case _ => internalError
+                    }
+                  case _ => (true, None, None)
+                }
+              case _ => (false, None, None)
             }
+            AST.Import(name, rename, isAll, only, hiding)
           case _ => internalError
         }
       }
