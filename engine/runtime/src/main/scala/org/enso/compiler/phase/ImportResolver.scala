@@ -2,6 +2,7 @@ package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
+import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
@@ -48,18 +49,37 @@ class ImportResolver(compiler: Compiler) {
           BindingAnalysis,
           "Non-parsed module used in ImportResolver"
         )
-        val importedModuleNames = ir.imports.collect {
-          case imp: IR.Module.Scope.Import.Module => imp.name
+        val importedModules = ir.imports.flatMap {
+          case imp: IR.Module.Scope.Import.Module =>
+            compiler
+              .getModule(imp.name.name)
+              .map(BindingsMap.ResolvedImport(imp, _))
+          case _ => None
         }
-        val importedModules = importedModuleNames.flatMap(compiler.getModule)
+
         // TODO[MK] Remove when No Implicit Prelude
+        val builtinResolution = BindingsMap.ResolvedImport(
+          IR.Module.Scope.Import
+            .Module(
+              IR.Name.Qualified(
+                List(IR.Name.Literal("Builtins", isReferent = true, None)),
+                None
+              ),
+              None,
+              isAll = true,
+              None,
+              None,
+              None
+            ),
+          compiler.context.getBuiltins.getModule
+        )
         currentLocal.resolvedImports =
-          compiler.context.getTopScope.getBuiltins.getModule :: importedModules
+          builtinResolution :: importedModules
         current.unsafeSetCompilationStage(
           Module.CompilationStage.AFTER_IMPORT_RESOLUTION
         )
         seen += current
-        stack = importedModules ++ stack
+        stack = importedModules.map(_.module) ++ stack
       }
     }
     seen.toList
