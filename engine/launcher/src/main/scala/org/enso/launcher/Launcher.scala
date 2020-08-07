@@ -89,6 +89,21 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def uninstallEngine(version: SemVer): Unit =
     componentsManager.uninstallEngine(version)
+
+  def runRepl(
+    pathHint: Option[Path],
+    jvmArguments: Seq[(String, String)],
+    additionalArguments: Seq[String]
+  ): Unit = {
+    // TODO [RW] this is just a stub, it will be implemented in #976
+    val path            = pathHint.getOrElse(Path.of(".")).toAbsolutePath
+    val detectedVersion = SemVer(0, 1, 0) // TODO [RW] default version etc.
+    val engine          = componentsManager.findOrInstallEngine(detectedVersion)
+    val runtime         = componentsManager.findOrInstallRuntime(engine)
+    println(s"Will launch the REPL in $path")
+    println(s"with $engine with additional arguments $additionalArguments")
+    println(s"using $runtime with JVM arguments $jvmArguments")
+  }
 }
 
 /**

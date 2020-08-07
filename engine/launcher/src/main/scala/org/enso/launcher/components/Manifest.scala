@@ -1,11 +1,12 @@
 package org.enso.launcher.components
 
-import java.io.{FileReader, IOException}
+import java.io.FileReader
 import java.nio.file.Path
 
 import io.circe.{yaml, Decoder, DecodingFailure}
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.Logger
+
+import scala.util.{Failure, Try, Using}
 
 /**
   * Version information identifying the runtime that can be used with an engine
@@ -14,7 +15,13 @@ import org.enso.launcher.Logger
   * @param graal version of the GraalVM
   * @param java Java version of the GraalVM flavour that should be used
   */
-case class RuntimeVersion(graal: SemVer, java: String)
+case class RuntimeVersion(graal: SemVer, java: String) {
+
+  /**
+    * @inheritdoc
+    */
+  override def toString: String = s"GraalVM $graal Java $java"
+}
 
 /**
   * Contains release metadata read from the manifest file that is attached to
@@ -55,40 +62,30 @@ object Manifest {
     *
     * Returns None if the manifest could not be opened or could not be parsed.
     */
-  def load(path: Path): Option[Manifest] = {
-    try {
-      val reader = new FileReader(path.toFile)
-      try {
-        yaml.parser.parse(reader).flatMap(_.as[Manifest]) match {
-          case Left(error) =>
-            Logger.debug(s"Error loading the manifest file `$path`: $error")
-            None
-          case Right(value) => Some(value)
-        }
-      } finally {
-        reader.close()
-      }
-    } catch {
-      case e: IOException =>
-        Logger.debug(s"Cannot load file `$path`: $e", e)
-        None
-    }
-
-  }
+  def load(path: Path): Try[Manifest] =
+    Using(new FileReader(path.toFile)) { reader =>
+      yaml.parser
+        .parse(reader)
+        .flatMap(_.as[Manifest])
+        .toTry
+        .recoverWith { error => Failure(ManifestLoadingError(error)) }
+    }.flatten
 
   /**
     * Parses the manifest from a string containing a YAML definition.
     *
     * Returns None if the definition cannot be parsed.
     */
-  def fromYaml(yamlString: String): Option[Manifest] = {
-    yaml.parser.parse(yamlString).flatMap(_.as[Manifest]) match {
-      case Left(error) =>
-        Logger.debug(s"Error parsing the manifest: $error")
-        None
-      case Right(value) => Some(value)
-    }
+  def fromYaml(yamlString: String): Try[Manifest] = {
+    yaml.parser
+      .parse(yamlString)
+      .flatMap(_.as[Manifest])
+      .toTry
+      .recoverWith { error => Failure(ManifestLoadingError(error)) }
   }
+
+  case class ManifestLoadingError(cause: Throwable)
+      extends RuntimeException(s"Could not load the manifest: $cause", cause)
 
   private object Fields {
     val minimumLauncherVersion = "minimum-launcher-version"

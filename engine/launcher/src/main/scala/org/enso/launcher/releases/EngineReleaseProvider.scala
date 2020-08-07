@@ -86,10 +86,14 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
       manifest <-
         Manifest
           .fromYaml(manifestContent)
-          .toRight(
-            ReleaseProviderException("Cannot parse attached manifest file.")
+          .recoverWith(error =>
+            Failure(
+              ReleaseProviderException(
+                "Cannot parse attached manifest file.",
+                error
+              )
+            )
           )
-          .toTry
     } yield EngineRelease(version, manifest, release)
   }
 

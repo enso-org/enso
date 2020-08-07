@@ -15,6 +15,7 @@ import org.enso.launcher.releases.{
 }
 import org.enso.launcher.{FileSystem, Launcher, Logger}
 
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
 /**
@@ -129,17 +130,42 @@ class ComponentsManager(
     }
 
   /**
-    * Finds an installed engine with the given `version`.
-    *
-    * Returns None if the engine is not installed.
+    * Finds an installed engine with the given `version` and reports any errors.
     */
-  def findEngine(version: SemVer): Option[Engine] = {
+  def getEngine(version: SemVer): Try[Engine] = {
     val name = engineNameForVersion(version)
     val path = distributionManager.paths.engines / name
-    if (Files.exists(path))
+    if (Files.exists(path)) {
+      // TODO [RW] right now we throw an exception, in the future (#1052) we
+      //  will try recovery
       loadEngine(path)
-    else None
+    } else Failure(ComponentMissingError(s"Engine $version is not installed."))
   }
+
+  /**
+    * Finds an engine with the given `version` or returns None if it is not
+    * installed.
+    *
+    * Any other errors regarding loading the engine are thrown.
+    */
+  def findEngine(version: SemVer): Option[Engine] =
+    getEngine(version)
+      .map(Some(_))
+      .recoverWith {
+        case _: ComponentMissingError        => Success(None)
+        case e: LauncherUpgradeRequiredError => Failure(e)
+        case e: Exception =>
+          Failure(
+            UnrecognizedComponentError(
+              s"The engine $version is already installed, but cannot be " +
+              s"loaded due to $e. Until the launcher gets an auto-repair " +
+              s"feature, please try running `enso uninstall engine $version` " +
+              s"followed by `enso install engine $version`.",
+              e
+            )
+          )
+      }
+      .get
 
   /**
     * Returns the engine needed with the given version, trying to install it if
@@ -188,10 +214,23 @@ class ComponentsManager(
     * Lists all installed engines.
     * @return
     */
-  def listInstalledEngines(): Seq[Engine] =
+  def listInstalledEngines(): Seq[Engine] = {
+    def handleErrorsAsWarnings(path: Path, result: Try[Engine]): Seq[Engine] =
+      result match {
+        case Failure(exception) =>
+          Logger.warn(
+            s"An engine at $path has been skipped due to the " +
+            s"following error: $exception"
+          )
+          Seq()
+        case Success(value) => Seq(value)
+      }
     FileSystem
       .listDirectory(distributionManager.paths.engines)
-      .flatMap(loadEngine)
+      .map(path => (path, loadEngine(path)))
+      .flatMap((handleErrorsAsWarnings _).tupled)
+
+  }
 
   /**
     * Finds the latest released version of the engine, by asking the
@@ -204,7 +243,7 @@ class ComponentsManager(
     * Uninstalls the engine with the provided `version` (if it was installed).
     */
   def uninstallEngine(version: SemVer): Unit = {
-    val engine = findEngine(version).getOrElse {
+    val engine = getEngine(version).getOrElse {
       Logger.warn(s"Enso Engine $version is not installed.")
       sys.exit(1)
     }
@@ -259,7 +298,7 @@ class ComponentsManager(
 
       val temporaryEngine = loadEngine(engineTemporaryPath).getOrElse {
         undoTemporaryEngine()
-        throw new InstallationError(
+        throw InstallationError(
           "Cannot load downloaded engine. Installation reverted."
         )
       }
@@ -267,7 +306,7 @@ class ComponentsManager(
       try {
         if (temporaryEngine.manifest != engineRelease.manifest) {
           undoTemporaryEngine()
-          throw new InstallationError(
+          throw InstallationError(
             "Manifest of installed engine does not match the published " +
             "manifest. This may lead to version inconsistencies; the package " +
             "may possibly be corrupted. Reverting installation."
@@ -278,14 +317,14 @@ class ComponentsManager(
 
         val enginePath = distributionManager.paths.engines / engineDirectoryName
         FileSystem.atomicMove(engineTemporaryPath, enginePath)
-        val engine = findEngine(version).getOrElse {
+        val engine = getEngine(version).getOrElse {
           Logger.error(
             "fatal: Could not load the installed engine." +
             "Reverting the installation."
           )
           FileSystem.removeDirectory(enginePath)
           cleanupRuntimes()
-          throw new InstallationError(
+          throw InstallationError(
             "fatal: Could not load the installed engine"
           )
         }
@@ -355,7 +394,7 @@ class ComponentsManager(
     *
     * Returns None on failure.
     */
-  private def loadEngine(path: Path): Option[Engine] =
+  private def loadEngine(path: Path): Try[Engine] =
     for {
       version  <- parseEngineVersion(path)
       manifest <- loadAndCheckEngineManifest(path)
@@ -364,34 +403,26 @@ class ComponentsManager(
   /**
     * Gets the engine version from its path.
     */
-  private def parseEngineVersion(path: Path): Option[SemVer] = {
-    val version = SemVer(path.getFileName.toString)
-    if (version.isEmpty) {
-      Logger.warn(s"Invalid engine component version `${path.getFileName}`.")
-    }
-    version
+  private def parseEngineVersion(path: Path): Try[SemVer] = {
+    val name = path.getFileName.toString
+    SemVer(name)
+      .toRight(
+        UnrecognizedComponentError(
+          s"Invalid engine component version `$name`."
+        )
+      )
+      .toTry
   }
 
   /**
     * Loads the engine manifest, checking if that release is compatible with the
     * currently running launcher.
     */
-  private def loadAndCheckEngineManifest(path: Path): Option[Manifest] = {
-    val manifest = Manifest.load(path / Manifest.DEFAULT_MANIFEST_NAME)
-    manifest match {
-      case Some(manifest) =>
-        if (manifest.minimumLauncherVersion > Launcher.version) {
-          Logger.warn(
-            s"Engine `${path.getFileName}` requires launcher version >= " +
-            s"${manifest.minimumLauncherVersion}, but the launcher is " +
-            s"running ${Launcher.version}. This engine version will not be " +
-            s"available until you upgrade the launcher."
-          )
-          None
-        } else Some(manifest)
-      case None =>
-        Logger.warn(s"Cannot load manifest for `${path.getFileName}`.")
-        None
+  private def loadAndCheckEngineManifest(path: Path): Try[Manifest] = {
+    Manifest.load(path / Manifest.DEFAULT_MANIFEST_NAME).flatMap { manifest =>
+      if (manifest.minimumLauncherVersion > Launcher.version) {
+        Failure(LauncherUpgradeRequiredError(manifest.minimumLauncherVersion))
+      } else Success(manifest)
     }
   }
 
@@ -440,7 +471,7 @@ class ComponentsManager(
       try {
         val temporaryRuntime = loadGraalRuntime(runtimeTemporaryPath)
         if (temporaryRuntime.isEmpty) {
-          throw new InstallationError(
+          throw InstallationError(
             "Cannot load the installed runtime. The package may have been " +
             "corrupted. Reverting installation."
           )
@@ -451,7 +482,7 @@ class ComponentsManager(
         FileSystem.atomicMove(runtimeTemporaryPath, runtimePath)
         val runtime = loadGraalRuntime(runtimePath).getOrElse {
           FileSystem.removeDirectory(runtimePath)
-          throw new InstallationError(
+          throw InstallationError(
             "fatal: Cannot load the installed runtime."
           )
         }
@@ -470,18 +501,6 @@ class ComponentsManager(
 
   private def graalDirectoryForVersion(version: RuntimeVersion): Path =
     Path.of(s"graalvm-ce-java${version.java}-${version.graal}")
-
-  /**
-    * Represents an installation failure.
-    */
-  class InstallationError(message: String, cause: Throwable = null)
-      extends RuntimeException(message, cause) {
-
-    /**
-      * @inheritdoc
-      */
-    override def toString: String = s"Installation failed: $message"
-  }
 
   /**
     * Removes runtimes that are not used by any installed engines.

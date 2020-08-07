@@ -142,9 +142,8 @@ object Main {
       val path           = Opts.optionalParameter[Path]("path", "PATH", "Project path.")
       val additionalArgs = Opts.additionalArguments()
       (path, jvmArgs, additionalArgs) mapN {
-        (path, jvmArgs, additionalArgs) => (_: Config) =>
-          println(s"Launch REPL in $path")
-          println(s"JVM=$jvmArgs, additionalArgs=$additionalArgs")
+        (path, jvmArgs, additionalArgs) => (config: Config) =>
+          Launcher(config).runRepl(path, jvmArgs, additionalArgs)
       }
     }
 
