@@ -786,6 +786,23 @@ class AstToIrTest extends CompilerTest with Inside {
     }
   }
 
+  "properly support different kinds of imports" in {
+    val imports = List(
+      "import Foo.Bar as Baz",
+      "import Foo.Bar",
+      "from Foo.Bar import Baz",
+      "from Foo.Bar import Baz, Spam",
+      "from Foo.Bar import all",
+      "from Foo.Bar as Eggs import all hiding Spam",
+      "from Foo.Bar import all hiding Spam, Eggs"
+    )
+    imports
+      .mkString("\n")
+      .toIrModule
+      .imports
+      .map(_.showCode()) shouldEqual imports
+  }
+
   "AST translation of erroneous constructs" should {
     "result in a syntax error when encountering " +
     "unbalanced parentheses in application" in {
