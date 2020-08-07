@@ -1,5 +1,6 @@
 package org.enso.compiler.data
 
+import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
@@ -27,7 +28,7 @@ case class BindingsMap(
   /**
     * Other modules, imported by [[currentModule]].
     */
-  var resolvedImports: List[Module] = List()
+  var resolvedImports: List[ResolvedImport] = List()
 
   private def findConstructorCandidates(
     name: String
@@ -65,20 +66,26 @@ case class BindingsMap(
   private def findQualifiedImportCandidates(
     name: String
   ): List[ResolvedName] = {
-    resolvedImports.filter(_.getName.item == name).map(ResolvedModule)
+    resolvedImports
+      .filter(_.importDef.getSimpleName.name == name)
+      .map(res => ResolvedModule(res.module))
   }
 
   private def findExportedCandidatesInImports(
     name: String
   ): List[ResolvedName] = {
+
     resolvedImports
-      .map { mod =>
-        mod.getIr.unsafeGetMetadata(
-          BindingAnalysis,
-          "Wrong pass ordering. Running resolution on an unparsed module"
-        )
+      .flatMap { imp =>
+        if (imp.importDef.allowsAccess(name)) {
+          imp.module.getIr
+            .unsafeGetMetadata(
+              BindingAnalysis,
+              "Wrong pass ordering. Running resolution on an unparsed module."
+            )
+            .findExportedSymbolsFor(name)
+        } else { List() }
       }
-      .flatMap(_.findExportedSymbolsFor(name))
   }
 
   private def handleAmbiguity(
@@ -167,6 +174,17 @@ case class BindingsMap(
 }
 
 object BindingsMap {
+
+  /**
+    * A representation of a resolved import statement.
+    *
+    * @param importDef the definition of the import
+    * @param module the module this import resolves to
+    */
+  case class ResolvedImport(
+    importDef: IR.Module.Scope.Import.Module,
+    module: Module
+  )
 
   /**
     * A representation of a constructor.

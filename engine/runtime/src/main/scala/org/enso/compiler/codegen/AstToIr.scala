@@ -838,11 +838,15 @@ object AstToIr {
     * @return the [[IR]] representation of `imp`
     */
   def translateImport(imp: AST.Import): Module.Scope.Import = {
-    imp.path match {
-      case AstView.ModulePath(segments) =>
+    imp match {
+      case AST.Import(path, rename, isAll, onlyNames, hiddenNames) =>
         IR.Module.Scope.Import.Module(
-          segments.map(_.name).mkString("."),
-          getIdentifiedLocation(imp.path)
+          IR.Name.Qualified(path.map(buildName).toList, None),
+          rename.map(buildName),
+          isAll,
+          onlyNames.map(_.map(buildName).toList),
+          hiddenNames.map(_.map(buildName).toList),
+          getIdentifiedLocation(imp)
         )
       case _ =>
         IR.Error.Syntax(imp, IR.Error.Syntax.InvalidImport)

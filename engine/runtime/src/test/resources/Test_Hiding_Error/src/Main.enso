@@ -1,0 +1,3 @@
+import Test_Hiding_Error.Atom all hiding X
+
+Main.main = (X 1).method

@@ -1,4 +1,4 @@
-import Test.Names.Definitions
+import Test.Names.Definitions all only My_Type Another_Constant
 import Base.Test
 
 Definitions.Foo.my_method = case this of
@@ -16,7 +16,7 @@ spec =
             Definitions.Foo 1 2 3 . sum . should_equal 6
             Definitions . Foo 1 2 3 . sum . should_equal 6
         it "should allow pattern matching in a qualified manner" <|
-            v = Foo 1 2 3
+            v = Definitions.Foo 1 2 3
             res = case v of
                 Definitions.Foo a b c -> a + b + c
             res.should_equal 6
@@ -34,6 +34,4 @@ spec =
             Add_One.should_equal 1
             Add_One 100 . should_equal 101
         it "should allow calling methods imported from another module" <|
-            ## TODO
-               This should only work with `all` import.
             Another_Constant.should_equal 10

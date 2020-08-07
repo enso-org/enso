@@ -1,0 +1,3 @@
+import Test_Rename_Error.Atom as Def
+
+Main.main = (Atom.X 1).method
