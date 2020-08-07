@@ -17,9 +17,19 @@ import com.typesafe.sbt.license.DepModuleInfo
 // ============================================================================
 
 val scalacVersion = "2.13.3"
+val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
 val graalVersion  = "20.1.0"
 val javaVersion   = "11"
-val ensoVersion   = "0.1.0"
+val ensoVersion   = "0.1.0" // Note [Engine And Launcher Version]
+
+/* Note [Engine And Launcher Version]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Currently both Engine and Launcher versions are tied to each other - each new
+ * releases contains the Engine and the Launcher and thus the version number is
+ * shared. If the version numbers ever diverge, make sure tu update the build
+ * scripts at .github/workflows accordingly.
+ */
+
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 val licenseSettings = Seq(
@@ -295,30 +305,29 @@ val zio = Seq(
 
 // === Other ==================================================================
 
-val bcpkixJdk15Version          = "1.65"
-val declineVersion              = "1.2.0"
-val directoryWatcherVersion     = "0.9.10"
-val flatbuffersVersion          = "1.12.0"
-val guavaVersion                = "29.0-jre"
-val jlineVersion                = "3.15.0"
-val kindProjectorVersion        = "0.11.0"
-val mockitoScalaVersion         = "1.14.8"
-val newtypeVersion              = "0.4.4"
-val pprintVersion               = "0.5.9"
-val pureconfigVersion           = "0.13.0"
-val refinedVersion              = "0.9.14"
-val rustVersion                 = "1.40.0-nightly (b520af6fd 2019-11-03)"
-val scalacheckVersion           = "1.14.3"
-val scalacticVersion            = "3.3.0-SNAP2"
-val scalaLoggingVersion         = "3.9.2"
-val scalameterVersion           = "0.19"
-val scalatagsVersion            = "0.9.1"
-val scalatestVersion            = "3.3.0-SNAP2"
-val shapelessVersion            = "2.4.0-M1"
-val slickVersion                = "3.3.2"
-val sqliteVersion               = "3.31.1"
-val tikaVersion                 = "1.24.1"
-val typesafeConfigVersion       = "1.4.0"
+val bcpkixJdk15Version      = "1.65"
+val declineVersion          = "1.2.0"
+val directoryWatcherVersion = "0.9.10"
+val flatbuffersVersion      = "1.12.0"
+val guavaVersion            = "29.0-jre"
+val jlineVersion            = "3.15.0"
+val kindProjectorVersion    = "0.11.0"
+val mockitoScalaVersion     = "1.14.8"
+val newtypeVersion          = "0.4.4"
+val pprintVersion           = "0.5.9"
+val pureconfigVersion       = "0.13.0"
+val refinedVersion          = "0.9.14"
+val scalacheckVersion       = "1.14.3"
+val scalacticVersion        = "3.3.0-SNAP2"
+val scalaLoggingVersion     = "3.9.2"
+val scalameterVersion       = "0.19"
+val scalatagsVersion        = "0.9.1"
+val scalatestVersion        = "3.3.0-SNAP2"
+val shapelessVersion        = "2.4.0-M1"
+val slickVersion            = "3.3.2"
+val sqliteVersion           = "3.31.1"
+val tikaVersion             = "1.24.1"
+val typesafeConfigVersion   = "1.4.0"
 
 // ============================================================================
 // === Internal Libraries =====================================================
@@ -765,7 +774,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     testOptions in Test += Tests
         .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
-    sourceGenerators in Compile += GenerateFlatbuffers.task,
+    sourceGenerators in Compile += GenerateFlatbuffers.task
   )
   .configs(Benchmark)
   .settings(
@@ -787,6 +796,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
 lazy val ast = (project in file("lib/scala/ast"))
   .settings(
     version := ensoVersion,
+    GenerateAST.rustVersion := rustVersion,
     Compile / sourceGenerators += GenerateAST.task,
   )
 
@@ -817,7 +827,7 @@ lazy val runtime = (project in file("engine/runtime"))
         "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
         "org.typelevel"      %% "cats-core"             % catsVersion,
         "eu.timepit"         %% "refined"               % refinedVersion
-    ),
+      ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
@@ -835,7 +845,6 @@ lazy val runtime = (project in file("engine/runtime"))
       ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
-        rustVersion,
         graalVersion,
         javaVersion
       )((Global / onLoad).value)
@@ -895,7 +904,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
-  .dependsOn(ast)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -954,13 +962,13 @@ lazy val runner = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-        "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",
-        "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
-        "commons-cli"           % "commons-cli"            % commonsCliVersion,
-        "com.monovore"         %% "decline"                % declineVersion,
-        "org.jline"             % "jline"                  % jlineVersion,
-        "org.typelevel"        %% "cats-core"              % catsVersion,
-        "com.typesafe.slick"   %% "slick-hikaricp"         % slickVersion % Runtime
+        "org.graalvm.sdk"     % "polyglot-tck"   % graalVersion % "provided",
+        "org.graalvm.truffle" % "truffle-api"    % graalVersion % "provided",
+        "commons-cli"         % "commons-cli"    % commonsCliVersion,
+        "com.monovore"       %% "decline"        % declineVersion,
+        "org.jline"           % "jline"          % jlineVersion,
+        "org.typelevel"      %% "cats-core"      % catsVersion,
+        "com.typesafe.slick" %% "slick-hikaricp" % slickVersion % Runtime
       ),
     connectInput in run := true
   )
