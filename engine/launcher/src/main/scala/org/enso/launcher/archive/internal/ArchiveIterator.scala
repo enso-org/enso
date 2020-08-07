@@ -1,4 +1,4 @@
-package org.enso.launcher.archive
+package org.enso.launcher.archive.internal
 
 import org.apache.commons.compress.archivers.{ArchiveEntry, ArchiveInputStream}
 
@@ -6,14 +6,21 @@ import org.apache.commons.compress.archivers.{ArchiveEntry, ArchiveInputStream}
   * Wraps an [[ArchiveInputStream]] to get an [[Iterator]] which produces
   * non-null archive entries.
   */
-private[archive] case class ArchiveIterator(
+case class ArchiveIterator(
   archiveInputStream: ArchiveInputStream
 ) extends Iterator[ArchiveEntry] {
+
+  /**
+    * @inheritdoc
+    */
   override def hasNext: Boolean = {
     findNext()
     nextEntry.isDefined
   }
 
+  /**
+    * @inheritdoc
+    */
   override def next(): ArchiveEntry = {
     findNext()
     nextEntry match {

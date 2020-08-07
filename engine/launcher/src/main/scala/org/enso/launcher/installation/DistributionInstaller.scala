@@ -365,22 +365,83 @@ object DistributionInstaller {
     def delete: Boolean
   }
 
+  /**
+    * The bundle action that will copy the bundles and keep the ones in the
+    * original location too.
+    */
   case object CopyBundles extends BundleAction {
-    override def key: String         = "c"
+
+    /**
+      * @inheritdoc
+      */
+    override def key: String = "c"
+
+    /**
+      * @inheritdoc
+      */
     override def description: String = "copy bundles"
-    def copy: Boolean                = true
-    def delete: Boolean              = false
+
+    /**
+      * @inheritdoc
+      */
+    def copy: Boolean = true
+
+    /**
+      * @inheritdoc
+      */
+    def delete: Boolean = false
   }
+
+  /**
+    * The bundle action that will copy the bundles and remove the ones at the
+    * original location on success.
+    */
   case object MoveBundles extends BundleAction {
-    override def key: String         = "m"
+
+    /**
+      * @inheritdoc
+      */
+    override def key: String = "m"
+
+    /**
+      * @inheritdoc
+      */
     override def description: String = "move bundles"
-    def copy: Boolean                = true
-    def delete: Boolean              = true
+
+    /**
+      * @inheritdoc
+      */
+    def copy: Boolean = true
+
+    /**
+      * @inheritdoc
+      */
+    def delete: Boolean = true
   }
+
+  /**
+    * The bundle action that ignores the bundles.
+    */
   case object IgnoreBundles extends BundleAction {
-    override def key: String         = "i"
+
+    /**
+      * @inheritdoc
+      */
+    override def key: String = "i"
+
+    /**
+      * @inheritdoc
+      */
     override def description: String = "ignore bundles"
-    def copy: Boolean                = false
-    def delete: Boolean              = false
+
+    /**
+      * @inheritdoc
+      */
+    def copy: Boolean = false
+
+    /**
+      * @inheritdoc
+      */
+    def delete: Boolean = false
   }
 }

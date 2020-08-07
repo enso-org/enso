@@ -6,7 +6,7 @@ import io.circe._
 import io.circe.parser._
 import org.apache.http.Header
 import org.enso.cli.TaskProgress
-import org.enso.launcher.internal.http.{
+import org.enso.launcher.http.{
   APIResponse,
   HTTPDownload,
   HTTPRequestBuilder,

@@ -130,7 +130,7 @@ The following operating systems are supported for developing Enso:
 - macOS 10.14 and above
 - Linux 4.4 and above
 
-Currently only x86_64 (amd64) architecture is supported. You may be able to
+Currently only the x86_64 (amd64) architecture is supported. You may be able to
 develop Enso on other systems, but issues arising from unsupported
 configurations will not be fixed by the core team.
 
@@ -147,6 +147,8 @@ In order to build and run Enso you will need the following tools:
 - [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html),
   the rust build tool.
 - [Rustup](https://rustup.rs), the rust toolchain management utility.
+- On MacOS and Linux, the `tar` command is required for running some tests. It
+  should be installed by default on most distributions.
 
 Managing multiple JVM installations can be a pain, so some of the team use
 [Jenv](http://www.jenv.be/): A useful tool for managing multiple JVMs.

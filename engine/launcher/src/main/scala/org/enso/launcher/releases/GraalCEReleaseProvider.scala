@@ -15,6 +15,10 @@ import scala.util.{Failure, Success}
   */
 class GraalCEReleaseProvider(releaseProvider: ReleaseProvider)
     extends RuntimeReleaseProvider {
+
+  /**
+    * @inheritdoc
+    */
   override def packageFileName(version: RuntimeVersion): String = {
     val os = OS.operatingSystem match {
       case OS.Linux   => "linux"
@@ -30,6 +34,9 @@ class GraalCEReleaseProvider(releaseProvider: ReleaseProvider)
     s"graalvm-ce-java${version.java}-$os-$arch-${version.graal}$extension"
   }
 
+  /**
+    * @inheritdoc
+    */
   override def downloadPackage(
     version: RuntimeVersion,
     destination: Path

@@ -13,24 +13,45 @@ import sys.process._
 case class FakeReleaseProvider(releasesRoot: Path) extends ReleaseProvider {
   private val releases = FileSystem.listDirectory(releasesRoot).map(FakeRelease)
 
+  /**
+    * @inheritdoc
+    */
   override def releaseForTag(tag: String): Try[Release] =
     releases
       .find(_.tag == tag)
       .toRight(new RuntimeException("unknown release"))
       .toTry
 
+  /**
+    * @inheritdoc
+    */
   override def listReleases(): Try[Seq[Release]] = Success(releases)
 }
 
 case class FakeRelease(path: Path) extends Release {
+
+  /**
+    * @inheritdoc
+    */
   override def tag: String = path.getFileName.toString
+
+  /**
+    * @inheritdoc
+    */
   override def assets: Seq[Asset] =
     FileSystem.listDirectory(path).map(FakeAsset)
 }
 
 case class FakeAsset(source: Path) extends Asset {
+
+  /**
+    * @inheritdoc
+    */
   override def fileName: String = source.getFileName.toString
 
+  /**
+    * @inheritdoc
+    */
   override def downloadTo(path: Path): TaskProgress[Unit] = {
     val result = Try(copyFakeAsset(path))
     new TaskProgress[Unit] {
@@ -59,16 +80,15 @@ case class FakeAsset(source: Path) extends Asset {
       FileSystem.copyFile(source, destination)
     }
 
+  /**
+    * @inheritdoc
+    */
   override def fetchAsText(): TaskProgress[String] = {
     val txt = Using(Source.fromFile(source.toFile)) { src =>
       src.getLines().mkString("\n")
     }
-    new TaskProgress[String] {
-      override def addProgressListener(
-        listener: ProgressListener[String]
-      ): Unit = {
-        listener.done(txt)
-      }
+    (listener: ProgressListener[String]) => {
+      listener.done(txt)
     }
   }
 

@@ -15,6 +15,7 @@ import org.apache.commons.compress.archivers.zip.{
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.apache.commons.io.IOUtils
 import org.enso.cli.{TaskProgress, TaskProgressImplementation}
+import org.enso.launcher.archive.internal.{ArchiveIterator, BaseRenamer}
 import org.enso.launcher.internal.ReadProgress
 import org.enso.launcher.{FileSystem, Logger, OS}
 

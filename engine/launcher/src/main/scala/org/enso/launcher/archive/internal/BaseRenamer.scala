@@ -1,4 +1,4 @@
-package org.enso.launcher.archive
+package org.enso.launcher.archive.internal
 
 import java.nio.file.Path
 
@@ -13,8 +13,12 @@ import java.nio.file.Path
   * It ensures that all paths converted with this function have the same base,
   * to avoid merging two base directories.
   */
-private[archive] class BaseRenamer(newBase: Path) extends (Path => Path) {
+class BaseRenamer(newBase: Path) extends (Path => Path) {
   var lastRoot: Option[Path] = None
+
+  /**
+    * Changes the path by renaming its base component.
+    */
   override def apply(path: Path): Path = {
     if (path.getNameCount < 1) {
       throw new RuntimeException(

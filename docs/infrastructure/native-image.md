@@ -45,8 +45,8 @@ Currently, to enable compiling with `musl`, `-H:UseMuslC=/path/to/musl/bundle`
 option is added to the `native-image` command. In the future, the command may
 use a different option for enabling `musl` or even enable it by default, so the
 Native Image task may need updating with a newer Graal release. More information
-may be found
-[in the Native Image documentation](https://github.com/oracle/graal/blob/master/substratevm/STATIC-IMAGES.md).
+may be found in
+[the Native Image documentation](https://github.com/oracle/graal/blob/master/substratevm/STATIC-IMAGES.md).
 
 ## Static Builds
 

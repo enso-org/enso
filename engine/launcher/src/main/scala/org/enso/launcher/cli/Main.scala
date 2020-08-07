@@ -61,9 +61,9 @@ object Main {
   private def runCommand: Command[Config => Unit] =
     Command(
       "run",
-      "Run a project or Enso script. " +
-      "If `auto-confirm` is set, will install missing engines or runtimes" +
-      "without asking.",
+      "Run an Enso project or script. " +
+      "If `auto-confirm` is set, this will install missing engines or " +
+      "runtimes without asking.",
       related = Seq("exec", "execute", "build")
     ) {
       val pathOpt = Opts.optionalArgument[Path](
@@ -87,8 +87,8 @@ object Main {
     Command(
       "language-server",
       "Launch the Language Server for a given project." +
-      "If `auto-confirm` is set, will install missing engines or runtimes" +
-      "without asking.",
+      "If `auto-confirm` is set, this will install missing engines or " +
+      "runtimes without asking.",
       related = Seq("server")
     ) {
       val rootId = Opts.parameter[UUID]("root-id", "UUID", "Content root id.")
@@ -136,8 +136,8 @@ object Main {
     Command(
       "repl",
       "Launch an Enso REPL." +
-      "If `auto-confirm` is set, will install missing engines or runtimes" +
-      "without asking."
+      "If `auto-confirm` is set, this will install missing engines or " +
+      "runtimes without asking."
     ) {
       val path           = Opts.optionalParameter[Path]("path", "PATH", "Project path.")
       val additionalArgs = Opts.additionalArguments()
@@ -182,14 +182,15 @@ object Main {
     Subcommand("engine") {
       val version = Opts.optionalArgument[SemVer](
         "VERSION",
-        "Version to install. If not provided, the latest version is installed."
+        "The version to install. If not provided, the latest version is " +
+        "installed."
       )
       version map { version => (config: Config) =>
         version match {
           case Some(value) =>
             Launcher(config).installEngine(value)
           case None =>
-            Launcher(config).installEngineLatest()
+            Launcher(config).installLatestEngine()
         }
       }
     }
@@ -253,8 +254,7 @@ object Main {
   private def uninstallCommand: Command[Config => Unit] =
     Command(
       "uninstall",
-      "Uninstall a version of engine or uninstall the locally installed " +
-      "distribution."
+      "Uninstall an Enso component."
     ) {
       Opts.subcommands(uninstallEngineCommand, uninstallDistributionCommand)
     }

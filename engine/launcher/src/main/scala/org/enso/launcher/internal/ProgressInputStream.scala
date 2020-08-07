@@ -29,7 +29,7 @@ trait ReadProgress {
   *                  that stream
   * @param updated a callback that is called whenever progress is made
   */
-private[launcher] class ProgressInputStream(
+class ProgressInputStream(
   in: InputStream,
   totalSize: Option[Long],
   updated: ReadProgress => Unit
@@ -47,15 +47,24 @@ private[launcher] class ProgressInputStream(
     */
   def progress: ReadProgress = readProgress
 
+  /**
+    * @inheritdoc
+    */
   override def available: Int =
     in.available()
 
+  /**
+    * @inheritdoc
+    */
   override def read: Int = {
     bytesRead += 1
     updated(readProgress)
     in.read()
   }
 
+  /**
+    * @inheritdoc
+    */
   override def read(b: Array[Byte]): Int = {
     val bytes = in.read(b)
     bytesRead += bytes
@@ -63,6 +72,9 @@ private[launcher] class ProgressInputStream(
     bytes
   }
 
+  /**
+    * @inheritdoc
+    */
   override def read(b: Array[Byte], off: Int, len: Int): Int = {
     val bytes = in.read(b, off, len)
     bytesRead += bytes
@@ -70,6 +82,9 @@ private[launcher] class ProgressInputStream(
     bytes
   }
 
+  /**
+    * @inheritdoc
+    */
   override def skip(n: Long): Long = {
     val skipped = in.skip(n)
     bytesRead += skipped
@@ -77,6 +92,9 @@ private[launcher] class ProgressInputStream(
     skipped
   }
 
+  /**
+    * @inheritdoc
+    */
   override def close(): Unit =
     in.close()
 }

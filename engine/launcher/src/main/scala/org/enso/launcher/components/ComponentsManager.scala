@@ -24,6 +24,10 @@ import scala.util.control.NonFatal
   * @param path path to the component
   */
 case class Runtime(version: RuntimeVersion, path: Path) {
+
+  /**
+    * @inheritdoc
+    */
   override def toString: String =
     s"GraalVM ${version.graal}-java${version.java}"
 }
@@ -36,6 +40,10 @@ case class Runtime(version: RuntimeVersion, path: Path) {
   * @param manifest manifest of the engine release
   */
 case class Engine(version: SemVer, path: Path, manifest: Manifest) {
+
+  /**
+    * @inheritdoc
+    */
   override def toString: String =
     s"Enso Engine $version"
 }
@@ -468,6 +476,10 @@ class ComponentsManager(
     */
   class InstallationError(message: String, cause: Throwable = null)
       extends RuntimeException(message, cause) {
+
+    /**
+      * @inheritdoc
+      */
     override def toString: String = s"Installation failed: $message"
   }
 

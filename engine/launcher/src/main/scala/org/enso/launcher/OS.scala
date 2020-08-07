@@ -61,7 +61,8 @@ object OS {
         s"the OS you are running is supported. You can try to manually " +
         s"override the operating system detection by setting an environment " +
         s"variable `$ENSO_OPERATING_SYSTEM` to one of the possible values " +
-        s"`linux`, `mac`, `windows` depending on your OS."
+        s"`linux`, `mac`, `windows` depending on the system that your OS " +
+        s"most behaves like."
       )
       throw new IllegalStateException(
         "fatal: Could not detect the operating system."
@@ -74,7 +75,7 @@ object OS {
     *
     * Currently the Launcher Native Image builds only support amd64
     * architecture, so it is hardcoded here. In the future, more architectures
-    * may be supported, in that case, this will need to be updated to get the
+    * may be supported. In that case, this will need to be updated to get the
     * target architecture from the build settings.
     *
     * This property should not use `System.getProperty("os.arch")` directly

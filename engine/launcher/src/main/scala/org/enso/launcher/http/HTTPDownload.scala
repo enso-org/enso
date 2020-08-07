@@ -1,4 +1,4 @@
-package org.enso.launcher.internal.http
+package org.enso.launcher.http
 
 import java.io.FileOutputStream
 import java.nio.charset.{Charset, StandardCharsets}

@@ -33,6 +33,10 @@ case class DistributionPaths(
   config: Path,
   private val tmp: Path
 ) {
+
+  /**
+    * @inheritdoc
+    */
   override def toString: String =
     s"""DistributionPaths(
        |  dataRoot = $dataRoot,
@@ -145,11 +149,11 @@ class DistributionManager(val env: Environment) {
     }
 
   /**
-    * A helper for managing directories of the local installation.
+    * A helper for managing directories of the non-portable installation.
     *
-    * It returns paths of the local installation even if the launcher is running
-    * in portable mode, so that this helper can be used by the installer to
-    * determine destination for installed files.
+    * It returns paths of the non-portable installation even if the launcher is
+    * running in portable mode, so that this helper can be used by the installer
+    * to determine destination for installed files.
     */
   object LocallyInstalledDirectories {
     val ENSO_DATA_DIRECTORY   = "ENSO_DATA_DIRECTORY"

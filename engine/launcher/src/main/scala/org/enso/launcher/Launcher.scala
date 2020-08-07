@@ -10,15 +10,27 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.components.DefaultComponentsManager
 
+/**
+  * Implements launcher commands that are run from CLI and can be affected by
+  * the global CLI options.
+  *
+  * @param cliOptions the global CLI options to use for the commands
+  */
 case class Launcher(cliOptions: GlobalCLIOptions) {
   private lazy val componentsManager = DefaultComponentsManager(cliOptions)
 
+  /**
+    * Prints a list of installed engines.
+    */
   def listEngines(): Unit = {
     for (engine <- componentsManager.listInstalledEngines()) {
       println(engine.version.toString)
     }
   }
 
+  /**
+    * Prints a list of installed runtimes.
+    */
   def listRuntimes(): Unit = {
     for (runtime <- componentsManager.listInstalledRuntimes()) {
       val engines = componentsManager.findEnginesUsingRuntime(runtime)
@@ -32,6 +44,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     }
   }
 
+  /**
+    * Prints a summary of installed components and their dependencies.
+    */
   def listSummary(): Unit = {
     for (engine <- componentsManager.listInstalledEngines()) {
       val runtime = componentsManager.findRuntime(engine)
@@ -42,6 +57,11 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     }
   }
 
+  /**
+    * Installs the specified engine `version`.
+    *
+    * Also installs the required runtime if it wasn't already installed.
+    */
   def installEngine(version: SemVer): Unit = {
     val existing = componentsManager.findEngine(version)
     if (existing.isDefined) {
@@ -51,17 +71,34 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     }
   }
 
-  def installEngineLatest(): Unit = {
+  /**
+    * Installs the latest available version of the engine.
+    *
+    * Also installs the required runtime if it wasn't already installed.
+    */
+  def installLatestEngine(): Unit = {
     val latest = componentsManager.fetchLatestEngineVersion()
     Logger.info(s"Installing Enso engine $latest")
     installEngine(latest)
   }
 
+  /**
+    * Uninstalls the specified engine `version`.
+    *
+    * If a runtime is not used by any engines anymore, it is also removed.
+    */
   def uninstallEngine(version: SemVer): Unit =
     componentsManager.uninstallEngine(version)
 }
 
+/**
+  * Gathers launcher commands which do not depend on the global CLI options.
+  */
 object Launcher {
+
+  /**
+    * Version of the launcher.
+    */
   val version: SemVer = SemVer(Info.ensoVersion).getOrElse {
     throw new IllegalStateException("Cannot parse the built-in version.")
   }
