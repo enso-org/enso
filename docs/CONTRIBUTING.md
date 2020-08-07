@@ -410,9 +410,9 @@ need to follow these steps:
    placeholders that we don't use.
 6. Alternatively, certain tasks, such as `run`, `benchOnly` and `testOnly` can
    be used through the `withDebug` SBT command. For this to work, your remote
-   configuration must specify the host of `localhost` and the port `5005`.
-   The command syntax is `withDebug --debugger TASK_NAME -- TASK_PARAMETERS`,
-   e.g. `withDebug --debugger testOnly -- *AtomConstructors*`.
+   configuration must specify the host of `localhost` and the port `5005`. The
+   command syntax is `withDebug --debugger TASK_NAME -- TASK_PARAMETERS`, e.g.
+   `withDebug --debugger testOnly -- *AtomConstructors*`.
 7. Now, when you want to debug something, you can place a breakpoint as usual in
    IntelliJ, and then execute your remote debugging configuration. Now, in the
    SBT shell, run a command to execute the code you want to debug (e.g.

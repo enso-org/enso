@@ -67,6 +67,7 @@ As the Native Image builds a native binary, certain capabilities, like
 may be limited. The build system tries to automatically detect some reflective
 accesses, but it cannot detect everything. It is possible for the built binary
 to fail with the following error:
+
 ```
 java.lang.InstantiationException: Type `XYZ` can not be instantiated reflectively as it does not have a no-parameter constructor or the no-parameter constructor has not been added explicitly to the native image.`
 ```
@@ -95,6 +96,7 @@ java \
 ```
 
 For example, to update settings for the Launcher:
+
 ```bash
 java -agentlib:native-image-agent=config-merge-dir=engine/launcher/native-image-config -jar launcher.jar <arguments>
 ```

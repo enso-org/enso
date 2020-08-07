@@ -66,8 +66,8 @@ Vec                            => Vector,
 Uuid                           => UUID,
 ```
 
-*Note: It is assumed, that Enso runs on 64bit platforms. Therefore, `usize` and
-`isize` are converted to `Long`.*
+_Note: It is assumed, that Enso runs on 64bit platforms. Therefore, `usize` and
+`isize` are converted to `Long`._
 
 ##### Structures With Named Fields
 
