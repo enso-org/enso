@@ -25,7 +25,7 @@ object FileSystem {
     */
   def listDirectory(dir: Path): Seq[Path] =
     if (!Files.exists(dir)) Seq()
-    else Files.list(dir).toScala(Factory.arrayFactory).toSeq
+    else Using(Files.list(dir))(_.toScala(Factory.arrayFactory).toSeq).get
 
   /**
     * Writes a String to a file at the given `path`, creating the file if

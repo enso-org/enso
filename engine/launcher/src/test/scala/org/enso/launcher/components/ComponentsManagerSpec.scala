@@ -29,7 +29,7 @@ class ComponentsManagerSpec
       Path.of(
         getClass
           .getResource("fake-releases")
-          .getPath
+          .toURI
       )
     val engineProvider = new EngineReleaseProvider(
       FakeReleaseProvider(fakeReleasesRoot.resolve("enso"))
