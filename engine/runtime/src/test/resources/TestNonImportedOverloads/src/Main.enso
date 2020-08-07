@@ -1,4 +1,4 @@
-import TestNonImportedOverloads.Util all
+from TestNonImportedOverloads.Util import all
 
 X.method = 10
 

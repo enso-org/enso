@@ -1,4 +1,4 @@
-import Test.Names.Definitions all only My_Type Another_Constant
+from Test.Names.Definitions import My_Type, Another_Constant
 import Base.Test
 
 Definitions.Foo.my_method = case this of

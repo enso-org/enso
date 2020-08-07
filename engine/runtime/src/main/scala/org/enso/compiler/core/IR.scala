@@ -510,15 +510,19 @@ object IR {
             ).flatten
 
           override def showCode(indent: Int): String = {
-            val renameCode = rename.map(n => s" as $n").getOrElse("")
-            val allCode    = if (isAll) " all" else ""
-            val onlyPart = onlyNames
-              .map(names => s" only ${names.mkString(" ")}")
-              .getOrElse("")
-            val hidingPart = hiddenNames
-              .map(names => s" hiding ${names.mkString(" ")}")
-              .getOrElse("")
-            s"import ${name.name}$renameCode$allCode$onlyPart$hidingPart"
+            val renameCode = rename.map(n => s" as ${n.name}").getOrElse("")
+            if (isAll) {
+              val onlyPart = onlyNames
+                .map(names => " " + names.map(_.name).mkString(", "))
+                .getOrElse("")
+              val hidingPart = hiddenNames
+                .map(names => s" hiding ${names.map(_.name).mkString(", ")}")
+                .getOrElse("")
+              val all = if (onlyNames.isDefined) "" else " all"
+              s"from ${name.name}$renameCode import$onlyPart$all$hidingPart"
+            } else {
+              s"import ${name.name}$renameCode"
+            }
           }
 
           /**
