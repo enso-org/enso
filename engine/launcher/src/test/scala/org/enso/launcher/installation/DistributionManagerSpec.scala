@@ -3,12 +3,7 @@ package org.enso.launcher.installation
 import java.nio.file.Path
 
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.{
-  Environment,
-  FakeEnvironment,
-  FileSystem,
-  WithTemporaryDirectory
-}
+import org.enso.launcher.{Environment, FakeEnvironment, WithTemporaryDirectory}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -20,11 +15,10 @@ class DistributionManagerSpec
 
   "DistributionManager" should {
     "detect portable distribution" in {
-      val executable = fakeExecutablePath()
+      val executable = fakeExecutablePath(portable = true)
       val fakeEnvironment = new Environment {
         override def getPathToRunningExecutable: Path = executable
       }
-      FileSystem.writeTextFile(getTestDirectory / ".enso.portable", "mark")
 
       val distributionManager = new DistributionManager(fakeEnvironment)
       distributionManager.isRunningPortable shouldEqual true

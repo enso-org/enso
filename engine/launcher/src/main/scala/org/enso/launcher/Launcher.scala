@@ -118,7 +118,7 @@ object Launcher {
   def newProject(name: String, path: Option[Path]): Unit = {
     val actualPath = path.getOrElse(workingDirectory.resolve(name))
     packageManager.create(actualPath.toFile, name)
-    println(s"Project created in $actualPath")
+    Logger.info(s"Project created in $actualPath")
   }
 
   /**

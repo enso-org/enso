@@ -156,7 +156,7 @@ class ComponentsManager(
       case Some(found) => found
       case None =>
         def complainAndAsk(): Boolean = {
-          Logger.error(s"Engine $version is missing.")
+          Logger.warn(s"Engine $version is missing.")
           cliOptions.autoConfirm || CLIOutput.askConfirmation(
             "Do you want to install the missing engine?",
             yesDefault = true

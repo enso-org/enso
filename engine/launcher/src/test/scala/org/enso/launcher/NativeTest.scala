@@ -107,6 +107,12 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
 
   /**
     * Creates a copy of the tested launcher binary at the specified location.
+    *
+    * It waits a 100ms delay after creating the copy to ensure that the copy can
+    * be called right away after calling this function. It is not absolutely
+    * certain that this is helpful, but from time to time, the tests fail
+    * because the filesystem does not allow to access the executable as
+    * 'not-ready'. This delay is an attempt to make the tests more stable.
     */
   def copyLauncherTo(path: Path): Unit = {
     val parent = path.getParent
