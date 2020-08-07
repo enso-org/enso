@@ -4,7 +4,12 @@ import java.nio.file.{Files, Path}
 
 import org.enso.cli.{ProgressListener, TaskProgress}
 import org.enso.launcher.{FileSystem, OS}
-import org.enso.launcher.releases.{Asset, Release, ReleaseProvider}
+import org.enso.launcher.releases.{
+  Asset,
+  Release,
+  ReleaseProvider,
+  ReleaseProviderException
+}
 
 import scala.io.Source
 import scala.util.{Success, Try, Using}
@@ -19,7 +24,7 @@ case class FakeReleaseProvider(releasesRoot: Path) extends ReleaseProvider {
   override def releaseForTag(tag: String): Try[Release] =
     releases
       .find(_.tag == tag)
-      .toRight(new RuntimeException("unknown release"))
+      .toRight(ReleaseProviderException(s"Release $tag does not exist."))
       .toTry
 
   /**

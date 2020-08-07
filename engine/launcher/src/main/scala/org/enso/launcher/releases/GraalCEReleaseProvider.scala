@@ -53,7 +53,7 @@ class GraalCEReleaseProvider(releaseProvider: ReleaseProvider)
           .map(_.downloadTo(destination))
           .getOrElse {
             TaskProgress.immediateFailure(
-              new RuntimeException(
+              ReleaseProviderException(
                 s"Cannot find package `$packageName` in the release."
               )
             )

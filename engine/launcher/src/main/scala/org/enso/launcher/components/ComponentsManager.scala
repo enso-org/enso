@@ -123,7 +123,7 @@ class ComponentsManager(
         if (!complain || complainAndAsk()) {
           installRuntime(engine.manifest.runtimeVersion)
         } else {
-          throw new RuntimeException(
+          throw ComponentMissingError(
             s"No runtime for engine $engine. Cannot continue."
           )
         }
@@ -192,7 +192,7 @@ class ComponentsManager(
         if (!complain || complainAndAsk()) {
           installEngine(version)
         } else {
-          throw new RuntimeException(s"No engine $version. Cannot continue.")
+          throw ComponentMissingError(s"No engine $version. Cannot continue.")
         }
     }
 

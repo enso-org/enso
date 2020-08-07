@@ -426,7 +426,7 @@ object Main {
             0
         }
       } catch {
-        case e: RuntimeException =>
+        case e: Exception =>
           Logger.error(s"A fatal error has occurred: $e", e)
           1
       }
