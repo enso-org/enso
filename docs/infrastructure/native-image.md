@@ -105,3 +105,12 @@ The command may need to be re-run with different arguments to ensure that all
 execution paths that use reflection are covered. The configuration files between
 consecutive runs will be merged (a warning may be issued for the first run if
 the configuration files did not exist, this is not a problem).
+
+It is possible that different classes are reflectively accessed on different
+platforms. In that case it may be necessary to run the agent on multiple
+platforms and merge the configs. If the conflicts were conflicting (i.e. some
+reflectively accessed classes existed only on one platform), it may be necessary
+to maintain separate configs for each platform. Currently in the Launcher this
+is not the case - the reflective accesses seem to be platform independent, as
+the launcher built with a config created on Linux runs successfully on other
+platforms.

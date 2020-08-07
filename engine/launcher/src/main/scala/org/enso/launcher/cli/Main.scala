@@ -216,14 +216,25 @@ object Main {
         showInUsage = false
       )
 
-      bundleAction map { bundleAction => (config: Config) =>
-        new DistributionInstaller(
-          DistributionManager,
-          config.autoConfirm,
-          if (config.autoConfirm)
-            Some(bundleAction.getOrElse(DistributionInstaller.MoveBundles))
-          else bundleAction
-        ).install()
+      val doNotRemoveOldLauncher = Opts.flag(
+        "no-remove-old-launcher",
+        "If `auto-confirm` is set, the default behavior is to remove the old " +
+        "launcher after installing the distribution. Setting this flag may " +
+        "override this behavior to keep the original launcher.",
+        showInUsage = true
+      )
+
+      (bundleAction, doNotRemoveOldLauncher) mapN {
+        (bundleAction, doNotRemoveOldLauncher) => (config: Config) =>
+          new DistributionInstaller(
+            DistributionManager,
+            config.autoConfirm,
+            removeOldLauncher = !doNotRemoveOldLauncher,
+            bundleActionOption =
+              if (config.autoConfirm)
+                Some(bundleAction.getOrElse(DistributionInstaller.MoveBundles))
+              else bundleAction
+          ).install()
       }
     }
 

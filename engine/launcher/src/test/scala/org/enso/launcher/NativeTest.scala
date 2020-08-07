@@ -1,6 +1,7 @@
 package org.enso.launcher
 
 import java.nio.file.{Files, Path}
+import java.lang.{ProcessBuilder => JProcessBuilder}
 
 import org.scalatest.concurrent.{Signaler, TimeLimitedTests}
 import org.scalatest.matchers.should.Matchers
@@ -8,8 +9,11 @@ import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.time.Span
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.sys.process._
 import org.scalatest.time.SpanSugar._
+
+import scala.collection.Factory
+import scala.jdk.CollectionConverters._
+import scala.jdk.StreamConverters._
 
 /**
   * Contains helper methods for creating tests that need to run the native
@@ -17,7 +21,7 @@ import org.scalatest.time.SpanSugar._
   */
 trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
 
-  override val timeLimit: Span               = 15 seconds
+  override val timeLimit: Span               = 1 seconds
   override val defaultTestSignaler: Signaler = _.interrupt()
 
   /**
@@ -143,44 +147,54 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     )
   }
 
-  /**
-    * This property can be temporarily set to true to allow for easier debugging
-    * of native tests.
-    */
-  private val launcherDebugLogging = false
-
   private def run(
     command: Seq[String],
-    extraEnv: Seq[(String, String)]
+    extraEnv: Seq[(String, String)],
+    waitForDescendants: Boolean = true
   ): RunResult = {
-    val stdout = new StringBuilder
-    val stderr = new StringBuilder
-    val logger = new ProcessLogger {
-      override def out(s: => String): Unit = {
-        if (launcherDebugLogging) {
-          System.err.println(s)
-        }
-        stdout.append(s + "\n")
-      }
-
-      override def err(s: => String): Unit = {
-        if (launcherDebugLogging) {
-          System.err.println(s)
-        }
-        stderr.append(s + "\n")
-      }
-
-      override def buffer[T](f: => T): T = f
-    }
-
     try {
-      val process = Process(command, None, extraEnv: _*).run(logger)
+      val builder = new JProcessBuilder(command: _*)
+      val newKeys = extraEnv.map(_._1.toLowerCase)
+      if (newKeys.distinct.size < newKeys.size) {
+        throw new IllegalArgumentException(
+          "The extra environment keys have to be unique"
+        )
+      }
+
+      lazy val existingKeys =
+        builder.environment().keySet().asScala
+      for ((key, value) <- extraEnv) {
+        if (OS.isWindows) {
+          def shadows(key1: String, key2: String): Boolean =
+            key1.toLowerCase == key2.toLowerCase && key1 != key2
+
+          existingKeys.find(shadows(_, key)) match {
+            case Some(oldKey) =>
+              throw new IllegalArgumentException(
+                s"The environment key $key may be shadowed by $oldKey " +
+                s"already existing in the environment. Please use `$oldKey`."
+              )
+            case None =>
+          }
+        }
+        builder.environment().put(key, value)
+      }
+
+      val process = builder.start()
+
       try {
-        RunResult(process.exitValue(), stdout.toString(), stderr.toString())
+        val exitCode = process.waitFor()
+        if (waitForDescendants) {
+          val descendants = process.descendants().toScala(Factory.arrayFactory)
+          descendants.foreach(_.onExit().join())
+        }
+        val stdout = new String(process.getInputStream.readAllBytes())
+        val stderr = new String(process.getErrorStream.readAllBytes())
+        RunResult(exitCode, stdout, stderr)
       } catch {
         case e: InterruptedException =>
-          if (process.isAlive()) {
-            println("Killing the timed-out process")
+          if (process.isAlive) {
+            println(s"Killing the timed-out process: ${command.mkString(" ")}")
             process.destroy()
           }
           throw e

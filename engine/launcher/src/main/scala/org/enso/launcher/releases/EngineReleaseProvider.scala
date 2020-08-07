@@ -126,6 +126,8 @@ object EngineReleaseProvider
     extends EngineReleaseProvider(
       new GithubReleaseProvider(
         "enso-org",
-        "enso-staging" // TODO [RW] move from staging to the main repository
+        "enso-staging" // TODO [RW] The release provider will be moved from
+        // staging to the main repository, when the first official Enso release
+        // is released.
       )
     )

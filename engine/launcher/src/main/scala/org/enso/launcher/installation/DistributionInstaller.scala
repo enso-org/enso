@@ -17,6 +17,9 @@ import scala.util.control.NonFatal
   *                location
   * @param autoConfirm if set to true, the installer will use defaults instead
   *                    of asking questions
+  * @param removeOldLauncher if `autoConfirm` is set to true, specifies whether
+  *                          the old launcher should be removed after successful
+  *                          installation
   * @param bundleActionOption defines how bundled components are added, if
   *                           [[autoConfirm]] is set, defaults to a move,
   *                           otherwise explicitly asks the user
@@ -24,6 +27,7 @@ import scala.util.control.NonFatal
 class DistributionInstaller(
   manager: DistributionManager,
   autoConfirm: Boolean,
+  removeOldLauncher: Boolean,
   bundleActionOption: Option[DistributionInstaller.BundleAction]
 ) {
   final private val installed = manager.LocallyInstalledDirectories
@@ -329,7 +333,11 @@ class DistributionInstaller(
       )
 
     if (installedLauncherPath != currentLauncherPath) {
-      if (autoConfirm || askForRemoval()) {
+      def shouldRemove(): Boolean =
+        if (autoConfirm) removeOldLauncher
+        else askForRemoval()
+
+      if (shouldRemove()) {
         if (OS.isWindows) {
           InternalOpts
             .runWithNewLauncher(installedLauncherPath)
