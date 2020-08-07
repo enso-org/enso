@@ -251,19 +251,6 @@ class RuntimeServerTest
       }
     }
 
-    object MainWithError {
-
-      val metadata = new Metadata
-
-      val idMain = metadata.addItem(8, 6)
-
-      val code = metadata.appendToCode(
-        """
-          |main = 1 + 2L
-          |""".stripMargin
-      )
-    }
-
     object Visualisation {
 
       val code =
@@ -378,19 +365,20 @@ class RuntimeServerTest
     )
   }
 
-  it should "send updates when the type is changed" in {
+  it should "send updates from last line" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
 
     val metadata  = new Metadata
-    val idResult  = metadata.addItem(20, 4)
-    val idPrintln = metadata.addItem(29, 17)
-    val idMain    = metadata.addItem(6, 40)
+    val idMain    = metadata.addItem(23, 17)
+    val idMainFoo = metadata.addItem(28, 12)
+
     val code =
-      """main =
-        |    result = 1337
-        |    IO.println result
+      """foo a b = a + b
+        |
+        |main =
+        |    this.foo 1 2
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
@@ -421,18 +409,218 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(6) should contain theSameElementsAs Seq(
+    context.receive(4) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idResult, Some("Number"), None))
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainFoo,
+              Some("Number"),
+              Some(Api.MethodPointer(moduleName, "Main", "foo"))
+            )
+          )
         )
       ),
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idPrintln, Some("Unit"), None))
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
+        )
+      ),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                moduleName,
+                "foo",
+                Seq(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("a", "Any", false, false, None),
+                  Suggestion.Argument("b", "Any", false, false, None)
+                ),
+                "here",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idMain),
+                moduleName,
+                "main",
+                List(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            )
+          )
+        )
+      )
+    )
+  }
+
+  it should "compute side effects correctly from last line" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata  = new Metadata
+    val idMain    = metadata.addItem(23, 30)
+    val idMainFoo = metadata.addItem(40, 12)
+
+    val code =
+      """foo a b = a + b
+        |
+        |main =
+        |    IO.println (this.foo 1 2)
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receive shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainFoo,
+              Some("Number"),
+              Some(Api.MethodPointer(moduleName, "Main", "foo"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+        )
+      ),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                moduleName,
+                "foo",
+                Seq(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("a", "Any", false, false, None),
+                  Suggestion.Argument("b", "Any", false, false, None)
+                ),
+                "here",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idMain),
+                moduleName,
+                "main",
+                List(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            )
+          )
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("3")
+  }
+
+  it should "Run State getting the initial state" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata  = new Metadata
+    val idMain    = metadata.addItem(7, 41)
+    val idMainBar = metadata.addItem(39, 8)
+
+    val code =
+      """main = IO.println (State.run Number 42 this.bar)
+        |
+        |bar = State.get Number
+        |""".stripMargin
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receive shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainBar,
+              Some("Number"),
+              Some(Api.MethodPointer(moduleName, "Main", "bar"))
+            )
+          )
         )
       ),
       Api.Response(
@@ -457,46 +645,220 @@ class RuntimeServerTest
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
-              Suggestion.Local(
-                Some(idResult),
+              Suggestion.Method(
+                None,
                 moduleName,
-                "result",
+                "bar",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
                 "Any",
-                Suggestion.Scope(
-                  Suggestion.Position(0, 6),
-                  Suggestion.Position(2, 21)
-                )
+                None
               )
             )
           )
         )
       )
     )
-    context.consumeOut shouldEqual List("1337")
+    context.consumeOut shouldEqual List("42")
+  }
 
-    // Modify the file
+  it should "Run State setting the state" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata  = new Metadata
+    val idMain    = metadata.addItem(7, 40)
+    val idMainBar = metadata.addItem(38, 8)
+
+    val code =
+      """main = IO.println (State.run Number 0 this.bar)
+        |
+        |bar =
+        |    State.put Number 10
+        |    State.get Number
+        |""".stripMargin
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receive shouldEqual None
+
+    // push main
     context.send(
       Api.Request(
-        Api.EditFileNotification(
-          mainFile,
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainBar,
+              Some("Number"),
+              Some(Api.MethodPointer(moduleName, "Main", "bar"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+        )
+      ),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
           Seq(
-            TextEdit(
-              model.Range(model.Position(1, 13), model.Position(1, 17)),
-              "\"Hi\""
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idMain),
+                moduleName,
+                "main",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                moduleName,
+                "bar",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
             )
           )
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(
-        Api.ExpressionValuesComputed(
+    context.consumeOut shouldEqual List("10")
+  }
+
+  it should "send updates of a function call" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata  = new Metadata
+    val idMain    = metadata.addItem(23, 23)
+    val idMainFoo = metadata.addItem(28, 12)
+
+    val code =
+      """foo a b = a + b
+        |
+        |main =
+        |    this.foo 1 2
+        |    1
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receive shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idResult, Some("Text"), None))
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
         )
       )
     )
-    context.consumeOut shouldEqual List("Hi")
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainFoo,
+              Some("Number"),
+              Some(Api.MethodPointer(moduleName, "Main", "foo"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
+        )
+      ),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                moduleName,
+                "foo",
+                Seq(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("a", "Any", false, false, None),
+                  Suggestion.Argument("b", "Any", false, false, None)
+                ),
+                "here",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idMain),
+                moduleName,
+                "main",
+                List(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            )
+          )
+        )
+      )
+    )
   }
 
   it should "not send updates when the type is not changed" in {
@@ -666,6 +1028,127 @@ class RuntimeServerTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId))
     )
+  }
+
+  it should "send updates when the type is changed" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata  = new Metadata
+    val idResult  = metadata.addItem(20, 4)
+    val idPrintln = metadata.addItem(29, 17)
+    val idMain    = metadata.addItem(6, 40)
+    val code =
+      """main =
+        |    result = 1337
+        |    IO.println result
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receive shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(6) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idResult, Some("Number"), None))
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idPrintln, Some("Unit"), None))
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+        )
+      ),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idMain),
+                moduleName,
+                "main",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(idResult),
+                moduleName,
+                "result",
+                "Any",
+                Suggestion.Scope(
+                  Suggestion.Position(0, 6),
+                  Suggestion.Position(2, 21)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("1337")
+
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            TextEdit(
+              model.Range(model.Position(1, 13), model.Position(1, 17)),
+              "\"Hi\""
+            )
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idResult, Some("Text"), None))
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("Hi")
   }
 
   it should "send updates when the method pointer is changed" in {
@@ -1562,10 +2045,18 @@ class RuntimeServerTest
     )
   }
 
-  it should "return error when computing erroneous code" in {
-    context.writeMain(context.MainWithError.code)
-    val contextId = UUID.randomUUID()
-    val requestId = UUID.randomUUID()
+  it should "return error not invocable" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val code =
+      """main = this.bar 40 2 9
+        |
+        |bar x y = x + y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    context.writeMain(contents)
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
@@ -1574,26 +2065,148 @@ class RuntimeServerTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
-      None,
-      Vector()
-    )
     context.send(
-      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
+    context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(Api.ExecutionFailed(contextId, "error in function: main"))
+      Api.Response(
+        Api.ExecutionFailed(contextId, "Object 42 is not invokable.")
+      )
+    )
+  }
+
+  it should "return error in function main" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val code =
+      """main = this.bar x y
+        |
+        |bar x y = x + y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
-    // recompute
+    // push main
     context.send(
-      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      Api.Response(Api.ExecutionFailed(contextId, "error in function: main"))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(Api.ExecutionFailed(contextId, "Error in function main."))
+    )
+  }
+
+  it should "return error unexpected type" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+    val code =
+      """main = this.bar "one" 2
+        |
+        |bar x y = x + y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          "Unexpected type provided for argument `that` in Text.+"
+        )
+      )
+    )
+  }
+
+  it should "return error method does not exist" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+    val metadata   = new Metadata
+
+    val code     = "main = Number.pi"
+    val contents = metadata.appendToCode(code)
+    context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          "Object Number does not define method pi."
+        )
+      )
     )
   }
 
@@ -2107,7 +2720,7 @@ class RuntimeServerTest
     )
     context.receive(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualisationAttached()),
-      Api.Response(Api.ExecutionFailed(contextId, "stack is empty"))
+      Api.Response(Api.ExecutionFailed(contextId, "Stack is empty."))
     )
     // push main
     val item1 = Api.StackItem.ExplicitCall(

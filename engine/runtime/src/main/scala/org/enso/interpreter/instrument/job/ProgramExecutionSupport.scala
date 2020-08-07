@@ -5,6 +5,8 @@ import java.util.function.Consumer
 import java.util.logging.Level
 
 import cats.implicits._
+import com.oracle.truffle.api.TruffleException
+import com.oracle.truffle.api.interop.InteropException
 import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionCall,
   ExpressionValue
@@ -39,6 +41,7 @@ trait ProgramExecutionSupport {
     * @param cachedMethodCallsCallback a listener for cached method calls
     * @param onComputedCallback a listener of computed values
     * @param onCachedCallback a listener of cached values
+    * @param onExceptionalCallback the consumer of the exceptional events.
     */
   @scala.annotation.tailrec
   final private def executeProgram(
@@ -46,7 +49,8 @@ trait ProgramExecutionSupport {
     callStack: List[LocalCallFrame],
     cachedMethodCallsCallback: Consumer[ExpressionValue],
     onComputedCallback: Consumer[ExpressionValue],
-    onCachedCallback: Consumer[ExpressionValue]
+    onCachedCallback: Consumer[ExpressionValue],
+    onExceptionalCallback: Consumer[Throwable]
   )(implicit ctx: RuntimeContext): Unit = {
     val methodCallsCache = new MethodCallsCache
     var enterables       = Map[UUID, FunctionCall]()
@@ -68,9 +72,10 @@ trait ProgramExecutionSupport {
           cache,
           methodCallsCache,
           callStack.headOption.map(_.expressionId).orNull,
+          callablesCallback,
           computedCallback,
           onCachedCallback,
-          callablesCallback
+          onExceptionalCallback
         )
       case ExecutionFrame(ExecutionItem.CallData(callData), cache) =>
         ctx.executionService.execute(
@@ -78,9 +83,10 @@ trait ProgramExecutionSupport {
           cache,
           methodCallsCache,
           callStack.headOption.map(_.expressionId).orNull,
+          callablesCallback,
           computedCallback,
           onCachedCallback,
-          callablesCallback
+          onExceptionalCallback
         )
     }
 
@@ -108,7 +114,8 @@ trait ProgramExecutionSupport {
               tail,
               cachedMethodCallsCallback,
               onComputedCallback,
-              onCachedCallback
+              onCachedCallback,
+              onExceptionalCallback
             )
           case None =>
             ()
@@ -171,9 +178,14 @@ trait ProgramExecutionSupport {
       fireVisualisationUpdates(contextId, value)
     }
 
+    val onExceptionalCallback: Consumer[Throwable] = { value =>
+      ctx.executionService.getLogger.finer(s"ON_ERROR $value")
+      sendErrorUpdate(contextId, value)
+    }
+
     val (explicitCallOpt, localCalls) = unwind(stack, Nil, Nil)
     for {
-      stackItem <- Either.fromOption(explicitCallOpt, "stack is empty")
+      stackItem <- Either.fromOption(explicitCallOpt, "Stack is empty.")
       _ <-
         Either
           .catchNonFatal(
@@ -182,18 +194,36 @@ trait ProgramExecutionSupport {
               localCalls,
               cachedMethodCallsCallback,
               onComputedValueCallback,
-              onCachedValueCallback
+              onCachedValueCallback,
+              onExceptionalCallback
             )
           )
           .leftMap { ex =>
             ctx.executionService.getLogger.log(
               Level.FINE,
-              s"Error executing a function '${getName(stackItem.item)}'",
+              s"Error executing a function '${getName(stackItem.item)}.'",
               ex
             )
-            s"error in function: ${getName(stackItem.item)}"
+            getErrorMessage(ex)
+              .getOrElse(s"Error in function ${getName(stackItem.item)}.")
           }
     } yield ()
+  }
+
+  /** Get error message from throwable. */
+  private def getErrorMessage(t: Throwable): Option[String] =
+    t match {
+      case ex: TruffleException => Some(ex.getMessage)
+      case ex: InteropException => Some(ex.getMessage)
+      case _                    => None
+    }
+
+  private def sendErrorUpdate(contextId: ContextId, error: Throwable)(implicit
+    ctx: RuntimeContext
+  ): Unit = {
+    ctx.endpoint.sendToClient(
+      Api.Response(Api.ExecutionFailed(contextId, error.getMessage))
+    )
   }
 
   private def sendMethodPointerUpdate(

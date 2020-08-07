@@ -6,12 +6,15 @@ import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
+import com.oracle.truffle.api.interop.InteropException;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.QualifiedName;
@@ -104,14 +107,22 @@ public class IdExecutionInstrument extends TruffleInstrument {
 
     @Override
     public String toString() {
-      return "ExpressionValue{" +
-          "expressionId=" + expressionId +
-          ", value=" + value +
-          ", type='" + type + '\'' +
-          ", cachedType='" + cachedType + '\'' +
-          ", callInfo=" + callInfo +
-          ", cachedCallInfo=" + cachedCallInfo +
-          '}';
+      return "ExpressionValue{"
+          + "expressionId="
+          + expressionId
+          + ", value="
+          + value
+          + ", type='"
+          + type
+          + '\''
+          + ", cachedType='"
+          + cachedType
+          + '\''
+          + ", callInfo="
+          + callInfo
+          + ", cachedCallInfo="
+          + cachedCallInfo
+          + '}';
     }
 
     /** @return the id of the expression computed. */
@@ -184,9 +195,9 @@ public class IdExecutionInstrument extends TruffleInstrument {
         return false;
       }
       FunctionCallInfo that = (FunctionCallInfo) o;
-      return Objects.equals(moduleName, that.moduleName) &&
-          Objects.equals(typeName, that.typeName) &&
-          functionName.equals(that.functionName);
+      return Objects.equals(moduleName, that.moduleName)
+          && Objects.equals(typeName, that.typeName)
+          && functionName.equals(that.functionName);
     }
 
     @Override
@@ -221,6 +232,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final Consumer<ExpressionCall> functionCallCallback;
     private final Consumer<ExpressionValue> onComputedCallback;
     private final Consumer<ExpressionValue> onCachedCallback;
+    private final Consumer<Throwable> onExceptionalCallback;
     private final RuntimeCache cache;
     private final MethodCallsCache callsCache;
     private final UUID nextExecutionItem;
@@ -236,6 +248,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
      * @param functionCallCallback the consumer of function call events.
      * @param onComputedCallback the consumer of the computed value events.
      * @param onCachedCallback the consumer of the cached value events.
+     * @param onExceptionalCallback the consumer of the exceptional events.
      */
     public IdExecutionEventListener(
         CallTarget entryCallTarget,
@@ -244,7 +257,8 @@ public class IdExecutionInstrument extends TruffleInstrument {
         UUID nextExecutionItem,
         Consumer<ExpressionCall> functionCallCallback,
         Consumer<ExpressionValue> onComputedCallback,
-        Consumer<ExpressionValue> onCachedCallback) {
+        Consumer<ExpressionValue> onCachedCallback,
+        Consumer<Throwable> onExceptionalCallback) {
       this.entryCallTarget = entryCallTarget;
       this.cache = cache;
       this.callsCache = methodCallsCache;
@@ -252,6 +266,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       this.functionCallCallback = functionCallCallback;
       this.onComputedCallback = onComputedCallback;
       this.onCachedCallback = onCachedCallback;
+      this.onExceptionalCallback = onExceptionalCallback;
     }
 
     @Override
@@ -332,8 +347,22 @@ public class IdExecutionInstrument extends TruffleInstrument {
     }
 
     @Override
-    public void onReturnExceptional(
-        EventContext context, VirtualFrame frame, Throwable exception) {}
+    public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
+      if (exception instanceof TailCallException) {
+        try {
+          TailCallException tailCallException = (TailCallException) exception;
+          FunctionCallInstrumentationNode.FunctionCall functionCall =
+              new FunctionCallInstrumentationNode.FunctionCall(
+                  tailCallException.getFunction(),
+                  tailCallException.getState(),
+                  tailCallException.getArguments());
+          Object result = InteropLibrary.getFactory().getUncached().execute(functionCall);
+          onReturnValue(context, frame, result);
+        } catch (InteropException e) {
+          onExceptionalCallback.accept(e);
+        }
+      }
+    }
 
     /**
      * Checks if we're not inside a recursive call, i.e. the {@link #entryCallTarget} only appears
@@ -375,9 +404,10 @@ public class IdExecutionInstrument extends TruffleInstrument {
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param nextExecutionItem the next item scheduled for execution.
+   * @param functionCallCallback the consumer of function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
-   * @param functionCallCallback the consumer of function call events.
+   * @param onExceptionalCallback the consumer of the exceptional events.
    * @return a reference to the attached event listener.
    */
   public EventBinding<ExecutionEventListener> bind(
@@ -387,9 +417,10 @@ public class IdExecutionInstrument extends TruffleInstrument {
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UUID nextExecutionItem,
-      Consumer<ExpressionValue> onComputedCallback,
+      Consumer<IdExecutionInstrument.ExpressionCall> functionCallCallback,
+      Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
-      Consumer<ExpressionCall> functionCallCallback) {
+      Consumer<Throwable> onExceptionalCallback) {
     SourceSectionFilter filter =
         SourceSectionFilter.newBuilder()
             .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
@@ -397,18 +428,17 @@ public class IdExecutionInstrument extends TruffleInstrument {
             .indexIn(funSourceStart, funSourceLength)
             .build();
 
-    EventBinding<ExecutionEventListener> binding =
-        env.getInstrumenter()
-            .attachExecutionEventListener(
-                filter,
-                new IdExecutionEventListener(
-                    entryCallTarget,
-                    cache,
-                    methodCallsCache,
-                    nextExecutionItem,
-                    functionCallCallback,
-                    onComputedCallback,
-                    onCachedCallback));
-    return binding;
+    return env.getInstrumenter()
+        .attachExecutionEventListener(
+            filter,
+            new IdExecutionEventListener(
+                entryCallTarget,
+                cache,
+                methodCallsCache,
+                nextExecutionItem,
+                functionCallCallback,
+                onComputedCallback,
+                onCachedCallback,
+                onExceptionalCallback));
   }
 }

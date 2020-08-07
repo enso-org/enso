@@ -15,6 +15,7 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.data.EmptyMap;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
@@ -75,7 +76,7 @@ public class ExecutionService {
     }
     FunctionCallInstrumentationNode.FunctionCall call =
         new FunctionCallInstrumentationNode.FunctionCall(
-            function, context.getBuiltins().unit(), new Object[] {atomConstructor.newInstance()});
+            function, EmptyMap.create(), new Object[] {atomConstructor.newInstance()});
     return Optional.of(call);
   }
 
@@ -86,18 +87,20 @@ public class ExecutionService {
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param nextExecutionItem the next item scheduled for execution.
+   * @param funCallCallback the consumer for function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
-   * @param funCallCallback the consumer for function call events.
+   * @param onExceptionalCallback the consumer of the exceptional events.
    */
   public void execute(
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UUID nextExecutionItem,
+      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
-      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
+      Consumer<Throwable> onExceptionalCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
 
     SourceSection src = call.getFunction().getSourceSection();
@@ -112,9 +115,10 @@ public class ExecutionService {
             cache,
             methodCallsCache,
             nextExecutionItem,
+            funCallCallback,
             onComputedCallback,
             onCachedCallback,
-            funCallCallback);
+            onExceptionalCallback);
     interopLibrary.execute(call);
     listener.dispose();
   }
@@ -129,9 +133,10 @@ public class ExecutionService {
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed method calls.
    * @param nextExecutionItem the next item scheduled for execution.
+   * @param funCallCallback the consumer for function call events.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
-   * @param funCallCallback the consumer for function call events.
+   * @param onExceptionalCallback the consumer of the exceptional events.
    */
   public void execute(
       String moduleName,
@@ -140,9 +145,10 @@ public class ExecutionService {
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UUID nextExecutionItem,
+      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
-      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
+      Consumer<Throwable> onExceptionalCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
     Optional<FunctionCallInstrumentationNode.FunctionCall> callMay =
         context
@@ -156,9 +162,10 @@ public class ExecutionService {
         cache,
         methodCallsCache,
         nextExecutionItem,
+        funCallCallback,
         onComputedCallback,
         onCachedCallback,
-        funCallCallback);
+        onExceptionalCallback);
   }
 
   /**
