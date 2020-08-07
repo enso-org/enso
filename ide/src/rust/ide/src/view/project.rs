@@ -11,6 +11,7 @@ use ensogl::application::Application;
 use ensogl::control::callback;
 use ensogl::control::io::keyboard::listener::KeyboardFrpBindings;
 use ensogl::data::color;
+use ensogl::display::navigation::navigator::Navigator;
 use ensogl::display::shape::text::glyph::font;
 use ensogl::display::style::theme;
 use ensogl::system::web;
@@ -59,6 +60,7 @@ shared! { ProjectView
     #[derive(Debug)]
     pub struct ProjectViewData {
         application       : Application,
+        navigator         : Navigator,
         layout            : ViewLayout,
         resize_callback   : Option<callback::Handle>,
         model             : model::Project,
@@ -105,6 +107,9 @@ impl ProjectView {
         let graph_controller  = controller::ExecutedGraph::new(&logger,model.clone_ref(),method);
         let graph_controller  = graph_controller.await?;
         let application       = Application::new(&web::get_html_element_by_id("root").unwrap());
+        let scene             = application.display.scene();
+        let camera            = scene.camera();
+        let navigator         = Navigator::new(&scene,&camera);
         Self::setup_components(&application);
         Self::setup_theme(&application);
         let _world = &application.display;
@@ -118,7 +123,7 @@ impl ProjectView {
         let layout = ViewLayout::new(&logger,&mut keyboard_actions,&application, text_controller,
             graph_controller,visualization_controller,model.clone_ref(),&mut fonts).await?;
         let data = ProjectViewData {application,layout,resize_callback,model,keyboard,
-            keyboard_bindings,keyboard_actions};
+            keyboard_bindings,keyboard_actions,navigator};
         Ok(Self::new_from_data(data).init())
     }
 
