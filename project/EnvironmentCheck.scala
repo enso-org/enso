@@ -86,7 +86,6 @@ object EnvironmentCheck {
   /**
     * Augments a state transition to do a Rust and GraalVM version check.
     *
-    * @param rustVersion the Rust version that is expected to be installed
     * @param graalVersion the GraalVM version that should be used for
     *                     building this project
     * @param javaVersion the Java version of the used GraalVM distribution
@@ -95,7 +94,6 @@ object EnvironmentCheck {
     *         oldTransition but also runs the version checks
     */
   def addVersionCheck(
-    rustVersion: String,
     graalVersion: String,
     javaVersion: String
   )(
@@ -105,8 +103,7 @@ object EnvironmentCheck {
       val newState = oldTransition(state)
       val logger   = newState.log
       val graalOk  = graalVersionOk(graalVersion, javaVersion, logger)
-      val rustOk   = rustVersionOk(rustVersion, logger)
-      if (!graalOk || !rustOk)
+      if (!graalOk)
         throw new RuntimeException("Some versions checks failed.")
 
       newState
