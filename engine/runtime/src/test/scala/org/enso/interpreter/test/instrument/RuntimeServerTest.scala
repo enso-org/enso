@@ -566,17 +566,113 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("3")
   }
 
-  it should "perform operations with State" in {
+  it should "Run State getting the initial state" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(7, 27)
-    val idMainBar = metadata.addItem(26, 8)
+    val idMain    = metadata.addItem(7, 41)
+    val idMainBar = metadata.addItem(39, 8)
 
     val code =
-      """main = State.run Number 0 this.bar
+      """main = IO.println (State.run Number 42 this.bar)
+        |
+        |bar = State.get Number
+        |""".stripMargin
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receive shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              idMainBar,
+              Some("Number"),
+              Some(Api.MethodPointer(moduleName, "Main", "bar"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+        )
+      ),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idMain),
+                moduleName,
+                "main",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                moduleName,
+                "bar",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            )
+          )
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("42")
+  }
+
+  it should "Run State setting the state" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata  = new Metadata
+    val idMain    = metadata.addItem(7, 40)
+    val idMainBar = metadata.addItem(38, 8)
+
+    val code =
+      """main = IO.println (State.run Number 0 this.bar)
         |
         |bar =
         |    State.put Number 10
@@ -628,7 +724,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMain, Some("Number"), None))
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
         )
       ),
       Api.Response(
@@ -661,9 +757,10 @@ class RuntimeServerTest
         )
       )
     )
+    context.consumeOut shouldEqual List("10")
   }
 
-  it should "send updates from multi liner" in {
+  it should "send updates of a function call" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"

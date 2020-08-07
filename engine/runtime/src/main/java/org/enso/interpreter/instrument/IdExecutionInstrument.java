@@ -350,11 +350,12 @@ public class IdExecutionInstrument extends TruffleInstrument {
     public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
       if (exception instanceof TailCallException) {
         try {
+          TailCallException tailCallException = (TailCallException) exception;
           FunctionCallInstrumentationNode.FunctionCall functionCall =
               new FunctionCallInstrumentationNode.FunctionCall(
-                  ((TailCallException) exception).getFunction(),
-                  ((TailCallException) exception).getState(),
-                  ((TailCallException) exception).getArguments());
+                  tailCallException.getFunction(),
+                  tailCallException.getState(),
+                  tailCallException.getArguments());
           Object result = InteropLibrary.getFactory().getUncached().execute(functionCall);
           onReturnValue(context, frame, result);
         } catch (InteropException e) {
