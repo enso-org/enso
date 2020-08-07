@@ -219,8 +219,7 @@ object AstToIr {
             )
           case _ => Error.Syntax(typed, Error.Syntax.InvalidStandaloneSignature)
         }
-      case _ =>
-        throw new UnhandledEntity(inputAst, "translateModuleSymbol")
+      case _ => Error.Syntax(inputAst, Error.Syntax.UnexpectedExpression)
     }
   }
 
