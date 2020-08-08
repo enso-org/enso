@@ -42,7 +42,7 @@ impl Application {
         let display   = World::new(dom);
         let scene     = display.scene();
         let commands  = command::Registry::create(&logger);
-        let shortcuts = shortcut::Registry::new(&logger,&scene.mouse.frp,&commands);
+        let shortcuts = shortcut::Registry::new(&logger,&scene.mouse.frp,&scene.keyboard.frp,&commands);
         let views     = view::Registry::create(&logger,&display,&commands,&shortcuts);
         let themes    = theme::Manager::from(&display.scene().style_sheet);
         let cursor    = Cursor::new(display.scene());

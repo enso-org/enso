@@ -1,3 +1,7 @@
+// FIXME[WD] This file should be considered obsolete in favor of `clipboard.rs` implementation.
+// FIXME[WD] This implementation steals focus in HTML and will probably cause big problems with
+// FIXME[WD] visualization controls. Remove it as soon as new text editor is used everywhere.
+
 //! This module contains Rust wrappers for keyboard event handling.
 //!
 //! These keyboard events are taken from created invisible textarea element in html document body.

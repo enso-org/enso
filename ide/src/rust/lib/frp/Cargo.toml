@@ -12,5 +12,16 @@ enso-generics     = { version = "0.1.0"  , path = "../generics"     }
 enso-prelude      = { version = "0.1.0"  , path = "../enso-prelude" }
 ensogl-system-web = { version = "0.1.0"  , path = "../system/web"   }
 keyboard-types    = { version = "0.5.0"                             }
+logger            = { version = "0.1.0" , path = "../logger"        }
 nalgebra          = { version = "0.21.1"                            }
 percent-encoding  = { version = "2.1.0"                             }
+
+# We require exact version of wasm-bindgen because we do patching final js in our build process,
+# and this is vulnerable to any wasm-bindgen version change.
+wasm-bindgen               = { version = "=0.2.58" , features = ["nightly"] }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'KeyboardEvent',
+]

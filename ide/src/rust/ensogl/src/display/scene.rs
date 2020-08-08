@@ -33,6 +33,7 @@ use crate::system::web::StyleSetter;
 use crate::system::web;
 use crate::display::shape::ShapeSystemInstance;
 use crate::display::shape::system::ShapeSystemOf;
+use crate::control::io::keyboard::listener::KeyboardFrpBindings;
 
 use display::style::data::DataMatch;
 use enso_frp as frp;
@@ -357,6 +358,37 @@ impl Mouse {
         let new_pos  = self.last_position.get();
         let position = Vector2(new_pos.x as f32,new_pos.y as f32) - shape.center();
         self.frp.position.emit(position);
+    }
+}
+
+
+
+// ================
+// === Keyboard ===
+// ================
+
+#[derive(Clone,CloneRef,Debug)]
+pub struct Keyboard {
+    pub frp  : enso_frp::io::Keyboard,
+    pub frp2 : enso_frp::io::keyboard2::Keyboard,
+    bindings : Rc<KeyboardFrpBindings>,
+    bindings2 : Rc<enso_frp::io::keyboard2::DomBindings>,
+}
+
+impl Keyboard {
+    pub fn new() -> Self {
+        let logger    = Logger::new("keyboard");
+        let frp       = enso_frp::io::Keyboard::default();
+        let frp2      = enso_frp::io::keyboard2::Keyboard::default();
+        let bindings  = Rc::new(KeyboardFrpBindings::new(&logger,&frp));
+        let bindings2 = Rc::new(enso_frp::io::keyboard2::DomBindings::new(&logger, &frp2));
+        Self {frp,frp2,bindings,bindings2}
+    }
+}
+
+impl Default for Keyboard {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -760,6 +792,7 @@ pub struct SceneData {
     pub symbols         : SymbolRegistry,
     pub variables       : UniformScope,
     pub mouse           : Mouse,
+    pub keyboard        : Keyboard,
     pub uniforms        : Uniforms,
     pub shapes          : ShapeRegistry,
     pub stats           : Stats,
@@ -809,6 +842,7 @@ impl SceneData {
         let frp             = Frp::new(&dom.root.shape);
         let mouse_logger    = Logger::sub(&logger,"mouse");
         let mouse           = Mouse::new(&frp,&variables,mouse_logger);
+        let keyboard        = Keyboard::new();
         let network         = &frp.network;
         let extensions      = Extensions::default();
         let bg_color_var    = style_sheet.var("application.background.color");
@@ -826,7 +860,8 @@ impl SceneData {
 
         uniforms.pixel_ratio.set(dom.shape().pixel_ratio);
         Self {renderer,display_object,dom,context,symbols,views,dirty,logger,variables,stats
-             ,uniforms,mouse,shapes,style_sheet,bg_color_var,bg_color_change,fonts,frp,extensions}
+             ,uniforms,mouse,keyboard,shapes,style_sheet,bg_color_var,bg_color_change,fonts,frp
+             ,extensions}
     }
 
     pub fn shape(&self) -> &frp::Sampler<Shape> {

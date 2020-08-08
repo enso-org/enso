@@ -17,6 +17,21 @@ impl From<i32>   for Pixels { fn from(t:i32)   -> Self { (t as f32).into() } }
 impl From<&i32>  for Pixels { fn from(t:&i32)  -> Self { (*t).into() } }
 impl From<&&i32> for Pixels { fn from(t:&&i32) -> Self { (*t).into() } }
 
+impl pixels::Into for i32 {
+    type Output = Pixels;
+    fn pixels(self) -> Pixels { self.into() }
+}
+
+impl pixels::Into for &i32 {
+    type Output = Pixels;
+    fn pixels(self) -> Pixels { self.into() }
+}
+
+impl pixels::Into for &&i32 {
+    type Output = Pixels;
+    fn pixels(self) -> Pixels { self.into() }
+}
+
 
 
 // ==============

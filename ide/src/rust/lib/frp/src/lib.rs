@@ -174,10 +174,15 @@ pub use network::*;
 pub use node::*;
 pub use nodes::*;
 
-pub use enso_prelude as prelude;
 pub use ensogl_system_web as web;
 pub use stream::Stream;
 
+/// Set of often used types and functions.
+pub mod prelude {
+    pub use enso_prelude::*;
+    pub use logger::*;
+    pub use logger::disabled::*;
+}
 
 
 #[cfg(test)]

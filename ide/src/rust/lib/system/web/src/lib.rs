@@ -5,6 +5,7 @@
 #![feature(set_stdio)]
 #![feature(slice_patterns)]
 
+pub mod clipboard;
 pub mod closure;
 pub mod resize_observer;
 pub mod platform;

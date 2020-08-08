@@ -482,8 +482,11 @@ dependencies = [
  "enso-prelude 0.1.0",
  "ensogl-system-web 0.1.0",
  "keyboard-types 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "logger 0.1.0",
  "nalgebra 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "percent-encoding 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasm-bindgen 0.2.58 (registry+https://github.com/rust-lang/crates.io-index)",
+ "web-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -690,6 +693,7 @@ dependencies = [
  "enso-frp 0.1.0",
  "enso-prelude 0.1.0",
  "enso-shapely 0.1.0",
+ "enso-types 0.1.0",
  "ensogl 0.1.0",
  "ensogl-core-embedded-fonts 0.1.0",
  "ensogl-core-msdf-sys 0.1.0",

@@ -12,6 +12,7 @@
 #![warn(unused_qualifications)]
 
 pub mod algebra;
+pub mod num;
 pub mod topology;
 pub mod unit;
 

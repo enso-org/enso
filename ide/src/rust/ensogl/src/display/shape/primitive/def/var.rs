@@ -449,6 +449,18 @@ impl Var<f32> {
     }
 }
 
+impl Var<f32> {
+    /// Linearly interpolate between two values.
+    pub fn mix(&self, e1:impl RefInto<Glsl>, e2:impl RefInto<Glsl>) -> Self {
+        let e1 = e1.glsl();
+        let e2 = e2.glsl();
+        match self {
+            Var::Static(t)  => Var::Dynamic(iformat!("mix({e1},{e2},{t})").into()),
+            Var::Dynamic(t) => Var::Dynamic(iformat!("mix({e1},{e2},{t})").into()),
+        }
+    }
+}
+
 
 
 // ===============================
