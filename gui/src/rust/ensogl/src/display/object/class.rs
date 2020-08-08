@@ -748,6 +748,14 @@ pub trait ObjectOps : Object {
         self.display_object().rc.mod_position(f)
     }
 
+    fn mod_position_xy<F:FnOnce(Vector2<f32>)->Vector2<f32>>(&self, f:F) {
+        self.set_position_xy(f(self.position().xy()));
+    }
+
+    fn mod_position_x<F:FnOnce(f32)->f32>(&self, f:F) {
+        self.set_position_x(f(self.position().x));
+    }
+
     fn mod_rotation<F:FnOnce(&mut Vector3<f32>)>(&self, f:F) {
         self.display_object().rc.mod_rotation(f)
     }

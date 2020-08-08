@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+//! Visual components implementation.
 
 pub mod area;
 

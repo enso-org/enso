@@ -1,5 +1,5 @@
-//! Text range implementation. Similar to `std::ops::Range` but with specialized impls for text
-//! management.
+//! Text range implementation. Similar to `std::ops::Range` but with specialized implementations
+//! for text manipulation.
 
 use crate::prelude::*;
 
@@ -33,7 +33,42 @@ impl<T> Range<T> {
     pub fn size(&self) -> T where T : Clone + Sub<T,Output=T> {
         self.end.clone() - self.start.clone()
     }
+
+    /// Return new range with the provided start value.
+    pub fn with_start(&self,start:T) -> Self
+    where T : Clone {
+        let end = self.end.clone();
+        Self {start,end}
+    }
+
+    /// Return new range with the provided end value.
+    pub fn with_end(&self,end:T) -> Self
+    where T : Clone {
+        let start = self.start.clone();
+        Self {start,end}
+    }
+
+    /// Map both values with the provided function.
+    pub fn map(&self,f:impl Fn(T)->T) -> Self
+    where T : Clone {
+        self.with_start(f(self.start.clone())).with_end(f(self.end.clone()))
+    }
+
+    /// Map the start value with the provided function.
+    pub fn map_start(&self,f:impl FnOnce(T)->T) -> Self
+    where T : Clone {
+        self.with_start(f(self.start.clone()))
+    }
+
+    /// Map the end value with the provided function.
+    pub fn map_end(&self,f:impl FnOnce(T)->T) -> Self
+    where T : Clone {
+        self.with_end(f(self.end.clone()))
+    }
 }
+
+
+// === Range<Bytes> methods ===
 
 impl Range<Bytes> {
     /// Convert to `rope::Interval`.
@@ -41,6 +76,9 @@ impl Range<Bytes> {
         self.into()
     }
 }
+
+
+// === Impls ===
 
 impl<T:Display> Display for Range<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -87,8 +125,8 @@ impl From<RangeToInclusive<Bytes>> for Range<Bytes> {
 
 impl From<Range<Bytes>> for rope::Interval {
     fn from(t:Range<Bytes>) -> Self {
-        let start = t.start.value;
-        let end   = t.end.value;
+        let start = t.start.value as usize;
+        let end   = t.end.value   as usize;
         Self {start,end}
     }
 }

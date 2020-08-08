@@ -62,12 +62,62 @@ impl KeyMask {
     pub fn set(&mut self, key:&Key, state:bool) {
         self.bits.set_bit(key.legacy_keycode() as usize,state);
     }
+    // FIXME FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME  FIXME
+    // The above code is very bad. It uses `legacy_keycode` which works for a small amount of
+    // buttons only. For example, for `meta` key, it returns just `0`. Its accidental that it works
+    // now.
 
     /// Clone the mask and set the `key` bit with the new state.
     pub fn with_set(&self, key:&Key, state:bool) -> Self {
         let mut mask = self.clone();
         mask.set(key,state);
         mask
+    }
+
+    /// Handles new key press event and updates the key mask accordingly.
+    ///
+    /// **WARNING**
+    ///
+    /// Please note that this function is deeply magical. It checks whether the newly pressed key
+    /// was registered as already pressed. This should, of course, never happen, but actually it
+    /// happens on MacOS. Currently, no browser emits `keyup` event when a letter key is released
+    /// WHILE the `meta` key is being pressed. Thus, if the user actions were
+    /// `press meta -> press z -> release z -> press z -> release meta`, JavaScript will emit the
+    /// following events: `press meta -> press z -> press z -> release meta`.
+    ///
+    /// Thus, when we the newly pressed key was registered as already pressed AND the `meta` key was
+    /// also registered as pressed, two masks are emitted, one with the `meta` key only, and one
+    /// with the `meta` key AND the newly pressed key. In case the `mmeta` key was not registered as
+    /// pressed, a warning is emitted because it should never happen. Please note that this does NOT
+    /// solve the issue, it only makes common use cases work properly. There is no general solution
+    /// to this problem available. For example, user actions
+    /// `press meta -> press z -> press x -> release z -> release x -> press x` will be interpreted
+    /// as `press meta -> press z -> press x -> release x -> press x`, which clearly is not valid.
+    /// Fortunately, this is not needed in most cases. To learn more about this behavior, please
+    /// follow the links:
+    /// - https://stackoverflow.com/questions/11818637/why-does-javascript-drop-keyup-events-when-the-metakey-is-pressed-on-mac-browser
+    /// - https://w3c.github.io/uievents/tools/key-event-viewer.html
+    pub fn press(&self, key:&Key) -> Vec<Self> {
+        if self.contains(&Key::Meta) {
+            let meta_mask = Self::default().with_set(&Key::Meta,true);
+            let new_mask  = meta_mask.with_set(key,true);
+            vec![meta_mask,new_mask]
+        } else {
+            let new_mask = self.with_set(key,true);
+            vec![new_mask]
+        }
+    }
+
+    /// Handles new key release event and updates the key mask accordingly.
+    ///
+    /// **WARNING**
+    /// Please note that this function is magical. In case the released key was `meta`, the
+    /// resulting key mask will be empty. In order to know why it is designed this way, please refer
+    /// to the documentation of the `press` function.
+    pub fn release(&self, key:&Key) -> Self {
+        if key != &Key::Meta { self.with_set(key,false) } else {
+            default()
+        }
     }
 }
 
@@ -113,8 +163,9 @@ impl Default for Keyboard {
             on_released   <- source();
             on_defocus    <- source();
             key_mask      <- any_mut::<KeyMask>();
-            key_mask      <+ on_pressed  . map2(&key_mask,|key,mask| mask.with_set(key,true));
-            key_mask      <+ on_released . map2(&key_mask,|key,mask| mask.with_set(key,false));
+            new_mask      <= on_pressed  . map2(&key_mask,|key,mask| mask.press(key));
+            key_mask      <+ new_mask;
+            key_mask      <+ on_released . map2(&key_mask,|key,mask| mask.release(key));
             key_mask      <+ on_defocus  . map2(&key_mask,|_,_| default());
             prev_key_mask <- key_mask.previous();
         }

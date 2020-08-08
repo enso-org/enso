@@ -1,4 +1,5 @@
-//! Efficient rope implementation. Currently, the module just re-exports common `xi-rope` types.
+//! Efficient rope implementation. Currently, the module just re-exports and renames some of the
+//! `xi-rope` types.
 
 
 
@@ -20,9 +21,11 @@ pub mod metric {
 
 pub use spans::Spans;
 
-pub use xi_rope::Rope;
 pub use xi_rope::Cursor;
 pub use xi_rope::DeltaBuilder;
 pub use xi_rope::interval::Interval;
+pub use xi_rope::interval::IntervalBounds;
 pub use xi_rope::rope::Lines;
+pub use xi_rope::Rope;
 pub use xi_rope::RopeDelta as Delta;
+pub use xi_rope::RopeInfo as Info;

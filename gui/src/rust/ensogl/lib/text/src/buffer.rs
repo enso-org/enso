@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 //! Root of text buffer implementation. The text buffer is a sophisticated model for text styling
 //! and editing operations.
 
@@ -22,7 +20,8 @@ pub mod traits {
     pub use super::DefaultSetter as TRAIT_DefaultSetter;
 }
 
-pub use data::Data;
+pub use data::Text;
+pub use data::TextCell;
 pub use data::Range;
 pub use data::unit::*;
 pub use view::*;
@@ -30,53 +29,25 @@ pub use style::*;
 
 
 
-// fixme - refactor to undo/redo stub
-// ================
-// === EditType ===
-// ================
-
-#[derive(PartialEq,Eq,Clone,Copy,Debug)]
-pub enum EditType {
-    /// A catchall for edits that don't fit elsewhere, and which should
-    /// always have their own undo groups; used for things like cut/copy/paste.
-    Other,
-    /// An insert from the keyboard/IME (not a paste or a yank).
-    Insert,
-    Newline,
-    /// An indentation adjustment.
-    Indent,
-    Delete,
-    Undo,
-    Redo,
-    Transpose,
-    Surround,
-}
-
-impl EditType {
-    // /// Checks whether a new undo group should be created between two edits.
-    // fn breaks_undo_group(self, previous:EditType) -> bool {
-    //     self == EditType::Other || self == EditType::Transpose || self != previous
-    // }
-}
-
-impl Default for EditType {
-    fn default() -> Self {
-        Self::Other
-    }
-}
-
-
-
 // ==============
 // === Buffer ===
 // ==============
 
+/// Internally mutable text container with associated styles.
 #[derive(Clone,CloneRef,Debug,Default)]
 pub struct Buffer {
-    pub(crate) data : Rc<RefCell<BufferData>>
+    data : Rc<BufferData>
+}
+
+impl Deref for Buffer {
+    type Target = BufferData;
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
 }
 
 impl Buffer {
+    /// Constructor.
     pub fn new() -> Self {
         default()
     }
@@ -84,10 +55,6 @@ impl Buffer {
     /// Creates a new `View` for the buffer.
     pub fn new_view(&self) -> View {
         View::new(self)
-    }
-
-    pub fn sub_style(&self, range:impl data::RangeBounds) -> Style {
-        self.data.borrow().sub_style(range)
     }
 }
 
@@ -97,58 +64,50 @@ impl Buffer {
 // === BufferData ===
 // ==================
 
-/// Text container with associated styles.
+/// Internal data of `Buffer`.
 #[derive(Debug,Default)]
 pub struct BufferData {
-    pub(crate) data       : Data,
-    pub(crate) style      : Style,
-    pub(crate) undo_stack : Vec<(Data,Style)>,
-    pub(crate) redo_stack : Vec<(Data,Style)>,
+    pub(crate) text  : TextCell,
+    pub(crate) style : StyleCell,
 }
 
 impl Deref for BufferData {
-    type Target = Data;
+    type Target = TextCell;
     fn deref(&self) -> &Self::Target {
-        &self.data
+        &self.text
     }
 }
 
 impl BufferData {
+    /// Constructor.
     pub fn new() -> Self {
         default()
     }
 
-    pub fn sub_style(&self, range:impl data::RangeBounds) -> Style {
-        let range = self.crop_range(range);
-        self.style.sub(range)
+    /// Text getter.
+    pub fn text(&self) -> Text {
+        self.text.get()
     }
 
+    /// Text setter.
+    pub(crate) fn set_text(&self, text:impl Into<Text>) {
+        self.text.set(text);
+    }
+
+    /// Style getter.
     pub fn style(&self) -> Style {
-        self.style.clone()
+        self.style.get()
     }
 
-    pub fn insert(&mut self, range:impl data::RangeBounds, text:&Data) {
-        let range = self.crop_range(range);
-        self.undo_stack.push((self.data.clone(),self.style.clone()));
-        self.redo_stack = default();
-        self.data.rope.edit(range.into_rope_interval(),text.rope.clone());
-        self.style.modify(range,text.len().bytes());
+    /// Style setter.
+    pub(crate) fn set_style(&self, style:Style) {
+        self.style.set(style)
     }
 
-    pub fn undo(&mut self) {
-        if let Some((data,style)) = self.undo_stack.pop() {
-            self.redo_stack.push((self.data.clone(),self.style.clone()));
-            self.data  = data;
-            self.style = style;
-        }
-    }
-
-    pub fn redo(&mut self) {
-        if let Some((data,style)) = self.redo_stack.pop() {
-            self.undo_stack.push((self.data.clone(),self.style.clone()));
-            self.data  = data;
-            self.style = style;
-        }
+    /// Query style information for the provided range.
+    pub fn sub_style(&self, range:impl data::RangeBounds) -> Style {
+        let range = self.crop_byte_range(range);
+        self.style.sub(range)
     }
 }
 
@@ -158,11 +117,31 @@ impl BufferData {
 // === Setter ===
 // ==============
 
+/// Generic setter for buffer data and metadata, like colors, font weight, etc.
 pub trait Setter<T> {
-    fn modify(&self, range:impl data::RangeBounds, len:Bytes, data:T);
-    fn set(&self, range:impl data::RangeBounds, data:T);
+    /// Replace the range with the provided value. The exact meaning of this function depends on the
+    /// provided data type. See implementations provided in the `style` module.
+    fn replace(&self, range:impl data::RangeBounds, data:T);
 }
 
+/// Generic setter for default value for metadata like colors, font weight, etc.
 pub trait DefaultSetter<T> {
+    /// Replace the default value of the metadata. The exact meaning of this function depends on the
+    /// provided data type. See implementations provided in the `style` module.
     fn set_default(&self, data:T);
+}
+
+impl Setter<Text> for Buffer {
+    fn replace(&self, range:impl data::RangeBounds, text:Text) {
+        let range = self.crop_byte_range(range);
+        let size  = text.byte_size();
+        self.text.replace(range,text);
+        self.style.set_resize_with_default(range,size);
+    }
+}
+
+impl Setter<&Text> for Buffer {
+    fn replace(&self, range:impl data::RangeBounds, text:&Text) {
+        self.replace(range,text.clone())
+    }
 }

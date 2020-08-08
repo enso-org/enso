@@ -4,7 +4,6 @@ use crate::prelude::*;
 
 use super::command;
 
-use crate::control::io::keyboard::listener::KeyboardFrpBindings;
 use crate::frp::io::keyboard::Keyboard;
 use crate::frp::io::keyboard;
 use crate::frp::io::mouse::Mouse;
@@ -21,18 +20,80 @@ use crate::system::web;
 const DOUBLE_PRESS_THRESHOLD_MS : f32 = 300.0;
 
 
+/// A pattern abstraction for IO actions. It is used for example to express a key binding which
+/// works for any key pressed.
+#[derive(Clone,Debug,Eq,Hash,PartialEq)]
+#[allow(missing_docs)]
+pub enum Pattern<T> {
+    Equal(T), Any
+}
 
-// ==================
-// === ActionMask ===
-// ==================
+impl<T:Into<mouse::ButtonMask>> From<T> for Pattern<mouse::ButtonMask> {
+    fn from(t:T) -> Self {
+        Self::Equal(t.into())
+    }
+}
 
-/// A bit-mask for keyboard and mouse events.
+impl<T:Into<keyboard::KeyMask>> From<T> for Pattern<keyboard::KeyMask> {
+    fn from(t:T) -> Self {
+        Self::Equal(t.into())
+    }
+}
+
+
+
+// =====================
+// === ActionPattern ===
+// =====================
+
+/// A pattern for mouse actions.
+pub type MousePattern = Pattern<mouse::ButtonMask>;
+
+/// A pattern for keyboard actions.
+pub type KeyboardPattern = Pattern<keyboard::KeyMask>;
+
+/// A mask for keyboard and mouse events. Consists of separate `Pattern` for the mouse and
+/// the keyboard bit-masks.
+#[derive(Clone,Debug,Eq,Hash,PartialEq)]
+#[allow(missing_docs)]
+pub struct ActionPattern {
+    pub keyboard : KeyboardPattern,
+    pub mouse    : MousePattern,
+}
+
+impl ActionPattern {
+    fn new(keyboard:impl Into<KeyboardPattern>, mouse:impl Into<MousePattern>) -> Self {
+        let keyboard = keyboard.into();
+        let mouse    = mouse.into();
+        Self {keyboard,mouse}
+    }
+
+    fn any() -> Self {
+        let keyboard = Pattern::Any;
+        let mouse    = Pattern::Any;
+        Self {keyboard,mouse}
+    }
+
+    fn as_any_mouse_pattern(&self) -> Self {
+        let keyboard = self.keyboard.clone();
+        let mouse    = Pattern::Any;
+        Self {keyboard,mouse}
+    }
+
+    fn as_any_keyboard_pattern(&self) -> Self {
+        let keyboard = Pattern::Any;
+        let mouse    = self.mouse.clone();
+        Self {keyboard,mouse}
+    }
+}
+
 #[derive(Clone,Debug,Default,Eq,Hash,PartialEq)]
 #[allow(missing_docs)]
 pub struct ActionMask {
     pub keyboard : keyboard::KeyMask,
     pub mouse    : mouse::ButtonMask,
 }
+
 
 impl ActionMask {
     fn new(keyboard:impl Into<keyboard::KeyMask>, mouse:impl Into<mouse::ButtonMask>) -> Self {
@@ -42,6 +103,13 @@ impl ActionMask {
     }
 }
 
+impl From<&ActionMask> for ActionPattern {
+    fn from(t:&ActionMask) -> Self {
+        let keyboard = (&t.keyboard).into();
+        let mouse    = (&t.mouse).into();
+        Self {keyboard,mouse}
+    }
+}
 
 
 // ==============
@@ -55,7 +123,7 @@ pub enum ActionType {
     Press, Release, DoublePress
 }
 
-/// Keyboard action defined as `ActionType` and `ActionMask`, like "press both key 'n' and primary
+/// Keyboard action defined as `ActionType` and `ActionPattern`, like "press both key 'n' and primary
 /// mouse button". Please note that the release action happens as soon as the key mask is no longer
 /// valid. For example, pressing key "n", and then pressing key "a" (while holding "n") will trigger
 /// the release event for the key "n".
@@ -63,12 +131,12 @@ pub enum ActionType {
 #[allow(missing_docs)]
 pub struct Action {
     pub tp   : ActionType,
-    pub mask : ActionMask,
+    pub mask : ActionPattern,
 }
 
 impl Action {
     /// Constructor.
-    pub fn new(tp:impl Into<ActionType>, mask:impl Into<ActionMask>) -> Self {
+    pub fn new(tp:impl Into<ActionType>, mask:impl Into<ActionPattern>) -> Self {
         let tp   = tp.into();
         let mask = mask.into();
         Self {tp,mask}
@@ -76,20 +144,20 @@ impl Action {
 
     /// Smart constructor for the `Press` action.
     pub fn press
-    (keyboard_mask:impl Into<keyboard::KeyMask>, mouse_mask:impl Into<mouse::ButtonMask>) -> Self {
-        Self::new(ActionType::Press,ActionMask::new(keyboard_mask,mouse_mask))
+    (keyboard_mask:impl Into<KeyboardPattern>, mouse_mask:impl Into<MousePattern>) -> Self {
+        Self::new(ActionType::Press,ActionPattern::new(keyboard_mask,mouse_mask))
     }
 
     /// Smart constructor for the `Release` action.
     pub fn release
-    (keyboard_mask:impl Into<keyboard::KeyMask>, mouse_mask:impl Into<mouse::ButtonMask>) -> Self {
-        Self::new(ActionType::Release,ActionMask::new(keyboard_mask,mouse_mask))
+    (keyboard_mask:impl Into<KeyboardPattern>, mouse_mask:impl Into<MousePattern>) -> Self {
+        Self::new(ActionType::Release,ActionPattern::new(keyboard_mask,mouse_mask))
     }
 
     /// Smart constructor for the `DoublePress` action.
     pub fn double_press
-    (keyboard_mask:impl Into<keyboard::KeyMask>, mouse_mask:impl Into<mouse::ButtonMask>) -> Self {
-        Self::new(ActionType::DoublePress,ActionMask::new(keyboard_mask,mouse_mask))
+    (keyboard_mask:impl Into<KeyboardPattern>, mouse_mask:impl Into<MousePattern>) -> Self {
+        Self::new(ActionType::DoublePress,ActionPattern::new(keyboard_mask,mouse_mask))
     }
 }
 
@@ -214,7 +282,7 @@ pub struct Registry {
     network : frp::Network,
 }
 
-type RuleMap   = HashMap<ActionMask,Vec<WeakHandle>>;
+type RuleMap   = HashMap<ActionPattern,Vec<WeakHandle>>;
 type ActionMap = HashMap<ActionType,RuleMap>;
 
 /// Internal representation of `Registry`.
@@ -223,7 +291,6 @@ pub struct RegistryModel {
     logger            : Logger,
     keyboard          : Keyboard,
     mouse             : Mouse,
-    keyboard_bindings : Rc<KeyboardFrpBindings>,
     command_registry  : command::Registry,
     action_map        : Rc<RefCell<ActionMap>>,
 }
@@ -237,8 +304,8 @@ impl Deref for Registry {
 
 impl Registry {
     /// Constructor.
-    pub fn new(logger:&Logger, mouse:&Mouse, command_registry:&command::Registry) -> Self {
-        let model    = RegistryModel::new(logger,mouse,command_registry);
+    pub fn new(logger:&Logger, mouse:&Mouse, keyboard:&Keyboard, command_registry:&command::Registry) -> Self {
+        let model    = RegistryModel::new(logger,mouse,keyboard,command_registry);
         let keyboard = &model.keyboard;
         let mouse    = &model.mouse;
 
@@ -275,20 +342,29 @@ impl Registry {
 impl RegistryModel {
     /// Constructor.
     pub fn new
-    (logger:impl AnyLogger, mouse:&Mouse, command_registry:&command::Registry) -> Self {
+    (logger:impl AnyLogger, mouse:&Mouse, keyboard:&Keyboard, command_registry:&command::Registry) -> Self {
         let logger            = Logger::sub(logger,"ShortcutRegistry");
-        let keyboard          = Keyboard::default();
+        let keyboard          = keyboard.clone_ref();
         let mouse             = mouse.clone_ref();
-        let keyboard_bindings = Rc::new(KeyboardFrpBindings::new(&logger,&keyboard));
         let command_registry  = command_registry.clone_ref();
         let action_map        = default();
-        Self {logger,keyboard,mouse,keyboard_bindings,command_registry,action_map}
+        Self {logger,keyboard,mouse,command_registry,action_map}
     }
 
     fn process_action(&self, action_type:ActionType, mask:&ActionMask) {
+        let pattern        = ActionPattern::from(mask);
         let action_map_mut = &mut self.action_map.borrow_mut();
         if let Some(rule_map) = action_map_mut.get_mut(&action_type) {
-            if let Some(rules) = rule_map.get_mut(mask) {
+            if let Some(rules) = rule_map.get_mut(&pattern) {
+                self.process_rules(rules)
+            }
+            if let Some(rules) = rule_map.get_mut(&pattern.as_any_keyboard_pattern()) {
+                self.process_rules(rules)
+            }
+            if let Some(rules) = rule_map.get_mut(&pattern.as_any_mouse_pattern()) {
+                self.process_rules(rules)
+            }
+            if let Some(rules) = rule_map.get_mut(&ActionPattern::any()) {
                 self.process_rules(rules)
             }
         }

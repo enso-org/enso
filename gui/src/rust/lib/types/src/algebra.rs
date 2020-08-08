@@ -15,18 +15,18 @@ pub use nalgebra::Matrix4x2;
 pub use nalgebra::Matrix4x3;
 pub use nalgebra::MatrixMN;
 
+pub use std::ops::Add;
+pub use std::ops::Div;
+pub use std::ops::Mul;
+pub use std::ops::Neg;
+pub use std::ops::Sub;
+
 use nalgebra;
 use nalgebra::Scalar;
 use nalgebra::Matrix;
 use nalgebra::ComplexField;
 use nalgebra::Dim;
 use nalgebra::storage::Storage;
-
-pub use std::ops::Add;
-pub use std::ops::Div;
-pub use std::ops::Mul;
-pub use std::ops::Neg;
-pub use std::ops::Sub;
 
 
 
@@ -260,52 +260,18 @@ impl Clamp for f32 {
 
 
 
-// ===========
-// === Min ===
-// ===========
+// =================
+// === Min / Max ===
+// =================
 
-#[allow(missing_docs)]
-pub trait Min {
-    fn min(self, other:Self) -> Self;
+/// Compares and returns the minimum of two values.
+pub fn min<T:PartialOrd>(a:T, b:T) -> T {
+    if b < a { b } else { a }
 }
 
-#[allow(missing_docs)]
-pub fn min<T:Min>(a:T, b:T) -> T {
-    a.min(b)
-}
-
-
-// === Impls ===
-
-impl Min for f32 {
-    fn min(self, other:Self) -> Self {
-        self.min(other)
-    }
-}
-
-
-
-// ===========
-// === Max ===
-// ===========
-
-#[allow(missing_docs)]
-pub trait Max {
-    fn max(self, other:Self) -> Self;
-}
-
-#[allow(missing_docs)]
-pub fn max<T:Max>(a:T, b:T) -> T {
-    a.max(b)
-}
-
-
-// === Impls ===
-
-impl Max for f32 {
-    fn max(self, other:Self) -> Self {
-        self.max(other)
-    }
+/// Compares and returns the maximum of two values.
+pub fn max<T:PartialOrd>(a:T, b:T) -> T {
+    if b > a { b } else { a }
 }
 
 
@@ -458,9 +424,9 @@ impl Acos for f32 {
 
 
 
-// =====================
-// === SaturatingAdd ===
-// =====================
+// =============================
+// === Saturating Operations ===
+// =============================
 
 /// Saturating addition. Computes self + rhs, saturating at the numeric bounds instead of
 /// overflowing.
@@ -470,9 +436,70 @@ pub trait SaturatingAdd<Rhs=Self> {
     fn saturating_add(self, rhs:Rhs) -> Self::Output;
 }
 
-impl SaturatingAdd for usize {
-    type Output = Self;
-    fn saturating_add(self, rhs:Self) -> Self::Output {
-        self.saturating_add(rhs)
+/// Saturating subtraction. Computes self - rhs, saturating at the numeric bounds instead of
+/// overflowing.
+#[allow(missing_docs)]
+pub trait SaturatingSub<Rhs=Self> {
+    type Output;
+    fn saturating_sub(self, rhs:Rhs) -> Self::Output;
+}
+
+/// Saturating multiplication. Computes self * rhs, saturating at the numeric bounds instead of
+/// overflowing.
+#[allow(missing_docs)]
+pub trait SaturatingMul<Rhs=Self> {
+    type Output;
+    fn saturating_mul(self, rhs:Rhs) -> Self::Output;
+}
+
+/// Saturating power. Computes self ^ exp, saturating at the numeric bounds instead of overflowing.
+#[allow(missing_docs)]
+pub trait SaturatingPow {
+    type Output;
+    fn saturating_pow(self, exp:u32) -> Self::Output;
+}
+
+
+// === Impls ===
+
+macro_rules! impl_saturating_opr {
+    ($name:ident :: $opr:ident for $tgt:ident) => {
+        impl $name<$tgt> for $tgt {
+            type Output = $tgt;
+            fn $opr(self, rhs:$tgt) -> Self::Output {
+                self.$opr(rhs)
+            }
+        }
+
+        impl $name<$tgt> for &$tgt {
+            type Output = $tgt;
+            fn $opr(self, rhs:$tgt) -> Self::Output {
+                (*self).$opr(rhs)
+            }
+        }
+
+        impl $name<&$tgt> for $tgt {
+            type Output = $tgt;
+            fn $opr(self, rhs:&$tgt) -> Self::Output {
+                self.$opr(*rhs)
+            }
+        }
+
+        impl $name<&$tgt> for &$tgt {
+            type Output = $tgt;
+            fn $opr(self, rhs:&$tgt) -> Self::Output {
+                (*self).$opr(*rhs)
+            }
+        }
+    };
+}
+
+macro_rules! impl_saturating_integer {
+    ($($name:ident),* $(,)?) => {
+        $(impl_saturating_opr! {SaturatingAdd::saturating_add for $name})*
+        $(impl_saturating_opr! {SaturatingSub::saturating_sub for $name})*
+        $(impl_saturating_opr! {SaturatingMul::saturating_mul for $name})*
     }
 }
+
+impl_saturating_integer!(u8,u16,u32,u64,u128,usize);

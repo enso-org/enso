@@ -167,7 +167,6 @@ impl EndpointDocs {
 pub struct Registry {
     pub logger    : Logger,
     pub instances : Rc<RefCell<HashMap<String,Vec<ProviderInstance>>>>,
-    // todo docs
 }
 
 impl Registry {
@@ -243,7 +242,7 @@ macro_rules! def_status_api {
     ) => {
         #[derive(Debug,Clone,CloneRef)]
         pub struct $name {
-            $(pub $field : frp::Sampler<bool>),*
+            $(#[doc=$($doc)*] pub $field : frp::Sampler<bool>),*
         }
 
         impl application::command::StatusApi for $name {
@@ -252,7 +251,9 @@ macro_rules! def_status_api {
             }
 
             fn status_api(&self) -> Vec<application::command::StatusEndpoint> {
-                vec! [$(application::command::StatusEndpoint::new(stringify!($field),&self.$field)),*]
+                vec! [$(
+                    application::command::StatusEndpoint::new(stringify!($field),&self.$field))
+                ,*]
             }
         }
     };
@@ -267,9 +268,10 @@ macro_rules! def_command_api {
             $field:ident
         ),* $(,)?
     ) => {
+        /// Commands definition.
         #[derive(Debug,Clone,CloneRef)]
         pub struct $name {
-            $(pub $field : frp::Source),*
+            $(#[doc=$($doc)*] pub $field : frp::Source),*
         }
 
         impl application::command::CommandApi for $name {
@@ -278,11 +280,14 @@ macro_rules! def_command_api {
             }
 
             fn command_api(&self) -> Vec<application::command::CommandEndpoint> {
-                vec! [$(application::command::CommandEndpoint::new(stringify!($field),&self.$field)),*]
+                vec! [$(
+                    application::command::CommandEndpoint::new(stringify!($field),&self.$field))
+                ,*]
             }
         }
 
         impl $name {
+            /// Constructor.
             pub fn new(network:&frp::Network) -> Self {
                 frp::extend! { network
                     $($field <- source();)*

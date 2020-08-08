@@ -58,6 +58,7 @@ macro_rules! unit {
 #[macro_export]
 macro_rules! unsigned_unit {
     ($(#$meta:tt)* $name:ident :: $vname:ident ($field_type:ty)) => {
+        #[allow(missing_docs)]
         pub mod $vname {
             use super::*;
             use std::ops::AddAssign;
@@ -97,6 +98,7 @@ macro_rules! unsigned_unit {
 #[macro_export]
 macro_rules! unsigned_unit_proxy {
     ($(#$meta:tt)* $name:ident :: $vname:ident ($field_type:ty)) => {
+        #[allow(missing_docs)]
         pub mod $vname {
             use super::*;
             use std::ops::AddAssign;
@@ -132,6 +134,7 @@ macro_rules! unsigned_unit_proxy {
 #[macro_export]
 macro_rules! unsigned_unit_float_like {
     ($(#$meta:tt)* $name:ident :: $vname:ident ($field_type:ty)) => {
+        #[allow(missing_docs)]
         pub mod $vname {
             use super::*;
             use std::ops::AddAssign;
@@ -171,6 +174,7 @@ macro_rules! unsigned_unit_float_like {
 #[macro_export]
 macro_rules! signed_unit {
     ($(#$meta:tt)* $name:ident :: $vname:ident ($field_type:ty)) => {
+        #[allow(missing_docs)]
         pub mod $vname {
             use super::*;
             use std::ops::AddAssign;
@@ -178,6 +182,7 @@ macro_rules! signed_unit {
             $crate::newtype_struct! {$(#$meta)* $name {value : $field_type}}
             $crate::impl_UNIT_x_UNIT_to_UNIT!  {Sub::sub for $name}
             $crate::impl_UNIT_x_UNIT_to_UNIT!  {Add::add for $name}
+            $crate::impl_UNIT_x_UNIT_to_UNIT!  {SaturatingAdd::saturating_add for $name}
             $crate::impl_UNIT_x_FIELD_to_UNIT! {Mul::mul for $name :: $field_type}
             $crate::impl_UNIT_x_FIELD_to_UNIT! {Div::div for $name :: $field_type}
             $crate::impl_FIELD_x_UNIT_to_UNIT! {Mul::mul for $name :: $field_type}
@@ -190,10 +195,17 @@ macro_rules! signed_unit {
                 fn $vname(self) -> Self::Output;
             }
 
-            impl<T:std::convert::Into<$name>> Into for T {
+            impl Into for $field_type {
                 type Output = $name;
                 fn $vname(self) -> Self::Output {
-                    self.into()
+                    $name {value:self}
+                }
+            }
+
+            impl Into for &$field_type {
+                type Output = $name;
+                fn $vname(self) -> Self::Output {
+                    $name {value:self.clone()}
                 }
             }
 
@@ -210,7 +222,7 @@ macro_rules! signed_unit {
 #[macro_export]
 macro_rules! signed_unit_float_like {
     ($(#$meta:tt)* $name:ident :: $vname:ident ($field_type:ty)) => {
-        /// Unit module.
+        #[allow(missing_docs)]
         pub mod $vname {
             use super::*;
             use std::ops::AddAssign;
@@ -234,10 +246,17 @@ macro_rules! signed_unit_float_like {
                 fn $vname(self) -> Self::Output;
             }
 
-            impl<T:std::convert::Into<$name>> Into for T {
+            impl Into for $field_type {
                 type Output = $name;
                 fn $vname(self) -> Self::Output {
-                    self.into()
+                    $name {value:self}
+                }
+            }
+
+            impl Into for &$field_type {
+                type Output = $name;
+                fn $vname(self) -> Self::Output {
+                    $name {value:self.clone()}
                 }
             }
 
@@ -299,7 +318,9 @@ macro_rules! newtype_struct_def {
     ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
         $(#$meta)*
         #[derive(Clone,Copy,Debug,Default,Eq,Hash,Ord,PartialEq,PartialOrd)]
-        pub struct $name { $(pub $field : $field_type),* }
+        pub struct $name {
+            $(#[allow(missing_docs)] pub $field : $field_type),*
+        }
     }
 }
 
@@ -308,9 +329,10 @@ macro_rules! newtype_struct_def {
 macro_rules! newtype_struct_def_float_like {
     ($(#$meta:tt)* $name:ident { $($field:ident : $field_type:ty),* $(,)? }) => {
         $(#$meta)*
-        #[allow(missing_docs)]
         #[derive(Clone,Copy,Debug,Default,PartialEq,PartialOrd)]
-        pub struct $name { $(pub $field : $field_type),* }
+        pub struct $name {
+            $(#[allow(missing_docs)] pub $field : $field_type),*
+        }
     }
 }
 
@@ -371,10 +393,14 @@ macro_rules! impl_UNIT_x_UNIT_to_UNIT {
 #[macro_export]
 macro_rules! impl_T_x_T_to_T {
     ($trait:ident :: $opr:ident for $name:ident { $($field:ident),* $(,)? }) => {
+        $crate::impl_T_x_T_to_T! {$trait :: $opr as $opr for $name { $($field),* }}
+    };
+
+    ($trait:ident :: $opr:ident as $as_opr:ident for $name:ident { $($field:ident),* $(,)? }) => {
         impl $trait<$name> for $name {
             type Output = $name;
             fn $opr(self, rhs:$name) -> Self::Output {
-                $(let $field = self.$field.$opr(rhs.$field);)*
+                $(let $field = self.$field.$as_opr(rhs.$field);)*
                 $name { $($field),* }
             }
         }
@@ -382,7 +408,7 @@ macro_rules! impl_T_x_T_to_T {
         impl $trait<$name> for &$name {
             type Output = $name;
             fn $opr(self, rhs:$name) -> Self::Output {
-                $(let $field = self.$field.$opr(rhs.$field);)*
+                $(let $field = self.$field.$as_opr(rhs.$field);)*
                 $name { $($field),* }
             }
         }
@@ -390,7 +416,7 @@ macro_rules! impl_T_x_T_to_T {
         impl $trait<&$name> for $name {
             type Output = $name;
             fn $opr(self, rhs:&$name) -> Self::Output {
-                $(let $field = self.$field.$opr(rhs.$field);)*
+                $(let $field = self.$field.$as_opr(rhs.$field);)*
                 $name { $($field),* }
             }
         }
@@ -398,7 +424,55 @@ macro_rules! impl_T_x_T_to_T {
         impl $trait<&$name> for &$name {
             type Output = $name;
             fn $opr(self, rhs:&$name) -> Self::Output {
-                $(let $field = self.$field.$opr(rhs.$field);)*
+                $(let $field = self.$field.$as_opr(rhs.$field);)*
+                $name { $($field),* }
+            }
+        }
+    };
+}
+
+
+
+// ==================
+// === T x S -> T ===
+// ==================
+
+/// Unit definition macro. See module docs to learn more.
+#[macro_export]
+macro_rules! impl_T_x_S_to_T {
+    ($trait:ident :: $opr:ident [$($rhs:tt)*] for $name:ident { $($field:ident),* $(,)? }) => {
+        $crate::impl_T_x_S_to_T! {$trait :: $opr [$($rhs)*] as $opr for $name { $($field),* }}
+    };
+
+    ($trait:ident :: $opr:ident [$($rhs:tt)*] as $as_opr:ident for $name:ident { $($field:ident),* $(,)? }) => {
+        impl $trait<$($rhs)*> for $name {
+            type Output = $name;
+            fn $opr(self, rhs:$($rhs)*) -> Self::Output {
+                $(let $field = self.$field.$as_opr(rhs);)*
+                $name { $($field),* }
+            }
+        }
+
+        impl $trait<$($rhs)*> for &$name {
+            type Output = $name;
+            fn $opr(self, rhs:$($rhs)*) -> Self::Output {
+                $(let $field = self.$field.$as_opr(rhs);)*
+                $name { $($field),* }
+            }
+        }
+
+        impl $trait<&$($rhs)*> for $name {
+            type Output = $name;
+            fn $opr(self, rhs:&$($rhs)*) -> Self::Output {
+                $(let $field = self.$field.$as_opr(*rhs);)*
+                $name { $($field),* }
+            }
+        }
+
+        impl $trait<&$($rhs)*> for &$name {
+            type Output = $name;
+            fn $opr(self, rhs:&$($rhs)*) -> Self::Output {
+                $(let $field = self.$field.$as_opr(*rhs);)*
                 $name { $($field),* }
             }
         }
@@ -573,12 +647,12 @@ macro_rules! impl_UNIT_to_UNIT {
 /// Unit definition macro. See module docs to learn more.
 #[macro_export]
 macro_rules! impl_T_to_T {
-    ($trait:ident :: $opr:ident for $name:ident { $($field:ident),* $(,)? }) => {$(
+    ( $trait:ident :: $opr:ident for $name:ident { $($field:ident),* $(,)? } ) => {
         #[allow(clippy::needless_update)]
         impl $trait for $name {
             type Output = $name;
             fn $opr(self) -> Self::Output {
-                $name { $field:self.$field.$opr(), ..self }
+                $name { $($field:self.$field.$opr(),)* ..self }
             }
         }
 
@@ -586,10 +660,10 @@ macro_rules! impl_T_to_T {
         impl $trait for &$name {
             type Output = $name;
             fn $opr(self) -> Self::Output {
-                $name { $field:self.$field.$opr(), ..*self }
+                $name { $($field:self.$field.$opr(),)* ..*self }
             }
         }
-    )*};
+    };
 }
 
 
