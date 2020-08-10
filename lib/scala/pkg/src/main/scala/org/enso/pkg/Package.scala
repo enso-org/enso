@@ -41,7 +41,7 @@ case class Package[F](
     * Sets the package name.
     *
     * @param newName the new package name
-    * @return a packge with the updated name
+    * @return a package with the updated name
     */
   def setPackageName(newName: String): Package[F] =
     this.copy(config = config.copy(name = newName))
@@ -200,11 +200,13 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   def create(
     root: F,
     name: String,
-    version: String = "0.0.1"
+    version: String     = "0.0.1",
+    ensoVersion: String = "default"
   ): Package[F] = {
     val config = Config(
       name         = normalizeName(name),
       version      = version,
+      ensoVersion  = ensoVersion,
       license      = "",
       author       = List(),
       maintainer   = List(),

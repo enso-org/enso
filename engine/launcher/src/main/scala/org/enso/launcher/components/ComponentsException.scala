@@ -54,5 +54,18 @@ case class LauncherUpgradeRequiredError(expectedVersion: SemVer)
 case class UnrecognizedComponentError(message: String, cause: Throwable = null)
     extends ComponentsException(message, cause)
 
+/**
+  * Indicates that the component is installed, but its installation is
+  * corrupted.
+  *
+  * Most common reason for this exception is that some critical files are
+  * missing.
+  */
+case class CorruptedComponentError(message: String, cause: Throwable = null)
+    extends ComponentsException(message, cause)
+
+/**
+  * Indicates the requested component is not installed.
+  */
 case class ComponentMissingError(message: String, cause: Throwable = null)
     extends ComponentsException(message, cause)

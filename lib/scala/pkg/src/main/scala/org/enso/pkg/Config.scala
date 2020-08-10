@@ -10,6 +10,7 @@ case class Dependency(name: String, version: String)
 case class Config(
   name: String,
   version: String,
+  ensoVersion: String,
   license: String,
   author: List[String],
   maintainer: List[String],
@@ -23,6 +24,7 @@ object Config {
   private object JsonFields {
     val name: String         = "name"
     val version: String      = "version"
+    val ensoVersion: String  = "enso-version"
     val license: String      = "license"
     val author: String       = "author"
     val maintainer: String   = "maintainer"
@@ -44,9 +46,10 @@ object Config {
 
   implicit val decoder: Decoder[Config] = { json =>
     for {
-      name     <- json.get[String](JsonFields.name)
-      version  <- json.get[String](JsonFields.version)
-      license  <- json.getOrElse(JsonFields.license)("")
+      name        <- json.get[String](JsonFields.name)
+      version     <- json.get[String](JsonFields.version)
+      ensoVersion <- json.get[String](JsonFields.ensoVersion)
+      license     <- json.getOrElse(JsonFields.license)("")
       author <- json.getOrElse[List[String]](JsonFields.author)(List())(
         decodeContactsList
       )
@@ -59,6 +62,7 @@ object Config {
     } yield Config(
       name,
       version,
+      ensoVersion,
       license,
       author,
       maintainer,

@@ -47,8 +47,8 @@ object Main {
         "called NAME is created in the current directory."
       )
 
-      (nameOpt, pathOpt) mapN { (name, path) => (_: Config) =>
-        Launcher.newProject(name, path)
+      (nameOpt, pathOpt) mapN { (name, path) => (config: Config) =>
+        Launcher(config).newProject(name, path)
       }
     }
 

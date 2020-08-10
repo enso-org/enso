@@ -3,12 +3,13 @@ package org.enso.launcher
 import java.nio.file.Path
 
 import org.enso.launcher.installation.DistributionManager
-import org.enso.pkg.PackageManager
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 import buildinfo.Info
 import nl.gn0s1s.bump.SemVer
+import org.enso.launcher.Launcher.workingDirectory
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.components.DefaultComponentsManager
+import org.enso.launcher.project.ProjectManager
 
 /**
   * Implements launcher commands that are run from CLI and can be affected by
@@ -18,6 +19,23 @@ import org.enso.launcher.components.DefaultComponentsManager
   */
 case class Launcher(cliOptions: GlobalCLIOptions) {
   private lazy val componentsManager = DefaultComponentsManager(cliOptions)
+  private lazy val configurationManager =
+    new GlobalConfigurationManager(componentsManager)
+  private lazy val projectManager = new ProjectManager(configurationManager)
+
+  /**
+    * Creates a new project with the given `name` in the given `path`.
+    *
+    * If `path` is not set, the project is created in a directory called `name`
+    * in the current directory.
+    *
+    * TODO [RW] this is not the final implementation, it will be finished in
+    *  #977
+    */
+  def newProject(name: String, path: Option[Path]): Unit = {
+    val actualPath = path.getOrElse(workingDirectory.resolve(name))
+    projectManager.newProject(name, actualPath)
+  }
 
   /**
     * Prints a list of installed engines.
@@ -118,23 +136,7 @@ object Launcher {
     throw new IllegalStateException("Cannot parse the built-in version.")
   }
 
-  private val packageManager         = PackageManager.Default
   private val workingDirectory: Path = Path.of(".")
-
-  /**
-    * Creates a new project with the given `name` in the given `path`.
-    *
-    * If `path` is not set, the project is created in a directory called `name`
-    * in the current directory.
-    *
-    * TODO [RW] this is not the final implementation, it will be finished in
-    *  #977
-    */
-  def newProject(name: String, path: Option[Path]): Unit = {
-    val actualPath = path.getOrElse(workingDirectory.resolve(name))
-    packageManager.create(actualPath.toFile, name)
-    Logger.info(s"Project created in $actualPath")
-  }
 
   /**
     * Displays the version string of the launcher.
