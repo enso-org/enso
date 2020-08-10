@@ -1,6 +1,6 @@
 package org.enso.launcher
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 
 import buildinfo.Info
 import nl.gn0s1s.bump.SemVer
@@ -128,8 +128,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         inProject.map(_.version).getOrElse(configurationManager.defaultVersion)
       }
     val arguments = inProject match {
-      case Some(_) =>
-        throw new NotImplementedError("Running in project context is WIP")
+      case Some(project) =>
+        val projectPackagePath = project.path.toAbsolutePath.normalize.toString
+        Seq("--repl", "--in-project", projectPackagePath)
       case None =>
         Seq("--repl")
     }
@@ -150,8 +151,55 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Unit = {
-    val _ = (path, versionOverride, useSystemJVM, jvmOpts, additionalArguments)
-    // TODO
+    val actualPath = path
+      .getOrElse {
+        projectManager
+          .findProject(Path.of("."))
+          .getOrElse {
+            Logger.error(
+              "The current directory is not inside any project. `enso run` " +
+              "should either get a path to a project or script to run, or be " +
+              "run inside of a project to run that project."
+            )
+            sys.exit(1)
+          }
+          .path
+      }
+      .toAbsolutePath
+      .normalize()
+    if (!Files.exists(actualPath)) {
+      Logger.error(s"$actualPath does not exist")
+      sys.exit(1)
+    }
+    val projectMode = Files.isDirectory(actualPath)
+    val project =
+      if (projectMode) Some(projectManager.loadProject(actualPath).get)
+      else projectManager.findProject(actualPath)
+    val version = versionOverride
+      .orElse(project.map(_.version))
+      .getOrElse(configurationManager.defaultVersion)
+
+    val arguments =
+      if (projectMode) Seq("--run", actualPath.toString)
+      else
+        project match {
+          case Some(project) =>
+            Seq(
+              "--run",
+              actualPath.toString,
+              "--in-project",
+              project.path.toAbsolutePath.normalize().toString
+            )
+          case None =>
+            Seq("--run", actualPath.toString)
+        }
+    val exitCode = runner.run(
+      version         = version,
+      useSystemJVM    = useSystemJVM,
+      jvmOptions      = jvmOpts,
+      runnerArguments = arguments ++ additionalArguments
+    )
+    sys.exit(exitCode)
   }
 
   def runLanguageServer(
