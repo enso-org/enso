@@ -1009,7 +1009,7 @@ lazy val launcher = project
           "enso",
           staticOnLinux = true,
           Seq(
-            "--enable-all-security-services",
+            "--enable-all-security-services", // Note [HTTPS in the Launcher]
             "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"
           )
         )
@@ -1031,3 +1031,15 @@ lazy val launcher = project
   .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+
+/* Note [HTTPS in the Launcher]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * The launcher uses Apache HttpClient for making web requests. It does not use
+ * Java's stdlib implementation, because there is a bug (not fixed in JDK 11)
+ * (https://bugs.openjdk.java.net/browse/JDK-8231449) in its HTTPS handling that
+ * causes long running requests to freeze forever. However, Apache HttpClient
+ * still needs the stdlib's SSL implementation and it is not included in the
+ * Native Images by default (because of its size). The
+ * `--enable-all-security-services` flag is used to ensure it is available in
+ * the built executable.
+ */

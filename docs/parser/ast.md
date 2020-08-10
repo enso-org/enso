@@ -67,7 +67,7 @@ Uuid                           => UUID,
 ```
 
 > Note: It is assumed, that Enso runs on 64bit platforms. Therefore, `usize` and
-> `isize` are converted to `Long`._
+> `isize` are converted to `Long`.
 
 ##### Structures With Named Fields
 
