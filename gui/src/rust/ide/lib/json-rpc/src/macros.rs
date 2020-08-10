@@ -179,8 +179,9 @@ macro_rules! make_rpc_methods {
 
             impl Drop for Client {
                 fn drop(&mut self) {
-                    if self.require_all_calls.get() {
-                        $(assert!(self.expect.$method.borrow().is_empty(), "Didn't make expected call {}");)*
+                    if self.require_all_calls.get() && !std::thread::panicking() {
+                        $(assert!(self.expect.$method.borrow().is_empty(),
+                            "Didn't make expected call {}");)*
                     }
                 }
             }

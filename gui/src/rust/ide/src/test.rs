@@ -25,6 +25,10 @@ pub mod mock {
             crate::model::module::Path::from_mock_module_name(MODULE_NAME)
         }
 
+        pub fn module_qualified_name() -> crate::double_representation::module::QualifiedName {
+            module_path().qualified_module_name(PROJECT_NAME)
+        }
+
         pub fn definition_name() -> crate::double_representation::definition::DefinitionName {
             crate::double_representation::definition::DefinitionName::new_plain(DEFINITION_NAME)
         }

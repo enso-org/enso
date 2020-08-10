@@ -510,13 +510,13 @@ pub type SuggestionsDatabaseVersion = usize;
 #[serde(rename_all="camelCase")]
 pub struct SuggestionEntryArgument {
     /// The argument name.
-    pub name: String,
+    pub name:String,
     /// The argument type. String 'Any' is used to specify generic types.
-    pub repr_type: String,
+    pub repr_type:String,
     /// Indicates whether the argument is lazy.
-    pub is_suspended: bool,
+    pub is_suspended:bool,
     /// Optional default value.
-    pub default_value: Option<String>,
+    pub default_value:Option<String>,
 }
 
 /// The definition scope. The start and end are chars indices.
@@ -527,6 +527,17 @@ pub struct SuggestionEntryScope {
     pub start : Position,
     pub end   : Position,
 }
+
+impls!{ From + &From <RangeInclusive<data::text::TextLocation>> for SuggestionEntryScope { |range|
+    SuggestionEntryScope {
+        start : range.start().into(),
+        end   : range.end().into(),
+    }
+}}
+
+impls!{ Into + &Into <RangeInclusive<data::text::TextLocation>> for SuggestionEntryScope { |this|
+    this.start.into()..=this.end.into()
+}}
 
 /// A type of suggestion entry.
 #[derive(Hash,Debug,Copy,Clone,PartialEq,Eq,Serialize,Deserialize)]

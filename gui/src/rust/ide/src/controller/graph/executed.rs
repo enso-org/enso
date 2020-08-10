@@ -239,7 +239,6 @@ pub mod tests {
             let project = Rc::new(project);
             Handle::new(Logger::default(),project.clone_ref(),method).boxed_local().expect_ok()
         }
-
     }
 
     // Test that checks that value computed notification is properly relayed by the executed graph.

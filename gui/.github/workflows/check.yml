@@ -118,7 +118,7 @@ jobs:
         run: node ./run test --no-native
 
 
-  # TODO: enable after fixing https://github.com/actions-rs/grcov/issues/50 
+  # TODO: enable after fixing https://github.com/actions-rs/grcov/issues/50
   # coverage:
   #   name: Coverage
   #   runs-on: ubuntu-latest
