@@ -21,7 +21,7 @@ object StubIrBuilder {
     * @return the built stub IR.
     */
   def build(module: Module): IR.Module = {
-    val ir        = IR.Module(List(), List(), None)
+    val ir        = IR.Module(List(), List(), List(), None)
     val scope     = module.getScope
     val conses    = scope.getConstructors.asScala
     val consNames = conses.keys.map(_.toLowerCase()).toSet
