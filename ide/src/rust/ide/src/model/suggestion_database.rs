@@ -5,6 +5,7 @@ use crate::prelude::*;
 use crate::double_representation::module::QualifiedName;
 use crate::model::module::MethodId;
 
+use data::text::TextLocation;
 use enso_protocol::language_server;
 use language_server::types::SuggestionsDatabaseVersion;
 use language_server::types::SuggestionDatabaseUpdatesEvent;
@@ -27,6 +28,24 @@ pub enum EntryKind {
     Atom,Function,Local,Method
 }
 
+/// Describes the visibility range of some entry (i.e. identifier available as suggestion).
+///
+/// Methods are visible "Everywhere", as they are imported on a module level, so they are not
+/// specific to any particular span in the module file.
+/// However local variables and local function have limited visibility.
+#[derive(Clone,Debug,Eq,PartialEq)]
+pub enum Scope {
+    /// The entry is visible in the whole module where it was defined. It can be also brought to
+    /// other modules by import declarations.
+    Everywhere,
+    /// Local symbol that is visible only in a particular section of the module where it has been
+    /// defined.
+    #[allow(missing_docs)]
+    InModule {range:RangeInclusive<TextLocation>}
+}
+
+
+
 /// The Suggestion Database Entry.
 #[derive(Clone,Debug,Eq,PartialEq)]
 pub struct Entry {
@@ -45,6 +64,8 @@ pub struct Entry {
     pub documentation : Option<String>,
     /// A type of the "self" argument. This field is `None` for non-method suggestions.
     pub self_type : Option<String>,
+    /// A scope where this suggestion is visible.
+    pub scope : Scope,
 }
 
 impl Entry {
@@ -66,6 +87,7 @@ impl Entry {
                     self_type     : None,
                     documentation : convert_doc(documentation),
                     kind          : EntryKind::Atom,
+                    scope         : Scope::Everywhere,
                 },
             Method {name,module,arguments,self_type,return_type,documentation} => Self {
                     name,arguments,return_type,
@@ -73,21 +95,24 @@ impl Entry {
                     self_type     : Some(self_type),
                     documentation : convert_doc(documentation),
                     kind          : EntryKind::Method,
+                    scope         : Scope::Everywhere,
                 },
-            Function {name,module,arguments,return_type,..} => Self {
+            Function {name,module,arguments,return_type,scope} => Self {
                     name,arguments,return_type,
                     module        : module.try_into()?,
                     self_type     : None,
                     documentation : default(),
                     kind          : EntryKind::Function,
+                    scope         : Scope::InModule {range:scope.into()},
                 },
-            Local {name,module,return_type,..} => Self {
+            Local {name,module,return_type,scope} => Self {
                     name,return_type,
                     arguments     : default(),
                     module        : module.try_into()?,
                     self_type     : None,
                     documentation : default(),
                     kind          : EntryKind::Local,
+                    scope         : Scope::InModule {range:scope.into()},
                 },
         };
         Ok(this)
@@ -108,11 +133,6 @@ impl Entry {
         }
     }
 
-    /// Returns entry with the changed name.
-    pub fn with_name(self, name:impl Into<String>) -> Self {
-        Self {name:name.into(),..self}
-    }
-
     /// Return the Method Id of suggested method.
     ///
     /// Returns none, if this is not suggestion for a method.
@@ -128,6 +148,19 @@ impl Entry {
         } else {
             None
         }
+    }
+
+    /// Checks if entry is visible at given location in a specific module.
+    pub fn is_visible_at(&self, module:&QualifiedName, location:TextLocation) -> bool {
+        match &self.scope {
+            Scope::Everywhere         => true,
+            Scope::InModule   {range} => self.module == *module && range.contains(&location),
+        }
+    }
+
+    /// Checks if entry name matches the given name. The matching is case-insensitive.
+    pub fn matches_name(&self, name:impl Str) -> bool {
+        self.name.to_lowercase() == name.as_ref().to_lowercase()
     }
 
     /// Generates HTML documentation for documented suggestion.
@@ -230,6 +263,34 @@ impl SuggestionDatabase {
         self.entries.borrow().values().cloned().find(|entry| entry.method_id().contains(&id))
     }
 
+    /// Search the database for entries with given name and visible at given location in module.
+    pub fn lookup_by_name_and_location
+    (&self, name:impl Str, module:&QualifiedName, location:TextLocation) -> Vec<Rc<Entry>> {
+        self.entries.borrow().values().filter(|entry| {
+            entry.matches_name(name.as_ref()) && entry.is_visible_at(module,location)
+        }).cloned().collect()
+    }
+
+    /// Search the database for Local or Function entries with given name and visible at given
+    /// location in module.
+    pub fn lookup_locals_by_name_and_location
+    (&self, name:impl Str, module:&QualifiedName, location:TextLocation) -> Vec<Rc<Entry>> {
+        self.entries.borrow().values().cloned().filter(|entry| {
+            let is_local = entry.kind == EntryKind::Function || entry.kind == EntryKind::Local;
+            is_local && entry.matches_name(name.as_ref()) && entry.is_visible_at(module,location)
+        }).collect()
+    }
+
+    /// Search the database for Method entry with given name and defined for given module.
+    pub fn lookup_module_method
+    (&self, name:impl Str, module:&QualifiedName) -> Option<Rc<Entry>> {
+        self.entries.borrow().values().cloned().find(|entry| {
+            let is_method             = entry.kind == EntryKind::Method;
+            let is_defined_for_module = entry.self_type.contains(&module.name());
+            is_method && is_defined_for_module && entry.matches_name(name.as_ref())
+        })
+    }
+
     /// Put the entry to the database. Using this function likely break the synchronization between
     /// Language Server and IDE, and should be used only in tests.
     #[cfg(test)]
@@ -274,7 +335,8 @@ mod test {
             arguments     : vec![],
             return_type   : "Number".to_string(),
             documentation : None,
-            self_type     : None
+            self_type     : None,
+            scope         : Scope::Everywhere,
         };
         let method_entry = Entry {
             name      : "method".to_string(),
@@ -308,7 +370,8 @@ mod test {
             arguments     : vec![],
             return_type   : "Number".to_string(),
             documentation : None,
-            self_type     : None
+            self_type     : None,
+            scope         : Scope::Everywhere,
         };
         let method = Entry {
             name      : "method".to_string(),

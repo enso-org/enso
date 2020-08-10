@@ -133,7 +133,7 @@ impl DefinitionName {
     ///
     /// Returns `None` if is not name-like entity.
     pub fn from_ast(ast:&Ast) -> Option<DefinitionName> {
-        let accessor_chain = opr::Chain::try_new_of(ast,opr::predefined::ACCESS);
+        let accessor_chain = opr::as_access_chain(ast);
         let (extended_target,name) = match accessor_chain {
             Some(accessor_chain) => {
                 // Not really clear how the incomplete names should be supported. For now we just
