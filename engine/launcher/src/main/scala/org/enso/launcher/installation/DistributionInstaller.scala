@@ -4,14 +4,8 @@ import java.nio.file.Files
 
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.internal.OS
-import org.enso.launcher.internal.installation.DistributionManager
-import org.enso.launcher.{
-  FileSystem,
-  GlobalConfigurationManager,
-  InternalOpts,
-  Logger
-}
+import org.enso.launcher.cli.InternalOpts
+import org.enso.launcher.{FileSystem, GlobalConfigurationManager, Logger, OS}
 
 import scala.util.control.NonFatal
 
@@ -23,6 +17,9 @@ import scala.util.control.NonFatal
   *                location
   * @param autoConfirm if set to true, the installer will use defaults instead
   *                    of asking questions
+  * @param removeOldLauncher if `autoConfirm` is set to true, specifies whether
+  *                          the old launcher should be removed after successful
+  *                          installation
   * @param bundleActionOption defines how bundled components are added, if
   *                           [[autoConfirm]] is set, defaults to a move,
   *                           otherwise explicitly asks the user
@@ -30,6 +27,7 @@ import scala.util.control.NonFatal
 class DistributionInstaller(
   manager: DistributionManager,
   autoConfirm: Boolean,
+  removeOldLauncher: Boolean,
   bundleActionOption: Option[DistributionInstaller.BundleAction]
 ) {
   final private val installed = manager.LocallyInstalledDirectories
@@ -335,7 +333,11 @@ class DistributionInstaller(
       )
 
     if (installedLauncherPath != currentLauncherPath) {
-      if (autoConfirm || askForRemoval()) {
+      def shouldRemove(): Boolean =
+        if (autoConfirm) removeOldLauncher
+        else askForRemoval()
+
+      if (shouldRemove()) {
         if (OS.isWindows) {
           InternalOpts
             .runWithNewLauncher(installedLauncherPath)
@@ -371,22 +373,83 @@ object DistributionInstaller {
     def delete: Boolean
   }
 
+  /**
+    * The bundle action that will copy the bundles and keep the ones in the
+    * original location too.
+    */
   case object CopyBundles extends BundleAction {
-    override def key: String         = "c"
+
+    /**
+      * @inheritdoc
+      */
+    override def key: String = "c"
+
+    /**
+      * @inheritdoc
+      */
     override def description: String = "copy bundles"
-    def copy: Boolean                = true
-    def delete: Boolean              = false
+
+    /**
+      * @inheritdoc
+      */
+    def copy: Boolean = true
+
+    /**
+      * @inheritdoc
+      */
+    def delete: Boolean = false
   }
+
+  /**
+    * The bundle action that will copy the bundles and remove the ones at the
+    * original location on success.
+    */
   case object MoveBundles extends BundleAction {
-    override def key: String         = "m"
+
+    /**
+      * @inheritdoc
+      */
+    override def key: String = "m"
+
+    /**
+      * @inheritdoc
+      */
     override def description: String = "move bundles"
-    def copy: Boolean                = true
-    def delete: Boolean              = true
+
+    /**
+      * @inheritdoc
+      */
+    def copy: Boolean = true
+
+    /**
+      * @inheritdoc
+      */
+    def delete: Boolean = true
   }
+
+  /**
+    * The bundle action that ignores the bundles.
+    */
   case object IgnoreBundles extends BundleAction {
-    override def key: String         = "i"
+
+    /**
+      * @inheritdoc
+      */
+    override def key: String = "i"
+
+    /**
+      * @inheritdoc
+      */
     override def description: String = "ignore bundles"
-    def copy: Boolean                = false
-    def delete: Boolean              = false
+
+    /**
+      * @inheritdoc
+      */
+    def copy: Boolean = false
+
+    /**
+      * @inheritdoc
+      */
+    def delete: Boolean = false
   }
 }

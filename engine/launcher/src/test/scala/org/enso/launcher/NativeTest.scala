@@ -1,6 +1,7 @@
 package org.enso.launcher
 
 import java.nio.file.{Files, Path}
+import java.lang.{ProcessBuilder => JProcessBuilder}
 
 import org.scalatest.concurrent.{Signaler, TimeLimitedTests}
 import org.scalatest.matchers.should.Matchers
@@ -8,10 +9,11 @@ import org.scalatest.matchers.{MatchResult, Matcher}
 import org.scalatest.time.Span
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.sys.process._
 import org.scalatest.time.SpanSugar._
 
-import org.enso.launcher.internal.OS
+import scala.collection.Factory
+import scala.jdk.CollectionConverters._
+import scala.jdk.StreamConverters._
 
 /**
   * Contains helper methods for creating tests that need to run the native
@@ -109,6 +111,12 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
 
   /**
     * Creates a copy of the tested launcher binary at the specified location.
+    *
+    * It waits a 100ms delay after creating the copy to ensure that the copy can
+    * be called right away after calling this function. It is not absolutely
+    * certain that this is helpful, but from time to time, the tests fail
+    * because the filesystem does not allow to access the executable as
+    * 'not-ready'. This delay is an attempt to make the tests more stable.
     */
   def copyLauncherTo(path: Path): Unit = {
     val parent = path.getParent
@@ -117,6 +125,7 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     if (!Files.isExecutable(path)) {
       throw new RuntimeException("Failed to make it executable...")
     }
+    Thread.sleep(100)
   }
 
   /**
@@ -139,43 +148,63 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
   }
 
   /**
-    * This property can be temporarily set to true to allow for easier debugging
-    * of native tests.
+    * Runs the provided `command`.
+    *
+    * `extraEnv` may be provided to extend the environment. Care must be taken
+    * on Windows where environment variables are (mostly) case-insensitive.
+    *
+    * If `waitForDescendants` is set, tries to wait for descendants of the
+    * launched process to finish too. Especially important on Windows where
+    * child processes may run after the launcher parent has been terminated.
     */
-  private val launcherDebugLogging = false
-
   private def run(
     command: Seq[String],
-    extraEnv: Seq[(String, String)]
+    extraEnv: Seq[(String, String)],
+    waitForDescendants: Boolean = true
   ): RunResult = {
-    val stdout = new StringBuilder
-    val stderr = new StringBuilder
-    val logger = new ProcessLogger {
-      override def out(s: => String): Unit = {
-        if (launcherDebugLogging) {
-          System.err.println(s)
-        }
-        stdout.append(s + "\n")
-      }
+    val builder = new JProcessBuilder(command: _*)
+    val newKeys = extraEnv.map(_._1.toLowerCase)
+    if (newKeys.distinct.size < newKeys.size) {
+      throw new IllegalArgumentException(
+        "The extra environment keys have to be unique"
+      )
+    }
 
-      override def err(s: => String): Unit = {
-        if (launcherDebugLogging) {
-          System.err.println(s)
-        }
-        stderr.append(s + "\n")
-      }
+    lazy val existingKeys =
+      builder.environment().keySet().asScala
+    for ((key, value) <- extraEnv) {
+      if (OS.isWindows) {
+        def shadows(key1: String, key2: String): Boolean =
+          key1.toLowerCase == key2.toLowerCase && key1 != key2
 
-      override def buffer[T](f: => T): T = f
+        existingKeys.find(shadows(_, key)) match {
+          case Some(oldKey) =>
+            throw new IllegalArgumentException(
+              s"The environment key `$key` may be shadowed by `$oldKey` " +
+              s"already existing in the environment. Please use `$oldKey`."
+            )
+          case None =>
+        }
+      }
+      builder.environment().put(key, value)
     }
 
     try {
-      val process = Process(command, None, extraEnv: _*).run(logger)
+      val process = builder.start()
+
       try {
-        RunResult(process.exitValue(), stdout.toString(), stderr.toString())
+        val exitCode = process.waitFor()
+        if (waitForDescendants) {
+          val descendants = process.descendants().toScala(Factory.arrayFactory)
+          descendants.foreach(_.onExit().join())
+        }
+        val stdout = new String(process.getInputStream.readAllBytes())
+        val stderr = new String(process.getErrorStream.readAllBytes())
+        RunResult(exitCode, stdout, stderr)
       } catch {
         case e: InterruptedException =>
-          if (process.isAlive()) {
-            println("Killing the timed-out process")
+          if (process.isAlive) {
+            println(s"Killing the timed-out process: ${command.mkString(" ")}")
             process.destroy()
           }
           throw e

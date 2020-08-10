@@ -14,15 +14,25 @@ object Logger {
   private val Warning = Level("warn", 3)
   private val Error   = Level("error", 4)
 
-  private val logLevel = Warning
+  private var logLevel = Info
   private def log(level: Level, msg: => String): Unit =
-    if (level.level >= logLevel.level)
-      System.err.println(s"[${level.name}] $msg")
+    if (level.level >= logLevel.level) {
+      System.out.println(s"[${level.name}] $msg")
+      System.out.flush()
+    }
 
   /**
     * Logs a debug level message.
     */
   def debug(msg: => String): Unit = log(Debug, msg)
+
+  /**
+    * Logs a debug level message and attaches a stack trace.
+    */
+  def debug(msg: => String, throwable: => Throwable): Unit = {
+    log(Debug, msg)
+    trace(throwable)
+  }
 
   /**
     * Logs an info level message.
@@ -54,4 +64,18 @@ object Logger {
   def trace(throwable: => Throwable): Unit =
     if (Debug.level >= logLevel.level)
       throwable.printStackTrace()
+
+  /**
+    * Runs the provided action with a log level that will allow only for errors
+    * and returns its result.
+    */
+  def suppressWarnings[R](action: => R): R = {
+    val oldLevel = logLevel
+    try {
+      logLevel = Error
+      action
+    } finally {
+      logLevel = oldLevel
+    }
+  }
 }

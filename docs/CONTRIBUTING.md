@@ -124,6 +124,16 @@ compiler that they relate to.
 
 ### System Requirements
 
+The following operating systems are supported for developing Enso:
+
+- Windows 10
+- macOS 10.14 and above
+- Linux 4.4 and above
+
+Currently only the x86_64 (amd64) architecture is supported. You may be able to
+develop Enso on other systems, but issues arising from unsupported
+configurations will not be fixed by the core team.
+
 In order to build and run Enso you will need the following tools:
 
 - [sbt](https://www.scala-sbt.org/) with the same version as specified in
@@ -137,6 +147,8 @@ In order to build and run Enso you will need the following tools:
 - [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html),
   the rust build tool.
 - [Rustup](https://rustup.rs), the rust toolchain management utility.
+- On MacOS and Linux, the `tar` command is required for running some tests. It
+  should be installed by default on most distributions.
 
 Managing multiple JVM installations can be a pain, so some of the team use
 [Jenv](http://www.jenv.be/): A useful tool for managing multiple JVMs.
@@ -172,8 +184,8 @@ git clone git@github.com:enso-org/enso.git
 
 ### Getting Set Up (Rust)
 
-The SBT project requires a specific nightly rust toolchain. To get it set up, 
-you will need to install [rustup](https://rustup.rs/) and then run the following 
+The SBT project requires a specific nightly rust toolchain. To get it set up,
+you will need to install [rustup](https://rustup.rs/) and then run the following
 commands:
 
 ```bash
@@ -400,9 +412,9 @@ need to follow these steps:
    placeholders that we don't use.
 6. Alternatively, certain tasks, such as `run`, `benchOnly` and `testOnly` can
    be used through the `withDebug` SBT command. For this to work, your remote
-   configuration must specify the host of `localhost` and the port `5005`.
-   The command syntax is `withDebug --debugger TASK_NAME -- TASK_PARAMETERS`,
-   e.g. `withDebug --debugger testOnly -- *AtomConstructors*`.
+   configuration must specify the host of `localhost` and the port `5005`. The
+   command syntax is `withDebug --debugger TASK_NAME -- TASK_PARAMETERS`, e.g.
+   `withDebug --debugger testOnly -- *AtomConstructors*`.
 7. Now, when you want to debug something, you can place a breakpoint as usual in
    IntelliJ, and then execute your remote debugging configuration. Now, in the
    SBT shell, run a command to execute the code you want to debug (e.g.

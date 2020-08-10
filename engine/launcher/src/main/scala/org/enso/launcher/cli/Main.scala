@@ -1,25 +1,23 @@
-package org.enso.launcher
+package org.enso.launcher.cli
 
 import java.nio.file.Path
 import java.util.UUID
 
-import org.enso.cli.{
-  Application,
-  Argument,
-  CLIOutput,
-  Command,
-  Opts,
-  Subcommand,
-  TopLevelBehavior
-}
-import org.enso.cli.Opts.implicits._
 import cats.implicits._
+import nl.gn0s1s.bump.SemVer
+import org.enso.cli.Opts.implicits._
+import org.enso.cli._
+import org.enso.launcher.cli.Arguments._
+import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
   DistributionManager
 }
-import org.enso.launcher.installation.DistributionInstaller.BundleAction
+import org.enso.launcher.{Launcher, Logger}
 
+/**
+  * Defines the CLI commands and options for the program and its entry point.
+  */
 object Main {
   private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =
     Opts.flag(
@@ -28,7 +26,7 @@ object Main {
       showInUsage
     )
 
-  type Config = Unit
+  type Config = GlobalCLIOptions
 
   private def versionCommand: Command[Config => Unit] =
     Command(
@@ -63,7 +61,9 @@ object Main {
   private def runCommand: Command[Config => Unit] =
     Command(
       "run",
-      "Run a project or Enso script.",
+      "Run an Enso project or script. " +
+      "If `auto-confirm` is set, this will install missing engines or " +
+      "runtimes without asking.",
       related = Seq("exec", "execute", "build")
     ) {
       val pathOpt = Opts.optionalArgument[Path](
@@ -86,7 +86,9 @@ object Main {
   private def languageServerCommand: Command[Config => Unit] =
     Command(
       "language-server",
-      "Launch the Language Server for a given project.",
+      "Launch the Language Server for a given project." +
+      "If `auto-confirm` is set, this will install missing engines or " +
+      "runtimes without asking.",
       related = Seq("server")
     ) {
       val rootId = Opts.parameter[UUID]("root-id", "UUID", "Content root id.")
@@ -131,13 +133,17 @@ object Main {
     }
 
   private def replCommand: Command[Config => Unit] =
-    Command("repl", "Launch an Enso REPL.") {
+    Command(
+      "repl",
+      "Launch an Enso REPL." +
+      "If `auto-confirm` is set, this will install missing engines or " +
+      "runtimes without asking."
+    ) {
       val path           = Opts.optionalParameter[Path]("path", "PATH", "Project path.")
       val additionalArgs = Opts.additionalArguments()
       (path, jvmArgs, additionalArgs) mapN {
-        (path, jvmArgs, additionalArgs) => (_: Config) =>
-          println(s"Launch REPL in $path")
-          println(s"JVM=$jvmArgs, additionalArgs=$additionalArgs")
+        (path, jvmArgs, additionalArgs) => (config: Config) =>
+          Launcher(config).runRepl(path, jvmArgs, additionalArgs)
       }
     }
 
@@ -173,23 +179,24 @@ object Main {
 
   private def installEngineCommand: Subcommand[Config => Unit] =
     Subcommand("engine") {
-      val version = Opts.positionalArgument[String]("VERSION")
-      version map { version => (_: Config) =>
-        println(s"Install $version")
+      val version = Opts.optionalArgument[SemVer](
+        "VERSION",
+        "The version to install. If not provided, the latest version is " +
+        "installed."
+      )
+      version map { version => (config: Config) =>
+        version match {
+          case Some(value) =>
+            Launcher(config).installEngine(value)
+          case None =>
+            Launcher(config).installLatestEngine()
+        }
       }
     }
 
   private def installDistributionCommand: Subcommand[Config => Unit] =
     Subcommand("distribution") {
-      val autoConfirm = Opts.flag(
-        "auto-confirm",
-        "Proceeds with installation without asking confirmation questions. " +
-        "If bundled components are present, this flag will move them by " +
-        "default, unless overridden by an explicit setting of " +
-        "`--install-bundle-mode`. On success, the installer will remove " +
-        "itself to avoid conflicts with the installed launcher executable.",
-        showInUsage = false
-      )
+
       implicit val bundleActionParser: Argument[BundleAction] = {
         case "move"   => DistributionInstaller.MoveBundles.asRight
         case "copy"   => DistributionInstaller.CopyBundles.asRight
@@ -207,14 +214,25 @@ object Main {
         "If `auto-confirm` is set, defaults to move.",
         showInUsage = false
       )
-      (autoConfirm, bundleAction) mapN {
-        (autoConfirm, bundleAction) => (_: Config) =>
+
+      val doNotRemoveOldLauncher = Opts.flag(
+        "no-remove-old-launcher",
+        "If `auto-confirm` is set, the default behavior is to remove the old " +
+        "launcher after installing the distribution. Setting this flag may " +
+        "override this behavior to keep the original launcher.",
+        showInUsage = true
+      )
+
+      (bundleAction, doNotRemoveOldLauncher) mapN {
+        (bundleAction, doNotRemoveOldLauncher) => (config: Config) =>
           new DistributionInstaller(
             DistributionManager,
-            autoConfirm,
-            if (autoConfirm)
-              Some(bundleAction.getOrElse(DistributionInstaller.MoveBundles))
-            else bundleAction
+            config.autoConfirm,
+            removeOldLauncher = !doNotRemoveOldLauncher,
+            bundleActionOption =
+              if (config.autoConfirm)
+                Some(bundleAction.getOrElse(DistributionInstaller.MoveBundles))
+              else bundleAction
           ).install()
       }
     }
@@ -227,12 +245,28 @@ object Main {
       Opts.subcommands(installEngineCommand, installDistributionCommand)
     }
 
-  private def uninstallCommand: Command[Config => Unit] =
-    Command("uninstall", "Uninstall an Enso version.") {
-      val version = Opts.positionalArgument[String]("VERSION")
-      version map { version => (_: Config) =>
-        println(s"Uninstall $version")
+  private def uninstallEngineCommand: Subcommand[Config => Unit] =
+    Subcommand("engine") {
+      val version = Opts.positionalArgument[SemVer]("VERSION")
+      version map { version => (config: Config) =>
+        Launcher(config).uninstallEngine(version)
       }
+    }
+
+  private def uninstallDistributionCommand: Subcommand[Config => Unit] =
+    Subcommand("distribution") {
+      Opts.pure(()) map { (_: Unit) => (_: Config) =>
+        Logger.error("Not implemented yet.")
+        sys.exit(1)
+      }
+    }
+
+  private def uninstallCommand: Command[Config => Unit] =
+    Command(
+      "uninstall",
+      "Uninstall an Enso component."
+    ) {
+      Opts.subcommands(uninstallEngineCommand, uninstallDistributionCommand)
     }
 
   private def listCommand: Command[Config => Unit] =
@@ -241,25 +275,25 @@ object Main {
       case object EnsoComponents    extends Components
       case object RuntimeComponents extends Components
       implicit val argumentComponent: Argument[Components] = {
-        case "enso"    => EnsoComponents.asRight
+        case "engine"  => EnsoComponents.asRight
         case "runtime" => RuntimeComponents.asRight
         case other =>
           List(
-            s"Unknown argument `$other` - expected `enso`, `runtime` " +
+            s"Unknown argument `$other` - expected `engine`, `runtime` " +
             "or no argument to print a general summary."
           ).asLeft
       }
 
       val what = Opts.optionalArgument[Components](
         "COMPONENT",
-        "COMPONENT can be either `enso`, `runtime` or none. " +
+        "COMPONENT can be either `engine`, `runtime` or none. " +
         "If not specified, prints a summary of all installed components."
       )
-      what map { what => (_: Config) =>
+      what map { what => (config: Config) =>
         what match {
-          case Some(EnsoComponents)    => println("List enso")
-          case Some(RuntimeComponents) => println("List runtime")
-          case None                    => println("List summary")
+          case Some(EnsoComponents)    => Launcher(config).listEngines()
+          case Some(RuntimeComponents) => Launcher(config).listRuntimes()
+          case None                    => Launcher(config).listSummary()
         }
       }
     }
@@ -294,10 +328,39 @@ object Main {
       "Ensures that the launcher is run in portable mode.",
       showInUsage = false
     )
+    val autoConfirm = Opts.flag(
+      "auto-confirm",
+      "Proceeds without asking confirmation questions. Please see the " +
+      "options for the specific subcommand you want to run for the defaults " +
+      "used by this option.",
+      showInUsage = false
+    )
+    val hideProgress = Opts.flag(
+      "hide-progress",
+      "Suppresses displaying progress bars for downloads and other long " +
+      "running actions. May be needed if program output is piped.",
+      showInUsage = false
+    )
     val internalOpts = InternalOpts.topLevelOptions
 
-    (internalOpts, help, version, json, ensurePortable) mapN {
-      (_, help, version, useJSON, shouldEnsurePortable) => () =>
+    (
+      internalOpts,
+      help,
+      version,
+      json,
+      ensurePortable,
+      autoConfirm,
+      hideProgress
+    ) mapN {
+      (
+        _,
+        help,
+        version,
+        useJSON,
+        shouldEnsurePortable,
+        autoConfirm,
+        hideProgress
+      ) => () =>
         if (shouldEnsurePortable) {
           Launcher.ensurePortable()
         }
@@ -308,7 +371,13 @@ object Main {
         } else if (version) {
           Launcher.displayVersion(useJSON)
           TopLevelBehavior.Halt
-        } else TopLevelBehavior.Continue(())
+        } else
+          TopLevelBehavior.Continue(
+            GlobalCLIOptions(
+              autoConfirm  = autoConfirm,
+              hideProgress = hideProgress
+            )
+          )
     }
   }
 
@@ -339,17 +408,29 @@ object Main {
     CLIOutput.println(application.renderHelp())
   }
 
+  private def setup(): Unit =
+    System.setProperty(
+      "org.apache.commons.logging.Log",
+      "org.apache.commons.logging.impl.NoOpLog"
+    )
+
   def main(args: Array[String]): Unit = {
-    try {
-      application.run(args) match {
-        case Left(errors) =>
-          CLIOutput.println(errors.mkString("\n"))
-          sys.exit(1)
-        case Right(()) =>
+    setup()
+    val exitCode =
+      try {
+        application.run(args) match {
+          case Left(errors) =>
+            CLIOutput.println(errors.mkString("\n"))
+            1
+          case Right(()) =>
+            0
+        }
+      } catch {
+        case e: Exception =>
+          Logger.error(s"A fatal error has occurred: $e", e)
+          1
       }
-    } catch {
-      case e: RuntimeException =>
-        Logger.error(s"A fatal error has occurred: $e", e)
-    }
+
+    sys.exit(exitCode)
   }
 }

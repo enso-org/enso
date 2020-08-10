@@ -6,7 +6,7 @@ import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
 }
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
-import sbt.Keys.scalacOptions
+import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
@@ -305,7 +305,9 @@ val zio = Seq(
 
 // === Other ==================================================================
 
+val apacheHttpClientVersion = "4.5.12"
 val bcpkixJdk15Version      = "1.65"
+val bumpVersion             = "0.1.3"
 val declineVersion          = "1.2.0"
 val directoryWatcherVersion = "0.9.10"
 val flatbuffersVersion      = "1.12.0"
@@ -797,7 +799,7 @@ lazy val ast = (project in file("lib/scala/ast"))
   .settings(
     version := ensoVersion,
     GenerateAST.rustVersion := rustVersion,
-    Compile / sourceGenerators += GenerateAST.task,
+    Compile / sourceGenerators += GenerateAST.task
   )
 
 lazy val runtime = (project in file("engine/runtime"))
@@ -974,7 +976,7 @@ lazy val runner = project
   )
   .settings(
     buildNativeImage := NativeImage
-        .buildNativeImage(staticOnLinux = false)
+        .buildNativeImage("enso", staticOnLinux = false)
         .value
   )
   .settings(
@@ -992,13 +994,28 @@ lazy val launcher = project
   .in(file("engine/launcher"))
   .configs(Test)
   .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
-        "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-        "org.typelevel" %% "cats-core" % catsVersion
+        "org.scalatest"            %% "scalatest"        % scalatestVersion % Test,
+        "org.typelevel"            %% "cats-core"        % catsVersion,
+        "nl.gn0s1s"                %% "bump"             % bumpVersion,
+        "org.apache.commons"        % "commons-compress" % commonsCompressVersion,
+        "org.apache.httpcomponents" % "httpclient"       % apacheHttpClientVersion
       )
   )
   .settings(
-    buildNativeImage := NativeImage.buildNativeImage(staticOnLinux = true).value
+    buildNativeImage := NativeImage
+        .buildNativeImage(
+          "enso",
+          staticOnLinux = true,
+          Seq(
+            "--enable-all-security-services", // Note [HTTPS in the Launcher]
+            "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"
+          )
+        )
+        .value,
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("launcher.jar")
   )
   .settings(
     (Test / test) := (Test / test)
@@ -1014,3 +1031,15 @@ lazy val launcher = project
   .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+
+/* Note [HTTPS in the Launcher]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * The launcher uses Apache HttpClient for making web requests. It does not use
+ * Java's stdlib implementation, because there is a bug (not fixed in JDK 11)
+ * (https://bugs.openjdk.java.net/browse/JDK-8231449) in its HTTPS handling that
+ * causes long running requests to freeze forever. However, Apache HttpClient
+ * still needs the stdlib's SSL implementation and it is not included in the
+ * Native Images by default (because of its size). The
+ * `--enable-all-security-services` flag is used to ensure it is available in
+ * the built executable.
+ */

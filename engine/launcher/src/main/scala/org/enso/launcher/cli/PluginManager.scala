@@ -1,9 +1,9 @@
-package org.enso.launcher.internal
+package org.enso.launcher.cli
 
 import java.nio.file.{Files, Path}
 
 import org.enso.cli.{CommandHelp, PluginBehaviour, PluginNotFound}
-import org.enso.launcher.FileSystem
+import org.enso.launcher.{Environment, FileSystem}
 
 import scala.sys.process._
 import scala.util.Try
@@ -117,3 +117,9 @@ class PluginManager(env: Environment) extends org.enso.cli.PluginManager {
     }
   }
 }
+
+/**
+  * Default implementation of the [[PluginManager]] using the default
+  * [[Environment]].
+  */
+object PluginManager extends PluginManager(Environment)

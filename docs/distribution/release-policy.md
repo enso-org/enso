@@ -110,7 +110,7 @@ For example:
 ```yaml
 minimum-launcher-version: 0.0.1
 graal-vm-version: 20.1.0
-graal-java-version: java11
+graal-java-version: 11
 ```
 
 The `minimum-launcher-version` should be updated whenever a new version of Enso

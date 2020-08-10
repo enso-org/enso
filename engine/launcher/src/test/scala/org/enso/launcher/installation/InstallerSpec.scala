@@ -2,9 +2,8 @@ package org.enso.launcher.installation
 
 import java.nio.file.{Files, Path}
 
-import org.enso.launcher.{FileSystem, NativeTest, WithTemporaryDirectory}
+import org.enso.launcher.{FileSystem, NativeTest, OS, WithTemporaryDirectory}
 import org.enso.launcher.FileSystem.PathSyntax
-import org.enso.launcher.internal.OS
 
 import scala.io.Source
 
@@ -51,7 +50,14 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
     }
   }
 
-  private def notExistsAfterSomeTime(path: Path, retry: Int = 5): Boolean = {
+  /**
+    * Checks if the file does not exist, retrying `retry` times with a 200ms
+    * delay between retries.
+    *
+    * Useful to check if the file was removed, but the removal action is not
+    * blocking and may take more time.
+    */
+  def notExistsAfterSomeTime(path: Path, retry: Int = 5): Boolean = {
     if (Files.notExists(path)) true
     else if (retry > 0) {
       Thread.sleep(200)
@@ -64,7 +70,7 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
       preparePortableDistribution()
       runLauncherAt(
         portableLauncher,
-        Seq("install", "distribution", "--auto-confirm"),
+        Seq("--auto-confirm", "install", "distribution"),
         env
       )
 
@@ -79,9 +85,26 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
       readFileContent(config).stripTrailing() shouldEqual "what: ever"
 
       assert(
-        notExistsAfterSomeTime(portableLauncher),
+        Files.notExists(portableLauncher),
         "The installer should remove itself."
       )
+    }
+
+    "not remove old launcher if asked" in {
+      preparePortableDistribution()
+      runLauncherAt(
+        portableLauncher,
+        Seq(
+          "--auto-confirm",
+          "install",
+          "distribution",
+          "--no-remove-old-launcher"
+        ),
+        env
+      )
+
+      (installedRoot / "bin" / OS.executableName("enso")).toFile should exist
+      portableLauncher.toFile should exist
     }
 
     "move bundles by default" in {
@@ -89,7 +112,7 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
       prepareBundles()
       runLauncherAt(
         portableLauncher,
-        Seq("install", "distribution", "--auto-confirm"),
+        Seq("--auto-confirm", "install", "distribution"),
         env
       )
 
@@ -114,9 +137,9 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
       runLauncherAt(
         portableLauncher,
         Seq(
+          "--auto-confirm",
           "install",
           "distribution",
-          "--auto-confirm",
           "--bundle-install-mode=copy"
         ),
         env
@@ -139,9 +162,9 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
       runLauncherAt(
         portableLauncher,
         Seq(
+          "--auto-confirm",
           "install",
           "distribution",
-          "--auto-confirm",
           "--bundle-install-mode=ignore"
         ),
         env

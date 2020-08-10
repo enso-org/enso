@@ -1,4 +1,4 @@
-package org.enso.launcher
+package org.enso.launcher.cli
 
 import java.io.IOException
 import java.nio.file.{Files, NoSuchFileException, Path}
@@ -6,8 +6,29 @@ import java.nio.file.{Files, NoSuchFileException, Path}
 import org.enso.cli.Opts
 import org.enso.cli.Opts.implicits._
 import cats.implicits._
-import org.enso.launcher.internal.OS
+import org.enso.launcher.OS
 
+/**
+  * Implements internal options that the launcher may use when running another
+  * instance of itself.
+  *
+  * These options are used primarily to implement workarounds for
+  * Windows-specific filesystem limitations. They should not be used by the
+  * users directly, so they are not displayed in the help text.
+  *
+  * The implemented workarounds are following:
+  *
+  * 1. Remove Old Executable
+  *    On Windows, if an executable is running, its file is locked, so it is
+  *    impossible to remove a file that is running. Thus it is not possible for
+  *    the launcher to directly remove its old executable when it finishes the
+  *    installation. Instead it launches the newly installed launcher, which
+  *    tries to remove it, and terminates itself. Thus the executable lock is
+  *    soon freed and the new launcher is able to remove the old one. The new
+  *    launcher attempts several retries, because it may take some time for the
+  *    executable to be unlocked (especially as on Windows software like an
+  *    antivirus may block it for some more time after terminating).
+  */
 object InternalOpts {
   private val REMOVE_OLD_EXECUTABLE = "internal-remove-old-executable"
 
