@@ -24,7 +24,8 @@ import scala.util.{Failure, Try, Using}
 case class Manifest(
   minimumLauncherVersion: SemVer,
   graalVMVersion: SemVer,
-  graalJavaVersion: String
+  graalJavaVersion: String,
+  jvmOptions: Seq[(String, String)]
 ) {
 
   /**
@@ -74,6 +75,7 @@ object Manifest {
 
   private object Fields {
     val minimumLauncherVersion = "minimum-launcher-version"
+    val jvmOptions             = "jvm-options"
     val graalVMVersion         = "graal-vm-version"
     val graalJavaVersion       = "graal-java-version"
   }
@@ -90,6 +92,10 @@ object Manifest {
     } yield version
   }
 
+  implicit private val optsDecoder: Decoder[Seq[(String, String)]] = { json =>
+    json.as[Map[String, String]].map(_.toSeq)
+  }
+
   implicit private val decoder: Decoder[Manifest] = { json =>
     for {
       minimumLauncherVersion <- json.get[SemVer](Fields.minimumLauncherVersion)
@@ -98,10 +104,13 @@ object Manifest {
         json
           .get[String](Fields.graalJavaVersion)
           .orElse(json.get[Int](Fields.graalJavaVersion).map(_.toString))
+      jvmOptions <-
+        json.getOrElse[Seq[(String, String)]](Fields.jvmOptions)(Seq())
     } yield Manifest(
       minimumLauncherVersion = minimumLauncherVersion,
       graalVMVersion         = graalVMVersion,
-      graalJavaVersion       = graalJavaVersion
+      graalJavaVersion       = graalJavaVersion,
+      jvmOptions             = jvmOptions
     )
   }
 }

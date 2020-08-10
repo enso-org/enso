@@ -72,11 +72,12 @@ object Config {
 
   implicit val encoder: Encoder[Config] = { config =>
     val base = Json.obj(
-      JsonFields.name       -> config.name.asJson,
-      JsonFields.version    -> config.version.asJson,
-      JsonFields.license    -> config.license.asJson,
-      JsonFields.author     -> encodeContactsList(config.author),
-      JsonFields.maintainer -> encodeContactsList(config.maintainer)
+      JsonFields.name        -> config.name.asJson,
+      JsonFields.version     -> config.version.asJson,
+      JsonFields.ensoVersion -> config.ensoVersion.asJson,
+      JsonFields.license     -> config.license.asJson,
+      JsonFields.author      -> encodeContactsList(config.author),
+      JsonFields.maintainer  -> encodeContactsList(config.maintainer)
     )
     val withDeps =
       if (config.dependencies.nonEmpty)

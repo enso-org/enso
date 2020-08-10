@@ -44,9 +44,9 @@ class Runner(
     val extraEnvironmentOverrides =
       javaCommand.javaHomeOverride.map("JAVA_HOME" -> _).toSeq
 
-    def environmentDescription =
-      extraEnvironmentOverrides.map(v => s"${v._1}=${v._2} ").mkString
-    Logger.debug(s"Executing $environmentDescription${command.mkString(" ")}")
+    Logger.debug(
+      s"Executing ${describeCommand(command, extraEnvironmentOverrides)}"
+    )
     val process = Process(command, None, extraEnvironmentOverrides: _*)
       .run(connectInput = true)
     process.exitValue()
@@ -64,4 +64,16 @@ class Runner(
       javaHomeOverride =
         Some(runtime.javaHome.toAbsolutePath.normalize.toString)
     )
+
+  private def describeCommand(
+    command: Seq[String],
+    extraEnv: Seq[(String, String)]
+  ): String = {
+    def escapeQuotes(string: String): String =
+      "\"" + string.replace("\"", "\\\"") + "\""
+    val environmentDescription =
+      extraEnv.map(v => s"${v._1}=${escapeQuotes(v._2)} ").mkString
+    val commandDescription = command.map(escapeQuotes).mkString(" ")
+    environmentDescription + commandDescription
+  }
 }
