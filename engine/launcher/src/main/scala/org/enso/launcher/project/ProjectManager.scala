@@ -5,6 +5,8 @@ import java.nio.file.Path
 import org.enso.launcher.{GlobalConfigurationManager, Logger}
 import org.enso.pkg.PackageManager
 
+import scala.util.Try
+
 class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
 
   private val packageManager = PackageManager.Default
@@ -19,15 +21,21 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
     Logger.info(s"Project created in $path")
   }
 
-  def findCurrentProject(): Option[Project] = {
-    def tryFindingProject(root: Path): Option[Project] =
-      packageManager.fromDirectory(root.toFile) match {
-        case Some(found) =>
-          Some(new Project(found))
-        case None =>
-          Option(root.getParent).flatMap(tryFindingProject)
-      }
+  def loadProject(path: Path): Try[Project] =
+    packageManager
+      .fromDirectory(path.toFile)
+      .map(new Project(_))
+      .toRight(new RuntimeException(s"Cannot load an Enso project at $path"))
+      .toTry
 
-    tryFindingProject(Path.of(".").toAbsolutePath.normalize)
-  }
+  def findProject(path: Path): Option[Project] =
+    tryFindingProject(path.toAbsolutePath.normalize)
+
+  private def tryFindingProject(root: Path): Option[Project] =
+    packageManager.fromDirectory(root.toFile) match {
+      case Some(found) =>
+        Some(new Project(found))
+      case None =>
+        Option(root.getParent).flatMap(tryFindingProject)
+    }
 }

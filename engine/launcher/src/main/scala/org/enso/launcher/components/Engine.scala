@@ -20,6 +20,9 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
   override def toString: String =
     s"Enso Engine $version"
 
+  def graalRuntimeVersion: RuntimeVersion      = manifest.runtimeVersion
+  def defaultJVMOptions: Seq[(String, String)] = Seq() // FIXME
+
   def runnerPath: Path  = path / "component" / "runner.jar"
   def runtimePath: Path = path / "component" / "runtime.jar"
 

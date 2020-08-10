@@ -1,1 +1,3 @@
 minimum-launcher-version: 0.0.1
+jvm-options:
+  polyglot.engine.IterativePartialEscape: true

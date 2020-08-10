@@ -2,14 +2,14 @@ package org.enso.launcher
 
 import java.nio.file.Path
 
-import org.enso.launcher.installation.DistributionManager
-import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 import buildinfo.Info
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.Launcher.workingDirectory
 import org.enso.launcher.cli.GlobalCLIOptions
-import org.enso.launcher.components.DefaultComponentsManager
+import org.enso.launcher.components.{DefaultComponentsManager, Runner}
+import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.project.ProjectManager
+import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
 /**
   * Implements launcher commands that are run from CLI and can be affected by
@@ -22,6 +22,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   private lazy val configurationManager =
     new GlobalConfigurationManager(componentsManager)
   private lazy val projectManager = new ProjectManager(configurationManager)
+  private lazy val runner         = new Runner(componentsManager)
 
   /**
     * Creates a new project with the given `name` in the given `path`.
@@ -109,18 +110,89 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     componentsManager.uninstallEngine(version)
 
   def runRepl(
-    pathHint: Option[Path],
-    jvmArguments: Seq[(String, String)],
+    projectPath: Option[Path],
+    versionOverride: Option[SemVer],
+    useSystemJVM: Boolean,
+    jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Unit = {
-    // TODO [RW] this is just a stub, it will be implemented in #976
-    val path            = pathHint.getOrElse(Path.of(".")).toAbsolutePath
-    val detectedVersion = SemVer(0, 1, 0) // TODO [RW] default version etc.
-    val engine          = componentsManager.findOrInstallEngine(detectedVersion)
-    val runtime         = componentsManager.findOrInstallRuntime(engine)
-    println(s"Will launch the REPL in $path")
-    println(s"with $engine with additional arguments $additionalArguments")
-    println(s"using $runtime with JVM arguments $jvmArguments")
+    val inProject = projectPath match {
+      case Some(value) =>
+        Some(projectManager.loadProject(value).get)
+      case None =>
+        projectManager.findProject(Path.of("."))
+    }
+
+    val version =
+      versionOverride.getOrElse {
+        inProject.map(_.version).getOrElse(configurationManager.defaultVersion)
+      }
+    val arguments = inProject match {
+      case Some(_) =>
+        throw new NotImplementedError("Running in project context is WIP")
+      case None =>
+        Seq("--repl")
+    }
+
+    val exitCode = runner.run(
+      version         = version,
+      useSystemJVM    = useSystemJVM,
+      jvmOptions      = jvmOpts,
+      runnerArguments = arguments ++ additionalArguments
+    )
+    sys.exit(exitCode)
+  }
+
+  def runRun(
+    path: Option[Path],
+    versionOverride: Option[SemVer],
+    useSystemJVM: Boolean,
+    jvmOpts: Seq[(String, String)],
+    additionalArguments: Seq[String]
+  ): Unit = {
+    val _ = (path, versionOverride, useSystemJVM, jvmOpts, additionalArguments)
+    // TODO
+  }
+
+  def runLanguageServer(
+    options: LanguageServerOptions,
+    versionOverride: Option[SemVer],
+    useSystemJVM: Boolean,
+    jvmOpts: Seq[(String, String)],
+    additionalArguments: Seq[String]
+  ): Unit = {
+    val project = projectManager.loadProject(options.path).get
+    val version = versionOverride.getOrElse(project.version)
+    val arguments = Seq(
+      "--server",
+      "--root-id",
+      options.rootId.toString,
+      "--path",
+      options.path.toAbsolutePath.normalize.toString,
+      "--interface",
+      options.interface,
+      "--rpc-port",
+      options.rpcPort.toString,
+      "--data-port",
+      options.dataPort.toString
+    )
+    val exitCode = runner.run(
+      version         = version,
+      useSystemJVM    = useSystemJVM,
+      jvmOptions      = jvmOpts,
+      runnerArguments = arguments ++ additionalArguments
+    )
+    sys.exit(exitCode)
+  }
+
+  def setDefaultVersion(version: SemVer): Unit = {
+    val _ = version
+    Logger.error("This feature is not implemented yet.")
+    sys.exit(1)
+  }
+
+  def printDefaultVersion(): Unit = {
+    println(configurationManager.defaultVersion)
   }
 }
 

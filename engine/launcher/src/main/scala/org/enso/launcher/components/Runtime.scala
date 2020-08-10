@@ -5,8 +5,6 @@ import java.nio.file.{Files, Path}
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.OS
 
-import scala.util.Try
-
 /**
   * Represents a runtime component.
   *
