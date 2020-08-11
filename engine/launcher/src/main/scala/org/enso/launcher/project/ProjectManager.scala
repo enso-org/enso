@@ -24,7 +24,7 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
   def loadProject(path: Path): Try[Project] =
     packageManager
       .fromDirectory(path.toFile)
-      .map(new Project(_))
+      .map(new Project(_, globalConfigurationManager))
       .toRight(ProjectLoadingError(path))
       .toTry
 
@@ -34,7 +34,7 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
   private def tryFindingProject(root: Path): Option[Project] =
     packageManager.fromDirectory(root.toFile) match {
       case Some(found) =>
-        Some(new Project(found))
+        Some(new Project(found, globalConfigurationManager))
       case None =>
         Option(root.getParent).flatMap(tryFindingProject)
     }

@@ -201,7 +201,7 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     root: F,
     name: String,
     version: String     = "0.0.1",
-    ensoVersion: String = "default"
+    ensoVersion: String = Config.defaultEnsoVersion
   ): Package[F] = {
     val config = Config(
       name         = normalizeName(name),

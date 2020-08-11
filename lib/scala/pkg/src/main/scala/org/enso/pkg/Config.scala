@@ -31,6 +31,8 @@ object Config {
     val dependencies: String = "dependencies"
   }
 
+  val defaultEnsoVersion = "default"
+
   private val decodeContactsList: Decoder[List[String]] = { json =>
     json
       .as[String]
