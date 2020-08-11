@@ -1,3 +1,6 @@
 minimum-launcher-version: 0.0.1
 graal-vm-version: 1.0.0
 graal-java-version: 11
+jvm-options:
+  options-added-from-manifest: "42"
+  another-one: "true"
