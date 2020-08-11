@@ -7,6 +7,20 @@ import io.circe.yaml.Printer
 
 case class Dependency(name: String, version: String)
 
+/**
+  * Represents a package configuration stored in the `package.yaml` file.
+  *
+  * @param name package name
+  * @param version package version
+  * @param ensoVersion version of the Enso engine associated with the package,
+  *                    can be set to `default` which defaults to the locally
+  *                    installed version
+  * @param license package license
+  * @param author name and contact information of the package author(s)
+  * @param maintainer name and contact information of current package
+  *                   maintainer(s)
+  * @param dependencies a list of package dependencies
+  */
 case class Config(
   name: String,
   version: String,
@@ -16,6 +30,10 @@ case class Config(
   maintainer: List[String],
   dependencies: List[Dependency]
 ) {
+
+  /**
+    * Converts the configuration into a YAML representation.
+    */
   def toYaml: String =
     Printer.spaces2.copy(preserveOrder = true).pretty(Config.encoder(this))
 }
@@ -31,6 +49,12 @@ object Config {
     val dependencies: String = "dependencies"
   }
 
+  /**
+    * The string representing the `default` Enso version.
+    *
+    * If `enso-version` is set to `default`, the locally default Enso engine
+    * version is used for the project.
+    */
   val defaultEnsoVersion = "default"
 
   private val decodeContactsList: Decoder[List[String]] = { json =>

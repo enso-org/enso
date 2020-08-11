@@ -205,6 +205,12 @@ class ComponentsManager(
       .flatMap(handleErrorsAsWarnings[Engine]("An engine"))
   }
 
+  /**
+    * A helper function that is used when listing components.
+    *
+    * A component error is non-fatal in context of listing, so it is issued as a
+    * warning and the component is treated as non-existent in the list.
+    */
   private def handleErrorsAsWarnings[A](name: String)(
     result: (Path, Try[A])
   ): Seq[A] =
@@ -388,8 +394,6 @@ class ComponentsManager(
 
   /**
     * Loads the engine definition.
-    *
-    * Returns None on failure.
     */
   private def loadEngine(path: Path): Try[Engine] = {
     def verifyEngine(engine: Engine): Try[Unit] =
@@ -400,6 +404,7 @@ class ComponentsManager(
       } else {
         Success(())
       }
+
     for {
       version  <- parseEngineVersion(path)
       manifest <- loadAndCheckEngineManifest(path)

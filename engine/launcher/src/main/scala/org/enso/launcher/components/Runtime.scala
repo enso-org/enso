@@ -19,6 +19,9 @@ case class Runtime(version: RuntimeVersion, path: Path) {
   override def toString: String =
     s"GraalVM ${version.graal}-java${version.java}"
 
+  /**
+    * The path to the JAVA_HOME directory associated with this runtime.
+    */
   def javaHome: Path =
     OS.operatingSystem match {
       case OS.Linux   => path
@@ -26,11 +29,17 @@ case class Runtime(version: RuntimeVersion, path: Path) {
       case OS.Windows => path
     }
 
+  /**
+    * The path to the `java` executable associated with this runtime.
+    */
   def javaExecutable: Path = {
     val executableName = if (OS.isWindows) "java.exe" else "java"
     javaHome / "bin" / executableName
   }
 
+  /**
+    * Returns if the installation seems not-corrupted.
+    */
   def isValid: Boolean =
     Files.exists(javaExecutable) && Files.isExecutable(javaExecutable)
 }

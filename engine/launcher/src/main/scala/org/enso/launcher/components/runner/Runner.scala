@@ -9,12 +9,30 @@ import org.enso.launcher.project.ProjectManager
 
 import scala.util.Try
 
+/**
+  * A helper class that prepares settings for running Enso components and
+  * converts these settings to actual commands that launch the component inside
+  * of a JVM.
+  */
 class Runner(
   projectManager: ProjectManager,
   configurationManager: GlobalConfigurationManager,
-  componentsManager: ComponentsManager,
-  currentWorkingDirectory: Path = Path.of(".")
+  componentsManager: ComponentsManager
 ) {
+
+  /**
+    * The current working directory that is a starting point when checking if
+    * the command is launched inside of a project.
+    *
+    * Can be overridden in tests.
+    */
+  protected val currentWorkingDirectory: Path = Path.of(".")
+
+  /**
+    * Creates [[RunSettings]] for launching the REPL.
+    *
+    * See [[org.enso.launcher.Launcher.runRepl]] for more details.
+    */
   def repl(
     projectPath: Option[Path],
     versionOverride: Option[SemVer],
@@ -45,6 +63,11 @@ class Runner(
       RunSettings(version, arguments ++ additionalArguments)
     }
 
+  /**
+    * Creates [[RunSettings]] for running Enso projects or scripts.
+    *
+    * See [[org.enso.launcher.Launcher.runRun]] for more details.
+    */
   def run(
     path: Option[Path],
     versionOverride: Option[SemVer],
@@ -94,6 +117,11 @@ class Runner(
       RunSettings(version, arguments ++ additionalArguments)
     }
 
+  /**
+    * Creates [[RunSettings]] for launching the Language Server.
+    *
+    * See [[org.enso.launcher.Launcher.runLanguageServer]] for more details.
+    */
   def languageServer(
     options: LanguageServerOptions,
     versionOverride: Option[SemVer],
@@ -118,6 +146,12 @@ class Runner(
       RunSettings(version, arguments ++ additionalArguments)
     }
 
+  /**
+    * Creates a command that can be used to launch the component.
+    *
+    * Combines the [[RunSettings]] for the runner with the [[JVMSettings]] for
+    * the underlying JVM to get the full command for launching the component.
+    */
   def createCommand(
     runSettings: RunSettings,
     jvmSettings: JVMSettings
@@ -154,12 +188,25 @@ class Runner(
     Command(command, extraEnvironmentOverrides)
   }
 
+  /**
+    * Represents a way of launching the JVM.
+    *
+    * Stores the name of the `java` executable to run and a possible JAVA_HOME
+    * environment variable override.
+    */
   private case class JavaCommand(
     executableName: String,
     javaHomeOverride: Option[String]
   )
 
+  /**
+    * The [[JavaCommand]] representing the system-configured JVM.
+    */
   private def systemJavaCommand: JavaCommand = JavaCommand("java", None)
+
+  /**
+    * The [[JavaCommand]] representing a managed [[Runtime]].
+    */
   private def javaCommandForRuntime(runtime: Runtime): JavaCommand =
     JavaCommand(
       executableName = runtime.javaExecutable.toAbsolutePath.normalize.toString,

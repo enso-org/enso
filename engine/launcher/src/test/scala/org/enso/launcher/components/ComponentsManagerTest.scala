@@ -19,6 +19,14 @@ class ComponentsManagerTest
     with OptionValues
     with WithTemporaryDirectory
     with FakeEnvironment {
+
+  /**
+    * Creates the [[DistributionManager]] and [[ComponentsManager]] used in the
+    * test.
+    *
+    * Should be called separately for each test case, as the components use
+    * temporary directories which are separate for each test case.
+    */
   def makeManagers(): (DistributionManager, ComponentsManager) = {
     val distributionManager = new DistributionManager(
       fakeInstalledEnvironment()
@@ -45,5 +53,10 @@ class ComponentsManagerTest
     (distributionManager, componentsManager)
   }
 
+  /**
+    * Returns just the [[ComponentsManager]].
+    *
+    * See [[makeManagers]] for details.
+    */
   def makeComponentsManager(): ComponentsManager = makeManagers()._2
 }

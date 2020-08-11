@@ -106,9 +106,10 @@ root of an Enso version package. It has at least the following fields:
   different Java versions, this specifies which variant to use.
 
 It can also contain the following additional fields:
+
 - `jvm-options` - specifies a set of keys and string values which describe
-  additional options that should be passed to the JVM running the engine. These options can
-  be used to fine-tune version specific optimization settings etc.
+  additional options that should be passed to the JVM running the engine. These
+  options can be used to fine-tune version specific optimization settings etc.
 
 For example:
 

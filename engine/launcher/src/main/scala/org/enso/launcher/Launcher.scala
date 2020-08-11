@@ -115,6 +115,21 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def uninstallEngine(version: SemVer): Unit =
     componentsManager.uninstallEngine(version)
 
+  /**
+    * Runs the Enso REPL.
+    *
+    * If ran outside of a project, uses the default configured version. If run
+    * inside a project or provided with an explicit projectPath, the Enso
+    * version associated with the project is run.
+    *
+    * @param projectPath if provided, the REPL is run in context of that project
+    * @param versionOverride if provided, overrides the default engine version
+    *                        that would have been used
+    * @param useSystemJVM if set, forces to use the default configured JVM,
+    *                     instead of the JVM associated with the engine version
+    * @param jvmOpts additional options to pass to the launched JVM
+    * @param additionalArguments additional arguments to pass to the runner
+    */
   def runRepl(
     projectPath: Option[Path],
     versionOverride: Option[SemVer],
@@ -128,9 +143,27 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         JVMSettings(useSystemJVM, jvmOpts)
       )
       .run()
+      .get
     sys.exit(exitCode)
   }
 
+  /**
+    * Runs an Enso script or project.
+    *
+    * If ran inside a project without a path, or with a path pointing to a
+    * project, runs that project. If the provided path points to a file, that
+    * file is executed as an Enso script. If the file is located inside of a
+    * project, it is executed in the context of that project. Otherwise it is
+    * run as a standalone script and the default engine version is used.
+    *
+    * @param path specifies what to run
+    * @param versionOverride if provided, overrides the default engine version
+    *                        that would have been used
+    * @param useSystemJVM if set, forces to use the default configured JVM,
+    *                     instead of the JVM associated with the engine version
+    * @param jvmOpts additional options to pass to the launched JVM
+    * @param additionalArguments additional arguments to pass to the runner
+    */
   def runRun(
     path: Option[Path],
     versionOverride: Option[SemVer],
@@ -144,9 +177,24 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         JVMSettings(useSystemJVM, jvmOpts)
       )
       .run()
+      .get
     sys.exit(exitCode)
   }
 
+  /**
+    * Runs the Language Server.
+    *
+    * Unless overridden, uses the Enso version associated with the project
+    * located at `options.path`.
+    *
+    * @param options configuration required by the language server
+    * @param versionOverride if provided, overrides the default engine version
+    *                        that would have been used
+    * @param useSystemJVM if set, forces to use the default configured JVM,
+    *                     instead of the JVM associated with the engine version
+    * @param jvmOpts additional options to pass to the launched JVM
+    * @param additionalArguments additional arguments to pass to the runner
+    */
   def runLanguageServer(
     options: LanguageServerOptions,
     versionOverride: Option[SemVer],
@@ -162,15 +210,22 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
         JVMSettings(useSystemJVM, jvmOpts)
       )
       .run()
+      .get
     sys.exit(exitCode)
   }
 
+  /**
+    * Sets the default Enso version.
+    */
   def setDefaultVersion(version: SemVer): Unit = {
     val _ = version
     Logger.error("This feature is not implemented yet.")
     sys.exit(1)
   }
 
+  /**
+    * Prints the default Enso version.
+    */
   def printDefaultVersion(): Unit = {
     println(configurationManager.defaultVersion)
   }

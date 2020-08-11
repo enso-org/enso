@@ -20,6 +20,8 @@ import scala.util.{Failure, Try, Using}
   * @param graalVMVersion the version of the GraalVM runtime that has to be
   *                       used with this engine
   * @param graalJavaVersion the java version of that GraalVM runtime
+  * @param jvmOptions a list of JVM options that should be added when running
+  *                   this engine
   */
 case class Manifest(
   minimumLauncherVersion: SemVer,

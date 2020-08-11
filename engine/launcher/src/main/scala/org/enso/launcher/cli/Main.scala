@@ -83,10 +83,11 @@ object Main {
     ) {
       val pathOpt = Opts.optionalArgument[Path](
         "PATH",
-        "If PATH points to a file, that file is run as a script. " +
-        "If it points to a directory, the project from that directory is " +
-        "run. If a PATH is not provided, a project in the current working " +
-        "directory is run."
+        "If PATH points to a file, that file is run as a script (if that " +
+        "script is located inside of a project, the script is run in the " +
+        "context of that project). If it points to a directory, the project " +
+        "from that directory is run. If a PATH is not provided, a project in " +
+        "the current working directory is run."
       )
       val additionalArgs = Opts.additionalArguments()
       (
@@ -188,7 +189,8 @@ object Main {
         "path",
         "PATH",
         "Specifying this option runs the REPL in context of a project " +
-        "located at the given path."
+        "located at the given path. The REPL is also run in context of a " +
+        "project if it is launched from within a directory inside a project."
       )
       val additionalArgs = Opts.additionalArguments()
       (path, versionOverride, systemJVMOverride, jvmOpts, additionalArgs) mapN {

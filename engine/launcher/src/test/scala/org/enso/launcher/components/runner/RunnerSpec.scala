@@ -22,7 +22,9 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
     val projectManager = new ProjectManager(configurationManager)
     val cwd            = cwdOverride.getOrElse(getTestDirectory)
     val runner =
-      new Runner(projectManager, configurationManager, componentsManager, cwd)
+      new Runner(projectManager, configurationManager, componentsManager) {
+        override protected val currentWorkingDirectory: Path = cwd
+      }
     TestSetup(runner, projectManager)
   }
 

@@ -165,7 +165,12 @@ object Main {
   /**
     * Handles the `--run` CLI option.
     *
+    * If `path` is a directory, so a project is run, a conflicting (pointing to
+    * another project) `projectPath` should not be provided.
+    *
     * @param path path of the project or file to execute
+    * @param projectPath if specified, the script is run in context of a
+    *                    project located at that path
     */
   private def run(path: String, projectPath: Option[String]): Unit = {
     val file = new File(path)
@@ -296,6 +301,9 @@ object Main {
 
   /**
     * Handles the `--repl` CLI option
+    *
+    * @param projectPath if specified, the REPL is run in context of a project
+    *                    at the given path
     */
   private def runRepl(projectPath: Option[String]): Unit = {
     val mainMethodName           = "internal_repl_entry_point___"
