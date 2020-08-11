@@ -178,7 +178,7 @@ object Main {
   private def replCommand: Command[Config => Unit] =
     Command(
       "repl",
-      "Launch an Enso REPL." +
+      "Launch an Enso REPL. " +
       "If `auto-confirm` is set, this will install missing engines or " +
       "runtimes without asking."
     ) {

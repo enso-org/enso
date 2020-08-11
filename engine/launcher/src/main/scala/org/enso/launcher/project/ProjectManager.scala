@@ -18,14 +18,14 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
       name        = name,
       ensoVersion = ensoVersion.toString()
     )
-    Logger.info(s"Project created in $path")
+    Logger.info(s"Project created in `$path`.")
   }
 
   def loadProject(path: Path): Try[Project] =
     packageManager
       .fromDirectory(path.toFile)
       .map(new Project(_))
-      .toRight(new RuntimeException(s"Cannot load an Enso project at $path"))
+      .toRight(ProjectLoadingError(path))
       .toTry
 
   def findProject(path: Path): Option[Project] =
