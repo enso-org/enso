@@ -1,4 +1,4 @@
-package org.enso.launcher
+package org.enso.launcher.components.runner
 
 import java.nio.file.Path
 import java.util.UUID

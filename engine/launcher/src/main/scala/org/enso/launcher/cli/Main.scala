@@ -8,12 +8,13 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli.Opts.implicits._
 import org.enso.cli._
 import org.enso.launcher.cli.Arguments._
+import org.enso.launcher.components.runner.LanguageServerOptions
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
   DistributionManager
 }
-import org.enso.launcher.{LanguageServerOptions, Launcher, Logger}
+import org.enso.launcher.{Launcher, Logger}
 
 /**
   * Defines the CLI commands and options for the program and its entry point.
@@ -122,19 +123,20 @@ object Main {
         Opts.optionalParameter[String](
           "interface",
           "INTERFACE",
-          "Interface for processing all incoming connections."
+          "Interface for processing all incoming connections. " +
+          "Defaults to `127.0.0.1`."
         )
       val rpcPort =
         Opts.optionalParameter[Int](
           "rpc-port",
           "PORT",
-          "RPC port for processing all incoming connections."
+          "RPC port for processing all incoming connections. Defaults to 8080."
         )
       val dataPort =
         Opts.optionalParameter[Int](
           "data-port",
           "PORT",
-          "Data port for visualisation protocol."
+          "Data port for visualisation protocol. Defaults to 8081."
         )
       val additionalArgs = Opts.additionalArguments()
       (

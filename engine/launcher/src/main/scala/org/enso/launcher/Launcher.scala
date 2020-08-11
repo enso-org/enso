@@ -1,12 +1,17 @@
 package org.enso.launcher
 
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 
 import buildinfo.Info
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.Launcher.workingDirectory
 import org.enso.launcher.cli.GlobalCLIOptions
-import org.enso.launcher.components.{DefaultComponentsManager, Runner}
+import org.enso.launcher.components.DefaultComponentsManager
+import org.enso.launcher.components.runner.{
+  JVMSettings,
+  LanguageServerOptions,
+  Runner
+}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.project.ProjectManager
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
@@ -22,7 +27,8 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   private lazy val configurationManager =
     new GlobalConfigurationManager(componentsManager)
   private lazy val projectManager = new ProjectManager(configurationManager)
-  private lazy val runner         = new Runner(componentsManager)
+  private lazy val runner =
+    new Runner(projectManager, configurationManager, componentsManager)
 
   /**
     * Creates a new project with the given `name` in the given `path`.
@@ -116,31 +122,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Unit = {
-    val inProject = projectPath match {
-      case Some(value) =>
-        Some(projectManager.loadProject(value).get)
-      case None =>
-        projectManager.findProject(Path.of("."))
-    }
-
-    val version =
-      versionOverride.getOrElse {
-        inProject.map(_.version).getOrElse(configurationManager.defaultVersion)
-      }
-    val arguments = inProject match {
-      case Some(project) =>
-        val projectPackagePath = project.path.toAbsolutePath.normalize.toString
-        Seq("--repl", "--in-project", projectPackagePath)
-      case None =>
-        Seq("--repl")
-    }
-
-    val exitCode = runner.run(
-      version         = version,
-      useSystemJVM    = useSystemJVM,
-      jvmOptions      = jvmOpts,
-      runnerArguments = arguments ++ additionalArguments
-    )
+    val exitCode = runner
+      .createCommand(
+        runner.repl(projectPath, versionOverride, additionalArguments),
+        JVMSettings(useSystemJVM, jvmOpts)
+      )
+      .run()
     sys.exit(exitCode)
   }
 
@@ -151,54 +138,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Unit = {
-    val actualPath = path
-      .getOrElse {
-        projectManager
-          .findProject(Path.of("."))
-          .getOrElse {
-            Logger.error(
-              "The current directory is not inside any project. `enso run` " +
-              "should either get a path to a project or script to run, or be " +
-              "run inside of a project to run that project."
-            )
-            sys.exit(1)
-          }
-          .path
-      }
-      .toAbsolutePath
-      .normalize()
-    if (!Files.exists(actualPath)) {
-      Logger.error(s"$actualPath does not exist")
-      sys.exit(1)
-    }
-    val projectMode = Files.isDirectory(actualPath)
-    val project =
-      if (projectMode) Some(projectManager.loadProject(actualPath).get)
-      else projectManager.findProject(actualPath)
-    val version = versionOverride
-      .orElse(project.map(_.version))
-      .getOrElse(configurationManager.defaultVersion)
-
-    val arguments =
-      if (projectMode) Seq("--run", actualPath.toString)
-      else
-        project match {
-          case Some(project) =>
-            Seq(
-              "--run",
-              actualPath.toString,
-              "--in-project",
-              project.path.toAbsolutePath.normalize().toString
-            )
-          case None =>
-            Seq("--run", actualPath.toString)
-        }
-    val exitCode = runner.run(
-      version         = version,
-      useSystemJVM    = useSystemJVM,
-      jvmOptions      = jvmOpts,
-      runnerArguments = arguments ++ additionalArguments
-    )
+    val exitCode = runner
+      .createCommand(
+        runner.run(path, versionOverride, additionalArguments),
+        JVMSettings(useSystemJVM, jvmOpts)
+      )
+      .run()
     sys.exit(exitCode)
   }
 
@@ -209,27 +154,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     jvmOpts: Seq[(String, String)],
     additionalArguments: Seq[String]
   ): Unit = {
-    val project = projectManager.loadProject(options.path).get
-    val version = versionOverride.getOrElse(project.version)
-    val arguments = Seq(
-      "--server",
-      "--root-id",
-      options.rootId.toString,
-      "--path",
-      options.path.toAbsolutePath.normalize.toString,
-      "--interface",
-      options.interface,
-      "--rpc-port",
-      options.rpcPort.toString,
-      "--data-port",
-      options.dataPort.toString
-    )
-    val exitCode = runner.run(
-      version         = version,
-      useSystemJVM    = useSystemJVM,
-      jvmOptions      = jvmOpts,
-      runnerArguments = arguments ++ additionalArguments
-    )
+    val exitCode = runner
+      .createCommand(
+        runner.languageServer(options, versionOverride, additionalArguments),
+        JVMSettings(useSystemJVM, jvmOpts)
+      )
+      .run()
     sys.exit(exitCode)
   }
 
