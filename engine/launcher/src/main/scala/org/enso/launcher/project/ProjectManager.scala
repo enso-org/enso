@@ -11,12 +11,17 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
 
   private val packageManager = PackageManager.Default
 
-  def newProject(name: String, path: Path): Unit = {
-    val ensoVersion = globalConfigurationManager.defaultVersion
+  def newProject(
+    name: String,
+    path: Path,
+    ensoVersion: Option[String] = None
+  ): Unit = {
     packageManager.create(
-      root        = path.toFile,
-      name        = name,
-      ensoVersion = ensoVersion.toString()
+      root = path.toFile,
+      name = name,
+      ensoVersion = ensoVersion.getOrElse {
+        globalConfigurationManager.defaultVersion.toString()
+      }
     )
     Logger.info(s"Project created in `$path`.")
   }

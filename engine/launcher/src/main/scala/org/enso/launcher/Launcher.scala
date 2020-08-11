@@ -124,7 +124,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   ): Unit = {
     val exitCode = runner
       .createCommand(
-        runner.repl(projectPath, versionOverride, additionalArguments),
+        runner.repl(projectPath, versionOverride, additionalArguments).get,
         JVMSettings(useSystemJVM, jvmOpts)
       )
       .run()
@@ -140,7 +140,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   ): Unit = {
     val exitCode = runner
       .createCommand(
-        runner.run(path, versionOverride, additionalArguments),
+        runner.run(path, versionOverride, additionalArguments).get,
         JVMSettings(useSystemJVM, jvmOpts)
       )
       .run()
@@ -156,7 +156,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   ): Unit = {
     val exitCode = runner
       .createCommand(
-        runner.languageServer(options, versionOverride, additionalArguments),
+        runner
+          .languageServer(options, versionOverride, additionalArguments)
+          .get,
         JVMSettings(useSystemJVM, jvmOpts)
       )
       .run()
