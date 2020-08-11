@@ -1,6 +1,6 @@
 package org.enso.launcher.components.runner
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 import java.util.UUID
 
 import nl.gn0s1s.bump.SemVer
@@ -11,7 +11,7 @@ import org.enso.launcher.project.ProjectManager
 import org.scalatest.TryValues
 
 class RunnerSpec extends ComponentsManagerTest with TryValues {
-  private val defaultEngineVersion = SemVer(0, 0, 0)
+  private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
   case class TestSetup(runner: Runner, projectManager: ProjectManager)
   def makeFakeRunner(cwdOverride: Option[Path] = None): TestSetup = {
     val (_, componentsManager) = makeManagers()
@@ -78,12 +78,16 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
 
       runSettings.version shouldEqual defaultEngineVersion
       runSettings.runnerArguments should (contain("arg") and contain("--flag"))
+      runSettings.runnerArguments.mkString(" ") should
+      (include("--repl") and not include (s"--in-project"))
     }
 
     "run repl in project context" in {
       val TestSetup(runnerOutside, projectManager) = makeFakeRunner()
 
       val version        = SemVer(0, 0, 0, Some("repl-test"))
+      version should not equal defaultEngineVersion // sanity check
+
       val projectPath    = getTestDirectory / "project"
       val normalizedPath = projectPath.toAbsolutePath.normalize.toString
       projectManager.newProject(
@@ -181,6 +185,132 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
         .success
         .value
         .version shouldEqual overridden
+    }
+
+    "run a project" in {
+      val TestSetup(runnerOutside, projectManager) = makeFakeRunner()
+
+      val version        = SemVer(0, 0, 0, Some("run-test"))
+      val projectPath    = getTestDirectory / "project"
+      val normalizedPath = projectPath.toAbsolutePath.normalize.toString
+      projectManager.newProject(
+        "test",
+        projectPath,
+        Some(version.toString)
+      )
+
+      val outsideProject = runnerOutside
+        .run(
+          path                = Some(projectPath),
+          versionOverride     = None,
+          additionalArguments = Seq()
+        )
+        .success
+        .value
+
+      outsideProject.version shouldEqual version
+      outsideProject.runnerArguments.mkString(" ") should
+      include(s"--run $normalizedPath")
+
+      val TestSetup(runnerInside, _) = makeFakeRunner(Some(projectPath))
+      val insideProject = runnerInside
+        .run(
+          path                = None,
+          versionOverride     = None,
+          additionalArguments = Seq()
+        )
+        .success
+        .value
+
+      insideProject.version shouldEqual version
+      insideProject.runnerArguments.mkString(" ") should
+      include(s"--run $normalizedPath")
+
+      val overridden = SemVer(0, 0, 0, Some("overridden"))
+      val overriddenRun = runnerInside
+        .run(
+          path                = Some(projectPath),
+          versionOverride     = Some(overridden),
+          additionalArguments = Seq()
+        )
+        .success
+        .value
+
+      overriddenRun.version shouldEqual overridden
+      overriddenRun.runnerArguments.mkString(" ") should
+      include(s"--run $normalizedPath")
+
+      assert(
+        runnerOutside
+          .run(
+            path                = None,
+            versionOverride     = None,
+            additionalArguments = Seq()
+          )
+          .isFailure,
+        "Running outside project without providing any paths should be an error"
+      )
+    }
+
+    "run a script outside of a project even if cwd is inside project" in {
+      val version     = SemVer(0, 0, 0, Some("run-test"))
+      val projectPath = getTestDirectory / "project"
+      val TestSetup(runnerInside, projectManager) =
+        makeFakeRunner(cwdOverride = Some(projectPath))
+      projectManager.newProject(
+        "test",
+        projectPath,
+        Some(version.toString)
+      )
+
+      val outsideFile = getTestDirectory / "Main.enso"
+      val normalizedPath = outsideFile.toAbsolutePath.normalize.toString
+      Files.copy(
+        projectPath / "src" / "Main.enso",
+        outsideFile
+      )
+
+      val runSettings = runnerInside
+        .run(
+          path                = Some(outsideFile),
+          versionOverride     = None,
+          additionalArguments = Seq()
+        )
+        .success
+        .value
+
+      runSettings.version shouldEqual defaultEngineVersion
+      runSettings.runnerArguments.mkString(" ") should
+        (include(s"--run $normalizedPath") and not include("--in-project"))
+    }
+
+    "run a script inside of a project" in {
+      val version     = SemVer(0, 0, 0, Some("run-test"))
+      val projectPath = getTestDirectory / "project"
+      val normalizedProjectPath = projectPath.toAbsolutePath.normalize.toString
+      val TestSetup(runnerOutside, projectManager) = makeFakeRunner()
+      projectManager.newProject(
+        "test",
+        projectPath,
+        Some(version.toString)
+      )
+
+      val insideFile = projectPath / "src" / "Main.enso"
+      val normalizedFilePath = insideFile.toAbsolutePath.normalize.toString
+
+      val runSettings = runnerOutside
+        .run(
+          path                = Some(insideFile),
+          versionOverride     = None,
+          additionalArguments = Seq()
+        )
+        .success
+        .value
+
+      runSettings.version shouldEqual version
+      runSettings.runnerArguments.mkString(" ") should
+        (include(s"--run $normalizedFilePath") and
+          include(s"--in-project $normalizedProjectPath"))
     }
   }
 }
