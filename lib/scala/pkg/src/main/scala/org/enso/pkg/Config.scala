@@ -47,7 +47,7 @@ object Config {
   implicit val decoder: Decoder[Config] = { json =>
     for {
       name        <- json.get[String](JsonFields.name)
-      version     <- json.get[String](JsonFields.version)
+      version     <- json.getOrElse[String](JsonFields.version)("dev")
       ensoVersion <- json.get[String](JsonFields.ensoVersion)
       license     <- json.getOrElse(JsonFields.license)("")
       author <- json.getOrElse[List[String]](JsonFields.author)(List())(

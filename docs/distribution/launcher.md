@@ -92,7 +92,7 @@ configuration based on user's config.
 
 ### Per-Project Enso Version
 
-Project configuration can specify the exact Enso version that should be used
+Project configuration must specify the exact Enso version that should be used
 inside that project. The launcher automatically detects if it is in a project
 (by traversing the directory structure). The current project can also be
 specified by the `--path` parameter. All components launched inside a project
