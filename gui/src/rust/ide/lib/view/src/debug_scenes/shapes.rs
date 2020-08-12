@@ -16,10 +16,7 @@ use ensogl::application::Application;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::style::theme;
 use ensogl::data::color;
-use ensogl_text as text;
 use wasm_bindgen::prelude::*;
-
-use text::traits::*;
 
 
 
@@ -103,7 +100,6 @@ fn init(app:&Application) {
 
     app.views.register::<GraphEditor>();
     let graph_editor = app.new_view::<GraphEditor>();
-    let text_area = app.new_view::<text::Area>();
     world.add_child(&graph_editor);
 
 
@@ -144,37 +140,11 @@ fn init(app:&Application) {
         }
     });
 
-    world.add_child(&text_area);
-
-    text_area.add_cursor_DEBUG(default());
-//    text_area.insert("Test text €!!!\nline2\nline3\nopen \"data.csv\"");
-//    text_area.insert("open€ \"data.csv\"\nline2 continuation\nline3 continuation");
-    text_area.insert("ab\ncd\nef");
-
-    text_area.replace((1..3).bytes(),color::Rgba::new(0.0,1.0,0.0,1.0));
-    text_area.replace((8..9).bytes(),color::Rgba::new(1.0,1.0,0.0,1.0));
-    text_area.replace((10..11).bytes(),color::Rgba::new(1.0,0.0,0.0,1.0));
-    text_area.replace((14..15).bytes(),color::Rgba::new(0.0,0.0,1.0,1.0));
-
-    text_area.set_default(color::Rgba::new(1.0,1.0,1.0,0.7));
-    text_area.set_default(text::Size(12.0));
-    text_area.set_position_x(10.0);
-
-    text_area.redraw();
-
-    let cursor = &app.cursor;
-
-    frp::new_network! { network
-        eval text_area.frp.output.mouse_cursor_style ((s) cursor.frp.input.set_style.emit(s));
-    }
-
     let mut was_rendered = false;
     let mut loader_hidden = false;
     world.on_frame(move |_| {
         let _keep_alive = &navigator;
         let _keep_alive = &graph_editor;
-        let _keep_alive = &text_area;
-        let _keep_alive = &network;
 
         // Temporary code removing the web-loader instance.
         // To be changed in the future.

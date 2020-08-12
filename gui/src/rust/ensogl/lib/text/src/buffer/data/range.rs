@@ -16,7 +16,7 @@ use super::unit::*;
 ///
 /// Unlike `std::ops::Range`, this type implements `Copy`, and contains text-related trait
 /// implementations.
-#[derive(Clone,Copy,PartialEq,Eq)]
+#[derive(Clone,Copy,Default,PartialEq,Eq)]
 #[allow(missing_docs)]
 pub struct Range<T> {
     pub start : T,
@@ -122,6 +122,12 @@ impl From<RangeToInclusive<Bytes>> for Range<Bytes> {
 
 
 // === Conversions ===
+
+impl<T:Clone> From<&Range<T>> for Range<T> {
+    fn from(t:&Range<T>) -> Self {
+        t.clone()
+    }
+}
 
 impl From<Range<Bytes>> for rope::Interval {
     fn from(t:Range<Bytes>) -> Self {

@@ -6,6 +6,8 @@ use crate::prelude::*;
 use crate::buffer::data::unit::*;
 use crate::buffer::Transform;
 use crate::buffer;
+use crate::buffer::style;
+use crate::buffer::Text;
 use crate::typeface::glyph::Glyph;
 use crate::typeface::glyph;
 use crate::typeface::pen;
@@ -42,107 +44,23 @@ pub const RECORD_SEPARATOR : &str = "\x1E";
 
 
 // ==================
-// === Frp Macros ===
-// ==================
-
-// FIXME: these are generic FRP utilities. To be refactored out after the API settles down.
-// FIXME: the same are defined in text/view
-macro_rules! define_frp {
-    (
-        $(Commands {$commands_name : ident})?
-        Input  { $($in_field  : ident : $in_field_type  : ty),* $(,)? }
-        Output { $($out_field : ident : $out_field_type : ty),* $(,)? }
-    ) => {
-        /// Frp network and endpoints.
-        #[derive(Debug,Clone,CloneRef)]
-        #[allow(missing_docs)]
-        pub struct Frp {
-            pub network : frp::Network,
-            pub input   : FrpInputs,
-            pub output  : FrpOutputs,
-        }
-
-        impl Frp {
-            /// Constructor.
-            pub fn new(network:frp::Network, input:FrpInputs, output:FrpOutputs) -> Self {
-                Self {network,input,output}
-            }
-        }
-
-        /// Frp inputs.
-        #[derive(Debug,Clone,CloneRef)]
-        #[allow(missing_docs)]
-        pub struct FrpInputs {
-            $(pub command : $commands_name,)?
-            $(pub $in_field : frp::Source<$in_field_type>),*
-        }
-
-        impl FrpInputs {
-            /// Constructor.
-            pub fn new(network:&frp::Network) -> Self {
-                $(
-                    #[allow(non_snake_case)]
-                    let $commands_name = $commands_name::new(network);
-                )?
-                frp::extend! { network
-                    $($in_field <- source();)*
-                }
-                Self { $(command:$commands_name,)? $($in_field),* }
-            }
-        }
-
-        /// Frp output setters.
-        #[derive(Debug,Clone,CloneRef)]
-        pub struct FrpOutputsSetter {
-            $($out_field : frp::Any<$out_field_type>),*
-        }
-
-        /// Frp outputs.
-        #[derive(Debug,Clone,CloneRef)]
-        #[allow(missing_docs)]
-        pub struct FrpOutputs {
-            setter           : FrpOutputsSetter,
-            $(pub $out_field : frp::Stream<$out_field_type>),*
-        }
-
-        impl FrpOutputsSetter {
-            /// Constructor.
-            pub fn new(network:&frp::Network) -> Self {
-                frp::extend! { network
-                    $($out_field <- any(...);)*
-                }
-                Self {$($out_field),*}
-            }
-        }
-
-        impl FrpOutputs {
-            /// Constructor.
-            pub fn new(network:&frp::Network) -> Self {
-                let setter = FrpOutputsSetter::new(network);
-                $(let $out_field = setter.$out_field.clone_ref().into();)*
-                Self {setter,$($out_field),*}
-            }
-        }
-    };
-}
-
-
-
-// ==================
 // === Background ===
 // ==================
 
-/// Canvas node shape definition.
-pub mod background {
-    use super::*;
+// FIXME[WD]: Commented for now. We need to consider how to handle background with active state.
+// This should be resolved together with the https://github.com/enso-org/ide/issues/670 PR.
 
-    ensogl::define_shape_system! {
-        (style:Style, selection:f32) {
-            let out = Rect((1000.px(),1000.px())).fill(color::Rgba::new(1.0,1.0,1.0,0.05));
-            out.into()
-        }
-    }
-}
+// /// Canvas node shape definition.
+// pub mod background {
+//     use super::*;
+//
+//     ensogl::define_shape_system! {
+//         (style:Style, selection:f32) {
+//             let out = Rect((1000.px(),1000.px())).fill(color::Rgba::new(1.0,1.0,1.0,0.05));
+//             out.into()
+//         }
+//     }
+// }
 
 
 
@@ -150,7 +68,7 @@ pub mod background {
 // === Cursor ===
 // ==============
 
-const LINE_VERTICAL_OFFSET     : f32 = 4.0;
+const LINE_VERTICAL_OFFSET     : f32 = 4.0; // Set manually. May depend on font. To be improved.
 const CURSOR_PADDING           : f32 = 4.0;
 const CURSOR_WIDTH             : f32 = 2.0;
 const CURSOR_ALPHA             : f32 = 0.8;
@@ -192,7 +110,9 @@ pub mod selection {
     ensogl::define_shape_system! {
         (style:Style, selection:f32, start_time:f32, letter_width:f32) {
             let width_abs      = Var::<f32>::from("abs(input_size.x)");
+            let height         = Var::<f32>::from("input_size.y");
             let rect_width     = width_abs - 2.0 * CURSOR_PADDING;
+            let rect_height    = height    - 2.0 * CURSOR_PADDING;
             let time           = Var::<f32>::from("input_time");
             let one            = Var::<f32>::from(1.0);
             let time           = time - start_time;
@@ -205,7 +125,7 @@ pub mod selection {
             let sel_width      = &rect_width - CURSOR_WIDTH;
             let alpha_weight   = sel_width.smoothstep(0.0,letter_width);
             let alpha          = alpha_weight.mix(blinking_alpha,SELECTION_ALPHA);
-            let shape          = Rect((1.px() * rect_width,LINE_HEIGHT.px()));
+            let shape          = Rect((1.px() * rect_width,1.px() * rect_height));
             let shape          = shape.corners_radius(SELECTION_CORNER_RADIUS.px());
             let shape          = shape.fill(format!("srgba(1.0,1.0,1.0,{})",alpha.glsl()));
             shape.into()
@@ -260,6 +180,7 @@ impl Selection {
         let spring_factor  = if debug { 0.1 } else { 1.5 };
         position . update_spring (|spring| spring * spring_factor);
         width    . update_spring (|spring| spring * spring_factor);
+
         Self {logger,display_object,right_side,shape_view,network,position,width,edit_mode} . init()
     }
 
@@ -273,15 +194,17 @@ impl Selection {
         frp::extend! { network
             _eval <- all_with(&self.position.value,&self.width.value,
                 f!([view,object,right_side](p,width){
-                    let side       = width.signum();
-                    let abs_width  = width.abs();
-                    let width      = max(CURSOR_WIDTH, abs_width - CURSORS_SPACING);
-                    let view_width = CURSOR_PADDING * 2.0 + width;
-                    let view_x     = (abs_width/2.0) * side;
+                    let side        = width.signum();
+                    let abs_width   = width.abs();
+                    let width       = max(CURSOR_WIDTH, abs_width - CURSORS_SPACING);
+                    let view_width  = CURSOR_PADDING * 2.0 + width;
+                    let view_height = CURSOR_PADDING * 2.0 + LINE_HEIGHT;
+                    let view_x      = (abs_width/2.0) * side;
+                    let view_y      = 0.0;
                     object.set_position_xy(*p);
                     right_side.set_position_x(abs_width/2.0);
-                    view.shape.sprite.size.set(Vector2(view_width,20.0));
-                    view.set_position_x(view_x);
+                    view.shape.sprite.size.set(Vector2(view_width,view_height));
+                    view.set_position_xy(Vector2(view_x,view_y));
                 })
             );
         }
@@ -488,10 +411,14 @@ ensogl::def_command_api! { Commands
     undo,
     /// Redo the last operation.
     redo,
-    /// Copy selected text to clipboard,
+    /// Copy selected text to clipboard.
     copy,
-    /// Paste selected text from clipboard,
+    /// Paste selected text from clipboard.
     paste,
+    /// Set the text area in active state. You should rather not need to control it manually, as it is automatically managed by the active state manager.
+    set_active_on,
+    /// Set the text area in non-active state. You should rather not need to control it manually, as it is automatically managed by the active state manager.
+    set_active_off,
 }
 
 impl application::command::CommandApi for Area {
@@ -504,13 +431,22 @@ impl application::command::CommandApi for Area {
     }
 }
 
-define_frp! {
+crate::define_endpoints! {
     Commands { Commands }
     Input {
-        paste_string : String,
+        set_cursor            (Location),
+        add_cursor            (Location),
+        paste_string          (String),
+        insert                (String),
+        set_color_bytes       (buffer::Range<Bytes>,color::Rgba),
+        set_default_color     (color::Rgba),
+        set_default_text_size (style::Size),
     }
     Output {
-        mouse_cursor_style : gui::cursor::Style,
+        mouse_cursor_style (gui::cursor::Style),
+        active             (bool),
+        width              (f32),
+        changed            (Text),
     }
 }
 
@@ -524,7 +460,7 @@ define_frp! {
 pub const LINE_HEIGHT : f32 = 14.0;
 
 /// The visual text area implementation.
-#[derive(Debug)]
+#[derive(Clone,CloneRef,Debug)]
 #[allow(missing_docs)]
 pub struct Area {
     data    : AreaData,
@@ -532,9 +468,9 @@ pub struct Area {
 }
 
 impl Deref for Area {
-    type Target = AreaData;
+    type Target = Frp;
     fn deref(&self) -> &Self::Target {
-        &self.data
+        &self.frp
     }
 }
 
@@ -543,136 +479,160 @@ impl Area {
     pub fn new(app:&Application) -> Self {
         let network = frp::Network::new();
         let data    = AreaData::new(app,&network);
-        let output  = FrpOutputs::new(&network);
-        let frp     = Frp::new(network,data.frp_inputs.clone_ref(),output);
+        let output  = data.frp_endpoints.clone_ref();
+        let frp     = Frp::new(network,output);
         Self {data,frp} . init()
     }
 
     fn init(self) -> Self {
-        let network = &self.frp.network;
-        let mouse   = &self.scene.mouse.frp;
-        let model   = &self.data;
-        let input   = &model.frp_inputs;
-        let cmd     = &input.command;
-        let bg      = &self.background;
-        let pos     = Animation :: <Vector2> :: new(&network);
+        let network  = &self.frp.network;
+        let model    = &self.data;
+        let mouse    = &model.scene.mouse.frp;
+        let input    = &model.frp_endpoints.input;
+        let cmd      = &input.command;
+        let pos      = Animation :: <Vector2> :: new(&network);
+        let keyboard = &model.scene.keyboard;
+        let m        = &model;
         pos.update_spring(|spring| spring*2.0);
 
         frp::extend! { network
-            cursor_over  <- bg.events.mouse_over.constant(gui::cursor::Style::new_text_cursor());
-            cursor_out   <- bg.events.mouse_out.constant(gui::cursor::Style::default());
-            mouse_cursor <- any(cursor_over,cursor_out);
-            self.frp.output.setter.mouse_cursor_style <+ mouse_cursor;
 
-            mouse_on_set_cursor <- mouse.position.sample(&cmd.set_cursor_at_mouse_position);
-            mouse_on_add_cursor <- mouse.position.sample(&cmd.add_cursor_at_mouse_position);
+            // FIXME[WD]: Commented for now. We need to consider how to handle background with active state.
+            // This should be resolved together with the https://github.com/enso-org/ide/issues/670 PR.
+
+            // cursor_over  <- bg.events.mouse_over.constant(gui::cursor::Style::new_text_cursor());
+            // cursor_out   <- bg.events.mouse_out.constant(gui::cursor::Style::default());
+            // mouse_cursor <- any(cursor_over,cursor_out);
+            // self.frp.source.mouse_cursor_style <+ mouse_cursor;
+
+
+            // === Active State Management ===
+
+            // FIXME[WD]: Connect the active state to active state management when its ready.
+            // Should be removed as part of https://github.com/enso-org/ide/issues/670
+            active <- bool(&cmd.set_active_off,&cmd.set_active_on);
+            self.frp.source.active <+ active;
+
+
+            // === Set / Add cursor ===
+
+            // FIXME[WD]: These frp nodes are simulating active state management. To be removed
+            // as part of https://github.com/enso-org/ide/issues/670
+            set_cursor_at_mouse_position <- cmd.set_cursor_at_mouse_position.gate(&active);
+            add_cursor_at_mouse_position <- cmd.add_cursor_at_mouse_position.gate(&active);
+
+            mouse_on_set_cursor     <- mouse.position.sample(&set_cursor_at_mouse_position);
+            mouse_on_add_cursor     <- mouse.position.sample(&add_cursor_at_mouse_position);
+            loc_on_set_cursor_mouse <- mouse_on_set_cursor.map(f!((p) m.get_in_text_location(*p)));
+            loc_on_add_cursor_mouse <- mouse_on_add_cursor.map(f!((p) m.get_in_text_location(*p)));
+            loc_on_set_cursor       <- any(&input.set_cursor,&loc_on_set_cursor_mouse);
+            loc_on_add_cursor       <- any(&input.add_cursor,&loc_on_add_cursor_mouse);
+
+            eval loc_on_set_cursor ((loc) m.buffer.frp.set_cursor(loc));
+            eval loc_on_add_cursor ((loc) m.buffer.frp.add_cursor(loc));
+
+            _eval <- m.buffer.frp.selection_edit_mode.map2
+                (&m.scene.frp.frame_time,f!([m](selections,time) {
+                        m.redraw(); // FIXME: added for undo redo. Should not be needed.
+                        m.on_modified_selection(selections,*time,true)
+                    }
+            ));
+
+            _eval <- m.buffer.frp.selection_non_edit_mode.map2
+                (&m.scene.frp.frame_time,f!([m](selections,time) {
+                    m.redraw(); // FIXME: added for undo redo. Should not be needed.
+                    m.on_modified_selection(selections,*time,false)
+                }
+            ));
 
             selecting <- bool
                 ( &cmd.stop_newest_selection_end_follow_mouse
                 , &cmd.start_newest_selection_end_follow_mouse
                 );
 
-            eval mouse_on_set_cursor ([model](screen_pos) {
-                let location = model.get_in_text_location(*screen_pos);
-                model.frp.set_cursor.emit(location);
-            });
-
-            eval mouse_on_add_cursor ([model](screen_pos) {
-                let location = model.get_in_text_location(*screen_pos);
-                model.frp.add_cursor.emit(location);
-            });
-
-            _eval <- model.frp.output.selection_edit_mode.map2
-                (&model.scene.frp.frame_time,f!([model](selections,time) {
-                        model.redraw(); // FIXME: added for undo redo. Should not be needed.
-                        model.on_modified_selection(selections,*time,true)
-                    }
-            ));
-
-            _eval <- model.frp.output.selection_non_edit_mode.map2
-                (&model.scene.frp.frame_time,f!([model](selections,time) {
-                    model.redraw(); // FIXME: added for undo redo. Should not be needed.
-                    model.on_modified_selection(selections,*time,false)
-                }
-            ));
-
             set_sel_end_1 <- mouse.position.gate(&selecting);
             set_sel_end_2 <- mouse.position.sample(&cmd.set_newest_selection_end_to_mouse_position);
             set_newest_selection_end <- any(&set_sel_end_1,&set_sel_end_2);
 
-            eval set_newest_selection_end([model](screen_pos) {
-                let location = model.get_in_text_location(*screen_pos);
-                model.frp.set_newest_selection_end.emit(location);
+            eval set_newest_selection_end([m](screen_pos) {
+                let location = m.get_in_text_location(*screen_pos);
+                m.buffer.frp.set_newest_selection_end(location);
             });
-
-
 
 
             // === Copy / Paste ===
 
-            copy_sels      <- cmd.copy.map(f_!(model.selections_contents()));
+            copy_sels      <- cmd.copy.map(f_!(m.buffer.selections_contents()));
             all_empty_sels <- copy_sels.map(|s|s.iter().all(|t|t.is_empty()));
             line_sel_mode  <- copy_sels.gate(&all_empty_sels);
 
-            eval_ line_sel_mode (model.frp.cursors_select.emit(Some(Transform::Line)));
+            eval_ line_sel_mode (m.buffer.frp.cursors_select(Some(Transform::Line)));
             non_line_sel_mode_sels <- copy_sels.gate_not(&all_empty_sels);
-            line_sel_mode_sels     <- line_sel_mode.map(f_!(model.selections_contents()));
+            line_sel_mode_sels     <- line_sel_mode.map(f_!(m.buffer.selections_contents()));
             sels                   <- any(&line_sel_mode_sels,&non_line_sel_mode_sels);
-            eval sels ((s) model.copy(s));
-            eval_ cmd.paste (model.paste());
-            eval input.paste_string ((s) model.frp.paste.emit(model.decode_paste(s)));
+            eval sels ((s) m.copy(s));
+            eval_ cmd.paste (m.paste());
+            eval input.paste_string ((s) m.buffer.frp.paste(m.decode_paste(s)));
 
 
+            eval_ m.buffer.frp.text_changed (m.redraw());
 
-            eval_ model.frp.output.text_changed (model.redraw());
+            eval_ cmd.remove_all_cursors (m.buffer.frp.remove_all_cursors());
 
-            eval_ cmd.remove_all_cursors (model.frp.remove_all_cursors.emit(()));
+            eval_ cmd.keep_first_selection_only (m.buffer.frp.keep_first_selection_only());
+            eval_ cmd.keep_last_selection_only  (m.buffer.frp.keep_last_selection_only());
+            eval_ cmd.keep_first_cursor_only    (m.buffer.frp.keep_first_cursor_only());
+            eval_ cmd.keep_last_cursor_only     (m.buffer.frp.keep_last_cursor_only());
 
-            eval_ cmd.keep_first_selection_only (model.frp.keep_first_selection_only.emit(()));
-            eval_ cmd.keep_last_selection_only  (model.frp.keep_last_selection_only.emit(()));
-            eval_ cmd.keep_first_cursor_only     (model.frp.keep_first_cursor_only.emit(()));
-            eval_ cmd.keep_last_cursor_only      (model.frp.keep_last_cursor_only.emit(()));
+            eval_ cmd.keep_newest_selection_only (m.buffer.frp.keep_newest_selection_only());
+            eval_ cmd.keep_oldest_selection_only (m.buffer.frp.keep_oldest_selection_only());
+            eval_ cmd.keep_newest_cursor_only    (m.buffer.frp.keep_newest_cursor_only());
+            eval_ cmd.keep_oldest_cursor_only    (m.buffer.frp.keep_oldest_cursor_only());
 
-            eval_ cmd.keep_newest_selection_only (model.frp.keep_newest_selection_only.emit(()));
-            eval_ cmd.keep_oldest_selection_only (model.frp.keep_oldest_selection_only.emit(()));
-            eval_ cmd.keep_newest_cursor_only     (model.frp.keep_newest_cursor_only.emit(()));
-            eval_ cmd.keep_oldest_cursor_only     (model.frp.keep_oldest_cursor_only.emit(()));
+            eval_ cmd.cursor_move_left  (m.buffer.frp.cursors_move(Transform::Left));
+            eval_ cmd.cursor_move_right (m.buffer.frp.cursors_move(Transform::Right));
+            eval_ cmd.cursor_move_up    (m.buffer.frp.cursors_move(Transform::Up));
+            eval_ cmd.cursor_move_down  (m.buffer.frp.cursors_move(Transform::Down));
 
-            eval_ cmd.cursor_move_left  (model.frp.cursors_move.emit(Some(Transform::Left)));
-            eval_ cmd.cursor_move_right (model.frp.cursors_move.emit(Some(Transform::Right)));
-            eval_ cmd.cursor_move_up    (model.frp.cursors_move.emit(Some(Transform::Up)));
-            eval_ cmd.cursor_move_down  (model.frp.cursors_move.emit(Some(Transform::Down)));
+            eval_ cmd.cursor_move_left_word  (m.buffer.frp.cursors_move(Transform::LeftWord));
+            eval_ cmd.cursor_move_right_word (m.buffer.frp.cursors_move(Transform::RightWord));
 
-            eval_ cmd.cursor_move_left_word  (model.frp.cursors_move.emit(Some(Transform::LeftWord)));
-            eval_ cmd.cursor_move_right_word (model.frp.cursors_move.emit(Some(Transform::RightWord)));
+            eval_ cmd.cursor_select_left  (m.buffer.frp.cursors_select(Transform::Left));
+            eval_ cmd.cursor_select_right (m.buffer.frp.cursors_select(Transform::Right));
+            eval_ cmd.cursor_select_up    (m.buffer.frp.cursors_select(Transform::Up));
+            eval_ cmd.cursor_select_down  (m.buffer.frp.cursors_select(Transform::Down));
 
-            eval_ cmd.cursor_select_left  (model.frp.cursors_select.emit(Some(Transform::Left)));
-            eval_ cmd.cursor_select_right (model.frp.cursors_select.emit(Some(Transform::Right)));
-            eval_ cmd.cursor_select_up    (model.frp.cursors_select.emit(Some(Transform::Up)));
-            eval_ cmd.cursor_select_down  (model.frp.cursors_select.emit(Some(Transform::Down)));
+            eval_ cmd.cursor_select_left_word  (m.buffer.frp.cursors_select(Transform::LeftWord));
+            eval_ cmd.cursor_select_right_word (m.buffer.frp.cursors_select(Transform::RightWord));
 
-            eval_ cmd.cursor_select_left_word  (model.frp.cursors_select.emit(Some(Transform::LeftWord)));
-            eval_ cmd.cursor_select_right_word (model.frp.cursors_select.emit(Some(Transform::RightWord)));
+            eval_ cmd.select_all            (m.buffer.frp.cursors_select(Transform::All));
+            eval_ cmd.select_word_at_cursor (m.buffer.frp.cursors_select(Transform::Word));
 
-            eval_ cmd.select_all            (model.frp.cursors_select.emit(Some(Transform::All)));
-            eval_ cmd.select_word_at_cursor (model.frp.cursors_select.emit(Some(Transform::Word)));
+            eval_ cmd.delete_left      (m.buffer.frp.delete_left());
+            eval_ cmd.delete_word_left (m.buffer.frp.delete_word_left());
 
-            eval_ cmd.delete_left      (model.frp.delete_left.emit(()));
-            eval_ cmd.delete_word_left (model.frp.delete_word_left.emit(()));
+            eval_ cmd.undo (m.buffer.frp.undo());
+            eval_ cmd.redo (m.buffer.frp.redo());
 
-            eval_ cmd.undo (model.frp.undo.emit(()));
-            eval_ cmd.redo (model.frp.redo.emit(()));
 
-            key_on_char_to_insert <- model.scene.keyboard.frp.on_pressed.sample
-                (&cmd.insert_char_of_last_pressed_key);
-            char_to_insert <= key_on_char_to_insert.map(|key| {
-                match key {
-                    Key::Character(s) => Some(s.clone()),
-                    Key::Enter        => Some("\n".into()),
-                    _                 => None
-                }
-            });
-            eval char_to_insert ((s) model.frp.insert.emit(s));
+            // === Insert ===
+
+            key_to_insert <- keyboard.frp.on_pressed.sample(&cmd.insert_char_of_last_pressed_key);
+            key_to_insert <= key_to_insert.map(f!((key) m.key_to_string(key)));
+            str_to_insert <- any(&input.insert,&key_to_insert);
+            eval str_to_insert ((s) m.buffer.frp.insert(s));
+
+
+            // === Colors ===
+
+            eval input.set_default_color     ((t) m.buffer.frp.set_default_color(*t));
+            eval input.set_default_text_size ((t) m.buffer.frp.set_default_text_size(*t));
+            eval input.set_color_bytes       ((t) m.buffer.frp.set_color_bytes.emit(*t));
+
+
+            // === Changes ===
+
+            self.frp.source.changed <+ m.buffer.frp.text_changed.map(f_!(m.buffer.text()));
         }
         self
     }
@@ -689,20 +649,15 @@ impl Area {
 pub struct AreaData {
     scene          : Scene,
     logger         : Logger,
-    frp_inputs     : FrpInputs,
+    frp_endpoints  : FrpEndpoints,
     buffer         : buffer::View,
     display_object : display::object::Instance,
     glyph_system   : glyph::System,
     lines          : Lines,
     selection_map  : Rc<RefCell<SelectionMap>>,
-    background     : component::ShapeView<background::Shape>,
-}
-
-impl Deref for AreaData {
-    type Target = buffer::View;
-    fn deref(&self) -> &Self::Target {
-        &self.buffer
-    }
+    // FIXME[WD]: Commented for now. We need to consider how to handle background with active state.
+    // This should be resolved together with the https://github.com/enso-org/ide/issues/670 PR.
+    //background     : component::ShapeView<background::Shape>,
 }
 
 impl AreaData {
@@ -711,9 +666,16 @@ impl AreaData {
     (app:&Application, network:&frp::Network) -> Self {
         let scene          = app.display.scene().clone_ref();
         let logger         = Logger::new("text_area");
-        let bg_logger      = Logger::sub(&logger,"background");
+        let _bg_logger     = Logger::sub(&logger,"background");
         let selection_map  = default();
-        let background     = component::ShapeView::<background::Shape>::new(&bg_logger,&scene);
+
+        // FIXME[WD]: Commented for now. We need to consider how to handle background with active state.
+        // This should be resolved together with the https://github.com/enso-org/ide/issues/670 PR.
+        // let background     = component::ShapeView::<background::Shape>::new(&bg_logger,&scene);
+        // display_object.add_child(&background);
+        // background.shape.sprite.size.set(Vector2(150.0,100.0));
+        // background.mod_position(|p| p.x += 50.0);
+
         let fonts          = scene.extension::<typeface::font::Registry>();
         let font           = fonts.load("DejaVuSansMono");
         let glyph_system   = typeface::glyph::System::new(&scene,font);
@@ -722,17 +684,20 @@ impl AreaData {
         let buffer         = default();
         let lines          = default();
         let frp_inputs     = FrpInputs::new(network);
-        display_object.add_child(&background);
+        let frp_endpoints  = FrpEndpoints::new(&network,frp_inputs.clone_ref());
 
-        // FIXME: Hardcoded position. To be refactored in the future PRs.
-        // FIXME: Should be resolved as part of https://github.com/enso-org/ide/issues/462
-        background.shape.sprite.size.set(Vector2(150.0,100.0));
-        background.mod_position(|p| p.x += 50.0);
-
+        // FIXME[WD]: These settings should be managed wiser. They should be set up during
+        // initialization of the shape system, not for every area creation. To be improved during
+        // refactoring of the architecture some day.
         let shape_system = scene.shapes.shape_system(PhantomData::<selection::Shape>);
+        let symbol       = &shape_system.shape_system.sprite_system.symbol;
         shape_system.shape_system.set_pointer_events(false);
-        Self {scene,logger,frp_inputs,display_object,glyph_system,buffer,lines,selection_map
-             ,background}.init()
+
+        // FIXME[WD]: This is temporary sorting utility, which places the cursor in front of mouse
+        // pointer. Should be refactored when proper sorting mechanisms are in place.
+        scene.views.main.remove(symbol);
+        scene.views.label.add(symbol);
+        Self {scene,logger,frp_endpoints,display_object,glyph_system,buffer,lines,selection_map}.init()
     }
 
     fn on_modified_selection(&self, selections:&buffer::selection::Group, time:f32, do_edit:bool) {
@@ -766,7 +731,6 @@ impl AreaData {
                 }
                 None => {
                     let selection = Selection::new(&logger,&self.scene,do_edit);
-                    selection.shape.sprite.size.set(Vector2(4.0,20.0)); // FIXME hardcoded values
                     selection.shape.letter_width.set(7.0); // FIXME hardcoded values
                     self.add_child(&selection);
                     selection.position.set_target_value(pos);
@@ -823,71 +787,82 @@ impl AreaData {
         self
     }
 
-    // FIXME: make private
     /// Redraw the text.
-    pub fn redraw(&self) {
+    fn redraw(&self) {
         let lines      = self.buffer.view_lines();
         let line_count = lines.len();
         self.lines.resize_with(line_count,|ix| self.new_line(ix));
-        for (view_line_index,content) in lines.into_iter().enumerate() {
+        let lengths = lines.into_iter().enumerate().map(|(view_line_index,content)|{
             self.redraw_line(view_line_index,content)
-        }
+        }).collect_vec();
+        let length = lengths.into_iter().max_by(|x,y|x.partial_cmp(y).unwrap()).unwrap_or_default();
+        self.frp_endpoints.source.width.emit(length);
     }
 
-    fn redraw_line(&self, view_line_index:usize, content:String) {
+    fn redraw_line(&self, view_line_index:usize, content:String) -> f32 {
         let cursor_map = self.selection_map.borrow()
             .location_map.get(&view_line_index).cloned().unwrap_or_default();
-        let line           = &mut self.lines.rc.borrow_mut()[view_line_index];
-        let line_object    = line.display_object().clone_ref();
-        let line_range     = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
-        let mut line_style = self.buffer.sub_style(line_range.start .. line_range.end).iter();
-
+        let line            = &mut self.lines.rc.borrow_mut()[view_line_index];
+        let line_object     = line.display_object().clone_ref();
+        let line_range      = self.buffer.byte_range_of_view_line_index_snapped(view_line_index.into());
+        let mut line_style  = self.buffer.sub_style(line_range.start .. line_range.end).iter();
         let mut pen         = pen::Pen::new(&self.glyph_system.font);
         let mut divs        = vec![];
-        let mut byte_offset = 0.column();
+        let mut column      = 0.column();
         let mut last_cursor = None;
-        let mut last_cursor_origin = default();
+        let mut last_cursor_target = default();
         line.resize_with(content.chars().count(),||self.glyph_system.new_glyph());
-        for (glyph,chr) in line.glyphs.iter_mut().zip(content.chars()) {
-
+        let mut iter = line.glyphs.iter_mut().zip(content.chars());
+        loop {
+            let next      = iter.next();
             let style     = line_style.next().unwrap_or_default();
             let chr_size  = style.size.raw;
-            let info      = pen.advance(chr,chr_size);
-            let chr_bytes : Bytes = info.char.len_utf8().into();
-            line_style.drop(chr_bytes - 1.bytes());
-            let glyph_info   = self.glyph_system.font.get_glyph_info(info.char);
-            let size         = glyph_info.scale.scale(chr_size);
-            let glyph_offset = glyph_info.offset.scale(chr_size);
-            let glyph_x      = info.offset + glyph_offset.x;
-            let glyph_y      = glyph_offset.y;
-            glyph.set_position_xy(Vector2(glyph_x,glyph_y));
-            glyph.set_char(info.char);
-            glyph.set_color(style.color);
-            glyph.size.set(size);
+            let char_info = next.as_ref().map(|t|pen::CharInfo::new(t.1,chr_size));
+            let info      = pen.advance(char_info);
 
-            cursor_map.get(&byte_offset).for_each(|id| {
+            cursor_map.get(&column).for_each(|id| {
                 self.selection_map.borrow().id_map.get(id).for_each(|cursor| {
                     if cursor.edit_mode.get() {
                         let pos_y          = LINE_HEIGHT/2.0 - LINE_VERTICAL_OFFSET;
                         last_cursor        = Some(cursor.clone_ref());
-                        last_cursor_origin = Vector2(info.offset,pos_y);
+                        last_cursor_target = Vector2(info.offset,pos_y);
                     }
                 });
             });
 
-            match &last_cursor {
-                None         => line_object.add_child(glyph),
-                Some(cursor) => {
-                    cursor.right_side.add_child(glyph);
-                    glyph.mod_position_xy(|p| p - last_cursor_origin);
-                },
-            }
             divs.push(info.offset);
-            byte_offset += 1.column();
+            let opt_glyph = next.map(|t|t.0);
+            match opt_glyph.zip(info.char) {
+                Some((glyph,chr)) => {
+                    let chr_bytes : Bytes = chr.len_utf8().into();
+                    line_style.drop(chr_bytes - 1.bytes());
+                    let glyph_info   = self.glyph_system.font.glyph_info(chr);
+                    let size         = glyph_info.scale.scale(chr_size);
+                    let glyph_offset = glyph_info.offset.scale(chr_size);
+                    let glyph_x      = info.offset + glyph_offset.x;
+                    let glyph_y      = glyph_offset.y;
+                    glyph.set_position_xy(Vector2(glyph_x,glyph_y));
+                    glyph.set_char(chr);
+                    glyph.set_color(style.color);
+                    glyph.size.set(size);
+                    match &last_cursor {
+                        None         => line_object.add_child(glyph),
+                        Some(cursor) => {
+                            cursor.right_side.add_child(glyph);
+                            glyph.mod_position_xy(|p| p - last_cursor_target);
+                        },
+                    }
+                }
+                None => break
+            }
+            column += 1.column();
         }
 
-        divs.push(pen.advance_final());
+        let last_offset   = divs.last().cloned().unwrap_or_default();
+        let cursor_offset = last_cursor.map(|cursor| last_cursor_target.x - cursor.position().x);
+        let cursor_offset = cursor_offset.unwrap_or_default();
         line.set_divs(divs);
+        last_offset - cursor_offset
     }
 
     fn new_line(&self, index:usize) -> Line {
@@ -908,14 +883,20 @@ impl AreaData {
     }
 
     fn paste(&self) {
-        let paste_string = self.frp_inputs.paste_string.clone_ref();
-        clipboard::read_text(move |t|{
-            paste_string.emit(t);
-        });
+        let paste_string = self.frp_endpoints.input.paste_string.clone_ref();
+        clipboard::read_text(move |t| paste_string.emit(t));
     }
 
     fn decode_paste(&self, encoded:&str) -> Vec<String> {
         encoded.split(RECORD_SEPARATOR).map(|s|s.into()).collect()
+    }
+
+    fn key_to_string(&self, key:&Key) -> Option<String> {
+        match key {
+            Key::Character(s) => Some(s.clone()),
+            Key::Enter        => Some("\n".into()),
+            _                 => None
+        }
     }
 }
 
