@@ -145,6 +145,20 @@ object FileSystem {
     FileUtils.deleteDirectory(dir.toFile)
 
   /**
+    * Removes a directory recursively, does not fail if it does not exist.
+    */
+  def removeDirectoryIfExists(dir: Path): Unit =
+    if (Files.exists(dir))
+      FileUtils.deleteDirectory(dir.toFile)
+
+  /**
+    * Removes a file, if it exists, does not fail if it does not exist.
+    */
+  def removeFileIfExists(path: Path): Unit =
+    if (Files.exists(path))
+      Files.delete(path)
+
+  /**
     * Registers the directory to be removed when the program exits normally.
     *
     * The directory is only removed if it is empty.
