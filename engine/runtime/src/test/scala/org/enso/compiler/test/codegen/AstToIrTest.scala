@@ -808,10 +808,10 @@ class AstToIrTest extends CompilerTest with Inside {
       "export Foo.Bar as Baz",
       "export Foo.Bar",
       "from Foo.Bar export Baz",
-      "from Foo.Bar export Baz, Spam",
+      "from Foo.Bar export baz, Spam",
       "from Foo.Bar export all",
       "from Foo.Bar as Eggs export all hiding Spam",
-      "from Foo.Bar export all hiding Spam, Eggs"
+      "from Foo.Bar export all hiding Spam, eggs"
     )
     exports
       .mkString("\n")

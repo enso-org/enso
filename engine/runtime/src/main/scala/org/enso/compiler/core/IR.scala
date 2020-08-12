@@ -537,9 +537,9 @@ object IR {
         def allowsAccess(name: String): Boolean = {
           if (!isAll) return false;
           if (onlyNames.isDefined) {
-            onlyNames.get.exists(_.name == name)
+            onlyNames.get.exists(_.name.toLowerCase == name.toLowerCase)
           } else if (hiddenNames.isDefined) {
-            !hiddenNames.get.exists(_.name == name)
+            !hiddenNames.get.exists(_.name.toLowerCase == name.toLowerCase)
           } else {
             true
           }

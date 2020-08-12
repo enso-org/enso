@@ -351,8 +351,8 @@ object Shape extends ShapeImplicit {
     path: List1[AST.Ident.Cons],
     rename: Option[AST.Ident.Cons],
     isAll: Boolean,
-    onlyNames: Option[List1[AST.Ident.Cons]],
-    hidingNames: Option[List1[AST.Ident.Cons]]
+    onlyNames: Option[List1[AST.Ident]],
+    hidingNames: Option[List1[AST.Ident]]
   )                                                      extends SpacelessAST[T]
   final case class JavaImport[T](path: List1[AST.Ident]) extends SpacelessAST[T]
   final case class Mixfix[T](name: List1[AST.Ident], args: List1[T])
@@ -2396,8 +2396,8 @@ object AST {
       path: List1[AST.Ident.Cons],
       rename: Option[AST.Ident.Cons],
       isAll: Boolean,
-      onlyNames: Option[List1[AST.Ident.Cons]],
-      hidingNames: Option[List1[AST.Ident.Cons]]
+      onlyNames: Option[List1[AST.Ident]],
+      hidingNames: Option[List1[AST.Ident]]
     ): Export =
       Shape.Export[AST](path, rename, isAll, onlyNames, hidingNames)
     def unapply(t: AST): Option[
@@ -2405,8 +2405,8 @@ object AST {
         List1[AST.Ident.Cons],
         Option[AST.Ident.Cons],
         Boolean,
-        Option[List1[AST.Ident.Cons]],
-        Option[List1[AST.Ident.Cons]]
+        Option[List1[AST.Ident]],
+        Option[List1[AST.Ident]]
       )
     ] =
       Unapply[Export].run(t =>

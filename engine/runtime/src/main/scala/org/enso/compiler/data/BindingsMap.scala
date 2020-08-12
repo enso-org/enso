@@ -5,6 +5,8 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
+import scala.collection.mutable
+
 /**
   * A utility structure for resolving symbols in a given module.
   *
@@ -77,13 +79,15 @@ case class BindingsMap(
 
     resolvedImports
       .flatMap { imp =>
+        println("resolve name in imp: " + name)
         if (imp.importDef.allowsAccess(name)) {
+          println("  will work in: " + imp.importDef.name.name)
           imp.module.getIr
             .unsafeGetMetadata(
               BindingAnalysis,
               "Wrong pass ordering. Running resolution on an unparsed module."
             )
-            .findExportedSymbolsFor(name)
+            .findExportedSymbolsFor(name, mutable.Set())
         } else { List() }
       }
   }
@@ -150,14 +154,44 @@ case class BindingsMap(
         Left(ResolutionNotFound)
     }
 
-  private def findExportedSymbolsFor(name: String): List[ResolvedName] = {
-    val matchingConses = types
-      .filter(_.name.toLowerCase == name.toLowerCase)
-      .map(ResolvedConstructor(currentModule, _))
-    val matchingMethods = moduleMethods
-      .filter(_.name.toLowerCase == name.toLowerCase)
-      .map(ResolvedMethod(currentModule, _))
-    matchingConses ++ matchingMethods
+  private def findExportedSymbolsFor(
+    name: String,
+    seenModules: mutable.Set[Module]
+  ): List[ResolvedName] = {
+    if (seenModules.contains(currentModule)) {
+      println("already seen: " + currentModule.getName)
+      List()
+    } else {
+      println("Resolve name: " + name)
+      seenModules.add(currentModule)
+      val matchingConses = types
+        .filter(_.name.toLowerCase == name.toLowerCase)
+        .map(ResolvedConstructor(currentModule, _))
+      val matchingMethods = moduleMethods
+        .filter(_.name.toLowerCase == name.toLowerCase)
+        .map(ResolvedMethod(currentModule, _))
+      if (name == "Internal_5") {
+        println("Looking in for Qual_5 in: " + currentModule.getName)
+      }
+      val matchingExports = resolvedImports.flatMap {
+        case ResolvedImport(imp, Some(exp), module) =>
+          if (name == "Internal_5") {
+            println(
+              "Internal_5 re-export " + imp.allowsAccess(name) + exp
+                .allowsAccess(name)
+            )
+          }
+          if (exp.getSimpleName.name.toLowerCase == name.toLowerCase) {
+            List(ResolvedModule(module))
+          } else if (imp.allowsAccess(name) && exp.allowsAccess(name)) {
+            getBindingsFrom(module).findExportedSymbolsFor(name, seenModules)
+          } else {
+            List()
+          }
+        case _ => List()
+      }
+      matchingConses ++ matchingMethods ++ matchingExports
+    }
   }
 
   /**
@@ -167,22 +201,58 @@ case class BindingsMap(
     * @return the resolution for `name`
     */
   def resolveExportedName(
-    name: String
+    name: String,
+    seenModules: mutable.Set[Module] = mutable.Set()
   ): Either[ResolutionError, ResolvedName] = {
-    handleAmbiguity(findExportedSymbolsFor(name))
+    handleAmbiguity(findExportedSymbolsFor(name, seenModules))
   }
 }
 
 object BindingsMap {
 
+  sealed trait SymbolRestriction {
+    def canAccess(symbol: String): Boolean
+  }
+
+  case object SymbolRestriction {
+    case class Only(symbols: Set[String]) extends SymbolRestriction {
+      override def canAccess(symbol: String): Boolean =
+        symbols.contains(symbol.toLowerCase)
+    }
+    case class Hiding(symbols: Set[String]) extends SymbolRestriction {
+      override def canAccess(symbol: String): Boolean =
+        !symbols.contains(symbol.toLowerCase)
+    }
+    case object All extends SymbolRestriction {
+      override def canAccess(symbol: String): Boolean = true
+    }
+    case object None extends SymbolRestriction {
+      override def canAccess(symbol: String): Boolean = false
+    }
+    case class Intersect(restrictions: List[SymbolRestriction]) extends SymbolRestriction {
+      override def canAccess(symbol: String): Boolean = restrictions.forall(_.canAccess(symbol))
+    }
+    case class Union(restrictions: List[SymbolRestriction]) extends SymbolRestriction {
+      override def canAccess(symbol: String): Boolean = restrictions.exists(_.canAccess(symbol))
+    }
+  }
+
+  case class VisibleModule(
+    module: Module,
+    visibleAs: List[String],
+    symbols: SymbolRestriction
+  )
+
   /**
     * A representation of a resolved import statement.
     *
     * @param importDef the definition of the import
+    * @param exports the exports associated with the import
     * @param module the module this import resolves to
     */
   case class ResolvedImport(
     importDef: IR.Module.Scope.Import.Module,
+    exports: Option[IR.Module.Scope.Export],
     module: Module
   )
 
