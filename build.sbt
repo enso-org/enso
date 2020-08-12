@@ -798,7 +798,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
 lazy val ast = (project in file("lib/scala/ast"))
   .settings(
     version := ensoVersion,
-    GenerateAST.rustVersion := rustVersion,
+    Cargo.rustVersion := rustVersion,
     Compile / sourceGenerators += GenerateAST.task
   )
 
