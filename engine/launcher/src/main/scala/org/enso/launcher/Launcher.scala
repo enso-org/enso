@@ -28,7 +28,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     new GlobalConfigurationManager(componentsManager)
   private lazy val projectManager = new ProjectManager(configurationManager)
   private lazy val runner =
-    new Runner(projectManager, configurationManager, componentsManager)
+    new Runner(
+      projectManager,
+      configurationManager,
+      componentsManager,
+      Environment
+    )
 
   /**
     * Creates a new project with the given `name` in the given `path`.

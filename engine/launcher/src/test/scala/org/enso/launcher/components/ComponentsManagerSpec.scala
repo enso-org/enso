@@ -15,7 +15,7 @@ class ComponentsManagerSpec extends ComponentsManagerTest {
 
     "install the engine and a matching runtime for it" in {
       Logger.suppressWarnings {
-        val (distributionManager, componentsManager) = makeManagers()
+        val (distributionManager, componentsManager, _) = makeManagers()
 
         val version = SemVer(0, 0, 1)
         val engine  = componentsManager.findOrInstallEngine(SemVer(0, 0, 1))

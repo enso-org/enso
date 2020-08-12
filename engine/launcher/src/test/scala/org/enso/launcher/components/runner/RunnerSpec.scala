@@ -12,8 +12,11 @@ import org.enso.launcher.project.ProjectManager
 class RunnerSpec extends ComponentsManagerTest {
   private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
   case class TestSetup(runner: Runner, projectManager: ProjectManager)
-  def makeFakeRunner(cwdOverride: Option[Path] = None): TestSetup = {
-    val (_, componentsManager) = makeManagers()
+  def makeFakeRunner(
+    cwdOverride: Option[Path]     = None,
+    extraEnv: Map[String, String] = Map.empty
+  ): TestSetup = {
+    val (_, componentsManager, env) = makeManagers(extraEnv)
     val configurationManager =
       new GlobalConfigurationManager(componentsManager) {
         override def defaultVersion: SemVer = defaultEngineVersion
@@ -21,7 +24,7 @@ class RunnerSpec extends ComponentsManagerTest {
     val projectManager = new ProjectManager(configurationManager)
     val cwd            = cwdOverride.getOrElse(getTestDirectory)
     val runner =
-      new Runner(projectManager, configurationManager, componentsManager) {
+      new Runner(projectManager, configurationManager, componentsManager, env) {
         override protected val currentWorkingDirectory: Path = cwd
       }
     TestSetup(runner, projectManager)
@@ -30,7 +33,9 @@ class RunnerSpec extends ComponentsManagerTest {
   "Runner" should {
     "create a command from settings" in {
       Logger.suppressWarnings {
-        val TestSetup(runner, _) = makeFakeRunner()
+        val envOptions = "-Xfrom-env -Denv=env"
+        val TestSetup(runner, _) =
+          makeFakeRunner(extraEnv = Map("ENSO_JVM_OPTS" -> envOptions))
 
         val runSettings = RunSettings(SemVer(0, 0, 0), Seq("arg1", "--flag2"))
         val jvmOptions  = Seq(("locally-added-options", "value1"))
@@ -52,9 +57,13 @@ class RunnerSpec extends ComponentsManagerTest {
 
         for (command <- Seq(systemCommand, managedCommand)) {
           val commandLine = command.command.mkString(" ")
-          commandLine should include("-Dlocally-added-options=value1")
-          commandLine should include("-Doptions-added-from-manifest=42")
-          commandLine should include("-Danother-one=true")
+          val arguments   = command.command.tail
+          arguments should contain("-Xfrom-env")
+          arguments should contain("-Denv=env")
+          arguments should contain("-Dlocally-added-options=value1")
+          arguments should contain("-Dlocally-added-options=value1")
+          arguments should contain("-Doptions-added-from-manifest=42")
+          arguments should contain("-Danother-one=true")
           commandLine should endWith("arg1 --flag2")
 
           commandLine should include
@@ -73,7 +82,8 @@ class RunnerSpec extends ComponentsManagerTest {
           projectPath         = None,
           versionOverride     = None,
           additionalArguments = Seq("arg", "--flag")
-        ).get
+        )
+        .get
 
       runSettings.version shouldEqual defaultEngineVersion
       runSettings.runnerArguments should (contain("arg") and contain("--flag"))
@@ -84,7 +94,7 @@ class RunnerSpec extends ComponentsManagerTest {
     "run repl in project context" in {
       val TestSetup(runnerOutside, projectManager) = makeFakeRunner()
 
-      val version        = SemVer(0, 0, 0, Some("repl-test"))
+      val version = SemVer(0, 0, 0, Some("repl-test"))
       version should not equal defaultEngineVersion // sanity check
 
       val projectPath    = getTestDirectory / "project"
@@ -113,7 +123,8 @@ class RunnerSpec extends ComponentsManagerTest {
           projectPath         = None,
           versionOverride     = None,
           additionalArguments = Seq()
-        ).get
+        )
+        .get
 
       insideProject.version shouldEqual version
       insideProject.runnerArguments.mkString(" ") should
@@ -125,7 +136,8 @@ class RunnerSpec extends ComponentsManagerTest {
           projectPath         = Some(projectPath),
           versionOverride     = Some(overridden),
           additionalArguments = Seq()
-        ).get
+        )
+        .get
 
       overriddenRun.version shouldEqual overridden
       overriddenRun.runnerArguments.mkString(" ") should
@@ -155,7 +167,8 @@ class RunnerSpec extends ComponentsManagerTest {
           options,
           versionOverride     = None,
           additionalArguments = Seq("additional")
-        ).get
+        )
+        .get
 
       runSettings.version shouldEqual version
       val commandLine = runSettings.runnerArguments.mkString(" ")
@@ -173,7 +186,8 @@ class RunnerSpec extends ComponentsManagerTest {
           options,
           versionOverride     = Some(overridden),
           additionalArguments = Seq()
-        ).get
+        )
+        .get
         .version shouldEqual overridden
     }
 
@@ -194,7 +208,8 @@ class RunnerSpec extends ComponentsManagerTest {
           path                = Some(projectPath),
           versionOverride     = None,
           additionalArguments = Seq()
-        ).get
+        )
+        .get
 
       outsideProject.version shouldEqual version
       outsideProject.runnerArguments.mkString(" ") should
@@ -206,7 +221,8 @@ class RunnerSpec extends ComponentsManagerTest {
           path                = None,
           versionOverride     = None,
           additionalArguments = Seq()
-        ).get
+        )
+        .get
 
       insideProject.version shouldEqual version
       insideProject.runnerArguments.mkString(" ") should
@@ -218,7 +234,8 @@ class RunnerSpec extends ComponentsManagerTest {
           path                = Some(projectPath),
           versionOverride     = Some(overridden),
           additionalArguments = Seq()
-        ).get
+        )
+        .get
 
       overriddenRun.version shouldEqual overridden
       overriddenRun.runnerArguments.mkString(" ") should
@@ -247,7 +264,7 @@ class RunnerSpec extends ComponentsManagerTest {
         Some(version)
       )
 
-      val outsideFile = getTestDirectory / "Main.enso"
+      val outsideFile    = getTestDirectory / "Main.enso"
       val normalizedPath = outsideFile.toAbsolutePath.normalize.toString
       Files.copy(
         projectPath / "src" / "Main.enso",
@@ -259,17 +276,18 @@ class RunnerSpec extends ComponentsManagerTest {
           path                = Some(outsideFile),
           versionOverride     = None,
           additionalArguments = Seq()
-        ).get
+        )
+        .get
 
       runSettings.version shouldEqual defaultEngineVersion
       runSettings.runnerArguments.mkString(" ") should
-        (include(s"--run $normalizedPath") and not include("--in-project"))
+      (include(s"--run $normalizedPath") and (not(include("--in-project"))))
     }
 
     "run a script inside of a project" in {
-      val version     = SemVer(0, 0, 0, Some("run-test"))
-      val projectPath = getTestDirectory / "project"
-      val normalizedProjectPath = projectPath.toAbsolutePath.normalize.toString
+      val version                                  = SemVer(0, 0, 0, Some("run-test"))
+      val projectPath                              = getTestDirectory / "project"
+      val normalizedProjectPath                    = projectPath.toAbsolutePath.normalize.toString
       val TestSetup(runnerOutside, projectManager) = makeFakeRunner()
       projectManager.newProject(
         "test",
@@ -277,7 +295,7 @@ class RunnerSpec extends ComponentsManagerTest {
         Some(version)
       )
 
-      val insideFile = projectPath / "src" / "Main.enso"
+      val insideFile         = projectPath / "src" / "Main.enso"
       val normalizedFilePath = insideFile.toAbsolutePath.normalize.toString
 
       val runSettings = runnerOutside
@@ -285,12 +303,13 @@ class RunnerSpec extends ComponentsManagerTest {
           path                = Some(insideFile),
           versionOverride     = None,
           additionalArguments = Seq()
-        ).get
+        )
+        .get
 
       runSettings.version shouldEqual version
       runSettings.runnerArguments.mkString(" ") should
-        (include(s"--run $normalizedFilePath") and
-          include(s"--in-project $normalizedProjectPath"))
+      (include(s"--run $normalizedFilePath") and
+      include(s"--in-project $normalizedProjectPath"))
     }
   }
 }

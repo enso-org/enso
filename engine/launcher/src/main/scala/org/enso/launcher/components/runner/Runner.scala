@@ -3,7 +3,7 @@ package org.enso.launcher.components.runner
 import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.GlobalConfigurationManager
+import org.enso.launcher.{Environment, GlobalConfigurationManager, Logger}
 import org.enso.launcher.components.{ComponentsManager, Runtime}
 import org.enso.launcher.project.ProjectManager
 
@@ -17,7 +17,8 @@ import scala.util.Try
 class Runner(
   projectManager: ProjectManager,
   configurationManager: GlobalConfigurationManager,
-  componentsManager: ComponentsManager
+  componentsManager: ComponentsManager,
+  environment: Environment
 ) {
 
   /**
@@ -147,6 +148,8 @@ class Runner(
       RunSettings(version, arguments ++ additionalArguments)
     }
 
+  final private val JVM_OPTIONS_ENV_VAR = "ENSO_JVM_OPTS"
+
   /**
     * Creates a command that can be used to launch the component.
     *
@@ -165,11 +168,16 @@ class Runner(
         javaCommandForRuntime(runtime)
       }
 
+    val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
+    jvmOptsFromEnvironment.foreach { opts =>
+      Logger.debug(
+        s"Picking up additional JVM options ($opts) from the " +
+        s"$JVM_OPTIONS_ENV_VAR environment variable."
+      )
+    }
+
     val runtimeJar = engine.runtimePath.toAbsolutePath.normalize.toString
     val runnerJar  = engine.runnerPath.toAbsolutePath.normalize.toString
-    val allJvmOptions =
-      Seq(("truffle.class.path.append", runtimeJar)) ++
-      engine.defaultJVMOptions ++ jvmSettings.jvmOptions
 
     def translateJVMOption(option: (String, String)): String = {
       val name  = option._1
@@ -177,8 +185,16 @@ class Runner(
       s"-D$name=$value"
     }
 
+    val manifestOptions = (Seq(
+      ("truffle.class.path.append", runtimeJar) // TODO remove this one
+    ) ++ engine.defaultJVMOptions).map(translateJVMOption)
+    val environmentOptions =
+      jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
+    val commandLineOptions = jvmSettings.jvmOptions.map(translateJVMOption)
+
     val jvmArguments =
-      allJvmOptions.map(translateJVMOption) ++ Seq("-jar", runnerJar)
+      manifestOptions ++ environmentOptions ++ commandLineOptions ++
+      Seq("-jar", runnerJar)
 
     val command = Seq(javaCommand.executableName) ++
       jvmArguments ++ runSettings.runnerArguments

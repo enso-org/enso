@@ -8,7 +8,7 @@ import org.enso.launcher.releases.{
   EngineReleaseProvider,
   GraalCEReleaseProvider
 }
-import org.enso.launcher.{FakeEnvironment, WithTemporaryDirectory}
+import org.enso.launcher.{Environment, FakeEnvironment, WithTemporaryDirectory}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -27,10 +27,11 @@ class ComponentsManagerTest
     * Should be called separately for each test case, as the components use
     * temporary directories which are separate for each test case.
     */
-  def makeManagers(): (DistributionManager, ComponentsManager) = {
-    val distributionManager = new DistributionManager(
-      fakeInstalledEnvironment()
-    )
+  def makeManagers(
+    environmentOverrides: Map[String, String] = Map.empty
+  ): (DistributionManager, ComponentsManager, Environment) = {
+    val env                 = fakeInstalledEnvironment(environmentOverrides)
+    val distributionManager = new DistributionManager(env)
     val fakeReleasesRoot =
       Path.of(
         getClass
@@ -50,7 +51,7 @@ class ComponentsManagerTest
       runtimeProvider
     )
 
-    (distributionManager, componentsManager)
+    (distributionManager, componentsManager, env)
   }
 
   /**
