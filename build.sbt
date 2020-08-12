@@ -805,7 +805,9 @@ lazy val ast = (project in file("lib/scala/ast"))
 lazy val parser = (project in file("lib/scala/parser"))
   .settings(
     fork := true,
-    Compile / compile := (Compile / compile).dependsOn(Cargo.build("-p parser")).value,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(Cargo.build("-p parser"))
+      .value,
     javaOptions += {
       val root = baseDirectory.value.getParentFile.getParentFile.getParentFile
       s"-Djava.library.path=$root/target/rust/debug"
