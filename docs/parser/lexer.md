@@ -15,10 +15,31 @@ identify blocks
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
+- [Lexer Architecture](#lexer-architecture)
+  - [Libraries in the Lexer Definition](#libraries-in-the-lexer-definition)
 - [Lexer Functionality](#lexer-functionality)
 - [The Lexer AST](#the-lexer-ast)
 
 <!-- /MarkdownTOC -->
+
+## Lexer Architecture
+
+The structure of the flexer's code generation forces the lexer to be split into
+two parts: the definition, and the generation. As the latter is the point from
+which the lexer will be used, the second subproject is the one that is graced
+with the name `lexer`.
+
+### Libraries in the Lexer Definition
+
+The lexer generation subproject needs to be able to make the assumption that all
+imports will be in the same place (relative to the crate root). To this end, the
+definition subproject exports public modules `library` and `prelude`. These are
+re-imported and used in the generation subproject to ensure that all components
+are found at the same paths relative to the crate root.
+
+This does mean, however, that all imports from _within_ the current crate in the
+definition subproject must be imported from the `library` module, not from their
+paths directly from the crate root.
 
 ## Lexer Functionality
 

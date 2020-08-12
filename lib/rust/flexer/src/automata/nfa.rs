@@ -112,7 +112,8 @@ impl NFA {
                     self.connect(state,end);
                 }
                 end
-            }
+            },
+            Pattern::Always => current,
         }
     }
 

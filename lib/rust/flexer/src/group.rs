@@ -289,11 +289,12 @@ pub mod tests {
     fn complex_rules(count:usize) -> Registry {
         let mut group   = Group::default();
         for ix in 0..count {
-            let string  = ix.to_string();
-            let all     = Pattern::all_of(&string);
-            let any     = Pattern::any_of(&string);
-            let none    = Pattern::none_of(&string);
-            let pattern = Pattern::many(all >> any >> none);
+            let string       = ix.to_string();
+            let all          = Pattern::all_of(&string);
+            let any          = Pattern::any_of(&string);
+            let none         = Pattern::none_of(&string);
+            let all_any_none = all >> any >> none;
+            let pattern      = Pattern::many(&all_any_none);
             group.add_rule(Rule::new(pattern.clone(),""));
         }
         group.into()

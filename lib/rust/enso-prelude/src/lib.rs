@@ -3,12 +3,12 @@
 //! defines several aliases and utils which may find their place in new
 //! libraries in the future.
 
+#![feature(specialization)]
 #![feature(test)]
-#![warn(unsafe_code)]
+#![feature(trait_alias)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-#![feature(specialization)]
-#![feature(trait_alias)]
+#![warn(unsafe_code)]
 
 mod clone;
 mod collections;

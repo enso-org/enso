@@ -14,9 +14,10 @@ pub mod decoder;
 
 use enso_prelude::*;
 
+use crate::decoder::Char;
+use crate::decoder::InvalidChar;
 use decoder::Decoder;
-use crate::decoder::{Char, InvalidChar};
-use crate::Error::EOF;
+
 
 
 // ============
@@ -145,7 +146,10 @@ pub trait LazyReader {
     /// Get the current character from the reader.
     fn character(&self) -> decoder::Char<Error>;
     /// Check if the reader has finished reading.
-    fn finished(&self) -> bool;
+    ///
+    /// A reader is finished when it has no further input left to read, and when it does not need to
+    /// rewind to any point.
+    fn finished(&self, bookmarks:&BookmarkManager) -> bool;
     /// Check if the reader is empty.
     fn empty(&self) -> bool;
     /// Fill the buffer with words from the input.
@@ -240,8 +244,9 @@ impl<D:Decoder, R:Read<Item=D::Word>> LazyReader for Reader<D,R> {
         self.character
     }
 
-    fn finished(&self) -> bool {
-        self.empty() && self.character.char == Err(EOF)
+    fn finished(&self, _bookmarks:&BookmarkManager) -> bool {
+        let rewinded = self.max_possible_rewind_len(_bookmarks) != 0;
+        self.empty() && rewinded
     }
 
     fn empty(&self) -> bool {
