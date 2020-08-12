@@ -2,7 +2,6 @@
 
 pub mod type_coloring;
 pub mod edge;
-pub mod edge2;
 pub mod node;
 pub mod visualization;
 pub mod project_name;

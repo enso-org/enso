@@ -294,6 +294,13 @@ macro_rules! def_command_api {
                 }
                 Self { $($field),* }
             }
+
+            $(
+                #[allow(missing_docs)]
+                pub fn $field(&self) {
+                    self.$field.emit(())
+                }
+            )*
         }
     };
 }

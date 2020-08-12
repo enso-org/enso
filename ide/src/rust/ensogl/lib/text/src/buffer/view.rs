@@ -9,14 +9,18 @@ pub mod word;
 pub use movement::*;
 pub use selection::Selection;
 
-use crate::buffer::style::Style;
-use crate::buffer::data;
+use crate::buffer::Buffer;
+use crate::buffer::DefaultSetter;
+use crate::buffer::Setter;
 use crate::buffer::data::Text;
 use crate::buffer::data::text::BoundsError;
 use crate::buffer::data::unit::*;
-use crate::buffer::Setter;
-use crate::buffer::Buffer;
+use crate::buffer::data;
+use crate::buffer::style::Style;
+use crate::buffer::style;
+use crate::buffer;
 
+use ensogl::data::color;
 use enso_frp as frp;
 
 
@@ -25,28 +29,172 @@ use enso_frp as frp;
 // === Frp Macros ===
 // ==================
 
-// FIXME[WD] these are generic FRP utilities. To be refactored out after the API settles down.
-// FIXME[WD] They are already copy-pasted in the EnsoGL code. To be unified and refactored as part of
-// FIXME[WD] the cleaning PR.
-// FIXME[WD] Issue: https://github.com/enso-org/ide/issues/670
-macro_rules! define_frp {
+// FIXME[WD]: This sohuld be refactored to the right place as part of the cleaning PR:
+// https://github.com/enso-org/ide/issues/670
+
+/// Generate a set of structures allowing for nice management of FRP inputs, outputs, and commands.
+///
+/// Given the definition:
+///
+/// ```compile_fail
+/// define_endpoints! {
+///     Commands { Commands }
+///     Input {
+///         input1 (f32),
+///         input2 (),
+///     }
+///     Output {
+///         output1 (String),
+///         output2 (),
+///     }
+/// }
+/// ```
+///
+/// There would be generated a bunch of structures, the main structure contains FRP network and
+/// another struct with all the endpoints, to which it dereferences to:
+///
+/// ```compile_fail
+/// #[derive(Debug,Clone,CloneRef)]
+/// pub struct Frp {
+///     pub network : frp::Network,
+///     output      : FrpEndpoints,
+/// }
+///
+/// impl Frp {
+///     pub fn new(network:frp::Network, output:FrpEndpoints) -> Self {
+///         Self {network,output}
+///     }
+/// }
+///
+/// impl Deref for Frp {
+///     type Target = FrpEndpoints;
+///     fn deref(&self) -> &Self::Target {
+///         &self.output
+///     }
+/// }
+/// ```
+///
+/// The target structure contains all outputs as `frp::Stream` values. As a reminder, you are
+/// allowed to read from streams but you are not allowed to write to them, which makes perfect
+/// sense in the context of output values.
+///
+/// ```compile_fail
+/// #[derive(Debug, Clone, CloneRef)]
+/// #[allow(missing_docs)]
+/// pub struct FrpEndpoints {
+///     pub input         : FrpInputs,
+///     pub(crate) source : FrpOutputsSource,
+///     pub output1       : frp::Stream<String>,
+///     pub output2       : frp::Stream<>,
+/// }
+/// impl Deref for FrpEndpoints {
+///     type Target = FrpInputs;
+///     fn deref(&self) -> &Self::Target {
+///         &self.input
+///     }
+/// }
+/// impl FrpEndpoints {
+///     pub fn new(network: &frp::Network, input: FrpInputs) -> Self {
+///         let source = FrpOutputsSource::new(network);
+///         let output1 = source.output1.clone_ref().into();
+///         let output2 = source.output2.clone_ref().into();
+///         Self { source, input, output1, output2 }
+///     }
+/// }
+/// ```
+///
+/// However, as the owner of this FRP network, you want to emit values to the output streams.
+/// Exactly for this purpose there is `FrpOutputsSource` struct defined, which is private and cannot
+/// be accessed from outside of this crate. The structure contains the same FRP endpoints but in a
+/// form allowing for both emiting and attaching values (see FRP documentation to learn more):
+///
+/// ```compile_fail
+/// #[derive(Debug,Clone,CloneRef)]
+/// pub(crate) struct FrpOutputsSource {
+///     output1: frp::Any<String>,
+///     output2: frp::Any<>,
+/// }
+///
+/// impl FrpOutputsSource {
+///     pub fn new(network: &frp::Network) -> Self {
+///         frp::extend! { network
+///             output1  <- any(...);
+///             output2  <- any(...);
+///         }
+///         Self {output1,output2}
+///     }
+/// }
+/// ```
+///
+/// Moreover, the above presented `FrpEndpoints` structure contains the `input` field which
+/// describes all FRP input endpoints (input API of this FRP network). The struct contains all the
+/// fields declared in the macro usage in a form of `frp::Source` values (allowing emiting values
+/// on demand).
+///
+/// ```compile_fail
+/// #[derive(Debug, Clone, CloneRef)]
+/// #[allow(missing_docs)]
+/// #[allow(unused_parens)]
+/// pub struct FrpInputs {
+///     pub command: Commands,
+///     pub input1: frp::Source<(   f32   )>,
+///     pub input2: frp::Source<()>,
+/// }
+/// impl Deref for FrpInputs {
+///     type Target = Commands;
+///     fn deref(&self) -> &Self::Target {
+///         &self.command
+///     }
+/// }
+///
+/// impl FrpInputs {
+///     pub fn new(network: &frp::Network) -> Self {
+///         let command = Commands::new(network);
+///         frp::extend! { network
+///             input1 <- source();
+///             input2 <- source();
+///         }
+///         Self {command,input1,input2}
+///     }
+/// ```
+///
+/// Moreover, for each input value, there is a sugar-method generated which allows for nice call
+/// syntax. Thanks to that and all the derefs defined above, if your component dereferences to the
+/// generated FRP struct (and it should!), then instead of calling
+/// `my_comp.frp.input.clear_all.emit(())`, you can just call `my_comp.clear_all()`.
+///
+/// ```compile_fail
+/// impl FrpInputs {
+///     #[allow(missing_docs)]
+///     pub fn input1(&self, t1:impl IntoParam<f32>) {
+///         self.input1.emit(t1);
+///     }
+///     #[allow(missing_docs)]
+///     pub fn input2(&self) {
+///         self.input2.emit(());
+///     }
+/// }
+/// ```
+///
+/// Last thing to note here is that if you declared the usage of commands in the usage of the macro,
+/// the `FrpInputs` struct will contain commands as a field and will dereference to it. To learn
+/// more how to define commands, see the docs of the `def_command_api` macro and example usages
+/// in components defined by using of this API.
+#[macro_export]
+macro_rules! define_endpoints {
     (
-        Input  { $($in_field  : ident : $in_field_type  : ty),* $(,)? }
-        Output { $($out_field : ident : $out_field_type : ty),* $(,)? }
+        $(Commands {$commands_name : ident})?
+        Input  { $($in_field  : ident ($($in_field_type  : tt)*)),* $(,)? }
+        Output { $($out_field : ident ($($out_field_type : tt)*)),* $(,)? }
     ) => {
-        /// FRP endpoints. Contains FRP network, inputs, and outputs.
+        use enso_frp::IntoParam;
+
+        /// Frp network and endpoints.
         #[derive(Debug,Clone,CloneRef)]
         #[allow(missing_docs)]
         pub struct Frp {
             pub network : frp::Network,
-            pub output  : FrpEndpoints,
-        }
-
-        impl Deref for Frp {
-            type Target = FrpEndpoints;
-            fn deref(&self) -> &Self::Target {
-                &self.output
-            }
+            output      : FrpEndpoints,
         }
 
         impl Frp {
@@ -56,37 +204,53 @@ macro_rules! define_frp {
             }
         }
 
-        /// Inputs of the FRP network.
-        #[derive(Debug,Clone,CloneRef)]
-        #[allow(missing_docs)]
-        pub struct FrpInputs {
-            $(pub $in_field : frp::Source<$in_field_type>),*
-        }
-
-        impl FrpInputs {
-            /// Constructor.
-            pub fn new(network:&frp::Network) -> Self {
-                frp::extend! { network
-                    $($in_field <- source();)*
-                }
-                Self { $($in_field),* }
+        impl Deref for Frp {
+            type Target = FrpEndpoints;
+            fn deref(&self) -> &Self::Target {
+                &self.output
             }
         }
 
-        /// Sources of the outputs of the FRP network. Used to emit output values.
+        /// Frp inputs.
         #[derive(Debug,Clone,CloneRef)]
         #[allow(missing_docs)]
-        pub struct FrpOutputsSource {
-            $($out_field : frp::Any<$out_field_type>),*
+        #[allow(unused_parens)]
+        pub struct FrpInputs {
+            $(pub command : $commands_name,)?
+            $(pub $in_field : frp::Source<($($in_field_type)*)>),*
         }
 
-        /// Outputs of the FRP network.
+        $(impl Deref for FrpInputs {
+            type Target = $commands_name;
+            fn deref(&self) -> &Self::Target {
+                &self.command
+            }
+        })?
+
+        #[allow(unused_parens)]
+        impl FrpInputs {
+            /// Constructor.
+            pub fn new(network:&frp::Network) -> Self {
+                $(
+                    #[allow(non_snake_case)]
+                    let $commands_name = $commands_name::new(network);
+                )?
+                frp::extend! { network
+                    $($in_field <- source();)*
+                }
+                Self { $(command:$commands_name,)? $($in_field),* }
+            }
+
+            $($crate::define_endpoints_emit_alias!{$in_field ($($in_field_type)*)})*
+        }
+
+        /// Frp outputs.
         #[derive(Debug,Clone,CloneRef)]
         #[allow(missing_docs)]
         pub struct FrpEndpoints {
-            pub input  : FrpInputs,
-            source     : FrpOutputsSource,
-            $(pub $out_field : frp::Stream<$out_field_type>),*
+            pub input         : FrpInputs,
+            pub(crate) source : FrpOutputsSource,
+            $(pub $out_field  : frp::Stream<$($out_field_type)*>),*
         }
 
         impl Deref for FrpEndpoints {
@@ -94,6 +258,21 @@ macro_rules! define_frp {
             fn deref(&self) -> &Self::Target {
                 &self.input
             }
+        }
+
+        impl FrpEndpoints {
+            /// Constructor.
+            pub fn new(network:&frp::Network, input:FrpInputs) -> Self {
+                let source = FrpOutputsSource::new(network);
+                $(let $out_field = source.$out_field.clone_ref().into();)*
+                Self {source,input,$($out_field),*}
+            }
+        }
+
+        /// Frp output setters.
+        #[derive(Debug,Clone,CloneRef)]
+        pub(crate) struct FrpOutputsSource {
+            $($out_field : frp::Any<$($out_field_type)*>),*
         }
 
         impl FrpOutputsSource {
@@ -105,18 +284,91 @@ macro_rules! define_frp {
                 Self {$($out_field),*}
             }
         }
-
-        impl FrpEndpoints {
-            /// Constructor.
-            pub fn new(network:&frp::Network, input:FrpInputs) -> Self {
-                let source = FrpOutputsSource::new(network);
-                $(let $out_field = source.$out_field.clone_ref().into();)*
-                Self {input,source,$($out_field),*}
-            }
-        }
     };
 }
 
+/// Defines a method which is an alias to FRP emit method. Used internally by the `define_endpoints`
+/// macro.
+#[macro_export]
+macro_rules! define_endpoints_emit_alias {
+    ($field:ident ()) => {
+        #[allow(missing_docs)]
+        pub fn $field(&self) {
+            self.$field.emit(());
+        }
+    };
+
+    ($field:ident ($t1:ty,$t2:ty)) => {
+        #[allow(missing_docs)]
+        pub fn $field
+        ( &self
+        , t1:impl IntoParam<$t1>
+        , t2:impl IntoParam<$t2>
+        ) {
+            let t1 = t1.into_param();
+            let t2 = t2.into_param();
+            self.$field.emit((t1,t2));
+        }
+    };
+
+    ($field:ident ($t1:ty,$t2:ty,$t3:ty)) => {
+        #[allow(missing_docs)]
+        pub fn $field
+        ( &self
+        , t1:impl IntoParam<$t1>
+        , t2:impl IntoParam<$t2>
+        , t3:impl IntoParam<$t3>
+        ) {
+            let t1 = t1.into_param();
+            let t2 = t2.into_param();
+            let t3 = t3.into_param();
+            self.$field.emit((t1,t2,t3));
+        }
+    };
+
+    ($field:ident ($t1:ty,$t2:ty,$t3:ty,$t4:ty)) => {
+        #[allow(missing_docs)]
+        pub fn $field
+        ( &self
+        , t1:impl IntoParam<$t1>
+        , t2:impl IntoParam<$t2>
+        , t3:impl IntoParam<$t3>
+        , t4:impl IntoParam<$t4>
+        ) {
+            let t1 = t1.into_param();
+            let t2 = t2.into_param();
+            let t3 = t3.into_param();
+            let t4 = t4.into_param();
+            self.$field.emit((t1,t2,t3,t4));
+        }
+    };
+
+    ($field:ident ($t1:ty,$t2:ty,$t3:ty,$t4:ty,$t5:ty)) => {
+        #[allow(missing_docs)]
+        pub fn $field
+        ( &self
+        , t1:impl IntoParam<$t1>
+        , t2:impl IntoParam<$t2>
+        , t3:impl IntoParam<$t3>
+        , t4:impl IntoParam<$t4>
+        , t5:impl IntoParam<$t5>
+        ) {
+            let t1 = t1.into_param();
+            let t2 = t2.into_param();
+            let t3 = t3.into_param();
+            let t4 = t4.into_param();
+            let t5 = t5.into_param();
+            self.$field.emit((t1,t2,t3,t4,t5));
+        }
+    };
+
+    ($field:ident $t1:ty) => {
+        #[allow(missing_docs)]
+        pub fn $field(&self,t1:impl IntoParam<$t1>) {
+            self.$field.emit(t1);
+        }
+    };
+}
 
 
 // =================
@@ -203,15 +455,10 @@ impl ViewBuffer {
     fn undo(&self) -> Option<selection::Group> {
         let item      = self.history.data.borrow_mut().undo_stack.pop();
         item.map(|(text,style,selection)| {
-            println!("SETTING DATA: {:?}", text);
             self.buffer.set_text(text);
             self.buffer.set_style(style);
             selection
         })
-    }
-
-    fn add_selection(&self, selection:impl Into<Selection>) {
-        self.selection.borrow_mut().merge(selection.into())
     }
 
     fn first_selection(&self) -> selection::Group {
@@ -246,16 +493,6 @@ impl ViewBuffer {
         self.oldest_selection().snap_selections_to_start()
     }
 
-    // FIXME[WD] debug utility. To be removed in the future.
-    // FIXME[WD] should be part of https://github.com/enso-org/ide/issues/670
-    /// Add a new cursor for the given byte offset.
-    #[allow(non_snake_case)]
-    pub fn add_cursor_DEBUG(&self, location:Location) {
-        let id = self.next_selection_id.get();
-        self.next_selection_id.set(id+1);
-        self.add_selection(Selection::new_cursor(location,id))
-    }
-
     fn new_cursor(&self, location:Location) -> Selection {
         let id = self.next_selection_id.get();
         self.next_selection_id.set(id+1);
@@ -281,10 +518,8 @@ impl ViewBuffer {
         group
     }
 
-    // FIXME[WD] this should be made private in the future PRs.
-    // FIXME[WD] Should be part of https://github.com/enso-org/ide/issues/670
     /// Insert new text in the place of current selections / cursors.
-    pub fn insert(&self, text:impl Into<Text>) -> selection::Group {
+    fn insert(&self, text:impl Into<Text>) -> selection::Group {
         self.modify(Transform::LeftSelectionBorder,text)
     }
 
@@ -390,40 +625,44 @@ fn range_between(a:Selection<Bytes>, b:Selection<Bytes>) -> data::range::Range<B
 
 
 
+
 // ===========
 // === FRP ===
 // ===========
 
-define_frp! {
+define_endpoints! {
     Input {
-        cursors_move               : Option<Transform>,
-        cursors_select             : Option<Transform>,
-        set_cursor                 : Location,
-        add_cursor                 : Location,
-        set_newest_selection_end   : Location,
-        set_oldest_selection_end   : Location,
-        insert                     : String,
-        paste                      : Vec<String>,
-        remove_all_cursors         : (),
-        delete_left                : (),
-        delete_word_left           : (),
-        clear_selection            : (),
-        keep_first_selection_only  : (),
-        keep_last_selection_only   : (),
-        keep_first_cursor_only     : (),
-        keep_last_cursor_only      : (),
-        keep_oldest_selection_only : (),
-        keep_newest_selection_only : (),
-        keep_oldest_cursor_only    : (),
-        keep_newest_cursor_only    : (),
-        undo                       : (),
-        redo                       : (),
+        cursors_move               (Option<Transform>),
+        cursors_select             (Option<Transform>),
+        set_cursor                 (Location),
+        add_cursor                 (Location),
+        set_newest_selection_end   (Location),
+        set_oldest_selection_end   (Location),
+        insert                     (String),
+        paste                      (Vec<String>),
+        remove_all_cursors         (),
+        delete_left                (),
+        delete_word_left           (),
+        clear_selection            (),
+        keep_first_selection_only  (),
+        keep_last_selection_only   (),
+        keep_first_cursor_only     (),
+        keep_last_cursor_only      (),
+        keep_oldest_selection_only (),
+        keep_newest_selection_only (),
+        keep_oldest_cursor_only    (),
+        keep_newest_cursor_only    (),
+        undo                       (),
+        redo                       (),
+        set_default_color          (color::Rgba),
+        set_default_text_size      (style::Size),
+        set_color_bytes            (buffer::Range<Bytes>,color::Rgba),
     }
 
     Output {
-        selection_edit_mode     : selection::Group,
-        selection_non_edit_mode : selection::Group,
-        text_changed            : (),
+        selection_edit_mode     (selection::Group),
+        selection_non_edit_mode (selection::Group),
+        text_changed            (),
     }
 }
 
@@ -490,6 +729,11 @@ impl View {
 
             sel_on_remove_all <- input.remove_all_cursors.map(|_| default());
             sel_on_undo       <= input.undo.map(f_!(m.undo()));
+
+            eval input.set_default_color     ((t) m.set_default(*t));
+            eval input.set_default_text_size ((t) m.set_default(*t));
+            eval input.set_color_bytes       (((range,color)) m.replace(range,*color));
+            eval input.set_default_color     ((color) m.set_default(*color));
 
             output.source.selection_edit_mode     <+ sel_on_undo;
             output.source.selection_non_edit_mode <+ sel_on_move;

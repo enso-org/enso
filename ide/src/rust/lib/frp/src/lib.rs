@@ -192,7 +192,7 @@ mod network_mode_tests {
     #[test]
     fn lifetime_management() {
         frp::new_network! { network1
-            def source = source();
+            def source = source::<()>();
         }
         frp::new_network! { network2
             def count   = source.count();

@@ -205,13 +205,13 @@ impl Font {
     }
 
     /// Get render info for one character, generating one if not found.
-    pub fn get_glyph_info(&self, ch:char) -> GlyphRenderInfo {
+    pub fn glyph_info(&self, ch:char) -> GlyphRenderInfo {
         let handle = &self.msdf_font;
         self.glyphs.get_or_create(ch, move || GlyphRenderInfo::load(handle,ch,&self.atlas))
     }
 
     /// Get kerning between two characters
-    pub fn get_kerning(&self, left:char, right:char) -> f32 {
+    pub fn kerning(&self, left:char, right:char) -> f32 {
         self.kerning.get_or_create((left,right), || {
             let msdf_val = self.msdf_font.retrieve_kerning(left, right);
             msdf::x_distance_from_msdf_value(msdf_val)
@@ -362,8 +362,8 @@ mod tests {
         ensogl_core_msdf_sys::initialized().await;
         let font_render_info = create_test_font();
 
-        font_render_info.get_glyph_info('A');
-        font_render_info.get_glyph_info('B');
+        font_render_info.glyph_info('A');
+        font_render_info.glyph_info('B');
 
         let chars      = 2;
         let tex_width  = msdf::Texture::WIDTH;
@@ -391,13 +391,13 @@ mod tests {
         let font_render_info = create_test_font();
 
         {
-            let char_info = font_render_info.get_glyph_info('A');
+            let char_info = font_render_info.glyph_info('A');
             assert_eq!(0, char_info.msdf_texture_glyph_id);
         }
         assert_eq!(1, font_render_info.glyphs.len());
 
         {
-            let char_info = font_render_info.get_glyph_info('A');
+            let char_info = font_render_info.glyph_info('A');
             assert_eq!(0, char_info.msdf_texture_glyph_id);
         }
         assert_eq!(1, font_render_info.glyphs.len());

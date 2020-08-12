@@ -5,22 +5,22 @@ pub mod output;
 
 use crate::prelude::*;
 
-//use crate::component::node::port::Registry;
-
 use enso_frp as frp;
 use enso_frp;
+use ensogl::application::Application;
 use ensogl::data::color;
 use ensogl::display::Attribute;
 use ensogl::display::Buffer;
 use ensogl::display::Sprite;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
-use ensogl::display::shape::text::glyph::system::GlyphSystem;
 use ensogl::display::traits::*;
 use ensogl::display;
 use ensogl::gui::component;
 use ensogl::gui::cursor;
 use span_tree::SpanTree;
+use ensogl_text as text;
+use text::Text;
 
 use super::super::node;
 
@@ -51,61 +51,6 @@ pub mod shape {
     }
 }
 
-pub mod label {
-    use super::*;
-
-    #[derive(Clone,CloneRef,Debug)]
-    #[allow(missing_docs)]
-    pub struct Shape {
-        pub label : ensogl::display::shape::text::glyph::system::Line,
-        pub obj   : display::object::Instance,
-
-    }
-    impl ensogl::display::shape::system::Shape for Shape {
-        type System = ShapeSystem;
-        fn sprites(&self) -> Vec<&Sprite> {
-            vec![]
-        }
-    }
-    impl display::Object for Shape {
-        fn display_object(&self) -> &display::object::Instance {
-            &self.obj
-        }
-    }
-    #[derive(Clone, CloneRef, Debug)]
-    #[allow(missing_docs)]
-    pub struct ShapeSystem {
-        pub glyph_system: GlyphSystem,
-        style_manager: StyleWatch,
-
-    }
-    impl ShapeSystemInstance for ShapeSystem {
-        type Shape = Shape;
-
-        fn new(scene:&Scene) -> Self {
-            let style_manager = StyleWatch::new(&scene.style_sheet);
-            let font          = scene.fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap();
-            let glyph_system  = GlyphSystem::new(scene,font);
-            let symbol        = &glyph_system.sprite_system().symbol;
-            scene.views.main.remove(symbol);
-            scene.views.label.add(symbol);
-            Self {glyph_system,style_manager} // .init_refresh_on_style_change()
-        }
-
-        fn new_instance(&self) -> Self::Shape {
-            let color = color::Rgba::new(1.0, 1.0, 1.0, 0.7);
-            let obj   = display::object::Instance::new(Logger::new("test"));
-            let label = self.glyph_system.new_line();
-            label.set_font_size(12.0);
-            label.set_font_color(color);
-            label.set_text("");
-            obj.add_child(&label);
-            Shape {label,obj}
-        }
-    }
-}
-
-
 pub fn sort_hack(scene:&Scene) {
     let logger = Logger::new("hack");
     component::ShapeView::<shape::Shape>::new(&logger,scene);
@@ -118,6 +63,10 @@ pub struct Events {
     pub cursor_style    : frp::Stream<cursor::Style>,
     pub press           : frp::Stream<span_tree::Crumbs>,
     pub hover           : frp::Stream<Option<span_tree::Crumbs>>,
+    pub start_edit_mode : frp::Source,
+    pub stop_edit_mode  : frp::Source,
+    pub width           : frp::Stream<f32>,
+    pub expression      : frp::Stream<Text>,
     press_source        : frp::Source<span_tree::Crumbs>,
     hover_source        : frp::Source<Option<span_tree::Crumbs>>,
     cursor_style_source : frp::Any<cursor::Style>,
@@ -177,9 +126,9 @@ impl From<&Expression> for Expression {
 pub struct Manager {
     logger         : Logger,
     display_object : display::object::Instance,
-    scene          : Scene,
+    app            : Application,
     expression     : Rc<RefCell<Expression>>,
-    label          : component::ShapeView<label::Shape>,
+    label          : text::Area,
     ports          : Rc<RefCell<Vec<component::ShapeView<shape::Shape>>>>,
     width          : Rc<Cell<f32>>,
     port_networks  : Rc<RefCell<Vec<frp::Network>>>,
@@ -188,40 +137,71 @@ pub struct Manager {
 }
 
 impl Manager {
-    pub fn new(logger:impl AnyLogger, scene:&Scene) -> Self {
+    pub fn new(logger:impl AnyLogger, app:&Application) -> Self {
+        let logger         = Logger::sub(logger,"port_manager");
+        let display_object = display::object::Instance::new(&logger);
+        let app            = app.clone_ref();
+        let port_networks  = default();
+        let type_color_map = default();
+        let label          = app.new_view::<text::Area>();
+        let ports          = default();
+
         frp::new_network! { network
             cursor_style_source <- any_mut::<cursor::Style>();
             press_source        <- source::<span_tree::Crumbs>();
             hover_source        <- source::<Option<span_tree::Crumbs>>();
+            start_edit_mode     <- source();
+            stop_edit_mode      <- source();
+
+            eval_ start_edit_mode ([label] {
+                label.set_active_on();
+                label.set_cursor_at_mouse_position();
+            });
+
+            eval_ stop_edit_mode ([label] {
+                label.set_active_off();
+                label.remove_all_cursors();
+            });
+
+            width <- label.width.map(|w|*w);
+
+            expression <- label.changed.map(|t|t.clone_ref());
         }
 
-        let logger         = Logger::sub(logger,"port_manager");
-        let display_object = display::object::Instance::new(&logger);
-        let scene          = scene.clone_ref();
-        let expression     = default();
-        let port_networks  = default();
-        let type_color_map = default();
-        let label          = component::ShapeView::<label::Shape>::new(&logger,&scene);
-        let ports          = default();
-        let width          = default();
         let cursor_style   = (&cursor_style_source).into();
         let press          = (&press_source).into();
         let hover          = (&hover_source).into();
         let frp            = Events
-            {network,cursor_style,press,hover,cursor_style_source,press_source,hover_source};
+            {network,cursor_style,press,hover,cursor_style_source,press_source,hover_source
+            ,start_edit_mode,stop_edit_mode,width,expression};
 
-        label.mod_position(|t| t.y -= 4.0);
+        label.mod_position(|t| t.y += 6.0);
 
         display_object.add_child(&label);
 
-        Self {logger,display_object,frp,label,ports,width,scene,expression,port_networks,type_color_map}
+        label.set_cursor(&default());
+        label.insert("HELLO\nHELLO2\nHELLO3\nHELLO4".to_string());
+        label.set_default_color(color::Rgba::new(1.0,1.0,1.0,0.7));
+        label.set_default_text_size(text::Size(12.0));
+        label.remove_all_cursors();
+
+        let expression = default();
+        let width      = default();
+
+        Self {logger,display_object,frp,label,ports,width,app,expression,port_networks,type_color_map}
     }
 
-    pub fn set_expression(&self, expression:impl Into<Expression>) {
+    fn scene(&self) -> &Scene {
+        self.app.display.scene()
+    }
+
+    pub(crate) fn set_expression(&self, expression:impl Into<Expression>) {
         let     expression    = expression.into();
 
-
-        self.label.shape.label.set_text(&expression.code);
+        self.label.set_cursor(&default());
+        self.label.select_all();
+        self.label.insert(&expression.code);
+        self.label.remove_all_cursors();
 
         let glyph_width = 7.224_609_4; // FIXME hardcoded literal
         let width       = expression.code.len() as f32 * glyph_width;
@@ -241,7 +221,7 @@ impl Manager {
                     let skip          = node.kind.is_empty() || contains_root;
                     if !skip {
                         let logger      = Logger::sub(&self.logger,"port");
-                        let port        = component::ShapeView::<shape::Shape>::new(&logger,&self.scene);
+                        let port        = component::ShapeView::<shape::Shape>::new(&logger,self.scene());
                         let type_map    = &self.type_color_map;
 
                         let unit        = 7.224_609_4;
@@ -270,7 +250,7 @@ impl Manager {
                                 }
                                 cursor::Style::new_highlight(&port,Vector2::new(width2,height),Some(MISSING_TYPE_COLOR))
                             }));
-                            // FIXME: the following lines leak memory in the current FRP
+                            // FIXME[WD]: the following lines leak memory in the current FRP
                             // implementation because self.frp does not belong to this network and
                             // we are attaching node there. Nothing bad should happen though.
                             self.frp.cursor_style_source.attach(&over);
