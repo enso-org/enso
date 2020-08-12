@@ -2,7 +2,7 @@ package org.enso.parser
 
 import org.enso.ast.Ast
 
-import scala.annotation.nowarn
+import scala.annotation.unused
 
 
 /** This is the Enso language parser.
@@ -21,16 +21,16 @@ import scala.annotation.nowarn
   */
 class Parser private () {
   /**  Parses a content of a single source file. */
-  @native @nowarn def parseStr(input: String): Ast.AnyAst
+  @native def parseStr(@unused input: String): Ast.AnyAst
 
   /**  Parses a single source file. */
-  @native @nowarn def parseFile(filename: String): Ast.AnyAst
+  @native def parseFile(@unused filename: String): Ast.AnyAst
 
   /**  Parses a content of a single source file into a stream of tokens. */
-  @native @nowarn def lexeStr(input: String): Ast.AnyAst
+  @native def lexStr(@unused input: String): Ast.AnyAst
 
   /**  Parses a single source file into a stream of tokens. */
-  @native @nowarn def lexeFile(filename: String): Ast.AnyAst
+  @native def lexFile(@unused filename: String): Ast.AnyAst
 }
 
 object Parser {

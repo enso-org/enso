@@ -97,7 +97,7 @@ pub extern "system" fn Java_org_enso_parser_Parser_parseFile(
 
 /// Parses a content of a single source file into a stream of tokens.
 #[no_mangle]
-pub extern "system" fn Java_org_enso_parser_Parser_lexeStr(
+pub extern "system" fn Java_org_enso_parser_Parser_lexStr(
     env   : JNIEnv,
     this  : JClass,
     input : JString,
@@ -107,7 +107,7 @@ pub extern "system" fn Java_org_enso_parser_Parser_lexeStr(
 
 /// Parses a single source file into a stream of tokens.
 #[no_mangle]
-pub extern "system" fn Java_org_enso_parser_Parser_lexeFile(
+pub extern "system" fn Java_org_enso_parser_Parser_lexFile(
     env      : JNIEnv,
     this     : JClass,
     filename : JString,

@@ -35,7 +35,7 @@ crate-type = ["cdylib"]
 ```
 
 Invoking `cargo build` will then output the library into `target/rust/debug`
-with the extension `.so` on Linux, `.dll` on Windows and `.dylib` on MacOs.
+with the extension `.so` on Linux, `.dll` on Windows and `.dylib` on macOS.
 
 Then, if the Java application is started with the option
 `-Djava.library.path=path/to/lib_folder`, it can load the shared library by

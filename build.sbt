@@ -805,6 +805,7 @@ lazy val ast = (project in file("lib/scala/ast"))
 lazy val parser = (project in file("lib/scala/parser"))
   .settings(
     fork := true,
+    Cargo.rustVersion := rustVersion,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(Cargo.build("-p parser"))
       .value,
