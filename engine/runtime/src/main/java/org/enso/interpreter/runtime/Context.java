@@ -22,6 +22,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.nio.Buffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,8 @@ public class Context {
   private final Compiler compiler;
   private final PrintStream out;
   private final PrintStream err;
-  private final BufferedReader in;
+  private final InputStream in;
+  private final BufferedReader inReader;
   private final List<Package<TruffleFile>> packages;
   private final TopLevelScope topScope;
   private final ThreadManager threadManager;
@@ -56,7 +58,8 @@ public class Context {
     this.environment = environment;
     this.out = new PrintStream(environment.out());
     this.err = new PrintStream(environment.err());
-    this.in = new BufferedReader(new InputStreamReader(environment.in()));
+    this.in = environment.in();
+    this.inReader = new BufferedReader(new InputStreamReader(environment.in()));
     this.threadManager = new ThreadManager();
     this.isCachingDisabled = environment.getOptions().get(RuntimeOptions.DISABLE_INLINE_CACHES_KEY);
     TruffleFileSystem fs = new TruffleFileSystem();
@@ -157,10 +160,15 @@ public class Context {
   /**
    * Returns the standard input stream for this context.
    *
-   * @return the standard input stream for this context
+   * @return the standard input stream of bytes.
    */
-  public BufferedReader getIn() {
+  public InputStream getIn() {
     return in;
+  }
+
+  /** @return the standard input stream of characters. */
+  public BufferedReader getInReader() {
+    return inReader;
   }
 
   /**

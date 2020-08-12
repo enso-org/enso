@@ -13,6 +13,7 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatc
 import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
 import org.enso.interpreter.node.expression.builtin.io.*;
 import org.enso.interpreter.node.expression.builtin.number.*;
+import org.enso.interpreter.node.expression.builtin.process.CreateMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.*;
@@ -84,6 +85,7 @@ public class Builtins {
                 new ArgumentDefinition(0, "head", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "tail", ArgumentDefinition.ExecutionMode.EXECUTE));
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
+    AtomConstructor process = new AtomConstructor("Process", scope).initializeFields();
     AtomConstructor system = new AtomConstructor("System", scope).initializeFields();
     AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
     AtomConstructor panic = new AtomConstructor("Panic", scope).initializeFields();
@@ -108,6 +110,7 @@ public class Builtins {
     scope.registerConstructor(error);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
+    scope.registerConstructor(process);
     scope.registerConstructor(system);
     scope.registerConstructor(runtime);
 
@@ -122,6 +125,7 @@ public class Builtins {
     scope.registerMethod(io, "print_err", PrintErrMethodGen.makeFunction(language));
     scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
 
+    scope.registerMethod(process, "create", CreateMethodGen.makeFunction(language));
     scope.registerMethod(system, "nano_time", NanoTimeMethodGen.makeFunction(language));
     scope.registerMethod(system, "exit", ExitMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
