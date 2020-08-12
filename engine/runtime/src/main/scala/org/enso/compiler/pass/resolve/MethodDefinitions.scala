@@ -55,12 +55,33 @@ case object MethodDefinitions extends IRPass {
                 BindingsMap.ResolvedModule(availableSymbolsMap.currentModule)
               )
             )
-          case tp @ IR.Name.Qualified(List(item), _, _, _) =>
-            availableSymbolsMap.resolveUppercaseName(item.name) match {
+          case tp @ IR.Name.Qualified(names, _, _, _) =>
+            val items = names.map(_.name)
+            availableSymbolsMap.resolveQualifiedName(items) match {
               case Left(err) =>
-                IR.Error.Resolution(tp, IR.Error.Resolution.Reason(err))
-              case Right(candidate) =>
-                tp.updateMetadata(this -->> BindingsMap.Resolution(candidate))
+                IR.Error.Resolution(tp, IR.Error.Resolution.ResolverError(err))
+              case Right(value: BindingsMap.ResolvedConstructor) =>
+                tp.updateMetadata(
+                  this -->> BindingsMap.Resolution(value)
+                )
+              case Right(value: BindingsMap.ResolvedModule) =>
+                tp.updateMetadata(
+                  this -->> BindingsMap.Resolution(value)
+                )
+              case Right(_: BindingsMap.ResolvedPolyglotSymbol) =>
+                IR.Error.Resolution(
+                  tp,
+                  IR.Error.Resolution.UnexpectedPolyglot(
+                    "a method definition target"
+                  )
+                )
+              case Right(_: BindingsMap.ResolvedMethod) =>
+                IR.Error.Resolution(
+                  tp,
+                  IR.Error.Resolution.UnexpectedMethod(
+                    "a method definition target"
+                  )
+                )
             }
           case tp: IR.Error.Resolution => tp
           case _ =>

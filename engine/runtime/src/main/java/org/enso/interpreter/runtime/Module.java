@@ -323,7 +323,7 @@ public class Module implements TruffleObject {
           Types.extractArguments(args, AtomConstructor.class, String.class);
       AtomConstructor cons = arguments.getFirst();
       String name = arguments.getSecond();
-      return scope.getMethods().get(cons).get(name);
+      return scope.getMethods().get(cons).get(name.toLowerCase());
     }
 
     private static AtomConstructor getConstructor(ModuleScope scope, Object[] args)

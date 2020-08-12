@@ -320,7 +320,11 @@ class AstToIrTest extends CompilerTest with Inside {
       ir shouldBe an[IR.Application.Prefix]
 
       val fn = ir.asInstanceOf[IR.Application.Prefix]
-      fn.function shouldEqual IR.Name.Literal("negate", None)
+      fn.function shouldEqual IR.Name.Literal(
+        "negate",
+        isReferent = false,
+        None
+      )
 
       val fooArg = fn.arguments.head.asInstanceOf[IR.CallArgument.Specified]
       fooArg.value shouldBe an[IR.Name.Literal]
@@ -780,6 +784,23 @@ class AstToIrTest extends CompilerTest with Inside {
         .operator
         .name shouldEqual "!"
     }
+  }
+
+  "properly support different kinds of imports" in {
+    val imports = List(
+      "import Foo.Bar as Baz",
+      "import Foo.Bar",
+      "from Foo.Bar import Baz",
+      "from Foo.Bar import Baz, Spam",
+      "from Foo.Bar import all",
+      "from Foo.Bar as Eggs import all hiding Spam",
+      "from Foo.Bar import all hiding Spam, Eggs"
+    )
+    imports
+      .mkString("\n")
+      .toIrModule
+      .imports
+      .map(_.showCode()) shouldEqual imports
   }
 
   "AST translation of erroneous constructs" should {

@@ -18,6 +18,9 @@ object GenerateAST {
     val output = sourceManaged.value / "main/org/enso/ast/Ast.scala"
     val cache  = streams.value.cacheStoreFactory.make("ast_source")
 
+    if (!EnvironmentCheck.rustVersionOk(rustVersion.value, log))
+      throw new RuntimeException("Rust version mismatch!")
+
     Tracked.diffInputs(cache, FileInfo.lastModified)(Set(source))
     { source: ChangeReport[File] =>
       if (source.modified.nonEmpty) {

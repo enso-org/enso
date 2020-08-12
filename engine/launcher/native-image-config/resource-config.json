@@ -1,0 +1,8 @@
+{
+  "resources": [
+    { "pattern": "\\QMain.enso\\E" },
+    { "pattern": "\\Qmozilla/public-suffix-list.txt\\E" },
+    { "pattern": "\\Qorg/apache/http/client/version.properties\\E" }
+  ],
+  "bundles": []
+}

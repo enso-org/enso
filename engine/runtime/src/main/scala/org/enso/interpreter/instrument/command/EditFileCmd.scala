@@ -18,8 +18,8 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
     *
     * @param ctx contains suppliers of services to perform a request
     */
-  override def execute(
-    implicit ctx: RuntimeContext,
+  override def execute(implicit
+    ctx: RuntimeContext,
     ec: ExecutionContext
   ): Future[Unit] = {
     for {
@@ -31,15 +31,15 @@ class EditFileCmd(request: Api.EditFileNotification) extends Command(None) {
     } yield ()
   }
 
-  private def executeJobs(
-    implicit ctx: RuntimeContext
+  private def executeJobs(implicit
+    ctx: RuntimeContext
   ): Iterable[ExecuteJob] = {
     ctx.contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
       .map {
         case (contextId, stack) =>
-          new ExecuteJob(contextId, stack, Seq())
+          new ExecuteJob(contextId, stack, Seq(), sendMethodCallUpdates = false)
       }
   }
 

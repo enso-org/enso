@@ -169,10 +169,6 @@ An identifier used for execution contexts.
 type ContextId = UUID;
 ```
 
-```typescript
-type SuggestionEntryId = number;
-```
-
 ### `StackItem`
 
 A representation of an executable position in code, used by the execution APIs.
@@ -2757,7 +2753,7 @@ Sent from client to the server to receive the autocomplete suggestion.
 
 ```typescript
 {
-  results: [SuggestionEntryId];
+  results: [SuggestionId];
   currentVersion: number;
 }
 ```

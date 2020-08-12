@@ -110,7 +110,7 @@ For example:
 ```yaml
 minimum-launcher-version: 0.0.1
 graal-vm-version: 20.1.0
-graal-java-version: java11
+graal-java-version: 11
 ```
 
 The `minimum-launcher-version` should be updated whenever a new version of Enso
@@ -126,12 +126,14 @@ for each supported platform. Moreover, for convenience, it should include
 bundles containing native launcher binaries and the latest engine build for each
 platform. So each release should contain the following assets:
 
-- `enso-bundle-<version>-linux-amd64.zip`
-- `enso-bundle-<version>-macos-amd64.zip`
+- `enso-bundle-<version>-linux-amd64.tar.gz`
+- `enso-bundle-<version>-macos-amd64.tar.gz`
 - `enso-bundle-<version>-windows-amd64.zip`
-- `enso-engine-<version>.zip`
-- `enso-launcher-<version>-linux-amd64.zip`
-- `enso-launcher-<version>-macos-amd64.zip`
+- `enso-engine-<version>-linux-amd64.tar.gz`
+- `enso-engine-<version>-macos-amd64.tar.gz`
+- `enso-engine-<version>-windows-amd64.zip`
+- `enso-launcher-<version>-linux-amd64.tar.gz`
+- `enso-launcher-<version>-macos-amd64.tar.gz`
 - `enso-launcher-<version>-windows-amd64.zip`
 - `manifest.yaml`
 

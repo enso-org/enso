@@ -6,7 +6,7 @@ import com.typesafe.sbt.SbtLicenseReport.autoImportImpl.{
 }
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
-import sbt.Keys.scalacOptions
+import sbt.Keys.{libraryDependencies, scalacOptions}
 import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
@@ -17,9 +17,19 @@ import com.typesafe.sbt.license.DepModuleInfo
 // ============================================================================
 
 val scalacVersion = "2.13.3"
+val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
 val graalVersion  = "20.1.0"
 val javaVersion   = "11"
-val ensoVersion   = "0.1.0"
+val ensoVersion   = "0.1.0" // Note [Engine And Launcher Version]
+
+/* Note [Engine And Launcher Version]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Currently both Engine and Launcher versions are tied to each other - each new
+ * releases contains the Engine and the Launcher and thus the version number is
+ * shared. If the version numbers ever diverge, make sure tu update the build
+ * scripts at .github/workflows accordingly.
+ */
+
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 val licenseSettings = Seq(
@@ -295,30 +305,31 @@ val zio = Seq(
 
 // === Other ==================================================================
 
-val bcpkixJdk15Version          = "1.65"
-val declineVersion              = "1.2.0"
-val directoryWatcherVersion     = "0.9.10"
-val flatbuffersVersion          = "1.12.0"
-val guavaVersion                = "29.0-jre"
-val jlineVersion                = "3.15.0"
-val kindProjectorVersion        = "0.11.0"
-val mockitoScalaVersion         = "1.14.8"
-val newtypeVersion              = "0.4.4"
-val pprintVersion               = "0.5.9"
-val pureconfigVersion           = "0.13.0"
-val refinedVersion              = "0.9.14"
-val rustVersion                 = "1.40.0-nightly (b520af6fd 2019-11-03)"
-val scalacheckVersion           = "1.14.3"
-val scalacticVersion            = "3.3.0-SNAP2"
-val scalaLoggingVersion         = "3.9.2"
-val scalameterVersion           = "0.19"
-val scalatagsVersion            = "0.9.1"
-val scalatestVersion            = "3.3.0-SNAP2"
-val shapelessVersion            = "2.4.0-M1"
-val slickVersion                = "3.3.2"
-val sqliteVersion               = "3.31.1"
-val tikaVersion                 = "1.24.1"
-val typesafeConfigVersion       = "1.4.0"
+val apacheHttpClientVersion = "4.5.12"
+val bcpkixJdk15Version      = "1.65"
+val bumpVersion             = "0.1.3"
+val declineVersion          = "1.2.0"
+val directoryWatcherVersion = "0.9.10"
+val flatbuffersVersion      = "1.12.0"
+val guavaVersion            = "29.0-jre"
+val jlineVersion            = "3.15.0"
+val kindProjectorVersion    = "0.11.0"
+val mockitoScalaVersion     = "1.14.8"
+val newtypeVersion          = "0.4.4"
+val pprintVersion           = "0.5.9"
+val pureconfigVersion       = "0.13.0"
+val refinedVersion          = "0.9.14"
+val scalacheckVersion       = "1.14.3"
+val scalacticVersion        = "3.3.0-SNAP2"
+val scalaLoggingVersion     = "3.9.2"
+val scalameterVersion       = "0.19"
+val scalatagsVersion        = "0.9.1"
+val scalatestVersion        = "3.3.0-SNAP2"
+val shapelessVersion        = "2.4.0-M1"
+val slickVersion            = "3.3.2"
+val sqliteVersion           = "3.31.1"
+val tikaVersion             = "1.24.1"
+val typesafeConfigVersion   = "1.4.0"
 
 // ============================================================================
 // === Internal Libraries =====================================================
@@ -765,7 +776,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     testOptions in Test += Tests
         .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
     GenerateFlatbuffers.flatcVersion := flatbuffersVersion,
-    sourceGenerators in Compile += GenerateFlatbuffers.task,
+    sourceGenerators in Compile += GenerateFlatbuffers.task
   )
   .configs(Benchmark)
   .settings(
@@ -787,7 +798,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
 lazy val ast = (project in file("lib/scala/ast"))
   .settings(
     version := ensoVersion,
-    Compile / sourceGenerators += GenerateAST.task,
+    GenerateAST.rustVersion := rustVersion,
+    Compile / sourceGenerators += GenerateAST.task
   )
 
 lazy val parser = (project in file("lib/scala/parser"))
@@ -836,7 +848,7 @@ lazy val runtime = (project in file("engine/runtime"))
         "org.graalvm.truffle" % "truffle-api"           % graalVersion      % Benchmark,
         "org.typelevel"      %% "cats-core"             % catsVersion,
         "eu.timepit"         %% "refined"               % refinedVersion
-    ),
+      ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
     Test / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
@@ -854,7 +866,6 @@ lazy val runtime = (project in file("engine/runtime"))
       ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
-        rustVersion,
         graalVersion,
         javaVersion
       )((Global / onLoad).value)
@@ -914,7 +925,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
   .dependsOn(`searcher`)
-  .dependsOn(ast)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -973,19 +983,19 @@ lazy val runner = project
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
-        "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",
-        "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
-        "commons-cli"           % "commons-cli"            % commonsCliVersion,
-        "com.monovore"         %% "decline"                % declineVersion,
-        "org.jline"             % "jline"                  % jlineVersion,
-        "org.typelevel"        %% "cats-core"              % catsVersion,
-        "com.typesafe.slick"   %% "slick-hikaricp"         % slickVersion % Runtime
+        "org.graalvm.sdk"     % "polyglot-tck"   % graalVersion % "provided",
+        "org.graalvm.truffle" % "truffle-api"    % graalVersion % "provided",
+        "commons-cli"         % "commons-cli"    % commonsCliVersion,
+        "com.monovore"       %% "decline"        % declineVersion,
+        "org.jline"           % "jline"          % jlineVersion,
+        "org.typelevel"      %% "cats-core"      % catsVersion,
+        "com.typesafe.slick" %% "slick-hikaricp" % slickVersion % Runtime
       ),
     connectInput in run := true
   )
   .settings(
     buildNativeImage := NativeImage
-        .buildNativeImage(staticOnLinux = false)
+        .buildNativeImage("enso", staticOnLinux = false)
         .value
   )
   .settings(
@@ -1003,13 +1013,28 @@ lazy val launcher = project
   .in(file("engine/launcher"))
   .configs(Test)
   .settings(
+    resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
-        "org.scalatest" %% "scalatest" % scalatestVersion % Test,
-        "org.typelevel" %% "cats-core" % catsVersion
+        "org.scalatest"            %% "scalatest"        % scalatestVersion % Test,
+        "org.typelevel"            %% "cats-core"        % catsVersion,
+        "nl.gn0s1s"                %% "bump"             % bumpVersion,
+        "org.apache.commons"        % "commons-compress" % commonsCompressVersion,
+        "org.apache.httpcomponents" % "httpclient"       % apacheHttpClientVersion
       )
   )
   .settings(
-    buildNativeImage := NativeImage.buildNativeImage(staticOnLinux = true).value
+    buildNativeImage := NativeImage
+        .buildNativeImage(
+          "enso",
+          staticOnLinux = true,
+          Seq(
+            "--enable-all-security-services", // Note [HTTPS in the Launcher]
+            "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"
+          )
+        )
+        .value,
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("launcher.jar")
   )
   .settings(
     (Test / test) := (Test / test)
@@ -1025,3 +1050,15 @@ lazy val launcher = project
   .dependsOn(cli)
   .dependsOn(`version-output`)
   .dependsOn(pkg)
+
+/* Note [HTTPS in the Launcher]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * The launcher uses Apache HttpClient for making web requests. It does not use
+ * Java's stdlib implementation, because there is a bug (not fixed in JDK 11)
+ * (https://bugs.openjdk.java.net/browse/JDK-8231449) in its HTTPS handling that
+ * causes long running requests to freeze forever. However, Apache HttpClient
+ * still needs the stdlib's SSL implementation and it is not included in the
+ * Native Images by default (because of its size). The
+ * `--enable-all-security-services` flag is used to ensure it is available in
+ * the built executable.
+ */
