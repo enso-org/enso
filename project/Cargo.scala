@@ -1,6 +1,5 @@
 import sbt.Keys._
 import sbt._
-import sbt.internal.util.ManagedLogger
 
 import scala.sys.process._
 
@@ -12,6 +11,9 @@ object Cargo {
   def build(args: String): Def.Initialize[Task[Unit]] = Def.task {
     val log = state.value.log
     val cmd = s"$cargoCmd build $args"
+
+    if (!EnvironmentCheck.rustVersionOk(rustVersion.value, log))
+      throw new RuntimeException("Rust version mismatch!")
 
     log.info(cmd)
 
