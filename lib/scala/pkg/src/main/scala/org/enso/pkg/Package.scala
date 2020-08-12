@@ -2,6 +2,8 @@ package org.enso.pkg
 
 import java.io.File
 
+import cats.Show
+
 import scala.jdk.CollectionConverters._
 import org.enso.filesystem.FileSystem
 
@@ -237,20 +239,41 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     *        returned.
     */
   def loadPackage(root: F): Try[Package[F]] = {
-    if (!root.exists) Failure(PackageManager.PackageNotFound())
-    else {
-      def readConfig(file: F): Try[String] =
-        if (file.exists)
-          Using(file.newBufferedReader) { reader =>
-            reader.lines().iterator().asScala.mkString("\n")
-          }
-        else Failure(PackageManager.PackageNotFound())
+    val result =
+      if (!root.exists) Failure(PackageManager.PackageNotFound())
+      else {
+        def readConfig(file: F): Try[String] =
+          if (file.exists)
+            Using(file.newBufferedReader) { reader =>
+              reader.lines().iterator().asScala.mkString("\n")
+            }
+          else Failure(PackageManager.PackageNotFound())
 
-      val configFile = root.getChild(Package.configFileName)
-      for {
-        resultStr <- readConfig(configFile)
-        result    <- Config.fromYaml(resultStr)
-      } yield Package(root, result, fileSystem)
+        val configFile = root.getChild(Package.configFileName)
+        for {
+          resultStr <- readConfig(configFile)
+          result    <- Config.fromYaml(resultStr)
+        } yield Package(root, result, fileSystem)
+      }
+    result.recoverWith {
+      case packageLoadingException: PackageManager.PackageLoadingException =>
+        Failure(packageLoadingException)
+      case decodingError: io.circe.Error =>
+        val errorMessage =
+          implicitly[Show[io.circe.Error]].show(decodingError)
+        Failure(
+          PackageManager.PackageLoadingFailure(
+            s"Cannot decode the package config: $errorMessage",
+            decodingError
+          )
+        )
+      case otherError =>
+        Failure(
+          PackageManager.PackageLoadingFailure(
+            s"Cannot load the package: $otherError",
+            otherError
+          )
+        )
     }
   }
 
@@ -294,7 +317,29 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
 object PackageManager {
   val Default = new PackageManager[File]()(FileSystem.Default)
 
-  case class PackageNotFound() extends RuntimeException
+  /**
+    * A general exception indicating that a package cannot be loaded.
+    */
+  class PackageLoadingException(message: String, cause: Throwable)
+      extends RuntimeException(message, cause) {
+
+    /**
+      * @inheritdoc
+      */
+    override def toString: String = message
+  }
+
+  /**
+    * The error indicating that the requested package does not exist.
+    */
+  case class PackageNotFound()
+      extends PackageLoadingException(s"The package file does not exist.", null)
+
+  /**
+    * The error indicating that the package exists, but cannot be loaded.
+    */
+  case class PackageLoadingFailure(message: String, cause: Throwable)
+      extends PackageLoadingException(message, cause)
 }
 
 /**

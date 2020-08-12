@@ -3,9 +3,9 @@ package org.enso.launcher.components
 import java.io.FileReader
 import java.nio.file.Path
 
+import cats.Show
 import io.circe.{yaml, Decoder}
 import nl.gn0s1s.bump.SemVer
-
 import org.enso.pkg.SemVerDecoder._
 
 import scala.util.{Failure, Try, Using}
@@ -58,8 +58,9 @@ object Manifest {
         .parse(reader)
         .flatMap(_.as[Manifest])
         .toTry
-        .recoverWith { error => Failure(ManifestLoadingError(error)) }
-    }.flatten
+    }.flatten.recoverWith { error =>
+      Failure(ManifestLoadingError.fromThrowable(error))
+    }
 
   /**
     * Parses the manifest from a string containing a YAML definition.
@@ -71,11 +72,27 @@ object Manifest {
       .parse(yamlString)
       .flatMap(_.as[Manifest])
       .toTry
-      .recoverWith { error => Failure(ManifestLoadingError(error)) }
+      .recoverWith { error =>
+        Failure(ManifestLoadingError.fromThrowable(error))
+      }
   }
 
-  case class ManifestLoadingError(cause: Throwable)
-      extends RuntimeException(s"Could not load the manifest: $cause", cause)
+  case class ManifestLoadingError(message: String, cause: Throwable)
+      extends RuntimeException(message, cause)
+  object ManifestLoadingError {
+    def fromThrowable(throwable: Throwable): ManifestLoadingError =
+      throwable match {
+        case decodingError: io.circe.Error =>
+          val errorMessage =
+            implicitly[Show[io.circe.Error]].show(decodingError)
+          ManifestLoadingError(
+            s"Could not parse the manifest: $errorMessage",
+            decodingError
+          )
+        case other =>
+          ManifestLoadingError(s"Could not load the manifest: $other", other)
+      }
+  }
 
   private object Fields {
     val minimumLauncherVersion = "minimum-launcher-version"

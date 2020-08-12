@@ -45,7 +45,7 @@ object EnsoVersion {
           .map(SemVerEnsoVersion)
           .toRight(
             DecodingFailure(
-              s"`$string` is not a valid version string. Possible values are" +
+              s"`$string` is not a valid version string. Possible values are " +
               s"`default` or a semantic versioning string.",
               json.history
             )
