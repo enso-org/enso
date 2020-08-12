@@ -3,8 +3,10 @@ package org.enso.launcher.components
 import java.io.FileReader
 import java.nio.file.Path
 
-import io.circe.{yaml, Decoder, DecodingFailure}
+import io.circe.{yaml, Decoder}
 import nl.gn0s1s.bump.SemVer
+
+import org.enso.pkg.SemVerDecoder._
 
 import scala.util.{Failure, Try, Using}
 
@@ -80,18 +82,6 @@ object Manifest {
     val jvmOptions             = "jvm-options"
     val graalVMVersion         = "graal-vm-version"
     val graalJavaVersion       = "graal-java-version"
-  }
-
-  implicit private val semverDecoder: Decoder[SemVer] = { json =>
-    for {
-      string <- json.as[String]
-      version <- SemVer(string).toRight(
-        DecodingFailure(
-          s"`$string` is not a valid semver version.",
-          json.history
-        )
-      )
-    } yield version
   }
 
   implicit private val optsDecoder: Decoder[Seq[(String, String)]] = { json =>

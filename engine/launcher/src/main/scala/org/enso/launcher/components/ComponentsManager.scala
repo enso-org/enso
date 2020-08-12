@@ -261,7 +261,7 @@ class ComponentsManager(
     FileSystem.withTemporaryDirectory("enso-install") { directory =>
       Logger.debug(s"Downloading packages to $directory")
       val enginePackage = directory / engineRelease.packageFileName
-      Logger.info(s"Downloading ${enginePackage.getFileName}")
+      Logger.info(s"Downloading ${enginePackage.getFileName}.")
       engineReleaseProvider
         .downloadPackage(engineRelease, enginePackage)
         .waitForResult(showProgress)
@@ -270,7 +270,7 @@ class ComponentsManager(
       val engineDirectoryName =
         engineDirectoryNameForVersion(engineRelease.version)
 
-      Logger.info(s"Extracting engine")
+      Logger.info(s"Extracting the engine.")
       Archive
         .extractArchive(
           enginePackage,
@@ -454,7 +454,7 @@ class ComponentsManager(
     FileSystem.withTemporaryDirectory("enso-install-runtime") { directory =>
       val runtimePackage =
         directory / runtimeReleaseProvider.packageFileName(runtimeVersion)
-      Logger.info(s"Downloading ${runtimePackage.getFileName}")
+      Logger.info(s"Downloading ${runtimePackage.getFileName}.")
       runtimeReleaseProvider
         .downloadPackage(runtimeVersion, runtimePackage)
         .waitForResult(showProgress)
@@ -462,7 +462,7 @@ class ComponentsManager(
 
       val runtimeDirectoryName = graalDirectoryForVersion(runtimeVersion)
 
-      Logger.info(s"Extracting runtime")
+      Logger.info(s"Extracting the runtime.")
       Archive
         .extractArchive(
           runtimePackage,

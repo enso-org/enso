@@ -27,7 +27,7 @@ class GlobalConfigurationManager(componentsManager: ComponentsManager) {
       val latestAvailable = componentsManager.fetchLatestEngineVersion()
       Logger.warn(
         s"No Enso versions installed, defaulting to the latest available " +
-        s"release: $latestAvailable"
+        s"release: $latestAvailable."
       )
       latestAvailable
     }

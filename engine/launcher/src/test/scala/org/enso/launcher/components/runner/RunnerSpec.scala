@@ -8,9 +8,8 @@ import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.{GlobalConfigurationManager, Logger}
 import org.enso.launcher.components.ComponentsManagerTest
 import org.enso.launcher.project.ProjectManager
-import org.scalatest.TryValues
 
-class RunnerSpec extends ComponentsManagerTest with TryValues {
+class RunnerSpec extends ComponentsManagerTest {
   private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
   case class TestSetup(runner: Runner, projectManager: ProjectManager)
   def makeFakeRunner(cwdOverride: Option[Path] = None): TestSetup = {
@@ -74,9 +73,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
           projectPath         = None,
           versionOverride     = None,
           additionalArguments = Seq("arg", "--flag")
-        )
-        .success
-        .value
+        ).get
 
       runSettings.version shouldEqual defaultEngineVersion
       runSettings.runnerArguments should (contain("arg") and contain("--flag"))
@@ -95,7 +92,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
       projectManager.newProject(
         "test",
         projectPath,
-        Some(version.toString)
+        Some(version)
       )
 
       val outsideProject = runnerOutside
@@ -104,8 +101,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
           versionOverride     = None,
           additionalArguments = Seq()
         )
-        .success
-        .value
+        .get
 
       outsideProject.version shouldEqual version
       outsideProject.runnerArguments.mkString(" ") should
@@ -117,9 +113,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
           projectPath         = None,
           versionOverride     = None,
           additionalArguments = Seq()
-        )
-        .success
-        .value
+        ).get
 
       insideProject.version shouldEqual version
       insideProject.runnerArguments.mkString(" ") should
@@ -131,9 +125,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
           projectPath         = Some(projectPath),
           versionOverride     = Some(overridden),
           additionalArguments = Seq()
-        )
-        .success
-        .value
+        ).get
 
       overriddenRun.version shouldEqual overridden
       overriddenRun.runnerArguments.mkString(" ") should
@@ -148,7 +140,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
       projectManager.newProject(
         "test",
         projectPath,
-        Some(version.toString)
+        Some(version)
       )
 
       val options = LanguageServerOptions(
@@ -163,9 +155,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
           options,
           versionOverride     = None,
           additionalArguments = Seq("additional")
-        )
-        .success
-        .value
+        ).get
 
       runSettings.version shouldEqual version
       val commandLine = runSettings.runnerArguments.mkString(" ")
@@ -183,9 +173,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
           options,
           versionOverride     = Some(overridden),
           additionalArguments = Seq()
-        )
-        .success
-        .value
+        ).get
         .version shouldEqual overridden
     }
 
@@ -198,7 +186,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
       projectManager.newProject(
         "test",
         projectPath,
-        Some(version.toString)
+        Some(version)
       )
 
       val outsideProject = runnerOutside
@@ -206,9 +194,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
           path                = Some(projectPath),
           versionOverride     = None,
           additionalArguments = Seq()
-        )
-        .success
-        .value
+        ).get
 
       outsideProject.version shouldEqual version
       outsideProject.runnerArguments.mkString(" ") should
@@ -220,9 +206,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
           path                = None,
           versionOverride     = None,
           additionalArguments = Seq()
-        )
-        .success
-        .value
+        ).get
 
       insideProject.version shouldEqual version
       insideProject.runnerArguments.mkString(" ") should
@@ -234,9 +218,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
           path                = Some(projectPath),
           versionOverride     = Some(overridden),
           additionalArguments = Seq()
-        )
-        .success
-        .value
+        ).get
 
       overriddenRun.version shouldEqual overridden
       overriddenRun.runnerArguments.mkString(" ") should
@@ -262,7 +244,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
       projectManager.newProject(
         "test",
         projectPath,
-        Some(version.toString)
+        Some(version)
       )
 
       val outsideFile = getTestDirectory / "Main.enso"
@@ -277,9 +259,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
           path                = Some(outsideFile),
           versionOverride     = None,
           additionalArguments = Seq()
-        )
-        .success
-        .value
+        ).get
 
       runSettings.version shouldEqual defaultEngineVersion
       runSettings.runnerArguments.mkString(" ") should
@@ -294,7 +274,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
       projectManager.newProject(
         "test",
         projectPath,
-        Some(version.toString)
+        Some(version)
       )
 
       val insideFile = projectPath / "src" / "Main.enso"
@@ -305,9 +285,7 @@ class RunnerSpec extends ComponentsManagerTest with TryValues {
           path                = Some(insideFile),
           versionOverride     = None,
           additionalArguments = Seq()
-        )
-        .success
-        .value
+        ).get
 
       runSettings.version shouldEqual version
       runSettings.runnerArguments.mkString(" ") should

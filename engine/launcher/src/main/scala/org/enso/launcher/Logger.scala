@@ -68,6 +68,11 @@ object Logger {
   /**
     * Runs the provided action with a log level that will allow only for errors
     * and returns its result.
+    *
+    * Warning: This function is not thread safe, so using it in tests that are
+    * run in parallel without forking may lead to an inconsistency in logging.
+    * This is just a *temporary* solution until a fully-fledged logging service
+    * is developed #1031.
     */
   def suppressWarnings[R](action: => R): R = {
     val oldLevel = logLevel

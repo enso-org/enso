@@ -2,10 +2,11 @@ package org.enso.launcher.project
 
 import java.nio.file.Path
 
+import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.{GlobalConfigurationManager, Logger}
-import org.enso.pkg.PackageManager
+import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 
-import scala.util.Try
+import scala.util.{Failure, Try}
 
 /**
   * A helper class for project management.
@@ -30,14 +31,14 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
   def newProject(
     name: String,
     path: Path,
-    ensoVersion: Option[String] = None
+    ensoVersion: Option[SemVer] = None
   ): Unit = {
     packageManager.create(
       root = path.toFile,
       name = name,
-      ensoVersion = ensoVersion.getOrElse {
-        globalConfigurationManager.defaultVersion.toString()
-      }
+      ensoVersion = SemVerEnsoVersion(
+        ensoVersion.getOrElse(globalConfigurationManager.defaultVersion)
+      )
     )
     Logger.info(s"Project created in `$path`.")
   }
@@ -47,23 +48,28 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
     */
   def loadProject(path: Path): Try[Project] =
     packageManager
-      .fromDirectory(path.toFile)
+      .loadPackage(path.toFile)
       .map(new Project(_, globalConfigurationManager))
-      .toRight(ProjectLoadingError(path))
-      .toTry
+      .recoverWith(error => Failure(ProjectLoadingError(path, error)))
 
   /**
     * Traverses the directory tree looking for a project in one of the ancestors
     * of the provided path.
+    *
+    * If a package file is missing in a directory, its
     */
-  def findProject(path: Path): Option[Project] =
-    tryFindingProject(path.toAbsolutePath.normalize)
-
-  private def tryFindingProject(root: Path): Option[Project] =
-    packageManager.fromDirectory(root.toFile) match {
-      case Some(found) =>
-        Some(new Project(found, globalConfigurationManager))
-      case None =>
-        Option(root.getParent).flatMap(tryFindingProject)
+  def findProject(path: Path): Try[Option[Project]] =
+    tryFindingProject(path.toAbsolutePath.normalize).map(Some(_)).recover {
+      case PackageManager.PackageNotFound() => None
     }
+
+  private def tryFindingProject(root: Path): Try[Project] =
+    packageManager
+      .loadPackage(root.toFile)
+      .map(new Project(_, globalConfigurationManager))
+      .recoverWith {
+        case PackageManager.PackageNotFound() if root.getParent != null =>
+          tryFindingProject(root.getParent)
+        case otherError => Failure(otherError)
+      }
 }

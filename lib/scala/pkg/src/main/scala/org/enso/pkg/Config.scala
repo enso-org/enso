@@ -5,6 +5,8 @@ import io.circe.generic.auto._
 import io.circe.{yaml, Decoder, Encoder, Json}
 import io.circe.yaml.Printer
 
+import scala.util.Try
+
 case class Dependency(name: String, version: String)
 
 /**
@@ -24,7 +26,7 @@ case class Dependency(name: String, version: String)
 case class Config(
   name: String,
   version: String,
-  ensoVersion: String,
+  ensoVersion: EnsoVersion,
   license: String,
   author: List[String],
   maintainer: List[String],
@@ -49,14 +51,6 @@ object Config {
     val dependencies: String = "dependencies"
   }
 
-  /**
-    * The string representing the `default` Enso version.
-    *
-    * If `enso-version` is set to `default`, the locally default Enso engine
-    * version is used for the project.
-    */
-  val defaultEnsoVersion = "default"
-
   private val decodeContactsList: Decoder[List[String]] = { json =>
     json
       .as[String]
@@ -72,10 +66,11 @@ object Config {
 
   implicit val decoder: Decoder[Config] = { json =>
     for {
-      name        <- json.get[String](JsonFields.name)
-      version     <- json.getOrElse[String](JsonFields.version)("dev")
-      ensoVersion <- json.get[String](JsonFields.ensoVersion)
-      license     <- json.getOrElse(JsonFields.license)("")
+      name    <- json.get[String](JsonFields.name)
+      version <- json.getOrElse[String](JsonFields.version)("dev")
+      ensoVersion <-
+        json.getOrElse[EnsoVersion](JsonFields.ensoVersion)(DefaultEnsoVersion)
+      license <- json.getOrElse(JsonFields.license)("")
       author <- json.getOrElse[List[String]](JsonFields.author)(List())(
         decodeContactsList
       )
@@ -114,7 +109,7 @@ object Config {
     withDeps
   }
 
-  def fromYaml(yamlString: String): Option[Config] = {
-    yaml.parser.parse(yamlString).flatMap(_.as[Config]).toOption
+  def fromYaml(yamlString: String): Try[Config] = {
+    yaml.parser.parse(yamlString).flatMap(_.as[Config]).toTry
   }
 }

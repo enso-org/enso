@@ -6,7 +6,7 @@ import scala.jdk.CollectionConverters._
 import org.enso.filesystem.FileSystem
 
 import scala.io.Source
-import scala.util.Try
+import scala.util.{Failure, Try, Using}
 
 object CouldNotCreateDirectory extends Exception
 
@@ -200,8 +200,8 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   def create(
     root: F,
     name: String,
-    version: String     = "0.0.1",
-    ensoVersion: String = Config.defaultEnsoVersion
+    version: String          = "0.0.1",
+    ensoVersion: EnsoVersion = DefaultEnsoVersion
   ): Package[F] = {
     val config = Config(
       name         = normalizeName(name),
@@ -219,18 +219,39 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     * Tries to parse package structure from a given root location.
     *
     * @param root the root location to get package info from.
-    * @return `Some(pkg)` if the location represents a package, `None` otherwise.
+    * @return `Some(pkg)` if the location represents a package, `None`
+    *        otherwise.
     */
-  def fromDirectory(root: F): Option[Package[F]] = {
-    if (!root.exists) return None
-    val configFile = root.getChild(Package.configFileName)
-    val reader     = Try(configFile.newBufferedReader)
-    val resultStr = reader
-      .flatMap(rd => Try(rd.lines().iterator().asScala.mkString("\n")))
-      .toOption
-    val result = resultStr.flatMap(Config.fromYaml)
-    reader.map(_.close())
-    result.map(Package(root, _, fileSystem))
+  def fromDirectory(root: F): Option[Package[F]] =
+    loadPackage(root).toOption
+
+  /**
+    * Loads the package structure at the given root location and reports any
+    * errors.
+    *
+    * @param root the root location to get package info from.
+    * @return `Success(pkg)` if the location represents a valid package, and
+    *        `Failure` otherwise. If the package file or its parent directory do
+    *        not exist, a `PackageNotFound` exception is returned. Otherwise,
+    *        the exception that made it not possible to load the package is
+    *        returned.
+    */
+  def loadPackage(root: F): Try[Package[F]] = {
+    if (!root.exists) Failure(PackageManager.PackageNotFound())
+    else {
+      def readConfig(file: F): Try[String] =
+        if (file.exists)
+          Using(file.newBufferedReader) { reader =>
+            reader.lines().iterator().asScala.mkString("\n")
+          }
+        else Failure(PackageManager.PackageNotFound())
+
+      val configFile = root.getChild(Package.configFileName)
+      for {
+        resultStr <- readConfig(configFile)
+        result    <- Config.fromYaml(resultStr)
+      } yield Package(root, result, fileSystem)
+    }
   }
 
   /**
@@ -272,6 +293,8 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
 
 object PackageManager {
   val Default = new PackageManager[File]()(FileSystem.Default)
+
+  case class PackageNotFound() extends RuntimeException
 }
 
 /**

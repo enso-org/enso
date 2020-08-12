@@ -43,7 +43,7 @@ class Runner(
         case Some(value) =>
           Some(projectManager.loadProject(value).get)
         case None =>
-          projectManager.findProject(currentWorkingDirectory)
+          projectManager.findProject(currentWorkingDirectory).get
       }
 
       val version =
@@ -78,6 +78,7 @@ class Runner(
         .getOrElse {
           projectManager
             .findProject(currentWorkingDirectory)
+            .get
             .getOrElse {
               throw RunnerError(
                 "The current directory is not inside any project. `enso run` " +
@@ -95,7 +96,7 @@ class Runner(
       val projectMode = Files.isDirectory(actualPath)
       val project =
         if (projectMode) Some(projectManager.loadProject(actualPath).get)
-        else projectManager.findProject(actualPath)
+        else projectManager.findProject(actualPath).get
       val version = versionOverride
         .orElse(project.map(_.version))
         .getOrElse(configurationManager.defaultVersion)

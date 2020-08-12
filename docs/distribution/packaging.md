@@ -120,9 +120,10 @@ parties.
 
 #### enso-version
 
-_String_: Specifies the Enso version that should be used for this project. If
-set to `default`, the default locally installed Enso version will be used. The
-version should not be `default` if the package is to be published.
+**Optional (required for publishing)** _String_: Specifies the Enso version that
+should be used for this project. If not set or set to `default`, the default
+locally installed Enso version will be used. The version should not be `default`
+if the package is to be published.
 
 #### version
 

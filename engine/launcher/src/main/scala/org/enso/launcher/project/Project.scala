@@ -5,7 +5,7 @@ import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.GlobalConfigurationManager
-import org.enso.pkg.{Config, Package}
+import org.enso.pkg.{DefaultEnsoVersion, Package, SemVerEnsoVersion}
 
 /**
   * Represents an Enso project.
@@ -27,15 +27,11 @@ class Project(
     * default Enso version is used.
     */
   def version: SemVer =
-    if (pkg.config.ensoVersion == Config.defaultEnsoVersion)
-      globalConfigurationManager.defaultVersion
-    else
-      SemVer(pkg.config.ensoVersion).getOrElse {
-        throw new IllegalArgumentException(
-          s"Error loading project ${pkg.name} - the version string is not a " +
-          s"valid Enso version."
-        )
-      }
+    pkg.config.ensoVersion match {
+      case DefaultEnsoVersion =>
+        globalConfigurationManager.defaultVersion
+      case SemVerEnsoVersion(version) => version
+    }
 
   /**
     * The path to the content root of the project.
