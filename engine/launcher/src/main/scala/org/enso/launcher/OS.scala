@@ -1,5 +1,7 @@
 package org.enso.launcher
 
+import io.circe.{Decoder, DecodingFailure}
+
 sealed trait OS {
   def name: String
 }
@@ -8,7 +10,7 @@ object OS {
     def name: String = "linux"
   }
   case object MacOS extends OS {
-    def name: String = "mac"
+    def name: String = "macos"
   }
   case object Windows extends OS {
     def name: String = "windows"
@@ -30,8 +32,9 @@ object OS {
 
   private val ENSO_OPERATING_SYSTEM = "ENSO_OPERATING_SYSTEM"
 
+  private val knownOS = Seq(Linux, MacOS, Windows)
+
   private def detectOS: OS = {
-    val knownOS       = Seq(Linux, MacOS, Windows)
     val overridenName = Option(System.getenv(ENSO_OPERATING_SYSTEM))
     overridenName match {
       case Some(value) =>
@@ -61,7 +64,7 @@ object OS {
         s"the OS you are running is supported. You can try to manually " +
         s"override the operating system detection by setting an environment " +
         s"variable `$ENSO_OPERATING_SYSTEM` to one of the possible values " +
-        s"`linux`, `mac`, `windows` depending on the system that your OS " +
+        s"`linux`, `macos`, `windows` depending on the system that your OS " +
         s"most behaves like."
       )
       throw new IllegalStateException(
@@ -90,4 +93,16 @@ object OS {
     */
   def executableName(baseName: String): String =
     if (isWindows) baseName + ".exe" else baseName
+
+  implicit val decoder: Decoder[OS] = { json =>
+    json.as[String].flatMap { string =>
+      knownOS.find(_.name == string).toRight {
+        DecodingFailure(
+          s"`$string` is not a valid OS name. " +
+          s"Possible values are ${knownOS.map(_.name).mkString(", ")}",
+          json.history
+        )
+      }
+    }
+  }
 }

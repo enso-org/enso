@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.{Environment, GlobalConfigurationManager, Logger}
-import org.enso.launcher.components.{ComponentsManager, Runtime}
+import org.enso.launcher.components.{ComponentsManager, Manifest, Runtime}
 import org.enso.launcher.project.ProjectManager
 
 import scala.util.Try
@@ -176,8 +176,7 @@ class Runner(
       )
     }
 
-    val runtimeJar = engine.runtimePath.toAbsolutePath.normalize.toString
-    val runnerJar  = engine.runnerPath.toAbsolutePath.normalize.toString
+    val runnerJar = engine.runnerPath.toAbsolutePath.normalize.toString
 
     def translateJVMOption(option: (String, String)): String = {
       val name  = option._1
@@ -185,9 +184,10 @@ class Runner(
       s"-D$name=$value"
     }
 
-    val manifestOptions = (Seq(
-      ("truffle.class.path.append", runtimeJar) // TODO remove this one
-    ) ++ engine.defaultJVMOptions).map(translateJVMOption)
+    val context = Manifest.JVMOptionsContext(enginePackagePath = engine.path)
+
+    val manifestOptions =
+      engine.defaultJVMOptions.filter(_.isRelevant).map(_.substitute(context))
     val environmentOptions =
       jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
     val commandLineOptions = jvmSettings.jvmOptions.map(translateJVMOption)

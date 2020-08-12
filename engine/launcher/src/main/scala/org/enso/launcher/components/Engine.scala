@@ -29,7 +29,7 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
   /**
     * A set of JVM options that should be added when running this engine.
     */
-  def defaultJVMOptions: Seq[(String, String)] = manifest.jvmOptions
+  def defaultJVMOptions: Seq[Manifest.JVMOption] = manifest.jvmOptions
 
   /**
     * Path to the runner JAR.

@@ -6,6 +6,8 @@ import java.nio.file.Path
 import cats.Show
 import io.circe.{yaml, Decoder}
 import nl.gn0s1s.bump.SemVer
+import org.enso.launcher.OS
+import org.enso.launcher.components.Manifest.JVMOption
 import org.enso.pkg.SemVerDecoder._
 
 import scala.util.{Failure, Try, Using}
@@ -29,7 +31,7 @@ case class Manifest(
   minimumLauncherVersion: SemVer,
   graalVMVersion: SemVer,
   graalJavaVersion: String,
-  jvmOptions: Seq[(String, String)]
+  jvmOptions: Seq[JVMOption]
 ) {
 
   /**
@@ -46,6 +48,30 @@ object Manifest {
     * Defines the name under which the manifest is included in the releases.
     */
   val DEFAULT_MANIFEST_NAME = "manifest.yaml"
+
+  case class JVMOptionsContext(enginePackagePath: Path)
+
+  case class JVMOption(value: String, osRestriction: Option[OS]) {
+    def isRelevant: Boolean =
+      osRestriction.isEmpty || osRestriction.contains(OS.operatingSystem)
+
+    def substitute(context: JVMOptionsContext): String =
+      value.replace(
+        "$enginePackagePath",
+        context.enginePackagePath.toAbsolutePath.normalize.toString
+      )
+  }
+
+  object JVMOption {
+    implicit val decoder: Decoder[JVMOption] = { json =>
+      for {
+        value <- json.get[String]("value")
+        osRestriction <-
+          if (json.keys.contains("os")) json.get[OS]("os").map(Some(_))
+          else Right(None)
+      } yield JVMOption(value, osRestriction)
+    }
+  }
 
   /**
     * Tries to load the manifest at the given path.
@@ -101,10 +127,6 @@ object Manifest {
     val graalJavaVersion       = "graal-java-version"
   }
 
-  implicit private val optsDecoder: Decoder[Seq[(String, String)]] = { json =>
-    json.as[Map[String, String]].map(_.toSeq)
-  }
-
   implicit private val decoder: Decoder[Manifest] = { json =>
     for {
       minimumLauncherVersion <- json.get[SemVer](Fields.minimumLauncherVersion)
@@ -113,8 +135,7 @@ object Manifest {
         json
           .get[String](Fields.graalJavaVersion)
           .orElse(json.get[Int](Fields.graalJavaVersion).map(_.toString))
-      jvmOptions <-
-        json.getOrElse[Seq[(String, String)]](Fields.jvmOptions)(Seq())
+      jvmOptions <- json.getOrElse[Seq[JVMOption]](Fields.jvmOptions)(Seq())
     } yield Manifest(
       minimumLauncherVersion = minimumLauncherVersion,
       graalVMVersion         = graalVMVersion,
