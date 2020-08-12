@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "lib/rust/ast",
     "lib/rust/enso-data",
     "lib/rust/enso-generics",
     "lib/rust/enso-logger",
@@ -10,11 +11,10 @@ members = [
     "lib/rust/enso-shapely/impl",
     "lib/rust/enso-shapely/macros",
     "lib/rust/flexer",
+    "lib/rust/lazy-reader",
     "lib/rust/lexer/definition",
     "lib/rust/lexer/generation",
     "lib/rust/lexer/tests",
-    "lib/rust/lazy-reader",
-    "lib/rust/ast",
     "lib/rust/parser",
 ]
 
