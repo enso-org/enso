@@ -11,6 +11,8 @@ use flexer::State;
 /// The content of the generated file can be used with the `include!` macro.
 fn generate_engine() -> std::io::Result<()> {
     let definition_path  = "../definition/src/lib.rs";
+    let output_directory = "src/generated";
+    let _                = std::fs::create_dir(output_directory);
     let output_path      = "src/generated/engine.rs";
     let definition_error = format!("The lexer definition should exist at {}.",definition_path);
     let output_error     = format!("Cannot open output file at {}.",output_path);
