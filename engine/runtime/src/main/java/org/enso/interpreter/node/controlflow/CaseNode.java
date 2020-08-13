@@ -26,7 +26,6 @@ import org.enso.interpreter.runtime.type.TypesGen;
  */
 @NodeChild(value = "scrutinee", type = ExpressionNode.class)
 @NodeInfo(shortName = "case_of", description = "The runtime representation of a case expression.")
-@ImportStatic(TypesGen.class)
 public abstract class CaseNode extends ExpressionNode {
 
   @Children private final BranchNode[] cases;
@@ -69,7 +68,7 @@ public abstract class CaseNode extends ExpressionNode {
    * @param ctx the language context reference
    * @return the result of executing the case expression on {@code object}
    */
-  @Specialization(guards = "!isRuntimeError(object)")
+  @Specialization(guards = "!isError(object)")
   @ExplodeLoop
   public Object doMatch(
       VirtualFrame frame,
@@ -88,6 +87,10 @@ public abstract class CaseNode extends ExpressionNode {
       frame.setObject(getStateFrameSlot(), e.getResult().getState());
       return e.getResult().getValue();
     }
+  }
+
+  boolean isError(Object error) {
+    return TypesGen.isRuntimeError(error);
   }
 
   /* Note [Branch Selection Control Flow]
