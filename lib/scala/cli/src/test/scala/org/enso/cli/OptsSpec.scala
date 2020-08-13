@@ -23,7 +23,13 @@ class OptsSpec
     def parse(args: Seq[String]): Either[List[String], A] = {
       val (tokens, additionalArguments) = Parser.tokenize(args)
       Parser
-        .parseOpts(opts, tokens, additionalArguments, isTopLevel = false, Seq("???"))
+        .parseOpts(
+          opts,
+          tokens,
+          additionalArguments,
+          isTopLevel = false,
+          Seq("???")
+        )
         .map(_._1)
     }
 
@@ -164,10 +170,10 @@ class OptsSpec
     }
 
     "parse when put anywhere between arguments" in {
-      val arg1 = Opts.positionalArgument[String]("arg1")
-      val arg2 = Opts.positionalArgument[String]("arg2")
+      val arg1  = Opts.positionalArgument[String]("arg1")
+      val arg2  = Opts.positionalArgument[String]("arg2")
       val param = Opts.parameter[String]("p", "x", "help")
-      val opts = (arg1, arg2, param) mapN { (_, _, p) => p }
+      val opts  = (arg1, arg2, param) mapN { (_, _, p) => p }
       opts.parseSuccessfully("arg1 arg2 --p value") shouldEqual "value"
       opts.parseSuccessfully("arg1 --p value arg2") shouldEqual "value"
       opts.parseSuccessfully("--p value arg1 arg2") shouldEqual "value"
@@ -222,13 +228,15 @@ class OptsSpec
 
   "pure" should {
     "return its value" in {
-      Opts.pure("A").parseSuccessfully("") shouldEqual("A")
+      Opts.pure("A").parseSuccessfully("") shouldEqual "A"
     }
 
     "not consume any options" in {
       Opts.pure("A").parseFailing("arg").head should include("Unexpected")
       Opts.pure("A").parseFailing("--flag").head should include("Unknown")
-      Opts.pure("A").parseFailing("--parameter=x").head should include("Unknown")
+      Opts.pure("A").parseFailing("--parameter=x").head should include(
+        "Unknown"
+      )
     }
   }
 
@@ -265,23 +273,31 @@ class OptsSpec
       opts.parseSuccessfully("cmd1") shouldEqual ((false, (1, false)))
 
       opts.parseSuccessfully("--flag3 cmd1 --flag1") shouldEqual
-        ((true, (1, true)))
+      ((true, (1, true)))
       opts.parseSuccessfully("cmd1 --flag3 --flag1") shouldEqual
-        ((true, (1, true)))
+      ((true, (1, true)))
 
       opts.parseFailing("--flag1 cmd1")
+    }
+
+    "handle errors nicely" in {
+      opt.parseFailing("").last should include("Usage:")
+      opt.parseFailing("cmd").head should (include("cmd1") and include("cmd2"))
+      opt.parseFailing("cmd").last should include("--help")
     }
   }
 
   "withDefault" should {
     "return the default value if the result is missing" in {
-      Opts.optionalArgument[Int]("arg")
+      Opts
+        .optionalArgument[Int]("arg")
         .withDefault(1)
         .parseSuccessfully("") shouldEqual 1
     }
 
     "return the original value if provided" in {
-      Opts.optionalArgument[Int]("arg")
+      Opts
+        .optionalArgument[Int]("arg")
         .withDefault(1)
         .parseSuccessfully("0") shouldEqual 0
     }
