@@ -2923,37 +2923,22 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    context.receive(3) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      Api.Response(
-        Api.ExecutionFailed(contextId, "Module Test.Main does not exist.")
-      )
-    )
-
-    // pop main
-    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PopContextResponse(contextId))
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
     )
 
-    // push main
+    // recompute invalidating all
     context.send(
       Api.Request(
         requestId,
-        Api.PushContextRequest(
+        Api.RecomputeContextRequest(
           contextId,
-          Api.StackItem.ExplicitCall(
-            Api.MethodPointer("Foo.Main", "Main", "main"),
-            None,
-            Vector()
-          )
+          Some(Api.InvalidatedExpressions.All())
         )
       )
     )
-    context.receive(5) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId)),
-      context.Main.Update.mainX(contextId),
-      context.Main.Update.mainZ(contextId),
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       Api.Response(
         Api.ExpressionValuesComputed(
           contextId,
