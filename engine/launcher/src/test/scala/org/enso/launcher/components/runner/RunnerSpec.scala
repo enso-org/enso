@@ -78,8 +78,7 @@ class RunnerSpec extends ComponentsManagerTest {
             _.contains("truffle.class.path.append")
           ) should have length 1
 
-          commandLine should include
-          regex(s"-jar $runnerPath")
+          commandLine should include(s"-jar $runnerPath")
         }
       }
     }

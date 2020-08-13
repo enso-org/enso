@@ -119,7 +119,6 @@ object Manifest {
       yaml.parser
         .parse(reader)
         .flatMap(_.as[Manifest])
-        .map(m => { println(m); m })
         .toTry
     }.flatten.recoverWith { error =>
       Failure(ManifestLoadingError.fromThrowable(error))
