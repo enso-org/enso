@@ -437,7 +437,8 @@ impl Handle {
     (parent:impl AnyLogger, project:&model::Project, method:&language_server::MethodPointer)
     -> FallibleResult<controller::Graph> {
         let method      = method.clone();
-        let module_path = model::module::Path::from_file_path(method.file.clone())?;
+        let root_id     = project.content_root_id();
+        let module_path = model::module::Path::from_method(root_id,&method)?;
         let module      = project.module(module_path).await?;
         let module_ast  = module.ast();
         let definition  = double_representation::module::lookup_method(&module_ast,&method)?;
@@ -831,7 +832,7 @@ pub mod tests {
         }
 
         pub fn method(&self) -> MethodPointer {
-            self.module_path.method_pointer(self.graph_id.to_string())
+            self.module_path.method_pointer(&self.project_name,self.graph_id.to_string())
         }
     }
 

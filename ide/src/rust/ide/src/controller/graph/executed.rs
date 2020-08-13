@@ -161,11 +161,12 @@ impl Handle {
         debug!(self.logger, "Entering node {node}.");
         let registry   = self.execution_ctx.computed_value_info_registry();
         let node_info  = registry.get(&node).ok_or_else(|| NotEvaluatedYet(node))?;
-        let method_ptr = node_info.method_pointer.as_ref().ok_or_else(|| NoResolvedMethod(node))?;
+        let entry_id   = *node_info.method_call.as_ref().ok_or_else(|| NoResolvedMethod(node))?;
+        let method_ptr = self.project.suggestion_db().lookup_method_ptr(entry_id)?;
         let graph      = controller::Graph::new_method(&self.logger,&self.project,&method_ptr).await?;
         let call       = model::execution_context::LocalCall {
             call       : node,
-            definition : method_ptr.as_ref().clone()
+            definition : method_ptr
         };
         self.execution_ctx.push(call).await?;
 
@@ -235,6 +236,8 @@ pub mod tests {
             model::project::test::expect_parser(&mut project,&parser);
             model::project::test::expect_module(&mut project,module);
             model::project::test::expect_execution_ctx(&mut project,ctx);
+            // Root ID is needed to generate module path used to get the module.
+            model::project::test::expect_root_id(&mut project,crate::test::mock::data::ROOT_ID);
 
             let project = Rc::new(project);
             Handle::new(Logger::default(),project.clone_ref(),method).boxed_local().expect_ok()

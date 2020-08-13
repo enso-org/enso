@@ -11,6 +11,7 @@ use crate::notification::Publisher;
 use enso_protocol::language_server;
 use enso_protocol::language_server::ExpressionValueUpdate;
 use enso_protocol::language_server::MethodPointer;
+use enso_protocol::language_server::SuggestionId;
 use enso_protocol::language_server::VisualisationConfiguration;
 use flo_stream::Subscriber;
 use std::collections::HashMap;
@@ -43,14 +44,14 @@ pub struct ComputedValueInfo {
     /// The string representing the typename of the computed value, e.g. "Number" or "Unit".
     pub typename:Option<ImString>,
     /// If the expression is a method call (i.e. can be entered), this points to the target method.
-    pub method_pointer:Option<Rc<MethodPointer>>,
+    pub method_call:Option<SuggestionId>,
 }
 
 impl From<ExpressionValueUpdate> for ComputedValueInfo {
     fn from(update:ExpressionValueUpdate) -> Self {
         ComputedValueInfo {
-            typename       : update.typename.map(ImString::new),
-            method_pointer : update.method_call.map(Rc::new),
+            typename    : update.typename.map(ImString::new),
+            method_call : update.method_pointer,
         }
     }
 }
@@ -96,10 +97,10 @@ impl ComputedValueInfoRegistry {
 
     /// Store the information from the given update received from the Language Server.
     pub fn apply_updates(&self, values_computed:Vec<ExpressionValueUpdate>) {
-        let updated_expressions = values_computed.iter().map(|update| update.id).collect();
+        let updated_expressions = values_computed.iter().map(|update| update.expression_id).collect();
         with(self.map.borrow_mut(), |mut map| {
             for update in values_computed {
-                let id   = update.id;
+                let id   = update.expression_id;
                 let info = Rc::new(ComputedValueInfo::from(update));
                 map.insert(id,info);
             };

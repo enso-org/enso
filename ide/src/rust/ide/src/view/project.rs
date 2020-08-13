@@ -103,7 +103,7 @@ impl ProjectView {
         //   until proper decision is made. See: https://github.com/enso-org/enso/issues/1050
         recreate_if_missing(&model,&file_path,DEFAULT_MAIN_CONTENT.into()).await?;
         let text_controller   = controller::Text::new(&logger,&model,file_path).await?;
-        let method            = module_path.method_pointer(MAIN_DEFINITION_NAME);
+        let method            = module_path.method_pointer(model.name(),MAIN_DEFINITION_NAME);
         let graph_controller  = controller::ExecutedGraph::new(&logger,model.clone_ref(),method);
         let graph_controller  = graph_controller.await?;
         let application       = Application::new(&web::get_html_element_by_id("root").unwrap());

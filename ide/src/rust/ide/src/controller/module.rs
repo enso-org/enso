@@ -2,6 +2,7 @@
 
 use crate::prelude::*;
 
+use crate::double_representation::ReferentName;
 use crate::double_representation::text::apply_code_change_to_id_map;
 use crate::double_representation::module;
 use crate::model::module::Path;
@@ -106,13 +107,18 @@ impl Handle {
                                          self.parser.clone_ref(), id)
     }
 
+    /// Get the module's qualified name.
+    pub fn qualified_name(&self, project_name:ReferentName) -> module::QualifiedName {
+        module::QualifiedName::new(project_name,self.model.id())
+    }
+
     /// Get pointer to the method identified by its definition ID.
     ///
     /// Note that there might exist multiple definition IDs for the same method pointer, as
     /// definition IDs include information about definition syntax whereas method pointer identifies
     /// the desugared entity.
     pub fn method_pointer
-    (&self, id:&double_representation::graph::Id)
+    (&self, project_name:ReferentName, id:&double_representation::graph::Id)
     -> FallibleResult<language_server::MethodPointer> {
         let crumb = match id.crumbs.as_slice() {
             [crumb] => crumb,
@@ -125,9 +131,9 @@ impl Handle {
             crumb.extended_target.iter().map(|segment| segment.as_str()).join(".")
         };
         Ok(language_server::MethodPointer {
-            file : self.model.path().file_path().clone(),
             defined_on_type,
-            name : crumb.name.item.clone(),
+            module : self.qualified_name(project_name).to_string(),
+            name   : crumb.name.item.clone(),
         })
     }
 

@@ -14,7 +14,9 @@ use ide::prelude::*;
 
 use enso_protocol::language_server::*;
 use enso_protocol::types::*;
+use ide::double_representation::ReferentName;
 use ide::model::Project;
+use ide::model::module;
 use ide::model::execution_context::Visualization;
 use ide::transport::web::WebSocket;
 use std::time::Duration;
@@ -59,34 +61,27 @@ incAndEncode = x -> here.encode x+1
 
 wasm_bindgen_test_configure!(run_in_browser);
 
-// #[wasm_bindgen_test::wasm_bindgen_test(async)]
+//#[wasm_bindgen_test::wasm_bindgen_test(async)]
 #[allow(dead_code)]
 async fn ls_text_protocol_test() {
-    // Setting up.
-    let ws        = WebSocket::new_opened(default(),SERVER_ENDPOINT).await;
-    let ws        = ws.expect("Couldn't connect to WebSocket server.");
-    let client    = Client::new(ws);
-    let _executor = ide::ide::setup_global_executor();
-
-    executor::global::spawn(client.runner());
-
-    let client_id = uuid::Uuid::new_v4();
-    let session   = client.init_protocol_connection(&client_id).await;
-    let session   = session.expect("Couldn't initialize session.");
-    let root_id   = session.content_roots[0];
+    let _guard   = ide::ide::setup_global_executor();
+    let project  = setup_project().await;
+    let client   = project.json_rpc();
+    let root_id  = project.content_root_id();
+    let project_name = ReferentName::new(project.name()).unwrap();
 
     // Initialize files.
-    let file      = Path{root_id,segments:vec!["src".into(),"Main.enso".into()]};
+    let file      = Path::new(root_id,&["src","Main.enso"]);
     let contents  = MAIN_CODE.to_string();
     let result    = client.write_file(&file,&contents).await;
     result.expect("Couldn't write main code file.");
 
-    let visualisation_file = Path{root_id,segments:vec!["src".into(),"Visualisation.enso".into()]};
+    let visualisation_file = Path::new(root_id,&["src","Visualisation.enso"]);
     let contents           = VISUALISATION_CODE.to_string();
     let response           = client.write_file(&visualisation_file,&contents).await;
     response.expect("Couldn't write visualisation file.");
 
-    let package_file = Path{root_id,segments:vec!["package.yaml".into()]};
+    let package_file = Path::new(root_id,&["package.yaml"]);
     let contents     = PACKAGE_YAML.to_string();
     let response     = client.write_file(&package_file,&contents).await;
     response.expect("Couldn't write yaml file.");
@@ -96,9 +91,11 @@ async fn ls_text_protocol_test() {
     let execution_context    = execution_context.expect("Couldn't create execution context.");
     let execution_context_id = execution_context.context_id;
 
+    let module_path     = module::Path::try_from(file.clone()).unwrap();
     let defined_on_type = "Main".to_string();
     let name            = "main".to_string();
-    let method_pointer  = MethodPointer{file:file.clone(),defined_on_type,name};
+    let module          = module::QualifiedName::new(project_name,module_path.id());
+    let method_pointer  = MethodPointer{module:module.into(),defined_on_type,name};
     let positional_arguments_expressions = default();
     let this_argument_expression         = default();
     let explicit_call                    = ExplicitCall
@@ -219,8 +216,8 @@ async fn ls_text_protocol_test() {
     let edit        = FileEdit {path,edits,old_version,new_version:new_version.clone()};
     client.apply_text_file_edit(&edit).await.expect("Couldn't apply edit.");
 
-    let future = client.save_text_file(&move_path,&new_version).await;
-    future.expect("Couldn't save file.");
+    let saving_result = client.save_text_file(&move_path,&new_version).await;
+    saving_result.expect("Couldn't save file.");
 
     client.close_text_file(&move_path).await.expect("Couldn't close text file.");
 
@@ -337,7 +334,7 @@ async fn binary_visualization_updates_test_hlp() {
 
     let logger                = Logger::new("Test");
     let module_path           = ide::view::project::initial_module_path(&project).unwrap();
-    let method                = module_path.method_pointer(MAIN_DEFINITION_NAME);
+    let method                = module_path.method_pointer(project.name(),MAIN_DEFINITION_NAME);
     let module_qualified_name = project.qualified_module_name(&module_path);
     let module                = project.module(module_path).await.unwrap();
     println!("Got module: {:?}", module);

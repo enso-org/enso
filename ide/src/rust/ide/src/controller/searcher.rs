@@ -646,9 +646,12 @@ impl Searcher {
         for response in responses {
             let response = response?;
             let entries  = response.results.iter().filter_map(|id| {
-                self.database.get(*id).map_none(||
-                    error!(self.logger,"Missing entry {id} in Suggestion Database.")
-                ).map(Suggestion::Completion)
+                self.database.lookup(*id)
+                    .map(Suggestion::Completion)
+                    .handle_err(|e| {
+                        error!(self.logger,"Response provided a suggestion ID that cannot be \
+                        resolved: {e}")
+                    })
             });
             suggestions.extend(entries);
         }
@@ -683,11 +686,11 @@ impl Searcher {
             (this_name,&module_name,position);
         let not_local_name = matching_locals.is_empty();
         not_local_name.and_option_from(|| {
-            if this_name == constants::keywords::HERE || this_name == module_name.name() {
+            if this_name == constants::keywords::HERE || this_name == module_name.name().deref() {
                 Some(module_name)
             } else {
                 self.module().iter_imports().find_map(|import| {
-                    import.qualified_name().ok().filter(|module| module.name() == this_name)
+                    import.qualified_name().ok().filter(|module| module.name().deref() == this_name)
                 })
             }
         })
@@ -772,9 +775,9 @@ mod test {
     use enso_protocol::language_server::types::test::value_update_with_type;
     use json_rpc::expect_call;
     use utils::test::traits::*;
-    use enso_protocol::language_server::SuggestionEntryId;
+    use enso_protocol::language_server::SuggestionId;
 
-    fn completion_response(results:&[SuggestionEntryId]) -> language_server::response::Completion {
+    fn completion_response(results:&[SuggestionId]) -> language_server::response::Completion {
         language_server::response::Completion {
             results         : results.to_vec(),
             current_version : default(),
@@ -806,7 +809,7 @@ mod test {
         , client:&mut language_server::MockClient
         , self_type:Option<&str>
         , return_type:Option<&str>
-        , result:&[SuggestionEntryId]
+        , result:&[SuggestionId]
         ) {
             let completion_response = completion_response(result);
             expect_call!(client.completion(
@@ -933,15 +936,15 @@ mod test {
             };
 
             searcher.database.put_entry(1,entry1);
-            let entry1 = searcher.database.get(1).unwrap();
+            let entry1 = searcher.database.lookup(1).unwrap();
             searcher.database.put_entry(2,entry2);
-            let entry2 = searcher.database.get(2).unwrap();
+            let entry2 = searcher.database.lookup(2).unwrap();
             searcher.database.put_entry(3,entry3);
-            let entry3 = searcher.database.get(3).unwrap();
+            let entry3 = searcher.database.lookup(3).unwrap();
             searcher.database.put_entry(4,entry4);
-            let entry4 = searcher.database.get(4).unwrap();
+            let entry4 = searcher.database.lookup(4).unwrap();
             searcher.database.put_entry(9,entry9);
-            let entry9 = searcher.database.get(9).unwrap();
+            let entry9 = searcher.database.lookup(9).unwrap();
             Fixture{data,test,searcher,entry1,entry2,entry3,entry4,entry9}
         }
 
