@@ -243,8 +243,8 @@ object Main {
     Subcommand("engine") {
       val version = Opts.optionalArgument[SemVer](
         "VERSION",
-        "The version to install. If not provided, the latest version is " +
-        "installed."
+        "VERSION specifies the engine version to install. If not provided, the" +
+        "latest version is installed."
       )
       version map { version => (config: Config) =>
         version match {

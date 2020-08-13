@@ -23,19 +23,8 @@ case class Command[A](
     *
     * @param applicationName name of the application for usage
     */
-  def help(applicationName: String): String = {
-    val tableDivider = "\t"
-    val usages =
-      opts.commandLines().map(s"$applicationName $name$tableDivider" + _)
-    val firstLine = "Usage: "
-    val padding   = " " * firstLine.length
-    val usage =
-      firstLine + usages.head +
-      usages.tail.map("\n" + padding + _).mkString + "\n"
-
-    comment + "\n" + usage +
-    opts.helpExplanations(addHelpOption = true).stripTrailing()
-  }
+  def help(applicationName: String): String =
+    comment + "\n" + opts.help(Seq(applicationName, name))
 
   /**
     * Returns a top-level help entry for the application help text. It includes

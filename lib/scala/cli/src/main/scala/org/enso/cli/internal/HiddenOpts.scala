@@ -29,5 +29,6 @@ class HiddenOpts[A](opts: Opts[A]) extends Opts[A] {
 
   override private[cli] def reset(): Unit = opts.reset()
 
-  override private[cli] def result() = opts.result()
+  override private[cli] def result(commandPrefix: Seq[String]) =
+    opts.result(commandPrefix)
 }

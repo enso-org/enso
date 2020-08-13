@@ -71,8 +71,8 @@ class Application[Config](
         topLevelOpts,
         tokens,
         Seq(),
-        isTopLevel = true,
-        command    = Seq(commandName)
+        isTopLevel    = true,
+        commandPrefix = Seq(commandName)
       )
     topLevelParseResult.flatMap {
       case (run, restOfTokens) =>

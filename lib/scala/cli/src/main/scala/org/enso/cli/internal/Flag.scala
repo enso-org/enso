@@ -39,7 +39,7 @@ class Flag(
     )
   }
 
-  override private[cli] def result() = value
+  override private[cli] def result(commandPrefix: Seq[String]) = value
 
   override def availableOptionsHelp(): Seq[String] =
     short match {

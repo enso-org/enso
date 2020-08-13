@@ -96,8 +96,8 @@ object Parser {
     *                   parsing top-level options, parsing is stopped to return
     *                   the top-level options and possibly continue it with
     *                   command options
-    * @param command the sequance of subcommand names, used for displaying help
-    *                messages
+    * @param commandPrefix the sequence of subcommand names, used for
+    *                      displaying help messages
     * @return returns either the result value of `opts` and remaining tokens or
     *         a list of errors on failure; the remaining tokens are non-empty
     *         only if `isTopLevel` is true
@@ -107,7 +107,7 @@ object Parser {
     tokens: Seq[Token],
     additionalArguments: Seq[String],
     isTopLevel: Boolean,
-    command: Seq[String]
+    commandPrefix: Seq[String]
   ): Either[List[String], (A, Seq[Token])] = {
     var parseErrors: List[String] = Nil
     def addError(error: String): Unit = {
@@ -243,16 +243,21 @@ object Parser {
     def appendHelp[T](
       result: Either[List[String], T]
     ): Either[List[String], T] = {
-      val help = s"See `${command.mkString(" ")} --help` for usage explanation."
+      val help =
+        s"See `${commandPrefix.mkString(" ")} --help` for usage explanation."
       result match {
-        case Left(errors) => Left(errors ++ Seq(help))
+        case Left(errors) =>
+          val shouldAddHelp = !errors.exists(_.contains("Usage:"))
+          if (shouldAddHelp)
+            Left(errors ++ Seq(help))
+          else Left(errors)
         case Right(value) => Right(value)
       }
     }
 
     appendHelp(
       appendErrors(
-        opts.result().map((_, tokenProvider.remaining())),
+        opts.result(commandPrefix).map((_, tokenProvider.remaining())),
         parseErrors.reverse
       )
     )
