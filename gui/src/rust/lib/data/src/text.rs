@@ -63,6 +63,11 @@ impl ByteIndex {
     pub fn new(value:usize) -> Self {
         ByteIndex {value}
     }
+
+    /// Index of the next byte.
+    pub fn next(self) -> Self {
+        ByteIndex {value: self.value + 1}
+    }
 }
 
 

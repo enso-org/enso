@@ -448,7 +448,10 @@ impl GraphEditorIntegratedWithControllerModel {
         if let Some(node_id) = self.node_views.borrow().get_by_left(&id).cloned() {
             self.set_type(node_id,id,typename);
             let method_pointer = info.and_then(|info| {
-                info.method_pointer.clone().map(graph_editor::MethodPointer)
+                info.method_call.and_then(|entry_id| {
+                    let opt_method = self.project.suggestion_db().lookup_method_ptr(entry_id).ok();
+                    opt_method.map(|method| graph_editor::MethodPointer(Rc::new(method)))
+                })
             });
             self.set_method_pointer(id,method_pointer);
         } else {

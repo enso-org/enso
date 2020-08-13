@@ -13,7 +13,9 @@ pub mod mock {
     #[allow(missing_docs)]
     pub mod data {
         use enso_protocol::language_server::Position;
+        use uuid::Uuid;
 
+        pub const ROOT_ID         : Uuid     = Uuid::from_u128(100);
         pub const PROJECT_NAME    : &str     = "MockProject";
         pub const MODULE_NAME     : &str     = "Mock_Module";
         pub const CODE            : &str     = "main = \n    2 + 2";
@@ -22,7 +24,7 @@ pub mod mock {
         pub const MAIN_FINISH     : Position = Position {line:1, character:9};
 
         pub fn module_path() -> crate::model::module::Path {
-            crate::model::module::Path::from_mock_module_name(MODULE_NAME)
+            crate::model::module::Path::from_name_segments(ROOT_ID, &[MODULE_NAME]).unwrap()
         }
 
         pub fn module_qualified_name() -> crate::double_representation::module::QualifiedName {

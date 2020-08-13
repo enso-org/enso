@@ -451,9 +451,13 @@ mod test {
     /// * the type information is correctly recorded and available in the execution context
     #[wasm_bindgen_test]
     fn execution_context_management() {
+        use execution_context::synchronized::test::Fixture as ExecutionFixture;
+        use language_server::Notification::ExpressionValuesComputed;
+        use language_server::Event;
+
         let context_data = execution_context::plain::test::MockData::new();
         let Fixture {mut test,project,json_events_sender,..} = Fixture::new(|mock_json_client| {
-            execution_context::synchronized::test::Fixture::mock_create_push_destroy_calls(&context_data,mock_json_client);
+            ExecutionFixture::mock_create_push_destroy_calls(&context_data,mock_json_client);
             mock_json_client.require_all_calls();
         }, |_| {});
 
@@ -471,20 +475,20 @@ mod test {
         assert!(result1.is_ok());
 
         // Context has no information about type.
-        let notification   = execution_context::synchronized::test::Fixture::mock_values_computed_update(&context_data);
+        let notification   = ExecutionFixture::mock_values_computed_update(&context_data);
         let value_update   = &notification.updates[0];
-        let expression_id  = value_update.id;
+        let expression_id  = value_update.expression_id;
         let value_registry = execution.computed_value_info_registry();
         assert!(value_registry.get(&expression_id).is_none());
 
         // Send notification with type information.
-        let event = language_server::Event::Notification(language_server::Notification::ExpressionValuesComputed(notification.clone()));
+        let event = Event::Notification(ExpressionValuesComputed(notification.clone()));
         json_events_sender.unbounded_send(event).unwrap();
         test.run_until_stalled();
 
         // Context now has the information about type.
         let value_info = value_registry.get(&expression_id).unwrap();
         assert_eq!(value_info.typename, value_update.typename.clone().map(ImString::new));
-        assert_eq!(value_info.method_pointer, value_update.method_call.clone().map(Rc::new));
+        assert_eq!(value_info.method_call, value_update.method_pointer);
     }
 }

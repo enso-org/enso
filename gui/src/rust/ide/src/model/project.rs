@@ -51,7 +51,7 @@ pub trait API:Debug {
     (&'a self, root_definition:language_server::MethodPointer)
     -> BoxFuture<'a,FallibleResult<model::ExecutionContext>>;
 
-    /// Set a new project name..
+    /// Set a new project name.
     fn rename_project<'a>(&'a self, name:String) -> BoxFuture<'a,FallibleResult<()>>;
 
     /// Returns the primary content root id for this project.
@@ -60,7 +60,8 @@ pub trait API:Debug {
     }
 
     /// Generates full module's qualified name that includes the leading project name segment.
-    fn qualified_module_name(&self, path:&model::module::Path) -> crate::model::module::QualifiedName {
+    fn qualified_module_name
+    (&self, path:&model::module::Path) -> crate::model::module::QualifiedName {
         path.qualified_module_name(self.name().deref())
     }
 }
@@ -102,5 +103,10 @@ pub mod test {
         project.expect_create_execution_context()
             .withf_st    (move |root_definition| root_definition == &ctx.current_method())
             .returning_st(move |_root_definition| ready(Ok(ctx2.clone_ref())).boxed_local());
+    }
+
+    /// Sets up module expectation on the mock project, returning a give module.
+    pub fn expect_root_id(project:&mut MockAPI, root_id:Uuid) {
+        project.expect_content_root_id().return_const(root_id);
     }
 }

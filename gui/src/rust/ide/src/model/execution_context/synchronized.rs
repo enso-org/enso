@@ -207,6 +207,8 @@ pub mod test {
     use super::*;
 
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use crate::model::execution_context::plain::test::MockData;
+    use crate::model::module::QualifiedName;
     use crate::model::traits::*;
 
     use enso_protocol::language_server::CapabilityRegistration;
@@ -214,9 +216,6 @@ pub mod test {
     use json_rpc::expect_call;
     use utils::test::ExpectTuple;
     use utils::test::stream::StreamTestExt;
-
-    use crate::model::execution_context::plain::test::MockData;
-
 
     #[derive(Debug)]
     pub struct Fixture {
@@ -300,8 +299,10 @@ pub mod test {
     #[test]
     fn creating_context() {
         let f = Fixture::new();
-        assert_eq!(f.data.context_id      , f.context.id);
-        assert_eq!(f.data.module_path     , f.context.model.entry_point.file);
+        assert_eq!(f.data.context_id, f.context.id);
+        let name_in_data      = f.data.module_qualified_name();
+        let name_in_ctx_model = QualifiedName::try_from(&f.context.model.entry_point);
+        assert_eq!(name_in_data, name_in_ctx_model.unwrap());
         assert_eq!(Vec::<LocalCall>::new(), f.context.model.stack_items().collect_vec());
     }
 

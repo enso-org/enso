@@ -12,8 +12,30 @@ use language_server::types::SuggestionDatabaseUpdatesEvent;
 use parser::DocParser;
 
 pub use language_server::types::SuggestionEntryArgument as Argument;
-pub use language_server::types::SuggestionEntryId as EntryId;
+pub use language_server::types::SuggestionId as EntryId;
 pub use language_server::types::SuggestionsDatabaseUpdate as Update;
+use enso_protocol::language_server::SuggestionId;
+
+
+
+// ==============
+// === Errors ===
+// ==============
+
+#[allow(missing_docs)]
+#[derive(Debug,Clone,Copy,Eq,Fail,PartialEq)]
+#[fail(display = "The suggestion with id {} has not been found in the database.", _0)]
+pub struct NoSuchEntry(pub SuggestionId);
+
+#[allow(missing_docs)]
+#[derive(Debug,Fail,Clone)]
+#[fail(display = "Entry named {} does not represent a method.", _0)]
+pub struct NotAMethod(pub String);
+
+#[allow(missing_docs)]
+#[derive(Debug,Fail,Clone)]
+#[fail(display = "Entry named {} is described as method but does not have a `this` parameter.", _0)]
+pub struct MissingThisOnMethod(pub String);
 
 
 
@@ -118,11 +140,17 @@ impl Entry {
         Ok(this)
     }
 
+    /// Check if this entry has self type same as the given identifier.
+    pub fn has_self_type(&self, self_type:impl AsRef<str>) -> bool {
+        let self_type = self_type.as_ref();
+        self.self_type.as_ref().contains_if(|my_self_type| *my_self_type == self_type)
+    }
+
     /// Returns the code which should be inserted to Searcher input when suggestion is picked.
     pub fn code_to_insert(&self, this_var:Option<&str>) -> String {
-        let module = self.module.name();
-        if self.self_type.as_ref().contains(&module) {
-            format!("{}.{}",this_var.unwrap_or(module),self.name)
+        let module_name = self.module.name();
+        if self.has_self_type(&module_name) {
+            format!("{}.{}",this_var.unwrap_or(module_name),self.name)
         } else if self.self_type.as_ref().contains(&constants::keywords::HERE) {
             // TODO [mwu] When this happens? The *type* likely should not be "here".
             format!("{}.{}",constants::keywords::HERE,self.name)
@@ -179,6 +207,27 @@ impl TryFrom<language_server::types::SuggestionEntry> for Entry {
     }
 }
 
+impl TryFrom<&Entry> for language_server::MethodPointer {
+    type Error = failure::Error;
+    fn try_from(entry:&Entry) -> FallibleResult<Self> {
+        (entry.kind==EntryKind::Method).ok_or_else(|| NotAMethod(entry.name.clone()))?;
+        let missing_this_err = || MissingThisOnMethod(entry.name.clone());
+        let defined_on_type  = entry.self_type.clone().ok_or_else(missing_this_err)?;
+        Ok(language_server::MethodPointer {
+            defined_on_type,
+            module : entry.module.to_string(),
+            name   : entry.name.clone(),
+        })
+    }
+}
+
+impl TryFrom<Entry> for language_server::MethodPointer {
+    type Error = failure::Error;
+    fn try_from(entry:Entry) -> FallibleResult<Self> {
+        language_server::MethodPointer::try_from(&entry)
+    }
+}
+
 
 
 // ================
@@ -226,8 +275,8 @@ impl SuggestionDatabase {
     }
 
     /// Get suggestion entry by id.
-    pub fn get(&self, id:EntryId) -> Option<Rc<Entry>> {
-        self.entries.borrow().get(&id).cloned()
+    pub fn lookup(&self, id:EntryId) -> Result<Rc<Entry>,NoSuchEntry> {
+        self.entries.borrow().get(&id).cloned().ok_or(NoSuchEntry(id))
     }
 
     /// Apply the update event to the database.
@@ -258,6 +307,15 @@ impl SuggestionDatabase {
         self.version.set(event.current_version);
     }
 
+
+    /// Look up given id in the suggestion database and if it is a known method obtain a pointer to
+    /// it.
+    pub fn lookup_method_ptr
+    (&self, id:SuggestionId) -> FallibleResult<language_server::MethodPointer> {
+        let entry = self.lookup(id)?;
+        Ok(language_server::MethodPointer::try_from(entry.as_ref())?)
+    }
+
     /// Search the database for an entry of method identified by given id.
     pub fn lookup_method(&self, id:MethodId) -> Option<Rc<Entry>> {
         self.entries.borrow().values().cloned().find(|entry| entry.method_id().contains(&id))
@@ -286,7 +344,7 @@ impl SuggestionDatabase {
     (&self, name:impl Str, module:&QualifiedName) -> Option<Rc<Entry>> {
         self.entries.borrow().values().cloned().find(|entry| {
             let is_method             = entry.kind == EntryKind::Method;
-            let is_defined_for_module = entry.self_type.contains(&module.name());
+            let is_defined_for_module = entry.has_self_type(module.name());
             is_method && is_defined_for_module && entry.matches_name(name.as_ref())
         })
     }
@@ -419,8 +477,8 @@ mod test {
             \"Doc\"><div class=\"Synopsis\"><div class=\"Raw\">Test <b>Atom</b></div></div></div>\
             </body></html>";
         assert_eq!(db.entries.borrow().len(), 1);
-        assert_eq!(*db.get(12).unwrap().name, "TextAtom".to_string());
-        assert_eq!(db.get(12).unwrap().documentation, Some(response_doc.to_string()));
+        assert_eq!(*db.lookup(12).unwrap().name, "TextAtom".to_string());
+        assert_eq!(db.lookup(12).unwrap().documentation, Some(response_doc.to_string()));
         assert_eq!(db.version.get(), 456);
     }
 
@@ -463,8 +521,8 @@ mod test {
             current_version : 2
         };
         db.apply_update_event(update);
-        assert_eq!(db.get(2),        None);
-        assert_eq!(db.version.get(), 2   );
+        assert_eq!(db.lookup(2), Err(NoSuchEntry(2)));
+        assert_eq!(db.version.get(), 2);
 
         // Add
         let add_update = Update::Add {id:2, suggestion:new_entry2};
@@ -473,7 +531,7 @@ mod test {
             current_version : 3,
         };
         db.apply_update_event(update);
-        assert_eq!(db.get(2).unwrap().name, "NewEntry2");
-        assert_eq!(db.version.get(),        3          );
+        assert_eq!(db.lookup(2).unwrap().name, "NewEntry2");
+        assert_eq!(db.version.get(), 3);
     }
 }

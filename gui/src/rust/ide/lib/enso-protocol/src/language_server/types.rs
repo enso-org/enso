@@ -155,11 +155,10 @@ pub struct ExecutionFailed {
 #[allow(missing_docs)]
 #[serde(rename_all="camelCase")]
 pub struct ExpressionValueUpdate {
-    pub id          : ExpressionId,
+    pub expression_id  : ExpressionId,
     #[serde(rename = "type")] // To avoid collision with the `type` keyword.
-    pub typename    : Option<String>,
-    pub short_value : Option<String>,
-    pub method_call : Option<MethodPointer>,
+    pub typename       : Option<String>,
+    pub method_pointer : Option<SuggestionId>,
 }
 
 
@@ -395,7 +394,8 @@ pub struct LocalCall {
 #[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct MethodPointer {
-    pub file            : Path,
+    /// The fully qualified module name.
+    pub module          : String,
     pub defined_on_type : String,
     pub name            : String
 }
@@ -500,7 +500,7 @@ pub enum RegisterOptions {
 // ===========================
 
 /// The identifier of SuggestionEntry in SuggestionDatabase.
-pub type SuggestionEntryId = usize;
+pub type SuggestionId = usize;
 
 /// The version of Suggestion Database.
 pub type SuggestionsDatabaseVersion = usize;
@@ -602,7 +602,7 @@ impl SuggestionEntry {
 #[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct SuggestionsDatabaseEntry {
-    pub id         : SuggestionEntryId,
+    pub id         : SuggestionId,
     pub suggestion : SuggestionEntry,
 }
 
@@ -618,16 +618,16 @@ pub enum SuggestionsDatabaseUpdateKind {Add,Update,Delete}
 pub enum SuggestionsDatabaseUpdate {
     #[serde(rename_all="camelCase")]
     Add {
-        id         : SuggestionEntryId,
+        id         : SuggestionId,
         suggestion : SuggestionEntry,
     },
     #[serde(rename_all="camelCase")]
     Remove {
-        id : SuggestionEntryId,
+        id : SuggestionId,
     },
     #[serde(rename_all="camelCase")]
     Modify {
-        id          : SuggestionEntryId,
+        id          : SuggestionId,
         return_type : String,
     }
 }
@@ -651,10 +651,9 @@ pub mod test {
     /// typename.
     pub fn value_update_with_type(id:ExpressionId, typename:impl Into<String>) -> ExpressionValueUpdate {
         ExpressionValueUpdate {
-            id,
-            typename    : Some(typename.into()),
-            method_call : None,
-            short_value : None,
+            expression_id  : id,
+            typename       : Some(typename.into()),
+            method_pointer : None,
         }
     }
 }
