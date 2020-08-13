@@ -37,6 +37,8 @@ use flexer::prelude::logger::Disabled;
 use flexer::prelude::reader::BookmarkManager;
 use flexer::prelude::reader::decoder::DecoderUTF8;
 
+
+
 // ====================
 // === Type Aliases ===
 // ====================
@@ -151,6 +153,7 @@ impl TestLexer {
         self.pop_state();
     }
 }
+
 
 // === Trait Impls ===
 

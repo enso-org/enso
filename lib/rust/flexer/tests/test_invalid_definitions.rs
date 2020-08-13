@@ -56,7 +56,7 @@ impl flexer::State for LexerState {
     fn new() -> Self {
         let mut lexer_states = group::Registry::default();
         let initial_state    = lexer_states.define_group("ROOT",None);
-        LexerState {lexer_states,initial_state}
+        LexerState{lexer_states,initial_state}
     }
 
     fn initial_state(&self) -> Identifier {
@@ -180,7 +180,7 @@ impl Lexer2 {
     pub fn new() -> Lexer2 {
         let logger = Logger::new("Lexer2");
         let lexer  = Flexer::new(logger);
-        Lexer2 {lexer}
+        Lexer2{lexer}
     }
 
     pub fn my_test_fun<R:LazyReader>(&mut self, _reader:&mut R) {
@@ -244,7 +244,7 @@ impl Lexer3 {
     pub fn new() -> Lexer3 {
         let logger = Logger::new("Lexer3");
         let lexer  = Flexer::new(logger);
-        Lexer3 {lexer}
+        Lexer3{lexer}
     }
 
     pub fn my_test_fun<R:LazyReader>(&mut self, _reader:&mut R) {
@@ -342,7 +342,7 @@ impl Lexer4 {
     pub fn new() -> Lexer4 {
         let logger = Logger::new("Lexer4");
         let lexer  = Flexer::new(logger);
-        Lexer4 {lexer}
+        Lexer4{lexer}
     }
 
     pub fn my_test_fun<R:LazyReader>(&mut self, _reader:&mut R) {

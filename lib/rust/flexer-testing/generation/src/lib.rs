@@ -16,4 +16,4 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-pub mod engine;
+pub mod generated;

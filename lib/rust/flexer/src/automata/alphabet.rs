@@ -86,6 +86,6 @@ impl Default for Segmentation {
         // The existence of the default (0) member in the set is assumed by the implementation of
         // the NFA -> DFA conversion.
         divisions.insert(default());
-        Segmentation { divisions }
+        Segmentation{divisions}
     }
 }

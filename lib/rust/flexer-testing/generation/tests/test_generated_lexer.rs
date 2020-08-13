@@ -8,12 +8,14 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
+//! This file contains tests for the generated lexer.
+
 use flexer::prelude::*;
 
 use flexer::prelude::reader::decoder::DecoderUTF8;
-use flexer_test_generation::engine::TestLexer;
-use flexer_test_generation::engine::Token;
-use flexer_test_generation::engine::TokenStream;
+use flexer_test_generation::generated::engine::TestLexer;
+use flexer_test_generation::generated::engine::Token;
+use flexer_test_generation::generated::engine::TokenStream;
 
 
 

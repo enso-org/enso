@@ -2,6 +2,8 @@
 //! flexer to be specialised for a specific language.
 
 use crate::prelude::*;
+use quote::*;
+use syn::*;
 
 use crate::automata::dfa::DFA;
 use crate::automata::dfa::RuleExecutable;
@@ -12,14 +14,12 @@ use crate::group;
 
 use enso_macro_utils::repr;
 use proc_macro2::Literal;
-use quote::*;
 use std::hash::BuildHasher;
 use std::result::Result;
-use syn::*;
 use std::fmt;
 
 use crate as flexer;
-use wasm_bindgen::__rt::core::fmt::Formatter;
+
 
 
 // =======================
@@ -77,12 +77,12 @@ pub fn run_function(output_type_name:impl Into<String>) -> Result<ImplItem,GenEr
             while self.run_current_state(&mut reader) == StageStatus::ExitSuccess {}
             match self.status {
                 StageStatus::ExitFinished => LexingResult::success(
-                    mem::replace(&mut self.output,default())
+                    mem::take(&mut self.output)
                 ),
                 StageStatus::ExitFail => LexingResult::failure(
-                    mem::replace(&mut self.output,default())
+                    mem::take(&mut self.output)
                 ),
-                _ => LexingResult::partial(mem::replace(&mut self.output,default()))
+                _ => LexingResult::partial(mem::take(&mut self.output))
             }
         }
     };
@@ -97,8 +97,8 @@ pub fn run_current_state_function() -> ImplItem {
 
             // Runs until reaching a state that no longer says to continue.
             while let Some(next_state) = self.status.continue_as() {
-                self.logger.info(||format!("Current character is {:?}",reader.character()));
-                self.logger.info(||format!("Continuing in {:?}",next_state));
+                self.logger.info(||format!("Current character is {:?}.",reader.character()));
+                self.logger.info(||format!("Continuing in {:?}.",next_state));
                 self.status = self.step(next_state,reader);
 
                 if reader.finished() {
@@ -109,17 +109,17 @@ pub fn run_current_state_function() -> ImplItem {
                     match reader.character().char {
                         Ok(char) => {
                             reader.append_result(char);
-                            self.logger.info(||format!("Result is {:?}",reader.result()));
+                            self.logger.info(||format!("Result is {:?}.",reader.result()));
                         },
                         Err(flexer::prelude::reader::Error::EndOfGroup) => {
                             let current_state = self.current_state();
                             let group_name    = self.groups().group(current_state).name.as_str();
-                            let err           = format!("Missing rules for state {}", group_name);
+                            let err           = format!("Missing rules for state {}.", group_name);
                             self.logger.error(err.as_str());
                             panic!(err)
                         }
                         Err(_) => {
-                            self.logger.error("Unexpected error.");
+                            self.logger.error("Unexpected error!");
                             panic!("Unexpected error!")
                         }
                     }
@@ -181,7 +181,7 @@ pub fn automaton_for_group
     let mut dfa             = DFA::from(&nfa);
     let dispatch_for_dfa    = dispatch_in_state(&dfa,group.id.into())?;
     let mut dfa_transitions = transitions_for_dfa(&mut dfa,group.id.into())?;
-    dfa_transitions.insert(0,dispatch_for_dfa);
+    dfa_transitions.push(dispatch_for_dfa);
     dfa_transitions.extend(rules);
     Ok(dfa_transitions)
 }
@@ -331,7 +331,7 @@ pub fn branch_body<S:BuildHasher>
 /// state, and is the main part of implementing the actual lexer transitions.
 pub fn dispatch_in_state(dfa:&DFA, id:usize) -> Result<ImplItem,GenError> {
     let dispatch_name:Ident = str_to_ident(format!("dispatch_in_state_{}",id))?;
-    let state_names  = dfa.links.row_indices().map(|ix| (ix, name_for_step(id, ix))).collect_vec();
+    let state_names  = dfa.links.row_indices().map(|ix| (ix, name_for_step(id,ix))).collect_vec();
     let mut branches = Vec::with_capacity(state_names.len());
     for (ix,name) in state_names.into_iter() {
         let literal = Literal::usize_unsuffixed(ix);
@@ -369,7 +369,7 @@ pub fn name_for_step(in_state:usize, to_state:usize) -> Ident {
 /// Generate an executable rule function for a given lexer state.
 pub fn rule_for_state(state:&State) -> Result<ImplItem,GenError> {
     match &state.name {
-        None => unreachable_panic!("Should never reach here."),
+        None => unreachable_panic!("Rule for state requested, but state has none."),
         Some(name) => {
             let rule_name = str_to_ident(name)?;
             let code:Expr = match parse_str(state.callback.as_str()) {
@@ -443,7 +443,7 @@ pub enum GenError {
 // === Trait Impls ===
 
 impl Display for GenError {
-    fn fmt(&self, f:&mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f:&mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             GenError::BadCallbackArgument => write!(f,
                 "Bad argument to a callback function. It must take a single argument `reader`."

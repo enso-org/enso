@@ -61,8 +61,8 @@ impl State {
 impl From<Vec<usize>> for State {
     /// Creates a state with epsilon links.
     fn from(vec:Vec<usize>) -> Self {
-        let epsilon_links = vec.iter().cloned().map(|id| Identifier {id}).collect();
-        State {epsilon_links,..Default::default()}
+        let epsilon_links = vec.iter().cloned().map(|id| Identifier{id}).collect();
+        State{epsilon_links,..Default::default()}
     }
 }
 
@@ -70,12 +70,12 @@ impl From<Vec<(RangeInclusive<u32>, usize)>> for State {
     /// Creates a state with ordinary links.
     fn from(vec:Vec<(RangeInclusive<u32>, usize)>) -> Self {
         let link = |(range, id): (RangeInclusive<u32>, usize)| {
-            let start = Symbol{ value:*range.start()};
-            let end   = Symbol{ value:*range.end()};
-            Transition {symbols: start..=end, target_state: Identifier { id }}
+            let start = Symbol{value:*range.start()};
+            let end   = Symbol{value:*range.end()};
+            Transition{symbols:start..=end,target_state:Identifier{id}}
         };
         let links = vec.iter().cloned().map(link).collect();
-        State {links,..Default::default()}
+        State{links,..Default::default()}
     }
 }
 

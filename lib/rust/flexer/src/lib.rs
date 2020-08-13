@@ -1091,7 +1091,7 @@ where Definition : State,
         let current_match    = default();
 
         state_stack.reserve(constants::STATE_STACK_RESERVATION);
-        Flexer {state_stack,status,output,definition,current_match,logger}
+        Flexer{state_stack,status,output,definition,current_match,logger}
     }
 }
 

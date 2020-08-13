@@ -55,7 +55,7 @@ impl NFA {
     pub fn new_state(&mut self) -> state::Identifier {
         let id = self.states.len();
         self.states.push(State::default());
-        state::Identifier {id}
+        state::Identifier{id}
     }
 
     /// Creates an epsilon transition between two states.

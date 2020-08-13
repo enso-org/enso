@@ -17,8 +17,10 @@ Where the flexer differs from other programs in this space, however, is the
 power that it gives users. When matching a rule, the flexer allows its users to
 execute _arbitrary_ Rust code. This means that the languages that can be lexed
 by the flexer extend from the simplest regular grammars right up to unrestricted
-grammars (but please don't write a programming language who's syntax falls into
-this category).
+grammars (but please don't write a programming language whose syntax falls into
+this category). It also differs in that it chooses the first complete match for
+a rule, rather than the longest one, which makes lexers much easier to define
+and maintain.
 
 For detailed library documentation, please see the
 [crate documentation](../../lib/rust/flexer/src/lib.rs) itself. This includes a

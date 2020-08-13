@@ -1,8 +1,8 @@
 //! This module defines utilities for working with the [`std::vec::Vec`] type.
 
-
-
 use failure::_core::hint::unreachable_unchecked;
+
+
 
 // ==============
 // === VecOps ===

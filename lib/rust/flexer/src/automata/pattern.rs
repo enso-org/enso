@@ -144,7 +144,6 @@ impl BitOr<Pattern> for Pattern {
 
 impl BitOr<&Pattern> for &Pattern {
     type Output = Pattern;
-
     fn bitor(self, rhs:&Pattern) -> Self::Output {
         self.clone() | rhs.clone()
     }
@@ -152,7 +151,6 @@ impl BitOr<&Pattern> for &Pattern {
 
 impl BitOr<&Pattern> for Pattern {
     type Output = Pattern;
-
     fn bitor(self, rhs:&Pattern) -> Self::Output {
         self | rhs.clone()
     }
@@ -160,7 +158,6 @@ impl BitOr<&Pattern> for Pattern {
 
 impl BitOr<Pattern> for &Pattern {
     type Output = Pattern;
-
     fn bitor(self, rhs:Pattern) -> Self::Output {
         self.clone() | rhs
     }
@@ -180,7 +177,6 @@ impl Shr<Pattern> for Pattern {
 
 impl Shr<&Pattern> for &Pattern {
     type Output = Pattern;
-
     fn shr(self, rhs:&Pattern) -> Self::Output {
         self.clone() >> rhs.clone()
     }
@@ -188,7 +184,6 @@ impl Shr<&Pattern> for &Pattern {
 
 impl Shr<&Pattern> for Pattern {
     type Output = Pattern;
-
     fn shr(self, rhs:&Pattern) -> Self::Output {
         self >> rhs.clone()
     }
@@ -196,7 +191,6 @@ impl Shr<&Pattern> for Pattern {
 
 impl Shr<Pattern> for &Pattern {
     type Output = Pattern;
-
     fn shr(self, rhs:Pattern) -> Self::Output {
         self.clone() >> rhs
     }
