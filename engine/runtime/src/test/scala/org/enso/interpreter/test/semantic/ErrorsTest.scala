@@ -1,16 +1,16 @@
 package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.{
-  InterpreterTest,
   InterpreterContext,
-  InterpreterException
+  InterpreterException,
+  InterpreterTest
 }
 
 class ErrorsTest extends InterpreterTest {
   override def subject: String = "Errors and Panics"
 
-  override def specify(
-    implicit interpreterContext: InterpreterContext
+  override def specify(implicit
+    interpreterContext: InterpreterContext
   ): Unit = {
 
     "be thrown and stop evaluation" in {
@@ -62,6 +62,24 @@ class ErrorsTest extends InterpreterTest {
           |""".stripMargin
       noException shouldBe thrownBy(eval(code))
       consumeOut shouldEqual List("Error:MyError")
+    }
+
+    "propagate through specialized pattern matches" in {
+      val code =
+        """
+          |type MyError
+          |
+          |main =
+          |    brokenVal = Error.throw MyError
+          |    f = case _ of
+          |        Unit -> 1
+          |        _ -> 0
+          |
+          |    IO.println (f Unit)
+          |    IO.println (f brokenVal)
+          |""".stripMargin
+      noException shouldBe thrownBy(eval(code))
+      consumeOut shouldEqual List("1", "Error:MyError")
     }
 
     "be catchable by a user-provided special handling function" in {
