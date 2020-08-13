@@ -12,6 +12,8 @@
 
 pub mod decoder;
 
+use enso_prelude::*;
+
 use decoder::Decoder;
 use crate::decoder::{Char, InvalidChar};
 use crate::Error::EOF;
@@ -70,6 +72,42 @@ pub enum Error {
     EOF,
     /// Couldn't decode character.
     InvalidChar,
+    /// The lexer has found no matching rule in the current state.
+    EndOfGroup,
+}
+
+impl Error {
+    /// The `u32` value that corresponds to EOF.
+    pub const END_OF_FILE:u32 = u32::max_value();
+    /// The `u32` value that corresponds to an invalid character.
+    pub const INVALID_CHAR:u32 = u32::max_value() - 1;
+    /// The `u32` value corresponding to the end of group.
+    pub const END_OF_GROUP:u32 = u32::max_value() - 2;
+}
+
+
+// === Trait Impls ===
+
+impl From<decoder::Char<decoder::InvalidChar>> for decoder::Char<Error> {
+    fn from(char:Char<InvalidChar>) -> Self {
+        let size = char.size;
+        let char = match char.char {
+            Ok(char) => Ok(char),
+            Err(_)   => Err(Error::InvalidChar),
+        };
+        decoder::Char{char,size}
+    }
+}
+
+impl From<decoder::Char<Error>> for u32 {
+    fn from(char:decoder::Char<Error>) -> Self {
+        match char.char {
+            Ok (char)               => char as u32,
+            Err(Error::EOF)         => Error::END_OF_FILE,
+            Err(Error::InvalidChar) => Error::INVALID_CHAR,
+            Err(Error::EndOfGroup)  => Error::END_OF_GROUP,
+        }
+    }
 }
 
 
@@ -94,56 +132,42 @@ impl BookmarkId {
 
 
 
-// ================
-// === Bookmark ===
-// ================
-
-/// Bookmarks a specific character in buffer, so that `LazyReader` can return to it when needed.
-#[derive(Debug,Clone,Copy,Default,PartialEq)]
-pub struct Bookmark {
-    /// The position of bookmarked character in `reader.buffer`.
-    offset: usize,
-    /// The length of `reader.result` up to the bookmarked character.
-    length: usize,
-}
-
-
-
 // ==================
 // === LazyReader ===
 // ==================
 
 /// The behaviour needed by the lazy reader interface.
 pub trait LazyReader {
-    /// Creates a new bookmark, providing a handle so it can be used later.
-    fn add_bookmark(&mut self) -> BookmarkId;
-    /// Bookmarks the current character using the provided `bookmark`, so that the reader can later
-    /// return to it using `rewind()`.
-    ///
-    /// Panics if `bookmark` refers to a nonexistent bookmark.
-    fn bookmark(&mut self, bookmark:BookmarkId);
-    /// Returns the reader to the character bookmarked using `bookmark`.
-    fn rewind(&mut self, bookmark:BookmarkId);
-    /// The maximum number of words that may be rewound in the buffer.
-    fn max_possible_rewind_len(&self) -> usize;
-    /// Decrease the offset for all bookmarks.
-    fn decrease_offset(&mut self, off:usize);
-    /// Fill the buffer with words from the input.
-    fn fill(&mut self);
-    /// Checks if the reader is empty.
-    fn empty(&self) -> bool;
-    /// Checks if the reader has finished reading.
-    fn finished(&self) -> bool;
-    /// Reads the next character from input.
-    fn next_char(&mut self) -> Result<char,Error>;
-    /// Gets the current character from the reader.
+    /// Read the next character from input.
+    fn next_char(&mut self, bookmarks:&mut BookmarkManager) -> Result<char,Error>;
+    /// Advance along the input without returning the character.
+    fn advance_char(&mut self, bookmarks:&mut BookmarkManager);
+    /// Get the current character from the reader.
     fn character(&self) -> decoder::Char<Error>;
-    /// Advances along the input without returning the character.
-    fn advance_char(&mut self);
-    /// Appends the provided character to the reader's result.
+    /// Check if the reader has finished reading.
+    fn finished(&self) -> bool;
+    /// Check if the reader is empty.
+    fn empty(&self) -> bool;
+    /// Fill the buffer with words from the input.
+    fn fill(&mut self, bookmarks:&mut BookmarkManager);
+    /// Get the maximum possible rewind for the reader.
+    fn max_possible_rewind_len(&self, bookmarks:&BookmarkManager) -> usize;
+    /// Append the provided character to the reader's result.
     fn append_result(&mut self, char:char);
-    /// Returns `self.result` and sets the internal result to empty.
+    /// Return `self.result` and sets the internal result to empty.
     fn pop_result(&mut self) -> String;
+    /// Get the reader's current offset in the buffer.
+    fn offset(&self) -> usize;
+    /// Get an immutable reference to the reader's result.
+    fn result(&self) -> &String;
+    /// Get a mutable reference to the reader's result.
+    fn result_mut(&mut self) -> &mut String;
+    /// Get the current length of the reader's buffer.
+    fn buffer_len(&self) -> usize;
+    /// Set the buffer offset to the specified value.
+    fn set_offset(&mut self, off:usize);
+    /// Truncate the current match to the provided length.
+    fn truncate_match(&mut self, len:usize);
 }
 
 /// The default size of the buffer.
@@ -171,8 +195,6 @@ pub struct Reader<D:Decoder,Read> {
     pub offset: usize,
     /// The number of elements stored in buffer.
     pub length: usize,
-    /// Flag that is true iff the reader was just rewinded and no new chars were read.
-    pub bookmark: Vec<Bookmark>,
     /// The last character read.
     pub character: decoder::Char<Error>,
 }
@@ -186,7 +208,6 @@ impl<D:Decoder,R:Read<Item=D::Word>> Reader<D,R> {
             result    : String::from(""),
             offset    : 0,
             length    : 0,
-            bookmark  : Vec::new(),
             character : decoder::Char{char:Err(Error::EOF), size:0},
         };
         reader.length = reader.reader.read(&mut reader.buffer[..]);
@@ -198,64 +219,11 @@ impl<D:Decoder,R:Read<Item=D::Word>> Reader<D,R> {
 // === Trait Impls ===
 
 impl<D:Decoder, R:Read<Item=D::Word>> LazyReader for Reader<D,R> {
-    fn add_bookmark(&mut self) -> BookmarkId {
-        self.bookmark.push(Bookmark::default());
-        BookmarkId::new(self.bookmark.len() - 1)
-    }
-
-    fn bookmark(&mut self, bookmark:BookmarkId) {
-        self.bookmark[bookmark.id].offset = self.offset - self.character.size;
-        self.bookmark[bookmark.id].length = self.result.len();
-    }
-
-    fn rewind(&mut self, bookmark:BookmarkId) {
-        self.offset = self.bookmark[bookmark.id].offset;
-        self.result.truncate(self.bookmark[bookmark.id].length);
-        let _ = self.next_char();
-    }
-
-    fn max_possible_rewind_len(&self) -> usize {
-        if let Some(offset) = self.bookmark.iter().map(|b| b.offset).min() {
-            return self.buffer.len() - offset
-        }
-        D::MAX_CODEPOINT_LEN
-    }
-
-    fn decrease_offset(&mut self, off:usize) {
-        for bookmark in self.bookmark.iter_mut() {
-            bookmark.offset -= off
-        }
-    }
-
-    fn fill(&mut self) {
-        let len     = self.buffer.len();
-        let words   = len - self.offset;
-        self.offset = self.max_possible_rewind_len();
-        if self.offset == len {
-            panic!("Rewind won't be possible. Buffer is too small.")
-        }
-
-        self.decrease_offset(len - self.offset);
-        for i in 1..=self.offset {
-            self.buffer[self.offset - i] = self.buffer[len - i];
-        }
-        self.length  = self.offset + self.reader.read(&mut self.buffer[self.offset..]);
-        self.offset -= words;
-    }
-
-    fn empty(&self) -> bool {
-        self.length < self.buffer.len() && self.length <= self.offset
-    }
-
-    fn finished(&self) -> bool {
-        self.empty() && self.character.char == Err(EOF)
-    }
-
-    fn next_char(&mut self) -> Result<char,Error> {
+    fn next_char(&mut self, bookmarks:&mut BookmarkManager) -> Result<char,Error> {
         if self.empty() { self.character.char = Err(Error::EOF); return Err(Error::EOF) }
 
         if self.offset >= self.buffer.len() - D::MAX_CODEPOINT_LEN {
-            self.fill();
+            self.fill(bookmarks);
         }
 
         self.character = D::decode(&self.buffer[self.offset..]).into();
@@ -264,12 +232,43 @@ impl<D:Decoder, R:Read<Item=D::Word>> LazyReader for Reader<D,R> {
         self.character.char
     }
 
+    fn advance_char(&mut self, bookmarks:&mut BookmarkManager) {
+        let _ = self.next_char(bookmarks);
+    }
+
     fn character(&self) -> Char<Error> {
         self.character
     }
 
-    fn advance_char(&mut self) {
-        let _ = self.next_char();
+    fn finished(&self) -> bool {
+        self.empty() && self.character.char == Err(EOF)
+    }
+
+    fn empty(&self) -> bool {
+        self.length < self.buffer.len() && self.length <= self.offset
+    }
+
+    fn fill(&mut self, bookmarks:&mut BookmarkManager) {
+        let len     = self.buffer.len();
+        let words   = len - self.offset;
+        self.offset = self.max_possible_rewind_len(bookmarks);
+        if self.offset == len {
+            panic!("Rewind won't be possible. Buffer is too small.")
+        }
+
+        bookmarks.decrease_bookmark_offsets(len - self.offset);
+        for i in 1..=self.offset {
+            self.buffer[self.offset - i] = self.buffer[len - i];
+        }
+        self.length  = self.offset + self.reader.read(&mut self.buffer[self.offset..]);
+        self.offset -= words;
+    }
+
+    fn max_possible_rewind_len(&self, bookmarks:&BookmarkManager) -> usize {
+        if let Some(offset) = bookmarks.min_offset() {
+            return self.buffer_len() - offset
+        }
+        D::MAX_CODEPOINT_LEN
     }
 
     fn append_result(&mut self,char:char) {
@@ -281,26 +280,134 @@ impl<D:Decoder, R:Read<Item=D::Word>> LazyReader for Reader<D,R> {
         self.result.truncate(0);
         str
     }
-}
 
-impl From<decoder::Char<decoder::InvalidChar>> for decoder::Char<Error> {
-    fn from(char:Char<InvalidChar>) -> Self {
-        let size = char.size;
-        let char = match char.char {
-            Ok(char) => Ok(char),
-            Err(_)   => Err(Error::InvalidChar),
-        };
-        decoder::Char{char,size}
+    fn offset(&self) -> usize {
+        self.offset
+    }
+
+    fn result(&self) -> &String {
+        &self.result
+    }
+
+    fn result_mut(&mut self) -> &mut String {
+        &mut self.result
+    }
+
+    fn buffer_len(&self) -> usize {
+        self.buffer.len()
+    }
+
+    fn set_offset(&mut self, off: usize) {
+        self.offset = off;
+    }
+
+    fn truncate_match(&mut self, len: usize) {
+        self.result.truncate(len);
     }
 }
 
-impl From<decoder::Char<Error>> for u32 {
-    fn from(char:decoder::Char<Error>) -> Self {
-        match char.char {
-            Ok (char)               => char as u32,
-            Err(Error::EOF)         => u32::max_value(),
-            Err(Error::InvalidChar) => u32::max_value() - 1,
+
+
+// ================
+// === Bookmark ===
+// ================
+
+/// Bookmarks a specific character in buffer, so that `LazyReader` can return to it when needed.
+#[derive(Debug,Clone,Copy,Default,PartialEq)]
+pub struct Bookmark {
+    /// The position of the bookmarked character in the `reader.buffer`.
+    offset: usize,
+    /// The length of `reader.result` up to the bookmarked character.
+    length: usize,
+    /// Whether or not the bookmark has been set by the user.
+    set:bool
+}
+
+
+
+// =======================
+// === BookmarkManager ===
+// =======================
+
+/// Contains and manages bookmarks for a running lexer.
+///
+/// Some of its operations operate on a specific [`Reader`]. It is undefined behaviour to not pass
+/// the same reader to all calls for a given bookmark manager.
+#[allow(missing_docs)]
+#[derive(Clone,Debug,PartialEq)]
+pub struct BookmarkManager {
+    bookmarks: Vec<Bookmark>,
+    /// The bookmark used by the flexer to mark the end of the last matched segment of the input.
+    pub matched_bookmark: BookmarkId,
+    /// A bookmark used by the flexer to deal with overlapping rules that may fail later.
+    pub rule_bookmark: BookmarkId,
+}
+
+#[allow(missing_docs)]
+impl BookmarkManager {
+    /// Create a new bookmark manager, with no associated bookmarks.
+    pub fn new() -> BookmarkManager {
+        let mut bookmarks    = Vec::new();
+        let matched_bookmark = BookmarkManager::make_bookmark(&mut bookmarks);
+        let rule_bookmark    = BookmarkManager::make_bookmark(&mut bookmarks);
+        BookmarkManager {bookmarks,matched_bookmark,rule_bookmark}
+    }
+
+    /// Create a new bookmark in the manager, returning a handle to it.
+    fn make_bookmark(bookmarks:&mut Vec<Bookmark>) -> BookmarkId {
+        bookmarks.push(Bookmark::default());
+        BookmarkId::new(bookmarks.len() - 1)
+    }
+
+    /// Add a bookmark to the manager, returning a handle to that bookmark.
+    pub fn add_bookmark(&mut self) -> BookmarkId {
+        BookmarkManager::make_bookmark(&mut self.bookmarks)
+    }
+
+    /// Bookmarks the current position in `reader` using `bookmark`.
+    pub fn bookmark<R:LazyReader>(&mut self, bookmark:BookmarkId, reader:&mut R) {
+        self.bookmarks[bookmark.id].offset = reader.offset() - reader.character().size;
+        self.bookmarks[bookmark.id].length = reader.result().len();
+        self.bookmarks[bookmark.id].set    = true
+    }
+
+    /// Unsets a bookmark.
+    pub fn unset<R:LazyReader>(&mut self, bookmark:BookmarkId) {
+        self.bookmarks[bookmark.id].offset = 0;
+        self.bookmarks[bookmark.id].length = 0;
+        self.bookmarks[bookmark.id].set    = false
+    }
+
+    /// Decrease the offset for all bookmarks by the specified `amount` in preparation for
+    /// truncating the reader's buffer.
+    pub fn decrease_bookmark_offsets(&mut self, amount:usize) {
+        for bookmark in self.bookmarks.iter_mut() {
+            if bookmark.set {
+                bookmark.offset -= amount
+            }
         }
+    }
+
+    /// Rewind the reader to the position marked by `bookmark`.
+    pub fn rewind<R:LazyReader>(&mut self, bookmark:BookmarkId, reader:&mut R) {
+        let bookmark = self.bookmarks.get(bookmark.id).expect("Bookmark must exist.");
+        reader.set_offset(bookmark.offset);
+        reader.truncate_match(bookmark.length);
+        reader.advance_char(self);
+    }
+
+    /// Obtains the minimum offset from the start of the buffer for any bookmark.
+    pub fn min_offset(&self) -> Option<usize> {
+        self.bookmarks.iter().filter_map(|b| b.set.and_option(Some(b.offset))).min()
+    }
+}
+
+
+// === Trait Impls ===
+
+impl Default for BookmarkManager {
+    fn default() -> Self {
+        BookmarkManager::new()
     }
 }
 
@@ -318,8 +425,6 @@ mod tests {
     use decoder::*;
 
     use test::Bencher;
-
-
 
     // ================
     // === Repeater ===
@@ -381,6 +486,17 @@ mod tests {
 
 
     // =============
+    // === Utils ===
+    // =============
+
+    /// Constructs an _empty_ bookmark manager for testing purposes.
+    pub fn bookmark_manager() -> BookmarkManager {
+        BookmarkManager::new()
+    }
+
+
+
+    // =============
     // === Tests ===
     // =============
 
@@ -406,10 +522,11 @@ mod tests {
 
     #[test]
     fn test_reader_small_input() {
+        let mut mgr    = bookmark_manager();
         let     str    = "a.b^c! #𤭢界んにち𤭢#𤭢";
         let mut reader = Reader::new(str.as_bytes(), DecoderUTF8());
         let mut result = String::from("");
-        while let Ok(char) = reader.next_char() {
+        while let Ok(char) = reader.next_char(&mut mgr) {
             result.push(char);
         }
         assert_eq!(&result, str);
@@ -417,24 +534,26 @@ mod tests {
 
     #[test]
     fn test_reader_big_input() {
+        let mut mgr    = bookmark_manager();
         let     str    = "a.b^c! #𤭢界んにち𤭢#𤭢".repeat(10_000);
         let mut reader = Reader::new(str.as_bytes(), DecoderUTF8());
         let mut result = String::from("");
-        while let Ok(char) = reader.next_char() {
+        while let Ok(char) = reader.next_char(&mut mgr) {
+            mgr.bookmark(mgr.matched_bookmark,&mut reader);
             result.push(char);
         }
         assert_eq!(&result, &str);
-        assert_eq!(reader.bookmark.len(), 0);
         assert_eq!(reader.buffer.len(), BUFFER_SIZE);
     }
 
     #[bench]
     fn bench_reader(bencher:&mut Bencher) {
         let run = || {
+            let mut mgr    = bookmark_manager();
             let     str    = repeat("Hello, World!".as_bytes().to_vec(), 10_000_000);
             let mut reader = Reader::new(str, DecoderUTF8());
             let mut count  = 0;
-            while reader.next_char() != Err(Error::EOF) {
+            while reader.next_char(&mut mgr) != Err(Error::EOF) {
                 count += 1;
             }
             count

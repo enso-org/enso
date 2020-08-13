@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "lib/rust/ast",
     "lib/rust/enso-data",
     "lib/rust/enso-generics",
     "lib/rust/enso-logger",
@@ -10,30 +11,32 @@ members = [
     "lib/rust/enso-shapely/impl",
     "lib/rust/enso-shapely/macros",
     "lib/rust/flexer",
-    "lib/rust/lexer/definition",
-    "lib/rust/lexer/generation",
-    "lib/rust/lexer/tests",
+    "lib/rust/flexer-testing/definition",
+    "lib/rust/flexer-testing/generation",
     "lib/rust/lazy-reader",
-    "lib/rust/ast",
 ]
 
 [profile.dev]
-opt-level = 0
-lto       = false
-debug     = true
+opt-level        = 0
+lto              = false
+debug            = true
+debug-assertions = true
 
 [profile.release]
-opt-level = 3
-lto       = true
-debug     = false
-panic     = 'abort'
+opt-level        = 3
+lto              = true
+debug            = false
+panic            = 'abort'
+debug-assertions = false
 
 [profile.bench]
-opt-level = 3
-lto       = true
-debug     = false
+opt-level        = 3
+lto              = true
+debug            = false
+debug-assertions = false
 
 [profile.test]
-opt-level = 0
-lto       = false
-debug     = true
+opt-level        = 0
+lto              = false
+debug            = true
+debug-assertions = true

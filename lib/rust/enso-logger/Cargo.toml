@@ -1,5 +1,5 @@
 [package]
-name    = "logger"
+name    = "enso-logger"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2018"

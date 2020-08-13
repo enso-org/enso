@@ -59,14 +59,15 @@ impl AnyLogger for Logger {
         let indent = default();
         Self {path,indent}
     }
-    fn path        (&self) -> &str { &self.path }
+
+    fn path        (&self) -> &str           { &self.path }
     fn trace       (&self, msg:impl Message) { println!("{}",self.format(msg)) }
     fn debug       (&self, msg:impl Message) { println!("{}",self.format(msg)) }
     fn info        (&self, msg:impl Message) { println!("{}",self.format(msg)) }
     fn warning     (&self, msg:impl Message) { println!("[WARNING] {}",self.format(msg)) }
     fn error       (&self, msg:impl Message) { println!("[ERROR] {}",self.format(msg)) }
     fn group_begin (&self, msg:impl Message) { println!("{}",self.format(msg)); self.inc_indent() }
-    fn group_end   (&self)                  { self.dec_indent() }
+    fn group_end   (&self)                   { self.dec_indent() }
 }
 
 
