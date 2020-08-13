@@ -59,6 +59,17 @@ pub enum Token {
     /// A token that the lexer is unable to recognise.
     Unrecognized(String),
 }
+impl Token {
+    /// Construct a new word token.
+    pub fn word(name:impl Into<String>) -> Token {
+        Token::Word(name.into())
+    }
+
+    /// Construct a new unrecognized token.
+    pub fn unrecognized(name:impl Into<String>) -> Token {
+        Token::Unrecognized(name.into())
+    }
+}
 
 /// A representation of a stream of tokens.
 #[allow(missing_docs)]

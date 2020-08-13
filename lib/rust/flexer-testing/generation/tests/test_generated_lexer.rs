@@ -39,7 +39,7 @@ fn run_test_on(str:impl AsRef<str>) -> TokenStream {
 #[test]
 fn test_single_a_word() {
     let input           = "aaaaa";
-    let expected_output = TokenStream::from(vec![Token::Word(String::from(input))]);
+    let expected_output = TokenStream::from(vec![Token::word(input)]);
     let result          = run_test_on(input);
     assert_eq!(result, expected_output);
 }
@@ -47,7 +47,7 @@ fn test_single_a_word() {
 #[test]
 fn test_single_b_word() {
     let input           = "bbbbb";
-    let expected_output = TokenStream::from(vec![Token::Word(String::from(input))]);
+    let expected_output = TokenStream::from(vec![Token::word(input)]);
     let result          = run_test_on(input);
     assert_eq!(result, expected_output);
 }
@@ -55,10 +55,8 @@ fn test_single_b_word() {
 #[test]
 fn test_two_word() {
     let input           = "aaaaa bbbbb";
-    let expected_output = TokenStream::from(
-        vec![Token::Word(String::from("aaaaa")), Token::Word(String::from("bbbbb"))]
-    );
-    let result = run_test_on(input);
+    let expected_output = TokenStream::from(vec![Token::word("aaaaa"), Token::word("bbbbb")]);
+    let result          = run_test_on(input);
     assert_eq!(result, expected_output);
 }
 
@@ -66,12 +64,12 @@ fn test_two_word() {
 fn test_multi_word() {
     let input           = "bbb aa a b bbbbb aa";
     let expected_output = TokenStream::from(vec![
-        Token::Word(String::from("bbb")),
-        Token::Word(String::from("aa")),
-        Token::Word(String::from("a")),
-        Token::Word(String::from("b")),
-        Token::Word(String::from("bbbbb")),
-        Token::Word(String::from("aa"))
+        Token::word("bbb"),
+        Token::word("aa"),
+        Token::word("a"),
+        Token::word("b"),
+        Token::word("bbbbb"),
+        Token::word("aa")
     ]);
     let result = run_test_on(input);
     assert_eq!(result, expected_output);
@@ -80,7 +78,7 @@ fn test_multi_word() {
 #[test]
 fn test_invalid_single_word() {
     let input           = "c";
-    let expected_output = TokenStream::from(vec![Token::Unrecognized(String::from(input))]);
+    let expected_output = TokenStream::from(vec![Token::unrecognized(input)]);
     let result          = run_test_on(input);
     assert_eq!(result, expected_output);
 }
@@ -89,11 +87,11 @@ fn test_invalid_single_word() {
 fn test_multi_word_invalid() {
     let input           = "aaaaaa c bbbbbb";
     let expected_output = TokenStream::from(vec![
-        Token::Word(String::from("aaaaaa")),
-        Token::Unrecognized(String::from(" ")),
-        Token::Unrecognized(String::from("c")),
-        Token::Unrecognized(String::from(" ")),
-        Token::Word(String::from("bbbbbb")),
+        Token::word("aaaaaa"),
+        Token::unrecognized(" "),
+        Token::unrecognized("c"),
+        Token::unrecognized(" "),
+        Token::word("bbbbbb"),
     ]);
     let result = run_test_on(input);
     assert_eq!(result, expected_output);
@@ -103,9 +101,9 @@ fn test_multi_word_invalid() {
 fn test_end_invalid() {
     let input           = "bbbbbb c";
     let expected_output = TokenStream::from(vec![
-        Token::Word(String::from("bbbbbb")),
-        Token::Unrecognized(String::from(" ")),
-        Token::Unrecognized(String::from("c")),
+        Token::word("bbbbbb"),
+        Token::unrecognized(" "),
+        Token::unrecognized("c"),
     ]);
     let result = run_test_on(input);
     assert_eq!(result, expected_output);

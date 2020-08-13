@@ -227,7 +227,9 @@ pub fn match_for_transition<S:BuildHasher>
     let mut range_start   = u32::min_value();
     let divisions:Vec<_>  = dfa.alphabet_segmentation.divisions_as_vec();
     let mut branches      = Vec::with_capacity(divisions.len());
-    for (ix,sym) in divisions.into_iter() {
+    for division in divisions.into_iter() {
+        let ix                = division.position;
+        let sym               = division.symbol;
         let new_trigger_state = dfa.links[(state_ix,ix)];
         if new_trigger_state != trigger_state {
             let range_end             = if sym.value != 0 { sym.value - 1 } else { sym.value };

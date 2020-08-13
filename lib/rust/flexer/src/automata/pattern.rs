@@ -1,5 +1,8 @@
 //! Simple API for constructing regex patterns that are used in parser implementation.
 
+#[macro_use]
+mod macros;
+
 use crate::automata::symbol::Symbol;
 
 use core::iter;
@@ -141,27 +144,7 @@ impl BitOr<Pattern> for Pattern {
         }
     }
 }
-
-impl BitOr<&Pattern> for &Pattern {
-    type Output = Pattern;
-    fn bitor(self, rhs:&Pattern) -> Self::Output {
-        self.clone() | rhs.clone()
-    }
-}
-
-impl BitOr<&Pattern> for Pattern {
-    type Output = Pattern;
-    fn bitor(self, rhs:&Pattern) -> Self::Output {
-        self | rhs.clone()
-    }
-}
-
-impl BitOr<Pattern> for &Pattern {
-    type Output = Pattern;
-    fn bitor(self, rhs:Pattern) -> Self::Output {
-        self.clone() | rhs
-    }
-}
+gen_ref_versions!(Pattern,BitOr,bitor);
 
 impl Shr<Pattern> for Pattern {
     type Output = Pattern;
@@ -174,24 +157,4 @@ impl Shr<Pattern> for Pattern {
         }
     }
 }
-
-impl Shr<&Pattern> for &Pattern {
-    type Output = Pattern;
-    fn shr(self, rhs:&Pattern) -> Self::Output {
-        self.clone() >> rhs.clone()
-    }
-}
-
-impl Shr<&Pattern> for Pattern {
-    type Output = Pattern;
-    fn shr(self, rhs:&Pattern) -> Self::Output {
-        self >> rhs.clone()
-    }
-}
-
-impl Shr<Pattern> for &Pattern {
-    type Output = Pattern;
-    fn shr(self, rhs:Pattern) -> Self::Output {
-        self.clone() >> rhs
-    }
-}
+gen_ref_versions!(Pattern,Shr,shr);

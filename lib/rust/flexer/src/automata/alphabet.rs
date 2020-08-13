@@ -58,7 +58,7 @@ impl Segmentation {
     pub fn insert(&mut self, range:RangeInclusive<Symbol>) {
         self.divisions.insert(Symbol::from(range.start()));
         if range.end().value != Symbol::EOF_CODE.value {
-            self.divisions.insert(Symbol{ value:range.end().value + 1});
+            self.divisions.insert(Symbol{value:range.end().value + 1});
         }
     }
 
@@ -72,8 +72,8 @@ impl Segmentation {
     }
 
     /// Obtains the divisions in the alphabet segmentation as a vector.
-    pub fn divisions_as_vec(&self) -> Vec<(usize, Symbol)> {
-        self.divisions.iter().copied().enumerate().collect()
+    pub fn divisions_as_vec(&self) -> Vec<Division> {
+        self.divisions.iter().copied().enumerate().map(From::from).collect()
     }
 }
 
@@ -89,3 +89,42 @@ impl Default for Segmentation {
         Segmentation{divisions}
     }
 }
+
+
+
+// ================
+// === Division ===
+// ================
+
+/// A division of the alphabet used by the lexer.
+#[derive(Copy,Clone,Debug,PartialEq,Eq)]
+pub struct Division {
+    /// The position of the division.
+    pub position : usize,
+    /// The symbol at which it divides the alphabet.
+    pub symbol : Symbol,
+}
+
+impl Division {
+    /// Create a new division.
+    pub fn new(position:usize, symbol:Symbol) -> Division {
+        Division{position,symbol}
+    }
+}
+
+
+// === Trait Impls ===
+
+impl Into<(usize,Symbol)> for Division {
+    fn into(self) -> (usize, Symbol) {
+        (self.position,self.symbol)
+    }
+}
+
+impl From<(usize,Symbol)> for Division {
+    fn from((position, symbol): (usize, Symbol)) -> Self {
+        Division::new(position,symbol)
+    }
+}
+
+
