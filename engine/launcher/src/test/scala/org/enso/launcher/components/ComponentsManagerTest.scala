@@ -39,7 +39,10 @@ class ComponentsManagerTest
           .toURI
       )
     val engineProvider = new EngineReleaseProvider(
-      FakeReleaseProvider(fakeReleasesRoot.resolve("enso"))
+      FakeReleaseProvider(
+        fakeReleasesRoot.resolve("enso"),
+        copyIntoArchiveRoot = Seq("manifest.yaml")
+      )
     )
     val runtimeProvider = new GraalCEReleaseProvider(
       FakeReleaseProvider(fakeReleasesRoot.resolve("graalvm"))

@@ -63,12 +63,20 @@ object Manifest {
   }
 
   object JVMOption {
+    private object Fields {
+      val os    = "os"
+      val value = "value"
+    }
+
     implicit val decoder: Decoder[JVMOption] = { json =>
+      val hasOSKey = json.keys.exists { keyList: Iterable[String] =>
+        keyList.toSeq.contains(Fields.os)
+      }
+
       for {
-        value <- json.get[String]("value")
+        value <- json.get[String](Fields.value)
         osRestriction <-
-          if (json.keys.contains("os")) json.get[OS]("os").map(Some(_))
-          else Right(None)
+          if (hasOSKey) json.get[OS](Fields.os).map(Some(_)) else Right(None)
       } yield JVMOption(value, osRestriction)
     }
   }
@@ -83,6 +91,7 @@ object Manifest {
       yaml.parser
         .parse(reader)
         .flatMap(_.as[Manifest])
+        .map(m => { println(m); m })
         .toTry
     }.flatten.recoverWith { error =>
       Failure(ManifestLoadingError.fromThrowable(error))
@@ -103,9 +112,26 @@ object Manifest {
       }
   }
 
+  /**
+    * Indicates an error that prevented loading the engine manifest.
+    */
   case class ManifestLoadingError(message: String, cause: Throwable)
-      extends RuntimeException(message, cause)
+      extends RuntimeException(message, cause) {
+
+    /**
+      * @inheritdoc
+      */
+    override def toString: String = message
+  }
+
   object ManifestLoadingError {
+
+    /**
+      * Creates a [[ManifestLoadingError]] by wrapping another [[Throwable]].
+      *
+      * Special logic is used for [[io.circe.Error]] to display the error
+      * summary in a human-readable way.
+      */
     def fromThrowable(throwable: Throwable): ManifestLoadingError =
       throwable match {
         case decodingError: io.circe.Error =>

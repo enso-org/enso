@@ -55,6 +55,11 @@ class RunnerSpec extends ComponentsManagerTest {
         managedCommand.extraEnv.find(_._1 == "JAVA_HOME").value._2 should
         include("graalvm-ce")
 
+        val enginePath =
+          getTestDirectory / "test_data" / "dist" / "0.0.0"
+        val runtimePath =
+          (enginePath / "component" / "runtime.jar").toAbsolutePath.normalize
+
         for (command <- Seq(systemCommand, managedCommand)) {
           val commandLine = command.command.mkString(" ")
           val arguments   = command.command.tail
@@ -63,11 +68,13 @@ class RunnerSpec extends ComponentsManagerTest {
           arguments should contain("-Dlocally-added-options=value1")
           arguments should contain("-Dlocally-added-options=value1")
           arguments should contain("-Doptions-added-from-manifest=42")
-          arguments should contain("-Danother-one=true")
+          arguments should contain("-Xanother-one")
           commandLine should endWith("arg1 --flag2")
 
-          commandLine should include
-          regex("-Dtruffle.append.classpath=.*runtime.jar")
+          arguments should contain(s"-Dtruffle.class.path.append=$runtimePath")
+          arguments.filter(
+            _.contains("truffle.class.path.append")
+          ) should have length 1
 
           commandLine should include
           regex("-jar .*runner.jar")
