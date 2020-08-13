@@ -2045,6 +2045,108 @@ class RuntimeServerTest
     )
   }
 
+  it should "return error when module not found" in {
+    context.writeMain(context.Main.code)
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer("Unnamed.Main", "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionFailed(contextId, "Module Unnamed.Main does not exist.")
+      )
+    )
+  }
+
+  it should "return error when constructor not found" in {
+    context.writeMain(context.Main.code)
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer("Test.Main", "Unexpected", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionFailed(contextId, "Constructor Unexpected does not exist.")
+      )
+    )
+  }
+
+  it should "return error when method not found" in {
+    context.writeMain(context.Main.code)
+    val contextId = UUID.randomUUID()
+    val requestId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer("Test.Main", "Main", "ooops"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionFailed(
+          contextId,
+          "Object Main does not define method ooops."
+        )
+      )
+    )
+  }
+
   it should "return error not invocable" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
@@ -2790,13 +2892,18 @@ class RuntimeServerTest
     )
 
     // push main
-    val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer("Test.Main", "Main", "main"),
-      None,
-      Vector()
-    )
     context.send(
-      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer("Test.Main", "Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
     )
     context.receive(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
@@ -2804,32 +2911,61 @@ class RuntimeServerTest
       context.Main.Update.mainY(contextId),
       context.Main.Update.mainZ(contextId)
     )
+
+    // rename Test -> Foo
     context.pkg.rename("Foo")
     context.send(Api.Request(requestId, Api.RenameProject("Test", "Foo")))
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.ProjectRenamed("Foo"))
     )
 
-    // recompute reusing the cache
+    // recompute existing stack
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
+    context.receive(3) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionFailed(contextId, "Module Test.Main does not exist.")
+      )
     )
 
-    // recompute invalidating all
+    // pop main
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId))
+    )
+
+    // push main
     context.send(
       Api.Request(
         requestId,
-        Api.RecomputeContextRequest(
+        Api.PushContextRequest(
           contextId,
-          Some(Api.InvalidatedExpressions.All())
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer("Foo.Main", "Main", "main"),
+            None,
+            Vector()
+          )
         )
       )
     )
-    context.receive shouldEqual Some(
-      Api.Response(requestId, Api.RecomputeContextResponse(contextId))
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.Main.Update.mainX(contextId),
+      context.Main.Update.mainZ(contextId),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              context.Main.idMainY,
+              Some("Number"),
+              Some(Api.MethodPointer("Foo.Main", "Number", "foo"))
+            )
+          )
+        )
+      )
     )
   }
 
