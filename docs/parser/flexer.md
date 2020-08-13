@@ -15,12 +15,12 @@ flexer to generate a highly-efficient lexer implementation.
 
 Where the flexer differs from other programs in this space, however, is the
 power that it gives users. When matching a rule, the flexer allows its users to
-execute _arbitrary_ Rust code. This means that the languages that can be lexed
-by the flexer extend from the simplest regular grammars right up to unrestricted
-grammars (but please don't write a programming language whose syntax falls into
-this category). It also differs in that it chooses the first complete match for
-a rule, rather than the longest one, which makes lexers much easier to define
-and maintain.
+execute _arbitrary_ Rust code, which may even manipulate the lexer's state and
+position. This means that the languages that can be lexed by the flexer extend
+from the simplest regular grammars right up to unrestricted grammars (but please
+don't write a programming language whose syntax falls into this category). It
+also differs in that it chooses the first complete match for a rule, rather than
+the longest one, which makes lexers much easier to define and maintain.
 
 For detailed library documentation, please see the
 [crate documentation](../../lib/rust/flexer/src/lib.rs) itself. This includes a
@@ -165,7 +165,7 @@ structure would therefore appear as follows.
 
 With this design, `flexer.generate_specialized_code()` is going to be executed
 on each rebuild of `lexer/generation`. Therefore, `generation` should contain
-only the minimum amount of logic, and should endeavour to minimize any
+only the minimum amount of logic, and should endeavor to minimize any
 unnecessary dependencies to avoid recompiling too often.
 
 ## Structuring the Flexer Code
