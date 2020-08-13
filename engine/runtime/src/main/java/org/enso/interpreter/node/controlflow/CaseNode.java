@@ -3,20 +3,19 @@ package org.enso.interpreter.node.controlflow;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.CachedContext;
+import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.RuntimeError;
-import org.enso.interpreter.runtime.error.TypeError;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * A node representing a pattern match on an arbitrary runtime value.
@@ -27,6 +26,7 @@ import org.enso.interpreter.runtime.error.TypeError;
  */
 @NodeChild(value = "scrutinee", type = ExpressionNode.class)
 @NodeInfo(shortName = "case_of", description = "The runtime representation of a case expression.")
+@ImportStatic(TypesGen.class)
 public abstract class CaseNode extends ExpressionNode {
 
   @Children private final BranchNode[] cases;
@@ -69,7 +69,7 @@ public abstract class CaseNode extends ExpressionNode {
    * @param ctx the language context reference
    * @return the result of executing the case expression on {@code object}
    */
-  @Specialization
+  @Specialization(guards = "!isRuntimeError(object)")
   @ExplodeLoop
   public Object doMatch(
       VirtualFrame frame,
