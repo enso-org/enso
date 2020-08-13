@@ -34,8 +34,8 @@ object Main {
       "version",
       "Print version of the launcher and currently selected Enso distribution."
     ) {
-      jsonFlag(showInUsage = true) map { useJSON => (_: Config) =>
-        Launcher.displayVersion(useJSON)
+      jsonFlag(showInUsage = true) map { useJSON => (config: Config) =>
+        Launcher(config).displayVersion(useJSON)
       }
     }
 
@@ -427,19 +427,19 @@ object Main {
           Launcher.ensurePortable()
         }
 
+        val globalCLIOptions = GlobalCLIOptions(
+          autoConfirm  = autoConfirm,
+          hideProgress = hideProgress
+        )
+
         if (help) {
           printTopLevelHelp()
           TopLevelBehavior.Halt
         } else if (version) {
-          Launcher.displayVersion(useJSON)
+          Launcher(globalCLIOptions).displayVersion(useJSON)
           TopLevelBehavior.Halt
         } else
-          TopLevelBehavior.Continue(
-            GlobalCLIOptions(
-              autoConfirm  = autoConfirm,
-              hideProgress = hideProgress
-            )
-          )
+          TopLevelBehavior.Continue(globalCLIOptions)
     }
   }
 

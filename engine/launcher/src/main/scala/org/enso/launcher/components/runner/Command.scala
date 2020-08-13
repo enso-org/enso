@@ -2,7 +2,7 @@ package org.enso.launcher.components.runner
 
 import org.enso.launcher.Logger
 
-import scala.sys.process.Process
+import scala.sys.process.{Process, ProcessBuilder}
 import scala.util.{Failure, Try}
 
 /**
@@ -19,12 +19,35 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
     * May return an exception if it is impossible to run the command (for
     * example due to insufficient permissions or nonexistent executable).
     */
-  def run(): Try[Int] = {
+  def run(): Try[Int] =
+    runProcess { processBuilder =>
+      processBuilder.run(connectInput = true).exitValue()
+    }
+
+  /**
+    * Runs the command and returns its standard output as [[String]].
+    *
+    * The standard error is printed to the console.
+    *
+    * May return an exception if it is impossible to run the command or the
+    * command returned non-zero exit code.
+    */
+  def captureOutput(): Try[String] =
+    runProcess { processBuilder =>
+      processBuilder.!!
+    }
+
+  /**
+    * Prepares to run a process and invokes `action` on the created
+    * [[ProcessBuilder]], capturing any errors.
+    *
+    * On success, the result of `action` is returned.
+    */
+  private def runProcess[R](action: ProcessBuilder => R): Try[R] = {
     val result = Try {
       Logger.debug(s"Executing $toString")
-      val process =
-        Process(command, None, extraEnv: _*).run(connectInput = true)
-      process.exitValue()
+      val processBuilder = Process(command, None, extraEnv: _*)
+      action(processBuilder)
     }
     result.recoverWith(error =>
       Failure(

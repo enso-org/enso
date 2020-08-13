@@ -319,5 +319,40 @@ class RunnerSpec extends ComponentsManagerTest {
       (include(s"--run $normalizedFilePath") and
       include(s"--in-project $normalizedProjectPath"))
     }
+
+    "get default version outside of project" in {
+      val TestSetup(runner, _) = makeFakeRunner()
+      val (runSettings, whichEngine) = runner
+        .version(useJSON = true)
+        .get
+
+      runSettings.version shouldEqual defaultEngineVersion
+      runSettings.runnerArguments should
+      (contain("--version") and contain("--json"))
+
+      whichEngine shouldEqual WhichEngine.Default
+    }
+
+    "get project version inside of project" in {
+      val version     = SemVer(0, 0, 0, Some("version-test"))
+      val projectPath = getTestDirectory / "project"
+      val name        = "Testname"
+      val TestSetup(runnerInside, projectManager) =
+        makeFakeRunner(cwdOverride = Some(projectPath))
+      projectManager.newProject(
+        name,
+        projectPath,
+        Some(version)
+      )
+      val (runSettings, whichEngine) = runnerInside
+        .version(useJSON = false)
+        .get
+
+      runSettings.version shouldEqual version
+      runSettings.runnerArguments should
+      (contain("--version") and not(contain("--json")))
+
+      whichEngine shouldEqual WhichEngine.FromProject(name)
+    }
   }
 }

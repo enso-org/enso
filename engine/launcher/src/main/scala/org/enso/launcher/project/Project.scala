@@ -34,6 +34,11 @@ class Project(
     }
 
   /**
+    * The package name of the project.
+    */
+  def name: String = pkg.name
+
+  /**
     * The path to the content root of the project.
     */
   def path: Path = pkg.root.toPath

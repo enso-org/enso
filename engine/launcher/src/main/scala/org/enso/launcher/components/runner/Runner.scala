@@ -3,9 +3,9 @@ package org.enso.launcher.components.runner
 import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.{Environment, GlobalConfigurationManager, Logger}
 import org.enso.launcher.components.{ComponentsManager, Manifest, Runtime}
 import org.enso.launcher.project.ProjectManager
+import org.enso.launcher.{Environment, GlobalConfigurationManager, Logger}
 
 import scala.util.Try
 
@@ -147,6 +147,39 @@ class Runner(
       )
       RunSettings(version, arguments ++ additionalArguments)
     }
+
+  /**
+    * Creates [[RunSettings]] for querying the currently selected engine
+    * version.
+    *
+    * If the current working directory is inside of a project, the engine
+    * associated with the project is queried, otherwise the default engine is
+    * queried.
+    *
+    * @param useJSON if set to true, the returned [[RunSettings]] will request
+    *                the version in JSON format, otherwise human readable text
+    *                format will be used
+    * @return the [[RunSettings]] and a [[WhichEngine]] indicating if the used
+    *         engine was from a project (true) or the default one (false)
+    */
+  def version(useJSON: Boolean): Try[(RunSettings, WhichEngine)] = {
+    for {
+      project <- projectManager.findProject(currentWorkingDirectory)
+    } yield {
+      val version =
+        project.map(_.version).getOrElse(configurationManager.defaultVersion)
+      val arguments =
+        Seq("--version") ++ (if (useJSON) Seq("--json") else Seq())
+
+      val whichEngine =
+        project match {
+          case Some(value) => WhichEngine.FromProject(value.name)
+          case None        => WhichEngine.Default
+        }
+
+      (RunSettings(version, arguments), whichEngine)
+    }
+  }
 
   final private val JVM_OPTIONS_ENV_VAR = "ENSO_JVM_OPTS"
 

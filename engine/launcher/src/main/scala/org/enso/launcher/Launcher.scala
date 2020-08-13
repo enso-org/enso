@@ -4,13 +4,13 @@ import java.nio.file.Path
 
 import buildinfo.Info
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.Launcher.workingDirectory
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.components.DefaultComponentsManager
 import org.enso.launcher.components.runner.{
   JVMSettings,
   LanguageServerOptions,
-  Runner
+  Runner,
+  WhichEngine
 }
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.project.ProjectManager
@@ -45,7 +45,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     *  #977
     */
   def newProject(name: String, path: Option[Path]): Unit = {
-    val actualPath = path.getOrElse(workingDirectory.resolve(name))
+    val actualPath = path.getOrElse(Launcher.workingDirectory.resolve(name))
     projectManager.newProject(name, actualPath)
   }
 
@@ -234,6 +234,39 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   def printDefaultVersion(): Unit = {
     println(configurationManager.defaultVersion)
   }
+
+  /**
+    * Displays the version string of the launcher.
+    *
+    * @param useJSON specifies whether the output should use JSON or a
+    *                human-readable format
+    */
+  def displayVersion(useJSON: Boolean): Unit = {
+    val (runtimeVersionRunSettings, whichEngine) = runner.version(useJSON).get
+    val runtimeVersionCommand = runner.createCommand(
+      runtimeVersionRunSettings,
+      JVMSettings(useSystemJVM = false, jvmOptions = Seq.empty)
+    )
+    val runtimeVersionString = runtimeVersionCommand.captureOutput().get
+    val runtimeVersionParameter = VersionDescriptionParameter(
+      humanReadableName = whichEngine match {
+        case WhichEngine.FromProject(name) =>
+          s"Enso engine from project $name"
+        case WhichEngine.Default => "Current default Enso engine"
+      },
+      jsonName = "runtime",
+      value =
+        if (!useJSON) "\n" + runtimeVersionString else runtimeVersionString
+    )
+
+    val versionDescription = VersionDescription.make(
+      "Enso Launcher",
+      includeRuntimeJVMInfo = false,
+      additionalParameters  = Seq(runtimeVersionParameter)
+    )
+
+    println(versionDescription.asString(useJSON))
+  }
 }
 
 /**
@@ -249,30 +282,6 @@ object Launcher {
   }
 
   private val workingDirectory: Path = Path.of(".")
-
-  /**
-    * Displays the version string of the launcher.
-    *
-    * @param useJSON specifies whether the output should use JSON or a
-    *                human-readable format
-    */
-  def displayVersion(useJSON: Boolean): Unit = {
-    val runtimeVersionParameter = VersionDescriptionParameter(
-      humanReadableName = "Currently selected Enso version",
-      humandReadableValue =
-        "\nRuntime component is not yet implemented in the launcher.",
-      jsonName  = "runtime",
-      jsonValue = "\"<not implemented yet>\"" // TODO [RW] add with #976
-    )
-
-    val versionDescription = VersionDescription.make(
-      "Enso Launcher",
-      includeRuntimeJVMInfo = false,
-      additionalParameters  = Seq(runtimeVersionParameter)
-    )
-
-    println(versionDescription.asString(useJSON))
-  }
 
   /**
     * Checks if the launcher is running in portable mode and exits if it is not.
