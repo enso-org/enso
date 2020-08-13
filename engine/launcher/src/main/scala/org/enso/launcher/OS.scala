@@ -94,6 +94,10 @@ object OS {
   def executableName(baseName: String): String =
     if (isWindows) baseName + ".exe" else baseName
 
+  /**
+    * A [[Decoder]] instance allowing to parse the OS name from JSON and YAML
+    * configuration.
+    */
   implicit val decoder: Decoder[OS] = { json =>
     json.as[String].flatMap { string =>
       knownOS.find(_.name == string).toRight {

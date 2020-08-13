@@ -21,11 +21,14 @@ class ComponentsManagerTest
     with FakeEnvironment {
 
   /**
-    * Creates the [[DistributionManager]] and [[ComponentsManager]] used in the
-    * test.
+    * Creates the [[DistributionManager]], [[ComponentsManager]] and an
+    * [[Environment]] for use in the tests.
     *
     * Should be called separately for each test case, as the components use
     * temporary directories which are separate for each test case.
+    *
+    * Additional environment variables may be provided that are added to the
+    * [[Environment]] for the created managers.
     */
   def makeManagers(
     environmentOverrides: Map[String, String] = Map.empty

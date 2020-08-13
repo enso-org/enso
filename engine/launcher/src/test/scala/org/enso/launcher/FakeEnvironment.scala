@@ -29,6 +29,11 @@ trait FakeEnvironment { self: WithTemporaryDirectory =>
   /**
     * Returns an [[Environment]] instance that overrides the `ENSO_*`
     * directories to be inside the temporary directory for the test.
+    *
+    * Additionall environment overrides may be passed that will also be added to
+    * the environment. Note, however, that the `ENSO_*` directories that are
+    * defined in this function take precedence over whatever is passed to
+    * `extraOverrides`.
     */
   def fakeInstalledEnvironment(
     extraOverrides: Map[String, String] = Map.empty

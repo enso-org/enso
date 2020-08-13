@@ -49,12 +49,36 @@ object Manifest {
     */
   val DEFAULT_MANIFEST_NAME = "manifest.yaml"
 
+  /**
+    * Context used to substitute context-dependent variables in an JVM option.
+    *
+    * The context depends on what engine is being run on the JVM.
+    *
+    * @param enginePackagePath absolute path to the engine that is being
+    *                          launched
+    */
   case class JVMOptionsContext(enginePackagePath: Path)
 
+  /**
+    * Represents an option that is added to the JVM running an engine.
+    *
+    * @param value option value, possibly containing variables that will be
+    *              substituted
+    * @param osRestriction the option is added only on the specified operating
+    *                      system, if it is None, it applies to all systems
+    */
   case class JVMOption(value: String, osRestriction: Option[OS]) {
+
+    /**
+      * Checks if the option applies on the operating system that is currently
+      * running.
+      */
     def isRelevant: Boolean =
       osRestriction.isEmpty || osRestriction.contains(OS.operatingSystem)
 
+    /**
+      * Substitutes any variables based on the provided `context`.
+      */
     def substitute(context: JVMOptionsContext): String =
       value.replace(
         "$enginePackagePath",
@@ -68,6 +92,10 @@ object Manifest {
       val value = "value"
     }
 
+    /**
+      * [[Decoder]] instance that allows to parse the [[JVMOption]] from the
+      * YAML manifest.
+      */
     implicit val decoder: Decoder[JVMOption] = { json =>
       val hasOSKey = json.keys.exists { keyList: Iterable[String] =>
         keyList.toSeq.contains(Fields.os)

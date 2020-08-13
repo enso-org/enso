@@ -15,6 +15,14 @@ import scala.io.Source
 import scala.sys.process._
 import scala.util.{Success, Try, Using}
 
+/**
+  * A release provider that creates fake releases from the defined resources.
+  *
+  * @param releasesRoot path to the directory containing subdirectories for each
+  *                     release
+  * @param copyIntoArchiveRoot list of filenames that will be copied to the root
+  *                            of each created archive
+  */
 case class FakeReleaseProvider(
   releasesRoot: Path,
   copyIntoArchiveRoot: Seq[String] = Seq.empty
@@ -39,6 +47,13 @@ case class FakeReleaseProvider(
   override def listReleases(): Try[Seq[Release]] = Success(releases)
 }
 
+/**
+  * The release created by [[FakeReleaseProvider]].
+  *
+  * @param path path to the release root, each file or directory inside of it
+  *             represents a [[FakeAsset]]
+  * @param copyIntoArchiveRoot list of
+  */
 case class FakeRelease(path: Path, copyIntoArchiveRoot: Seq[String] = Seq.empty)
     extends Release {
 
@@ -56,6 +71,18 @@ case class FakeRelease(path: Path, copyIntoArchiveRoot: Seq[String] = Seq.empty)
   }
 }
 
+/**
+  * Represents an asset of the [[FakeRelease]].
+  *
+  * If it is a file, 'downloading' it just copies it to the destination.
+  * Fetching it reads it as text.
+  *
+  * If it is a directory, it is treated as a fake archive - an archive with all
+  * files contained within that directory is created at the specified
+  * destination. Any paths from `copyIntoArchiveRoot` are also added into the
+  * root of that created archive. This allows to avoid maintaining additional
+  * copies of shared files like the manifest.
+  */
 case class FakeAsset(source: Path, copyIntoArchiveRoot: Seq[Path] = Seq.empty)
     extends Asset {
 

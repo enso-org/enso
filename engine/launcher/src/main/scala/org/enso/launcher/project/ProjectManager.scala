@@ -44,7 +44,7 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
   }
 
   /**
-    * Tries to load the project at the provided path.
+    * Tries to load the project at the provided `path`.
     */
   def loadProject(path: Path): Try[Project] =
     packageManager
@@ -54,9 +54,11 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
 
   /**
     * Traverses the directory tree looking for a project in one of the ancestors
-    * of the provided path.
+    * of the provided `path`.
     *
-    * If a package file is missing in a directory, its
+    * If a package file is missing in a directory, its ancestors are searched
+    * recursively. However if a package file exists in some directory, but there
+    * are errors preventing from loading it, that error is reported.
     */
   def findProject(path: Path): Try[Option[Project]] =
     tryFindingProject(path.toAbsolutePath.normalize).map(Some(_)).recover {

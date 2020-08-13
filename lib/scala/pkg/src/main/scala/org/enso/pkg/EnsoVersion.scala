@@ -36,6 +36,10 @@ case class SemVerEnsoVersion(version: SemVer) extends EnsoVersion {
 }
 
 object EnsoVersion {
+
+  /**
+    * [[Decoder]] instance allowing to parse [[EnsoVersion]].
+    */
   implicit val decoder: Decoder[EnsoVersion] = { json =>
     json.as[String].flatMap { string =>
       if (string == DefaultEnsoVersion.toString)
@@ -53,6 +57,9 @@ object EnsoVersion {
     }
   }
 
+  /**
+    * [[Encoder]] instance allowing to convert [[EnsoVersion]] to JSON or YAML.
+    */
   implicit val encoder: Encoder[EnsoVersion] = { version =>
     version.toString.asJson
   }

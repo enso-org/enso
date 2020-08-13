@@ -59,6 +59,8 @@ class RunnerSpec extends ComponentsManagerTest {
           getTestDirectory / "test_data" / "dist" / "0.0.0"
         val runtimePath =
           (enginePath / "component" / "runtime.jar").toAbsolutePath.normalize
+        val runnerPath =
+          (enginePath / "component" / "runner.jar").toAbsolutePath.normalize
 
         for (command <- Seq(systemCommand, managedCommand)) {
           val commandLine = command.command.mkString(" ")
@@ -77,7 +79,7 @@ class RunnerSpec extends ComponentsManagerTest {
           ) should have length 1
 
           commandLine should include
-          regex("-jar .*runner.jar")
+          regex(s"-jar $runnerPath")
         }
       }
     }
