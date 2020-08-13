@@ -807,7 +807,7 @@ lazy val parser = (project in file("lib/scala/parser"))
     fork := true,
     Cargo.rustVersion := rustVersion,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(Cargo("build -p parser"))
+      .dependsOn(Cargo("build --project parser"))
       .value,
     javaOptions += {
       val root = baseDirectory.value.getParentFile.getParentFile.getParentFile
