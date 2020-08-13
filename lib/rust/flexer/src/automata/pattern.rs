@@ -1,5 +1,8 @@
 //! Simple API for constructing regex patterns that are used in parser implementation.
 
+#[macro_use]
+mod macros;
+
 use crate::automata::symbol::Symbol;
 
 use core::iter;
@@ -132,24 +135,26 @@ impl Pattern {
 
 impl BitOr<Pattern> for Pattern {
     type Output = Pattern;
-    fn bitor(self, rhs: Pattern) -> Self::Output {
+    fn bitor(self, rhs:Pattern) -> Self::Output {
         match (self, rhs) {
-            (Or(mut lhs), Or(    rhs)) => {lhs.extend(rhs) ; Or(lhs)},
-            (Or(mut lhs), rhs        ) => {lhs.push(rhs)   ; Or(lhs)},
-            (lhs        , Or(mut rhs)) => {rhs.push(lhs)   ; Or(rhs)},
+            (Or(mut lhs), Or(    rhs)) => {lhs.extend(rhs)   ; Or(lhs)},
+            (Or(mut lhs), rhs        ) => {lhs.push(rhs)     ; Or(lhs)},
+            (lhs        , Or(mut rhs)) => {rhs.insert(0,lhs) ; Or(rhs)},
             (lhs        , rhs        ) => Or(vec![lhs,rhs]),
         }
     }
 }
+gen_ref_versions!(Pattern,BitOr,bitor);
 
 impl Shr<Pattern> for Pattern {
     type Output = Pattern;
-    fn shr(self, rhs: Pattern) -> Self::Output {
+    fn shr(self, rhs:Pattern) -> Self::Output {
         match (self, rhs) {
-            (Seq(mut lhs), Seq(rhs))     => {lhs.extend(rhs) ; Seq(lhs)},
-            (Seq(mut lhs), rhs         ) => {lhs.push(rhs)   ; Seq(lhs)},
-            (lhs         , Seq(mut rhs)) => {rhs.push(lhs)   ; Seq(rhs)},
+            (Seq(mut lhs), Seq(rhs)    ) => {lhs.extend(rhs)   ; Seq(lhs)},
+            (Seq(mut lhs), rhs         ) => {lhs.push(rhs)     ; Seq(lhs)},
+            (lhs         , Seq(mut rhs)) => {rhs.insert(0,lhs) ; Seq(rhs)},
             (lhs         , rhs         ) => Seq(vec![lhs, rhs]),
         }
     }
 }
+gen_ref_versions!(Pattern,Shr,shr);

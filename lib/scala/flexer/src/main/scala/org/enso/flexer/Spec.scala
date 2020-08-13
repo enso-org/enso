@@ -95,7 +95,7 @@ case class Spec[C <: Context](c: C, dfa: DFA) {
 
     utf2 match {
       case b2 +: utf2 =>
-        val b1UTF = Branch(b1.range.start to MIN_MATCH_CODE - 1, b1.body)
+        val b1UTF = Branch(b1.range.start until MIN_MATCH_CODE, b1.body)
         val b1ASC = Branch(MIN_MATCH_CODE to b1.range.end, b1.body)
         val b2ASC = Branch(b2.range.start to MAX_MATCH_CODE, b2.body)
         val b2UTF = Branch(MAX_MATCH_CODE + 1 to b2.range.end, b2.body)
