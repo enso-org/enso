@@ -1,4 +1,4 @@
-//! Defines abstraction for data types that have a default value when used as GPU values.
+//! Define abstraction for data types that have a default value when used as GPU values.
 
 use crate::types::*;
 
@@ -13,7 +13,7 @@ pub trait GpuDefault {
     /// Default value for this type.
     fn gpu_default() -> Self;
 
-    /// Checks if the current value is the same as the default one.
+    /// Check if the current value is the same as the default one.
     fn is_gpu_default(&self) -> bool where Self:Sized+PartialEq {
         *self == Self::gpu_default()
     }

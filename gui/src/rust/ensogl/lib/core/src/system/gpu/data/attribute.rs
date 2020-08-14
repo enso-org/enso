@@ -75,7 +75,7 @@ impl {
         })
     }
 
-    /// Adds a new named buffer to the scope.
+    /// Add a new named buffer to the scope.
     pub fn add_buffer<Name:Str, T:Storable>(&mut self, name:Name) -> Buffer<T>
     where AnyBuffer: From<Buffer<T>> {
         let name         = name.as_ref().to_string();
@@ -95,7 +95,7 @@ impl {
         })
     }
 
-    /// Lookups buffer by a given name.
+    /// Lookup buffer by a given name.
     pub fn buffer(&self, name:&str) -> Option<AnyBuffer> {
         self.buffer_name_map.get(name).map(|i| self.buffers[(*i).into()].clone())
     }
@@ -105,7 +105,7 @@ impl {
         self.buffer_name_map.contains_key(name.as_ref())
     }
 
-    /// Adds a new instance to every buffer in the scope.
+    /// Add a new instance to every buffer in the scope.
     pub fn add_instance(&mut self) -> AttributeInstanceIndex {
         let instance_count = 1;
         group!(self.logger, "Adding {instance_count} instance(s).", {
@@ -121,11 +121,13 @@ impl {
         })
     }
 
-    /// Disposes instance for reuse in the future. Please note that the disposed data still
-    /// exists in the buffer and will be used when rendering. It is yours responsibility to hide
-    /// id, fo example by degenerating vertices.
+    /// Dispose instance for reuse in the future. All data in all buffers at the provided `id` will
+    /// be set to default.
     pub fn dispose(&mut self, id:AttributeInstanceIndex) {
         group!(self.logger, "Disposing instance {id}.", {
+            for buffer in &self.buffers {
+                buffer.set_to_default(id.into())
+            }
             self.free_ids.push(id);
         })
     }
@@ -149,7 +151,7 @@ impl {
         })
     }
 
-    /// Returns the size of buffers in this scope.
+    /// Return the size of buffers in this scope.
     pub fn size(&self) -> usize {
         self.size
     }
@@ -171,24 +173,24 @@ pub struct Attribute<T> {
 }
 
 impl<T> Attribute<T> {
-    /// Creates a new variable as an indexed view over provided buffer.
+    /// Create a new variable as an indexed view over provided buffer.
     pub fn new(index:AttributeInstanceIndex, buffer:Buffer<T>) -> Self {
         Self {index,buffer}
     }
 }
 
 impl<T:Storable> Attribute<T> {
-    /// Gets a copy of the data this attribute points to.
+    /// Get a copy of the data this attribute points to.
     pub fn get(&self) -> T {
         self.buffer.get(self.index.into())
     }
 
-    /// Sets the data this attribute points to.
+    /// Set the data this attribute points to.
     pub fn set(&self, value:T) {
         self.buffer.set(self.index.into(),value);
     }
 
-    /// Modifies the data this attribute points to.
+    /// Modify the data this attribute points to.
     pub fn modify<F:FnOnce(&mut T)>(&self, f:F) {
         let mut value = self.get();
         f(&mut value);

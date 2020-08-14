@@ -11,29 +11,22 @@ use crate::control::callback::CallbackFn;
 use crate::data::dirty;
 use crate::data::seq::observable::Observable;
 use crate::debug::stats::Stats;
-use crate::system::gpu::shader::Context;
-use crate::system::gpu::data::buffer::usage::BufferUsage;
 use crate::system::gpu::data::attribute::Attribute;
 use crate::system::gpu::data::buffer::item::JsBufferView;
+use crate::system::gpu::data::buffer::usage::BufferUsage;
+use crate::system::gpu::shader::Context;
 
-
-use crate::system::gpu::data::prim::*;
 use crate::data::dirty::traits::*;
+use crate::system::gpu::data::default::gpu_default;
 use crate::system::gpu::data::gl_enum::traits::*;
+use crate::system::gpu::data::prim::*;
 
-
-use nalgebra::Matrix4;
-use nalgebra::Vector2;
-use nalgebra::Vector3;
-use nalgebra::Vector4;
 use enso_shapely::shared;
 use std::iter::Extend;
 use std::ops::RangeInclusive;
 use web_sys::WebGlBuffer;
 
-
 pub use crate::system::gpu::data::Storable;
-
 
 
 
@@ -105,43 +98,48 @@ impl<T:Storable> {
         })
     }
 
-    /// Returns the number of elements in the buffer.
+    /// Return the number of elements in the buffer.
     pub fn len(&self) -> usize {
         self.buffer.len()
     }
 
-    /// Checks if the buffer is empty.
+    /// Check if the buffer is empty.
     pub fn is_empty(&self) -> bool {
         self.buffer.is_empty()
     }
 
-    /// Reads the usage pattern of the buffer.
+    /// Read the usage pattern of the buffer.
     pub fn usage(&self) -> BufferUsage {
         self.usage
     }
 
-    /// Sets the usage pattern of the buffer.
+    /// Set the usage pattern of the buffer.
     pub fn set_usage(&mut self, usage:BufferUsage) {
         self.usage = usage;
         self.resize_dirty.set();
     }
 
-    /// Gets a copy of the data by its index.
+    /// Get a copy of the data by its index.
     pub fn get(&self, index:usize) -> T {
         *self.buffer.index(index)
     }
 
-    /// Sets data value at the given index.
+    /// Set data value at the given index.
     pub fn set(&mut self, index:usize, value:T) {
         *self.buffer.index_mut(index) = value;
     }
 
-    /// Adds a single new element initialized to default value.
+    /// Set the data at the given index to a default value.
+    pub fn set_to_default(&mut self, index:usize) {
+        self.set(index,gpu_default());
+    }
+
+    /// Add a single new element initialized to default value.
     pub fn add_element(&mut self) {
         self.add_elements(1);
     }
 
-    /// Adds multiple new elements initialized to default values.
+    /// Add multiple new elements initialized to default values.
     pub fn add_elements(&mut self, elem_count:usize) {
         self.extend(iter::repeat(T::gpu_default()).take(elem_count));
     }
@@ -162,13 +160,13 @@ impl<T:Storable> {
         })
     }
 
-    /// Binds the underlying WebGLBuffer to a given target.
+    /// Bind the underlying WebGLBuffer to a given target.
     /// https://developer.mozilla.org/docs/Web/API/WebGLRenderingContext/bindBuffer
     pub fn bind(&self, target:u32) {
         self.context.bind_buffer(target,Some(&self.gl_buffer));
     }
 
-    /// Binds the buffer currently bound to gl.ARRAY_BUFFER to a generic vertex attribute of the
+    /// Bind the buffer currently bound to gl.ARRAY_BUFFER to a generic vertex attribute of the
     /// current vertex buffer object and specifies its layout. Please note that this function is
     /// more complex that a raw call to `WebGLRenderingContext.vertexAttribPointer`, as it correctly
     /// handles complex data types like `mat4`. See the following links to learn more:
@@ -220,7 +218,7 @@ impl<T:Storable> BufferData<T> {
 // it'll cause the buffer to change, causing the resulting js array to be invalid.
 
 impl<T:Storable> BufferData<T> {
-    /// Uploads the provided data range to the GPU buffer. In case the local buffer was resized,
+    /// Upload the provided data range to the GPU buffer. In case the local buffer was resized,
     /// it will be re-created on the GPU.
     fn upload_data(&mut self, opt_range:&Option<RangeInclusive<usize>>) {
         info!(self.logger,"Uploading buffer data.",{
@@ -232,7 +230,7 @@ impl<T:Storable> BufferData<T> {
         });
     }
 
-    /// Replaces the whole GPU buffer by the local data.
+    /// Replace the whole GPU buffer by the local data.
     #[allow(unsafe_code)]
     fn replace_gpu_buffer(&mut self) {
         let data    = self.as_slice();
@@ -253,7 +251,7 @@ impl<T:Storable> BufferData<T> {
         }
     }
 
-    /// Updates the GPU sub-buffer data by the provided index range.
+    /// Update the GPU sub-buffer data by the provided index range.
     #[allow(unsafe_code)]
     fn update_gpu_sub_buffer(&mut self, range:&RangeInclusive<usize>) {
         let data            = self.as_slice();
@@ -324,6 +322,7 @@ fn create_gl_buffer(context:&Context) -> WebGlBuffer {
 use enum_dispatch::*;
 use crate::system::gpu::data::AttributeInstanceIndex;
 
+
 // === Macros ===
 
 /// Variant mismatch error type.
@@ -375,10 +374,11 @@ crate::with_all_prim_types!([[define_any_buffer] []]);
 #[enum_dispatch]
 #[allow(missing_docs)]
 pub trait IsBuffer {
-    fn add_element(&self);
-    fn len(&self) -> usize;
-    fn is_empty(&self) -> bool;
-    fn update(&self);
-    fn bind(&self, target:u32);
-    fn vertex_attrib_pointer(&self, index:u32, instanced:bool);
+    fn add_element           (&self);
+    fn len                   (&self) -> usize;
+    fn is_empty              (&self) -> bool;
+    fn update                (&self);
+    fn bind                  (&self, target:u32);
+    fn vertex_attrib_pointer (&self, index:u32, instanced:bool);
+    fn set_to_default        (&self, index:usize);
 }
