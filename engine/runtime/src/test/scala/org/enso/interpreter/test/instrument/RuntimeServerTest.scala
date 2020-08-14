@@ -2106,7 +2106,10 @@ class RuntimeServerTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(contextId, "Constructor Unexpected does not exist.")
+        Api.ExecutionFailed(
+          contextId,
+          "Module Test.Main does not define constructor Unexpected."
+        )
       )
     )
   }

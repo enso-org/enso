@@ -262,7 +262,7 @@ public class Context {
    * Fetches a module with a given name.
    *
    * @param moduleName the qualified name of the module to lookup.
-   * @return the relevant module, if exists.
+   * @return the relevant module.
    */
   public Module getModule(String moduleName) throws ModuleDoesNotExistException {
     return getTopScope()

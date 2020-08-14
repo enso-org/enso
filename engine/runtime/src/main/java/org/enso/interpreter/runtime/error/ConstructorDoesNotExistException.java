@@ -8,10 +8,11 @@ public class ConstructorDoesNotExistException extends RuntimeException implement
   /**
    * Creates a new instance of this error.
    *
-   * @param name the qualified name of the non-existent constructor.
+   * @param moduleName the qualified module name.
+   * @param consName the name of the non-existent constructor.
    */
-  public ConstructorDoesNotExistException(String name) {
-    super("Constructor " + name + " does not exist.");
+  public ConstructorDoesNotExistException(String moduleName, String consName) {
+    super("Module " + moduleName + " does not define constructor " + consName + ".");
   }
 
   /**

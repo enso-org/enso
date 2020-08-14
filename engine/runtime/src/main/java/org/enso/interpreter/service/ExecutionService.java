@@ -55,7 +55,7 @@ public class ExecutionService {
     this.context = context;
   }
 
-  /** Thrown when the source code does not exist. */
+  /** Thrown when the source code of the execution item does not exist. */
   public static class SourceDoesNotExistException extends RuntimeException {
 
     /**
@@ -85,7 +85,8 @@ public class ExecutionService {
     AtomConstructor atomConstructor =
         scope
             .getConstructor(consName)
-            .orElseThrow(() -> new ConstructorDoesNotExistException(consName));
+            .orElseThrow(
+                () -> new ConstructorDoesNotExistException(module.getName().toString(), consName));
     Function function = scope.lookupMethodDefinition(atomConstructor, methodName);
     if (function == null) {
       throw new MethodDoesNotExistException(atomConstructor, methodName, null);
@@ -116,7 +117,7 @@ public class ExecutionService {
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
       Consumer<Throwable> onExceptionalCallback)
       throws ArityException, ModuleDoesNotExistException, MethodDoesNotExistException,
-      SourceDoesNotExistException, UnsupportedMessageException, UnsupportedTypeException {
+          SourceDoesNotExistException, UnsupportedMessageException, UnsupportedTypeException {
     SourceSection src = call.getFunction().getSourceSection();
     if (src == null) {
       throw new SourceDoesNotExistException(call.getFunction().getName());
