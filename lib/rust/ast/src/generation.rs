@@ -5,243 +5,228 @@
 use itertools::Itertools;
 use proc_macro2::Span;
 use std::collections::HashMap;
-use std::fmt::Write;
-use std::fs::File;
-use std::io::prelude::*;
+use std::fs;
 use syn;
 use syn::Ident;
+use inflector::Inflector;
+use std::io::Read;
 
-
+macro_rules! push {
+    ($source:expr, $($args:expr),*) => { $($source.push($args));* }
+}
 
 // =======================
 // === Scala Generator ===
 // =======================
 
-/// A Scala ast generator.
+/// A state of Scala source code.
 #[derive(Debug,Clone,Default)]
-pub struct ScalaGenerator {
+pub struct ScalaBuilder {
     /// The content of the file.
     code: String,
     /// Current indentation.
     indent: usize,
     /// Inheritance hierarchy.
-    extends: HashMap<Ident,Ident>
+    extends: HashMap<Name,Name>
 }
 
-impl ScalaGenerator {
-    /// Generates a Scala ast from `lib/rust/ast/src/lib.rs`.
+impl ScalaBuilder {
+    /// Write scala source code into buffer.
+    pub fn push(&mut self, ast:impl ScalaGenerator) {
+        ast.write(self)
+    }
+
     pub fn ast() -> std::io::Result<String> {
         let mut content = String::new();
-        let mut file    = File::open("lib/rust/ast/src/ast.rs")?;
+        let mut file    = fs::File::open("lib/rust/ast/src/ast.rs")?;
         file.read_to_string(&mut content);
 
-        Ok(Self::file("ast", syn::parse_file(content.as_str()).unwrap()))
+        let this = Self::default();
+        let file = syn::parse_file(content.as_str()).unwrap();
+
+        push!(this, File::new("Ast", "org.enso.ast".into(), file));
+
+        Ok(this.code)
     }
+}
 
-    /// Generates a Scala ast definition from a parsed Rust ast definition.
-    pub fn file(name:&str, file:syn::File) -> String {
-        let mut this = Self::default();
-        writeln!(this.code, "package org.enso.ast\n");
-        writeln!(this.code, "import java.util.UUID\n\n");
-        this.block(&Ident::new(name, Span::call_site()), &file.items[..]);
-        this.code
+/// A Scala ast generator.
+pub trait ScalaGenerator {
+    /// Write Scala source code into buffer.
+    fn write(self, source:&mut ScalaBuilder);
+}
+
+/// Writes an amount of spaces corresponding to the current indent.
+#[derive(Debug,Clone,Copy,Default)]
+pub struct Tab();
+
+/// Tab generator.
+pub const TAB:Tab = Tab();
+
+/// A trait for wrapping value in Option.
+pub trait When : Sized {
+    /// Returns Some(self) iff some is true.
+    fn when(self, some:bool) -> Option<Self> {
+        if some { Some(self) } else { None }
     }
+}
 
-    /// Generates a block of Scala code.
-    fn block(&mut self, ident:&Ident, lines:&[syn::Item]) {
-        write!(self.code, "\n{:i$}object " , "", i=self.indent);
-        self.typ_name(&ident);
-        writeln!(self.code, " {{");
-        self.indent += 2;
-        if self.extends.contains_key(&ident) {
-            write!(self.code, "{:i$}sealed trait ", "", i=self.indent);
-            self.typ_name(&ident);
-            self.extends(&ident);
-        }
+// == Trait Impls ==
 
-        for item in lines {
-            match item {
-                syn::Item::Enum  (val) => self.adt(&val),
-                syn::Item::Type  (val) => {
-                    write!(self.code, "\n{:i$}type ", "", i=self.indent);
-                    self.typ_name(&val.ident);
-                    self.generics(&val.generics);
-                    write!(self.code, " = ");
-                    self.typ(val.ty.as_ref());
-                    writeln!(self.code);
-                }
-                syn::Item::Struct(val) => {
-                    if let syn::Fields::Named(fields) = &val.fields {
-                        self.class(&val.ident, &val.generics, fields);
-                    } else {
-                        panic!("All struct fields must be named!");
-                    }
-                }
-                syn::Item::Mod(val) => {
-                    if let Some(content) = &val.content {
-                        self.block(&val.ident, &content.1[..]);
-                    };
-                }
-                _ => (),
+impl<T> When for T {}
+
+impl ScalaGenerator for &str {
+    fn write(self, source: &mut ScalaBuilder) {
+        source.code.push_str(self)
+    }
+}
+
+impl ScalaGenerator for Tab {
+    fn write(self, source:&mut ScalaBuilder) {
+        for _ in 0..source.indent { source.code.push(' ') }
+    }
+}
+
+impl<T:ScalaGenerator> ScalaGenerator for Option<T> {
+    fn write(self, source:&mut ScalaBuilder) {
+        if let Some(t) = self { t.write(source) }
+    }
+}
+
+
+
+// =================
+// === Scala AST ===
+// =================
+
+/// Represents a single source file `$name.scala`.
+#[derive(Debug,Clone)]
+pub struct File { lib:Stdlib, package:String, content:Object }
+
+impl File {
+    /// Creates a Scala source file.
+    ///
+    /// Note that the content of the file is going to be wrapped in an extra object
+    /// `object FileName { content.. }`, because Scala (compared to Rust) doesn't support
+    /// top level type aliases.
+    pub fn new(name:&str, package:String, file:syn::File) -> Self {
+        let lib     = Stdlib();
+        let content = Object{name:Name::new(name), lines:file.items};
+        Self{lib, package, content}
+    }
+}
+
+/// Represents a modified standard library.
+#[derive(Debug,Clone,Copy,Default)]
+pub struct Stdlib();
+
+/// Represents an object `object Name { line; ... }`.
+#[derive(Debug,Clone)]
+pub struct Object { name:Name, lines:Vec<syn::Item> }
+
+/// Represents valid top level terms.
+pub enum Term {
+    Object(Object),
+    Type(TypeAlias),
+    Class(Class),
+    Enum(Enum),
+}
+
+impl Object {
+    pub fn lines(lines:Vec<syn::Item>) -> impl Iterator<Item=Term> {
+        lines.into_iter().flat_map(|item| Some(match item {
+            syn::Item::Struct(syn::ItemStruct{ident,generics,fields,..}) =>
+            if let syn::Fields::Named(fields) = fields {
+                Term::Class(Class{name:Name::typ(&ident), generics:generics.into(), fields})
+            } else { None? }
+            syn::Item::Mod(val) => {
+                let (_, lines) = val.content?;
+                Term::Object(Object{name:Name::var(&val.ident), lines})
             }
-        }
-
-        self.indent -= 2;
-        writeln!(self.code, "{:i$}}}", "", i=self.indent);
+            syn::Item::Enum(val) => Term::Enum(val.into()),
+            syn::Item::Type(val) => Term::Type(val.into()),
+            _                    => None?,
+        }))
     }
+}
 
-    /// Generates a Scala case class.
-    ///
-    /// `struct Foo { bar:Bar, baz:Baz }` => `case class Foo(bar:Bar, baz:Baz)`
-    fn class(&mut self, ident:&Ident, generics:&syn::Generics, fields:&syn::FieldsNamed) {
-        write!(self.code, "{:i$}case class ", "", i=self.indent);
-        self.typ_name(ident);
-        self.generics(generics);
-        write!(self.code, "(");
-        for (i, field) in fields.named.iter().enumerate()  {
-            if i != 0 { write!(self.code, ", "); }
-            if let Some(ident) = &field.ident {
-                self.var_name(&ident);
+/// Represents a class `class Name[Generics](field: Field, ...)`
+#[derive(Debug,Clone)]
+pub struct Class { name:Name, generics:Generics, fields:syn::FieldsNamed  }
+
+impl Class {
+    pub fn fields(fields:syn::FieldsNamed) -> impl Iterator<Item=(Name,Type)> {
+        fields.named.into_iter().flat_map(|field| {
+            Some((Name::var(&field.ident?), Type{typ:field.ty}))
+        })
+    }
+}
+/// Represents a set of classes extending a sealed trait.
+#[derive(Debug,Clone)]
+pub struct Enum { name:Name, val:syn::ItemEnum }
+
+/// Represents an enum variant.
+#[derive(Debug,Clone)]
+pub enum Variant {
+    Named { name:Name, fields:syn::FieldsNamed },
+    Unnamed { class:Name, object:Name }
+}
+
+impl Enum {
+    pub fn variants(variants:impl Iterator<Item=syn::Variant>) -> impl Iterator<Item=Variant> {
+        variants.flat_map(|variant| Some(match variant.fields {
+            syn::Fields::Named  (fields) => Variant::Named{name:Name::typ(&variant.ident), fields},
+            syn::Fields::Unnamed(fields) => {
+                if let syn::Type::Path(path) = fields.unnamed.first()?.ty.clone() {
+                    let segments             = path.path.segments.iter().rev().take(2);
+                    let (class, object)      = segments.map(|s|Name::typ(&s.ident)).collect_tuple()?;
+                    Variant::Unnamed{class, object}
+                } else { None? }
             }
-            write!(self.code, ": ");
-            self.typ(&field.ty);
-        }
-        write!(self.code, ")");
-        self.extends(ident);
+            _ => None?,
+        }))
+    }
+}
+
+/// Represents the `extends Name` statement.
+#[derive(Debug,Clone)]
+pub struct Extends<'a> { name:&'a Name }
+
+/// Constructs a new `extends Name` statement.
+pub fn extends(name:&Name) -> Extends {
+    Extends{name}
+}
+
+/// Represents a set of type parameters `[Generic1, Generic2, ...]`.
+#[derive(Debug,Clone)]
+pub struct Generics { generics:syn::Generics }
+
+/// Represents a qualified type `Foo.Foo[Bar[Baz], ..]`
+#[derive(Debug,Clone)]
+pub struct Type { typ:syn::Type }
+
+/// Represents a type alias `type Foo = Bar[Baz]`
+#[derive(Debug,Clone)]
+pub struct TypeAlias { name:Name, generics:Generics, typ:Type }
+
+/// Represents a type name or a variable name.
+#[derive(Debug,Clone,Hash,PartialEq,Eq)]
+pub struct Name { name:Ident }
+
+impl Name {
+    /// Creates a new name.
+    fn new(name:&str) -> Self {
+        Name{name:Ident::new(name, Span::call_site())}
     }
 
-    /// Generates Scala ADT - case classes extending a sealed trait.
+    /// Creates a Scala variable name (camel case).
     ///
-    /// There are two modes of conversion:
-    ///
-    /// 1) When the Rust enum variant has named fields:
-    /// ```
-    /// enum Foo { Bar{x:isize}, Baz{y:isize} }
-    /// ```
-    /// ===>
-    /// ```scala
-    /// sealed trait Foo
-    /// case class Bar(x:Int) extends Foo
-    /// case class Baz(y:Int) extends Foo
-    /// ```
-    ///
-    /// 2) When the Rust enum variant has one unnamed field with qualified type:
-    /// ```
-    /// enum Foo { Bar(barz::Bar), Baz(barz::Baz) }
-    /// mod barz {
-    ///     pub struct Bar {       }
-    ///     pub struct Baz {y:isize}
-    /// }
-    /// ```
-    /// ===>
-    /// ```scala
-    /// sealed trait Foo
-    /// object barz {
-    ///     sealed trait Barz extends Foo
-    ///     case class Bar() extends Barz
-    ///     case class Baz(y:size) extends Barz
-    /// }
-    /// ```
-    fn adt(&mut self, adt:&syn::ItemEnum) {
-        write!(self.code, "\n{:i$}sealed trait {}", "", adt.ident, i=self.indent);
-        self.generics(&adt.generics);
-        self.extends(&adt.ident);
-        for variant in &adt.variants {
-            match &variant.fields {
-                syn::Fields::Named  (fields) => {
-                    self.extends.insert(variant.ident.clone(), adt.ident.clone());
-                    self.class(&variant.ident, &adt.generics, fields);
-                },
-                syn::Fields::Unnamed(fields) => {
-                    if let Some(syn::Type::Path(path)) = fields.unnamed.first().map(|f| &f.ty) {
-                        let path = path.path.segments.iter().rev().take(2).collect_tuple();
-                        if let Some((class, object)) = path {
-                            self.extends.insert(object.ident.clone(), adt.ident.clone());
-                            self.extends.insert(class.ident.clone(), object.ident.clone());
-                        }
-                    }
-                }
-                _ => (),
-            }
-        }
+    /// `Foo_bar` => `fooBar`
+    fn var(name:&Ident) -> Self {
+        Self::new(&name.to_string().to_camel_case())
     }
 
-    /// Generates Scala class extension.
-    ///
-    /// `foo` => `extends Foo`
-    fn extends(&mut self, ident:&Ident) {
-        if let Some(name) = self.extends.get(&ident).cloned() {
-            write!(self.code, " extends ");
-            self.typ_name(&name);
-        }
-        writeln!(self.code);
-    }
-
-    /// Generates Scala type parameters.
-    ///
-    /// `<Foo, Bar>` = `[Foo, Bar]`
-    fn generics(&mut self, generics:&syn::Generics) {
-        if generics.params.is_empty() {return}
-        write!(self.code, "[");
-        for (i, param) in generics.params.iter().enumerate() {
-            if i != 0 { write!(self.code, ", "); }
-            if let syn::GenericParam::Type(typ) = param {
-                self.typ_name(&typ.ident)
-            }
-        }
-        write!(self.code, "]");
-    }
-
-    /// Generates a qualified scala type with type arguments.
-    ///
-    /// `foo::Bar<Baz>` => `Foo.Bar[Baz]`
-    fn typ(&mut self, typ:&syn::Type) {
-        if let syn::Type::Path(path) = typ {
-            for (i, typ) in path.path.segments.iter().enumerate() {
-                if i != 0 { write!(self.code, "."); }
-                self.typ_segment(typ);
-            }
-        }
-    }
-
-    /// Generates a Scala type with type arguments.
-    ///
-    /// `Foo<Bar<Baz>>` => `Foo[Bar[Baz]]`
-    fn typ_segment(&mut self, typ:&syn::PathSegment) {
-        let boxed = typ.ident.to_string().as_str() == "Box";
-        if !boxed { self.typ_name(&typ.ident); }
-        if let syn::PathArguments::AngleBracketed(typ) = &typ.arguments {
-            if !boxed { write!(self.code, "["); }
-            for (i, typ) in typ.args.iter().enumerate() {
-                if i != 0 { write!(self.code, ", "); }
-                if let syn::GenericArgument::Type(typ) = typ{
-                    self.typ(typ);
-                }
-            }
-            if !boxed { write!(self.code, "]"); }
-        }
-    }
-
-    /// Generates a Scala variable name (camel case).
-    ///
-    /// `foo_bar` => `fooBar`
-    fn var_name(&mut self, ident:&Ident) {
-        let mut underscore = false;
-        for char in ident.to_string().chars() {
-            if char == '_' {
-                underscore = true ;
-            } else if underscore {
-                underscore = false;
-                for char in char.to_uppercase() {
-                    self.code.push(char)
-                }
-            } else {
-                self.code.push(char);
-            }
-        }
-    }
-
-    /// Generates a Scala type name.
+    /// Creates a Scala type name.
     ///
     /// The following Rust types are automatically converted to Scala types:
     /// ```code
@@ -252,23 +237,171 @@ impl ScalaGenerator {
     /// Vec                            => Vector,
     /// Uuid                           => UUID,
     /// ```
-    fn typ_name(&mut self, ident:&Ident) {
-        let name = match ident.to_string().as_str() {
+    fn typ(name:&Ident) -> Self {
+        let mut string;
+        let name = match name.to_string().as_str() {
             "u32"   | "i32"   | "u16" | "i16" | "i8" => "Int",
             "usize" | "isize" | "u64" | "i64"        => "Long",
             "u8"                                     => "Byte",
             "char"                                   => "Char",
             "Vec"                                    => "Vector",
             "Uuid"                                   => "UUID",
-            name => {
-                let mut chars = name.chars();
-                if let Some(char) = chars.next() {
-                   write!(self.code, "{}", char.to_uppercase().to_string() + chars.as_str());
-                }
-                ""
+            name                                     => {
+                string = name.to_camel_case().to_title_case();
+                &string
             }
         };
-        write!(self.code, "{}", name);
+        Self::new(name)
+    }
+}
+
+
+// == Trait Impls ==
+
+impl From<syn::Type> for Type {
+    fn from(typ:syn::Type) -> Self {
+        Type{typ}
+    }
+}
+
+impl From<syn::Generics> for Generics {
+    fn from(generics: syn::Generics) -> Self {
+        Generics{generics}
+    }
+}
+
+impl From<syn::ItemType> for TypeAlias {
+    fn from(ty:syn::ItemType) -> Self {
+        Self{name:Name::typ(&ty.ident), generics:ty.generics.into(), typ:(*ty.ty).into()}
+    }
+}
+
+impl From<syn::ItemEnum> for Enum {
+    fn from(val: syn::ItemEnum) -> Self {
+        Self{name:Name::typ(&val.ident), val}
+    }
+}
+
+impl ScalaGenerator for File {
+    fn write(self, source: &mut ScalaBuilder) {
+        push!(source, "package ", self.package.as_str(), "\n\n", self.lib, "\n\n", self.content);
+    }
+}
+
+impl ScalaGenerator for Stdlib {
+    fn write(self, source:&mut ScalaBuilder) {
+        push!(source, "import java.util.UUID");
+    }
+}
+
+
+impl ScalaGenerator for Object {
+    fn write(self, source:&mut ScalaBuilder) {
+        push!(source, TAB, "object ", &self.name, " {\n");
+
+        source.indent += 2;
+
+        if source.extends.contains_key(&self.name) {
+            push!(source, TAB, "sealed trait ", &self.name, extends(&self.name));
+        }
+        for item in Self::lines(self.lines) {
+            match item {
+                Term::Object(val) => source.push(val),
+                Term::Type  (val) => source.push(val),
+                Term::Class (val) => source.push(val),
+                Term::Enum  (val) => source.push(val),
+            }
+        }
+
+        source.indent -= 2;
+
+        push!(source, TAB, "}\n");
+    }
+}
+
+impl ScalaGenerator for TypeAlias {
+    fn write(self, source:&mut ScalaBuilder) {
+        push!(source, TAB, "type ", &self.name, &self.generics, " = ", self.typ, "\n");
+    }
+}
+
+impl ScalaGenerator for Class {
+    fn write(self, source:&mut ScalaBuilder) {
+        push!(source, TAB, "case class ", &self.name, &self.generics, "(");
+
+        for (i, (name, typ)) in Self::fields(self.fields).enumerate() {
+            push!(source, ", ".when(i!=0), &name, ": ", typ);
+        }
+
+        push!(source, ") ", extends(&self.name));
+    }
+}
+
+impl ScalaGenerator for Enum {
+    fn write(self, source:&mut ScalaBuilder) {
+        let generics = self.val.generics.into();
+
+        push!(source, TAB, "sealed trait ", &self.name, &generics, extends(&self.name));
+        for variant in Self::variants(self.val.variants.into_iter()) {
+            match variant {
+                Variant::Named{name, fields} => {
+                    source.extends.insert(name.clone(), self.name.clone());
+                    push!(source, Class{name, generics, fields});
+                }
+                Variant::Unnamed{class, object} => {
+                    source.extends.insert(object.clone(), self.name.clone());
+                    source.extends.insert(class, object);
+                }
+            }
+        }
+    }
+}
+
+impl<'a> ScalaGenerator for Extends<'a> {
+    fn write(self, source:&mut ScalaBuilder) {
+        if let Some(name) = source.extends.get(self.name) {
+            push!(source, " extends", name);
+        }
+    }
+}
+
+impl ScalaGenerator for &Generics {
+    fn write(self, source:&mut ScalaBuilder) {
+        if self.generics.params.is_empty() {return}
+        source.push("[");
+        for (i, param) in self.generics.params.iter().enumerate() {
+            if let syn::GenericParam::Type(typ) = param {
+                push!(source, ", ".when(i!=0), &Name::typ(&typ.ident));
+            }
+        }
+        source.push("]");
+    }
+}
+
+impl ScalaGenerator for Type {
+    fn write(self, source: &mut ScalaBuilder) {
+        if let syn::Type::Path(path) = self.typ {
+            for (i, typ) in path.path.segments.iter().enumerate() {
+                let boxed = typ.ident.to_string().as_str() == "Box";
+                if i!=0   { push!(source, ".") }
+                if !boxed { push!(source, &Name::typ(&typ.ident)) }
+                if let syn::PathArguments::AngleBracketed(typ) = &typ.arguments {
+                    if !boxed { push!(source, "[") }
+                    for (i, typ) in typ.args.into_iter().enumerate() {
+                        if let syn::GenericArgument::Type(typ) = typ {
+                            push!(source, ", ".when(i!=0), Type::from(typ));
+                        }
+                    }
+                    if !boxed { push!(source, "]") }
+                }
+            }
+        }
+    }
+}
+
+impl ScalaGenerator for &Name {
+    fn write(self, source: &mut ScalaBuilder) {
+        push!(source, self.name.to_string().as_str())
     }
 }
 
