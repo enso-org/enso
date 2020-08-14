@@ -28,6 +28,7 @@ members = [
     "lib/enso-shapely/macros",
     "lib/eval-tt",
     "lib/frp",
+    "lib/fuzzly",
     "lib/generics",
     "lib/logger",
     "lib/optics",

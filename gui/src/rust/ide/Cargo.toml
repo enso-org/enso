@@ -12,6 +12,7 @@ enso-callback            = { version = "0.1.0"  , path = "../lib/callback"      
 ensogl                   = { version = "0.1.0"  , path = "../ensogl"                   }
 ensogl-text-msdf-sys     = { version = "0.1.0"  , path = "../ensogl/lib/text/msdf-sys" }
 ensogl-system-web        = { version = "0.1.0"  , path = "../lib/system/web"           }
+fuzzly                   = { version = "0.1.0"  , path = "../lib/fuzzly"               }
 data                     = { version = "0.1.0"  , path = "../lib/data"                 }
 enso-frp                 = { version = "0.1.0"  , path = "../lib/frp"                  }
 enso-prelude             = { version = "0.1.0"  , path = "../lib/enso-prelude"         }
