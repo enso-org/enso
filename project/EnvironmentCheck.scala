@@ -1,6 +1,5 @@
 import java.io.IOException
 
-import GenerateAST.cargoCmd
 import sbt._
 import sbt.internal.util.ManagedLogger
 

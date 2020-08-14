@@ -47,8 +47,8 @@ directories, as explained below.
 
 ### Portable Enso Distribution Layout
 
-All files in the directory structure, except for configuration, can be safely
-removed and the launcher will re-download them if needed.
+All files in the directory structure, except for the configuration, can be
+safely removed, and the launcher will re-download them if needed.
 
 The directory structure is as follows:
 
@@ -162,6 +162,9 @@ enso-1.0.0
 ├── component        # Contains all the executable tools and their dependencies.
 │   ├── runner.jar   # The main executable of the distribution. CLI entry point.
 │   └── runtime.jar  # The language runtime. It is loaded by other JVM components, like the runner.
+├── native-libraries # Contains all shared libraries that are used by JVM components.
+│   └── parser.so    # The language parser. It is loaded by the runtime component.
+│                    # Alternative extensions are .dll Windows and .dylib on Mac.
 └── std-lib          # Contains all the libraries that are pre-installed within that compiler version.
     ├── Http         # Every version sub-directory is just an Enso package containing the library.
     │     ├── package.yaml
