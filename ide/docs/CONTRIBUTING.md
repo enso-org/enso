@@ -161,6 +161,19 @@ are presented below:
   `node ./run build`. To create platform-specific packages and installers use
   `node ./run dist` instead. The final packages will be located at
   `app/dist/native`.
+  
+- **Selective mode**
+  In order to compile only part of the project, and thus drastically shorten 
+  the incremental compile time, you are advised to use the selective 
+  compilation mode by passing the `--crate` option to the `build` or `watch`
+  command, e.g. `node ./watch --crate ensogl/example` to compile only the 
+  renderer-related example scenes. Please note, that in order to run a scene
+  in a web-browser, the scene has to be compiled and has to expose a public
+  function with a name starting with `entry_point_`. Thus, if you compile 
+  only selected crate, you will have access only to the example scenes that
+  were defined or re-exported by that crate. In particular, the `ide` crate
+  exposes the `entry_point_ide` function, so you have to compile it to test
+  your code in the Enso IDE.
 
 ### Testing, Linting, and Validation
 After changing the code it's always a good idea to lint and test the code. We 

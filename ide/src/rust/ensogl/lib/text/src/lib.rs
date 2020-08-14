@@ -91,9 +91,9 @@ pub mod typeface;
 
 /// Commonly used types and functions.
 pub mod prelude {
-    pub use ensogl::prelude::*;
+    pub use ensogl_core::prelude::*;
 }
 
 pub use buffer::*;
 pub use component::Area;
-pub use ensogl::data;
+pub use ensogl_core::data;

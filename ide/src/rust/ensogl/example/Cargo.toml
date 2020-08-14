@@ -1,0 +1,27 @@
+[package]
+name    = "ensogl-examples"
+version = "0.1.0"
+authors = ["Enso Team <contact@enso.org>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+enso-frp             = { version = "0.1.0", path = "../../lib/frp"               }
+enso-prelude         = { version = "0.1.0", path = "../../lib/enso-prelude"      }
+ensogl-core          = { version = "0.1.0", path = "../../ensogl/lib/core"       }
+ensogl-text-msdf-sys = { version = "0.1.0", path = "../../ensogl/lib/text/msdf-sys" }
+ensogl-text          = { version = "0.1.0", path = "../../ensogl/lib/text"       }
+enso-shapely         = { version = "0.1.0", path = "../../lib/enso-shapely/impl" }
+logger               = { version = "0.1.0", path = "../../lib/logger"            }
+
+wasm-bindgen = { version = "=0.2.58" , features = ["nightly","serde-serialize"] }
+nalgebra     = { version = "0.21.1"  , features = ["serde-serialize"]           }
+serde_json   = { version = "1.0"                                                }
+serde        = { version = "1.0"     , features = ["derive"]                    }
+js-sys       = { version = "0.3.28"                                             }
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = []

@@ -8,7 +8,7 @@ use crate::graph_editor::data;
 use ensogl::application::Application;
 use ensogl::display::navigation::navigator::Navigator;
 use ensogl::system::web;
-use ensogl_core_msdf_sys::run_once_initialized;
+use ensogl_text_msdf_sys::run_once_initialized;
 use js_sys::Math::sin;
 use nalgebra::Vector2;
 use std::rc::Rc;
@@ -73,7 +73,7 @@ fn constructor_graph() -> visualization::java_script::Definition {
 
 #[wasm_bindgen]
 #[allow(dead_code,missing_docs)]
-pub fn run_example_visualization() {
+pub fn entry_point_visualization() {
     web::forward_panic_hook_to_console();
     web::set_stdout();
     web::set_stack_trace_limit();

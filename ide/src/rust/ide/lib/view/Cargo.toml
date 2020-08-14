@@ -12,7 +12,7 @@ ast                  = { version = "0.1.0", path = "../ast/impl"                
 enso-frp             = { version = "0.1.0", path = "../../../lib/frp"               }
 enso-prelude         = { version = "0.1.0", path = "../../../lib/enso-prelude"      }
 ensogl               = { version = "0.1.0", path = "../../../ensogl"                }
-ensogl-core-msdf-sys = { version = "0.1.0", path = "../../../ensogl/lib/msdf-sys"   }
+ensogl-text-msdf-sys = { version = "0.1.0", path = "../../../ensogl/lib/text/msdf-sys" }
 ensogl-text          = { version = "0.1.0", path = "../../../ensogl/lib/text"       }
 enso-shapely         = { version = "0.1.0", path = "../../../lib/enso-shapely/impl" }
 span-tree            = { version = "0.1.0", path = "../span-tree"                   }

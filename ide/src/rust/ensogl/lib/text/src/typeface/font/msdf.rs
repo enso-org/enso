@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use ensogl_core_msdf_sys::Msdf;
+use ensogl_text_msdf_sys::Msdf;
 
 
 
@@ -143,7 +143,7 @@ mod test {
 
     #[wasm_bindgen_test(async)]
     async fn msdf_translation_converting() {
-        ensogl_core_msdf_sys::initialized().await;
+        ensogl_text_msdf_sys::initialized().await;
         let mut msdf = Msdf::mock_results();
         msdf.translation = Vector2::new(16.0, 4.0);
 

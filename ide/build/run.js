@@ -75,6 +75,7 @@ function command(docs) {
 // === Commands ===
 // ================
 
+const DEFAULT_CRATE = 'ide'
 let commands = {}
 
 
@@ -105,9 +106,9 @@ commands.check.rust = async function() {
 
 commands.build = command(`Build the sources in release mode`)
 commands.build.options = {
-    'view-only': {
-        describe : 'Compile only the view part',
-        type     : 'bool',
+    'crate': {
+        describe : 'Target crate to build',
+        type     : 'string',
     }
 }
 commands.build.js = async function() {
@@ -116,9 +117,10 @@ commands.build.js = async function() {
 }
 
 commands.build.rust = async function(argv) {
-    console.log(`Building WASM target.`)
-    let crate = argv.viewOnly ? 'ide/lib/view' : 'ide'
-    let args  = ['build','--target','web','--no-typescript','--out-dir',paths.dist.wasm.root,'--out-name','ide',crate]
+    let crate     = argv.crate || DEFAULT_CRATE
+    let crate_sfx = crate ? ` '${crate}'` : ``
+    console.log(`Building WASM target${crate_sfx}.`)
+    let args = ['build','--target','web','--no-typescript','--out-dir',paths.dist.wasm.root,'--out-name','ide',crate]
     if (argv.dev) { args.push('--dev') }
     await run_cargo('wasm-pack',args)
     await patch_file(paths.dist.wasm.glue, js_workaround_patcher)
@@ -202,15 +204,15 @@ commands.lint.rust = async function() {
 
 // === Watch ===
 
-commands.watch = command(`Start a file-watch utility and run interactive mode`)
-commands.watch.options = Object.assign({},commands.build.options)
+commands.watch          = command(`Start a file-watch utility and run interactive mode`)
+commands.watch.options  = Object.assign({},commands.build.options)
 commands.watch.parallel = true
 commands.watch.rust = async function(argv) {
     let build_args = []
-    if (argv.viewOnly != undefined) { build_args.push(`--view-only=${argv.viewOnly}`) }
-    build_args = build_args.join(' ')
-    let target = '"' + `node ${paths.script.main} build --no-js --dev ${build_args} -- ` + cargoArgs.join(" ") + '"'
-    let args   = ['watch','-s',`${target}`]
+    if (argv.crate != undefined) { build_args.push(`--crate=${argv.crate}`) }
+    build_args  = build_args.join(' ')
+    let target  = '"' + `node ${paths.script.main} build --no-js --dev ${build_args} -- ` + cargoArgs.join(" ") + '"'
+    let args    = ['watch','-s',`${target}`]
     await cmd.with_cwd(paths.rust.root, async () => {
         await cmd.run('cargo',args)
     })
@@ -285,6 +287,9 @@ for (let command of commandList) {
     optParser.command(command,config.docs,(args) => {
         for (let option in config.options) {
             args.options(option,config.options[option])
+        }
+        for (let arg in config.args) {
+            args.positional(arg,config.args[arg])
         }
         args.options('native', {
             describe : 'Run native tests',

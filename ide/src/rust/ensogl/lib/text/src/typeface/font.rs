@@ -4,10 +4,10 @@ use crate::prelude::*;
 
 pub mod msdf;
 
-use ensogl::display::scene;
-use ensogl::display::Scene;
-use ensogl_core_embedded_fonts::EmbeddedFonts;
-use ensogl_core_msdf_sys as msdf_sys;
+use ensogl_core::display::scene;
+use ensogl_core::display::Scene;
+use ensogl_text_embedded_fonts::EmbeddedFonts;
+use ensogl_text_msdf_sys as msdf_sys;
 use msdf_sys::Msdf;
 use msdf_sys::MsdfParameters;
 use enso_shapely::shared;
@@ -334,7 +334,7 @@ impl scene::Extension for Registry {
 mod tests {
     use super::*;
 
-    use ensogl_core_embedded_fonts::EmbeddedFonts;
+    use ensogl_text_embedded_fonts::EmbeddedFonts;
     use wasm_bindgen_test::wasm_bindgen_test;
     use wasm_bindgen_test::wasm_bindgen_test_configure;
 
@@ -349,7 +349,7 @@ mod tests {
 
     #[wasm_bindgen_test(async)]
     async fn empty_font_render_info() {
-        ensogl_core_msdf_sys::initialized().await;
+        ensogl_text_msdf_sys::initialized().await;
         let font_render_info = create_test_font();
 
         assert_eq!(TEST_FONT_NAME, font_render_info.name);
@@ -359,7 +359,7 @@ mod tests {
 
     #[wasm_bindgen_test(async)]
     async fn loading_glyph_info() {
-        ensogl_core_msdf_sys::initialized().await;
+        ensogl_text_msdf_sys::initialized().await;
         let font_render_info = create_test_font();
 
         font_render_info.glyph_info('A');
@@ -387,7 +387,7 @@ mod tests {
 
     #[wasm_bindgen_test(async)]
     async fn getting_or_creating_char() {
-        ensogl_core_msdf_sys::initialized().await;
+        ensogl_text_msdf_sys::initialized().await;
         let font_render_info = create_test_font();
 
         {

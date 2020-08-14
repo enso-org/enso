@@ -1,82 +1,18 @@
-//! ensogl is a blazing fast 2D vector rendering engine with a rich set of primitives and a GUI
+//! EnsoGL is a blazing fast 2D vector rendering engine with a rich set of primitives and a GUI
 //! component library. It is able to display millions of shapes 60 frames per second in a web
-//! browser on a modern laptop hardware. This is the main entry point to the library.
+//! browser on a modern laptop hardware. This is the main entry point to the library, which
+//! re-exports several components to a common namespace.
 
-#![allow(dead_code)]
+pub use ensogl_core::*;
 
-#![deny(unconditional_recursion)]
-
-#![feature(associated_type_defaults)]
-#![feature(cell_update)]
-#![feature(clamp)]
-#![feature(drain_filter)]
-#![feature(overlapping_marker_traits)]
-#![feature(slice_patterns)]
-#![feature(specialization)]
-#![feature(fn_traits)]
-#![feature(trait_alias)]
-#![feature(type_alias_impl_trait)]
-#![feature(unboxed_closures)]
-#![feature(vec_remove_item)]
-#![feature(weak_into_raw)]
-#![warn(missing_copy_implementations)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(trivial_casts)]
-#![warn(trivial_numeric_casts)]
-#![warn(unsafe_code)]
-#![warn(unused_import_braces)]
-#![warn(unused_qualifications)]
-#![recursion_limit="512"]
-
-// To be removed after this gets resolved: https://github.com/rust-lang/cargo/issues/5034
-#![allow(clippy::option_map_unit_fn)]
-
-
-
-// ===================
-// === Macro Debug ===
-// ===================
-
-/// Uncomment the following lines in order to enable macro-expansion debugging during compilation.
-
-//#![feature(trace_macros)]
-//trace_macros!(true);
-
-
-
-// =================================
-// === Module Structure Reexport ===
-// =================================
-
-pub mod animation;
-pub mod application;
-pub mod control;
-pub mod data;
-pub mod debug;
-pub mod display;
-pub mod gui;
-pub mod system;
-
-pub use enso_frp   as frp;
-pub use enso_types as types;
-
-/// Prelude - commonly used utilities.
-pub mod prelude {
-    pub use enso_prelude::*;
-    pub use logger::*;
-    pub use logger::AnyLogger;
-    pub use logger::disabled::Logger;
-    pub use enso_shapely::CloneRef;
-    pub use enso_shapely::newtype_copy;
-    pub use enso_shapely::shared;
-    pub use super::display::traits::*;
-    pub use super::data::container::AddMut;
-    pub use super::types::*;
+/// Data type declarations.
+pub mod data {
+    pub use ensogl_core::data::*;
+    pub use ensogl_text as text;
 }
 
-/// Common traits.
-pub mod traits {
-    use super::*;
-    pub use display::traits::*;
+/// Graphical interface related components, like buttons, sliders, or text areas.
+pub mod gui {
+    pub use ensogl_core::gui::*;
+    pub use ensogl_text::component as text;
 }
