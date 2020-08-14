@@ -14,9 +14,6 @@ wasm-pack.log
 # Visual Studio Code
 .vscode/
 
-# A thirdparty downloaded js
-/src/rust/ensogl/lib/msdf-sys/msdfgen_wasm.js
-
 # JavaScript
 node_modules
 .nvmrc

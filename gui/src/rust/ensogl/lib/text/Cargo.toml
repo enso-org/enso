@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Enso Team <contact@luna-lang.org>"]
 edition = "2018"
 
+
 [lib]
 crate-type = ["rlib", "cdylib"]
 
@@ -13,9 +14,9 @@ enso-frp                   = { version = "0.1.0"  , path = "../../../lib/frp"   
 enso-prelude               = { version = "0.1.0"  , path = "../../../lib/enso-prelude"          }
 enso-shapely               = { version = "0.1.0"  , path = "../../../lib/enso-shapely/impl"     }
 enso-types                 = { version = "0.1.0"  , path = "../../../lib/types"                 }
-ensogl                     = { version = "0.1.0"  , path = "../../../ensogl"                    }
-ensogl-core-embedded-fonts = { version = "0.1.0"  , path = "../../../ensogl/lib/embedded-fonts" }
-ensogl-core-msdf-sys       = { version = "0.1.0"  , path = "../../../ensogl/lib/msdf-sys"       }
+ensogl-core                = { version = "0.1.0"  , path = "../../../ensogl/lib/core"           }
+ensogl-text-embedded-fonts = { version = "0.1.0"  , path = "embedded-fonts"                     }
+ensogl-text-msdf-sys       = { version = "0.1.0"  , path = "msdf-sys"                           }
 xi-rope                    = { version = "0.3.0"                                                }
 
 

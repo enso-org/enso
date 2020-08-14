@@ -601,6 +601,22 @@ dependencies = [
 name = "ensogl"
 version = "0.1.0"
 dependencies = [
+ "ensogl-core 0.1.0",
+ "ensogl-text 0.1.0",
+]
+
+[[package]]
+name = "ensogl-build-utilities"
+version = "0.1.0"
+dependencies = [
+ "path-clean 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "reqwest 0.10.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "ensogl-core"
+version = "0.1.0"
+dependencies = [
  "Inflector 0.11.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "assert_approx_eq 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bit_field 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -613,9 +629,9 @@ dependencies = [
  "enso-prelude 0.1.0",
  "enso-shapely 0.1.0",
  "enso-types 0.1.0",
- "ensogl-core-embedded-fonts 0.1.0",
- "ensogl-core-msdf-sys 0.1.0",
  "ensogl-system-web 0.1.0",
+ "ensogl-text-embedded-fonts 0.1.0",
+ "ensogl-text-msdf-sys 0.1.0",
  "enum_dispatch 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "eval-tt 0.1.0",
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -638,34 +654,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "ensogl-build-utilities"
+name = "ensogl-examples"
 version = "0.1.0"
 dependencies = [
- "path-clean 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "reqwest 0.10.6 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "ensogl-core-embedded-fonts"
-version = "0.1.0"
-dependencies = [
+ "enso-frp 0.1.0",
  "enso-prelude 0.1.0",
- "ensogl-build-utilities 0.1.0",
- "zip 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "ensogl-core-msdf-sys"
-version = "0.1.0"
-dependencies = [
- "enso-prelude 0.1.0",
- "ensogl-build-utilities 0.1.0",
- "ensogl-core-embedded-fonts 0.1.0",
- "futures 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "enso-shapely 0.1.0",
+ "ensogl-core 0.1.0",
+ "ensogl-text 0.1.0",
+ "ensogl-text-msdf-sys 0.1.0",
  "js-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "logger 0.1.0",
  "nalgebra 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.114 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.56 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasm-bindgen 0.2.58 (registry+https://github.com/rust-lang/crates.io-index)",
- "wasm-bindgen-test 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "web-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -694,11 +698,34 @@ dependencies = [
  "enso-prelude 0.1.0",
  "enso-shapely 0.1.0",
  "enso-types 0.1.0",
- "ensogl 0.1.0",
- "ensogl-core-embedded-fonts 0.1.0",
- "ensogl-core-msdf-sys 0.1.0",
+ "ensogl-core 0.1.0",
+ "ensogl-text-embedded-fonts 0.1.0",
+ "ensogl-text-msdf-sys 0.1.0",
  "wasm-bindgen-test 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "xi-rope 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "ensogl-text-embedded-fonts"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude 0.1.0",
+ "ensogl-build-utilities 0.1.0",
+ "zip 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "ensogl-text-msdf-sys"
+version = "0.1.0"
+dependencies = [
+ "enso-prelude 0.1.0",
+ "ensogl-build-utilities 0.1.0",
+ "ensogl-text-embedded-fonts 0.1.0",
+ "futures 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "js-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nalgebra 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasm-bindgen 0.2.58 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasm-bindgen-test 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1107,8 +1134,8 @@ dependencies = [
  "enso-protocol 0.1.0",
  "enso-shapely 0.1.0",
  "ensogl 0.1.0",
- "ensogl-core-msdf-sys 0.1.0",
  "ensogl-system-web 0.1.0",
+ "ensogl-text-msdf-sys 0.1.0",
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "flo_stream 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1142,8 +1169,8 @@ dependencies = [
  "enso-protocol 0.1.0",
  "enso-shapely 0.1.0",
  "ensogl 0.1.0",
- "ensogl-core-msdf-sys 0.1.0",
  "ensogl-text 0.1.0",
+ "ensogl-text-msdf-sys 0.1.0",
  "js-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "logger 0.1.0",
  "nalgebra 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",

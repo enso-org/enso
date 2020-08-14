@@ -15,21 +15,21 @@ use crate::typeface;
 
 use enso_frp as frp;
 use enso_frp::io::keyboard::Key;
-use ensogl::application::Application;
-use ensogl::application::shortcut;
-use ensogl::application;
-use ensogl::data::color;
-use ensogl::display::Attribute;
-use ensogl::display::Buffer;
-use ensogl::display::scene::Scene;
-use ensogl::display::shape::*;
-use ensogl::display::Sprite;
-use ensogl::display;
-use ensogl::gui::component::Animation;
-use ensogl::gui::component;
-use ensogl::gui;
-use ensogl::system::web::clipboard;
-use ensogl::system::gpu::shader::glsl::traits::IntoGlsl;
+use ensogl_core::application::Application;
+use ensogl_core::application::shortcut;
+use ensogl_core::application;
+use ensogl_core::data::color;
+use ensogl_core::display::Attribute;
+use ensogl_core::display::Buffer;
+use ensogl_core::display::scene::Scene;
+use ensogl_core::display::shape::*;
+use ensogl_core::display::Sprite;
+use ensogl_core::display;
+use ensogl_core::gui::component::Animation;
+use ensogl_core::gui::component;
+use ensogl_core::gui;
+use ensogl_core::system::web::clipboard;
+use ensogl_core::system::gpu::shader::glsl::traits::IntoGlsl;
 
 
 
@@ -107,7 +107,7 @@ const BLINK_PERIOD             : f32 =
 /// ```
 pub mod selection {
     use super::*;
-    ensogl::define_shape_system! {
+    ensogl_core::define_shape_system! {
         (style:Style, selection:f32, start_time:f32, letter_width:f32) {
             let width_abs      = Var::<f32>::from("abs(input_size.x)");
             let height         = Var::<f32>::from("input_size.y");
@@ -338,7 +338,7 @@ impl Lines {
 // === FRP ===
 // ===========
 
-ensogl::def_command_api! { Commands
+ensogl_core::def_command_api! { Commands
     /// Insert character of the last pressed key at every cursor.
     insert_char_of_last_pressed_key,
     /// Increase the indentation of all lines containing cursors.

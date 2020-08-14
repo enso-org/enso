@@ -7,16 +7,16 @@ use super::font;
 use font::GlyphRenderInfo;
 use font::Font;
 
-use ensogl::system::gpu;
-use ensogl::system::gpu::texture;
-use ensogl::system::gpu::types::*;
-use ensogl::data::color::Rgba;
-use ensogl::display;
-use ensogl::display::world::*;
-use ensogl::display::layout::Alignment;
-use ensogl::display::symbol::material::Material;
-use ensogl::display::symbol::shader::builder::CodeTemplate;
-use ensogl::display::scene::Scene;
+use ensogl_core::system::gpu;
+use ensogl_core::system::gpu::texture;
+use ensogl_core::system::gpu::types::*;
+use ensogl_core::data::color::Rgba;
+use ensogl_core::display;
+use ensogl_core::display::world::*;
+use ensogl_core::display::layout::Alignment;
+use ensogl_core::display::symbol::material::Material;
+use ensogl_core::display::symbol::shader::builder::CodeTemplate;
+use ensogl_core::display::scene::Scene;
 
 
 

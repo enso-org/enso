@@ -3,8 +3,10 @@
 members = [
     "build",
     "ensogl",
-    "ensogl/lib/embedded-fonts",
-    "ensogl/lib/msdf-sys",
+    "ensogl/example",
+    "ensogl/lib/core",
+    "ensogl/lib/text/embedded-fonts",
+    "ensogl/lib/text/msdf-sys",
     "ensogl/lib/text",
     "ide",
     "ide/lib/ast/impl",

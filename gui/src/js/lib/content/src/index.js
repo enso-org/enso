@@ -77,7 +77,7 @@ async function download_content(cfg) {
 let main_scene_name = 'ide'
 
 /// Prefix name of each scene defined in the WASM binary.
-let wasm_fn_pfx = "run_example_"
+let wasm_fn_pfx = "entry_point_"
 
 
 /// Displays a debug screen which allows the user to run one of predefined debug examples.
