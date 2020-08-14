@@ -73,12 +73,12 @@ pub trait Storable: BufferItemBounds {
 
     // === Size ===
 
-    /// Returns the number of rows of the type encoded as 2d matrix.
+    /// Return the number of rows of the type encoded as 2d matrix.
     fn rows() -> usize {
         <Self::Rows as DimName>::dim()
     }
 
-    /// Returns the number of columns of the type encoded as 2d matrix.
+    /// Return the number of columns of the type encoded as 2d matrix.
     fn cols() -> usize {
         <Self::Cols as DimName>::dim()
     }
@@ -233,7 +233,7 @@ impl<T:Storable<Cell=T>,R,C> Storable for MatrixMN<T,R,C>
 /// Extension method for viewing into wasm's linear memory.
 #[allow(unsafe_code)]
 pub trait JsBufferView {
-    /// Creates a JS typed array which is a view into wasm's linear memory at the slice specified.
+    /// Create a JS typed array which is a view into wasm's linear memory at the slice specified.
     ///
     /// This function returns a new typed array which is a view into wasm's memory. This view does
     /// not copy the underlying data.
