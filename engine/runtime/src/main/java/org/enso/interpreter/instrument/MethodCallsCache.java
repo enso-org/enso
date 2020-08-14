@@ -20,6 +20,11 @@ public final class MethodCallsCache {
     callsExecuted.add(call);
   }
 
+  /** @return the set of executed calls. */
+  public Set<UUID> getCallsExecuted() {
+    return callsExecuted;
+  }
+
   /**
    * Get the subset of method calls that were not executed.
    *

@@ -1324,7 +1324,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainA,
-              Some("Number"),
+              None,
               Some(Api.MethodPointer(moduleName, "Number", "x"))
             )
           )
@@ -1371,7 +1371,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainA,
-              Some("Number"),
+              None,
               Some(Api.MethodPointer(moduleName, "Main", "pie"))
             )
           )
@@ -1401,7 +1401,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainA,
-              Some("Number"),
+              None,
               Some(Api.MethodPointer(moduleName, "Main", "uwu"))
             )
           )
@@ -1454,15 +1454,350 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(
-        Api.ExpressionValuesComputed(
+    context.receive(1) should contain theSameElementsAs Seq()
+    context.consumeOut shouldEqual List("Hello!")
+  }
+
+  it should "send updates for overloaded functions" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Test.Main"
+
+    val metadata = new Metadata
+    val idMain   = metadata.addItem(6, 89)
+    val id1      = metadata.addItem(15, 15)
+    val id2      = metadata.addItem(35, 18)
+    val id3      = metadata.addItem(58, 16)
+    val idy      = metadata.addItem(83, 2)
+    val code =
+      """main =
+        |    x = 15.overloaded 1
+        |    "foo".overloaded 2
+        |    overloaded 10 30
+        |    y = 42
+        |    Unit
+        |
+        |Text.overloaded arg = 10
+        |Number.overloaded arg = 20
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(Api.OpenFileNotification(mainFile, contents, false))
+    )
+    context.receive shouldEqual None
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
           contextId,
-          Vector(Api.ExpressionValueUpdate(idMainA, Some("Text"), None))
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Main", "main"),
+            None,
+            Vector()
+          )
         )
       )
     )
-    context.consumeOut shouldEqual List("Hello!")
+    context.receive(8) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMain, Some("Unit"), None))
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id1,
+              Some("Number"),
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id2,
+              Some("Number"),
+              Some(Api.MethodPointer(moduleName, "Text", "overloaded"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id3,
+              Some("Number"),
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idy, Some("Number"), None))
+        )
+      ),
+      Api.Response(
+        Api.SuggestionsDatabaseReIndexNotification(
+          moduleName,
+          Seq(
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                Some(idMain),
+                moduleName,
+                "main",
+                Seq(Suggestion.Argument("this", "Any", false, false, None)),
+                "here",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                moduleName,
+                "overloaded",
+                Seq(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("arg", "Any", false, false, None)
+                ),
+                "Text",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Method(
+                None,
+                moduleName,
+                "overloaded",
+                Seq(
+                  Suggestion.Argument("this", "Any", false, false, None),
+                  Suggestion.Argument("arg", "Any", false, false, None)
+                ),
+                "Number",
+                "Any",
+                None
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(id1),
+                moduleName,
+                "x",
+                "Any",
+                Suggestion.Scope(
+                  Suggestion.Position(0, 6),
+                  Suggestion.Position(6, 0)
+                )
+              )
+            ),
+            Api.SuggestionsDatabaseUpdate.Add(
+              Suggestion.Local(
+                Some(idy),
+                moduleName,
+                "y",
+                "Any",
+                Suggestion.Scope(
+                  Suggestion.Position(0, 6),
+                  Suggestion.Position(6, 0)
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+
+    // push call1
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.LocalCall(id1)
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId))
+    )
+
+    // pop call1
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id1,
+              None,
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id2,
+              None,
+              Some(Api.MethodPointer(moduleName, "Text", "overloaded"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id3,
+              None,
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+            )
+          )
+        )
+      )
+    )
+
+    // push call2
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.LocalCall(id2)
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId))
+    )
+
+    // pop call2
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id1,
+              None,
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id2,
+              None,
+              Some(Api.MethodPointer(moduleName, "Text", "overloaded"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id3,
+              None,
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+            )
+          )
+        )
+      )
+    )
+
+    // push call3
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.LocalCall(id3)
+        )
+      )
+    )
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId))
+    )
+
+    // pop call3
+    context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
+    context.receive(5) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PopContextResponse(contextId)),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id1,
+              None,
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id2,
+              None,
+              Some(Api.MethodPointer(moduleName, "Text", "overloaded"))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              id3,
+              None,
+              Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
+            )
+          )
+        )
+      )
+    )
   }
 
   it should "support file modification operations" in {
