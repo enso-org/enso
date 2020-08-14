@@ -86,7 +86,9 @@ public class ExecutionService {
         scope
             .getConstructor(consName)
             .orElseThrow(
-                () -> new ConstructorDoesNotExistException(module.getName().toString(), consName));
+                () ->
+                    new ConstructorDoesNotExistException(
+                        module.getName().toString(), consName, null));
     Function function = scope.lookupMethodDefinition(atomConstructor, methodName);
     if (function == null) {
       throw new MethodDoesNotExistException(atomConstructor, methodName, null);
