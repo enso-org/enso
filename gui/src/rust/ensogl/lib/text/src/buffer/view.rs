@@ -699,15 +699,12 @@ impl View {
         let m       = &model;
 
         frp::extend! { network
-
-            sel_on_insert         <- input.insert.map(f!((s) m.insert(s)));
-            output.source.text_changed <+ sel_on_insert.constant(());
-
-            sel_on_paste         <- input.paste.map(f!((s) m.paste(s)));
-            output.source.text_changed <+ sel_on_paste.constant(());
-
-            sel_on_delete_left    <- input.delete_left.map(f_!(m.delete_left()));
-            output.source.text_changed <+ sel_on_delete_left.constant(());
+            sel_on_insert              <- input.insert.map(f!((s) m.insert(s)));
+            sel_on_paste               <- input.paste.map(f!((s) m.paste(s)));
+            sel_on_delete_left         <- input.delete_left.map(f_!(m.delete_left()));
+            sel_on_change              <- any(sel_on_insert,sel_on_paste,sel_on_delete_left);
+            has_cursor                 <- sel_on_change.map(|sel| !sel.is_empty());
+            output.source.text_changed <+ sel_on_change.gate(&has_cursor).constant(());
 
             sel_on_move           <- input.cursors_move.map(f!((t) m.moved_selection2(*t,false)));
             sel_on_mod            <- input.cursors_select.map(f!((t) m.moved_selection2(*t,true)));
