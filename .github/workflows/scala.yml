@@ -74,15 +74,15 @@ jobs:
           echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
       # Caches
-      - name: Cache SBT
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.cache
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-sbt-
+      # - name: Cache SBT
+        # uses: actions/cache@v2
+        # with:
+          # path: |
+            # ~/.sbt
+            # ~/.ivy2/cache
+            # ~/.cache
+          # key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          # restore-keys: ${{ runner.os }}-sbt-
 
       # Build
       - name: Bootstrap Enso project
@@ -168,15 +168,15 @@ jobs:
           echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
       # Caches
-      - name: Cache SBT
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.cache
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
-          restore-keys: ${{ runner.os }}-sbt-
+      # - name: Cache SBT
+        # uses: actions/cache@v2
+        # with:
+          # path: |
+            # ~/.sbt
+            # ~/.ivy2/cache
+            # ~/.cache
+          # key: ${{ runner.os }}-sbt-${{ hashFiles('**build.sbt') }}
+          # restore-keys: ${{ runner.os }}-sbt-
 
       # Build Artifacts
       - name: Bootstrap the Project
