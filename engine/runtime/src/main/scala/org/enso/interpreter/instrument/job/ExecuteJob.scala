@@ -47,10 +47,12 @@ class ExecuteJob(
       errorOrOk match {
         case Left(e) =>
           ctx.endpoint.sendToClient(
-            Api.Response(None, Api.ExecutionFailed(contextId, e))
+            Api.Response(Api.ExecutionFailed(contextId, e))
           )
-
-        case Right(()) => //nop
+        case Right(()) =>
+          ctx.endpoint.sendToClient(
+            Api.Response(Api.ExecutionSuccessful(contextId))
+          )
       }
     } finally {
       ctx.executionService.getContext.getThreadManager.leave()

@@ -133,6 +133,10 @@ object Runtime {
         name  = "executionFailed"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.ExecutionSuccessful],
+        name  = "executionSuccessful"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.VisualisationExpressionFailed],
         name  = "visualisationExpressionFailed"
       ),
@@ -533,6 +537,13 @@ object Runtime {
       */
     case class ExecutionFailed(contextId: ContextId, message: String)
         extends ApiNotification
+
+    /**
+      * Signals that execution of a context was successful.
+      *
+      * @param contextId the context's id
+      */
+    case class ExecutionSuccessful(contextId: ContextId) extends ApiNotification
 
     /**
       * Signals that an expression specified in a [[AttachVisualisation]] or

@@ -1,11 +1,11 @@
 package org.enso.polyglot;
 
-import java.util.logging.Level;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 
 import java.util.Arrays;
+import java.util.logging.Level;
 
 /** Class representing runtime options supported by the Enso engine. */
 public class RuntimeOptions {
@@ -29,13 +29,20 @@ public class RuntimeOptions {
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
       OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
 
+  public static final String DISABLE_PARALLEL_EXECUTION = optionName(".disableParallelExecution");
+  public static final OptionKey<Boolean> DISABLE_PARALLEL_EXECUTION_KEY = new OptionKey<>(false);
+  public static final OptionDescriptor DISABLE_PARALLEL_EXECUTION_DESCRIPTOR =
+      OptionDescriptor.newBuilder(DISABLE_PARALLEL_EXECUTION_KEY, DISABLE_PARALLEL_EXECUTION)
+          .build();
+
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
           Arrays.asList(
               PACKAGES_PATH_DESCRIPTOR,
               STRICT_ERRORS_DESCRIPTOR,
               LOG_LEVEL_DESCRIPTOR,
-              DISABLE_INLINE_CACHES_DESCRIPTOR));
+              DISABLE_INLINE_CACHES_DESCRIPTOR,
+              DISABLE_PARALLEL_EXECUTION_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.
