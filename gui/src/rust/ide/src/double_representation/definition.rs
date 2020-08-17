@@ -9,6 +9,7 @@ use ast::crumbs::Located;
 use ast::known;
 use ast::prefix;
 use ast::opr;
+use parser::Parser;
 
 
 
@@ -122,8 +123,8 @@ impl DefinitionName {
 
     /// Creates a new explicit extension method name.
     pub fn new_method(extended_atom:impl Str, name:impl Str) -> DefinitionName {
-        let name            = Located::new_root(name.into());
-        let extended_atom   = Located::new_root(extended_atom.into());
+        let extended_atom   = Located::new(InfixCrumb::LeftOperand,extended_atom.into());
+        let name            = Located::new(InfixCrumb::RightOperand,name.into());
         let extended_target = vec![extended_atom];
         DefinitionName {name,extended_target}
     }
@@ -167,6 +168,20 @@ impl DefinitionName {
         Some(DefinitionName {extended_target,name})
     }
 
+    /// Iterate over name segments of this name, left to right.
+    pub fn name_segments(&self) -> impl Iterator<Item=&str> {
+        let path = self.extended_target.iter().map(|segment| segment.as_str());
+        let last = std::iter::once(self.name.as_str());
+        path.chain(last)
+    }
+
+    /// Get AST of this name.
+    pub fn ast(&self, parser:&Parser) -> FallibleResult<Ast> {
+        // We can't assume that string pieces we have are valid identifiers.
+        // But neither this is our responsibility. If it parses, we can store it in the Ast.
+        parser.parse_line(self.to_string())
+    }
+
     /// Checks if the given definition name is a method defined on given expected atom name.
     ///
     /// E.g. `Main.foo` is a method of `Main`. Also, if `Main` is a name of module, than root-scoped
@@ -193,9 +208,7 @@ impl DefinitionName {
 
 impl Display for DefinitionName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut pieces = self.extended_target.iter().map(|s| s.as_str()).collect_vec();
-        pieces.push(&self.name);
-        let text = pieces.join(opr::predefined::ACCESS);
+        let text = self.name_segments().join(ast::opr::predefined::ACCESS);
         write!(f, "{}", text)
     }
 }
@@ -303,7 +316,7 @@ impl DefinitionInfo {
         // There two cases - function name is either a Var or operator.
         // If this is a Var, we have Var, optionally under a Prefix chain with args.
         // If this is an operator, we have SectionRight with (if any prefix in arguments).
-        let lhs  = Located::new(InfixCrumb::LeftOperand,prefix::Chain::new_non_strict(&infix.larg));
+        let lhs  = Located::new(InfixCrumb::LeftOperand,prefix::Chain::from_ast_non_strict(&infix.larg));
         let name = lhs.entered(|chain| {
             let name_ast = chain.located_func();
             name_ast.map(DefinitionName::from_ast)
@@ -466,6 +479,58 @@ impl DefinitionProvider for DefinitionInfo {
 
 
 // =============
+// === ToAdd ===
+// =============
+
+/// Describes a definition to be created.
+///
+/// Type meant to be easily constructable in the code and be translated into AST.
+/// Information-wise it corresponds to DefinitionInfo.
+#[derive(Clone,Debug)]
+pub struct ToAdd {
+    /// The name of the introduced definition. May represent plain identifier or an extension.
+    /// E.g. `add` or `Int.add`.
+    pub name                     : DefinitionName,
+    /// Names of explicit parameters. `this` parameter must not be included.
+    pub explicit_parameter_names : Vec<String>,
+    /// The first non-empty line of the definition body.
+    pub body_head                : Ast,
+    /// Further definition body lines. `None` represents an empty line.
+    pub body_tail                : Vec<Option<Ast>>,
+}
+
+impl ToAdd {
+    /// The definition's head, i.e. the left-hand side of the primary assignment.
+    pub fn head(&self, parser:&Parser) -> FallibleResult<Ast> {
+        let name = self.name.ast(parser)?;
+        let args = self.explicit_parameter_names.iter().map(Ast::var);
+        let head = ast::prefix::Chain::new(name, args).into_ast();
+        Ok(head)
+    }
+
+    /// The definition's body, i.e. the right-hand side of the primary assignment.
+    pub fn body(&self, scope_indent:usize) -> Ast {
+        if self.body_tail.is_empty() {
+            self.body_head.clone_ref()
+        } else {
+            let mut block = ast::Block::from_lines(&self.body_head,&self.body_tail);
+            block.indent = scope_indent + double_representation::INDENT;
+            Ast::from(block)
+        }
+    }
+
+    /// Generate the definition's Ast from the description.
+    pub fn ast(&self, scope_indent:usize, parser:&Parser) -> FallibleResult<Ast> {
+        let head = self.head(parser)?;
+        let body = self.body(scope_indent);
+        let ast  = Ast::infix(head,ast::opr::predefined::ASSIGNMENT,body);
+        Ok(ast)
+    }
+}
+
+
+
+// =============
 // === Tests ===
 // =============
 
@@ -493,6 +558,24 @@ mod tests {
 
     fn indented(line:impl Display) -> String {
         iformat!("    {line}")
+    }
+
+    #[wasm_bindgen_test]
+    fn generating_definition_to_add() {
+        let parser     = Parser::new_or_panic();
+        let mut to_add = ToAdd {
+            name : DefinitionName::new_method("Main","add"),
+            explicit_parameter_names : vec!["arg1".into(), "arg2".into()],
+            body_head : Ast::infix_var("arg1","+","arg2"),
+            body_tail : default(),
+        };
+        let ast = to_add.ast(4, &parser).unwrap();
+        assert_eq!(ast.repr(), "Main.add arg1 arg2 = arg1 + arg2");
+        to_add.body_tail.push(Some(Ast::infix_var("arg1", "-", "arg2")));
+
+        let ast = to_add.ast(4, &parser).unwrap();
+        // Note 8 spaces indents for definition block lines (as the parent scope was at 4).
+        assert_eq!(ast.repr(), "Main.add arg1 arg2 = \n        arg1 + arg2\n        arg1 - arg2");
     }
 
     #[wasm_bindgen_test]

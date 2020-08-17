@@ -1409,11 +1409,11 @@ mod tests {
         assert!(block.get(&BlockCrumb::TailLine {tail_index:3}).is_err());
 
         let block2 = block.set(&BlockCrumb::HeadLine, Ast::var("first_line2")).unwrap();
-        assert_eq!(block2.repr(), "first_line2\ntail0\n\ntail2");
+        assert_eq!(block2.repr(), "\nfirst_line2\ntail0\n\ntail2");
         let block3 = block.set(&BlockCrumb::TailLine {tail_index:1}, Ast::var("tail1")).unwrap();
-        assert_eq!(block3.repr(), "first_line\ntail0\ntail1\ntail2");
+        assert_eq!(block3.repr(), "\nfirst_line\ntail0\ntail1\ntail2");
         let block4 = block.set(&BlockCrumb::TailLine {tail_index:2}, Ast::var("tail22")).unwrap();
-        assert_eq!(block4.repr(), "first_line\ntail0\n\ntail22");
+        assert_eq!(block4.repr(), "\nfirst_line\ntail0\n\ntail22");
     }
 
     fn get<T,F:FnOnce(T) -> Crumb>(f:F, ast:&Ast, crumb:T) -> FallibleResult<&Ast> {
