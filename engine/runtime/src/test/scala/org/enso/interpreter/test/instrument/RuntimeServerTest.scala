@@ -2073,7 +2073,7 @@ class RuntimeServerTest
     context.receive(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       Api.Response(
-        Api.ExecutionFailed(contextId, "Module Unnamed.Main does not exist.")
+        Api.ExecutionFailed(contextId, "Module Unnamed.Main not found.")
       )
     )
   }
@@ -2108,7 +2108,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          "Module Test.Main does not define constructor Unexpected."
+          "Constructor Unexpected not found in module Test.Main."
         )
       )
     )
@@ -2144,7 +2144,7 @@ class RuntimeServerTest
       Api.Response(
         Api.ExecutionFailed(
           contextId,
-          "Object Main does not define method ooops."
+          "Object Main does not define method ooops in module Test.Main."
         )
       )
     )

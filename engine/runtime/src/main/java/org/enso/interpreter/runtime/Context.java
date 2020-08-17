@@ -9,7 +9,6 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
 import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.error.ModuleDoesNotExistException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
@@ -256,18 +255,6 @@ public class Context {
    */
   public Optional<Module> findModule(String moduleName) {
     return getTopScope().getModule(moduleName);
-  }
-
-  /**
-   * Fetches a module with a given name.
-   *
-   * @param moduleName the qualified name of the module to lookup.
-   * @return the relevant module.
-   */
-  public Module getModule(String moduleName) throws ModuleDoesNotExistException {
-    return getTopScope()
-        .getModule(moduleName)
-        .orElseThrow(() -> new ModuleDoesNotExistException(moduleName));
   }
 
   /**

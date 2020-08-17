@@ -14,11 +14,12 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.ConstructorDoesNotExistException;
-import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
-import org.enso.interpreter.runtime.error.ModuleDoesNotExistException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.data.EmptyMap;
+import org.enso.interpreter.service.error.ConstructorNotFoundException;
+import org.enso.interpreter.service.error.MethodNotFoundException;
+import org.enso.interpreter.service.error.ModuleNotFoundException;
+import org.enso.interpreter.service.error.SourceNotFoundException;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
@@ -55,19 +56,6 @@ public class ExecutionService {
     this.context = context;
   }
 
-  /** Thrown when the source code of the execution item does not exist. */
-  public static class SourceDoesNotExistException extends RuntimeException {
-
-    /**
-     * Create new instance of this error.
-     *
-     * @param item the item which source code is missing.
-     */
-    public SourceDoesNotExistException(String item) {
-      super("The " + item + " source does not exist.");
-    }
-  }
-
   /** @return the language context. */
   public Context getContext() {
     return context;
@@ -80,18 +68,16 @@ public class ExecutionService {
 
   private FunctionCallInstrumentationNode.FunctionCall prepareFunctionCall(
       Module module, String consName, String methodName)
-      throws ConstructorDoesNotExistException, MethodDoesNotExistException {
+      throws ConstructorNotFoundException, MethodNotFoundException {
     ModuleScope scope = module.compileScope(context);
     AtomConstructor atomConstructor =
         scope
             .getConstructor(consName)
             .orElseThrow(
-                () ->
-                    new ConstructorDoesNotExistException(
-                        module.getName().toString(), consName, null));
+                () -> new ConstructorNotFoundException(module.getName().toString(), consName));
     Function function = scope.lookupMethodDefinition(atomConstructor, methodName);
     if (function == null) {
-      throw new MethodDoesNotExistException(atomConstructor, methodName, null);
+      throw new MethodNotFoundException(module.getName().toString(), atomConstructor, methodName);
     }
     return new FunctionCallInstrumentationNode.FunctionCall(
         function, EmptyMap.create(), new Object[] {atomConstructor.newInstance()});
@@ -118,11 +104,11 @@ public class ExecutionService {
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
       Consumer<Throwable> onExceptionalCallback)
-      throws ArityException, ModuleDoesNotExistException, MethodDoesNotExistException,
-          SourceDoesNotExistException, UnsupportedMessageException, UnsupportedTypeException {
+      throws ArityException, SourceNotFoundException, UnsupportedMessageException,
+          UnsupportedTypeException {
     SourceSection src = call.getFunction().getSourceSection();
     if (src == null) {
-      throw new SourceDoesNotExistException(call.getFunction().getName());
+      throw new SourceNotFoundException(call.getFunction().getName());
     }
     EventBinding<ExecutionEventListener> listener =
         idExecutionInstrument.bind(
@@ -166,9 +152,10 @@ public class ExecutionService {
       Consumer<IdExecutionInstrument.ExpressionValue> onComputedCallback,
       Consumer<IdExecutionInstrument.ExpressionValue> onCachedCallback,
       Consumer<Throwable> onExceptionalCallback)
-      throws ArityException, ModuleDoesNotExistException, MethodDoesNotExistException,
-          UnsupportedMessageException, UnsupportedTypeException {
-    Module module = context.getModule(moduleName);
+      throws ArityException, ConstructorNotFoundException, MethodNotFoundException,
+          ModuleNotFoundException, UnsupportedMessageException, UnsupportedTypeException {
+    Module module =
+        context.findModule(moduleName).orElseThrow(() -> new ModuleNotFoundException(moduleName));
     FunctionCallInstrumentationNode.FunctionCall call =
         prepareFunctionCall(module, consName, methodName);
     execute(

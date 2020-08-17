@@ -24,6 +24,7 @@ import org.enso.interpreter.instrument.{
   Visualisation
 }
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
+import org.enso.interpreter.service.error.ServiceException
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 
@@ -213,8 +214,9 @@ trait ProgramExecutionSupport {
   /** Get error message from throwable. */
   private def getErrorMessage(t: Throwable): Option[String] =
     t match {
-      case ex: TruffleException => Some(ex.getMessage)
       case ex: InteropException => Some(ex.getMessage)
+      case ex: TruffleException => Some(ex.getMessage)
+      case ex: ServiceException => Some(ex.getMessage)
       case _                    => None
     }
 
