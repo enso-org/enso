@@ -294,7 +294,7 @@ impl AliasAnalyzer {
                     // Operators in infix positions are treated as constructors, i.e. they are used.
                     self.store_if_name(OccurrenceKind::Used,operator);
                 }
-            } else if let Some(prefix_chain) = ast::prefix::Chain::try_new(ast) {
+            } else if let Some(prefix_chain) = ast::prefix::Chain::from_ast(ast) {
                 // Constructor we match against is used. Its arguments introduce names.
                 if ast::known::Cons::try_from(&prefix_chain.func).is_ok() {
                     self.store_if_name(OccurrenceKind::Used,prefix_chain.located_func());

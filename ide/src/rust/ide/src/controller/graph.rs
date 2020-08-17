@@ -290,7 +290,7 @@ pub fn name_for_ast(ast:&Ast) -> String {
         _ => {
             if let Some(infix) = ast::opr::GeneralizedInfix::try_new(ast) {
                 name_for_ast(infix.opr.ast())
-            } else if let Some(prefix) = ast::prefix::Chain::try_new(ast) {
+            } else if let Some(prefix) = ast::prefix::Chain::from_ast(ast) {
                 name_for_ast(&prefix.func)
             } else {
                 "var".into()

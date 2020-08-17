@@ -125,7 +125,7 @@ impl ParsedInput {
         // See also `parsed_input` test to see all cases we want to cover.
         input.push('a');
         let ast        = parser.parse_line(input.trim_start())?;
-        let mut prefix = ast::prefix::Chain::new_non_strict(&ast);
+        let mut prefix = ast::prefix::Chain::from_ast_non_strict(&ast);
         if let Some(last_arg) = prefix.args.pop() {
             let mut last_arg_repr = last_arg.sast.wrapped.repr();
             last_arg_repr.pop();
@@ -146,7 +146,7 @@ impl ParsedInput {
     }
 
     fn new_from_ast(ast:&Ast) -> Self {
-        let prefix = ast::prefix::Chain::new_non_strict(&ast);
+        let prefix = ast::prefix::Chain::from_ast_non_strict(&ast);
         ParsedInput {
             expression     : Some(ast::Shifted::new(default(),prefix)),
             pattern_offset : 0,
@@ -456,7 +456,7 @@ impl Searcher {
         let pattern_offset    = self.data.borrow().input.pattern_offset;
         let new_expression    = match self.data.borrow_mut().input.expression.take() {
             None => {
-                let ast = ast::prefix::Chain::new_non_strict(&added_ast);
+                let ast = ast::prefix::Chain::from_ast_non_strict(&added_ast);
                 ast::Shifted::new(pattern_offset,ast)
             },
             Some(mut expression) => {

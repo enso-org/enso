@@ -1177,14 +1177,17 @@ impl <T> Block<T> {
 }
 
 impl Block<Ast> {
-    /// Creates block from given line ASTs. There is no leading AST (it is orphan block).
+    /// Create a block from given line ASTs.
+    ///
+    /// If there are no tail lines, the first line will be "inline" and the whole block.
+    /// If there are tail lines, block will be leaded with a newline.
     pub fn from_lines(first_line:&Ast, tail_lines:&[Option<Ast>]) -> Block<Ast> {
         let ty          = BlockType::Discontinuous {};
         let indent      = 0;
         let empty_lines = Vec::new();
         let first_line  = BlockLine::new(first_line.clone_ref());
         let lines       = tail_lines.iter().cloned().map(BlockLine::new).collect();
-        let is_orphan   = true;
+        let is_orphan   = tail_lines.is_empty();
         Block {ty,indent,empty_lines,first_line,lines,is_orphan}
     }
 }

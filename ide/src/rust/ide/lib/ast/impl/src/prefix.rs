@@ -50,10 +50,22 @@ pub struct Chain {
 }
 
 impl Chain {
+    /// Construct a prefix application chain from a function and sequence of arguments.
+    pub fn new(func:Ast, args:impl IntoIterator<Item=Ast>) -> Self {
+        let args = args.into_iter().map(|arg| {
+            Argument {
+                sast      : Shifted::new(1,arg),
+                prefix_id : Some(Id::new_v4())
+            }
+        }).collect_vec();
+
+        Self {func,args}
+    }
+
     /// Translates calls like `a b c` that generate nested prefix chain like
     /// App(App(a,b),c) into flat list where first element is the function and
     /// then arguments are placed: `{func:a, args:[b,c]}`.
-    pub fn new(ast:&known::Prefix) -> Chain {
+    pub fn from_prefix(ast:&known::Prefix) -> Chain {
         fn run(ast:&known::Prefix, mut acc: &mut Vec<Argument>) -> Ast {
             let func = match known::Prefix::try_from(&ast.func) {
                 Ok(lhs_app) => run(&lhs_app, &mut acc),
@@ -71,20 +83,20 @@ impl Chain {
     }
 
     /// Like `new` but returns None if given Ast is not of a Prefix shape.
-    pub fn try_new(ast:&Ast) -> Option<Chain> {
-        known::Prefix::try_from(ast).as_ref().map(Chain::new).ok()
+    pub fn from_ast(ast:&Ast) -> Option<Chain> {
+        known::Prefix::try_from(ast).as_ref().map(Chain::from_prefix).ok()
     }
 
     /// As new but if the AST is not a prefix, interprets is a function with an
     /// empty arguments list.
-    pub fn new_non_strict(ast:&Ast) -> Chain {
+    pub fn from_ast_non_strict(ast:&Ast) -> Chain {
         if let Ok(ref prefix) = known::Prefix::try_from(ast) {
             // Case like `a b c`
-            Self::new(prefix)
+            Self::from_prefix(prefix)
         } else if let Ok(ref section) = known::SectionRight::try_from(ast) {
             // Case like `+ a b`
             let func        = section.opr.clone();
-            let right_chain = Chain::new_non_strict(&section.arg);
+            let right_chain = Chain::from_ast_non_strict(&section.arg);
             let sast        = Shifted{wrapped:right_chain.func, off:section.off};
             let prefix_id   = section.id();
             let mut args    = vec![Argument{sast,prefix_id}];
@@ -174,7 +186,7 @@ mod tests {
         let a_b = Ast::prefix(a.clone(),b.clone()).with_id(Uuid::new_v4());
         let a_b_c = Ast::prefix(a_b.clone(),c.clone()).with_id(Uuid::new_v4());
 
-        let chain = Chain::try_new(&a_b_c).unwrap();
+        let chain = Chain::from_ast(&a_b_c).unwrap();
         assert_eq!(chain.func, a);
         assert_eq!(chain.args[0].sast.wrapped, b);
         assert_eq!(chain.args[1].sast.wrapped, c);
@@ -186,6 +198,15 @@ mod tests {
         assert_eq!(a_b_c.get_traversing(&arg1.crumbs).unwrap(), &b);
         assert_eq!(arg2.item, &c);
         assert_eq!(a_b_c.get_traversing(&arg2.crumbs).unwrap(), &c);
+    }
+
+    #[test]
+    fn prefix_chain_construction() {
+        let a     = Ast::var("a");
+        let b     = Ast::var("b");
+        let c     = Ast::var("c");
+        let chain = Chain::new(a,vec![b,c]);
+        assert_eq!(chain.into_ast().repr(), "a b c");
     }
 
     // TODO[ao] add tests for modifying chain.

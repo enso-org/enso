@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::double_representation::ReferentName;
 use crate::double_representation::definition;
+use crate::double_representation::definition::DefinitionName;
 use crate::double_representation::definition::DefinitionProvider;
 
 use ast::crumbs::ChildAst;
@@ -393,6 +394,46 @@ impl Info {
         index_to_place_at
     }
 
+    /// Add a new method definition to the module.
+    pub fn add_method
+    (&mut self, method:definition::ToAdd, location:Placement, parser:&parser::Parser)
+    -> FallibleResult<()> {
+        let no_indent      = 0;
+        let definition_ast = method.ast(no_indent,parser)?;
+
+        #[derive(Clone,Copy,Debug,Eq,PartialEq)]
+        enum BlankLinePlacement {Before,After,None};
+        let blank_line = match location {
+            _ if self.ast.lines.is_empty() => BlankLinePlacement::None,
+            Placement::Begin               => BlankLinePlacement::After,
+            Placement::End                 => BlankLinePlacement::Before,
+            Placement::After(_)            => BlankLinePlacement::Before,
+            Placement::Before(_)           => BlankLinePlacement::After,
+        };
+
+        let mut index = match location {
+            Placement::Begin            => 0,
+            Placement::End              => self.ast.lines.len(),
+            Placement::Before(next_def) => locate_line_with(&self.ast,&next_def)?.line_index,
+            Placement::After(next_def)  => locate_line_with(&self.ast,&next_def)?.line_index + 1,
+        };
+
+        let mut add_line = |ast_opt:Option<Ast>| {
+            self.add_line(index,ast_opt);
+            index += 1;
+        };
+
+        if blank_line == BlankLinePlacement::Before {
+            add_line(None);
+        }
+        add_line(Some(definition_ast));
+        if blank_line == BlankLinePlacement::After {
+            add_line(None);
+        }
+
+        Ok(())
+    }
+
     #[cfg(test)]
     pub fn expect_code(&self,expected_code:impl AsRef<str>) {
         assert_eq!(self.ast.repr(),expected_code.as_ref());
@@ -403,6 +444,25 @@ impl From<known::Module> for Info {
     fn from(ast:known::Module) -> Self {
         Info {ast}
     }
+}
+
+
+
+// =================
+// === Placement ===
+// =================
+
+/// Structure describing where to place something being added to the module.
+#[derive(Clone,Debug,PartialEq)]
+pub enum Placement {
+    /// Place at the beginning of the module.
+    Begin,
+    /// Place at the end of the module.
+    End,
+    /// Place after given definition;
+    Before(definition::Crumb),
+    /// Place before given definition;
+    After(definition::Crumb),
 }
 
 
@@ -421,6 +481,11 @@ pub struct CannotFindMethod(language_server::MethodPointer);
 #[fail(display="Encountered an empty definition ID. It must contain at least one crumb.")]
 pub struct EmptyDefinitionId;
 
+#[allow(missing_docs)]
+#[derive(Fail,Clone,Debug)]
+#[fail(display="The definition with crumb {} is not a direct child of the module.",_0)]
+pub struct NotDirectChild(definition::Crumb);
+
 
 
 // ========================
@@ -431,6 +496,18 @@ pub struct EmptyDefinitionId;
 pub fn get_definition
 (ast:&known::Module, id:&definition::Id) -> FallibleResult<definition::DefinitionInfo> {
     Ok(locate(ast, id)?.item)
+}
+
+/// Locate the line with given definition and return crumb that denotes it.
+///
+/// Fails if there is no matching definition being a direct child of the module.
+pub fn locate_line_with
+(ast:&known::Module, crumb:&definition::Crumb) -> FallibleResult<ModuleCrumb> {
+    let child = ast.def_iter().find_by_name(&crumb)?;
+    match child.crumbs.as_slice() {
+        [ast::crumbs::Crumb::Module(crumb)] => Ok(*crumb),
+        _                                   => Err(NotDirectChild(crumb.clone()).into()),
+    }
 }
 
 /// Traverses the module's definition tree following the given Id crumbs, looking up the definition.
@@ -457,7 +534,7 @@ pub fn lookup_method
     let explicitly_extends_looked_type = method.defined_on_type == module_name.name().as_ref();
 
     for child in ast.def_iter() {
-        let child_name : &definition::DefinitionName = &child.name.item;
+        let child_name : &DefinitionName = &child.name.item;
         let name_matches = child_name.name.item == method.name;
         let type_matches = match child_name.extended_target.as_slice() {
             []         => explicitly_extends_looked_type,
@@ -638,4 +715,60 @@ last def = inline expression";
         assert!(code[span].ends_with("nested body"));
     }
 
+    #[wasm_bindgen_test]
+    fn add_method() {
+        let parser = parser::Parser::new_or_panic();
+        let module = r#"Main.method1 arg = body
+
+main = here.method1 10"#;
+
+        let module     = Info::from(parser.parse_module(module,default()).unwrap());
+        let method1_id = DefinitionName::new_method("Main","method1");
+        let main_id    = DefinitionName::new_plain("main");
+        let to_add     = definition::ToAdd {
+            name : DefinitionName::new_method("Main","add"),
+            explicit_parameter_names : vec!["arg1".into(), "arg2".into()],
+            body_head : Ast::infix_var("arg1","+","arg2"),
+            body_tail : default(),
+        };
+
+        let repr_after_insertion = |location| {
+            let mut module = module.clone();
+            module.add_method(to_add.clone(),location,&parser).unwrap();
+            module.ast.repr()
+        };
+
+        let expected =  r#"Main.add arg1 arg2 = arg1 + arg2
+
+Main.method1 arg = body
+
+main = here.method1 10"#;
+        assert_eq!(repr_after_insertion(Placement::Begin),expected);
+
+        let expected =  r#"Main.method1 arg = body
+
+main = here.method1 10
+
+Main.add arg1 arg2 = arg1 + arg2"#;
+        assert_eq!(repr_after_insertion(Placement::End),expected);
+
+        let expected =  r#"Main.method1 arg = body
+
+Main.add arg1 arg2 = arg1 + arg2
+
+main = here.method1 10"#;
+        assert_eq!(repr_after_insertion(Placement::After(method1_id.clone())),expected);
+
+        assert_eq!(repr_after_insertion(Placement::Before(method1_id.clone())),
+                   repr_after_insertion(Placement::Begin));
+        assert_eq!(repr_after_insertion(Placement::After(method1_id.clone())),
+                   repr_after_insertion(Placement::Before(main_id.clone())));
+        assert_eq!(repr_after_insertion(Placement::After(main_id.clone())),
+                   repr_after_insertion(Placement::End));
+
+        // TODO [mwu]
+        //  This test doesn't include multi-lines functions, as the result may seem somewhat unexpected
+        //  due to the way that parser assigns blank lines to the former block rather than module.
+        //  If anyone will care, we might revisit this after the parser 2.0 rewrite.
+    }
 }

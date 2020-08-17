@@ -107,7 +107,7 @@ impl SpanTreeGenerator for Ast {
         } else {
             match self.shape() {
                 ast::Shape::Prefix(_) =>
-                    ast::prefix::Chain::try_new(self).unwrap().generate_node(kind),
+                    ast::prefix::Chain::from_ast(self).unwrap().generate_node(kind),
                 // Lambdas should fall in _ case, because we don't want to create subports for
                 // them
                 ast::Shape::Match(_) if ast::macros::as_lambda_match(self).is_none() =>

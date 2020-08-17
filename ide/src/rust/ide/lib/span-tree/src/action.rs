@@ -129,7 +129,7 @@ impl<'a> Implementation for node::Ref<'a> {
                     };
                     infix.into_ast()
                 } else {
-                    let mut prefix = ast::prefix::Chain::new_non_strict(ast);
+                    let mut prefix = ast::prefix::Chain::from_ast_non_strict(ast);
                     let item       = ast::prefix::Argument{
                         sast      : Shifted{wrapped:new, off:DEFAULT_OFFSET},
                         prefix_id : None,
@@ -173,7 +173,7 @@ impl<'a> Implementation for node::Ref<'a> {
                     }
                     infix.into_ast()
                 } else {
-                    let mut prefix = ast::prefix::Chain::new_non_strict(ast);
+                    let mut prefix = ast::prefix::Chain::from_ast_non_strict(ast);
                     prefix.args.pop();
                     prefix.into_ast()
                 };

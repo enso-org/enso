@@ -81,7 +81,7 @@ pub fn flatten_prefix_test() {
     let case   = |code:&str, expected_pieces:Vec<&str>| {
         let ast = parser.parse(code.into(),default()).unwrap();
         let ast = ast::test_utils::expect_single_line(&ast);
-        let flattened = prefix::Chain::new_non_strict(&ast);
+        let flattened = prefix::Chain::from_ast_non_strict(&ast);
         expect_pieces(&flattened,expected_pieces);
         assert_eq!(flattened.repr(), code);
     };
