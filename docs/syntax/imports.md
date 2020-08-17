@@ -8,15 +8,18 @@ order: 4
 
 # Imports and Exports
 
-In order to properly modularise and work with Enso code, the language provides
-a robust mechanism for importing code from modules, and also re-exporting that
+In order to properly modularise and work with Enso code, the language provides a
+robust mechanism for importing code from modules, and also re-exporting that
 code from modules.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Import Syntax](#import-syntax)
-  - [Visibility of Imported Bindings](#visibility-of-imported-bindings)
+  - [Qualified Imports](#qualified-imports)
+  - [Unqualified Imports](#unqualified-imports)
 - [Export Syntax](#export-syntax)
+  - [Qualified Exports](#qualified-exports)
+  - [Unqualified Exports](#unqualified-exports)
   - [Visibility of Export Bindings](#visibility-of-export-bindings)
 
 <!-- /MarkdownTOC -->
@@ -27,21 +30,21 @@ There are two main ways of importing a module into the current scope.
 
 ### Qualified Imports
 
-These imports consist of the word `import` followed by a qualified name of
-a module. This can by optionally followed by the `as` word, and a referent name
-of the module as it should be visible in the importing scope.
+These imports consist of the word `import` followed by a qualified name of a
+module. This can by optionally followed by the `as` word, and a referent name of
+the module as it should be visible in the importing scope.
 
-The only name brought into scope by such an import is the name of the module
-(or the name provided after the `as` keyword, if provided).
+The only name brought into scope by such an import is the name of the module (or
+the name provided after the `as` keyword, if provided).
 
 ### Unqualified Imports
 
 Unqualified imports are broken up into three main categories:
 
-1. **Unrestricted Imports:** These import all symbols from the module
-   into the current scope. They consist of the keyword `from`, followed by
-   a qualified module name, followed by an optional rename part (using the
-   `as` keyword), then the keywords `import all`. For example:
+1. **Unrestricted Imports:** These import all symbols from the module into the
+   current scope. They consist of the keyword `from`, followed by a qualified
+   module name, followed by an optional rename part (using the `as` keyword),
+   then the keywords `import all`. For example:
    ```
    from Base.List as Builtin_List import all
    ```
@@ -73,29 +76,29 @@ appear in Enso as follows:
 
 ### Qualified Exports
 
-These exports consist of the word `export` followed by a qualified name of
-a module. This can by optionally followed by the `as` word, and a referent name
-of the module as it should be visible in the exporting scope.
+These exports consist of the word `export` followed by a qualified name of a
+module. This can by optionally followed by the `as` word, and a referent name of
+the module as it should be visible in the exporting scope.
 
-The only name brought into scope by such an export is the name of the module
-(or the name provided after the `as` keyword, if provided).
+The only name brought into scope by such an export is the name of the module (or
+the name provided after the `as` keyword, if provided).
 
 ### Unqualified Exports
 
 Unqualified exports are broken up into three main categories:
 
-1. **Unrestricted Exports:** These export all symbols from the module
-   into the current scope. They consist of the keyword `from`, followed by
-   a qualified module name, followed by an optional rename part (using the
-   `as` keyword), then the keywords `export all`. For example:
+1. **Unrestricted Exports:** These export all symbols from the module into the
+   current scope. They consist of the keyword `from`, followed by a qualified
+   module name, followed by an optional rename part (using the `as` keyword),
+   then the keywords `export all`. For example:
    ```
    from Base.List as Builtin_List export all
    ```
 2. **Restricted Exports:** These export a specified set of names, behaving as
    though they were redefined in the current scope. They consist of the keyword
-   `from`,  followed by a qualified module name (with optional `as`-rename),
-   then the word `export` followed by a coma-separated list of names to be
-   exported. For example:
+   `from`, followed by a qualified module name (with optional `as`-rename), then
+   the word `export` followed by a coma-separated list of names to be exported.
+   For example:
    ```
    from Base.List export Cons, Nil, from_vector
    ```
