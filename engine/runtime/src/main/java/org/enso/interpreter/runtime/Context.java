@@ -3,12 +3,6 @@ package org.enso.interpreter.runtime;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
-import java.util.*;
-import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.home.HomeManager;
 import org.enso.interpreter.Language;
@@ -23,6 +17,16 @@ import org.enso.pkg.Package;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.RuntimeOptions;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -219,21 +223,16 @@ public class Context {
     topScope.renameProjectInModules(oldName, newName);
   }
 
-
   private void renamePackages(String oldName, String newName) {
     List<Package<TruffleFile>> toChange =
-      packages
-        .stream()
-        .filter(p -> p.config().name().equals(oldName))
-        .collect(Collectors.toList());
+        packages.stream()
+            .filter(p -> p.config().name().equals(oldName))
+            .collect(Collectors.toList());
 
     packages.removeAll(toChange);
 
     List<Package<TruffleFile>> renamed =
-     toChange
-       .stream()
-       .map(p -> p.setPackageName(newName))
-       .collect(Collectors.toList());
+        toChange.stream().map(p -> p.setPackageName(newName)).collect(Collectors.toList());
 
     packages.addAll(renamed);
   }
