@@ -41,8 +41,7 @@ Unqualified imports are broken up into three main categories:
 1. **Unrestricted Imports:** These import all symbols from the module
    into the current scope. They consist of the keyword `from`, followed by
    a qualified module name, followed by an optional rename part (using the
-   `as` keyword), then the keywords `import all`.
-   For example:
+   `as` keyword), then the keywords `import all`. For example:
    ```
    from Base.List as Builtin_List import all
    ```
@@ -88,8 +87,7 @@ Unqualified exports are broken up into three main categories:
 1. **Unrestricted Exports:** These export all symbols from the module
    into the current scope. They consist of the keyword `from`, followed by
    a qualified module name, followed by an optional rename part (using the
-   `as` keyword), then the keywords `export all`.
-   For example:
+   `as` keyword), then the keywords `export all`. For example:
    ```
    from Base.List as Builtin_List export all
    ```
@@ -112,7 +110,7 @@ Unqualified exports are broken up into three main categories:
 
 In essence, an export allows the user to "paste" the contents of the module
 being exported into the module declaring the export. This means that exports
-that create name clashes are resolved at the _export_ site.
+that create name clashes must be resolved at the _export_ site.
 
 ### Visibility of Export Bindings
 

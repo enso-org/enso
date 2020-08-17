@@ -9,12 +9,12 @@ order: 6
 # Modules
 
 Modules are the basic way to organize code into smaller, semantically-relevant
-parts. The following is the description of the Enso modules semantics.
+parts. The following is the description of the semantics of Enso modules.
 
 ## Introduction
 
 There's a one-to-one correspondence between source files and modules. Moreover,
-a module name is the same as that of the corresponding source file.
+a module's name is the same as that of the corresponding source file.
 Modules are first-class objects, meaning they can be assigned to variables
 and passed as function parameters.
 
@@ -23,7 +23,8 @@ and passed as function parameters.
 Modules can be imported into the current scope by using the `import` statement.
 To import a module, one must provide it's full qualified path. A qualified path
 of a module is a number of `.`-separated segments, where:
-1. The first segment is the name of the project.
+
+1. The first segment is the name of the project in which the module is located.
 2. The following segments are the names of directories between `src` and the
    source file being imported.
 3. The last segment is the name of the source file, with the `.enso` extension
@@ -37,29 +38,30 @@ qualified name or the name it was renamed to), becomes available in the
 importing scope as a value.
 
 Moreover, the current module is always visible in the scope under its
-file-based name and as the special variable `here`.
+file-based name, and as the special variable `here`.
 
 ## Module-Level Methods
 
-A method defined without an explicit `this` reference or with `this` explicitly
+A method defined without an explicit `this` reference, or with `this` explicitly
 set to the current module, becomes a module-level method. Such a method can be
 called by passing the module as the `this` parameter. Such methods can also be
-called by importing modules, using the imported module as `this`.
+called by importing modules and using the imported module in place of `this`.
 
 ## Types
 
-There is no difference from the perspective of access between a `type` 
+From the perspective of accessing them through imports, there is no difference between a `type` constructor 
 definition and a module-level method. Both can be accessed in exactly the same
-ways both from inside the module and from importing modules.
+ways both from inside the module and from the importing modules.
 
 ## Referent Name Resolution
 
-Referent names are resolved specially, by finding the relevant name among
+Referent names are resolved in a special way, by finding the relevant name among
 imported modules and items explicitely imported from them. Imported items may
 be one of the following: modules, types, module-level methods and polyglot
 symbols.
 
 The order of resolving names is as follows:
+
 1. Symbols defined locally.
 2. Names of imported modules.
 3. Names explicitly imported from modules.
@@ -83,7 +85,7 @@ code exists.
 ## Export Statement Semantics
 
 An export statement always exports the name of the exported module (possibly
-renamed). Moreover, any items explicitly mentioned in a `from` export, become
+renamed). Additionally, any items explicitly mentioned in a `from` export, become
 available as though they were defined in the exporting module.
 
 ## Project Main Module
