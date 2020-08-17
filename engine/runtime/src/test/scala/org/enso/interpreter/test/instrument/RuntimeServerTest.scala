@@ -3283,7 +3283,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
-              Some("Number"),
+              None,
               Some(Api.MethodPointer("Foo.Main", "Number", "foo"))
             )
           )
