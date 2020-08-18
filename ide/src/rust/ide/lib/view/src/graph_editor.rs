@@ -2269,7 +2269,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     viz_tgt_nodes_off    <- viz_tgt_nodes.map(f!([model](node_ids) {
         node_ids.iter().cloned().filter(|node_id| {
             model.nodes.get_cloned_ref(node_id)
-                .map(|node| !node.visualization.is_visible())
+                .map(|node| !node.visualization.is_active())
                 .unwrap_or_default()
         }).collect_vec()
     }));
