@@ -96,14 +96,16 @@ trait ProgramExecutionSupport {
         val notExecuted =
           methodCallsCache.getNotExecuted(executionFrame.cache.getCalls)
         notExecuted.forEach { expressionId =>
+          val expressionType = executionFrame.cache.getType(expressionId)
+          val expressionCall = executionFrame.cache.getCall(expressionId)
           onCachedMethodCallCallback.accept(
             new ExpressionValue(
               expressionId,
               null,
-              null,
-              null,
-              executionFrame.cache.getCall(expressionId),
-              executionFrame.cache.getCall(expressionId)
+              expressionType,
+              expressionType,
+              expressionCall,
+              expressionCall
             )
           )
         }
@@ -155,11 +157,6 @@ trait ProgramExecutionSupport {
         case InstrumentFrame(Api.StackItem.LocalCall(id), cache) :: xs =>
           unwind(xs, explicitCalls, LocalCallFrame(id, cache) :: localCalls)
       }
-    def getName(item: ExecutionItem): String =
-      item match {
-        case ExecutionItem.Method(_, _, function) => function
-        case ExecutionItem.CallData(call)         => call.getFunction.getName
-      }
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
       ctx.executionService.getLogger.finer(s"ON_CACHED_CALL $value")
@@ -199,16 +196,34 @@ trait ProgramExecutionSupport {
               onExceptionalCallback
             )
           )
-          .leftMap { ex =>
-            ctx.executionService.getLogger.log(
-              Level.FINE,
-              s"Error executing a function '${getName(stackItem.item)}.'",
-              ex
-            )
-            getErrorMessage(ex)
-              .getOrElse(s"Error in function ${getName(stackItem.item)}.")
-          }
+          .leftMap(onExecutionError(stackItem.item, _))
     } yield ()
+  }
+
+  /** Execution error handler.
+    *
+    * @param item the stack item being executed
+    * @param error the execution error
+    * @return the error message
+    */
+  private def onExecutionError(
+    item: ExecutionItem,
+    error: Throwable
+  )(implicit ctx: RuntimeContext): String = {
+    val itemName = item match {
+      case ExecutionItem.Method(_, _, function) => function
+      case ExecutionItem.CallData(call)         => call.getFunction.getName
+    }
+    val errorMessage = getErrorMessage(error)
+    errorMessage match {
+      case Some(_) =>
+        ctx.executionService.getLogger
+          .log(Level.FINE, s"Error executing a function $itemName.")
+      case None =>
+        ctx.executionService.getLogger
+          .log(Level.FINE, s"Error executing a function $itemName.", error)
+    }
+    errorMessage.getOrElse(s"Error in function $itemName.")
   }
 
   /** Get error message from throwable. */
@@ -233,14 +248,12 @@ trait ProgramExecutionSupport {
     value: ExpressionValue,
     sendMethodCallUpdates: Boolean
   )(implicit ctx: RuntimeContext): Unit = {
-    val methodPointerOpt = toMethodPointer(value).filter { _ =>
-      sendMethodCallUpdates ||
-      !Objects.equals(value.getCallInfo, value.getCachedCallInfo)
-    }
-    val valueOpt = Option(value.getType).filter { _ =>
+    val methodPointer = toMethodPointer(value)
+    if (
+      (sendMethodCallUpdates && methodPointer.isDefined) ||
+      !Objects.equals(value.getCallInfo, value.getCachedCallInfo) ||
       !Objects.equals(value.getType, value.getCachedType)
-    }
-    if (methodPointerOpt.isDefined || valueOpt.isDefined) {
+    ) {
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionValuesComputed(
@@ -248,8 +261,8 @@ trait ProgramExecutionSupport {
             Vector(
               Api.ExpressionValueUpdate(
                 value.getExpressionId,
-                valueOpt,
-                methodPointerOpt
+                Option(value.getType),
+                methodPointer
               )
             )
           )

@@ -344,7 +344,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer("Test.Main", "Number", "foo"))
             )
           )
@@ -1015,7 +1015,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer("Test.Main", "Number", "foo"))
             )
           )
@@ -1324,7 +1324,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainA,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "x"))
             )
           )
@@ -1371,7 +1371,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainA,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer(moduleName, "Main", "pie"))
             )
           )
@@ -1401,7 +1401,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               idMainA,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer(moduleName, "Main", "uwu"))
             )
           )
@@ -1454,7 +1454,14 @@ class RuntimeServerTest
         )
       )
     )
-    context.receive(1) should contain theSameElementsAs Seq()
+    context.receive(2) should contain theSameElementsAs Seq(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(Api.ExpressionValueUpdate(idMainA, Some("Text"), None))
+        )
+      )
+    )
     context.consumeOut shouldEqual List("Hello!")
   }
 
@@ -1655,7 +1662,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id1,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
             )
           )
@@ -1667,7 +1674,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id2,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer(moduleName, "Text", "overloaded"))
             )
           )
@@ -1679,7 +1686,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id3,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
             )
           )
@@ -1711,7 +1718,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id1,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
             )
           )
@@ -1723,7 +1730,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id2,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer(moduleName, "Text", "overloaded"))
             )
           )
@@ -1735,7 +1742,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id3,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
             )
           )
@@ -1767,7 +1774,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id1,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
             )
           )
@@ -1779,7 +1786,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id2,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer(moduleName, "Text", "overloaded"))
             )
           )
@@ -1791,7 +1798,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               id3,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer(moduleName, "Number", "overloaded"))
             )
           )
@@ -2128,7 +2135,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer("Test.Main", "Number", "foo"))
             )
           )
@@ -3283,7 +3290,7 @@ class RuntimeServerTest
           Vector(
             Api.ExpressionValueUpdate(
               context.Main.idMainY,
-              None,
+              Some("Number"),
               Some(Api.MethodPointer("Foo.Main", "Number", "foo"))
             )
           )
