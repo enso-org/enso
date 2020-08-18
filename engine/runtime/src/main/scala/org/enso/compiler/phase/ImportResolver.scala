@@ -3,7 +3,6 @@ package org.enso.compiler.phase
 import org.enso.compiler.Compiler
 import org.enso.compiler.core.IR
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.ResolvedImport
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
@@ -83,13 +82,6 @@ class ImportResolver(compiler: Compiler) {
         current.unsafeSetCompilationStage(
           Module.CompilationStage.AFTER_IMPORT_RESOLUTION
         )
-        println(s"${current.getName}:")
-        currentLocal.resolvedImports.foreach {
-          case ResolvedImport(importDef, exports, _) =>
-            println(
-              s"    ${importDef.showCode()}: ${exports.map(_.showCode())}"
-            )
-        }
         seen += current
         stack = importedModules.map(_.module) ++ stack
       }

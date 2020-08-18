@@ -79,9 +79,7 @@ case class BindingsMap(
 
     resolvedImports
       .flatMap { imp =>
-        println("resolve name in imp: " + name)
         if (imp.importDef.allowsAccess(name)) {
-          println("  will work in: " + imp.importDef.name.name)
           imp.module.getIr
             .unsafeGetMetadata(
               BindingAnalysis,
@@ -159,10 +157,8 @@ case class BindingsMap(
     seenModules: mutable.Set[Module]
   ): List[ResolvedName] = {
     if (seenModules.contains(currentModule)) {
-      println("already seen: " + currentModule.getName)
       List()
     } else {
-      println("Resolve name: " + name)
       seenModules.add(currentModule)
       val matchingConses = types
         .filter(_.name.toLowerCase == name.toLowerCase)
@@ -171,16 +167,9 @@ case class BindingsMap(
         .filter(_.name.toLowerCase == name.toLowerCase)
         .map(ResolvedMethod(currentModule, _))
       if (name == "Internal_5") {
-        println("Looking in for Qual_5 in: " + currentModule.getName)
       }
       val matchingExports = resolvedImports.flatMap {
         case ResolvedImport(imp, Some(exp), module) =>
-          if (name == "Internal_5") {
-            println(
-              "Internal_5 re-export " + imp.allowsAccess(name) + exp
-                .allowsAccess(name)
-            )
-          }
           if (exp.getSimpleName.name.toLowerCase == name.toLowerCase) {
             List(ResolvedModule(module))
           } else if (imp.allowsAccess(name) && exp.allowsAccess(name)) {
