@@ -159,6 +159,17 @@ version: <semver string of the required library version>
 >
 > - Extend the library version field to handle version bounds.
 
+### The `visualization` Directory
+
+As Enso is a visual language, the package may contain specification how 
+data can be displayed in various tools, e.g. 
+[Enso IDE](https://github.com/enso-org/ide). Conventionally, all those files
+should be put in the `visualization` directory, and from there all tools should
+read them.
+
+See also [this example](https://dev.enso.org/docs/ide/product/visualizations.html#custom-visualization-example) 
+of visualization file working with Enso IDE.   
+
 ## Build Reproducibility
 
 It is crucial for any good development environment to provide reproducible
