@@ -15,61 +15,58 @@ code from modules.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Import Syntax](#import-syntax)
-  - [Visibility of Imported Bindings](#visibility-of-imported-bindings)
+  - [Qualified Imports](#qualified-imports)
+  - [Unqualified Imports](#unqualified-imports)
 - [Export Syntax](#export-syntax)
+  - [Qualified Exports](#qualified-exports)
+  - [Unqualified Exports](#unqualified-exports)
   - [Visibility of Export Bindings](#visibility-of-export-bindings)
 
 <!-- /MarkdownTOC -->
 
 ## Import Syntax
 
-Importing a module is a way to bring its contents into scope in the current
-module. Imports in Enso appear as follows:
+There are two main ways of importing a module into the current scope.
 
-- They start with the `import` keyword.
-- The `import` keyword is followed by a module path (e.g. `Base.Vector.Unsafe`).
+### Qualified Imports
 
-From there, Enso imports are broken up into four main categories:
+These imports consist of the word `import` followed by a qualified name of a
+module. This can by optionally followed by the `as` word, and a referent name of
+the module as it should be visible in the importing scope.
 
-1.  **Unqualified Imports:** These import all symbols from the module into the
-    current scope, and consist only of the `import` keyword and a module path.
-    Imported items are imported accessible without qualification.
-2.  **Qualified Imports:** These import all symbols from the module into the
-    current scope with symbols qualified under a name _different_ from the
-    module name. It consists of the `import` keyword followed by a module path
-    followed by the `as` keyword, followed by a referent name.
-3.  **Restricted Imports:** These import only the specific symbols from the
-    module into the current scope. They consist of the `import` keyword,
-    followed by a module path, followed by the `only` keyword, followed by a
-    space-separated list of symbols.
-4.  **Hiding Imports:** These are the inverse of restricted imports, and import
-    _all_ symbols other than the named ones into the current scope. They consist
-    of the `import` keyword, followed by a module path, followed by the keyword
-    `only`, followed by a space-separated list of symbols.
+The only name brought into scope by such an import is the name of the module (or
+the name provided after the `as` keyword, if provided).
 
-The qualified import syntax can be combined with the restricted and hiding
-import syntaxes.
+### Unqualified Imports
 
-By way of example, the following code uses a variety of import types:
+Unqualified imports are broken up into three main categories:
 
-```ruby
-import A                          # unqualified
-import B as T                     # qualified
-import C only symbol_1 symbol_2   # restricted
-import D hiding symbol_1 symbol_2 # hiding
-import E as U only symbol_3       # qualified + restricted
-import F as V hiding symbol_4     # qualified + hiding
-```
+1. **Unrestricted Imports:** These import all symbols from the module into the
+   current scope. They consist of the keyword `from`, followed by a qualified
+   module name, followed by an optional rename part (using the `as` keyword),
+   then the keywords `import all`. For example:
+   ```
+   from Base.List as Builtin_List import all
+   ```
+2. **Restricted Imports:** These import a specified set of names for use as
+   automatically resolved referent names. They consist of the keyword `from`,
+   followed by a qualified module name (with optional `as`-rename), then the
+   word `import` followed by a coma-separated list of referent names to be
+   imported. For example:
+   ```
+   from Base.List import Cons, Nil
+   ```
+3. **Hiding Imports:** These are the inverse of restricted imports, and import
+   _all_ symbosl other than the named ones. They consist of the `from` keyword,
+   followed by a qualified module name (with optional `as`-rename), then the
+   words `import all hiding`, followed by a coma-separated list of referent
+   names to be excluded from the import. For example:
+   ```
+   from Base.List import all hiding Cons, Nil
+   ```
 
 Imports in Enso _may_ introduce ambiguous symbols, but this is not an error
 until one of the ambiguous symbols is _used_ in Enso code.
-
-### Visibility of Imported Bindings
-
-When importing a module `X` into the current module `Y`, the bindings from `X`
-made available by the import (see above) become available in `Y`. However, Enso
-does not re-export imported bindings from a module by default, so the imported
-bindings from `X` are not visible in a module _importing_ `Y`.
 
 ## Export Syntax
 
@@ -77,46 +74,46 @@ In order to allow for easy composition and aggregation of code, Enso provides
 its users with a mechanism to _export_ imported elements from modules. They
 appear in Enso as follows:
 
-- They start with the `export` keyword.
-- The `export` keyword is followed by a module name (e.g. `My_Module`) that is
-  available in the current scope.
-- The _current_ module is implicitly exported unqualified.
+### Qualified Exports
 
-From there, Enso exports are broken up into four main categories:
+These exports consist of the word `export` followed by a qualified name of a
+module. This can by optionally followed by the `as` word, and a referent name of
+the module as it should be visible in the exporting scope.
 
-1.  **Unqualified Exports:** These export all symbols from the named module as
-    if they were defined in the exporting module. They consist of the `export`
-    keyword, followed by a visible module name.
-2.  **Qualified Exports:** These export all symbols from the module as if they
-    were defined in a module nested within the exporting module. It consists of
-    the `export` keyword, followed by a module name, followed by the `as`
-    keyword, followed by another module name.
-3.  **Restricted Exports:** These export only the specified symbols from the
-    exporting module, as if they were defined in the exporting module. It
-    consists of the `export` keyword, followed by a module name, followed by the
-    `only` keyword, and then a space-separated list of symbols.
-4.  **Hiding Exports:** These export all symbols from the module _except_ those
-    explicitly specified. It consists of the `export` keyword, followed by a
-    module name, followed by the `hiding` keyword, and then a space-separated
-    list of symbols.
+The only name brought into scope by such an export is the name of the module (or
+the name provided after the `as` keyword, if provided).
 
-The qualified export syntax can be combined with the restricted and hiding
-export syntaxes.
+### Unqualified Exports
 
-By way of example, the following code uses a variety of export types:
+Unqualified exports are broken up into three main categories:
 
-```ruby
-export A
-export B as X
-export C only symbol_1
-export D hiding symbol_1
-export E as Y only symbol_1
-export F as Y hiding symbol_1
-```
+1. **Unrestricted Exports:** These export all symbols from the module into the
+   current scope. They consist of the keyword `from`, followed by a qualified
+   module name, followed by an optional rename part (using the `as` keyword),
+   then the keywords `export all`. For example:
+   ```
+   from Base.List as Builtin_List export all
+   ```
+2. **Restricted Exports:** These export a specified set of names, behaving as
+   though they were redefined in the current scope. They consist of the keyword
+   `from`, followed by a qualified module name (with optional `as`-rename), then
+   the word `export` followed by a coma-separated list of names to be exported.
+   For example:
+   ```
+   from Base.List export Cons, Nil, from_vector
+   ```
+3. **Hiding Exports:** These are the inverse of restricted exports, and export
+   _all_ symbols other than the named ones. They consist of the `from` keyword,
+   followed by a qualified module name (with optional `as`-rename), then the
+   words `export all hiding`, followed by a coma-separated list of names to be
+   excluded from the export. For example:
+   ```
+   from Base.List export all hiding from_vector, Nil
+   ```
 
-In essence, an export allows the user to `paste` the contents of the module
+In essence, an export allows the user to "paste" the contents of the module
 being exported into the module declaring the export. This means that exports
-that create name clashes need to be resolved at the _export_ site.
+that create name clashes must be resolved at the _export_ site.
 
 ### Visibility of Export Bindings
 
