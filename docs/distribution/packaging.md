@@ -19,6 +19,7 @@ future directions and enhancements to it.
   - [The `src` Directory](#the-src-directory)
   - [The `polyglot` Directory](#the-polyglot-directory)
   - [The `package.yaml` File](#the-packageyaml-file)
+  - [The `visualization` Directory](#the-visualization-directory)
 - [Build Reproducibility](#build-reproducibility)
 
 <!-- /MarkdownTOC -->
@@ -35,11 +36,13 @@ My_Package
 │   │   └── jar.jar
 │   └── js
 │       └── library.js
-└── src
-    ├── Main.enso
-    └── Sub_Module
-        ├── Helper.enso
-        └── Util.enso
+├── src
+│   ├── Main.enso
+│   └── Sub_Module
+│       ├── Helper.enso
+│       └── Util.enso
+└── visualization (optional)
+    └── 
 ```
 
 ### The `src` Directory
@@ -158,6 +161,18 @@ version: <semver string of the required library version>
 > The actionables for this section are:
 >
 > - Extend the library version field to handle version bounds.
+
+### The `visualization` Directory
+
+As Enso is a visual language, a package may contain a specification of how data
+can be displayed in various tools, for example
+[Enso IDE](https://github.com/enso-org/ide). The Enso package structure may
+optionally contain a `visualization` directory which may contain visualization
+definitions.
+
+For more information on how visualization definitions should work with the Enso
+IDE, see
+[this example](https://dev.enso.org/docs/ide/product/visualizations.html#custom-visualization-example).
 
 ## Build Reproducibility
 
