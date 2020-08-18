@@ -166,8 +166,8 @@ data can be displayed in various tools, for example [Enso IDE](https://github.co
 The Enso package structure may optionally contain a `visualization` directory
 which may contain visualization definitions.
 
-See also [this example](https://dev.enso.org/docs/ide/product/visualizations.html#custom-visualization-example) 
-of visualization file working with Enso IDE.   
+For more information on how visualization definitions should work with the Enso IDE, see
+[this example](https://dev.enso.org/docs/ide/product/visualizations.html#custom-visualization-example).
 
 ## Build Reproducibility
 
