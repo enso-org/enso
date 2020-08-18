@@ -39,7 +39,7 @@ trait ProgramExecutionSupport {
     *
     * @param executionFrame an execution frame
     * @param callStack a call stack
-    * @param cachedMethodCallsCallback a listener for cached method calls
+    * @param onCachedMethodCallCallback a listener of cached method calls
     * @param onComputedCallback a listener of computed values
     * @param onCachedCallback a listener of cached values
     * @param onExceptionalCallback the consumer of the exceptional events.
@@ -48,7 +48,7 @@ trait ProgramExecutionSupport {
   final private def executeProgram(
     executionFrame: ExecutionFrame,
     callStack: List[LocalCallFrame],
-    cachedMethodCallsCallback: Consumer[ExpressionValue],
+    onCachedMethodCallCallback: Consumer[ExpressionValue],
     onComputedCallback: Consumer[ExpressionValue],
     onCachedCallback: Consumer[ExpressionValue],
     onExceptionalCallback: Consumer[Throwable]
@@ -93,27 +93,29 @@ trait ProgramExecutionSupport {
 
     callStack match {
       case Nil =>
-        methodCallsCache
-          .getNotExecuted(executionFrame.cache.getCalls)
-          .forEach { expressionId =>
-            cachedMethodCallsCallback.accept(
-              new ExpressionValue(
-                expressionId,
-                null,
-                executionFrame.cache.getType(expressionId),
-                null,
-                executionFrame.cache.getCall(expressionId),
-                null
-              )
+        val notExecuted =
+          methodCallsCache.getNotExecuted(executionFrame.cache.getCalls)
+        notExecuted.forEach { expressionId =>
+          val expressionType = executionFrame.cache.getType(expressionId)
+          val expressionCall = executionFrame.cache.getCall(expressionId)
+          onCachedMethodCallCallback.accept(
+            new ExpressionValue(
+              expressionId,
+              null,
+              expressionType,
+              expressionType,
+              expressionCall,
+              expressionCall
             )
-          }
+          )
+        }
       case item :: tail =>
         enterables.get(item.expressionId) match {
           case Some(call) =>
             executeProgram(
               ExecutionFrame(ExecutionItem.CallData(call), item.cache),
               tail,
-              cachedMethodCallsCallback,
+              onCachedMethodCallCallback,
               onComputedCallback,
               onCachedCallback,
               onExceptionalCallback
@@ -155,27 +157,22 @@ trait ProgramExecutionSupport {
         case InstrumentFrame(Api.StackItem.LocalCall(id), cache) :: xs =>
           unwind(xs, explicitCalls, LocalCallFrame(id, cache) :: localCalls)
       }
-    def getName(item: ExecutionItem): String =
-      item match {
-        case ExecutionItem.Method(_, _, function) => function
-        case ExecutionItem.CallData(call)         => call.getFunction.getName
-      }
 
-    val cachedMethodCallsCallback: Consumer[ExpressionValue] =
-      if (sendMethodCallUpdates)
-        sendMethodPointerUpdate(contextId, _)
-      else { _ => () }
+    val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
+      ctx.executionService.getLogger.finer(s"ON_CACHED_CALL $value")
+      sendValueUpdate(contextId, value, sendMethodCallUpdates)
+    }
 
     val onCachedValueCallback: Consumer[ExpressionValue] = { value =>
       if (updatedVisualisations.contains(value.getExpressionId)) {
-        ctx.executionService.getLogger.finer(s"ON_CACHED $value")
+        ctx.executionService.getLogger.finer(s"ON_CACHED_VALUE $value")
         fireVisualisationUpdates(contextId, value)
       }
     }
 
     val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
       ctx.executionService.getLogger.finer(s"ON_COMPUTED $value")
-      sendValueUpdate(contextId, value)
+      sendValueUpdate(contextId, value, sendMethodCallUpdates)
       fireVisualisationUpdates(contextId, value)
     }
 
@@ -193,22 +190,40 @@ trait ProgramExecutionSupport {
             executeProgram(
               stackItem,
               localCalls,
-              cachedMethodCallsCallback,
+              onCachedMethodCallCallback,
               onComputedValueCallback,
               onCachedValueCallback,
               onExceptionalCallback
             )
           )
-          .leftMap { ex =>
-            ctx.executionService.getLogger.log(
-              Level.FINE,
-              s"Error executing a function '${getName(stackItem.item)}.'",
-              ex
-            )
-            getErrorMessage(ex)
-              .getOrElse(s"Error in function ${getName(stackItem.item)}.")
-          }
+          .leftMap(onExecutionError(stackItem.item, _))
     } yield ()
+  }
+
+  /** Execution error handler.
+    *
+    * @param item the stack item being executed
+    * @param error the execution error
+    * @return the error message
+    */
+  private def onExecutionError(
+    item: ExecutionItem,
+    error: Throwable
+  )(implicit ctx: RuntimeContext): String = {
+    val itemName = item match {
+      case ExecutionItem.Method(_, _, function) => function
+      case ExecutionItem.CallData(call)         => call.getFunction.getName
+    }
+    val errorMessage = getErrorMessage(error)
+    errorMessage match {
+      case Some(_) =>
+        ctx.executionService.getLogger
+          .log(Level.FINE, s"Error executing a function $itemName.")
+      case None =>
+        ctx.executionService.getLogger
+          .log(Level.FINE, s"Error executing a function $itemName.", error)
+    }
+    errorMessage.getOrElse(s"Error in function $itemName.")
   }
 
   /** Get error message from throwable. */
@@ -228,36 +243,16 @@ trait ProgramExecutionSupport {
     )
   }
 
-  private def sendMethodPointerUpdate(
-    contextId: ContextId,
-    value: ExpressionValue
-  )(implicit ctx: RuntimeContext): Unit = {
-    toMethodPointer(value).foreach { ptr =>
-      ctx.endpoint.sendToClient(
-        Api.Response(
-          Api.ExpressionValuesComputed(
-            contextId,
-            Vector(
-              Api.ExpressionValueUpdate(
-                value.getExpressionId,
-                None,
-                Some(ptr)
-              )
-            )
-          )
-        )
-      )
-    }
-
-  }
-
   private def sendValueUpdate(
     contextId: ContextId,
-    value: ExpressionValue
+    value: ExpressionValue,
+    sendMethodCallUpdates: Boolean
   )(implicit ctx: RuntimeContext): Unit = {
+    val methodPointer = toMethodPointer(value)
     if (
-      !Objects.equals(value.getType, value.getCachedType) ||
-      !Objects.equals(value.getCallInfo, value.getCachedCallInfo)
+      (sendMethodCallUpdates && methodPointer.isDefined) ||
+      !Objects.equals(value.getCallInfo, value.getCachedCallInfo) ||
+      !Objects.equals(value.getType, value.getCachedType)
     ) {
       ctx.endpoint.sendToClient(
         Api.Response(
@@ -267,7 +262,7 @@ trait ProgramExecutionSupport {
               Api.ExpressionValueUpdate(
                 value.getExpressionId,
                 Option(value.getType),
-                toMethodPointer(value)
+                methodPointer
               )
             )
           )
