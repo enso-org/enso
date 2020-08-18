@@ -44,7 +44,10 @@ class RuntimeServerTest
         .allowAllAccess(true)
         .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
-        .option(RuntimeOptions.DISABLE_PARALLEL_EXECUTION, "true")
+        .option(
+          RuntimeOptions.INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION,
+          "true"
+        )
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .out(out)
         .serverTransport { (uri, peer) =>

@@ -25,7 +25,7 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
 
   private val isSequential =
     interpreterContext.executionService.getContext.getEnvironment.getOptions
-      .get(RuntimeOptions.DISABLE_PARALLEL_EXECUTION_KEY)
+      .get(RuntimeOptions.INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION_KEY)
       .booleanValue()
 
   private val locking = new ReentrantLocking

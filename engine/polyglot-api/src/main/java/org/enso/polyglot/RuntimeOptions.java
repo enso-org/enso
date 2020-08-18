@@ -29,10 +29,14 @@ public class RuntimeOptions {
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
       OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
 
-  public static final String DISABLE_PARALLEL_EXECUTION = optionName(".disableParallelExecution");
-  public static final OptionKey<Boolean> DISABLE_PARALLEL_EXECUTION_KEY = new OptionKey<>(false);
-  public static final OptionDescriptor DISABLE_PARALLEL_EXECUTION_DESCRIPTOR =
-      OptionDescriptor.newBuilder(DISABLE_PARALLEL_EXECUTION_KEY, DISABLE_PARALLEL_EXECUTION)
+  public static final String INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION =
+      interpreterOptionName(".disableParallelCommandExecution");
+  public static final OptionKey<Boolean> INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION_KEY =
+      new OptionKey<>(false);
+  public static final OptionDescriptor INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION_DESCRIPTOR =
+      OptionDescriptor.newBuilder(
+              INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION_KEY,
+              INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION)
           .build();
 
   public static final OptionDescriptors OPTION_DESCRIPTORS =
@@ -42,7 +46,7 @@ public class RuntimeOptions {
               STRICT_ERRORS_DESCRIPTOR,
               LOG_LEVEL_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
-              DISABLE_PARALLEL_EXECUTION_DESCRIPTOR));
+              INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.
@@ -52,5 +56,15 @@ public class RuntimeOptions {
    */
   private static String optionName(String name) {
     return LanguageInfo.ID + "." + name;
+  }
+
+  /**
+   * Canonicalizes the option name by prefixing it with the 'interpreter' subname.
+   *
+   * @param name the simplified option name
+   * @return the canonicalized representation of the option.
+   */
+  private static String interpreterOptionName(String name) {
+    return LanguageInfo.ID + ".interpreter." + name;
   }
 }
