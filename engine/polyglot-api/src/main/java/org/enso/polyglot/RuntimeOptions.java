@@ -29,14 +29,14 @@ public class RuntimeOptions {
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
       OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
 
-  public static final String INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION =
-      interpreterOptionName(".disableParallelCommandExecution");
-  public static final OptionKey<Boolean> INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION_KEY =
+  public static final String INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION =
+      interpreterOptionName(".sequentialCommandExecution");
+  public static final OptionKey<Boolean> INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY =
       new OptionKey<>(false);
-  public static final OptionDescriptor INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION_DESCRIPTOR =
+  public static final OptionDescriptor INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR =
       OptionDescriptor.newBuilder(
-              INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION_KEY,
-              INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION)
+              INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY,
+              INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION)
           .build();
 
   public static final OptionDescriptors OPTION_DESCRIPTORS =
@@ -46,7 +46,7 @@ public class RuntimeOptions {
               STRICT_ERRORS_DESCRIPTOR,
               LOG_LEVEL_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,
-              INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION_DESCRIPTOR));
+              INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.

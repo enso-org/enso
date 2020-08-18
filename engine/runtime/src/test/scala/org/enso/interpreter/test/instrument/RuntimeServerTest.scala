@@ -44,10 +44,7 @@ class RuntimeServerTest
         .allowAllAccess(true)
         .option(RuntimeOptions.PACKAGES_PATH, pkg.root.getAbsolutePath)
         .option(RuntimeOptions.LOG_LEVEL, "WARNING")
-        .option(
-          RuntimeOptions.INTERPRETER_DISABLE_PARALLEL_COMMAND_EXECUTION,
-          "true"
-        )
+        .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
         .out(out)
         .serverTransport { (uri, peer) =>
@@ -1530,7 +1527,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(Api.OpenFileNotification(mainFile, contents, false))
     )
-    context.receive shouldEqual None
+    context.receiveNone shouldEqual None
 
     // push main
     context.send(
@@ -1665,7 +1662,8 @@ class RuntimeServerTest
             )
           )
         )
-      )
+      ),
+      context.executionSuccessful(contextId)
     )
 
     // push call1
@@ -1679,7 +1677,8 @@ class RuntimeServerTest
       )
     )
     context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId))
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionSuccessful(contextId)
     )
 
     // pop call1
@@ -1721,7 +1720,8 @@ class RuntimeServerTest
             )
           )
         )
-      )
+      ),
+      context.executionSuccessful(contextId)
     )
 
     // push call2
@@ -1735,7 +1735,8 @@ class RuntimeServerTest
       )
     )
     context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId))
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionSuccessful(contextId)
     )
 
     // pop call2
@@ -1777,7 +1778,8 @@ class RuntimeServerTest
             )
           )
         )
-      )
+      ),
+      context.executionSuccessful(contextId)
     )
 
     // push call3
@@ -1791,7 +1793,8 @@ class RuntimeServerTest
       )
     )
     context.receive(2) should contain theSameElementsAs Seq(
-      Api.Response(requestId, Api.PushContextResponse(contextId))
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionSuccessful(contextId)
     )
 
     // pop call3
@@ -1833,7 +1836,8 @@ class RuntimeServerTest
             )
           )
         )
-      )
+      ),
+      context.executionSuccessful(contextId)
     )
   }
 
