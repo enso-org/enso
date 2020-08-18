@@ -195,6 +195,10 @@ case class BindingsMap(
   ): Either[ResolutionError, ResolvedName] = {
     handleAmbiguity(findExportedSymbolsFor(name, seenModules))
   }
+
+  def getExportedModules: List[(Module, SymbolRestriction)] = resolvedImports.collect {
+    case ResolvedImport(_, Some(_), mod) => (mod, SymbolRestriction.All)
+  }
 }
 
 object BindingsMap {
