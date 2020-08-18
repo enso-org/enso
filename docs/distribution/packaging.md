@@ -161,11 +161,10 @@ version: <semver string of the required library version>
 
 ### The `visualization` Directory
 
-As Enso is a visual language, the package may contain specification how 
-data can be displayed in various tools, e.g. 
-[Enso IDE](https://github.com/enso-org/ide). Conventionally, all those files
-should be put in the `visualization` directory, and from there all tools should
-read them.
+As Enso is a visual language, a package may contain a specification of how 
+data can be displayed in various tools, for example [Enso IDE](https://github.com/enso-org/ide). 
+The Enso package structure may optionally contain a `visualization` directory
+which may contain visualization definitions.
 
 See also [this example](https://dev.enso.org/docs/ide/product/visualizations.html#custom-visualization-example) 
 of visualization file working with Enso IDE.   
