@@ -1,6 +1,6 @@
 package org.enso.launcher.installation
 
-import java.nio.file.Path
+import java.nio.file.{Files, Path}
 
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
@@ -14,12 +14,39 @@ class DistributionUninstaller(
   def uninstall(): Unit = {
     checkPortable()
     askConfirmation()
-    val deferDataRootRemoval = isBinaryInsideData && OS.isWindows
+    if (OS.isWindows) uninstallWindows()
+    else uninstallUNIX()
+  }
+
+  /**
+    * Uninstall strategy for OSes that can remove running executables.
+    *
+    * Simply removes each component, starting with the ones that can potentially
+    * be nested (as config and the binary can be inside of the data directory
+    * if the user wishes so).
+    */
+  private def uninstallUNIX(): Unit = {
     uninstallConfig()
-    uninstallDataContents(deferDataRootRemoval)
-    val parentRootToRemove =
-      if (deferDataRootRemoval) Some(manager.paths.dataRoot) else None
-    uninstallBin(parentRootToRemove)
+    uninstallBinUNIX()
+    uninstallDataContents(deferDataRootRemoval = false)
+  }
+
+  /**
+    * Uninstall strategy for Windows, where it is not possible to remove a
+    * running executable.
+    *
+    * The executable has to be removed last as the program must terminate to do
+    * so. If the executable is inside of the data directory, the directory is
+    * cleaned, but its removal is deferred and it will be removed just after the
+    * executable at the end.
+    */
+  private def uninstallWindows(): Unit = {
+    val deferRootRemoval = isBinaryInsideData
+    uninstallConfig()
+    uninstallDataContents(deferRootRemoval)
+    uninstallBinWindows(
+      if (deferRootRemoval) Some(manager.paths.dataRoot) else None
+    )
   }
 
   private def checkPortable(): Unit = {
@@ -102,6 +129,12 @@ class DistributionUninstaller(
       FileSystem.removeFileIfExists(dataRoot / fileName)
     }
 
+    if (!deferDataRootRemoval) {
+      val nestedBinDirectory = dataRoot / "bin"
+      if (Files.exists(nestedBinDirectory))
+        FileSystem.removeDirectoryIfEmpty(nestedBinDirectory)
+    }
+
     val ignoredFiles = if (deferDataRootRemoval) Set("bin") else Set()
     val remainingFiles = FileSystem
         .listDirectory(dataRoot)
@@ -124,40 +157,42 @@ class DistributionUninstaller(
     directoryName: String,
     path: Path,
     remainingFiles: Seq[String]
-  ): Unit = {
-    def remainingFilesList =
-      remainingFiles.map(fileName => s"`$fileName`").mkString(", ")
-    if (autoConfirm) {
-      Logger.warn(
-        s"$directoryName ($path) contains unexpected files: " +
-        s"$remainingFilesList, so it will not be removed."
-      )
-    } else {
-      Logger.warn(
-        s"$directoryName ($path) contains unexpected files: " +
-        s"$remainingFilesList."
-      )
-      def confirmation =
-        CLIOutput.askConfirmation(
-          s"Do you want to remove the $directoryName containing these files?"
+  ): Unit =
+    if (remainingFiles.nonEmpty) {
+      def remainingFilesList =
+        remainingFiles.map(fileName => s"`$fileName`").mkString(", ")
+      if (autoConfirm) {
+        Logger.warn(
+          s"$directoryName ($path) contains unexpected files: " +
+          s"$remainingFilesList, so it will not be removed."
         )
-      if (confirmation) {
-        for (fileName <- remainingFiles) {
-          FileUtils.forceDelete((path / fileName).toFile)
+      } else {
+        Logger.warn(
+          s"$directoryName ($path) contains unexpected files: " +
+          s"$remainingFilesList."
+        )
+        def confirmation =
+          CLIOutput.askConfirmation(
+            s"Do you want to remove the $directoryName containing these files?"
+          )
+        if (confirmation) {
+          for (fileName <- remainingFiles) {
+            FileUtils.forceDelete((path / fileName).toFile)
+          }
         }
       }
     }
+
+  private def uninstallBinUNIX(): Unit = {
+    FileSystem.removeFileIfExists(manager.env.getPathToRunningExecutable)
   }
 
-  private def uninstallBin(parentToRemove: Option[Path]): Unit = {
-    if (OS.isWindows) {
-      // TODO workaround
-    } else {
-      FileSystem.removeFileIfExists(manager.env.getPathToRunningExecutable)
-      parentToRemove.foreach { parent =>
-        FileSystem.removeDirectoryIfExists(parent / "bin")
-        FileSystem.removeDirectoryIfEmpty(parent)
-      }
+  private def uninstallBinWindows(parentToRemove: Option[Path]): Nothing = {
+    // TODO workaround
+    parentToRemove.foreach { parent =>
+      FileSystem.removeDirectoryIfExists(parent / "bin")
+      FileSystem.removeDirectoryIfEmpty(parent)
     }
+    ???
   }
 }
