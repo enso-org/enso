@@ -5,6 +5,7 @@ import java.nio.file.{Files, Path}
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.launcher.cli.InternalOpts
 import org.enso.launcher.{FileSystem, GlobalConfigurationManager, Logger, OS}
 
 class DistributionUninstaller(
@@ -188,11 +189,12 @@ class DistributionUninstaller(
   }
 
   private def uninstallBinWindows(parentToRemove: Option[Path]): Nothing = {
-    // TODO workaround
-    parentToRemove.foreach { parent =>
-      FileSystem.removeDirectoryIfExists(parent / "bin")
-      FileSystem.removeDirectoryIfEmpty(parent)
-    }
-    ???
+    val temporaryLauncher =
+      Files.createTempDirectory("enso-uninstall") / OS.executableName("enso")
+    val oldLauncher = manager.env.getPathToRunningExecutable
+    Files.copy(oldLauncher, temporaryLauncher)
+    InternalOpts
+      .runWithNewLauncher(temporaryLauncher)
+      .finishUninstall(oldLauncher, parentToRemove)
   }
 }

@@ -6,7 +6,8 @@ import java.nio.file.{Files, NoSuchFileException, Path}
 import org.enso.cli.Opts
 import org.enso.cli.Opts.implicits._
 import cats.implicits._
-import org.enso.launcher.OS
+import org.enso.launcher.{FileSystem, OS}
+import org.enso.launcher.FileSystem.PathSyntax
 
 /**
   * Implements internal options that the launcher may use when running another
@@ -28,9 +29,18 @@ import org.enso.launcher.OS
   *    launcher attempts several retries, because it may take some time for the
   *    executable to be unlocked (especially as on Windows software like an
   *    antivirus may block it for some more time after terminating).
+  * 2. Finish Uninstall
+  *    After uninstalling the distribution, we need to remove the executable,
+  *    but for the same reasons as above, we need a workaround. The uninstaller
+  *    creates a copy of itself in a temporary directory (hoping that the copy
+  *    will be removed at some point) and uses it to remove the original binary.
+  *    It then can also remove the (now empty) installation directory if
+  *    necessary.
   */
 object InternalOpts {
-  private val REMOVE_OLD_EXECUTABLE = "internal-remove-old-executable"
+  private val REMOVE_OLD_EXECUTABLE   = "internal-remove-old-executable"
+  private val FINISH_UNINSTALL        = "internal-finish-uninstall"
+  private val FINISH_UNINSTALL_PARENT = "internal-finish-uninstall-parent"
 
   /**
     * Additional top level options that are internal to the launcher and should
@@ -48,11 +58,36 @@ object InternalOpts {
       )
       .hidden
 
-    removeOldExecutableOpt map {
-      case Some(oldExecutablePath) =>
-        removeOldExecutable(oldExecutablePath)
-        sys.exit(0)
-      case None =>
+    val finishUninstallOpt = Opts
+      .optionalParameter[Path](
+        FINISH_UNINSTALL,
+        "PATH",
+        "Removes the old executable."
+      )
+      .hidden
+    val finishUninstallParentOpt = Opts
+      .optionalParameter[Path](
+        FINISH_UNINSTALL_PARENT,
+        "PATH",
+        s"Removes the possible parent directories of the old executable. " +
+        s"To be used only in conjunction with $FINISH_UNINSTALL."
+      )
+      .hidden
+
+    (
+      removeOldExecutableOpt,
+      finishUninstallOpt,
+      finishUninstallParentOpt
+    ) mapN {
+      (removeOldExecutableOpt, finishUninstallOpt, finishUninstallParentOpt) =>
+        removeOldExecutableOpt.foreach { oldExecutablePath =>
+          removeOldExecutable(oldExecutablePath)
+          sys.exit(0)
+        }
+
+        finishUninstallOpt.foreach { executablePath =>
+          finishUninstall(executablePath, finishUninstallParentOpt)
+        }
     }
   }
 
@@ -80,38 +115,67 @@ object InternalOpts {
       )
       runDetachedAndExit(command)
     }
+
+    def finishUninstall(
+      executablePath: Path,
+      parentToRemove: Option[Path]
+    ): Nothing = {
+      val parentParam = parentToRemove.map(parent =>
+        Seq(s"--$FINISH_UNINSTALL_PARENT", parent.toAbsolutePath.toString)
+      )
+      val command = Seq(
+          pathToNewLauncher.toAbsolutePath.toString,
+          s"--$FINISH_UNINSTALL",
+          executablePath.toAbsolutePath.toString
+        ) ++ parentParam.getOrElse(Seq())
+      runDetachedAndExit(command)
+    }
   }
 
-  private def removeOldExecutable(oldExecutablePath: Path): Unit = {
-    val retryBaseAmount = 30
-    @scala.annotation.tailrec
-    def tryDeleting(retries: Int): Unit = {
-      try {
-        Files.delete(oldExecutablePath)
-      } catch {
-        case _: NoSuchFileException =>
-        case e: IOException =>
-          if (retries == retryBaseAmount) {
-            System.err.println(
-              s"Could not remove $oldExecutablePath, will retry several " +
-              s"times for 15s..."
-            )
-          }
+  private val retryBaseAmount = 30
 
-          if (retries > 0) {
-            Thread.sleep(500)
-            tryDeleting(retries - 1)
-          } else {
-            e.printStackTrace()
-            System.err.println(
-              s"Cannot delete old executable at $oldExecutablePath after " +
-              s"multiple retries. Please try removing it manually."
-            )
-          }
-      }
+  @scala.annotation.tailrec
+  private def tryDeleting(oldExecutablePath: Path, retries: Int = 30): Unit = {
+    try {
+      Files.delete(oldExecutablePath)
+    } catch {
+      case _: NoSuchFileException =>
+      case e: IOException =>
+        def firstTime = retries == retryBaseAmount
+        if (firstTime) {
+          System.err.println(
+            s"Could not remove $oldExecutablePath, will retry several " +
+            s"times for 15s..."
+          )
+        }
+
+        if (retries > 0) {
+          Thread.sleep(500)
+          tryDeleting(oldExecutablePath, retries - 1)
+        } else {
+          e.printStackTrace()
+          System.err.println(
+            s"Cannot delete old executable at $oldExecutablePath after " +
+            s"multiple retries. Please try removing it manually."
+          )
+        }
     }
+  }
 
-    tryDeleting(retryBaseAmount)
+  private def removeOldExecutable(oldExecutablePath: Path): Unit =
+    tryDeleting(oldExecutablePath)
+
+  private def finishUninstall(
+    executablePath: Path,
+    parentToRemove: Option[Path]
+  ): Unit = {
+    tryDeleting(executablePath)
+    parentToRemove.foreach { parent =>
+      val bin = parent / "bin"
+      if (Files.exists(bin))
+        FileSystem.removeDirectoryIfEmpty(bin)
+      FileSystem.removeDirectoryIfEmpty(parent)
+    }
   }
 
   private def runDetachedAndExit(command: Seq[String]): Nothing = {
