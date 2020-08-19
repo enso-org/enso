@@ -87,6 +87,7 @@ object InternalOpts {
 
         finishUninstallOpt.foreach { executablePath =>
           finishUninstall(executablePath, finishUninstallParentOpt)
+          sys.exit(0)
         }
     }
   }
@@ -98,6 +99,10 @@ object InternalOpts {
   def runWithNewLauncher(pathToNewLauncher: Path): Runner =
     new Runner(pathToNewLauncher)
 
+  /**
+    * A helper class used for running the workarounds using another launcher
+    * executable.
+    */
   class Runner private[InternalOpts] (pathToNewLauncher: Path) {
 
     /**
@@ -116,6 +121,15 @@ object InternalOpts {
       runDetachedAndExit(command)
     }
 
+    /**
+      * Tells the temporary launcher to remove the original launcher executable
+      * and possibly its (grand-)parent directory.
+      *
+      * @param executablePath path to the old executable
+      * @param parentToRemove path to the (grand-)parent directory; this
+      *                       directory is removed if it is empty or only
+      *                       contains an empty `bin` directory
+      */
     def finishUninstall(
       executablePath: Path,
       parentToRemove: Option[Path]
@@ -134,6 +148,16 @@ object InternalOpts {
 
   private val retryBaseAmount = 30
 
+  /**
+    * Tries to remove the file at `oldExecutablePath`, retrying several times if
+    * needed.
+    *
+    * On failure retries every 0.5s for 15s in total. That retry mechanism is in
+    * place, because a running executable cannot be removed and it may take some
+    * time for the process to fully terminate (theoretically this time can be
+    * extended indefinitely, for example if anti-virus software blocks the
+    * executable for scanning, so this may still fail).
+    */
   @scala.annotation.tailrec
   private def tryDeleting(oldExecutablePath: Path, retries: Int = 30): Unit = {
     try {

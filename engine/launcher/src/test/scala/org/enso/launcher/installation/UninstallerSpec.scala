@@ -8,6 +8,15 @@ import org.enso.launcher.{FileSystem, NativeTest, OS, WithTemporaryDirectory}
 class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
   def installedRoot: Path = getTestDirectory / "installed"
 
+  /**
+    * Prepares an installed distribution for testing uninstallation.
+    *
+    * @param everythingInsideData if true, config and binary directory are put
+    *                             inside the data root
+    * @return returns the path to the created launcher and a mapping of
+    *         environment overrides that need to be used for it to use the
+    *         correct installation directory
+    */
   def prepareInstalledDistribution(
     everythingInsideData: Boolean = false
   ): (Path, Map[String, String]) = {
@@ -25,6 +34,8 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
       configDirectory / "global-config.yml",
       "what: ever"
     )
+    FileSystem.writeTextFile(dataDirectory / "README.md", "content")
+    Files.createDirectories(dataDirectory / "tmp")
 
     val env = Map(
       "ENSO_DATA_DIRECTORY"   -> dataDirectory.toAbsolutePath.normalize.toString,
@@ -53,14 +64,11 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
       val (launcher, env) =
         prepareInstalledDistribution(everythingInsideData = true)
 
-      val result = runLauncherAt(
+      runLauncherAt(
         launcher,
         Seq("--auto-confirm", "uninstall", "distribution"),
         env
-      )
-      result should returnSuccess
-      println(result.stdout)
-      println(result.stderr)
+      ) should returnSuccess
 
       assert(Files.notExists(installedRoot))
     }

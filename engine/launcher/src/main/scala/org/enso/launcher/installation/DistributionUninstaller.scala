@@ -12,6 +12,17 @@ class DistributionUninstaller(
   manager: DistributionManager,
   autoConfirm: Boolean
 ) {
+
+  /**
+    * Uninstalls a locally installed (non-portable) distribution.
+    *
+    * Removes the launcher executable and the ENSO_DATA_DIRECTORY and
+    * ENSO_CONFIG_DIRECTORY directories (unless they contain unexpected files).
+    * If unexpected files are encountered and [[autoConfirm]] is set, the files
+    * are preserved and the directories are not removed (but the expected
+    * contents are cleaned anyway), otherwise the program asks if the unexpected
+    * files should be removed.
+    */
   def uninstall(): Unit = {
     checkPortable()
     askConfirmation()
@@ -28,8 +39,9 @@ class DistributionUninstaller(
     */
   private def uninstallUNIX(): Unit = {
     uninstallConfig()
-    uninstallBinUNIX()
+    uninstallExecutableUNIX()
     uninstallDataContents(deferDataRootRemoval = false)
+    Logger.info("Successfully uninstalled the distribution.")
   }
 
   /**
@@ -45,11 +57,24 @@ class DistributionUninstaller(
     val deferRootRemoval = isBinaryInsideData
     uninstallConfig()
     uninstallDataContents(deferRootRemoval)
-    uninstallBinWindows(
+    Logger.info(
+      "Successfully uninstalled the distribution but for the launcher " +
+      "executable. It will be removed in a moment after this program " +
+      "terminates."
+    )
+    uninstallExecutableWindows(
       if (deferRootRemoval) Some(manager.paths.dataRoot) else None
     )
   }
 
+  /**
+    * Checks if the launcher is running in portable mode and terminates
+    * execution if it does.
+    *
+    * It prints an explanation that uninstall can only be used with non-portable
+    * mode and a tip on how the portable distribution can be easily removed
+    * manually.
+    */
   private def checkPortable(): Unit = {
     if (manager.isRunningPortable) {
       Logger.warn(
@@ -64,6 +89,10 @@ class DistributionUninstaller(
     }
   }
 
+  /**
+    * Prints an explanation of what will be uninstalled and which directories
+    * will be removed and asks the user if they want to proceed.
+    */
   private def askConfirmation(): Unit = {
     Logger.info(
       s"Uninstalling this distribution will remove the launcher located at " +
@@ -85,6 +114,12 @@ class DistributionUninstaller(
     }
   }
 
+  /**
+    * True if the currently running executable is inside of the data root.
+    *
+    * This is checked, because on Windows this will make removing data root more
+    * complicated.
+    */
   private def isBinaryInsideData: Boolean = {
     val binaryPath =
       manager.env.getPathToRunningExecutable.toAbsolutePath.normalize
@@ -92,6 +127,10 @@ class DistributionUninstaller(
     binaryPath.startsWith(dataPath)
   }
 
+  /**
+    * Removes the configuration file and the ENSO_CONFIG_DIRECTORY if it does
+    * not contain any other files (or if the user agreed to remove them too).
+    */
   private def uninstallConfig(): Unit = {
     FileSystem.removeFileIfExists(
       manager.paths.config / GlobalConfigurationManager.globalConfigName
@@ -106,7 +145,14 @@ class DistributionUninstaller(
     FileSystem.removeDirectoryIfEmpty(manager.paths.config)
   }
 
-  private val knownDataFiles       = Seq("README.md", "NOTICE")
+  /**
+    * Files that are expected to be inside of the data root.
+    */
+  private val knownDataFiles = Seq("README.md", "NOTICE")
+
+  /**
+    * Directories that are expected to be inside of the data root.
+    */
   private val knownDataDirectories = Seq("tmp", "components-licences", "config")
 
   /**
@@ -154,6 +200,18 @@ class DistributionUninstaller(
     }
   }
 
+  /**
+    * Common logic for handling unexpected files in ENSO_DATA_DIRECTORY and
+    * ENSO_CONFIG_DIRECTORY.
+    *
+    * It asks the user if they want to remove these files unless `auto-confirm`
+    * is set, in which case it just prints a warning.
+    *
+    * @param directoryName name of the directory
+    * @param path path to the directory
+    * @param remainingFiles sequence of filenames that are present in that
+    *                       directory but are not expected
+    */
   private def handleRemainingFiles(
     directoryName: String,
     path: Path,
@@ -184,11 +242,26 @@ class DistributionUninstaller(
       }
     }
 
-  private def uninstallBinUNIX(): Unit = {
+  /**
+    * Uninstalls the executable on platforms that allow for removing running
+    * files.
+    *
+    * Simply removes the file.
+    */
+  private def uninstallExecutableUNIX(): Unit = {
     FileSystem.removeFileIfExists(manager.env.getPathToRunningExecutable)
   }
 
-  private def uninstallBinWindows(parentToRemove: Option[Path]): Nothing = {
+  /**
+    * Uninstalls the executable on Windows where it is impossible to remove an
+    * executable that is running.
+    *
+    * Uses a workaround implemented in [[InternalOpts]]. Has to be run at the
+    * very end as it has to terminate the current executable.
+    */
+  private def uninstallExecutableWindows(
+    parentToRemove: Option[Path]
+  ): Nothing = {
     val temporaryLauncher =
       Files.createTempDirectory("enso-uninstall") / OS.executableName("enso")
     val oldLauncher = manager.env.getPathToRunningExecutable
