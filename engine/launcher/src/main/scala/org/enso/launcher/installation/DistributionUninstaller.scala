@@ -8,6 +8,14 @@ import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.cli.InternalOpts
 import org.enso.launcher.{FileSystem, GlobalConfigurationManager, Logger, OS}
 
+/**
+  * Allows to [[uninstall]] a non-portable distribution.
+  *
+  * @param manager a distribution manager instance which defines locations for
+  *                the distribution that will be uninstalled
+  * @param autoConfirm if set to true, the uninstaller will use defaults
+  *                    instead of asking questions
+  */
 class DistributionUninstaller(
   manager: DistributionManager,
   autoConfirm: Boolean
