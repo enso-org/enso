@@ -1,11 +1,11 @@
 package org.enso.polyglot;
 
-import java.util.logging.Level;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 
 import java.util.Arrays;
+import java.util.logging.Level;
 
 /** Class representing runtime options supported by the Enso engine. */
 public class RuntimeOptions {
@@ -29,13 +29,24 @@ public class RuntimeOptions {
   private static final OptionDescriptor LOG_LEVEL_DESCRIPTOR =
       OptionDescriptor.newBuilder(LOG_LEVEL_KEY, LOG_LEVEL).build();
 
+  public static final String INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION =
+      interpreterOptionName(".sequentialCommandExecution");
+  public static final OptionKey<Boolean> INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY =
+      new OptionKey<>(false);
+  public static final OptionDescriptor INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR =
+      OptionDescriptor.newBuilder(
+              INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_KEY,
+              INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION)
+          .build();
+
   public static final OptionDescriptors OPTION_DESCRIPTORS =
       OptionDescriptors.create(
           Arrays.asList(
               PACKAGES_PATH_DESCRIPTOR,
               STRICT_ERRORS_DESCRIPTOR,
               LOG_LEVEL_DESCRIPTOR,
-              DISABLE_INLINE_CACHES_DESCRIPTOR));
+              DISABLE_INLINE_CACHES_DESCRIPTOR,
+              INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION_DESCRIPTOR));
 
   /**
    * Canonicalizes the option name by prefixing it with the language name.
@@ -45,5 +56,15 @@ public class RuntimeOptions {
    */
   private static String optionName(String name) {
     return LanguageInfo.ID + "." + name;
+  }
+
+  /**
+   * Canonicalizes the option name by prefixing it with the 'interpreter' subname.
+   *
+   * @param name the simplified option name
+   * @return the canonicalized representation of the option.
+   */
+  private static String interpreterOptionName(String name) {
+    return LanguageInfo.ID + ".interpreter." + name;
   }
 }
