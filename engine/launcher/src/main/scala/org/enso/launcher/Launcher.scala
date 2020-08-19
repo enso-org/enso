@@ -242,23 +242,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     *                human-readable format
     */
   def displayVersion(useJSON: Boolean): Unit = {
-    val (runtimeVersionRunSettings, whichEngine) = runner.version(useJSON).get
-    val runtimeVersionCommand = runner.createCommand(
-      runtimeVersionRunSettings,
-      JVMSettings(useSystemJVM = false, jvmOptions = Seq.empty)
-    )
-    val runtimeVersionString = runtimeVersionCommand.captureOutput().get
-    val runtimeVersionParameter = VersionDescriptionParameter(
-      humanReadableName = whichEngine match {
-        case WhichEngine.FromProject(name) =>
-          s"Enso engine from project $name"
-        case WhichEngine.Default => "Current default Enso engine"
-      },
-      jsonName = "runtime",
-      value =
-        if (!useJSON) "\n" + runtimeVersionString else runtimeVersionString
-    )
-
+    val runtimeVersionParameter = getEngineVersion(useJSON)
     val versionDescription = VersionDescription.make(
       "Enso Launcher",
       includeRuntimeJVMInfo = false,
@@ -266,6 +250,37 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     )
 
     println(versionDescription.asString(useJSON))
+  }
+
+  private def getEngineVersion(
+    useJSON: Boolean
+  ): VersionDescriptionParameter = {
+    val (runtimeVersionRunSettings, whichEngine) = runner.version(useJSON).get
+
+    val isEngineInstalled =
+      componentsManager.findEngine(runtimeVersionRunSettings.version).isDefined
+    val runtimeVersionString = if (isEngineInstalled) {
+      val runtimeVersionCommand = runner.createCommand(
+        runtimeVersionRunSettings,
+        JVMSettings(useSystemJVM = false, jvmOptions = Seq.empty)
+      )
+
+      val output = runtimeVersionCommand.captureOutput().get
+      if (useJSON) output else "\n" + output.stripTrailing()
+    } else {
+      if (useJSON) "null"
+      else "Not installed."
+    }
+
+    VersionDescriptionParameter(
+      humanReadableName = whichEngine match {
+        case WhichEngine.FromProject(name) =>
+          s"Enso engine from project $name"
+        case WhichEngine.Default => "Current default Enso engine"
+      },
+      jsonName = "runtime",
+      value    = runtimeVersionString
+    )
   }
 }
 
