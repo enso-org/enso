@@ -1,3 +1,5 @@
 foo = 123
 
 const = here.foo
+
+Number.bar = this + 5

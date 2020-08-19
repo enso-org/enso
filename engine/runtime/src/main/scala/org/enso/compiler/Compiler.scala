@@ -47,8 +47,8 @@ class Compiler(val context: Context) {
     */
   def run(source: Source, module: Module): Unit = {
     parseModule(module)
-    val requiredModules = importResolver.mapImports(module)
-    new ExportsResolution().run(requiredModules)
+    val importedModules = importResolver.mapImports(module)
+    val requiredModules = new ExportsResolution().run(importedModules)
     requiredModules.foreach { module =>
       if (
         !module.getCompilationStage.isAtLeast(

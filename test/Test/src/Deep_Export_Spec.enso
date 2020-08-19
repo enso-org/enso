@@ -4,6 +4,6 @@ import Test.Deep_Export.Internal
 spec =
     describe "Deep Exports" <|
         it "should allow to re-export a symbol through a module hierarchy" <|
-            Internal.my_fun.should_equal 123
+            Internal.my_fun.should_equal 133
             0
 

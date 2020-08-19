@@ -20,6 +20,7 @@ public class ModuleScope {
   private Map<String, AtomConstructor> constructors = new HashMap<>();
   private Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
   private Set<ModuleScope> imports = new HashSet<>();
+  private Set<ModuleScope> exports = new HashSet<>();
 
   /**
    * Creates a new object of this class.
@@ -158,7 +159,19 @@ public class ModuleScope {
       return definedHere;
     }
     return imports.stream()
-        .map(scope -> scope.getMethodMapFor(atom).get(lowerName))
+        .map(scope -> scope.getExportedMethod(atom, name))
+        .filter(Objects::nonNull)
+        .findFirst()
+        .orElse(null);
+  }
+
+  private Function getExportedMethod(AtomConstructor atom, String name) {
+    Function here = getMethodMapFor(atom).get(name);
+    if (here != null) {
+      return here;
+    }
+    return exports.stream()
+        .map(scope -> scope.getMethodMapFor(atom).get(name))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
@@ -171,6 +184,10 @@ public class ModuleScope {
    */
   public void addImport(ModuleScope scope) {
     imports.add(scope);
+  }
+
+  public void addExport(ModuleScope scope) {
+    exports.add(scope);
   }
 
   public Map<String, AtomConstructor> getConstructors() {
@@ -188,6 +205,7 @@ public class ModuleScope {
 
   public void reset() {
     imports = new HashSet<>();
+    exports = new HashSet<>();
     methods = new HashMap<>();
     constructors = new HashMap<>();
   }

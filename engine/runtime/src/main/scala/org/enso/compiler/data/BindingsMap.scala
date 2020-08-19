@@ -5,8 +5,6 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
-import scala.collection.mutable
-
 /**
   * A utility structure for resolving symbols in a given module.
   *
@@ -31,6 +29,10 @@ case class BindingsMap(
     * Other modules, imported by [[currentModule]].
     */
   var resolvedImports: List[ResolvedImport] = List()
+
+  var resolvedExports: List[ExportedModule] = List()
+
+  var exportedSymbols: Map[String, List[ResolvedName]] = Map()
 
   private def findConstructorCandidates(
     name: String
@@ -85,7 +87,7 @@ case class BindingsMap(
               BindingAnalysis,
               "Wrong pass ordering. Running resolution on an unparsed module."
             )
-            .findExportedSymbolsFor(name, mutable.Set())
+            .findExportedSymbolsFor(name)
         } else { List() }
       }
   }
@@ -153,34 +155,9 @@ case class BindingsMap(
     }
 
   private def findExportedSymbolsFor(
-    name: String,
-    seenModules: mutable.Set[Module]
+    name: String
   ): List[ResolvedName] = {
-    if (seenModules.contains(currentModule)) {
-      List()
-    } else {
-      seenModules.add(currentModule)
-      val matchingConses = types
-        .filter(_.name.toLowerCase == name.toLowerCase)
-        .map(ResolvedConstructor(currentModule, _))
-      val matchingMethods = moduleMethods
-        .filter(_.name.toLowerCase == name.toLowerCase)
-        .map(ResolvedMethod(currentModule, _))
-      if (name == "Internal_5") {
-      }
-      val matchingExports = resolvedImports.flatMap {
-        case ResolvedImport(imp, Some(exp), module) =>
-          if (exp.getSimpleName.name.toLowerCase == name.toLowerCase) {
-            List(ResolvedModule(module))
-          } else if (imp.allowsAccess(name) && exp.allowsAccess(name)) {
-            getBindingsFrom(module).findExportedSymbolsFor(name, seenModules)
-          } else {
-            List()
-          }
-        case _ => List()
-      }
-      matchingConses ++ matchingMethods ++ matchingExports
-    }
+    exportedSymbols.getOrElse(name.toLowerCase, List())
   }
 
   /**
@@ -190,49 +167,145 @@ case class BindingsMap(
     * @return the resolution for `name`
     */
   def resolveExportedName(
-    name: String,
-    seenModules: mutable.Set[Module] = mutable.Set()
+    name: String
   ): Either[ResolutionError, ResolvedName] = {
-    handleAmbiguity(findExportedSymbolsFor(name, seenModules))
+    handleAmbiguity(findExportedSymbolsFor(name))
   }
 
-  def getExportedModules: List[(Module, SymbolRestriction)] = resolvedImports.collect {
-    case ResolvedImport(_, Some(_), mod) => (mod, SymbolRestriction.All)
-  }
+  def getExportedModules: List[(Module, Option[String], SymbolRestriction)] =
+    resolvedImports.collect {
+      case ResolvedImport(_, Some(exp), mod) =>
+        val restriction = if (exp.isAll) {
+          if (exp.onlyNames.isDefined) {
+            SymbolRestriction.Only(
+              exp.onlyNames.get.map(_.name.toLowerCase).toSet
+            )
+          } else if (exp.hiddenNames.isDefined) {
+            SymbolRestriction.Hiding(
+              exp.hiddenNames.get.map(_.name.toLowerCase).toSet
+            )
+          } else {
+            SymbolRestriction.All
+          }
+        } else {
+          SymbolRestriction.Only(Set(exp.getSimpleName.name.toLowerCase))
+        }
+        val rename = if (!exp.isAll) {
+          Some(exp.getSimpleName.name)
+        } else {
+          None
+        }
+        (mod, rename, restriction)
+    }
 }
 
 object BindingsMap {
 
   sealed trait SymbolRestriction {
     def canAccess(symbol: String): Boolean
+    def optimize:                  SymbolRestriction
   }
 
   case object SymbolRestriction {
     case class Only(symbols: Set[String]) extends SymbolRestriction {
       override def canAccess(symbol: String): Boolean =
         symbols.contains(symbol.toLowerCase)
+      override def optimize: SymbolRestriction = this
     }
+
     case class Hiding(symbols: Set[String]) extends SymbolRestriction {
-      override def canAccess(symbol: String): Boolean =
+      override def canAccess(symbol: String): Boolean = {
         !symbols.contains(symbol.toLowerCase)
+      }
+      override def optimize: SymbolRestriction = this
     }
     case object All extends SymbolRestriction {
       override def canAccess(symbol: String): Boolean = true
+      override def optimize: SymbolRestriction        = this
     }
-    case object None extends SymbolRestriction {
+    case object Empty extends SymbolRestriction {
       override def canAccess(symbol: String): Boolean = false
+      override def optimize: SymbolRestriction        = this
     }
-    case class Intersect(restrictions: List[SymbolRestriction]) extends SymbolRestriction {
-      override def canAccess(symbol: String): Boolean = restrictions.forall(_.canAccess(symbol))
+    case class Intersect(restrictions: List[SymbolRestriction])
+        extends SymbolRestriction {
+      override def canAccess(symbol: String): Boolean = {
+        restrictions.forall(_.canAccess(symbol))
+      }
+
+      override def optimize: SymbolRestriction = {
+        val optimizedTerms = restrictions.map(_.optimize)
+        val (intersects, otherTerms) =
+          optimizedTerms.partition(_.isInstanceOf[Intersect])
+        val allTerms = intersects.flatMap(
+            _.asInstanceOf[Intersect].restrictions
+          ) ++ otherTerms
+        if (allTerms.contains(Empty)) {
+          return Empty
+        }
+        val unions = allTerms.filter(_.isInstanceOf[Union])
+        val onlys  = allTerms.collect { case only: Only => only }
+        val hides  = allTerms.collect { case hiding: Hiding => hiding }
+        val combinedOnlys = onlys match {
+          case List() => None
+          case items =>
+            Some(Only(items.map(_.symbols).reduce(_.intersect(_))))
+        }
+        val combinedHiding = hides match {
+          case List() => None
+          case items =>
+            Some(Hiding(items.map(_.symbols).reduce(_.union(_))))
+        }
+        val newTerms = combinedHiding.toList ++ combinedOnlys.toList ++ unions
+        newTerms match {
+          case List()   => All
+          case List(it) => it
+          case items    => Intersect(items)
+        }
+      }
     }
-    case class Union(restrictions: List[SymbolRestriction]) extends SymbolRestriction {
-      override def canAccess(symbol: String): Boolean = restrictions.exists(_.canAccess(symbol))
+    case class Union(restrictions: List[SymbolRestriction])
+        extends SymbolRestriction {
+      override def canAccess(symbol: String): Boolean =
+        restrictions.exists(_.canAccess(symbol))
+
+      override def optimize: SymbolRestriction = {
+        val optimizedTerms = restrictions.map(_.optimize)
+        val (unions, otherTerms) =
+          optimizedTerms.partition(_.isInstanceOf[Union])
+        val allTerms = unions.flatMap(
+            _.asInstanceOf[Union].restrictions
+          ) ++ otherTerms
+        if (allTerms.contains(All)) {
+          return All
+        }
+        val intersects = allTerms.filter(_.isInstanceOf[Intersect])
+        val onlys      = allTerms.collect { case only: Only => only }
+        val hides      = allTerms.collect { case hiding: Hiding => hiding }
+        val combinedOnlys = onlys match {
+          case List() => None
+          case items =>
+            Some(Only(items.map(_.symbols).reduce(_.union(_))))
+        }
+        val combinedHiding = hides match {
+          case List() => None
+          case items =>
+            Some(Hiding(items.map(_.symbols).reduce(_.intersect(_))))
+        }
+        val newTerms =
+          combinedHiding.toList ++ combinedOnlys.toList ++ intersects
+        newTerms match {
+          case List()   => Empty
+          case List(it) => it
+          case items    => Union(items)
+        }
+      }
     }
   }
 
-  case class VisibleModule(
+  case class ExportedModule(
     module: Module,
-    visibleAs: List[String],
+    exportedAs: Option[String],
     symbols: SymbolRestriction
   )
 
@@ -274,15 +347,17 @@ object BindingsMap {
   /**
     * A result of successful name resolution.
     */
-  sealed trait ResolvedName
+  sealed trait ResolvedName {
+    def module: Module
+  }
 
   /**
     * A representation of a name being resolved to a constructor.
     *
-    * @param definitionModule the module the constructor is defined in.
+    * @param module the module the constructor is defined in.
     * @param cons a representation of the constructor.
     */
-  case class ResolvedConstructor(definitionModule: Module, cons: Cons)
+  case class ResolvedConstructor(module: Module, cons: Cons)
       extends ResolvedName
 
   /**

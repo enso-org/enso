@@ -1,7 +1,14 @@
 package org.enso.compiler.phase
 
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.data.BindingsMap.SymbolRestriction
+import org.enso.compiler.data.BindingsMap.{
+  ExportedModule,
+  ResolvedConstructor,
+  ResolvedMethod,
+  ResolvedModule,
+  ResolvedPolyglotSymbol,
+  SymbolRestriction
+}
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.interpreter.runtime.Module
 
@@ -11,6 +18,7 @@ class ExportsResolution {
   case class Edge(
     exporter: Node,
     symbols: SymbolRestriction,
+    exportsAs: Option[String],
     exportee: Node
   )
 
@@ -35,7 +43,8 @@ class ExportsResolution {
       val exports = getBindings(module).getExportedModules
       val node    = nodes(module)
       node.exports = exports.map {
-        case (mod, restriction) => Edge(node, restriction, nodes(mod))
+        case (mod, rename, restriction) =>
+          Edge(node, restriction, rename, nodes(mod))
       }
       node.exports.foreach { edge => edge.exportee.exportedBy ::= edge }
     }
@@ -99,12 +108,85 @@ class ExportsResolution {
     result.reverse
   }
 
-  def run(modules: List[Module]): Unit = {
-    println("running on modules:")
+  private def resolveExports(nodes: List[Node]): Unit = {
+    val exports = mutable.Map[Module, List[ExportedModule]]()
+    nodes.foreach { node =>
+      val explicitlyExported =
+        node.exports.map(edge =>
+          ExportedModule(edge.exportee.module, edge.exportsAs, edge.symbols)
+        )
+      val transitivelyExported: List[ExportedModule] =
+        explicitlyExported.flatMap {
+          case ExportedModule(module, _, restriction) =>
+            exports(module).map {
+              case ExportedModule(export, _, parentRestriction) =>
+                ExportedModule(
+                  export,
+                  None,
+                  SymbolRestriction.Intersect(
+                    List(restriction, parentRestriction)
+                  )
+                )
+            }
+        }
+      val allExported = explicitlyExported ++ transitivelyExported
+      val unified = allExported
+        .groupBy(_.module)
+        .map {
+          case (mod, items) =>
+            val name = items.collectFirst {
+              case ExportedModule(_, Some(n), _) => n
+            }
+            val itemsUnion = SymbolRestriction.Union(items.map(_.symbols))
+            ExportedModule(mod, name, itemsUnion)
+        }
+        .toList
+      exports(node.module) = unified
+    }
+    exports.foreach {
+      case (module, exports) =>
+        getBindings(module).resolvedExports =
+          exports.map(ex => ex.copy(symbols = ex.symbols.optimize))
+    }
+  }
+
+  private def resolveExportedSymbols(modules: List[Module]): Unit = {
+    modules.foreach { module =>
+      val bindings = getBindings(module)
+      val ownMethods = bindings.moduleMethods.map(method =>
+        (method.name.toLowerCase, List(ResolvedMethod(module, method)))
+      )
+      val ownConstructors = bindings.types.map(tp =>
+        (tp.name.toLowerCase, List(ResolvedConstructor(module, tp)))
+      )
+      val ownPolyglotBindings = bindings.polyglotSymbols.map(poly =>
+        (poly.name.toLowerCase, List(ResolvedPolyglotSymbol(module, poly)))
+      )
+      val exportedModules = bindings.resolvedExports.collect {
+        case ExportedModule(mod, Some(name), _) =>
+          (name.toLowerCase, List(ResolvedModule(mod)))
+      }
+      val reExportedSymbols = bindings.resolvedExports.flatMap { export =>
+        getBindings(export.module).exportedSymbols.toList.filter {
+          case (sym, _) => export.symbols.canAccess(sym)
+        }
+      }
+      bindings.exportedSymbols = List(
+        ownMethods,
+        ownConstructors,
+        ownPolyglotBindings,
+        exportedModules,
+        reExportedSymbols
+      ).flatten.groupBy(_._1).map {
+        case (m, names) => (m, names.flatMap(_._2).distinct)
+      }
+    }
+  }
+
+  def run(modules: List[Module]): List[Module] = {
     modules.foreach(x => println(x.getName))
     val graph  = buildGraph(modules)
     val cycles = detectCycles(graph)
-    println("Cycle Analysis")
     cycles.foreach { its =>
       println("CYCLE")
       its.foreach(x => println(x.module.getName))
@@ -115,8 +197,27 @@ class ExportsResolution {
       )
     }
     val tops = topsort(graph)
-    println("TOP:")
-    tops.foreach(n => println(n.module.getName))
-
+    resolveExports(tops)
+    modules.foreach { module =>
+      println(s"${module.getName} exports:")
+      getBindings(module).resolvedExports.foreach { exp =>
+        println(
+          s"    ${exp.module.getName} -->> ${exp.symbols} as ${exp.exportedAs}"
+        )
+      }
+    }
+    val topModules = tops.map(_.module)
+    resolveExportedSymbols(tops.map(_.module))
+    topModules.foreach { m =>
+      val b = getBindings(m)
+      if (m.getName.toString.startsWith("Test.Deep_Export")) {
+        println(s"Bindings of ${m.getName}")
+        b.exportedSymbols.foreach {
+          case (n, bs) =>
+            println(s"    $n -> $bs")
+        }
+      }
+    }
+    topModules
   }
 }
