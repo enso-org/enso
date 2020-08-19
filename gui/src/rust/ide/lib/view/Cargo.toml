@@ -18,6 +18,7 @@ enso-shapely         = { version = "0.1.0", path = "../../../lib/enso-shapely/im
 span-tree            = { version = "0.1.0", path = "../span-tree"                   }
 logger               = { version = "0.1.0", path = "../../../lib/logger"            }
 enso-protocol        = { version = "0.1.0", path = "../../../ide/lib/enso-protocol" }
+uuid                 = { version = "0.8"  , features = ["serde","v4","wasm-bindgen"] }
 
 wasm-bindgen = { version = "=0.2.58" , features = ["nightly","serde-serialize"] }
 nalgebra     = { version = "0.21.1"  , features = ["serde-serialize"]           }

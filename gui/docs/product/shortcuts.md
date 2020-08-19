@@ -61,3 +61,5 @@ tags: [product,ui]
 | Shortcut | Action |
 | -------- | ------ |
 | <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>d<kbd>     | Send test data to the selected node. |
+| <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>enter</kbd> | Push a hardcoded breadcrumb without navigating. |
+| <kbd>cmd</kbd> / <kbd>ctrl</kbd> + <kbd>shift</kbd> + <kbd>arrow up</kbd> | Pop a breadcrumb without navigating. |

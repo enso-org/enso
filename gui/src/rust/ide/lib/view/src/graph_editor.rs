@@ -279,6 +279,10 @@ ensogl::def_status_api! { FrpStatus
 }
 
 ensogl::def_command_api! { Commands
+    /// Push a hardcoded breadcrumb without notifying the controller.
+    debug_push_breadcrumb,
+    /// Pop a breadcrumb without notifying the controller.
+    debug_pop_breadcrumb,
     /// Cancel project name editing, restablishing the old name.
     cancel_project_name_editing,
     /// Add a new node and place it in the origin of the workspace.
@@ -677,8 +681,31 @@ impl From<String> for Type {
 //  As currently there is no good place to wrap Rc into a newtype that can be easily depended on
 //  both by `ide-view` and `ide` crates, we put this as-is. Refactoring should be considered in the
 //  future, once code organization and emerging patterns are more clear.
-#[derive(Clone,Debug,Shrinkwrap)]
+#[derive(Clone,Debug,Shrinkwrap,PartialEq,Eq)]
 pub struct MethodPointer(pub Rc<enso_protocol::language_server::MethodPointer>);
+
+impl From<enso_protocol::language_server::MethodPointer> for MethodPointer {
+    fn from(method_pointer:enso_protocol::language_server::MethodPointer) -> Self {
+        Self(Rc::new(method_pointer))
+    }
+}
+
+
+
+// =================
+// === LocalCall ===
+// =================
+
+/// A specific function call occurring within another function's definition body.
+/// It's closely related to the `LocalCall` type defined in `Language Server` types, but uses the
+/// new type `MethodPointer` defined in `GraphEditor`.
+#[derive(Clone,Debug,Eq,PartialEq)]
+pub struct LocalCall {
+    /// An expression being a call to a method.
+    pub call : enso_protocol::language_server::ExpressionId,
+    /// A pointer to the called method.
+    pub definition : MethodPointer,
+}
 
 
 
@@ -1070,7 +1097,7 @@ pub struct GraphEditorModel {
     pub logger         : Logger,
     pub display_object : display::object::Instance,
     pub app            : Application,
-    pub project_name   : component::ProjectName,
+    pub breadcrumbs    : component::Breadcrumbs,
     pub cursor         : cursor::Cursor,
     pub nodes          : Nodes,
     pub edges          : Edges,
@@ -1092,17 +1119,18 @@ impl GraphEditorModel {
         let logger         = Logger::new("GraphEditor");
         let display_object = display::object::Instance::new(&logger);
         let nodes          = Nodes::new(&logger);
-//        let visualizations = Stage::new(scene.clone_ref(), Logger::new("VisualisationCollection"));
+//      let visualizations = Stage::new(scene.clone_ref(), Logger::new("VisualisationCollection"));
         let edges          = default();
         let frp            = FrpInputs::new(network);
         let touch_state    = TouchState::new(network,&scene.mouse.frp);
-        let project_name   = component::ProjectName::new(scene,focus_manager);
-        display_object.add_child(&project_name);
-        let screen = scene.camera().screen();
-        let margin = 10.0;
-        project_name.set_position(Vector3::new(0.0,screen.height / 2.0 - margin,0.0));
-        let app = app.clone_ref();
-        Self {logger,display_object,app,cursor,nodes,edges,touch_state,frp,project_name}//visualizations }
+        let breadcrumbs    = component::Breadcrumbs::new(scene,focus_manager);
+        let app            = app.clone_ref();
+        Self {logger,display_object,app,cursor,nodes,edges,touch_state,frp,breadcrumbs}.init()//visualizations }
+    }
+
+    fn init(self) -> Self {
+        self.add_child(&self.breadcrumbs);
+        self
     }
 
     pub fn all_nodes(&self) -> Vec<NodeId> {
@@ -1535,7 +1563,9 @@ impl application::command::Provider for GraphEditor {
 impl application::shortcut::DefaultShortcutProvider for GraphEditor {
     fn default_shortcuts() -> Vec<application::shortcut::Shortcut> {
         use keyboard::Key;
-        vec! [ Self::self_shortcut(shortcut::Action::press        (&[Key::Escape],&[])                              , "cancel_project_name_editing")
+        vec! [ Self::self_shortcut(shortcut::Action::press        (&[Key::Control,Key::Shift,Key::Enter],&[])       , "debug_push_breadcrumb")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Control,Key::Shift,Key::ArrowUp],&[])     , "debug_pop_breadcrumb")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Escape],&[])                              , "cancel_project_name_editing")
              , Self::self_shortcut(shortcut::Action::press        (&[Key::Control,Key::Character("n".into())],&[])  , "add_node_at_cursor")
              , Self::self_shortcut(shortcut::Action::press        (&[Key::Control,Key::Backspace],&[])              , "remove_selected_nodes")
              , Self::self_shortcut(shortcut::Action::press        (&[Key::Control,Key::Character(" ".into())],&[])  , "press_visualization_visibility")
@@ -1637,6 +1667,51 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     let sealed_outputs = outputs.seal(); // Done here to keep right eval order.
 
 
+
+    // =============================
+    // === Breadcrumbs Debugging ===
+    // =============================
+
+    frp::extend! { network
+        eval_ inputs.debug_push_breadcrumb(model.breadcrumbs.frp.debug.push_breadcrumb.emit(None));
+        eval_ inputs.debug_pop_breadcrumb (model.breadcrumbs.frp.debug.pop_breadcrumb.emit(()));
+    }
+
+
+
+    // ============================
+    // === Project Name Editing ===
+    // ============================
+
+    // === Commit project name edit ===
+
+    frp::extend! { network
+        eval_ touch.background.selected(model.breadcrumbs.frp.outside_press.emit(()));
+    }
+
+
+    // === Cancel project name editing ===
+
+    frp::extend! { network
+        eval_ inputs.cancel_project_name_editing(
+            model.breadcrumbs.frp.cancel_project_name_editing.emit(())
+        );
+    }
+
+
+
+    // =========================
+    // === User Interactions ===
+    // =========================
+
+    // === Mouse Cursor Transform ===
+    frp::extend! { network
+        cursor_pos_in_scene <- cursor.frp.position.map(f!((position) {
+            scene.screen_to_scene_coordinates(*position).xy()
+        }));
+    }
+
+
     // === Selection Target Redirection ===
 
     frp::extend! { network
@@ -1680,15 +1755,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     // === Cancel project name editing ===
 
     frp::extend! { network
-        eval_ inputs.cancel_project_name_editing(model.project_name.frp.cancel_editing.emit(()));
-    }
-
-
-    // === Mouse Cursor Transform ===
-    frp::extend! { network
-        cursor_pos_in_scene <- cursor.frp.position.map(f!((position) {
-            scene.screen_to_scene_coordinates(*position).xy()
-        }));
+        eval_ inputs.cancel_project_name_editing(model.frp.cancel_project_name_editing.emit(()));
     }
 
 

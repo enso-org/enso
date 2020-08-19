@@ -6,6 +6,7 @@
 use crate::prelude::*;
 
 use crate::model::execution_context::ComputedValueInfoRegistry;
+use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
 use crate::model::execution_context::VisualizationUpdateData;
@@ -45,7 +46,7 @@ pub enum Notification {
     /// being updated.
     ComputedValueInfo(model::execution_context::ComputedValueExpressions),
     /// Notification emitted when the node has been entered.
-    EnteredNode(double_representation::node::Id),
+    EnteredNode(LocalCall),
     /// Notification emitted when the node was step out.
     SteppedOutOfNode(double_representation::node::Id),
 }
@@ -149,6 +150,39 @@ impl Handle {
         registry.clone_ref().get_type(id)
     }
 
+    /// Enter node by given node ID and method pointer.
+    ///
+    /// This will cause pushing a new stack frame to the execution context and changing the graph
+    /// controller to point to a new definition.
+    ///
+    /// Fails if method graph cannot be created (see `graph_for_method` documentation).
+    pub async fn enter_method_pointer
+    (&self, local_call:&LocalCall) -> FallibleResult<()> {
+        debug!(self.logger, "Entering node {local_call.call}.");
+        let method_ptr = &local_call.definition;
+        let graph      = controller::Graph::new_method(&self.logger,&self.project,method_ptr);
+        let graph      = graph.await?;
+        self.execution_ctx.push(local_call.clone()).await?;
+        debug!(self.logger,"Replacing graph with {graph:?}.");
+        self.graph.replace(graph);
+        debug!(self.logger,"Sending graph invalidation signal.");
+        self.notifier.publish(Notification::EnteredNode(local_call.clone())).await;
+
+        Ok(())
+    }
+
+    /// Attempts to get the method pointer of the specified node.
+    ///
+    /// Fails if there's no information about target method pointer (e.g. because node value hasn't
+    /// been yet computed by the engine).
+    pub fn node_method_pointer
+    (&self, node:double_representation::node::Id) -> FallibleResult<Rc<MethodPointer>> {
+        let registry   = self.execution_ctx.computed_value_info_registry();
+        let node_info  = registry.get(&node).ok_or_else(|| NotEvaluatedYet(node))?;
+        let entry_id   = *node_info.method_call.as_ref().ok_or_else(|| NoResolvedMethod(node))?;
+        self.project.suggestion_db().lookup_method_ptr(entry_id).map(Rc::new)
+    }
+
     /// Enter node by given ID.
     ///
     /// This will cause pushing a new stack frame to the execution context and changing the graph
@@ -158,24 +192,10 @@ impl Handle {
     /// been yet computed by the engine) or if method graph cannot be created (see
     /// `graph_for_method` documentation).
     pub async fn enter_node(&self, node:double_representation::node::Id) -> FallibleResult<()> {
-        debug!(self.logger, "Entering node {node}.");
-        let registry   = self.execution_ctx.computed_value_info_registry();
-        let node_info  = registry.get(&node).ok_or_else(|| NotEvaluatedYet(node))?;
-        let entry_id   = *node_info.method_call.as_ref().ok_or_else(|| NoResolvedMethod(node))?;
-        let method_ptr = self.project.suggestion_db().lookup_method_ptr(entry_id)?;
-        let graph      = controller::Graph::new_method(&self.logger,&self.project,&method_ptr).await?;
-        let call       = model::execution_context::LocalCall {
-            call       : node,
-            definition : method_ptr
-        };
-        self.execution_ctx.push(call).await?;
-
-        debug!(self.logger,"Replacing graph with {graph:?}.");
-        self.graph.replace(graph);
-        debug!(self.logger,"Sending graph invalidation signal.");
-        self.notifier.publish(Notification::EnteredNode(node)).await;
-
-        Ok(())
+        let definition = self.node_method_pointer(node)?;
+        let definition = (*definition).clone();
+        let local_call = LocalCall{call:node,definition};
+        self.enter_method_pointer(&local_call).await
     }
 
     /// Leave the current node. Reverse of `enter_node`.

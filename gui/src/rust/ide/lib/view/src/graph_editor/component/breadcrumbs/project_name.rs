@@ -2,11 +2,14 @@
 
 use crate::prelude::*;
 
+use crate::graph_editor::component::breadcrumbs::TEXT_SIZE;
+use crate::graph_editor::component::breadcrumbs::GLYPH_WIDTH;
+use crate::graph_editor::component::breadcrumbs::VERTICAL_MARGIN;
+use crate::graph_editor::component::breadcrumbs::breadcrumb;
+
 use enso_frp as frp;
 use ensogl::data::color;
 use ensogl::display;
-use ensogl::display::Attribute;
-use ensogl::display::Buffer;
 use ensogl::display::object::ObjectOps;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::text::text_field::FocusManager;
@@ -18,8 +21,6 @@ use ensogl::gui::component::Animation;
 use ensogl::gui::component;
 use logger::enabled::Logger;
 use logger::AnyLogger;
-use nalgebra::Vector2;
-use ensogl::animation::linear_interpolation;
 
 
 
@@ -27,11 +28,7 @@ use ensogl::animation::linear_interpolation;
 // === Constants ===
 // =================
 
-const TEXT_SIZE              : f32         = 12.0;
-const TEXT_COLOR             : color::Rgba = color::Rgba::new(1.0, 1.0, 1.0, 0.7);
-const TRANSPARENT_TEXT_COLOR : color::Rgba = color::Rgba::new(1.0, 1.0, 1.0, 0.4);
-
-/// Project name used as a placeholder in ProjectName view when it's initialized.
+/// Project name used as a placeholder in `ProjectName` view when it's initialized.
 pub const UNKNOWN_PROJECT_NAME:&str = "Unknown";
 
 
@@ -44,7 +41,7 @@ mod background {
     use super::*;
 
     ensogl::define_shape_system! {
-        (style:Style, selection:f32) {
+        () {
             let bg_color = color::Rgba::new(0.0,0.0,0.0,0.000_001);
             Plane().fill(bg_color).into()
         }
@@ -61,19 +58,28 @@ mod background {
 #[allow(missing_docs)]
 pub struct FrpInputs {
     /// Set the project name.
-    pub name : frp::Source<String>,
+    pub name:frp::Source<String>,
     /// Reset the project name to the one before editing.
-    pub cancel_editing : frp::Source
+    pub cancel_editing:frp::Source,
+    /// Commit current project name.
+    pub commit        : frp::Source,
+    pub outside_press : frp::Source,
+    pub select        : frp::Source,
+    pub deselect      : frp::Source
 }
 
 impl FrpInputs {
-    /// Create new FrpInputs.
+    /// Constructor.
     pub fn new(network:&frp::Network) -> Self {
         frp::extend! {network
-            def cancel_editing = source();
-            def name           = source();
+            cancel_editing <- source();
+            name           <- source();
+            commit         <- source();
+            outside_press  <- source();
+            select         <- source();
+            deselect       <- source();
         }
-        Self{cancel_editing,name}
+        Self{cancel_editing,name,commit,outside_press,select,deselect}
     }
 }
 
@@ -86,16 +92,24 @@ impl FrpInputs {
 #[derive(Debug,Clone,CloneRef)]
 #[allow(missing_docs)]
 pub struct FrpOutputs {
-    pub name : frp::Source<String>
+    pub name       : frp::Source<String>,
+    pub width      : frp::Source<f32>,
+    pub mouse_down : frp::Any,
+    pub edit_mode  : frp::Source<bool>,
+    pub selected   : frp::Source<bool>
 }
 
 impl FrpOutputs {
-    /// Create new FrpOutputs.
+    /// Constructor.
     pub fn new(network:&frp::Network) -> Self {
         frp::extend! {network
-            def name = source();
+            name       <- source();
+            width      <- source();
+            mouse_down <- any_mut();
+            edit_mode  <- source();
+            selected   <- source();
         }
-        Self{name}
+        Self{name,width,mouse_down,edit_mode,selected}
     }
 }
 
@@ -121,7 +135,7 @@ impl Deref for Frp {
 }
 
 impl Frp {
-    /// Create new Frp.
+    /// Constructor.
     pub fn new() -> Self {
         let network = frp::Network::new();
         let inputs  = FrpInputs::new(&network);
@@ -142,19 +156,19 @@ impl Default for Frp {
 // === Animations ===
 // ==================
 
-/// ProjectName's animations handlers.
+/// Animation handlers.
 #[derive(Debug,Clone,CloneRef)]
 pub struct Animations {
-    opacity  : Animation<f32>,
+    color    : Animation<Vector4<f32>>,
     position : Animation<Vector3<f32>>
 }
 
 impl Animations {
-    /// Create new animations handlers.
+    /// Constructor.
     pub fn new(network:&frp::Network) -> Self {
-        let opacity = Animation::new(&network);
+        let color    = Animation::new(&network);
         let position = Animation::new(&network);
-        Self{opacity,position}
+        Self{color,position}
     }
 }
 
@@ -173,36 +187,46 @@ pub struct ProjectNameModel {
     view           : component::ShapeView<background::Shape>,
     text_field     : TextField,
     project_name   : Rc<RefCell<String>>,
-    name_output    : frp::Source<String>,
+    outputs        : FrpOutputs
 }
 
 impl ProjectNameModel {
-    /// Create new ProjectNameModel.
+    /// Constructor.
     pub fn new<'t,S:Into<&'t Scene>>(scene:S,frp:&Frp,focus_manager:&FocusManager) -> Self {
         let scene                 = scene.into();
         let logger                = Logger::new("ProjectName");
         let display_object        = display::object::Instance::new(&logger);
         let font                  = scene.fonts.get_or_load_embedded_font("DejaVuSansMono").unwrap();
-        let size                  = Vector2::new(scene.camera().screen().width,TEXT_SIZE);
-        let base_color            = TRANSPARENT_TEXT_COLOR;
+        let size                  = Vector2(scene.camera().screen().width,TEXT_SIZE);
+        let base_color            = breadcrumb::SELECTED_COLOR;
         let text_size             = TEXT_SIZE;
         let text_field_properties = TextFieldProperties{base_color,font,size,text_size};
         let text_field            = TextField::new(scene,text_field_properties,focus_manager);
         let view_logger           = Logger::sub(&logger,"view_logger");
         let view                  = component::ShapeView::<background::Shape>::new(&view_logger, scene);
         let project_name          = Rc::new(RefCell::new(UNKNOWN_PROJECT_NAME.to_string()));
-        let name_output           = frp.outputs.name.clone();
+        let outputs               = frp.outputs.clone_ref();
         let animations            = Animations::new(&frp.network);
-        Self{logger,view,display_object,text_field,project_name,name_output,animations}.init()
+        Self{logger,view,display_object,text_field,project_name,animations,outputs}.init()
     }
 
-    fn update_center_alignment(&self) {
-        let width  = self.text_field.width_of_line(0);
-        let offset = Vector3::new(-width/2.0,0.0,0.0);
-        let height = self.text_field.line_height();
-        self.view.shape.sprite.size.set(Vector2::new(width,height));
-        self.view.set_position(Vector3::new(0.0,-height/2.0,0.0));
-        self.animations.position.set_target_value(offset);
+    /// Get the width of the ProjectName view.
+    pub fn width(&self) -> f32 {
+        let content = self.text_field.get_content();
+        let glyphs  = content.len();
+        let width   = glyphs as f32 * GLYPH_WIDTH;
+        width + breadcrumb::LEFT_MARGIN + breadcrumb::RIGHT_MARGIN + breadcrumb::PADDING * 2.0
+    }
+
+    fn update_alignment(&self) {
+        let width       = self.width();
+        let line_height = self.text_field.line_height();
+        let height      = line_height+VERTICAL_MARGIN*2.0;
+        let x_position = breadcrumb::LEFT_MARGIN+breadcrumb::PADDING;
+        let y_position = -VERTICAL_MARGIN-breadcrumb::TOP_MARGIN-breadcrumb::PADDING;
+        self.text_field.set_position(Vector3(x_position,y_position,0.0));
+        self.view.shape.sprite.size.set(Vector2(width,height));
+        self.view.set_position(Vector3(width,-height,0.0)/2.0);
     }
 
     fn init(self) -> Self {
@@ -220,12 +244,12 @@ impl ProjectNameModel {
 
     fn update_text_field_content(&self) {
         self.text_field.set_content(&self.project_name.borrow());
-        self.update_center_alignment();
+        self.update_alignment();
+        self.outputs.width.emit(self.width());
     }
 
-    fn set_opacity(&self, value:f32) {
-        let base_color = linear_interpolation(TRANSPARENT_TEXT_COLOR, TEXT_COLOR, value);
-        self.text_field.set_base_color(base_color);
+    fn set_color(&self, value:Vector4<f32>) {
+        self.text_field.set_base_color(color::Rgba::from(value));
     }
 
     fn set_position(&self, value:Vector3<f32>) {
@@ -234,13 +258,25 @@ impl ProjectNameModel {
 
     fn rename(&self, name:impl Str) {
         let name = name.into();
-        self.name_output.emit(&name);
+        self.outputs.name.emit(&name);
         *self.project_name.borrow_mut() = name;
         self.update_text_field_content();
     }
 
-    fn is_focused(&self) -> bool {
-        self.text_field.is_focused()
+    fn commit(&self) {
+        let name = self.text_field.get_content();
+        debug!(self.logger, "Committing name: '{name}'.");
+        self.outputs.name.emit(&name);
+        *self.project_name.borrow_mut() = name;
+        self.outputs.edit_mode.emit(false);
+    }
+
+    fn select(&self) {
+        self.animations.color.set_target_value(breadcrumb::SELECTED_COLOR.into());
+    }
+
+    fn deselect(&self) {
+        self.animations.color.set_target_value(breadcrumb::LEFT_DESELECTED_COLOR.into());
     }
 }
 
@@ -256,7 +292,7 @@ impl display::Object for ProjectNameModel {
 // === ProjectName ===
 // ===================
 
-/// The project name's view used for visualizing the project name and renaming it.
+/// The view used for displaying and renaming it.
 #[derive(Debug,Clone,CloneRef,Shrinkwrap)]
 #[allow(missing_docs)]
 pub struct ProjectName {
@@ -266,26 +302,45 @@ pub struct ProjectName {
 }
 
 impl ProjectName {
-    /// Create a new ProjectName view.
+    /// Constructor.
     pub fn new<'t,S:Into<&'t Scene>>(scene:S,focus_manager:&FocusManager) -> Self {
         let frp     = Frp::new();
         let model   = Rc::new(ProjectNameModel::new(scene,&frp,focus_manager));
         let network = &frp.network;
         frp::extend! { network
-            eval_ model.view.events.mouse_over(model.animations.opacity.set_target_value(1.0));
-            eval_ model.view.events.mouse_out({
-                //TODO[dg]:Make use of TextField 2.0's frp for getting focus state changes.
-                model.animations.opacity.set_target_value(model.is_focused() as i32 as f32);
+            not_selected               <- frp.outputs.selected.map(|selected| !selected);
+            mouse_over_if_not_selected <- model.view.events.mouse_over.gate(&not_selected);
+            mouse_out_if_not_selected  <- model.view.events.mouse_out.gate(&not_selected);
+            eval_ mouse_over_if_not_selected(
+                model.animations.color.set_target_value(breadcrumb::HOVER_COLOR.into());
+            );
+            eval_ mouse_out_if_not_selected([model] {
+                let color = breadcrumb::LEFT_DESELECTED_COLOR.into();
+                model.animations.color.set_target_value(color);
+            });
+            eval_ frp.select({
+                model.outputs.selected.emit(true);
+                model.select();
+            });
+            eval_ frp.deselect({
+                model.outputs.selected.emit(false);
+                model.deselect();
             });
             eval_ frp.inputs.cancel_editing(model.reset_name());
-            eval frp.inputs.name((name) {model.rename(name)});
+            eval  frp.inputs.name((name) {model.rename(name)});
+            eval_ frp.inputs.commit(model.commit());
+            frp.outputs.mouse_down <+ model.view.events.mouse_down;
+            eval_ model.view.events.mouse_down(frp.outputs.edit_mode.emit(true));
+            outside_press     <- any(&frp.outside_press,&frp.deselect);
+            commit_if_changed <- outside_press.gate(&frp.outputs.edit_mode);
+            eval_ commit_if_changed(frp.commit.emit(()));
         }
 
 
         // === Animations ===
 
         frp::extend! {network
-            eval model.animations.opacity.value((value) model.set_opacity(*value));
+            eval model.animations.color.value((value) model.set_color(*value));
             eval model.animations.position.value((value) model.set_position(*value));
         }
 
@@ -301,12 +356,13 @@ impl ProjectName {
                 // If the text edit callback is called, the TextEdit must be still alive.
                 let field_content = project_name.text_field.get_content();
                 let new_name      = field_content.replace("\n", "");
-                if change.inserted == "\n" {
-                    project_name.rename(&new_name);
-                }
                 // Keep only one line.
                 project_name.text_field.set_content(&new_name);
-                project_name.update_center_alignment();
+                project_name.outputs.width.emit(project_name.width());
+                project_name.update_alignment();
+                if change.inserted == "\n" {
+                    project_name.commit();
+                }
             }
         });
         self

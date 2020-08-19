@@ -10,6 +10,8 @@ pub trait OptionOps {
     fn zip          <U>     (self  , other:Option<U>)      -> Option<(Self::Item,U)>;
     fn zip_with     <U,F,R> (self  , other:Option<U>, f:F) -> Option<R>
         where F:FnOnce(Self::Item,U) -> R;
+    /// Returns true if option contains Some with value matching given predicate.
+    fn contains_if  <F>   (&self, f:F) -> bool      where F : FnOnce(&Self::Item) -> bool;
 }
 
 impl<T> OptionOps for Option<T> {
@@ -40,5 +42,9 @@ impl<T> OptionOps for Option<T> {
     where F:FnOnce(), T:Sized {
         if self.is_none() { f() }
         self
+    }
+
+    fn contains_if<F>(&self, f:F) -> bool where F : FnOnce(&Self::Item) -> bool {
+        self.as_ref().map_or(false,f)
     }
 }

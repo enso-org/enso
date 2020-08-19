@@ -634,7 +634,16 @@ impl View {
     }
 
     pub fn add(&self, symbol:&Symbol) {
-        self.symbols.borrow_mut().push(symbol.id as usize); // TODO strange conversion
+        let mut symbols = self.symbols.borrow_mut();
+        //FIXME:We check if the symbol was already added to this view to avoid a glitch that makes
+        //the symbol to be rendered more than once. The Breadcrumb object, for instance, is added
+        //to the view object every time a new breadcrumb is created. It gets really visible when
+        //the breadcrumb is semi-transparent because, every time it's rendered, the shape is added
+        //on top of the already rendered ones.
+        //TODO:Symbols insertion can run faster if refactored as HashSet.
+        if symbols.iter().find(|id| **id == symbol.id as usize).is_none() {
+            symbols.push(symbol.id as usize); // TODO strange conversion
+        }
     }
 
     pub fn remove(&self, symbol:&Symbol) {
@@ -685,6 +694,7 @@ pub struct Views {
     pub cursor         : View,
     pub label          : View,
     pub viz_fullscreen : View,
+    pub breadcrumbs    : View,
     all                : Rc<RefCell<Vec<WeakView>>>,
     width              : f32,
     height             : f32,
@@ -698,15 +708,17 @@ impl Views {
         let cursor         = View::new(&logger,width,height);
         let label          = View::new_with_camera(&logger,&main.camera);
         let viz_fullscreen = View::new(&logger,width,height);
+        let breadcrumbs    = View::new(&logger,width,height);
         let all            = vec![
             viz.downgrade(),
             main.downgrade(),
             cursor.downgrade(),
             label.downgrade(),
-            viz_fullscreen.downgrade()
+            viz_fullscreen.downgrade(),
+            breadcrumbs.downgrade()
         ];
         let all = Rc::new(RefCell::new(all));
-        Self {logger,viz,main,cursor,label,viz_fullscreen,all,width,height}
+        Self {logger,viz,main,cursor,label,viz_fullscreen,all,width,height,breadcrumbs}
     }
 
     /// Creates a new view for this scene.
