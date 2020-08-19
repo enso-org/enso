@@ -12,7 +12,8 @@ import org.enso.launcher.components.runner.LanguageServerOptions
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
-  DistributionManager
+  DistributionManager,
+  DistributionUninstaller
 }
 import org.enso.launcher.{Launcher, Logger}
 
@@ -328,9 +329,11 @@ object Main {
 
   private def uninstallDistributionCommand: Subcommand[Config => Unit] =
     Subcommand("distribution") {
-      Opts.pure(()) map { (_: Unit) => (_: Config) =>
-        Logger.error("Not implemented yet.")
-        sys.exit(1)
+      Opts.pure(()) map { (_: Unit) => (config: Config) =>
+        new DistributionUninstaller(
+          DistributionManager,
+          autoConfirm = config.autoConfirm
+        ).uninstall()
       }
     }
 

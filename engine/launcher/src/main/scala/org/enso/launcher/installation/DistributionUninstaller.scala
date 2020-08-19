@@ -1,11 +1,11 @@
 package org.enso.launcher.installation
 
-import java.nio.file.{Files, Path}
+import java.nio.file.Path
 
 import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
-import org.enso.launcher.{FileSystem, GlobalConfigurationManager, Logger, OS}
 import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.launcher.{FileSystem, GlobalConfigurationManager, Logger, OS}
 
 class DistributionUninstaller(
   manager: DistributionManager,
@@ -28,12 +28,13 @@ class DistributionUninstaller(
   }
 
   private def uninstallConfig(): Unit = {
-    Files.delete(
+    FileSystem.removeFileIfExists(
       manager.paths.config / GlobalConfigurationManager.globalConfigName
     )
+    FileSystem.removeDirectoryIfEmpty(manager.paths.config)
   }
 
-  private val knownDataFiles       = Seq("README.md", "NOTICE")
+  private val knownDataFiles       = Seq("README.md", "NOTICE", ".enso.portable")
   private val knownDataDirectories = Seq("tmp", "components-licences", "config")
 
   /**
