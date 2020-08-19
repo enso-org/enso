@@ -4,6 +4,7 @@ use crate::prelude::*;
 
 use crate::controller::graph::NodeTrees;
 use crate::model::execution_context::ComputedValueInfo;
+use crate::model::execution_context::LocalCall;
 use crate::model::execution_context::ExpressionId;
 use crate::model::execution_context::Visualization;
 use crate::model::execution_context::VisualizationId;
@@ -176,13 +177,28 @@ impl GraphEditorIntegratedWithController {
         }
 
 
+        // === Breadcrumb Selection ===
+
+        let breadcrumbs = &model.editor.breadcrumbs;
+        frp::extend! {network
+            eval_ breadcrumbs.frp.outputs.breadcrumb_pop(model.node_exited_in_ui(&()).ok());
+            eval  breadcrumbs.frp.outputs.breadcrumb_push((local_call) {
+                model.expression_entered_in_ui(&local_call.as_ref().map(|local_call| {
+                    let definition = (**local_call.definition).clone();
+                    let call       = local_call.call;
+                    LocalCall{definition,call}
+                })).ok()
+            });
+        }
+
         // === Project Renaming ===
 
-        let project_name = &model.editor.project_name;
+        let breadcrumbs = &model.editor.breadcrumbs;
         frp::extend! {network
-            eval project_name.frp.outputs.name((name) {model.rename_project(name);});
+            eval breadcrumbs.frp.outputs.project_name((name) {
+                model.rename_project(name);
+            });
         }
-        model.editor.project_name.frp.cancel_editing.emit(());
 
 
         // === UI Actions ===
@@ -298,14 +314,14 @@ impl GraphEditorIntegratedWithControllerModel {
 impl GraphEditorIntegratedWithControllerModel {
     fn rename_project(&self, name:impl Str) {
         if self.project.name() != name.as_ref() {
-            let project      = self.project.clone_ref();
-            let project_name = self.editor.project_name.clone_ref();
-            let logger       = self.logger.clone_ref();
-            let name         = name.into();
+            let project     = self.project.clone_ref();
+            let breadcrumbs = self.editor.breadcrumbs.clone_ref();
+            let logger      = self.logger.clone_ref();
+            let name        = name.into();
             executor::global::spawn(async move {
                 if let Err(e) = project.rename_project(name).await {
                     info!(logger, "The project couldn't be renamed: {e}");
-                    project_name.frp.cancel_editing.emit(());
+                    breadcrumbs.frp.cancel_project_name_editing.emit(());
                 }
             });
         }
@@ -529,8 +545,12 @@ impl GraphEditorIntegratedWithControllerModel {
     }
 
     /// Handle notification received from controller about values having been entered.
-    pub fn on_node_entered(&self, _id:double_representation::node::Id) -> FallibleResult<()> {
+    pub fn on_node_entered(&self, local_call:&LocalCall) -> FallibleResult<()> {
+        let definition = local_call.definition.clone().into();
+        let call       = local_call.call;
+        let local_call = graph_editor::LocalCall{definition,call};
         self.editor.frp.deselect_all_nodes.emit_event(&());
+        self.editor.breadcrumbs.frp.push_breadcrumb.emit(&Some(local_call));
         self.request_detaching_all_visualizations();
         self.refresh_graph_view()
     }
@@ -540,6 +560,7 @@ impl GraphEditorIntegratedWithControllerModel {
         self.editor.frp.deselect_all_nodes.emit_event(&());
         self.request_detaching_all_visualizations();
         self.refresh_graph_view()?;
+        self.editor.breadcrumbs.frp.pop_breadcrumb.emit(());
         let id = self.get_displayed_node_id(id)?;
         self.editor.frp.select_node.emit_event(&id);
         Ok(())
@@ -574,8 +595,8 @@ impl GraphEditorIntegratedWithControllerModel {
         let result = match notification {
             Some(Notification::Graph(Invalidate))         => self.on_invalidated(),
             Some(Notification::ComputedValueInfo(update)) => self.on_values_computed(update),
-            Some(Notification::EnteredNode(id))           => self.on_node_entered(*id),
             Some(Notification::SteppedOutOfNode(id))      => self.on_node_exited(*id),
+            Some(Notification::EnteredNode(local_call))   => self.on_node_entered(local_call),
             other => {
                 warning!(self.logger,"Handling notification {other:?} is not implemented; \
                     performing full invalidation");
@@ -725,26 +746,41 @@ impl GraphEditorIntegratedWithControllerModel {
         Ok(())
     }
 
+    fn expression_entered_in_ui
+    (&self, local_call:&Option<LocalCall>) -> FallibleResult<()> {
+        if let Some(local_call) = local_call {
+            let local_call   = local_call.clone();
+            let controller   = self.controller.clone_ref();
+            let logger       = self.logger.clone_ref();
+            let enter_action = async move {
+                info!(logger,"Entering node.");
+                if let Err(e) = controller.enter_method_pointer(&local_call).await {
+                    error!(logger,"Entering node failed: {e}.");
+                }
+            };
+            executor::global::spawn(enter_action);
+        }
+        Ok(())
+    }
+
     fn node_entered_in_ui(&self, node_id:&graph_editor::NodeId) -> FallibleResult<()> {
         debug!(self.logger,"Requesting entering the node {node_id}.");
-        let id           = self.get_controller_node_id(*node_id)?;
-        let controller   = self.controller.clone_ref();
-        let logger       = self.logger.clone_ref();
-        let enter_action = async move {
-            let result = controller.enter_node(id).await;
-            debug!(logger,"Entering node result: {result:?}.");
-        };
-        executor::global::spawn(enter_action);
-        Ok(())
+        let call           = self.get_controller_node_id(*node_id)?;
+        let method_pointer = self.controller.node_method_pointer(call)?;
+        let definition     = (*method_pointer).clone();
+        let local_call     = LocalCall{call,definition};
+        self.expression_entered_in_ui(&Some(local_call))
     }
 
     fn node_exited_in_ui(&self, _:&()) -> FallibleResult<()> {
         debug!(self.logger,"Requesting exiting the current node.");
-        let controller      = self.controller.clone_ref();
-        let logger          = self.logger.clone_ref();
+        let controller = self.controller.clone_ref();
+        let logger     = self.logger.clone_ref();
         let exit_node_action = async move {
-            let result = controller.exit_node().await;
-            debug!(logger,"Exiting node result: {result:?}.");
+            info!(logger,"Exiting node.");
+            if let Err(e) = controller.exit_node().await {
+                debug!(logger, "Exiting node failed: {e}.");
+            }
         };
         executor::global::spawn(exit_node_action);
         Ok(())
@@ -837,7 +873,7 @@ impl NodeEditor {
         let identifiers  = self.visualization.list_visualizations().await;
         let identifiers  = identifiers.unwrap_or_default();
         let project_name = self.graph.model.project.name().to_string();
-        graph_editor.project_name.frp.name.emit(project_name);
+        graph_editor.breadcrumbs.frp.project_name.emit(project_name);
         for identifier in identifiers {
             let visualization = self.visualization.load_visualization(&identifier).await;
             let visualization = visualization.map(|visualization| {

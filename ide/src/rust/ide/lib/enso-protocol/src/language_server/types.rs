@@ -390,7 +390,7 @@ pub struct LocalCall {
 }
 
 /// Points to a method definition.
-#[derive(Hash, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Hash,Debug,Clone,PartialEq,Eq,Serialize,Deserialize)]
 #[serde(rename_all="camelCase")]
 #[allow(missing_docs)]
 pub struct MethodPointer {

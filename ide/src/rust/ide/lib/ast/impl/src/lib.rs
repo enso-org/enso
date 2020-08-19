@@ -34,7 +34,6 @@ pub mod prelude {
 
     pub use crate::Ast;
     pub use crate::traits::*;
-    pub use utils::option::*;
     pub use utils::fail::FallibleResult;
 }
 

@@ -131,16 +131,6 @@ shared! { TextField
             self.content.line_height
         }
 
-        /// Get the width of the line.
-        pub fn width_of_line(&mut self, line:usize) -> f32 {
-            let mut width = 0.0;
-            let mut line  = self.content.line(line);
-            if line.len() > 0 {
-                width = line.get_char_x_position(line.len() - 1);
-            }
-            width
-        }
-
         /// Display object getter.
         pub fn display_object(&self) -> display::object::Instance {
             self.display_object.clone()
