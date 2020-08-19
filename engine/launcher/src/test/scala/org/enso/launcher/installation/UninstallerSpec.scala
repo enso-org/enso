@@ -31,7 +31,7 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
     Files.createDirectories(dataDirectory / "dist")
     Files.createDirectories(configDirectory)
     FileSystem.writeTextFile(
-      configDirectory / "global-config.yml",
+      configDirectory / "global-config.yaml",
       "what: ever"
     )
     FileSystem.writeTextFile(dataDirectory / "README.md", "content")
@@ -55,9 +55,12 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
         env
       ) should returnSuccess
 
-      assert(Files.notExists(installedRoot))
-      assert(Files.notExists(getTestDirectory / "enso-config"))
-      assert(Files.notExists(launcher))
+      assert(Files.notExists(installedRoot), "Should remove the data root.")
+      assert(
+        Files.notExists(getTestDirectory / "enso-config"),
+        "Should remove the configuration directory."
+      )
+      assert(Files.notExists(launcher), "Should remove the executable.")
     }
 
     "uninstall a distribution with config and bin inside of data" in {
@@ -70,7 +73,7 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
         env
       ) should returnSuccess
 
-      assert(Files.notExists(installedRoot))
+      assert(Files.notExists(installedRoot), "Should remove the data root.")
     }
 
     "not remove unknown files by default when uninstalling" in {
@@ -86,19 +89,27 @@ class UninstallerSpec extends NativeTest with WithTemporaryDirectory {
         env
       ) should returnSuccess
 
-      assert(Files.exists(installedRoot))
-      assert(Files.exists(getTestDirectory / "enso-config"))
+      assert(
+        Files.exists(installedRoot),
+        "Should not remove the data root with extra files."
+      )
+      assert(
+        Files.exists(getTestDirectory / "enso-config"),
+        "Should not remove the configuration root with extra files."
+      )
       assert(Files.exists(dataFile), "Should not remove unknown files.")
       assert(Files.exists(configFile), "Should not remove unknown files.")
       assert(
-        Files.notExists(getTestDirectory / "enso-config" / "global-config.yml"),
+        Files.notExists(
+          getTestDirectory / "enso-config" / "global-config.yaml"
+        ),
         "But the known ones should be removed."
       )
       assert(
         Files.notExists(installedRoot / "dist"),
         "But the known ones should be removed."
       )
-      assert(Files.notExists(launcher))
+      assert(Files.notExists(launcher), "Should remove the executable.")
     }
   }
 }

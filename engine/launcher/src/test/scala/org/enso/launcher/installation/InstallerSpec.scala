@@ -17,7 +17,7 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
     FileSystem.writeTextFile(portableRoot / ".enso.portable", "mark")
     Files.createDirectories(portableRoot / "config")
     FileSystem.writeTextFile(
-      portableRoot / "config" / "global-config.yml",
+      portableRoot / "config" / "global-config.yaml",
       "what: ever"
     )
   }
@@ -80,7 +80,7 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
         "The installed file should be executable."
       )
 
-      val config = installedRoot / "config" / "global-config.yml"
+      val config = installedRoot / "config" / "global-config.yaml"
       config.toFile should exist
       readFileContent(config).stripTrailing() shouldEqual "what: ever"
 
