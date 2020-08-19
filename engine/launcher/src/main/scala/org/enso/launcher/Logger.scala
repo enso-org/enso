@@ -1,5 +1,7 @@
 package org.enso.launcher
 
+import java.io.PrintStream
+
 /**
   * This is a temporary object that should be at some point replaced with the
   * actual logging service.
@@ -8,17 +10,17 @@ package org.enso.launcher
   *  is implemented in #1031
   */
 object Logger {
-  private case class Level(name: String, level: Int)
-  private val Debug   = Level("debug", 1)
-  private val Info    = Level("info", 2)
-  private val Warning = Level("warn", 3)
-  private val Error   = Level("error", 4)
+  private case class Level(name: String, level: Int, stream: PrintStream)
+  private val Debug   = Level("debug", 1, System.err)
+  private val Info    = Level("info", 2, System.out)
+  private val Warning = Level("warn", 3, System.err)
+  private val Error   = Level("error", 4, System.err)
 
   private var logLevel = Info
   private def log(level: Level, msg: => String): Unit =
     if (level.level >= logLevel.level) {
-      System.out.println(s"[${level.name}] $msg")
-      System.out.flush()
+      level.stream.println(s"[${level.name}] $msg")
+      level.stream.flush()
     }
 
   /**
