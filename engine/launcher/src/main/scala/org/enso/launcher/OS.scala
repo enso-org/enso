@@ -1,17 +1,66 @@
 package org.enso.launcher
 
+import io.circe.{Decoder, DecodingFailure}
+
+/**
+  * Represents one of the supported platforms (operating systems).
+  */
 sealed trait OS {
-  def name: String
+
+  /**
+    * Name of this operating system as included in the configuration.
+    */
+  def configName: String
+
+  /**
+    * Checks if the provided `os.name` matches this operating system.
+    */
+  def matches(osName: String): Boolean = osName.toLowerCase.contains(configName)
 }
+
+/**
+  * Gathers helper functions useful for dealing with platform-specific
+  * behaviour.
+  */
 object OS {
+
+  /**
+    * Represents the Linux operating system.
+    */
   case object Linux extends OS {
-    def name: String = "linux"
+
+    /**
+      * @inheritdoc
+      */
+    def configName: String = "linux"
   }
+
+  /**
+    * Represents the macOS operating system.
+    */
   case object MacOS extends OS {
-    def name: String = "mac"
+
+    /**
+      * @inheritdoc
+      */
+    def configName: String = "macos"
+
+    /**
+      * @inheritdoc
+      */
+    override def matches(osName: String): Boolean =
+      osName.toLowerCase.contains("mac")
   }
+
+  /**
+    * Represents the Windows operating system.
+    */
   case object Windows extends OS {
-    def name: String = "windows"
+
+    /**
+      * @inheritdoc
+      */
+    def configName: String = "windows"
   }
 
   /**
@@ -30,12 +79,15 @@ object OS {
 
   private val ENSO_OPERATING_SYSTEM = "ENSO_OPERATING_SYSTEM"
 
+  private val knownOS = Seq(Linux, MacOS, Windows)
+  private lazy val knownOSPossibleValuesString =
+    knownOS.map(os => s"`${os.configName}`").mkString(", ")
+
   private def detectOS: OS = {
-    val knownOS       = Seq(Linux, MacOS, Windows)
     val overridenName = Option(System.getenv(ENSO_OPERATING_SYSTEM))
     overridenName match {
       case Some(value) =>
-        knownOS.find(_.name == value.toLowerCase) match {
+        knownOS.find(value.toLowerCase == _.configName) match {
           case Some(overriden) =>
             Logger.debug(
               s"OS overriden by $ENSO_OPERATING_SYSTEM to $overriden."
@@ -43,16 +95,15 @@ object OS {
             return overriden
           case None =>
             Logger.warn(
-              s"$ENSO_OPERATING_SYSTEM is set to an unknown value $value, " +
-              s"ignoring."
+              s"$ENSO_OPERATING_SYSTEM is set to an unknown value `$value`, " +
+              s"ignoring. Possible values are $knownOSPossibleValuesString."
             )
         }
       case None =>
     }
 
-    val name                         = System.getProperty("os.name").toLowerCase
-    def nameMatches(os: OS): Boolean = name.contains(os.name)
-    val possibleOS                   = knownOS.filter(nameMatches)
+    val name       = System.getProperty("os.name")
+    val possibleOS = knownOS.filter(_.matches(name))
     if (possibleOS.length == 1) {
       possibleOS.head
     } else {
@@ -61,7 +112,7 @@ object OS {
         s"the OS you are running is supported. You can try to manually " +
         s"override the operating system detection by setting an environment " +
         s"variable `$ENSO_OPERATING_SYSTEM` to one of the possible values " +
-        s"`linux`, `mac`, `windows` depending on the system that your OS " +
+        s"$knownOSPossibleValuesString depending on the system that your OS " +
         s"most behaves like."
       )
       throw new IllegalStateException(
@@ -90,4 +141,20 @@ object OS {
     */
   def executableName(baseName: String): String =
     if (isWindows) baseName + ".exe" else baseName
+
+  /**
+    * A [[Decoder]] instance allowing to parse the OS name from JSON and YAML
+    * configuration.
+    */
+  implicit val decoder: Decoder[OS] = { json =>
+    json.as[String].flatMap { string =>
+      knownOS.find(_.configName == string).toRight {
+        DecodingFailure(
+          s"`$string` is not a valid OS name. " +
+          s"Possible values are $knownOSPossibleValuesString.",
+          json.history
+        )
+      }
+    }
+  }
 }

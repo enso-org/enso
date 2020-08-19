@@ -42,10 +42,12 @@ class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
     rhs.reset()
   }
 
-  override private[cli] def result() =
+  override private[cli] def result(
+    commandPrefix: Seq[String]
+  ): Either[List[String], (A, B)] =
     for {
-      l <- lhs.result()
-      r <- rhs.result()
+      l <- lhs.result(commandPrefix)
+      r <- rhs.result(commandPrefix)
     } yield (l, r)
 
   override def availableOptionsHelp(): Seq[String] =

@@ -20,7 +20,8 @@ class PrefixedParameters(
     currentValue = (name, value) :: currentValue
   }
 
-  override private[cli] def result() = Right(currentValue.reverse)
+  override private[cli] def result(commandPrefix: Seq[String]) =
+    Right(currentValue.reverse)
 
   override private[cli] def gatherPrefixedParameters =
     Seq(prefix -> s"--$prefix.$keyMetavar=$valueMetavar")

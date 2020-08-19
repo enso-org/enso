@@ -485,7 +485,8 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-        "io.circe"  %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
+        "nl.gn0s1s" %% "bump"       % bumpVersion,
+        "io.circe"  %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versionin
         "commons-io" % "commons-io" % commonsIoVersion
       )
   )

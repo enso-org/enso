@@ -10,22 +10,31 @@ trait VersionDescription {
     if (useJson) asJSONString else asHumanReadableString
 }
 
+/**
+  * Defines an additional parameter for the version description.
+  *
+  * @param humanReadableName the human readable prefix added when printing this
+  *                          parameter in human-readable format
+  * @param jsonName the key when outputting the parameter in JSON format
+  * @param value the value to use for the parameter; depending on if the whole
+  *              version description will be queried as a human-readable version
+  *              or in JSON, this value should be in the right format
+  */
 case class VersionDescriptionParameter(
   humanReadableName: String,
-  humandReadableValue: String,
   jsonName: String,
-  jsonValue: String
+  value: String
 )
 
 object VersionDescription {
   def formatParameterAsJSONString(
     parameter: VersionDescriptionParameter
   ): String =
-    s""""${parameter.jsonName}": ${parameter.jsonValue}"""
+    s""""${parameter.jsonName}": ${parameter.value}"""
   def formatParameterAsHumanReadableString(
     parameter: VersionDescriptionParameter
   ): String =
-    s"${parameter.humanReadableName}: ${parameter.humandReadableValue}"
+    s"${parameter.humanReadableName}: ${parameter.value}"
 
   def make(
     header: String,

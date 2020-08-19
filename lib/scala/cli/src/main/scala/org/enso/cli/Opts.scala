@@ -67,7 +67,7 @@ trait Opts[A] {
     * the right moment to do final validation (for example, detecting missing
     * options).
     */
-  private[cli] def result(): Either[List[String], A]
+  private[cli] def result(commandPrefix: Seq[String]): Either[List[String], A]
 
   /**
     * Lists options that should be printed in the usage [[commandLines]].
@@ -190,6 +190,28 @@ trait Opts[A] {
     val additional     = additionalHelp().map(_ + "\n").mkString
     val additionalText = if (additional.isEmpty) "" else "\n" + additional
     optionsHelp + prefixedHelp + additionalText
+  }
+
+  /**
+    * Generates a help text for the command, including usage, available options
+    * and any additional help lines.
+    *
+    * @param commandPrefix list of command names that should prefix the
+    *                      commandline in usage. The first entry in that list
+    *                      should be the application name and the following
+    *                      entries are commands/subcommands.
+    */
+  def help(commandPrefix: Seq[String]): String = {
+    val tableDivider = "\t"
+    val prefix       = commandPrefix.mkString(" ")
+    val usages       = commandLines().map(s"$prefix$tableDivider" + _)
+    val firstLine    = "Usage: "
+    val padding      = " " * firstLine.length
+    val usage =
+      firstLine + usages.head +
+      usages.tail.map("\n" + padding + _).mkString + "\n"
+
+    usage + helpExplanations(addHelpOption = true).stripTrailing()
   }
 }
 

@@ -105,12 +105,31 @@ root of an Enso version package. It has at least the following fields:
 - `graal-java-version` - as GraalVM versions may have different variants for
   different Java versions, this specifies which variant to use.
 
+It can also contain the following additional fields:
+
+- `jvm-options` - specifies a list of options that should be passed to the JVM
+  running the engine. These options can be used to fine-tune version specific
+  optimization settings etc. Each option must have a key called `value` which
+  specifies what option should be passed. That value can include a variable
+  `$enginePackagePath` which is substituted with the absolute path to the root
+  of the engine package that is being launched. Optionally, the option may
+  define `os` which will restrict this option only to the provided operating
+  system. Possible `os` values are `linux`, `macos` and `windows`.
+
 For example:
 
 ```yaml
 minimum-launcher-version: 0.0.1
 graal-vm-version: 20.1.0
 graal-java-version: 11
+jvm-options:
+  - value: "-Dpolyglot.engine.IterativePartialEscape=true"
+  - value: "-Dtruffle.class.path.append=$enginePackagePath\\component\\runtime.jar"
+    os: "windows"
+  - value: "-Dtruffle.class.path.append=$enginePackagePath/component/runtime.jar"
+    os: "linux"
+  - value: "-Dtruffle.class.path.append=$enginePackagePath/component/runtime.jar"
+    os: "macos"
 ```
 
 The `minimum-launcher-version` should be updated whenever a new version of Enso

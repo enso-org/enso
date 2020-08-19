@@ -8,6 +8,7 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli.Opts.implicits._
 import org.enso.cli._
 import org.enso.launcher.cli.Arguments._
+import org.enso.launcher.components.runner.LanguageServerOptions
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
@@ -33,8 +34,19 @@ object Main {
       "version",
       "Print version of the launcher and currently selected Enso distribution."
     ) {
-      jsonFlag(showInUsage = true) map { useJSON => (_: Config) =>
-        Launcher.displayVersion(useJSON)
+      val onlyLauncherFlag = Opts.flag(
+        "only-launcher",
+        "If set, shows only the launcher version, skipping checking for " +
+        "engine versions which may involve network requests depending on " +
+        "configuration.",
+        showInUsage = true
+      )
+      (jsonFlag(showInUsage = true), onlyLauncherFlag) mapN {
+        (useJSON, onlyLauncher) => (config: Config) =>
+          Launcher(config).displayVersion(
+            useJSON,
+            hideEngineVersion = onlyLauncher
+          )
       }
     }
 
@@ -47,15 +59,29 @@ object Main {
         "called NAME is created in the current directory."
       )
 
-      (nameOpt, pathOpt) mapN { (name, path) => (_: Config) =>
-        Launcher.newProject(name, path)
+      (nameOpt, pathOpt) mapN { (name, path) => (config: Config) =>
+        Launcher(config).newProject(name, path)
       }
     }
 
-  private def jvmArgs =
+  private def jvmOpts =
     Opts.prefixedParameters(
       "jvm",
       "These parameters will be passed to the launched JVM as -DKEY=VALUE."
+    )
+  private def systemJVMOverride =
+    Opts.flag(
+      "use-system-jvm",
+      "Setting this flag runs the Enso engine using the system-configured " +
+      "JVM instead of the one managed by the launcher. " +
+      "Advanced option, use carefully.",
+      showInUsage = false
+    )
+  private def versionOverride =
+    Opts.optionalParameter[SemVer](
+      "use-enso-version",
+      "VERSION",
+      "Overrides the Enso version that would normally be used"
     )
 
   private def runCommand: Command[Config => Unit] =
@@ -68,18 +94,29 @@ object Main {
     ) {
       val pathOpt = Opts.optionalArgument[Path](
         "PATH",
-        "If PATH points to a file, that file is run as a script. " +
-        "If it points to a directory, the project from that directory is " +
-        "run. If a PATH is not provided, a project in the current working " +
-        "directory is run."
+        "If PATH points to a file, that file is run as a script (if that " +
+        "script is located inside of a project, the script is run in the " +
+        "context of that project). If it points to a directory, the project " +
+        "from that directory is run. If a PATH is not provided, a project in " +
+        "the current working directory is run."
       )
       val additionalArgs = Opts.additionalArguments()
-      (pathOpt, jvmArgs, additionalArgs) mapN {
-        (path, jvmArgs, additionalArgs) => (_: Config) =>
-          val enginesRoot = DistributionManager.paths.engines
-          println(s"Launch runner for $path")
-          println(s"JVM=$jvmArgs, additionalArgs=$additionalArgs")
-          println(s"Engines are located at $enginesRoot")
+      (
+        pathOpt,
+        versionOverride,
+        systemJVMOverride,
+        jvmOpts,
+        additionalArgs
+      ) mapN {
+        (path, versionOverride, systemJVMOverride, jvmOpts, additionalArgs) =>
+          (config: Config) =>
+            Launcher(config).runRun(
+              path                = path,
+              versionOverride     = versionOverride,
+              useSystemJVM        = systemJVMOverride,
+              jvmOpts             = jvmOpts,
+              additionalArguments = additionalArgs
+            )
       }
     }
 
@@ -98,19 +135,20 @@ object Main {
         Opts.optionalParameter[String](
           "interface",
           "INTERFACE",
-          "Interface for processing all incoming connections."
+          "Interface for processing all incoming connections. " +
+          "Defaults to `127.0.0.1`."
         )
       val rpcPort =
         Opts.optionalParameter[Int](
           "rpc-port",
           "PORT",
-          "RPC port for processing all incoming connections."
+          "RPC port for processing all incoming connections. Defaults to 8080."
         )
       val dataPort =
         Opts.optionalParameter[Int](
           "data-port",
           "PORT",
-          "Data port for visualisation protocol."
+          "Data port for visualisation protocol. Defaults to 8081."
         )
       val additionalArgs = Opts.additionalArguments()
       (
@@ -119,45 +157,80 @@ object Main {
         interface,
         rpcPort,
         dataPort,
-        jvmArgs,
+        versionOverride,
+        systemJVMOverride,
+        jvmOpts,
         additionalArgs
       ) mapN {
-        (rootId, path, interface, rpcPort, dataPort, jvmArgs, additionalArgs) =>
-          (_: Config) =>
-            println(s"Launch language server in $path with id=$rootId.")
-            println(
-              s"interface=$interface, rpcPort=$rpcPort, dataPort=$dataPort"
-            )
-            println(s"JVM=$jvmArgs, additionalArgs=$additionalArgs")
+        (
+          rootId,
+          path,
+          interface,
+          rpcPort,
+          dataPort,
+          versionOverride,
+          systemJVMOverride,
+          jvmOpts,
+          additionalArgs
+        ) => (config: Config) =>
+          Launcher(config).runLanguageServer(
+            options = LanguageServerOptions(
+              rootId    = rootId,
+              path      = path,
+              interface = interface.getOrElse("127.0.0.1"),
+              rpcPort   = rpcPort.getOrElse(8080),
+              dataPort  = dataPort.getOrElse(8081)
+            ),
+            versionOverride     = versionOverride,
+            useSystemJVM        = systemJVMOverride,
+            jvmOpts             = jvmOpts,
+            additionalArguments = additionalArgs
+          )
       }
     }
 
   private def replCommand: Command[Config => Unit] =
     Command(
       "repl",
-      "Launch an Enso REPL." +
+      "Launch an Enso REPL. " +
       "If `auto-confirm` is set, this will install missing engines or " +
       "runtimes without asking."
     ) {
-      val path           = Opts.optionalParameter[Path]("path", "PATH", "Project path.")
+      val path = Opts.optionalParameter[Path](
+        "path",
+        "PATH",
+        "Specifying this option runs the REPL in context of a project " +
+        "located at the given path. The REPL is also run in context of a " +
+        "project if it is launched from within a directory inside a project."
+      )
       val additionalArgs = Opts.additionalArguments()
-      (path, jvmArgs, additionalArgs) mapN {
-        (path, jvmArgs, additionalArgs) => (config: Config) =>
-          Launcher(config).runRepl(path, jvmArgs, additionalArgs)
+      (path, versionOverride, systemJVMOverride, jvmOpts, additionalArgs) mapN {
+        (path, versionOverride, systemJVMOverride, jvmOpts, additionalArgs) =>
+          (config: Config) =>
+            Launcher(config).runRepl(
+              projectPath         = path,
+              versionOverride     = versionOverride,
+              useSystemJVM        = systemJVMOverride,
+              jvmOpts             = jvmOpts,
+              additionalArguments = additionalArgs
+            )
       }
     }
 
   private def defaultCommand: Command[Config => Unit] =
     Command("default", "Print or change the default Enso version.") {
-      val version = Opts.optionalArgument[String](
+      val version = Opts.optionalArgument[SemVer](
         "VERSION",
         "If provided, sets default version to VERSION. " +
         "Otherwise, current default is displayed."
       )
-      version map { version => (_: Config) =>
+      version map { version => (config: Config) =>
+        val launcher = Launcher(config)
         version match {
-          case Some(version) => println(s"Set version to $version")
-          case None          => println("Print current version")
+          case Some(version) =>
+            launcher.setDefaultVersion(version)
+          case None =>
+            launcher.printDefaultVersion()
         }
       }
     }
@@ -181,8 +254,8 @@ object Main {
     Subcommand("engine") {
       val version = Opts.optionalArgument[SemVer](
         "VERSION",
-        "The version to install. If not provided, the latest version is " +
-        "installed."
+        "VERSION specifies the engine version to install. If not provided, the" +
+        "latest version is installed."
       )
       version map { version => (config: Config) =>
         version match {
@@ -365,19 +438,19 @@ object Main {
           Launcher.ensurePortable()
         }
 
+        val globalCLIOptions = GlobalCLIOptions(
+          autoConfirm  = autoConfirm,
+          hideProgress = hideProgress
+        )
+
         if (help) {
           printTopLevelHelp()
           TopLevelBehavior.Halt
         } else if (version) {
-          Launcher.displayVersion(useJSON)
+          Launcher(globalCLIOptions).displayVersion(useJSON)
           TopLevelBehavior.Halt
         } else
-          TopLevelBehavior.Continue(
-            GlobalCLIOptions(
-              autoConfirm  = autoConfirm,
-              hideProgress = hideProgress
-            )
-          )
+          TopLevelBehavior.Continue(globalCLIOptions)
     }
   }
 

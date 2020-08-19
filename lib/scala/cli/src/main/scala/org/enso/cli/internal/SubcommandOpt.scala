@@ -37,7 +37,11 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Subcommand[A]])
               Spelling
                 .selectClosestMatches(arg, subcommands.toList.map(_.name))
             val suggestions =
-              if (similar.isEmpty) ""
+              if (similar.isEmpty)
+                "\n\nPossible subcommands are\n" +
+                subcommands.toList
+                  .map(CLIOutput.indent + _.name + "\n")
+                  .mkString
               else
                 "\n\nThe most similar subcommands are\n" +
                 similar.map(CLIOutput.indent + _ + "\n").mkString
@@ -61,14 +65,14 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Subcommand[A]])
     errors          = Nil
   }
 
-  override private[cli] def result() =
+  override private[cli] def result(commandPrefix: Seq[String]) =
     if (errors.nonEmpty)
       Left(errors.reverse)
     else
       selectedCommand match {
-        case Some(command) => command.opts.result()
+        case Some(command) => command.opts.result(commandPrefix)
         case None =>
-          Left(List("Expected a subcommand."))
+          Left(List("Expected a subcommand.", help(commandPrefix)))
       }
 
   override def availableOptionsHelp(): Seq[String] =

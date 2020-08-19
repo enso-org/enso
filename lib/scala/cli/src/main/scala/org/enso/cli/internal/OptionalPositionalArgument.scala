@@ -27,7 +27,7 @@ class OptionalPositionalArgument[A: Argument](
     value = empty
   }
 
-  override private[cli] def result() =
+  override private[cli] def result(commandPrefix: Seq[String]) =
     value
 
   override def additionalHelp(): Seq[String] = helpComment.toSeq

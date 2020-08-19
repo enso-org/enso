@@ -36,7 +36,7 @@ class Parameter[A: Argument](
     )
   }
 
-  override private[cli] def result() =
+  override private[cli] def result(commandPrefix: Seq[String]) =
     value.flatMap {
       case Some(value) => Right(value)
       case None        => Left(List(s"Missing required parameter $name"))

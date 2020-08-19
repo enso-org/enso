@@ -24,7 +24,7 @@ class TrailingArguments[A: Argument](
     value = empty
   }
 
-  override private[cli] def result() =
+  override private[cli] def result(commandPrefix: Seq[String]) =
     value.map(_.reverse)
 
   override def additionalHelp(): Seq[String] = helpComment.toSeq

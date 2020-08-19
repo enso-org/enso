@@ -2,11 +2,13 @@ package org.enso.pkg
 
 import java.io.File
 
+import cats.Show
+
 import scala.jdk.CollectionConverters._
 import org.enso.filesystem.FileSystem
 
 import scala.io.Source
-import scala.util.Try
+import scala.util.{Failure, Try, Using}
 
 object CouldNotCreateDirectory extends Exception
 
@@ -41,7 +43,7 @@ case class Package[F](
     * Sets the package name.
     *
     * @param newName the new package name
-    * @return a packge with the updated name
+    * @return a package with the updated name
     */
   def setPackageName(newName: String): Package[F] =
     this.copy(config = config.copy(name = newName))
@@ -200,11 +202,13 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   def create(
     root: F,
     name: String,
-    version: String = "0.0.1"
+    version: String          = "0.0.1",
+    ensoVersion: EnsoVersion = DefaultEnsoVersion
   ): Package[F] = {
     val config = Config(
       name         = normalizeName(name),
       version      = version,
+      ensoVersion  = ensoVersion,
       license      = "",
       author       = List(),
       maintainer   = List(),
@@ -217,18 +221,60 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
     * Tries to parse package structure from a given root location.
     *
     * @param root the root location to get package info from.
-    * @return `Some(pkg)` if the location represents a package, `None` otherwise.
+    * @return `Some(pkg)` if the location represents a package, `None`
+    *        otherwise.
     */
-  def fromDirectory(root: F): Option[Package[F]] = {
-    if (!root.exists) return None
-    val configFile = root.getChild(Package.configFileName)
-    val reader     = Try(configFile.newBufferedReader)
-    val resultStr = reader
-      .flatMap(rd => Try(rd.lines().iterator().asScala.mkString("\n")))
-      .toOption
-    val result = resultStr.flatMap(Config.fromYaml)
-    reader.map(_.close())
-    result.map(Package(root, _, fileSystem))
+  def fromDirectory(root: F): Option[Package[F]] =
+    loadPackage(root).toOption
+
+  /**
+    * Loads the package structure at the given root location and reports any
+    * errors.
+    *
+    * @param root the root location to get package info from.
+    * @return `Success(pkg)` if the location represents a valid package, and
+    *        `Failure` otherwise. If the package file or its parent directory do
+    *        not exist, a `PackageNotFound` exception is returned. Otherwise,
+    *        the exception that made it not possible to load the package is
+    *        returned.
+    */
+  def loadPackage(root: F): Try[Package[F]] = {
+    val result =
+      if (!root.exists) Failure(PackageManager.PackageNotFound())
+      else {
+        def readConfig(file: F): Try[String] =
+          if (file.exists)
+            Using(file.newBufferedReader) { reader =>
+              reader.lines().iterator().asScala.mkString("\n")
+            }
+          else Failure(PackageManager.PackageNotFound())
+
+        val configFile = root.getChild(Package.configFileName)
+        for {
+          resultStr <- readConfig(configFile)
+          result    <- Config.fromYaml(resultStr)
+        } yield Package(root, result, fileSystem)
+      }
+    result.recoverWith {
+      case packageLoadingException: PackageManager.PackageLoadingException =>
+        Failure(packageLoadingException)
+      case decodingError: io.circe.Error =>
+        val errorMessage =
+          implicitly[Show[io.circe.Error]].show(decodingError)
+        Failure(
+          PackageManager.PackageLoadingFailure(
+            s"Cannot decode the package config: $errorMessage",
+            decodingError
+          )
+        )
+      case otherError =>
+        Failure(
+          PackageManager.PackageLoadingFailure(
+            s"Cannot load the package: $otherError",
+            otherError
+          )
+        )
+    }
   }
 
   /**
@@ -270,6 +316,30 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
 
 object PackageManager {
   val Default = new PackageManager[File]()(FileSystem.Default)
+
+  /**
+    * A general exception indicating that a package cannot be loaded.
+    */
+  class PackageLoadingException(message: String, cause: Throwable)
+      extends RuntimeException(message, cause) {
+
+    /**
+      * @inheritdoc
+      */
+    override def toString: String = message
+  }
+
+  /**
+    * The error indicating that the requested package does not exist.
+    */
+  case class PackageNotFound()
+      extends PackageLoadingException(s"The package file does not exist.", null)
+
+  /**
+    * The error indicating that the package exists, but cannot be loaded.
+    */
+  case class PackageLoadingFailure(message: String, cause: Throwable)
+      extends PackageLoadingException(message, cause)
 }
 
 /**

@@ -24,7 +24,9 @@ class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
 
   override private[cli] def reset(): Unit = a.reset()
 
-  override private[cli] def result() = a.result().map(f)
+  override private[cli] def result(
+    commandPrefix: Seq[String]
+  ): Either[List[String], B] = a.result(commandPrefix).map(f)
 
   override def availableOptionsHelp(): Seq[String] = a.availableOptionsHelp()
   override def availablePrefixedParametersHelp(): Seq[String] =
