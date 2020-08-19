@@ -201,18 +201,23 @@ jobs:
         run: sbt -no-colors syntaxJS/fullOptJS
 
       # Prepare distributions
+      # The version used in filenames is based on the version of the launcher.
+      # Currently launcher and engine versions are tied to each other so they
+      # can be used interchangeably like this. If in the future the versions
+      # become independent, this may require updating to use proper versions
+      # for each component.
       - name: Prepare Distribution Version (Unix)
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          DIST_VERSION=$(./enso version --json | jq -r '.version')
+          DIST_VERSION=$(./enso version --json --only-launcher | jq -r '.version')
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
 
       - name: Prepare Distribution Version (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          DIST_VERSION=$(./enso.exe version --json | jq -r '.version')
+          DIST_VERSION=$(./enso.exe version --json --only-launcher | jq -r '.version')
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
 
       # Currently the only architecture supported by Github runners is amd64

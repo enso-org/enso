@@ -34,8 +34,19 @@ object Main {
       "version",
       "Print version of the launcher and currently selected Enso distribution."
     ) {
-      jsonFlag(showInUsage = true) map { useJSON => (config: Config) =>
-        Launcher(config).displayVersion(useJSON)
+      val onlyLauncherFlag = Opts.flag(
+        "only-launcher",
+        "If set, shows only the launcher version, skipping checking for " +
+        "engine versions which may involve network requests depending on " +
+        "configuration.",
+        showInUsage = true
+      )
+      (jsonFlag(showInUsage = true), onlyLauncherFlag) mapN {
+        (useJSON, onlyLauncher) => (config: Config) =>
+          Launcher(config).displayVersion(
+            useJSON,
+            hideEngineVersion = onlyLauncher
+          )
       }
     }
 

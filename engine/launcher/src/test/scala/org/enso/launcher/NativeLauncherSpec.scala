@@ -6,7 +6,7 @@ import io.circe.parser
 class NativeLauncherSpec extends NativeTest {
   "native launcher" should {
     "display its version" in {
-      val run = runLauncher(Seq("--version", "--json"))
+      val run = runLauncher(Seq("version", "--json", "--only-launcher"))
       run should returnSuccess
 
       val version = parser.parse(run.stdout).getOrElse {

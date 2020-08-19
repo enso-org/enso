@@ -240,13 +240,21 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     *
     * @param useJSON specifies whether the output should use JSON or a
     *                human-readable format
+    * @param hideEngineVersion if set, does not look for installed engines to
+    *                          display the current version; this can be used to
+    *                          avoid making network requests
     */
-  def displayVersion(useJSON: Boolean): Unit = {
-    val runtimeVersionParameter = getEngineVersion(useJSON)
+  def displayVersion(
+    useJSON: Boolean,
+    hideEngineVersion: Boolean = false
+  ): Unit = {
+    val runtimeVersionParameter =
+      if (hideEngineVersion) None else Some(getEngineVersion(useJSON))
+
     val versionDescription = VersionDescription.make(
       "Enso Launcher",
       includeRuntimeJVMInfo = false,
-      additionalParameters  = Seq(runtimeVersionParameter)
+      additionalParameters  = runtimeVersionParameter.toSeq
     )
 
     println(versionDescription.asString(useJSON))
