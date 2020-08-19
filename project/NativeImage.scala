@@ -53,14 +53,17 @@ object NativeImage {
         val debugParameters =
           if (includeDebugInfo) "-H:GenerateDebugInfo=1" else ""
 
-        val staticParameters =
+        val (staticParameters, pathExts) =
           if (staticOnLinux && isLinux) {
             // Note [Static Build On Linux]
             val buildCache =
               subProjectRoot / "build-cache"
             val path = ensureMuslIsInstalled(buildCache, log)
-            s"--static -H:UseMuslC=$path"
-          } else ""
+            (
+              "--static --libc=musl --report-unsupported-elements-at-runtime --initialize-at-build-time=scala.runtime.Statics$VM",
+              Seq("/home/radeusgd/NBO/static/musl/bin")
+            )
+          } else ("", Seq())
 
         val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
 
@@ -87,7 +90,13 @@ object NativeImage {
 
         log.debug(cmd)
 
-        if (cmd.! != 0) {
+        val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq
+        val newPath   = pathParts.mkString(File.pathSeparator)
+        println(s"Overriding path to $newPath")
+        val process =
+          Process(cmd, None, "PATH" -> newPath)
+
+        if (process.! != 0) {
           log.error("Native Image build failed.")
           throw new RuntimeException("Native Image build failed")
         }

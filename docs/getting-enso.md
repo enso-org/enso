@@ -31,7 +31,7 @@ GraalVM. You can get the Community Edition pre-built distributions from
 It is important to run Enso with exactly the version specified here. Given that
 Graal is still a relatively young project, even the minor version changes
 introduce breaking API changes. The current version of GraalVM required for Enso
-is `20.1.0`, and it must be the Java 11 build.
+is `20.2.0`, and it must be the Java 11 build.
 
 Before running the Enso packages, make sure that the `JAVA_HOME` environment
 variable points to the correct home location of the Graal distribution.
