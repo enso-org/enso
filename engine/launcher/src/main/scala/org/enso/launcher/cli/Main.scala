@@ -252,7 +252,11 @@ object Main {
     }
 
   private def installEngineCommand: Subcommand[Config => Unit] =
-    Subcommand("engine", "Installs a specified or latest engine version.") {
+    Subcommand(
+      "engine",
+      "Installs the specified engine version, defaulting to the latest if " +
+      "unspecified."
+    ) {
       val version = Opts.optionalArgument[SemVer](
         "VERSION",
         "VERSION specifies the engine version to install. If not provided, the" +
@@ -269,7 +273,10 @@ object Main {
     }
 
   private def installDistributionCommand: Subcommand[Config => Unit] =
-    Subcommand("distribution", "Locally installs a portable distribution.") {
+    Subcommand(
+      "distribution",
+      "Installs Enso on the system, deactivating portable mode."
+    ) {
 
       implicit val bundleActionParser: Argument[BundleAction] = {
         case "move"   => DistributionInstaller.MoveBundles.asRight
@@ -322,8 +329,8 @@ object Main {
   private def uninstallEngineCommand: Subcommand[Config => Unit] =
     Subcommand(
       "engine",
-      "Uninstalls a provided engine version. If a runtime is not used by any " +
-      "engines anymore, it is also removed."
+      "Uninstalls the provided engine version. If the corresponding runtime " +
+      "is not used by any remaining engine installations, it is also removed."
     ) {
       val version = Opts.positionalArgument[SemVer]("VERSION")
       version map { version => (config: Config) =>
@@ -334,8 +341,8 @@ object Main {
   private def uninstallDistributionCommand: Subcommand[Config => Unit] =
     Subcommand(
       "distribution",
-      "Uninstalls the whole Enso distribution and all components managed by " +
-      "it. If `auto-confirm` is set, does not attempt to remove the " +
+      "Uninstalls whole Enso distribution and all components managed by " +
+      "it. If `auto-confirm` is set, it will not attempt to remove the " +
       "ENSO_DATA_DIRECTORY and ENSO_CONFIG_DIRECTORY if they contain any " +
       "unexpected files."
     ) {

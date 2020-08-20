@@ -9,7 +9,7 @@ import org.enso.launcher.cli.InternalOpts
 import org.enso.launcher.{FileSystem, GlobalConfigurationManager, Logger, OS}
 
 /**
-  * Allows to [[uninstall]] a non-portable distribution.
+  * Allows to [[uninstall]] an installed distribution.
   *
   * @param manager a distribution manager instance which defines locations for
   *                the distribution that will be uninstalled

@@ -32,10 +32,10 @@ import org.enso.launcher.FileSystem.PathSyntax
   * 2. Finish Uninstall
   *    After uninstalling the distribution, we need to remove the executable,
   *    but for the same reasons as above, we need a workaround. The uninstaller
-  *    creates a copy of itself in a temporary directory (hoping that the copy
-  *    will be removed at some point) and uses it to remove the original binary.
-  *    It then can also remove the (now empty) installation directory if
-  *    necessary.
+  *    creates a copy of itself in a temporary directory (which will be removed
+  *    when the system removes temporary files) and uses it to remove the
+  *    original binary. It then can also remove the (now empty) installation
+  *    directory if necessary.
   */
 object InternalOpts {
   private val REMOVE_OLD_EXECUTABLE   = "internal-remove-old-executable"
@@ -70,7 +70,8 @@ object InternalOpts {
         FINISH_UNINSTALL_PARENT,
         "PATH",
         s"Removes the possible parent directories of the old executable. " +
-        s"To be used only in conjunction with $FINISH_UNINSTALL."
+        s"To be used only in conjunction with $FINISH_UNINSTALL. Has no " +
+        s"effect if used without that option."
       )
       .hidden
 
@@ -123,12 +124,15 @@ object InternalOpts {
 
     /**
       * Tells the temporary launcher to remove the original launcher executable
-      * and possibly its (grand-)parent directory.
+      * and possibly its parent directory.
+      *
+      * The parent directory is removed if it is empty or only contains an empty
+      * `bin` directory. This is used for cases when the executable is inside of
+      * the data directory and the data directory cannot be fully removed before
+      * the executable has been removed.
       *
       * @param executablePath path to the old executable
-      * @param parentToRemove path to the (grand-)parent directory; this
-      *                       directory is removed if it is empty or only
-      *                       contains an empty `bin` directory
+      * @param parentToRemove path to the parent directory
       */
     def finishUninstall(
       executablePath: Path,
