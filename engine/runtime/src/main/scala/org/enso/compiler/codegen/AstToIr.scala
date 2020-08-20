@@ -94,14 +94,19 @@ object AstToIr {
             )
         }
 
+        val exports = presentBlocks.collect {
+          case AST.Export.any(export) => translateExport(export)
+        }
+
         val nonImportBlocks = presentBlocks.filter {
           case AST.Import.any(_)     => false
           case AST.JavaImport.any(_) => false
+          case AST.Export.any(_)     => false
           case _                     => true
         }
 
         val statements = nonImportBlocks.map(translateModuleSymbol)
-        Module(imports, statements, getIdentifiedLocation(module))
+        Module(imports, exports, statements, getIdentifiedLocation(module))
     }
   }
 
@@ -849,6 +854,26 @@ object AstToIr {
         )
       case _ =>
         IR.Error.Syntax(imp, IR.Error.Syntax.InvalidImport)
+    }
+  }
+
+  /** Translates an export statement from its [[AST]] representation into
+    * [[IR]].
+    *
+    * @param imp the export to translate
+    * @return the [[IR]] representation of `imp`
+    */
+  def translateExport(imp: AST.Export): Module.Scope.Export = {
+    imp match {
+      case AST.Export(path, rename, isAll, onlyNames, hiddenNames) =>
+        IR.Module.Scope.Export(
+          IR.Name.Qualified(path.map(buildName).toList, None),
+          rename.map(buildName),
+          isAll,
+          onlyNames.map(_.map(buildName).toList),
+          hiddenNames.map(_.map(buildName).toList),
+          getIdentifiedLocation(imp)
+        )
     }
   }
 

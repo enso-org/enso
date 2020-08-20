@@ -209,7 +209,7 @@ trait CompilerRunner {
       * @return a module containing an atom def and method def using `expr`
       */
     def asModuleDefs: IR.Module = {
-      IR.Module(List(), List(ir.asAtomDefaultArg, ir.asMethod), None)
+      IR.Module(List(), List(), List(ir.asAtomDefaultArg, ir.asMethod), None)
     }
   }
 

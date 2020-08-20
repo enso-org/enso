@@ -4,6 +4,7 @@ import org.enso.compiler.core.IR
 import org.enso.interpreter.runtime.Module
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.data.BindingsMap.{ResolvedConstructor, ResolvedMethod}
 import org.enso.compiler.pass.analyse.BindingAnalysis
 
 import scala.jdk.CollectionConverters._
@@ -21,7 +22,7 @@ object StubIrBuilder {
     * @return the built stub IR.
     */
   def build(module: Module): IR.Module = {
-    val ir        = IR.Module(List(), List(), None)
+    val ir        = IR.Module(List(), List(), List(), None)
     val scope     = module.getScope
     val conses    = scope.getConstructors.asScala
     val consNames = conses.keys.map(_.toLowerCase()).toSet
@@ -40,12 +41,16 @@ object StubIrBuilder {
       .getOrElse(List())
     val polyglot = scope.getPolyglotSymbols.asScala.keys.toList
       .map(BindingsMap.PolyglotSymbol)
+    val exportedBindings = definedConstructors.map(c =>
+        (c.name.toLowerCase, List(ResolvedConstructor(module, c)))
+      ) ++ moduleMethods.map(m => (m.name, List(ResolvedMethod(module, m))))
     val meta = BindingsMap(
       definedConstructors,
       polyglot,
       moduleMethods,
       module
     )
+    meta.exportedSymbols = exportedBindings.toMap
     ir.updateMetadata(BindingAnalysis -->> meta)
   }
 }

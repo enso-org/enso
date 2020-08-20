@@ -1,0 +1,7 @@
+foo = 123
+
+bar = 345
+
+const = here.foo + this.bar
+
+Number.bar = this + 5

@@ -267,7 +267,7 @@ object Builtin {
         case _ => internalError
       }
     }
-    val (qualifiedImport, itemsImport) = {
+    val (qualifiedImport, itemsImport, qualifiedExport, itemsExport) = {
       val qualNamePat = Pattern.SepList(Pattern.Cons(), Opr("."))
       val rename      = Var("as") :: Pattern.Cons()
 
@@ -323,22 +323,77 @@ object Builtin {
         }
       }
 
-      val qualifiedImport = {
+      val itemsExport = {
+        val all: Pattern = Var("all")
+        val items        = Pattern.SepList(Pattern.Cons() | Pattern.Var(), Opr(","))
+        val hiding       = Var("hiding") :: items
+
+        Definition(
+          Var("from")   -> (qualNamePat :: rename.opt),
+          Var("export") -> ((all :: hiding.opt) | items)
+        ) { ctx =>
+          ctx.body match {
+            case List(imp, itemsMatch) =>
+              val (name, rename) = extractRename(imp.body)
+              val (hiding, items) = itemsMatch.body match {
+                case Match.Or(_, Left(hidden)) =>
+                  val hiddenItems = hidden.toStream
+                    .map(_.wrapped)
+                    .drop(2)
+                    .collect {
+                      case AST.Ident.Var.any(v)  => v: AST.Ident
+                      case AST.Ident.Cons.any(c) => c: AST.Ident
+                    }
+                  (List1(hiddenItems), None)
+
+                case Match.Or(_, Right(imported)) =>
+                  val importedItems = imported.toStream
+                    .map(_.wrapped)
+                    .collect {
+                      case AST.Ident.Var.any(v)  => v: AST.Ident
+                      case AST.Ident.Cons.any(c) => c: AST.Ident
+                    }
+                  (None, List1(importedItems))
+                case _ => internalError
+              }
+              AST.Export(name, rename, true, items, hiding)
+            case _ => internalError
+          }
+
+        }
+      }
+
+      def qualifiedConstruct(
+        constructName: String,
+        constructFactory: (
+          List1[AST.Ident.Cons],
+          Option[AST.Ident.Cons],
+          Boolean,
+          Option[List1[AST.Ident.Cons]],
+          Option[List1[AST.Ident.Cons]]
+        ) => AST
+      ): Definition = {
         Definition(
           Var(
-            "import"
+            constructName
           ) -> (qualNamePat :: rename.opt)
         ) { ctx =>
           ctx.body match {
             case List(s1) =>
               val (name, rename) = extractRename(s1.body)
-              AST.Import(name, rename, false, None, None)
+              constructFactory(name, rename, false, None, None)
             case _ => internalError
           }
         }
       }
-      (qualifiedImport, itemsImport)
+      (
+        qualifiedConstruct("import", AST.Import.apply),
+        itemsImport,
+        qualifiedConstruct("export", AST.Export.apply),
+        itemsExport
+      )
     }
+
     val privateDef = {
       Definition(Var("private") -> Pattern.Expr()) { ctx =>
         ctx.body match {
@@ -389,6 +444,8 @@ object Builtin {
       polyglotJavaImport,
       itemsImport,
       qualifiedImport,
+      itemsExport,
+      qualifiedExport,
       defn,
       arrow,
       foreign,

@@ -803,6 +803,23 @@ class AstToIrTest extends CompilerTest with Inside {
       .map(_.showCode()) shouldEqual imports
   }
 
+  "properly support different kinds of exports" in {
+    val exports = List(
+      "export Foo.Bar as Baz",
+      "export Foo.Bar",
+      "from Foo.Bar export Baz",
+      "from Foo.Bar export baz, Spam",
+      "from Foo.Bar export all",
+      "from Foo.Bar as Eggs export all hiding Spam",
+      "from Foo.Bar export all hiding Spam, eggs"
+    )
+    exports
+      .mkString("\n")
+      .toIrModule
+      .exports
+      .map(_.showCode()) shouldEqual exports
+  }
+
   "AST translation of erroneous constructs" should {
     "result in a syntax error when encountering " +
     "unbalanced parentheses in application" in {
