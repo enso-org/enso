@@ -29,22 +29,28 @@ trait FakeEnvironment { self: WithTemporaryDirectory =>
   /**
     * Returns an [[Environment]] instance that overrides the `ENSO_*`
     * directories to be inside the temporary directory for the test.
+    *
+    * Additionall environment overrides may be passed that will also be added to
+    * the environment. Note, however, that the `ENSO_*` directories that are
+    * defined in this function take precedence over whatever is passed to
+    * `extraOverrides`.
     */
-  def fakeInstalledEnvironment(): Environment = {
+  def fakeInstalledEnvironment(
+    extraOverrides: Map[String, String] = Map.empty
+  ): Environment = {
     val executable = fakeExecutablePath()
     val dataDir    = getTestDirectory / "test_data"
     val configDir  = getTestDirectory / "test_config"
     val binDir     = getTestDirectory / "test_bin"
+    val env = extraOverrides
+      .updated("ENSO_DATA_DIRECTORY", dataDir.toString)
+      .updated("ENSO_CONFIG_DIRECTORY", configDir.toString)
+      .updated("ENSO_BIN_DIRECTORY", binDir.toString)
     val fakeEnvironment = new Environment {
       override def getPathToRunningExecutable: Path = executable
 
       override def getEnvVar(key: String): Option[String] =
-        key match {
-          case "ENSO_DATA_DIRECTORY"   => Some(dataDir.toString)
-          case "ENSO_CONFIG_DIRECTORY" => Some(configDir.toString)
-          case "ENSO_BIN_DIRECTORY"    => Some(binDir.toString)
-          case _                       => super.getEnvVar(key)
-        }
+        env.orElse(Function.unlift(super.getEnvVar)).lift(key)
     }
 
     fakeEnvironment

@@ -259,12 +259,21 @@ command.
 Tells the launcher to use the default JVM (based on `JAVA_HOME`) instead of the
 managed one. Will not work if the set-up JVM version is not GraalVM.
 
-## JVM Options
+## Options From Newer Versions
 
 For commands that launch an Enso component inside a JVM (`repl`, `run` and
 `language-server`), parameters that the launcher does not know about (for
 example introduced in versions of Enso newer than the launcher knows about) may
 be passed after a double dash (`--`), i.e. `enso repl -- --someUnknownFlag`.
+
+## JVM Options
+
+If an environment variable `ENSO_JVM_OPTS` is defined, JVM options defined there
+are passed to the launcher JVM.
+
+> Note: Currently the `ENSO_JVM_OPTS` are parsed by splitting on the space
+> character, so individual options listed in this environment variable should
+> not contain spaces or they may be interpreted incorrectly.
 
 Moreover, it is possible to pass parameters to the JVM that is used to launch
 these components, which may be helpful with debugging. A parameter of the form

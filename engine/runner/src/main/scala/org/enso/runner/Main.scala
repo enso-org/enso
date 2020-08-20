@@ -28,6 +28,7 @@ object Main {
   private val DATA_PORT_OPTION       = "data-port"
   private val ROOT_ID_OPTION         = "root-id"
   private val ROOT_PATH_OPTION       = "path"
+  private val IN_PROJECT_OPTION      = "in-project"
   private val VERSION_OPTION         = "version"
   private val JSON_OPTION            = "json"
 
@@ -99,6 +100,16 @@ object Main {
       .longOpt(ROOT_PATH_OPTION)
       .desc("Path to the content root.")
       .build()
+    val inProjectOption = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("project-path")
+      .longOpt(IN_PROJECT_OPTION)
+      .desc(
+        "Setting this option when running the REPL or an Enso script, runs it" +
+        "in context of the specified project."
+      )
+      .build()
     val version = CliOption.builder
       .longOpt(VERSION_OPTION)
       .desc("Checks the version of the Enso executable.")
@@ -120,6 +131,7 @@ object Main {
       .addOption(dataPortOption)
       .addOption(uuidOption)
       .addOption(pathOption)
+      .addOption(inProjectOption)
       .addOption(version)
       .addOption(json)
 
@@ -135,13 +147,10 @@ object Main {
     new HelpFormatter().printHelp(LanguageInfo.ID, options)
 
   /** Terminates the process with a failure exit code. */
-  private def exitFail(): Nothing = {
-    System.exit(1)
-    throw new IllegalStateException("impossible to reach here")
-  }
+  private def exitFail(): Nothing = sys.exit(1)
 
   /** Terminates the process with a success exit code. */
-  private def exitSuccess(): Unit = System.exit(0)
+  private def exitSuccess(): Unit = sys.exit(0)
 
   /**
     * Handles the `--new` CLI option.
@@ -156,9 +165,14 @@ object Main {
   /**
     * Handles the `--run` CLI option.
     *
+    * If `path` is a directory, so a project is run, a conflicting (pointing to
+    * another project) `projectPath` should not be provided.
+    *
     * @param path path of the project or file to execute
+    * @param projectPath if specified, the script is run in context of a
+    *                    project located at that path
     */
-  private def run(path: String): Unit = {
+  private def run(path: String, projectPath: Option[String]): Unit = {
     val file = new File(path)
     if (!file.exists) {
       println(s"File $file does not exist.")
@@ -166,8 +180,19 @@ object Main {
     }
     val projectMode = file.isDirectory
     val packagePath =
-      if (projectMode) file.getAbsolutePath
-      else ""
+      if (projectMode) {
+        projectPath match {
+          case Some(inProject) if inProject != path =>
+            println(
+              "It is not possible to run a project in context of another " +
+              "project, please do not use the `--in-project` option for " +
+              "running projects."
+            )
+            exitFail()
+          case _ =>
+        }
+        file.getAbsolutePath
+      } else projectPath.getOrElse("")
     val context = new ContextFactory().create(
       packagePath,
       System.in,
@@ -258,9 +283,13 @@ object Main {
     }
   }
 
-  private def runMain(mainModule: Module, rootPkgPath: Option[File]): Value = {
+  private def runMain(
+    mainModule: Module,
+    rootPkgPath: Option[File],
+    mainMethodName: String = "main"
+  ): Value = {
     val mainCons = mainModule.getAssociatedConstructor
-    val mainFun  = mainModule.getMethod(mainCons, "main")
+    val mainFun  = mainModule.getMethod(mainCons, mainMethodName)
     try {
       mainFun.execute(mainCons.newInstance())
     } catch {
@@ -272,15 +301,25 @@ object Main {
 
   /**
     * Handles the `--repl` CLI option
+    *
+    * @param projectPath if specified, the REPL is run in context of a project
+    *                    at the given path
     */
-  private def runRepl(): Unit = {
-    val dummySourceToTriggerRepl = "main = Debug.breakpoint"
-    val replModuleName           = "Repl"
+  private def runRepl(projectPath: Option[String]): Unit = {
+    val mainMethodName           = "internal_repl_entry_point___"
+    val dummySourceToTriggerRepl = s"$mainMethodName = Debug.breakpoint"
+    val replModuleName           = "Internal_Repl_Module___"
+    val packagePath              = projectPath.getOrElse("")
     val context =
-      new ContextFactory().create("", System.in, System.out, Repl(TerminalIO()))
+      new ContextFactory().create(
+        packagePath,
+        System.in,
+        System.out,
+        Repl(TerminalIO())
+      )
     val mainModule =
       context.evalModule(dummySourceToTriggerRepl, replModuleName)
-    runMain(mainModule, None)
+    runMain(mainModule, None, mainMethodName = mainMethodName)
     exitSuccess()
   }
 
@@ -366,10 +405,13 @@ object Main {
       createNew(line.getOptionValue(NEW_OPTION))
     }
     if (line.hasOption(RUN_OPTION)) {
-      run(line.getOptionValue(RUN_OPTION))
+      run(
+        line.getOptionValue(RUN_OPTION),
+        Option(line.getOptionValue(IN_PROJECT_OPTION))
+      )
     }
     if (line.hasOption(REPL_OPTION)) {
-      runRepl()
+      runRepl(Option(line.getOptionValue(IN_PROJECT_OPTION)))
     }
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       runLanguageServer(line)

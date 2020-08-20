@@ -118,7 +118,7 @@ object DirectoriesConfig {
   *
   * @param contentRoots a mapping between content root id and absolute path to
   * the content root
-  * @param fileManager the file manater config
+  * @param fileManager the file manager config
   * @param pathWatcher the path watcher config
   * @param executionContext the executionContext config
   * @param directories the configuration of internal directories

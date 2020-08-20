@@ -72,6 +72,9 @@ public final class RuntimeCache {
    */
   public IdExecutionInstrument.FunctionCallInfo putCall(
       UUID key, IdExecutionInstrument.FunctionCallInfo call) {
+    if (call == null) {
+      return calls.remove(key);
+    }
     return calls.put(key, call);
   }
 

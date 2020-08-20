@@ -1,4 +1,5 @@
 name: Benchmarks
+enso-version: default
 version: 0.0.1
 license: MIT
 author: enso-dev@enso.org

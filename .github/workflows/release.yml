@@ -105,7 +105,7 @@ jobs:
         shell: bash
         run: |
           chmod +x enso
-          DIST_VERSION=$(./enso version --json | jq -r '.version')
+          DIST_VERSION=$(./enso version --json --only-launcher | jq -r '.version')
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
 
       - name: Prepare Distribution Version (Windows)
@@ -113,7 +113,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          DIST_VERSION=$(./enso.exe version --json | jq -r '.version')
+          DIST_VERSION=$(./enso.exe version --json --only-launcher | jq -r '.version')
           echo ::set-env name=DIST_VERSION::$DIST_VERSION
 
       # Currently the only architecture supported by Github runners is amd64

@@ -37,8 +37,10 @@ trait NativeTest extends AnyWordSpec with Matchers with TimeLimitedTests {
     override def apply(left: RunResult): MatchResult =
       MatchResult(
         left.exitCode == 0,
-        s"Run did not exit with success but exit with code ${left.exitCode}.",
-        s"Run did not fail as expected."
+        s"Run did not exit with success but exit with code ${left.exitCode}.\n" +
+        s"Its stderr was: ```${left.stderr}```.\n" +
+        s"And stdout was: ```${left.stdout}```.",
+        s"Run did not fail as expected. It printed ```${left.stdout}```."
       )
   }
 

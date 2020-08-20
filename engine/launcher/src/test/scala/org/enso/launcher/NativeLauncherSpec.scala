@@ -1,16 +1,22 @@
 package org.enso.launcher
 
 import buildinfo.Info
+import io.circe.parser
 
 class NativeLauncherSpec extends NativeTest {
   "native launcher" should {
     "display its version" in {
-      val run = runLauncher(Seq("--version"))
+      val run = runLauncher(Seq("version", "--json", "--only-launcher"))
       run should returnSuccess
 
-      run.stdout should include("Enso Launcher")
-      run.stdout should include("Version:")
-      run.stdout should include(Info.ensoVersion)
+      val version = parser.parse(run.stdout).getOrElse {
+        throw new RuntimeException("Version should be a valid JSON string.")
+      }
+      version.asObject.get
+        .apply("version")
+        .get
+        .asString
+        .get shouldEqual Info.ensoVersion
     }
   }
 }

@@ -284,14 +284,14 @@ class DistributionInstaller(
 
         if (bundleAction.copy) {
           for (engine <- engines) {
-            Logger.info(s"Copying bundled Enso engine ${engine.getFileName}")
+            Logger.info(s"Copying bundled Enso engine ${engine.getFileName}.")
             FileSystem.copyDirectory(
               engine,
               enginesDirectory / engine.getFileName
             )
           }
           for (runtime <- runtimes) {
-            Logger.info(s"Copying bundled runtime ${runtime.getFileName}")
+            Logger.info(s"Copying bundled runtime ${runtime.getFileName}.")
             FileSystem.copyDirectory(
               runtime,
               runtimesDirectory / runtime.getFileName
