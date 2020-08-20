@@ -216,16 +216,18 @@ trait CompilerRunner {
   /**
     * Builds a module context with a mocked module for testing purposes.
     *
+    * @param moduleName the name of the test module.
     * @param freshNameSupply the fresh name supply to use in tests.
     * @param passConfiguration any additional pass configuration.
     * @return an instance of module context.
     */
   def buildModuleContext(
+    moduleName: QualifiedName                    = QualifiedName.simpleName("Test_Module"),
     freshNameSupply: Option[FreshNameSupply]     = None,
     passConfiguration: Option[PassConfiguration] = None
   ): ModuleContext = {
     ModuleContext(
-      module            = Module.empty(QualifiedName.simpleName("Test_Module")),
+      module            = Module.empty(moduleName),
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration
     )
