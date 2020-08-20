@@ -51,9 +51,11 @@ class ImportResolver(compiler: Compiler) {
         )
         val importedModules = ir.imports.flatMap {
           case imp: IR.Module.Scope.Import.Module =>
+            val impName = imp.name.name
+            val exp     = ir.exports.find(_.name.name == impName)
             compiler
-              .getModule(imp.name.name)
-              .map(BindingsMap.ResolvedImport(imp, _))
+              .getModule(impName)
+              .map(BindingsMap.ResolvedImport(imp, exp, _))
           case _ => None
         }
 
@@ -71,8 +73,10 @@ class ImportResolver(compiler: Compiler) {
               None,
               None
             ),
+          None,
           compiler.context.getBuiltins.getModule
         )
+
         currentLocal.resolvedImports =
           builtinResolution :: importedModules
         current.unsafeSetCompilationStage(

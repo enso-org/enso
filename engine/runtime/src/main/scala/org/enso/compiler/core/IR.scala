@@ -282,6 +282,7 @@ object IR {
     * executable code.
     *
     * @param imports the import statements that bring other modules into scope
+    * @param exports the export statements for this module
     * @param bindings the top-level bindings for this module
     * @param location the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
@@ -289,6 +290,7 @@ object IR {
     */
   sealed case class Module(
     imports: List[Module.Scope.Import],
+    exports: List[Module.Scope.Export],
     bindings: List[Module.Scope.Definition],
     override val location: Option[IdentifiedLocation],
     override val passData: MetadataStorage      = MetadataStorage(),
@@ -300,6 +302,7 @@ object IR {
     /** Creates a copy of `this`.
       *
       * @param imports the import statements that bring other modules into scope
+      * @param exports the export statements for this module
       * @param bindings the top-level bindings for this module
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
@@ -309,13 +312,15 @@ object IR {
       */
     def copy(
       imports: List[Module.Scope.Import]      = imports,
+      exports: List[Module.Scope.Export]      = exports,
       bindings: List[Module.Scope.Definition] = bindings,
       location: Option[IdentifiedLocation]    = location,
       passData: MetadataStorage               = passData,
       diagnostics: DiagnosticStorage          = diagnostics,
       id: Identifier                          = id
     ): Module = {
-      val res = Module(imports, bindings, location, passData, diagnostics)
+      val res =
+        Module(imports, exports, bindings, location, passData, diagnostics)
       res.id = id
       res
     }
@@ -345,16 +350,18 @@ object IR {
     override def mapExpressions(fn: Expression => Expression): Module = {
       copy(
         imports  = imports.map(_.mapExpressions(fn)),
+        exports  = exports.map(_.mapExpressions(fn)),
         bindings = bindings.map(_.mapExpressions(fn))
       )
     }
 
-    override def children: List[IR] = imports ++ bindings
+    override def children: List[IR] = imports ++ exports ++ bindings
 
     override def toString: String =
       s"""
       |IR.Module(
       |imports = $imports,
+      |exports = $exports,
       |bindings = $bindings,
       |location = $location,
       |passData = ${this.showPassData},
@@ -366,17 +373,14 @@ object IR {
     override def showCode(indent: Int): String = {
       val importsString = imports.map(_.showCode(indent)).mkString("\n")
 
+      val exportsString = exports.map(_.showCode(indent)).mkString("\n")
+
       val defsString = bindings.map(_.showCode(indent)).mkString("\n\n")
 
-      if (bindings.nonEmpty && imports.nonEmpty) {
-        s"$importsString\n\n$defsString"
-      } else if (bindings.nonEmpty) {
-        s"$defsString"
-      } else {
-        s"$importsString"
-      }
+      List(importsString, exportsString, defsString).mkString("\n\n")
     }
   }
+
   object Module {
 
     /** A representation of constructs that can only occur in the top-level
@@ -392,6 +396,159 @@ object IR {
       ): Scope
     }
     object Scope {
+
+      /** An export statement.
+        *
+        * @param name the full path representing the export
+        * @param rename the name this export is visible as
+        * @param isAll is this an unqualified export
+        * @param onlyNames exported names selected from the exported module
+        * @param hiddenNames exported names hidden from the exported module
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        */
+      sealed case class Export(
+        name: IR.Name.Qualified,
+        rename: Option[IR.Name.Literal],
+        isAll: Boolean,
+        onlyNames: Option[List[IR.Name.Literal]],
+        hiddenNames: Option[List[IR.Name.Literal]],
+        override val location: Option[IdentifiedLocation],
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+      ) extends IR
+          with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param name the full path representing the export
+          * @param rename the name this export is visible as
+          * @param isAll is this an unqualified export
+          * @param onlyNames exported names selected from the exported module
+          * @param hiddenNames exported names hidden from the exported module
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          name: IR.Name.Qualified                    = name,
+          rename: Option[IR.Name.Literal]            = rename,
+          isAll: Boolean                             = isAll,
+          onlyNames: Option[List[IR.Name.Literal]]   = onlyNames,
+          hiddenNames: Option[List[IR.Name.Literal]] = hiddenNames,
+          location: Option[IdentifiedLocation]       = location,
+          passData: MetadataStorage                  = passData,
+          diagnostics: DiagnosticStorage             = diagnostics,
+          id: Identifier                             = id
+        ): Export = {
+          val res = Export(
+            name,
+            rename,
+            isAll,
+            onlyNames,
+            hiddenNames,
+            location,
+            passData,
+            diagnostics
+          )
+          res.id = id
+          res
+        }
+
+        override def duplicate(
+          keepLocations: Boolean   = true,
+          keepMetadata: Boolean    = true,
+          keepDiagnostics: Boolean = true
+        ): Export =
+          copy(
+            location = if (keepLocations) location else None,
+            passData =
+              if (keepMetadata) passData.duplicate else MetadataStorage(),
+            diagnostics =
+              if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
+            id = randomId
+          )
+
+        override def setLocation(
+          location: Option[IdentifiedLocation]
+        ): Export =
+          copy(location = location)
+
+        override def mapExpressions(
+          fn: Expression => Expression
+        ): Export = this
+
+        override def toString: String =
+          s"""
+               |IR.Module.Scope.Export(
+               |name = $name,
+               |rename = $rename,
+               |isAll = $isAll,
+               |onlyNames = $onlyNames,
+               |hidingNames = $hiddenNames,
+               |location = $location,
+               |passData = ${this.showPassData},
+               |diagnostics = $diagnostics,
+               |id = $id
+               |)
+               |""".toSingleLine
+
+        override def children: List[IR] =
+          name :: List(
+            rename.toList,
+            onlyNames.getOrElse(List()),
+            hiddenNames.getOrElse(List())
+          ).flatten
+
+        override def showCode(indent: Int): String = {
+          val renameCode = rename.map(n => s" as ${n.name}").getOrElse("")
+          if (isAll) {
+            val onlyPart = onlyNames
+              .map(names => " " + names.map(_.name).mkString(", "))
+              .getOrElse("")
+            val hidingPart = hiddenNames
+              .map(names => s" hiding ${names.map(_.name).mkString(", ")}")
+              .getOrElse("")
+            val all = if (onlyNames.isDefined) "" else " all"
+            s"from ${name.name}$renameCode export$onlyPart$all$hidingPart"
+          } else {
+            s"export ${name.name}$renameCode"
+          }
+        }
+
+        /**
+          * Gets the name of the module visible in the importing scope,
+          * either the original name or the rename.
+          *
+          * @return the name of this export visible in code
+          */
+        def getSimpleName: IR.Name = rename.getOrElse(name.parts.last)
+
+        /**
+          * Checks whether the export statement allows use of the given
+          * exported name.
+          *
+          * Note that it does not verify if the name is actually exported
+          * by the module, only checks if it is syntactically allowed.
+          *
+          * @param name the name to check
+          * @return whether the name could be accessed or not
+          */
+        def allowsAccess(name: String): Boolean = {
+          if (!isAll) return false;
+          if (onlyNames.isDefined) {
+            onlyNames.get.exists(_.name.toLowerCase == name.toLowerCase)
+          } else if (hiddenNames.isDefined) {
+            !hiddenNames.get.exists(_.name.toLowerCase == name.toLowerCase)
+          } else {
+            true
+          }
+        }
+      }
 
       /** Module-level import statements. */
       sealed trait Import extends Scope {

@@ -3,14 +3,10 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.data.BindingsMap.{
-  Cons,
-  Resolution,
-  ResolvedConstructor,
-  ResolvedModule
-}
+import org.enso.compiler.data.BindingsMap.{Cons, Resolution, ResolvedConstructor, ResolvedModule}
 import org.enso.compiler.pass.resolve.UppercaseNames
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
+import org.enso.compiler.phase.ExportsResolution
 import org.enso.compiler.test.CompilerTest
 
 class UppercaseNamesTest extends CompilerTest {
@@ -24,13 +20,13 @@ class UppercaseNamesTest extends CompilerTest {
 
   val passes = new Passes
 
-  val precursorPasses: PassGroup =
-    passes.getPrecursors(UppercaseNames).get
+  val group1 = passes.moduleDiscoveryPasses
+  val group2 = new PassGroup(passes.functionBodyPasses.passes.takeWhile(_ != UppercaseNames))
 
   val passConfiguration: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
-    new PassManager(List(precursorPasses), passConfiguration)
+    new PassManager(List(group1, group2), passConfiguration)
 
   /** Adds an extension method to analyse an Enso module.
     *
@@ -69,10 +65,12 @@ class UppercaseNamesTest extends CompilerTest {
                  |add_one x = x + 1
                  |
                  |""".stripMargin
-    val preIr = code.preprocessModule
-    ctx.module.unsafeSetIr(preIr)
-
-    val ir = preIr.analyse
+    val parsed = code.toIrModule
+    val moduleMapped = passManager.runPassesOnModule(parsed, ctx, group1)
+    ctx.module.unsafeSetIr(moduleMapped)
+    new ExportsResolution().run(List(ctx.module))
+    val allPrecursors = passManager.runPassesOnModule(moduleMapped, ctx, group2)
+    val ir = allPrecursors.analyse
 
     val bodyExprs = ir
       .bindings(0)

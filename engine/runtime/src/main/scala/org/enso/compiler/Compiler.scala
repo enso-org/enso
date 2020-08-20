@@ -10,7 +10,11 @@ import org.enso.compiler.core.IR.Expression
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.phase.ImportResolver
+import org.enso.compiler.phase.{
+  ExportCycleException,
+  ExportsResolution,
+  ImportResolver
+}
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
@@ -47,7 +51,10 @@ class Compiler(val context: Context) {
     */
   def run(source: Source, module: Module): Unit = {
     parseModule(module)
-    val requiredModules = importResolver.mapImports(module)
+    val importedModules = importResolver.mapImports(module)
+    val requiredModules =
+      try { new ExportsResolution().run(importedModules) }
+      catch { case e: ExportCycleException => reportCycle(e) }
     requiredModules.foreach { module =>
       if (
         !module.getCompilationStage.isAtLeast(
@@ -312,6 +319,31 @@ class Compiler(val context: Context) {
       if (reportDiagnostics(diagnostics)) {
         throw new CompilationAbortedException
       }
+    }
+  }
+
+  private def reportCycle(exception: ExportCycleException): Nothing = {
+    if (context.isStrictErrors) {
+      context.getOut.println("Compiler encountered errors:")
+      context.getOut.println("Export statements form a cycle:")
+      exception.modules match {
+        case List(mod) =>
+          context.getOut.println(s"    ${mod.getName} exports itself.")
+        case first :: second :: rest =>
+          context.getOut.println(
+            s"    ${first.getName} exports ${second.getName}"
+          )
+          rest.foreach { mod =>
+            context.getOut.println(s"    which exports ${mod.getName}")
+          }
+          context.getOut.println(
+            s"    which exports ${first.getName}, forming a cycle."
+          )
+        case _ =>
+      }
+      throw new CompilationAbortedException
+    } else {
+      throw exception
     }
   }
 
