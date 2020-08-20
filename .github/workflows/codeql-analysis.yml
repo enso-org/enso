@@ -11,7 +11,7 @@ on:
 
 env:
   # Please ensure that this is in sync with graalAPIVersion in build.sbt
-  graalVersion: 20.1.0
+  graalVersion: 20.2.0
   javaVersion: java11
   # Please ensure that this is in sync with project/build.properties
   sbtVersion: 1.3.13

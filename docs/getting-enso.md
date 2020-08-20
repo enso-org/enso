@@ -64,8 +64,8 @@ This section lists the most common failures and their probable causes.
    section. It should be similar to:
 
    ```
-   Running on: OpenJDK 64-Bit Server VM, GraalVM Community, JDK 11.0.7+10-jvmci-20.1-b02
-               Linux 4.15.0-106-generic (amd64)
+   Running on: OpenJDK 64-Bit Server VM, GraalVM Community, JDK 11.0.8+10-jvmci-20.2-b03
+               Linux 4.15.0-112-generic (amd64)
    ```
 
    It could also be caused by not using the launcher scripts and trying to run
