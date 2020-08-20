@@ -7,6 +7,18 @@ import org.enso.compiler.data.BindingsMap.ResolvedModule
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 
+/**
+  * Performs a substitution of `this` to `here` in methods defined on the
+  * current module.
+  *
+  * In module-level methods, both names are semantically equivalent, but `here`
+  * lends itself to static resolution in later passes and thus better
+  * performance characteristics.
+  *
+  * It also allows the runtime to never pass a valid `this` to such a method
+  * (as it is guaranteed to not be used) and therefore perform optimizations,
+  * e.g. in method-reexports.
+  */
 case object ModuleMethodThis extends IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */

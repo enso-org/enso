@@ -186,6 +186,11 @@ public class ModuleScope {
     imports.add(scope);
   }
 
+  /**
+   * Adds an information about the module exporting another module.
+   *
+   * @param scope the exported scope
+   */
   public void addExport(ModuleScope scope) {
     exports.add(scope);
   }
@@ -194,6 +199,7 @@ public class ModuleScope {
     return constructors;
   }
 
+  /** @return the raw method map held by this module */
   public Map<AtomConstructor, Map<String, Function>> getMethods() {
     return methods;
   }

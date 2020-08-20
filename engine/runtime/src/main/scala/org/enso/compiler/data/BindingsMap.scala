@@ -172,7 +172,14 @@ case class BindingsMap(
     handleAmbiguity(findExportedSymbolsFor(name))
   }
 
-  def getExportedModules: List[(Module, Option[String], SymbolRestriction)] =
+  /**
+    * Dumps the export statements from this module into a structure ready for
+    * further analysis.
+    *
+    * @return a list of triples of the exported module, the name it is exported
+    *         as and any further symbol restrictions.
+    */
+  def getDirectlyExportedModules: List[ExportedModule] =
     resolvedImports.collect {
       case ResolvedImport(_, Some(exp), mod) =>
         val restriction = if (exp.isAll) {
@@ -195,38 +202,80 @@ case class BindingsMap(
         } else {
           None
         }
-        (mod, rename, restriction)
+        ExportedModule(mod, rename, restriction)
     }
 }
 
 object BindingsMap {
 
+  /** Represents a symbol restriction on symbols exported from a module. */
   sealed trait SymbolRestriction {
+
+    /**
+      * Whether the export statement allows accessing the given name.
+      *
+      * @param symbol the name to check
+      * @return whether access to the symbol is permitted by this restriction.
+      */
     def canAccess(symbol: String): Boolean
-    def optimize:                  SymbolRestriction
+
+    /**
+      * Performs static optimizations on the restriction, simplifying
+      * common patterns.
+      *
+      * @return a possibly simpler version of the restriction, describing
+      *         the same set of names.
+      */
+    def optimize: SymbolRestriction
   }
 
   case object SymbolRestriction {
+
+    /**
+      * A restriction representing a set of allowed symbols.
+      *
+      * @param symbols the allowed symbols.
+      */
     case class Only(symbols: Set[String]) extends SymbolRestriction {
       override def canAccess(symbol: String): Boolean =
         symbols.contains(symbol.toLowerCase)
       override def optimize: SymbolRestriction = this
     }
 
+    /**
+      * A restriction representing a set of excluded symbols.
+      *
+      * @param symbols the excluded symbols.
+      */
     case class Hiding(symbols: Set[String]) extends SymbolRestriction {
       override def canAccess(symbol: String): Boolean = {
         !symbols.contains(symbol.toLowerCase)
       }
       override def optimize: SymbolRestriction = this
     }
+
+    /**
+      * A restriction meaning there's no restriction at all.
+      */
     case object All extends SymbolRestriction {
       override def canAccess(symbol: String): Boolean = true
       override def optimize: SymbolRestriction        = this
     }
+
+    /**
+      * A complete restriction – no symbols are permitted
+      */
     case object Empty extends SymbolRestriction {
       override def canAccess(symbol: String): Boolean = false
       override def optimize: SymbolRestriction        = this
     }
+
+    /**
+      * An intersection of restrictions – a symbol is allowed if all components
+      * allow it.
+      *
+      * @param restrictions the intersected restrictions.
+      */
     case class Intersect(restrictions: List[SymbolRestriction])
         extends SymbolRestriction {
       override def canAccess(symbol: String): Boolean = {
@@ -264,6 +313,13 @@ object BindingsMap {
         }
       }
     }
+
+    /**
+      * A union of restrictions – a symbol is allowed if any component allows
+      * it.
+      *
+      * @param restrictions the component restricitons.
+      */
     case class Union(restrictions: List[SymbolRestriction])
         extends SymbolRestriction {
       override def canAccess(symbol: String): Boolean =
@@ -303,6 +359,13 @@ object BindingsMap {
     }
   }
 
+  /**
+    * A representation of a resolved export statement.
+    *
+    * @param module the module being exported.
+    * @param exportedAs the name it is exported as.
+    * @param symbols any symbol restrictions connected to the export.
+    */
   case class ExportedModule(
     module: Module,
     exportedAs: Option[String],

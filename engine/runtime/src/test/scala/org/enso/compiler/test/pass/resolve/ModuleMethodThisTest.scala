@@ -50,7 +50,7 @@ class ModuleMethodThisTest extends CompilerTest {
 
   // === The Tests ============================================================
 
-  "Pattern resolution" should {
+  "This to here desugaring" should {
     implicit val ctx: ModuleContext = mkModuleContext
 
     val ir =

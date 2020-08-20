@@ -322,7 +322,7 @@ class Compiler(val context: Context) {
     }
   }
 
-  def reportCycle(exception: ExportCycleException): Nothing = {
+  private def reportCycle(exception: ExportCycleException): Nothing = {
     if (context.isStrictErrors) {
       context.getOut.println("Compiler encountered errors:")
       context.getOut.println("Export statements form a cycle:")

@@ -14,21 +14,25 @@ import org.enso.interpreter.runtime.Module
 
 import scala.collection.mutable
 
+/**
+  * An exception signaling a loop in the export statements.
+  * @param modules the modules forming the cycle.
+  */
 case class ExportCycleException(modules: List[Module])
-  extends Exception(
-    "Compilation aborted due to a cycle in export statements."
-  )
+    extends Exception(
+      "Compilation aborted due to a cycle in export statements."
+    )
 
 class ExportsResolution {
 
-  case class Edge(
+  private case class Edge(
     exporter: Node,
     symbols: SymbolRestriction,
     exportsAs: Option[String],
     exportee: Node
   )
 
-  case class Node(
+  private case class Node(
     module: Module
   ) {
     var exports: List[Edge]    = List()
@@ -46,10 +50,10 @@ class ExportsResolution {
       modules.map(mod => (mod, Node(mod))): _*
     )
     modules.foreach { module =>
-      val exports = getBindings(module).getExportedModules
+      val exports = getBindings(module).getDirectlyExportedModules
       val node    = nodes(module)
       node.exports = exports.map {
-        case (mod, rename, restriction) =>
+        case ExportedModule(mod, rename, restriction) =>
           Edge(node, restriction, rename, nodes(mod))
       }
       node.exports.foreach { edge => edge.exportee.exportedBy ::= edge }
@@ -189,6 +193,19 @@ class ExportsResolution {
     }
   }
 
+  /**
+    * Performs exports resolution on a selected set of modules.
+    *
+    * The exports graph is validated and stored in the individual modules,
+    * allowing further use.
+    *
+    * The method returns a list containing the original modules, in
+    * a topological order, such that any module exported by a given module
+    * comes before it in the list.
+    *
+    * @param modules the modules to process.
+    * @return the original modules, sorted topologically.
+    */
   def run(modules: List[Module]): List[Module] = {
     val graph  = buildGraph(modules)
     val cycles = detectCycles(graph)
