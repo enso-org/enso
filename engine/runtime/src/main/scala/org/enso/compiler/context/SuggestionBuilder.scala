@@ -121,6 +121,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     )
   }
 
+  /** Build a method suggestion. */
   private def buildMethod(
     externalId: Option[IR.ExternalId],
     module: String,
@@ -157,6 +158,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     }
   }
 
+  /** Build a function suggestion */
   private def buildFunction(
     externalId: Option[IR.ExternalId],
     module: String,
@@ -190,6 +192,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     }
   }
 
+  /** Build a local suggestion. */
   private def buildLocal(
     externalId: Option[IR.ExternalId],
     module: String,
@@ -210,6 +213,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
         Suggestion.Local(externalId, module, name, Any, buildScope(location))
     }
 
+  /** Build an atom suggestion. */
   private def buildAtom(
     module: String,
     name: String,
@@ -225,6 +229,11 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       documentation = doc
     )
 
+  /** Build self type from the method definitions metadata.
+    *
+    * @param definition the method definitions metadata
+    * @return the self type
+    */
   private def buildSelfType(
     definition: MethodDefinitions.Metadata
   ): Option[String] = {
@@ -238,6 +247,11 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     }
   }
 
+  /** Build type signature from the type expression.
+    *
+    * @param typeExpr the type signature expression
+    * @return the list of type arguments
+    */
   private def buildTypeSignature(typeExpr: IR.Expression): Vector[TypeArg] = {
     @scala.annotation.tailrec
     def go(typeExpr: IR.Expression, args: Vector[TypeArg]): Vector[TypeArg] =
@@ -254,6 +268,13 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     go(typeExpr, Vector())
   }
 
+  /** Build arguments of a method.
+    *
+    * @param vargs the list of value arguments
+    * @param targs the list of type arguments
+    * @param selfType the self type of a method
+    * @return the list of arguments with a method return type
+    */
   private def buildMethodArguments(
     vargs: Seq[IR.DefinitionArgument],
     targs: Seq[TypeArg],
@@ -298,6 +319,12 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     go(vargs, targs, Vector())
   }
 
+  /** Build arguments of a function.
+    *
+    * @param vargs the list of value arguments
+    * @param targs the list of type arguments
+    * @return the list of arguments with a function return type
+    */
   private def buildFunctionArguments(
     vargs: Seq[IR.DefinitionArgument],
     targs: Seq[TypeArg]
@@ -325,6 +352,12 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     go(vargs, targs, Vector())
   }
 
+  /** Build suggestion argument from a typed definition.
+    *
+    * @param varg the value argument
+    * @param targ the type argument
+    * @return the suggestion argument
+    */
   private def buildTypedArgument(
     varg: IR.DefinitionArgument,
     targ: TypeArg
@@ -337,6 +370,11 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       defaultValue = varg.defaultValue.flatMap(buildDefaultValue)
     )
 
+  /** Build suggestion argument from an untyped definition.
+    *
+    * @param arg the value argument
+    * @return the suggestion argument
+    */
   private def buildArgument(arg: IR.DefinitionArgument): Suggestion.Argument =
     Suggestion.Argument(
       name         = arg.name.name,
@@ -346,24 +384,22 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       defaultValue = arg.defaultValue.flatMap(buildDefaultValue)
     )
 
-  def buildArgument(
-    varg: IR.DefinitionArgument,
-    targ: Option[TypeArg]
-  ): Suggestion.Argument =
-    Suggestion.Argument(
-      name         = varg.name.name,
-      reprType     = targ.fold(Any)(_.name),
-      isSuspended  = targ.fold(varg.suspended)(_.isSuspended),
-      hasDefault   = varg.defaultValue.isDefined,
-      defaultValue = varg.defaultValue.flatMap(buildDefaultValue)
-    )
-
+  /** Build return type from the type definition.
+    *
+    * @param typeDef the type definition
+    * @return the type name
+    */
   private def buildReturnType(typeDef: Option[TypeArg]): String =
     typeDef match {
       case Some(TypeArg(name, _)) => name
       case None                   => Any
     }
 
+  /** Build argument default value from the expression.
+    *
+    * @param expr the argument expression
+    * @return the argument default value
+    */
   private def buildDefaultValue(expr: IR): Option[String] =
     expr match {
       case IR.Literal.Number(value, _, _, _) => Some(value)
@@ -371,9 +407,15 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       case _                                 => None
     }
 
+  /** Build scope from the location. */
   private def buildScope(location: Location): Suggestion.Scope =
     Suggestion.Scope(toPosition(location.start), toPosition(location.end))
 
+  /** Convert absolute position index to the relative position of a suggestion.
+    *
+    * @param index the absolute position in the source
+    * @return the relative position
+    */
   private def toPosition(index: Int): Suggestion.Position = {
     val pos = IndexedSource[A].toPosition(index, source)
     Suggestion.Position(pos.line, pos.character)

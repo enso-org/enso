@@ -23,7 +23,7 @@ class SuggestionBuilderTest extends CompilerTest {
     "build method without explicit arguments" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
-      val code   = """foo = 42""".stripMargin
+      val code   = """foo = 42"""
       val module = code.preprocessModule
 
       build(code, module) should contain theSameElementsAs Seq(
@@ -109,8 +109,7 @@ class SuggestionBuilderTest extends CompilerTest {
     "build method with default arguments" in {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
-      val code =
-        """foo (a = 0) = a + 1""".stripMargin
+      val code   = """foo (a = 0) = a + 1"""
       val module = code.preprocessModule
 
       build(code, module) should contain theSameElementsAs Seq(
@@ -168,7 +167,7 @@ class SuggestionBuilderTest extends CompilerTest {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
-        """MyAtom.bar a b = a + b""".stripMargin
+        """MyAtom.bar a b = a + b"""
       val module = code.preprocessModule
 
       build(code, module) should contain theSameElementsAs Seq()
@@ -214,7 +213,7 @@ class SuggestionBuilderTest extends CompilerTest {
       implicit val moduleContext: ModuleContext = freshModuleContext
 
       val code =
-        """foo ~a = a + 1""".stripMargin
+        """foo ~a = a + 1"""
       val module = code.preprocessModule
 
       build(code, module) should contain theSameElementsAs Seq(
