@@ -14,7 +14,13 @@ import org.enso.interpreter.runtime.Module
 
 import scala.collection.mutable
 
+case class ExportCycleException(modules: List[Module])
+  extends Exception(
+    "Compilation aborted due to a cycle in export statements."
+  )
+
 class ExportsResolution {
+
   case class Edge(
     exporter: Node,
     symbols: SymbolRestriction,
@@ -184,40 +190,15 @@ class ExportsResolution {
   }
 
   def run(modules: List[Module]): List[Module] = {
-    modules.foreach(x => println(x.getName))
     val graph  = buildGraph(modules)
     val cycles = detectCycles(graph)
-    cycles.foreach { its =>
-      println("CYCLE")
-      its.foreach(x => println(x.module.getName))
-    }
     if (cycles.nonEmpty) {
-      throw new RuntimeException(
-        "Error in exports resolution, handle me better"
-      )
+      throw ExportCycleException(cycles.head.map(_.module))
     }
     val tops = topsort(graph)
     resolveExports(tops)
-    modules.foreach { module =>
-      println(s"${module.getName} exports:")
-      getBindings(module).resolvedExports.foreach { exp =>
-        println(
-          s"    ${exp.module.getName} -->> ${exp.symbols} as ${exp.exportedAs}"
-        )
-      }
-    }
     val topModules = tops.map(_.module)
     resolveExportedSymbols(tops.map(_.module))
-    topModules.foreach { m =>
-      val b = getBindings(m)
-      if (m.getName.toString.startsWith("Test.Deep_Export")) {
-        println(s"Bindings of ${m.getName}")
-        b.exportedSymbols.foreach {
-          case (n, bs) =>
-            println(s"    $n -> $bs")
-        }
-      }
-    }
     topModules
   }
 }
