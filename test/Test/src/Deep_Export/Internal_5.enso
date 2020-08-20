@@ -1,5 +1,7 @@
 foo = 123
 
-const = here.foo
+bar = 345
+
+const = here.foo + this.bar
 
 Number.bar = this + 5
