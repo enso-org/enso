@@ -59,11 +59,7 @@ object NativeImage {
             val buildCache =
               subProjectRoot / "build-cache"
             val path = ensureMuslIsInstalled(buildCache, log)
-            // --report-unsupported-elements-at-runtime
-            (
-              "--static --libc=musl --initialize-at-build-time=scala.runtime.Statics$VM",
-              Seq("/home/radeusgd/NBO/static/musl/bin")
-            )
+            ("--static --libc=musl", Seq(path.toString))
           } else ("", Seq())
 
         val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
@@ -167,12 +163,16 @@ object NativeImage {
     * Ensures that the `musl` bundle is installed.
     *
     * Checks for existence of its directory and if it does not exist, downloads
-    * and extracts the bundle. `musl` is needed for static builds on Linux.
+    * and extracts the bundle. After extracting it does the required
+    * initialization (renaming paths to be absolute and creating a shell script
+    * called `musl-gcc`).
+    *
+    * `musl` is needed for static builds on Linux.
     *
     * @param buildCache build-cache directory for the current project
     * @param log a logger instance
-    * @return path to the `musl` bundle that can be passed to the Native Image
-    *         as a parameter
+    * @return path to the `musl` bundle binary directory which should be added
+    *         to PATH of the launched native-image
     */
   private def ensureMuslIsInstalled(
     buildCache: File,
@@ -180,7 +180,11 @@ object NativeImage {
   ): Path = {
     val muslRoot       = buildCache / "musl-1.2.0"
     val bundleLocation = muslRoot / "bundle"
-    if (!bundleLocation.exists()) {
+    val binaryLocation = bundleLocation / "bin"
+    val gccLocation    = binaryLocation / "musl-gcc"
+    def isMuslInstalled =
+      gccLocation.exists() && gccLocation.isOwnerExecutable
+    if (!isMuslInstalled) {
       log.info(
         "`musl` is required for a static build, but it is not installed for " +
         "this subproject."
@@ -211,6 +215,12 @@ object NativeImage {
           throw new RuntimeException(s"Cannot extract $bundle.")
         }
 
+        replacePathsInSpecs(
+          bundleLocation / "lib" / "musl-gcc.specs",
+          bundleLocation
+        )
+        createGCCWrapper(bundleLocation)
+
         log.info("Installed `musl`.")
       } catch {
         case e: Exception =>
@@ -223,7 +233,39 @@ object NativeImage {
 
     }
 
-    bundleLocation.toPath.toAbsolutePath
+    binaryLocation.toPath.toAbsolutePath.normalize
+  }
+
+  /**
+    * Replaces paths in `musl-gcc.specs` with absolute paths to the bundle.
+    *
+    * The paths in `musl-gcc.specs` start with `/build/bundle` which is not a
+    * valid path by default. Instead, these prefixes are replaced with an
+    * absolute path to the bundle.
+    *
+    * @param specs reference to `musl-gcc.specs` file
+    * @param bundleLocation location of the bundle root
+    */
+  private def replacePathsInSpecs(specs: File, bundleLocation: File): Unit = {
+    val content    = IO.read(specs)
+    val bundlePath = bundleLocation.toPath.toAbsolutePath.normalize.toString
+    val replaced   = content.replace("/build/bundle", bundlePath)
+    IO.write(specs, replaced)
+  }
+
+  /**
+    * Creates a simple shell script called `musl-gcc` which calls the original
+    * `gcc` and ensures the bundle's configuration (`musl-gcc.specs`) is loaded.
+    */
+  private def createGCCWrapper(bundleLocation: File): Unit = {
+    val bundlePath = bundleLocation.toPath.toAbsolutePath.normalize.toString
+    val content =
+      s"""#!/bin/sh
+         |exec "$${REALGCC:-gcc}" "$$@" -specs "$bundlePath/lib/musl-gcc.specs"
+         |""".stripMargin
+    val wrapper = bundleLocation / "bin" / "musl-gcc"
+    IO.write(wrapper, content)
+    wrapper.setExecutable(true)
   }
 
 }
@@ -236,10 +278,22 @@ object NativeImage {
  * automatically downloads a bundle containing all requirements for a static
  * build with `musl`.
  *
- * Currently, to use `musl`, the `-H:UseMuslC=/path/to/musl/bundle` option has
- * to be added to the build. In the future, a `--libc=musl` option may be
- * preferred instead, as described at
- * https://github.com/oracle/graal/blob/master/substratevm/STATIC-IMAGES.md
- * or even `musl` may be included by default. This task may thus need an update
- * when moving to a newer version of Graal.
+ * The `musl` bundle that we use is not guaranteed to be maintained, so if in
+ * the future a new version of `musl` comes out and we need to upgrade, we may
+ * need to create our own infrastructure (a repository with CI jobs for creating
+ * such bundles). It is especially important to note that the libstdc++ that is
+ * included in this bundle should also be built using `musl` as otherwise linker
+ * errors may arise.
+ *
+ * Currently, to use `musl`, the `--libc=musl` option has to be added to the
+ * build and `gcc-musl` must be available in the system PATH for the
+ * native-image. In the future it is possible that a different option will be
+ * used or that the bundle will not be required anymore if it became
+ * prepackaged. This task may thus need an update when moving to a newer version
+ * of Graal.
+ *
+ * Currently to make the bundle work correctly with GraalVM 20.2, a shell script
+ * called `gcc-musl` which loads the bundle's configuration is created by the
+ * task and the paths starting with `/build/bundle` in `musl-gcc.specs` are
+ * replaced with absolute paths to the bundle location.
  */
