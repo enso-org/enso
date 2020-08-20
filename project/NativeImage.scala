@@ -59,8 +59,9 @@ object NativeImage {
             val buildCache =
               subProjectRoot / "build-cache"
             val path = ensureMuslIsInstalled(buildCache, log)
+            // --report-unsupported-elements-at-runtime
             (
-              "--static --libc=musl --report-unsupported-elements-at-runtime --initialize-at-build-time=scala.runtime.Statics$VM",
+              "--static --libc=musl --initialize-at-build-time=scala.runtime.Statics$VM",
               Seq("/home/radeusgd/NBO/static/musl/bin")
             )
           } else ("", Seq())
