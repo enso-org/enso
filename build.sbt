@@ -808,20 +808,20 @@ lazy val parser = (project in file("lib/scala/parser"))
     fork := true,
     Cargo.rustVersion := rustVersion,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
-      .dependsOn(Cargo("build --project parser"))
-      .value,
+        .dependsOn(Cargo("build --project parser"))
+        .value,
     javaOptions += {
       val root = baseDirectory.value.getParentFile.getParentFile.getParentFile
       s"-Djava.library.path=$root/target/rust/debug"
     },
     libraryDependencies ++= Seq(
-      "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
-      "org.scalatest" %%% "scalatest"     % scalatestVersion % Test,
-    ),
+        "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
+        "org.scalatest"    %%% "scalatest"  % scalatestVersion  % Test
+      ),
     testFrameworks := List(
-      new TestFramework("org.scalatest.tools.Framework"),
-      new TestFramework("org.scalameter.ScalaMeterFramework")
-    ),
+        new TestFramework("org.scalatest.tools.Framework"),
+        new TestFramework("org.scalameter.ScalaMeterFramework")
+      )
   )
   .dependsOn(ast)
 
@@ -870,7 +870,7 @@ lazy val runtime = (project in file("engine/runtime"))
       ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
-        graalVersion,
+        s"GraalVM CE $graalVersion",
         javaVersion
       )((Global / onLoad).value)
   )

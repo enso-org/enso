@@ -2,7 +2,12 @@ package org.enso.launcher
 
 import java.io.PrintWriter
 import java.nio.file.attribute.{PosixFilePermission, PosixFilePermissions}
-import java.nio.file.{Files, Path, StandardCopyOption}
+import java.nio.file.{
+  DirectoryNotEmptyException,
+  Files,
+  Path,
+  StandardCopyOption
+}
 import java.util
 
 import org.apache.commons.io.FileUtils
@@ -143,6 +148,34 @@ object FileSystem {
     */
   def removeDirectory(dir: Path): Unit =
     FileUtils.deleteDirectory(dir.toFile)
+
+  /**
+    * Removes a directory recursively, does not fail if it does not exist.
+    */
+  def removeDirectoryIfExists(dir: Path): Unit =
+    if (Files.exists(dir))
+      FileUtils.deleteDirectory(dir.toFile)
+
+  /**
+    * Removes a directory only if it is empty.
+    *
+    * Returned value indicates if the directory has been removed.
+    */
+  def removeDirectoryIfEmpty(dir: Path): Boolean =
+    try {
+      Files.delete(dir)
+      true
+    } catch {
+      case _: DirectoryNotEmptyException =>
+        false
+    }
+
+  /**
+    * Removes a file, if it exists, does not fail if it does not exist.
+    */
+  def removeFileIfExists(path: Path): Unit =
+    if (Files.exists(path))
+      Files.delete(path)
 
   /**
     * Registers the directory to be removed when the program exits normally.

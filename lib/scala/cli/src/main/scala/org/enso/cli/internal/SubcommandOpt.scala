@@ -87,8 +87,13 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Subcommand[A]])
     subcommands.toList.flatMap(_.opts.additionalHelp()).distinct
 
   override def commandLines(): NonEmptyList[String] = {
-    def prefixedCommandLines(command: Subcommand[_]): NonEmptyList[String] =
-      command.opts.commandLines().map(command.name + " " + _)
+    def prefixedCommandLines(command: Subcommand[_]): NonEmptyList[String] = {
+      val prefix = command.name + " "
+      val suffix = s"\n\t${command.comment}"
+      command.opts
+        .commandLines()
+        .map(commandLine => prefix + commandLine + suffix)
+    }
 
     subcommands.flatMap(prefixedCommandLines)
   }

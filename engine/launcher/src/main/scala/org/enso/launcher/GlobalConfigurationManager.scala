@@ -39,5 +39,5 @@ object GlobalConfigurationManager {
   /**
     * Name of the main global configuration file.
     */
-  val globalConfigName: String = "global-config.yml"
+  val globalConfigName: String = "global-config.yaml"
 }

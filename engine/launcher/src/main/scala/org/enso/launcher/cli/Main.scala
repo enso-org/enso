@@ -12,7 +12,8 @@ import org.enso.launcher.components.runner.LanguageServerOptions
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
-  DistributionManager
+  DistributionManager,
+  DistributionUninstaller
 }
 import org.enso.launcher.{Launcher, Logger}
 
@@ -251,7 +252,11 @@ object Main {
     }
 
   private def installEngineCommand: Subcommand[Config => Unit] =
-    Subcommand("engine") {
+    Subcommand(
+      "engine",
+      "Installs the specified engine version, defaulting to the latest if " +
+      "unspecified."
+    ) {
       val version = Opts.optionalArgument[SemVer](
         "VERSION",
         "VERSION specifies the engine version to install. If not provided, the" +
@@ -268,7 +273,10 @@ object Main {
     }
 
   private def installDistributionCommand: Subcommand[Config => Unit] =
-    Subcommand("distribution") {
+    Subcommand(
+      "distribution",
+      "Installs Enso on the system, deactivating portable mode."
+    ) {
 
       implicit val bundleActionParser: Argument[BundleAction] = {
         case "move"   => DistributionInstaller.MoveBundles.asRight
@@ -319,7 +327,11 @@ object Main {
     }
 
   private def uninstallEngineCommand: Subcommand[Config => Unit] =
-    Subcommand("engine") {
+    Subcommand(
+      "engine",
+      "Uninstalls the provided engine version. If the corresponding runtime " +
+      "is not used by any remaining engine installations, it is also removed."
+    ) {
       val version = Opts.positionalArgument[SemVer]("VERSION")
       version map { version => (config: Config) =>
         Launcher(config).uninstallEngine(version)
@@ -327,10 +339,18 @@ object Main {
     }
 
   private def uninstallDistributionCommand: Subcommand[Config => Unit] =
-    Subcommand("distribution") {
-      Opts.pure(()) map { (_: Unit) => (_: Config) =>
-        Logger.error("Not implemented yet.")
-        sys.exit(1)
+    Subcommand(
+      "distribution",
+      "Uninstalls whole Enso distribution and all components managed by " +
+      "it. If `auto-confirm` is set, it will not attempt to remove the " +
+      "ENSO_DATA_DIRECTORY and ENSO_CONFIG_DIRECTORY if they contain any " +
+      "unexpected files."
+    ) {
+      Opts.pure(()) map { (_: Unit) => (config: Config) =>
+        new DistributionUninstaller(
+          DistributionManager,
+          autoConfirm = config.autoConfirm
+        ).uninstall()
       }
     }
 
