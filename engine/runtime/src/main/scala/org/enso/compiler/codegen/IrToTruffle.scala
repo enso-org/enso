@@ -138,7 +138,7 @@ class IrToTruffle(
     module
       .unsafeGetMetadata(
         BindingAnalysis,
-        "no binding analysis by the point of codegen"
+        "No binding analysis at the point of codegen."
       )
       .resolvedExports
       .foreach { exp => moduleScope.addExport(exp.module.getScope) }
@@ -336,7 +336,7 @@ class IrToTruffle(
 
     val bindingsMap = module.unsafeGetMetadata(
       BindingAnalysis,
-      "No binding analysis by the point of codegen"
+      "No binding analysis at the point of codegen."
     )
     bindingsMap.exportedSymbols.foreach {
       case (name, List(resolution)) =>

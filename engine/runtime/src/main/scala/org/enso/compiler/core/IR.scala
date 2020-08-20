@@ -403,7 +403,7 @@ object IR {
         * @param rename the name this export is visible as
         * @param isAll is this exporting exported names
         * @param onlyNames exported names selected from the exported module
-        * @param hiddenNames exported names hidden from the imported module
+        * @param hiddenNames exported names hidden from the exported module
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
         * @param diagnostics compiler diagnostics for this node
@@ -427,7 +427,7 @@ object IR {
           * @param rename the name this export is visible as
           * @param isAll is this exporting exported names
           * @param onlyNames exported names selected from the exported module
-          * @param hiddenNames exported names hidden from the imported module
+          * @param hiddenNames exported names hidden from the exported module
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node

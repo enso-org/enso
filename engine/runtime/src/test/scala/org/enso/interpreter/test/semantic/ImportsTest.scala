@@ -56,7 +56,7 @@ class ImportsTest extends PackageTest {
 
   }
 
-  "Export system" should "detect cycles" in {
+  "Exports system" should "detect cycles" in {
     the[InterpreterException] thrownBy (evalTestProject(
       "Cycle_Test"
     )) should have message "Compilation aborted due to errors."
