@@ -102,8 +102,10 @@ exists.
 
 A qualified export statement only exports the name of the exported module
 (possibly renamed).
+
 In a `from` export, any mentioned items become available as though they were
 defined in the exporting module.
+
 Please note it is explicitly forbidden for export statements across modules
 to form a cycle. If export statements cycle is detected, a compile error will
 be reported.
