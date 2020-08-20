@@ -23,7 +23,7 @@ object Cli {
     val verbose: cli.Option = cli.Option
       .builder("v")
       .longOpt(VERBOSE_OPTION)
-      .desc("Increase logs verbosity.")
+      .desc("Increase logs verbosity. Can be added multiple times (-vv)")
       .build()
 
     val version: cli.Option = cli.Option.builder

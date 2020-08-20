@@ -139,10 +139,10 @@ object ProjectManager extends App with LazyLogging {
           case _ => Logging.LogLevel.Trace
         }
         Logging.setLogLevel(level) match {
-          case Some(level) =>
+          case Right(level) =>
             logger.info(s"Set log level $level")
-          case None =>
-            logger.error(s"Failed to set log level $level")
+          case Left(error) =>
+            logger.error(s"Failed to set log level $level", error)
         }
       }
 

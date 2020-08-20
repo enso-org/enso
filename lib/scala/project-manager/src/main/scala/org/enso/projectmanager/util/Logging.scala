@@ -47,21 +47,21 @@ object Logging {
     * @param level the log level
     * @return the new log level
     */
-  def setLogLevel(level: LogLevel): Option[LogLevel] = {
+  def setLogLevel(level: LogLevel): Either[Throwable, LogLevel] = {
     Try {
       val ctx = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
       ctx.getLogger(ROOT_LOGGER).setLevel(LogLevel.toLogback(level))
       level
-    }.toOption
+    }.toEither
   }
 
   /** Get log level of the application root logger. */
-  def getLogLevel: Option[LogLevel] = {
+  def getLogLevel: Either[Throwable, LogLevel] = {
     Try {
       val ctx   = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
       val level = ctx.getLogger(ROOT_LOGGER).getLevel
       LogLevel.fromLogback(level)
-    }.toOption
+    }.toEither
   }
 
 }
