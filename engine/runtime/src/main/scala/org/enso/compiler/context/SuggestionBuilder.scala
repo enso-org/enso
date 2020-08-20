@@ -1,7 +1,12 @@
 package org.enso.compiler.context
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.resolve.{DocumentationComments, TypeSignatures}
+import org.enso.compiler.data.BindingsMap
+import org.enso.compiler.pass.resolve.{
+  DocumentationComments,
+  MethodDefinitions,
+  TypeSignatures
+}
 import org.enso.polyglot.Suggestion
 import org.enso.syntax.text.Location
 import org.enso.text.editing.IndexedSource
@@ -51,15 +56,19 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
                   _
                 ) =>
             val typeSignature = ir.getMetadata(TypeSignatures)
-            acc += buildMethod(
-                body.getExternalId,
-                module,
-                methodName,
-                typePtr,
-                args,
-                doc,
-                typeSignature
-              )
+            val selfTypeOpt =
+              typePtr.getMetadata(MethodDefinitions).flatMap(buildSelfType)
+            selfTypeOpt.foreach { selfType =>
+              acc += buildMethod(
+                  body.getExternalId,
+                  module,
+                  methodName,
+                  selfType,
+                  args,
+                  doc,
+                  typeSignature
+                )
+            }
             scopes += Scope(body.children, body.location.map(_.location))
             go(scope, scopes, acc)
           case IR.Expression.Binding(
@@ -116,15 +125,14 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
     externalId: Option[IR.ExternalId],
     module: String,
     name: IR.Name,
-    typeRef: IR.Name,
+    selfType: String,
     args: Seq[IR.DefinitionArgument],
     doc: Option[String],
     typeSignature: Option[TypeSignatures.Metadata]
   ): Suggestion.Method = {
     typeSignature match {
       case Some(TypeSignatures.Signature(typeExpr)) =>
-        val selfType = typeRef.name
-        val typeSig  = buildTypeSignature(typeExpr)
+        val typeSig = buildTypeSignature(typeExpr)
         val (methodArgs, returnTypeDef) =
           buildMethodArguments(args, typeSig, selfType)
         Suggestion.Method(
@@ -142,7 +150,7 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
           module        = module,
           name          = name.name,
           arguments     = args.map(buildArgument),
-          selfType      = typeRef.name,
+          selfType      = selfType,
           returnType    = Any,
           documentation = doc
         )
@@ -216,6 +224,19 @@ final class SuggestionBuilder[A: IndexedSource](val source: A) {
       returnType    = name,
       documentation = doc
     )
+
+  private def buildSelfType(
+    definition: MethodDefinitions.Metadata
+  ): Option[String] = {
+    definition.target match {
+      case BindingsMap.ResolvedModule(module) =>
+        Some(module.getName.item)
+      case BindingsMap.ResolvedConstructor(_, cons) =>
+        Some(cons.name)
+      case _ =>
+        None
+    }
+  }
 
   private def buildTypeSignature(typeExpr: IR.Expression): Vector[TypeArg] = {
     @scala.annotation.tailrec
