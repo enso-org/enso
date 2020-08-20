@@ -101,9 +101,10 @@ object ProjectManager extends App with LazyLogging {
 
   override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
     Cli.parse(args.toArray) match {
-      case Some(opts) =>
+      case Right(opts) =>
         runOpts(opts)
-      case None =>
+      case Left(error) =>
+        putStrLn(error) *>
         effectTotal(Cli.printHelp()) *>
         ZIO.succeed(FailureExitCode)
     }

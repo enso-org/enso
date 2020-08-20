@@ -45,8 +45,9 @@ object Cli {
       .addOption(option.json)
 
   /** Parse the command line options. */
-  def parse(args: Array[String]): Option[cli.CommandLine] = {
-    Try(new cli.DefaultParser().parse(options, args)).toOption
+  def parse(args: Array[String]): Either[String, cli.CommandLine] = {
+    Try(new cli.DefaultParser().parse(options, args)).toEither.left
+      .map(_.getMessage)
   }
 
   /** Print the help message to the standard output. */
