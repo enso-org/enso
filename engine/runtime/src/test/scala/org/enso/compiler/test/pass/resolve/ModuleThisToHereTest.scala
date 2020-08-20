@@ -6,11 +6,11 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.PassConfiguration.ToPair
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.optimise.ApplicationSaturation
-import org.enso.compiler.pass.resolve.ModuleMethodThis
+import org.enso.compiler.pass.resolve.ModuleThisToHere
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
 import org.enso.compiler.test.CompilerTest
 
-class ModuleMethodThisTest extends CompilerTest {
+class ModuleThisToHereTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
@@ -22,7 +22,7 @@ class ModuleMethodThisTest extends CompilerTest {
   val passes = new Passes
 
   val precursorPasses: PassGroup =
-    passes.getPrecursors(ModuleMethodThis).get
+    passes.getPrecursors(ModuleThisToHere).get
 
   val passConfiguration: PassConfiguration = PassConfiguration(
     AliasAnalysis         -->> AliasAnalysis.Configuration(),
@@ -44,7 +44,7 @@ class ModuleMethodThisTest extends CompilerTest {
       * @return [[ir]], with tail call analysis metadata attached
       */
     def analyse(implicit context: ModuleContext) = {
-      ModuleMethodThis.runModule(ir, context)
+      ModuleThisToHere.runModule(ir, context)
     }
   }
 
@@ -77,11 +77,11 @@ class ModuleMethodThisTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body
-      val children = method2.preorder
-      val thises   = children.collect { case n: IR.Name.This => n }
-      val heres    = children.collect { case n: IR.Name.Here => n }
-      thises.length shouldEqual 0
-      heres.length shouldEqual 7
+      val children       = method2.preorder
+      val thisOccurences = children.collect { case n: IR.Name.This => n }
+      val hereOccurences = children.collect { case n: IR.Name.Here => n }
+      thisOccurences.length shouldEqual 0
+      hereOccurences.length shouldEqual 7
     }
 
     "leave occurences of this and here untouched in non-module methods" in {
@@ -91,11 +91,11 @@ class ModuleMethodThisTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body
-      val children = method1.preorder
-      val thises   = children.collect { case n: IR.Name.This => n }
-      val heres    = children.collect { case n: IR.Name.Here => n }
-      thises.length shouldEqual 6
-      heres.length shouldEqual 1
+      val children       = method1.preorder
+      val thisOccurences = children.collect { case n: IR.Name.This => n }
+      val hereOccurences = children.collect { case n: IR.Name.Here => n }
+      thisOccurences.length shouldEqual 6
+      hereOccurences.length shouldEqual 1
     }
 
   }

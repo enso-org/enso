@@ -32,7 +32,7 @@ class Passes(passes: Option[List[PassGroup]] = None) {
   val functionBodyPasses = new PassGroup(
     List(
       MethodDefinitions,
-      ModuleMethodThis,
+      ModuleThisToHere,
       SectionsToBinOp,
       OperatorToFunction,
       LambdaShorthandToLambda,

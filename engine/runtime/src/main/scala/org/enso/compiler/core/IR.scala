@@ -401,7 +401,7 @@ object IR {
         *
         * @param name the full path representing the export
         * @param rename the name this export is visible as
-        * @param isAll is this exporting exported names
+        * @param isAll is this an unqualified export
         * @param onlyNames exported names selected from the exported module
         * @param hiddenNames exported names hidden from the exported module
         * @param location the source location that the node corresponds to
@@ -425,7 +425,7 @@ object IR {
           *
           * @param name the full path representing the export
           * @param rename the name this export is visible as
-          * @param isAll is this exporting exported names
+          * @param isAll is this an unqualified export
           * @param onlyNames exported names selected from the exported module
           * @param hiddenNames exported names hidden from the exported module
           * @param location the source location that the node corresponds to
@@ -486,6 +486,10 @@ object IR {
           s"""
                |IR.Module.Scope.Export(
                |name = $name,
+               |rename = $rename,
+               |isAll = $isAll,
+               |onlyNames = $onlyNames,
+               |hidingNames = $hiddenNames,
                |location = $location,
                |passData = ${this.showPassData},
                |diagnostics = $diagnostics,

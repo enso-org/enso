@@ -19,7 +19,7 @@ import org.enso.compiler.pass.analyse.AliasAnalysis
   * (as it is guaranteed to not be used) and therefore perform optimizations,
   * e.g. in method-reexports.
   */
-case object ModuleMethodThis extends IRPass {
+case object ModuleThisToHere extends IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
   override type Metadata = IRPass.Metadata.Empty

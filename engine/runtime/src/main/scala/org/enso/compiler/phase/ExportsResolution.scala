@@ -61,7 +61,7 @@ class ExportsResolution {
     nodes.values.toList
   }
 
-  private def detectCycles(nodes: List[Node]): List[List[Node]] = {
+  private def findCycles(nodes: List[Node]): List[List[Node]] = {
     val visited: mutable.Set[Node]    = mutable.Set()
     val inProgress: mutable.Set[Node] = mutable.Set()
     var foundCycles: List[List[Node]] = List()
@@ -205,10 +205,12 @@ class ExportsResolution {
     *
     * @param modules the modules to process.
     * @return the original modules, sorted topologically.
+    * @throws ExportCycleException when the export statements form a cycle.
     */
+  @throws[ExportCycleException]
   def run(modules: List[Module]): List[Module] = {
     val graph  = buildGraph(modules)
-    val cycles = detectCycles(graph)
+    val cycles = findCycles(graph)
     if (cycles.nonEmpty) {
       throw ExportCycleException(cycles.head.map(_.module))
     }
