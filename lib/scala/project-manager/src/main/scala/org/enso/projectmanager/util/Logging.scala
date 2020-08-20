@@ -1,9 +1,8 @@
 package org.enso.projectmanager.util
 
+import cats.syntax.either._
 import ch.qos.logback.classic.{Level, LoggerContext}
 import org.slf4j.LoggerFactory
-
-import scala.util.Try
 
 object Logging {
 
@@ -48,20 +47,20 @@ object Logging {
     * @return the new log level
     */
   def setLogLevel(level: LogLevel): Either[Throwable, LogLevel] = {
-    Try {
+    Either.catchNonFatal {
       val ctx = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
       ctx.getLogger(ROOT_LOGGER).setLevel(LogLevel.toLogback(level))
       level
-    }.toEither
+    }
   }
 
   /** Get log level of the application root logger. */
   def getLogLevel: Either[Throwable, LogLevel] = {
-    Try {
+    Either.catchNonFatal {
       val ctx   = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
       val level = ctx.getLogger(ROOT_LOGGER).getLevel
       LogLevel.fromLogback(level)
-    }.toEither
+    }
   }
 
 }
