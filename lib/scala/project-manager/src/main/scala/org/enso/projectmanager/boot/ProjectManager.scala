@@ -4,7 +4,6 @@ import java.io.IOException
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import akka.http.scaladsl.Http
-import ch.qos.logback.classic.{Level, LoggerContext}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.cli.CommandLine
 import org.enso.projectmanager.boot.Globals.{
@@ -14,8 +13,8 @@ import org.enso.projectmanager.boot.Globals.{
   SuccessExitCode
 }
 import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
+import org.enso.projectmanager.util.Logging
 import org.enso.version.VersionDescription
-import org.slf4j.LoggerFactory
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._
 import zio.ZIO.effectTotal
@@ -25,7 +24,6 @@ import zio.interop.catz.core._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
-import scala.util.control.NonFatal
 
 /**
   * Project manager runner containing the main method.
@@ -136,17 +134,15 @@ object ProjectManager extends App with LazyLogging {
     ZIO
       .effectTotal {
         val level = verbosityLevel match {
-          case 0 => Level.INFO
-          case 1 => Level.DEBUG
-          case _ => Level.TRACE
+          case 0 => Logging.LogLevel.Info
+          case 1 => Logging.LogLevel.Debug
+          case _ => Logging.LogLevel.Trace
         }
-        try {
-          val ctx = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
-          ctx.getLogger("org.enso").setLevel(level)
-          logger.info(s"Set log level $level")
-        } catch {
-          case NonFatal(ex) =>
-            logger.error(s"Failed to set log level $verbosityLevel", ex)
+        Logging.setLogLevel(level) match {
+          case Some(level) =>
+            logger.info(s"Set log level $level")
+          case None =>
+            logger.error(s"Failed to set log level $level")
         }
       }
 
