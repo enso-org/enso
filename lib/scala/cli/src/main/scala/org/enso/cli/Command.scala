@@ -38,10 +38,11 @@ case class Command[A](
   * [[Opts.subcommands]].
   *
   * @param name name of the subcommand
+  * @param comment a help comment displayed in the commands help text
   * @param opts parsing logic for the subcommand's options
   * @tparam A type returned by the command
   */
-case class Subcommand[A](name: String)(val opts: Opts[A])
+case class Subcommand[A](name: String, comment: String)(val opts: Opts[A])
 
 object Command {
 

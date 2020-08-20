@@ -202,11 +202,10 @@ trait Opts[A] {
     *                      entries are commands/subcommands.
     */
   def help(commandPrefix: Seq[String]): String = {
-    val tableDivider = "\t"
-    val prefix       = commandPrefix.mkString(" ")
-    val usages       = commandLines().map(s"$prefix$tableDivider" + _)
-    val firstLine    = "Usage: "
-    val padding      = " " * firstLine.length
+    val prefix    = commandPrefix.mkString(" ")
+    val usages    = commandLines().map(s"$prefix\t" + _)
+    val firstLine = "Usage: "
+    val padding   = " " * firstLine.length
     val usage =
       firstLine + usages.head +
       usages.tail.map("\n" + padding + _).mkString + "\n"

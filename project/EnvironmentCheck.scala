@@ -24,7 +24,7 @@ object EnvironmentCheck {
     val javaSpecificationVersion =
       System.getProperty("java.vm.specification.version")
     val graalVersion =
-      System.getProperty("org.graalvm.version")
+      System.getProperty("java.vendor.version")
 
     val graalOk =
       if (graalVersion == null) {
@@ -70,10 +70,11 @@ object EnvironmentCheck {
     try {
       val versionStr = cmd.!!.trim.substring(6)
 
-      if (versionStr != expectedVersion) log.error(
-        s"Rust version mismatch. $expectedVersion is expected, " +
+      if (versionStr != expectedVersion)
+        log.error(
+          s"Rust version mismatch. $expectedVersion is expected, " +
           s"but it seems $versionStr is installed."
-      )
+        )
       versionStr == expectedVersion
     } catch {
       case _ @(_: RuntimeException | _: IOException) =>
