@@ -454,7 +454,7 @@ class RuntimeServerTest
                   Suggestion.Argument("a", "Any", false, false, None),
                   Suggestion.Argument("b", "Any", false, false, None)
                 ),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -465,7 +465,7 @@ class RuntimeServerTest
                 moduleName,
                 "main",
                 List(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -555,7 +555,7 @@ class RuntimeServerTest
                   Suggestion.Argument("a", "Any", false, false, None),
                   Suggestion.Argument("b", "Any", false, false, None)
                 ),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -566,7 +566,7 @@ class RuntimeServerTest
                 moduleName,
                 "main",
                 List(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -652,7 +652,7 @@ class RuntimeServerTest
                 moduleName,
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -663,7 +663,7 @@ class RuntimeServerTest
                 moduleName,
                 "bar",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -751,7 +751,7 @@ class RuntimeServerTest
                 moduleName,
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -762,7 +762,7 @@ class RuntimeServerTest
                 moduleName,
                 "bar",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -854,7 +854,7 @@ class RuntimeServerTest
                   Suggestion.Argument("a", "Any", false, false, None),
                   Suggestion.Argument("b", "Any", false, false, None)
                 ),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -865,7 +865,7 @@ class RuntimeServerTest
                 moduleName,
                 "main",
                 List(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -934,7 +934,7 @@ class RuntimeServerTest
                 moduleName,
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -1122,7 +1122,7 @@ class RuntimeServerTest
                 moduleName,
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -1254,7 +1254,7 @@ class RuntimeServerTest
                 moduleName,
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -1603,7 +1603,7 @@ class RuntimeServerTest
                 moduleName,
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -1894,7 +1894,7 @@ class RuntimeServerTest
                 "Test.Foo",
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Foo",
                 "Any",
                 None
               )
@@ -1991,7 +1991,7 @@ class RuntimeServerTest
                 "Test.Foo",
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Foo",
                 "Any",
                 None
               )
@@ -2076,7 +2076,7 @@ class RuntimeServerTest
                 "Test.Main",
                 "main",
                 List(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
@@ -2248,7 +2248,7 @@ class RuntimeServerTest
                 "Test.Foo",
                 "main",
                 Seq(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Foo",
                 "Any",
                 None
               )
@@ -2922,7 +2922,7 @@ class RuntimeServerTest
                 moduleName,
                 "main",
                 List(Suggestion.Argument("this", "Any", false, false, None)),
-                "here",
+                "Main",
                 "Any",
                 None
               )
