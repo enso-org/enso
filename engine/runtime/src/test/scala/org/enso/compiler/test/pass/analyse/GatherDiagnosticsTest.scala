@@ -79,6 +79,7 @@ class GatherDiagnosticsTest extends CompilerTest {
 
       val module = IR.Module(
         List(),
+        List(),
         List(
           IR.Module.Scope.Definition.Atom(
             typeName,

@@ -20,6 +20,7 @@ public class ModuleScope {
   private Map<String, AtomConstructor> constructors = new HashMap<>();
   private Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
   private Set<ModuleScope> imports = new HashSet<>();
+  private Set<ModuleScope> exports = new HashSet<>();
 
   /**
    * Creates a new object of this class.
@@ -158,7 +159,19 @@ public class ModuleScope {
       return definedHere;
     }
     return imports.stream()
-        .map(scope -> scope.getMethodMapFor(atom).get(lowerName))
+        .map(scope -> scope.getExportedMethod(atom, name))
+        .filter(Objects::nonNull)
+        .findFirst()
+        .orElse(null);
+  }
+
+  private Function getExportedMethod(AtomConstructor atom, String name) {
+    Function here = getMethodMapFor(atom).get(name);
+    if (here != null) {
+      return here;
+    }
+    return exports.stream()
+        .map(scope -> scope.getMethodMapFor(atom).get(name))
         .filter(Objects::nonNull)
         .findFirst()
         .orElse(null);
@@ -173,10 +186,20 @@ public class ModuleScope {
     imports.add(scope);
   }
 
+  /**
+   * Adds an information about the module exporting another module.
+   *
+   * @param scope the exported scope
+   */
+  public void addExport(ModuleScope scope) {
+    exports.add(scope);
+  }
+
   public Map<String, AtomConstructor> getConstructors() {
     return constructors;
   }
 
+  /** @return the raw method map held by this module */
   public Map<AtomConstructor, Map<String, Function>> getMethods() {
     return methods;
   }
@@ -188,6 +211,7 @@ public class ModuleScope {
 
   public void reset() {
     imports = new HashSet<>();
+    exports = new HashSet<>();
     methods = new HashMap<>();
     constructors = new HashMap<>();
   }

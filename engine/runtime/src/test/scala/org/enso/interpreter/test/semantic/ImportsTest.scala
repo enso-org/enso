@@ -55,4 +55,11 @@ class ImportsTest extends PackageTest {
       .head should include("The name Atom could not be found.")
 
   }
+
+  "Exports system" should "detect cycles" in {
+    the[InterpreterException] thrownBy (evalTestProject(
+      "Cycle_Test"
+    )) should have message "Compilation aborted due to errors."
+    consumeOut should contain("Export statements form a cycle:")
+  }
 }

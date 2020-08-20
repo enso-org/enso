@@ -100,9 +100,15 @@ exists.
 
 ## Export Statement Semantics
 
-An export statement always exports the name of the exported module (possibly
-renamed). Additionally, any items explicitly mentioned in a `from` export,
-become available as though they were defined in the exporting module.
+A qualified export statement only exports the name of the exported module
+(possibly renamed).
+
+In a `from` export, any mentioned items become available as though they were
+defined in the exporting module.
+
+Please note it is explicitly forbidden for export statements across modules
+to form a cycle. If export statements cycle is detected, a compile error will
+be reported.
 
 ## Project Main Module
 

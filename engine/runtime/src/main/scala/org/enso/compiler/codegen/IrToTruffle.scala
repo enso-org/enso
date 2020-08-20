@@ -11,6 +11,7 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
+  BindingAnalysis,
   DataflowAnalysis,
   TailCall
 }
@@ -32,6 +33,7 @@ import org.enso.interpreter.node.callable.{
   SequenceLiteralNode
 }
 import org.enso.interpreter.node.controlflow._
+import org.enso.interpreter.node.expression.atom.QualifiedAccessorNode
 import org.enso.interpreter.node.expression.constant.{
   ConstantObjectNode,
   ConstructorNode,
@@ -54,6 +56,7 @@ import org.enso.interpreter.runtime.callable.argument.{
   ArgumentDefinition,
   CallArgument
 }
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
   Function => RuntimeFunction
@@ -131,6 +134,14 @@ class IrToTruffle(
     * @param module the module for which code should be generated
     */
   private def processModule(module: IR.Module): Unit = {
+    generateReExportBindings(module)
+    module
+      .unsafeGetMetadata(
+        BindingAnalysis,
+        "No binding analysis at the point of codegen."
+      )
+      .resolvedExports
+      .foreach { exp => moduleScope.addExport(exp.module.getScope) }
     val imports = module.imports
     val atomDefs = module.bindings.collect {
       case atom: IR.Module.Scope.Definition.Atom => atom
@@ -303,6 +314,65 @@ class IrToTruffle(
       loc.id.foreach { id => expr.setId(id) }
     }
     expr
+  }
+
+  private def generateReExportBindings(module: IR.Module): Unit = {
+    def mkConsGetter(constructor: AtomConstructor): RuntimeFunction = {
+      new RuntimeFunction(
+        Truffle.getRuntime.createCallTarget(
+          new QualifiedAccessorNode(language, constructor)
+        ),
+        null,
+        new FunctionSchema(
+          FunctionSchema.CallStrategy.ALWAYS_DIRECT,
+          new ArgumentDefinition(
+            0,
+            "this",
+            ArgumentDefinition.ExecutionMode.EXECUTE
+          )
+        )
+      )
+    }
+
+    val bindingsMap = module.unsafeGetMetadata(
+      BindingAnalysis,
+      "No binding analysis at the point of codegen."
+    )
+    bindingsMap.exportedSymbols.foreach {
+      case (name, List(resolution)) =>
+        if (resolution.module != moduleScope.getModule) {
+          resolution match {
+            case BindingsMap.ResolvedConstructor(definitionModule, cons) =>
+              val runtimeCons =
+                definitionModule.getScope.getConstructors.get(cons.name)
+              val fun = mkConsGetter(runtimeCons)
+              moduleScope.registerMethod(
+                moduleScope.getAssociatedType,
+                name,
+                fun
+              )
+            case BindingsMap.ResolvedModule(module) =>
+              val runtimeCons =
+                module.getScope.getAssociatedType
+              val fun = mkConsGetter(runtimeCons)
+              moduleScope.registerMethod(
+                moduleScope.getAssociatedType,
+                name,
+                fun
+              )
+            case BindingsMap.ResolvedMethod(module, method) =>
+              val fun = module.getScope.getMethods
+                .get(module.getScope.getAssociatedType)
+                .get(method.name)
+              moduleScope.registerMethod(
+                moduleScope.getAssociatedType,
+                name,
+                fun
+              )
+            case BindingsMap.ResolvedPolyglotSymbol(_, _) =>
+          }
+        }
+    }
   }
 
   // ==========================================================================

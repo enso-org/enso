@@ -163,6 +163,7 @@ case object DocumentationComments extends IRPass {
       case expr: IR.Expression            => resolveExpression(expr)
       case df: IR.Module.Scope.Definition => resolveDefinition(df)
       case imp: IR.Module.Scope.Import    => imp
+      case exp: IR.Module.Scope.Export    => exp
       case arg: IR.CallArgument           => arg
       case arg: IR.DefinitionArgument     => arg
       case pat: IR.Pattern                => pat
