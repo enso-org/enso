@@ -60,12 +60,6 @@ class ImportsTest extends PackageTest {
     the[InterpreterException] thrownBy (evalTestProject(
       "Cycle_Test"
     )) should have message "Compilation aborted due to errors."
-    consumeOut shouldEqual List(
-      "Compiler encountered errors:",
-      "Export statements form a cycle:",
-      "    Cycle_Test.Sub.C exports Cycle_Test.Sub.A",
-      "    which exports Cycle_Test.Sub.B",
-      "    which exports Cycle_Test.Sub.C, forming a cycle."
-    )
+    consumeOut should contain("Export statements form a cycle:")
   }
 }
