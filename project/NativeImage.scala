@@ -131,7 +131,16 @@ object NativeImage {
         streams.value.cacheStoreFactory.make("incremental_native_image")
       Tracked.diffInputs(store, FileInfo.hash)(filesSet) {
         sourcesDiff: ChangeReport[File] =>
-          if (sourcesDiff.modified.nonEmpty)
+          if (System.getenv("LAUNCHER_NATIVE_IMAGE_TEST_SKIP_BUILD") == "true")
+            Def.task {
+              streams.value.log.warn(
+                "LAUNCHER_NATIVE_IMAGE_TEST_SKIP_BUILD set to true, " +
+                "Native Image will not be rebuilt. Use with caution as using " +
+                "this override without building the launcher manually may " +
+                "lead to launcher tests failure."
+              )
+            }
+          else if (sourcesDiff.modified.nonEmpty)
             rebuild("Native Image is not up to date")
           else if (!artifactFile(artifactName).exists())
             rebuild("Native Image does not exist")
