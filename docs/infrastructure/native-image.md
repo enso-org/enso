@@ -47,7 +47,8 @@ and `gcc-musl` must be available in the system PATH for the native-image. In the
 future it is possible that a different option will be used or that the bundle
 will not be required anymore if it became prepackaged. This task may thus need
 an update when moving to a newer version of Graal. More information may be found
-in [the Native Image documentation](https://github.com/oracle/graal/blob/master/substratevm/STATIC-IMAGES.md).
+in
+[the Native Image documentation](https://github.com/oracle/graal/blob/master/substratevm/STATIC-IMAGES.md).
 
 To make the bundle work correctly with GraalVM 20.2, a shell script called
 `gcc-musl` which loads the bundle's configuration is created by the task and the
