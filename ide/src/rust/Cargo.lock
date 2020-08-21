@@ -1197,6 +1197,7 @@ dependencies = [
  "js-sys 0.3.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "logger 0.1.0",
  "nalgebra 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "parser 0.1.0",
  "serde 1.0.114 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.56 (registry+https://github.com/rust-lang/crates.io-index)",
  "span-tree 0.1.0",

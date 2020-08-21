@@ -35,7 +35,7 @@ impl Path {
     /// Constructor.
     pub fn new(library:impl Into<data::LibraryName>, name:impl Into<Name>) -> Self {
         let library = library.into();
-        let name   = name.into();
+        let name    = name.into();
         Self {library,name}
     }
 
