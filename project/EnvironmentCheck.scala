@@ -23,31 +23,40 @@ object EnvironmentCheck {
   ): Boolean = {
     val javaSpecificationVersion =
       System.getProperty("java.vm.specification.version")
-    val graalVersion =
-      System.getProperty("java.vendor.version")
+    val versionProperty = "java.vendor.version"
+    val rawGraalVersion = System.getProperty(versionProperty)
+    def graalVersion: Option[String] = {
+      val versionRegex = """GraalVM (CE|EE) ([\d.]+.*)""".r
+      rawGraalVersion match {
+        case versionRegex(_, version) => Some(version)
+        case _                        => None
+      }
+    }
 
-    val graalOk =
-      if (graalVersion == null) {
-        log.error(
-          "Property org.graalvm.version is not defined. " +
-          s"Make sure your current JVM is set to " +
-          s"GraalVM $expectedGraalVersion Java $expectedJavaVersion"
-        )
-        false
-      } else if (graalVersion != expectedGraalVersion) {
-        log.error(
-          s"GraalVM version mismatch - you are running $graalVersion but " +
-          s"$expectedGraalVersion is expected"
-        )
-        false
-      } else true
+    val graalOk = if (rawGraalVersion == null) {
+      log.error(
+        s"Property $versionProperty is not defined. " +
+        s"Make sure your current JVM is set to " +
+        s"GraalVM $expectedGraalVersion Java $expectedJavaVersion."
+      )
+      false
+    } else
+      graalVersion match {
+        case Some(version) if version == expectedGraalVersion => true
+        case _ =>
+          log.error(
+            s"GraalVM version mismatch - you are running $rawGraalVersion " +
+            s"but GraalVM $expectedGraalVersion is expected."
+          )
+          false
+      }
 
     val javaOk =
       if (javaSpecificationVersion != expectedJavaVersion) {
         log.error(
           s"Java version mismatch - you are running " +
           s"Java $javaSpecificationVersion " +
-          s"but Java $expectedJavaVersion is expected"
+          s"but Java $expectedJavaVersion is expected."
         )
         false
       } else true

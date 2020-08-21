@@ -870,7 +870,7 @@ lazy val runtime = (project in file("engine/runtime"))
       ),
     bootstrap := CopyTruffleJAR.bootstrapJARs.value,
     Global / onLoad := EnvironmentCheck.addVersionCheck(
-        s"GraalVM CE $graalVersion",
+        graalVersion,
         javaVersion
       )((Global / onLoad).value)
   )
