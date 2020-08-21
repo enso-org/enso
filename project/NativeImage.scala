@@ -51,7 +51,7 @@ object NativeImage {
         }
 
         val debugParameters =
-          if (includeDebugInfo) "-H:GenerateDebugInfo=1" else ""
+          if (includeDebugInfo) Seq("-H:GenerateDebugInfo=1") else Seq()
 
         val (staticParameters, pathExts) =
           if (staticOnLinux && isLinux) {
@@ -59,10 +59,8 @@ object NativeImage {
             val buildCache =
               subProjectRoot / "build-cache"
             val path = ensureMuslIsInstalled(buildCache, log)
-            ("--static --libc=musl", Seq(path.toString))
-          } else ("", Seq())
-
-        val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
+            (Seq("--static", "--libc=musl"), Seq(path.toString))
+          } else (Seq(), Seq())
 
         val configLocation =
           subProjectRoot / "native-image-config"
@@ -70,26 +68,26 @@ object NativeImage {
           if (configLocation.exists()) {
             val path = configLocation.toPath.toAbsolutePath
             log.debug(s"Picking up Native Image configuration from `$path`.")
-            s"-H:ConfigurationFileDirectories=$path"
+            Seq(s"-H:ConfigurationFileDirectories=$path")
           } else {
             log.debug(
               "No Native Image configuration found, proceeding without it."
             )
-            ""
+            Seq()
           }
 
         val cmd =
-          s"$nativeImagePath $staticParameters $debugParameters " +
-          s"$resourcesGlobOpt $configs " +
-          s"--no-fallback --initialize-at-build-time " +
-          s"${additionalOptions.mkString(" ")} " +
-          s"-cp $classPath ${(Compile / mainClass).value.get} enso"
-
-        log.debug(cmd)
+          Seq(nativeImagePath) ++
+          debugParameters ++ staticParameters ++ configs ++
+          Seq("--no-fallback", "--initialize-at-build-time", "--no-server") ++
+          additionalOptions ++
+          Seq("-cp", classPath, (Compile / mainClass).value.get, artifactName)
 
         val pathParts = pathExts ++ Option(System.getenv("PATH")).toSeq
         val newPath   = pathParts.mkString(File.pathSeparator)
-        println(s"Overriding path to $newPath")
+
+        log.debug(s"""PATH="$newPath" ${cmd.mkString(" ")}""")
+
         val process =
           Process(cmd, None, "PATH" -> newPath)
 

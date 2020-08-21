@@ -42,7 +42,7 @@ My_Package
 │       ├── Helper.enso
 │       └── Util.enso
 └── visualization (optional)
-    └──
+    └── ...
 ```
 
 ### The `src` Directory

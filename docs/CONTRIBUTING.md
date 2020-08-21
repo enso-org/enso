@@ -302,7 +302,7 @@ Native Image component is installed in your GraalVM distribution. To install it,
 run:
 
 ```bash
-gu install native-image
+<path-to-graal-home>/bin/gu install native-image
 ```
 
 Then, you can build the launcher using:

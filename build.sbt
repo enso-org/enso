@@ -1002,7 +1002,11 @@ lazy val runner = project
   )
   .settings(
     buildNativeImage := NativeImage
-        .buildNativeImage("enso", staticOnLinux = false)
+        .buildNativeImage(
+          "enso",
+          staticOnLinux = false,
+          Seq("-H:IncludeResources=.*Main.enso$")
+        )
         .value
   )
   .settings(
@@ -1036,11 +1040,13 @@ lazy val launcher = project
           staticOnLinux = true,
           Seq(
             "--enable-all-security-services", // Note [HTTPS in the Launcher]
-            "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"
+            "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
+            "-H:IncludeResources=.*Main.enso$"
           )
         )
         .value,
-    libraryDependencies += "org.graalvm.nativeimage" % "svm" % "20.2.0" % "provided", // Note [Native Image Workaround for GraalVM 20.2]
+    // Note [Native Image Workaround for GraalVM 20.2]
+    libraryDependencies += "org.graalvm.nativeimage" % "svm" % "20.2.0" % "provided",
     test in assembly := {},
     assemblyOutputPath in assembly := file("launcher.jar")
   )
