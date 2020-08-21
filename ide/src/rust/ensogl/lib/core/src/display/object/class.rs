@@ -634,6 +634,12 @@ pub trait Object<Host=Scene> {
     fn weak_display_object (&self) -> WeakInstance<Host> {
         self.display_object().downgrade()
     }
+
+    /// See `Any` description.
+    fn into_any(self) -> Any<Host>
+    where Self:Sized + 'static {
+        Any{wrapped:Rc::new(self)}
+    }
 }
 
 impl<Host> Object<Host> for Instance<Host> {
@@ -925,6 +931,28 @@ pub trait ObjectOps<Host=Scene> : Object<Host> {
     fn set_rotation_z(&self, t:f32) {
         self.mod_rotation(|p| p.z = t)
     }
+}
+
+// ==================
+// === Any Object ===
+// ==================
+
+/// A structure wrapping any `Object` and hiding the exact type.
+///
+/// You can convert structure into `Any` using `Object::into_any`. Unfortunately it is not possible
+/// to make general `From` implementation, because `Any` itself would use it as well, and it clashes
+/// with base implementation `From<T> for T`.
+#[derive(Clone,CloneRef)]
+pub struct Any<Host=Scene> {
+    wrapped : Rc<dyn Object<Host>>
+}
+
+impl<Host> Debug for Any<Host> {
+    fn fmt(&self, f:&mut fmt::Formatter) -> fmt::Result { write!(f, "display::object::Any") }
+}
+
+impl<Host> Object<Host> for Any<Host> {
+    fn display_object(&self) -> &Instance<Host> { self.wrapped.display_object() }
 }
 
 

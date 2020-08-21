@@ -959,6 +959,21 @@ impl SceneData {
         let position = Vector4::new(position.x, position.y, position.z, 1.0);
         (self.camera().inversed_view_matrix() * position).xyz()
     }
+
+    /// Transforms screen position to the object (display object) coordinate system.
+    pub fn screen_to_object_space(&self, object:&impl display::Object, screen_pos:Vector2) -> Vector2 {
+        let origin_world_space = Vector4(0.0,0.0,0.0,1.0);
+        let origin_clip_space  = self.camera().view_projection_matrix() * origin_world_space;
+        let inv_object_matrix  = object.transform_matrix().try_inverse().unwrap();
+
+        let shape        = self.frp.shape.value();
+        let clip_space_z = origin_clip_space.z;
+        let clip_space_x = origin_clip_space.w * 2.0 * screen_pos.x / shape.width;
+        let clip_space_y = origin_clip_space.w * 2.0 * screen_pos.y / shape.height;
+        let clip_space   = Vector4(clip_space_x,clip_space_y,clip_space_z,origin_clip_space.w);
+        let world_space  = self.camera().inversed_view_projection_matrix() * clip_space;
+        (inv_object_matrix * world_space).xy()
+    }
 }
 
 impl display::Object for SceneData {

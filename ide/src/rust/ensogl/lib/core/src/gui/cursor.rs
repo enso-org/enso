@@ -4,10 +4,8 @@ use crate::prelude::*;
 
 use crate::frp;
 use crate::data::color;
-use crate::display::Buffer;
 use crate::display::scene::Scene;
 use crate::display::shape::*;
-use crate::display::{Sprite, Attribute};
 use crate::display;
 use crate::gui::component::Animation;
 use crate::gui::component::Tween;

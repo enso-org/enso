@@ -220,7 +220,7 @@ impl<T:Default> Default for CloneCell<T> {
 // =================
 
 #[derive(Debug)]
-pub struct CloneRefCell<T> {
+pub struct CloneRefCell<T:?Sized> {
     data : UnsafeCell<T>
 }
 

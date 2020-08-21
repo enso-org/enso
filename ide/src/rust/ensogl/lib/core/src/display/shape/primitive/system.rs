@@ -242,12 +242,12 @@ macro_rules! _define_shape_system {
         #[derive(Clone,CloneRef,Debug)]
         #[allow(missing_docs)]
         pub struct Shape {
-            pub sprite : Sprite,
-            $(pub $gpu_param : Attribute<$gpu_param_type>),*
+            pub sprite : $crate::display::symbol::geometry::Sprite,
+            $(pub $gpu_param : $crate::system::gpu::data::Attribute<$gpu_param_type>),*
         }
 
         impl Deref for Shape {
-            type Target = Sprite;
+            type Target = $crate::display::symbol::geometry::Sprite;
             fn deref(&self) -> &Self::Target {
                 &self.sprite
             }
@@ -255,13 +255,13 @@ macro_rules! _define_shape_system {
 
         impl $crate::display::shape::system::Shape for Shape {
             type System = ShapeSystem;
-            fn sprites(&self) -> Vec<&Sprite> {
+            fn sprites(&self) -> Vec<&$crate::display::symbol::geometry::Sprite> {
                 vec![&self.sprite]
             }
         }
 
-        impl display::Object for Shape {
-            fn display_object(&self) -> &display::object::Instance {
+        impl $crate::display::Object for Shape {
+            fn display_object(&self) -> &$crate::display::object::Instance {
                 self.sprite.display_object()
             }
         }
@@ -277,13 +277,13 @@ macro_rules! _define_shape_system {
         pub struct ShapeSystem {
             pub shape_system : $crate::display::shape::ShapeSystem,
             style_manager    : $crate::display::shape::StyleWatch,
-            $(pub $gpu_param : Buffer<$gpu_param_type>),*
+            $(pub $gpu_param : $crate::system::gpu::data::Buffer<$gpu_param_type>),*
         }
 
         impl $crate::display::shape::ShapeSystemInstance for ShapeSystem {
             type Shape = Shape;
 
-            fn new(scene:&Scene) -> Self {
+            fn new(scene:&$crate::display::scene::Scene) -> Self {
                 let style_manager = $crate::display::shape::StyleWatch::new(&scene.style_sheet);
                 let shape_system  = $crate::display::shape::ShapeSystem::new(scene,&Self::shape_def(&style_manager));
                 $(
@@ -313,16 +313,20 @@ macro_rules! _define_shape_system {
             }
 
             /// The canvas shape definition.
-            pub fn shape_def(__style_watch__:&$crate::display::shape::StyleWatch) -> AnyShape {
+            pub fn shape_def
+            (__style_watch__:&$crate::display::shape::StyleWatch)
+            -> $crate::display::shape::primitive::def::AnyShape {
                 #[allow(unused_imports)]
                 use $crate::display::style::data::DataMatch; // Operations styles.
+
+                __style_watch__.reset();
+                let $style  = __style_watch__;
+                // Silencing warnings about not used style.
+                let _unused = &$style;
                 $(
-                    __style_watch__.reset();
-                    let $style = __style_watch__;
-                    let $gpu_param : Var<$gpu_param_type> =
+                    let $gpu_param : $crate::display::shape::primitive::def::Var<$gpu_param_type> =
                         concat!("input_",stringify!($gpu_param)).into();
                     // Silencing warnings about not used shader input variables.
-                    let _unused = &$style;
                     let _unused = &$gpu_param;
                 )*
                 $($body)*

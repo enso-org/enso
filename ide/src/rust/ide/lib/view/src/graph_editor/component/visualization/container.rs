@@ -15,9 +15,6 @@ use crate::graph_editor::visualization;
 
 use enso_frp as frp;
 use ensogl::data::color;
-use ensogl::display::Attribute;
-use ensogl::display::Buffer;
-use ensogl::display::Sprite;
 use ensogl::display::scene;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
