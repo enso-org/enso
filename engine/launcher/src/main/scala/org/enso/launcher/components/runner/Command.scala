@@ -26,9 +26,7 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
       for ((key, value) <- extraEnv) {
         processBuilder.environment().put(key, value)
       }
-      processBuilder.redirectOutput(java.lang.ProcessBuilder.Redirect.INHERIT)
-      processBuilder.redirectError(java.lang.ProcessBuilder.Redirect.INHERIT)
-      processBuilder.redirectInput(java.lang.ProcessBuilder.Redirect.INHERIT)
+      processBuilder.inheritIO()
       val process = processBuilder.start()
       process.waitFor()
     }
