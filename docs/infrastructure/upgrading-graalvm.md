@@ -15,7 +15,7 @@ take the following actions to be able to continue development after the upgrade:
   - (The JVM used by IntelliJ may also need to be updated separately.)
 - Re-run `sbt bootstrap` to get the updated Truffle JAR (if there are issues
   updating, removing `engine/runtime/build-cache` directory may help).
-- Do a full clean (it may not be *always* required, but not doing it often leads
+- Do a full clean (it may not be _always_ required, but not doing it often leads
   to problems so it is much safer to do it) by running `enso/clean`.
 - To be able to build or run tests for the `launcher` project, Native Image for
   the new GraalVM version has to be installed, as it is not included by default.
