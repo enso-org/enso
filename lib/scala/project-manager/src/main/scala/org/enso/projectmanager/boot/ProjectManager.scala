@@ -5,6 +5,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
+import org.apache.commons.cli.CommandLine
 import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
   ConfigNamespace,
@@ -12,14 +13,14 @@ import org.enso.projectmanager.boot.Globals.{
   SuccessExitCode
 }
 import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
+import org.enso.projectmanager.util.Logging
+import org.enso.version.VersionDescription
 import pureconfig.ConfigSource
+import pureconfig.generic.auto._
 import zio.ZIO.effectTotal
 import zio._
 import zio.console._
 import zio.interop.catz.core._
-import org.enso.projectmanager.infrastructure.config.ConfigurationReaders.fileReader
-import org.enso.version.VersionDescription
-import pureconfig.generic.auto._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
@@ -98,21 +99,53 @@ object ProjectManager extends App with LazyLogging {
         success = ZIO.succeed(_)
       )
 
+  override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
+    Cli.parse(args.toArray) match {
+      case Right(opts) =>
+        runOpts(opts)
+      case Left(error) =>
+        putStrLn(error) *>
+        effectTotal(Cli.printHelp()) *>
+        ZIO.succeed(FailureExitCode)
+    }
+  }
+
   /**
     * The main function of the application, which will be passed the command-line
     * arguments to the program and has to return an `IO` with the errors fully handled.
     */
-  override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
-    if (args.contains("--version")) {
-      displayVersion(args.contains("--json"))
+  def runOpts(options: CommandLine): ZIO[ZEnv, Nothing, Int] = {
+    if (options.hasOption(Cli.HELP_OPTION)) {
+      ZIO.effectTotal(Cli.printHelp()) *>
+      ZIO.succeed(SuccessExitCode)
+    } else if (options.hasOption(Cli.VERSION_OPTION)) {
+      displayVersion(options.hasOption(Cli.JSON_OPTION))
     } else {
+      val verbosity = options.getOptions.count(_ == Cli.option.verbose)
       logger.info("Starting Project Manager...")
+      setupLogging(verbosity) *>
       mainProcess.fold(
         th => { th.printStackTrace(); FailureExitCode },
         _ => SuccessExitCode
       )
     }
   }
+
+  private def setupLogging(verbosityLevel: Int): UIO[Unit] =
+    ZIO
+      .effectTotal {
+        val level = verbosityLevel match {
+          case 0 => Logging.LogLevel.Info
+          case 1 => Logging.LogLevel.Debug
+          case _ => Logging.LogLevel.Trace
+        }
+        Logging.setLogLevel(level) match {
+          case Right(level) =>
+            logger.info(s"Set log level $level")
+          case Left(error) =>
+            logger.error(s"Failed to set log level $level", error)
+        }
+      }
 
   private def displayVersion(useJson: Boolean): ZIO[Console, Nothing, Int] = {
     val versionDescription = VersionDescription.make(

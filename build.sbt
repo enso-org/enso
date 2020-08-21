@@ -548,6 +548,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
         "com.typesafe.scala-logging" %% "scala-logging"       % scalaLoggingVersion,
         "dev.zio"                    %% "zio"                 % zioVersion,
         "dev.zio"                    %% "zio-interop-cats"    % zioInteropCatsVersion,
+        "commons-cli"                 % "commons-cli"         % commonsCliVersion,
         "commons-io"                  % "commons-io"          % commonsIoVersion,
         "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
         "com.typesafe.slick"         %% "slick-hikaricp"      % slickVersion             % Runtime,

@@ -33,6 +33,7 @@ import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -44,6 +45,8 @@ import scala.util.{Failure, Success}
   * @param serverConfig configuration for the language server
   */
 class MainModule(serverConfig: LanguageServerConfig) {
+
+  val log = LoggerFactory.getLogger(this.getClass)
 
   val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
@@ -72,7 +75,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     SqlDatabase(languageServerConfig.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
   val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
-  system.log.debug("Sql repos created")
+  log.debug("Sql repos created")
 
   lazy val sessionRouter =
     system.actorOf(SessionRouter.props(), "session-router")
@@ -138,7 +141,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
-  system.log.debug("Initializing Runtime context...")
+  log.debug("Initializing Runtime context...")
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
@@ -164,7 +167,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     })
     .build()
   context.initialize(LanguageInfo.ID)
-  system.log.debug("Runtime context initialized")
+  log.debug("Runtime context initialized")
 
   val runtimeKiller =
     system.actorOf(
@@ -228,7 +231,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
       case Success(()) =>
         system.eventStream.publish(InitializedEvent.SuggestionsRepoInitialized)
       case Failure(ex) =>
-        system.log.error(ex, "Failed to initialize SQL suggestions repo")
+        log.error("Failed to initialize SQL suggestions repo", ex)
     }
 
     val versionsRepoInit = versionsRepo.init
@@ -236,7 +239,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
       case Success(()) =>
         system.eventStream.publish(InitializedEvent.FileVersionsRepoInitialized)
       case Failure(ex) =>
-        system.log.error(ex, "Failed to initialize SQL versions repo")
+        log.error("Failed to initialize SQL versions repo", ex)
     }(system.dispatcher)
 
     Future
