@@ -13,7 +13,7 @@ take the following actions to be able to continue development after the upgrade:
 
 1. Download the new JVM version and set it as the default for the project. If
    you use IntelliJ, you will also need to update the JVM used for the project
-   in the Project Settings.
+   in the project settings.
 2. Re-run `sbt bootstrap` to get the updated Truffle JAR (if there are issues
    updating, removing `engine/runtime/build-cache` directory may help).
 3. Do a full clean (it may not _always_ be required, but not doing it often
