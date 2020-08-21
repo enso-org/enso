@@ -21,10 +21,6 @@ use ensogl::gui::component;
 pub mod shape {
     use super::*;
     use ensogl::display::shape::*;
-    use ensogl::display::scene::Scene;
-    use ensogl::display::Sprite;
-    use ensogl::display::Buffer;
-    use ensogl::display::Attribute;
 
     ensogl::define_shape_system! {
         (position:Vector2<f32>,radius:f32) {

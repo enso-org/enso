@@ -215,6 +215,7 @@ mod network_mode_tests {
 #[cfg(test)]
 mod dynamic_mode_tests {
     use crate as frp;
+    use frp::prelude::*;
 
     #[test]
     fn weak_memory_management() {
@@ -284,5 +285,27 @@ mod dynamic_mode_tests {
         }
         toggle_src.emit(());
         map_src.emit(());
+    }
+
+    #[test]
+    fn test_gate() {
+        let passed_events = Rc::new(Cell::new(0));
+        frp::new_network! { network
+            def behavior   = source::<bool>();
+            def some_event = source::<()>();
+
+            def gated      = some_event.gate(&behavior);
+            eval gated ([passed_events](()) {
+                passed_events.set(passed_events.get() + 1);
+            });
+        };
+
+        behavior.emit(false);
+        some_event.emit(());
+        behavior.emit(true);
+        some_event.emit(());
+        behavior.emit(true);
+        some_event.emit(());
+        assert_eq!(passed_events.get(), 2);
     }
 }

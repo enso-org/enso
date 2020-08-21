@@ -19,11 +19,8 @@ use ensogl_core::application::Application;
 use ensogl_core::application::shortcut;
 use ensogl_core::application;
 use ensogl_core::data::color;
-use ensogl_core::display::Attribute;
-use ensogl_core::display::Buffer;
 use ensogl_core::display::scene::Scene;
 use ensogl_core::display::shape::*;
-use ensogl_core::display::Sprite;
 use ensogl_core::display;
 use ensogl_core::gui::component::Animation;
 use ensogl_core::gui::component;
@@ -441,6 +438,7 @@ crate::define_endpoints! {
         set_color_bytes       (buffer::Range<Bytes>,color::Rgba),
         set_default_color     (color::Rgba),
         set_default_text_size (style::Size),
+        set_content           (String),
     }
     Output {
         mouse_cursor_style (gui::cursor::Style),
@@ -621,14 +619,18 @@ impl Area {
             key_to_insert <= key_to_insert.map(f!((key) m.key_to_string(key)));
             str_to_insert <- any(&input.insert,&key_to_insert);
             eval str_to_insert ((s) m.buffer.frp.insert(s));
-
+            eval input.set_content ([input,cmd](s) {
+                input.set_cursor(&default());
+                cmd.select_all();
+                input.insert(s);
+                cmd.remove_all_cursors();
+            });
 
             // === Colors ===
 
             eval input.set_default_color     ((t) m.buffer.frp.set_default_color(*t));
             eval input.set_default_text_size ((t) m.buffer.frp.set_default_text_size(*t));
             eval input.set_color_bytes       ((t) m.buffer.frp.set_color_bytes.emit(*t));
-
 
             // === Changes ===
 
@@ -662,8 +664,7 @@ pub struct AreaData {
 
 impl AreaData {
     /// Constructor.
-    pub fn new
-    (app:&Application, network:&frp::Network) -> Self {
+    pub fn new(app:&Application, network:&frp::Network) -> Self {
         let scene          = app.display.scene().clone_ref();
         let logger         = Logger::new("text_area");
         let _bg_logger     = Logger::sub(&logger,"background");

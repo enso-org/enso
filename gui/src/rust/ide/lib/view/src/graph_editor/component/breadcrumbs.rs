@@ -20,7 +20,6 @@ use ensogl::display::object::ObjectOps;
 use ensogl::display::scene::Scene;
 use ensogl::display::shape::*;
 use ensogl::display::shape::text::text_field::FocusManager;
-use ensogl::display::Sprite;
 use ensogl::gui::component;
 use logger::AnyLogger;
 use logger::enabled::Logger;
