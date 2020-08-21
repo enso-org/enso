@@ -100,6 +100,8 @@ jobs:
         run: |
           echo '::set-env name=CI_TEST_TIMEFACTOR::2'
           echo '::set-env name=CI_TEST_FLAKY_ENABLE::true'
+      - name: Test Launcher
+        run: sbt --no-colors "set Global / parallelExecution := false; launcher/test"
       - name: Test Enso
         run: |
           sleep 1
