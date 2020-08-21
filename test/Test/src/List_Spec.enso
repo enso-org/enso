@@ -1,8 +1,8 @@
 import Base.Test
-import Base.List
+from Base import all
 
 spec = describe "List" <|
-    l = Cons 1 <| Cons 2 <| Cons 3 <| Nil
+    l = Base.Cons 1 <| Base.Cons 2 <| Base.Cons 3 <| Base.Nil
     it "should have properly defined length" <|
         l.length.should_equal 3
     it "should have well defined length when empty" <|

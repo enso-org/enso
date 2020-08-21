@@ -64,10 +64,13 @@ class ImportResolver(compiler: Compiler) {
           IR.Module.Scope.Import
             .Module(
               IR.Name.Qualified(
-                List(IR.Name.Literal("Builtins", isReferent = true, None)),
+                List(
+                  IR.Name.Literal("Builtins", isReferent = true, None),
+                  IR.Name.Literal("Main", isReferent     = true, None)
+                ),
                 None
               ),
-              None,
+              Some(IR.Name.Literal("Builtins", isReferent = true, None)),
               isAll = true,
               None,
               None,
@@ -82,9 +85,9 @@ class ImportResolver(compiler: Compiler) {
         current.unsafeSetCompilationStage(
           Module.CompilationStage.AFTER_IMPORT_RESOLUTION
         )
-        seen += current
-        stack = importedModules.map(_.module) ++ stack
+        stack = currentLocal.resolvedImports.map(_.module) ++ stack
       }
+      seen += current
     }
     seen.toList
   }

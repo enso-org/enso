@@ -1,3 +1,7 @@
+import Builtins
+
+from Builtins export Nil, Cons
+
 ## PRIVATE
    A helper for the `map` function.
 

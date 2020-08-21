@@ -95,7 +95,7 @@ case class BindingsMap(
   private def handleAmbiguity(
     candidates: List[ResolvedName]
   ): Either[ResolutionError, ResolvedName] = {
-    candidates match {
+    candidates.distinct match {
       case List()   => Left(ResolutionNotFound)
       case List(it) => Right(it)
       case items    => Left(ResolutionAmbiguous(items))

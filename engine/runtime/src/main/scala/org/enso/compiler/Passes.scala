@@ -22,6 +22,7 @@ class Passes(passes: Option[List[PassGroup]] = None) {
   val moduleDiscoveryPasses = new PassGroup(
     List(
       DocumentationComments,
+      MainImportAndExport,
       ComplexType,
       FunctionBinding,
       GenerateMethodBodies,
