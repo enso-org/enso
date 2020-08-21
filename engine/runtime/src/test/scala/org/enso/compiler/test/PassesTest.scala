@@ -41,6 +41,7 @@ class PassesTest extends CompilerTest {
       passes.getPrecursors(AliasAnalysis).map(_.passes) shouldEqual Some(
         List(
           DocumentationComments,
+          MainImportAndExport,
           ComplexType,
           FunctionBinding,
           GenerateMethodBodies,

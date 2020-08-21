@@ -34,7 +34,7 @@ import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
-  public static final String MODULE_NAME = "Builtins";
+  public static final String MODULE_NAME = "Builtins.Main";
 
   /** Container for method names needed outside this class. */
   public static class MethodNames {
@@ -66,7 +66,7 @@ public class Builtins {
   public Builtins(Context context) {
     Language language = context.getLanguage();
 
-    module = Module.empty(QualifiedName.simpleName(MODULE_NAME));
+    module = Module.empty(QualifiedName.fromString(MODULE_NAME).get());
     scope = module.compileScope(context);
     unit = new AtomConstructor("Unit", scope).initializeFields();
     any = new AtomConstructor("Any", scope).initializeFields();
