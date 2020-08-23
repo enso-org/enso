@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::alias_analysis::analyse_block;
-use crate::double_representation::alias_analysis::NormalizedName;
+use crate::double_representation::alias_analysis::analyze_crumbable;
+use crate::double_representation::identifier::NormalizedName;
 use crate::double_representation::node::Id;
 use crate::double_representation::node::NodeInfo;
 
@@ -46,7 +46,7 @@ impl Endpoint {
 }
 
 /// Connection source, i.e. the port generating the data / identifier introducer.
-pub type Source      = Endpoint;
+pub type Source = Endpoint;
 
 /// Connection destination, i.e. the port receiving data / identifier user.
 pub type Destination = Endpoint;
@@ -61,13 +61,13 @@ pub type Destination = Endpoint;
 #[allow(missing_docs)]
 #[derive(Clone,Debug,PartialEq)]
 pub struct Connection {
-    pub source:Source,
-    pub destination:Destination,
+    pub source      : Source,
+    pub destination : Destination,
 }
 
 /// Lists all the connection in the graph for the given code block.
 pub fn list_block(block:&ast::Block<Ast>) -> Vec<Connection> {
-    let identifiers      = analyse_block(block);
+    let identifiers      = analyze_crumbable(block);
     let introduced_iter  = identifiers.introduced.into_iter();
     type NameMap         = HashMap<NormalizedName,Endpoint>;
     let introduced_names = introduced_iter.flat_map(|name| {

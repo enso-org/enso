@@ -6,13 +6,11 @@ pub mod executed;
 
 use crate::prelude::*;
 
-use crate::double_representation::alias_analysis::NormalizedName;
-use crate::double_representation::alias_analysis::LocatedName;
 use crate::double_representation::definition;
-use crate::double_representation::module;
-pub use crate::double_representation::graph::Id;
 use crate::double_representation::graph::GraphInfo;
-pub use crate::double_representation::graph::LocationHint;
+use crate::double_representation::identifier::LocatedName;
+use crate::double_representation::identifier::generate_name;
+use crate::double_representation::module;
 use crate::double_representation::node;
 use crate::double_representation::node::NodeInfo;
 use crate::model::module::NodeMetadata;
@@ -23,6 +21,9 @@ use parser::Parser;
 use span_tree::action::Actions;
 use span_tree::action::Action;
 use span_tree::SpanTree;
+
+pub use crate::double_representation::graph::LocationHint;
+pub use crate::double_representation::graph::Id;
 
 
 
@@ -451,10 +452,14 @@ impl Handle {
         self.module.find_definition(&self.id)
     }
 
+    /// Get the double representation description of the graph.
+    pub fn graph_info(&self) -> FallibleResult<GraphInfo> {
+        self.graph_definition_info().map(GraphInfo::from_definition)
+    }
+
     /// Returns double rep information about all nodes in the graph.
     pub fn all_node_infos(&self) -> FallibleResult<Vec<NodeInfo>> {
-        let definition = self.graph_definition_info()?;
-        let graph      = double_representation::graph::GraphInfo::from_definition(definition);
+        let graph = self.graph_info()?;
         Ok(graph.nodes())
     }
 
@@ -488,8 +493,7 @@ impl Handle {
 
     /// Returns information about all the connections between graph's nodes.
     pub fn connections(&self) -> FallibleResult<Connections> {
-        let definition  = self.graph_definition_info()?;
-        let graph       = double_representation::graph::GraphInfo::from_definition(definition);
+        let graph = self.graph_info()?;
         Ok(Connections::new(&graph))
     }
 
@@ -510,17 +514,14 @@ impl Handle {
         use double_representation::alias_analysis;
         let def   = self.graph_definition_info()?;
         let body  = def.body();
-        let usage = match body.shape() {
-            ast::Shape::Block(block) => alias_analysis::analyse_block(&block),
-            _ => {
-                if let Some(node) = NodeInfo::from_line_ast(&body) {
-                    alias_analysis::analyse_node(&node)
-                } else {
-                    // Generally speaking - impossible. But if there is no node in the definition
-                    // body, then there is nothing that could use any symbols, so nothing is used.
-                    default()
-                }
-            }
+        let usage = if matches!(body.shape(),ast::Shape::Block(_)) {
+            alias_analysis::analyze_crumbable(body.item)
+        } else if  let Some(node) = NodeInfo::from_line_ast(&body) {
+            alias_analysis::analyze_node(&node)
+        } else {
+            // Generally speaking - impossible. But if there is no node in the definition
+            // body, then there is nothing that could use any symbols, so nothing is used.
+            default()
         };
         Ok(usage.all_identifiers())
     }
@@ -528,17 +529,10 @@ impl Handle {
     /// Suggests a variable name for storing results of the given node. Name will get a number
     /// appended to avoid conflicts with other identifiers used in the graph.
     pub fn variable_name_for(&self, node:&NodeInfo) -> FallibleResult<ast::known::Var> {
-        let base_name   = Self::variable_name_base_for(node);
-        let unavailable = self.used_names()?.into_iter().filter_map(|name| {
-            let is_relevant = name.item.starts_with(base_name.as_str());
-            is_relevant.then(name.item)
-        }).collect::<HashSet<_>>();
-        let name = (1..).find_map(|i| {
-            let candidate              = NormalizedName::new(iformat!("{base_name}{i}"));
-            let available              = !unavailable.contains(&candidate);
-            available.and_option_from(|| Some(candidate.deref().clone()))
-        }).unwrap(); // It always return a value.
-        Ok(ast::known::Var::new(ast::Var {name}, None))
+        let base_name  = Self::variable_name_base_for(node);
+        let used_names = self.used_names()?.into_iter().map(|located_name| located_name.item);
+        let name       = generate_name(base_name.as_str(),used_names)?.as_var()?;
+        Ok(ast::known::Var::new(name,None))
     }
 
     /// Converts node to an assignment, where the whole value is bound to a single identifier.
@@ -731,6 +725,42 @@ impl Handle {
         Ok(())
     }
 
+    /// Collapses the selected nodes.
+    ///
+    /// Lines corresponding to the selection will be extracted to a new method definition.
+    pub fn collapse
+    (&self, nodes:impl IntoIterator<Item=node::Id>, new_method_name_base:&str)
+    -> FallibleResult<node::Id> {
+        use double_representation::refactorings::collapse::collapse;
+        use double_representation::refactorings::collapse::Collapsed;
+
+        let nodes : Vec<_> = Result::from_iter(nodes.into_iter().map(|id| self.node(id)))?;
+        let positions      = nodes.iter().filter_map(|node| {
+            node.metadata.as_ref().and_then(|metadata| metadata.position)
+        });
+        let mean_position   = model::module::Position::mean(positions);
+        let ast             = self.module.ast();
+        let mut module      = module::Info {ast};
+        let introduced_name = module.generate_name(new_method_name_base)?;
+        let node_ids        = nodes.iter().map(|node| node.info.id());
+        let graph           = self.graph_info()?;
+        let collapsed       = collapse(&graph,node_ids,introduced_name,&self.parser)?;
+        let Collapsed {new_method,updated_definition,collapsed_node} = collapsed;
+
+        let graph   = self.graph_info()?;
+        let my_name = graph.source.name.item;
+        module.add_method(new_method,module::Placement::Before(my_name),&self.parser)?;
+        self.module.update_ast(module.ast);
+        self.update_definition_ast(|_| Ok(updated_definition))?;
+        self.module.with_node_metadata(collapsed_node,Box::new(|metadata| {
+            *metadata = NodeMetadata {
+                position : Some(mean_position),
+                ..default()
+            };
+        }));
+        Ok(collapsed_node)
+    }
+
     /// Updates the given node in the definition.
     ///
     /// The function `F` is called with the information with the state of the node so far and
@@ -771,7 +801,9 @@ impl Handle {
 pub mod tests {
     use super::*;
 
+    use crate::double_representation::identifier::NormalizedName;
     use crate::executor::test_utils::TestWithLocalPoolExecutor;
+    use crate::model::module::Position;
 
     use ast::crumbs;
     use ast::test_utils::expect_shape;
@@ -871,7 +903,7 @@ pub mod tests {
     fn node_operations() {
         Fixture::set_up().run(|graph| async move {
             let uid = graph.all_node_infos().unwrap()[0].id();
-            let pos = model::module::Position {vector:Vector2::new(0.0,0.0)};
+            let pos = Position {vector:Vector2::new(0.0,0.0)};
             graph.module.with_node_metadata(uid, Box::new(|data| data.position = Some(pos)));
             assert_eq!(graph.module.node_metadata(uid).unwrap().position, Some(pos));
         })
@@ -960,6 +992,87 @@ main =
         new_node
     print foo";
             model::module::test::expect_code(&*graph.module,expected_program);
+        })
+    }
+
+    #[wasm_bindgen_test]
+    fn collapsing_nodes_avoids_name_conflicts() {
+        // Checks that generated name avoid collision with other methods defined in the module
+        // and with symbols used that could be shadowed by the extracted method's name.
+        let mut test  = Fixture::set_up();
+        let code = r"
+func2 = 454
+
+main =
+    a = 10
+    b = 20
+    c = a + b
+    d = c + d
+    a + func1";
+
+        let expected_code = "
+func2 = 454
+
+func3 a =
+    b = 20
+    c = a + b
+    d = c + d
+
+main =
+    a = 10
+    here.func3 a
+    a + func1";
+
+        test.data.code = code.to_owned();
+        test.run(move |graph| async move {
+            let nodes = graph.nodes().unwrap();
+            let selected_nodes = nodes[1..4].iter().map(|node| node.info.id());
+            graph.collapse(selected_nodes,"func").unwrap();
+            model::module::test::expect_code(&*graph.module,expected_code);
+        })
+    }
+
+    #[wasm_bindgen_test]
+    fn collapsing_nodes() {
+        let mut test  = Fixture::set_up();
+        let code = r"
+main =
+    a = 10
+    b = 20
+    a + c";
+
+        let expected_code = "
+func1 =
+    a = 10
+    b = 20
+    a
+
+main =
+    a = here.func1
+    a + c";
+
+        test.data.code = code.to_owned();
+        test.run(move |graph| async move {
+            let nodes = graph.nodes().unwrap();
+            assert_eq!(nodes.len(),3);
+            graph.module.set_node_metadata(nodes[0].info.id(), NodeMetadata {
+                position : Some(Position::new(100.0,200.0)),
+                ..default()
+            });
+            graph.module.set_node_metadata(nodes[1].info.id(), NodeMetadata {
+                position : Some(Position::new(150.0,300.0)),
+                ..default()
+            });
+
+            let selected_nodes = nodes[0..2].iter().map(|node| node.info.id());
+            let collapsed_node = graph.collapse(selected_nodes,"func").unwrap();
+            model::module::test::expect_code(&*graph.module,expected_code);
+
+            let nodes_after = graph.nodes().unwrap();
+            assert_eq!(nodes_after.len(),2);
+            let collapsed_node_info = graph.node(collapsed_node).unwrap();
+            let collapsed_node_pos  = collapsed_node_info.metadata.and_then(|m| m.position);
+            assert_eq!(collapsed_node_pos, Some(Position::new(125.0,250.0)));
         })
     }
 

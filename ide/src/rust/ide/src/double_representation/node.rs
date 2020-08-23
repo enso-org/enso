@@ -163,6 +163,19 @@ impl NodeInfo {
         }
 
     }
+
+    /// Clear the pattern (left side of assignment) for node.
+    ///
+    /// If it is already an Expression node, no change is done.
+    pub fn clear_pattern(&mut self) {
+        match self {
+            NodeInfo::Binding {infix} => {
+                *self = NodeInfo::Expression {ast:infix.rarg.clone_ref()}
+            }
+            NodeInfo::Expression {..} => {}
+        }
+
+    }
 }
 
 impl ast::HasTokens for NodeInfo {
@@ -232,6 +245,26 @@ mod tests {
         let rarg   = Ast::new(number, Some(id));
         let ast    = Ast::infix(larg,ASSIGNMENT,rarg);
         expect_node(ast,"4",id);
+    }
+
+    #[test]
+    fn clearing_pattern_test() {
+        // expression: `foo = 4`
+        let id = Id::new_v4();
+        let number = ast::Number { base:None, int: "4".into()};
+        let larg   = Ast::var("foo");
+        let rarg   = Ast::new(number, Some(id));
+        let ast    = Ast::infix(larg,ASSIGNMENT,rarg);
+
+        let mut node = NodeInfo::from_line_ast(&ast).unwrap();
+        assert_eq!(node.repr(),"foo = 4");
+        assert_eq!(node.id(),id);
+        node.clear_pattern();
+        assert_eq!(node.repr(),"4");
+        assert_eq!(node.id(),id);
+        node.clear_pattern();
+        assert_eq!(node.repr(),"4");
+        assert_eq!(node.id(),id);
     }
 
     #[test]

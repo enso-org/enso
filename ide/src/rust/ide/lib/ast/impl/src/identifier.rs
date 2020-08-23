@@ -10,7 +10,7 @@ pub fn is_identifier(ast:&Ast) -> bool {
 }
 
 /// Retrieves the identifier's name, if the Ast node is an identifier. Otherwise, returns None.
-pub fn name(ast:&Ast) -> Option<&String> {
+pub fn name(ast:&Ast) -> Option<&str> {
     match ast.shape() {
         Shape::Var          (val) => Some(&val.name),
         Shape::Cons         (val) => Some(&val.name),
@@ -21,7 +21,7 @@ pub fn name(ast:&Ast) -> Option<&String> {
 }
 
 /// If the node is a variable (lower-cased) identifier, return the name.
-pub fn as_var(ast:&Ast) -> Option<&String> {
+pub fn as_var(ast:&Ast) -> Option<&str> {
     match ast.shape() {
         Shape::Var(val) => Some(&val.name),
         _               => None,

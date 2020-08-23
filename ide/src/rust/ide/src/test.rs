@@ -45,7 +45,12 @@ pub mod mock {
     }
 
     pub fn main_from_lines(lines:impl IntoIterator<Item:AsRef<str>>) -> String {
+        def_from_lines("main",lines)
+    }
+
+    pub fn def_from_lines
+    (name:impl Display, lines:impl IntoIterator<Item:AsRef<str>>) -> String {
         let body = lines.into_iter().map(indent).join("\n");
-        iformat!("main = \n{body}")
+        iformat!("{name} =\n{body}")
     }
 }

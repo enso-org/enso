@@ -21,6 +21,10 @@ use crate::known;
 
 use utils::vec::VecExt;
 
+/// Symbols that can appear in operator name, as per
+/// https://dev.enso.org/docs/enso/syntax/naming.html#operator-naming
+pub const SYMBOLS:[char;25] = ['!','$','%','&','*','+','-','/','<','>','?','^','~','|',':','\\',',',
+    '.','(',')','[',']','{','}','='];
 
 /// Identifiers of operators with special meaning for IDE.
 pub mod predefined {
