@@ -226,7 +226,7 @@ impl ThisNode {
             //   form. If we wanted to support pattern subparts, the engine would need to send us
             //   value updates for matched pattern pieces. See the issue:
             //   https://github.com/enso-org/enso/issues/1038
-            (ast::identifier::as_var(&ast)?.clone(),false)
+            (ast::identifier::as_var(&ast)?.to_owned(),false)
         } else {
             (graph.variable_name_for(&node.info).ok()?.repr(),true)
         };
@@ -741,14 +741,14 @@ impl SimpleFunctionCall {
         if let Some(name) = ast::identifier::name(call) {
             Some(Self {
                 this_argument : None,
-                function_name : name.clone(),
+                function_name : name.to_owned(),
             })
         } else {
             let infix = ast::opr::to_access(call)?;
             let name  = ast::identifier::name(&infix.rarg)?;
             Some(Self {
                 this_argument : Some(infix.larg.clone_ref()),
-                function_name : name.clone(),
+                function_name : name.to_owned(),
             })
         }
     }

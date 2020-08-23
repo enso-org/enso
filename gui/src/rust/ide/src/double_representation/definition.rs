@@ -12,7 +12,6 @@ use ast::opr;
 use parser::Parser;
 
 
-
 // =====================
 // === Definition Id ===
 // =====================
@@ -116,7 +115,7 @@ pub struct DefinitionName {
 impl DefinitionName {
     /// Creates a new name consisting of a single unqualified identifier (not an explicit extension
     /// method).
-    pub fn new_plain(name:impl Str) -> DefinitionName {
+    pub fn new_plain(name:impl Into<String>) -> DefinitionName {
         let name = Located::new_root(name.into());
         DefinitionName {name, extended_target:default()}
     }
@@ -145,7 +144,7 @@ impl DefinitionName {
 
                 let mut pieces = Vec::new();
                 for piece in accessor_chain.enumerate_operands() {
-                    let name = ast::identifier::name(&piece.item.arg)?.clone();
+                    let name = ast::identifier::name(&piece.item.arg)?.to_owned();
                     pieces.push(piece.map(|_| name));
                 }
 
@@ -154,14 +153,14 @@ impl DefinitionName {
             }
             None => {
                 let name = match ast.shape() {
-                    ast::Shape::Var         (var)   => Some(&var.name),
-                    ast::Shape::Opr         (opr)   => Some(&opr.name),
+                    ast::Shape::Var         (var)   => Some(var.name.as_str()),
+                    ast::Shape::Opr         (opr)   => Some(opr.name.as_str()),
                     ast::Shape::SectionSides(sides) => ast::identifier::name(&sides.opr),
                     // Shape::Cons is intentionally omitted.
                     // It serves to pattern-match, not as definition name.
                     _ => None
                 }?;
-                let name = Located::new_root(name.clone());
+                let name = Located::new_root(name.to_owned());
                 (Vec::new(), name)
             }
         };
@@ -504,13 +503,14 @@ impl ToAdd {
     pub fn head(&self, parser:&Parser) -> FallibleResult<Ast> {
         let name = self.name.ast(parser)?;
         let args = self.explicit_parameter_names.iter().map(Ast::var);
-        let head = ast::prefix::Chain::new(name, args).into_ast();
+        let head = ast::prefix::Chain::new(name,args).into_ast();
         Ok(head)
     }
 
     /// The definition's body, i.e. the right-hand side of the primary assignment.
     pub fn body(&self, scope_indent:usize) -> Ast {
-        if self.body_tail.is_empty() {
+        // Assignment always must be in a block
+        if self.body_tail.is_empty() && !ast::opr::is_assignment(&self.body_head) {
             self.body_head.clone_ref()
         } else {
             let mut block = ast::Block::from_lines(&self.body_head,&self.body_tail);
@@ -521,9 +521,16 @@ impl ToAdd {
 
     /// Generate the definition's Ast from the description.
     pub fn ast(&self, scope_indent:usize, parser:&Parser) -> FallibleResult<Ast> {
-        let head = self.head(parser)?;
-        let body = self.body(scope_indent);
-        let ast  = Ast::infix(head,ast::opr::predefined::ASSIGNMENT,body);
+        let body          = self.body(scope_indent);
+        let body_is_block = matches!(body.shape(), ast::Shape::Block {..});
+        let infix_shape   = ast::Infix {
+            larg : self.head(parser)?,
+            loff : 1,
+            opr  : Ast::opr(ast::opr::predefined::ASSIGNMENT),
+            roff : if body_is_block { 0 } else { 1 },
+            rarg : body,
+        };
+        let ast  = Ast::from(infix_shape);
         Ok(ast)
     }
 }
@@ -566,16 +573,26 @@ mod tests {
         let mut to_add = ToAdd {
             name : DefinitionName::new_method("Main","add"),
             explicit_parameter_names : vec!["arg1".into(), "arg2".into()],
-            body_head : Ast::infix_var("arg1","+","arg2"),
+            body_head : Ast::infix_var("ret","=","arg2"),
             body_tail : default(),
         };
+
+        // First, if we generate definition with single line and it is assignment,
+        // it should be placed in a block of its own.
+        let ast = to_add.ast(4, &parser).unwrap();
+        assert_eq!(ast.repr(), "Main.add arg1 arg2 =\n        ret = arg2");
+
+        // Now the single line body will be non-assignment, so it will be safe to place inline.
+        to_add.body_head = Ast::infix_var("arg1","+","arg2");
         let ast = to_add.ast(4, &parser).unwrap();
         assert_eq!(ast.repr(), "Main.add arg1 arg2 = arg1 + arg2");
-        to_add.body_tail.push(Some(Ast::infix_var("arg1", "-", "arg2")));
 
+        // Having more than a single line always requires a block.
+        to_add.body_tail.push(Some(Ast::infix_var("arg1", "-", "arg2")));
         let ast = to_add.ast(4, &parser).unwrap();
         // Note 8 spaces indents for definition block lines (as the parent scope was at 4).
-        assert_eq!(ast.repr(), "Main.add arg1 arg2 = \n        arg1 + arg2\n        arg1 - arg2");
+        // Also, note that there is no space after the definition's assignment operator.
+        assert_eq!(ast.repr(), "Main.add arg1 arg2 =\n        arg1 + arg2\n        arg1 - arg2");
     }
 
     #[wasm_bindgen_test]

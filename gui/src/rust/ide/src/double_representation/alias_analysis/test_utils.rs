@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::alias_analysis::NormalizedName;
-use crate::double_representation::alias_analysis::LocatedName;
+use crate::double_representation::identifier::NormalizedName;
+use crate::double_representation::identifier::LocatedName;
 use crate::double_representation::node::NodeInfo;
 use crate::double_representation::test_utils::MarkdownProcessor;
 

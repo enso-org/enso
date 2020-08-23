@@ -14,7 +14,7 @@ use ide::prelude::*;
 
 use enso_protocol::language_server::*;
 use enso_protocol::types::*;
-use ide::double_representation::ReferentName;
+use ide::double_representation::identifier::ReferentName;
 use ide::model::Project;
 use ide::model::module;
 use ide::model::execution_context::Visualization;

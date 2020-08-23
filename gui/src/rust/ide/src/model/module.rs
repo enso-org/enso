@@ -11,7 +11,7 @@ use crate::prelude::*;
 use crate::constants::LANGUAGE_FILE_EXTENSION;
 use crate::constants::SOURCE_DIRECTORY;
 use crate::controller::FilePath;
-use crate::double_representation::ReferentName;
+use crate::double_representation::identifier::ReferentName;
 use crate::double_representation::definition::DefinitionInfo;
 
 use data::text::TextChange;
@@ -321,7 +321,7 @@ pub struct NodeMetadata {
 }
 
 /// Used for storing node position.
-#[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
+#[derive(Copy,Clone,Debug,Default,PartialEq,Serialize,Deserialize)]
 pub struct Position {
     /// Vector storing coordinates of the visual position.
     pub vector:Vector2<f32>
@@ -332,6 +332,45 @@ impl Position {
     pub fn new(x:f32, y:f32) -> Position {
         let vector = Vector2::new(x,y);
         Position {vector}
+    }
+
+    /// Calculate the mean position from the given sequence.
+    ///
+    /// If the input sequence is empty, returns the default value.
+    pub fn mean(iter:impl Iterator<Item=Position>) -> Position {
+        let mut count = 0;
+        let mut accum_pos = Position::default();
+        for position in iter {
+            count     += 1;
+            accum_pos += position;
+        };
+        if count > 0 {
+            accum_pos / (count as f32)
+        } else {
+            default()
+        }
+    }
+}
+
+impl Add for Position {
+    type Output = Position;
+    fn add(self, rhs:Self) -> Self::Output {
+        Position {vector:self.vector+rhs.vector}
+    }
+}
+
+impl std::ops::AddAssign for Position {
+    fn add_assign(&mut self, rhs:Self) {
+        self.vector += rhs.vector
+    }
+}
+
+impl<T> Div<T> for Position
+where f32 : Div<T,Output=f32>,
+      T   : Copy{
+    type Output = Position;
+    fn div(self, rhs:T) -> Self::Output {
+        Position::new(self.vector.x / rhs, self.vector.y / rhs)
     }
 }
 

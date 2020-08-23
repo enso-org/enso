@@ -2,7 +2,7 @@
 
 use crate::prelude::*;
 
-use crate::double_representation::ReferentName;
+use crate::double_representation::identifier::ReferentName;
 use crate::double_representation::text::apply_code_change_to_id_map;
 use crate::double_representation::module;
 use crate::model::module::Path;
