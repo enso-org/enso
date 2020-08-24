@@ -21,16 +21,16 @@ macro_rules! push {
 
 /// A state of Scala source code.
 #[derive(Debug,Clone,Default)]
-pub struct ScalaBuilder {
+pub struct ScalaSource {
     /// The content of the file.
-    code: String,
+    code:String,
     /// Current indentation.
-    indent: usize,
+    indent:usize,
     /// Inheritance hierarchy.
-    extends: HashMap<Name,Name>
+    extends:HashMap<Name,Name>
 }
 
-impl ScalaBuilder {
+impl ScalaSource {
     /// Write scala source code into buffer.
     pub fn push(&mut self, ast:impl ScalaGenerator) {
         ast.write(self)
@@ -41,19 +41,24 @@ impl ScalaBuilder {
         let mut file    = fs::File::open("lib/rust/ast/src/ast.rs")?;
         file.read_to_string(&mut content);
 
-        let this = Self::default();
+        let pkg  = String::from("org.enso.ast");
         let file = syn::parse_file(content.as_str()).unwrap();
 
-        push!(this, File::new("Ast", "org.enso.ast".into(), file));
-
-        Ok(this.code)
+        Ok(File::new("Ast", pkg, file).to_string())
     }
 }
 
 /// A Scala ast generator.
-pub trait ScalaGenerator {
+pub trait ScalaGenerator :Sized {
     /// Write Scala source code into buffer.
-    fn write(self, source:&mut ScalaBuilder);
+    fn write(self, source:&mut ScalaSource);
+
+    /// Get string representation of self.
+    fn to_string(self) -> String {
+        let mut source = ScalaSource::default();
+        self.write(&mut source);
+        source.code
+    }
 }
 
 /// Writes an amount of spaces corresponding to the current indent.
@@ -63,8 +68,8 @@ pub struct Tab();
 /// Tab generator.
 pub const TAB:Tab = Tab();
 
-/// A trait for wrapping value in Option.
-pub trait When : Sized {
+/// A trait for wrapping a value in Option.
+pub trait When :Sized {
     /// Returns Some(self) iff some is true.
     fn when(self, some:bool) -> Option<Self> {
         if some { Some(self) } else { None }
@@ -76,19 +81,19 @@ pub trait When : Sized {
 impl<T> When for T {}
 
 impl ScalaGenerator for &str {
-    fn write(self, source: &mut ScalaBuilder) {
+    fn write(self, source:&mut ScalaSource) {
         source.code.push_str(self)
     }
 }
 
 impl ScalaGenerator for Tab {
-    fn write(self, source:&mut ScalaBuilder) {
+    fn write(self, source:&mut ScalaSource) {
         for _ in 0..source.indent { source.code.push(' ') }
     }
 }
 
 impl<T:ScalaGenerator> ScalaGenerator for Option<T> {
-    fn write(self, source:&mut ScalaBuilder) {
+    fn write(self, source:&mut ScalaSource) {
         if let Some(t) = self { t.write(source) }
     }
 }
@@ -125,6 +130,7 @@ pub struct Stdlib();
 pub struct Object { name:Name, lines:Vec<syn::Item> }
 
 /// Represents valid top level terms.
+#[derive(Debug,Clone)]
 pub enum Term {
     Object(Object),
     Type(TypeAlias),
@@ -141,7 +147,7 @@ impl Object {
             } else { None? }
             syn::Item::Mod(val) => {
                 let (_, lines) = val.content?;
-                Term::Object(Object{name:Name::var(&val.ident), lines})
+                Term::Object(Object{name:Name::typ(&val.ident), lines})
             }
             syn::Item::Enum(val) => Term::Enum(val.into()),
             syn::Item::Type(val) => Term::Type(val.into()),
@@ -150,7 +156,7 @@ impl Object {
     }
 }
 
-/// Represents a class `class Name[Generics](field: Field, ...)`
+/// Represents a class `class Name[Generics](field:Field, ...)`
 #[derive(Debug,Clone)]
 pub struct Class { name:Name, generics:Generics, fields:syn::FieldsNamed  }
 
@@ -247,7 +253,8 @@ impl Name {
             "Vec"                                    => "Vector",
             "Uuid"                                   => "UUID",
             name                                     => {
-                string = name.to_camel_case().to_title_case();
+                string = name.to_camel_case();
+                string[0..1].make_ascii_uppercase();
                 &string
             }
         };
@@ -265,7 +272,7 @@ impl From<syn::Type> for Type {
 }
 
 impl From<syn::Generics> for Generics {
-    fn from(generics: syn::Generics) -> Self {
+    fn from(generics:syn::Generics) -> Self {
         Generics{generics}
     }
 }
@@ -277,26 +284,27 @@ impl From<syn::ItemType> for TypeAlias {
 }
 
 impl From<syn::ItemEnum> for Enum {
-    fn from(val: syn::ItemEnum) -> Self {
+    fn from(val:syn::ItemEnum) -> Self {
         Self{name:Name::typ(&val.ident), val}
     }
 }
 
 impl ScalaGenerator for File {
-    fn write(self, source: &mut ScalaBuilder) {
-        push!(source, "package ", self.package.as_str(), "\n\n", self.lib, "\n\n", self.content);
+    fn write(self, source:&mut ScalaSource) {
+        push!(source, "package ", self.package.as_str(), "\n\n", self.lib, "\n\n\n\n");
+        push!(source, self.content, "\n");
     }
 }
 
 impl ScalaGenerator for Stdlib {
-    fn write(self, source:&mut ScalaBuilder) {
+    fn write(self, source:&mut ScalaSource) {
         push!(source, "import java.util.UUID");
     }
 }
 
 
 impl ScalaGenerator for Object {
-    fn write(self, source:&mut ScalaBuilder) {
+    fn write(self, source:&mut ScalaSource) {
         push!(source, TAB, "object ", &self.name, " {\n");
 
         source.indent += 2;
@@ -305,6 +313,7 @@ impl ScalaGenerator for Object {
             push!(source, TAB, "sealed trait ", &self.name, extends(&self.name));
         }
         for item in Self::lines(self.lines) {
+            source.push("\n");
             match item {
                 Term::Object(val) => source.push(val),
                 Term::Type  (val) => source.push(val),
@@ -320,33 +329,33 @@ impl ScalaGenerator for Object {
 }
 
 impl ScalaGenerator for TypeAlias {
-    fn write(self, source:&mut ScalaBuilder) {
+    fn write(self, source:&mut ScalaSource) {
         push!(source, TAB, "type ", &self.name, &self.generics, " = ", self.typ, "\n");
     }
 }
 
 impl ScalaGenerator for Class {
-    fn write(self, source:&mut ScalaBuilder) {
+    fn write(self, source:&mut ScalaSource) {
         push!(source, TAB, "case class ", &self.name, &self.generics, "(");
 
         for (i, (name, typ)) in Self::fields(self.fields).enumerate() {
-            push!(source, ", ".when(i!=0), &name, ": ", typ);
+            push!(source, ", ".when(i!=0), &name, ":", typ);
         }
 
-        push!(source, ") ", extends(&self.name));
+        push!(source, ")", extends(&self.name));
     }
 }
 
 impl ScalaGenerator for Enum {
-    fn write(self, source:&mut ScalaBuilder) {
-        let generics = self.val.generics.into();
+    fn write(self, source:&mut ScalaSource) {
+        let generics = Generics::from(self.val.generics);
 
         push!(source, TAB, "sealed trait ", &self.name, &generics, extends(&self.name));
         for variant in Self::variants(self.val.variants.into_iter()) {
             match variant {
                 Variant::Named{name, fields} => {
                     source.extends.insert(name.clone(), self.name.clone());
-                    push!(source, Class{name, generics, fields});
+                    push!(source, Class{name, generics:generics.clone(), fields});
                 }
                 Variant::Unnamed{class, object} => {
                     source.extends.insert(object.clone(), self.name.clone());
@@ -358,15 +367,17 @@ impl ScalaGenerator for Enum {
 }
 
 impl<'a> ScalaGenerator for Extends<'a> {
-    fn write(self, source:&mut ScalaBuilder) {
+    fn write(self, source:&mut ScalaSource) {
         if let Some(name) = source.extends.get(self.name) {
-            push!(source, " extends", name);
+            source.code.push_str(" extends ");
+            source.code.push_str(name.name.to_string().as_str());
         }
+        source.code.push('\n');
     }
 }
 
 impl ScalaGenerator for &Generics {
-    fn write(self, source:&mut ScalaBuilder) {
+    fn write(self, source:&mut ScalaSource) {
         if self.generics.params.is_empty() {return}
         source.push("[");
         for (i, param) in self.generics.params.iter().enumerate() {
@@ -379,13 +390,13 @@ impl ScalaGenerator for &Generics {
 }
 
 impl ScalaGenerator for Type {
-    fn write(self, source: &mut ScalaBuilder) {
+    fn write(self, source:&mut ScalaSource) {
         if let syn::Type::Path(path) = self.typ {
-            for (i, typ) in path.path.segments.iter().enumerate() {
+            for (i, typ) in path.path.segments.into_iter().enumerate() {
                 let boxed = typ.ident.to_string().as_str() == "Box";
                 if i!=0   { push!(source, ".") }
                 if !boxed { push!(source, &Name::typ(&typ.ident)) }
-                if let syn::PathArguments::AngleBracketed(typ) = &typ.arguments {
+                if let syn::PathArguments::AngleBracketed(typ) = typ.arguments {
                     if !boxed { push!(source, "[") }
                     for (i, typ) in typ.args.into_iter().enumerate() {
                         if let syn::GenericArgument::Type(typ) = typ {
@@ -400,7 +411,7 @@ impl ScalaGenerator for Type {
 }
 
 impl ScalaGenerator for &Name {
-    fn write(self, source: &mut ScalaBuilder) {
+    fn write(self, source:&mut ScalaSource) {
         push!(source, self.name.to_string().as_str())
     }
 }
@@ -455,8 +466,10 @@ object Ast {
 
   object A {
     sealed trait A extends FooBarBaz
+
     case class Foo() extends A
-    case class Bar(x: Long, y: Byte, z: B.Type) extends A
+
+    case class Bar(x:Long, y:Byte, z:B.Type) extends A
   }
 
   object B {
@@ -466,10 +479,11 @@ object Ast {
 
     sealed trait Baz extends B
     case class Baz1() extends Baz
-    case class Baz2(fooBar: Vector[Int]) extends Baz
+    case class Baz2(fooBar:Vector[Int]) extends Baz
   }
 }
+
 ";
-        assert_eq!(ScalaGenerator::file("ast", rust), scala);
+        assert_eq!(File::new("Ast", "org.enso.ast".into(), rust).to_string(), scala);
     }
 }
