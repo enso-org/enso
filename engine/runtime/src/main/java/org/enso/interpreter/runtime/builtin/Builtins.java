@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.builtin;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.expression.atom.ObjectEqualsMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.*;
@@ -13,12 +14,9 @@ import org.enso.interpreter.node.expression.builtin.interop.syntax.MethodDispatc
 import org.enso.interpreter.node.expression.builtin.interop.syntax.ConstructorDispatchNode;
 import org.enso.interpreter.node.expression.builtin.io.*;
 import org.enso.interpreter.node.expression.builtin.number.*;
-import org.enso.interpreter.node.expression.builtin.process.CreateMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.GCMethodGen;
 import org.enso.interpreter.node.expression.builtin.runtime.NoInlineMethodGen;
 import org.enso.interpreter.node.expression.builtin.state.*;
-import org.enso.interpreter.node.expression.builtin.system.ExitMethodGen;
-import org.enso.interpreter.node.expression.builtin.system.NanoTimeMethodGen;
 import org.enso.interpreter.node.expression.builtin.interop.java.*;
 import org.enso.interpreter.node.expression.builtin.text.*;
 import org.enso.interpreter.node.expression.builtin.thread.WithInterruptHandlerMethodGen;
@@ -54,6 +52,7 @@ public class Builtins {
   private final AtomConstructor debug;
   private final Error error;
   private final Bool bool;
+  private final System system;
 
   private final RootCallTarget interopDispatchRoot;
   private final FunctionSchema interopDispatchSchema;
@@ -77,6 +76,7 @@ public class Builtins {
     function = new AtomConstructor("Function", scope).initializeFields();
     text = new AtomConstructor("Text", scope).initializeFields();
     debug = new AtomConstructor("Debug", scope).initializeFields();
+    system = new System(language, scope);
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
     AtomConstructor cons =
@@ -85,8 +85,6 @@ public class Builtins {
                 new ArgumentDefinition(0, "head", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "tail", ArgumentDefinition.ExecutionMode.EXECUTE));
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
-    AtomConstructor process = new AtomConstructor("Process", scope).initializeFields();
-    AtomConstructor system = new AtomConstructor("System", scope).initializeFields();
     AtomConstructor runtime = new AtomConstructor("Runtime", scope).initializeFields();
     AtomConstructor panic = new AtomConstructor("Panic", scope).initializeFields();
     AtomConstructor error = new AtomConstructor("Error", scope).initializeFields();
@@ -110,8 +108,6 @@ public class Builtins {
     scope.registerConstructor(error);
     scope.registerConstructor(state);
     scope.registerConstructor(debug);
-    scope.registerConstructor(process);
-    scope.registerConstructor(system);
     scope.registerConstructor(runtime);
 
     scope.registerConstructor(java);
@@ -125,9 +121,6 @@ public class Builtins {
     scope.registerMethod(io, "print_err", PrintErrMethodGen.makeFunction(language));
     scope.registerMethod(io, "readln", ReadlnMethodGen.makeFunction(language));
 
-    scope.registerMethod(process, "create", CreateMethodGen.makeFunction(language));
-    scope.registerMethod(system, "nano_time", NanoTimeMethodGen.makeFunction(language));
-    scope.registerMethod(system, "exit", ExitMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "no_inline", NoInlineMethodGen.makeFunction(language));
     scope.registerMethod(runtime, "gc", GCMethodGen.makeFunction(language));
 
@@ -155,6 +148,7 @@ public class Builtins {
     scope.registerMethod(function, "<|", ApplicationOperatorMethodGen.makeFunction(language));
 
     scope.registerMethod(text, "+", ConcatMethodGen.makeFunction(language));
+    scope.registerMethod(text, "==", ObjectEqualsMethodGen.makeFunction(language));
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
     scope.registerMethod(any, "json_serialize", JsonSerializeMethodGen.makeFunction(language));
 
@@ -259,6 +253,12 @@ public class Builtins {
   public AtomConstructor debug() {
     return debug;
   }
+
+  /** @return the {@code System} atom constructor. */
+  public System system() {
+    return system;
+  }
+
 
   /**
    * Returns the builtin module scope.

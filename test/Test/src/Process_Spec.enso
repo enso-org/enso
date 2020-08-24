@@ -1,0 +1,26 @@
+import Base.Process
+import Base.Test
+
+spec = describe "Process" <|
+    it "should call simple command" <|
+        Process.call "echo" . should_equal 0
+    it "should return exit code" <|
+        Process.shell "bash" ["-c", "exit 42"] . should_equal 42
+    it "should return stdout" <|
+        builder = Process_Builder "bash" ["-c", "echo -n Hello"] ""
+        result = Process.create builder
+        result.exit_code . should_equal 0
+        result.stdout . should_equal "Hello"
+        result.stderr . should_equal ""
+    it "should return stderr" <|
+        builder = Process_Builder "bash" ["-c", "echo -n Error 1>&2"] ""
+        result = Process.create builder
+        result.exit_code . should_equal 0
+        result.stdout . should_equal ""
+        result.stderr . should_equal "Error"
+    it "should feed stdin" <|
+        builder = Process_Builder "bash" ["-c", "read line; echo -n $line"] "sample"
+        result = Process.create builder
+        result.exit_code . should_equal 0
+        result.stdout . should_equal "sample"
+        result.stderr . should_equal ""

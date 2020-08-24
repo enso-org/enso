@@ -1,0 +1,15 @@
+from Builtins export Process_Builder, Process_Result
+
+Process.call : String -> Number
+Process.call command =
+    result = System.create_process command [] "" True True True
+    result.exit_code
+
+Process.shell : String -> Vector -> Number
+Process.shell command arguments =
+    result = System.create_process command arguments "" True True True
+    result.exit_code
+
+Process.create : Process_Builder -> Process_Result
+Process.create b =
+    System.create_process b.command b.arguments b.stdin False False False
