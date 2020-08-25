@@ -65,13 +65,13 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin chars (Windows)" taggedAs OsWindows in {
       val code =
         """main =
-          |    result = System.create_process "PowerShell" ["-Command", "$line = Read-Host; echo $line"] "" True True True
+          |    result = System.create_process "$line = Read-Host; echo $line" [] "" True True True
           |    result.exit_code
           |""".stripMargin
 
-      feedInput("hello")
+      feedInput("hello win!")
       eval(code) shouldEqual 0
-      consumeOut shouldEqual List("hello")
+      consumeOut shouldEqual List("hello win!")
       consumeErr shouldEqual List()
     }
 
@@ -153,7 +153,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdout binary (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "/bin/sh" ["-c", "printf '\\x01\\x0F\\x10'"] "" False True True
+          |    result = System.create_process "/bin/sh" ["-c", "printf '%b' '\\x01\\x0F\\x10'"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -169,7 +169,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |    result.stdout
           |""".stripMargin
 
-      eval(code) shouldEqual "foobar\n"
+      eval(code) shouldEqual s"foobar${System.lineSeparator()}"
       consumeOut shouldEqual List()
       consumeErr shouldEqual List()
     }
@@ -189,7 +189,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr chars (Windows)" taggedAs OsWindows in {
       val code =
         """main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine("test")"] "" False True True
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('test')"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -201,7 +201,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr binary (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "/bin/sh" ["-c", "printf '\\xCA\\xFE\\xBA\\xBE' 1>&2"] "" False True True
+          |    result = System.create_process "/bin/sh" ["-c", "printf '%b' '\\xCA\\xFE\\xBA\\xBE' 1>&2"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
