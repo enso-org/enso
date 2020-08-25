@@ -47,6 +47,7 @@ import scala.util.{Failure, Success}
 class MainModule(serverConfig: LanguageServerConfig) {
 
   val log = LoggerFactory.getLogger(this.getClass)
+  log.trace("Initializing...")
 
   val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
@@ -55,13 +56,17 @@ class MainModule(serverConfig: LanguageServerConfig) {
     ExecutionContextConfig(),
     DirectoriesConfig(serverConfig.contentRootPath)
   )
+  log.trace("Created Language Server config")
 
   val zioExec = ZioExec(zio.Runtime.default)
+  log.trace("Created ZioExec")
 
   val fileSystem: FileSystem = new FileSystem
+  log.trace("Created FileSystem")
 
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
+  log.trace("Created Version Calculator")
 
   implicit val system =
     ActorSystem(
@@ -70,12 +75,13 @@ class MainModule(serverConfig: LanguageServerConfig) {
       None,
       Some(serverConfig.computeExecutionContext)
     )
+  log.trace("Created ActorSystem")
 
   val sqlDatabase =
     SqlDatabase(languageServerConfig.directories.suggestionsDatabaseFile)
   val suggestionsRepo = new SqlSuggestionsRepo(sqlDatabase)(system.dispatcher)
   val versionsRepo    = new SqlVersionsRepo(sqlDatabase)(system.dispatcher)
-  log.debug("Sql repos created")
+  log.trace("Created SQL Repos")
 
   lazy val sessionRouter =
     system.actorOf(SessionRouter.props(), "session-router")
@@ -141,7 +147,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
-  log.debug("Initializing Runtime context...")
+  log.trace("Initializing Runtime context...")
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
@@ -167,7 +173,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     })
     .build()
   context.initialize(LanguageInfo.ID)
-  log.debug("Runtime context initialized")
+  log.trace("Runtime context initialized")
 
   val runtimeKiller =
     system.actorOf(
@@ -195,7 +201,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "std-in-controller"
     )
 
-  lazy val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
+  val jsonRpcControllerFactory = new JsonConnectionControllerFactory(
     bufferRegistry,
     capabilityRouter,
     fileManager,
@@ -206,6 +212,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     stdInController,
     runtimeConnector
   )
+  log.trace("Created JsonConnectionControllerFactory")
 
   val jsonRpcServer =
     new JsonRpcServer(
@@ -214,6 +221,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
       JsonRpcServer
         .Config(outgoingBufferSize = 10000, lazyMessageTimeout = 10.seconds)
     )
+  log.trace("Created JsonRpcServer")
 
   val binaryServer =
     new BinaryWebSocketServer(
@@ -221,6 +229,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
       BinaryEncoder.empty,
       new BinaryConnectionControllerFactory(fileManager)
     )
+  log.trace("Created BinaryWebSocketServer")
 
   /** Initialize the module. */
   def init: Future[Unit] = {
@@ -251,5 +260,6 @@ class MainModule(serverConfig: LanguageServerConfig) {
   def close(): Unit = {
     suggestionsRepo.close()
     versionsRepo.close()
+    log.trace("Closed MainModule")
   }
 }
