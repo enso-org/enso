@@ -117,7 +117,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "provide stdin string (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "/bin/sh" ["-c", "read line; echo -n $line"] "hello" False False False
+          |    result = System.create_process "/bin/sh" ["-c", "read line; printf $line"] "hello" False False False
           |    result.stdout
           |""".stripMargin
 
@@ -130,10 +130,10 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val code =
         """main =
           |    result = System.create_process "PowerShell" ["-Command", "$line = Read-Host; echo $line"] "hello" True True True
-          |    result.exit_code
+          |    result.stdout
           |""".stripMargin
 
-      eval(code) shouldEqual 0
+      eval(code) shouldEqual "hello"
       consumeOut shouldEqual List()
       consumeErr shouldEqual List()
     }
@@ -165,11 +165,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stdout string" in {
       val code =
         """main =
-          |    result = System.create_process "echo" ["-n", "foobar"] "" False False False
+          |    result = System.create_process "echo" ["foobar"] "" False False False
           |    result.stdout
           |""".stripMargin
 
-      eval(code) shouldEqual "foobar"
+      eval(code) shouldEqual "foobar\n"
       consumeOut shouldEqual List()
       consumeErr shouldEqual List()
     }
@@ -177,7 +177,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr chars (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "/bin/sh" ["-c", "echo err 1>&2"] "" False True True
+          |    result = System.create_process "/bin/sh" ["-c", "printf err 1>&2"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -189,7 +189,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr chars (Windows)" taggedAs OsWindows in {
       val code =
         """main =
-          |    result = System.create_process "PowerShell" ["-Command", "Write-Error err"] "" False True True
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine("test")"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -213,7 +213,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stderr string (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "/bin/sh" ["-c", "echo -n err 1>&2"] "" False False False
+          |    result = System.create_process "/bin/sh" ["-c", "printf err 1>&2"] "" False False False
           |    result.stderr
           |""".stripMargin
 
