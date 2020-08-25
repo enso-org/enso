@@ -20,7 +20,7 @@ logger                   = { version = "0.1.0"  , path = "../lib/logger"        
 enso-shapely             = { version = "0.1.0"  , path = "../lib/enso-shapely/impl"    }
 
 ast                      = { version = "0.1.0"  , path = "lib/ast/impl"      }
-ide-view                 = { version = "0.1.0"  , path = "lib/view"          }
+ide-view                 = { version = "0.1.0"  , path = "view" }
 enso-protocol            = { version = "0.1.0"  , path = "lib/enso-protocol" }
 json-rpc                 = { version = "0.1.0"  , path = "lib/json-rpc"      }
 parser                   = { version = "0.1.0"  , path = "lib/parser"        }
