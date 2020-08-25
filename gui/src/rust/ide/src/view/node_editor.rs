@@ -133,7 +133,7 @@ pub struct GraphEditorIntegratedWithController {
 impl GraphEditorIntegratedWithController {
     /// Get GraphEditor.
     pub fn graph_editor(&self) -> GraphEditor {
-        self.model.editor.clone_ref()
+        self.model.view.graph().clone_ref()
     }
 
     /// Get the controller associated with this graph editor.
@@ -145,7 +145,10 @@ impl GraphEditorIntegratedWithController {
 #[derive(Debug)]
 struct GraphEditorIntegratedWithControllerModel {
     logger             : Logger,
-    editor             : GraphEditor,
+    //TODO[ao] we display the new "Project view" because it contains documentation panel, but no
+    // text editor. This should be refactored as a part of task
+    // https://github.com/enso-org/ide/issues/597
+    view               : ide_view::project::View,
     controller         : controller::ExecutedGraph,
     project            : model::Project,
     node_views         : RefCell<BiMap<ast::Id,graph_editor::NodeId>>,
@@ -166,7 +169,7 @@ impl GraphEditorIntegratedWithController {
     , project    : model::Project) -> Self {
         let model = GraphEditorIntegratedWithControllerModel::new(logger,app,controller,project);
         let model       = Rc::new(model);
-        let editor_outs = &model.editor.frp.outputs;
+        let editor_outs = &model.view.graph().frp.outputs;
         frp::new_network! {network
             let invalidate = FencedAction::fence(&network,f!([model](()) {
                 let result = model.refresh_graph_view();
@@ -179,7 +182,7 @@ impl GraphEditorIntegratedWithController {
 
         // === Breadcrumb Selection ===
 
-        let breadcrumbs = &model.editor.breadcrumbs;
+        let breadcrumbs = &model.view.graph().breadcrumbs;
         frp::extend! {network
             eval_ breadcrumbs.frp.outputs.breadcrumb_pop(model.node_exited_in_ui(&()).ok());
             eval  breadcrumbs.frp.outputs.breadcrumb_push((local_call) {
@@ -193,7 +196,7 @@ impl GraphEditorIntegratedWithController {
 
         // === Project Renaming ===
 
-        let breadcrumbs = &model.editor.breadcrumbs;
+        let breadcrumbs = &model.view.graph().breadcrumbs;
         frp::extend! {network
             eval breadcrumbs.frp.outputs.project_name((name) {
                 model.rename_project(name);
@@ -292,12 +295,13 @@ impl GraphEditorIntegratedWithControllerModel {
     , app        : &Application
     , controller : controller::ExecutedGraph
     , project    : model::Project) -> Self {
-        let editor           = app.new_view::<GraphEditor>();
+        let view             = app.new_view::<ide_view::project::View>();
         let node_views       = default();
         let connection_views = default();
         let expression_views = default();
         let visualizations   = default();
-        let this = GraphEditorIntegratedWithControllerModel {editor,controller,node_views,
+        let this = GraphEditorIntegratedWithControllerModel {
+            view,controller,node_views,
             expression_views,connection_views,logger,visualizations,project
         };
 
@@ -315,7 +319,7 @@ impl GraphEditorIntegratedWithControllerModel {
     fn rename_project(&self, name:impl Str) {
         if self.project.name() != name.as_ref() {
             let project     = self.project.clone_ref();
-            let breadcrumbs = self.editor.breadcrumbs.clone_ref();
+            let breadcrumbs = self.view.graph().breadcrumbs.clone_ref();
             let logger      = self.logger.clone_ref();
             let name        = name.into();
             executor::global::spawn(async move {
@@ -372,7 +376,7 @@ impl GraphEditorIntegratedWithControllerModel {
             filtered.map(|(k,v)| (*k,*v)).collect_vec()
         };
         for (id,displayed_id) in to_remove {
-            self.editor.frp.inputs.remove_node.emit_event(&displayed_id);
+            self.view.graph().frp.inputs.remove_node.emit_event(&displayed_id);
             self.node_views.borrow_mut().remove_by_left(&id);
         }
     }
@@ -380,11 +384,11 @@ impl GraphEditorIntegratedWithControllerModel {
     fn create_node_view
     (&self, info:&controller::graph::Node, trees:NodeTrees, default_pos:Vector2) {
         let id           = info.info.id();
-        let displayed_id = self.editor.add_node();
+        let displayed_id = self.view.graph().add_node();
         self.refresh_node_view(displayed_id, info, trees);
         // If position wasn't present in metadata, we must initialize it.
         if info.metadata.as_ref().and_then(|md| md.position).is_none() {
-            self.editor.frp.inputs.set_node_position.emit_event(&(displayed_id,default_pos));
+            self.view.graph().frp.inputs.set_node_position.emit_event(&(displayed_id, default_pos));
         }
         self.node_views.borrow_mut().insert(id, displayed_id);
     }
@@ -424,7 +428,7 @@ impl GraphEditorIntegratedWithControllerModel {
     (&self, id:graph_editor::NodeId, node:&controller::graph::Node, trees:NodeTrees) {
         let position = node.metadata.as_ref().and_then(|md| md.position);
         if let Some(position) = position {
-            self.editor.frp.inputs.set_node_position.emit_event(&(id,position.vector));
+            self.view.graph().frp.inputs.set_node_position.emit_event(&(id, position.vector));
         }
         let expression = node.info.expression().repr();
         let expression_changed = with(self.expression_views.borrow(), |expression_views| {
@@ -441,7 +445,7 @@ impl GraphEditorIntegratedWithControllerModel {
                 input_span_tree  : trees.inputs,
                 output_span_tree : trees.outputs.unwrap_or_else(default)
             };
-            self.editor.frp.inputs.set_node_expression.emit_event(&(id,code_and_trees));
+            self.view.graph().frp.inputs.set_node_expression.emit_event(&(id, code_and_trees));
             self.expression_views.borrow_mut().insert(id, expression);
 
             // Set initially available type information on ports (identifiable expression's
@@ -489,13 +493,13 @@ impl GraphEditorIntegratedWithControllerModel {
     /// Set given type (or lack of such) on the given sub-expression.
     fn set_type(&self, node_id:graph_editor::NodeId, id:ExpressionId, typename:Option<graph_editor::Type>) {
         let event = (node_id,id,typename);
-        self.editor.frp.inputs.set_expression_type.emit_event(&event);
+        self.view.graph().frp.inputs.set_expression_type.emit_event(&event);
     }
 
     /// Set given method pointer (or lack of such) on the given sub-expression.
     fn set_method_pointer(&self, id:ExpressionId, method:Option<graph_editor::MethodPointer>) {
         let event = (id,method);
-        self.editor.frp.inputs.set_method_pointer.emit_event(&event);
+        self.view.graph().frp.inputs.set_method_pointer.emit_event(&event);
     }
 
     fn refresh_connection_views
@@ -504,8 +508,8 @@ impl GraphEditorIntegratedWithControllerModel {
         for con in connections {
             if !self.connection_views.borrow().contains_left(&con) {
                 let targets = self.edge_targets_from_controller_connection(con.clone())?;
-                self.editor.frp.inputs.connect_nodes.emit_event(&targets);
-                let edge_id = self.editor.frp.outputs.edge_added.value();
+                self.view.graph().frp.inputs.connect_nodes.emit_event(&targets);
+                let edge_id = self.view.graph().frp.outputs.edge_added.value();
                 self.connection_views.borrow_mut().insert(con, edge_id);
             }
         }
@@ -529,7 +533,7 @@ impl GraphEditorIntegratedWithControllerModel {
             filtered.map(|(_,edge_id)| *edge_id).collect_vec()
         };
         for edge_id in to_remove {
-            self.editor.frp.inputs.remove_edge.emit_event(&edge_id);
+            self.view.graph().frp.inputs.remove_edge.emit_event(&edge_id);
             self.connection_views.borrow_mut().remove_by_right(&edge_id);
         }
     }
@@ -549,20 +553,20 @@ impl GraphEditorIntegratedWithControllerModel {
         let definition = local_call.definition.clone().into();
         let call       = local_call.call;
         let local_call = graph_editor::LocalCall{definition,call};
-        self.editor.frp.deselect_all_nodes.emit_event(&());
-        self.editor.breadcrumbs.frp.push_breadcrumb.emit(&Some(local_call));
+        self.view.graph().frp.deselect_all_nodes.emit_event(&());
+        self.view.graph().breadcrumbs.frp.push_breadcrumb.emit(&Some(local_call));
         self.request_detaching_all_visualizations();
         self.refresh_graph_view()
     }
 
     /// Handle notification received from controller about node having been exited.
     pub fn on_node_exited(&self, id:double_representation::node::Id) -> FallibleResult<()> {
-        self.editor.frp.deselect_all_nodes.emit_event(&());
+        self.view.graph().frp.deselect_all_nodes.emit_event(&());
         self.request_detaching_all_visualizations();
         self.refresh_graph_view()?;
-        self.editor.breadcrumbs.frp.pop_breadcrumb.emit(());
+        self.view.graph().breadcrumbs.frp.pop_breadcrumb.emit(());
         let id = self.get_displayed_node_id(id)?;
-        self.editor.frp.select_node.emit_event(&id);
+        self.view.graph().frp.select_node.emit_event(&id);
         Ok(())
     }
 
@@ -642,7 +646,7 @@ impl GraphEditorIntegratedWithControllerModel {
     }
 
     fn connection_created_in_ui(&self, edge_id:&graph_editor::EdgeId) -> FallibleResult<()> {
-        let displayed = self.editor.edges.get_cloned(&edge_id).ok_or(GraphEditorInconsistency)?;
+        let displayed = self.view.graph().edges.get_cloned(&edge_id).ok_or(GraphEditorInconsistency)?;
         let con       = self.controller_connection_from_displayed(&displayed)?;
         let inserting = self.connection_views.borrow_mut().insert(con.clone(), *edge_id);
         if inserting.did_overwrite() {
@@ -693,7 +697,7 @@ impl GraphEditorIntegratedWithControllerModel {
         let id             = visualization.id;
         let node_id        = *node_id;
         let controller     = self.controller.clone();
-        let endpoint       = self.editor.frp.inputs.set_visualization_data.clone_ref();
+        let endpoint       = self.view.graph().frp.inputs.set_visualization_data.clone_ref();
         let update_handler = self.visualization_update_handler(endpoint,node_id);
         let logger         = self.logger.clone_ref();
         let visualizations = self.visualizations.clone_ref();
@@ -863,7 +867,7 @@ impl NodeEditor {
         let graph          = GraphEditorIntegratedWithController::new(logger.clone_ref(),app,
             controller,project);
         let graph = Rc::new(graph);
-        display_object.add_child(&graph.model.editor);
+        display_object.add_child(&graph.model.view);
         info!(logger, "Created.");
         Ok(NodeEditor {logger,display_object,graph,visualization}.init().await?)
     }
@@ -890,7 +894,7 @@ impl NodeEditor {
     /// They shall be ordered by the order of the selecting. Node selected as first shall be at
     /// the beginning.
     pub fn selected_nodes(&self) -> FallibleResult<Vec<ast::Id>> {
-        let node_view_ids = self.graph.model.editor.selected_nodes().into_iter();
+        let node_view_ids = self.graph.model.view.graph().selected_nodes().into_iter();
         let node_ids      = node_view_ids.map(|id| self.graph.model.get_controller_node_id(id));
         let node_ids : Result<Vec<_>,_> = node_ids.collect();
         node_ids.map_err(Into::into)

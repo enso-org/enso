@@ -405,7 +405,7 @@ impl application::command::FrpNetworkProvider for ListView {
 }
 
 impl application::command::Provider for ListView {
-    fn label() -> &'static str { "Select" }
+    fn label() -> &'static str { "ListView" }
 }
 
 impl application::View for ListView {
