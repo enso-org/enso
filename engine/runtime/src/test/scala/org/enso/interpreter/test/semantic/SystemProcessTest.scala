@@ -52,7 +52,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin chars (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "/bin/sh" ["-c", "read line; echo $line"] "" True True True
+          |    result = System.create_process "bash" ["-c", "read line; echo $line"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -79,7 +79,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
       val input = Random.nextBytes(Byte.MaxValue)
       val code =
         """main =
-          |    result = System.create_process "/bin/sh" ["-c", "wc -c"] "" True True True
+          |    result = System.create_process "bash" ["-c", "wc -c"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -117,7 +117,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "provide stdin string (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "/bin/sh" ["-c", "read line; printf $line"] "hello" False False False
+          |    result = System.create_process "bash" ["-c", "read line; printf $line"] "hello" False False False
           |    result.stdout
           |""".stripMargin
 
@@ -153,7 +153,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdout binary (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "/bin/sh" ["-c", "printf '%b' '\\x01\\x0F\\x10'"] "" False True True
+          |    result = System.create_process "bash" ["-c", "printf '%b' '\\x01\\x0F\\x10'"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -177,7 +177,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr chars (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "/bin/sh" ["-c", "printf err 1>&2"] "" False True True
+          |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -201,7 +201,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr binary (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "/bin/sh" ["-c", "printf '%b' '\\xCA\\xFE\\xBA\\xBE' 1>&2"] "" False True True
+          |    result = System.create_process "bash" ["-c", "printf '%b' '\\xCA\\xFE\\xBA\\xBE' 1>&2"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -213,7 +213,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stderr string (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "/bin/sh" ["-c", "printf err 1>&2"] "" False False False
+          |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False False False
           |    result.stderr
           |""".stripMargin
 
