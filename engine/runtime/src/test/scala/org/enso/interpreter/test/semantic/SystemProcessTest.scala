@@ -71,7 +71,7 @@ class SystemProcessTest extends InterpreterTest {
 
       feedBytes(input)
       eval(code) shouldEqual 0
-      consumeOut shouldEqual List(input.length.toString)
+      consumeOut.map(_.trim) shouldEqual List(input.length.toString)
       consumeErr shouldEqual List()
     }
 
