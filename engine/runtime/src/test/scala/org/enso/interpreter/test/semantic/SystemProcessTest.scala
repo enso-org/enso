@@ -65,7 +65,7 @@ class SystemProcessTest extends InterpreterTest {
       val input = Random.nextBytes(Byte.MaxValue)
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "wc --bytes"] "" True True True
+          |    result = System.create_process "bash" ["-c", "wc -c"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
