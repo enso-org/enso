@@ -1,15 +1,37 @@
 from Builtins export Process_Builder, Process_Result
 
+## Call a system executable by name.
+
+   > Example
+     Call the `nproc` command:
+         Process.call "nproc"
+     The result is printed to stdout:
+         8
 Process.call : String -> Number
 Process.call command =
     result = System.create_process command [] "" True True True
     result.exit_code
 
+## Call a command with a list of arguments.
+
+   > Example
+     Call the `echo` command with arguments
+         Process.shell "echo" ["-n", "Hello!"]
+     The result is printed to stdout:
+         Hello!
 Process.shell : String -> Vector -> Number
 Process.shell command arguments =
     result = System.create_process command arguments "" True True True
     result.exit_code
 
+## Create a process using a builder returning the result of execution.
+
+   > Example
+     Create a script redirecting the input to stdout:
+         builder = Process_Builder "bash" ["-c", "read line; echo -n $line"] "test"
+         Process.create_process builder
+     The result is:
+         Process_Result 0 "test" ""
 Process.create : Process_Builder -> Process_Result
 Process.create b =
     System.create_process b.command b.arguments b.stdin False False False
