@@ -5,10 +5,11 @@ import org.enso.interpreter.test.{
   InterpreterException,
   InterpreterTest
 }
+import org.enso.testkit.OsSpec
 
 import scala.util.Random
 
-class SystemProcessTest extends InterpreterTest {
+class SystemProcessTest extends InterpreterTest with OsSpec {
   override def subject: String = "System.create_process"
 
   override def specify(implicit
@@ -36,22 +37,22 @@ class SystemProcessTest extends InterpreterTest {
       consumeErr shouldEqual List()
     }
 
-    "return custom exit code" in {
+    "return error exit code" in {
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "exit 23"] "" False False False
+          |    result = System.create_process "ls" ["--gibberish"] "" False False False
           |    result.exit_code
           |""".stripMargin
 
-      eval(code) shouldEqual 23
+      eval(code) should not equal 0
       consumeOut shouldEqual List()
       consumeErr shouldEqual List()
     }
 
-    "redirect stdin chars" in {
+    "redirect stdin chars (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "read line; echo $line"] "" True True True
+          |    result = System.create_process "/bin/sh" ["-c", "read line; echo $line"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -61,11 +62,24 @@ class SystemProcessTest extends InterpreterTest {
       consumeErr shouldEqual List()
     }
 
-    "redirect stdin bytes" in {
+    "redirect stdin chars (Windows)" taggedAs OsWindows in {
+      val code =
+        """main =
+          |    result = System.create_process "PowerShell" ["-Command", "$line = Read-Host; echo $line"] "" True True True
+          |    result.exit_code
+          |""".stripMargin
+
+      feedInput("hello")
+      eval(code) shouldEqual 0
+      consumeOut shouldEqual List("hello")
+      consumeErr shouldEqual List()
+    }
+
+    "redirect stdin bytes (Unix)" taggedAs OsUnix in {
       val input = Random.nextBytes(Byte.MaxValue)
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "wc -c"] "" True True True
+          |    result = System.create_process "/bin/sh" ["-c", "wc -c"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -78,7 +92,7 @@ class SystemProcessTest extends InterpreterTest {
     "redirect stdin unused" in {
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "echo 42"] "" True True True
+          |    result = System.create_process "echo" ["42"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -91,7 +105,7 @@ class SystemProcessTest extends InterpreterTest {
     "redirect stdin empty" in {
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "echo 9"] "" True True True
+          |    result = System.create_process "echo" ["9"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -100,10 +114,10 @@ class SystemProcessTest extends InterpreterTest {
       consumeErr shouldEqual List()
     }
 
-    "provide stdin string" in {
+    "provide stdin string (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "read line; echo -n $line"] "hello" False False False
+          |    result = System.create_process "/bin/sh" ["-c", "read line; echo -n $line"] "hello" False False False
           |    result.stdout
           |""".stripMargin
 
@@ -112,10 +126,22 @@ class SystemProcessTest extends InterpreterTest {
       consumeErr shouldEqual List()
     }
 
+    "provide stdin string (Windows)" taggedAs OsWindows in {
+      val code =
+        """main =
+          |    result = System.create_process "PowerShell" ["-Command", "$line = Read-Host; echo $line"] "hello" True True True
+          |    result.exit_code
+          |""".stripMargin
+
+      eval(code) shouldEqual 0
+      consumeOut shouldEqual List()
+      consumeErr shouldEqual List()
+    }
+
     "redirect stdout chars" in {
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "echo foobar"] "" False True True
+          |    result = System.create_process "echo" ["foobar"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -124,10 +150,10 @@ class SystemProcessTest extends InterpreterTest {
       consumeErr shouldEqual List()
     }
 
-    "redirect stdout binary" in {
+    "redirect stdout binary (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "printf '\\x01\\x0F\\x10'"] "" False True True
+          |    result = System.create_process "/bin/sh" ["-c", "printf '\\x01\\x0F\\x10'"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -139,7 +165,7 @@ class SystemProcessTest extends InterpreterTest {
     "return stdout string" in {
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "echo -n foobar"] "" False False False
+          |    result = System.create_process "echo" ["-n", "foobar"] "" False False False
           |    result.stdout
           |""".stripMargin
 
@@ -148,10 +174,10 @@ class SystemProcessTest extends InterpreterTest {
       consumeErr shouldEqual List()
     }
 
-    "redirect stderr chars" in {
+    "redirect stderr chars (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "echo err 1>&2"] "" False True True
+          |    result = System.create_process "/bin/sh" ["-c", "echo err 1>&2"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -160,10 +186,22 @@ class SystemProcessTest extends InterpreterTest {
       consumeErr shouldEqual List("err")
     }
 
-    "redirect stderr binary" in {
+    "redirect stderr chars (Windows)" taggedAs OsWindows in {
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "printf '\\xCA\\xFE\\xBA\\xBE' 1>&2"] "" False True True
+          |    result = System.create_process "PowerShell" ["-Command", "Write-Error err"] "" False True True
+          |    result.exit_code
+          |""".stripMargin
+
+      eval(code) shouldEqual 0
+      consumeOut shouldEqual List()
+      consumeErr shouldEqual List("err")
+    }
+
+    "redirect stderr binary (Unix)" taggedAs OsUnix in {
+      val code =
+        """main =
+          |    result = System.create_process "/bin/sh" ["-c", "printf '\\xCA\\xFE\\xBA\\xBE' 1>&2"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -172,10 +210,10 @@ class SystemProcessTest extends InterpreterTest {
       consumeErrBytes shouldEqual Array(-54, -2, -70, -66)
     }
 
-    "return stderr string" in {
+    "return stderr string (Unix)" taggedAs OsUnix in {
       val code =
         """main =
-          |    result = System.create_process "bash" ["-c", "echo -n err 1>&2"] "" False False False
+          |    result = System.create_process "/bin/sh" ["-c", "echo -n err 1>&2"] "" False False False
           |    result.stderr
           |""".stripMargin
 
@@ -184,5 +222,16 @@ class SystemProcessTest extends InterpreterTest {
       consumeErr shouldEqual List()
     }
 
+    "return stderr string (Windows)" taggedAs OsWindows in {
+      val code =
+        """main =
+          |    result = System.create_process "PowerShell" ["-Command", "Write-Error err"] "" False False False
+          |    result.stderr
+          |""".stripMargin
+
+      eval(code) shouldEqual "err"
+      consumeOut shouldEqual List()
+      consumeErr shouldEqual List()
+    }
   }
 }
