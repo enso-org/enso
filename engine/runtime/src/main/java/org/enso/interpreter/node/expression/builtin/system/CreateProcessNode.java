@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.system;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -45,7 +46,7 @@ public abstract class CreateProcessNode extends Node {
     String[] cmd = new String[(int) arguments.getArraySize() + 1];
     cmd[0] = command;
     System.arraycopy(arguments.getItems(), 0, cmd, 1, (int) arguments.getArraySize());
-    ProcessBuilder pb = new ProcessBuilder(cmd);
+    TruffleProcessBuilder pb = ctx.getEnvironment().newProcessBuilder(cmd);
 
     try {
       Process p = pb.start();
