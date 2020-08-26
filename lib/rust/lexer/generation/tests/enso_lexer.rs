@@ -12,14 +12,15 @@
 
 // TODO [AA] Tests for error scenarios once it's done.
 
-use lexer_definition::library::*;
 use flexer::*;
+use lexer_definition::library::*;
 
-use lexer::generated::engine::EnsoLexer;
-use flexer::prelude::Reader;
 use flexer::prelude::reader::decoder::DecoderUTF8;
+use flexer::prelude::Reader;
+use lexer::generated::engine::EnsoLexer;
 use lexer_definition::library::token::Token;
-use lexer_definition::token::{BlockType, LineEnding};
+use lexer_definition::token::BlockType;
+use lexer_definition::token::LineEnding;
 
 
 

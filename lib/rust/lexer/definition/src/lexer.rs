@@ -1,14 +1,16 @@
 //! This module contains the definition of the lexer for the Enso programming language.
 
 use crate::prelude::*;
+use flexer::*;
 
 use crate::library::token::BlockType;
 use crate::library::token::Token;
 use crate::library::token;
-use flexer::*;
 use flexer::automata::pattern::Pattern;
-use flexer::group::{Registry, Group};
-use flexer::prelude::logger::{Enabled, Message};
+use flexer::group::Group;
+use flexer::group::Registry;
+use flexer::prelude::logger::Disabled;
+use flexer::prelude::logger::Message;
 use flexer::prelude::reader;
 use flexer::State as FlexerState;
 use std::collections::VecDeque;
@@ -19,7 +21,7 @@ use std::collections::VecDeque;
 // === Type Aliases ===
 // ====================
 
-type Logger     = Enabled;
+type Logger     = Disabled;
 type EnsoFlexer = Flexer<State<Logger>,token::Stream,Logger>;
 
 
