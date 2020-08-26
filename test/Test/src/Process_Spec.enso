@@ -5,11 +5,11 @@ import Base.Test
 
 spec = describe "Process" <|
     it "should call simple command" <|
-        case Process.call "echo" of
+        case Process.execute "echo" of
             Exit_Success -> Test.Success
             Exit_Failure code -> Test.fail ("Process failed with code " + code)
     it "should return exit code" <|
-        case Process.call_command "bash" ["-c", "exit 42"] of
+        case Process.run_command "bash" ["-c", "exit 42"] of
             Exit_Success -> Test.fail "Process exit code mismatch."
             Exit_Failure code -> code.should_equal 42
     it "should return stdout" <|
