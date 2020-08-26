@@ -1,5 +1,6 @@
 import Base.Process
 from Base.Process.Exit_Code import Exit_Success, Exit_Failure
+import Base.System.Platform
 import Base.Test
 
 spec = describe "Process" <|
@@ -12,20 +13,68 @@ spec = describe "Process" <|
             Exit_Success -> Test.fail "Process exit code mismatch."
             Exit_Failure code -> code.should_equal 42
     it "should return stdout" <|
-        builder = Process.Process_Builder "bash" ["-c", "echo -n Hello"] ""
-        result = Process.create builder
-        result.exit_code.to_number . should_equal 0
-        result.stdout . should_equal "Hello"
-        result.stderr . should_equal ""
+        case Platform.os of
+            Platform.Linux ->
+                builder = Process.Process_Builder "bash" ["-c", "echo -n Hello"] ""
+                result = Process.create builder
+                result.exit_code.to_number . should_equal 0
+                result.stdout . should_equal "Hello"
+                result.stderr . should_equal ""
+            Platform.MacOS ->
+                builder = Process.Process_Builder "bash" ["-c", "echo -n Hello"] ""
+                result = Process.create builder
+                result.exit_code.to_number . should_equal 0
+                result.stdout . should_equal "Hello"
+                result.stderr . should_equal ""
+            Platform.Windows ->
+                builder = Process.Process_Builder "PowerShell" ["-Command", "[System.Console]::Out.Write('Hello')"] ""
+                result = Process.create builder
+                result.exit_code.to_number . should_equal 0
+                result.stdout . should_equal "Hello"
+                result.stderr . should_equal ""
+            Platform.Unknown ->
+                Test.fail "Unsupported platform."
     it "should return stderr" <|
-        builder = Process.Process_Builder "bash" ["-c", "echo -n Error 1>&2"] ""
-        result = Process.create builder
-        result.exit_code.to_number . should_equal 0
-        result.stdout . should_equal ""
-        result.stderr . should_equal "Error"
+        case Platform.os of
+            Platform.Linux ->
+                builder = Process.Process_Builder "bash" ["-c", "echo -n Error 1>&2"] ""
+                result = Process.create builder
+                result.exit_code.to_number . should_equal 0
+                result.stdout . should_equal ""
+                result.stderr . should_equal "Error"
+            Platform.MacOS ->
+                builder = Process.Process_Builder "bash" ["-c", "echo -n Error 1>&2"] ""
+                result = Process.create builder
+                result.exit_code.to_number . should_equal 0
+                result.stdout . should_equal ""
+                result.stderr . should_equal "Error"
+            Platform.Windows ->
+                builder = Process.Process_Builder "PowerShell" ["-Command", "[System.Console]::Error.Write('Error')"] ""
+                result = Process.create builder
+                result.exit_code.to_number . should_equal 0
+                result.stdout . should_equal ""
+                result.stderr . should_equal "Error"
+            Platform.Unknown ->
+                Test.fail "Unsupported platform."
     it "should feed stdin" <|
-        builder = Process.Process_Builder "bash" ["-c", "read line; echo -n $line"] "sample"
-        result = Process.create builder
-        result.exit_code.to_number . should_equal 0
-        result.stdout . should_equal "sample"
-        result.stderr . should_equal ""
+        case Platform.os of
+            Platform.Linux ->
+                builder = Process.Process_Builder "bash" ["-c", "read line; echo -n $line"] "sample"
+                result = Process.create builder
+                result.exit_code.to_number . should_equal 0
+                result.stdout . should_equal "sample"
+                result.stderr . should_equal ""
+            Platform.MacOS ->
+                builder = Process.Process_Builder "bash" ["-c", "read line; echo -n $line"] "sample"
+                result = Process.create builder
+                result.exit_code.to_number . should_equal 0
+                result.stdout . should_equal "sample"
+                result.stderr . should_equal ""
+            Platform.Windows ->
+                builder = Process.Process_Builder "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "sample"
+                result = Process.create builder
+                result.exit_code.to_number . should_equal 0
+                result.stdout . should_equal "sample"
+                result.stderr . should_equal ""
+            Platform.Unknown ->
+                Test.fail "Unsupported platform."

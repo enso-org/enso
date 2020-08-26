@@ -4,6 +4,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.system.CreateProcessMethodGen;
 import org.enso.interpreter.node.expression.builtin.system.ExitMethodGen;
 import org.enso.interpreter.node.expression.builtin.system.NanoTimeMethodGen;
+import org.enso.interpreter.node.expression.builtin.system.OsMethodGen;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -34,6 +35,7 @@ public class System {
     scope.registerMethod(system, "create_process", CreateProcessMethodGen.makeFunction(language));
     scope.registerMethod(system, "nano_time", NanoTimeMethodGen.makeFunction(language));
     scope.registerMethod(system, "exit", ExitMethodGen.makeFunction(language));
+    scope.registerMethod(system, "os", OsMethodGen.makeFunction(language));
   }
 
   /** @return the atom constructor for {@code System}. */
