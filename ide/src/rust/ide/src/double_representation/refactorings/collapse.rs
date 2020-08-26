@@ -166,25 +166,26 @@ pub struct Extracted {
     /// The node that introduces output variable.
     output_node : Option<node::Id>,
     /// Nodes that are being collapsed and extracted into a separate method.
-    selected_nodes : Vec<NodeInfo>,
+    extracted_nodes : Vec<NodeInfo>,
     /// Helper for efficient lookup.
-    selected_nodes_set : HashSet<node::Id>,
+    extracted_nodes_set : HashSet<node::Id>,
 }
 
 impl Extracted {
     /// Collect the extracted node information.
     pub fn new
     (graph:&GraphHelper, selected_nodes:impl IntoIterator<Item=node::Id>) -> FallibleResult<Self> {
-        let selected_nodes:Vec<_> = Result::from_iter(selected_nodes.into_iter().map(|id| {
-            graph.lookup_node(id).cloned()
-        }))?;
-        let selected_nodes_set:HashSet<_> = selected_nodes.iter().map(|node| node.id()).collect();
+        let extracted_nodes_set : HashSet<_> = selected_nodes.into_iter().collect();
+        let extracted_nodes     : Vec<_>     = graph.nodes.iter().filter(|node| {
+            extracted_nodes_set.contains(&node.id())
+        }).cloned().collect();
+
         let mut output_node = None;
         let mut inputs      = Vec::new();
         let mut output      = None;
         for connection in graph.info.connections() {
-            let starts_inside = selected_nodes_set.contains(&connection.source.node);
-            let ends_inside   = selected_nodes_set.contains(&connection.destination.node);
+            let starts_inside = extracted_nodes_set.contains(&connection.source.node);
+            let ends_inside   = extracted_nodes_set.contains(&connection.destination.node);
             let identifier    = graph.connection_variable(&connection)?;
             if !starts_inside && ends_inside {
                 inputs.push(identifier)
@@ -204,12 +205,12 @@ impl Extracted {
             }
         };
 
-        Ok(Self {selected_nodes_set,selected_nodes,inputs,output,output_node})
+        Ok(Self {extracted_nodes_set,extracted_nodes,inputs,output,output_node})
     }
 
     /// Check if the given node belongs to the selection (i.e. is extracted into a new method).
     pub fn is_selected(&self, id:node::Id) -> bool {
-        self.selected_nodes_set.contains(&id)
+        self.extracted_nodes_set.contains(&id)
     }
 
     /// Generate AST of a line that needs to be appended to the extracted nodes' Asts.
@@ -224,7 +225,7 @@ impl Extracted {
         let name                     = definition::DefinitionName::new_plain(name);
         let inputs                   = self.inputs.iter().collect::<BTreeSet<_>>();
         let return_line              = self.return_line();
-        let mut selected_nodes_iter  = self.selected_nodes.iter().map(|node| node.ast().clone());
+        let mut selected_nodes_iter  = self.extracted_nodes.iter().map(|node| node.ast().clone());
         let body_head                = selected_nodes_iter.next().unwrap();
         let body_tail                = selected_nodes_iter.chain(return_line).map(Some).collect();
         let explicit_parameter_names = inputs.iter().map(|input| input.name().into()).collect();
@@ -271,7 +272,7 @@ impl Collapser {
     -> FallibleResult<Self> {
         let graph          = GraphHelper::new(graph);
         let extracted      = Extracted::new(&graph,selected_nodes)?;
-        let last_selected  = extracted.selected_nodes.iter().last().ok_or(NoNodesSelected)?.id();
+        let last_selected  = extracted.extracted_nodes.iter().last().ok_or(NoNodesSelected)?.id();
         let replaced_node  = extracted.output_node.unwrap_or(last_selected);
         let collapsed_node = node::Id::new_v4();
         Ok(Collapser {
@@ -353,6 +354,8 @@ mod tests {
     use crate::double_representation::module;
     use crate::double_representation::node::NodeInfo;
 
+    use ast::crumbs::Crumb;
+
     struct Case {
         refactored_name     : DefinitionName,
         introduced_name     : Identifier,
@@ -364,27 +367,38 @@ mod tests {
 
     impl Case {
         fn run(&self, parser:&Parser) {
-            let ast   = parser.parse_module(self.initial_method_code,default()).unwrap();
-            let main  = module::locate_child(&ast,&self.refactored_name).unwrap();
-            let graph = graph::GraphInfo::from_definition(main.item.clone());
-            let nodes = graph.nodes();
+            let logger       = Logger::new("Collapsing_Test");
+            let ast          = parser.parse_module(self.initial_method_code,default()).unwrap();
+            let main         = module::locate_child(&ast,&self.refactored_name).unwrap();
+            let graph        = graph::GraphInfo::from_definition(main.item.clone());
+            let nodes        = graph.nodes();
+            let run_internal = |selection:&Vec<node::Id>| {
+                let selection  = selection.iter().copied();
+                let new_name   = self.introduced_name.clone();
+                let collapsed  = collapse(&graph,selection,new_name,parser).unwrap();
+                let new_method = collapsed.new_method.ast(0,parser).unwrap();
+                let placement  = module::Placement::Before(self.refactored_name.clone());
+                let new_main   = &collapsed.updated_definition.ast;
+                info!(logger,"Generated method:\n{new_method}");
+                info!(logger,"Updated method:\n{new_method}");
+                let mut module = module::Info { ast:ast.clone_ref() };
+                let main_crumb = Crumb::from(main.crumb());
+                module.ast     = module.ast.set(&main_crumb, new_main.ast().clone()).unwrap();
+                module.add_method(collapsed.new_method, placement, parser).unwrap();
+                info!(logger,"Updated method:\n{&module.ast}");
+                assert_eq!(new_method.repr(),self.expected_generated);
+                assert_eq!(new_main.repr(),self.expected_refactored);
+            };
 
-            let selected_nodes = nodes[self.extracted_lines.clone()].iter().map(NodeInfo::id);
-            let new_name       = self.introduced_name.clone();
-            let collapsed      = collapse(&graph,selected_nodes,new_name,parser).unwrap();
-
-            let new_method = collapsed.new_method.ast(0,parser).unwrap();
-            let placement  = module::Placement::Before(self.refactored_name.clone());
-            let new_main   = &collapsed.updated_definition.ast;
-            println!("Generated method:\n{}",new_method);
-            println!("Updated method:\n{}",new_main);
-            let mut module = module::Info{ast};
-            module.ast     = module.ast.set(&main.crumb().into(),new_main.ast().clone()).unwrap();
-            module.add_method(collapsed.new_method,placement,parser).unwrap();
-            println!("Module after refactoring:\n{}",&module.ast);
-
-            assert_eq!(new_method.repr(),self.expected_generated);
-            assert_eq!(new_main.repr(),self.expected_refactored);
+            let extracted_lines = self.extracted_lines.clone();
+            // We run case twice, with reversed node selection order. This way we assure that test
+            // isn't passing just because it got selected nodes in some specific order.
+            // The refactoring is expected to behave the same, no matter what the order of selected
+            // nodes is.
+            let mut selected_nodes = nodes[extracted_lines].iter().map(NodeInfo::id).collect_vec();
+            run_internal(&selected_nodes);
+            selected_nodes.reverse();
+            run_internal(&selected_nodes);
         }
     }
 
@@ -418,7 +432,7 @@ mod tests {
         // 1) Maintains the assignment and the introduced name for the value in the extracted
         //    method;
         // 2) That invocation appears in the extracted node's place but has no assignment.
-        case.extracted_lines = 3..4;
+        case.extracted_lines    = 3..4;
         case.expected_generated = r"custom_new a b =
     d = a + b";
         case.expected_refactored = r"custom_old =
@@ -438,8 +452,8 @@ mod tests {
     c = A + B
     a + b
     c + 7";
-        case.extracted_lines = 3..4;
-        case.expected_generated = r"custom_new a b = a + b";
+        case.extracted_lines     = 3..4;
+        case.expected_generated  = r"custom_new a b = a + b";
         case.expected_refactored = r"custom_old =
     a = 1
     b = 2
@@ -455,7 +469,7 @@ mod tests {
         case.initial_method_code = r"custom_old =
     c = 50 + d
     c + c + 10";
-        case.extracted_lines = 0..1;
+        case.extracted_lines    = 0..1;
         case.expected_generated = r"custom_new =
     c = 50 + d
     c";
