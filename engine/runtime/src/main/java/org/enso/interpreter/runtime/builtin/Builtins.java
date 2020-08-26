@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.builtin;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.expression.atom.ObjectEqualsMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugBreakpointMethodGen;
 import org.enso.interpreter.node.expression.builtin.debug.DebugEvalMethodGen;
 import org.enso.interpreter.node.expression.builtin.error.*;
@@ -148,7 +147,7 @@ public class Builtins {
     scope.registerMethod(function, "<|", ApplicationOperatorMethodGen.makeFunction(language));
 
     scope.registerMethod(text, "+", ConcatMethodGen.makeFunction(language));
-    scope.registerMethod(text, "==", ObjectEqualsMethodGen.makeFunction(language));
+    scope.registerMethod(text, "==", TextEqualsMethodGen.makeFunction(language));
     scope.registerMethod(any, "to_text", AnyToTextMethodGen.makeFunction(language));
     scope.registerMethod(any, "json_serialize", JsonSerializeMethodGen.makeFunction(language));
 
