@@ -13,6 +13,7 @@ tags: [product,ui]
 | -------- | ------ |
 | <kbd>Ctrl</kbd>+<kbd>n</kbd> | Creates an empty node. |
 | <kbd>Ctrl</kbd>+<kbd>Backspace</kbd> | Removes the selected nodes. |
+| <kbd>Ctrl</kbd>+<kbd>g</kbd> | Collapses the selected nodes. |
 
 #### Navigation
 

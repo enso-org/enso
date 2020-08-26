@@ -733,12 +733,11 @@ impl Handle {
     -> FallibleResult<node::Id> {
         use double_representation::refactorings::collapse::collapse;
         use double_representation::refactorings::collapse::Collapsed;
-
         let nodes : Vec<_> = Result::from_iter(nodes.into_iter().map(|id| self.node(id)))?;
-        let positions      = nodes.iter().filter_map(|node| {
+        info!(self.logger, "Collapsing {nodes:?}.");
+        let collapsed_positions = nodes.iter().filter_map(|node| {
             node.metadata.as_ref().and_then(|metadata| metadata.position)
         });
-        let mean_position   = model::module::Position::mean(positions);
         let ast             = self.module.ast();
         let mut module      = module::Info {ast};
         let introduced_name = module.generate_name(new_method_name_base)?;
@@ -752,12 +751,9 @@ impl Handle {
         module.add_method(new_method,module::Placement::Before(my_name),&self.parser)?;
         self.module.update_ast(module.ast);
         self.update_definition_ast(|_| Ok(updated_definition))?;
-        self.module.with_node_metadata(collapsed_node,Box::new(|metadata| {
-            *metadata = NodeMetadata {
-                position : Some(mean_position),
-                ..default()
-            };
-        }));
+        let position = Some(model::module::Position::mean(collapsed_positions));
+        let metadata = NodeMetadata {position,..default()};
+        self.module.set_node_metadata(collapsed_node,metadata);
         Ok(collapsed_node)
     }
 

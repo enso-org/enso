@@ -311,6 +311,8 @@ ensogl::def_command_api! { Commands
     remove_selected_nodes,
     /// Remove all nodes from the graph.
     remove_all_nodes,
+    /// Remove all nodes from the graph.
+    collapse_selected_nodes,
     /// Toggle the visibility of the selected visualizations.
     toggle_visualization_visibility,
     /// Simulates a visualization open press event. In case the event will be shortly followed by `release_visualization_visibility`, the visualization will be shown permanently. In other case, it will be disabled as soon as the `release_visualization_visibility` is emitted.
@@ -398,6 +400,7 @@ pub struct FrpInputs {
     pub remove_edge                  : frp::Source<EdgeId>,
     pub select_node                  : frp::Source<NodeId>,
     pub remove_node                  : frp::Source<NodeId>,
+    pub collapse_nodes               : frp::Source<(Vec<NodeId>,NodeId)>,
     pub set_node_expression          : frp::Source<(NodeId,node::Expression)>,
     pub set_node_position            : frp::Source<(NodeId,Vector2)>,
     pub set_expression_type          : frp::Source<(NodeId,ast::Id,Option<Type>)>,
@@ -436,6 +439,7 @@ impl FrpInputs {
             remove_edge                  <- source();
             select_node                  <- source();
             remove_node                  <- source();
+            collapse_nodes               <- source();
             set_node_expression          <- source();
             set_node_position            <- source();
             set_expression_type          <- source();
@@ -459,8 +463,8 @@ impl FrpInputs {
              ,set_detached_edge_targets,set_edge_source,set_edge_target
              ,unset_edge_source,unset_edge_target
              ,set_node_position,set_expression_type,set_method_pointer,select_node,remove_node
-             ,set_node_expression,connect_nodes,deselect_all_nodes,cycle_visualization
-             ,set_visualization,register_visualization
+             ,collapse_nodes,set_node_expression,connect_nodes,deselect_all_nodes
+             ,cycle_visualization,set_visualization,register_visualization
              ,some_edge_targets_detached,some_edge_sources_detached,all_edge_targets_attached
              ,hover_node_input,all_edge_sources_attached,hover_node_output,press_node_output
              ,set_detached_edge_sources,all_edges_attached
@@ -538,6 +542,7 @@ macro_rules! generate_frp_outputs {
 generate_frp_outputs! {
     node_added                : NodeId,
     node_removed              : NodeId,
+    nodes_collapsed           : (Vec<NodeId>,NodeId),
     node_selected             : NodeId,
     node_deselected           : NodeId,
     node_position_set         : (NodeId,Vector2),
@@ -1585,6 +1590,7 @@ impl application::shortcut::DefaultShortcutProvider for GraphEditor {
              , Self::self_shortcut(shortcut::Action::press        (&[Key::Escape],&[])                              , "cancel_project_name_editing")
              , Self::self_shortcut(shortcut::Action::press        (&[Key::Control,Key::Character("n".into())],&[])  , "add_node_at_cursor")
              , Self::self_shortcut(shortcut::Action::press        (&[Key::Control,Key::Backspace],&[])              , "remove_selected_nodes")
+             , Self::self_shortcut(shortcut::Action::press        (&[Key::Control,Key::Character("g".into())],&[])  , "collapse_selected_nodes")
              , Self::self_shortcut(shortcut::Action::press        (&[Key::Control,Key::Character(" ".into())],&[])  , "press_visualization_visibility")
              , Self::self_shortcut(shortcut::Action::double_press (&[Key::Control,Key::Character(" ".into())],&[])  , "double_press_visualization_visibility")
              , Self::self_shortcut(shortcut::Action::release      (&[Key::Control,Key::Character(" ".into())],&[])  , "release_visualization_visibility")
@@ -2052,6 +2058,20 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
     }
 
 
+    // === Collapse Nodes ===
+    frp::extend! { network
+    // TODO [mwu] https://github.com/enso-org/ide/issues/760
+    //   This is currently the provisional code to enable collapse nodes refactoring. While the APIs
+    //   are as-intended, their behavior isn't. Please refer to the issue for details.
+    let empty_id       = NodeId::default();
+    let model_clone    = model.clone_ref();
+    nodes_to_collapse <- inputs.collapse_selected_nodes . map(move |_|
+        (model_clone.selected_nodes(),empty_id)
+    );
+    outputs.nodes_collapsed <+ nodes_to_collapse;
+    }
+
+
     // === Set Node Expression ===
     frp::extend! { network
 
@@ -2426,6 +2446,7 @@ fn new_graph_editor(app:&Application) -> GraphEditor {
 
     // === Remove implementation ===
     outputs.node_removed <+ inputs.remove_node;
+
 
     }
 
