@@ -86,9 +86,13 @@ jobs:
 
       # Build
       - name: Bootstrap Enso project
-        run: sbt --no-colors bootstrap
+        run: |
+          sleep 1
+          sbt --no-colors bootstrap
       - name: Build Enso
-        run: sbt --no-colors compile
+        run: |
+          sleep 1
+          sbt --no-colors compile
 
       # Tests
       - name: Setup Tests on Windows
@@ -97,15 +101,25 @@ jobs:
           echo '::set-env name=CI_TEST_TIMEFACTOR::2'
           echo '::set-env name=CI_TEST_FLAKY_ENABLE::true'
       - name: Test Enso
-        run: sbt --no-colors "set Global / parallelExecution := false; test"
+        run: |
+          sleep 1
+          sbt --no-colors "set Global / parallelExecution := false; test"
       - name: Check Runtime Benchmark Compilation
-        run: sbt -no-colors runtime/Benchmark/compile
+        run: |
+          sleep 1
+          sbt --no-colors runtime/Benchmark/compile
       - name: Check Language Server Benchmark Compilation
-        run: sbt -no-colors language-server/Benchmark/compile
+        run: |
+          sleep 1
+          sbt --no-colors language-server/Benchmark/compile
       - name: Check Searcher Benchmark Compilation
-        run: sbt -no-colors searcher/Benchmark/compile
+        run: |
+          sleep 1
+          sbt --no-colors searcher/Benchmark/compile
       - name: Build the Uberjar
-        run: sbt -no-colors runner/assembly
+        run: |
+          sleep 1
+          sbt --no-colors runner/assembly
       - name: Test the Uberjar
         run: ./runner.jar --run tools/ci/Test.enso
       - name: Test the Repl in the Uberjar
@@ -163,7 +177,7 @@ jobs:
           native-image: true
       - name: Set Up SBT
         run: |
-          curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+          curl --retry 4 --retry-connrefused -fsSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
           tar -xzf sbt.tgz
           echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
@@ -180,15 +194,25 @@ jobs:
 
       # Build Artifacts
       - name: Bootstrap the Project
-        run: sbt --no-colors bootstrap
+        run: |
+          sleep 1
+          sbt --no-colors bootstrap
       - name: Build the Runtime Uberjar
-        run: sbt --no-colors runtime/assembly
+        run: |
+          sleep 1
+          sbt --no-colors runtime/assembly
       - name: Build the Runner Uberjar
-        run: sbt --no-colors runner/assembly
+        run: |
+          sleep 1
+          sbt --no-colors runner/assembly
       - name: Build the Project Manager Uberjar
-        run: sbt --no-colors project-manager/assembly
+        run: |
+          sleep 1
+          sbt --no-colors project-manager/assembly
       - name: Build the Launcher Native Image
-        run: sbt --no-colors launcher/buildNativeImage
+        run: |
+          sleep 1
+          sbt --no-colors launcher/buildNativeImage
       - name: Build the Manifest
         run: |
           cp distribution/manifest.template.yaml manifest.yaml
