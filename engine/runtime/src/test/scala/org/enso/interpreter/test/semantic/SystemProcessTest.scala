@@ -65,13 +65,13 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin chars (Windows)" taggedAs OsWindows in {
       val code =
         """main =
-          |    result = System.create_process "$line = Read-Host; echo $line" [] "" True True True
+          |    result = System.create_process "PowerShell ["-Command", "[System.Console]::ReadLine()"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
-      feedInput("hello win!")
+      feedInput("hello windows!")
       eval(code) shouldEqual 0
-      consumeOut shouldEqual List("hello win!")
+      consumeOut shouldEqual List("hello windows!")
       consumeErr shouldEqual List()
     }
 
@@ -129,7 +129,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "provide stdin string (Windows)" taggedAs OsWindows in {
       val code =
         """main =
-          |    result = System.create_process "PowerShell" ["-Command", "$line = Read-Host; echo $line"] "hello" True True True
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "hello" False False False
           |    result.stdout
           |""".stripMargin
 
@@ -189,7 +189,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stderr chars (Windows)" taggedAs OsWindows in {
       val code =
         """main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('test')"] "" False True True
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False True True
           |    result.exit_code
           |""".stripMargin
 
@@ -225,7 +225,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stderr string (Windows)" taggedAs OsWindows in {
       val code =
         """main =
-          |    result = System.create_process "PowerShell" ["-Command", "Write-Error err"] "" False False False
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False False False
           |    result.stderr
           |""".stripMargin
 
