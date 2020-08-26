@@ -10,5 +10,6 @@ from_text: Text -> Os
 from_text os =
     if os == "linux" then Linux else if os == "macos" then MacOS else if os == "windows" then Windows else Unknown
 
+## Return the type of operating system.
 os : Os
 os = Platform.from_text System.os

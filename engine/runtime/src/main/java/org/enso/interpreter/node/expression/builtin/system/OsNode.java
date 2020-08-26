@@ -7,7 +7,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 @BuiltinMethod(
     type = "System",
     name = "os",
-    description = "Gets the platform operating system.")
+    description = "Get the type of operating system.")
 public final class OsNode extends Node {
 
   private final String LINUX = "linux";

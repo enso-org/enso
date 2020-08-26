@@ -27,7 +27,7 @@ type Assertion
         Success -> False
         Failure _ -> True
 
-## Fail the test with given message.
+## Fail a test with the given message.
 fail message = Panic.throw (Failure message)
 
 ## Asserts that `this` value is equal to the expected value.
