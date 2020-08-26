@@ -68,7 +68,7 @@ pub fn wrap_in_impl_for
 
 /// Generate the `run` function for the specialized lexer.
 ///
-/// This function is what the user of the lexer will call
+/// This function is what the user of the lexer will call to begin execution.
 pub fn run_function(output_type_name:impl Into<String>) -> Result<ImplItem,GenError> {
     let output_type_name:Path = str_to_path(output_type_name)?;
     let tree:ImplItem         = parse_quote! {

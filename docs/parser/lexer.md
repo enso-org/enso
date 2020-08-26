@@ -63,13 +63,20 @@ for use by the GUI.
 
 It contains the following constructs:
 
-- `Var`: Variable identifiers.
-- `Ref`: Referrent identifiers.
-- `Opr`: Operator identifiers.
+- `Referent`: Referrent identifiers.
+- `Variable`: Variable identifiers.
+- `External`: External identifiers.
+- `Blank`: The blank name `_`.
+- `Operator`: Operator identifiers.
+- `Modifier`: Modifier operators.
 - `Number`: Numbers.
+- `DanglingBase`: An explicit base without an associated number.
 - `Text`: Text.
-- `Invalid`: Invalid constructs that cannot be lexed.
+- `Line`: A line in a block that contains tokens.
+- `BlankLine`: A line in a block that contains only whitespace.
 - `Block`: Syntactic blocks in the language.
+- `InvalidSuffix`: Invalid constructs that cannot be lexed.
+- `Unrecognized`: Tokens that the lexer doesn't recognise in a given state.
 
 The distinction is made here between the various kinds of identifiers in order
 to keep lexing fast, but also in order to allow macros to switch on the kinds of
