@@ -6,8 +6,8 @@
 
 /// Calls function on each argument.
 #[macro_export]
-macro_rules! each {
-    ($val:ident.$fun:ident, $($args:expr),*) => { $($val.$fun($args));* }
+macro_rules! write {
+    ($val:expr, $($args:expr),*) => { $($val.write($args));* }
 }
 
 
@@ -16,9 +16,11 @@ macro_rules! each {
 // === Modules ===
 // ===============
 
+pub mod api;
 pub mod ast;
-pub mod scala;
+pub mod jni;
 pub mod rust;
+pub mod scala;
 
 
 
@@ -26,17 +28,14 @@ pub mod rust;
 // === Generator ===
 // =================
 
-/// An ast generator.
-pub trait Generator : Sized {
-    /// Source code builder.
-    type Source : Default;
-
+/// An ast generator generic over source code builder.
+pub trait Generator<Source> : Sized {
     /// Write source code into the buffer.
-    fn write(self, source:&mut Self::Source);
+    fn write(self, source:&mut Source);
 
     /// Get string representation of self.
-    fn source(self) -> Self::Source {
-        let mut source = Self::Source::default();
+    fn source(self) -> Source where Source:Default {
+        let mut source = Source::default();
         self.write(&mut source);
         source
     }
@@ -45,10 +44,8 @@ pub trait Generator : Sized {
 
 // == Trait Impls ==
 
-impl<T:Generator> Generator for Option<T> {
-    type Source = T::Source;
-
-    fn write(self, source:&mut T::Source) {
+impl<S,T:Generator<S>> Generator<S> for Option<T> {
+    fn write(self, source:&mut S) {
         if let Some(t) = self { t.write(source) }
     }
 }

@@ -1,4 +1,4 @@
-//! This module exports rust Ast API implementation generator.
+//! This module exports jni bindings generator.
 
 use std::collections::HashMap;
 use syn;
@@ -7,7 +7,6 @@ use super::ast::*;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
 use quote::quote;
-
 
 
 // =======================
@@ -46,21 +45,17 @@ pub fn method(obj:Class, typ:Option<Name>) -> Method {
 
 impl<'a> Method<'a> {
     pub fn tokens(&self, source:&mut Source, generics:Option<Generics<'a>>) -> TokenStream {
-        let typ  = self.typ.as_ref().unwrap_or_else(&self.obj.name);
+        let typ  = &self.obj.name;
         let name = &self.obj.name.to_var();
         let args = self.obj.fields().map(|(name,typ)| {
             let name = &name;
             let typ  = source.code(typ);
             quote!(#name:#typ)
         });
-        let fields = self.obj.fields().map(|(name,_)| &name);
 
-        let fun = quote!(fn #name(&self, #(#args),*) -> #typ {
-            #typ{#(#fields),*}
-        });
-
-        if self.typ.is_none() { fun } else {
-            quote!(type #typ = #typ; #fun)
+        match &self.typ {
+            Some(typ) => quote!(           fn #name(&self, #(#args),*) -> #typ),
+            None      => quote!(type #typ; fn #name(&self, #(#args),*) -> #typ),
         }
     }
 }
@@ -72,17 +67,15 @@ impl Generator<Source> for File {
         let name    = &self.name;
         let content = source.code(Object{name:self.name.clone(), lines:&self.content.items[..]});
 
-        source.code = quote!(pub struct Rust; impl #name for Rust { #content })
+        source.code = quote!(trait #name { #content })
     }
 }
 
 impl Generator<Source> for Stdlib {
     fn write(self, source:&mut Source) {
         source.code = quote!{
-            type Uuid = Uuid;
-            fn uuid(&self) -> Self::Uuid {
-                Uuid::new_v4()
-            }
+            type Uuid;
+            fn uuid(&self) -> Self::Uuid;
         }
     }
 }
@@ -103,9 +96,8 @@ impl<'a> Generator<Source> for Object<'a> {
 impl<'a> Generator<Source> for TypeAlias<'a> {
     fn write(self, source:&mut Source) {
         let name = &self.name;
-        let typ  = self.typ.typ;
 
-        source.code = quote!(type #name = #typ;);
+        source.code = quote!(type #name;);
     }
 }
 
@@ -132,7 +124,7 @@ impl<'a> Generator<Source> for Enum<'a> {
             }
         });
 
-        source.code = quote!(type #name = #name; #(#variants)*)
+        source.code = quote!(type #name; #(#variants)*)
     }
 }
 
@@ -155,7 +147,15 @@ impl<'a> Generator<Source> for Type<'a> {
         if let syn::Type::Path(path) = self.typ {
             let path = path.path.segments.iter().map(|typ| {
                 let boxed = typ.ident.to_string().as_str() == "Box";
-                typ
+                let name  = &typ.ident;
+                if let syn::PathArguments::AngleBracketed(typ) = &typ.arguments {
+                    let args = typ.args.iter().flat_map(|typ|
+                        if let syn::GenericArgument::Type(typ) = typ {
+                            Some(source.code(Type::from(typ)))
+                        } else { None }
+                    );
+                    quote!(#name<#(#args),*>)
+                } else { quote!(#name) }
             });
             source.code = quote!(Self::#(#path)::*)
         }

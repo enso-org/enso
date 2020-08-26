@@ -23,13 +23,13 @@ pub type AnyAst = Ast<Shape>;
 #[derive(Debug,Clone)]
 pub struct Ast<T> {
     /// A unique identifier.
-    uid: Option<Uuid>,
+    pub uid: Option<Uuid>,
     /// Length in number of chars of this ast node.
-    len: usize,
+    pub len: usize,
     /// The number of trailing spaces.
-    off: usize,
+    pub off: usize,
     /// The ast node itself.
-    ast: T,
+    pub ast: T,
 }
 
 // The set of all ast nodes.
@@ -68,17 +68,17 @@ pub mod app {
     #[allow(missing_docs)]
     #[derive(Debug,Clone)]
     pub struct Prefix {
-        pub func : Box<AnyAst>,
-        pub arg  : Box<AnyAst>,
+        pub fun : Box<AnyAst>,
+        pub arg : Box<AnyAst>,
     }
 
     /// The ast node for an infix operator application.
     #[allow(missing_docs)]
     #[derive(Debug,Clone)]
     pub struct Infix {
-        pub larg: Box<AnyAst>,
-        pub opr: Box<Ast<name::Opr>>,
-        pub rarg: Box<AnyAst>,
+        pub larg : Box<AnyAst>,
+        pub opr  : Box<Ast<name::Opr>>,
+        pub rarg : Box<AnyAst>,
     }
 }
 

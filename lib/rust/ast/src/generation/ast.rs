@@ -5,6 +5,7 @@ use proc_macro2::Span;
 use syn;
 use syn::Ident;
 use inflector::Inflector;
+use quote::quote;
 
 
 
@@ -85,6 +86,7 @@ impl<'a> Class<'a> {
         })
     }
 }
+
 /// Represents a set of classes extending a sealed trait.
 #[derive(Debug,Clone)]
 pub struct Enum<'a> {
@@ -116,7 +118,7 @@ impl<'a> Enum<'a> {
 }
 
 /// Represents the `extends Name` statement.
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Copy)]
 pub struct Extends<'a> { pub name:&'a Name }
 
 /// Constructs a new `extends Name` statement.
@@ -125,11 +127,11 @@ pub fn extends(name:&Name) -> Extends {
 }
 
 /// Represents a set of type parameters `[Generic1, Generic2, ...]`.
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Copy)]
 pub struct Generics<'a> { pub generics:&'a syn::Generics }
 
 /// Represents a qualified type `Foo.Foo[Bar[Baz], ..]`
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Copy)]
 pub struct Type<'a> { pub typ:&'a syn::Type }
 
 /// Represents a type alias `type Foo = Bar[Baz]`
@@ -149,7 +151,9 @@ impl Name {
     ///
     /// `Foo_bar` => `fooBar`
     pub fn var(name:&Ident) -> Self {
-        Self::from(name.to_string().to_camel_case().as_str())
+        let mut name = name.to_string();
+        name[0..1].make_ascii_lowercase();
+        Self::from(name.to_camel_case())
     }
 
     /// Creates a Scala type name.
@@ -180,6 +184,23 @@ impl Name {
         };
         name.into()
     }
+
+    pub fn to_string(&self) -> String {
+        let name = &self.name;
+        quote!(#name).to_string()
+    }
+
+    pub fn to_var(&self) -> Self {
+        Self::var(&Self::from(self.to_string()).name)
+    }
+
+    pub fn to_typ(&self) -> Self {
+        Self::typ(&Self::from(self.to_string()).name)
+    }
+
+    pub fn add(&self, name:&Self) -> Self {
+        Self::from(self.to_string() + &name.to_string())
+    }
 }
 
 
@@ -188,6 +209,12 @@ impl Name {
 impl From<&str> for Name {
     fn from(val:&str) -> Self {
         Name{name:Ident::new(val, Span::call_site())}
+    }
+}
+
+impl From<String> for Name {
+    fn from(val:String) -> Self {
+        Name{name:Ident::new(&val, Span::call_site())}
     }
 }
 

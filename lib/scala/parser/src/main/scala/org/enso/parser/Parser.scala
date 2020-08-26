@@ -31,6 +31,9 @@ class Parser private () {
 
   /**  Parses a single source file into a stream of tokens. */
   @native def lexFile(@unused filename: String): Ast.AnyAst
+
+  /** Benchmarks AST allocation */
+  @native def bench(): Ast.AnyAst
 }
 
 object Parser {

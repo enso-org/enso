@@ -16,5 +16,6 @@ class ParserTest extends AnyFlatSpec with Matchers {
     assert(expected == parser.parseFile("Hello!"))
     assert(expected == parser.lexStr("Hello!"))
     assert(expected == parser.lexFile("Hello!"))
+    assert(parser.bench().ast.isInstanceOf[Ast.App.Prefix])
   }
 }

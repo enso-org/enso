@@ -29,7 +29,7 @@ pub struct Source {
 
 impl Source {
     /// Write scala source code into buffer.
-    pub fn push(&mut self, ast:impl Generator<Source=Self>) {
+    pub fn write(&mut self, ast:impl Generator<Source>) {
         ast.write(self)
     }
 
@@ -38,26 +38,23 @@ impl Source {
         let mut file    = fs::File::open("lib/rust/ast/src/ast.rs")?;
         file.read_to_string(&mut content)?;
 
-        let pkg  = String::from("org.enso.ast");
-        let file = syn::parse_file(content.as_str()).unwrap();
+        let pkg       = String::from("org.enso.ast");
+        let file      = syn::parse_file(content.as_str()).unwrap();
+        let this:Self = File::new("Ast", pkg, file).source();
 
-        Ok(File::new("Ast", pkg, file).source().code)
+        Ok(this.code)
     }
 }
 
 // == Trait Impls ==
 
-impl Generator for &str {
-    type Source = Source;
-
+impl Generator<Source> for &str {
     fn write(self, source:&mut Source) {
         source.code.push_str(self)
     }
 }
 
-impl Generator for Tab {
-    type Source = Source;
-
+impl Generator<Source> for Tab {
     fn write(self, source:&mut Source) {
         for _ in 0..source.indent { source.code.push(' ') }
     }
@@ -65,85 +62,73 @@ impl Generator for Tab {
 
 // == ScalaGenerator Impls ==
 
-impl Generator for File {
-    type Source = Source;
-
+impl Generator<Source> for File {
     fn write(self, source:&mut Source) {
         let content = Object {name:self.name.clone(),lines:&self.content.items[..]};
-        each!(source.push, "package ", self.package.as_str(), "\n\n", self.lib, "\n\n\n\n");
-        each!(source.push, content, "\n");
+        write!(source, "package ", self.package.as_str(), "\n\n", self.lib, "\n\n\n\n");
+        write!(source, content, "\n");
     }
 }
 
-impl Generator for Stdlib {
-    type Source = Source;
-
+impl Generator<Source> for Stdlib {
     fn write(self, source:&mut Source) {
-        each!(source.push, "import java.util.UUID");
+        write!(source, "import java.util.UUID");
     }
 }
 
-impl<'a> Generator for Object<'a> {
-    type Source = Source;
-
+impl<'a> Generator<Source> for Object<'a> {
     fn write(self, source:&mut Source) {
-        each!(source.push, TAB, "object ", &self.name, " {\n");
+        write!(source, TAB, "object ", &self.name, " {\n");
 
         source.indent += 2;
 
         if source.extends.contains_key(&self.name) {
-            each!(source.push, TAB, "sealed trait ", &self.name, extends(&self.name));
+            write!(source, TAB, "sealed trait ", &self.name, extends(&self.name));
         }
         for item in self.lines() {
-            source.push("\n");
+            source.write("\n");
             match item {
-                Term::Object(val) => source.push(val),
-                Term::Type  (val) => source.push(val),
-                Term::Class (val) => source.push(val),
-                Term::Enum  (val) => source.push(val),
+                Term::Object(val) => source.write(val),
+                Term::Type  (val) => source.write(val),
+                Term::Class (val) => source.write(val),
+                Term::Enum  (val) => source.write(val),
             }
         }
 
         source.indent -= 2;
 
-        each!(source.push, TAB, "}\n");
+        write!(source, TAB, "}\n");
     }
 }
 
-impl<'a> Generator for TypeAlias<'a> {
-    type Source = Source;
-
+impl<'a> Generator<Source> for TypeAlias<'a> {
     fn write(self, source:&mut Source) {
-        each!(source.push, TAB, "type ", &self.name, &self.generics, " = ", self.typ, "\n");
+        write!(source, TAB, "type ", &self.name, self.generics, " = ", self.typ, "\n");
     }
 }
 
-impl<'a> Generator for Class<'a> {
-    type Source = Source;
-
+impl<'a> Generator<Source> for Class<'a> {
     fn write(self, source:&mut Source) {
-        each!(source.push, TAB, "case class ", &self.name, &self.generics, "(");
+        write!(source, TAB, "case class ", &self.name, self.generics, "(");
 
         for (i, (name, typ)) in self.fields().enumerate() {
-            each!(source.push, ", ".when(i!=0), &name, ":", typ);
+            write!(source, ", ".when(i!=0), &name, ":", typ);
         }
 
-        each!(source.push, ")", extends(&self.name));
+        write!(source, ")", extends(&self.name));
     }
 }
 
-impl<'a> Generator for Enum<'a> {
-    type Source = Source;
-
+impl<'a> Generator<Source> for Enum<'a> {
     fn write(self, source:&mut Source) {
         let generics = Generics::from(&self.val.generics);
 
-        each!(source.push, TAB, "sealed trait ", &self.name, &generics, extends(&self.name));
+        write!(source, TAB, "sealed trait ", &self.name, generics, extends(&self.name));
         for variant in self.variants() {
             match variant {
                 Variant::Named{name, fields} => {
                     source.extends.insert(name.clone(), self.name.clone());
-                    each!(source.push, Class{name, generics:generics.clone(), fields});
+                    write!(source, Class{name, generics:generics.clone(), fields});
                 }
                 Variant::Unnamed{class, object} => {
                     source.extends.insert(object.clone(), self.name.clone());
@@ -154,9 +139,7 @@ impl<'a> Generator for Enum<'a> {
     }
 }
 
-impl<'a> Generator for Extends<'a> {
-    type Source = Source;
-
+impl<'a> Generator<Source> for Extends<'a> {
     fn write(self, source:&mut Source) {
         if let Some(name) = source.extends.get(self.name) {
             source.code.push_str(" extends ");
@@ -166,49 +149,43 @@ impl<'a> Generator for Extends<'a> {
     }
 }
 
-impl<'a> Generator for &Generics<'a> {
-    type Source = Source;
-
+impl<'a> Generator<Source> for Generics<'a> {
     fn write(self, source:&mut Source) {
         if self.generics.params.is_empty() {return}
-        source.push("[");
+        source.write("[");
         for (i, param) in self.generics.params.iter().enumerate() {
             if let syn::GenericParam::Type(typ) = param {
-                each!(source.push, ", ".when(i!=0), &Name::typ(&typ.ident));
+                write!(source, ", ".when(i!=0), &Name::typ(&typ.ident));
             }
         }
-        source.push("]");
+        source.write("]");
     }
 }
 
-impl<'a> Generator for Type<'a> {
-    type Source = Source;
-
+impl<'a> Generator<Source> for Type<'a> {
     fn write(self, source:&mut Source) {
         if let syn::Type::Path(path) = self.typ {
             for (i, typ) in path.path.segments.iter().enumerate() {
                 let boxed = typ.ident.to_string().as_str() == "Box";
-                if i!=0   { each!(source.push, ".") }
-                if !boxed { each!(source.push, &Name::typ(&typ.ident)) }
+                if i!=0   { write!(source, ".") }
+                if !boxed { write!(source, &Name::typ(&typ.ident)) }
                 if let syn::PathArguments::AngleBracketed(typ) = &typ.arguments {
-                    if !boxed { each!(source.push, "[") }
+                    if !boxed { write!(source, "[") }
                     for (i, typ) in typ.args.iter().enumerate() {
                         if let syn::GenericArgument::Type(typ) = typ {
-                            each!(source.push, ", ".when(i!=0), Type::from(typ));
+                            write!(source, ", ".when(i!=0), Type::from(typ));
                         }
                     }
-                    if !boxed { each!(source.push, "]") }
+                    if !boxed { write!(source, "]") }
                 }
             }
         }
     }
 }
 
-impl Generator for &Name {
-    type Source = Source;
-
+impl Generator<Source> for &Name {
     fn write(self, source:&mut Source) {
-        each!(source.push, self.name.to_string().as_str())
+        write!(source, self.name.to_string().as_str())
     }
 }
 
@@ -281,6 +258,8 @@ object Ast {
 }
 
 ";
-        assert_eq!(File::new("Ast", "org.enso.ast".into(), rust).source().code, scala);
+        let src: Source = File::new("Ast", "org.enso.ast".into(), rust).source();
+
+        assert_eq!(src.code, scala);
     }
 }
