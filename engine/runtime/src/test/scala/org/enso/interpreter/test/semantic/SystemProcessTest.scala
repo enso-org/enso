@@ -65,7 +65,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin chars (Windows)" taggedAs OsWindows in {
       val code =
         """main =
-          |    result = System.create_process "PowerShell ["-Command", "[System.Console]::ReadLine()"] "" True True True
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "" True True True
           |    result.exit_code
           |""".stripMargin
 
@@ -133,7 +133,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |    result.stdout
           |""".stripMargin
 
-      eval(code) shouldEqual "hello"
+      eval(code) shouldEqual s"hello${System.lineSeparator()}"
       consumeOut shouldEqual List()
       consumeErr shouldEqual List()
     }
@@ -229,7 +229,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
           |    result.stderr
           |""".stripMargin
 
-      eval(code) shouldEqual "err"
+      eval(code) shouldEqual s"err${System.lineSeparator()}"
       consumeOut shouldEqual List()
       consumeErr shouldEqual List()
     }

@@ -12,8 +12,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 public class System {
 
   private final AtomConstructor system;
-  private final AtomConstructor processResult;
-  private final AtomConstructor processBuilder;
+  private final AtomConstructor systemProcessResult;
 
   /**
    * Create and register all {@code System} constructors.
@@ -24,19 +23,13 @@ public class System {
   public System(Language language, ModuleScope scope) {
     system = new AtomConstructor("System", scope).initializeFields();
     scope.registerConstructor(system);
-    processResult =
-        new AtomConstructor("Process_Result", scope)
+    systemProcessResult =
+        new AtomConstructor("System_Process_Result", scope)
             .initializeFields(
                 new ArgumentDefinition(0, "exit_code", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(1, "stdout", ArgumentDefinition.ExecutionMode.EXECUTE),
                 new ArgumentDefinition(2, "stderr", ArgumentDefinition.ExecutionMode.EXECUTE));
-    scope.registerConstructor(processResult);
-    processBuilder =
-        new AtomConstructor("Process_Builder", scope)
-            .initializeFields(
-                new ArgumentDefinition(0, "command", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(1, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE),
-                new ArgumentDefinition(2, "stdin", ArgumentDefinition.ExecutionMode.EXECUTE));
+    scope.registerConstructor(systemProcessResult);
 
     scope.registerMethod(system, "create_process", CreateProcessMethodGen.makeFunction(language));
     scope.registerMethod(system, "nano_time", NanoTimeMethodGen.makeFunction(language));
@@ -49,12 +42,7 @@ public class System {
   }
 
   /** @return the atom constructor for {@code Process_Result}. */
-  public AtomConstructor getProcessResult() {
-    return processResult;
-  }
-
-  /** @return the atom constructor for {@code Process_Builder}. */
-  public AtomConstructor getProcessBuilder() {
-    return processBuilder;
+  public AtomConstructor getSystemProcessResult() {
+    return systemProcessResult;
   }
 }

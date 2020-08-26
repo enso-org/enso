@@ -54,7 +54,7 @@ public abstract class CreateProcessNode extends Node {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       ByteArrayOutputStream err = new ByteArrayOutputStream();
 
-      try (OutputStream processin = p.getOutputStream()) {
+      try (OutputStream processIn = p.getOutputStream()) {
         InputStream stdin;
         if (redirectIn) {
           stdin = ctx.getIn();
@@ -63,8 +63,12 @@ public abstract class CreateProcessNode extends Node {
         }
         int nread;
         byte[] buf = new byte[8096];
-        while (stdin.available() > 0 && (nread = stdin.read(buf)) != -1) {
-          processin.write(buf, 0, nread);
+        try {
+          while (stdin.available() > 0 && (nread = stdin.read(buf)) != -1) {
+            processIn.write(buf, 0, nread);
+          }
+        } catch (IOException e) {
+          throw new PanicException(e.getMessage(), this);
         }
       } catch (IOException ignored) {
         // Getting the output stream of a finished process results in an IOException.
@@ -73,7 +77,7 @@ public abstract class CreateProcessNode extends Node {
 
       p.waitFor();
 
-      try (InputStream processout = p.getInputStream()) {
+      try (InputStream processOut = p.getInputStream()) {
         OutputStream stdout;
         if (redirectOut) {
           stdout = ctx.getOut();
@@ -82,12 +86,12 @@ public abstract class CreateProcessNode extends Node {
         }
         int nread;
         byte[] buf = new byte[8096];
-        while ((nread = processout.read(buf)) != -1) {
+        while ((nread = processOut.read(buf)) != -1) {
           stdout.write(buf, 0, nread);
         }
       }
 
-      try (InputStream processerr = p.getErrorStream()) {
+      try (InputStream processErr = p.getErrorStream()) {
         OutputStream stderr;
         if (redirectErr) {
           stderr = ctx.getErr();
@@ -96,7 +100,7 @@ public abstract class CreateProcessNode extends Node {
         }
         int nread;
         byte[] buf = new byte[8096];
-        while ((nread = processerr.read(buf)) != -1) {
+        while ((nread = processErr.read(buf)) != -1) {
           stderr.write(buf, 0, nread);
         }
       }
@@ -104,9 +108,10 @@ public abstract class CreateProcessNode extends Node {
       long exitCode = p.exitValue();
       String returnOut = new String(out.toByteArray());
       String returnErr = new String(err.toByteArray());
+
       return ctx.getBuiltins()
           .system()
-          .getProcessResult()
+          .getSystemProcessResult()
           .newInstance(exitCode, returnOut, returnErr);
     } catch (IOException | InterruptedException e) {
       throw new PanicException(e.getMessage(), this);

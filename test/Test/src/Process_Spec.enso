@@ -1,26 +1,31 @@
 import Base.Process
+from Base.Process.Exit_Code import Exit_Success, Exit_Failure
 import Base.Test
 
 spec = describe "Process" <|
     it "should call simple command" <|
-        Process.call "echo" . should_equal 0
+        case Process.call "echo" of
+            Exit_Success -> Test.Success
+            Exit_Failure code -> Test.fail ("Process failed with code " + code)
     it "should return exit code" <|
-        Process.shell "bash" ["-c", "exit 42"] . should_equal 42
+        case Process.call_command "bash" ["-c", "exit 42"] of
+            Exit_Success -> Test.fail "Process exit code mismatch."
+            Exit_Failure code -> code.should_equal 42
     it "should return stdout" <|
-        builder = Process_Builder "bash" ["-c", "echo -n Hello"] ""
+        builder = Process.Process_Builder "bash" ["-c", "echo -n Hello"] ""
         result = Process.create builder
-        result.exit_code . should_equal 0
+        result.exit_code.to_number . should_equal 0
         result.stdout . should_equal "Hello"
         result.stderr . should_equal ""
     it "should return stderr" <|
-        builder = Process_Builder "bash" ["-c", "echo -n Error 1>&2"] ""
+        builder = Process.Process_Builder "bash" ["-c", "echo -n Error 1>&2"] ""
         result = Process.create builder
-        result.exit_code . should_equal 0
+        result.exit_code.to_number . should_equal 0
         result.stdout . should_equal ""
         result.stderr . should_equal "Error"
     it "should feed stdin" <|
-        builder = Process_Builder "bash" ["-c", "read line; echo -n $line"] "sample"
+        builder = Process.Process_Builder "bash" ["-c", "read line; echo -n $line"] "sample"
         result = Process.create builder
-        result.exit_code . should_equal 0
+        result.exit_code.to_number . should_equal 0
         result.stdout . should_equal "sample"
         result.stderr . should_equal ""

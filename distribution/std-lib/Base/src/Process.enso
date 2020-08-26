@@ -1,4 +1,10 @@
-from Builtins export Process_Builder, Process_Result
+import Base.Process.Exit_Code
+
+## The builder object that is used to create operating system processes.
+type Process_Builder command arguments stdin
+
+## The result of the process invocation.
+type Process_Result exit_code stdout stderr
 
 ## Call a system executable by name.
 
@@ -7,22 +13,22 @@ from Builtins export Process_Builder, Process_Result
          Process.call "nproc"
      The result is printed to stdout:
          8
-Process.call : String -> Number
+Process.call : String -> Exit_Code
 Process.call command =
-    result = System.create_process command [] "" True True True
-    result.exit_code
+    result = System.create_process command (arguments = []) (input = "") (redirectIn = True) (redirectOut = True) (redirectErr = True)
+    Exit_Code.from_number result.exit_code
 
 ## Call a command with a list of arguments.
 
    > Example
      Call the `echo` command with arguments
-         Process.shell "echo" ["-n", "Hello!"]
+         Process.call_command "echo" ["-n", "Hello!"]
      The result is printed to stdout:
          Hello!
-Process.shell : String -> Vector -> Number
-Process.shell command arguments =
-    result = System.create_process command arguments "" True True True
-    result.exit_code
+Process.call_command : String -> Vector -> Exit_Code
+Process.call_command command arguments =
+    result = System.create_process command arguments (input = "") (redirectIn = True) (redirectOut = True) (redirectErr = True)
+    Exit_Code.from_number result.exit_code
 
 ## Create a process using a builder returning the result of execution.
 
@@ -31,7 +37,8 @@ Process.shell command arguments =
          builder = Process_Builder "bash" ["-c", "read line; echo -n $line"] "test"
          Process.create_process builder
      The result is:
-         Process_Result 0 "test" ""
+         Process_Result Exit_Success "test" ""
 Process.create : Process_Builder -> Process_Result
 Process.create b =
-    System.create_process b.command b.arguments b.stdin False False False
+    result = System.create_process b.command b.arguments b.stdin (redirectIn = False) (redirectOut = False) (redirectErr = False)
+    Process_Result (Exit_Code.from_number result.exit_code) result.stdout result.stderr
