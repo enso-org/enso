@@ -5,6 +5,8 @@ use crate::automata::pattern::Pattern;
 use crate::group::rule::Rule;
 
 use itertools::Itertools;
+use std::fmt::Display;
+use wasm_bindgen::__rt::core::fmt::Formatter;
 
 pub mod rule;
 
@@ -234,6 +236,12 @@ impl Into<Registry> for Group {
     }
 }
 
+impl Display for Group {
+    fn fmt(&self, f:&mut Formatter<'_>) -> std::fmt::Result {
+        write!(f,"Group {}",self.name)
+    }
+}
+
 
 
 // =============
@@ -289,11 +297,12 @@ pub mod tests {
     fn complex_rules(count:usize) -> Registry {
         let mut group   = Group::default();
         for ix in 0..count {
-            let string  = ix.to_string();
-            let all     = Pattern::all_of(&string);
-            let any     = Pattern::any_of(&string);
-            let none    = Pattern::none_of(&string);
-            let pattern = Pattern::many(all >> any >> none);
+            let string       = ix.to_string();
+            let all          = Pattern::all_of(&string);
+            let any          = Pattern::any_of(&string);
+            let none         = Pattern::none_of(&string);
+            let all_any_none = all >> any >> none;
+            let pattern      = Pattern::many(&all_any_none);
             group.add_rule(Rule::new(pattern.clone(),""));
         }
         group.into()

@@ -14,11 +14,14 @@ pub struct Symbol {
 }
 
 impl Symbol {
-    /// A representation of the end of the file.
-    pub const EOF_CODE:Symbol = Symbol{value:u32::max_value()};
-
     /// A representation of the null symbol.
     pub const NULL:Symbol = Symbol{value:0};
+    /// A representation of the end of the file.
+    pub const EOF_CODE:Symbol = Symbol{value:u32::max_value()};
+    /// A representation of an arbitrary invalid unicode symbol.
+    pub const INVALID_SYMBOL:Symbol = Symbol{value:0xFFFF};
+    /// A representation of the group reaching its end without matching.
+    pub const INCOMPLETE_GROUP:Symbol = Symbol{value:u32::max_value() - 1};
 }
 
 

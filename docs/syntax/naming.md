@@ -19,9 +19,11 @@ giving Enso code a uniform identity.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Naming Constructs](#naming-constructs)
+  - [External Identifiers](#external-identifiers)
 - [Pattern Contexts](#pattern-contexts)
 - [Localised Naming](#localised-naming)
 - [Operator Naming](#operator-naming)
+  - [Modifier Operators](#modifier-operators)
 - [Reserved Names](#reserved-names)
 
 <!-- /MarkdownTOC -->
@@ -68,6 +70,23 @@ Identifiers are introduced by:
 - Naming them in a binding (assignments and function arguments).
 - Using them in a pattern matching context (free variables).
 - Using them in a type ascription (free variables).
+
+### External Identifiers
+
+As Enso has the ability to interface with many other programming languages in a
+highly-integrated fashion, it needs to be able to use naming styles from other
+languages natively. To do this, we have the concept of a _third_ kind of
+identifier, called the 'external' identifier.
+
+An external identifier is one that doesn't match either the variable or referent
+forms described above, for example `someJavaName`. It is not an _exclusive_
+category, however. Common styles of naming functions in Python, for example,
+will usually lex as variable identifiers.
+
+> The actionables for this section are:
+>
+> - Work out how and where to make a variable/referent distinction for external
+>   names.
 
 ## Pattern Contexts
 
@@ -117,12 +136,18 @@ Operator names are those built solely from operator symbols (e.g. `+` or `<*>`).
 Operator symbols are defined as characters in the following set.
 
 ```
-!$%&*+-/<>?^~|:\,.()[]{}=
+;!$%&*+-/<>?^~|:\\=
 ```
 
 Please note that not every sequence that can be created from the above is a
 _valid_ operator name, as some may collide with built-in language constructs
 (e.g. `[` and `]`, which start and end a vector literal respectively).
+
+### Modifier Operators
+
+Barring specially defined operators (`=`, `==`, `!=`, `#=`, `>=` and `<=`), any
+operator that ends with an equals sign `=` is called a _modifier_ operator.
+These will, in the future, have special treatment in the language.
 
 ## Reserved Names
 

@@ -154,6 +154,7 @@
 //! use flexer::generate;
 //! # use flexer::group;
 //! use flexer::generate::GenError;
+//! use flexer::prelude::AnyLogger;
 //! # use flexer::prelude::reader::BookmarkManager;
 //! # use flexer::State;
 //! #
@@ -195,7 +196,7 @@
 //! # }
 //!
 //! impl flexer::State for LexerState {
-//!     fn new() -> Self {
+//!     fn new(_logger:&impl AnyLogger) -> Self {
 //!         // Here we construct all of the elements needed for our lexer state. This function can
 //!         // contain arbitrarily complex logic and is only called once at initialization time.
 //!         let mut lexer_states      = group::Registry::default();
@@ -251,6 +252,7 @@
 //! # use flexer::generate;
 //! # use flexer::group;
 //! # use flexer::prelude::GenError;
+//! # use flexer::prelude::AnyLogger;
 //! use flexer::prelude::logger::Disabled;
 //! # use flexer::prelude::reader::BookmarkManager;
 //! # use flexer::State;
@@ -295,7 +297,7 @@
 //! # }
 //! #
 //! # impl flexer::State for LexerState {
-//! #     fn new() -> Self {
+//! #     fn new(_logger:&impl AnyLogger) -> Self {
 //! #         // Here we construct all of the elements needed for our lexer state. This function can
 //! #         // contain arbitrarily complex logic and is only called once at initialization time.
 //! #         let mut lexer_states      = group::Registry::default();
@@ -351,7 +353,7 @@
 //! # use flexer::Flexer;
 //! # use flexer::generate;
 //! # use flexer::group;
-//! use flexer::prelude::AnyLogger;
+//! # use flexer::prelude::AnyLogger;
 //! # use flexer::prelude::GenError;
 //! # use flexer::prelude::logger::Disabled;
 //! # use flexer::prelude::reader::BookmarkManager;
@@ -397,7 +399,7 @@
 //! # }
 //! #
 //! # impl flexer::State for LexerState {
-//! #     fn new() -> Self {
+//! #     fn new(_logger:&impl AnyLogger) -> Self {
 //! #         // Here we construct all of the elements needed for our lexer state. This function can
 //! #         // contain arbitrarily complex logic and is only called once at initialization time.
 //! #         let mut lexer_states      = group::Registry::default();
@@ -504,7 +506,7 @@
 //! # }
 //! #
 //! # impl flexer::State for LexerState {
-//! #     fn new() -> Self {
+//! #     fn new(_logger:&impl AnyLogger) -> Self {
 //! #         // Here we construct all of the elements needed for our lexer state. This function can
 //! #         // contain arbitrarily complex logic and is only called once at initialization time.
 //! #         let mut lexer_states      = group::Registry::default();
@@ -638,7 +640,7 @@
 //! # }
 //! #
 //! # impl flexer::State for LexerState {
-//! #     fn new() -> Self {
+//! #     fn new(_logger:&impl AnyLogger) -> Self {
 //! #         // Here we construct all of the elements needed for our lexer state. This function can
 //! #         // contain arbitrarily complex logic and is only called once at initialization time.
 //! #         let mut lexer_states      = group::Registry::default();
@@ -740,6 +742,12 @@
 //!     fn groups(&self) -> &Registry {
 //!         self.lexer.groups()
 //!     }
+//!
+//!     /// Code you want to run before lexing begins.
+//!     fn set_up(&mut self) {}
+//!
+//!     /// Code you want to run after lexing finishes.
+//!     fn tear_down(&mut self) {}
 //! }
 //! ```
 //!
@@ -820,7 +828,7 @@
 //! # }
 //! #
 //! # impl flexer::State for LexerState {
-//! #     fn new() -> Self {
+//! #     fn new(_logger:&impl AnyLogger) -> Self {
 //! #         // Here we construct all of the elements needed for our lexer state. This function can
 //! #         // contain arbitrarily complex logic and is only called once at initialization time.
 //! #         let mut lexer_states      = group::Registry::default();
@@ -922,6 +930,12 @@
 //! #     fn groups(&self) -> &Registry {
 //! #         self.lexer.groups()
 //! #     }
+//! #
+//! #     /// Code you want to run before lexing begins.
+//! #     fn set_up(&mut self) {}
+//! #
+//! #     /// Code you want to run after lexing finishes.
+//! #     fn tear_down(&mut self) {}
 //! # }
 //!
 //! impl Lexer {
@@ -1000,6 +1014,7 @@
 //! of lexing languages of a high complexity.
 
 use crate::prelude::*;
+use prelude::logger::*;
 
 use crate::generate::GenError;
 use prelude::logger::AnyLogger;
@@ -1085,7 +1100,7 @@ where Definition : State,
         let logger           = <Logger>::sub(&parent_logger,"Flexer");
         let status           = default();
         let output           = default();
-        let definition       = Definition::new();
+        let definition       = Definition::new(&logger);
         let initial_state_id = definition.initial_state();
         let mut state_stack  = NonEmptyVec::singleton(initial_state_id);
         let current_match    = default();
@@ -1098,7 +1113,7 @@ where Definition : State,
 impl<Definition,Output,Logger> Flexer<Definition,Output,Logger>
 where Definition : State,
       Output     : Clone,
-      Logger     : AnyLogger {
+      Logger     : AnyLogger<Owned=Logger> {
     /// Get the lexer result.
     pub fn result(&mut self) -> &Output {
         &self.output
@@ -1116,7 +1131,9 @@ where Definition : State,
 
     /// Tell the lexer to enter the state described by `state`.
     pub fn push_state(&mut self, state:group::Identifier) {
-        self.logger.info(||format!("Pushing state {:?}",state));
+        self.logger.group_begin(
+            ||format!("Enter State: {}",self.groups().group(state).name.as_str())
+        );
         self.state_stack.push(state);
     }
 
@@ -1125,21 +1142,36 @@ where Definition : State,
     /// It will never end the initial state of the lexer.
     pub fn pop_state(&mut self) -> Option<group::Identifier> {
         let result = self.state_stack.pop();
-        self.logger.info(||format!("Popped state {:?}",result));
+        match result {
+            None        => (),
+            Some(ident) => debug!(self.logger,"Leave State: {self.groups().group(ident)}"),
+        };
+        self.logger.group_end();
         result
     }
 
     /// End states until the specified `state` is reached, leaving the lexer in `state`.
     ///
     /// If `state` does not exist on the lexer's stack, then the lexer will be left in the root
-    /// state.
-    pub fn pop_states_until(&mut self, state:group::Identifier) -> Vec<group::Identifier> {
-        let non_opt_root_state_position =
-            self.state_stack.iter().positions(|elem| *elem == state).last().unwrap_or(0);
-        let range  = (non_opt_root_state_position + 1)..self.state_stack.len();
-        let states = self.state_stack.drain(range).collect();
-        self.logger.info(||format!("Popped states {:?}",states));
-        states
+    /// state. Additionally, this function cannot pop the final occurrence of the root state.
+    pub fn pop_states_until(&mut self, state:group::Identifier) -> group::Identifier {
+        while self.current_state() != state && self.current_state() != self.initial_state() {
+            self.pop_state();
+        }
+        *self.state_stack.last()
+    }
+
+    /// End states up to and including the first instance of `state`, returning the identifier of
+    /// the new state the lexer is in.
+    ///
+    /// If `state` does not exist on the lexer's stack, the lexer will be left in the root state.
+    /// Additionally, this function cannot pop the final occurrence of the root state.
+    pub fn pop_states_including(&mut self, state:group::Identifier) -> group::Identifier {
+        while self.current_state() != state && self.current_state() != self.initial_state() {
+            self.pop_state();
+        }
+        self.pop_state();
+        *self.state_stack.last()
     }
 
     /// Check if the lexer is currently in the state described by `state`.
@@ -1309,7 +1341,7 @@ pub trait State {
     /// Create a new instance of the lexer's state.
     ///
     /// This function is guaranteed to be called at most once per run of the lexer.
-    fn new() -> Self;
+    fn new(parent_logger:&impl AnyLogger) -> Self;
     /// Return the _initial_ lexing state.
     fn initial_state(&self) -> group::Identifier;
     /// Return a reference to the group registry for a given lexer.
@@ -1339,4 +1371,8 @@ pub trait Definition {
     fn define() -> Self;
     /// Obtain the registry of groups for the lexer.
     fn groups(&self) -> &group::Registry;
+    /// Run before any lexing takes place.
+    fn set_up(&mut self);
+    /// Run after lexing has completed.
+    fn tear_down(&mut self);
 }

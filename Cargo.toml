@@ -14,6 +14,8 @@ members = [
     "lib/rust/flexer-testing/definition",
     "lib/rust/flexer-testing/generation",
     "lib/rust/lazy-reader",
+    "lib/rust/lexer/definition",
+    "lib/rust/lexer/generation",
     "lib/rust/parser",
 ]
 

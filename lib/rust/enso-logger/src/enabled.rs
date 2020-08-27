@@ -40,7 +40,7 @@ impl Logger {
     }
 
     fn dec_indent(&self) {
-        self.indent.update(|t|t-1);
+        self.indent.update(|t|t.saturating_sub(1));
     }
 }
 

@@ -86,6 +86,11 @@ deactivated by using `flexer::pop_state(state)` or
 from which they can inherit rules. This is fantastic for removing the need to
 repeat yourself when defining the lexer.
 
+When inheriting rules from a parent group, the rules from the parent group are
+matched strictly _after_ the rules from the child group. This means that groups
+are able to selectively "override" the rules of their parents. Rules are still
+matched in order for each group's set of rules.
+
 ### Patterns
 
 Rules are defined to match _patterns_. Patterns are regular-grammar-like

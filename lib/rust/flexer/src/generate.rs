@@ -33,8 +33,8 @@ use crate as flexer;
 /// overhead.
 pub fn specialize
 ( definition       : &impl flexer::State
-, state_type_name  : impl Into<String>
-, output_type_name : impl Into<String>
+, state_type_name  : impl Str
+, output_type_name : impl Str
 ) -> Result<String,GenError> {
     let group_registry = definition.groups();
     let mut body_items = Vec::new();
@@ -59,7 +59,7 @@ pub fn wrap_in_impl_for
 ) -> Result<ItemImpl,GenError> {
     let state_name:Ident  = str_to_ident(state_name.into().as_str())?;
     let mut tree:ItemImpl = parse_quote! {
-        #[allow(missing_docs,dead_code)]
+        #[allow(missing_docs,dead_code,clippy::all)]
         impl #state_name {}
     };
     tree.items.extend(body);
@@ -68,14 +68,15 @@ pub fn wrap_in_impl_for
 
 /// Generate the `run` function for the specialized lexer.
 ///
-/// This function is what the user of the lexer will call
-pub fn run_function(output_type_name:impl Into<String>) -> Result<ImplItem,GenError> {
-    let output_type_name:Ident = str_to_ident(output_type_name)?;
-    let tree:ImplItem          = parse_quote! {
+/// This function is what the user of the lexer will call to begin execution.
+pub fn run_function(output_type_name:impl Str) -> Result<ImplItem,GenError> {
+    let output_type_name = str_to_path(output_type_name)?;
+    let tree:ImplItem    = parse_quote! {
         pub fn run<R:LazyReader>(&mut self, mut reader:R) -> LexingResult<#output_type_name> {
+            self.set_up();
             reader.advance_char(&mut self.bookmarks);
             while self.run_current_state(&mut reader) == StageStatus::ExitSuccess {}
-            match self.status {
+            let result = match self.status {
                 StageStatus::ExitFinished => LexingResult::success(
                     mem::take(&mut self.output)
                 ),
@@ -83,7 +84,9 @@ pub fn run_function(output_type_name:impl Into<String>) -> Result<ImplItem,GenEr
                     mem::take(&mut self.output)
                 ),
                 _ => LexingResult::partial(mem::take(&mut self.output))
-            }
+            };
+            self.tear_down();
+            result
         }
     };
     Ok(tree)
@@ -94,22 +97,28 @@ pub fn run_current_state_function() -> ImplItem {
     let tree:ImplItem = parse_quote! {
         fn run_current_state<R:LazyReader>(&mut self, reader:&mut R) -> StageStatus {
             self.status = StageStatus::Initial;
+            let mut finished = false;
 
             // Runs until reaching a state that no longer says to continue.
             while let Some(next_state) = self.status.continue_as() {
-                self.logger.info(||format!("Current character is {:?}.",reader.character()));
-                self.logger.info(||format!("Continuing in {:?}.",next_state));
+                self.logger.debug(||format!("Current character is {:?}.",reader.character().char));
+                self.logger.debug(||format!("Continuing in {:?}.",next_state));
                 self.status = self.step(next_state,reader);
 
-                if reader.finished() {
+                if finished && reader.finished(self.bookmarks()) {
+                    self.logger.info("Input finished.");
                     self.status = StageStatus::ExitFinished
                 }
+                finished = reader.character().is_eof();
 
                 if self.status.should_continue() {
                     match reader.character().char {
                         Ok(char) => {
                             reader.append_result(char);
                             self.logger.info(||format!("Result is {:?}.",reader.result()));
+                        },
+                        Err(flexer::prelude::reader::Error::EOF) => {
+                            self.logger.info("Reached EOF.");
                         },
                         Err(flexer::prelude::reader::Error::EndOfGroup) => {
                             let current_state = self.current_state();
@@ -439,6 +448,8 @@ pub enum GenError {
     BadExpression(String),
     /// The provided string is not a valid rust literal.
     BadLiteral(String),
+    /// The provided string is not a valid rust path.
+    BadPath(String),
 }
 
 
@@ -453,6 +464,7 @@ impl Display for GenError {
             GenError::BadIdentifier(str) => write!(f,"`{}` is not a valid rust identifier.",str),
             GenError::BadExpression(str) => write!(f,"`{}` is not a valid rust expression.",str),
             GenError::BadLiteral(str)    => write!(f,"`{}` is not a valid rust literal.",str),
+            GenError::BadPath(str)       => write!(f,"`{}` is not a valid rust path.",str),
         }
     }
 }
@@ -512,12 +524,13 @@ impl Into<Arm> for Branch {
 // =================
 
 /// Convert a string to an identifier.
-pub fn str_to_ident(str:impl Into<String>) -> Result<Ident,GenError> {
-    let string = str.into();
-    match parse_str(string.as_ref()) {
-        Ok(literal) => Ok(literal),
-        Err(_)      => Err(GenError::BadIdentifier(string))
-    }
+pub fn str_to_ident(str:impl Str) -> Result<Ident,GenError> {
+    parse_str(str.as_ref()).map_err(|_| GenError::BadIdentifier(str.into()))
+}
+
+/// Convert a string to a path.
+pub fn str_to_path(str:impl Str) -> Result<Path,GenError> {
+    parse_str(str.as_ref()).map_err(|_| GenError::BadPath(str.into()))
 }
 
 /// Convert the syntax tree into a string.

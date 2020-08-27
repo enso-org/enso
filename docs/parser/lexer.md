@@ -15,10 +15,31 @@ identify blocks
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
+- [Lexer Architecture](#lexer-architecture)
+  - [Libraries in the Lexer Definition](#libraries-in-the-lexer-definition)
 - [Lexer Functionality](#lexer-functionality)
 - [The Lexer AST](#the-lexer-ast)
 
 <!-- /MarkdownTOC -->
+
+## Lexer Architecture
+
+The structure of the flexer's code generation forces the lexer to be split into
+two parts: the definition, and the generation. As the latter is the point from
+which the lexer will be used, the second subproject is the one that is graced
+with the name `lexer`.
+
+### Libraries in the Lexer Definition
+
+The lexer generation subproject needs to be able to make the assumption that all
+imports will be in the same place (relative to the crate root). To this end, the
+definition subproject exports public modules `library` and `prelude`. These are
+re-imported and used in the generation subproject to ensure that all components
+are found at the same paths relative to the crate root.
+
+This does mean, however, that all imports from _within_ the current crate in the
+definition subproject must be imported from the `library` module, not from their
+paths directly from the crate root.
 
 ## Lexer Functionality
 
@@ -42,13 +63,21 @@ for use by the GUI.
 
 It contains the following constructs:
 
-- `Var`: Variable identifiers.
-- `Ref`: Referrent identifiers.
-- `Opr`: Operator identifiers.
-- `Number`: Numbers.
-- `Text`: Text.
-- `Invalid`: Invalid constructs that cannot be lexed.
+- `Referent`: Referrent identifiers (e.g. `Some_Ref_Ident`).
+- `Variable`: Variable identifiers (e.g. `some_var_ident`).
+- `External`: External identifiers (e.g. `someJavaName`).
+- `Blank`: The blank name `_`.
+- `Operator`: Operator identifiers (e.g. `-->>`).
+- `Modifier`: Modifier operators (e.g. `+=`).
+- `Number`: Numbers (`16_FFFF`).
+- `DanglingBase`: An explicit base without an associated number (e.g. `16_`).
+- `Text`: Text (e.g. `"Some text goes here."`).
+- `Line`: A line in a block that contains tokens.
+- `BlankLine`: A line in a block that contains only whitespace.
 - `Block`: Syntactic blocks in the language.
+- `InvalidSuffix`: Invalid tokens when in a given state that would otherwise be
+  valid.
+- `Unrecognized`: Tokens that the lexer doesn't recognise.
 
 The distinction is made here between the various kinds of identifiers in order
 to keep lexing fast, but also in order to allow macros to switch on the kinds of
