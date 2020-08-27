@@ -1,0 +1,19 @@
+## The exit codes that the process can return.
+type Exit_Code
+    type Exit_Success
+    type Exit_Failure code
+
+    ## Convert exit code to a number.
+    to_number = case this of
+        Exit_Success -> 0
+        Exit_Failure code -> code
+
+## Create exit code from a number.
+
+   > Example
+     Create failure exit code:
+         Exit_Code.from_number 1
+     Result in:
+         Exit_Failure 1
+from_number : Number -> Exit_Code
+from_number code = if code == 0 then Exit_Success else Exit_Failure code

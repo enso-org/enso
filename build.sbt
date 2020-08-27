@@ -648,7 +648,8 @@ lazy val testkit = project
   .in(file("lib/scala/testkit"))
   .settings(
     libraryDependencies ++= Seq(
-        "org.scalatest" %% "scalatest" % scalatestVersion
+        "org.apache.commons" % "commons-lang3" % commonsLangVersion,
+        "org.scalatest"     %% "scalatest"     % scalatestVersion
       )
   )
 
@@ -929,7 +930,8 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(graph)
   .dependsOn(`polyglot-api`)
   .dependsOn(`text-buffer`)
-  .dependsOn(`searcher`)
+  .dependsOn(searcher)
+  .dependsOn(testkit)
 
 /* Note [Unmanaged Classpath]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~

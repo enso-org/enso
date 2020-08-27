@@ -180,6 +180,14 @@ trait InterpreterRunner {
     result.linesIterator.toList
   }
 
+  def consumeErrBytes(implicit
+    interpreterContext: InterpreterContext
+  ): Array[Byte] = {
+    val result = interpreterContext.err.toByteArray
+    interpreterContext.err.reset()
+    result
+  }
+
   def consumeOut(implicit
     interpreterContext: InterpreterContext
   ): List[String] = {
@@ -188,10 +196,25 @@ trait InterpreterRunner {
     result.linesIterator.toList
   }
 
+  def consumeOutBytes(implicit
+    interpreterContext: InterpreterContext
+  ): Array[Byte] = {
+    val result = interpreterContext.output.toByteArray
+    interpreterContext.output.reset()
+    result
+  }
+
   def feedInput(
     string: String
   )(implicit interpreterContext: InterpreterContext): Unit = {
     interpreterContext.inOutPrinter.println(string)
+  }
+
+  def feedBytes(
+    input: Array[Byte]
+  )(implicit interpreterContext: InterpreterContext): Unit = {
+    interpreterContext.inOut.write(input)
+    interpreterContext.inOut.flush()
   }
 
   def setSessionManager(
