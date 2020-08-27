@@ -34,7 +34,7 @@ impl Token {
 #[allow(non_snake_case)]
 impl Token {
     /// Construct a token representing a referent identifier.
-    pub fn Referent(name:impl Into<String>, offset:usize) -> Token {
+    pub fn Referent(name:impl Str, offset:usize) -> Token {
         let str    = name.into();
         let length = str.chars().count();
         let shape  = Shape::Referent(str);
@@ -42,7 +42,7 @@ impl Token {
     }
 
     /// Construct a token representing a variable identifier.
-    pub fn Variable(name:impl Into<String>, offset:usize) -> Token {
+    pub fn Variable(name:impl Str, offset:usize) -> Token {
         let str    = name.into();
         let length = str.chars().count();
         let shape  = Shape::Variable(str);
@@ -50,7 +50,7 @@ impl Token {
     }
 
     /// Construct a token representing an external identifier.
-    pub fn External(name:impl Into<String>, offset:usize) -> Token {
+    pub fn External(name:impl Str, offset:usize) -> Token {
         let str    = name.into();
         let length = str.chars().count();
         let shape  = Shape::External(str);
@@ -65,7 +65,7 @@ impl Token {
     }
 
     /// Construct a token representing an operator.
-    pub fn Operator(name:impl Into<String>, offset:usize) -> Token {
+    pub fn Operator(name:impl Str, offset:usize) -> Token {
         let str    = name.into();
         let length = str.chars().count();
         let shape  = Shape::Operator(str);
@@ -73,7 +73,7 @@ impl Token {
     }
 
     /// Construct a token representing a modifier operator.
-    pub fn Modifier(name:impl Into<String>, offset:usize) -> Token {
+    pub fn Modifier(name:impl Str, offset:usize) -> Token {
         let str    = name.into();
         let length = str.chars().count() + 1;
         let shape  = Shape::Modifier(str);
@@ -81,7 +81,7 @@ impl Token {
     }
 
     /// Construct a token representing a number literal.
-    pub fn Number(base:impl Into<String>, num:impl Into<String>, offset:usize) -> Token {
+    pub fn Number(base:impl Str, num:impl Into<String>, offset:usize) -> Token {
         let str      = num.into();
         let base_str = base.into();
         let length   = if base_str.is_empty() {
@@ -94,7 +94,7 @@ impl Token {
     }
 
     /// Construct a token representing a dangling number base.
-    pub fn DanglingBase(base:impl Into<String>, offset:usize) -> Token {
+    pub fn DanglingBase(base:impl Str, offset:usize) -> Token {
         let base_str = base.into();
         let length   = base_str.chars().count() + 1;
         let shape    = Shape::DanglingBase(base_str);
@@ -102,7 +102,7 @@ impl Token {
     }
 
     /// Construct a token representing a text literal.
-    pub fn Text(text:impl Into<String>, offset:usize) -> Token {
+    pub fn Text(text:impl Str, offset:usize) -> Token {
         let str    = text.into();
         let length = str.chars().count();
         let shape  = Shape::Text(str);
@@ -148,7 +148,7 @@ impl Token {
     }
 
     /// Construct a token representing an invalid suffix.
-    pub fn InvalidSuffix(text:impl Into<String>, offset:usize) -> Token {
+    pub fn InvalidSuffix(text:impl Str, offset:usize) -> Token {
         let str    = text.into();
         let length = str.chars().count();
         let shape  = Shape::InvalidSuffix(str);
@@ -156,7 +156,7 @@ impl Token {
     }
 
     /// Construct a token representing an unrecognised lexeme.
-    pub fn Unrecognized(text:impl Into<String>, offset:usize) -> Token {
+    pub fn Unrecognized(text:impl Str, offset:usize) -> Token {
         let str    = text.into();
         let length = str.chars().count();
         let shape  = Shape::Unrecognized(str);
