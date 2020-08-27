@@ -33,8 +33,8 @@ use crate as flexer;
 /// overhead.
 pub fn specialize
 ( definition       : &impl flexer::State
-, state_type_name  : impl Into<String>
-, output_type_name : impl Into<String>
+, state_type_name  : impl Str
+, output_type_name : impl Str
 ) -> Result<String,GenError> {
     let group_registry = definition.groups();
     let mut body_items = Vec::new();
@@ -69,9 +69,9 @@ pub fn wrap_in_impl_for
 /// Generate the `run` function for the specialized lexer.
 ///
 /// This function is what the user of the lexer will call to begin execution.
-pub fn run_function(output_type_name:impl Into<String>) -> Result<ImplItem,GenError> {
-    let output_type_name:Path = str_to_path(output_type_name)?;
-    let tree:ImplItem         = parse_quote! {
+pub fn run_function(output_type_name:impl Str) -> Result<ImplItem,GenError> {
+    let output_type_name = str_to_path(output_type_name)?;
+    let tree:ImplItem    = parse_quote! {
         pub fn run<R:LazyReader>(&mut self, mut reader:R) -> LexingResult<#output_type_name> {
             self.set_up();
             reader.advance_char(&mut self.bookmarks);
@@ -101,8 +101,8 @@ pub fn run_current_state_function() -> ImplItem {
 
             // Runs until reaching a state that no longer says to continue.
             while let Some(next_state) = self.status.continue_as() {
-                self.logger.info(||format!("Current character is {:?}.",reader.character().char));
-                self.logger.info(||format!("Continuing in {:?}.",next_state));
+                self.logger.debug(||format!("Current character is {:?}.",reader.character().char));
+                self.logger.debug(||format!("Continuing in {:?}.",next_state));
                 self.status = self.step(next_state,reader);
 
                 if finished && reader.finished(self.bookmarks()) {
@@ -524,21 +524,13 @@ impl Into<Arm> for Branch {
 // =================
 
 /// Convert a string to an identifier.
-pub fn str_to_ident(str:impl Into<String>) -> Result<Ident,GenError> {
-    let string = str.into();
-    match parse_str(string.as_ref()) {
-        Ok(literal) => Ok(literal),
-        Err(_)      => Err(GenError::BadIdentifier(string))
-    }
+pub fn str_to_ident(str:impl Str) -> Result<Ident,GenError> {
+    parse_str(str.as_ref()).map_err(|_| GenError::BadIdentifier(str.into()))
 }
 
 /// Convert a string to a path.
-pub fn str_to_path(str:impl Into<String>) -> Result<Path,GenError> {
-    let string = str.into();
-    match parse_str(string.as_ref()) {
-        Ok(path) => Ok(path),
-        Err(_)   => Err(GenError::BadPath(string)),
-    }
+pub fn str_to_path(str:impl Str) -> Result<Path,GenError> {
+    parse_str(str.as_ref()).map_err(|_| GenError::BadPath(str.into()))
 }
 
 /// Convert the syntax tree into a string.

@@ -74,9 +74,9 @@ impl Token {
 
     /// Construct a token representing a modifier operator.
     pub fn Modifier(name:impl Into<String>, offset:usize) -> Token {
-        let str = name.into();
+        let str    = name.into();
         let length = str.chars().count() + 1;
-        let shape = Shape::Modifier(str);
+        let shape  = Shape::Modifier(str);
         Token{shape,length,offset}
     }
 
@@ -138,11 +138,9 @@ impl Token {
             let line_length = line.length;
             let line_offset = line.offset;
             match line.shape {
-                Shape::Line{..} => {
-                    indent + line_offset + line_length
-                },
+                Shape::Line{..}     => indent + line_offset + line_length,
                 Shape::BlankLine(_) => line_offset + line_length,
-                _ => unreachable_panic!("Tokens in a blocks should always be lines."),
+                _                   => unreachable_panic!("Tokens in a blocks should always be lines."),
             }
         }).sum();
         let shape = Shape::Block{block_type,indent,lines};
@@ -198,7 +196,7 @@ pub enum LineEnding {
 
 impl LineEnding {
     /// Get the number of rust `char`s that the newline type takes up.
-    pub fn size(&self) -> usize {
+    pub fn size(self) -> usize {
         match self {
             Self::None => 0,
             Self::LF   => 1,
@@ -345,7 +343,7 @@ impl Shape {
 
     /// Construct a line that contains tokens.
     pub fn line(tokens:Vec<Token>, trailing_line_ending:LineEnding) -> Shape {
-        Shape::Line{tokens, trailing_line_ending }
+        Shape::Line{tokens,trailing_line_ending }
     }
 
     /// Construct a line that is blank.
@@ -417,7 +415,7 @@ impl DerefMut for Stream {
 // === Trait Impls ===
 
 impl From<Vec<Token>> for Stream {
-    fn from(tokens: Vec<Token>) -> Self {
+    fn from(tokens:Vec<Token>) -> Self {
         Stream{tokens}
     }
 }
@@ -522,7 +520,7 @@ mod tests {
     #[test]
     fn construct_line_token() {
         let tokens = vec![Token::Variable("aa",0),Token::Referent("Abc",1)];
-        let token = Token::Line(tokens.clone(), 4, LineEnding::LF);
+        let token  = Token::Line(tokens.clone(), 4, LineEnding::LF);
         assert_shape(&token,Shape::line(tokens.clone(), LineEnding::LF));
         assert_length(&token,7);
     }

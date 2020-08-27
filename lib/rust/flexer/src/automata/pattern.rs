@@ -31,14 +31,14 @@ pub enum Pattern {
     /// The pattern that triggers on 0..N repetitions of given pattern.
     Many(Box<Pattern>),
     /// The pattern that always triggers.
-    Always
+    Always,
 }
 
 impl Pattern {
 
     /// A pattern that never triggers.
     pub fn never() -> Self {
-        Pattern::symbol(Symbol::INCOMPLETE_GROUP)
+        Pattern::symbol(Symbol::INVALID_SYMBOL)
     }
 
     /// A pattern that always triggers
@@ -93,9 +93,9 @@ impl Pattern {
 
     /// Pattern that triggers when sequence of characters given by `chars` is encountered.
     pub fn all_of(chars:&str) -> Self {
-        let char_vec = chars.chars().collect_vec();
-        if let Some((first,rest)) = char_vec.split_first() {
-            rest.iter().fold(Self::char(*first),|pat, char| pat >> Self::char(*char))
+        let mut chars_iter = chars.chars();
+        if let Some(first) = chars_iter.next() {
+            chars_iter.fold(Self::char(first),|pat, char| pat >> Self::char(char))
         } else {
             Pattern::never()
         }
@@ -113,9 +113,9 @@ impl Pattern {
         let char_iter2 = iter::once(0).chain(char_iter).chain(iter::once(max));
         let mut codes  = char_iter2.collect_vec();
         codes.sort();
-        codes.iter().tuple_windows().fold(Self::never(),|pat,(int_start,int_end)| {
-            let start = int_start + 1;
-            let end = int_end - 1;
+        codes.iter().tuple_windows().fold(Self::never(),|pat,(prev_code,next_code)| {
+            let start = prev_code + 1;
+            let end   = next_code - 1;
             if end < start {pat} else {
                 pat | Pattern::symbols(Symbol::from(start)..=Symbol::from(end))
             }

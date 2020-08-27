@@ -744,14 +744,10 @@
 //!     }
 //!
 //!     /// Code you want to run before lexing begins.
-//!     fn set_up(&mut self) {
-//!         unimplemented!()
-//!     }
+//!     fn set_up(&mut self) {}
 //!
 //!     /// Code you want to run after lexing finishes.
-//!     fn tear_down(&mut self) {
-//!         unimplemented!()
-//!     }
+//!     fn tear_down(&mut self) {}
 //! }
 //! ```
 //!
@@ -936,14 +932,10 @@
 //! #     }
 //! #
 //! #     /// Code you want to run before lexing begins.
-//! #     fn set_up(&mut self) {
-//! #         unimplemented!()
-//! #     }
+//! #     fn set_up(&mut self) {}
 //! #
 //! #     /// Code you want to run after lexing finishes.
-//! #     fn tear_down(&mut self) {
-//! #         unimplemented!()
-//! #     }
+//! #     fn tear_down(&mut self) {}
 //! # }
 //!
 //! impl Lexer {
@@ -1022,6 +1014,7 @@
 //! of lexing languages of a high complexity.
 
 use crate::prelude::*;
+use prelude::logger::*;
 
 use crate::generate::GenError;
 use prelude::logger::AnyLogger;
@@ -1151,9 +1144,7 @@ where Definition : State,
         let result = self.state_stack.pop();
         match result {
             None        => (),
-            Some(ident) => self.logger.debug(
-                ||format!("Leave State: {}",self.groups().group(ident).name.as_str())
-            ),
+            Some(ident) => debug!(self.logger,"Leave State: {self.groups().group(ident)}"),
         };
         self.logger.group_end();
         result

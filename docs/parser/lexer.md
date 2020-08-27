@@ -16,7 +16,7 @@ identify blocks
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Lexer Architecture](#lexer-architecture)
-  - [Libraries in the Lexer Definition](#libraries-in-the-lexer-definition)
+    - [Libraries in the Lexer Definition](#libraries-in-the-lexer-definition)
 - [Lexer Functionality](#lexer-functionality)
 - [The Lexer AST](#the-lexer-ast)
 
@@ -63,20 +63,20 @@ for use by the GUI.
 
 It contains the following constructs:
 
-- `Referent`: Referrent identifiers.
-- `Variable`: Variable identifiers.
-- `External`: External identifiers.
+- `Referent`: Referrent identifiers (e.g. `Some_Ref_Ident`).
+- `Variable`: Variable identifiers (e.g. `some_var_ident`).
+- `External`: External identifiers (e.g. `someJavaName`).
 - `Blank`: The blank name `_`.
-- `Operator`: Operator identifiers.
-- `Modifier`: Modifier operators.
-- `Number`: Numbers.
-- `DanglingBase`: An explicit base without an associated number.
-- `Text`: Text.
+- `Operator`: Operator identifiers (e.g. `-->>`).
+- `Modifier`: Modifier operators (e.g. `+=`).
+- `Number`: Numbers (`16_FFFF`).
+- `DanglingBase`: An explicit base without an associated number (e.g. `16_`).
+- `Text`: Text (e.g. `"Some text goes here."`).
 - `Line`: A line in a block that contains tokens.
 - `BlankLine`: A line in a block that contains only whitespace.
 - `Block`: Syntactic blocks in the language.
-- `InvalidSuffix`: Invalid constructs that cannot be lexed.
-- `Unrecognized`: Tokens that the lexer doesn't recognise in a given state.
+- `InvalidSuffix`: Invalid tokens when in a given state that would otherwise be valid.
+- `Unrecognized`: Tokens that the lexer doesn't recognise.
 
 The distinction is made here between the various kinds of identifiers in order
 to keep lexing fast, but also in order to allow macros to switch on the kinds of

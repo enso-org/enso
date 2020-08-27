@@ -41,8 +41,8 @@ fn assert_lexes(input:impl AsRef<str>, expected:token::Stream) {
     let input_len = input.as_ref().chars().count();
     let result    = lex(input);
     assert_succeeds_as(&result,expected);
-    let tokens_vec:Vec<_>  = result.tokens.into();
-    let total_length:usize = tokens_vec.iter().map(|token| token.offset + token.length).sum();
+    let tokens_vec   : Vec<_> = result.tokens.into();
+    let total_length : usize  = tokens_vec.iter().map(|token| token.offset + token.length).sum();
     assert_eq!(total_length,input_len);
 }
 
@@ -342,14 +342,14 @@ fn multi_ticked_referent_ident() {
 
 #[test]
 fn variable_with_numbers() {
-    let input = "some0_1";
+    let input    = "some0_1";
     let expected = token::Stream::from(vec![Token::Variable("some0_1",0)]);
     assert_lexes(input,expected)
 }
 
 #[test]
 fn referent_with_numbers() {
-    let input = "Some_1821";
+    let input    = "Some_1821";
     let expected = token::Stream::from(vec![Token::Referent("Some_1821",0)]);
     assert_lexes(input,expected)
 }
@@ -564,7 +564,7 @@ r#"f
 
 #[test]
 fn block_empty_lines() {
-    let input = "f\r\n    a\n\n    b\n";
+    let input        = "f\r\n    a\n\n    b\n";
     let nested_block = Token::Block(
         BlockType::Continuous,
         4,
@@ -707,7 +707,7 @@ some_long_thing
 
 #[test]
 fn block_extra_indented_blank_lines() {
-    let input = "a\n    b\n        \n  \n    c";
+    let input          = "a\n    b\n        \n  \n    c";
     let indented_block = Token::Block(
         BlockType::Continuous,
         4,

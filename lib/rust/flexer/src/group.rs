@@ -5,6 +5,8 @@ use crate::automata::pattern::Pattern;
 use crate::group::rule::Rule;
 
 use itertools::Itertools;
+use std::fmt::Display;
+use wasm_bindgen::__rt::core::fmt::Formatter;
 
 pub mod rule;
 
@@ -231,6 +233,12 @@ impl Into<Registry> for Group {
         let mut registry = Registry::default();
         registry.add_group(self);
         registry
+    }
+}
+
+impl Display for Group {
+    fn fmt(&self, f:&mut Formatter<'_>) -> std::fmt::Result {
+        write!(f,"Group {}",self.name)
     }
 }
 

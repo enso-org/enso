@@ -80,10 +80,10 @@ pub enum Error {
 impl Error {
     /// The `u32` value that corresponds to EOF.
     pub const END_OF_FILE:u32 = u32::max_value();
-    /// The `u32` value that corresponds to an invalid character.
-    pub const INVALID_CHAR:u32 = u32::max_value() - 1;
+    /// The `u32` value that corresponds to an invalid unicode character.
+    pub const INVALID_CHAR:u32 = 0xFFFF;
     /// The `u32` value corresponding to the end of group.
-    pub const END_OF_GROUP:u32 = u32::max_value() - 2;
+    pub const END_OF_GROUP:u32 = u32::max_value() - 1;
 }
 
 

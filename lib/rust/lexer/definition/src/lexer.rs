@@ -6,14 +6,16 @@ use flexer::*;
 use crate::library::token::BlockType;
 use crate::library::token::Token;
 use crate::library::token;
+
 use flexer::automata::pattern::Pattern;
 use flexer::group::Group;
 use flexer::group::Registry;
 use flexer::prelude::logger::Disabled;
-use flexer::prelude::logger::Message;
 use flexer::prelude::reader;
 use flexer::State as FlexerState;
+use flexer;
 use std::collections::VecDeque;
+use std::cmp::Ordering;
 
 
 
@@ -21,8 +23,8 @@ use std::collections::VecDeque;
 // === Type Aliases ===
 // ====================
 
-type Logger     = Disabled;
-type EnsoFlexer = Flexer<State<Logger>,token::Stream,Logger>;
+type Logger = Disabled;
+type Flexer = flexer::Flexer<State<Logger>,token::Stream,Logger>;
 
 
 
@@ -32,21 +34,18 @@ type EnsoFlexer = Flexer<State<Logger>,token::Stream,Logger>;
 
 /// The Enso lexer.
 #[derive(Debug)]
-pub struct EnsoLexer {
-    /// The underlying lexer implementation.
-    lexer : EnsoFlexer
-}
+pub struct EnsoLexer(Flexer);
 
 impl Deref for EnsoLexer {
-    type Target = EnsoFlexer;
+    type Target = Flexer;
     fn deref(&self) -> &Self::Target {
-        &self.lexer
+        &self.0
     }
 }
 
 impl DerefMut for EnsoLexer {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.lexer
+        &mut self.0
     }
 }
 
@@ -56,7 +55,7 @@ impl EnsoLexer {
     pub fn new() -> Self {
         let logger = Logger::new("EnsoLexer");
         let lexer  = Flexer::new(logger);
-        EnsoLexer{lexer}
+        EnsoLexer(lexer)
     }
 }
 
@@ -67,20 +66,20 @@ impl EnsoLexer {
     /// Push the current token stream onto the stack.
     pub fn push_tokens(&mut self) {
         let current_stream = mem::take(&mut self.output);
-        self.log_debug(||format!("Push Tokens: {:?}",&current_stream));
+        debug!(self.logger,"Push Tokens: {&current_stream:?}");
         self.tokens_stack.push(current_stream);
     }
 
     /// Pop the top token stream from the stack and make it current.
     pub fn pop_tokens(&mut self) {
-        let popped  = self.tokens_stack.pop().unwrap_or(default());
-        self.log_debug(||format!("Pop Tokens: {:?}",&popped));
+        let popped  = self.tokens_stack.pop().unwrap_or_default();
+        debug!(self.logger,"Pop Tokens: {&popped:?}");
         self.output = popped;
     }
 
     /// Append the provided `token` to the lexer output.
     pub fn append_token(&mut self, token:Token) {
-        self.log_debug(||format!("Append: {:?}",&token));
+        debug!(self.logger,"Append: {&token:?}");
         self.output.append(token);
     }
 
@@ -96,44 +95,14 @@ impl EnsoLexer {
 
     /// Consume the current match and replace it with the empty string.
     pub fn consume_current(&mut self) -> String {
-        self.log_debug(||format!("Consume: {:?}",self.current_match));
+        debug!(self.logger,"Consume: {self.current_match:?}");
         mem::take(&mut self.current_match)
     }
 
     /// Discard the current match and replace it with the empty string.
     pub fn discard_current(&mut self) {
-        self.log_debug(||format!("Discard: {:?}",self.current_match));
+        debug!(self.logger,"Discard: {self.current_match:?}");
         self.current_match = default();
-    }
-}
-
-
-// === Logging Functionality ===
-
-impl EnsoLexer {
-    /// Log a trace message.
-    pub fn log_trace(&self, message:impl Message) {
-        self.logger.trace(message);
-    }
-
-    /// Log an info message.
-    pub fn log_info(&self, message:impl Message) {
-        self.logger.info(message)
-    }
-
-    /// Log a debug message.
-    pub fn log_debug(&self, message:impl Message) {
-        self.logger.debug(message)
-    }
-
-    /// Log a warning.
-    pub fn log_warning(&self, message:impl Message) {
-        self.logger.warning(message);
-    }
-
-    /// Log an error.
-    pub fn log_error(&self, message:impl Message) {
-        self.logger.error(message);
     }
 }
 
@@ -155,21 +124,21 @@ impl EnsoLexer {
     }
 
     /// Match ASCII digits.
-    fn digit() -> Pattern {
+    fn ascii_digit() -> Pattern {
         Pattern::range('0'..='9')
     }
 
     /// Match ASCII letters.
-    fn letter() -> Pattern {
+    fn ascii_letter() -> Pattern {
         EnsoLexer::lower_ascii_letter() | EnsoLexer::upper_ascii_letter()
     }
 
     /// Match ASCII alphanumeric characters.
-    fn alpha_num() -> Pattern {
-        EnsoLexer::digit() | EnsoLexer::letter()
+    fn ascii_alpha_num() -> Pattern {
+        EnsoLexer::ascii_digit() | EnsoLexer::ascii_letter()
     }
 
-    /// Match the ASCII space character.
+    /// Match at least one ASCII space character.
     fn spaces() -> Pattern {
         Pattern::char(' ').many1()
     }
@@ -192,17 +161,17 @@ impl EnsoLexer {
         String::from(";!$%&*+-/<>?^~|:\\")
     }
 
-    /// The characters that break lines in Enso.
-    fn line_break_chars() -> String {
+    /// The characters that break tokens in Enso.
+    fn whitespace_break_chars() -> String {
         String::from("\t\r\n")
     }
 
-    /// The characters that break expressions.
+    /// The characters that break token lexing in Enso.
     fn break_chars() -> String {
         let mut break_chars = String::from("`@#,. ");
-        break_chars.extend(Self::operator_chars().chars());
-        break_chars.extend(Self::line_break_chars().chars());
-        break_chars.extend(Self::group_chars().chars());
+        break_chars.push_str(&Self::operator_chars());
+        break_chars.push_str(&Self::whitespace_break_chars());
+        break_chars.push_str(&Self::group_chars());
         break_chars
     }
 }
@@ -259,7 +228,7 @@ impl EnsoLexer {
     }
 
     /// The rules for lexing Enso operators.
-    fn operator_rules(lexer:&mut EnsoLexer) {
+    fn add_operator_rules(lexer:&mut EnsoLexer) {
         let operator_char   = Pattern::any_of(Self::operator_chars().as_str());
         let equals          = c!('=');
         let comma           = c!(',');
@@ -344,16 +313,16 @@ impl EnsoLexer {
     }
 
     /// The set of rules for lexing Enso identifiers.
-    fn identifier_rules(lexer:&mut EnsoLexer) {
-        let body_char      = (EnsoLexer::lower_ascii_letter() | EnsoLexer::digit()).many();
+    fn add_identifier_rules(lexer:&mut EnsoLexer) {
+        let body_char      = (EnsoLexer::lower_ascii_letter() | EnsoLexer::ascii_digit()).many();
         let underscore     = c!('_');
         let ticks          = c!('\'').many();
         let init_var_seg   = EnsoLexer::lower_ascii_letter() >> &body_char;
-        let var_seg        = (EnsoLexer::lower_ascii_letter() | EnsoLexer::digit()) >> &body_char;
+        let var_seg        = (EnsoLexer::lower_ascii_letter() | EnsoLexer::ascii_digit()) >> &body_char;
         let init_ref_seg   = EnsoLexer::upper_ascii_letter() >> &body_char;
-        let ref_seg        = (EnsoLexer::upper_ascii_letter() | EnsoLexer::digit()) >> &body_char;
-        let external_start = EnsoLexer::letter() | &underscore;
-        let external_body  = EnsoLexer::alpha_num() | &underscore;
+        let ref_seg        = (EnsoLexer::upper_ascii_letter() | EnsoLexer::ascii_digit()) >> &body_char;
+        let external_start = EnsoLexer::ascii_letter() | &underscore;
+        let external_body  = EnsoLexer::ascii_alpha_num() | &underscore;
         let variable_ident = &init_var_seg >> (&underscore >> &var_seg).many() >> &ticks;
         let referent_ident = &init_ref_seg >> (&underscore >> &ref_seg).many() >> &ticks;
         let external_ident = &external_start >> external_body.many() >> &ticks;
@@ -389,7 +358,7 @@ impl EnsoLexer {
 
     /// Triggered when the lexer matches an integer with an implicit base.
     fn on_integer<R:LazyReader>(&mut self, _reader:&mut R) {
-        let number_phase_2 = self.lexer.number_phase_two;
+        let number_phase_2 = self.number_phase_two;
         self.number_state.literal = self.consume_current();
         self.push_state(number_phase_2)
     }
@@ -399,7 +368,7 @@ impl EnsoLexer {
         let literal               = self.consume_current();
         self.number_state.literal = literal;
         let offset                = self.offset.consume();
-        let token                 = self.number_state.into_token(offset);
+        let token                 = self.number_state.consume_token(offset);
         self.append_token(token);
         self.finalize_explicit_base();
     }
@@ -407,7 +376,7 @@ impl EnsoLexer {
     /// Triggered when the lexer has seen an explicit base definition that isn't followed by an
     /// actual number.
     fn on_dangling_base<R:LazyReader>(&mut self, _reader:&mut R) {
-        let base   = self.number_state.take_base();
+        let base   = self.number_state.consume_base();
         let offset = self.offset.consume();
         let token  = Token::DanglingBase(base,offset);
         self.append_token(token);
@@ -420,7 +389,7 @@ impl EnsoLexer {
         let decimal_suffix_check  = self.decimal_suffix_check;
         self.number_state.literal = self.consume_current();
         let offset                = self.offset.consume();
-        let token                 = self.number_state.into_token(offset);
+        let token                 = self.number_state.consume_token(offset);
         self.append_token(token);
         self.push_state(decimal_suffix_check);
     }
@@ -435,7 +404,7 @@ impl EnsoLexer {
     /// Submit an integer token into the lexer.
     fn submit_integer<R:LazyReader>(&mut self, _reader:&mut R) {
         let offset = self.offset.consume();
-        let token  = self.number_state.into_token(offset);
+        let token  = self.number_state.consume_token(offset);
         self.append_token(token);
         self.pop_state();
     }
@@ -457,12 +426,12 @@ impl EnsoLexer {
     }
 
     /// The rules for lexing numbers in Enso.
-    fn number_rules(lexer:&mut EnsoLexer) {
-        let digits            = EnsoLexer::digit().many1();
+    fn add_number_rules(lexer:&mut EnsoLexer) {
+        let digits            = EnsoLexer::ascii_digit().many1();
         let point             = c!('.');
         let underscore        = c!('_');
         let decimal           = &digits >> &point >> &digits;
-        let arbitrary_digits  = EnsoLexer::alpha_num().many1();
+        let arbitrary_digits  = EnsoLexer::ascii_alpha_num().many1();
         let arbitrary_decimal = &arbitrary_digits >> (&point >> &arbitrary_digits).opt();
         let error_suffix      = Pattern::none_of(EnsoLexer::break_chars().as_str()).many1();
 
@@ -496,8 +465,8 @@ impl EnsoLexer {
 impl EnsoLexer {
 
     /// Define the rules for lexing Enso text literals.
-    fn text_rules(_lexer:&mut EnsoLexer) {
-
+    fn add_text_rules(_lexer:&mut EnsoLexer) {
+        // TODO [AA] Write the lexing rules for text literals.
     }
 }
 
@@ -541,15 +510,19 @@ impl EnsoLexer {
         let block_newline = self.block_newline;
         self.pop_states_including(block_newline);
 
-        if self.offset.current == self.block_state.current().indent {
-            self.offset.consume();
-            self.block_submit_line(reader);
-        } else if self.offset.current > self.block_state.current().indent {
-            let new_indent = self.offset.consume();
-            self.begin_block(new_indent,reader);
-        } else {
-            let new_indent = self.offset.consume();
-            self.on_block_end(new_indent,reader);
+        match self.offset.current.cmp(&self.block_state.current().indent) {
+            Ordering::Equal => {
+                self.offset.consume();
+                self.block_submit_line(reader);
+            },
+            Ordering::Greater => {
+                let new_indent = self.offset.consume();
+                self.begin_block(new_indent,reader);
+            },
+            Ordering::Less => {
+                let new_indent = self.offset.consume();
+                self.on_block_end(new_indent,reader);
+            }
         }
     }
 
@@ -590,7 +563,6 @@ impl EnsoLexer {
 
     /// Triggered when beginning a top-level block.
     fn block_begin_top_level<R:LazyReader>(&mut self, reader:&mut R) {
-        self.logger.debug("block_on_module_begin");
         let matched_bookmark = self.bookmarks.matched_bookmark;
         let block_newline    = self.block_newline;
         let initial_state = self.initial_state;
@@ -607,7 +579,7 @@ impl EnsoLexer {
                 self.block_submit(reader);
             }
             if new_indent > self.block_state.current().indent {
-                self.logger.info("Block with invalid indentation.");
+                info!(self.logger,"Block with invalid indentation.");
                 self.begin_block(new_indent, reader);
                 self.block_state.current_mut().is_valid = false;
             } else {
@@ -632,17 +604,11 @@ impl EnsoLexer {
         self.offset.pop();
         self.block_state.end_block();
 
-        match self.last_token() {
-            Some(Token{shape:token::Shape::Operator(_),..}) => {
-                match block.shape {
-                    token::Shape::Block {indent,lines,..} => {
-                        block.shape = token::Shape::block(BlockType::Discontinuous,indent,lines);
-                    },
-                    _ => (),
-                }
-            },
-            _ => ()
-        };
+        if let Some(Token{shape:token::Shape::Operator(_),..}) = self.last_token() {
+            if let token::Shape::Block {indent,lines,..} = block.shape {
+                block.shape = token::Shape::block(BlockType::Discontinuous,indent,lines);
+            }
+        }
 
         self.append_token(block);
         self.offset.push();
@@ -655,17 +621,16 @@ impl EnsoLexer {
         if self.block_state.seen_newline {
             if !self.output.is_empty() {
                 let token_stream = self.consume_tokens();
-                let offset = 0;
+                let offset       = 0;
                 self.block_state.append_line_to_current(token_stream.into(),offset);
             }
-            self.logger.debug(||format!("Clear Output Buffer: Old Length = {}",self.output.len()));
+            debug!(self.logger,"Clear Output Buffer: Old Length = {self.output.len()}");
             self.output.clear();
         }
     }
 
     /// Triggered when the top-level block ends.
     fn block_end_top_level<R:LazyReader>(&mut self, _reader:&mut R) {
-        self.logger.debug("block_on_module_end");
         let current_block = self.block_state.consume_current();
         if self.block_state.seen_newline {
             let offset          = self.offset.consume();
@@ -673,12 +638,12 @@ impl EnsoLexer {
             self.append_token(top_level_block);
         } else {
             let additional_offset = current_block.indent;
-            self.output.first_mut().map(|token| token.offset += additional_offset);
+            if let Some(token) = self.output.first_mut() { token.offset += additional_offset }
         }
     }
 
     /// The rule definitions for lexing blocks in Enso.
-    fn block_rules(lexer:&mut EnsoLexer) {
+    fn add_block_rules(lexer:&mut EnsoLexer) {
         let spaces     = EnsoLexer::spaces();
         let lf         = c!('\n');
         let crlf       = l!("\r\n");
@@ -696,7 +661,7 @@ impl EnsoLexer {
         block_newline.create_rule(&eof_line,  "self.block_in_eof_line(reader)");
 
         let in_block_line_id = lexer.in_block_line;
-        let in_block_line = lexer.group_mut(in_block_line_id);
+        let in_block_line    = lexer.group_mut(in_block_line_id);
         in_block_line.create_rule(&lf,               "self.block_on_empty_lf_line(reader)");
         in_block_line.create_rule(&crlf,             "self.block_on_empty_crlf_line(reader)");
         in_block_line.create_rule(&Pattern::always(),"self.block_on_non_empty_line(reader)");
@@ -736,7 +701,7 @@ impl EnsoLexer {
     }
 
     /// The default rules for the lexer.
-    fn default_rules(lexer:&mut EnsoLexer) {
+    fn add_default_rules(lexer:&mut EnsoLexer) {
         let space = Pattern::char(' ');
         let eof   = Pattern::eof();
         let any   = Pattern::any();
@@ -757,12 +722,12 @@ impl flexer::Definition for EnsoLexer {
     fn define() -> Self {
         let mut lexer = EnsoLexer::new();
 
-        EnsoLexer::operator_rules(&mut lexer);
-        EnsoLexer::identifier_rules(&mut lexer);
-        EnsoLexer::number_rules(&mut lexer);
-        EnsoLexer::text_rules(&mut lexer);
-        EnsoLexer::block_rules(&mut lexer);
-        EnsoLexer::default_rules(&mut lexer);
+        EnsoLexer::add_operator_rules(&mut lexer);
+        EnsoLexer::add_identifier_rules(&mut lexer);
+        EnsoLexer::add_number_rules(&mut lexer);
+        EnsoLexer::add_text_rules(&mut lexer);
+        EnsoLexer::add_block_rules(&mut lexer);
+        EnsoLexer::add_default_rules(&mut lexer);
 
         lexer
     }
@@ -945,7 +910,7 @@ impl<Logger:AnyLogger> Offset<Logger> {
 
     /// Push the current offset onto the offset stack.
     pub fn push(&mut self) {
-        self.logger.debug(||format!("Push Offset: {}.",self.current));
+        debug!(self.logger,"Push Offset: {self.current}");
         self.stack.push(self.current);
         self.current = 0;
     }
@@ -953,23 +918,23 @@ impl<Logger:AnyLogger> Offset<Logger> {
     /// Pop the top offset from the offset stack.
     pub fn pop(&mut self) {
         self.current = self.stack.pop().unwrap_or(0);
-        self.logger.debug(||format!("Pop Offset: {}",self.current));
+        debug!(self.logger,"Pop Offset: {self.current}");
     }
 
     /// Consume the current offset.
     pub fn consume(&mut self) -> usize {
         let offset   = self.current;
         self.current = 0;
-        self.logger.debug(||format!("Consume Offset: {}",offset));
+        debug!(self.logger,"Consume Offset: {offset}");
         offset
     }
 
     /// Increase the current offset by `match_length` + `shift`.
     pub fn increase(&mut self, match_length:usize, shift:usize) {
         let diff = match_length + shift;
-        self.logger.debug(||format!("Increase Offset By: {}",diff));
+        debug!(self.logger,"Increase Offset By: {diff}");
         self.current += diff;
-        self.logger.debug(||format!("Offset Now: {}",self.current));
+        debug!(self.logger,"Offset Now: {self.current}");
     }
 }
 
@@ -1002,31 +967,28 @@ impl<Logger:AnyLogger> NumberLexingState<Logger> {
     pub fn reset(&mut self) {
         self.base.truncate(0);
         self.literal.truncate(0);
-        self.logger.debug("Reset Number State")
+        debug!(self.logger,"Reset Number State");
     }
 
     /// Swap the `base` and `literal` in place.
     pub fn swap_members(&mut self) {
-        self.logger.debug("Swap Number Fields");
+        debug!(self.logger,"Swap Number Fields");
         mem::swap(&mut self.base,&mut self.literal);
     }
 
-    //noinspection ALL
     /// Convert `self` into a token, resetting the lexing state.
-    pub fn into_token(&mut self, offset:usize) -> Token {
-        self.logger.debug(||{
-            format!("Consuming Number: (Base: {}), (Number: {})",self.base,self.literal)
-        });
+    pub fn consume_token(&mut self, offset:usize) -> Token {
+        debug!(self.logger,"Consuming Number: Base = {self.base}, Number = {self.literal}");
         Token::Number(mem::take(&mut self.base),mem::take(&mut self.literal),offset)
     }
 
     /// Take the `literal` portion of the number lexing state.
-    pub fn take_literal(&mut self) -> String {
+    pub fn consume_literal(&mut self) -> String {
         mem::take(&mut self.literal)
     }
 
     /// Take the `base` portion of the number lexing state.
-    pub fn take_base(&mut self) -> String {
+    pub fn consume_base(&mut self) -> String {
         mem::take(&mut self.base)
     }
 }
@@ -1051,30 +1013,31 @@ pub struct BlockLexingState<Logger> {
 impl<Logger:AnyLogger> BlockLexingState<Logger> {
     /// Construct a new block lexing state.
     pub fn new(logger:Logger) -> Self {
-        let stack             = NonEmptyVec::singleton(default());
-        let seen_newline      = false;
+        let stack        = NonEmptyVec::singleton(default());
+        let seen_newline = false;
         BlockLexingState{stack,seen_newline,logger}
     }
 
     /// Set the last seen line ending.
     pub fn push_line_ending(&mut self, line_ending:token::LineEnding) {
         self.current_mut().seen_line_endings.push_back(line_ending);
-        self.logger.debug(||format!("Push Line Ending: {:?}",line_ending));
+        debug!(self.logger,"Push Line Ending: {line_ending:?}");
     }
 
     /// Consume the last seen line ending.
     pub fn pop_line_ending(&mut self) -> token::LineEnding {
         let popped = self.current_mut().seen_line_endings.pop_front();
-        self.logger.debug(||format!("Pop Line Ending: {:?}",popped));
+        debug!(self.logger,"Pop Line Ending: {popped:?}");
         popped.unwrap_or(token::LineEnding::None)
     }
 
     /// Appends a line to the current block.
     pub fn append_line_to_current(&mut self, tokens:Vec<Token>, offset:usize) {
         let trailing_line_ending = self.pop_line_ending();
-        self.logger.debug(||{
-            format!("Append Line: Line Ending = {:?}, Tokens = {:?}",trailing_line_ending,&tokens)
-        });
+        debug!(
+            self.logger,
+            "Append Line: Line Ending = {trailing_line_ending:?}, Tokens = {&tokens:?}"
+        );
         self.current_mut().push_line(tokens, offset, trailing_line_ending);
     }
 
@@ -1090,7 +1053,7 @@ impl<Logger:AnyLogger> BlockLexingState<Logger> {
 
     /// Push a new block state onto the stack.
     pub fn begin_block(&mut self, new_offset:usize, is_orphan:bool) {
-        self.logger.info(||format!("Begin Block State: Indent {}",new_offset));
+        debug!(self.logger,"Begin Block State: Indent = {new_offset}");
         self.stack.push(default());
         self.current_mut().is_orphan = is_orphan;
         self.current_mut().indent = new_offset;
@@ -1098,14 +1061,14 @@ impl<Logger:AnyLogger> BlockLexingState<Logger> {
 
     /// Pop a block state from the stack.
     pub fn end_block(&mut self) -> Option<BlockState> {
-        self.logger.info("End Block State");
+        debug!(self.logger,"End Block State");
         self.stack.pop()
     }
 
     /// Consume the state of the current block.
     pub fn consume_current(&mut self) -> BlockState {
         let block = mem::take(self.stack.last_mut());
-        self.logger.debug(||format!("Consume Block: {:?}",&block));
+        debug!(self.logger,"Consume Block: {&block:?}");
         block
     }
 
@@ -1113,7 +1076,7 @@ impl<Logger:AnyLogger> BlockLexingState<Logger> {
     pub fn push_empty_line(&mut self, offset:usize) {
         let trailing_line_ending = self.pop_line_ending();
         self.current_mut().push_empty_line(offset, trailing_line_ending);
-        self.logger.debug(||format!("Append Empty Line: Line Ending = {:?}",trailing_line_ending));
+        debug!(self.logger,"Append Empty line: Line Ending = {trailing_line_ending:?}");
     }
 }
 
@@ -1143,10 +1106,10 @@ pub struct BlockState {
 impl BlockState {
     /// Construct a new block state.
     pub fn new() -> Self {
-        let is_orphan   = false;
-        let is_valid    = true;
-        let offset      = 0;
-        let lines       = default();
+        let is_orphan         = false;
+        let is_valid          = true;
+        let offset            = 0;
+        let lines             = default();
         let seen_line_endings = default();
         BlockState{is_orphan,is_valid, indent: offset,lines,seen_line_endings}
     }
@@ -1154,11 +1117,11 @@ impl BlockState {
     /// Push a line into the block.
     pub fn push_line
     (&mut self
-    , tokens               : Vec<Token>
-    , offset               : usize
-    , trailing_line_ending : token::LineEnding
+     , tokens               : Vec<Token>
+     , indent: usize
+     , trailing_line_ending : token::LineEnding
     ) {
-        let line = Token::Line(tokens, offset, trailing_line_ending);
+        let line = Token::Line(tokens,indent,trailing_line_ending);
         self.lines.push(line)
     }
 
