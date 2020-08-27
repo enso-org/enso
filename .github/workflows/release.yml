@@ -78,19 +78,29 @@ jobs:
       # Build Artifacts
       - name: Bootstrap the Project
         working-directory: repo
-        run: sbt --no-colors bootstrap
+        run: |
+          sleep 1
+          sbt --no-colors bootstrap
       - name: Build the Runtime Uberjar
         working-directory: repo
-        run: sbt --no-colors runtime/assembly
+        run: |
+          sleep 1
+          sbt --no-colors runtime/assembly
       - name: Build the Runner Uberjar
         working-directory: repo
-        run: sbt --no-colors runner/assembly
+        run: |
+          sleep 1
+          sbt --no-colors runner/assembly
       - name: Build the Project Manager Uberjar
         working-directory: repo
-        run: sbt --no-colors project-manager/assembly
+        run: |
+          sleep 1
+          sbt --no-colors project-manager/assembly
       - name: Build the Launcher Native Image
         working-directory: repo
-        run: sbt --no-colors launcher/buildNativeImage
+        run: |
+          sleep 1
+          sbt --no-colors launcher/buildNativeImage
       - name: Build the Manifest
         working-directory: repo
         run: |
