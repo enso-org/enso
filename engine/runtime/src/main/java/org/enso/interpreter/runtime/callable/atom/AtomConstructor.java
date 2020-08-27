@@ -21,9 +21,6 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /** A representation of an Atom constructor. */
 @ExportLibrary(InteropLibrary.class)
 public class AtomConstructor implements TruffleObject {

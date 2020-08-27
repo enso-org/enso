@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
+
 import java.io.IOException;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -22,7 +23,7 @@ public abstract class ReadlnNode extends Node {
   @TruffleBoundary
   Object doRead(Object _this, @CachedContext(Language.class) Context ctx) {
     try {
-      return ctx.getIn().readLine();
+      return ctx.getInReader().readLine();
     } catch (IOException e) {
       return new RuntimeError("Empty input stream.");
     }
