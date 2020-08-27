@@ -19,11 +19,11 @@ giving Enso code a uniform identity.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Naming Constructs](#naming-constructs)
-    - [External Identifiers](#external-identifiers)
+  - [External Identifiers](#external-identifiers)
 - [Pattern Contexts](#pattern-contexts)
 - [Localised Naming](#localised-naming)
 - [Operator Naming](#operator-naming)
-    - [Modifier Operators](#modifier-operators)
+  - [Modifier Operators](#modifier-operators)
 - [Reserved Names](#reserved-names)
 
 <!-- /MarkdownTOC -->
@@ -72,6 +72,7 @@ Identifiers are introduced by:
 - Using them in a type ascription (free variables).
 
 ### External Identifiers
+
 As Enso has the ability to interface with many other programming languages in a
 highly-integrated fashion, it needs to be able to use naming styles from other
 languages natively. To do this, we have the concept of a _third_ kind of
@@ -83,7 +84,7 @@ category, however. Common styles of naming functions in Python, for example,
 will usually lex as variable identifiers.
 
 > The actionables for this section are:
-> 
+>
 > - Work out how and where to make a variable/referent distinction for external
 >   names.
 
@@ -143,6 +144,7 @@ _valid_ operator name, as some may collide with built-in language constructs
 (e.g. `[` and `]`, which start and end a vector literal respectively).
 
 ### Modifier Operators
+
 Barring specially defined operators (`=`, `==`, `!=`, `#=`, `>=` and `<=`), any
 operator that ends with an equals sign `=` is called a _modifier_ operator.
 These will, in the future, have special treatment in the language.

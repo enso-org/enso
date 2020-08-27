@@ -22,12 +22,13 @@ specific nodes on the AST.
 > - Work out how to ensure that precedence and associativity isn't broken by the
 >   macro resolution phase.
 > - Work out how to handle the special case for `,`. We don't want comma to be
->   subject to the variable precedence functionality, as conventional spacing 
+>   subject to the variable precedence functionality, as conventional spacing
 >   for defining lists goes `[x, y, z]` and that should be allowed without the
 >   variable precedence happening.
 > - Work out how to handle the special case for `-`. The expression `-n` should
 >   be treated as an application of the unary operator negate, while `- n`
->   should be treated as part of a larger expression (e.g. a section, subtraction).
+>   should be treated as part of a larger expression (e.g. a section,
+>   subtraction).
 > - As Enso has no syntactic marker for the introduction of a lambda, we need to
 >   have a special case for `->` so that it has appropriate precedence on its
 >   left and right sides. Ideally, `map.fold 0 $ y -> foo $ y` is resolved as

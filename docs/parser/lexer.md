@@ -16,7 +16,7 @@ identify blocks
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Lexer Architecture](#lexer-architecture)
-    - [Libraries in the Lexer Definition](#libraries-in-the-lexer-definition)
+  - [Libraries in the Lexer Definition](#libraries-in-the-lexer-definition)
 - [Lexer Functionality](#lexer-functionality)
 - [The Lexer AST](#the-lexer-ast)
 
@@ -75,7 +75,8 @@ It contains the following constructs:
 - `Line`: A line in a block that contains tokens.
 - `BlankLine`: A line in a block that contains only whitespace.
 - `Block`: Syntactic blocks in the language.
-- `InvalidSuffix`: Invalid tokens when in a given state that would otherwise be valid.
+- `InvalidSuffix`: Invalid tokens when in a given state that would otherwise be
+  valid.
 - `Unrecognized`: Tokens that the lexer doesn't recognise.
 
 The distinction is made here between the various kinds of identifiers in order
