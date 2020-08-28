@@ -12,6 +12,7 @@ import org.enso.launcher.components.runner.{
   Runner,
   WhichEngine
 }
+import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.project.ProjectManager
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
@@ -25,7 +26,7 @@ import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 case class Launcher(cliOptions: GlobalCLIOptions) {
   private lazy val componentsManager = DefaultComponentsManager(cliOptions)
   private lazy val configurationManager =
-    new GlobalConfigurationManager(componentsManager)
+    new GlobalConfigurationManager(componentsManager, DistributionManager)
   private lazy val projectManager = new ProjectManager(configurationManager)
   private lazy val runner =
     new Runner(

@@ -4,8 +4,9 @@ import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.components.{ComponentsManager, Manifest, Runtime}
+import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.project.ProjectManager
-import org.enso.launcher.{Environment, GlobalConfigurationManager, Logger}
+import org.enso.launcher.{Environment, Logger}
 
 import scala.util.Try
 

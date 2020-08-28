@@ -1,7 +1,8 @@
 package org.enso.launcher.project
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.{GlobalConfigurationManager, WithTemporaryDirectory}
+import org.enso.launcher.WithTemporaryDirectory
+import org.enso.launcher.config.GlobalConfigurationManager
 import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

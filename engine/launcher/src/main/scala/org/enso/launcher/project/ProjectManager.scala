@@ -3,7 +3,8 @@ package org.enso.launcher.project
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.{GlobalConfigurationManager, Logger}
+import org.enso.launcher.Logger
+import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 
 import scala.util.{Failure, Try}

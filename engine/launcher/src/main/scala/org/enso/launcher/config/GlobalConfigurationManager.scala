@@ -1,7 +1,12 @@
-package org.enso.launcher
+package org.enso.launcher.config
+
+import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.launcher.Logger
 import org.enso.launcher.components.ComponentsManager
+import org.enso.launcher.installation.DistributionManager
 
 /**
   * Manages the global configuration of the distribution which includes the
@@ -9,7 +14,10 @@ import org.enso.launcher.components.ComponentsManager
   *
   * TODO [RW] This is a stub. It will be implemented in #977
   */
-class GlobalConfigurationManager(componentsManager: ComponentsManager) {
+class GlobalConfigurationManager(
+  componentsManager: ComponentsManager,
+  distributionManager: DistributionManager
+) {
 
   /**
     * Returns the default Enso version that should be used when running Enso
@@ -32,6 +40,9 @@ class GlobalConfigurationManager(componentsManager: ComponentsManager) {
       latestAvailable
     }
   }
+
+  private def configLocation: Path =
+    distributionManager.paths.config / GlobalConfigurationManager.globalConfigName
 }
 
 object GlobalConfigurationManager {
