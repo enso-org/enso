@@ -8,7 +8,7 @@ import io.circe.{yaml, Decoder}
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.OS
 import org.enso.launcher.components.Manifest.JVMOption
-import org.enso.pkg.SemVerDecoder._
+import org.enso.pkg.SemVerJson._
 
 import scala.util.{Failure, Try, Using}
 

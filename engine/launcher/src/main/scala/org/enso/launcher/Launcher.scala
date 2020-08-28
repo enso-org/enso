@@ -12,7 +12,7 @@ import org.enso.launcher.components.runner.{
   Runner,
   WhichEngine
 }
-import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.launcher.config.{DefaultVersion, GlobalConfigurationManager}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.project.ProjectManager
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
@@ -223,10 +223,20 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   /**
     * Sets the default Enso version.
     */
-  def setDefaultVersion(version: SemVer): Unit = {
-    val _ = version
-    Logger.error("This feature is not implemented yet.")
-    sys.exit(1)
+  def setDefaultVersion(version: DefaultVersion): Unit = {
+    configurationManager.updateConfig { config =>
+      config.copy(defaultVersion = version)
+    }
+
+    version match {
+      case DefaultVersion.LatestInstalled =>
+        Logger.info(
+          s"Default Enso version set to the latest installed version, " +
+          s"currently ${configurationManager.defaultVersion}."
+        )
+      case DefaultVersion.Exact(version) =>
+        Logger.info(s"Default Enso version set to $version.")
+    }
   }
 
   /**

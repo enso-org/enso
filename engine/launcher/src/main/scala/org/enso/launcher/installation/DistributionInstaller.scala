@@ -5,6 +5,7 @@ import java.nio.file.Files
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.cli.InternalOpts
+import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.{FileSystem, Logger, OS}
 
 import scala.util.control.NonFatal

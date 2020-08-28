@@ -9,6 +9,7 @@ import org.enso.cli.Opts.implicits._
 import org.enso.cli._
 import org.enso.launcher.cli.Arguments._
 import org.enso.launcher.components.runner.LanguageServerOptions
+import org.enso.launcher.config.DefaultVersion
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
@@ -220,10 +221,11 @@ object Main {
 
   private def defaultCommand: Command[Config => Unit] =
     Command("default", "Print or change the default Enso version.") {
-      val version = Opts.optionalArgument[SemVer](
+      val version = Opts.optionalArgument[DefaultVersion](
         "VERSION",
         "If provided, sets default version to VERSION. " +
-        "Otherwise, current default is displayed."
+        "Otherwise, current default is displayed. VERSION can be an Enso " +
+        "version string or `latest-installed`."
       )
       version map { version => (config: Config) =>
         val launcher = Launcher(config)
