@@ -53,7 +53,7 @@ pub struct LexerState {
     initial_state:group::Identifier,
 }
 impl flexer::State for LexerState {
-    fn new() -> Self {
+    fn new(_logger:&impl AnyLogger) -> Self {
         let mut lexer_states = group::Registry::default();
         let initial_state    = lexer_states.define_group("ROOT",None);
         LexerState{lexer_states,initial_state}
@@ -143,6 +143,14 @@ impl flexer::Definition for Lexer1 {
     fn groups(&self) -> &Registry {
         self.lexer.groups()
     }
+
+    fn set_up(&mut self) {
+        unimplemented!()
+    }
+
+    fn tear_down(&mut self) {
+        unimplemented!()
+    }
 }
 
 #[test]
@@ -203,6 +211,14 @@ impl flexer::Definition for Lexer2 {
 
     fn groups(&self) -> &Registry {
         self.lexer.groups()
+    }
+
+    fn set_up(&mut self) {
+        unimplemented!()
+    }
+
+    fn tear_down(&mut self) {
+        unimplemented!()
     }
 }
 
@@ -268,6 +284,14 @@ impl flexer::Definition for Lexer3 {
     fn groups(&self) -> &Registry {
         self.lexer.groups()
     }
+
+    fn set_up(&mut self) {
+        unimplemented!()
+    }
+
+    fn tear_down(&mut self) {
+        unimplemented!()
+    }
 }
 
 pub struct LexerState1 {
@@ -275,7 +299,7 @@ pub struct LexerState1 {
     initial_state:group::Identifier,
 }
 impl flexer::State for LexerState1 {
-    fn new() -> Self {
+    fn new(_logger:&impl AnyLogger) -> Self {
         let mut lexer_states = group::Registry::default();
         let initial_state    = lexer_states.define_group("ROOT",None);
         LexerState1 {lexer_states,initial_state}
@@ -366,6 +390,14 @@ impl flexer::Definition for Lexer4 {
     fn groups(&self) -> &Registry {
         self.lexer.groups()
     }
+
+    fn set_up(&mut self) {
+        unimplemented!()
+    }
+
+    fn tear_down(&mut self) {
+        unimplemented!()
+    }
 }
 
 pub struct LexerState2 {
@@ -373,7 +405,7 @@ pub struct LexerState2 {
     initial_state:group::Identifier,
 }
 impl flexer::State for LexerState2 {
-    fn new() -> Self {
+    fn new(_logger:&impl AnyLogger) -> Self {
         let mut lexer_states = group::Registry::default();
         let initial_state    = lexer_states.define_group("ROOT",None);
         LexerState2 {lexer_states,initial_state}
@@ -410,5 +442,5 @@ pub fn test_bad_output_name() {
     let result = lexer.specialize();
     assert!(result.is_err());
     let message = result.unwrap_err().to_string();
-    assert_eq!(message,"`Bad output name` is not a valid rust identifier.");
+    assert_eq!(message,"`Bad output name` is not a valid rust path.");
 }

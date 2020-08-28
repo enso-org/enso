@@ -4,6 +4,7 @@ import Test.Number_Spec
 import Test.Import_Loop_Spec
 import Test.Deep_Export_Spec
 import Test.Names_Spec
+import Test.Process_Spec
 
 main = Test.Suite.runMain <|
     List_Spec.spec
@@ -11,3 +12,4 @@ main = Test.Suite.runMain <|
     Import_Loop_Spec.spec
     Names_Spec.spec
     Deep_Export_Spec.spec
+    Process_Spec.spec

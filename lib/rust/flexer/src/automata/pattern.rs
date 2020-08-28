@@ -29,19 +29,21 @@ pub enum Pattern {
     /// The pattern that triggers when a sequence of patterns is encountered.
     Seq(Vec<Pattern>),
     /// The pattern that triggers on 0..N repetitions of given pattern.
-    Many(Box<Pattern>)
+    Many(Box<Pattern>),
+    /// The pattern that always triggers.
+    Always,
 }
 
 impl Pattern {
 
     /// A pattern that never triggers.
     pub fn never() -> Self {
-        Pattern::symbols(Symbol::from(1)..=Symbol::from(0))
+        Pattern::symbol(Symbol::INVALID_SYMBOL)
     }
 
     /// A pattern that always triggers
     pub fn always() -> Self {
-        Pattern::symbols(Symbol::from(u32::min_value())..=Symbol::from(u32::max_value()))
+        Pattern::Always
     }
 
     /// A pattern that triggers on any character.
@@ -50,18 +52,18 @@ impl Pattern {
     }
 
     /// A pattern that triggers on 0..N repetitions of the pattern described by `self`.
-    pub fn many(self) -> Self {
-        Many(Box::new(self))
+    pub fn many(&self) -> Self {
+        Many(Box::new(self.clone()))
     }
 
     /// A pattern that triggers on 1..N repetitions of the pattern described by `self`.
-    pub fn many1(self) -> Self {
+    pub fn many1(&self) -> Self {
         self.clone() >> self.many()
     }
 
     /// A pattern that triggers on 0..=1 repetitions of the pattern described by `self`.
-    pub fn opt(self) -> Self {
-        self | Self::always()
+    pub fn opt(&self) -> Self {
+        self.clone() | Self::always()
     }
 
     /// A pattern that triggers on the given character.
@@ -91,7 +93,12 @@ impl Pattern {
 
     /// Pattern that triggers when sequence of characters given by `chars` is encountered.
     pub fn all_of(chars:&str) -> Self {
-        chars.chars().fold(Self::never(),|pat,char| pat >> Self::char(char))
+        let mut chars_iter = chars.chars();
+        if let Some(first) = chars_iter.next() {
+            chars_iter.fold(Self::char(first),|pat, char| pat >> Self::char(char))
+        } else {
+            Pattern::never()
+        }
     }
 
     /// The pattern that triggers on any characters contained in `chars`.
@@ -105,11 +112,12 @@ impl Pattern {
         let char_iter  = chars.chars().map(|char| char as u32);
         let char_iter2 = iter::once(0).chain(char_iter).chain(iter::once(max));
         let mut codes  = char_iter2.collect_vec();
-
         codes.sort();
-        codes.iter().tuple_windows().fold(Self::never(),|pat,(start,end)| {
+        codes.iter().tuple_windows().fold(Self::never(),|pat,(prev_code,next_code)| {
+            let start = prev_code + 1;
+            let end   = next_code - 1;
             if end < start {pat} else {
-                pat | Pattern::symbols(Symbol::from(*start)..=Symbol::from(*end))
+                pat | Pattern::symbols(Symbol::from(start)..=Symbol::from(end))
             }
         })
     }
@@ -158,3 +166,29 @@ impl Shr<Pattern> for Pattern {
     }
 }
 gen_ref_versions!(Pattern,Shr,shr);
+
+
+
+// =================
+// === Utilities ===
+// =================
+
+/// Quote a character as a character pattern.
+///
+/// It is equivalent to `Pattern::char(...)`.
+#[macro_export]
+macro_rules! c {
+    ($char:literal) => {
+        Pattern::char($char)
+    }
+}
+
+/// Quote a string as a literal pattern.
+///
+/// It is equivalent to `Pattern::all_of(...)`.
+#[macro_export]
+macro_rules! l {
+    ($lit:literal) => {
+        Pattern::all_of($lit)
+    }
+}

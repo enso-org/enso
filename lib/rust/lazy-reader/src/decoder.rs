@@ -39,6 +39,17 @@ pub struct Char<Error> {
     pub size: usize,
 }
 
+impl Char<crate::Error> {
+    /// Check if the character represents the end of file.
+    pub fn is_eof(&self) -> bool {
+        match self.char {
+            Ok(_)                  => false,
+            Err(crate::Error::EOF) => true,
+            Err(_)                 => false
+        }
+    }
+}
+
 
 
 // =====================

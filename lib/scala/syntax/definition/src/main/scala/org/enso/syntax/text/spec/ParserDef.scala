@@ -33,7 +33,6 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   val lowerLetter: Pattern = range('a', 'z')
   val upperLetter: Pattern = range('A', 'Z')
   val digit: Pattern       = range('0', '9')
-  val hex: Pattern         = digit | range('a', 'f') | range('A', 'F')
   val alphaNum: Pattern    = digit | lowerLetter | upperLetter
   val space: Pattern       = ' '.many1
   val newline: Pattern     = '\n'

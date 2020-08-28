@@ -120,7 +120,7 @@ For example:
 
 ```yaml
 minimum-launcher-version: 0.0.1
-graal-vm-version: 20.1.0
+graal-vm-version: 20.2.0
 graal-java-version: 11
 jvm-options:
   - value: "-Dpolyglot.engine.IterativePartialEscape=true"

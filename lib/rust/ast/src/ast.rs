@@ -23,13 +23,13 @@ pub type AnyAst = Ast<Shape>;
 #[derive(Debug,Clone)]
 pub struct Ast<T> {
     /// A unique identifier.
-    uid: Option<Uuid>,
+    uid : Option<Uuid>,
     /// Length in number of chars of this ast node.
-    len: usize,
+    len : usize,
     /// The number of trailing spaces.
-    off: usize,
+    off : usize,
     /// The ast node itself.
-    ast: T,
+    ast : T,
 }
 
 // The set of all ast nodes.

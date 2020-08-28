@@ -131,6 +131,8 @@ impl<T> NonEmptyVec<T> {
     /// use enso_prelude::NonEmptyVec;
     /// let mut vec = NonEmptyVec::with_capacity(0, 10);
     /// assert_eq!(vec.capacity(),10);
+    /// vec.shrink_to_fit();
+    /// assert!(vec.capacity() < 10);
     /// ```
     pub fn shrink_to_fit(&mut self) {
         self.elems.shrink_to_fit();
@@ -165,9 +167,10 @@ impl<T> NonEmptyVec<T> {
     /// let mut vec = NonEmptyVec::new(0,vec![1]);
     /// assert!(vec.pop().is_some());
     /// assert!(vec.pop().is_none());
+    /// assert_eq!(vec.len(),1);
     /// ```
     pub fn pop(&mut self) -> Option<T> {
-        (self.len() != 1).and_option(self.elems.pop())
+        (self.len() > 1).and_option_from(||self.elems.pop())
     }
 
     /// Obtain a mutable reference to teh element in the vector at the specified `index`.
