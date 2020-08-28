@@ -102,6 +102,7 @@ jobs:
           echo '::set-env name=CI_TEST_FLAKY_ENABLE::true'
       - name: Build the Launcher
         run: |
+          sleep 1
           sbt --no-colors launcher/buildNativeImage
           echo '::set-env name=LAUNCHER_NATIVE_IMAGE_TEST_SKIP_BUILD::true'
       - name: Test Enso
