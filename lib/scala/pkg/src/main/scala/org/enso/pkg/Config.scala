@@ -22,6 +22,9 @@ case class Dependency(name: String, version: String)
   * @param maintainer name and contact information of current package
   *                   maintainer(s)
   * @param dependencies a list of package dependencies
+  * @param originalJson a Json object holding the original values that this
+  *                     Config was created from, used to preserve configuration
+  *                     keys that are not known
   */
 case class Config(
   name: String,
@@ -30,7 +33,8 @@ case class Config(
   license: String,
   author: List[String],
   maintainer: List[String],
-  dependencies: List[Dependency]
+  dependencies: List[Dependency],
+  originalJson: Json = Json.obj()
 ) {
 
   /**
@@ -87,12 +91,14 @@ object Config {
       license,
       author,
       maintainer,
-      dependencies
+      dependencies,
+      json.value
     )
   }
 
   implicit val encoder: Encoder[Config] = { config =>
-    val base = Json.obj(
+    val originals = config.originalJson
+    val overrides = Json.obj(
       JsonFields.name        -> config.name.asJson,
       JsonFields.version     -> config.version.asJson,
       JsonFields.ensoVersion -> config.ensoVersion.asJson,
@@ -100,6 +106,7 @@ object Config {
       JsonFields.author      -> encodeContactsList(config.author),
       JsonFields.maintainer  -> encodeContactsList(config.maintainer)
     )
+    val base = originals.deepMerge(overrides)
     val withDeps =
       if (config.dependencies.nonEmpty)
         base.deepMerge(
