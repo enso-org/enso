@@ -29,6 +29,20 @@ jobs:
           toolchain: ${{ env.rustToolchain }}
           override: true
 
+      # Caches
+      - name: Cache Cargo Registry
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-registry
+      - name: Cache Cargo Test
+        uses: actions/cache@v2
+        with:
+          path: ./target/rust
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-build
+
       # Lint
       - name: Check Code
         uses: actions-rs/cargo@v1
@@ -150,20 +164,6 @@ jobs:
           curl -L "$WASMPACKURL/$WASMPACKDIR.tar.gz" | tar -xz -C .
           mv $WASMPACKDIR/wasm-pack ~/.cargo/bin
           rm -r $WASMPACKDIR
-
-      # Caches
-      - name: Cache Cargo Registry
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**Cargo.toml') }}
-          restore-keys: ${{ runner.os }}-cargo-registry
-      - name: Cache Cargo Test
-        uses: actions/cache@v2
-        with:
-          path: ./target/rust
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**Cargo.toml') }}
-          restore-keys: ${{ runner.os }}-cargo-build
 
       # Tests
       - name: Test WASM
