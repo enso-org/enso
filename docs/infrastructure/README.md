@@ -17,3 +17,6 @@ up as follows:
   migration.
 - [**Native Image:**](native-image.md) Description of the Native Image build
   used for building the launcher native binary.
+- [**Rust:**](rust.md) Description of integration of the Scala project with the
+  Rust components.
+- [**Upgrading GraalVM:**](upgrading-graalvm.md)

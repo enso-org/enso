@@ -8,7 +8,7 @@ on:
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt
-  graalVersion: 20.1.0
+  graalVersion: 20.2.0
   # Please ensure that this is in sync with javaVersion in build.sbt
   javaVersion: 11
   # Please ensure that this is in sync with project/build.properties
@@ -100,6 +100,11 @@ jobs:
         run: |
           echo '::set-env name=CI_TEST_TIMEFACTOR::2'
           echo '::set-env name=CI_TEST_FLAKY_ENABLE::true'
+      - name: Build the Launcher
+        run: |
+          sleep 1
+          sbt --no-colors launcher/buildNativeImage
+          echo '::set-env name=LAUNCHER_NATIVE_IMAGE_TEST_SKIP_BUILD::true'
       - name: Test Enso
         run: |
           sleep 1

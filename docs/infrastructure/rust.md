@@ -2,8 +2,8 @@
 layout: developer-doc
 title: Rust
 category: infrastructure
-tags: [infrastructure, build]
-order: 1
+tags: [infrastructure, build, rust]
+order: 4
 ---
 
 # Rust

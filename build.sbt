@@ -18,7 +18,7 @@ import com.typesafe.sbt.license.DepModuleInfo
 
 val scalacVersion = "2.13.3"
 val rustVersion   = "1.40.0-nightly (b520af6fd 2019-11-03)"
-val graalVersion  = "20.1.0"
+val graalVersion  = "20.2.0"
 val javaVersion   = "11"
 val ensoVersion   = "0.1.0" // Note [Engine And Launcher Version]
 
@@ -1002,7 +1002,11 @@ lazy val runner = project
   )
   .settings(
     buildNativeImage := NativeImage
-        .buildNativeImage("enso", staticOnLinux = false)
+        .buildNativeImage(
+          "enso",
+          staticOnLinux = false,
+          Seq("-H:IncludeResources=.*Main.enso$")
+        )
         .value
   )
   .settings(
@@ -1036,10 +1040,13 @@ lazy val launcher = project
           staticOnLinux = true,
           Seq(
             "--enable-all-security-services", // Note [HTTPS in the Launcher]
-            "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog"
+            "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
+            "-H:IncludeResources=.*Main.enso$"
           )
         )
         .value,
+    // Note [Native Image Workaround for GraalVM 20.2]
+    libraryDependencies += "org.graalvm.nativeimage" % "svm" % "20.2.0" % "provided",
     test in assembly := {},
     assemblyOutputPath in assembly := file("launcher.jar")
   )
@@ -1068,4 +1075,24 @@ lazy val launcher = project
  * Native Images by default (because of its size). The
  * `--enable-all-security-services` flag is used to ensure it is available in
  * the built executable.
+ */
+
+/* Note [Native Image Workaround for GraalVM 20.2]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * In GraalVM 20.2 the Native Image build of even simple Scala programs has
+ * started to fail on a call to `Statics.releaseFence`. It has been reported as
+ * a bug in the GraalVM repository: https://github.com/oracle/graal/issues/2770
+ *
+ * A proposed workaround for this bug is to substitute the original function
+ * with a different implementation that does not use the problematic
+ * MethodHandle. This is implemented in class
+ * `org.enso.launcher.workarounds.ReplacementStatics` using
+ * `org.enso.launcher.workarounds.Unsafe` which gives access to
+ * `sun.misc.Unsafe` which contains a low-level function corresponding to the
+ * required "release fence".
+ *
+ * To allow for that substitution, the launcher code requires annotations from
+ * the `svm` module and that is why this additional dependency is needed as long
+ * as that workaround is in-place. The dependency is marked as "provided"
+ * because it is included within the native-image build.
  */

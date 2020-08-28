@@ -253,8 +253,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
 
     val versionDescription = VersionDescription.make(
       "Enso Launcher",
-      includeRuntimeJVMInfo = false,
-      additionalParameters  = runtimeVersionParameter.toSeq
+      includeRuntimeJVMInfo         = false,
+      enableNativeImageOSWorkaround = true,
+      additionalParameters          = runtimeVersionParameter.toSeq
     )
 
     println(versionDescription.asString(useJSON))

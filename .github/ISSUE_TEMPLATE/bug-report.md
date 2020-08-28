@@ -58,10 +58,10 @@ Please list the reproduction steps for your bug. For example:
 For example:
 ```
 Enso Compiler and Runtime
-Version:    0.0.1
-Built with: scala-2.13.3 for GraalVM 20.1.0
-Built from: main @ 919ffbdfacc44cc35a1b38f1bad5b573acdbe358
-Running on: OpenJDK 64-Bit Server VM, GraalVM Community, JDK 11.0.7+10-jvmci-20.1-b02
-            Linux 4.15.0-108-generic (amd64)
+Version:    0.1.0
+Built with: scala-2.13.3 for GraalVM 20.2.0
+Built from: main* @ 919ffbdfacc44cc35a1b38f1bad5b573acdbe358
+Running on: OpenJDK 64-Bit Server VM, GraalVM Community, JDK 11.0.8+10-jvmci-20.2-b03
+            Linux 4.15.0-112-generic (amd64)
 ```
 -->

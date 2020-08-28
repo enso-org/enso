@@ -39,6 +39,7 @@ object VersionDescription {
   def make(
     header: String,
     includeRuntimeJVMInfo: Boolean,
+    enableNativeImageOSWorkaround: Boolean                 = false,
     additionalParameters: Seq[VersionDescriptionParameter] = Seq.empty
   ): VersionDescription = {
     val version   = Info.ensoVersion
@@ -63,8 +64,13 @@ object VersionDescription {
           if (includeRuntimeJVMInfo)
             s"""Running on: $vmName, $vmVendor, JDK $jreVersion
                |            $osName $osVersion ($osArch)""".stripMargin
-          else
-            s"Running on: $osName $osVersion ($osArch)"
+          else if (enableNativeImageOSWorkaround) {
+            // TODO [RW] Currently the `os.name` property seems to be set to the
+            //  OS the program has been built on, instead of the OS that is
+            //  currently running. A workaround should be implemented in #1100
+            //  that will use other means to query the OS name and version.
+            s"Built on:   $osName ($osArch)"
+          } else s"Running on: $osName $osVersion ($osArch)"
 
         val dirtyStr = if (Info.isDirty) "*" else ""
         val parameters =

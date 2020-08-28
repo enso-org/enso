@@ -149,6 +149,12 @@ In order to build and run Enso you will need the following tools:
 - [Rustup](https://rustup.rs), the rust toolchain management utility.
 - On MacOS and Linux, the `tar` command is required for running some tests. It
   should be installed by default on most distributions.
+- If you want to be able to build the Launcher Native Image, you will need a
+  native C compiler for your platform as described in the
+  [Native Image Prerequisites](https://www.graalvm.org/reference-manual/native-image/#prerequisites).
+  On Linux that will be `gcc`, on macOS you may need `xcode` and on Windows you
+  need to configure the Developer Command Prompt for Microsoft Visual C++ for
+  the x64 architecture.
 
 Managing multiple JVM installations can be a pain, so some of the team use
 [Jenv](http://www.jenv.be/): A useful tool for managing multiple JVMs.
@@ -296,7 +302,7 @@ Native Image component is installed in your GraalVM distribution. To install it,
 run:
 
 ```bash
-gu install native-image
+<path-to-graal-home>/bin/gu install native-image
 ```
 
 Then, you can build the launcher using:
