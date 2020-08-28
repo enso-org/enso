@@ -2,7 +2,7 @@ package org.enso.launcher.components.runner
 
 import org.enso.launcher.Logger
 
-import scala.sys.process.{Process, ProcessBuilder}
+import scala.sys.process.Process
 import scala.util.{Failure, Try}
 
 /**
@@ -20,8 +20,15 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
     * example due to insufficient permissions or nonexistent executable).
     */
   def run(): Try[Int] =
-    runProcess { processBuilder =>
-      processBuilder.run(connectInput = true).exitValue()
+    wrapError {
+      Logger.debug(s"Executing $toString")
+      val processBuilder = new java.lang.ProcessBuilder(command: _*)
+      for ((key, value) <- extraEnv) {
+        processBuilder.environment().put(key, value)
+      }
+      processBuilder.inheritIO()
+      val process = processBuilder.start()
+      process.waitFor()
     }
 
   /**
@@ -33,23 +40,18 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
     * command returned non-zero exit code.
     */
   def captureOutput(): Try[String] =
-    runProcess { processBuilder =>
+    wrapError {
+      Logger.debug(s"Executing $toString")
+      val processBuilder = Process(command, None, extraEnv: _*)
       processBuilder.!!
     }
 
   /**
-    * Prepares to run a process and invokes `action` on the created
-    * [[ProcessBuilder]], capturing any errors.
-    *
-    * On success, the result of `action` is returned.
+    * Runs the provided action and wraps any errors into a [[Failure]]
+    * containing a [[RunnerError]].
     */
-  private def runProcess[R](action: ProcessBuilder => R): Try[R] = {
-    val result = Try {
-      Logger.debug(s"Executing $toString")
-      val processBuilder = Process(command, None, extraEnv: _*)
-      action(processBuilder)
-    }
-    result.recoverWith(error =>
+  private def wrapError[R](action: => R): Try[R] =
+    Try(action).recoverWith(error =>
       Failure(
         RunnerError(
           s"Could not run the command $toString due to: $error",
@@ -57,7 +59,6 @@ case class Command(command: Seq[String], extraEnv: Seq[(String, String)]) {
         )
       )
     )
-  }
 
   /**
     * A textual representation of the command in a format that can be copied in
