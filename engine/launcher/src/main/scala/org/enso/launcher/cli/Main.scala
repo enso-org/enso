@@ -398,7 +398,7 @@ object Main {
       val key = Opts.positionalArgument[String](
         "KEY",
         "Setting KEYs `author.name` and `author.email` can be used to set a" +
-        " default author and maintainer of newly created projects."
+        " default author and maintainer for newly created projects."
       )
       val value = Opts.optionalArgument[String](
         "VALUE",

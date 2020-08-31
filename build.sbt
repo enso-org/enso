@@ -487,7 +487,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     libraryDependencies ++= circe ++ Seq(
         "org.scalatest" %% "scalatest"  % scalatestVersion % Test,
         "nl.gn0s1s"     %% "bump"       % bumpVersion,
-        "io.circe"      %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versionin
+        "io.circe"      %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
         "commons-io"     % "commons-io" % commonsIoVersion
       )
   )

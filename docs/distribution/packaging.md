@@ -98,10 +98,10 @@ version: 1.0.1
 enso-version: 0.1.0
 authors:
   - name: John Doe
-    email: john.doe@example.com>
+    email: john.doe@example.com
 maintainers:
   - name: Jane Doe
-    email: jane.doe@example.com>
+    email: jane.doe@example.com
 resolver: lts-1.2.0
 extra-dependencies:
   - name: Base
