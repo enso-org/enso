@@ -30,26 +30,6 @@ window.showAnimation = animate_show(win)
 
 
 
-// ==========================================
-// === [MacOS] Show / Hide Window Buttons ===
-// ==========================================
-
-windowButtonsVisible = false
-win.setWindowButtonVisibility(windowButtonsVisible)
-window.addEventListener('mousemove', e => {
-    if(e.clientY < 36 && e.clientX < 80) {
-        if(!windowButtonsVisible) {
-            windowButtonsVisible = true
-            win.setWindowButtonVisibility(windowButtonsVisible)
-        }
-    } else if (windowButtonsVisible) {
-        windowButtonsVisible = false
-        win.setWindowButtonVisibility(windowButtonsVisible)
-    }
-})
-
-
-
 // ===================
 // === Debug Tools ===
 // ===================
