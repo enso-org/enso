@@ -1,6 +1,6 @@
 package org.enso.launcher.components
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, StandardOpenOption}
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.CLIOutput
@@ -16,7 +16,7 @@ import org.enso.launcher.releases.{
 import org.enso.launcher.{FileSystem, Launcher, Logger}
 
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success, Try, Using}
 
 /**
   * Manages runtime and engine components.
@@ -132,7 +132,16 @@ class ComponentsManager(
     */
   def findEngine(version: SemVer): Option[Engine] =
     getEngine(version)
-      .map(Some(_))
+      .map { engine =>
+        if (engine.isMarkedBroken) {
+          Logger.warn(
+            s"Running an engine release ($version) that is marked as broken. " +
+            s"Please consider upgrading to a stable release."
+          )
+        }
+
+        Some(engine)
+      }
       .recoverWith {
         case _: ComponentMissingError        => Success(None)
         case e: LauncherUpgradeRequiredError => Failure(e)
@@ -198,7 +207,6 @@ class ComponentsManager(
     * @return
     */
   def listInstalledEngines(): Seq[Engine] = {
-
     FileSystem
       .listDirectory(distributionManager.paths.engines)
       .map(path => (path, loadEngine(path)))
@@ -313,6 +321,29 @@ class ComponentsManager(
         }
       }
 
+      if (engineRelease.isBroken) {
+        try {
+          Using(
+            Files.newBufferedWriter(
+              engineTemporaryPath / Manifest.DEFAULT_MANIFEST_NAME,
+              StandardOpenOption.WRITE,
+              StandardOpenOption.APPEND
+            )
+          ) { writer =>
+            writer.newLine()
+            writer.write(s"${Manifest.Fields.brokenMark}: true\n")
+          }.get
+        } catch {
+          case ex: Exception =>
+            undoTemporaryEngine()
+            throw InstallationError(
+              "Cannot add the broken mark to the installed engine's " +
+              "manifest. The installation has failed.",
+              ex
+            )
+        }
+      }
+
       val temporaryEngine = loadEngine(engineTemporaryPath).getOrElse {
         undoTemporaryEngine()
         throw InstallationError(
@@ -321,7 +352,9 @@ class ComponentsManager(
       }
 
       try {
-        if (temporaryEngine.manifest != engineRelease.manifest) {
+        val patchedReleaseManifest =
+          engineRelease.manifest.copy(brokenMark = engineRelease.isBroken)
+        if (temporaryEngine.manifest != patchedReleaseManifest) {
           undoTemporaryEngine()
           throw InstallationError(
             "Manifest of installed engine does not match the published " +
@@ -329,8 +362,6 @@ class ComponentsManager(
             "may possibly be corrupted. Reverting installation."
           )
         }
-
-        // TODO [RW] FIXME preserve the broken mark somehow, modify manifest perhaps?
 
         findOrInstallRuntime(temporaryEngine, complain = false)
 
