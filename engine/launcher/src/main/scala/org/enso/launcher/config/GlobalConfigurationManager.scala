@@ -1,5 +1,6 @@
 package org.enso.launcher.config
 
+import java.io.BufferedWriter
 import java.nio.file.{Files, NoSuchFileException, Path}
 
 import io.circe.yaml
@@ -56,13 +57,17 @@ class GlobalConfigurationManager(
       .readConfig(configLocation)
       .recoverWith {
         case _: NoSuchFileException =>
+          Logger.debug(
+            s"Global config (at ${configLocation.toAbsolutePath} not found, " +
+            s"falling back to defaults."
+          )
           Success(GlobalConfig.Default)
       }
       .get
 
   def updateConfig(update: GlobalConfig => GlobalConfig): Unit = {
     val updated = update(getConfig)
-    GlobalConfigurationManager.writeConfig(configLocation, updated)
+    GlobalConfigurationManager.writeConfig(configLocation, updated).get
   }
 }
 
@@ -81,12 +86,17 @@ object GlobalConfigurationManager {
       } yield config
     }.flatMap(_.toTry)
 
-  def writeConfig(path: Path, config: GlobalConfig): Try[Unit] =
-    Using(Files.newBufferedWriter(path)) { writer =>
+  def writeConfig(path: Path, config: GlobalConfig): Try[Unit] = {
+    def bufferedWriter: BufferedWriter = {
+      Files.createDirectories(path.getParent)
+      Files.newBufferedWriter(path)
+    }
+    Using(bufferedWriter) { writer =>
       val string = yaml.Printer.spaces2
         .copy(preserveOrder = true)
         .pretty(GlobalConfig.encoder(config))
       writer.write(string)
       writer.newLine()
     }
+  }
 }

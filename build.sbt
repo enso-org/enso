@@ -1052,6 +1052,7 @@ lazy val launcher = project
     assemblyOutputPath in assembly := file("launcher.jar")
   )
   .settings(
+    parallelExecution in Test := false,
     (Test / test) := (Test / test)
         .dependsOn(
           NativeImage.incrementalNativeImageBuild(
