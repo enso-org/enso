@@ -3,7 +3,8 @@ package org.enso.launcher.project
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.{GlobalConfigurationManager, Logger}
+import org.enso.launcher.Logger
+import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 
 import scala.util.{Failure, Try}
@@ -22,6 +23,9 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
     * Creates a new project at the specified path with the given name.
     *
     * If the version is not provided, the default Enso engine version is used.
+    * If `author.name` or `author.email` are set in the global config, their
+    * values are used to set a default author and maintainer for the created
+    * project.
     *
     * @param name specifies the name of the project
     * @param path specifies where the project should be created
@@ -33,13 +37,20 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
     path: Path,
     ensoVersion: Option[SemVer] = None
   ): Unit = {
-    packageManager.create(
+    val globalConfig = globalConfigurationManager.getConfig
+    val pkg = packageManager.create(
       root = path.toFile,
       name = name,
       ensoVersion = SemVerEnsoVersion(
         ensoVersion.getOrElse(globalConfigurationManager.defaultVersion)
       )
     )
+    globalConfig.defaultAuthor.foreach { contact =>
+      pkg.updateConfig(config =>
+        config.copy(authors = List(contact), maintainers = List(contact))
+      )
+    }
+
     Logger.info(s"Project created in `$path`.")
   }
 

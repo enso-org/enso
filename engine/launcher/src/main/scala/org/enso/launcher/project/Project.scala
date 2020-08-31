@@ -4,8 +4,8 @@ import java.io.File
 import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.GlobalConfigurationManager
-import org.enso.pkg.{DefaultEnsoVersion, Package, SemVerEnsoVersion}
+import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.pkg.{Config, DefaultEnsoVersion, Package, SemVerEnsoVersion}
 
 /**
   * Represents an Enso project.
@@ -42,4 +42,9 @@ class Project(
     * The path to the content root of the project.
     */
   def path: Path = pkg.root.toPath
+
+  /**
+    * Project configuration.
+    */
+  def config: Config = pkg.config
 }

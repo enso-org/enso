@@ -6,7 +6,8 @@ import org.apache.commons.io.FileUtils
 import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.cli.InternalOpts
-import org.enso.launcher.{FileSystem, GlobalConfigurationManager, Logger, OS}
+import org.enso.launcher.config.GlobalConfigurationManager
+import org.enso.launcher.{FileSystem, Logger, OS}
 
 /**
   * Allows to [[uninstall]] an installed distribution.

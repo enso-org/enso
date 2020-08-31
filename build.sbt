@@ -485,9 +485,10 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-        "nl.gn0s1s" %% "bump"       % bumpVersion,
-        "io.circe"  %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versionin
-        "commons-io" % "commons-io" % commonsIoVersion
+        "org.scalatest" %% "scalatest"  % scalatestVersion % Test,
+        "nl.gn0s1s"     %% "bump"       % bumpVersion,
+        "io.circe"      %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
+        "commons-io"     % "commons-io" % commonsIoVersion
       )
   )
   .settings(licenseSettings)
@@ -1051,6 +1052,7 @@ lazy val launcher = project
     assemblyOutputPath in assembly := file("launcher.jar")
   )
   .settings(
+    parallelExecution in Test := false,
     (Test / test) := (Test / test)
         .dependsOn(
           NativeImage.incrementalNativeImageBuild(

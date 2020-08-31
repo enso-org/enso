@@ -2,12 +2,83 @@ package org.enso.pkg
 
 import io.circe.syntax._
 import io.circe.generic.auto._
-import io.circe.{yaml, Decoder, Encoder, Json}
+import io.circe.{yaml, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.yaml.Printer
 
 import scala.util.Try
 
+/**
+  * An extra project dependency.
+  * @param name name of the package
+  * @param version package version
+  */
 case class Dependency(name: String, version: String)
+
+/**
+  * Contact information to a user.
+  *
+  * Used for defining authors and maintainers.
+  * At least one of the fields must not be None.
+  * @param name contact name
+  * @param email contact email
+  */
+case class Contact(name: Option[String], email: Option[String]) {
+  if (name.isEmpty && email.isEmpty)
+    throw new IllegalArgumentException(
+      "At least one of fields `name` or `email` must be defined."
+    )
+
+  /**
+    * @inheritdoc
+    */
+  override def toString: String = {
+    val space = if (name.isDefined && email.isDefined) " " else ""
+    name.getOrElse("") + space + email.map(email => s"<$email>").getOrElse("")
+  }
+}
+object Contact {
+
+  /**
+    * Fields for use when serializing the [[Contact]].
+    */
+  object Fields {
+    val Name  = "name"
+    val Email = "email"
+  }
+
+  /**
+    * [[Encoder]] instance for the [[Contact]].
+    */
+  implicit val encoder: Encoder[Contact] = { contact =>
+    val name  = contact.name.map(Fields.Name -> _.asJson)
+    val email = contact.email.map(Fields.Email -> _.asJson)
+    Json.obj((name.toSeq ++ email.toSeq): _*)
+  }
+
+  /**
+    * [[Decoder]] instance for the [[Contact]].
+    */
+  implicit val decoder: Decoder[Contact] = { json =>
+    def verifyAtLeastOneDefined(
+      name: Option[String],
+      email: Option[String]
+    ): Either[DecodingFailure, Unit] =
+      if (name.isEmpty && email.isEmpty)
+        Left(
+          DecodingFailure(
+            "At least one of the fields `name`, `email` must be defined.",
+            json.history
+          )
+        )
+      else Right(())
+
+    for {
+      name  <- json.getOrElse[Option[String]](Fields.Name)(None)
+      email <- json.getOrElse[Option[String]](Fields.Email)(None)
+      _     <- verifyAtLeastOneDefined(name, email)
+    } yield Contact(name, email)
+  }
+}
 
 /**
   * Represents a package configuration stored in the `package.yaml` file.
@@ -18,19 +89,23 @@ case class Dependency(name: String, version: String)
   *                    can be set to `default` which defaults to the locally
   *                    installed version
   * @param license package license
-  * @param author name and contact information of the package author(s)
-  * @param maintainer name and contact information of current package
+  * @param authors name and contact information of the package author(s)
+  * @param maintainers name and contact information of current package
   *                   maintainer(s)
   * @param dependencies a list of package dependencies
+  * @param originalJson a Json object holding the original values that this
+  *                     Config was created from, used to preserve configuration
+  *                     keys that are not known
   */
 case class Config(
   name: String,
   version: String,
   ensoVersion: EnsoVersion,
   license: String,
-  author: List[String],
-  maintainer: List[String],
-  dependencies: List[Dependency]
+  authors: List[Contact],
+  maintainers: List[Contact],
+  dependencies: List[Dependency],
+  originalJson: Json = Json.obj()
 ) {
 
   /**
@@ -46,22 +121,9 @@ object Config {
     val version: String      = "version"
     val ensoVersion: String  = "enso-version"
     val license: String      = "license"
-    val author: String       = "author"
-    val maintainer: String   = "maintainer"
+    val author: String       = "authors"
+    val maintainer: String   = "maintainers"
     val dependencies: String = "dependencies"
-  }
-
-  private val decodeContactsList: Decoder[List[String]] = { json =>
-    json
-      .as[String]
-      .map(name => if (name.isEmpty) List() else List(name))
-      .orElse(json.as[List[String]])
-  }
-
-  private val encodeContactsList: Encoder[List[String]] = {
-    case List()     => "".asJson
-    case List(elem) => elem.asJson
-    case l          => l.asJson
   }
 
   implicit val decoder: Decoder[Config] = { json =>
@@ -70,13 +132,9 @@ object Config {
       version <- json.getOrElse[String](JsonFields.version)("dev")
       ensoVersion <-
         json.getOrElse[EnsoVersion](JsonFields.ensoVersion)(DefaultEnsoVersion)
-      license <- json.getOrElse(JsonFields.license)("")
-      author <- json.getOrElse[List[String]](JsonFields.author)(List())(
-        decodeContactsList
-      )
-      maintainer <- json.getOrElse[List[String]](JsonFields.maintainer)(List())(
-        decodeContactsList
-      )
+      license    <- json.getOrElse(JsonFields.license)("")
+      author     <- json.getOrElse[List[Contact]](JsonFields.author)(List())
+      maintainer <- json.getOrElse[List[Contact]](JsonFields.maintainer)(List())
       dependencies <- json.getOrElse[List[Dependency]](JsonFields.dependencies)(
         List()
       )
@@ -87,19 +145,22 @@ object Config {
       license,
       author,
       maintainer,
-      dependencies
+      dependencies,
+      json.value
     )
   }
 
   implicit val encoder: Encoder[Config] = { config =>
-    val base = Json.obj(
+    val originals = config.originalJson
+    val overrides = Json.obj(
       JsonFields.name        -> config.name.asJson,
       JsonFields.version     -> config.version.asJson,
       JsonFields.ensoVersion -> config.ensoVersion.asJson,
       JsonFields.license     -> config.license.asJson,
-      JsonFields.author      -> encodeContactsList(config.author),
-      JsonFields.maintainer  -> encodeContactsList(config.maintainer)
+      JsonFields.author      -> config.authors.asJson,
+      JsonFields.maintainer  -> config.maintainers.asJson
     )
+    val base = originals.deepMerge(overrides)
     val withDeps =
       if (config.dependencies.nonEmpty)
         base.deepMerge(
@@ -109,6 +170,9 @@ object Config {
     withDeps
   }
 
+  /**
+    * Tries to parse the [[Config]] from a YAML string.
+    */
   def fromYaml(yamlString: String): Try[Config] = {
     yaml.parser.parse(yamlString).flatMap(_.as[Config]).toTry
   }
