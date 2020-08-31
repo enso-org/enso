@@ -37,6 +37,7 @@ class GlobalConfigurationManager(
         val latestInstalled =
           componentsManager
             .listInstalledEngines()
+            .filter(!_.isMarkedBroken)
             .map(_.version)
             .sorted
             .lastOption
