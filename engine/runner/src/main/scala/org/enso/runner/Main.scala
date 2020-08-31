@@ -307,7 +307,11 @@ object Main {
     */
   private def runRepl(projectPath: Option[String]): Unit = {
     val mainMethodName           = "internal_repl_entry_point___"
-    val dummySourceToTriggerRepl = s"$mainMethodName = Debug.breakpoint"
+    val dummySourceToTriggerRepl =
+      s"""from Builtins import all
+         |
+         |$mainMethodName = Debug.breakpoint
+         |""".stripMargin
     val replModuleName           = "Internal_Repl_Module___"
     val packagePath              = projectPath.getOrElse("")
     val context =
