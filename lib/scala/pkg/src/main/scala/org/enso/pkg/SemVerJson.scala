@@ -1,9 +1,10 @@
 package org.enso.pkg
 
-import io.circe.{Decoder, DecodingFailure}
+import io.circe.{Decoder, DecodingFailure, Encoder}
+import io.circe.syntax._
 import nl.gn0s1s.bump.SemVer
 
-object SemVerDecoder {
+object SemVerJson {
 
   /**
     * [[Decoder]] instance allowing to parse semantic versioning strings.
@@ -19,4 +20,9 @@ object SemVerDecoder {
       )
     } yield version
   }
+
+  /**
+    * [[Encoder]] instance allowing to serialize semantic versioning strings.
+    */
+  implicit val semverEncoder: Encoder[SemVer] = _.toString.asJson
 }

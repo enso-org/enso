@@ -3,6 +3,7 @@ package org.enso.launcher
 import java.nio.file.Path
 
 import buildinfo.Info
+import io.circe.Json
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.components.DefaultComponentsManager
@@ -12,6 +13,7 @@ import org.enso.launcher.components.runner.{
   Runner,
   WhichEngine
 }
+import org.enso.launcher.config.{DefaultVersion, GlobalConfigurationManager}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.project.ProjectManager
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
@@ -25,7 +27,7 @@ import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 case class Launcher(cliOptions: GlobalCLIOptions) {
   private lazy val componentsManager = DefaultComponentsManager(cliOptions)
   private lazy val configurationManager =
-    new GlobalConfigurationManager(componentsManager)
+    new GlobalConfigurationManager(componentsManager, DistributionManager)
   private lazy val projectManager = new ProjectManager(configurationManager)
   private lazy val runner =
     new Runner(
@@ -41,8 +43,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * If `path` is not set, the project is created in a directory called `name`
     * in the current directory.
     *
-    * TODO [RW] this is not the final implementation, it will be finished in
-    *  #977
+    * If `author.name` or `author.email` are set in the global config, their
+    * values are used to set a default author and maintainer for the created
+    * project.
     */
   def newProject(name: String, path: Option[Path]): Unit = {
     val actualPath = path.getOrElse(Launcher.workingDirectory.resolve(name))
@@ -220,12 +223,63 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   }
 
   /**
+    * Updates the global configuration.
+    *
+    * If `value` is an empty string, the `key` is removed from the configuration
+    * (if it exists). If `value` is non-empty the key is added or updated in the
+    * config. Any updates that set a known key to an invalid value which would
+    * prevent from loading the config are cancelled.
+    */
+  def updateConfig(key: String, value: String): Unit = {
+    if (value.isEmpty) {
+      configurationManager.removeFromConfig(key)
+      Logger.info(
+        s"""Key `$key` removed from the global configuration file """ +
+        s"(${configurationManager.configLocation.toAbsolutePath})."
+      )
+    } else {
+      configurationManager.updateConfigRaw(key, Json.fromString(value))
+      Logger.info(
+        s"""Key `$key` set to "$value" in the global configuration file """ +
+        s"(${configurationManager.configLocation.toAbsolutePath})."
+      )
+    }
+  }
+
+  /**
+    * Prints the value of `key` from the global configuration.
+    *
+    * If the `key` is not set in the config, sets exit code to 1 and prints a
+    * warning.
+    */
+  def printConfig(key: String): Unit = {
+    configurationManager.getConfig.original.apply(key) match {
+      case Some(value) =>
+        println(value)
+        sys.exit()
+      case None =>
+        Logger.warn(s"Key $key is not set in the global config.")
+        sys.exit(1)
+    }
+  }
+
+  /**
     * Sets the default Enso version.
     */
-  def setDefaultVersion(version: SemVer): Unit = {
-    val _ = version
-    Logger.error("This feature is not implemented yet.")
-    sys.exit(1)
+  def setDefaultVersion(version: DefaultVersion): Unit = {
+    configurationManager.updateConfig { config =>
+      config.copy(defaultVersion = version)
+    }
+
+    version match {
+      case DefaultVersion.LatestInstalled =>
+        Logger.info(
+          s"Default Enso version set to the latest installed version, " +
+          s"currently ${configurationManager.defaultVersion}."
+        )
+      case DefaultVersion.Exact(version) =>
+        Logger.info(s"Default Enso version set to $version.")
+    }
   }
 
   /**

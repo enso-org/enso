@@ -96,8 +96,12 @@ license: MIT
 name: My_Package
 version: 1.0.1
 enso-version: 0.1.0
-author: "John Doe <john.doe@example.com>"
-maintainer: "Jane Doe <jane.doe@example.com>"
+authors:
+  - name: John Doe
+    email: john.doe@example.com
+maintainers:
+  - name: Jane Doe
+    email: jane.doe@example.com
 resolver: lts-1.2.0
 extra-dependencies:
   - name: Base
@@ -132,16 +136,25 @@ if the package is to be published.
 format. If not set, it defaults to `dev` (which can be used for development, but
 is not a valid version for publishing).
 
-#### author
+#### authors
 
-**Optional** _String_ or _List of Strings_: The name(s) and contact info(s) of
-the author(s) of this library, in the `Name <contact>` or `Name` format.
+**Optional** _List of contacts_: The name(s) and contact info(s) of the
+author(s) of this library.
 
-#### maintainer
+A contact is of the form:
 
-**Optional** _String_ or _List of Strings_: The name(s) and contact info(s) of
-the current maintainer(s) of this library, in the `Name <contact>` or `Name`
-format.
+```yaml
+name: Contact Name
+email: email@example.com
+```
+
+Both `name` and `email` fields are optional, but at least one of them has to be
+present.
+
+#### maintainers
+
+**Optional** _List of contacts_: The name(s) and contact info(s) of the current
+maintainer(s) of this library, in the same format as `authors` above.
 
 #### resolver
 

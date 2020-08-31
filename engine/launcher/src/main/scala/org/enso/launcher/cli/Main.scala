@@ -9,6 +9,7 @@ import org.enso.cli.Opts.implicits._
 import org.enso.cli._
 import org.enso.launcher.cli.Arguments._
 import org.enso.launcher.components.runner.LanguageServerOptions
+import org.enso.launcher.config.DefaultVersion
 import org.enso.launcher.installation.DistributionInstaller.BundleAction
 import org.enso.launcher.installation.{
   DistributionInstaller,
@@ -220,10 +221,11 @@ object Main {
 
   private def defaultCommand: Command[Config => Unit] =
     Command("default", "Print or change the default Enso version.") {
-      val version = Opts.optionalArgument[SemVer](
+      val version = Opts.optionalArgument[DefaultVersion](
         "VERSION",
         "If provided, sets default version to VERSION. " +
-        "Otherwise, current default is displayed."
+        "Otherwise, current default is displayed. VERSION can be an Enso " +
+        "version string or `latest-installed`."
       )
       version map { version => (config: Config) =>
         val launcher = Launcher(config)
@@ -392,17 +394,23 @@ object Main {
     }
 
   private def configCommand: Command[Config => Unit] =
-    Command("config", "Modify project or user configuration.") {
-      val global = Opts.flag(
-        "global",
-        "Set global user config. By default sets config of current project.",
-        showInUsage = true
+    Command("config", "Modify global user configuration.") {
+      val key = Opts.positionalArgument[String](
+        "KEY",
+        "Setting KEYs `author.name` and `author.email` can be used to set a" +
+        " default author and maintainer for newly created projects."
       )
-      val key   = Opts.positionalArgument[String]("KEY")
-      val value = Opts.positionalArgument[String]("VALUE")
-      (key, value, global) mapN { (key, value, global) => (_: Config) =>
-        val which = if (global) "global" else "local"
-        println(s"Set in the $which config $key => $value")
+      val value = Opts.optionalArgument[String](
+        "VALUE",
+        "Setting VALUE to an empty string removes the key from the " +
+        "configuration. When a VALUE is not provided, current configured " +
+        "value is printed."
+      )
+      (key, value) mapN { (key, value) => (config: Config) =>
+        value match {
+          case Some(value) => Launcher(config).updateConfig(key, value)
+          case None        => Launcher(config).printConfig(key)
+        }
       }
     }
 
