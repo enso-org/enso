@@ -15,7 +15,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be used in function bodies" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.a = 10
           |Unit.addTen = b -> a Unit + b
           |
@@ -27,7 +28,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be passed when given out of order" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.subtract = a -> b -> a - b
           |
           |main = subtract Unit (b = 10) (a = 5)
@@ -51,7 +53,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be definable" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.addNum = a -> (num = 10) -> a + num
           |
           |main = addNum Unit 5
@@ -62,7 +65,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be able to default to complex expressions" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.add = a -> b -> a + b
           |Unit.doThing = a -> (b = add Unit 1 2) -> a + b
           |
@@ -87,7 +91,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be used in functions when no arguments are supplied" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.addTogether = (a = 5) -> (b = 6) -> a + b
           |
           |main = addTogether Unit
@@ -98,7 +103,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be overridable by name" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.addNum = a -> (num = 10) -> a + num
           |
           |main = addNum Unit 1 (num = 1)
@@ -109,7 +115,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "overridable by position" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.addNum = a -> (num = 10) -> a + num
           |
           |main = addNum Unit 1 2
@@ -120,7 +127,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "work in a recursive context" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.summer = sumTo ->
           |  summator = (acc = 0) -> current ->
           |      if current == 0 then acc else summator (current = current - 1) (acc = acc + current)
@@ -150,7 +158,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be applied in a sequence compatible with Eta-expansions" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.foo = a -> b -> c -> a -> a
           |main = foo Unit 20 (a = 10) 0 0
           |""".stripMargin
@@ -160,7 +169,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be able to depend on prior arguments" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.doubleOrAdd = a -> (b = a) -> a + b
           |
           |main = doubleOrAdd Unit 5
@@ -171,7 +181,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "not be able to depend on later arguments" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.badArgFn = a -> (b = c) -> (c = a) -> a + b + c
           |
           |main = badArgFn Unit 3
@@ -232,7 +243,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "work with constructors" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type Cons2 head (rest = Nil2)
           |type Nil2
           |
@@ -248,7 +260,8 @@ class NamedArgumentsTest extends InterpreterTest {
 
     "be assignable from Vectors" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    lam = (x=[1,3]) -> y -> y + Polyglot.get_array_element x 0 + Polyglot.get_array_element x 1
           |    lam y=10

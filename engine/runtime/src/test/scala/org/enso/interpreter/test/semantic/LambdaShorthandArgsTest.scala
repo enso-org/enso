@@ -50,7 +50,8 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     "work with mixfix functions" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Number.if_then_else = ~t -> ~f -> if this == 0 then t else f
           |
           |main =
@@ -65,7 +66,8 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     "work with case expressions" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    f = case _ of
           |           Cons a b -> 10
@@ -139,7 +141,8 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     "work properly with vector literals" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    fun = [1, _, (1 + 2), _]
           |    vec = fun 2 4

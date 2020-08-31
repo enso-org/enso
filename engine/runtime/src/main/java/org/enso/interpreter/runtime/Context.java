@@ -168,40 +168,6 @@ public class Context {
   }
 
   /**
-   * Creates a new module scope that automatically imports all the builtin types and methods.
-   *
-   * @param module the module related to the newly created scope.
-   * @return a new module scope with automatic builtins dependency.
-   */
-  public ModuleScope createScope(Module module) {
-    ModuleScope moduleScope = new ModuleScope(module);
-    initializeScope(moduleScope);
-    return moduleScope;
-  }
-
-  /**
-   * Creates a new module with scope that automatically imports all the builtin types and methods.
-   *
-   * @param name the qualified name of the newly created module.
-   * @return a new module containing scope with automatic builtins dependency.
-   */
-  public Module createModule(QualifiedName name) {
-    Module module = Module.empty(name);
-    initializeScope(module.compileScope(this));
-    return module;
-  }
-
-  /**
-   * Removes all contents from a given scope.
-   *
-   * @param scope the scope to reset.
-   */
-  public void resetScope(ModuleScope scope) {
-    scope.reset();
-    initializeScope(scope);
-  }
-
-  /**
    * Fetches the module name associated with a given file, using the environment packages
    * information.
    *
@@ -270,10 +236,6 @@ public class Context {
   public Optional<Module> createModuleForFile(File path) {
     return getModuleNameForFile(path)
         .map(name -> getTopScope().createModule(name, getTruffleFile(path)));
-  }
-
-  private void initializeScope(ModuleScope scope) {
-    scope.addImport(getBuiltins().getScope());
   }
 
   /**

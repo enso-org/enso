@@ -10,7 +10,8 @@ class SequenceLiteralsTest extends InterpreterTest {
   ): Unit = {
     "create collections, with fields accessible through the Polyglot API" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type My x y
           |
           |main =

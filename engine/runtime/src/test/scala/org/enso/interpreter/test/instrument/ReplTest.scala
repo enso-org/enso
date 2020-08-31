@@ -19,6 +19,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "initialize properly" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main = Debug.breakpoint
           |""".stripMargin
       setSessionManager(executor => executor.exit())
@@ -28,6 +30,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "be able to execute arbitrary code in the caller scope" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    x = 1
           |    y = 2
@@ -46,6 +50,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "return the last evaluated value back to normal execution flow" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    a = 5
           |    b = 6
@@ -62,6 +68,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "be able to define its local variables" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    x = 10
           |    Debug.breakpoint
@@ -78,6 +86,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "not overwrite bindings" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    x = 10
           |    Debug.breakpoint
@@ -93,6 +103,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "access and modify monadic state" in {
       val code =
         """
+          |from Builtins import all
+          |
           |run =
           |    State.put Number 10
           |    Debug.breakpoint
@@ -111,6 +123,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "be able to list local variables in its scope" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    x = 10
           |    y = 20
@@ -135,6 +149,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "be able to list bindings it has created" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    x = 10
           |    y = 20
@@ -160,6 +176,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "allow to be nested" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    10 * Debug.breakpoint + 1
           |""".stripMargin
@@ -181,6 +199,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "behave well when nested" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    x = 1
           |    10 * Debug.breakpoint + x
@@ -206,6 +226,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "handle errors gracefully" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    Debug.breakpoint
           |""".stripMargin
@@ -224,6 +246,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "attach language stack traces to the exception" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    Debug.breakpoint
           |""".stripMargin
@@ -248,6 +272,8 @@ class ReplTest extends InterpreterTest with BeforeAndAfter with EitherValues {
     "not pollute bindings upon nested error" in {
       val code =
         """
+          |from Builtins import all
+          |
           |main =
           |    Debug.breakpoint
           |""".stripMargin

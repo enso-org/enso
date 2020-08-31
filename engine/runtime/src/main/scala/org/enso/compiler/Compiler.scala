@@ -101,8 +101,8 @@ class Compiler(val context: Context) {
   }
 
   private def parseModule(module: Module): Unit = {
-    module.ensureScopeExists(context)
-    context.resetScope(module.getScope)
+    module.ensureScopeExists()
+    module.getScope.reset()
     val moduleContext = ModuleContext(
       module          = module,
       freshNameSupply = Some(freshNameSupply)

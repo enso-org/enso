@@ -15,7 +15,8 @@ class ErrorsTest extends InterpreterTest {
 
     "be thrown and stop evaluation" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type Foo
           |type Bar
           |type Baz
@@ -34,7 +35,8 @@ class ErrorsTest extends InterpreterTest {
 
     "be recoverable and transformed into errors" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type MyError
           |
           |main =
@@ -49,7 +51,8 @@ class ErrorsTest extends InterpreterTest {
 
     "propagate through pattern matches" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type MyError
           |
           |main =
@@ -66,7 +69,8 @@ class ErrorsTest extends InterpreterTest {
 
     "propagate through specialized pattern matches" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type MyError
           |
           |main =
@@ -84,7 +88,8 @@ class ErrorsTest extends InterpreterTest {
 
     "be catchable by a user-provided special handling function" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    intError = Error.throw 1
           |    intError.catch (x -> x + 3)
@@ -94,7 +99,8 @@ class ErrorsTest extends InterpreterTest {
 
     "accept a constructor handler in catch function" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type MyCons err
           |
           |main =
@@ -107,7 +113,8 @@ class ErrorsTest extends InterpreterTest {
 
     "accept a method handle in catch function" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type MyRecovered x
           |type MyError x
           |

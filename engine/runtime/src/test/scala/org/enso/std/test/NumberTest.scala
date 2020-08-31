@@ -10,7 +10,8 @@ class NumberTest extends InterpreterTest {
   ): Unit = {
     "support equality comparisons" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    IO.println 7==5
           |    IO.println 30==30

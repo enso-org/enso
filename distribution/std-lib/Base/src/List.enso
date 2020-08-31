@@ -1,4 +1,4 @@
-import Builtins
+from Builtins import all
 
 from Builtins export Nil, Cons
 

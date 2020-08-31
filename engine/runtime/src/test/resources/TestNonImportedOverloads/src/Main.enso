@@ -1,3 +1,4 @@
+from Builtins import all
 from TestNonImportedOverloads.Util import all
 
 X.method = 10

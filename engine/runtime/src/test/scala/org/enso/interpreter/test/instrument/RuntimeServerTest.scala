@@ -106,15 +106,17 @@ class RuntimeServerTest
 
       val metadata = new Metadata
 
-      val idMainX = metadata.addItem(16, 1)
-      val idMainY = metadata.addItem(26, 7)
-      val idMainZ = metadata.addItem(42, 5)
-      val idFooY  = metadata.addItem(81, 8)
-      val idFooZ  = metadata.addItem(98, 5)
+      val idMainX = metadata.addItem(42, 1)
+      val idMainY = metadata.addItem(52, 7)
+      val idMainZ = metadata.addItem(68, 5)
+      val idFooY  = metadata.addItem(107, 8)
+      val idFooZ  = metadata.addItem(124, 5)
 
       def code =
         metadata.appendToCode(
           """
+            |from Builtins import all
+            |
             |main =
             |    x = 6
             |    y = x.foo 5
@@ -205,11 +207,13 @@ class RuntimeServerTest
     object Main2 {
 
       val metadata = new Metadata
-      val idMainY  = metadata.addItem(148, 10)
-      val idMainZ  = metadata.addItem(167, 10)
+      val idMainY  = metadata.addItem(174, 10)
+      val idMainZ  = metadata.addItem(193, 10)
 
       val code = metadata.appendToCode(
         """
+          |from Builtins import all
+          |
           |foo = arg ->
           |    IO.println "I'm expensive!"
           |    arg + 5
@@ -382,11 +386,13 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(23, 17)
-    val idMainFoo = metadata.addItem(28, 12)
+    val idMain    = metadata.addItem(49, 17)
+    val idMainFoo = metadata.addItem(54, 12)
 
     val code =
-      """foo a b = a + b
+      """from Builtins import all
+        |
+        |foo a b = a + b
         |
         |main =
         |    this.foo 1 2
@@ -483,11 +489,13 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(23, 30)
-    val idMainFoo = metadata.addItem(40, 12)
+    val idMain    = metadata.addItem(49, 30)
+    val idMainFoo = metadata.addItem(66, 12)
 
     val code =
-      """foo a b = a + b
+      """from Builtins import all
+        |
+        |foo a b = a + b
         |
         |main =
         |    IO.println (this.foo 1 2)
@@ -585,11 +593,13 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(7, 41)
-    val idMainBar = metadata.addItem(39, 8)
+    val idMain    = metadata.addItem(33, 41)
+    val idMainBar = metadata.addItem(65, 8)
 
     val code =
-      """main = IO.println (State.run Number 42 this.bar)
+      """from Builtins import all
+        |
+        |main = IO.println (State.run Number 42 this.bar)
         |
         |bar = State.get Number
         |""".stripMargin
@@ -682,11 +692,13 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(7, 40)
-    val idMainBar = metadata.addItem(38, 8)
+    val idMain    = metadata.addItem(33, 40)
+    val idMainBar = metadata.addItem(64, 8)
 
     val code =
-      """main = IO.println (State.run Number 0 this.bar)
+      """from Builtins import all
+        |
+        |main = IO.println (State.run Number 0 this.bar)
         |
         |bar =
         |    State.put Number 10
@@ -781,11 +793,13 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
 
     val metadata  = new Metadata
-    val idMain    = metadata.addItem(23, 23)
-    val idMainFoo = metadata.addItem(28, 12)
+    val idMain    = metadata.addItem(49, 23)
+    val idMainFoo = metadata.addItem(54, 12)
 
     val code =
-      """foo a b = a + b
+      """from Builtins import all
+        |
+        |foo a b = a + b
         |
         |main =
         |    this.foo 1 2
@@ -881,7 +895,7 @@ class RuntimeServerTest
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Test.Main"
-    val idMain     = context.Main.metadata.addItem(7, 47)
+    val idMain     = context.Main.metadata.addItem(33, 47)
     val idMainUpdate =
       Api.Response(
         Api.ExpressionValuesComputed(
@@ -960,7 +974,7 @@ class RuntimeServerTest
                 "x",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -970,7 +984,7 @@ class RuntimeServerTest
                 "y",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -980,7 +994,7 @@ class RuntimeServerTest
                 "z",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -990,7 +1004,7 @@ class RuntimeServerTest
                 "y",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(10, 5))
+                  .Scope(Suggestion.Position(9, 17), Suggestion.Position(12, 5))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -1000,8 +1014,8 @@ class RuntimeServerTest
                 "z",
                 "Any",
                 Suggestion.Scope(
-                  Suggestion.Position(7, 17),
-                  Suggestion.Position(10, 5)
+                  Suggestion.Position(9, 17),
+                  Suggestion.Position(12, 5)
                 )
               )
             )
@@ -1055,11 +1069,13 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
 
     val metadata  = new Metadata
-    val idResult  = metadata.addItem(20, 4)
-    val idPrintln = metadata.addItem(29, 17)
-    val idMain    = metadata.addItem(6, 40)
+    val idResult  = metadata.addItem(46, 4)
+    val idPrintln = metadata.addItem(55, 17)
+    val idMain    = metadata.addItem(32, 40)
     val code =
-      """main =
+      """from Builtins import all
+        |
+        |main =
         |    result = 1337
         |    IO.println result
         |""".stripMargin.linesIterator.mkString("\n")
@@ -1134,8 +1150,8 @@ class RuntimeServerTest
                 "result",
                 "Any",
                 Suggestion.Scope(
-                  Suggestion.Position(0, 6),
-                  Suggestion.Position(2, 21)
+                  Suggestion.Position(2, 6),
+                  Suggestion.Position(4, 21)
                 )
               )
             )
@@ -1153,7 +1169,7 @@ class RuntimeServerTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(1, 13), model.Position(1, 17)),
+              model.Range(model.Position(3, 13), model.Position(3, 17)),
               "\"Hi\""
             )
           )
@@ -1178,15 +1194,17 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(6, 35)
-    val idMainA  = metadata.addItem(15, 8)
-    val idMainP  = metadata.addItem(28, 12)
-    val idPie    = metadata.addItem(45 + 8, 1)
-    val idUwu    = metadata.addItem(58 + 8, 1)
-    val idHie    = metadata.addItem(71 + 8, 6)
-    val idXxx    = metadata.addItem(91 + 8, 1)
+    val idMain   = metadata.addItem(32, 35)
+    val idMainA  = metadata.addItem(41, 8)
+    val idMainP  = metadata.addItem(54, 12)
+    val idPie    = metadata.addItem(71 + 8, 1)
+    val idUwu    = metadata.addItem(84 + 8, 1)
+    val idHie    = metadata.addItem(97 + 8, 6)
+    val idXxx    = metadata.addItem(117 + 8, 1)
     val code =
-      """main =
+      """from Builtins import all
+        |
+        |main =
         |    a = 123 + 21
         |    IO.println a
         |
@@ -1313,8 +1331,8 @@ class RuntimeServerTest
                 "a",
                 "Any",
                 Suggestion.Scope(
-                  Suggestion.Position(0, 6),
-                  Suggestion.Position(3, 0)
+                  Suggestion.Position(2, 6),
+                  Suggestion.Position(5, 0)
                 )
               )
             )
@@ -1332,7 +1350,7 @@ class RuntimeServerTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(1, 8), model.Position(1, 16)),
+              model.Range(model.Position(3, 8), model.Position(3, 16)),
               "1234.x 4"
             )
           )
@@ -1363,7 +1381,7 @@ class RuntimeServerTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(1, 8), model.Position(1, 16)),
+              model.Range(model.Position(3, 8), model.Position(3, 16)),
               "1000.x 5"
             )
           )
@@ -1380,7 +1398,7 @@ class RuntimeServerTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(1, 8), model.Position(1, 16)),
+              model.Range(model.Position(3, 8), model.Position(3, 16)),
               "Main.pie"
             )
           )
@@ -1411,7 +1429,7 @@ class RuntimeServerTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(1, 8), model.Position(1, 16)),
+              model.Range(model.Position(3, 8), model.Position(3, 16)),
               "Main.uwu"
             )
           )
@@ -1442,7 +1460,7 @@ class RuntimeServerTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(1, 8), model.Position(1, 16)),
+              model.Range(model.Position(3, 8), model.Position(3, 16)),
               "Main.hie"
             )
           )
@@ -1473,7 +1491,7 @@ class RuntimeServerTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(1, 8), model.Position(1, 16)),
+              model.Range(model.Position(3, 8), model.Position(3, 16)),
               "\"Hello!\""
             )
           )
@@ -1498,13 +1516,15 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
 
     val metadata = new Metadata
-    val idMain   = metadata.addItem(6, 89)
-    val id1      = metadata.addItem(15, 15)
-    val id2      = metadata.addItem(35, 18)
-    val id3      = metadata.addItem(58, 16)
-    val idy      = metadata.addItem(83, 2)
+    val idMain   = metadata.addItem(32, 89)
+    val id1      = metadata.addItem(41, 15)
+    val id2      = metadata.addItem(61, 18)
+    val id3      = metadata.addItem(84, 16)
+    val idy      = metadata.addItem(109, 2)
     val code =
-      """main =
+      """from Builtins import all
+        |
+        |main =
         |    x = 15.overloaded 1
         |    "foo".overloaded 2
         |    overloaded 10 30
@@ -1643,8 +1663,8 @@ class RuntimeServerTest
                 "x",
                 "Any",
                 Suggestion.Scope(
-                  Suggestion.Position(0, 6),
-                  Suggestion.Position(6, 0)
+                  Suggestion.Position(2, 6),
+                  Suggestion.Position(8, 0)
                 )
               )
             ),
@@ -1655,8 +1675,8 @@ class RuntimeServerTest
                 "y",
                 "Any",
                 Suggestion.Scope(
-                  Suggestion.Position(0, 6),
-                  Suggestion.Position(6, 0)
+                  Suggestion.Position(2, 6),
+                  Suggestion.Position(8, 0)
                 )
               )
             )
@@ -1851,15 +1871,21 @@ class RuntimeServerTest
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
+    val code =
+      """from Builtins import all
+        |
+        |main = IO.println "I'm a file!"
+        |""".stripMargin
+
     // Create a new file
-    context.writeFile(fooFile, "main = IO.println \"I'm a file!\"")
+    context.writeFile(fooFile, code)
 
     // Open the new file
     context.send(
       Api.Request(
         Api.OpenFileNotification(
           fooFile,
-          "main = IO.println \"I'm a file!\"",
+          code,
           false
         )
       )
@@ -1913,7 +1939,7 @@ class RuntimeServerTest
           fooFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(0, 25), model.Position(0, 29)),
+              model.Range(model.Position(2, 25), model.Position(2, 29)),
               "modified"
             )
           )
@@ -2022,7 +2048,7 @@ class RuntimeServerTest
   it should "send suggestion notifications when file is executed" in {
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
-    val idMain    = context.Main.metadata.addItem(7, 47)
+    val idMain    = context.Main.metadata.addItem(33, 47)
     val idMainUpdate =
       Api.Response(
         Api.ExpressionValuesComputed(
@@ -2102,7 +2128,7 @@ class RuntimeServerTest
                 "x",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -2112,7 +2138,7 @@ class RuntimeServerTest
                 "y",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -2122,7 +2148,7 @@ class RuntimeServerTest
                 "z",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -2132,7 +2158,7 @@ class RuntimeServerTest
                 "y",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(10, 5))
+                  .Scope(Suggestion.Position(9, 17), Suggestion.Position(12, 5))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -2142,7 +2168,7 @@ class RuntimeServerTest
                 "z",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(10, 5))
+                  .Scope(Suggestion.Position(9, 17), Suggestion.Position(12, 5))
               )
             )
           )
@@ -2205,15 +2231,21 @@ class RuntimeServerTest
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
+    val code =
+      """from Builtins import all
+        |
+        |main = IO.println "I'm a file!"
+        |""".stripMargin
+
     // Create a new file
-    context.writeFile(fooFile, "main = IO.println \"I'm a file!\"")
+    context.writeFile(fooFile, code)
 
     // Open the new file
     context.send(
       Api.Request(
         Api.OpenFileNotification(
           fooFile,
-          "main = IO.println \"I'm a file!\"",
+          code,
           false
         )
       )
@@ -2267,11 +2299,11 @@ class RuntimeServerTest
           fooFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(0, 25), model.Position(0, 29)),
+              model.Range(model.Position(2, 25), model.Position(2, 29)),
               "modified"
             ),
             TextEdit(
-              model.Range(model.Position(0, 0), model.Position(0, 0)),
+              model.Range(model.Position(2, 0), model.Position(2, 0)),
               "Number.lucky = 42\n\n"
             )
           )
@@ -2669,7 +2701,11 @@ class RuntimeServerTest
     val moduleName = "Test.Main"
     val metadata   = new Metadata
 
-    val code     = "main = Number.pi"
+    val code =
+      """from Builtins import all
+        |
+        |main = Number.pi
+        |""".stripMargin
     val contents = metadata.appendToCode(code)
     context.writeMain(contents)
 
@@ -2948,7 +2984,7 @@ class RuntimeServerTest
                 "x",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -2958,7 +2994,7 @@ class RuntimeServerTest
                 "y",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -2968,7 +3004,7 @@ class RuntimeServerTest
                 "z",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(1, 6), Suggestion.Position(6, 0))
+                  .Scope(Suggestion.Position(3, 6), Suggestion.Position(8, 0))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -2978,7 +3014,7 @@ class RuntimeServerTest
                 "y",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(10, 5))
+                  .Scope(Suggestion.Position(9, 17), Suggestion.Position(12, 5))
               )
             ),
             Api.SuggestionsDatabaseUpdate.Add(
@@ -2988,7 +3024,7 @@ class RuntimeServerTest
                 "z",
                 "Any",
                 Suggestion
-                  .Scope(Suggestion.Position(7, 17), Suggestion.Position(10, 5))
+                  .Scope(Suggestion.Position(9, 17), Suggestion.Position(12, 5))
               )
             )
           )
@@ -3041,7 +3077,7 @@ class RuntimeServerTest
           mainFile,
           Seq(
             TextEdit(
-              model.Range(model.Position(2, 8), model.Position(2, 9)),
+              model.Range(model.Position(4, 8), model.Position(4, 9)),
               "5"
             )
           )

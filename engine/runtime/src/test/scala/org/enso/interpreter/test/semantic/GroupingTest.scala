@@ -52,7 +52,8 @@ class GroupingTest extends InterpreterTest {
 
     "work with pattern matches" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    fn = x -> case x of
           |        (Cons h t) -> h + fn t

@@ -59,29 +59,7 @@ class ImportResolver(compiler: Compiler) {
           case _ => None
         }
 
-        // TODO[MK] Remove when No Implicit Prelude
-        val builtinResolution = BindingsMap.ResolvedImport(
-          IR.Module.Scope.Import
-            .Module(
-              IR.Name.Qualified(
-                List(
-                  IR.Name.Literal("Builtins", isReferent = true, None),
-                  IR.Name.Literal("Main", isReferent     = true, None)
-                ),
-                None
-              ),
-              Some(IR.Name.Literal("Builtins", isReferent = true, None)),
-              isAll = true,
-              None,
-              None,
-              None
-            ),
-          None,
-          compiler.context.getBuiltins.getModule
-        )
-
-        currentLocal.resolvedImports =
-          builtinResolution :: importedModules
+        currentLocal.resolvedImports = importedModules
         current.unsafeSetCompilationStage(
           Module.CompilationStage.AFTER_IMPORT_RESOLUTION
         )

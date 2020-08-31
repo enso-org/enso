@@ -18,7 +18,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "return success exit code" in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "echo" [] "" False False False
           |    result.exit_code
           |""".stripMargin
@@ -29,7 +31,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "return error when creating nonexistent command" in {
       val code =
-        """main = System.create_process "nonexistentcommandxyz" [] "" False False False"""
+        """from Builtins import all
+          |main = System.create_process "nonexistentcommandxyz" [] "" False False False
+          |""".stripMargin
 
       val error = the[InterpreterException] thrownBy eval(code)
       error.getMessage should include("nonexistentcommandxyz")
@@ -39,7 +43,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "return error exit code" in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "ls" ["--gibberish"] "" False False False
           |    result.exit_code
           |""".stripMargin
@@ -51,7 +57,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stdin chars (Unix)" taggedAs OsUnix in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "bash" ["-c", "read line; echo $line"] "" True True True
           |    result.exit_code
           |""".stripMargin
@@ -64,7 +72,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stdin chars (Windows)" taggedAs OsWindows in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "" True True True
           |    result.exit_code
           |""".stripMargin
@@ -78,7 +88,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin bytes (Unix)" taggedAs OsUnix in {
       val input = Random.nextBytes(Byte.MaxValue)
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "bash" ["-c", "wc -c"] "" True True True
           |    result.exit_code
           |""".stripMargin
@@ -91,7 +103,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stdin unused" in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "echo" ["42"] "" True True True
           |    result.exit_code
           |""".stripMargin
@@ -104,7 +118,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stdin empty" in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "echo" ["9"] "" True True True
           |    result.exit_code
           |""".stripMargin
@@ -116,7 +132,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "provide stdin string (Unix)" taggedAs OsUnix in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "bash" ["-c", "read line; printf $line"] "hello" False False False
           |    result.stdout
           |""".stripMargin
@@ -128,7 +146,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "provide stdin string (Windows)" taggedAs OsWindows in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "hello" False False False
           |    result.stdout
           |""".stripMargin
@@ -140,7 +160,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stdout chars" in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "echo" ["foobar"] "" False True True
           |    result.exit_code
           |""".stripMargin
@@ -152,7 +174,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stdout binary (Unix)" taggedAs OsUnix in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "bash" ["-c", "printf '%b' '\\x01\\x0F\\x10'"] "" False True True
           |    result.exit_code
           |""".stripMargin
@@ -164,7 +188,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "return stdout string" in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "echo" ["foobar"] "" False False False
           |    result.stdout
           |""".stripMargin
@@ -176,7 +202,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stderr chars (Unix)" taggedAs OsUnix in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False True True
           |    result.exit_code
           |""".stripMargin
@@ -188,7 +216,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stderr chars (Windows)" taggedAs OsWindows in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False True True
           |    result.exit_code
           |""".stripMargin
@@ -200,7 +230,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "redirect stderr binary (Unix)" taggedAs OsUnix in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "bash" ["-c", "printf '%b' '\\xCA\\xFE\\xBA\\xBE' 1>&2"] "" False True True
           |    result.exit_code
           |""".stripMargin
@@ -212,7 +244,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "return stderr string (Unix)" taggedAs OsUnix in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "bash" ["-c", "printf err 1>&2"] "" False False False
           |    result.stderr
           |""".stripMargin
@@ -224,7 +258,9 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
 
     "return stderr string (Windows)" taggedAs OsWindows in {
       val code =
-        """main =
+        """from Builtins import all
+          |
+          |main =
           |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::Error.WriteLine('err')"] "" False False False
           |    result.stderr
           |""".stripMargin
