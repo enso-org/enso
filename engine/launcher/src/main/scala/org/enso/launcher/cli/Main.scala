@@ -402,9 +402,9 @@ object Main {
       )
       val value = Opts.optionalArgument[String](
         "VALUE",
-        "Setting VALUE to an empty string removes the configuration " +
-        "property. When a VALUE is not provided, current configured value is " +
-        "printed."
+        "Setting VALUE to an empty string removes the key from the " +
+        "configuration. When a VALUE is not provided, current configured " +
+        "value is printed."
       )
       (key, value) mapN { (key, value) => (config: Config) =>
         value match {

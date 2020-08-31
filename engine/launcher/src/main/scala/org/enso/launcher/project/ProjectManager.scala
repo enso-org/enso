@@ -23,6 +23,9 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
     * Creates a new project at the specified path with the given name.
     *
     * If the version is not provided, the default Enso engine version is used.
+    * If `author.name` or `author.email` are set in the global config, their
+    * values are used to set a default author and maintainer for the created
+    * project.
     *
     * @param name specifies the name of the project
     * @param path specifies where the project should be created

@@ -7,29 +7,57 @@ import io.circe.yaml.Printer
 
 import scala.util.Try
 
+/**
+  * An extra project dependency.
+  * @param name name of the package
+  * @param version package version
+  */
 case class Dependency(name: String, version: String)
+
+/**
+  * Contact information to a user.
+  *
+  * Used for defining authors and maintainers.
+  * At least one of the fields must not be None.
+  * @param name contact name
+  * @param email contact email
+  */
 case class Contact(name: Option[String], email: Option[String]) {
   if (name.isEmpty && email.isEmpty)
     throw new IllegalArgumentException(
-      "At least one of fields name or email must be defined."
+      "At least one of fields `name` or `email` must be defined."
     )
 
+  /**
+    * @inheritdoc
+    */
   override def toString: String = {
     val space = if (name.isDefined && email.isDefined) " " else ""
     name.getOrElse("") + space + email.map(email => s"<$email>").getOrElse("")
   }
 }
 object Contact {
+
+  /**
+    * Fields for use when serializing the [[Contact]].
+    */
   object Fields {
     val Name  = "name"
     val Email = "email"
   }
+
+  /**
+    * [[Encoder]] instance for the [[Contact]].
+    */
   implicit val encoder: Encoder[Contact] = { contact =>
     val name  = contact.name.map(Fields.Name -> _.asJson)
     val email = contact.email.map(Fields.Email -> _.asJson)
     Json.obj((name.toSeq ++ email.toSeq): _*)
   }
 
+  /**
+    * [[Decoder]] instance for the [[Contact]].
+    */
   implicit val decoder: Decoder[Contact] = { json =>
     def verifyAtLeastOneDefined(
       name: Option[String],
@@ -142,6 +170,9 @@ object Config {
     withDeps
   }
 
+  /**
+    * Tries to parse the [[Config]] from a YAML string.
+    */
   def fromYaml(yamlString: String): Try[Config] = {
     yaml.parser.parse(yamlString).flatMap(_.as[Config]).toTry
   }

@@ -3,8 +3,8 @@ package org.enso.launcher.config
 import java.io.BufferedWriter
 import java.nio.file.{Files, NoSuchFileException, Path}
 
-import io.circe.{yaml, Json}
 import io.circe.syntax._
+import io.circe.{yaml, Json}
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.Logger
@@ -50,9 +50,19 @@ class GlobalConfigurationManager(
         }
     }
 
+  /**
+    * Location of the global configuration file.
+    * @return
+    */
   def configLocation: Path =
     distributionManager.paths.config / GlobalConfigurationManager.globalConfigName
 
+  /**
+    * Loads the current global configuration.
+    *
+    * If the configuration file does not exist, the default config is returned.
+    * If it exists but cannot be loaded, an exception is thrown.
+    */
   def getConfig: GlobalConfig =
     GlobalConfigurationManager
       .readConfig(configLocation)
@@ -66,11 +76,21 @@ class GlobalConfigurationManager(
       }
       .get
 
+  /**
+    * Applies `update` to the current config and saves the returned value.
+    */
   def updateConfig(update: GlobalConfig => GlobalConfig): Unit = {
     val updated = update(getConfig)
     GlobalConfigurationManager.writeConfig(configLocation, updated).get
   }
 
+  /**
+    * Sets `key` to the raw JSON `value` in the config.
+    *
+    * If changing that setting would result in the config becoming unreadable
+    * (because an invalid value has been set for a known field), the config is
+    * not saved and an exception is thrown.
+    */
   def updateConfigRaw(key: String, value: Json): Unit = {
     val updated = GlobalConfig.encoder(getConfig).asObject.get.add(key, value)
     GlobalConfigurationManager
@@ -87,6 +107,12 @@ class GlobalConfigurationManager(
       .get
   }
 
+  /**
+    * Removes the `key` from the config.
+    *
+    * If removing that setting would result in the config becoming unreadable,
+    * the config is not saved and an exception is thrown.
+    */
   def removeFromConfig(key: String): Unit = {
     val updated = GlobalConfig.encoder(getConfig).asObject.get.remove(key)
     GlobalConfigurationManager.writeConfigRaw(configLocation, updated.asJson)
@@ -100,6 +126,9 @@ object GlobalConfigurationManager {
     */
   val globalConfigName: String = "global-config.yaml"
 
+  /**
+    * Tries to read the global config from the given `path`.
+    */
   def readConfig(path: Path): Try[GlobalConfig] =
     Using(Files.newBufferedReader(path)) { reader =>
       for {
@@ -108,9 +137,18 @@ object GlobalConfigurationManager {
       } yield config
     }.flatMap(_.toTry)
 
+  /**
+    * Tries to write the provided `config` to the given `path`.
+    */
   def writeConfig(path: Path, config: GlobalConfig): Try[Unit] =
     writeConfigRaw(path, GlobalConfig.encoder(config))
 
+  /**
+    * Tries to write the config from a raw JSON value to the given `path`.
+    *
+    * The config will not be saved if it is invalid, instead an exception is
+    * thrown.
+    */
   def writeConfigRaw(path: Path, rawConfig: Json): Try[Unit] = {
     def verifyConfig: Try[Unit] =
       rawConfig.as[GlobalConfig] match {

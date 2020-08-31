@@ -43,8 +43,9 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * If `path` is not set, the project is created in a directory called `name`
     * in the current directory.
     *
-    * TODO [RW] this is not the final implementation, it will be finished in
-    *  #977
+    * If `author.name` or `author.email` are set in the global config, their
+    * values are used to set a default author and maintainer for the created
+    * project.
     */
   def newProject(name: String, path: Option[Path]): Unit = {
     val actualPath = path.getOrElse(Launcher.workingDirectory.resolve(name))
@@ -221,6 +222,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     sys.exit(exitCode)
   }
 
+  /**
+    * Updates the global configuration.
+    *
+    * If `value` is an empty string, the `key` is removed from the configuration
+    * (if it exists). If `value` is non-empty the key is added or updated in the
+    * config. Any updates that set a known key to an invalid value which would
+    * prevent from loading the config are cancelled.
+    */
   def updateConfig(key: String, value: String): Unit = {
     if (value.isEmpty) {
       configurationManager.removeFromConfig(key)
@@ -237,6 +246,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     }
   }
 
+  /**
+    * Prints the value of `key` from the global configuration.
+    *
+    * If the `key` is not set in the config, sets exit code to 1 and prints a
+    * warning.
+    */
   def printConfig(key: String): Unit = {
     configurationManager.getConfig.original.apply(key) match {
       case Some(value) =>

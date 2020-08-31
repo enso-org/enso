@@ -16,7 +16,7 @@ object Logger {
   private val Warning = Level("warn", 3, System.err)
   private val Error   = Level("error", 4, System.err)
 
-  private var logLevel = Debug
+  private var logLevel = Info
   private def log(level: Level, msg: => String): Unit =
     if (level.level >= logLevel.level) {
       level.stream.println(s"[${level.name}] $msg")

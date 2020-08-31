@@ -77,7 +77,7 @@ case class Package[F](
   def rename(newName: String): Package[F] = updateConfig(_.copy(name = newName))
 
   /**
-    * Updates package config.
+    * Updates the package config.
     *
     * The changes are automatically saved to the filesystem.
     *
