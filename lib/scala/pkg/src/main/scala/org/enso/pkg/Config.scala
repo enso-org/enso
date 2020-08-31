@@ -8,6 +8,10 @@ import io.circe.yaml.Printer
 import scala.util.Try
 
 case class Dependency(name: String, version: String)
+case class Contact(name: String, email: Option[String]) {
+  override def toString: String =
+    name + email.map(email => s" <$email>").getOrElse("")
+}
 
 /**
   * Represents a package configuration stored in the `package.yaml` file.
@@ -31,8 +35,8 @@ case class Config(
   version: String,
   ensoVersion: EnsoVersion,
   license: String,
-  author: List[String],
-  maintainer: List[String],
+  author: List[Contact],
+  maintainer: List[Contact],
   dependencies: List[Dependency],
   originalJson: Json = Json.obj()
 ) {
@@ -55,17 +59,26 @@ object Config {
     val dependencies: String = "dependencies"
   }
 
-  private val decodeContactsList: Decoder[List[String]] = { json =>
+  private val decodeContactsList: Decoder[List[Contact]] = { json =>
+    def decodeContactString(string: String): Contact = {
+      val contactRegex = """(.*) <(.*)>""".r
+      string match {
+        case contactRegex(name, email) => Contact(name, Some(email))
+        case justName                  => Contact(justName, None)
+      }
+    }
+
     json
       .as[String]
-      .map(name => if (name.isEmpty) List() else List(name))
+      .map(str => if (str.isEmpty) List() else List(str))
       .orElse(json.as[List[String]])
+      .map(_.map(decodeContactString))
   }
 
-  private val encodeContactsList: Encoder[List[String]] = {
+  private val encodeContactsList: Encoder[List[Contact]] = {
     case List()     => "".asJson
-    case List(elem) => elem.asJson
-    case l          => l.asJson
+    case List(elem) => elem.toString.asJson
+    case l          => l.map(_.toString).asJson
   }
 
   implicit val decoder: Decoder[Config] = { json =>
@@ -75,12 +88,13 @@ object Config {
       ensoVersion <-
         json.getOrElse[EnsoVersion](JsonFields.ensoVersion)(DefaultEnsoVersion)
       license <- json.getOrElse(JsonFields.license)("")
-      author <- json.getOrElse[List[String]](JsonFields.author)(List())(
+      author <- json.getOrElse[List[Contact]](JsonFields.author)(List())(
         decodeContactsList
       )
-      maintainer <- json.getOrElse[List[String]](JsonFields.maintainer)(List())(
-        decodeContactsList
-      )
+      maintainer <-
+        json.getOrElse[List[Contact]](JsonFields.maintainer)(List())(
+          decodeContactsList
+        )
       dependencies <- json.getOrElse[List[Dependency]](JsonFields.dependencies)(
         List()
       )

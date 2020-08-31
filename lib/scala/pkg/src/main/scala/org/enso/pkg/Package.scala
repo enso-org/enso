@@ -71,10 +71,22 @@ case class Package[F](
     * Changes the package name.
     *
     * @param newName the new package name
-    * @return The package object with changed name. The old package is not valid anymore.
+    * @return The package object with changed name. The old package is not
+    *         valid anymore.
     */
-  def rename(newName: String): Package[F] = {
-    val newPkg = copy(config = config.copy(name = newName))
+  def rename(newName: String): Package[F] = updateConfig(_.copy(name = newName))
+
+  /**
+    * Updates package config.
+    *
+    * The changes are automatically saved to the filesystem.
+    *
+    * @param update the function that modifies the config
+    * @return The package object with changed config. The old package is not
+    *         valid anymore.
+    */
+  def updateConfig(update: Config => Config): Package[F] = {
+    val newPkg = copy(config = update(config))
     newPkg.save()
     newPkg
   }
