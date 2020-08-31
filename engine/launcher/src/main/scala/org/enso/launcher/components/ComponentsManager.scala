@@ -129,6 +129,7 @@ class ComponentsManager(
     * installed.
     *
     * Any other errors regarding loading the engine are thrown.
+    * If the engine is marked as broken, a warning is reported.
     */
   def findEngine(version: SemVer): Option[Engine] =
     getEngine(version)
@@ -285,8 +286,8 @@ class ComponentsManager(
         )
         if (!continue) {
           throw InstallationError(
-            "Installation has been cancelled because the requested engine " +
-            "release is marked as broken."
+            "Installation has been cancelled by the user because the " +
+            "requested engine release is marked as broken."
           )
         }
       }
