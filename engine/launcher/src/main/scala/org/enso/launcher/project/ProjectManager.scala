@@ -34,13 +34,20 @@ class ProjectManager(globalConfigurationManager: GlobalConfigurationManager) {
     path: Path,
     ensoVersion: Option[SemVer] = None
   ): Unit = {
-    packageManager.create(
+    val globalConfig = globalConfigurationManager.getConfig
+    val pkg = packageManager.create(
       root = path.toFile,
       name = name,
       ensoVersion = SemVerEnsoVersion(
         ensoVersion.getOrElse(globalConfigurationManager.defaultVersion)
       )
     )
+    globalConfig.defaultAuthor.foreach { contact =>
+      pkg.updateConfig(config =>
+        config.copy(authors = List(contact), maintainers = List(contact))
+      )
+    }
+
     Logger.info(s"Project created in `$path`.")
   }
 

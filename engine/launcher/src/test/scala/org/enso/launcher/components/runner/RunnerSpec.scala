@@ -8,7 +8,6 @@ import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.Logger
 import org.enso.launcher.components.ComponentsManagerTest
 import org.enso.launcher.config.GlobalConfigurationManager
-import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.project.ProjectManager
 
 class RunnerSpec extends ComponentsManagerTest {
@@ -18,9 +17,7 @@ class RunnerSpec extends ComponentsManagerTest {
     cwdOverride: Option[Path]     = None,
     extraEnv: Map[String, String] = Map.empty
   ): TestSetup = {
-    val (_, componentsManager, env) = makeManagers(extraEnv)
-    val distributionManager =
-      new DistributionManager(env)
+    val (distributionManager, componentsManager, env) = makeManagers(extraEnv)
     val configurationManager =
       new GlobalConfigurationManager(componentsManager, distributionManager) {
         override def defaultVersion: SemVer = defaultEngineVersion

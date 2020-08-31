@@ -3,14 +3,15 @@ package org.enso.launcher.config
 import java.io.BufferedWriter
 import java.nio.file.{Files, NoSuchFileException, Path}
 
-import io.circe.yaml
+import io.circe.{yaml, Json}
+import io.circe.syntax._
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.Logger
 import org.enso.launcher.components.ComponentsManager
 import org.enso.launcher.installation.DistributionManager
 
-import scala.util.{Success, Try, Using}
+import scala.util.{Failure, Success, Try, Using}
 
 /**
   * Manages the global configuration of the distribution which includes the
@@ -49,7 +50,7 @@ class GlobalConfigurationManager(
         }
     }
 
-  private def configLocation: Path =
+  def configLocation: Path =
     distributionManager.paths.config / GlobalConfigurationManager.globalConfigName
 
   def getConfig: GlobalConfig =
@@ -69,6 +70,27 @@ class GlobalConfigurationManager(
     val updated = update(getConfig)
     GlobalConfigurationManager.writeConfig(configLocation, updated).get
   }
+
+  def updateConfigRaw(key: String, value: Json): Unit = {
+    val updated = GlobalConfig.encoder(getConfig).asObject.get.add(key, value)
+    GlobalConfigurationManager
+      .writeConfigRaw(configLocation, updated.asJson)
+      .recoverWith {
+        case e: InvalidConfigError =>
+          Failure(
+            InvalidConfigError(
+              s"Invalid value for key `$key`. Config changes were not saved.",
+              e
+            )
+          )
+      }
+      .get
+  }
+
+  def removeFromConfig(key: String): Unit = {
+    val updated = GlobalConfig.encoder(getConfig).asObject.get.remove(key)
+    GlobalConfigurationManager.writeConfigRaw(configLocation, updated.asJson)
+  }
 }
 
 object GlobalConfigurationManager {
@@ -86,17 +108,37 @@ object GlobalConfigurationManager {
       } yield config
     }.flatMap(_.toTry)
 
-  def writeConfig(path: Path, config: GlobalConfig): Try[Unit] = {
+  def writeConfig(path: Path, config: GlobalConfig): Try[Unit] =
+    writeConfigRaw(path, GlobalConfig.encoder(config))
+
+  def writeConfigRaw(path: Path, rawConfig: Json): Try[Unit] = {
+    def verifyConfig: Try[Unit] =
+      rawConfig.as[GlobalConfig] match {
+        case Left(failure) =>
+          Failure(
+            InvalidConfigError(
+              s"Cannot parse modified config. Config changes were not saved.",
+              failure
+            )
+          )
+        case Right(_) => Success(())
+      }
     def bufferedWriter: BufferedWriter = {
       Files.createDirectories(path.getParent)
       Files.newBufferedWriter(path)
     }
-    Using(bufferedWriter) { writer =>
-      val string = yaml.Printer.spaces2
-        .copy(preserveOrder = true)
-        .pretty(GlobalConfig.encoder(config))
-      writer.write(string)
-      writer.newLine()
-    }
+    def writeConfig =
+      Using(bufferedWriter) { writer =>
+        val string = yaml.Printer.spaces2
+          .copy(preserveOrder = true)
+          .pretty(rawConfig)
+        writer.write(string)
+        writer.newLine()
+      }
+
+    for {
+      _ <- verifyConfig
+      _ <- writeConfig
+    } yield ()
   }
 }

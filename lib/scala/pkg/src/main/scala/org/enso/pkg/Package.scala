@@ -222,8 +222,8 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
       version      = version,
       ensoVersion  = ensoVersion,
       license      = "",
-      author       = List(),
-      maintainer   = List(),
+      authors      = List(),
+      maintainers  = List(),
       dependencies = List()
     )
     create(root, config)

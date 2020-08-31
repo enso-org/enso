@@ -3,6 +3,7 @@ package org.enso.launcher
 import java.nio.file.Path
 
 import buildinfo.Info
+import io.circe.Json
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.components.DefaultComponentsManager
@@ -218,6 +219,33 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       .run()
       .get
     sys.exit(exitCode)
+  }
+
+  def updateConfig(key: String, value: String): Unit = {
+    if (value.isEmpty) {
+      configurationManager.removeFromConfig(key)
+      Logger.info(
+        s"""Key `$key` removed from the global configuration file """ +
+        s"(${configurationManager.configLocation.toAbsolutePath})."
+      )
+    } else {
+      configurationManager.updateConfigRaw(key, Json.fromString(value))
+      Logger.info(
+        s"""Key `$key` set to "$value" in the global configuration file """ +
+        s"(${configurationManager.configLocation.toAbsolutePath})."
+      )
+    }
+  }
+
+  def printConfig(key: String): Unit = {
+    configurationManager.getConfig.original.apply(key) match {
+      case Some(value) =>
+        println(value)
+        sys.exit()
+      case None =>
+        Logger.warn(s"Key $key is not set in the global config.")
+        sys.exit(1)
+    }
   }
 
   /**

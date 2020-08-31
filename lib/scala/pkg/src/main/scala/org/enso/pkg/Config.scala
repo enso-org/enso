@@ -2,15 +2,54 @@ package org.enso.pkg
 
 import io.circe.syntax._
 import io.circe.generic.auto._
-import io.circe.{yaml, Decoder, Encoder, Json}
+import io.circe.{yaml, Decoder, DecodingFailure, Encoder, Json}
 import io.circe.yaml.Printer
 
 import scala.util.Try
 
 case class Dependency(name: String, version: String)
-case class Contact(name: String, email: Option[String]) {
-  override def toString: String =
-    name + email.map(email => s" <$email>").getOrElse("")
+case class Contact(name: Option[String], email: Option[String]) {
+  if (name.isEmpty && email.isEmpty)
+    throw new IllegalArgumentException(
+      "At least one of fields name or email must be defined."
+    )
+
+  override def toString: String = {
+    val space = if (name.isDefined && email.isDefined) " " else ""
+    name.getOrElse("") + space + email.map(email => s"<$email>").getOrElse("")
+  }
+}
+object Contact {
+  object Fields {
+    val Name  = "name"
+    val Email = "email"
+  }
+  implicit val encoder: Encoder[Contact] = { contact =>
+    val name  = contact.name.map(Fields.Name -> _.asJson)
+    val email = contact.email.map(Fields.Email -> _.asJson)
+    Json.obj((name.toSeq ++ email.toSeq): _*)
+  }
+
+  implicit val decoder: Decoder[Contact] = { json =>
+    def verifyAtLeastOneDefined(
+      name: Option[String],
+      email: Option[String]
+    ): Either[DecodingFailure, Unit] =
+      if (name.isEmpty && email.isEmpty)
+        Left(
+          DecodingFailure(
+            "At least one of the fields `name`, `email` must be defined.",
+            json.history
+          )
+        )
+      else Right(())
+
+    for {
+      name  <- json.getOrElse[Option[String]](Fields.Name)(None)
+      email <- json.getOrElse[Option[String]](Fields.Email)(None)
+      _     <- verifyAtLeastOneDefined(name, email)
+    } yield Contact(name, email)
+  }
 }
 
 /**
@@ -22,8 +61,8 @@ case class Contact(name: String, email: Option[String]) {
   *                    can be set to `default` which defaults to the locally
   *                    installed version
   * @param license package license
-  * @param author name and contact information of the package author(s)
-  * @param maintainer name and contact information of current package
+  * @param authors name and contact information of the package author(s)
+  * @param maintainers name and contact information of current package
   *                   maintainer(s)
   * @param dependencies a list of package dependencies
   * @param originalJson a Json object holding the original values that this
@@ -35,8 +74,8 @@ case class Config(
   version: String,
   ensoVersion: EnsoVersion,
   license: String,
-  author: List[Contact],
-  maintainer: List[Contact],
+  authors: List[Contact],
+  maintainers: List[Contact],
   dependencies: List[Dependency],
   originalJson: Json = Json.obj()
 ) {
@@ -54,31 +93,9 @@ object Config {
     val version: String      = "version"
     val ensoVersion: String  = "enso-version"
     val license: String      = "license"
-    val author: String       = "author"
-    val maintainer: String   = "maintainer"
+    val author: String       = "authors"
+    val maintainer: String   = "maintainers"
     val dependencies: String = "dependencies"
-  }
-
-  private val decodeContactsList: Decoder[List[Contact]] = { json =>
-    def decodeContactString(string: String): Contact = {
-      val contactRegex = """(.*) <(.*)>""".r
-      string match {
-        case contactRegex(name, email) => Contact(name, Some(email))
-        case justName                  => Contact(justName, None)
-      }
-    }
-
-    json
-      .as[String]
-      .map(str => if (str.isEmpty) List() else List(str))
-      .orElse(json.as[List[String]])
-      .map(_.map(decodeContactString))
-  }
-
-  private val encodeContactsList: Encoder[List[Contact]] = {
-    case List()     => "".asJson
-    case List(elem) => elem.toString.asJson
-    case l          => l.map(_.toString).asJson
   }
 
   implicit val decoder: Decoder[Config] = { json =>
@@ -87,14 +104,9 @@ object Config {
       version <- json.getOrElse[String](JsonFields.version)("dev")
       ensoVersion <-
         json.getOrElse[EnsoVersion](JsonFields.ensoVersion)(DefaultEnsoVersion)
-      license <- json.getOrElse(JsonFields.license)("")
-      author <- json.getOrElse[List[Contact]](JsonFields.author)(List())(
-        decodeContactsList
-      )
-      maintainer <-
-        json.getOrElse[List[Contact]](JsonFields.maintainer)(List())(
-          decodeContactsList
-        )
+      license    <- json.getOrElse(JsonFields.license)("")
+      author     <- json.getOrElse[List[Contact]](JsonFields.author)(List())
+      maintainer <- json.getOrElse[List[Contact]](JsonFields.maintainer)(List())
       dependencies <- json.getOrElse[List[Dependency]](JsonFields.dependencies)(
         List()
       )
@@ -117,8 +129,8 @@ object Config {
       JsonFields.version     -> config.version.asJson,
       JsonFields.ensoVersion -> config.ensoVersion.asJson,
       JsonFields.license     -> config.license.asJson,
-      JsonFields.author      -> encodeContactsList(config.author),
-      JsonFields.maintainer  -> encodeContactsList(config.maintainer)
+      JsonFields.author      -> config.authors.asJson,
+      JsonFields.maintainer  -> config.maintainers.asJson
     )
     val base = originals.deepMerge(overrides)
     val withDeps =

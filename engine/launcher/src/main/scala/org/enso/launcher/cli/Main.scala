@@ -394,17 +394,23 @@ object Main {
     }
 
   private def configCommand: Command[Config => Unit] =
-    Command("config", "Modify project or user configuration.") {
-      val global = Opts.flag(
-        "global",
-        "Set global user config. By default sets config of current project.",
-        showInUsage = true
+    Command("config", "Modify global user configuration.") {
+      val key = Opts.positionalArgument[String](
+        "KEY",
+        "Setting KEYs `author.name` and `author.email` can be used to set a" +
+        " default author and maintainer of newly created projects."
       )
-      val key   = Opts.positionalArgument[String]("KEY")
-      val value = Opts.positionalArgument[String]("VALUE")
-      (key, value, global) mapN { (key, value, global) => (_: Config) =>
-        val which = if (global) "global" else "local"
-        println(s"Set in the $which config $key => $value")
+      val value = Opts.optionalArgument[String](
+        "VALUE",
+        "Setting VALUE to an empty string removes the configuration " +
+        "property. When a VALUE is not provided, current configured value is " +
+        "printed."
+      )
+      (key, value) mapN { (key, value) => (config: Config) =>
+        value match {
+          case Some(value) => Launcher(config).updateConfig(key, value)
+          case None        => Launcher(config).printConfig(key)
+        }
       }
     }
 
