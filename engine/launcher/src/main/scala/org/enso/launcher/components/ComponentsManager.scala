@@ -258,6 +258,31 @@ class ComponentsManager(
     */
   private def installEngine(version: SemVer): Engine = {
     val engineRelease = engineReleaseProvider.getRelease(version).get
+    if (engineRelease.isBroken) {
+      if (cliOptions.autoConfirm) {
+        Logger.warn(
+          s"The engine release $version is marked as broken and it should " +
+          s"not be used. Since `auto-confirm` is set, the installation will " +
+          s"continue, but you may want to reconsider changing versions to a " +
+          s"stable release."
+        )
+      } else {
+        Logger.warn(
+          s"The engine release $version is marked as broken and it should " +
+          s"not be used."
+        )
+        val continue = CLIOutput.askConfirmation(
+          "Are you sure you still want to continue installing this version " +
+          "despite the warning?"
+        )
+        if (!continue) {
+          throw InstallationError(
+            "Installation has been cancelled because the requested engine " +
+            "release is marked as broken."
+          )
+        }
+      }
+    }
     FileSystem.withTemporaryDirectory("enso-install") { directory =>
       Logger.debug(s"Downloading packages to $directory")
       val enginePackage = directory / engineRelease.packageFileName
@@ -304,6 +329,8 @@ class ComponentsManager(
             "may possibly be corrupted. Reverting installation."
           )
         }
+
+        // TODO [RW] FIXME preserve the broken mark somehow, modify manifest perhaps?
 
         findOrInstallRuntime(temporaryEngine, complain = false)
 

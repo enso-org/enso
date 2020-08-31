@@ -31,7 +31,8 @@ case class Manifest(
   minimumLauncherVersion: SemVer,
   graalVMVersion: SemVer,
   graalJavaVersion: String,
-  jvmOptions: Seq[JVMOption]
+  jvmOptions: Seq[JVMOption],
+  brokenMark: Boolean
 ) {
 
   /**
@@ -173,11 +174,12 @@ object Manifest {
       }
   }
 
-  private object Fields {
+  object Fields {
     val minimumLauncherVersion = "minimum-launcher-version"
     val jvmOptions             = "jvm-options"
     val graalVMVersion         = "graal-vm-version"
     val graalJavaVersion       = "graal-java-version"
+    val brokenMark             = "broken"
   }
 
   implicit private val decoder: Decoder[Manifest] = { json =>
@@ -189,11 +191,13 @@ object Manifest {
           .get[String](Fields.graalJavaVersion)
           .orElse(json.get[Int](Fields.graalJavaVersion).map(_.toString))
       jvmOptions <- json.getOrElse[Seq[JVMOption]](Fields.jvmOptions)(Seq())
+      broken     <- json.getOrElse[Boolean](Fields.brokenMark)(false)
     } yield Manifest(
       minimumLauncherVersion = minimumLauncherVersion,
       graalVMVersion         = graalVMVersion,
       graalJavaVersion       = graalJavaVersion,
-      jvmOptions             = jvmOptions
+      jvmOptions             = jvmOptions,
+      brokenMark             = broken
     )
   }
 }

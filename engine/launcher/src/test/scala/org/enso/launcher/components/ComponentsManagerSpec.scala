@@ -6,7 +6,8 @@ import org.enso.launcher.Logger
 class ComponentsManagerSpec extends ComponentsManagerTest {
 
   "ComponentsManager" should {
-    "find the latest engine version in semver ordering" in {
+    "find the latest engine version in semver ordering " +
+    "(skipping broken releases)" in {
       Logger.suppressWarnings {
         val componentsManager = makeComponentsManager()
         componentsManager.fetchLatestEngineVersion() shouldEqual SemVer(0, 0, 1)
@@ -63,6 +64,23 @@ class ComponentsManagerSpec extends ComponentsManagerTest {
             .findRuntime(RuntimeVersion(SemVer(2, 0, 0), "11"))
             .value
         componentsManager.findEnginesUsingRuntime(runtime2) should have length 2
+      }
+    }
+
+    "preserve the broken mark when installing a broken release" in {
+      Logger.suppressWarnings {
+        val componentsManager = makeComponentsManager()
+        val brokenVersion     = SemVer(0, 1, 0, Some("marked-broken"))
+        componentsManager.findOrInstallEngine(
+          brokenVersion,
+          complain = false
+        )
+
+        assert(
+          componentsManager.findEngine(brokenVersion).value.isMarkedBroken,
+          "The broken release should still be marked as broken after being " +
+          "installed and loaded."
+        )
       }
     }
 

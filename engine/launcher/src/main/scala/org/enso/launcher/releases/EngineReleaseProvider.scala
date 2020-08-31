@@ -17,11 +17,13 @@ import scala.util.{Failure, Success, Try}
   *
   * @param version engine version
   * @param manifest manifest associated with the release
+  * @param isBroken specifies whether this release is marked as broken
   * @param release a [[Release]] that allows to download assets
   */
 case class EngineRelease(
   version: SemVer,
   manifest: Manifest,
+  isBroken: Boolean,
   release: Release
 ) {
 
@@ -55,11 +57,17 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
 
   /**
     * Returns the version of the most recent engine release.
+    *
+    * It ignores releases marked as broken, so the latest non-broken release is
+    * returned.
     */
   def findLatest(): Try[SemVer] =
     releaseProvider.listReleases().flatMap { releases =>
       val versions =
-        releases.map(_.tag.stripPrefix(tagPrefix)).flatMap(SemVer(_))
+        releases
+          .filter(!isBroken(_))
+          .map(_.tag.stripPrefix(tagPrefix))
+          .flatMap(SemVer(_))
       versions.sorted.lastOption.map(Success(_)).getOrElse {
         Failure(ReleaseProviderException("No valid engine versions were found"))
       }
@@ -94,8 +102,19 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
               )
             )
           )
-    } yield EngineRelease(version, manifest, release)
+    } yield EngineRelease(
+      version  = version,
+      isBroken = isBroken(release),
+      manifest = manifest,
+      release  = release
+    )
   }
+
+  /**
+    * Checks if the given release is broken.
+    */
+  private def isBroken(release: Release): Boolean =
+    release.assets.exists(_.fileName == "broken")
 
   /**
     * Downloads the package associated with the given release into
