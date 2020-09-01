@@ -1,6 +1,7 @@
 package org.enso.cli
 
-import org.enso.cli.internal.Parser
+import cats.data.NonEmptyList
+import org.enso.cli.internal.{Parser, TopLevelCommandsOpt}
 
 /**
   * Represents a CLI application with multiple commands.
@@ -44,9 +45,16 @@ class Application[Config](
   val prettyName: String,
   val helpHeader: String,
   val topLevelOpts: Opts[() => TopLevelBehavior[Config]],
-  val commands: Seq[Command[Config => Unit]],
+  val commands: NonEmptyList[Command[Config => Unit]],
   val pluginManager: Option[PluginManager]
 ) {
+
+  private val combinedOpts =
+    new TopLevelCommandsOpt[() => TopLevelBehavior[Config], Config => Unit](
+      topLevelOpts,
+      commands,
+      pluginManager
+    )
 
   /**
     * A helper overload that accepts the array as provided to the main function.
@@ -66,29 +74,29 @@ class Application[Config](
     args: Seq[String]
   ): Either[List[String], Unit] = {
     val (tokens, additionalArguments) = Parser.tokenize(args)
-    val topLevelParseResult =
+    val parseResult =
       Parser.parseOpts(
-        topLevelOpts,
+        combinedOpts,
         tokens,
         Seq(),
-        isTopLevel    = true,
         commandPrefix = Seq(commandName)
       )
-    topLevelParseResult.flatMap {
-      case (run, restOfTokens) =>
-        run() match {
-          case TopLevelBehavior.Halt => Right(())
-          case TopLevelBehavior.Continue(config) =>
-            val subCommandResult = Parser.parseCommand(
-              this,
-              config,
-              restOfTokens,
-              additionalArguments
-            )
-            subCommandResult.map { run =>
-              run()
-            }
-        }
+    parseResult.flatMap {
+      case (topLevelParseResult, commandResult) =>
+//        run() match {
+//          case TopLevelBehavior.Halt => Right(())
+//          case TopLevelBehavior.Continue(config) =>
+//            val subCommandResult = Parser.parseCommand(
+//              this,
+//              config,
+//              restOfTokens,
+//              additionalArguments
+//            )
+//            subCommandResult.map { run =>
+//              run()
+//            }
+//        }
+        ???
     }
   }
 
@@ -100,7 +108,7 @@ class Application[Config](
     val usageOptions = topLevelOpts.commandLineOptions().stripLeading()
     val usage        = s"Usage: $commandName\t${usageOptions} COMMAND [ARGS]\n"
 
-    val subCommands = commands.map(_.topLevelHelp) ++ pluginManager
+    val subCommands = commands.toList.map(_.topLevelHelp) ++ pluginManager
         .map(_.pluginsHelp())
         .getOrElse(Seq())
     val commandDescriptions =
@@ -122,30 +130,6 @@ class Application[Config](
 
     sb.toString()
   }
-
-  /**
-    * Generates a help text for an unknown command, including, if available,
-    * suggestions of similar commands.
-    *
-    * @param typo the unrecognized command name
-    */
-  def commandSuggestions(typo: String): String = {
-    val header =
-      s"`$typo` is not a valid $prettyName command. See " +
-      s"`$commandName --help`.\n\n"
-    val similar = Spelling.selectClosestMatches(typo, gatherCommandNames())
-    val suggestions =
-      if (similar.isEmpty) ""
-      else {
-        "The most similar commands are\n" +
-        similar.map(CLIOutput.indent + _ + "\n").mkString
-      }
-
-    header + suggestions
-  }
-
-  private def gatherCommandNames(): Seq[String] =
-    commands.map(_.name) ++ pluginManager.map(_.pluginsNames()).getOrElse(Seq())
 }
 
 /**
@@ -222,7 +206,7 @@ object Application {
     prettyName: String,
     helpHeader: String,
     topLevelOpts: Opts[() => TopLevelBehavior[Config]],
-    commands: Seq[Command[Config => Unit]],
+    commands: NonEmptyList[Command[Config => Unit]],
     pluginManager: PluginManager
   ): Application[Config] =
     new Application(
@@ -239,7 +223,7 @@ object Application {
     prettyName: String,
     helpHeader: String,
     topLevelOpts: Opts[() => TopLevelBehavior[Config]],
-    commands: Seq[Command[Config => Unit]]
+    commands: NonEmptyList[Command[Config => Unit]]
   ): Application[Config] =
     new Application(
       commandName,
@@ -254,7 +238,7 @@ object Application {
     commandName: String,
     prettyName: String,
     helpHeader: String,
-    commands: Seq[Command[Unit => Unit]]
+    commands: NonEmptyList[Command[Unit => Unit]]
   ): Application[()] =
     new Application(
       commandName,

@@ -13,11 +13,15 @@ class TrailingArguments[A: Argument](
 
   override private[cli] def wantsArgument() = true
 
-  override private[cli] def consumeArgument(arg: String): Unit = {
+  override private[cli] def consumeArgument(
+    arg: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation = {
     value = for {
       currentArguments <- value
       parsed           <- Argument[A].read(arg)
     } yield parsed :: currentArguments
+    ParserContinuation.ContinueNormally
   }
 
   override private[cli] def reset(): Unit = {

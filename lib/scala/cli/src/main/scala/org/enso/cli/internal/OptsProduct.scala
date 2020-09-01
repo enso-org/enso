@@ -16,9 +16,12 @@ class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
 
   override private[cli] def wantsArgument() =
     lhs.wantsArgument() || rhs.wantsArgument()
-  override private[cli] def consumeArgument(arg: String): Unit =
-    if (lhs.wantsArgument()) lhs.consumeArgument(arg)
-    else rhs.consumeArgument(arg)
+  override private[cli] def consumeArgument(
+    arg: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation =
+    if (lhs.wantsArgument()) lhs.consumeArgument(arg, commandPrefix)
+    else rhs.consumeArgument(arg, commandPrefix)
   override private[cli] def requiredArguments: Seq[String] =
     lhs.requiredArguments ++ rhs.requiredArguments
   override private[cli] def optionalArguments: Seq[String] =

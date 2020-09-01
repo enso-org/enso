@@ -3,6 +3,7 @@ package org.enso.launcher.cli
 import java.nio.file.Path
 import java.util.UUID
 
+import cats.data.NonEmptyList
 import cats.implicits._
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.Opts.implicits._
@@ -509,7 +510,7 @@ object Main {
       "Enso",
       "Enso Launcher",
       topLevelOpts,
-      Seq(
+      NonEmptyList.of(
         versionCommand,
         helpCommand,
         newCommand,

@@ -13,7 +13,10 @@ abstract class BaseOpts[A] extends Opts[A] {
     Seq()
 
   override private[cli] def wantsArgument() = false
-  override private[cli] def consumeArgument(arg: String): Unit =
+  override private[cli] def consumeArgument(
+    arg: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation =
     throw new IllegalStateException(
       "Internal error: " +
       "Argument provided even though it was marked as not expected."

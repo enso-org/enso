@@ -1,5 +1,6 @@
 package org.enso.cli
 
+import cats.data.NonEmptyList
 import cats.implicits._
 import org.enso.cli.Opts.implicits._
 import org.scalatest.matchers.should.Matchers
@@ -18,7 +19,7 @@ class ApplicationSpec
         "app",
         "App",
         "Test app.",
-        Seq(
+        NonEmptyList.of(
           Command("cmd1", "cmd1") {
             Opts.pure { _ =>
               ranCommand = Some("cmd1")
@@ -54,7 +55,7 @@ class ApplicationSpec
             else TopLevelBehavior.Continue(setting.getOrElse("none"))
           }
         },
-        Seq(
+        NonEmptyList.of(
           Command[String => Unit]("cmd1", "cmd1") {
             Opts.pure { setting =>
               ranCommand = Some(setting)
@@ -97,7 +98,7 @@ class ApplicationSpec
       "app",
       "App",
       "Test app.",
-      Seq(
+      NonEmptyList.of(
         Command("cmd", "cmd", related = Seq("related")) { Opts.pure { _ => } }
       )
     )
@@ -113,7 +114,7 @@ class ApplicationSpec
       "app",
       "App",
       "Test app.",
-      Seq(
+      NonEmptyList.of(
         Command("cmd1", "cmd1") {
           Opts.pure { _ =>
             ranCommand = Some("cmd1")

@@ -10,6 +10,14 @@ import org.enso.cli.{
   Spelling
 }
 
+sealed trait ParserContinuation
+object ParserContinuation {
+  case object ContinueNormally extends ParserContinuation
+  case class Escape(
+    continuation: (Seq[Token], Seq[String]) => Either[List[String], Unit]
+  ) extends ParserContinuation
+}
+
 /**
   * A token used in the parser.
   */
@@ -91,11 +99,6 @@ object Parser {
     * @param tokens the sequence of tokens to parse
     * @param additionalArguments additional arguments that may be needed by the
     *                            [[Opts.additionalArguments]] option
-    * @param isTopLevel determines if `opts` are top-level options or options
-    *                   for a command; when an argument is encountered when
-    *                   parsing top-level options, parsing is stopped to return
-    *                   the top-level options and possibly continue it with
-    *                   command options
     * @param commandPrefix the sequence of subcommand names, used for
     *                      displaying help messages
     * @return returns either the result value of `opts` and remaining tokens or
@@ -106,7 +109,6 @@ object Parser {
     opts: Opts[A],
     tokens: Seq[Token],
     additionalArguments: Seq[String],
-    isTopLevel: Boolean,
     commandPrefix: Seq[String]
   ): Either[List[String], (A, Seq[Token])] = {
     var parseErrors: List[String] = Nil
@@ -155,22 +157,19 @@ object Parser {
 
     opts.reset()
     val tokenProvider = new TokenStream(tokens, addError)
+    var escapeParsing
+      : Option[(Seq[Token], Seq[String]) => Either[List[String], Unit]] = None
 
-    /**
-      * Specifies whether the parser should parse the next argument.
-      * In top-level, we want to break when encountering the first positional
-      * argument (which is the command).
-      * Outside of top-level, we proceed always.
-      */
-    def shouldProceed(): Boolean =
-      if (isTopLevel) !tokenProvider.peekToken().isInstanceOf[PlainToken]
-      else true
-
-    while (tokenProvider.hasTokens && shouldProceed()) {
+    while (escapeParsing.isEmpty && tokenProvider.hasTokens) {
       tokenProvider.consumeToken() match {
         case PlainToken(value) =>
           if (opts.wantsArgument()) {
-            opts.consumeArgument(value)
+            val continuation = opts.consumeArgument(value, commandPrefix)
+            continuation match {
+              case ParserContinuation.ContinueNormally =>
+              case ParserContinuation.Escape(cont) =>
+                escapeParsing = Some(cont)
+            }
           } else if (!suppressUnexpectedArgument) {
             addError(s"Unexpected argument `$value`.")
           }
@@ -224,7 +223,7 @@ object Parser {
       }
     }
 
-    if (!isTopLevel) {
+    if (escapeParsing.isEmpty) {
       opts.additionalArguments match {
         case Some(additionalArgumentsHandler) =>
           additionalArgumentsHandler(additionalArguments)
@@ -233,11 +232,6 @@ object Parser {
             addError("Additional arguments (after --) were not expected.")
           }
       }
-    } else if (additionalArguments.nonEmpty) {
-      throw new IllegalArgumentException(
-        "Additional arguments should only be provided for subcommand parsing," +
-        " not at top level."
-      )
     }
 
     def appendHelp[T](
@@ -255,82 +249,92 @@ object Parser {
       }
     }
 
-    appendHelp(
-      appendErrors(
-        opts.result(commandPrefix).map((_, tokenProvider.remaining())),
-        parseErrors.reverse
-      )
+    val result = appendErrors(
+      opts.result(commandPrefix).map((_, tokenProvider.remaining())),
+      parseErrors.reverse
     )
+
+    val finalResult = (escapeParsing, result) match {
+      case (Some(cont), Right(_)) =>
+        cont(tokenProvider.remaining(), additionalArguments) match {
+          case Left(value) =>
+            Left(value) // TODO merge errors using semigroup
+          case Right(_) => result
+        }
+      case _ => result
+    }
+
+    appendHelp(finalResult)
   }
 
-  /**
-    * Parses a command for the application.
-    *
-    * First tries to find a command in [[Application.commands]], if that fails,
-    * it tries [[Command.related]] and later tries the
-    * [[Application.pluginManager]] if available.
-    */
-  def parseCommand[Config](
-    application: Application[Config],
-    config: Config,
-    tokens: Seq[Token],
-    additionalArguments: Seq[String]
-  ): Either[List[String], () => Unit] =
-    tokens match {
-      case Seq() =>
-        singleError(
-          s"Expected a command.\n\n" + application.renderHelp()
-        )
-      case Seq(PlainToken(commandName), commandArgs @ _*) =>
-        application.commands.find(_.name == commandName) match {
-          case Some(command) =>
-            if (wantsHelp(commandArgs)) {
-              Right(() => {
-                CLIOutput.println(command.help(application.commandName))
-              })
-            } else {
-              Parser
-                .parseOpts(
-                  command.opts,
-                  commandArgs,
-                  additionalArguments,
-                  isTopLevel = false,
-                  Seq(application.commandName, commandName)
-                )
-                .map(_._1)
-                .map(runner => () => runner(config))
-            }
-          case None =>
-            val possiblyRelated = Command.formatRelated(
-              commandName,
-              Seq(application.commandName),
-              application.commands
-            )
-
-            possiblyRelated match {
-              case Some(relatedCommandMessage) =>
-                singleError(relatedCommandMessage)
-              case None =>
-                val additionalArgs =
-                  if (additionalArguments.nonEmpty)
-                    Seq("--") ++ additionalArguments
-                  else Seq()
-                val pluginBehaviour = application.pluginManager
-                  .map(
-                    _.tryRunningPlugin(
-                      commandName,
-                      untokenize(commandArgs) ++ additionalArgs
-                    )
-                  )
-                  .getOrElse(PluginNotFound)
-                pluginBehaviour match {
-                  case PluginNotFound =>
-                    singleError(application.commandSuggestions(commandName))
-                  case PluginInterceptedFlow => Right(() => ())
-                }
-            }
-        }
-    }
+//  /**
+//    * Parses a command for the application.
+//    *
+//    * First tries to find a command in [[Application.commands]], if that fails,
+//    * it tries [[Command.related]] and later tries the
+//    * [[Application.pluginManager]] if available.
+//    */
+//  def parseCommand[Config](
+//    application: Application[Config],
+//    config: Config,
+//    tokens: Seq[Token],
+//    additionalArguments: Seq[String]
+//  ): Either[List[String], () => Unit] =
+//    tokens match {
+//      case Seq() =>
+//        singleError(
+//          s"Expected a command.\n\n" + application.renderHelp()
+//        )
+//      case Seq(PlainToken(commandName), commandArgs @ _*) =>
+//        application.commands.find(_.name == commandName) match {
+//          case Some(command) =>
+//            if (wantsHelp(commandArgs)) {
+//              Right(() => {
+//                CLIOutput.println(command.help(application.commandName))
+//              })
+//            } else {
+//              // TODO refactor
+//              Parser
+//                .parseOpts(
+//                  command.opts,
+//                  commandArgs,
+//                  additionalArguments,
+//                  Seq(application.commandName, commandName)
+//                )
+//                .map(_._1)
+//                .map(runner => () => runner(config))
+//            }
+//          case None =>
+//            val possiblyRelated = Command.formatRelated(
+//              commandName,
+//              Seq(application.commandName),
+//              application.commands
+//            )
+//
+//            possiblyRelated match {
+//              case Some(relatedCommandMessage) =>
+//                singleError(relatedCommandMessage)
+//              case None =>
+//                val additionalArgs =
+//                  if (additionalArguments.nonEmpty)
+//                    Seq("--") ++ additionalArguments
+//                  else Seq()
+//                val pluginBehaviour = application.pluginManager
+//                  .map(
+//                    _.tryRunningPlugin(
+//                      commandName,
+//                      untokenize(commandArgs) ++ additionalArgs
+//                    )
+//                  )
+//                  .getOrElse(PluginNotFound)
+//                pluginBehaviour match {
+//                  case PluginNotFound =>
+//                    singleError(application.commandSuggestions(commandName))
+//                  case PluginInterceptedFlow => Right(() => ())
+//                }
+//            }
+//        }
+//    }
 
   def wantsHelp(args: Seq[Token]): Boolean =
     args.exists {

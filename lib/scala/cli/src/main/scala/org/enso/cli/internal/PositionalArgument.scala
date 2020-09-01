@@ -17,10 +17,14 @@ class PositionalArgument[A: Argument](
       case _           => false
     }
 
-  override private[cli] def consumeArgument(arg: String): Unit = {
+  override private[cli] def consumeArgument(
+    arg: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation = {
     value = for {
       parsed <- Argument[A].read(arg)
     } yield Some(parsed)
+    ParserContinuation.ContinueNormally
   }
 
   override private[cli] def reset(): Unit = {

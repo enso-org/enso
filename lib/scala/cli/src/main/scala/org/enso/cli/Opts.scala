@@ -46,7 +46,10 @@ trait Opts[A] {
     *
     * Should not be called if [[wantsArgument]] returns false.
     */
-  private[cli] def consumeArgument(arg: String): Unit
+  private[cli] def consumeArgument(
+    arg: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation
 
   /**
     * An optional callback for additional arguments. If it is provided, all
@@ -485,8 +488,8 @@ object Opts {
     * @param otherCommands any following subcommands
     */
   def subcommands[A](
-    firstCommand: Subcommand[A],
-    otherCommands: Subcommand[A]*
+    firstCommand: Command[A],
+    otherCommands: Command[A]*
   ): Opts[A] = {
     val nonEmptyCommands = NonEmptyList.of(firstCommand, otherCommands: _*)
     new SubcommandOpt[A](nonEmptyCommands)
