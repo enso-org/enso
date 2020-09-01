@@ -148,7 +148,7 @@ object Main {
   private def languageServerCommand: Command[Config => Unit] =
     Command(
       "language-server",
-      "Launch the Language Server for a given project." +
+      "Launch the Language Server for a given project. " +
       "If `auto-confirm` is set, this will install missing engines or " +
       "runtimes without asking.",
       related = Seq("server")
@@ -281,7 +281,7 @@ object Main {
   private def installEngineCommand: Subcommand[Config => Unit] =
     Subcommand(
       "engine",
-      "Installs the specified engine VERSION, defaulting to the latest if " +
+      "Install the specified engine VERSION, defaulting to the latest if " +
       "unspecified."
     ) {
       val version = Opts.optionalArgument[SemVer]("VERSION")
@@ -298,7 +298,7 @@ object Main {
   private def installDistributionCommand: Subcommand[Config => Unit] =
     Subcommand(
       "distribution",
-      "Installs Enso on the system, deactivating portable mode."
+      "Install Enso on the system, deactivating portable mode."
     ) {
 
       implicit val bundleActionParser: Argument[BundleAction] = {
@@ -352,7 +352,7 @@ object Main {
   private def uninstallEngineCommand: Subcommand[Config => Unit] =
     Subcommand(
       "engine",
-      "Uninstalls the provided engine version. If the corresponding runtime " +
+      "Uninstall the provided engine version. If the corresponding runtime " +
       "is not used by any remaining engine installations, it is also removed."
     ) {
       val version = Opts.positionalArgument[SemVer]("VERSION")
@@ -364,7 +364,7 @@ object Main {
   private def uninstallDistributionCommand: Subcommand[Config => Unit] =
     Subcommand(
       "distribution",
-      "Uninstalls whole Enso distribution and all components managed by " +
+      "Uninstall whole Enso distribution and all components managed by " +
       "it. If `auto-confirm` is set, it will not attempt to remove the " +
       "ENSO_DATA_DIRECTORY and ENSO_CONFIG_DIRECTORY if they contain any " +
       "unexpected files."
