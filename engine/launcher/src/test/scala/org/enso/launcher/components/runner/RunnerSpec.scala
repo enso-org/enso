@@ -12,11 +12,11 @@ import org.enso.launcher.project.ProjectManager
 
 class RunnerSpec extends ComponentsManagerTest {
   private val defaultEngineVersion = SemVer(0, 0, 0, Some("default"))
-  case class TestSetup(runner: Runner, projectManager: ProjectManager)
+
   def makeFakeRunner(
     cwdOverride: Option[Path]     = None,
     extraEnv: Map[String, String] = Map.empty
-  ): TestSetup = {
+  ): Runner = {
     val (distributionManager, componentsManager, env) = makeManagers(extraEnv)
     val configurationManager =
       new GlobalConfigurationManager(componentsManager, distributionManager) {
@@ -28,14 +28,14 @@ class RunnerSpec extends ComponentsManagerTest {
       new Runner(projectManager, configurationManager, componentsManager, env) {
         override protected val currentWorkingDirectory: Path = cwd
       }
-    TestSetup(runner, projectManager)
+    runner
   }
 
   "Runner" should {
     "create a command from settings" in {
       Logger.suppressWarnings {
         val envOptions = "-Xfrom-env -Denv=env"
-        val TestSetup(runner, _) =
+        val runner =
           makeFakeRunner(extraEnv = Map("ENSO_JVM_OPTS" -> envOptions))
 
         val runSettings = RunSettings(SemVer(0, 0, 0), Seq("arg1", "--flag2"))
@@ -84,8 +84,37 @@ class RunnerSpec extends ComponentsManagerTest {
       }
     }
 
+    "create project with name, default author (if specified) and additional " +
+    "arguments" in {
+      val runner             = makeFakeRunner()
+      val projectPath        = getTestDirectory / "project"
+      val authorName         = "Author Name"
+      val authorEmail        = "author@example.com"
+      val additionalArgument = "additional arg"
+      val runSettings = runner
+        .newProject(
+          path                = projectPath,
+          name                = "ProjectName",
+          version             = defaultEngineVersion,
+          authorName          = Some(authorName),
+          authorEmail         = Some(authorEmail),
+          additionalArguments = Seq(additionalArgument)
+        )
+        .get
+
+      runSettings.version shouldEqual defaultEngineVersion
+      runSettings.runnerArguments should contain(additionalArgument)
+      val commandLine = runSettings.runnerArguments.mkString(" ")
+      commandLine should include(
+        s"--new ${projectPath.toAbsolutePath.normalize}"
+      )
+      commandLine should include("--new-project-name ProjectName")
+      commandLine should include(s"--new-project-author-name $authorName")
+      commandLine should include(s"--new-project-author-email $authorEmail")
+    }
+
     "run repl with default version and additional arguments" in {
-      val TestSetup(runner, _) = makeFakeRunner()
+      val runner = makeFakeRunner()
       val runSettings = runner
         .repl(
           projectPath         = None,
@@ -101,18 +130,14 @@ class RunnerSpec extends ComponentsManagerTest {
     }
 
     "run repl in project context" in {
-      val TestSetup(runnerOutside, projectManager) = makeFakeRunner()
+      val runnerOutside = makeFakeRunner()
 
       val version = SemVer(0, 0, 0, Some("repl-test"))
       version should not equal defaultEngineVersion // sanity check
 
       val projectPath    = getTestDirectory / "project"
       val normalizedPath = projectPath.toAbsolutePath.normalize.toString
-      projectManager.newProject(
-        "test",
-        projectPath,
-        Some(version)
-      )
+      newProject("test", projectPath, version)
 
       val outsideProject = runnerOutside
         .repl(
@@ -126,7 +151,7 @@ class RunnerSpec extends ComponentsManagerTest {
       outsideProject.runnerArguments.mkString(" ") should
       (include(s"--in-project $normalizedPath") and include("--repl"))
 
-      val TestSetup(runnerInside, _) = makeFakeRunner(Some(projectPath))
+      val runnerInside = makeFakeRunner(Some(projectPath))
       val insideProject = runnerInside
         .repl(
           projectPath         = None,
@@ -154,15 +179,11 @@ class RunnerSpec extends ComponentsManagerTest {
     }
 
     "run language server" in {
-      val TestSetup(runner, projectManager) = makeFakeRunner()
+      val runner = makeFakeRunner()
 
       val version     = SemVer(0, 0, 0, Some("language-server-test"))
       val projectPath = getTestDirectory / "project"
-      projectManager.newProject(
-        "test",
-        projectPath,
-        Some(version)
-      )
+      newProject("test", projectPath, version)
 
       val options = LanguageServerOptions(
         rootId    = UUID.randomUUID(),
@@ -201,16 +222,12 @@ class RunnerSpec extends ComponentsManagerTest {
     }
 
     "run a project" in {
-      val TestSetup(runnerOutside, projectManager) = makeFakeRunner()
+      val runnerOutside = makeFakeRunner()
 
       val version        = SemVer(0, 0, 0, Some("run-test"))
       val projectPath    = getTestDirectory / "project"
       val normalizedPath = projectPath.toAbsolutePath.normalize.toString
-      projectManager.newProject(
-        "test",
-        projectPath,
-        Some(version)
-      )
+      newProject("test", projectPath, version)
 
       val outsideProject = runnerOutside
         .run(
@@ -224,7 +241,7 @@ class RunnerSpec extends ComponentsManagerTest {
       outsideProject.runnerArguments.mkString(" ") should
       include(s"--run $normalizedPath")
 
-      val TestSetup(runnerInside, _) = makeFakeRunner(Some(projectPath))
+      val runnerInside = makeFakeRunner(Some(projectPath))
       val insideProject = runnerInside
         .run(
           path                = None,
@@ -265,13 +282,9 @@ class RunnerSpec extends ComponentsManagerTest {
     "run a script outside of a project even if cwd is inside project" in {
       val version     = SemVer(0, 0, 0, Some("run-test"))
       val projectPath = getTestDirectory / "project"
-      val TestSetup(runnerInside, projectManager) =
+      val runnerInside =
         makeFakeRunner(cwdOverride = Some(projectPath))
-      projectManager.newProject(
-        "test",
-        projectPath,
-        Some(version)
-      )
+      newProject("test", projectPath, version)
 
       val outsideFile    = getTestDirectory / "Main.enso"
       val normalizedPath = outsideFile.toAbsolutePath.normalize.toString
@@ -294,15 +307,11 @@ class RunnerSpec extends ComponentsManagerTest {
     }
 
     "run a script inside of a project" in {
-      val version                                  = SemVer(0, 0, 0, Some("run-test"))
-      val projectPath                              = getTestDirectory / "project"
-      val normalizedProjectPath                    = projectPath.toAbsolutePath.normalize.toString
-      val TestSetup(runnerOutside, projectManager) = makeFakeRunner()
-      projectManager.newProject(
-        "test",
-        projectPath,
-        Some(version)
-      )
+      val version               = SemVer(0, 0, 0, Some("run-test"))
+      val projectPath           = getTestDirectory / "project"
+      val normalizedProjectPath = projectPath.toAbsolutePath.normalize.toString
+      val runnerOutside         = makeFakeRunner()
+      newProject("test", projectPath, version)
 
       val insideFile         = projectPath / "src" / "Main.enso"
       val normalizedFilePath = insideFile.toAbsolutePath.normalize.toString
@@ -322,7 +331,7 @@ class RunnerSpec extends ComponentsManagerTest {
     }
 
     "get default version outside of project" in {
-      val TestSetup(runner, _) = makeFakeRunner()
+      val runner = makeFakeRunner()
       val (runSettings, whichEngine) = runner
         .version(useJSON = true)
         .get
@@ -335,16 +344,11 @@ class RunnerSpec extends ComponentsManagerTest {
     }
 
     "get project version inside of project" in {
-      val version     = SemVer(0, 0, 0, Some("version-test"))
-      val projectPath = getTestDirectory / "project"
-      val name        = "Testname"
-      val TestSetup(runnerInside, projectManager) =
-        makeFakeRunner(cwdOverride = Some(projectPath))
-      projectManager.newProject(
-        name,
-        projectPath,
-        Some(version)
-      )
+      val version      = SemVer(0, 0, 0, Some("version-test"))
+      val projectPath  = getTestDirectory / "project"
+      val name         = "Testname"
+      val runnerInside = makeFakeRunner(cwdOverride = Some(projectPath))
+      newProject(name, projectPath, version)
       val (runSettings, whichEngine) = runnerInside
         .version(useJSON = false)
         .get

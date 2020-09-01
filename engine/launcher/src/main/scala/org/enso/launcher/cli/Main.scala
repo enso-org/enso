@@ -54,15 +54,38 @@ object Main {
 
   private def newCommand: Command[Config => Unit] =
     Command("new", "Create a new Enso project.", related = Seq("create")) {
-      val nameOpt = Opts.positionalArgument[String]("NAME", "Project name.")
+      val nameOpt = Opts.positionalArgument[String]("PROJECT-NAME")
       val pathOpt = Opts.optionalArgument[Path](
         "PATH",
-        "Path where to create the project. If not specified, a directory " +
-        "called NAME is created in the current directory."
+        "PATH specifies where to create the project. If it is not specified, " +
+        "a directory called PROJECT-NAME is created in the current directory."
       )
+      val additionalArgs = Opts.additionalArguments()
 
-      (nameOpt, pathOpt) mapN { (name, path) => (config: Config) =>
-        Launcher(config).newProject(name, path)
+      (
+        nameOpt,
+        pathOpt,
+        versionOverride,
+        systemJVMOverride,
+        jvmOpts,
+        additionalArgs
+      ) mapN {
+        (
+          name,
+          path,
+          versionOverride,
+          systemJVMOverride,
+          jvmOpts,
+          additionalArgs
+        ) => (config: Config) =>
+          Launcher(config).newProject(
+            name                = name,
+            path                = path,
+            versionOverride     = versionOverride,
+            useSystemJVM        = systemJVMOverride,
+            jvmOpts             = jvmOpts,
+            additionalArguments = additionalArgs
+          )
       }
     }
 
@@ -83,7 +106,7 @@ object Main {
     Opts.optionalParameter[SemVer](
       "use-enso-version",
       "VERSION",
-      "Overrides the Enso version that would normally be used"
+      "Override the Enso version that would normally be used."
     )
 
   private def runCommand: Command[Config => Unit] =
@@ -241,14 +264,16 @@ object Main {
   private def upgradeCommand: Command[Config => Unit] =
     Command("upgrade", "Upgrade the launcher.") {
       val version = Opts.optionalArgument[String](
-        "version",
-        "Version to upgrade to. " +
+        "VERSION",
+        "VERSION specifies which launcher version to upgrade to. " +
         "If not provided, defaults to latest version."
       )
       version map { version => (_: Config) =>
         version match {
-          case Some(version) => println(s"Upgrade launcher to $version")
-          case None          => println("Upgrade launcher to latest version")
+          case Some(version) =>
+            println(s"(Not implemented) Upgrade launcher to $version.")
+          case None =>
+            println("(Not implemented)  Upgrade launcher to latest version.")
         }
       }
     }
@@ -256,14 +281,10 @@ object Main {
   private def installEngineCommand: Subcommand[Config => Unit] =
     Subcommand(
       "engine",
-      "Installs the specified engine version, defaulting to the latest if " +
+      "Installs the specified engine VERSION, defaulting to the latest if " +
       "unspecified."
     ) {
-      val version = Opts.optionalArgument[SemVer](
-        "VERSION",
-        "VERSION specifies the engine version to install. If not provided, the" +
-        "latest version is installed."
-      )
+      val version = Opts.optionalArgument[SemVer]("VERSION")
       version map { version => (config: Config) =>
         version match {
           case Some(value) =>

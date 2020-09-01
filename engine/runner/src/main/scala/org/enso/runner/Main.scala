@@ -4,10 +4,11 @@ import java.io.File
 import java.util.UUID
 
 import cats.implicits._
+import nl.gn0s1s.bump.SemVer
 import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
-import org.enso.pkg.PackageManager
+import org.enso.pkg.{Contact, PackageManager, SemVerEnsoVersion}
 import org.enso.polyglot.{LanguageInfo, Module, PolyglotContext}
 import org.enso.version.VersionDescription
 import org.graalvm.polyglot.{PolyglotException, Value}
@@ -18,19 +19,22 @@ import scala.util.Try
 /** The main CLI entry point class. */
 object Main {
 
-  private val RUN_OPTION             = "run"
-  private val HELP_OPTION            = "help"
-  private val NEW_OPTION             = "new"
-  private val REPL_OPTION            = "repl"
-  private val LANGUAGE_SERVER_OPTION = "server"
-  private val INTERFACE_OPTION       = "interface"
-  private val RPC_PORT_OPTION        = "rpc-port"
-  private val DATA_PORT_OPTION       = "data-port"
-  private val ROOT_ID_OPTION         = "root-id"
-  private val ROOT_PATH_OPTION       = "path"
-  private val IN_PROJECT_OPTION      = "in-project"
-  private val VERSION_OPTION         = "version"
-  private val JSON_OPTION            = "json"
+  private val RUN_OPTION                  = "run"
+  private val HELP_OPTION                 = "help"
+  private val NEW_OPTION                  = "new"
+  private val PROJECT_NAME_OPTION         = "new-project-name"
+  private val PROJECT_AUTHOR_NAME_OPTION  = "new-project-author-name"
+  private val PROJECT_AUTHOR_EMAIL_OPTION = "new-project-author-email"
+  private val REPL_OPTION                 = "repl"
+  private val LANGUAGE_SERVER_OPTION      = "server"
+  private val INTERFACE_OPTION            = "interface"
+  private val RPC_PORT_OPTION             = "rpc-port"
+  private val DATA_PORT_OPTION            = "data-port"
+  private val ROOT_ID_OPTION              = "root-id"
+  private val ROOT_PATH_OPTION            = "path"
+  private val IN_PROJECT_OPTION           = "in-project"
+  private val VERSION_OPTION              = "version"
+  private val JSON_OPTION                 = "json"
 
   /**
     * Builds the [[Options]] object representing the CLI syntax.
@@ -60,6 +64,35 @@ object Main {
       .argName("path")
       .longOpt(NEW_OPTION)
       .desc("Creates a new Enso project.")
+      .build
+    val newProjectNameOpt = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("name")
+      .longOpt(PROJECT_NAME_OPTION)
+      .desc(
+        s"Specifies a project name when creating a project using --$NEW_OPTION."
+      )
+      .build
+    val newProjectAuthorNameOpt = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("name")
+      .longOpt(PROJECT_AUTHOR_NAME_OPTION)
+      .desc(
+        s"Specifies the name of the author and maintainer of the project " +
+        s"created using --$NEW_OPTION."
+      )
+      .build
+    val newProjectAuthorEmailOpt = CliOption.builder
+      .hasArg(true)
+      .numberOfArgs(1)
+      .argName("email")
+      .longOpt(PROJECT_AUTHOR_EMAIL_OPTION)
+      .desc(
+        s"Specifies the email of the author and maintainer of the project " +
+        s"created using --$NEW_OPTION."
+      )
       .build
     val lsOption = CliOption.builder
       .longOpt(LANGUAGE_SERVER_OPTION)
@@ -125,6 +158,9 @@ object Main {
       .addOption(repl)
       .addOption(run)
       .addOption(newOpt)
+      .addOption(newProjectNameOpt)
+      .addOption(newProjectAuthorNameOpt)
+      .addOption(newProjectAuthorEmailOpt)
       .addOption(lsOption)
       .addOption(interfaceOption)
       .addOption(rpcPortOption)
@@ -155,10 +191,39 @@ object Main {
   /**
     * Handles the `--new` CLI option.
     *
+    * Creates a project at the provided path. If the nameOption is provided it
+    * specifies the project name, otherwise the name is generated automatically.
+    * The Enso version used in the project is set to the version of this runner.
+    *
     * @param path root path of the newly created project
+    * @param nameOption specifies the name of the created project
+    * @param authorName if set, sets the name of the author and maintainer
+    * @param authorEmail if set, sets the email of the author and maintainer
     */
-  private def createNew(path: String): Unit = {
-    PackageManager.Default.getOrCreate(new File(path))
+  private def createNew(
+    path: String,
+    nameOption: Option[String],
+    authorName: Option[String],
+    authorEmail: Option[String]
+  ): Unit = {
+    val root = new File(path)
+    val name = nameOption.getOrElse(PackageManager.Default.generateName(root))
+    val currentVersion = SemVer(buildinfo.Info.ensoVersion).getOrElse {
+      throw new IllegalStateException(
+        "Fatal error: Enso version included in buildinfo is not a valid " +
+        "semver string, this should never happen."
+      )
+    }
+    val authors =
+      if (authorName.isEmpty && authorEmail.isEmpty) List()
+      else List(Contact(name = authorName, email = authorEmail))
+    PackageManager.Default.create(
+      root        = root,
+      name        = name,
+      ensoVersion = SemVerEnsoVersion(currentVersion),
+      authors     = authors,
+      maintainers = authors
+    )
     exitSuccess()
   }
 
@@ -408,7 +473,12 @@ object Main {
       exitSuccess()
     }
     if (line.hasOption(NEW_OPTION)) {
-      createNew(line.getOptionValue(NEW_OPTION))
+      createNew(
+        path        = line.getOptionValue(NEW_OPTION),
+        nameOption  = Option(line.getOptionValue(PROJECT_NAME_OPTION)),
+        authorName  = Option(line.getOptionValue(PROJECT_AUTHOR_NAME_OPTION)),
+        authorEmail = Option(line.getOptionValue(PROJECT_AUTHOR_EMAIL_OPTION))
+      )
     }
     if (line.hasOption(RUN_OPTION)) {
       run(

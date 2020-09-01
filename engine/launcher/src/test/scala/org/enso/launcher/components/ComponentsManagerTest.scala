@@ -2,6 +2,7 @@ package org.enso.launcher.components
 
 import java.nio.file.Path
 
+import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.releases.{
@@ -9,6 +10,7 @@ import org.enso.launcher.releases.{
   GraalCEReleaseProvider
 }
 import org.enso.launcher.{Environment, FakeEnvironment, WithTemporaryDirectory}
+import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -66,4 +68,15 @@ class ComponentsManagerTest
     * See [[makeManagers]] for details.
     */
   def makeComponentsManager(): ComponentsManager = makeManagers()._2
+
+  /**
+    * Creates a new project using the default package manager.
+    */
+  def newProject(name: String, path: Path, version: SemVer): Unit = {
+    PackageManager.Default.create(
+      root        = path.toFile,
+      name        = name,
+      ensoVersion = SemVerEnsoVersion(version)
+    )
+  }
 }

@@ -47,9 +47,42 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * values are used to set a default author and maintainer for the created
     * project.
     */
-  def newProject(name: String, path: Option[Path]): Unit = {
+  def newProject(
+    name: String,
+    path: Option[Path],
+    versionOverride: Option[SemVer],
+    useSystemJVM: Boolean,
+    jvmOpts: Seq[(String, String)],
+    additionalArguments: Seq[String]
+  ): Unit = {
     val actualPath = path.getOrElse(Launcher.workingDirectory.resolve(name))
-    projectManager.newProject(name, actualPath)
+    val version =
+      versionOverride.getOrElse(configurationManager.defaultVersion)
+    val globalConfig = configurationManager.getConfig
+
+    val exitCode = runner
+      .createCommand(
+        runner
+          .newProject(
+            path                = actualPath,
+            name                = name,
+            version             = version,
+            authorName          = globalConfig.authorName,
+            authorEmail         = globalConfig.authorEmail,
+            additionalArguments = additionalArguments
+          )
+          .get,
+        JVMSettings(useSystemJVM, jvmOpts)
+      )
+      .run()
+      .get
+
+    if (exitCode == 0) {
+      Logger.info(s"Project created in `$actualPath` using version $version.")
+    } else {
+      Logger.error("Project creation failed.")
+      sys.exit(exitCode)
+    }
   }
 
   /**
