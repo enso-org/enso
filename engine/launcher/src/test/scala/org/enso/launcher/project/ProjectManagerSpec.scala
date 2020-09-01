@@ -1,19 +1,14 @@
 package org.enso.launcher.project
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.{FakeEnvironment, WithTemporaryDirectory}
+import org.enso.launcher.components.ComponentsManagerTest
 import org.enso.launcher.config.GlobalConfigurationManager
 import org.enso.launcher.installation.DistributionManager
 import org.enso.pkg.Contact
 import org.scalatest.{Inside, OptionValues}
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
 
 class ProjectManagerSpec
-    extends AnyWordSpec
-    with Matchers
-    with WithTemporaryDirectory
-    with FakeEnvironment
+    extends ComponentsManagerTest
     with Inside
     with OptionValues {
   private val defaultEnsoVersion = SemVer(0, 0, 0, Some("default"))
@@ -28,7 +23,7 @@ class ProjectManagerSpec
   }
 
   "ProjectManager" should {
-    "create a new project with correct structure" in {
+    "create a new project with correct structure" ignore {
       val (configManager, projectManager) = makeProjectManager()
 
       val author = Contact(Some("author"), Some("a@example.com"))
@@ -40,7 +35,9 @@ class ProjectManagerSpec
       )
 
       val projectDir = getTestDirectory.resolve("proj1")
-      projectManager.newProject("Test Project", projectDir)
+
+      // TODO [RW] create new project using runner.jar (to be added with #1046)
+      // this test may then be moved to the `runner` package
 
       projectDir.toFile should exist
       projectDir.resolve("src").resolve("Main.enso").toFile should exist
@@ -54,7 +51,7 @@ class ProjectManagerSpec
     "find projects in parent directories" in {
       val (_, projectManager) = makeProjectManager()
       val projectDir          = getTestDirectory.resolve("proj1")
-      projectManager.newProject("Test Project", projectDir)
+      newProject("Test Project", projectDir, defaultEnsoVersion)
 
       projectManager.findProject(projectDir).get should be(defined)
       projectManager.findProject(projectDir.resolve("src")).get should

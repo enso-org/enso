@@ -30,6 +30,29 @@ class Runner(
     */
   protected val currentWorkingDirectory: Path = Path.of(".")
 
+  def newProject(
+    path: Path,
+    name: String,
+    version: SemVer,
+    authorName: Option[String],
+    authorEmail: Option[String],
+    additionalArguments: Seq[String]
+  ): Try[RunSettings] =
+    Try {
+      val authorNameOption =
+        authorName.map(Seq("--new-project-author-name", _)).getOrElse(Seq())
+      val authorEmailOption =
+        authorEmail.map(Seq("--new-project-author-email", _)).getOrElse(Seq())
+      val arguments =
+        Seq(
+          "--new",
+          path.toAbsolutePath.normalize.toString,
+          "--new-project-name",
+          name
+        ) ++ authorNameOption ++ authorEmailOption ++ additionalArguments
+      RunSettings(version, arguments)
+    }
+
   /**
     * Creates [[RunSettings]] for launching the REPL.
     *

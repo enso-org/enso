@@ -214,16 +214,18 @@ class PackageManager[F](implicit val fileSystem: FileSystem[F]) {
   def create(
     root: F,
     name: String,
-    version: String          = "0.0.1",
-    ensoVersion: EnsoVersion = DefaultEnsoVersion
+    version: String            = "0.0.1",
+    ensoVersion: EnsoVersion   = DefaultEnsoVersion,
+    authors: List[Contact]     = List(),
+    maintainers: List[Contact] = List()
   ): Package[F] = {
     val config = Config(
       name         = normalizeName(name),
       version      = version,
       ensoVersion  = ensoVersion,
       license      = "",
-      authors      = List(),
-      maintainers  = List(),
+      authors      = authors,
+      maintainers  = maintainers,
       dependencies = List()
     )
     create(root, config)

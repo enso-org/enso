@@ -60,10 +60,32 @@ object Main {
         "PATH specifies where to create the project. If it is not specified, " +
         "a directory called PROJECT-NAME is created in the current directory."
       )
+      val additionalArgs = Opts.additionalArguments()
 
-      (nameOpt, pathOpt, versionOverride) mapN {
-        (name, path, versionOverride) => (config: Config) =>
-          Launcher(config).newProject(name, path, versionOverride)
+      (
+        nameOpt,
+        pathOpt,
+        versionOverride,
+        systemJVMOverride,
+        jvmOpts,
+        additionalArgs
+      ) mapN {
+        (
+          name,
+          path,
+          versionOverride,
+          systemJVMOverride,
+          jvmOpts,
+          additionalArgs
+        ) => (config: Config) =>
+          Launcher(config).newProject(
+            name                = name,
+            path                = path,
+            versionOverride     = versionOverride,
+            useSystemJVM        = systemJVMOverride,
+            jvmOpts             = jvmOpts,
+            additionalArguments = additionalArgs
+          )
       }
     }
 
