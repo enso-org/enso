@@ -307,6 +307,8 @@ object Main {
     */
   private def runRepl(projectPath: Option[String]): Unit = {
     val mainMethodName           = "internal_repl_entry_point___"
+    // TODO[MK, RW]: when CI-testing can use a fully-built distribution,
+    // switch to `from Base import all` here.
     val dummySourceToTriggerRepl =
       s"""from Builtins import all
          |
