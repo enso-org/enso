@@ -39,7 +39,7 @@ class ApplicationSpec
       ranCommand.value shouldEqual "argvalue"
     }
 
-    "handle top-level options" in {
+    "handle top-level options (before and after the command)" in {
       var ranCommand: Option[String] = None
       val app = Application[String](
         "app",
@@ -63,20 +63,49 @@ class ApplicationSpec
         )
       )
 
-      app.run(Seq("--halt", "cmd1"))
+      assert(
+        app.run(Seq("--halt", "cmd1")).isRight,
+        "Should parse successfully."
+      )
       ranCommand should not be defined
 
-      app.run(Seq("cmd1"))
+      assert(app.run(Seq("cmd1")).isRight, "Should parse successfully.")
       ranCommand.value shouldEqual "none"
 
-      app.run(Seq("--setting=SET", "cmd1"))
-      ranCommand.value shouldEqual "SET"
+      withClue("top-level option before command:") {
+        ranCommand = None
+        assert(
+          app.run(Seq("--setting=SET", "cmd1")).isRight,
+          "Should parse successfully."
+        )
+        ranCommand.value shouldEqual "SET"
+      }
+
+      withClue("top-level option after command:") {
+        ranCommand = None
+        assert(
+          app.run(Seq("cmd1", "--setting=SET")).isRight,
+          "Should parse successfully."
+        )
+        ranCommand.value shouldEqual "SET"
+      }
     }
   }
 
-  /*"support related commands" in {
+  "support related commands" in {
+    val app = Application(
+      "app",
+      "App",
+      "Test app.",
+      Seq(
+        Command("cmd", "cmd", related = Seq("related")) { Opts.pure { _ => } }
+      )
+    )
 
-  }*/
+    app.run(Seq("related")).left.value.head should include(
+      "You may be looking for `app cmd`."
+    )
+  }
 
   "suggest similar commands on typo" in {
     var ranCommand: Option[String] = None
