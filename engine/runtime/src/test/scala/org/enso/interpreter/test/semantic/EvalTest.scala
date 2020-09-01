@@ -11,7 +11,8 @@ class EvalTest extends InterpreterTest {
 
     "evaluate a string expression" in {
       val code =
-        s"""
+        s"""from Builtins import all
+           |
            |main =
            |    Debug.eval $rawTQ
            |        IO.println "foo"
@@ -22,7 +23,8 @@ class EvalTest extends InterpreterTest {
 
     "have access to the caller scope" in {
       val code =
-        s"""
+        s"""from Builtins import all
+           |
            |main =
            |    x = "Hello World!"
            |    Debug.eval $rawTQ
@@ -34,7 +36,8 @@ class EvalTest extends InterpreterTest {
 
     "have access to the caller module scope" in {
       val code =
-        s"""
+        s"""from Builtins import all
+           |
            |type MyType x
            |
            |main =
@@ -48,7 +51,8 @@ class EvalTest extends InterpreterTest {
 
     "return a value usable in the caller scope" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    x = 1
           |    y = 2
@@ -61,7 +65,8 @@ class EvalTest extends InterpreterTest {
 
     "work in a recursive setting" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    fn = sumTo ->
           |        summator = acc -> current ->
@@ -74,7 +79,8 @@ class EvalTest extends InterpreterTest {
 
     "work inside a thunk passed to another function" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    fn = sumTo ->
           |        summator = acc -> current ->

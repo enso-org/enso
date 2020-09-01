@@ -20,7 +20,8 @@ class ThreadInterruptionTest extends InterpreterTest {
         .asHostObject[Context]()
 
       val code =
-        """
+        """from Builtins import all
+          |
           |foo x =
           |    if x == 0 then IO.println "Start." else Unit
           |    here.foo x+1

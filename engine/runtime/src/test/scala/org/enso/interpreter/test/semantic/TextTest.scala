@@ -11,7 +11,8 @@ class TextTest extends InterpreterTest {
 
     "support text creation with single-line literals" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main = IO.println "hello world!"
           |""".stripMargin
 
@@ -21,7 +22,8 @@ class TextTest extends InterpreterTest {
 
     "support text concatenation" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    h = "Hello, "
           |    w = "World!"
@@ -33,7 +35,8 @@ class TextTest extends InterpreterTest {
 
     "support converting arbitrary structures to text" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type My_Type a
           |
           |main =
@@ -47,7 +50,8 @@ class TextTest extends InterpreterTest {
 
     "support text creation with raw block literals" in {
       val code =
-        s"""
+        s"""from Builtins import all
+           |
            |main =
            |    x = $rawTQ
            |        Foo
@@ -63,7 +67,8 @@ class TextTest extends InterpreterTest {
 
     "support escape sequences in literals" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main = IO.println "\"Grzegorz Brzeczyszczykiewicz\""
           |""".stripMargin
 
@@ -76,7 +81,8 @@ class TextTest extends InterpreterTest {
       val resultStr = errString.drop(1).dropRight(1)
 
       val code =
-        s"""
+        s"""from Builtins import all
+           |
            |main = IO.print_err $errString
            |""".stripMargin
 
@@ -88,7 +94,8 @@ class TextTest extends InterpreterTest {
       val inputString = "foobarbaz"
 
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    IO.readln + " yay!"
           |""".stripMargin

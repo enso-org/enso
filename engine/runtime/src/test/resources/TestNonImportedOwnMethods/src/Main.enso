@@ -1,3 +1,4 @@
+from Builtins import all
 import TestNonImportedOwnMethods.Util
 
 type X a

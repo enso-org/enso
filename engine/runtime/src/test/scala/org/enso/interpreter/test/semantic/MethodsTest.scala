@@ -23,7 +23,8 @@ class MethodsTest extends InterpreterTest {
     }
     "execute `this` argument once" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.foo = 0
           |
           |main = (IO.println "foo").foo
@@ -85,7 +86,8 @@ class MethodsTest extends InterpreterTest {
 
     "be definable as blocks without arguments" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Any.method =
           |    x = this * this
           |    y = x * 2
@@ -98,7 +100,8 @@ class MethodsTest extends InterpreterTest {
 
     "be dispatched to the proper constructor" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Nil.sum = acc -> acc
           |Cons.sum = acc -> case this of
           |  Cons h t -> sum t (h + acc)
@@ -111,7 +114,8 @@ class MethodsTest extends InterpreterTest {
 
     "allow passing the call target by-name" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.testMethod = x -> y -> z -> x + y + z
           |main = testMethod x=1 y=2 this=Unit z=3
           |""".stripMargin
@@ -128,7 +132,8 @@ class MethodsTest extends InterpreterTest {
 
     "be callable for any type when defined on Any" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type Foo
           |type Bar
           |type Baz
@@ -153,7 +158,8 @@ class MethodsTest extends InterpreterTest {
 
     "work as expected when defined across different constructors" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Nil.sum = 0
           |Cons.sum = case this of
           |  Cons h t -> h + sum t

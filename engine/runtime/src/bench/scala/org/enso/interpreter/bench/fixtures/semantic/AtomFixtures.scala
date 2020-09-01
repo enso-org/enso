@@ -20,7 +20,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val millionElementList = buildInputList(million)
 
   val generateListCode =
-    """
+    """from Builtins import all
+      |
       |main = length ->
       |    generator = acc -> i -> if i == 0 then acc else generator (Cons i acc) (i - 1)
       |
@@ -30,7 +31,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val generateList = getMain(generateListCode)
 
   val generateListQualifiedCode =
-    """
+    """from Builtins import all
+      |
       |main = length ->
       |    generator = acc -> i -> if i == 0 then acc else generator (Builtins.cons i acc) (i - 1)
       |
@@ -40,7 +42,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val generateListQualified = getMain(generateListQualifiedCode)
 
   val reverseListCode =
-    """
+    """from Builtins import all
+      |
       |main = list ->
       |    reverser = acc -> list -> case list of
       |        Cons h t -> reverser (Cons h acc) t
@@ -52,7 +55,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val reverseList = getMain(reverseListCode)
 
   val reverseListMethodsCode =
-    """
+    """from Builtins import all
+      |
       |Cons.reverse = acc -> case this of
       |    Cons h t -> reverse t (Cons h acc)
       |
@@ -65,7 +69,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val reverseListMethods = getMain(reverseListMethodsCode)
 
   val sumListCode =
-    """
+    """from Builtins import all
+      |
       |main = list ->
       |    summator = acc -> list -> case list of
       |        Cons h t -> summator acc+h t
@@ -77,7 +82,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumList = getMain(sumListCode)
 
   val sumListLeftFoldCode =
-    """
+    """from Builtins import all
+      |
       |main = list ->
       |    fold = f -> acc -> list -> case list of
       |        Cons h t -> fold f (f acc h) t
@@ -89,7 +95,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListLeftFold = getMain(sumListLeftFoldCode)
 
   val sumListFallbackCode =
-    """
+    """from Builtins import all
+      |
       |main = list ->
       |    summator = acc -> list -> case list of
       |        Cons h t -> summator acc+h t
@@ -101,7 +108,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListFallback = getMain(sumListFallbackCode)
 
   val sumListMethodsCode =
-    """
+    """from Builtins import all
+      |
       |Nil.sum = acc -> acc
       |Cons.sum = acc -> case this of
       |    Cons h t -> sum t h+acc
@@ -113,7 +121,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val sumListMethods = getMain(sumListMethodsCode)
 
   val mapReverseListCode =
-    """
+    """from Builtins import all
+      |
       |Nil.mapReverse = f -> acc -> acc
       |Cons.mapReverse = f -> acc -> case this of
       |    Cons h t -> mapReverse t f (Cons (f h) acc)
@@ -125,7 +134,8 @@ class AtomFixtures extends DefaultInterpreterRunner {
   val mapReverseList = getMain(mapReverseListCode)
 
   val mapReverseListCurryCode =
-    """
+    """from Builtins import all
+      |
       |Nil.mapReverse = f -> acc -> acc
       |Cons.mapReverse = f -> acc -> case this of
       |    Cons h t -> mapReverse t f (Cons (f h) acc)

@@ -75,7 +75,8 @@ class LambdaTest extends InterpreterTest {
 
     "be able to return atoms that are evaluated with oversaturated args" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    f = x -> Cons
           |    myCons = f 1 2 3
@@ -88,7 +89,8 @@ class LambdaTest extends InterpreterTest {
 
     "support the use of oversaturated args in methods" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.myMethod = 1
           |
           |main =
@@ -115,7 +117,8 @@ class LambdaTest extends InterpreterTest {
 
     "call fully saturated returned lambdas" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    fn = a -> b ->
           |        IO.println (a + b)
@@ -131,7 +134,8 @@ class LambdaTest extends InterpreterTest {
 
     "call fully saturated lambdas returned with TCO" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Number.if_then_else = ~t -> ~f -> if this == 0 then t else f
           |
           |main =

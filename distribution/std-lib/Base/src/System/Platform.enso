@@ -1,3 +1,5 @@
+from Builtins import System
+
 type Os
     type Linux
     type MacOS
@@ -16,4 +18,4 @@ from_text os =
      Return the OS type:
          Platform.os
 os : Os
-os = Platform.from_text System.os
+os = here.from_text System.os

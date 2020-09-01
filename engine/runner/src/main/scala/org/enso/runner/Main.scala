@@ -307,7 +307,13 @@ object Main {
     */
   private def runRepl(projectPath: Option[String]): Unit = {
     val mainMethodName           = "internal_repl_entry_point___"
-    val dummySourceToTriggerRepl = s"$mainMethodName = Debug.breakpoint"
+    // TODO[MK, RW]: when CI-testing can use a fully-built distribution,
+    // switch to `from Base import all` here.
+    val dummySourceToTriggerRepl =
+      s"""from Builtins import all
+         |
+         |$mainMethodName = Debug.breakpoint
+         |""".stripMargin
     val replModuleName           = "Internal_Repl_Module___"
     val packagePath              = projectPath.getOrElse("")
     val context =

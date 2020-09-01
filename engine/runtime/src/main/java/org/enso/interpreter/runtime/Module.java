@@ -185,7 +185,7 @@ public class Module implements TruffleObject {
    * @return the scope defined by this module
    */
   public ModuleScope compileScope(Context context) {
-    ensureScopeExists(context);
+    ensureScopeExists();
     if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
       try {
         compile(context);
@@ -198,11 +198,10 @@ public class Module implements TruffleObject {
   /**
    * Create scope if it does not exist.
    *
-   * @param context the language context.
    */
-  public void ensureScopeExists(Context context) {
+  public void ensureScopeExists() {
     if (scope == null) {
-      scope = context.createScope(this);
+      scope = new ModuleScope(this);
       compilationStage = CompilationStage.INITIAL;
     }
   }
@@ -225,10 +224,10 @@ public class Module implements TruffleObject {
   }
 
   private void compile(Context context) throws IOException {
-    ensureScopeExists(context);
+    ensureScopeExists();
     Source source = getSource();
     if (source == null) return;
-    context.resetScope(scope);
+    scope.reset();
     compilationStage = CompilationStage.INITIAL;
     context.getCompiler().run(source, this);
   }

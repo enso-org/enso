@@ -20,7 +20,8 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
 
     "result in an error at runtime for methods" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |Unit.foo = 10
           |Unit.foo = 20
           |""".stripMargin.linesIterator.mkString("\n")
@@ -33,7 +34,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
         .filterNot(_.contains("Compiler encountered"))
         .filterNot(_.contains("In module"))
         .toSet shouldEqual Set(
-        "Test[3:1-3:13]: Method overloads are not supported: Unit.foo is defined multiple times in this module."
+        "Test[4:1-4:13]: Method overloads are not supported: Unit.foo is defined multiple times in this module."
       )
     }
 

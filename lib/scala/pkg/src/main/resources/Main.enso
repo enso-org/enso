@@ -1,1 +1,3 @@
+from Base import all
+
 main = IO.println "Hello, World!"

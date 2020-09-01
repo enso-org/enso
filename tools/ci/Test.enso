@@ -1,1 +1,3 @@
+from Builtins import all
+
 main = IO.println "Test successful."

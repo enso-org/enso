@@ -1,4 +1,5 @@
 import Base.Process.Exit_Code
+from Builtins import System, True, False
 
 ## The builder object that is used to create operating system processes.
 type Process_Builder command arguments stdin

@@ -28,7 +28,8 @@ class JsonSerializationTest extends InterpreterTest {
 
     "support atoms" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |type X a b c
           |
           |main = X 123 "foo" Unit . json_serialize
@@ -46,7 +47,8 @@ class JsonSerializationTest extends InterpreterTest {
 
     "support nested types" in {
       val code =
-        """
+        """from Builtins import all
+          |
           |main =
           |    test_val = Cons 1 (Cons "\"foo\"" (Cons Unit (Cons (x -> x) Nil)))
           |    test_val.json_serialize

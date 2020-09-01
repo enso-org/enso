@@ -1,4 +1,5 @@
 import Base.List
+from Builtins import all
 
 ## The top-level entry point for a test suite.
 type Suite specs
