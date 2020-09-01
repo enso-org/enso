@@ -47,9 +47,13 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * values are used to set a default author and maintainer for the created
     * project.
     */
-  def newProject(name: String, path: Option[Path]): Unit = {
+  def newProject(
+    name: String,
+    path: Option[Path],
+    versionOverride: Option[SemVer]
+  ): Unit = {
     val actualPath = path.getOrElse(Launcher.workingDirectory.resolve(name))
-    projectManager.newProject(name, actualPath)
+    projectManager.newProject(name, actualPath, ensoVersion = versionOverride)
   }
 
   /**
