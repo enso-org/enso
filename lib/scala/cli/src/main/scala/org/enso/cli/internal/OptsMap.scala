@@ -1,6 +1,6 @@
 package org.enso.cli.internal
 
-import org.enso.cli.Opts
+import org.enso.cli.{Opts, OptsParseError}
 
 class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
   override private[cli] def flags              = a.flags
@@ -29,7 +29,7 @@ class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
 
   override private[cli] def result(
     commandPrefix: Seq[String]
-  ): Either[List[String], B] = a.result(commandPrefix).map(f)
+  ): Either[OptsParseError, B] = a.result(commandPrefix).map(f)
 
   override def availableOptionsHelp(): Seq[String] = a.availableOptionsHelp()
   override def availablePrefixedParametersHelp(): Seq[String] =

@@ -1,13 +1,13 @@
 package org.enso.cli.internal
 
-import org.enso.cli.Argument
+import org.enso.cli.{Argument, OptsParseError}
 
 class OptionalPositionalArgument[A: Argument](
   metavar: String,
   helpComment: Option[String]
 ) extends BaseOpts[Option[A]] {
-  val empty                                  = Right(None)
-  var value: Either[List[String], Option[A]] = empty
+  val empty                                    = Right(None)
+  var value: Either[OptsParseError, Option[A]] = empty
 
   override private[cli] val optionalArguments = Seq(metavar)
 

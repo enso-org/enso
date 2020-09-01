@@ -1,7 +1,7 @@
 package org.enso.cli.internal
 
 import cats.data.NonEmptyList
-import org.enso.cli.{CLIOutput, Command, Spelling}
+import org.enso.cli.{CLIOutput, Command, OptsParseError, Spelling}
 
 class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])
     extends BaseSubcommandOpt[A, A] {
@@ -27,13 +27,12 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])
     ParserContinuation.ContinueNormally
   }
 
-  override private[cli] def result(commandPrefix: Seq[String]) =
-    if (errors.nonEmpty)
-      Left(errors.reverse)
-    else
-      selectedCommand match {
-        case Some(command) => command.opts.result(commandPrefix)
-        case None =>
-          Left(List("Expected a subcommand.", help(commandPrefix)))
-      }
+  override private[cli] def result(commandPrefix: Seq[String]) = {
+    val result = selectedCommand match {
+      case Some(command) => command.opts.result(commandPrefix)
+      case None =>
+        Left(OptsParseError("Expected a subcommand.", help(commandPrefix)))
+    }
+    OptsParseError.addErrors(result, errors.reverse)
+  }
 }

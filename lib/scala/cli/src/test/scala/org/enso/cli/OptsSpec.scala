@@ -22,7 +22,7 @@ class OptsSpec
 
     def parse(args: Seq[String]): Either[List[String], A] = {
       val (tokens, additionalArguments) = Parser.tokenize(args)
-      Parser
+      val result = Parser
         .parseOpts(
           opts,
           tokens,
@@ -30,6 +30,7 @@ class OptsSpec
           Seq("???")
         )
         .map(_._1)
+      OptsParseError.toErrorListAssumingHelpIsHandled(result)
     }
 
     def parseSuccessfully(line: String)(implicit pos: source.Position): A =

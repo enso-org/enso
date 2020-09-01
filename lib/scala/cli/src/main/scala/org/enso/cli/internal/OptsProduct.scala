@@ -1,6 +1,6 @@
 package org.enso.cli.internal
 
-import org.enso.cli.{IllegalOptsStructure, Opts}
+import org.enso.cli.{IllegalOptsStructure, Opts, OptsParseError}
 
 class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
   override private[cli] def flags      = lhs.flags ++ rhs.flags
@@ -47,7 +47,7 @@ class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
 
   override private[cli] def result(
     commandPrefix: Seq[String]
-  ): Either[List[String], (A, B)] =
+  ): Either[OptsParseError, (A, B)] =
     for {
       l <- lhs.result(commandPrefix)
       r <- rhs.result(commandPrefix)

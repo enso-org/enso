@@ -81,7 +81,7 @@ class Application[Config](
         additionalArguments,
         commandPrefix = Seq(commandName)
       )
-    parseResult.flatMap {
+    val finalResult = parseResult.flatMap {
       case ((topLevelAction, commandResult), pluginIntercepted) =>
         if (pluginIntercepted) {
           Right(())
@@ -95,11 +95,12 @@ class Application[Config](
                 case Some(action) =>
                   Right(action(config))
                 case None =>
-                  Left(List("Expected a command.", renderHelp()))
+                  Left(OptsParseError("Expected a command.", renderHelp()))
               }
           }
         }
     }
+    OptsParseError.toErrorListAssumingHelpIsHandled(finalResult)
   }
 
   /**

@@ -1,13 +1,13 @@
 package org.enso.cli.internal
 
-import org.enso.cli.Argument
+import org.enso.cli.{Argument, OptsParseError}
 
 class PositionalArgument[A: Argument](
   metavar: String,
   helpComment: Option[String]
 ) extends BaseOpts[A] {
-  val empty                                  = Right(None)
-  var value: Either[List[String], Option[A]] = empty
+  val empty                                    = Right(None)
+  var value: Either[OptsParseError, Option[A]] = empty
 
   override private[cli] val requiredArguments = Seq(metavar)
 
@@ -34,7 +34,7 @@ class PositionalArgument[A: Argument](
   override private[cli] def result(commandPrefix: Seq[String]) =
     value.flatMap {
       case Some(value) => Right(value)
-      case None        => Left(List(s"Missing required argument <$metavar>."))
+      case None        => OptsParseError.left(s"Missing required argument <$metavar>.")
     }
 
   override def additionalHelp(): Seq[String] = helpComment.toSeq

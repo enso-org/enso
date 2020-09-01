@@ -1,6 +1,6 @@
 package org.enso.cli.internal
 
-import org.enso.cli.Argument
+import org.enso.cli.{Argument, OptsParseError}
 
 class Parameter[A: Argument](
   name: String,
@@ -22,7 +22,7 @@ class Parameter[A: Argument](
 
   val empty = Right(None)
 
-  var value: Either[List[String], Option[A]] = empty
+  var value: Either[OptsParseError, Option[A]] = empty
 
   override private[cli] def reset(): Unit = {
     value = empty
@@ -39,7 +39,7 @@ class Parameter[A: Argument](
   override private[cli] def result(commandPrefix: Seq[String]) =
     value.flatMap {
       case Some(value) => Right(value)
-      case None        => Left(List(s"Missing required parameter $name"))
+      case None        => OptsParseError.left(s"Missing required parameter $name")
     }
 
   override def availableOptionsHelp(): Seq[String] = {

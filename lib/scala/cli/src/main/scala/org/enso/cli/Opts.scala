@@ -70,7 +70,7 @@ trait Opts[A] {
     * the right moment to do final validation (for example, detecting missing
     * options).
     */
-  private[cli] def result(commandPrefix: Seq[String]): Either[List[String], A]
+  private[cli] def result(commandPrefix: Seq[String]): Either[OptsParseError, A]
 
   /**
     * Lists options that should be printed in the usage [[commandLines]].

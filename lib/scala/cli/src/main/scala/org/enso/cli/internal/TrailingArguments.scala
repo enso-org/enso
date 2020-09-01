@@ -1,13 +1,13 @@
 package org.enso.cli.internal
 
-import org.enso.cli.Argument
+import org.enso.cli.{Argument, OptsParseError}
 
 class TrailingArguments[A: Argument](
   metavar: String,
   helpComment: Option[String]
 ) extends BaseOpts[Seq[A]] {
-  val empty                                = Right(Nil)
-  var value: Either[List[String], List[A]] = empty
+  val empty                                  = Right(Nil)
+  var value: Either[OptsParseError, List[A]] = empty
 
   override private[cli] val trailingArguments = Some(metavar)
 

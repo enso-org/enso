@@ -28,7 +28,7 @@ class TopLevelCommandsOpt[A, B](
   def tryHandlingPlugin(command: String, commandPrefix: Seq[String])(
     remainingTokens: Seq[Token],
     additionalArguments: Seq[String]
-  ): Either[List[String], Unit] = {
+  ): Either[OptsParseError, Unit] = {
     val pluginBehaviour = pluginManager
       .map(
         _.tryRunningPlugin(
@@ -39,31 +39,25 @@ class TopLevelCommandsOpt[A, B](
       .getOrElse(PluginNotFound)
     pluginBehaviour match {
       case PluginNotFound =>
-        Left(List(commandSuggestions(command, commandPrefix)))
+        OptsParseError.left(commandSuggestions(command, commandPrefix))
       case PluginInterceptedFlow => Right(())
     }
   }
 
   override private[cli] def result(
     commandPrefix: Seq[String]
-  ): Either[List[String], (A, Option[B])] = {
+  ): Either[OptsParseError, (A, Option[B])] = {
     // TODO combine errors from errors
     val topLevelResult = toplevelOpts.result(commandPrefix)
     val commandResult  = selectedCommand.map(_.opts.result(commandPrefix))
-    commandResult match {
+    val result = commandResult match {
       case Some(value) =>
         OptsParseError.product(topLevelResult, value.map(Some(_)))
       case None =>
         topLevelResult.map((_, None))
     }
-//    if (errors.nonEmpty)
-//      Left(errors.reverse)
-//    else
-//      selectedCommand match {
-//        case Some(command) => command.opts.result(commandPrefix)
-//        case None =>
-//
-//      }
+
+    OptsParseError.addErrors(result, errors.reverse)
   }
 
   /**

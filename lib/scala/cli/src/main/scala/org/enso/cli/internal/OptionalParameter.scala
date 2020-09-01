@@ -1,6 +1,6 @@
 package org.enso.cli.internal
 
-import org.enso.cli.Argument
+import org.enso.cli.{Argument, OptsParseError}
 
 class OptionalParameter[A: Argument](
   name: String,
@@ -23,7 +23,7 @@ class OptionalParameter[A: Argument](
 
   val empty = Right(None)
 
-  var value: Either[List[String], Option[A]] = empty
+  var value: Either[OptsParseError, Option[A]] = empty
 
   override private[cli] def reset(): Unit = {
     value = empty

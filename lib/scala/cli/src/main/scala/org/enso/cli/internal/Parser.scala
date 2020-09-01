@@ -1,12 +1,12 @@
 package org.enso.cli.internal
 
-import org.enso.cli.{CLIOutput, Opts, Spelling}
+import org.enso.cli.{CLIOutput, Opts, OptsParseError, Spelling}
 
 sealed trait ParserContinuation
 object ParserContinuation {
   case object ContinueNormally extends ParserContinuation
   case class Escape(
-    continuation: (Seq[Token], Seq[String]) => Either[List[String], Unit]
+    continuation: (Seq[Token], Seq[String]) => Either[OptsParseError, Unit]
   ) extends ParserContinuation
 }
 
@@ -102,7 +102,7 @@ object Parser {
     tokens: Seq[Token],
     additionalArguments: Seq[String],
     commandPrefix: Seq[String]
-  ): Either[List[String], (A, Boolean)] = {
+  ): Either[OptsParseError, (A, Boolean)] = {
     var parseErrors: List[String] = Nil
     def addError(error: String): Unit = {
       parseErrors = error :: parseErrors
@@ -150,7 +150,7 @@ object Parser {
     opts.reset()
     val tokenProvider = new TokenStream(tokens, addError)
     var escapeParsing
-      : Option[(Seq[Token], Seq[String]) => Either[List[String], Unit]] = None
+      : Option[(Seq[Token], Seq[String]) => Either[OptsParseError, Unit]] = None
 
     while (escapeParsing.isEmpty && tokenProvider.hasTokens) {
       tokenProvider.consumeToken() match {
@@ -226,22 +226,7 @@ object Parser {
       }
     }
 
-    def appendHelp[T](
-      result: Either[List[String], T]
-    ): Either[List[String], T] = {
-      val help =
-        s"See `${commandPrefix.mkString(" ")} --help` for usage explanation."
-      result match {
-        case Left(errors) =>
-          val shouldAddHelp = !errors.exists(_.contains("Usage:"))
-          if (shouldAddHelp)
-            Left(errors ++ Seq(help))
-          else Left(errors)
-        case Right(value) => Right(value)
-      }
-    }
-
-    val result = appendErrors(
+    val result = OptsParseError.addErrors(
       opts.result(commandPrefix),
       parseErrors.reverse
     )
@@ -256,77 +241,10 @@ object Parser {
       case _ => result.map((_, false))
     }
 
-    appendHelp(finalResult)
+    OptsParseError.appendHelp(finalResult)(
+      s"See `${commandPrefix.mkString(" ")} --help` for usage explanation."
+    )
   }
-
-//  /**
-//    * Parses a command for the application.
-//    *
-//    * First tries to find a command in [[Application.commands]], if that fails,
-//    * it tries [[Command.related]] and later tries the
-//    * [[Application.pluginManager]] if available.
-//    */
-//  def parseCommand[Config](
-//    application: Application[Config],
-//    config: Config,
-//    tokens: Seq[Token],
-//    additionalArguments: Seq[String]
-//  ): Either[List[String], () => Unit] =
-//    tokens match {
-//      case Seq() =>
-//        singleError(
-//          s"Expected a command.\n\n" + application.renderHelp()
-//        )
-//      case Seq(PlainToken(commandName), commandArgs @ _*) =>
-//        application.commands.find(_.name == commandName) match {
-//          case Some(command) =>
-//            if (wantsHelp(commandArgs)) {
-//              Right(() => {
-//                CLIOutput.println(command.help(application.commandName))
-//              })
-//            } else {
-//              // TODO refactor
-//              Parser
-//                .parseOpts(
-//                  command.opts,
-//                  commandArgs,
-//                  additionalArguments,
-//                  Seq(application.commandName, commandName)
-//                )
-//                .map(_._1)
-//                .map(runner => () => runner(config))
-//            }
-//          case None =>
-//            val possiblyRelated = Command.formatRelated(
-//              commandName,
-//              Seq(application.commandName),
-//              application.commands
-//            )
-//
-//            possiblyRelated match {
-//              case Some(relatedCommandMessage) =>
-//                singleError(relatedCommandMessage)
-//              case None =>
-//                val additionalArgs =
-//                  if (additionalArguments.nonEmpty)
-//                    Seq("--") ++ additionalArguments
-//                  else Seq()
-//                val pluginBehaviour = application.pluginManager
-//                  .map(
-//                    _.tryRunningPlugin(
-//                      commandName,
-//                      untokenize(commandArgs) ++ additionalArgs
-//                    )
-//                  )
-//                  .getOrElse(PluginNotFound)
-//                pluginBehaviour match {
-//                  case PluginNotFound =>
-//                    singleError(application.commandSuggestions(commandName))
-//                  case PluginInterceptedFlow => Right(() => ())
-//                }
-//            }
-//        }
-//    }
 
   def wantsHelp(args: Seq[Token]): Boolean =
     args.exists {
@@ -334,17 +252,6 @@ object Parser {
       case ParameterOrFlag("h")    => true
       case _                       => false
     }
-
-  private def appendErrors[B](
-    result: Either[List[String], B],
-    errors: List[String]
-  ): Either[List[String], B] =
-    if (errors.isEmpty) result
-    else
-      result match {
-        case Left(theirErrors) => Left(errors ++ theirErrors)
-        case Right(_)          => Left(errors)
-      }
 
   private def splitAdditionalArguments(
     args: Seq[String]
