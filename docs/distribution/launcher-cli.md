@@ -45,15 +45,15 @@ This document describes available command-line options of the Enso launcher.
 ### `new`
 
 Create a new, empty project in a specified directory. By default uses the
-`default` enso version, which can be overriden with `--version`.
+`default` enso version, which can be overriden with `--use-enso-version`.
 
 Examples:
 
 ```bash
 > enso new project1 --path /somewhere/on/the/filesystem
-    # creates project called project1 in the specified directory
+    # creates project called Project1 in the specified directory
     # using the `default` Enso version
-> enso new project2 --version 2.0.1
+> enso new project2 --use-enso-version 2.0.1
     # creates the project in the current directory, using the 2.0.1 version
 ```
 
@@ -83,7 +83,7 @@ Installs a portable Enso distribution into system-defined directories, as
 explained in
 [Installed Enso Distribution Layout](./distribution.md#installed-enso-distribution-layout).
 By default, it asks the user for confirmation, but this can be skipped by adding
-a `--yes` flag.
+the `--auto-confirm` flag.
 
 Examples:
 
@@ -101,7 +101,8 @@ Uninstalls an installed Enso distribution from the installation location
 described in
 [Installed Enso Distribution Layout](./distribution.md#installed-enso-distribution-layout).
 It removes the universal launcher and all components. By default, it asks the
-user for confirmation, but this can be skipped by adding a `--yes` flag.
+user for confirmation, but this can be skipped by adding a `--auto-confirm`
+flag.
 
 Examples:
 
@@ -153,18 +154,18 @@ default version is 2.0.1
 
 ### `config`
 
-Can be used to manage project configuration or global user configuration (if
-outside a project or with the `--global` flag).
+Can be used to manage global user configuration.
 
-If only the config path is provided, currently configured value is printed.
+If only the config path is provided, currently configured value is printed. If
+the provided value is an empty string, the given key is removed from the config.
 
 Examples:
 
 ```bash
-> enso config --global author.name Example User
-> enso config author.name Example User
-> enso config author.name
-Example User
+> enso config author.name Example User # Sets `author.name`.
+> enso config author.email # Prints current value.
+user@example.com
+> enso config author.name "" # Removes the value from the config.
 ```
 
 ### `run`
@@ -249,7 +250,7 @@ Print this summary of available command and their usage.
 
 ## General Options
 
-### `--version`
+### `--use-enso-version`
 
 Overrides the inferred (project local or `default`) version when running a
 command.
