@@ -10,17 +10,23 @@ import java.io.PrintStream
   *  is implemented in #1031
   */
 object Logger {
-  private case class Level(name: String, level: Int, stream: PrintStream)
-  private val Debug   = Level("debug", 1, System.err)
-  private val Info    = Level("info", 2, System.out)
-  private val Warning = Level("warn", 3, System.err)
-  private val Error   = Level("error", 4, System.err)
+
+  // TODO [RW] this stream closure is not very efficient, but it allows the
+  //  Logger to respect stream redirection from Console.withErr. Ideally, the
+  //  new logging service should allow some way to capture logs for use in the
+  //  tests.
+  private case class Level(name: String, level: Int, stream: () => PrintStream)
+  private val Debug   = Level("debug", 1, () => Console.err)
+  private val Info    = Level("info", 2, () => Console.out)
+  private val Warning = Level("warn", 3, () => Console.err)
+  private val Error   = Level("error", 4, () => Console.err)
 
   private var logLevel = Info
   private def log(level: Level, msg: => String): Unit =
     if (level.level >= logLevel.level) {
-      level.stream.println(s"[${level.name}] $msg")
-      level.stream.flush()
+      val stream = level.stream()
+      stream.println(s"[${level.name}] $msg")
+      stream.flush()
     }
 
   /**

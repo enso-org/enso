@@ -57,7 +57,8 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     */
   def listEngines(): Unit = {
     for (engine <- componentsManager.listInstalledEngines()) {
-      println(engine.version.toString)
+      val broken = if (engine.isMarkedBroken) " (broken)" else ""
+      println(engine.version.toString + broken)
     }
   }
 
@@ -86,7 +87,8 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       val runtimeName = runtime
         .map(_.toString)
         .getOrElse("no runtime found for this distribution")
-      println(s"Enso ${engine.version} -> $runtimeName")
+      val broken = if (engine.isMarkedBroken) " (broken)" else ""
+      println(s"Enso ${engine.version}$broken -> $runtimeName")
     }
   }
 

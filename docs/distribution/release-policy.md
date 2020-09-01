@@ -115,6 +115,10 @@ It can also contain the following additional fields:
   of the engine package that is being launched. Optionally, the option may
   define `os` which will restrict this option only to the provided operating
   system. Possible `os` values are `linux`, `macos` and `windows`.
+- `broken` - can be set to `true` to mark this release as broken. This field is
+  never set in a release. Instead, when the launcher is installing a release
+  marked as broken using the `broken` file, it adds this property to the
+  manifest to preserve that information.
 
 For example:
 

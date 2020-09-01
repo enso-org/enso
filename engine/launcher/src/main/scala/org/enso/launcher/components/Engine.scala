@@ -17,8 +17,10 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
   /**
     * @inheritdoc
     */
-  override def toString: String =
-    s"Enso Engine $version"
+  override def toString: String = {
+    val broken = if (isMarkedBroken) " (marked as broken)" else ""
+    s"Enso Engine $version$broken"
+  }
 
   /**
     * The runtime version that is associated with this engine and should be used
@@ -46,4 +48,13 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
     */
   def isValid: Boolean =
     Files.exists(runnerPath) && Files.exists(runtimePath)
+
+  /**
+    * Returns if the engine release was marked as broken when it was being
+    * installed.
+    *
+    * Releases marked as broken are not considered when looking for the latest
+    * installed release and issue a warning when they are used.
+    */
+  def isMarkedBroken: Boolean = manifest.brokenMark
 }

@@ -2,11 +2,13 @@ package org.enso.launcher.components
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.Logger
+import org.enso.launcher.config.GlobalConfigurationManager
 
 class ComponentsManagerSpec extends ComponentsManagerTest {
 
   "ComponentsManager" should {
-    "find the latest engine version in semver ordering" in {
+    "find the latest engine version in semver ordering " +
+    "(skipping broken releases)" in {
       Logger.suppressWarnings {
         val componentsManager = makeComponentsManager()
         componentsManager.fetchLatestEngineVersion() shouldEqual SemVer(0, 0, 1)
@@ -64,6 +66,53 @@ class ComponentsManagerSpec extends ComponentsManagerTest {
             .value
         componentsManager.findEnginesUsingRuntime(runtime2) should have length 2
       }
+    }
+
+    "preserve the broken mark when installing a broken release" in {
+      Logger.suppressWarnings {
+        val componentsManager = makeComponentsManager()
+        val brokenVersion     = SemVer(0, 1, 0, Some("marked-broken"))
+        componentsManager.findOrInstallEngine(
+          brokenVersion,
+          complain = false
+        )
+
+        assert(
+          componentsManager.findEngine(brokenVersion).value.isMarkedBroken,
+          "The broken release should still be marked as broken after being " +
+          "installed and loaded."
+        )
+      }
+    }
+
+    "skip broken releases when finding latest installed version" in {
+      Logger.suppressWarnings {
+        val (distributionManager, componentsManager, _) = makeManagers()
+        val configurationManager =
+          new GlobalConfigurationManager(componentsManager, distributionManager)
+
+        val validVersion          = SemVer(0, 0, 1)
+        val newerButBrokenVersion = SemVer(0, 1, 0, Some("marked-broken"))
+        componentsManager.findOrInstallEngine(validVersion)
+        componentsManager.findOrInstallEngine(newerButBrokenVersion)
+
+        configurationManager.defaultVersion shouldEqual validVersion
+      }
+    }
+
+    "issue a warning when a broken release is requested" in {
+      val stream = new java.io.ByteArrayOutputStream()
+      Console.withErr(stream) {
+        val componentsManager = makeComponentsManager()
+
+        val brokenVersion = SemVer(0, 1, 0, Some("marked-broken"))
+        componentsManager.findOrInstallEngine(brokenVersion)
+
+        componentsManager.findEngine(brokenVersion).value
+      }
+      val stderr = stream.toString
+      stderr should include("is marked as broken")
+      stderr should include("consider upgrading")
     }
 
     "uninstall the runtime iff it is not used by any engines" in {
