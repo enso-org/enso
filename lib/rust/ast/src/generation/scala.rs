@@ -24,7 +24,7 @@ pub struct Source {
     /// Current indentation.
     indent:usize,
     /// Inheritance hierarchy.
-    extends:HashMap<Name,Name>
+    extends:HashMap<Name,Name>,
 }
 
 impl Source {
@@ -64,7 +64,7 @@ impl Generator<Source> for Tab {
 
 impl Generator<Source> for File {
     fn write(self, source:&mut Source) {
-        let content = Object {name:self.name.clone(),lines:&self.content.items[..]};
+        let content = Object {name:self.name, lines:self.content.items};
         write!(source, "package ", self.package.as_str(), "\n\n", self.lib, "\n\n\n\n");
         write!(source, content, "\n");
     }
@@ -76,22 +76,24 @@ impl Generator<Source> for Stdlib {
     }
 }
 
-impl<'a> Generator<Source> for Object<'a> {
+impl Generator<Source> for Object {
     fn write(self, source:&mut Source) {
-        write!(source, TAB, "object ", &self.name, " {\n");
+        let name = name::typ(&self.name);
+
+        write!(source, TAB, "object ", &name, " {\n");
 
         source.indent += 2;
 
-        if source.extends.contains_key(&self.name) {
-            write!(source, TAB, "sealed trait ", &self.name, extends(&self.name));
+        if source.extends.contains_key(&name) {
+            write!(source, TAB, "sealed trait ", &name, extends(&name));
         }
         for item in self.lines() {
             source.write("\n");
             match item {
                 Term::Object(val) => source.write(val),
-                Term::Type  (val) => source.write(val),
-                Term::Class (val) => source.write(val),
-                Term::Enum  (val) => source.write(val),
+                Term::Type  (val) => source.write(&val),
+                Term::Class (val) => source.write(&val),
+                Term::Enum  (val) => source.write(&val),
             }
         }
 
@@ -101,38 +103,37 @@ impl<'a> Generator<Source> for Object<'a> {
     }
 }
 
-impl<'a> Generator<Source> for TypeAlias<'a> {
+impl Generator<Source> for &TypeAlias {
     fn write(self, source:&mut Source) {
-        write!(source, TAB, "type ", &self.name, self.generics, " = ", self.typ, "\n");
+        write!(source, TAB, "type ", &self.val, " = ", &self.val, "\n");
     }
 }
 
-impl<'a> Generator<Source> for Class<'a> {
+impl Generator<Source> for &Class {
     fn write(self, source:&mut Source) {
-        write!(source, TAB, "case class ", &self.name, self.generics, "(");
+        write!(source, TAB, "case class ", &self.typ, "(");
 
-        for (i, (name, typ)) in self.fields().enumerate() {
-            write!(source, ", ".when(i!=0), &name, ":", typ);
+        for (i, (name,typ)) in self.args.iter().enumerate() {
+            write!(source, ", ".when(i!=0), &name::var(name), ":", typ);
         }
 
-        write!(source, ")", extends(&self.name));
+        write!(source, ")", extends(&self.typ.name));
     }
 }
 
-impl<'a> Generator<Source> for Enum<'a> {
+impl Generator<Source> for &Enum {
     fn write(self, source:&mut Source) {
-        let generics = Generics::from(&self.val.generics);
-
-        write!(source, TAB, "sealed trait ", &self.name, generics, extends(&self.name));
-        for variant in self.variants() {
-            match variant {
-                Variant::Named{name, fields} => {
-                    source.extends.insert(name.clone(), self.name.clone());
-                    write!(source, Class{name, generics:generics.clone(), fields});
+        write!(source, TAB, "sealed trait ", &self.typ, extends(&self.typ.name));
+        for (object, class) in self.variants.iter() {
+            let name = class.typ.name.clone();
+            match object {
+                Some(object) => {
+                    source.extends.insert(name::typ(&object), self.typ.name.clone());
+                    source.extends.insert(name, name::typ(&object));
                 }
-                Variant::Unnamed{class, object} => {
-                    source.extends.insert(object.clone(), self.name.clone());
-                    source.extends.insert(class, object);
+                None => {
+                    source.extends.insert(name, self.typ.name.clone());
+                    write!(source, class);
                 }
             }
         }
@@ -143,49 +144,73 @@ impl<'a> Generator<Source> for Extends<'a> {
     fn write(self, source:&mut Source) {
         if let Some(name) = source.extends.get(self.name) {
             source.code.push_str(" extends ");
-            source.code.push_str(name.name.to_string().as_str());
+            source.code.push_str(name.str.to_string().as_str());
         }
         source.code.push('\n');
     }
 }
 
-impl<'a> Generator<Source> for Generics<'a> {
+impl Generator<Source> for &Type {
     fn write(self, source:&mut Source) {
-        if self.generics.params.is_empty() {return}
-        source.write("[");
-        for (i, param) in self.generics.params.iter().enumerate() {
-            if let syn::GenericParam::Type(typ) = param {
-                write!(source, ", ".when(i!=0), &Name::typ(&typ.ident));
+        let boxed = self.name.str.as_str() == "Box";
+        if !boxed { write!(source, &name::typ(&self.name)) }
+        if !self.args.is_empty() {
+            if !boxed { write!(source, "[") }
+            for (i,typ) in self.args.iter().enumerate() {
+                write!(source, ", ".when(i!=0), typ);
             }
-        }
-        source.write("]");
-    }
-}
-
-impl<'a> Generator<Source> for Type<'a> {
-    fn write(self, source:&mut Source) {
-        if let syn::Type::Path(path) = self.typ {
-            for (i, typ) in path.path.segments.iter().enumerate() {
-                let boxed = typ.ident.to_string().as_str() == "Box";
-                if i!=0   { write!(source, ".") }
-                if !boxed { write!(source, &Name::typ(&typ.ident)) }
-                if let syn::PathArguments::AngleBracketed(typ) = &typ.arguments {
-                    if !boxed { write!(source, "[") }
-                    for (i, typ) in typ.args.iter().enumerate() {
-                        if let syn::GenericArgument::Type(typ) = typ {
-                            write!(source, ", ".when(i!=0), Type::from(typ));
-                        }
-                    }
-                    if !boxed { write!(source, "]") }
-                }
-            }
+            if !boxed { write!(source, "]") }
         }
     }
 }
 
 impl Generator<Source> for &Name {
     fn write(self, source:&mut Source) {
-        write!(source, self.name.to_string().as_str())
+        write!(source, self.str.to_string().as_str())
+    }
+}
+
+
+
+// ========================
+// === Name Conversions ===
+// ========================
+
+pub mod name {
+    use crate::generation::ast::Name;
+    use inflector::Inflector;
+
+
+
+    /// A type map from rust types to scala types.
+    pub fn type_map(name:&Name) -> Option<&'static str> {
+       let name = match name.str.as_str() {
+           "u32"   | "i32"   | "u16" | "i16" | "i8" => "Int",
+           "usize" | "isize" | "u64" | "i64"        => "Long",
+           "u8"                                     => "Byte",
+           "char"                                   => "Char",
+           "Vec"                                    => "Vector",
+           "Uuid"                                   => "UUID",
+           "Box"                                    => "",
+           _                                        => None?,
+       };
+       Some(name)
+    }
+
+    /// Creates a Scala type name `foo_bar => FooBar`
+    pub fn typ(name:&Name) -> Name {
+        if let Some(name) = type_map(name) { return name.into() }
+
+        let mut string = name.str.to_camel_case();
+        string[0..1].make_ascii_uppercase();
+        string.into()
+    }
+
+    /// Creates a Scala variable name `Foo_bar => fooBar`
+    pub fn var(name:&Name) -> Name {
+        let mut name = name.str.to_camel_case();
+        name[0..1].make_ascii_lowercase();
+        name.into()
     }
 }
 
@@ -224,7 +249,7 @@ mod tests {
                 }
             }
         };
-
+        // TODO B.Type?
         let scala = "\
 package org.enso.ast
 
@@ -243,7 +268,7 @@ object Ast {
 
     case class Foo() extends A
 
-    case class Bar(x:Long, y:Byte, z:B.Type) extends A
+    case class Bar(x:Long, y:Byte, z:Type) extends A
   }
 
   object B {

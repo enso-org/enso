@@ -117,6 +117,7 @@ pub extern "system" fn Java_org_enso_parser_Parser_lexFile(
 
 
 // === Benchmark ===
+
 #[no_mangle]
 pub extern "system" fn Java_org_enso_parser_Parser_bench(
     env      : JNIEnv,

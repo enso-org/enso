@@ -17,6 +17,7 @@ macro_rules! write {
 // ===============
 
 pub mod api;
+pub mod api2;
 pub mod ast;
 pub mod jni;
 pub mod rust;
