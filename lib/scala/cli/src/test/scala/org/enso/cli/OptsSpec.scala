@@ -27,7 +27,6 @@ class OptsSpec
           opts,
           tokens,
           additionalArguments,
-          isTopLevel = false,
           Seq("???")
         )
         .map(_._1)
@@ -242,10 +241,10 @@ class OptsSpec
 
   "subcommands" should {
     val opt = Opts.subcommands(
-      Subcommand("cmd1", "cmd1 help") {
+      Command("cmd1", "cmd1 help") {
         Opts.flag("flag1", "", showInUsage = true).map((1, _))
       },
-      Subcommand("cmd2", "cmd1 help") {
+      Command("cmd2", "cmd1 help") {
         Opts.flag("flag2", "", showInUsage = true).map((2, _))
       }
     )

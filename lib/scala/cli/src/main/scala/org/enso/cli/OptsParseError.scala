@@ -19,8 +19,8 @@ object OptsParseError {
   ): Either[List[String], (A, B)] =
     (a, b) match {
       case (Right(a), Right(b)) => Right((a, b))
+      case (Left(a), Left(b))   => Left(a ++ b)
       case (Left(a), _)         => Left(a)
       case (_, Left(b))         => Left(b)
-      case (Left(a), Left(b))   => Left(a ++ b)
     }
 }

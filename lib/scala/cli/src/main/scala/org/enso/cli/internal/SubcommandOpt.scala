@@ -1,13 +1,16 @@
 package org.enso.cli.internal
 
 import cats.data.NonEmptyList
-import org.enso.cli.{CLIOutput, Command, Opts, Spelling, Subcommand}
+import org.enso.cli.{CLIOutput, Command, Spelling}
 
 class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])
     extends BaseSubcommandOpt[A, A] {
   override def availableSubcommands: NonEmptyList[Command[A]] = subcommands
 
-  override def handleUnknownCommand(command: String): ParserContinuation = {
+  override def handleUnknownCommand(
+    command: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation = {
     val similar =
       Spelling
         .selectClosestMatches(command, subcommands.toList.map(_.name))

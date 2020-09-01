@@ -1,14 +1,6 @@
 package org.enso.cli.internal
 
-import org.enso.cli.{
-  Application,
-  CLIOutput,
-  Command,
-  Opts,
-  PluginInterceptedFlow,
-  PluginNotFound,
-  Spelling
-}
+import org.enso.cli.{CLIOutput, Opts, Spelling}
 
 sealed trait ParserContinuation
 object ParserContinuation {
@@ -110,7 +102,7 @@ object Parser {
     tokens: Seq[Token],
     additionalArguments: Seq[String],
     commandPrefix: Seq[String]
-  ): Either[List[String], (A, Seq[Token])] = {
+  ): Either[List[String], (A, Boolean)] = {
     var parseErrors: List[String] = Nil
     def addError(error: String): Unit = {
       parseErrors = error :: parseErrors
@@ -250,7 +242,7 @@ object Parser {
     }
 
     val result = appendErrors(
-      opts.result(commandPrefix).map((_, tokenProvider.remaining())),
+      opts.result(commandPrefix),
       parseErrors.reverse
     )
 
@@ -259,9 +251,9 @@ object Parser {
         cont(tokenProvider.remaining(), additionalArguments) match {
           case Left(value) =>
             Left(value) // TODO merge errors using semigroup
-          case Right(_) => result
+          case Right(_) => result.map((_, true))
         }
-      case _ => result
+      case _ => result.map((_, false))
     }
 
     appendHelp(finalResult)
@@ -353,9 +345,6 @@ object Parser {
         case Left(theirErrors) => Left(errors ++ theirErrors)
         case Right(_)          => Left(errors)
       }
-
-  private def singleError[B](message: String): Either[List[String], B] =
-    Left(List(message))
 
   private def splitAdditionalArguments(
     args: Seq[String]

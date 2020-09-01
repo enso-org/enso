@@ -78,25 +78,27 @@ class Application[Config](
       Parser.parseOpts(
         combinedOpts,
         tokens,
-        Seq(),
+        additionalArguments,
         commandPrefix = Seq(commandName)
       )
     parseResult.flatMap {
-      case (topLevelParseResult, commandResult) =>
-//        run() match {
-//          case TopLevelBehavior.Halt => Right(())
-//          case TopLevelBehavior.Continue(config) =>
-//            val subCommandResult = Parser.parseCommand(
-//              this,
-//              config,
-//              restOfTokens,
-//              additionalArguments
-//            )
-//            subCommandResult.map { run =>
-//              run()
-//            }
-//        }
-        ???
+      case ((topLevelAction, commandResult), pluginIntercepted) =>
+        if (pluginIntercepted) {
+          Right(())
+        } else {
+          val topLevelBehavior = topLevelAction()
+          topLevelBehavior match {
+            case TopLevelBehavior.Halt =>
+              Right(())
+            case TopLevelBehavior.Continue(config) =>
+              commandResult match {
+                case Some(action) =>
+                  Right(action(config))
+                case None =>
+                  Left(List("Expected a command.", renderHelp()))
+              }
+          }
+        }
     }
   }
 
@@ -177,7 +179,7 @@ trait PluginManager {
   *
   * @tparam Config type of configuration that is passed to commands
   */
-trait TopLevelBehavior[+Config]
+sealed trait TopLevelBehavior[+Config]
 object TopLevelBehavior {
 
   /**

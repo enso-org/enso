@@ -1,18 +1,7 @@
 package org.enso.cli.internal
 
 import cats.data.NonEmptyList
-import org.enso.cli.internal.Parser.{singleError, untokenize}
-import org.enso.cli.{
-  CLIOutput,
-  Command,
-  Opts,
-  OptsParseError,
-  PluginInterceptedFlow,
-  PluginManager,
-  PluginNotFound,
-  Spelling,
-  Subcommand
-}
+import org.enso.cli._
 
 /**
   * TODO
@@ -29,11 +18,14 @@ class TopLevelCommandsOpt[A, B](
 
   override def availableSubcommands: NonEmptyList[Command[B]] = commands
 
-  override def handleUnknownCommand(command: String): ParserContinuation = {
-    ParserContinuation.Escape(tryHandlingPlugin(command))
+  override def handleUnknownCommand(
+    command: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation = {
+    ParserContinuation.Escape(tryHandlingPlugin(command, commandPrefix))
   }
 
-  def tryHandlingPlugin(command: String)(
+  def tryHandlingPlugin(command: String, commandPrefix: Seq[String])(
     remainingTokens: Seq[Token],
     additionalArguments: Seq[String]
   ): Either[List[String], Unit] = {
@@ -41,13 +33,13 @@ class TopLevelCommandsOpt[A, B](
       .map(
         _.tryRunningPlugin(
           command,
-          untokenize(remainingTokens) ++ additionalArguments
+          Parser.untokenize(remainingTokens) ++ additionalArguments
         )
       )
       .getOrElse(PluginNotFound)
     pluginBehaviour match {
       case PluginNotFound =>
-        ??? // TODO command suggestions
+        Left(List(commandSuggestions(command, commandPrefix)))
       case PluginInterceptedFlow => Right(())
     }
   }

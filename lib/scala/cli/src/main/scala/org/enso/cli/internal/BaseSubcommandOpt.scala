@@ -4,8 +4,11 @@ import cats.data.NonEmptyList
 import org.enso.cli.{Command, Opts}
 
 trait BaseSubcommandOpt[A, B] extends Opts[A] {
-  def availableSubcommands:                  NonEmptyList[Command[B]]
-  def handleUnknownCommand(command: String): ParserContinuation
+  def availableSubcommands: NonEmptyList[Command[B]]
+  def handleUnknownCommand(
+    command: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation
 
   var selectedCommand: Option[Command[B]] = None
   var errors: List[String]                = Nil
@@ -48,7 +51,7 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
                 addError(relatedMessage)
                 ParserContinuation.ContinueNormally
               case None =>
-                handleUnknownCommand(arg)
+                handleUnknownCommand(arg, commandPrefix)
             }
 
         }
