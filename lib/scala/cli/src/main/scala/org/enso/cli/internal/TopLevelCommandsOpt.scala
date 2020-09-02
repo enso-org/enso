@@ -12,42 +12,33 @@ import org.enso.cli._
   */
 class TopLevelCommandsOpt[A, B](
   toplevelOpts: Opts[A],
-  commands: NonEmptyList[Command[B]],
+  commands: NonEmptyList[Command[B => Unit]],
   pluginManager: Option[PluginManager]
-) extends BaseSubcommandOpt[(A, Option[B]), B] {
+) extends BaseSubcommandOpt[(A, Option[B => Unit]), B => Unit] {
 
-  override def availableSubcommands: NonEmptyList[Command[B]] = commands
+  override def availableSubcommands: NonEmptyList[Command[B => Unit]] = commands
 
   override def handleUnknownCommand(
     command: String,
     commandPrefix: Seq[String]
   ): ParserContinuation = {
-    ParserContinuation.Escape(tryHandlingPlugin(command, commandPrefix))
-  }
-
-  def tryHandlingPlugin(command: String, commandPrefix: Seq[String])(
-    remainingTokens: Seq[Token],
-    additionalArguments: Seq[String]
-  ): Either[OptsParseError, Unit] = {
-    val pluginBehaviour = pluginManager
-      .map(
-        _.tryRunningPlugin(
+    val pluginAvailable = pluginManager.exists(_.hasPlugin(command))
+    if (pluginAvailable) {
+      ParserContinuation.Escape((remainingTokens, additionalArguments) =>
+        pluginManager.get.tryRunningPlugin(
           command,
           Parser.untokenize(remainingTokens) ++ additionalArguments
         )
       )
-      .getOrElse(PluginNotFound)
-    pluginBehaviour match {
-      case PluginNotFound =>
-        OptsParseError.left(commandSuggestions(command, commandPrefix))
-      case PluginInterceptedFlow => Right(())
+    } else {
+      addError(commandSuggestions(command, commandPrefix))
+      ParserContinuation.ContinueNormally
     }
   }
 
   override private[cli] def result(
     commandPrefix: Seq[String]
-  ): Either[OptsParseError, (A, Option[B])] = {
-    // TODO combine errors from errors
+  ): Either[OptsParseError, (A, Option[B => Unit])] = {
     val topLevelResult = toplevelOpts.result(commandPrefix)
     val commandResult  = selectedCommand.map(_.opts.result(commandPrefix))
     val result = commandResult match {

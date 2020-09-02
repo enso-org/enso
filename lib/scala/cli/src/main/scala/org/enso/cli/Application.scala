@@ -50,7 +50,7 @@ class Application[Config](
 ) {
 
   private val combinedOpts =
-    new TopLevelCommandsOpt[() => TopLevelBehavior[Config], Config => Unit](
+    new TopLevelCommandsOpt(
       topLevelOpts,
       commands,
       pluginManager
@@ -83,21 +83,22 @@ class Application[Config](
       )
     val finalResult = parseResult.flatMap {
       case ((topLevelAction, commandResult), pluginIntercepted) =>
-        if (pluginIntercepted) {
-          Right(())
-        } else {
-          val topLevelBehavior = topLevelAction()
-          topLevelBehavior match {
-            case TopLevelBehavior.Halt =>
-              Right(())
-            case TopLevelBehavior.Continue(config) =>
-              commandResult match {
-                case Some(action) =>
-                  Right(action(config))
-                case None =>
-                  Left(OptsParseError("Expected a command.", renderHelp()))
-              }
-          }
+        pluginIntercepted match {
+          case Some(pluginHandler) =>
+            pluginHandler()
+          case None =>
+            val topLevelBehavior = topLevelAction()
+            topLevelBehavior match {
+              case TopLevelBehavior.Halt =>
+                Right(())
+              case TopLevelBehavior.Continue(config) =>
+                commandResult match {
+                  case Some(action) =>
+                    Right(action(config))
+                  case None =>
+                    Left(OptsParseError("Expected a command.", renderHelp()))
+                }
+            }
         }
     }
     OptsParseError.toErrorListAssumingHelpIsHandled(finalResult)
@@ -159,10 +160,18 @@ trait PluginManager {
   /**
     * Tries to run a given plugin with provided arguments.
     *
+    * It never returns - either it exits with the plugin's exit code or throws
+    * an exception if it was not possible to run the plugin.
+    *
     * @param name name of the plugin
     * @param args arguments that should be passed to it
     */
-  def tryRunningPlugin(name: String, args: Seq[String]): PluginBehaviour
+  def tryRunningPlugin(name: String, args: Seq[String]): Nothing
+
+  /**
+    * Returns whether the plugin of the given `name` is available in the system.
+    */
+  def hasPlugin(name: String): Boolean
 
   /**
     * Lists names of plugins found in the system.

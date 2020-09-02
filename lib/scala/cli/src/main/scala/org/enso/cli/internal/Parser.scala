@@ -6,7 +6,7 @@ sealed trait ParserContinuation
 object ParserContinuation {
   case object ContinueNormally extends ParserContinuation
   case class Escape(
-    continuation: (Seq[Token], Seq[String]) => Either[OptsParseError, Unit]
+    continuation: (Seq[Token], Seq[String]) => Nothing
   ) extends ParserContinuation
 }
 
@@ -102,7 +102,7 @@ object Parser {
     tokens: Seq[Token],
     additionalArguments: Seq[String],
     commandPrefix: Seq[String]
-  ): Either[OptsParseError, (A, Boolean)] = {
+  ): Either[OptsParseError, (A, Option[() => Nothing])] = {
     var parseErrors: List[String] = Nil
     def addError(error: String): Unit = {
       parseErrors = error :: parseErrors
@@ -149,8 +149,8 @@ object Parser {
 
     opts.reset()
     val tokenProvider = new TokenStream(tokens, addError)
-    var escapeParsing
-      : Option[(Seq[Token], Seq[String]) => Either[OptsParseError, Unit]] = None
+
+    var escapeParsing: Option[(Seq[Token], Seq[String]) => Nothing] = None
 
     while (escapeParsing.isEmpty && tokenProvider.hasTokens) {
       tokenProvider.consumeToken() match {
@@ -233,12 +233,10 @@ object Parser {
 
     val finalResult = (escapeParsing, result) match {
       case (Some(cont), Right(_)) =>
-        cont(tokenProvider.remaining(), additionalArguments) match {
-          case Left(value) =>
-            Left(value) // TODO merge errors using semigroup
-          case Right(_) => result.map((_, true))
-        }
-      case _ => result.map((_, false))
+        val pluginHandler =
+          () => cont(tokenProvider.remaining(), additionalArguments)
+        result.map((_, Some(pluginHandler)))
+      case _ => result.map((_, None))
     }
 
     OptsParseError.appendHelp(finalResult)(
