@@ -37,7 +37,7 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])
         if (commandProvidedButInvalid)
           Left(OptsParseError(NonEmptyList.fromListUnsafe(errors.reverse)))
         else
-          Left(OptsParseError("Expected a subcommand.", help(prefix)))
+          Left(OptsParseError.requestingFullHelp("Expected a subcommand."))
             .addErrors(errors.reverse)
     }
   }

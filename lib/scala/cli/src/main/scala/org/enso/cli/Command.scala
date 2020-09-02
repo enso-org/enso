@@ -18,15 +18,6 @@ case class Command[A](
 ) {
 
   /**
-    * Generates a help text for the command, including usage, available options
-    * and any additional help lines.
-    *
-    * @param applicationName name of the application for usage
-    */
-  def help(applicationName: String): String =
-    comment + "\n" + opts.help(Seq(applicationName, name))
-
-  /**
     * Returns a top-level help entry for the application help text. It includes
     * a short description of the command.
     */

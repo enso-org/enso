@@ -237,9 +237,13 @@ object Parser {
       case _ => result.map((_, None))
     }
 
-    finalResult.appendHelp {
-      opts.shortHelp(Seq(applicationName))
-    }
+    finalResult
+      .appendFullHelp {
+        opts.help(Seq(applicationName))
+      }
+      .appendShortHelp {
+        opts.shortHelp(Seq(applicationName))
+      }
   }
 
   def wantsHelp(args: Seq[Token]): Boolean =

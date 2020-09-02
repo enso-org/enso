@@ -48,12 +48,7 @@ class TopLevelCommandsOpt[A, B](
     val result = (topLevelResultWithHelp, commandResult) match {
       case (Right((result, true)), _) =>
         def displayHelp(): Unit = {
-          val helpText = selectedCommand match {
-            case Some(command) =>
-              commandHelp(command, commandPrefix)
-            case None =>
-              topLevelHelp(commandPrefix)
-          }
+          val helpText = renderHelp(commandPrefix)
           CLIOutput.println(helpText)
         }
 
@@ -64,8 +59,16 @@ class TopLevelCommandsOpt[A, B](
         topLevelResult.map((_, None))
     }
 
-    result.addErrors(errors.reverse)
+    result.addErrors(errors.reverse).appendFullHelp(renderHelp(commandPrefix))
   }
+
+  private def renderHelp(commandPrefix: Seq[String]): String =
+    selectedCommand match {
+      case Some(command) =>
+        commandHelp(command, commandPrefix)
+      case None =>
+        topLevelHelp(commandPrefix)
+    }
 
   /**
     * Generates a help text for an unknown command, including, if available,
@@ -148,8 +151,12 @@ class TopLevelCommandsOpt[A, B](
     super.commandLines(alwaysIncludeOtherOptions = include)
   }
 
-  def commandHelp(command: Command[_], commandPrefix: Seq[String]): String =
-    command.help(commandPrefix.head)
+  def commandHelp(command: Command[_], commandPrefix: Seq[String]): String = {
+    val applicationName = commandPrefix.head
+    val mergedOpts =
+      implicitly[Semigroupal[Opts]].product(command.opts, toplevelWithHelp)
+    command.comment + "\n" + mergedOpts.help(Seq(applicationName, command.name))
+  }
 
   def availableCommands(): String = {
     val pluginsHelp = pluginManager.map(_.pluginsHelp()).getOrElse(Seq())
