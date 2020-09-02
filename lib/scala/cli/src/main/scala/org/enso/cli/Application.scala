@@ -137,22 +137,6 @@ class Application[Config](
 }
 
 /**
-  * The datatype returned by the [[PluginManager]], specifies whether a plugin
-  * has been executed.
-  */
-sealed trait PluginBehaviour
-
-/**
-  * Returned if the plugin was not found.
-  */
-case object PluginNotFound extends PluginBehaviour
-
-/**
-  * Returned if a plugin has been found and has been run.
-  */
-case object PluginInterceptedFlow extends PluginBehaviour
-
-/**
   * A plugin manager that handles finding and running plugins.
   */
 trait PluginManager {
@@ -166,7 +150,7 @@ trait PluginManager {
     * @param name name of the plugin
     * @param args arguments that should be passed to it
     */
-  def tryRunningPlugin(name: String, args: Seq[String]): Nothing
+  def runPlugin(name: String, args: Seq[String]): Nothing
 
   /**
     * Returns whether the plugin of the given `name` is available in the system.

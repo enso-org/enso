@@ -25,7 +25,7 @@ class TopLevelCommandsOpt[A, B](
     val pluginAvailable = pluginManager.exists(_.hasPlugin(command))
     if (pluginAvailable) {
       ParserContinuation.Escape((remainingTokens, additionalArguments) =>
-        pluginManager.get.tryRunningPlugin(
+        pluginManager.get.runPlugin(
           command,
           Parser.untokenize(remainingTokens) ++ additionalArguments
         )

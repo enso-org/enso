@@ -279,8 +279,8 @@ object Main {
       }
     }
 
-  private def installEngineCommand: Subcommand[Config => Unit] =
-    Subcommand(
+  private def installEngineCommand: Command[Config => Unit] =
+    Command(
       "engine",
       "Install the specified engine VERSION, defaulting to the latest if " +
       "unspecified."
@@ -296,8 +296,8 @@ object Main {
       }
     }
 
-  private def installDistributionCommand: Subcommand[Config => Unit] =
-    Subcommand(
+  private def installDistributionCommand: Command[Config => Unit] =
+    Command(
       "distribution",
       "Install Enso on the system, deactivating portable mode."
     ) {
@@ -307,10 +307,10 @@ object Main {
         case "copy"   => DistributionInstaller.CopyBundles.asRight
         case "ignore" => DistributionInstaller.IgnoreBundles.asRight
         case other =>
-          List(
+          OptsParseError.left(
             s"`$other` is not a valid bundle-install-mode value. " +
             s"Possible values are: `move`, `copy`, `ignore`."
-          ).asLeft
+          )
       }
       val bundleAction = Opts.optionalParameter[BundleAction](
         "bundle-install-mode",
@@ -350,8 +350,8 @@ object Main {
       Opts.subcommands(installEngineCommand, installDistributionCommand)
     }
 
-  private def uninstallEngineCommand: Subcommand[Config => Unit] =
-    Subcommand(
+  private def uninstallEngineCommand: Command[Config => Unit] =
+    Command(
       "engine",
       "Uninstall the provided engine version. If the corresponding runtime " +
       "is not used by any remaining engine installations, it is also removed."
@@ -362,8 +362,8 @@ object Main {
       }
     }
 
-  private def uninstallDistributionCommand: Subcommand[Config => Unit] =
-    Subcommand(
+  private def uninstallDistributionCommand: Command[Config => Unit] =
+    Command(
       "distribution",
       "Uninstall whole Enso distribution and all components managed by " +
       "it. If `auto-confirm` is set, it will not attempt to remove the " +
@@ -395,10 +395,10 @@ object Main {
         case "engine"  => EnsoComponents.asRight
         case "runtime" => RuntimeComponents.asRight
         case other =>
-          List(
+          OptsParseError.left(
             s"Unknown argument `$other` - expected `engine`, `runtime` " +
             "or no argument to print a general summary."
-          ).asLeft
+          )
       }
 
       val what = Opts.optionalArgument[Components](

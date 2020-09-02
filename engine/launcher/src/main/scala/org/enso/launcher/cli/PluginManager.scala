@@ -2,7 +2,7 @@ package org.enso.launcher.cli
 
 import java.nio.file.{Files, Path}
 
-import org.enso.cli.{CommandHelp, PluginBehaviour, PluginNotFound}
+import org.enso.cli.CommandHelp
 import org.enso.launcher.{Environment, FileSystem}
 
 import scala.sys.process._
@@ -20,17 +20,22 @@ class PluginManager(env: Environment) extends org.enso.cli.PluginManager {
     * @param name name of the plugin
     * @param args arguments that should be passed to it
     */
-  override def tryRunningPlugin(
+  override def runPlugin(
     name: String,
     args: Seq[String]
-  ): PluginBehaviour =
+  ): Nothing =
     findPlugin(name) match {
       case Some(PluginDescription(commandName, _)) =>
         val exitCode = (Seq(commandName) ++ args).!
         sys.exit(exitCode)
       case None =>
-        PluginNotFound
+        throw new RuntimeException(
+          "Internal error: Could not find the plugin. " +
+          "This should not happen if hasPlugin returned true earlier."
+        )
     }
+
+  override def hasPlugin(name: String): Boolean = findPlugin(name).isDefined
 
   private val pluginPrefix           = "enso-"
   private val synopsisOption: String = "--synopsis"
@@ -60,17 +65,27 @@ class PluginManager(env: Environment) extends org.enso.cli.PluginManager {
 
   case class PluginDescription(executableName: String, synopsis: String)
 
+  private val pluginsCache
+    : collection.mutable.HashMap[String, Option[PluginDescription]] =
+    collection.mutable.HashMap.empty
+
   /**
     * Checks if the plugin with the given name is installed and valid.
     *
     * It tries to execute it (checking various command extensions depending on
     * the OS) and check if it returns a synopsis.
     *
+    * Results of this function are cached to avoid executing the plugin's
+    * `--synopsis` multiple times.
+    *
     * @param name name of the plugin
     * @return [[PluginDescription]] containing the command name that should be
     *        used to call the plugin and its synopsis
     */
-  private def findPlugin(name: String): Option[PluginDescription] = {
+  private def findPlugin(name: String): Option[PluginDescription] =
+    pluginsCache.getOrElseUpdate(name, lookupPlugin(name))
+
+  private def lookupPlugin(name: String): Option[PluginDescription] = {
     def canonicalizeDescription(description: String): String =
       description.replace("\n", " ").trim
     val noOpLogger = new ProcessLogger {
