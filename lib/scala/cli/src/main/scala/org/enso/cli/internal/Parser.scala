@@ -226,10 +226,7 @@ object Parser {
       }
     }
 
-    val result = OptsParseError.addErrors(
-      opts.result(commandPrefix),
-      parseErrors.reverse
-    )
+    val result = opts.result(commandPrefix).addErrors(parseErrors.reverse)
 
     val finalResult = (escapeParsing, result) match {
       case (Some(cont), Right(_)) =>
@@ -239,7 +236,7 @@ object Parser {
       case _ => result.map((_, None))
     }
 
-    OptsParseError.appendHelp(finalResult)(
+    finalResult.appendHelp(
       s"See `${commandPrefix.mkString(" ")} --help` for usage explanation."
     )
   }

@@ -27,7 +27,7 @@ class OptsSpec
           opts,
           tokens,
           additionalArguments,
-          Seq("???")
+          Seq("<root>")
         )
         .map(_._1)
       OptsParseError.toErrorListAssumingHelpIsHandled(result)
@@ -282,8 +282,10 @@ class OptsSpec
 
     "handle errors nicely" in {
       opt.parseFailing("").last should include("Usage:")
-      opt.parseFailing("cmd").head should (include("cmd1") and include("cmd2"))
-      opt.parseFailing("cmd").last should include("--help")
+      val cmdFailed = opt.parseFailing("cmd")
+      println(cmdFailed)
+      cmdFailed.head should (include("cmd1") and include("cmd2"))
+      cmdFailed.last should include("--help")
     }
   }
 

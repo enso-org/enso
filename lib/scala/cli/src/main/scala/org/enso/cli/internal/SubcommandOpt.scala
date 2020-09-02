@@ -28,11 +28,12 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])
   }
 
   override private[cli] def result(commandPrefix: Seq[String]) = {
+    val prefix = extendPrefix(commandPrefix)
     val result = selectedCommand match {
-      case Some(command) => command.opts.result(commandPrefix)
+      case Some(command) => command.opts.result(prefix)
       case None =>
-        Left(OptsParseError("Expected a subcommand.", help(commandPrefix)))
+        Left(OptsParseError("Expected a subcommand.", help(prefix)))
     }
-    OptsParseError.addErrors(result, errors.reverse)
+    result.addErrors(errors.reverse)
   }
 }

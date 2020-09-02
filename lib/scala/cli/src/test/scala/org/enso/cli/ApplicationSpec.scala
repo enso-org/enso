@@ -103,7 +103,7 @@ class ApplicationSpec
       )
     )
 
-    app.run(Seq("related")).left.value should contain(
+    app.run(Seq("related")).left.value.head should include(
       "You may be looking for `app cmd`."
     )
   }

@@ -53,7 +53,8 @@ class Application[Config](
     new TopLevelCommandsOpt(
       topLevelOpts,
       commands,
-      pluginManager
+      pluginManager,
+      helpHeader
     )
 
   /**
@@ -101,41 +102,14 @@ class Application[Config](
             }
         }
     }
-    OptsParseError.toErrorListAssumingHelpIsHandled(finalResult)
+    finalResult.toErrorListAssumingHelpIsHandled
   }
 
   /**
     * Generates a help text summarizing the usage of the application and listing
     * available commands and top-level options.
     */
-  def renderHelp(): String = {
-    val usageOptions = topLevelOpts
-      .commandLineOptions(alwaysIncludeOtherOptions = false)
-      .stripLeading()
-    val usage = s"Usage: $commandName\t${usageOptions} COMMAND [ARGS]\n"
-
-    val subCommands = commands.toList.map(_.topLevelHelp) ++ pluginManager
-        .map(_.pluginsHelp())
-        .getOrElse(Seq())
-    val commandDescriptions =
-      subCommands.map(_.toString).map(CLIOutput.indent + _ + "\n").mkString
-
-    val topLevelOptionsHelp =
-      topLevelOpts.helpExplanations(addHelpOption = false)
-
-    val sb = new StringBuilder
-    sb.append(helpHeader + "\n")
-    sb.append(usage)
-    sb.append("\nAvailable commands:\n")
-    sb.append(commandDescriptions)
-    sb.append(topLevelOptionsHelp)
-    sb.append(
-      s"\nFor more information on a specific command listed above," +
-      s" please run `$commandName COMMAND --help`."
-    )
-
-    sb.toString()
-  }
+  def renderHelp(): String = combinedOpts.topLevelHelp(Seq(commandName))
 }
 
 /**

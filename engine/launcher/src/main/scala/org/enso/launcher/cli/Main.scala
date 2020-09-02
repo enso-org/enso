@@ -442,7 +442,6 @@ object Main {
     }
 
   private def topLevelOpts: Opts[() => TopLevelBehavior[Config]] = {
-    val help = Opts.flag("help", 'h', "Display help.", showInUsage = true)
     val version =
       Opts.flag("version", 'V', "Display version.", showInUsage = true)
     val json = jsonFlag(showInUsage = false)
@@ -468,39 +467,28 @@ object Main {
 
     (
       internalOpts,
-      help,
       version,
       json,
       ensurePortable,
       autoConfirm,
       hideProgress
     ) mapN {
-      (
-        _,
-        help,
-        version,
-        useJSON,
-        shouldEnsurePortable,
-        autoConfirm,
-        hideProgress
-      ) => () =>
-        if (shouldEnsurePortable) {
-          Launcher.ensurePortable()
-        }
+      (_, version, useJSON, shouldEnsurePortable, autoConfirm, hideProgress) =>
+        () =>
+          if (shouldEnsurePortable) {
+            Launcher.ensurePortable()
+          }
 
-        val globalCLIOptions = GlobalCLIOptions(
-          autoConfirm  = autoConfirm,
-          hideProgress = hideProgress
-        )
+          val globalCLIOptions = GlobalCLIOptions(
+            autoConfirm  = autoConfirm,
+            hideProgress = hideProgress
+          )
 
-        if (help) {
-          printTopLevelHelp()
-          TopLevelBehavior.Halt
-        } else if (version) {
-          Launcher(globalCLIOptions).displayVersion(useJSON)
-          TopLevelBehavior.Halt
-        } else
-          TopLevelBehavior.Continue(globalCLIOptions)
+          if (version) {
+            Launcher(globalCLIOptions).displayVersion(useJSON)
+            TopLevelBehavior.Halt
+          } else
+            TopLevelBehavior.Continue(globalCLIOptions)
     }
   }
 

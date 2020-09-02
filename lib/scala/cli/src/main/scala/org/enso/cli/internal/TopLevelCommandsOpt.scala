@@ -1,20 +1,24 @@
 package org.enso.cli.internal
 
+import cats.Semigroupal
 import cats.data.NonEmptyList
 import org.enso.cli._
+import org.enso.cli.Opts.implicits._
 
 /**
   * TODO
-  * @param toplevelOpts
-  * @param commands
-  * @tparam A
-  * @tparam B
   */
 class TopLevelCommandsOpt[A, B](
   toplevelOpts: Opts[A],
   commands: NonEmptyList[Command[B => Unit]],
-  pluginManager: Option[PluginManager]
+  pluginManager: Option[PluginManager],
+  helpHeader: String
 ) extends BaseSubcommandOpt[(A, Option[B => Unit]), B => Unit] {
+
+  def helpOpt: Opts[Boolean] =
+    Opts.flag("help", 'h', "Print this help message.", showInUsage = true)
+  private val toplevelWithHelp =
+    implicitly[Semigroupal[Opts]].product(toplevelOpts, helpOpt)
 
   override def availableSubcommands: NonEmptyList[Command[B => Unit]] = commands
 
@@ -39,16 +43,30 @@ class TopLevelCommandsOpt[A, B](
   override private[cli] def result(
     commandPrefix: Seq[String]
   ): Either[OptsParseError, (A, Option[B => Unit])] = {
-    val topLevelResult = toplevelOpts.result(commandPrefix)
-    val commandResult  = selectedCommand.map(_.opts.result(commandPrefix))
-    val result = commandResult match {
-      case Some(value) =>
+    val prefix                 = extendPrefix(commandPrefix)
+    val topLevelResultWithHelp = toplevelWithHelp.result(prefix)
+    val topLevelResult         = topLevelResultWithHelp.map(_._1)
+    val commandResult          = selectedCommand.map(_.opts.result(prefix))
+    val result = (topLevelResultWithHelp, commandResult) match {
+      case (Right((result, true)), _) =>
+        def displayHelp(): Unit = {
+          val helpText = selectedCommand match {
+            case Some(command) =>
+              commandHelp(command, commandPrefix)
+            case None =>
+              topLevelHelp(commandPrefix)
+          }
+          CLIOutput.println(helpText)
+        }
+
+        Right((result, Some((_: B) => displayHelp())))
+      case (_, Some(value)) =>
         OptsParseError.product(topLevelResult, value.map(Some(_)))
-      case None =>
+      case (_, None) =>
         topLevelResult.map((_, None))
     }
 
-    OptsParseError.addErrors(result, errors.reverse)
+    result.addErrors(errors.reverse)
   }
 
   /**
@@ -76,25 +94,25 @@ class TopLevelCommandsOpt[A, B](
   }
 
   override private[cli] def flags =
-    super.flags ++ toplevelOpts.flags
+    super.flags ++ toplevelWithHelp.flags
   override private[cli] def parameters =
-    super.parameters ++ toplevelOpts.parameters
+    super.parameters ++ toplevelWithHelp.parameters
   override private[cli] def prefixedParameters =
-    super.prefixedParameters ++ toplevelOpts.prefixedParameters
+    super.prefixedParameters ++ toplevelWithHelp.prefixedParameters
   override private[cli] def gatherOptions =
-    super.gatherOptions ++ toplevelOpts.gatherOptions
+    super.gatherOptions ++ toplevelWithHelp.gatherOptions
   override private[cli] def gatherPrefixedParameters =
-    super.gatherPrefixedParameters ++ toplevelOpts.gatherPrefixedParameters
+    super.gatherPrefixedParameters ++ toplevelWithHelp.gatherPrefixedParameters
   override private[cli] def usageOptions =
-    super.usageOptions ++ toplevelOpts.usageOptions
+    super.usageOptions ++ toplevelWithHelp.usageOptions
 
   // Note [Arguments in Top-Level Options]
   private def validateNoArguments(): Unit = {
     val topLevelHasArguments =
-      toplevelOpts.requiredArguments.nonEmpty ||
-      toplevelOpts.optionalArguments.nonEmpty ||
-      toplevelOpts.trailingArguments.nonEmpty ||
-      toplevelOpts.additionalArguments.nonEmpty
+      toplevelWithHelp.requiredArguments.nonEmpty ||
+      toplevelWithHelp.optionalArguments.nonEmpty ||
+      toplevelWithHelp.trailingArguments.nonEmpty ||
+      toplevelWithHelp.additionalArguments.nonEmpty
     if (topLevelHasArguments) {
       throw new IllegalArgumentException(
         "Internal error: " +
@@ -106,22 +124,63 @@ class TopLevelCommandsOpt[A, B](
 
   override private[cli] def reset(): Unit = {
     super.reset()
-    toplevelOpts.reset()
+    toplevelWithHelp.reset()
   }
 
-  override def availableOptionsHelp(): Seq[String] =
-    super.availableOptionsHelp() ++ toplevelOpts.availableOptionsHelp()
+  override def availableOptionsHelp(): Seq[String] = {
+    val r =
+      super.availableOptionsHelp() ++ toplevelWithHelp.availableOptionsHelp()
+    println(r)
+    r
+  }
 
   override def availablePrefixedParametersHelp(): Seq[String] =
     super.availablePrefixedParametersHelp() ++
-    toplevelOpts.availablePrefixedParametersHelp()
+    toplevelWithHelp.availablePrefixedParametersHelp()
 
   override def additionalHelp(): Seq[String] =
-    super.additionalHelp() ++ toplevelOpts.additionalHelp()
+    super.additionalHelp() ++ toplevelWithHelp.additionalHelp()
 
   override def commandLines(
     alwaysIncludeOtherOptions: Boolean = false
-  ): NonEmptyList[String] = super.commandLines(alwaysIncludeOtherOptions = true)
+  ): NonEmptyList[String] = {
+    val include =
+      alwaysIncludeOtherOptions || toplevelWithHelp.gatherOptions.nonEmpty
+    super.commandLines(alwaysIncludeOtherOptions = include)
+  }
+
+  def commandHelp(command: Command[_], commandPrefix: Seq[String]): String =
+    command.help(commandPrefix.head)
+
+  def topLevelHelp(commandPrefix: Seq[String]): String = {
+    val usageOptions = toplevelWithHelp
+      .commandLineOptions(alwaysIncludeOtherOptions = false)
+      .stripLeading()
+    val commandName = commandPrefix.head
+    val usage =
+      s"Usage: $commandName\t$usageOptions COMMAND [ARGS]\n"
+
+    val pluginsHelp = pluginManager.map(_.pluginsHelp()).getOrElse(Seq())
+    val subCommands = commands.toList.map(_.topLevelHelp) ++ pluginsHelp
+    val commandDescriptions =
+      subCommands.map(_.toString).map(CLIOutput.indent + _ + "\n").mkString
+
+    val topLevelOptionsHelp =
+      toplevelWithHelp.helpExplanations(addHelpOption = false)
+
+    val sb = new StringBuilder
+    sb.append(helpHeader + "\n")
+    sb.append(usage)
+    sb.append("\nAvailable commands:\n")
+    sb.append(commandDescriptions)
+    sb.append(topLevelOptionsHelp)
+    sb.append(
+      s"\nFor more information on a specific command listed above," +
+      s" please run `$commandName COMMAND --help`."
+    )
+
+    sb.toString()
+  }
 }
 
 /*

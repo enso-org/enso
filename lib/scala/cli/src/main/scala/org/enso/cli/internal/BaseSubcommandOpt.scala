@@ -30,12 +30,17 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
   override private[cli] def wantsArgument() =
     selectedCommand.map(_.opts.wantsArgument()).getOrElse(true)
 
+  def extendPrefix(commandPrefix: Seq[String]): Seq[String] =
+    commandPrefix ++ selectedCommand.map(_.name)
+
   override private[cli] def consumeArgument(
     arg: String,
     commandPrefix: Seq[String]
-  ): ParserContinuation =
+  ): ParserContinuation = {
+    val prefix = extendPrefix(commandPrefix)
     selectedCommand match {
-      case Some(command) => command.opts.consumeArgument(arg, commandPrefix)
+      case Some(command) =>
+        command.opts.consumeArgument(arg, prefix)
       case None =>
         availableSubcommands.find(_.name == arg) match {
           case Some(command) =>
@@ -44,18 +49,18 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
           case None =>
             Command.formatRelated(
               arg,
-              commandPrefix,
+              prefix,
               availableSubcommands.toList
             ) match {
               case Some(relatedMessage) =>
                 addError(relatedMessage)
                 ParserContinuation.ContinueNormally
               case None =>
-                handleUnknownCommand(arg, commandPrefix)
+                handleUnknownCommand(arg, prefix)
             }
-
         }
     }
+  }
 
   override private[cli] def requiredArguments =
     selectedCommand.map(_.opts.requiredArguments).getOrElse(Seq())

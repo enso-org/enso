@@ -29,40 +29,35 @@ object OptsParseError {
         x.appendHelp || y.appendHelp
       )
 
-  def addErrors[A](
-    result: Either[OptsParseError, A],
-    errors: List[String]
-  ): Either[OptsParseError, A] =
-    result match {
-      case Left(value) => Left(value.withErrors(errors))
-      case Right(value) =>
-        val nel = NonEmptyList.fromList(errors)
-        nel match {
-          case Some(errorsList) => Left(OptsParseError(errorsList))
-          case None             => Right(value)
-        }
-    }
+  implicit class ParseErrorSyntax[A](val result: Either[OptsParseError, A]) {
+    def addErrors(errors: List[String]): Either[OptsParseError, A] =
+      result match {
+        case Left(value) => Left(value.withErrors(errors))
+        case Right(value) =>
+          val nel = NonEmptyList.fromList(errors)
+          nel match {
+            case Some(errorsList) => Left(OptsParseError(errorsList))
+            case None             => Right(value)
+          }
+      }
 
-  def appendHelp[A](
-    result: Either[OptsParseError, A]
-  )(help: => String): Either[OptsParseError, A] =
-    result.left.map { value =>
-      if (value.appendHelp) value.withHelp(help) else value
-    }
+    def appendHelp(help: => String): Either[OptsParseError, A] =
+      result.left.map { value =>
+        if (value.appendHelp) value.withHelp(help) else value
+      }
 
-  def toErrorListAssumingHelpIsHandled[A](
-    result: Either[OptsParseError, A]
-  ): Either[List[String], A] =
-    result match {
-      case Left(value) =>
-        if (value.appendHelp)
-          throw new IllegalStateException(
-            "Internal error: Help was not handled."
-          )
-        else
-          Left(value.errors.toList)
-      case Right(value) => Right(value)
-    }
+    def toErrorListAssumingHelpIsHandled: Either[List[String], A] =
+      result match {
+        case Left(value) =>
+          if (value.appendHelp)
+            throw new IllegalStateException(
+              "Internal error: Help was not handled."
+            )
+          else
+            Left(value.errors.toList)
+        case Right(value) => Right(value)
+      }
+  }
 
   def product[A, B](
     a: Either[OptsParseError, A],
