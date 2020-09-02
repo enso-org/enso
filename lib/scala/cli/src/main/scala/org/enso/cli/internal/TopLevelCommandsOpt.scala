@@ -22,10 +22,7 @@ class TopLevelCommandsOpt[A, B](
 
   override def availableSubcommands: NonEmptyList[Command[B => Unit]] = commands
 
-  override def handleUnknownCommand(
-    command: String,
-    commandPrefix: Seq[String]
-  ): ParserContinuation = {
+  override def handleUnknownCommand(command: String): ParserContinuation = {
     val pluginAvailable = pluginManager.exists(_.hasPlugin(command))
     if (pluginAvailable) {
       ParserContinuation.Escape((remainingTokens, additionalArguments) =>
@@ -35,7 +32,7 @@ class TopLevelCommandsOpt[A, B](
         )
       )
     } else {
-      addError(commandSuggestions(command, commandPrefix))
+      addError(commandSuggestions(command))
       ParserContinuation.ContinueNormally
     }
   }
@@ -75,11 +72,9 @@ class TopLevelCommandsOpt[A, B](
     *
     * @param typo the unrecognized command name
     */
-  def commandSuggestions(typo: String, commandPrefix: Seq[String]): String = {
+  def commandSuggestions(typo: String): String = {
     val header =
-      s"`$typo` is not a valid command. See " +
-      s"`${commandPrefix.mkString(" ")} --help` " +
-      s"for a list of available commands."
+      s"`$typo` is not a valid command."
     val plugins          = pluginManager.map(_.pluginsNames()).getOrElse(Seq())
     val possibleCommands = availableSubcommands.toList.map(_.name) ++ plugins
     val similar = Spelling.selectClosestMatches(
@@ -87,7 +82,7 @@ class TopLevelCommandsOpt[A, B](
       possibleCommands
     )
     val suggestions =
-      if (similar.isEmpty) ""
+      if (similar.isEmpty) "\n\n" + availableCommands()
       else {
         "\n\nThe most similar commands are\n" +
         similar.map(CLIOutput.indent + _ + "\n").mkString
@@ -155,6 +150,14 @@ class TopLevelCommandsOpt[A, B](
   def commandHelp(command: Command[_], commandPrefix: Seq[String]): String =
     command.help(commandPrefix.head)
 
+  def availableCommands(): String = {
+    val pluginsHelp = pluginManager.map(_.pluginsHelp()).getOrElse(Seq())
+    val subCommands = commands.toList.map(_.topLevelHelp) ++ pluginsHelp
+    val commandDescriptions =
+      subCommands.map(_.toString).map(CLIOutput.indent + _ + "\n").mkString
+    "Available commands:\n" + commandDescriptions
+  }
+
   def topLevelHelp(commandPrefix: Seq[String]): String = {
     val usageOptions = toplevelWithHelp
       .commandLineOptions(alwaysIncludeOtherOptions = false)
@@ -163,19 +166,13 @@ class TopLevelCommandsOpt[A, B](
     val usage =
       s"Usage: $commandName\t$usageOptions COMMAND [ARGS]\n"
 
-    val pluginsHelp = pluginManager.map(_.pluginsHelp()).getOrElse(Seq())
-    val subCommands = commands.toList.map(_.topLevelHelp) ++ pluginsHelp
-    val commandDescriptions =
-      subCommands.map(_.toString).map(CLIOutput.indent + _ + "\n").mkString
-
     val topLevelOptionsHelp =
       toplevelWithHelp.helpExplanations(addHelpOption = false)
 
     val sb = new StringBuilder
     sb.append(helpHeader + "\n")
     sb.append(usage)
-    sb.append("\nAvailable commands:\n")
-    sb.append(commandDescriptions)
+    sb.append("\n" + availableCommands())
     sb.append(topLevelOptionsHelp)
     sb.append(
       s"\nFor more information on a specific command listed above," +

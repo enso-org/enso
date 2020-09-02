@@ -9,16 +9,13 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])
 
   var commandProvidedButInvalid: Boolean = false
 
-  override def handleUnknownCommand(
-    command: String,
-    commandPrefix: Seq[String]
-  ): ParserContinuation = {
+  override def handleUnknownCommand(command: String): ParserContinuation = {
     val similar =
       Spelling
         .selectClosestMatches(command, subcommands.toList.map(_.name))
     val suggestions =
       if (similar.isEmpty)
-        "\n\nPossible subcommands are\n" +
+        "\n\nAvailable subcommands are\n" +
         subcommands.toList
           .map(CLIOutput.indent + _.name + "\n")
           .mkString
