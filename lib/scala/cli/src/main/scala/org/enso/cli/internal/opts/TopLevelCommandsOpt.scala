@@ -1,9 +1,10 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
 import cats.Semigroupal
 import cats.data.NonEmptyList
-import org.enso.cli._
 import org.enso.cli.Opts.implicits._
+import org.enso.cli._
+import org.enso.cli.internal.{Parser, ParserContinuation}
 
 /**
   * TODO

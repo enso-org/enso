@@ -1,5 +1,6 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
+import org.enso.cli.internal.ParserContinuation
 import org.enso.cli.{Opts, OptsParseError}
 
 class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {

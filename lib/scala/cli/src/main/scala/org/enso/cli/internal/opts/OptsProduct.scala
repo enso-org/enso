@@ -1,5 +1,6 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
+import org.enso.cli.internal.ParserContinuation
 import org.enso.cli.{IllegalOptsStructure, Opts, OptsParseError}
 
 class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {

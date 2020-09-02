@@ -1,6 +1,7 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
 import org.enso.cli.Opts
+import org.enso.cli.internal.ParserContinuation
 
 class HiddenOpts[A](opts: Opts[A]) extends Opts[A] {
   override private[cli] def flags              = opts.flags

@@ -1,6 +1,7 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
 import cats.data.NonEmptyList
+import org.enso.cli.internal.ParserContinuation
 import org.enso.cli.{Command, Opts}
 
 trait BaseSubcommandOpt[A, B] extends Opts[A] {

@@ -4,6 +4,21 @@ import cats.data.NonEmptyList
 import cats.{Functor, Semigroupal}
 import cats.implicits._
 import org.enso.cli.internal._
+import org.enso.cli.internal.opts.{
+  AdditionalArguments,
+  Flag,
+  HiddenOpts,
+  OptionalParameter,
+  OptionalPositionalArgument,
+  OptsMap,
+  OptsProduct,
+  OptsPure,
+  Parameter,
+  PositionalArgument,
+  PrefixedParameters,
+  SubcommandOpt,
+  TrailingArguments
+}
 
 /**
   * Exception that is reported when Opts are combined in an illegal way.

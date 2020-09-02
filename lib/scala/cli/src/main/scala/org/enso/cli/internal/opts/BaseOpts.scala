@@ -1,6 +1,7 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
 import org.enso.cli.Opts
+import org.enso.cli.internal.ParserContinuation
 
 abstract class BaseOpts[A] extends Opts[A] {
   override private[cli] val flags: Map[String, () => Unit]          = Map.empty

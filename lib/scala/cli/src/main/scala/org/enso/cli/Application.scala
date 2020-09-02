@@ -1,7 +1,8 @@
 package org.enso.cli
 
 import cats.data.NonEmptyList
-import org.enso.cli.internal.{Parser, TopLevelCommandsOpt}
+import org.enso.cli.internal.Parser
+import org.enso.cli.internal.opts.TopLevelCommandsOpt
 
 /**
   * Represents a CLI application with multiple commands.

@@ -1,6 +1,7 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
 import cats.data.NonEmptyList
+import org.enso.cli.internal.ParserContinuation
 import org.enso.cli.{CLIOutput, Command, OptsParseError, Spelling}
 
 class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])

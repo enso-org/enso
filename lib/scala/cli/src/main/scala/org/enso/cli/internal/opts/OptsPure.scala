@@ -1,4 +1,4 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
 import org.enso.cli.OptsParseError
 

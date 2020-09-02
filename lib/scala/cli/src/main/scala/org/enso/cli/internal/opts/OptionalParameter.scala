@@ -1,22 +1,23 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
 import org.enso.cli.{Argument, OptsParseError}
 
-class Parameter[A: Argument](
+class OptionalParameter[A: Argument](
   name: String,
   metavar: String,
-  helpComment: String
-) extends BaseOpts[A] {
+  helpComment: String,
+  showInUsage: Boolean
+) extends BaseOpts[Option[A]] {
   if (name.exists(_.isWhitespace)) {
     throw new IllegalArgumentException(
-      s"Parameter name '$name' cannot contain whitespace."
+      s"Optional parameter name '$name' cannot contain whitespace."
     )
   }
 
   override private[cli] val parameters =
     Map(name -> update)
   override private[cli] val usageOptions =
-    Seq(s"--$name $metavar")
+    if (showInUsage) Seq(s"[--$name $metavar]") else Seq()
   override private[cli] def gatherOptions =
     Seq(name -> s"--$name $metavar")
 
@@ -29,21 +30,16 @@ class Parameter[A: Argument](
   }
 
   private def update(newValue: String): Unit = {
-    value = combineWithoutDuplicates(
+    value = OptsParseError.combineWithoutDuplicates(
       value,
       Argument[A].read(newValue),
       s"Multiple values for parameter $name."
     )
   }
 
-  override private[cli] def result(commandPrefix: Seq[String]) =
-    value.flatMap {
-      case Some(value) => Right(value)
-      case None =>
-        OptsParseError.left(s"Missing required parameter `--$name`.")
-    }
+  override private[cli] def result(commandPrefix: Seq[String]) = value
 
   override def availableOptionsHelp(): Seq[String] = {
-    Seq(s" --$name $metavar\t$helpComment")
+    Seq(s"[--$name $metavar]\t$helpComment")
   }
 }

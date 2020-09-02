@@ -1,8 +1,8 @@
 package org.enso.cli
 
 import cats.data.NonEmptyList
-import cats.kernel.Semigroup
 import cats.implicits._
+import cats.kernel.Semigroup
 
 case class OptsParseError(
   errors: NonEmptyList[String]
@@ -68,5 +68,19 @@ object OptsParseError {
       case (Left(a), Left(b))   => Left(a |+| b)
       case (Left(a), _)         => Left(a)
       case (_, Left(b))         => Left(b)
+    }
+
+  def combineWithoutDuplicates[A](
+    old: Either[OptsParseError, Option[A]],
+    newer: Either[OptsParseError, A],
+    duplicateErrorMessage: String
+  ): Either[OptsParseError, Option[A]] =
+    (old, newer) match {
+      case (Left(oldErrors), Left(newErrors)) => Left(newErrors |+| oldErrors)
+      case (Right(None), Right(v))            => Right(Some(v))
+      case (Right(Some(_)), Right(_)) =>
+        Left(OptsParseError(duplicateErrorMessage))
+      case (Left(errors), Right(_)) => Left(errors)
+      case (Right(_), Left(errors)) => Left(errors)
     }
 }
