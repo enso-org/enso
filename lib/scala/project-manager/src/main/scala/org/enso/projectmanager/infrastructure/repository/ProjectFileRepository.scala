@@ -39,16 +39,16 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   override def exists(
     name: String
   ): F[ProjectRepositoryFailure, Boolean] =
-    getAll.map(_.exists(_.name == PackageManager.Default.normalizeName(name)))
+    getAll().map(_.exists(_.name == PackageManager.Default.normalizeName(name)))
 
   /** @inheritdoc */
   override def find(
     predicate: Project => Boolean
-  ): F[ProjectRepositoryFailure, Iterable[Project]] =
-    getAll.map(_.filter(predicate))
+  ): F[ProjectRepositoryFailure, List[Project]] =
+    getAll().map(_.filter(predicate))
 
   /** @inheritdoc */
-  override def getAll: F[ProjectRepositoryFailure, List[Project]] =
+  override def getAll(): F[ProjectRepositoryFailure, List[Project]] =
     fileSystem
       .list(storageConfig.userProjectsPath)
       .recover {
@@ -61,7 +61,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   override def findById(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Option[Project]] =
-    getAll.map(_.find(_.id == projectId))
+    getAll().map(_.find(_.id == projectId))
 
   /** @inheritdoc */
   override def create(

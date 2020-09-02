@@ -28,7 +28,7 @@ class MoveProjectDirCmd[F[+_, +_]: CovariantFlatMap: ErrorChannel](
   log: Logging[F]
 ) extends ShutdownHook[F] {
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def execute(): F[Nothing, Unit] = {
     def go() =
       for {

@@ -71,14 +71,14 @@ trait ProjectRepository[F[+_, +_]] {
     */
   def find(
     predicate: Project => Boolean
-  ): F[ProjectRepositoryFailure, Iterable[Project]]
+  ): F[ProjectRepositoryFailure, List[Project]]
 
   /**
     * Gets all projects from the data store.
     *
     * @return all projects stored in the project index
     */
-  def getAll: F[ProjectRepositoryFailure, List[Project]]
+  def getAll(): F[ProjectRepositoryFailure, List[Project]]
 
   /**
     * Moves project to the target dir.

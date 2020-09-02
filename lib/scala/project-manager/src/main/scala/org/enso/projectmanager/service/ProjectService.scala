@@ -226,7 +226,8 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   override def listProjects(
     maybeSize: Option[Int]
   ): F[ProjectServiceFailure, List[ProjectMetadata]] =
-    repo.getAll
+    repo
+      .getAll()
       .map(
         _.sorted(RecentlyUsedProjectsOrdering)
           .take(maybeSize.getOrElse(Int.MaxValue))
