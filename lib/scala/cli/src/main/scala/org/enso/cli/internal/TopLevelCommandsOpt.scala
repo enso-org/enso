@@ -79,15 +79,17 @@ class TopLevelCommandsOpt[A, B](
     val header =
       s"`$typo` is not a valid command. See " +
       s"`${commandPrefix.mkString(" ")} --help` " +
-      s"for a list of available commands.\n\n"
+      s"for a list of available commands."
+    val plugins          = pluginManager.map(_.pluginsNames()).getOrElse(Seq())
+    val possibleCommands = availableSubcommands.toList.map(_.name) ++ plugins
     val similar = Spelling.selectClosestMatches(
       typo,
-      availableSubcommands.toList.map(_.name)
+      possibleCommands
     )
     val suggestions =
       if (similar.isEmpty) ""
       else {
-        "The most similar commands are\n" +
+        "\n\nThe most similar commands are\n" +
         similar.map(CLIOutput.indent + _ + "\n").mkString
       }
 

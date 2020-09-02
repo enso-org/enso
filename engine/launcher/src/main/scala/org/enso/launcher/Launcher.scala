@@ -327,16 +327,14 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   /**
     * Displays the version string of the launcher.
     *
-    * @param useJSON specifies whether the output should use JSON or a
-    *                human-readable format
     * @param hideEngineVersion if set, does not look for installed engines to
     *                          display the current version; this can be used to
     *                          avoid making network requests
     */
   def displayVersion(
-    useJSON: Boolean,
     hideEngineVersion: Boolean = false
   ): Unit = {
+    val useJSON = cliOptions.useJSON
     val runtimeVersionParameter =
       if (hideEngineVersion) None else Some(getEngineVersion(useJSON))
 

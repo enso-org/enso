@@ -23,13 +23,6 @@ import org.enso.launcher.{Launcher, Logger}
   * Defines the CLI commands and options for the program and its entry point.
   */
 object Main {
-  private def jsonFlag(showInUsage: Boolean): Opts[Boolean] =
-    Opts.flag(
-      "json",
-      "Use JSON instead of plain text for version output.",
-      showInUsage
-    )
-
   type Config = GlobalCLIOptions
 
   private def versionCommand: Command[Config => Unit] =
@@ -44,12 +37,10 @@ object Main {
         "configuration.",
         showInUsage = true
       )
-      (jsonFlag(showInUsage = true), onlyLauncherFlag) mapN {
-        (useJSON, onlyLauncher) => (config: Config) =>
-          Launcher(config).displayVersion(
-            useJSON,
-            hideEngineVersion = onlyLauncher
-          )
+      onlyLauncherFlag map { onlyLauncher => (config: Config) =>
+        Launcher(config).displayVersion(
+          hideEngineVersion = onlyLauncher
+        )
       }
     }
 
@@ -444,7 +435,11 @@ object Main {
   private def topLevelOpts: Opts[() => TopLevelBehavior[Config]] = {
     val version =
       Opts.flag("version", 'V', "Display version.", showInUsage = true)
-    val json = jsonFlag(showInUsage = false)
+    val json = Opts.flag(
+      "json",
+      "Use JSON instead of plain text for version output.",
+      showInUsage = false
+    )
     val ensurePortable = Opts.flag(
       "ensure-portable",
       "Ensures that the launcher is run in portable mode.",
@@ -481,7 +476,8 @@ object Main {
 
           val globalCLIOptions = GlobalCLIOptions(
             autoConfirm  = autoConfirm,
-            hideProgress = hideProgress
+            hideProgress = hideProgress,
+            useJSON      = useJSON
           )
 
           if (version) {
