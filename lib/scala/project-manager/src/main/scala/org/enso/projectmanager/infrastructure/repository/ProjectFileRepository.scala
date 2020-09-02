@@ -48,7 +48,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     getAll.map(_.filter(predicate))
 
   /** @inheritdoc */
-  override def getAll: F[ProjectRepositoryFailure, Iterable[Project]] =
+  override def getAll: F[ProjectRepositoryFailure, List[Project]] =
     fileSystem
       .list(storageConfig.userProjectsPath)
       .recover {

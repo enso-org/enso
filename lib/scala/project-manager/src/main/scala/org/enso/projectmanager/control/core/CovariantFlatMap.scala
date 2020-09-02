@@ -8,7 +8,7 @@ import scala.util.{Either, Left, Right}
   * A class for covariant effects containing error channel used to chain
   * computations.
   *
-  * @tparam F a effectful context
+  * @tparam F an effectful context
   */
 trait CovariantFlatMap[F[+_, +_]] {
 
@@ -29,7 +29,14 @@ trait CovariantFlatMap[F[+_, +_]] {
     */
   def flatMap[E1, E2 >: E1, A, B](fa: F[E1, A])(f: A => F[E2, B]): F[E2, B]
 
-  def traverse[E, A, B](s: Iterable[A])(f: A => F[E, B]): F[E, Iterable[B]]
+  /**
+    * Applies the function `f` to each element of the `Iterable[A]`.
+    *
+    * @param s a collection of elements
+    * @param f the mapping function
+    * @return the new collection with the function applied to each element
+    */
+  def traverse[E, A, B](s: Iterable[A])(f: A => F[E, B]): F[E, List[B]]
 
   /**
     * `if` lifted into monad.

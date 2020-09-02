@@ -78,7 +78,7 @@ trait ProjectRepository[F[+_, +_]] {
     *
     * @return all projects stored in the project index
     */
-  def getAll: F[ProjectRepositoryFailure, Iterable[Project]]
+  def getAll: F[ProjectRepositoryFailure, List[Project]]
 
   /**
     * Moves project to the target dir.

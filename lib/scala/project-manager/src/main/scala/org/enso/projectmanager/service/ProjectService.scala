@@ -228,8 +228,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   ): F[ProjectServiceFailure, List[ProjectMetadata]] =
     repo.getAll
       .map(
-        _.toList
-          .sorted(RecentlyUsedProjectsOrdering)
+        _.sorted(RecentlyUsedProjectsOrdering)
           .take(maybeSize.getOrElse(Int.MaxValue))
       )
       .map(_.map(toProjectMetadata))
