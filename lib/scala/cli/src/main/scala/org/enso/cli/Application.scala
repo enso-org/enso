@@ -109,8 +109,10 @@ class Application[Config](
     * available commands and top-level options.
     */
   def renderHelp(): String = {
-    val usageOptions = topLevelOpts.commandLineOptions().stripLeading()
-    val usage        = s"Usage: $commandName\t${usageOptions} COMMAND [ARGS]\n"
+    val usageOptions = topLevelOpts
+      .commandLineOptions(alwaysIncludeOtherOptions = false)
+      .stripLeading()
+    val usage = s"Usage: $commandName\t${usageOptions} COMMAND [ARGS]\n"
 
     val subCommands = commands.toList.map(_.topLevelHelp) ++ pluginManager
         .map(_.pluginsHelp())

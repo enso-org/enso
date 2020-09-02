@@ -134,10 +134,12 @@ trait Opts[A] {
     *
     * @return a string representing the options usage
     */
-  private[cli] def commandLineOptions(): String = {
+  private[cli] def commandLineOptions(
+    alwaysIncludeOtherOptions: Boolean
+  ): String = {
     val allOptions = parameters.size + flags.size + prefixedParameters.size
     val otherOptions =
-      if (allOptions > usageOptions.size)
+      if (alwaysIncludeOtherOptions || allOptions > usageOptions.size)
         " [options]"
       else ""
     otherOptions + usageOptions.map(" " + _).mkString
@@ -150,8 +152,10 @@ trait Opts[A] {
     * @return a non-empty list of available usages of this option set. Multiple
     *         entries may be returned in presence of subcommands.
     */
-  def commandLines(): NonEmptyList[String] = {
-    val options  = commandLineOptions()
+  def commandLines(
+    alwaysIncludeOtherOptions: Boolean = false
+  ): NonEmptyList[String] = {
+    val options  = commandLineOptions(alwaysIncludeOtherOptions)
     val required = requiredArguments.map(arg => s" $arg").mkString
     val optional = optionalArguments.map(arg => s" [$arg]").mkString
     val trailing = trailingArguments.map(args => s" [$args...]").getOrElse("")

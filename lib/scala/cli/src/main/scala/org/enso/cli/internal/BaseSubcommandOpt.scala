@@ -24,7 +24,7 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
     selectedCommand.map(_.opts.gatherOptions).getOrElse(Seq())
   override private[cli] def gatherPrefixedParameters =
     selectedCommand.map(_.opts.gatherPrefixedParameters).getOrElse(Seq())
-  override private[cli] val usageOptions =
+  override private[cli] def usageOptions =
     availableSubcommands.toList.flatMap(_.opts.usageOptions).distinct
 
   override private[cli] def wantsArgument() =
@@ -82,12 +82,14 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
   override def additionalHelp(): Seq[String] =
     availableSubcommands.toList.flatMap(_.opts.additionalHelp()).distinct
 
-  override def commandLines(): NonEmptyList[String] = {
+  override def commandLines(
+    alwaysIncludeOtherOptions: Boolean = false
+  ): NonEmptyList[String] = {
     def prefixedCommandLines(command: Command[_]): NonEmptyList[String] = {
       val prefix = command.name + " "
       val suffix = s"\n\t${command.comment}"
       command.opts
-        .commandLines()
+        .commandLines(alwaysIncludeOtherOptions)
         .map(commandLine => prefix + commandLine + suffix)
     }
 

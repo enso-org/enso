@@ -74,4 +74,60 @@ class TopLevelCommandsOpt[A, B](
 
     header + suggestions
   }
+
+  override private[cli] def flags =
+    super.flags ++ toplevelOpts.flags
+  override private[cli] def parameters =
+    super.parameters ++ toplevelOpts.parameters
+  override private[cli] def prefixedParameters =
+    super.prefixedParameters ++ toplevelOpts.prefixedParameters
+  override private[cli] def gatherOptions =
+    super.gatherOptions ++ toplevelOpts.gatherOptions
+  override private[cli] def gatherPrefixedParameters =
+    super.gatherPrefixedParameters ++ toplevelOpts.gatherPrefixedParameters
+  override private[cli] def usageOptions =
+    super.usageOptions ++ toplevelOpts.usageOptions
+
+  // Note [Arguments in Top-Level Options]
+  private def validateNoArguments(): Unit = {
+    val topLevelHasArguments =
+      toplevelOpts.requiredArguments.nonEmpty ||
+      toplevelOpts.optionalArguments.nonEmpty ||
+      toplevelOpts.trailingArguments.nonEmpty ||
+      toplevelOpts.additionalArguments.nonEmpty
+    if (topLevelHasArguments) {
+      throw new IllegalArgumentException(
+        "Internal error: " +
+        "The top level options are not allowed to take arguments."
+      )
+    }
+  }
+  validateNoArguments()
+
+  override private[cli] def reset(): Unit = {
+    super.reset()
+    toplevelOpts.reset()
+  }
+
+  override def availableOptionsHelp(): Seq[String] =
+    super.availableOptionsHelp() ++ toplevelOpts.availableOptionsHelp()
+
+  override def availablePrefixedParametersHelp(): Seq[String] =
+    super.availablePrefixedParametersHelp() ++
+    toplevelOpts.availablePrefixedParametersHelp()
+
+  override def additionalHelp(): Seq[String] =
+    super.additionalHelp() ++ toplevelOpts.additionalHelp()
+
+  override def commandLines(
+    alwaysIncludeOtherOptions: Boolean = false
+  ): NonEmptyList[String] = super.commandLines(alwaysIncludeOtherOptions = true)
 }
+
+/*
+ * Note [Arguments in Top-Level Options]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * We do not override the functions handling arguments, because we just need to
+ * handle arguments of the subcommand. By definition, the top level options
+ * cannot include arguments.
+ */
