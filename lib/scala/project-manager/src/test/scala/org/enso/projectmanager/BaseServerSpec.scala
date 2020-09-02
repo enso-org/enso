@@ -59,12 +59,11 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   val userProjectDir = new File(testProjectsRoot, "projects")
 
-  val indexFile = new File(testProjectsRoot, "project-index.json")
-
   lazy val testStorageConfig = StorageConfig(
-    projectsRoot     = testProjectsRoot,
-    projectIndexPath = indexFile,
-    userProjectsPath = userProjectDir
+    projectsRoot             = testProjectsRoot,
+    userProjectsPath         = userProjectDir,
+    projectMetadataDirectory = ".enso",
+    projectMetadataFileName  = "project.json"
   )
 
   lazy val bootloaderConfig = config.bootloader
@@ -86,7 +85,8 @@ class BaseServerSpec extends JsonRpcServerTestKit {
     new ProjectFileRepository(
       testStorageConfig,
       testClock,
-      fileSystem
+      fileSystem,
+      gen
     )
 
   lazy val projectValidator = new MonadicProjectValidator[ZIO[ZEnv, *, *]]()

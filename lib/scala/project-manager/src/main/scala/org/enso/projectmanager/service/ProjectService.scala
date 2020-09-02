@@ -59,11 +59,11 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   ): F[ProjectServiceFailure, UUID] = {
     // format: off
     for {
-      _            <- log.debug(s"Creating project $name.")
+      projectId    <- gen.randomUUID()
+      _            <- log.debug(s"Creating project $name $projectId.")
       _            <- validateName(name)
       _            <- checkIfNameExists(name)
       creationTime <- clock.nowInUtc()
-      projectId    <- gen.randomUUID()
       project       = Project(projectId, name, UserProject, creationTime)
       _            <- repo.create(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")

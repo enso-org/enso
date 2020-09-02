@@ -9,11 +9,9 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
+import org.enso.projectmanager.infrastructure.file.FileSystem
 import org.enso.projectmanager.infrastructure.file.FileSystemFailure.FileNotFound
-import org.enso.projectmanager.infrastructure.file.{
-  FileSystem,
-  ProjectPackageStorage
-}
+import org.enso.projectmanager.infrastructure.random.Generator
 import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailure.{
   InconsistentStorage,
   ProjectNotFoundInIndex,
@@ -26,13 +24,15 @@ import org.enso.projectmanager.model.{Project, ProjectMetadata}
   * File based implementation of the project repository.
   *
   * @param storageConfig a storage config
-  * @param clock a clock abstraction
+  * @param clock a clock
   * @param fileSystem a file system abstraction
+  * @param gen a random generator
   */
 class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   storageConfig: StorageConfig,
   clock: Clock[F],
-  fileSystem: FileSystem[F]
+  fileSystem: FileSystem[F],
+  gen: Generator[F]
 ) extends ProjectRepository[F] {
 
   /** @inheritdoc */
@@ -70,16 +70,19 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     for {
       projectPath <- findTargetPath(project)
       _           <- createProjectStructure(project, projectPath)
-      _ <- new ProjectMetadataStorage[F](projectPath, clock, fileSystem)
+      _ <- metadataStorage(projectPath)
         .persist(ProjectMetadata(project))
+        .mapError(th => StorageFailure(th.toString))
     } yield ()
 
   private def loadProject(
     directory: File
   ): F[ProjectRepositoryFailure, Option[Project]] =
     for {
-      pkgOpt <- new ProjectPackageStorage[F](directory).load
-      meta   <- new ProjectMetadataStorage[F](directory, clock, fileSystem).load
+      pkgOpt <- loadPackage(directory)
+      meta <- metadataStorage(directory)
+        .load()
+        .mapError(_.fold(convertFileStorageFailure))
     } yield pkgOpt.map { pkg =>
       Project(
         id         = meta.id,
@@ -108,7 +111,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       case Some(project) =>
         project.path match {
           case Some(directory) =>
-            new ProjectPackageStorage[F](new File(directory)).rename(name)
+            renamePackage(new File(directory), name)
           case None =>
             ErrorChannel[F].fail(ProjectNotFoundInIndex)
         }
@@ -133,26 +136,43 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     } yield projectPackage.config.name
   }
 
-  private def getPackage(
+  private def loadPackage(
     projectPath: File
-  ): F[ProjectRepositoryFailure, Package[File]] =
+  ): F[ProjectRepositoryFailure, Option[Package[File]]] =
     Sync[F]
       .blockingOp { PackageManager.Default.fromDirectory(projectPath) }
       .mapError(th => StorageFailure(th.toString))
+
+  private def getPackage(
+    projectPath: File
+  ): F[ProjectRepositoryFailure, Package[File]] =
+    loadPackage(projectPath)
       .flatMap {
         case None =>
           ErrorChannel[F].fail(
             InconsistentStorage(s"Cannot find package.yaml at $projectPath")
           )
-
         case Some(projectPackage) => CovariantFlatMap[F].pure(projectPackage)
+      }
+
+  private def renamePackage(
+    projectPath: File,
+    name: String
+  ): F[ProjectRepositoryFailure, Unit] =
+    getPackage(projectPath)
+      .flatMap { projectPackage =>
+        val newName = PackageManager.Default.normalizeName(name)
+        Sync[F]
+          .blockingOp { projectPackage.rename(newName) }
+          .map(_ => ())
+          .mapError(th => StorageFailure(th.toString))
       }
 
   /** @inheritdoc */
   def update(project: Project): F[ProjectRepositoryFailure, Unit] =
     project.path match {
       case Some(path) =>
-        new ProjectMetadataStorage[F](new File(path), clock, fileSystem)
+        metadataStorage(new File(path))
           .persist(
             ProjectMetadata(
               id         = project.id,
@@ -161,6 +181,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
               lastOpened = project.lastOpened
             )
           )
+          .mapError(th => StorageFailure(th.toString))
       case None =>
         ErrorChannel[F].fail(ProjectNotFoundInIndex)
     }
@@ -254,4 +275,13 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   private def genSuffix(number: Int) =
     if (number == 0) ""
     else s"_$number"
+
+  private def metadataStorage(projectPath: File): MetadataFileStorage[F] =
+    new MetadataFileStorage[F](
+      projectPath,
+      storageConfig,
+      clock,
+      fileSystem,
+      gen
+    )
 }

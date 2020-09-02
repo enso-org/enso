@@ -53,16 +53,17 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
   lazy val fileSystem =
     new BlockingFileSystem[F](config.timeout.ioTimeout)
 
+  lazy val gen = new SystemGenerator[F]
+
+  lazy val projectValidator = new MonadicProjectValidator[F]()
+
   lazy val projectRepository =
     new ProjectFileRepository[F](
       config.storage,
       clock,
-      fileSystem
+      fileSystem,
+      gen
     )
-
-  lazy val gen = new SystemGenerator[F]
-
-  lazy val projectValidator = new MonadicProjectValidator[F]()
 
   lazy val languageServerRegistry =
     system.actorOf(
