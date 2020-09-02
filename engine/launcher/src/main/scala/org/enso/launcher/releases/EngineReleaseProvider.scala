@@ -26,7 +26,7 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
     releaseProvider.listReleases().flatMap { releases =>
       val versions =
         releases
-          .filter(!isBroken(_))
+          .filter(!_.isMarkedBroken)
           .map(_.tag.stripPrefix(tagPrefix))
           .flatMap(SemVer(_))
       versions.sorted.lastOption.map(Success(_)).getOrElse {
@@ -46,7 +46,7 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
           .find(_.fileName == Manifest.DEFAULT_MANIFEST_NAME)
           .toRight(
             ReleaseProviderException(
-              s"${Manifest.DEFAULT_MANIFEST_NAME} file is mising from " +
+              s"${Manifest.DEFAULT_MANIFEST_NAME} file is missing from " +
               s"release assets."
             )
           )
@@ -65,17 +65,11 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
           )
     } yield EngineRelease(
       version  = version,
-      isBroken = isBroken(release),
+      isBroken = release.isMarkedBroken,
       manifest = manifest,
       release  = release
     )
   }
-
-  /**
-    * Checks if the given release is broken.
-    */
-  private def isBroken(release: Release): Boolean =
-    release.assets.exists(_.fileName == "broken")
 
   /**
     * Downloads the package associated with the given release into
