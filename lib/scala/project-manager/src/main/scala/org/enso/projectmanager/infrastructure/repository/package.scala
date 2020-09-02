@@ -22,5 +22,4 @@ package object repository {
     implicit def caseFsFailure =
       at[FileSystemFailure](f => StorageFailure(s"IO operation failed: $f"))
   }
-
 }

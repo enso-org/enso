@@ -6,7 +6,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.{Flow, Sink, Source}
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import akka.testkit._
 import io.circe.{ACursor, Decoder, DecodingFailure, HCursor, Json}
 import io.circe.parser.parse
 import org.enso.jsonrpc.{ClientControllerFactory, JsonRpcServer, Protocol}
@@ -104,7 +104,7 @@ abstract class JsonRpcServerTestKit
 
     def send(json: Json): Unit = send(json.noSpaces)
 
-    def expectMessage(timeout: FiniteDuration = 3.seconds): String =
+    def expectMessage(timeout: FiniteDuration = 3.seconds.dilated): String =
       outActor.expectMsgClass[String](timeout, classOf[String])
 
     def expectJson(json: Json): Assertion = {

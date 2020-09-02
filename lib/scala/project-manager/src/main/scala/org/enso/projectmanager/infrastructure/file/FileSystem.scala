@@ -54,4 +54,5 @@ trait FileSystem[F[+_, +_]] {
     */
   def exists(file: File): F[FileSystemFailure, Boolean]
 
+  def list(directory: File): F[FileSystemFailure, Seq[File]]
 }

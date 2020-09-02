@@ -9,9 +9,7 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Semaphore, Sync}
-import org.enso.projectmanager.data.Default
 import org.enso.projectmanager.infrastructure.file.FileStorage._
-import org.enso.projectmanager.infrastructure.file.FileSystemFailure.FileNotFound
 import shapeless.{:+:, CNil, _}
 
 /**
@@ -22,7 +20,10 @@ import shapeless.{:+:, CNil, _}
   * @param fileSystem a filesystem algebra
   * @tparam A a datatype to store
   */
-class SynchronizedFileStorage[A: Encoder: Decoder: Default, F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
+class SynchronizedFileStorage[A: Encoder: Decoder, F[
+  +_,
+  +_
+]: Sync: ErrorChannel: CovariantFlatMap](
   path: File,
   fileSystem: FileSystem[F]
 ) extends FileStorage[A, F] {
@@ -39,9 +40,9 @@ class SynchronizedFileStorage[A: Encoder: Decoder: Default, F[+_, +_]: Sync: Err
       .readFile(path)
       .mapError(Coproduct[LoadFailure](_))
       .flatMap(tryDecodeFileContents)
-      .recover {
-        case Inr(Inl(FileNotFound)) => Default[A].value
-      }
+//      .recover {
+//        case Inr(Inl(FileNotFound)) => Default[A].value
+//      }
 
   private def tryDecodeFileContents(contents: String): F[LoadFailure, A] = {
     decode[A](contents) match {

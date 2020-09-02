@@ -108,7 +108,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
       _          <- checkIfNameExists(name)
       oldPackage <- repo.getPackageName(projectId).mapError(toServiceFailure)
       _          <- repo.rename(projectId, name).mapError(toServiceFailure)
-      _          <- renameProjectDirOrRegisterShutdownHook(projectId)
+      _          <- renameProjectDirOrRegisterShutdownHook(projectId, name)
       newPackage = PackageManager.Default.normalizeName(name)
       _ <- refactorProjectName(projectId, oldPackage, newPackage)
       _ <- log.info(s"Project $projectId renamed.")
@@ -116,9 +116,10 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   }
 
   private def renameProjectDirOrRegisterShutdownHook(
-    projectId: UUID
+    projectId: UUID,
+    newName: String
   ): F[ProjectServiceFailure, Unit] = {
-    val cmd = new MoveProjectDirCmd[F](projectId, repo, log)
+    val cmd = new MoveProjectDirCmd[F](projectId, newName, repo, log)
     CovariantFlatMap[F]
       .ifM(isServerRunning(projectId))(
         ifTrue  = languageServerGateway.registerShutdownHook(projectId, cmd),
@@ -225,10 +226,10 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap: Sync](
   override def listProjects(
     maybeSize: Option[Int]
   ): F[ProjectServiceFailure, List[ProjectMetadata]] =
-    repo
-      .getAll()
+    repo.getAll
       .map(
-        _.sorted(RecentlyUsedProjectsOrdering)
+        _.toList
+          .sorted(RecentlyUsedProjectsOrdering)
           .take(maybeSize.getOrElse(Int.MaxValue))
       )
       .map(_.map(toProjectMetadata))

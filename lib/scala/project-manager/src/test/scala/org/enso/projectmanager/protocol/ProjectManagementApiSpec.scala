@@ -110,9 +110,11 @@ class ProjectManagementApiSpec
       val projectDir  = new File(userProjectDir, projectName)
       val packageFile = new File(projectDir, "package.yaml")
       val mainEnso    = Paths.get(projectDir.toString, "src", "Main.enso").toFile
+      val meta        = Paths.get(projectDir.toString, ".enso", "project.json").toFile
 
       packageFile shouldBe Symbol("file")
       mainEnso shouldBe Symbol("file")
+      meta shouldBe Symbol("file")
     }
 
     "create a project dir with a suffix if a directory is taken" in {
@@ -396,9 +398,9 @@ class ProjectManagementApiSpec
             "id":0,
             "result": {
               "projects": [
-                {"name": "baz", "id": $bazId, "lastOpened": null},
-                {"name": "bar", "id": $barId, "lastOpened": null},
-                {"name": "foo", "id": $fooId, "lastOpened": null}
+                {"name": "Baz", "id": $bazId, "lastOpened": null},
+                {"name": "Bar", "id": $barId, "lastOpened": null},
+                {"name": "Foo", "id": $fooId, "lastOpened": null}
               ]
             }
           }
@@ -438,9 +440,9 @@ class ProjectManagementApiSpec
             "id":0,
             "result": {
               "projects": [
-                {"name": "bar", "id": $barId, "lastOpened": $barOpenTime},
-                {"name": "foo", "id": $fooId, "lastOpened": $fooOpenTime},
-                {"name": "baz", "id": $bazId, "lastOpened": null}
+                {"name": "Bar", "id": $barId, "lastOpened": $barOpenTime},
+                {"name": "Foo", "id": $fooId, "lastOpened": $fooOpenTime},
+                {"name": "Baz", "id": $bazId, "lastOpened": null}
               ]
             }
           }

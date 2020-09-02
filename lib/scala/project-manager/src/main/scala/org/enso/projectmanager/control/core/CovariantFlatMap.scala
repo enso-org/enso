@@ -29,6 +29,8 @@ trait CovariantFlatMap[F[+_, +_]] {
     */
   def flatMap[E1, E2 >: E1, A, B](fa: F[E1, A])(f: A => F[E2, B]): F[E2, B]
 
+  def traverse[E, A, B](s: Iterable[A])(f: A => F[E, B]): F[E, Iterable[B]]
+
   /**
     * `if` lifted into monad.
     */

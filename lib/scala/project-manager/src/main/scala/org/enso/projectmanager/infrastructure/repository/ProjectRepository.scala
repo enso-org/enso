@@ -71,21 +71,25 @@ trait ProjectRepository[F[+_, +_]] {
     */
   def find(
     predicate: Project => Boolean
-  ): F[ProjectRepositoryFailure, List[Project]]
+  ): F[ProjectRepositoryFailure, Iterable[Project]]
 
   /**
     * Gets all projects from the data store.
     *
     * @return all projects stored in the project index
     */
-  def getAll(): F[ProjectRepositoryFailure, List[Project]]
+  def getAll: F[ProjectRepositoryFailure, Iterable[Project]]
 
   /**
     * Moves project to the target dir.
     *
     * @param projectId the project id
+    * @param newName the new project name
     */
-  def moveProjectToTargetDir(projectId: UUID): F[ProjectRepositoryFailure, File]
+  def moveProjectToTargetDir(
+    projectId: UUID,
+    newName: String
+  ): F[ProjectRepositoryFailure, File]
 
   /**
     * Gets a package name for the specified project.
