@@ -1,4 +1,4 @@
-package org.enso.cli
+package org.enso.cli.arguments
 
 import java.nio.file.{InvalidPathException, Path}
 import java.util.UUID

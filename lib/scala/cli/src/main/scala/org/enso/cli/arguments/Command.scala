@@ -1,4 +1,4 @@
-package org.enso.cli
+package org.enso.cli.arguments
 
 /**
   * Represents a top-level command in the CLI.
@@ -77,14 +77,4 @@ object Command {
     s"To show usage, run `$command $related --help`.\n" +
     s"To show available commands, run `$command --help`."
   }
-}
-
-/**
-  * A help entry used in the top-level help text.
-  *
-  * @param name name of a command
-  * @param comment a short description of that command
-  */
-case class CommandHelp(name: String, comment: String) {
-  override def toString: String = s"$name\t$comment"
 }

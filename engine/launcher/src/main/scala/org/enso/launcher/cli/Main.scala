@@ -6,8 +6,16 @@ import java.util.UUID
 import cats.data.NonEmptyList
 import cats.implicits._
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.Opts.implicits._
+import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli._
+import org.enso.cli.arguments.{
+  Application,
+  Argument,
+  Command,
+  Opts,
+  OptsParseError,
+  TopLevelBehavior
+}
 import org.enso.launcher.cli.Arguments._
 import org.enso.launcher.components.runner.LanguageServerOptions
 import org.enso.launcher.config.DefaultVersion

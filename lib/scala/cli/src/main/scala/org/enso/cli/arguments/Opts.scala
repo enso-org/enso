@@ -1,30 +1,11 @@
-package org.enso.cli
+package org.enso.cli.arguments
 
 import cats.data.NonEmptyList
-import cats.{Functor, Semigroupal}
 import cats.implicits._
+import cats.{Functor, Semigroupal}
+import org.enso.cli.CLIOutput
 import org.enso.cli.internal._
-import org.enso.cli.internal.opts.{
-  AdditionalArguments,
-  Flag,
-  HiddenOpts,
-  OptionalParameter,
-  OptionalPositionalArgument,
-  OptsMap,
-  OptsProduct,
-  OptsPure,
-  Parameter,
-  PositionalArgument,
-  PrefixedParameters,
-  SubcommandOpt,
-  TrailingArguments
-}
-
-/**
-  * Exception that is reported when Opts are combined in an illegal way.
-  */
-case class IllegalOptsStructure(message: String, cause: Throwable = null)
-    extends RuntimeException(message, cause)
+import org.enso.cli.internal.opts._
 
 /**
   * Represents a set of options (flags, parameters, arguments) and the logic
@@ -235,6 +216,9 @@ trait Opts[A] {
     usage + helpExplanations(addHelpOption = true).stripTrailing()
   }
 
+  /**
+    * Renders text explaining how to display the help.
+    */
   def shortHelp(commandPrefix: Seq[String]): String =
     s"See `${commandPrefix.mkString(" ")} --help` for usage explanation."
 }

@@ -1,6 +1,6 @@
 package org.enso.cli.internal.opts
 
-import org.enso.cli.OptsParseError
+import org.enso.cli.arguments.OptsParseError
 
 class Flag(
   name: String,

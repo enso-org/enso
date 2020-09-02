@@ -1,86 +1,7 @@
 package org.enso.cli.internal
 
-import org.enso.cli.{CLIOutput, Opts, OptsParseError, Spelling}
-
-sealed trait ParserContinuation
-object ParserContinuation {
-  case object ContinueNormally extends ParserContinuation
-  case class Escape(
-    continuation: (Seq[Token], Seq[String]) => Nothing
-  ) extends ParserContinuation
-}
-
-/**
-  * A token used in the parser.
-  */
-sealed trait Token {
-
-  /**
-    * The original value that this token has been created from.
-    *
-    * Used to reverse the tokenization process.
-    */
-  def originalValue: String
-}
-case class PlainToken(override val originalValue: String) extends Token
-case class ParameterOrFlag(parameter: String)(
-  override val originalValue: String
-) extends Token
-case class MistypedParameter(parameter: String)(
-  override val originalValue: String
-) extends Token
-case class ParameterWithValue(parameter: String, value: String)(
-  override val originalValue: String
-) extends Token
-
-/**
-  * A mutable stream of tokens.
-  * @param initialTokens initial sequence of tokens
-  * @param errorReporter a function used for reporting errors
-  */
-class TokenStream(initialTokens: Seq[Token], errorReporter: String => Unit) {
-  var tokens: List[Token] = initialTokens.toList
-
-  /**
-    * Returns true if there are more tokens available.
-    */
-  def hasTokens: Boolean = tokens.nonEmpty
-
-  /**
-    * Returns the next token. Cannot be called if [[hasTokens]] is false.
-    */
-  def consumeToken(): Token = {
-    val token = tokens.head
-    tokens = tokens.tail
-    token
-  }
-
-  /**
-    * Returns the next token, but does not remove it from the stream yet. Cannot
-    * be called if [[hasTokens]] is false.
-    */
-  def peekToken(): Token = tokens.head
-
-  /**
-    * If the next available token is an argument, returns it. Otherwise returns
-    * None and reports a specified error message.
-    */
-  def tryConsumeArgument(errorMessage: String): Option[String] = {
-    tokens.headOption match {
-      case Some(PlainToken(arg)) =>
-        tokens = tokens.tail
-        Some(arg)
-      case _ =>
-        errorReporter(errorMessage)
-        None
-    }
-  }
-
-  /**
-    * Returns a sequence of remaining tokens.
-    */
-  def remaining(): Seq[Token] = tokens
-}
+import org.enso.cli.arguments.{Opts, OptsParseError}
+import org.enso.cli.{CLIOutput, Spelling}
 
 object Parser {
 
@@ -93,9 +14,8 @@ object Parser {
     *                            [[Opts.additionalArguments]] option
     * @param applicationName application name, used for displaying help
     *                        messages
-    * @return returns either the result value of `opts` and remaining tokens or
-    *         a list of errors on failure; the remaining tokens are non-empty
-    *         only if `isTopLevel` is true
+    * @return returns either the result value of `opts` and an optional closure
+    *         that defines the plugin handler behaviour or a parse error
     */
   def parseOpts[A](
     opts: Opts[A],
@@ -107,7 +27,19 @@ object Parser {
     def addError(error: String): Unit = {
       parseErrors = error :: parseErrors
     }
+
+    /**
+      * Flag used to avoid issuing an 'unexpected argument' error if it was
+      * preceded by a potential parameter.
+      *
+      * It is used because if we find an unknown parameter, we do not know if it
+      * is a parameter or flag and cannot make any assumptions. The argument
+      * coming after it can be a plain argument ora value to the parameter - to
+      * avoid confusion in the latter case, we skip the unexpected argument
+      * error.
+      */
     var suppressUnexpectedArgument = false
+
     def reportUnknownParameter(
       parameter: String,
       original: String
@@ -151,16 +83,20 @@ object Parser {
     val tokenProvider = new TokenStream(tokens, addError)
 
     var escapeParsing: Option[(Seq[Token], Seq[String]) => Nothing] = None
+    var parsingStopped: Boolean                                     = false
 
-    while (escapeParsing.isEmpty && tokenProvider.hasTokens) {
+    while (!parsingStopped && tokenProvider.hasTokens) {
       tokenProvider.consumeToken() match {
         case PlainToken(value) =>
           if (opts.wantsArgument()) {
             val continuation = opts.consumeArgument(value, Seq(applicationName))
             continuation match {
               case ParserContinuation.ContinueNormally =>
+              case ParserContinuation.Stop =>
+                parsingStopped = true
               case ParserContinuation.Escape(cont) =>
-                escapeParsing = Some(cont)
+                escapeParsing  = Some(cont)
+                parsingStopped = true
             }
           } else if (!suppressUnexpectedArgument) {
             addError(s"Unexpected argument `$value`.")
@@ -181,7 +117,7 @@ object Parser {
           } else if (opts.parameters.contains(parameter)) {
             for (
               value <- tokenProvider.tryConsumeArgument(
-                s"Expected a value for parameter $parameter."
+                s"Expected a value for parameter `$parameter`."
               )
             ) opts.parameters(parameter)(value)
           } else if (hasPrefix(parameter)) {
@@ -189,7 +125,7 @@ object Parser {
             if (opts.prefixedParameters.contains(prefix)) {
               for (
                 value <- tokenProvider.tryConsumeArgument(
-                  s"Expected a value for parameter $parameter."
+                  s"Expected a value for parameter `$parameter`."
                 )
               ) opts.prefixedParameters(prefix)(rest, value)
             } else {
@@ -246,13 +182,6 @@ object Parser {
       }
   }
 
-  def wantsHelp(args: Seq[Token]): Boolean =
-    args.exists {
-      case ParameterOrFlag("help") => true
-      case ParameterOrFlag("h")    => true
-      case _                       => false
-    }
-
   private def splitAdditionalArguments(
     args: Seq[String]
   ): (Seq[String], Seq[String]) =
@@ -273,6 +202,15 @@ object Parser {
   private val paramWithValue         = """--([\w-.]+)=(.*)""".r
   private val mistypedLongParam      = """-([\w-.]+)""".r
   private val mistypedParamWithValue = """-([\w-.]+)=(.*)""".r
+
+  /**
+    * Converts a sequence of arguments into a sequence of tokens and additional
+    * arguments.
+    *
+    * All arguments are converted into tokens until a `--` argument is
+    * encountered. Any further arguments (including additional instances of
+    * `--`) are treated as additional arguments.
+    */
   def tokenize(args: Seq[String]): (Seq[Token], Seq[String]) = {
     def toToken(arg: String): Token =
       arg match {

@@ -2,12 +2,22 @@ package org.enso.cli.internal.opts
 
 import cats.Semigroupal
 import cats.data.NonEmptyList
-import org.enso.cli.Opts.implicits._
 import org.enso.cli._
+import org.enso.cli.arguments.Opts.implicits._
+import org.enso.cli.arguments._
 import org.enso.cli.internal.{Parser, ParserContinuation}
 
 /**
-  * TODO
+  * Implements the entry point of options parsing for an [[Application]].
+  *
+  * @param toplevelOpts top-level options that define a global configuration
+  *                     and can override commands
+  * @param commands list of commands
+  * @param pluginManager optional plugin manager that can handle unknown
+  *                      commands by launching plugins available on system path
+  * @param helpHeader header added to the top-level help message
+  * @tparam A type returned by top-level options
+  * @tparam B type of the config that the commands use
   */
 class TopLevelCommandsOpt[A, B](
   toplevelOpts: Opts[A],
@@ -16,13 +26,27 @@ class TopLevelCommandsOpt[A, B](
   helpHeader: String
 ) extends BaseSubcommandOpt[(A, Option[B => Unit]), B => Unit] {
 
-  def helpOpt: Opts[Boolean] =
+  private def helpOpt: Opts[Boolean] =
     Opts.flag("help", 'h', "Print this help message.", showInUsage = true)
+
+  /**
+    * Top-level options extended with an option for requesting help.
+    */
   private val toplevelWithHelp =
     implicitly[Semigroupal[Opts]].product(toplevelOpts, helpOpt)
 
+  /**
+    * @inheritdoc
+    */
   override def availableSubcommands: NonEmptyList[Command[B => Unit]] = commands
 
+  /**
+    * Handles an unknown command.
+    *
+    * First tries to find a plugin with the given name and if it finds it,
+    * parsing is stopped to invoke that plugin. Otherwise it just reports an
+    * error with suggestions of similar command names, if any.
+    */
   override def handleUnknownCommand(command: String): ParserContinuation = {
     val pluginAvailable = pluginManager.exists(_.hasPlugin(command))
     if (pluginAvailable) {
@@ -34,7 +58,7 @@ class TopLevelCommandsOpt[A, B](
       )
     } else {
       addError(commandSuggestions(command))
-      ParserContinuation.ContinueNormally
+      ParserContinuation.Stop
     }
   }
 
@@ -62,6 +86,12 @@ class TopLevelCommandsOpt[A, B](
     result.addErrors(errors.reverse).appendFullHelp(renderHelp(commandPrefix))
   }
 
+  /**
+    * Renders the help text, depending on if a command has been selected or not.
+    *
+    * If no commands were selected, renders the top-level help text. Otherwise,
+    * renders the help text for the selected command.
+    */
   private def renderHelp(commandPrefix: Seq[String]): String =
     selectedCommand match {
       case Some(command) =>
@@ -129,20 +159,28 @@ class TopLevelCommandsOpt[A, B](
     toplevelWithHelp.reset()
   }
 
-  override def availableOptionsHelp(): Seq[String] = {
-    val r =
-      super.availableOptionsHelp() ++ toplevelWithHelp.availableOptionsHelp()
-    println(r)
-    r
-  }
+  /**
+    * @inheritdoc
+    */
+  override def availableOptionsHelp(): Seq[String] =
+    super.availableOptionsHelp() ++ toplevelWithHelp.availableOptionsHelp()
 
+  /**
+    * @inheritdoc
+    */
   override def availablePrefixedParametersHelp(): Seq[String] =
     super.availablePrefixedParametersHelp() ++
     toplevelWithHelp.availablePrefixedParametersHelp()
 
+  /**
+    * @inheritdoc
+    */
   override def additionalHelp(): Seq[String] =
     super.additionalHelp() ++ toplevelWithHelp.additionalHelp()
 
+  /**
+    * @inheritdoc
+    */
   override def commandLines(
     alwaysIncludeOtherOptions: Boolean = false
   ): NonEmptyList[String] = {
@@ -151,6 +189,9 @@ class TopLevelCommandsOpt[A, B](
     super.commandLines(alwaysIncludeOtherOptions = include)
   }
 
+  /**
+    * @inheritdoc
+    */
   def commandHelp(command: Command[_], commandPrefix: Seq[String]): String = {
     val applicationName = commandPrefix.head
     val mergedOpts =
@@ -158,6 +199,10 @@ class TopLevelCommandsOpt[A, B](
     command.comment + "\n" + mergedOpts.help(Seq(applicationName, command.name))
   }
 
+  /**
+    * Renders the part of the top-level help text listing the available
+    * commands.
+    */
   def availableCommands(): String = {
     val pluginsHelp = pluginManager.map(_.pluginsHelp()).getOrElse(Seq())
     val subCommands = commands.toList.map(_.topLevelHelp) ++ pluginsHelp
@@ -166,6 +211,9 @@ class TopLevelCommandsOpt[A, B](
     "Available commands:\n" + commandDescriptions
   }
 
+  /**
+    * Renders top-level help.
+    */
   def topLevelHelp(commandPrefix: Seq[String]): String = {
     val usageOptions = toplevelWithHelp
       .commandLineOptions(alwaysIncludeOtherOptions = false)

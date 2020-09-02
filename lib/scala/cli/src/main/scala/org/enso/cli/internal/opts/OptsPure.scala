@@ -1,6 +1,6 @@
 package org.enso.cli.internal.opts
 
-import org.enso.cli.OptsParseError
+import org.enso.cli.arguments.OptsParseError
 
 class OptsPure[A](v: A) extends BaseOpts[A] {
   override private[cli] def result(

@@ -1,7 +1,7 @@
 package org.enso.cli.internal.opts
 
+import org.enso.cli.arguments.{Argument, OptsParseError}
 import org.enso.cli.internal.ParserContinuation
-import org.enso.cli.{Argument, OptsParseError}
 
 class PositionalArgument[A: Argument](
   metavar: String,

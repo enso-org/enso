@@ -1,16 +1,53 @@
 package org.enso.cli.internal.opts
 
 import cats.data.NonEmptyList
+import org.enso.cli.arguments.{Command, Opts}
 import org.enso.cli.internal.ParserContinuation
-import org.enso.cli.{Command, Opts}
 
+/**
+  * Implements common logic for options that can take a command and modify their
+  * further parsing behavior based on that command.
+  * @tparam A returned type
+  * @tparam B type returned by the commands
+  */
 trait BaseSubcommandOpt[A, B] extends Opts[A] {
-  def availableSubcommands:                  NonEmptyList[Command[B]]
+
+  /**
+    * Lists all available commands.
+    */
+  def availableSubcommands: NonEmptyList[Command[B]]
+
+  /**
+    * Handles an unknown command.
+    *
+    * Executed when a command is given that does not match any of
+    * [[availableSubcommands]].
+    */
   def handleUnknownCommand(command: String): ParserContinuation
 
+  /**
+    * The command that has been selected, if any.
+    *
+    * If no command was selected, is set to None.
+    */
   var selectedCommand: Option[Command[B]] = None
-  var errors: List[String]                = Nil
-  def addError(error: String): Unit       = errors ::= error
+
+  /**
+    * List of errors reported when parsing this set of options.
+    */
+  var errors: List[String] = Nil
+
+  /**
+    * Adds an error that will be reported when getting the result.
+    */
+  def addError(error: String): Unit = errors ::= error
+
+  /**
+    * Extends a command prefix from the call with the currently selected command
+    * (if a command is selected).
+    */
+  def extendPrefix(commandPrefix: Seq[String]): Seq[String] =
+    commandPrefix ++ selectedCommand.map(_.name)
 
   override private[cli] def flags =
     selectedCommand.map(_.opts.flags).getOrElse(Map.empty)
@@ -27,9 +64,6 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
 
   override private[cli] def wantsArgument() =
     selectedCommand.map(_.opts.wantsArgument()).getOrElse(true)
-
-  def extendPrefix(commandPrefix: Seq[String]): Seq[String] =
-    commandPrefix ++ selectedCommand.map(_.name)
 
   override private[cli] def consumeArgument(
     arg: String,
@@ -52,7 +86,7 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
             ) match {
               case Some(relatedMessage) =>
                 addError(relatedMessage)
-                ParserContinuation.ContinueNormally
+                ParserContinuation.Stop
               case None =>
                 handleUnknownCommand(arg)
             }
@@ -74,17 +108,30 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
     selectedCommand = None
     errors          = Nil
   }
+
+  /**
+    * @inheritdoc
+    */
   override def availableOptionsHelp(): Seq[String] =
     availableSubcommands.toList.flatMap(_.opts.availableOptionsHelp()).distinct
 
+  /**
+    * @inheritdoc
+    */
   override def availablePrefixedParametersHelp(): Seq[String] =
     availableSubcommands.toList
       .flatMap(_.opts.availablePrefixedParametersHelp())
       .distinct
 
+  /**
+    * @inheritdoc
+    */
   override def additionalHelp(): Seq[String] =
     availableSubcommands.toList.flatMap(_.opts.additionalHelp()).distinct
 
+  /**
+    * @inheritdoc
+    */
   override def commandLines(
     alwaysIncludeOtherOptions: Boolean = false
   ): NonEmptyList[String] = {
@@ -99,6 +146,9 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
     availableSubcommands.flatMap(prefixedCommandLines)
   }
 
+  /**
+    * @inheritdoc
+    */
   override def shortHelp(commandPrefix: Seq[String]): String =
     super.shortHelp(extendPrefix(commandPrefix))
 }

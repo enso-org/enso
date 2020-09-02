@@ -1,7 +1,7 @@
 package org.enso.launcher.cli
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.{Argument, OptsParseError}
+import org.enso.cli.arguments.{Argument, OptsParseError}
 
 object Arguments {
 

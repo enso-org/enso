@@ -1,7 +1,8 @@
 package org.enso.cli
 
 import cats.implicits._
-import org.enso.cli.Opts.implicits._
+import org.enso.cli.arguments.{Command, Opts}
+import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.internal.Parser
 import org.scalactic.source
 import org.scalatest.exceptions.{StackDepthException, TestFailedException}

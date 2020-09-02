@@ -1,15 +1,30 @@
 package org.enso.cli.internal.opts
 
 import cats.data.NonEmptyList
+import org.enso.cli.arguments.{Command, OptsParseError}
 import org.enso.cli.internal.ParserContinuation
-import org.enso.cli.{CLIOutput, Command, OptsParseError, Spelling}
+import org.enso.cli.{CLIOutput, Spelling}
 
 class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])
     extends BaseSubcommandOpt[A, A] {
+
+  /**
+    * @inheritdoc
+    */
   override def availableSubcommands: NonEmptyList[Command[A]] = subcommands
 
-  var commandProvidedButInvalid: Boolean = false
+  /**
+    * A flag that can be set to indicate that a command was provided, but it was
+    * invalid.
+    *
+    * It is used for error reporting to differentiate invalid commands from
+    * missing commands.
+    */
+  private var commandProvidedButInvalid: Boolean = false
 
+  /**
+    * @inheritdoc
+    */
   override def handleUnknownCommand(command: String): ParserContinuation = {
     val similar =
       Spelling
@@ -25,7 +40,7 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])
         similar.map(CLIOutput.indent + _ + "\n").mkString
     addError(s"`$command` is not a valid subcommand." + suggestions)
     commandProvidedButInvalid = true
-    ParserContinuation.ContinueNormally
+    ParserContinuation.Stop
   }
 
   override private[cli] def result(commandPrefix: Seq[String]) = {

@@ -2,7 +2,8 @@ package org.enso.cli
 
 import cats.data.NonEmptyList
 import cats.implicits._
-import org.enso.cli.Opts.implicits._
+import org.enso.cli.arguments.Opts.implicits._
+import org.enso.cli.arguments.{Application, Command, Opts, TopLevelBehavior}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{EitherValues, OptionValues}
@@ -38,6 +39,10 @@ class ApplicationSpec
 
       app.run(Seq("cmd2", "argvalue"))
       ranCommand.value shouldEqual "argvalue"
+    }
+
+    "handle plugins" ignore {
+      // TODO
     }
 
     "handle top-level options (before and after the command)" in {

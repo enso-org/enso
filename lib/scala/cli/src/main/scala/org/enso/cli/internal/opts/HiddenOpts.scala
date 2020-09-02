@@ -1,6 +1,6 @@
 package org.enso.cli.internal.opts
 
-import org.enso.cli.Opts
+import org.enso.cli.arguments.Opts
 import org.enso.cli.internal.ParserContinuation
 
 class HiddenOpts[A](opts: Opts[A]) extends Opts[A] {

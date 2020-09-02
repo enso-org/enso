@@ -2,17 +2,18 @@ package org.enso.launcher.cli
 
 import java.nio.file.{Files, Path}
 
-import org.enso.cli.CommandHelp
+import org.enso.cli.arguments
+import org.enso.cli.arguments.CommandHelp
 import org.enso.launcher.{Environment, FileSystem}
 
 import scala.sys.process._
 import scala.util.Try
 
 /**
-  * Implements an [[org.enso.cli.PluginManager]] using the given
+  * Implements an [[arguments.PluginManager]] using the given
   * [[Environment]].
   */
-class PluginManager(env: Environment) extends org.enso.cli.PluginManager {
+class PluginManager(env: Environment) extends arguments.PluginManager {
 
   /**
     * Checks if the provided name represents a valid plugin and tries to run it.
@@ -35,6 +36,9 @@ class PluginManager(env: Environment) extends org.enso.cli.PluginManager {
         )
     }
 
+  /**
+    * @inheritdoc
+    */
   override def hasPlugin(name: String): Boolean = findPlugin(name).isDefined
 
   private val pluginPrefix           = "enso-"
@@ -61,8 +65,15 @@ class PluginManager(env: Environment) extends org.enso.cli.PluginManager {
     } yield CommandHelp(pluginName, description.synopsis)
   }
 
+  /**
+    * @inheritdoc
+    */
   override def pluginsNames(): Seq[String] = pluginsHelp().map(_.name)
 
+  /**
+    * A short description of a plugin consisting of its command name and
+    * synopsis.
+    */
   case class PluginDescription(executableName: String, synopsis: String)
 
   private val pluginsCache

@@ -1,6 +1,6 @@
 package org.enso.cli.internal.opts
 
-import org.enso.cli.{Argument, OptsParseError}
+import org.enso.cli.arguments.{Argument, OptsParseError}
 
 class Parameter[A: Argument](
   name: String,
@@ -32,7 +32,7 @@ class Parameter[A: Argument](
     value = OptsParseError.combineWithoutDuplicates(
       value,
       Argument[A].read(newValue),
-      s"Multiple values for parameter $name."
+      s"Multiple values for parameter `$name`."
     )
   }
 
