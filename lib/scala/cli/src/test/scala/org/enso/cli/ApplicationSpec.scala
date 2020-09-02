@@ -3,7 +3,14 @@ package org.enso.cli
 import cats.data.NonEmptyList
 import cats.implicits._
 import org.enso.cli.arguments.Opts.implicits._
-import org.enso.cli.arguments.{Application, Command, Opts, TopLevelBehavior}
+import org.enso.cli.arguments.{
+  Application,
+  Command,
+  CommandHelp,
+  Opts,
+  PluginManager,
+  TopLevelBehavior
+}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{EitherValues, OptionValues}
@@ -41,8 +48,51 @@ class ApplicationSpec
       ranCommand.value shouldEqual "argvalue"
     }
 
-    "handle plugins" ignore {
-      // TODO
+    "handle plugins" in {
+      case class PluginRanException(name: String, args: Seq[String])
+          extends RuntimeException
+
+      val plugins = Seq("plugin1", "plugin2")
+      val pluginManager = new PluginManager {
+        override def runPlugin(name: String, args: Seq[String]): Nothing =
+          if (plugins.contains(name))
+            throw PluginRanException(name, args)
+          else throw new RuntimeException("Plugin not found.")
+
+        override def hasPlugin(name: String): Boolean =
+          plugins.contains(name)
+
+        override def pluginsNames(): Seq[String] = plugins
+
+        override def pluginsHelp(): Seq[CommandHelp] =
+          plugins.map(CommandHelp(_, ""))
+      }
+      val app = Application[Unit](
+        "app",
+        "App",
+        "Test app.",
+        Opts.pure[() => org.enso.cli.arguments.TopLevelBehavior[Unit]] { () =>
+          TopLevelBehavior.Continue(())
+        },
+        NonEmptyList.of(
+          Command[Unit => Unit]("cmd", "cmd") { Opts.pure { _ => () } }
+        ),
+        pluginManager
+      )
+
+      val pluginRun = intercept[PluginRanException] {
+        app.run(Seq("plugin1", "arg1", "--flag"))
+      }
+      pluginRun.name shouldEqual "plugin1"
+      pluginRun.args shouldEqual Seq("arg1", "--flag")
+
+      val stream = new java.io.ByteArrayOutputStream()
+      Console.withOut(stream) {
+        app.run(Seq("--help"))
+      }
+      val output = stream.toString()
+      output should include("plugin1")
+      output should include("plugin2")
     }
 
     "handle top-level options (before and after the command)" in {
