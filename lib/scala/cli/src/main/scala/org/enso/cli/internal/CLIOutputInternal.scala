@@ -81,11 +81,11 @@ private[cli] object CLIOutputInternal {
         val wrappedSuffix = wrapLine(suffix, commonSuffixLength)
         val firstLine =
           if (prefix.length >= commmonPrefixLength)
-            prefix + "\n" + additionalLinesPadding + wrappedSuffix.head
+            Seq(prefix, additionalLinesPadding + wrappedSuffix.head)
           else
-            prefixPadded + wrappedSuffix.head
+            Seq(prefixPadded + wrappedSuffix.head)
         val restLines = wrappedSuffix.tail.map(additionalLinesPadding + _)
-        Seq(firstLine) ++ restLines
+        firstLine ++ restLines
     }
   }
 

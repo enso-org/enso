@@ -115,6 +115,12 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
       CLIOutput.alignAndWrap(unaligned) shouldEqual aligned
     }
 
+    "align single row tables too" in {
+      val unaligned = s"a${tabulation}b"
+      val aligned   = "a b"
+      CLIOutput.alignAndWrap(unaligned) shouldEqual aligned
+    }
+
     "align tables independently" in {
       val unaligned =
         s"""Table One

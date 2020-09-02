@@ -20,6 +20,13 @@ class ApplicationSpec
     with Matchers
     with OptionValues
     with EitherValues {
+
+  private def captureOutput(thunk: => Unit): String = {
+    val stream = new java.io.ByteArrayOutputStream()
+    Console.withOut(stream)(thunk)
+    stream.toString()
+  }
+
   "Application" should {
     "delegate to correct commands" in {
       var ranCommand: Option[String] = None
@@ -75,7 +82,9 @@ class ApplicationSpec
           TopLevelBehavior.Continue(())
         },
         NonEmptyList.of(
-          Command[Unit => Unit]("cmd", "cmd") { Opts.pure { _ => () } }
+          Command[Unit => Unit]("cmd", "cmd") {
+            Opts.pure { _ => () }
+          }
         ),
         pluginManager
       )
@@ -86,11 +95,9 @@ class ApplicationSpec
       pluginRun.name shouldEqual "plugin1"
       pluginRun.args shouldEqual Seq("arg1", "--flag")
 
-      val stream = new java.io.ByteArrayOutputStream()
-      Console.withOut(stream) {
+      val output = captureOutput {
         app.run(Seq("--help"))
       }
-      val output = stream.toString()
       output should include("plugin1")
       output should include("plugin2")
     }
@@ -146,45 +153,174 @@ class ApplicationSpec
         ranCommand.value shouldEqual "SET"
       }
     }
-  }
 
-  "support related commands" in {
-    val app = Application(
-      "app",
-      "App",
-      "Test app.",
-      NonEmptyList.of(
-        Command("cmd", "cmd", related = Seq("related")) { Opts.pure { _ => } }
+    "support related commands" in {
+      val app = Application(
+        "app",
+        "App",
+        "Test app.",
+        NonEmptyList.of(
+          Command("cmd", "cmd", related = Seq("related")) {
+            Opts.pure { _ => }
+          }
+        )
       )
-    )
 
-    app.run(Seq("related")).left.value.head should include(
-      "You may be looking for `app cmd`."
-    )
-  }
+      app.run(Seq("related")).left.value.head should include(
+        "You may be looking for `app cmd`."
+      )
+    }
 
-  "suggest similar commands on typo" in {
-    var ranCommand: Option[String] = None
-    val app = Application(
-      "app",
-      "App",
-      "Test app.",
-      NonEmptyList.of(
-        Command("cmd1", "cmd1") {
-          Opts.pure { _ =>
-            ranCommand = Some("cmd1")
+    "suggest similar commands on typo" in {
+      var ranCommand: Option[String] = None
+      val app = Application(
+        "app",
+        "App",
+        "Test app.",
+        NonEmptyList.of(
+          Command("cmd1", "cmd1") {
+            Opts.pure { _ =>
+              ranCommand = Some("cmd1")
+            }
+          },
+          Command("cmd2", "cmd2") {
+            Opts.positionalArgument[String]("arg") map { arg => _ =>
+              ranCommand = Some(arg)
+            }
           }
-        },
-        Command("cmd2", "cmd2") {
-          Opts.positionalArgument[String]("arg") map { arg => _ =>
-            ranCommand = Some(arg)
-          }
+        )
+      )
+
+      val error = app.run(Seq("cmd")).left.value.head
+      error should include("cmd1")
+      error should include("cmd2")
+    }
+
+    def appWithSubcommands(): Application[_] = {
+      val sub1 = Command[Boolean => Unit]("sub1", "Sub1.") {
+        val flag = Opts.flag("inner-flag", "Inner.", showInUsage = true)
+        flag map { _ => _ => () }
+      }
+      val sub2 = Command[Boolean => Unit]("sub2", "Sub2.") {
+        val arg = Opts.optionalArgument[String]("ARG")
+        arg map { _ => _ => () }
+      }
+      val topLevelOpts =
+        Opts.flag("toplevel-flag", "Top.", showInUsage = true) map {
+          flag => () =>
+            TopLevelBehavior.Continue(flag)
         }
+      val app = Application(
+        "app",
+        "App",
+        "Top Header",
+        topLevelOpts,
+        NonEmptyList.of(
+          Command("cmd", "Cmd.")(Opts.subcommands(sub1, sub2))
+        )
       )
-    )
 
-    val error = app.run(Seq("cmd")).left.value.head
-    error should include("cmd1")
-    error should include("cmd2")
+      app
+    }
+
+    "handle errors nicely" in {
+      val app = appWithSubcommands()
+
+      def runErrors(args: String*): String =
+        CLIOutput.alignAndWrap(app.run(args).left.value.mkString("\n"))
+
+      withClue("no commands reports it and displays help") {
+        runErrors() should (include(
+          "Expected a command."
+        ) and include("Top Header"))
+      }
+
+      withClue("show similar commands if available") {
+        runErrors("cmd1") should (include(
+          "`cmd1` is not a valid command."
+        ) and include(
+          """The most similar commands are
+            |    cmd
+            |""".stripMargin
+        ))
+      }
+
+      withClue("show available commands if no similar available") {
+        runErrors("very-strange-command-name") should (include(
+          "`very-strange-command-name` is not a valid command."
+        ) and include("""Available commands:
+                        |    cmd Cmd.
+                        |""".stripMargin))
+      }
+
+      withClue("show command help if subcommand is missing") {
+        runErrors("cmd") should (include("Expected a subcommand.") and include(
+          "Cmd."
+        ))
+      }
+
+      withClue("show similar subcommands if available") {
+        runErrors("cmd", "sub") should (include(
+          "is not a valid subcommand."
+        ) and include(
+          """The most similar subcommands are
+            |    sub1
+            |    sub2
+            |""".stripMargin
+        ))
+      }
+
+      withClue("show available subcommands if no similar ones") {
+        runErrors("cmd", "very-strange-subcommand") should (include(
+          "is not a valid subcommand."
+        ) and include(
+          """Available subcommands are
+            |    sub1
+            |    sub2
+            |""".stripMargin
+        ))
+      }
+    }
+
+    "correctly handle help for subcommands, including top-level options" in {
+      val app = appWithSubcommands()
+
+      val cmdOutput = captureOutput {
+        assert(app.run(Seq("cmd", "--help")).isRight)
+      }
+      val cmdHelp =
+        """Cmd.
+          |Usage: app cmd sub1 [options] [--inner-flag]
+          |               Sub1.
+          |       app cmd sub2 [options] [ARG]
+          |               Sub2.
+          |
+          |Available options:
+          |    [--inner-flag]    Inner.
+          |    [--toplevel-flag] Top.
+          |    [-h | --help]     Print this help message.
+          |""".stripMargin
+      cmdOutput shouldEqual cmdHelp
+
+      val topOutput = captureOutput {
+        assert(app.run(Seq("--help")).isRight)
+      }
+      val topHelp =
+        """Top Header
+          |Usage: app [--toplevel-flag] [--help] COMMAND [ARGS...]
+          |
+          |Available commands:
+          |    cmd Cmd.
+          |
+          |Available options:
+          |    [--toplevel-flag] Top.
+          |    [-h | --help]     Print this help message.
+          |
+          |For more information on a specific command listed above, please run `app COMMAND
+          |--help`.
+          |""".stripMargin
+
+      topOutput shouldEqual topHelp
+    }
   }
 }

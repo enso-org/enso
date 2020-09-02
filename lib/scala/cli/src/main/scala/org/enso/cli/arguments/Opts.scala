@@ -14,7 +14,7 @@ import org.enso.cli.internal.opts._
   * Opts instances are allowed to use internal mutable state for parsing. They
   * can be parsed multiple times, but they are not thread-safe.
   */
-trait Opts[A] {
+trait Opts[+A] {
 
   /**
     * Maps flag names to callbacks that are run for that flag.
@@ -133,7 +133,10 @@ trait Opts[A] {
   private[cli] def commandLineOptions(
     alwaysIncludeOtherOptions: Boolean
   ): String = {
-    val allOptions = parameters.size + flags.size + prefixedParameters.size
+    val flagsWithoutDuplicates = flags.keys.count(_.length > 1)
+
+    val allOptions =
+      parameters.size + flagsWithoutDuplicates + prefixedParameters.size
     val otherOptions =
       if (alwaysIncludeOtherOptions || allOptions > usageOptions.size)
         " [options]"
@@ -169,17 +172,10 @@ trait Opts[A] {
 
   /**
     * Generates explanations of parameters to be included in the help message.
-    *
-    * @param addHelpOption specifies whether an additional `--help` option
-    *                      should be included
     */
-  def helpExplanations(addHelpOption: Boolean): String = {
-    val additionalHelpOption =
-      if (addHelpOption) Seq("[--help | -h]\tPrint this help message.")
-      else Seq()
-    val optionExplanations =
-      additionalHelpOption ++ availableOptionsHelp()
-    val options = optionExplanations.map(CLIOutput.indent + _).mkString("\n")
+  def helpExplanations(): String = {
+    val options =
+      availableOptionsHelp().map(CLIOutput.indent + _).mkString("\n")
     val optionsHelp =
       if (options.isEmpty) "" else "\nAvailable options:\n" + options + "\n"
 
@@ -213,7 +209,7 @@ trait Opts[A] {
       firstLine + usages.head +
       usages.tail.map("\n" + padding + _).mkString + "\n"
 
-    usage + helpExplanations(addHelpOption = true).stripTrailing()
+    usage + helpExplanations().stripTrailing()
   }
 
   /**

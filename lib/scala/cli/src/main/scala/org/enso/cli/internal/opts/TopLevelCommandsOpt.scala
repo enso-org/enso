@@ -72,7 +72,7 @@ class TopLevelCommandsOpt[A, B](
     val result = (topLevelResultWithHelp, commandResult) match {
       case (Right((result, true)), _) =>
         def displayHelp(): Unit = {
-          val helpText = renderHelp(commandPrefix)
+          val helpText = help(commandPrefix)
           CLIOutput.println(helpText)
         }
 
@@ -83,7 +83,7 @@ class TopLevelCommandsOpt[A, B](
         topLevelResult.map((_, None))
     }
 
-    result.addErrors(errors.reverse).appendFullHelp(renderHelp(commandPrefix))
+    result.addErrors(errors.reverse)
   }
 
   /**
@@ -92,7 +92,7 @@ class TopLevelCommandsOpt[A, B](
     * If no commands were selected, renders the top-level help text. Otherwise,
     * renders the help text for the selected command.
     */
-  private def renderHelp(commandPrefix: Seq[String]): String =
+  override def help(commandPrefix: Seq[String]): String =
     selectedCommand match {
       case Some(command) =>
         commandHelp(command, commandPrefix)
@@ -107,8 +107,7 @@ class TopLevelCommandsOpt[A, B](
     * @param typo the unrecognized command name
     */
   def commandSuggestions(typo: String): String = {
-    val header =
-      s"`$typo` is not a valid command."
+    val header           = s"`$typo` is not a valid command."
     val plugins          = pluginManager.map(_.pluginsNames()).getOrElse(Seq())
     val possibleCommands = availableSubcommands.toList.map(_.name) ++ plugins
     val similar = Spelling.selectClosestMatches(
@@ -220,10 +219,10 @@ class TopLevelCommandsOpt[A, B](
       .stripLeading()
     val commandName = commandPrefix.head
     val usage =
-      s"Usage: $commandName\t$usageOptions COMMAND [ARGS]\n"
+      s"Usage: $commandName\t$usageOptions COMMAND [ARGS...]\n"
 
     val topLevelOptionsHelp =
-      toplevelWithHelp.helpExplanations(addHelpOption = false)
+      toplevelWithHelp.helpExplanations()
 
     val sb = new StringBuilder
     sb.append(helpHeader + "\n")
