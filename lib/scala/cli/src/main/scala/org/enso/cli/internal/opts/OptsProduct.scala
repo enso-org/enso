@@ -1,5 +1,6 @@
 package org.enso.cli.internal.opts
 
+import cats.data.NonEmptyList
 import org.enso.cli.arguments.{IllegalOptsStructure, Opts, OptsParseError}
 import org.enso.cli.internal.ParserContinuation
 
@@ -61,6 +62,35 @@ class OptsProduct[A, B](lhs: Opts[A], rhs: Opts[B]) extends Opts[(A, B)] {
     rhs.availablePrefixedParametersHelp()
   override def additionalHelp(): Seq[String] =
     lhs.additionalHelp() ++ rhs.additionalHelp()
+
+  /**
+    * A helper function that gathers all options and arguments definitions, to
+    * display a command line for showing in the usage section of the help.
+    *
+    * This variant is special to ensure proper handling of subcommands.
+    *
+    * Subcommands can be theoretically nested, but they cannot be grouped next
+    * to each other (because it would cause ordering problems and would be
+    * unintuitive for users). So in a product, at most one of the pair can be a
+    * subcommand. We compute command lines for both elements and check if one of
+    * them has more than one command line - that would indicate a subcommand. If
+    * we find a subcommand, we use its command lines. Otherwise, we just call
+    * the  original implementation.
+    */
+  override def commandLines(
+    alwaysIncludeOtherOptions: Boolean = false
+  ): NonEmptyList[String] = {
+    val rightHasOptions = rhs.gatherOptions.nonEmpty
+    val leftHasOptions  = lhs.gatherOptions.nonEmpty
+
+    val left = lhs.commandLines(rightHasOptions || alwaysIncludeOtherOptions)
+    if (left.size > 1) left
+    else {
+      val right = rhs.commandLines(leftHasOptions || alwaysIncludeOtherOptions)
+      if (right.size > 1) right
+      else super.commandLines(alwaysIncludeOtherOptions)
+    }
+  }
 }
 
 object OptsProduct {

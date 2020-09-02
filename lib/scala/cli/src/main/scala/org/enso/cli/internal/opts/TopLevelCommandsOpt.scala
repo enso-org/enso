@@ -190,7 +190,7 @@ class TopLevelCommandsOpt[A, B](
   }
 
   /**
-    * @inheritdoc
+    * Renders help text for the specific command.
     */
   def commandHelp(command: Command[_], commandPrefix: Seq[String]): String = {
     val applicationName = commandPrefix.head

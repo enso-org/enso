@@ -1,5 +1,6 @@
 package org.enso.cli.internal.opts
 
+import cats.data.NonEmptyList
 import org.enso.cli.arguments.{Opts, OptsParseError}
 import org.enso.cli.internal.ParserContinuation
 
@@ -36,4 +37,8 @@ class OptsMap[A, B](a: Opts[A], f: A => B) extends Opts[B] {
   override def availablePrefixedParametersHelp(): Seq[String] =
     a.availablePrefixedParametersHelp()
   override def additionalHelp(): Seq[String] = a.additionalHelp()
+
+  override def commandLines(
+    alwaysIncludeOtherOptions: Boolean = false
+  ): NonEmptyList[String] = a.commandLines(alwaysIncludeOtherOptions)
 }
