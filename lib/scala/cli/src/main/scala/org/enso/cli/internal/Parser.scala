@@ -91,8 +91,8 @@ object Parser {
     * @param tokens the sequence of tokens to parse
     * @param additionalArguments additional arguments that may be needed by the
     *                            [[Opts.additionalArguments]] option
-    * @param commandPrefix the sequence of subcommand names, used for
-    *                      displaying help messages
+    * @param applicationName application name, used for displaying help
+    *                        messages
     * @return returns either the result value of `opts` and remaining tokens or
     *         a list of errors on failure; the remaining tokens are non-empty
     *         only if `isTopLevel` is true
@@ -101,7 +101,7 @@ object Parser {
     opts: Opts[A],
     tokens: Seq[Token],
     additionalArguments: Seq[String],
-    commandPrefix: Seq[String]
+    applicationName: String
   ): Either[OptsParseError, (A, Option[() => Nothing])] = {
     var parseErrors: List[String] = Nil
     def addError(error: String): Unit = {
@@ -156,7 +156,7 @@ object Parser {
       tokenProvider.consumeToken() match {
         case PlainToken(value) =>
           if (opts.wantsArgument()) {
-            val continuation = opts.consumeArgument(value, commandPrefix)
+            val continuation = opts.consumeArgument(value, Seq(applicationName))
             continuation match {
               case ParserContinuation.ContinueNormally =>
               case ParserContinuation.Escape(cont) =>
@@ -226,7 +226,8 @@ object Parser {
       }
     }
 
-    val result = opts.result(commandPrefix).addErrors(parseErrors.reverse)
+    val result =
+      opts.result(Seq(applicationName)).addErrors(parseErrors.reverse)
 
     val finalResult = (escapeParsing, result) match {
       case (Some(cont), Right(_)) =>
@@ -236,9 +237,9 @@ object Parser {
       case _ => result.map((_, None))
     }
 
-    finalResult.appendHelp(
-      s"See `${commandPrefix.mkString(" ")} --help` for usage explanation."
-    )
+    finalResult.appendHelp {
+      opts.shortHelp(Seq(applicationName))
+    }
   }
 
   def wantsHelp(args: Seq[Token]): Boolean =

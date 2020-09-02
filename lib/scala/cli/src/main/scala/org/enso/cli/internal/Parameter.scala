@@ -39,7 +39,7 @@ class Parameter[A: Argument](
   override private[cli] def result(commandPrefix: Seq[String]) =
     value.flatMap {
       case Some(value) => Right(value)
-      case None        => OptsParseError.left(s"Missing required parameter $name")
+      case None        => OptsParseError.left(s"Missing required parameter `--$name`.")
     }
 
   override def availableOptionsHelp(): Seq[String] = {

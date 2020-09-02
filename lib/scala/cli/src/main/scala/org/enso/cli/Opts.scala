@@ -219,6 +219,9 @@ trait Opts[A] {
 
     usage + helpExplanations(addHelpOption = true).stripTrailing()
   }
+
+  def shortHelp(commandPrefix: Seq[String]): String =
+    s"See `${commandPrefix.mkString(" ")} --help` for usage explanation."
 }
 
 /**

@@ -7,6 +7,8 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])
     extends BaseSubcommandOpt[A, A] {
   override def availableSubcommands: NonEmptyList[Command[A]] = subcommands
 
+  var commandProvidedButInvalid: Boolean = false
+
   override def handleUnknownCommand(
     command: String,
     commandPrefix: Seq[String]
@@ -24,16 +26,21 @@ class SubcommandOpt[A](subcommands: NonEmptyList[Command[A]])
         "\n\nThe most similar subcommands are\n" +
         similar.map(CLIOutput.indent + _ + "\n").mkString
     addError(s"`$command` is not a valid subcommand." + suggestions)
+    commandProvidedButInvalid = true
     ParserContinuation.ContinueNormally
   }
 
   override private[cli] def result(commandPrefix: Seq[String]) = {
     val prefix = extendPrefix(commandPrefix)
-    val result = selectedCommand match {
-      case Some(command) => command.opts.result(prefix)
+    selectedCommand match {
+      case Some(command) =>
+        command.opts.result(prefix).addErrors(errors.reverse)
       case None =>
-        Left(OptsParseError("Expected a subcommand.", help(prefix)))
+        if (commandProvidedButInvalid)
+          Left(OptsParseError(NonEmptyList.fromListUnsafe(errors.reverse)))
+        else
+          Left(OptsParseError("Expected a subcommand.", help(prefix)))
+            .addErrors(errors.reverse)
     }
-    result.addErrors(errors.reverse)
   }
 }

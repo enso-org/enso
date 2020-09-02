@@ -100,4 +100,7 @@ trait BaseSubcommandOpt[A, B] extends Opts[A] {
 
     availableSubcommands.flatMap(prefixedCommandLines)
   }
+
+  override def shortHelp(commandPrefix: Seq[String]): String =
+    super.shortHelp(extendPrefix(commandPrefix))
 }

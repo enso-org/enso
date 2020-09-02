@@ -80,7 +80,7 @@ class Application[Config](
         combinedOpts,
         tokens,
         additionalArguments,
-        commandPrefix = Seq(commandName)
+        applicationName = commandName
       )
     val finalResult = parseResult.flatMap {
       case ((topLevelAction, commandResult), pluginIntercepted) =>
@@ -102,7 +102,7 @@ class Application[Config](
             }
         }
     }
-    finalResult.toErrorListAssumingHelpIsHandled
+    finalResult.toErrorList
   }
 
   /**

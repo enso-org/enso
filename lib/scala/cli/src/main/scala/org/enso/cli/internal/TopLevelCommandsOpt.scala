@@ -78,7 +78,8 @@ class TopLevelCommandsOpt[A, B](
   def commandSuggestions(typo: String, commandPrefix: Seq[String]): String = {
     val header =
       s"`$typo` is not a valid command. See " +
-      s"`${commandPrefix.mkString(" ")} --help`.\n\n"
+      s"`${commandPrefix.mkString(" ")} --help` " +
+      s"for a list of available commands.\n\n"
     val similar = Spelling.selectClosestMatches(
       typo,
       availableSubcommands.toList.map(_.name)

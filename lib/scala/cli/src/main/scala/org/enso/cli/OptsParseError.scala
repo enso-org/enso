@@ -5,15 +5,18 @@ import cats.kernel.Semigroup
 import cats.implicits._
 
 case class OptsParseError(
-  errors: NonEmptyList[String],
-  appendHelp: Boolean = false
+  errors: NonEmptyList[String]
 ) {
   def withErrors(additionalErrors: List[String]): OptsParseError =
     copy(errors = errors ++ additionalErrors)
   def withErrors(additionalErrors: String*): OptsParseError =
     withErrors(additionalErrors.toList)
+  def shouldAppendHelp: Boolean = {
+    val isHelpMentionedAlready = errors.exists(_.contains("--help"))
+    !isHelpMentionedAlready
+  }
   def withHelp(helpString: String): OptsParseError =
-    withErrors(List(helpString)).copy(appendHelp = false)
+    withErrors(List(helpString))
 }
 
 object OptsParseError {
@@ -24,10 +27,7 @@ object OptsParseError {
 
   implicit val semigroup: Semigroup[OptsParseError] =
     (x: OptsParseError, y: OptsParseError) =>
-      OptsParseError(
-        x.errors ++ y.errors.toList,
-        x.appendHelp || y.appendHelp
-      )
+      OptsParseError(x.errors ++ y.errors.toList)
 
   implicit class ParseErrorSyntax[A](val result: Either[OptsParseError, A]) {
     def addErrors(errors: List[String]): Either[OptsParseError, A] =
@@ -43,13 +43,13 @@ object OptsParseError {
 
     def appendHelp(help: => String): Either[OptsParseError, A] =
       result.left.map { value =>
-        if (value.appendHelp) value.withHelp(help) else value
+        if (value.shouldAppendHelp) value.withHelp(help) else value
       }
 
-    def toErrorListAssumingHelpIsHandled: Either[List[String], A] =
+    def toErrorList: Either[List[String], A] =
       result match {
         case Left(value) =>
-          if (value.appendHelp)
+          if (value.shouldAppendHelp)
             throw new IllegalStateException(
               "Internal error: Help was not handled."
             )
