@@ -59,5 +59,7 @@ class LauncherReleaseProvider(releaseProvider: SimpleReleaseProvider)
           )
         }
     }
+
+    override def isMarkedBroken: Boolean = release.isMarkedBroken
   }
 }

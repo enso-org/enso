@@ -3,16 +3,17 @@ package org.enso.launcher.upgrade
 import java.nio.file.{Files, Path}
 
 import nl.gn0s1s.bump.SemVer
+import org.enso.cli.CLIOutput
+import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.archive.Archive
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
-import org.enso.launcher.{CurrentVersion, FileSystem, Logger, OS}
-import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.releases.ReleaseProvider
 import org.enso.launcher.releases.launcher.{
   DefaultLauncherReleaseProvider,
   LauncherRelease
 }
+import org.enso.launcher.{CurrentVersion, FileSystem, Logger, OS}
 
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -28,7 +29,36 @@ class LauncherUpgrader(
 
   def upgrade(targetVersion: SemVer): Unit = {
     internalRunCleanup()
-    continueUpgrade(targetVersion)
+    val release = releaseProvider.fetchRelease(targetVersion).get
+    if (release.isMarkedBroken) {
+      if (globalCLIOptions.autoConfirm) {
+        Logger.warn(
+          s"The launcher release $targetVersion is marked as broken and it " +
+          s"should not be used. Since `auto-confirm` is set, the upgrade " +
+          s"will continue, but you may want to reconsider upgrading to a " +
+          s"stable release."
+        )
+      } else {
+        Logger.warn(
+          s"The launcher release $targetVersion is marked as broken and it " +
+          s"should not be used."
+        )
+        val continue = CLIOutput.askConfirmation(
+          "Are you sure you still want to continue upgrading to this version " +
+          "despite the warning?"
+        )
+        if (!continue) {
+          throw UpgradeError(
+            "Upgrade has been cancelled by the user because the requested " +
+            "version is marked as broken."
+          )
+        }
+      }
+    }
+    if (release.canPerformUpgradeFromCurrentVersion)
+      performUpgradeTo(release)
+    else
+      performStepByStepUpgrade(release)
   }
 
   def continueUpgrade(targetVersion: SemVer): Unit = {
@@ -200,11 +230,11 @@ class LauncherUpgrader(
       release.downloadPackage(packagePath).waitForResult(showProgress).get
 
       Logger.info("Extracting package.")
-      val extractedRoot = directory
       Archive
-        .extractArchive(packagePath, extractedRoot, None)
+        .extractArchive(packagePath, directory, None)
         .waitForResult(showProgress)
         .get
+      val extractedRoot = directory / "enso"
 
       val temporaryExecutable = temporaryExecutablePath("new")
       FileSystem.copyFile(

@@ -10,6 +10,7 @@ trait LauncherRelease {
   def version:                        SemVer
   def minimumVersionToPerformUpgrade: SemVer
   def manifest:                       LauncherManifest
+  def isMarkedBroken:                 Boolean
   def packageFileName:                String
   def downloadPackage(path: Path):    TaskProgress[Unit]
 
