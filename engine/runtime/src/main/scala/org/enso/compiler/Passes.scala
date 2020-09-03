@@ -45,6 +45,7 @@ class Passes(passes: Option[List[PassGroup]] = None) {
       TypeSignatures,
       AliasAnalysis,
       UppercaseNames,
+      VectorLiterals,
       AliasAnalysis,
       LambdaConsolidate,
       AliasAnalysis,
