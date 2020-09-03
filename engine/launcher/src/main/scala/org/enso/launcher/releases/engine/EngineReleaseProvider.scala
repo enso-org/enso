@@ -4,7 +4,6 @@ import java.nio.file.Path
 
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
-import org.enso.launcher.OS
 import org.enso.launcher.components.Manifest
 import org.enso.launcher.releases.{
   EnsoReleaseProvider,

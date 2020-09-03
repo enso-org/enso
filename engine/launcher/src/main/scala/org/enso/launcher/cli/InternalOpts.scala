@@ -4,9 +4,12 @@ import java.io.IOException
 import java.nio.file.{Files, NoSuchFileException, Path}
 
 import cats.implicits._
+import nl.gn0s1s.bump.SemVer
 import org.enso.cli.arguments.Opts
 import org.enso.cli.arguments.Opts.implicits._
 import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.launcher.cli.Arguments._
+import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.launcher.{FileSystem, OS}
 
 /**
@@ -41,6 +44,7 @@ object InternalOpts {
   private val REMOVE_OLD_EXECUTABLE   = "internal-remove-old-executable"
   private val FINISH_UNINSTALL        = "internal-finish-uninstall"
   private val FINISH_UNINSTALL_PARENT = "internal-finish-uninstall-parent"
+  private val CONTINUE_UPGRADE        = "internal-continue-upgrade"
 
   /**
     * Additional top level options that are internal to the launcher and should
@@ -48,7 +52,7 @@ object InternalOpts {
     *
     * They are used to implement workarounds for install / upgrade on Windows.
     */
-  def topLevelOptions: Opts[Unit] = {
+  def topLevelOptions: Opts[GlobalCLIOptions => Unit] = {
     val removeOldExecutableOpt = Opts
       .optionalParameter[Path](
         REMOVE_OLD_EXECUTABLE,
@@ -75,12 +79,27 @@ object InternalOpts {
       )
       .hidden
 
+    val continueUpgrade = Opts
+      .optionalParameter[SemVer](
+        CONTINUE_UPGRADE,
+        "VERSION",
+        "Executes next step of the upgrade that should finally result in " +
+        "upgrading to the provided VERSION."
+      )
+      .hidden
+
     (
       removeOldExecutableOpt,
       finishUninstallOpt,
-      finishUninstallParentOpt
+      finishUninstallParentOpt,
+      continueUpgrade
     ) mapN {
-      (removeOldExecutableOpt, finishUninstallOpt, finishUninstallParentOpt) =>
+      (
+        removeOldExecutableOpt,
+        finishUninstallOpt,
+        finishUninstallParentOpt,
+        continueUpgrade
+      ) => (config: GlobalCLIOptions) =>
         removeOldExecutableOpt.foreach { oldExecutablePath =>
           removeOldExecutable(oldExecutablePath)
           sys.exit(0)
@@ -88,6 +107,11 @@ object InternalOpts {
 
         finishUninstallOpt.foreach { executablePath =>
           finishUninstall(executablePath, finishUninstallParentOpt)
+          sys.exit(0)
+        }
+
+        continueUpgrade.foreach { version =>
+          LauncherUpgrader.makeDefault(config).continueUpgrade(version)
           sys.exit(0)
         }
     }
@@ -148,6 +172,19 @@ object InternalOpts {
         ) ++ parentParam.getOrElse(Seq())
       runDetachedAndExit(command)
     }
+
+    def continueUpgrade(
+      targetVersion: SemVer,
+      globalCLIOptions: GlobalCLIOptions
+    ): Int = {
+      val inheritOpts = GlobalCLIOptions.toOptions(globalCLIOptions)
+      val command = Seq(
+          pathToNewLauncher.toAbsolutePath.toString,
+          s"--$CONTINUE_UPGRADE",
+          targetVersion.toString
+        ) ++ inheritOpts
+      runAndWaitForResult(command)
+    }
   }
 
   private val retryBaseAmount = 30
@@ -206,6 +243,12 @@ object InternalOpts {
     }
   }
 
+  private def runAndWaitForResult(command: Seq[String]): Int = {
+    val pb = new java.lang.ProcessBuilder(command: _*)
+    pb.inheritIO()
+    pb.start().waitFor()
+  }
+
   private def runDetachedAndExit(command: Seq[String]): Nothing = {
     if (!OS.isWindows) {
       throw new IllegalStateException(
@@ -215,7 +258,7 @@ object InternalOpts {
     }
 
     val pb = new java.lang.ProcessBuilder(command: _*)
-    pb.redirectOutput(java.lang.ProcessBuilder.Redirect.INHERIT)
+    pb.inheritIO()
     pb.start()
     sys.exit()
   }

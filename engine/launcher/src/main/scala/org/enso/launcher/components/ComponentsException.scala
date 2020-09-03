@@ -1,7 +1,7 @@
 package org.enso.launcher.components
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.{CurrentVersion, Launcher}
+import org.enso.launcher.CurrentVersion
 
 /**
   * A base class for exceptions caused by [[ComponentsManager]] logic.

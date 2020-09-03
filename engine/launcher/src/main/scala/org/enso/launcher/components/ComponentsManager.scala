@@ -11,14 +11,13 @@ import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.releases.ReleaseProvider
 import org.enso.launcher.releases.engine.{
   DefaultEngineReleaseProvider,
-  EngineRelease,
-  EngineReleaseProvider
+  EngineRelease
 }
 import org.enso.launcher.releases.runtime.{
   GraalCEReleaseProvider,
   RuntimeReleaseProvider
 }
-import org.enso.launcher.{CurrentVersion, FileSystem, Launcher, Logger}
+import org.enso.launcher.{CurrentVersion, FileSystem, Logger}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try, Using}

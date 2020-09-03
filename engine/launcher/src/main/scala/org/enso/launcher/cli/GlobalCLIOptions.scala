@@ -16,3 +16,16 @@ case class GlobalCLIOptions(
   hideProgress: Boolean,
   useJSON: Boolean
 )
+
+object GlobalCLIOptions {
+  val HIDE_PROGRESS = "hide-progress"
+  val AUTO_CONFIRM  = "auto-confirm"
+  val USE_JSON      = "json"
+
+  def toOptions(config: GlobalCLIOptions): Seq[String] = {
+    val autoConfirm  = if (config.autoConfirm) Seq(AUTO_CONFIRM) else Seq()
+    val hideProgress = if (config.hideProgress) Seq(HIDE_PROGRESS) else Seq()
+    val useJSON      = if (config.useJSON) Seq(USE_JSON) else Seq()
+    autoConfirm ++ hideProgress ++ useJSON
+  }
+}

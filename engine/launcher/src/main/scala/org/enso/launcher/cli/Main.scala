@@ -263,18 +263,13 @@ object Main {
 
   private def upgradeCommand: Command[Config => Unit] =
     Command("upgrade", "Upgrade the launcher.") {
-      val version = Opts.optionalArgument[String](
+      val version = Opts.optionalArgument[SemVer](
         "VERSION",
         "VERSION specifies which launcher version to upgrade to. " +
         "If not provided, defaults to latest version."
       )
-      version map { version => (_: Config) =>
-        version match {
-          case Some(version) =>
-            println(s"(Not implemented) Upgrade launcher to $version.")
-          case None =>
-            println("(Not implemented)  Upgrade launcher to latest version.")
-        }
+      version map { version => (config: Config) =>
+        Launcher(config).upgrade(version)
       }
     }
 
@@ -444,7 +439,7 @@ object Main {
     val version =
       Opts.flag("version", 'V', "Display version.", showInUsage = true)
     val json = Opts.flag(
-      "json",
+      GlobalCLIOptions.USE_JSON,
       "Use JSON instead of plain text for version output.",
       showInUsage = false
     )
@@ -454,14 +449,14 @@ object Main {
       showInUsage = false
     )
     val autoConfirm = Opts.flag(
-      "auto-confirm",
+      GlobalCLIOptions.AUTO_CONFIRM,
       "Proceeds without asking confirmation questions. Please see the " +
       "options for the specific subcommand you want to run for the defaults " +
       "used by this option.",
       showInUsage = false
     )
     val hideProgress = Opts.flag(
-      "hide-progress",
+      GlobalCLIOptions.HIDE_PROGRESS,
       "Suppresses displaying progress bars for downloads and other long " +
       "running actions. May be needed if program output is piped.",
       showInUsage = false
@@ -476,23 +471,31 @@ object Main {
       autoConfirm,
       hideProgress
     ) mapN {
-      (_, version, useJSON, shouldEnsurePortable, autoConfirm, hideProgress) =>
-        () =>
-          if (shouldEnsurePortable) {
-            Launcher.ensurePortable()
-          }
+      (
+        internalOptsCallback,
+        version,
+        useJSON,
+        shouldEnsurePortable,
+        autoConfirm,
+        hideProgress
+      ) => () =>
+        if (shouldEnsurePortable) {
+          Launcher.ensurePortable()
+        }
 
-          val globalCLIOptions = GlobalCLIOptions(
-            autoConfirm  = autoConfirm,
-            hideProgress = hideProgress,
-            useJSON      = useJSON
-          )
+        val globalCLIOptions = GlobalCLIOptions(
+          autoConfirm  = autoConfirm,
+          hideProgress = hideProgress,
+          useJSON      = useJSON
+        )
 
-          if (version) {
-            Launcher(globalCLIOptions).displayVersion(useJSON)
-            TopLevelBehavior.Halt
-          } else
-            TopLevelBehavior.Continue(globalCLIOptions)
+        internalOptsCallback(globalCLIOptions)
+
+        if (version) {
+          Launcher(globalCLIOptions).displayVersion(useJSON)
+          TopLevelBehavior.Halt
+        } else
+          TopLevelBehavior.Continue(globalCLIOptions)
     }
   }
 

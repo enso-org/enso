@@ -91,9 +91,8 @@ scalacOptions in ThisBuild ++= Seq(
     "-Ywarn-unused:locals",               // Warn if a local definition is unused.
     "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
     "-Ywarn-unused:privates",             // Warn if a private member is unused.
-    "-Ywarn-unused:params"                // Warn if a value parameter is unused.
-    // TODO [RW] FIXME re-enable werror
-    // "-Xfatal-warnings"                    // Make warnings fatal so they don't make it onto main (use @nowarn for local suppression)
+    "-Ywarn-unused:params",               // Warn if a value parameter is unused.
+    "-Xfatal-warnings"                    // Make warnings fatal so they don't make it onto main (use @nowarn for local suppression)
   )
 
 val jsSettings = Seq(

@@ -2,7 +2,6 @@ package org.enso.launcher
 
 import java.nio.file.Path
 
-import buildinfo.Info
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.cli.GlobalCLIOptions
@@ -16,7 +15,6 @@ import org.enso.launcher.components.runner.{
 import org.enso.launcher.config.{DefaultVersion, GlobalConfigurationManager}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.project.ProjectManager
-import org.enso.launcher.releases.launcher.DefaultLauncherReleaseProvider
 import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
@@ -38,12 +36,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       componentsManager,
       Environment
     )
-  private lazy val upgrader =
-    new LauncherUpgrader(
-      cliOptions,
-      DistributionManager,
-      DefaultLauncherReleaseProvider
-    )
+  private lazy val upgrader = LauncherUpgrader.makeDefault(cliOptions)
 
   /**
     * Creates a new project with the given `name` in the given `path`.
@@ -385,6 +378,15 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       jsonName = "runtime",
       value    = runtimeVersionString
     )
+  }
+
+  def upgrade(version: Option[SemVer]): Unit = {
+    val targetVersion = version.getOrElse(upgrader.latestVersion().get)
+    if (targetVersion == CurrentVersion.version) {
+      Logger.info("Already up-to-date.")
+    } else {
+      upgrader.upgrade(targetVersion)
+    }
   }
 }
 
