@@ -8,11 +8,10 @@ import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.archive.Archive
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.installation.DistributionManager
-import org.enso.launcher.releases.{
-  EngineRelease,
-  EngineReleaseProvider,
+import org.enso.launcher.releases.ReleaseProvider
+import org.enso.launcher.releases.engine.{EngineRelease, EngineReleaseProvider}
+import org.enso.launcher.releases.runtime.{
   GraalCEReleaseProvider,
-  ReleaseProvider,
   RuntimeReleaseProvider
 }
 import org.enso.launcher.{FileSystem, Launcher, Logger}

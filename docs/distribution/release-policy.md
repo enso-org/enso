@@ -92,7 +92,9 @@ A release is considered _official_ once it has been made into a release on
 [GitHub](https://github.com/enso-org/enso/releases). Once official, a release
 may not be changed in any way, except to mark it as broken.
 
-#### Manifest File
+#### Manifest Files
+
+##### Engine Manifest
 
 Each GitHub release contains an asset named `manifest.yaml` which is a YAML file
 containing metadata regarding the release. The manifest is also included in the
@@ -141,6 +143,22 @@ introduces changes that require a more recent launcher version. This value is
 stored in
 [`distribution/manifest.template.yaml`](../../distribution/manifest.template.yaml)
 and other values are added to this template at build time.
+
+##### Launcher Manifest
+
+Additionally, each release should contain an asset named
+`launcher-manifest.yaml` which contains launcher-specific release metadata.
+
+Currently, it contains only a single field:
+- `minimum-version-to-upgrade` - specifies the minimum version of the launcher
+  that is allowed to upgrade to this launcher version. If a launcher is older
+  than the version specified here it must perform the upgrade in steps, first
+  upgrading to an older version newer than `minimum-version-to-upgrade` and only
+  then, using that version, to the target version. This logic ensures that if a
+  newer launcher version required custom upgrade logic not present in older
+  versions, the upgrade can still be performed by first upgrading to a newer
+  version that does not require the new logic but knows about it and continuing
+  the upgrade with that knowledge.
 
 #### Release Assets Structure
 

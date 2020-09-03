@@ -1,4 +1,4 @@
-package org.enso.launcher.releases
+package org.enso.launcher.releases.engine
 
 import java.nio.file.Path
 
@@ -7,6 +7,12 @@ import org.enso.cli.TaskProgress
 import org.enso.launcher.OS
 import org.enso.launcher.components.Manifest
 import org.enso.launcher.releases.github.GithubReleaseProvider
+import org.enso.launcher.releases.{
+  EnsoReleaseProvider,
+  Release,
+  ReleaseProviderException,
+  SimpleReleaseProvider
+}
 
 import scala.util.{Failure, Try}
 

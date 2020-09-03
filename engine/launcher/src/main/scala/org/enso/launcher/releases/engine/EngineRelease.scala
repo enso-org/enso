@@ -1,4 +1,4 @@
-package org.enso.launcher.releases
+package org.enso.launcher.releases.engine
 
 import java.nio.file.Path
 
@@ -18,6 +18,7 @@ trait EngineRelease {
 
   /**
     * Manifest associated with the release.
+    *
     * @return
     */
   def manifest: Manifest
