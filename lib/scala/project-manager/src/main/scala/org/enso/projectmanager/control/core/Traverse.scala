@@ -12,7 +12,7 @@ import scala.collection.BuildFrom
 trait Traverse[F[+_, +_]] {
 
   /**
-    * Applies the function `f` to each element of the `Iterable[A]`.
+    * Applies the function `f` to each element of the collection.
     *
     * @param s a collection of elements
     * @param f the mapping function
