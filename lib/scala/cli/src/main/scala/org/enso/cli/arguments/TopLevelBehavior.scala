@@ -1,5 +1,12 @@
 package org.enso.cli.arguments
 
+/**
+  * Defines the behaviour of parsing top-level application options.
+  *
+  * @tparam Config type of configuration that is passed to commands
+  */
+sealed trait TopLevelBehavior[+Config]
+
 object TopLevelBehavior {
 
   /**
@@ -21,10 +28,3 @@ object TopLevelBehavior {
     */
   case object Halt extends TopLevelBehavior[Nothing]
 }
-
-/**
-  * Defines the behaviour of parsing top-level application options.
-  *
-  * @tparam Config type of configuration that is passed to commands
-  */
-sealed trait TopLevelBehavior[+Config]

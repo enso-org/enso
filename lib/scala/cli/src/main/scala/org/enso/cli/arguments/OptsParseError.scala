@@ -5,7 +5,8 @@ import cats.implicits._
 import cats.kernel.Semigroup
 
 /**
-  * Aggregates parse errors.
+  * Aggregates errors encountered when parsing [[Opts]] and allows to attach
+  * help texts.
   *
   * @param errors list of parse errors
   * @param fullHelpRequested specifies if attaching a full help text was
