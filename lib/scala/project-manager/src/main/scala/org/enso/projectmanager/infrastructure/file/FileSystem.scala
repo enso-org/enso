@@ -60,5 +60,5 @@ trait FileSystem[F[+_, +_]] {
     * @param directory a path to the directory
     * @return the directory contents
     */
-  def list(directory: File): F[FileSystemFailure, Seq[File]]
+  def list(directory: File): F[FileSystemFailure, List[File]]
 }

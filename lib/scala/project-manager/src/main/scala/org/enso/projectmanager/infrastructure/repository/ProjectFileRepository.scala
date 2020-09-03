@@ -5,12 +5,15 @@ import java.util.UUID
 
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.projectmanager.boot.configuration.StorageConfig
-import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.core.{CovariantFlatMap, Traverse}
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.infrastructure.file.FileSystem
-import org.enso.projectmanager.infrastructure.file.FileSystemFailure.FileNotFound
+import org.enso.projectmanager.infrastructure.file.FileSystemFailure.{
+  FileNotFound,
+  NotDirectory
+}
 import org.enso.projectmanager.infrastructure.random.Generator
 import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailure.{
   InconsistentStorage,
@@ -28,7 +31,9 @@ import org.enso.projectmanager.model.{Project, ProjectMetadata}
   * @param fileSystem a file system abstraction
   * @param gen a random generator
   */
-class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
+class ProjectFileRepository[
+  F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap: Traverse
+](
   storageConfig: StorageConfig,
   clock: Clock[F],
   fileSystem: FileSystem[F],
@@ -52,10 +57,10 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     fileSystem
       .list(storageConfig.userProjectsPath)
       .recover {
-        case FileNotFound => Seq()
+        case FileNotFound | NotDirectory => Nil
       }
       .mapError(th => StorageFailure(th.toString))
-      .flatMap(s => CovariantFlatMap[F].traverse(s)(loadProject).map(_.flatten))
+      .flatMap(s => Traverse[F].traverse(s)(loadProject).map(_.flatten))
 
   /** @inheritdoc */
   override def findById(

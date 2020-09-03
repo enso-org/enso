@@ -123,7 +123,7 @@ class ProjectManagementApiSpec
       meta shouldBe Symbol("file")
     }
 
-    "1create a project dir with a suffix if a directory is taken" in {
+    "create a project dir with a suffix if a directory is taken" in {
       val projectName           = "foo"
       val projectDir            = new File(userProjectDir, projectName)
       val projectDirWithSuffix1 = new File(userProjectDir, projectName + "_1")

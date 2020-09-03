@@ -16,11 +16,4 @@ private[core] class ZioCovariantFlatMap[R]
     fa: ZIO[R, E1, A]
   )(f: A => ZIO[R, E2, B]): ZIO[R, E2, B] =
     fa.flatMap(f)
-
-  /** @inheritdoc */
-  override def traverse[E, A, B](
-    s: Iterable[A]
-  )(f: A => ZIO[R, E, B]): ZIO[R, E, List[B]] =
-    ZIO.foreach(s)(f)
-
 }
