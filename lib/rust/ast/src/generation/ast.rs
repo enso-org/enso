@@ -2,7 +2,7 @@
 
 use itertools::Itertools;
 use syn;
-use syn::Ident;
+use syn::{Ident, ItemMod};
 use quote::quote;
 
 
@@ -37,33 +37,9 @@ pub struct Stdlib();
 
 /// Represents an object `object Name { line; ... }`.
 #[derive(Debug,Clone)]
-pub struct Object {
+pub struct Module<'a> {
     pub name  : Name,
-    pub lines : Vec<syn::Item>,
-}
-
-/// Represents valid top level terms.
-#[derive(Debug,Clone)]
-pub enum Term {
-    Object(Object),
-    Type(TypeAlias),
-    Class(Class),
-    Enum(Enum),
-}
-
-impl Object {
-    pub fn lines(self) -> impl Iterator<Item=Term> {
-        self.lines.into_iter().flat_map(|item| Some(match item {
-            syn::Item::Mod(val) => {
-                let (_, lines) = val.content.unwrap_or_default();
-                Term::Object(Object{name: Name(&val.ident), lines})
-            }
-            syn::Item::Struct(ref val) => Term::Class(val.into()),
-            syn::Item::Enum(ref val) => Term::Enum(val.into()),
-            syn::Item::Type(ref val) => Term::Type(val.into()),
-            _                        => None?,
-        }))
-    }
+    pub lines : &'a [syn::Item],
 }
 
 /// Represents a class `class Name[Generics](field:Field, ...)`
@@ -89,9 +65,9 @@ pub fn extends(name:&Name) -> Extends {
     Extends{name}
 }
 
-/// Represents a qualified type `Foo.Foo[Bar[Baz], ..]`
-#[derive(Debug,Clone,Hash,PartialEq,Eq,PartialOrd,Ord)] // TODO Eq is too slow
-pub struct Type { pub name: Name, pub args: Vec<Type> }
+/// Represents a qualified type `Path.Name[Bar[Baz], ..]`
+#[derive(Debug,Clone,Hash,PartialEq,Eq,PartialOrd,Ord)]
+pub struct Type { pub name: Name, pub path: Vec<Name>, pub args: Vec<Type> }
 
 /// Represents a type alias `type Foo = Bar[Baz]`
 #[derive(Debug,Clone)]
@@ -134,10 +110,10 @@ pub fn Type(name:impl Into<Name>, generics:&syn::Generics) -> Type {
     let mut args = vec![];
     for arg in generics.params.iter() {
         if let syn::GenericParam::Type(typ) = arg {
-            args.push(Type{name:Name(&typ.ident), args:vec![]})
+            args.push(Type::from(Name(&typ.ident)))
         }
     }
-    Type{name:name.into(), args}
+    Type{name:name.into(), path:vec![], args}
 }
 
 
@@ -179,6 +155,15 @@ impl From<&syn::ItemStruct> for Class {
     }
 }
 
+
+impl<'a> From<&'a syn::ItemMod> for Module<'a> {
+    fn from(val:&'a ItemMod) -> Self {
+        let lines = if let Some((_,lines)) = &val.content {&lines[..]} else {&[]};
+
+        Module{name:Name(&val.ident), lines}
+    }
+}
+
 impl From<&syn::ItemEnum> for Enum {
     fn from(val:&syn::ItemEnum) -> Self {
         let     generics = &val.generics;
@@ -191,29 +176,32 @@ impl From<&syn::ItemEnum> for Enum {
                     if let syn::Type::Path(path) = fields.unnamed.first().unwrap().ty.clone() {
                         let segments             = path.path.segments.iter().rev().take(2);
                         let (name, object)       = segments.map(|s| Name(&s.ident)).collect_tuple().unwrap();
-                        let args                 = vec![(Name("variant"), Type{name,args:vec![]})];
-                        variants.push((Some(object), Class{ typ: Type(&var.ident, generics), args}));
+                        let args                 = vec![(Name("variant"), Type::from(name))];
+                        variants.push((Some(object), Class{typ:Type(&var.ident, generics), args}));
                     }
                 }
                 _ => (),
             }
         }
-        Self { typ: Type(&val.ident, generics), variants}
+        Self{typ:Type(&val.ident, generics), variants}
     }
 }
 
 impl From<Name> for Type {
     fn from(name:Name) -> Self {
-        Type{name, args:vec![]}
+        Type{name, path:vec![], args:vec![]}
     }
 }
 
 impl From<&syn::Type> for Type {
     fn from(typ:&syn::Type) -> Self {
         let mut name = Name("");
+        let mut path = vec![];
         let mut args = vec![];
-        if let syn::Type::Path(path) = typ {
-            let typ  = path.path.segments.last().unwrap();
+        if let syn::Type::Path(typ) = typ {
+            path    = typ.path.segments.iter().dropping_back(0).map(|s|Name(&s.ident)).collect();
+            let typ = path.path.segments.last().unwrap();
+            name = Name(&typ.ident);
             if let syn::PathArguments::AngleBracketed(params) = &typ.arguments {
                 for typ in params.args.iter() {
                     if let syn::GenericArgument::Type(typ) = typ {
@@ -221,8 +209,7 @@ impl From<&syn::Type> for Type {
                     }
                 }
             }
-            name = Name(&typ.ident);
         }
-        Self{name, args}
+        Self{name, path, args}
     }
 }

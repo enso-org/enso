@@ -9,6 +9,7 @@ use super::ast::*;
 use super::Tab;
 use super::TAB;
 use super::When;
+use crate::generation::types;
 
 
 
@@ -62,11 +63,11 @@ impl Generator<Source> for Tab {
 
 // == ScalaGenerator Impls ==
 
-impl Generator<Source> for File {
+impl Generator<Source> for &File {
     fn write(self, source:&mut Source) {
-        let content = Object {name:self.name, lines:self.content.items};
+        let content = Module {name:self.name.clone(), lines:&self.content.items[..]};
         write!(source, "package ", self.package.as_str(), "\n\n", self.lib, "\n\n\n\n");
-        write!(source, content, "\n");
+        write!(source, &content, "\n");
     }
 }
 
@@ -76,7 +77,7 @@ impl Generator<Source> for Stdlib {
     }
 }
 
-impl Generator<Source> for Object {
+impl<'a> Generator<Source> for &Module<'a> {
     fn write(self, source:&mut Source) {
         let name = name::typ(&self.name);
 
@@ -87,13 +88,14 @@ impl Generator<Source> for Object {
         if source.extends.contains_key(&name) {
             write!(source, TAB, "sealed trait ", &name, extends(&name));
         }
-        for item in self.lines() {
+        for item in self.lines {
             source.write("\n");
             match item {
-                Term::Object(val) => source.write(val),
-                Term::Type  (val) => source.write(&val),
-                Term::Class (val) => source.write(&val),
-                Term::Enum  (val) => source.write(&val),
+                syn::Item::Mod   (val) => Module::from(val).write(source),
+                syn::Item::Type  (val) => TypeAlias::from(val).write(source),
+                syn::Item::Struct(val) => Class::from(val).write(source),
+                syn::Item::Enum  (val) => Enum::from(val).write(source),
+                _                      => (),
             }
         }
 
@@ -152,14 +154,15 @@ impl<'a> Generator<Source> for Extends<'a> {
 
 impl Generator<Source> for &Type {
     fn write(self, source:&mut Source) {
-        let boxed = self.name.str.as_str() == "Box";
-        if !boxed { write!(source, &name::typ(&self.name)) }
+        let name  = types::builtin(&self.name);
+        let valid = !name.str.is_empty();
+        if valid { write!(source, &name) }
         if !self.args.is_empty() {
-            if !boxed { write!(source, "[") }
+            if valid { write!(source, "[") }
             for (i,typ) in self.args.iter().enumerate() {
                 write!(source, ", ".when(i!=0), typ);
             }
-            if !boxed { write!(source, "]") }
+            if valid { write!(source, "]") }
         }
     }
 }
@@ -178,28 +181,13 @@ impl Generator<Source> for &Name {
 
 pub mod name {
     use crate::generation::ast::Name;
+    use crate::generation::types;
     use inflector::Inflector;
 
 
-
-    /// A type map from rust types to scala types.
-    pub fn type_map(name:&Name) -> Option<&'static str> {
-       let name = match name.str.as_str() {
-           "u32"   | "i32"   | "u16" | "i16" | "i8" => "Int",
-           "usize" | "isize" | "u64" | "i64"        => "Long",
-           "u8"                                     => "Byte",
-           "char"                                   => "Char",
-           "Vec"                                    => "Vector",
-           "Uuid"                                   => "UUID",
-           "Box"                                    => "",
-           _                                        => None?,
-       };
-       Some(name)
-    }
-
     /// Creates a Scala type name `foo_bar => FooBar`
     pub fn typ(name:&Name) -> Name {
-        if let Some(name) = type_map(name) { return name.into() }
+        if let Some(name) = types::builtin(name) { return name.into() }
 
         let mut string = name.str.to_camel_case();
         string[0..1].make_ascii_uppercase();
