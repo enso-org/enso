@@ -501,7 +501,8 @@ lazy val cli = project
     libraryDependencies ++= Seq(
         "org.scalatest" %% "scalatest" % scalatestVersion % Test,
         "org.typelevel" %% "cats-core" % catsVersion
-      )
+      ),
+    parallelExecution in Test := false
   )
   .settings(licenseSettings)
 

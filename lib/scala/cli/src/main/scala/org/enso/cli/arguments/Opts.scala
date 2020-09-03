@@ -1,15 +1,11 @@
-package org.enso.cli
+package org.enso.cli.arguments
 
 import cats.data.NonEmptyList
-import cats.{Functor, Semigroupal}
 import cats.implicits._
+import cats.{Functor, Semigroupal}
+import org.enso.cli.CLIOutput
 import org.enso.cli.internal._
-
-/**
-  * Exception that is reported when Opts are combined in an illegal way.
-  */
-case class IllegalOptsStructure(message: String, cause: Throwable = null)
-    extends RuntimeException(message, cause)
+import org.enso.cli.internal.opts._
 
 /**
   * Represents a set of options (flags, parameters, arguments) and the logic
@@ -18,7 +14,7 @@ case class IllegalOptsStructure(message: String, cause: Throwable = null)
   * Opts instances are allowed to use internal mutable state for parsing. They
   * can be parsed multiple times, but they are not thread-safe.
   */
-trait Opts[A] {
+trait Opts[+A] {
 
   /**
     * Maps flag names to callbacks that are run for that flag.
@@ -46,7 +42,10 @@ trait Opts[A] {
     *
     * Should not be called if [[wantsArgument]] returns false.
     */
-  private[cli] def consumeArgument(arg: String): Unit
+  private[cli] def consumeArgument(
+    arg: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation
 
   /**
     * An optional callback for additional arguments. If it is provided, all
@@ -67,7 +66,7 @@ trait Opts[A] {
     * the right moment to do final validation (for example, detecting missing
     * options).
     */
-  private[cli] def result(commandPrefix: Seq[String]): Either[List[String], A]
+  private[cli] def result(commandPrefix: Seq[String]): Either[OptsParseError, A]
 
   /**
     * Lists options that should be printed in the usage [[commandLines]].
@@ -131,10 +130,15 @@ trait Opts[A] {
     *
     * @return a string representing the options usage
     */
-  private[cli] def commandLineOptions(): String = {
-    val allOptions = parameters.size + flags.size + prefixedParameters.size
+  private[cli] def commandLineOptions(
+    alwaysIncludeOtherOptions: Boolean
+  ): String = {
+    val flagsWithoutDuplicates = flags.keys.count(_.length > 1)
+
+    val allOptions =
+      parameters.size + flagsWithoutDuplicates + prefixedParameters.size
     val otherOptions =
-      if (allOptions > usageOptions.size)
+      if (alwaysIncludeOtherOptions || allOptions > usageOptions.size)
         " [options]"
       else ""
     otherOptions + usageOptions.map(" " + _).mkString
@@ -147,8 +151,10 @@ trait Opts[A] {
     * @return a non-empty list of available usages of this option set. Multiple
     *         entries may be returned in presence of subcommands.
     */
-  def commandLines(): NonEmptyList[String] = {
-    val options  = commandLineOptions()
+  def commandLines(
+    alwaysIncludeOtherOptions: Boolean = false
+  ): NonEmptyList[String] = {
+    val options  = commandLineOptions(alwaysIncludeOtherOptions)
     val required = requiredArguments.map(arg => s" $arg").mkString
     val optional = optionalArguments.map(arg => s" [$arg]").mkString
     val trailing = trailingArguments.map(args => s" [$args...]").getOrElse("")
@@ -166,17 +172,10 @@ trait Opts[A] {
 
   /**
     * Generates explanations of parameters to be included in the help message.
-    *
-    * @param addHelpOption specifies whether an additional `--help` option
-    *                      should be included
     */
-  def helpExplanations(addHelpOption: Boolean): String = {
-    val additionalHelpOption =
-      if (addHelpOption) Seq("[--help | -h]\tPrint this help message.")
-      else Seq()
-    val optionExplanations =
-      additionalHelpOption ++ availableOptionsHelp()
-    val options = optionExplanations.map(CLIOutput.indent + _).mkString("\n")
+  def helpExplanations(): String = {
+    val options =
+      availableOptionsHelp().map(CLIOutput.indent + _).mkString("\n")
     val optionsHelp =
       if (options.isEmpty) "" else "\nAvailable options:\n" + options + "\n"
 
@@ -210,8 +209,14 @@ trait Opts[A] {
       firstLine + usages.head +
       usages.tail.map("\n" + padding + _).mkString + "\n"
 
-    usage + helpExplanations(addHelpOption = true).stripTrailing()
+    usage + helpExplanations().stripTrailing()
   }
+
+  /**
+    * Renders text explaining how to display the help.
+    */
+  def shortHelp(commandPrefix: Seq[String]): String =
+    s"See `${commandPrefix.mkString(" ")} --help` for usage explanation."
 }
 
 /**
@@ -485,8 +490,8 @@ object Opts {
     * @param otherCommands any following subcommands
     */
   def subcommands[A](
-    firstCommand: Subcommand[A],
-    otherCommands: Subcommand[A]*
+    firstCommand: Command[A],
+    otherCommands: Command[A]*
   ): Opts[A] = {
     val nonEmptyCommands = NonEmptyList.of(firstCommand, otherCommands: _*)
     new SubcommandOpt[A](nonEmptyCommands)

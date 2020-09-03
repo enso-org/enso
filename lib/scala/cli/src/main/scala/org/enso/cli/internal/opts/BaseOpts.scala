@@ -1,6 +1,7 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
-import org.enso.cli.Opts
+import org.enso.cli.arguments.Opts
+import org.enso.cli.internal.ParserContinuation
 
 abstract class BaseOpts[A] extends Opts[A] {
   override private[cli] val flags: Map[String, () => Unit]          = Map.empty
@@ -13,7 +14,10 @@ abstract class BaseOpts[A] extends Opts[A] {
     Seq()
 
   override private[cli] def wantsArgument() = false
-  override private[cli] def consumeArgument(arg: String): Unit =
+  override private[cli] def consumeArgument(
+    arg: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation =
     throw new IllegalStateException(
       "Internal error: " +
       "Argument provided even though it was marked as not expected."

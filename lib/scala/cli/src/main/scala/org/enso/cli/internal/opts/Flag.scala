@@ -1,4 +1,6 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
+
+import org.enso.cli.arguments.OptsParseError
 
 class Flag(
   name: String,
@@ -25,8 +27,8 @@ class Flag(
     Seq(name -> s"--$name") ++
     short.map(char => char.toString -> s"-$char").toSeq
 
-  val empty                                = Right(false)
-  var value: Either[List[String], Boolean] = empty
+  val empty                                  = Right(false)
+  var value: Either[OptsParseError, Boolean] = empty
 
   override private[cli] def reset(): Unit = {
     value = empty
@@ -34,7 +36,7 @@ class Flag(
 
   private def update(): Unit = {
     value = value.flatMap(
-      if (_) Left(List(s"Flag $name is set more than once"))
+      if (_) OptsParseError.left(s"Flag $name is set more than once")
       else Right(true)
     )
   }

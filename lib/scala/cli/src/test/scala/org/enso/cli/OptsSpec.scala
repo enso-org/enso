@@ -1,7 +1,8 @@
 package org.enso.cli
 
 import cats.implicits._
-import org.enso.cli.Opts.implicits._
+import org.enso.cli.arguments.{Command, Opts}
+import org.enso.cli.arguments.Opts.implicits._
 import org.enso.cli.internal.Parser
 import org.scalactic.source
 import org.scalatest.exceptions.{StackDepthException, TestFailedException}
@@ -22,15 +23,15 @@ class OptsSpec
 
     def parse(args: Seq[String]): Either[List[String], A] = {
       val (tokens, additionalArguments) = Parser.tokenize(args)
-      Parser
+      val result = Parser
         .parseOpts(
           opts,
           tokens,
           additionalArguments,
-          isTopLevel = false,
-          Seq("???")
+          "<root>"
         )
         .map(_._1)
+      result.toErrorList
     }
 
     def parseSuccessfully(line: String)(implicit pos: source.Position): A =
@@ -242,10 +243,10 @@ class OptsSpec
 
   "subcommands" should {
     val opt = Opts.subcommands(
-      Subcommand("cmd1", "cmd1 help") {
+      Command("cmd1", "cmd1 help") {
         Opts.flag("flag1", "", showInUsage = true).map((1, _))
       },
-      Subcommand("cmd2", "cmd1 help") {
+      Command("cmd2", "cmd1 help") {
         Opts.flag("flag2", "", showInUsage = true).map((2, _))
       }
     )
@@ -282,8 +283,9 @@ class OptsSpec
 
     "handle errors nicely" in {
       opt.parseFailing("").last should include("Usage:")
-      opt.parseFailing("cmd").head should (include("cmd1") and include("cmd2"))
-      opt.parseFailing("cmd").last should include("--help")
+      val cmdFailed = opt.parseFailing("cmd")
+      cmdFailed.head should (include("cmd1") and include("cmd2"))
+      cmdFailed.last should include("--help")
     }
   }
 

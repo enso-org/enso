@@ -34,8 +34,12 @@ This document describes available command-line options of the Enso launcher.
   - [`version`](#version)
   - [`help`](#help)
 - [General Options](#general-options)
-  - [`--version`](#--version)
+  - [`--use-enso-version`](#--use-enso-version)
   - [`--use-system-jvm`](#--use-system-jvm)
+  - [`--auto-confirm`](#--auto-confirm)
+  - [`--hide-progress`](#--hide-progress)
+  - [`--ensure-portable`](#--ensure-portable)
+- [Options From Newer Versions](#options-from-newer-versions)
 - [JVM Options](#jvm-options)
 
 <!-- /MarkdownTOC -->
@@ -224,9 +228,11 @@ Launcher has been downgraded to version 2.0.1.
 Prints the version of the installed launcher as well as the full version string
 of the currently selected Enso distribution.
 
+Flag `--json` can be added to get the output in JSON format, instead of the
+human-readable format that is the default.
+
 ```bash
 > enso version
-
 Enso Launcher
 Version:    0.0.1
 Built with: scala-2.13.3 for GraalVM 20.1.0
@@ -259,6 +265,21 @@ command.
 
 Tells the launcher to use the default JVM (based on `JAVA_HOME`) instead of the
 managed one. Will not work if the set-up JVM version is not GraalVM.
+
+### `--auto-confirm`
+
+Tells the launcher to not ask questions, but proceed with defaults. Useful for
+automation.
+
+### `--hide-progress`
+
+Suppresses displaying progress bars for downloads and other long running
+actions. May be needed if program output is piped.
+
+### `--ensure-portable`
+
+Checks if the launcher is run in portable mode and if it is not, terminates the
+application.
 
 ## Options From Newer Versions
 

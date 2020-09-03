@@ -1,23 +1,28 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
-import org.enso.cli.Argument
+import org.enso.cli.arguments.{Argument, OptsParseError}
+import org.enso.cli.internal.ParserContinuation
 
 class TrailingArguments[A: Argument](
   metavar: String,
   helpComment: Option[String]
 ) extends BaseOpts[Seq[A]] {
-  val empty                                = Right(Nil)
-  var value: Either[List[String], List[A]] = empty
+  val empty                                  = Right(Nil)
+  var value: Either[OptsParseError, List[A]] = empty
 
   override private[cli] val trailingArguments = Some(metavar)
 
   override private[cli] def wantsArgument() = true
 
-  override private[cli] def consumeArgument(arg: String): Unit = {
+  override private[cli] def consumeArgument(
+    arg: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation = {
     value = for {
       currentArguments <- value
       parsed           <- Argument[A].read(arg)
     } yield parsed :: currentArguments
+    ParserContinuation.ContinueNormally
   }
 
   override private[cli] def reset(): Unit = {

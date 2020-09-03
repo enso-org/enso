@@ -65,20 +65,27 @@ private[cli] object CLIOutputInternal {
     minimumWrapWidth: Int,
     minimumTableWidth: Int
   ): Seq[String] = {
-    val prefixLengths = rows.map(_._1.length)
+    val prefixLengths       = rows.map(_._1.length)
+    val maximumPrefixLength = wrapLength - minimumWrapWidth
     val commmonPrefixLength =
-      Seq(prefixLengths.max + 1, minimumTableWidth).max
-    val commonSuffixLength =
-      Seq(wrapLength - commmonPrefixLength, minimumWrapWidth).max
+      Seq(
+        Seq(prefixLengths.max + 1, minimumTableWidth).max,
+        maximumPrefixLength
+      ).min
+    val commonSuffixLength     = wrapLength - commmonPrefixLength
     val additionalLinesPadding = " " * commmonPrefixLength
 
     rows.flatMap {
       case (prefix, suffix) =>
         val prefixPadded  = rightPad(prefix, commmonPrefixLength)
         val wrappedSuffix = wrapLine(suffix, commonSuffixLength)
-        val firstLine     = prefixPadded + wrappedSuffix.head
-        val restLines     = wrappedSuffix.tail.map(additionalLinesPadding + _)
-        Seq(firstLine) ++ restLines
+        val firstLine =
+          if (prefix.length >= commmonPrefixLength)
+            Seq(prefix, additionalLinesPadding + wrappedSuffix.head)
+          else
+            Seq(prefixPadded + wrappedSuffix.head)
+        val restLines = wrappedSuffix.tail.map(additionalLinesPadding + _)
+        firstLine ++ restLines
     }
   }
 

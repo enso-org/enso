@@ -15,10 +15,10 @@ object CLIOutput {
     * aligned, so that the second column of each row starts at the same
     * indentation level (determined by the longest cell in the first column).
     * Only two-column tables are supported (more columns can be included, but
-    * they will not be aligned). If the first column is so wide, that the second
-    * column would be thinner than [[minimumColumnWrapWidth]], the second column
-    * is wrapped to [[minimumColumnWrapWidth]] exceeding the  [[terminalWidth]]
-    * limit.
+    * they will not be aligned). If an entry in the first column is so wide,
+    * that the second column would be thinner than [[minimumColumnWrapWidth]],
+    * the second column is started at the next line, padded with maximum
+    * permitted padding ({{{ terminalWidth - minimumColumnWrapWidth }}}).
     *
     * If a word without spaces is longer than [[terminalWidth]] it is also not
     * wrapped. This is done to avoid breaking long URLs when wrapping text.

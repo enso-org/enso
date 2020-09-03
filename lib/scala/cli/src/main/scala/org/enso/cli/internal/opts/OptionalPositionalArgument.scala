@@ -1,13 +1,14 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
-import org.enso.cli.Argument
+import org.enso.cli.arguments.{Argument, OptsParseError}
+import org.enso.cli.internal.ParserContinuation
 
 class OptionalPositionalArgument[A: Argument](
   metavar: String,
   helpComment: Option[String]
 ) extends BaseOpts[Option[A]] {
-  val empty                                  = Right(None)
-  var value: Either[List[String], Option[A]] = empty
+  val empty                                    = Right(None)
+  var value: Either[OptsParseError, Option[A]] = empty
 
   override private[cli] val optionalArguments = Seq(metavar)
 
@@ -17,10 +18,14 @@ class OptionalPositionalArgument[A: Argument](
       case _           => false
     }
 
-  override private[cli] def consumeArgument(arg: String): Unit = {
+  override private[cli] def consumeArgument(
+    arg: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation = {
     value = for {
       parsed <- Argument[A].read(arg)
     } yield Some(parsed)
+    ParserContinuation.ContinueNormally
   }
 
   override private[cli] def reset(): Unit = {
