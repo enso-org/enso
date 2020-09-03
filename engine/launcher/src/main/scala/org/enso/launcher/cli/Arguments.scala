@@ -1,7 +1,7 @@
 package org.enso.launcher.cli
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.cli.Argument
+import org.enso.cli.arguments.{Argument, OptsParseError}
 
 object Arguments {
 
@@ -11,6 +11,7 @@ object Arguments {
     */
   implicit val semverArgument: Argument[SemVer] = (string: String) =>
     SemVer(string).toRight(
-      List(s"`$string` is not a valid semantic version string.")
+      OptsParseError(s"`$string` is not a valid semantic version string.")
     )
+
 }

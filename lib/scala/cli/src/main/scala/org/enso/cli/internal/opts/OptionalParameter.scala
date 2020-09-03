@@ -1,6 +1,6 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
-import org.enso.cli.Argument
+import org.enso.cli.arguments.{Argument, OptsParseError}
 
 class OptionalParameter[A: Argument](
   name: String,
@@ -23,17 +23,17 @@ class OptionalParameter[A: Argument](
 
   val empty = Right(None)
 
-  var value: Either[List[String], Option[A]] = empty
+  var value: Either[OptsParseError, Option[A]] = empty
 
   override private[cli] def reset(): Unit = {
     value = empty
   }
 
   private def update(newValue: String): Unit = {
-    value = combineWithoutDuplicates(
+    value = OptsParseError.combineWithoutDuplicates(
       value,
       Argument[A].read(newValue),
-      s"Multiple values for parameter $name."
+      s"Multiple values for parameter `$name`."
     )
   }
 

@@ -1,4 +1,4 @@
-package org.enso.cli
+package org.enso.cli.arguments
 
 /**
   * Represents a top-level command in the CLI.
@@ -18,31 +18,11 @@ case class Command[A](
 ) {
 
   /**
-    * Generates a help text for the command, including usage, available options
-    * and any additional help lines.
-    *
-    * @param applicationName name of the application for usage
-    */
-  def help(applicationName: String): String =
-    comment + "\n" + opts.help(Seq(applicationName, name))
-
-  /**
     * Returns a top-level help entry for the application help text. It includes
     * a short description of the command.
     */
   def topLevelHelp: CommandHelp = CommandHelp(name, comment)
 }
-
-/**
-  * A stripped-down alternative to [[Command]] that is used in
-  * [[Opts.subcommands]].
-  *
-  * @param name name of the subcommand
-  * @param comment a help comment displayed in the commands help text
-  * @param opts parsing logic for the subcommand's options
-  * @tparam A type returned by the command
-  */
-case class Subcommand[A](name: String, comment: String)(val opts: Opts[A])
 
 object Command {
 
@@ -97,14 +77,4 @@ object Command {
     s"To show usage, run `$command $related --help`.\n" +
     s"To show available commands, run `$command --help`."
   }
-}
-
-/**
-  * A help entry used in the top-level help text.
-  *
-  * @param name name of a command
-  * @param comment a short description of that command
-  */
-case class CommandHelp(name: String, comment: String) {
-  override def toString: String = s"$name\t$comment"
 }

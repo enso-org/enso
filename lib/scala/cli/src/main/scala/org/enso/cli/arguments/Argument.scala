@@ -1,4 +1,4 @@
-package org.enso.cli
+package org.enso.cli.arguments
 
 import java.nio.file.{InvalidPathException, Path}
 import java.util.UUID
@@ -13,7 +13,7 @@ trait Argument[A] {
   /**
     * Tries to convert the given string into a value of type A.
     */
-  def read(string: String): Either[List[String], A]
+  def read(string: String): Either[OptsParseError, A]
 }
 
 object Argument {
@@ -34,7 +34,7 @@ object Argument {
         string.toInt.asRight
       } catch {
         case _: NumberFormatException =>
-          List(s"Invalid number `$string`").asLeft
+          OptsParseError.left(s"Invalid number `$string`")
       }
 
   /**
@@ -46,9 +46,9 @@ object Argument {
         Path.of(string).asRight
       } catch {
         case invalidPathException: InvalidPathException =>
-          List(
+          OptsParseError.left(
             s"Invalid path `$string`: ${invalidPathException.getMessage}"
-          ).asLeft
+          )
       }
 
   /**
@@ -58,6 +58,6 @@ object Argument {
     try { UUID.fromString(string).asRight }
     catch {
       case _: IllegalArgumentException | _: NumberFormatException =>
-        List(s"Invalid UUID `$string`").asLeft
+        OptsParseError.left(s"Invalid UUID `$string`")
     }
 }

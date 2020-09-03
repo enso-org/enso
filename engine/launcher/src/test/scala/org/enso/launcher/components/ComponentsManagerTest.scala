@@ -53,7 +53,11 @@ class ComponentsManagerTest
       FakeReleaseProvider(fakeReleasesRoot.resolve("graalvm"))
     )
     val componentsManager = new ComponentsManager(
-      GlobalCLIOptions(autoConfirm = true, hideProgress = true),
+      GlobalCLIOptions(
+        autoConfirm  = true,
+        hideProgress = true,
+        useJSON      = false
+      ),
       distributionManager,
       engineProvider,
       runtimeProvider
