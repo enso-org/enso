@@ -149,7 +149,7 @@ and other values are added to this template at build time.
 Additionally, each release should contain an asset named
 `launcher-manifest.yaml` which contains launcher-specific release metadata.
 
-Currently, it contains only a single field:
+It contains the following fields:
 - `minimum-version-to-upgrade` - specifies the minimum version of the launcher
   that is allowed to upgrade to this launcher version. If a launcher is older
   than the version specified here it must perform the upgrade in steps, first
@@ -159,6 +159,13 @@ Currently, it contains only a single field:
   versions, the upgrade can still be performed by first upgrading to a newer
   version that does not require the new logic but knows about it and continuing
   the upgrade with that knowledge.
+- `files-to-copy` - a list of files that should be copied into the
+  distribution's data root. This may include the `README` and similar files, so
+  that after the upgrade these additional files are also up-to-date. These files
+  are treated as non-essential, i.e. an error when copying them will not cancel
+  the upgrade (but it should be reported).
+- `directories-to-copy` - a list of directories that should be copied into the
+  distribution's data root. Acts similarly to `files-to-copy`.
 
 #### Release Assets Structure
 

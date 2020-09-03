@@ -44,6 +44,20 @@ class LauncherReleaseProvider(releaseProvider: SimpleReleaseProvider)
   ) extends LauncherRelease {
     def minimumVersionToPerformUpgrade: SemVer =
       manifest.minimumVersionToUpgrade
-    override def downloadPackage(path: Path): TaskProgress[Unit] = ???
+    override def packageFileName: String =
+      EnsoReleaseProvider.packageNameForComponent("launcher", version)
+    override def downloadPackage(path: Path): TaskProgress[Unit] = {
+      val packageName = packageFileName
+      release.assets
+        .find(_.fileName == packageName)
+        .map(_.downloadTo(path))
+        .getOrElse {
+          TaskProgress.immediateFailure(
+            ReleaseProviderException(
+              s"Cannot find package `$packageName` in the release."
+            )
+          )
+        }
+    }
   }
 }

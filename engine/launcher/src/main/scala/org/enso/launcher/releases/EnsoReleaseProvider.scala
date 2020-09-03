@@ -1,5 +1,6 @@
 package org.enso.launcher.releases
 import nl.gn0s1s.bump.SemVer
+import org.enso.launcher.OS
 
 import scala.util.{Failure, Success, Try}
 
@@ -37,4 +38,24 @@ abstract class EnsoReleaseProvider[ReleaseType](
         .map(_.tag.stripPrefix(tagPrefix))
         .flatMap(SemVer(_))
     }
+}
+
+object EnsoReleaseProvider {
+  def packageNameForComponent(
+    componentName: String,
+    version: SemVer
+  ): String = {
+    val os = OS.operatingSystem match {
+      case OS.Linux   => "linux"
+      case OS.MacOS   => "macos"
+      case OS.Windows => "windows"
+    }
+    val arch = OS.architecture
+    val extension = OS.operatingSystem match {
+      case OS.Linux   => ".tar.gz"
+      case OS.MacOS   => ".tar.gz"
+      case OS.Windows => ".zip"
+    }
+    s"enso-$componentName-$version-$os-$arch$extension"
+  }
 }

@@ -6,7 +6,6 @@ import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
 import org.enso.launcher.OS
 import org.enso.launcher.components.Manifest
-import org.enso.launcher.releases.github.GithubReleaseProvider
 import org.enso.launcher.releases.{
   EnsoReleaseProvider,
   Release,
@@ -65,34 +64,9 @@ class EngineReleaseProvider(releaseProvider: SimpleReleaseProvider)
     isBroken: Boolean,
     release: Release
   ) extends EngineRelease {
+    def packageFileName: String =
+      EnsoReleaseProvider.packageNameForComponent("engine", version)
 
-    /**
-      * Determines the filename of the package that should be downloaded from this
-      * release.
-      *
-      * That filename may be platform specific.
-      */
-    def packageFileName: String = {
-      val os = OS.operatingSystem match {
-        case OS.Linux   => "linux"
-        case OS.MacOS   => "macos"
-        case OS.Windows => "windows"
-      }
-      val arch = OS.architecture
-      val extension = OS.operatingSystem match {
-        case OS.Linux   => ".tar.gz"
-        case OS.MacOS   => ".tar.gz"
-        case OS.Windows => ".zip"
-      }
-      s"enso-engine-$version-$os-$arch$extension"
-    }
-
-    /**
-      * Downloads the package associated with the release into `destination`.
-      *
-      * @param destination name of the file that will be created to contain the
-      *                    downloaded package
-      */
     def downloadPackage(
       destination: Path
     ): TaskProgress[Unit] = {
@@ -110,16 +84,3 @@ class EngineReleaseProvider(releaseProvider: SimpleReleaseProvider)
     }
   }
 }
-
-/**
-  * Default [[EngineReleaseProvider]] that uses the GitHub Release API.
-  */
-object EngineReleaseProvider
-    extends EngineReleaseProvider(
-      new GithubReleaseProvider(
-        "enso-org",
-        "enso-staging" // TODO [RW] The release provider will be moved from
-        // staging to the main repository, when the first official Enso release
-        // is released.
-      )
-    )

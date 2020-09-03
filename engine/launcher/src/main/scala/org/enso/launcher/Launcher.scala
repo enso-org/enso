@@ -16,6 +16,8 @@ import org.enso.launcher.components.runner.{
 import org.enso.launcher.config.{DefaultVersion, GlobalConfigurationManager}
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.project.ProjectManager
+import org.enso.launcher.releases.launcher.DefaultLauncherReleaseProvider
+import org.enso.launcher.upgrade.LauncherUpgrader
 import org.enso.version.{VersionDescription, VersionDescriptionParameter}
 
 /**
@@ -35,6 +37,12 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       configurationManager,
       componentsManager,
       Environment
+    )
+  private lazy val upgrader =
+    new LauncherUpgrader(
+      cliOptions,
+      DistributionManager,
+      DefaultLauncherReleaseProvider
     )
 
   /**
@@ -384,14 +392,6 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
   * Gathers launcher commands which do not depend on the global CLI options.
   */
 object Launcher {
-
-  /**
-    * Version of the launcher.
-    */
-  val version: SemVer = SemVer(Info.ensoVersion).getOrElse {
-    throw new IllegalStateException("Cannot parse the built-in version.")
-  }
-
   private val workingDirectory: Path = Path.of(".")
 
   /**

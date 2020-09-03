@@ -1,7 +1,7 @@
 package org.enso.launcher.components
 
 import nl.gn0s1s.bump.SemVer
-import org.enso.launcher.Launcher
+import org.enso.launcher.{CurrentVersion, Launcher}
 
 /**
   * A base class for exceptions caused by [[ComponentsManager]] logic.
@@ -43,9 +43,9 @@ case class LauncherUpgradeRequiredError(expectedVersion: SemVer)
     * @inheritdoc
     */
   override def toString: String =
-    s"This launcher version is ${Launcher.version}, but $expectedVersion " +
-    s"is required to run this engine. If you want to use it, upgrade the " +
-    s"launcher with `enso upgrade`."
+    s"This launcher version is ${CurrentVersion.version}, but " +
+    s"$expectedVersion is required to run this engine. If you want to use " +
+    s"it, upgrade the launcher with `enso upgrade`."
 }
 
 /**

@@ -9,12 +9,16 @@ import org.enso.launcher.archive.Archive
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.releases.ReleaseProvider
-import org.enso.launcher.releases.engine.{EngineRelease, EngineReleaseProvider}
+import org.enso.launcher.releases.engine.{
+  DefaultEngineReleaseProvider,
+  EngineRelease,
+  EngineReleaseProvider
+}
 import org.enso.launcher.releases.runtime.{
   GraalCEReleaseProvider,
   RuntimeReleaseProvider
 }
-import org.enso.launcher.{FileSystem, Launcher, Logger}
+import org.enso.launcher.{CurrentVersion, FileSystem, Launcher, Logger}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try, Using}
@@ -146,7 +150,10 @@ class ComponentsManager(
       }
       .recoverWith {
         case _: ComponentMissingError        => Success(None)
-        case e: LauncherUpgradeRequiredError => Failure(e)
+        case e: LauncherUpgradeRequiredError =>
+          // TODO [RW] consider offering to upgrade automatically (but make sure
+          //  that an upgrade is not triggered in the middle of installation)
+          Failure(e)
         case e: Exception =>
           Failure(
             UnrecognizedComponentError(
@@ -493,7 +500,7 @@ class ComponentsManager(
     */
   private def loadAndCheckEngineManifest(path: Path): Try[Manifest] = {
     Manifest.load(path / Manifest.DEFAULT_MANIFEST_NAME).flatMap { manifest =>
-      if (manifest.minimumLauncherVersion > Launcher.version) {
+      if (manifest.minimumLauncherVersion > CurrentVersion.version) {
         Failure(LauncherUpgradeRequiredError(manifest.minimumLauncherVersion))
       } else Success(manifest)
     }
@@ -621,6 +628,6 @@ case class DefaultComponentsManager(cliOptions: GlobalCLIOptions)
     extends ComponentsManager(
       cliOptions,
       DistributionManager,
-      EngineReleaseProvider,
+      DefaultEngineReleaseProvider,
       GraalCEReleaseProvider
     )
