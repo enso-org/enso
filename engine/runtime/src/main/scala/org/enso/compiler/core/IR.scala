@@ -5140,6 +5140,18 @@ object IR {
       }
     }
 
+    case class UnresolvedVectorMacro(
+      override val location: Option[IdentifiedLocation]
+    ) extends Warning {
+
+      /**
+        * @return a human-readable description of this error condition.
+        */
+      override def message: String =
+        s"Marco definition for vector literals is not imported." +
+        s" Defaulting to bare arrays."
+    }
+
     /** Warnings for unreachable code. */
     sealed trait Unreachable extends Warning {
       val location: Option[IdentifiedLocation]

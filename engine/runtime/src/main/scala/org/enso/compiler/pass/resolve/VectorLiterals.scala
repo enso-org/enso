@@ -63,7 +63,7 @@ case object VectorLiterals extends IRPass {
     doExpression(ir, vec)
   }
 
-  private def vectorCons(bindings: BindingsMap): IR.Expression = {
+  private def vectorCons(bindings: BindingsMap): Option[IR.Expression] = {
     val module = bindings.resolvedImports
       .flatMap(
         _.module.getIr
@@ -75,35 +75,32 @@ case object VectorLiterals extends IRPass {
       )
       .map(_.module)
       .find(_.getName.toString == "Base.Vector")
-    val n = IR.Name.Literal("<Sequence Macro>", isReferent = true, None)
-    module match {
-      case Some(module) =>
-        n.updateMetadata(
-          UppercaseNames -->> BindingsMap.Resolution(
-            BindingsMap
-              .ResolvedConstructor(module, BindingsMap.Cons("Vector", 1))
-          )
+    module.map { module =>
+      val n = IR.Name.Literal("<Sequence Macro>", isReferent = true, None)
+      val withRes = n.updateMetadata(
+        UppercaseNames -->> BindingsMap.Resolution(
+          BindingsMap
+            .ResolvedConstructor(module, BindingsMap.Cons("Vector", 1))
         )
-      case None =>
-        IR.Error.Resolution(
-          n,
-          IR.Error.Resolution.ResolverError(BindingsMap.ResolutionNotFound)
-        )
+      )
+      withRes
     }
   }
 
   private def doExpression(
     ir: IR.Expression,
-    vec: IR.Expression
+    vec: Option[IR.Expression]
   ): IR.Expression =
     ir.transformExpressions {
       case seq: IR.Application.Literal.Sequence =>
         val trans = seq.mapExpressions(doExpression(_, vec))
-        IR.Application.Prefix(
-          vec,
-          List(IR.CallArgument.Specified(None, trans, None, None)),
-          false,
-          None
-        )
+        vec.map(vec =>
+          IR.Application.Prefix(
+            vec,
+            List(IR.CallArgument.Specified(None, trans, None, None)),
+            false,
+            None
+          )
+        ).getOrElse(trans.addDiagnostic(IR.Warning.UnresolvedVectorMacro(ir.location)))
     }
 }
