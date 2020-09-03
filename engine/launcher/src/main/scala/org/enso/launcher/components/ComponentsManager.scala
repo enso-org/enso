@@ -9,8 +9,10 @@ import org.enso.launcher.archive.Archive
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.releases.{
+  EngineRelease,
   EngineReleaseProvider,
   GraalCEReleaseProvider,
+  ReleaseProvider,
   RuntimeReleaseProvider
 }
 import org.enso.launcher.{FileSystem, Launcher, Logger}
@@ -32,7 +34,7 @@ import scala.util.{Failure, Success, Try, Using}
 class ComponentsManager(
   cliOptions: GlobalCLIOptions,
   distributionManager: DistributionManager,
-  engineReleaseProvider: EngineReleaseProvider,
+  engineReleaseProvider: ReleaseProvider[EngineRelease],
   runtimeReleaseProvider: RuntimeReleaseProvider
 ) {
   private val showProgress = !cliOptions.hideProgress
@@ -238,7 +240,7 @@ class ComponentsManager(
     * [[engineReleaseProvider]].
     */
   def fetchLatestEngineVersion(): SemVer =
-    engineReleaseProvider.findLatest().get
+    engineReleaseProvider.findLatestVersion().get
 
   /**
     * Uninstalls the engine with the provided `version` (if it was installed).
@@ -266,7 +268,7 @@ class ComponentsManager(
     * the actual directory after doing simple sanity checks.
     */
   private def installEngine(version: SemVer): Engine = {
-    val engineRelease = engineReleaseProvider.getRelease(version).get
+    val engineRelease = engineReleaseProvider.fetchRelease(version).get
     if (engineRelease.isBroken) {
       if (cliOptions.autoConfirm) {
         Logger.warn(
@@ -296,8 +298,8 @@ class ComponentsManager(
       Logger.debug(s"Downloading packages to $directory")
       val enginePackage = directory / engineRelease.packageFileName
       Logger.info(s"Downloading ${enginePackage.getFileName}.")
-      engineReleaseProvider
-        .downloadPackage(engineRelease, enginePackage)
+      engineRelease
+        .downloadPackage(enginePackage)
         .waitForResult(showProgress)
         .get
 

@@ -5,39 +5,21 @@ import java.nio.file.Path
 import nl.gn0s1s.bump.SemVer
 import org.enso.cli.TaskProgress
 import org.enso.launcher.OS
-import org.enso.launcher.releases.github.GithubReleaseProvider
 import org.enso.launcher.components.Manifest
+import org.enso.launcher.releases.github.GithubReleaseProvider
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Try}
 
 /**
-  * Wraps a generic [[ReleaseProvider]] to provide engine releases from it.
+  * Wraps a generic [[SimpleReleaseProvider]] to provide engine releases.
   */
-class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
-  private val tagPrefix = "enso-"
-
-  /**
-    * Returns the version of the most recent engine release.
-    *
-    * It ignores releases marked as broken, so the latest non-broken release is
-    * returned.
-    */
-  def findLatest(): Try[SemVer] =
-    releaseProvider.listReleases().flatMap { releases =>
-      val versions =
-        releases
-          .filter(!_.isMarkedBroken)
-          .map(_.tag.stripPrefix(tagPrefix))
-          .flatMap(SemVer(_))
-      versions.sorted.lastOption.map(Success(_)).getOrElse {
-        Failure(ReleaseProviderException("No valid engine versions were found"))
-      }
-    }
+class EngineReleaseProvider(releaseProvider: SimpleReleaseProvider)
+    extends EnsoReleaseProvider[EngineRelease](releaseProvider) {
 
   /**
     * Fetches release metadata for a given version.
     */
-  def getRelease(version: SemVer): Try[EngineRelease] = {
+  def fetchRelease(version: SemVer): Try[EngineRelease] = {
     val tag = tagPrefix + version.toString
     for {
       release <- releaseProvider.releaseForTag(tag)
@@ -63,7 +45,7 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
               )
             )
           )
-    } yield EngineRelease(
+    } yield DefaultEngineRelease(
       version  = version,
       isBroken = release.isMarkedBroken,
       manifest = manifest,
@@ -71,29 +53,55 @@ class EngineReleaseProvider(releaseProvider: ReleaseProvider) {
     )
   }
 
-  /**
-    * Downloads the package associated with the given release into
-    * `destination`.
-    *
-    * @param release the release to download the package from
-    * @param destination name of the file that will be created to contain the
-    * downloaded package
-    */
-  def downloadPackage(
-    release: EngineRelease,
-    destination: Path
-  ): TaskProgress[Unit] = {
-    val packageName = release.packageFileName
-    release.release.assets
-      .find(_.fileName == packageName)
-      .map(_.downloadTo(destination))
-      .getOrElse {
-        TaskProgress.immediateFailure(
-          ReleaseProviderException(
-            s"Cannot find package `$packageName` in the release."
-          )
-        )
+  case class DefaultEngineRelease(
+    version: SemVer,
+    manifest: Manifest,
+    isBroken: Boolean,
+    release: Release
+  ) extends EngineRelease {
+
+    /**
+      * Determines the filename of the package that should be downloaded from this
+      * release.
+      *
+      * That filename may be platform specific.
+      */
+    def packageFileName: String = {
+      val os = OS.operatingSystem match {
+        case OS.Linux   => "linux"
+        case OS.MacOS   => "macos"
+        case OS.Windows => "windows"
       }
+      val arch = OS.architecture
+      val extension = OS.operatingSystem match {
+        case OS.Linux   => ".tar.gz"
+        case OS.MacOS   => ".tar.gz"
+        case OS.Windows => ".zip"
+      }
+      s"enso-engine-$version-$os-$arch$extension"
+    }
+
+    /**
+      * Downloads the package associated with the release into `destination`.
+      *
+      * @param destination name of the file that will be created to contain the
+      *                    downloaded package
+      */
+    def downloadPackage(
+      destination: Path
+    ): TaskProgress[Unit] = {
+      val packageName = packageFileName
+      release.assets
+        .find(_.fileName == packageName)
+        .map(_.downloadTo(destination))
+        .getOrElse {
+          TaskProgress.immediateFailure(
+            ReleaseProviderException(
+              s"Cannot find package `$packageName` in the release."
+            )
+          )
+        }
+    }
   }
 }
 

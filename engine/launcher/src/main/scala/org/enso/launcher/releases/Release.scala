@@ -1,7 +1,8 @@
 package org.enso.launcher.releases
 
 /**
-  * Wraps a generic release returned by [[ReleaseProvider]].
+  * Wraps a generic release identified by a tag and containing a sequence of
+  * assets.
   */
 trait Release {
 

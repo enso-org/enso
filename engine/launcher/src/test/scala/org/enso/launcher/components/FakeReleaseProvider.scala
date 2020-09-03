@@ -6,8 +6,8 @@ import org.enso.cli.{ProgressListener, TaskProgress}
 import org.enso.launcher.releases.{
   Asset,
   Release,
-  ReleaseProvider,
-  ReleaseProviderException
+  ReleaseProviderException,
+  SimpleReleaseProvider
 }
 import org.enso.launcher.{FileSystem, OS}
 
@@ -26,7 +26,7 @@ import scala.util.{Success, Try, Using}
 case class FakeReleaseProvider(
   releasesRoot: Path,
   copyIntoArchiveRoot: Seq[String] = Seq.empty
-) extends ReleaseProvider {
+) extends SimpleReleaseProvider {
   private val releases =
     FileSystem
       .listDirectory(releasesRoot)

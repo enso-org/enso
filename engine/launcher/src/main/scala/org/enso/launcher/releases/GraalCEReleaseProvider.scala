@@ -11,9 +11,9 @@ import scala.util.{Failure, Success}
 
 /**
   * [[RuntimeReleaseProvider]] implementation providing Graal Community Edition
-  * releases from the given [[ReleaseProvider]].
+  * releases from the given [[SimpleReleaseProvider]].
   */
-class GraalCEReleaseProvider(releaseProvider: ReleaseProvider)
+class GraalCEReleaseProvider(releaseProvider: SimpleReleaseProvider)
     extends RuntimeReleaseProvider {
 
   /**
