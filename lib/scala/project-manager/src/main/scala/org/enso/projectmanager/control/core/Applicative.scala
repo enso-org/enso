@@ -33,10 +33,11 @@ object Applicative {
   def apply[F[+_, +_]](implicit applicative: Applicative[F]): Applicative[F] =
     applicative
 
-  implicit def zioApply[R]: Applicative[ZIO[R, +*, +*]] =
-    zioApplyInstance.asInstanceOf[Applicative[ZIO[R, +*, +*]]]
+  implicit def zioApplicative[R]: Applicative[ZIO[R, +*, +*]] =
+    zioApplicativeInstance.asInstanceOf[Applicative[ZIO[R, +*, +*]]]
 
-  final private[this] val zioApplyInstance: Applicative[ZIO[Any, +*, +*]] =
+  final private[this] val zioApplicativeInstance
+    : Applicative[ZIO[Any, +*, +*]] =
     new ZioApplicative[Any]
 
 }
