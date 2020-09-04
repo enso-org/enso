@@ -5,7 +5,11 @@ import java.util.UUID
 
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.projectmanager.boot.configuration.StorageConfig
-import org.enso.projectmanager.control.core.{CovariantFlatMap, Traverse}
+import org.enso.projectmanager.control.core.{
+  Applicative,
+  CovariantFlatMap,
+  Traverse
+}
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
@@ -32,7 +36,7 @@ import org.enso.projectmanager.model.{Project, ProjectMetadata}
   * @param gen a random generator
   */
 class ProjectFileRepository[
-  F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap: Traverse
+  F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap: Applicative
 ](
   storageConfig: StorageConfig,
   clock: Clock[F],
@@ -60,7 +64,7 @@ class ProjectFileRepository[
         case FileNotFound | NotDirectory => Nil
       }
       .mapError(th => StorageFailure(th.toString))
-      .flatMap(s => Traverse[F].traverse(s)(loadProject).map(_.flatten))
+      .flatMap(s => Traverse[List].traverse(s)(loadProject).map(_.flatten))
 
   /** @inheritdoc */
   override def findById(

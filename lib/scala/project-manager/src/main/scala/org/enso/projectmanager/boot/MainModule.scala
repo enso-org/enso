@@ -5,7 +5,7 @@ import akka.stream.SystemMaterializer
 import cats.MonadError
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
-import org.enso.projectmanager.control.core.{CovariantFlatMap, Traverse}
+import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Exec, Sync}
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.languageserver.{
@@ -34,7 +34,7 @@ import scala.concurrent.ExecutionContext
   * A main module containing all components of the project manager.
   */
 class MainModule[
-  F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Traverse: Async
+  F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Applicative: Async
 ](
   config: ProjectManagerConfig,
   computeExecutionContext: ExecutionContext

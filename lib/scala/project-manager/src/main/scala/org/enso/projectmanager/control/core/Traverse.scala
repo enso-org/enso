@@ -1,15 +1,9 @@
 package org.enso.projectmanager.control.core
 
-import zio._
-
-import scala.collection.BuildFrom
-
 /**
-  * A traversal over a structure with covariant effects.
-  *
-  * @tparam F an effectful context
+  * A traversal over a structure with effects.
   */
-trait Traverse[F[+_, +_]] {
+trait Traverse[G[_]] {
 
   /**
     * Applies the function `f` to each element of the collection.
@@ -18,20 +12,25 @@ trait Traverse[F[+_, +_]] {
     * @param f the mapping function
     * @return the new collection with the function applied to each element
     */
-  def traverse[E, A, B, C[+T] <: Iterable[T]](
-    s: C[A]
-  )(f: A => F[E, B])(implicit bf: BuildFrom[C[A], B, C[B]]): F[E, C[B]]
+  def traverse[F[+_, +_]: Applicative, E, A, B](s: G[A])(
+    f: A => F[E, B]
+  ): F[E, G[B]]
 }
 
 object Traverse {
 
-  def apply[F[+_, +_]](implicit traverse: Traverse[F]): Traverse[F] =
+  def apply[G[_]](implicit traverse: Traverse[G]): Traverse[G] =
     traverse
 
-  implicit def zioTraverse[R]: Traverse[ZIO[R, +*, +*]] =
-    zioTraverseInstance.asInstanceOf[Traverse[ZIO[R, +*, +*]]]
+  implicit object ListTraverse extends Traverse[List] {
 
-  final private[this] val zioTraverseInstance: Traverse[ZIO[Any, +*, +*]] =
-    new ZioTraverse[Any]
+    /** @inheritdoc */
+    override def traverse[F[+_, +_]: Applicative, E, A, B](
+      xs: List[A]
+    )(f: A => F[E, B]): F[E, List[B]] =
+      xs.foldRight(Applicative[F].pure[E, List[B]](List())) { (a, facc) =>
+        Applicative[F].map2(f(a), facc)(_ :: _)
+      }
+  }
 
 }
