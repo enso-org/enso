@@ -9,7 +9,6 @@ use super::ast::*;
 use super::Tab;
 use super::TAB;
 use super::When;
-use crate::generation::types;
 
 
 
@@ -39,9 +38,8 @@ impl Source {
         let mut file    = fs::File::open("lib/rust/ast/src/ast.rs")?;
         file.read_to_string(&mut content)?;
 
-        let pkg       = String::from("org.enso.ast");
         let file      = syn::parse_file(content.as_str()).unwrap();
-        let this:Self = File::new("Ast", pkg, file).source();
+        let this:Self = File::new("Ast", "org.enso.ast", file).source();
 
         Ok(this.code)
     }
@@ -154,8 +152,11 @@ impl<'a> Generator<Source> for Extends<'a> {
 
 impl Generator<Source> for &Type {
     fn write(self, source:&mut Source) {
-        let name  = types::builtin(&self.name);
+        let name  = name::typ(&self.name);
         let valid = !name.str.is_empty();
+        for name in &self.path {
+            write!(source, name, ".");
+        }
         if valid { write!(source, &name) }
         if !self.args.is_empty() {
             if valid { write!(source, "[") }
@@ -187,7 +188,7 @@ pub mod name {
 
     /// Creates a Scala type name `foo_bar => FooBar`
     pub fn typ(name:&Name) -> Name {
-        if let Some(name) = types::builtin(name) { return name.into() }
+        if let Some(name) = types::builtin(name) { return name.scala.into() }
 
         let mut string = name.str.to_camel_case();
         string[0..1].make_ascii_uppercase();

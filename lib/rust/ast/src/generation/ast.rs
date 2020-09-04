@@ -26,8 +26,8 @@ impl File {
     /// Note that the content of the file is going to be wrapped in an extra object
     /// `object FileName { content.. }`, because Scala (compared to Rust) doesn't support
     /// top level type aliases.
-    pub fn new(name:&str, package:String, content:syn::File) -> Self {
-        Self{lib:Stdlib(), package, name:name.into(), content}
+    pub fn new(name:&str, package:&str, content:syn::File) -> Self {
+        Self{lib:Stdlib(), package:package.into(), name:name.into(), content}
     }
 }
 
@@ -199,8 +199,8 @@ impl From<&syn::Type> for Type {
         let mut path = vec![];
         let mut args = vec![];
         if let syn::Type::Path(typ) = typ {
-            path    = typ.path.segments.iter().dropping_back(0).map(|s|Name(&s.ident)).collect();
-            let typ = path.path.segments.last().unwrap();
+            path    = typ.path.segments.iter().dropping_back(1).map(|s|Name(&s.ident)).collect();
+            let typ = typ.path.segments.last().unwrap();
             name = Name(&typ.ident);
             if let syn::PathArguments::AngleBracketed(params) = &typ.arguments {
                 for typ in params.args.iter() {
