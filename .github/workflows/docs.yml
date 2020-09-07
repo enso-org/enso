@@ -23,5 +23,9 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ env.nodeVersion }}
+      - name: Test
+        run: |
+          node --version
+          npx prettier --version
       - name: Check Docs
         run: npx prettier --check .
