@@ -3,44 +3,27 @@ use std::process::{Command, exit};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let path = match option_env!("ENSO_LAUNCHER_LOCATION") {
-        Some(path) => path,
+    let path = option_env!("ENSO_LAUNCHER_LOCATION")
+        .expect("`ENSO_LAUNCHER_LOCATION` was not set during compilation.");
+    let version = option_env!("ENSO_BUILD_VERSION")
+        .expect("`ENSO_BUILD_VERSION` was not set during compilation.");
+    let current_exe_result = env::current_exe()
+        .expect("Cannot get current executable path.");
+    let exe_location = match current_exe_result.to_str() {
+        Some(str) => str.clone(),
         None => {
-            eprintln!("`ENSO_LAUNCHER_LOCATION` was not set during compilation.");
+            eprintln!("Path {} is invalid.", current_exe_result.to_string_lossy());
             exit(1)
         }
     };
-    let version = match option_env!("ENSO_BUILD_VERSION") {
-        Some(version) => version,
-        None => {
-            eprintln!("`ENSO_BUILD_VERSION` was not set during compilation.");
-            exit(1)
-        }
-    };
-    /*let exe_location = match env::current_exe() {
-        Ok(path) => {
-            let str_opt = path.as_path().to_str();
-            match str_opt {
-                Some(str) => str.clone(),
-                None => {
-                    eprintln!("Path {} is invalid.", path.to_string_lossy());
-                    exit(1)
-                }
-            }
-        },
-        Err(e) => {
-            eprintln!("Failed to get path to executable {}", e);
-            exit(1)
-        }
-    };*/
     let override_args = [
         String::from("--internal-emulate-version"),
         String::from(version),
-        //String::from("--internal-emulate-location"),
-        //String::from(exe_location)
+        String::from("--internal-emulate-location"),
+        String::from(exe_location)
     ];
     let modified_args = [&override_args[..], &args[1..]].concat();
-    println!("Final args: {:?}", modified_args);
+    eprintln!("Final args: {:?}", modified_args); // TODO remove this after test
     let exit_status =
         Command::new(path).args(modified_args).status();
     match exit_status {

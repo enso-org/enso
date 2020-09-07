@@ -39,12 +39,18 @@ import org.enso.launcher.{FileSystem, OS}
   *    when the system removes temporary files) and uses it to remove the
   *    original binary. It then can also remove the (now empty) installation
   *    directory if necessary.
+  * 3. TODO [RW] doc
   */
 object InternalOpts {
   private val REMOVE_OLD_EXECUTABLE   = "internal-remove-old-executable"
   private val FINISH_UNINSTALL        = "internal-finish-uninstall"
   private val FINISH_UNINSTALL_PARENT = "internal-finish-uninstall-parent"
   private val CONTINUE_UPGRADE        = "internal-continue-upgrade"
+
+  private val EMULATE_VERSION  = "internal-emulate-version"
+  private val EMULATE_LOCATION = "internal-emulate-location"
+//  private val EMULATE_REPOSITORY = "internal-emulate-repository"
+  private val releaseBuild = false // TODO move to buildinfo
 
   /**
     * Additional top level options that are internal to the launcher and should
@@ -89,12 +95,14 @@ object InternalOpts {
       .hidden
 
     (
+      testingOptions,
       removeOldExecutableOpt,
       finishUninstallOpt,
       finishUninstallParentOpt,
       continueUpgrade
     ) mapN {
       (
+        _,
         removeOldExecutableOpt,
         finishUninstallOpt,
         finishUninstallParentOpt,
@@ -116,6 +124,22 @@ object InternalOpts {
         }
     }
   }
+
+  private def testingOptions: Opts[Unit] =
+    if (releaseBuild) Opts.pure(())
+    else {
+      val emulateVersion =
+        Opts.optionalParameter[SemVer](EMULATE_VERSION, "VERSION", "").hidden
+      val emulateLocation =
+        Opts.optionalParameter[Path](EMULATE_LOCATION, "PATH", "").hidden
+
+      (emulateVersion, emulateLocation) mapN {
+        (emulateLocation, emulateVersion) =>
+          emulateVersion.foreach(version => println(version))    // TODO
+          emulateLocation.foreach(location => println(location)) // TODO
+      }
+
+    }
 
   /**
     * Returns a helper class that allows to run the launcher located at the
