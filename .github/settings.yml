@@ -241,6 +241,7 @@ branches:
           - "Test Engine (macOS-latest)"
           - "Test Engine (ubuntu-latest)"
           - "Test Engine (windows-latest)"
+          - "Docs Check"
           - "Build Engine"
           - "Rust Check"
           - "Rust Lint"
