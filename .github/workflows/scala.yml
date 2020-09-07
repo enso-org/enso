@@ -39,6 +39,14 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
+      - name: Disable TCP/UDP Offloading (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: sudo ethtool -K eth0 tx off rx off
+      - name: Disable TCP/UDP Offloading (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6 -UdpIPv6
       - name: Enable Developer Command Prompt (Windows)
         uses: ilammy/msvc-dev-cmd@v1.3.0
       - name: Install Rust
@@ -152,6 +160,14 @@ jobs:
       - name: Checkout (Branch)
         uses: actions/checkout@v2
         if: github.event_name != 'pull_request'
+      - name: Disable TCP/UDP Offloading (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: sudo ethtool -K eth0 tx off rx off
+      - name: Disable TCP/UDP Offloading (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6 -UdpIPv6
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
