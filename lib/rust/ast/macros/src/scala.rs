@@ -4,11 +4,19 @@ use std::collections::HashMap;
 use std::fs;
 use syn;
 use std::io::Read;
-use super::Generator;
-use super::ast::*;
-use super::Tab;
-use super::TAB;
-use super::When;
+use crate::generator::*;
+use crate::ast::*;
+
+
+
+// ==============
+// === Macros ===
+// ==============
+
+/// Calls function on each argument.
+macro_rules! write {
+    ($val:expr, $($args:expr),*) => { $($val.write($args));* }
+}
 
 
 
@@ -181,8 +189,8 @@ impl Generator<Source> for &Name {
 // ========================
 
 pub mod name {
-    use crate::generation::ast::Name;
-    use crate::generation::types;
+    use crate::ast::Name;
+    use crate::types;
     use inflector::Inflector;
 
 
@@ -218,8 +226,6 @@ mod tests {
     #[test]
     fn test_file() {
         let rust = syn::parse_quote! {
-            type A<X> = B<X,Y>;
-
             pub enum FooBarBaz {
                 Foo(a::Foo),
                 Bar(a::Bar),
@@ -230,15 +236,12 @@ mod tests {
                 struct Bar {x:usize, y:u8, z:b::Type}
             }
             mod b {
-                type Type = Baz;
-
                 enum Baz {
                     Baz1 {},
                     Baz2 {foo_bar:Box<Vec<i32>>},
                 }
             }
         };
-        // TODO B.Type?
         let scala = "\
 package org.enso.ast
 
@@ -248,8 +251,6 @@ import java.util.UUID
 
 object Ast {
 
-  type A[X] = B[X, Y]
-
   sealed trait FooBarBaz
 
   object A {
@@ -257,13 +258,11 @@ object Ast {
 
     case class Foo() extends A
 
-    case class Bar(x:Long, y:Byte, z:Type) extends A
+    case class Bar(x:Long, y:Byte, z:b.Type) extends A
   }
 
   object B {
     sealed trait B extends FooBarBaz
-
-    type Type = Baz
 
     sealed trait Baz extends B
     case class Baz1() extends Baz

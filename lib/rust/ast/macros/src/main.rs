@@ -1,4 +1,4 @@
-use ast::generation::scala;
+use ast::scala;
 
 use clap;
 use std::fs::File;
@@ -15,7 +15,7 @@ pub fn main() -> std::io::Result<()> {
         .get_matches();
 
     if let Some(file) = matches.value_of("generate-scala-ast") {
-        File::create(file)?.write_all(scala::Source::ast()?.as_bytes())?;
+        File::create(file)?.write_all(crate::scala::Source::ast()?.as_bytes())?;
         println!("Generated scala ast at path: {}", file);
     }
     Ok(())

@@ -23,4 +23,4 @@ bench      = true
 
 [dependencies]
 jni = { version = "0.17.0"                  }
-ast = { version = "0.1.0",  path = "../ast" }
+ast = { version = "0.1.0",  path = "../ast/impl" }

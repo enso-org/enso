@@ -1,7 +1,8 @@
 [workspace]
 
 members = [
-    "lib/rust/ast",
+    "lib/rust/ast/impl",
+    "lib/rust/ast/macros",
     "lib/rust/enso-data",
     "lib/rust/enso-generics",
     "lib/rust/enso-logger",

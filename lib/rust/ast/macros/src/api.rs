@@ -1,13 +1,13 @@
 //! This module exports jni bindings generator.
 
-use std::collections::HashMap  as Map;
+use std::collections::BTreeMap as Map;
 use std::collections::BTreeSet as Set;
-use super::Generator;
-use super::ast::*;
+use crate::generator::Generator;
+use crate::ast::*;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
 use quote::quote;
-use crate::generation::types;
+use crate::types;
 use itertools::Itertools;
 
 
@@ -26,22 +26,21 @@ pub struct Collector {
     /// Set of all type names.
     pub types: Set<Name>,
     /// Vector of all available classes and their arguments.
-    pub classes: Vec<(Class,Vec<Type>)>,
-    /// Map from variants to types (i.e. Some => Option).
-    pub extends: Map<Name,Name>,
+    pub classes: Vec<(Class,Vec<Type>,Option<Name>)>,
     /// Set of generic parameters a type is used with.
     pub generics: Map<Name,Set<Type>>,
 }
 
 impl Collector {
     /// Adds a class to collector.
-    pub fn add_class(&mut self, mut class:Class) {
+    pub fn add_class(&mut self, mut class:Class, extends:Option<Name>) {
         let args = class.args.iter().map(|(name, typ)|
             (name.clone(), self.monomorphize(&typ).1)
         ).collect();
         let arg_types  = class.args.into_iter().map(|(_,typ)| typ);
         class.typ.path = self.module.clone();
-        self.classes.push((Class{typ:class.typ, args}, arg_types.collect()));
+        let class      = Class{typ:class.typ, args, named:class.named};
+        self.classes.push((class.clone(),arg_types.collect(),extends));
     }
 
     /// Returns a monomorphized name and the original type with monorphized arguments.
@@ -54,7 +53,7 @@ impl Collector {
             uid.push_str(&name.str);
             args.push(typ);
         }
-        if super::types::builtin(&typ.name).is_some() {
+        if args.is_empty() || types::builtin(&typ.name).is_some() {
             return (Name(uid), Type{name:typ.name.clone(), path, args});
         }
         let alias = Type{name:Name(&uid), path, args};
@@ -99,23 +98,21 @@ impl Generator<Collector> for &TypeAlias {
 
 impl Generator<Collector> for &Class {
     fn write(self, source:&mut Collector) {
-        source.add_class(self.clone());
-        source.types.insert(self.typ.name.clone());
+        source.add_class(self.clone(), None);
         if self.typ.args.is_empty() {
-            source.monomorphize(&self.typ);
+            source.generics.entry(self.typ.name.clone()).or_default().insert(self.typ.clone());
         }
     }
 }
 
 impl Generator<Collector> for &Enum {
     fn write(self, source:&mut Collector) {
-        for (_, variant) in &self.variants {
-            source.extends.insert(variant.typ.name.clone(), self.typ.name.clone());
-            source.add_class(variant.clone());
+        for (_, variant) in self.variants.iter().cloned() {
+            source.add_class(variant, Some(self.typ.name.clone()));
         }
         source.types.insert(self.typ.name.clone());
         if self.typ.args.is_empty() {
-            source.monomorphize(&self.typ);
+            source.generics.entry(self.typ.name.clone()).or_default().insert(self.typ.clone());
         }
     }
 }
@@ -138,8 +135,10 @@ impl ToTokens for Name {
 /// An associated types in trait with monorphized signature.
 #[derive(Debug,Clone)]
 pub struct AssociatedType {
-    /// Name of the type associated type.
+    /// Name of the associated type.
     pub name: Name,
+    /// Name of the enum variant if any.
+    pub variant: Option<Name>,
     /// The class the associated type represents.
     pub class: Class
 }
@@ -163,14 +162,14 @@ impl AssociatedType {
     ///
     /// For example `fn name(x:i64, y:<Self as Api>::Y) -> <Self as Api>::Name`
     pub fn fun(&self) -> TokenStream {
-        let typ = &self.class.typ.name;
-        let fun = &name::var(&typ);
-        let arg = self.class.args.iter().map(|(ref name, ref typ)| {
+        let typ  = &self.name;
+        let name = &name::var(&if let Some(var) = &self.variant {typ.clone()+var} else {typ.clone()});
+        let args = self.class.args.iter().map(|(ref name, ref typ)| {
             let typ = Self::typ(typ);
             quote!(#name:#typ)
         });
 
-        quote!(fn #fun(&self, #(#arg),*) -> <Self as Api>::#typ)
+        quote!(fn #name(&self, #(#args),*) -> <Self as Api>::#typ)
     }
 
 }
@@ -185,13 +184,49 @@ pub struct Source {
     /// Name of the scala package.
     pub package: String,
     /// Vector of user defined associated types.
-    pub types: Vec<AssociatedType>
+    pub types: Vec<AssociatedType>,
+
+    pub generics: Map<Name,Set<Type>>,
 }
 
 impl Source {
+    /// Creates a new instance from `Collector`.
+    pub fn new(collector:Collector) -> Self {
+        fn apply(typ:&Type, vars:&Map<&Name,&Type>) -> Type {
+            if let Some(&typ) = vars.get(&typ.name) { typ.clone() } else {
+                let args = typ.args.iter().map(|typ| apply(typ,&vars)).collect();
+                Type{name:typ.name.clone(), path:vec![], args}
+            }
+        }
+
+        let mut classes = vec![];
+        let mut types   = vec![];
+        for (class, args, extends) in collector.classes {
+            let (name, variant) = if let Some(name) = extends {
+                ( name.clone()          , Some(class.typ.name.clone()) )
+            } else {
+                ( class.typ.name.clone(), None                         )
+            };
+            for mut typ in collector.generics.get(&name).cloned().unwrap_or_default() {
+                let name = std::mem::replace(&mut typ.name, name.clone());
+                let vars = class.typ.args.iter().map(|t| &t.name).zip(&typ.args).collect();
+                let args = class.args.iter().map(|(name,typ)|
+                    (name.clone(), apply(&typ, &vars))
+                ).collect();
+                let named   = class.named;
+                types.push(AssociatedType{name, variant:variant.clone(), class:Class{typ, args, named}})
+            }
+            let args = args.into_iter().map(|typ| (Name(""),typ)).collect();
+            if variant.is_none() || class.named {
+                classes.push(Class{typ:class.typ, args, named:class.named})
+            }
+        }
+        Self{class_names:collector.types, classes, package:collector.package, types, generics:collector.generics}
+    }
+
     /// Generates the AST trait.
     pub fn ast_trait(&self) -> TokenStream {
-        let types   = self.types.iter().map(|obj| &obj.class.typ.name);
+        let types   = self.generics.iter().flat_map(|(_,typ)| typ.iter().map(|typ| &typ.name));
         let funs    = self.types.iter().map(|obj| obj.fun());
 
         quote! {
@@ -213,22 +248,29 @@ impl Source {
 
     /// Generates an implementation of AST trait for Rust AST.
     pub fn rust_impl(&self) -> TokenStream {
-        let types    = self.types.iter().map(|obj| {
-            let name = &obj.class.typ.name;
-            let typ  = &obj.name;
-            let args = obj.class.typ.args.iter().map(AssociatedType::typ);
-            quote!(#name = #typ<#(#args),*>)
-        });
+        let types    = self.generics.iter().flat_map(|(typ,args)| args.iter().map(move |arg| {
+            let args = arg.args.iter().map(AssociatedType::typ);
+            let name = &arg.name;
+            quote!(type #name = #typ<#(#args),*>)
+        }));
         let funs     = self.types.iter().map(|obj| {
             let fun  = obj.fun();
-            let typ  = &obj.name;
-            let args = obj.class.args.iter().map(|(name, _)| name);
-            quote!(#fun { #typ{#(#args),*} })
+            let args = obj.class.args.iter().map(|(name,_)| name);
+            let args = quote!(#(#args),*);
+            let name = &obj.class.typ.name;
+            let name = if let Some(variant) = &obj.variant { quote!(#name::#variant) } else {
+                quote!(#name)
+            };
+            if obj.class.named {
+                quote!(#fun{ #name{#args} })
+            } else {
+                quote!(#fun{ #name(#args) })
+            }
         });
 
         quote! {
             impl Api for Rust {
-                #(type #types);*;
+                #(#types);*;
 
                 #(#funs)*
             }
@@ -248,7 +290,9 @@ impl Source {
                 } else if !self.class_names.contains(&typ.name) {
                     args += "Ljava/lang/Object;";
                 } else {
+                    args += "L";
                     types::jni_name(&mut args, self.package.as_str(), &typ);
+                    args += ";";
                 }
             }
             args += ")V";
@@ -257,8 +301,8 @@ impl Source {
 
 
         quote! {
-            use crate::generation::types::Object;
-            use crate::generation::types::StdLib;
+            use ffi::Object;
+            use ffi::StdLib;
             use jni::JNIEnv;
 
             #[derive(Clone)]
@@ -278,12 +322,20 @@ impl Source {
 
     /// Generates the implementation of AST trait for the Scala AST.
     pub fn scala_impl(&self) -> TokenStream {
-        let types    = self.types.iter().map(|obj| &obj.class.typ.name);
+        let types    = self.generics.iter().flat_map(|(_,typ)| typ.iter().map(|typ|&typ.name));
         let funs     = self.types.iter().map(|obj| {
             let fun  = obj.fun();
-            let typ  = &name::var(&obj.name);
-            let args = obj.class.args.iter().map(|(name,_)| name);
-            quote!(#fun { self.#typ.init(&[#(#args.into()),*]) })
+            if obj.variant.is_some() && !obj.class.named {
+                return quote!(#fun { variant })
+            }
+            let typ  = &name::var(obj.variant.as_ref().unwrap_or_else(||&obj.name));
+            let args = obj.class.args.iter().map(|(name,typ)| {
+                if types::stdlib(&typ.name).is_none() {quote!(#name.into())} else {
+                    let typ_name = name::var(&typ.name);
+                    quote!(self.lib.#typ_name.init(#name))
+                }
+            });
+            quote!(#fun { self.#typ.init(&[#(#args),*]) })
         });
 
         quote! {
@@ -327,32 +379,6 @@ impl From<File> for Collector {
     }
 }
 
-impl From<Collector> for Source {
-    fn from(mut collector:Collector) -> Self {
-        fn apply(typ:&Type, vars:&Map<&Name,&Type>) -> Type {
-            if let Some(&typ) = vars.get(&typ.name) { typ.clone() } else {
-                let args = typ.args.iter().map(|typ| apply(typ,&vars)).collect();
-                Type{name:typ.name.clone(), path:vec![], args}
-            }
-        }
-
-        let mut classes = vec![];
-        let mut types   = vec![];
-        for (class, args) in collector.classes {
-            let name = collector.extends.get(&class.typ.name).unwrap_or_else(||&class.typ.name).clone();
-            for typ in collector.generics.remove(&name).unwrap_or_default() {
-                let vars = class.typ.args.iter().map(|t| &t.name).zip(&typ.args).collect();
-                let args = class.args.iter().map(|(name,typ)|
-                    (name.clone(), apply(&typ, &vars))
-                ).collect();
-                types.push(AssociatedType{name:name.clone(), class:Class{typ, args}})
-            }
-            let args = args.into_iter().map(|typ| (Name(""),typ)).collect();
-            classes.push(Class{typ:class.typ, args})
-        }
-        Self {class_names:collector.types, classes, package:collector.package, types}
-    }
-}
 
 
 // ========================
@@ -361,7 +387,7 @@ impl From<Collector> for Source {
 
 /// Module for name manipulation.
 pub mod name {
-    use crate::generation::ast::Name;
+    use crate::ast::Name;
     use inflector::Inflector;
 
 
@@ -414,7 +440,7 @@ mod tests {
             Class::from(&parse!(struct Foo {x:Box<Vec<i32>>})),
             Class::from(&parse!(struct Bar {x:usize, y:u8  })),
         ];
-        assert_eq!(Collector::from(rust).classes.into_iter().map(|(x,_)|x).collect::<Vec<_>>(), classes);
+        assert_eq!(Collector::from(rust).classes.into_iter().map(|x|x.0).collect::<Vec<_>>(), classes);
     }
 
 
@@ -446,11 +472,11 @@ mod tests {
 
     #[test]
     fn test_api() {
-        let source = Source::from(Collector::from(File::new("", "", parse!{
+        let source = Source::new(File::new("", "", parse!{
             struct A(B<X,Y>, C<B<X,Box<i32>>>);
             struct B<X,Y>(X,Y);
             struct C<T>(T);
-        })));
+        }).into());
         let expected = quote! {
             trait Api {
                 type A;
@@ -473,11 +499,11 @@ mod tests {
 
     #[test]
     fn test_rust() {
-        let source = Source::from(Collector::from(File::new("", "", parse!{
+        let source = Source::new(File::new("", "", parse!{
             struct A(B<X,Y>, C<B<X,Box<i32>>>);
             struct B<X,Y>(X,Y);
             struct C<T>(T);
-        })));
+        }).into());
         let expected = quote! {
             impl Api for Rust {
                 type A         = A<>;
@@ -498,12 +524,87 @@ mod tests {
     }
 
     #[test]
+    fn test_rust_unnamed_enum_impl() {
+        let source = Source::new(File::new("Ast", "ast", parse!{
+            enum Enum { A(a::AA), B(a::AA) }
+        }).into());
+        let expected = quote! {
+            impl Api for Rust {
+                type Enum = Enum<>;
+                fn enum_a(&self, variant:<Self as Api>::AA) -> <Self as Api>::Enum { Enum::A(variant) }
+                fn enum_b(&self, variant:<Self as Api>::AA) -> <Self as Api>::Enum { Enum::B(variant) }
+            }
+        };
+
+        assert_eq!(source.rust_impl().to_string(), expected.to_string())
+    }
+
+    #[test]
+    fn test_scala_unnamed_enum_impl() {
+        let source = Source::new(File::new("Ast", "ast", parse!{
+            enum Enum { A(a::AA), B(a::AA) }
+        }).into());
+        let expected = quote! {
+            use jni::objects::JObject;
+
+            impl<'a> Api for Scala<'a> {
+                type Enum = JObject<'a>;
+                fn enum_a(&self, variant:<Self as Api>::AA) -> <Self as Api>::Enum { variant }
+                fn enum_b(&self, variant:<Self as Api>::AA) -> <Self as Api>::Enum { variant }
+            }
+        };
+
+        assert_eq!(source.scala_impl().to_string(), expected.to_string())
+    }
+
+    #[test]
+    fn test_scala_unnamed_enum_struct() {
+        let source = Source::new(File::new("Ast", "ast", parse!{
+            enum Enum { A(a::AA), B(a::AA) }
+        }).into());
+        let expected = quote! {
+            use ffi::Object;
+            use ffi::StdLib;
+            use jni::JNIEnv;
+
+            #[derive(Clone)]
+            pub struct Scala<'a> { pub env: &'a JNIEnv<'a>, pub lib: StdLib<'a>, }
+
+            impl<'a> Scala<'a> {
+                pub fn new(env: &'a JNIEnv<'a>) -> Self {
+                    Self { env, lib: StdLib::new(env), }
+                }
+            }
+        };
+
+        assert_eq!(source.scala_struct().to_string(), expected.to_string())
+    }
+
+    #[test]
+    fn test_trait_generics() {
+        let source = Source::new(File::new("Ast", "ast", parse!{
+            struct A<T>(T);
+            struct B(A<i32>);
+        }).into());
+        let expected = quote! {
+            trait Api {
+                type Ai32;
+                type B;
+                fn ai_32(&self, val0:i32<>              ) -> <Self as Api>::Ai32;
+                fn b    (&self, val0:<Self as Api>::Ai32) -> <Self as Api>::B;
+            }
+        };
+
+        assert_eq!(source.ast_trait().to_string(), expected.to_string())
+    }
+
+    #[test]
     fn test_scalaa() {
-        let source = Source::from(Collector::from(File::new("Ast", "ast", parse!{
+        let source = Source::new(File::new("Ast", "ast", parse!{
             struct A{b:B<i8,u8>, c:C<B<i32,Vec<i64>>>}
             struct B<X,Y>{x:X,y:Y}
             struct C<T>{t:T}
-        })));
+        }).into());
         let expected = quote! {
             use crate::generation::types::Object;
             use crate::generation::types::StdLib;

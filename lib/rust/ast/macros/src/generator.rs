@@ -1,27 +1,3 @@
-//! This module exports scala ast generator.
-
-
-
-// ==============
-// === Macros ===
-// ==============
-
-/// Calls function on each argument.
-#[macro_export]
-macro_rules! write {
-    ($val:expr, $($args:expr),*) => { $($val.write($args));* }
-}
-
-
-
-// ===============
-// === Modules ===
-// ===============
-
-pub mod api;
-pub mod ast;
-pub mod scala;
-pub mod types;
 
 
 

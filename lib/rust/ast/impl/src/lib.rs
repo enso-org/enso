@@ -1,4 +1,16 @@
+#![feature(test)]
+#![deny(unconditional_recursion)]
+#![warn(missing_copy_implementations)]
+#![warn(missing_debug_implementations)]
+#![warn(missing_docs)]
+#![warn(trivial_casts)]
+#![warn(trivial_numeric_casts)]
+#![warn(unsafe_code)]
+#![warn(unused_import_braces)]
+
 //! This module exports the implementation of the enso abstract syntax tree.
+
+mod ffi;
 
 use app::*;
 use lines::*;
@@ -8,6 +20,8 @@ use invalid::*;
 use num::*;
 use txt::*;
 
+use ast_macros::generate_ast_api;
+
 use uuid::Uuid;
 
 
@@ -16,18 +30,16 @@ use uuid::Uuid;
 // === Abstract Syntax Tree (Stub) ===
 // ===================================
 
-/// An ast node of unknown shape.
-pub type AnyAst = Ast<Shape>;
-
+generate_ast_api! {
 /// An ast node with an unique id and length.
 #[derive(Debug,Clone)]
 pub struct Ast<T> {
     /// A unique identifier.
     pub uid: Option<Uuid>,
     /// Length in number of chars of this ast node.
-    pub len: usize,
+    pub len: i64,
     /// The number of trailing spaces.
-    pub off: usize,
+    pub off: i64,
     /// The ast node itself.
     pub ast: T,
 }
@@ -68,17 +80,17 @@ pub mod app {
     #[allow(missing_docs)]
     #[derive(Debug,Clone)]
     pub struct Prefix {
-        pub fun : Box<AnyAst>,
-        pub arg : Box<AnyAst>,
+        pub fun : Box<Ast<Shape>>,
+        pub arg : Box<Ast<Shape>>,
     }
 
     /// The ast node for an infix operator application.
     #[allow(missing_docs)]
     #[derive(Debug,Clone)]
     pub struct Infix {
-        pub larg : Box<AnyAst>,
+        pub larg : Box<Ast<Shape>>,
         pub opr  : Box<Ast<name::Opr>>,
-        pub rarg : Box<AnyAst>,
+        pub rarg : Box<Ast<Shape>>,
     }
 }
 
@@ -99,7 +111,7 @@ pub mod lines {
     /// The module consists of a sequence of possibly empty lines with no leading indentation.
     #[allow(missing_docs)]
     #[derive(Debug,Clone)]
-    pub struct Module { pub lines: Vec<Option<AnyAst>> }
+    pub struct Module { pub lines: Vec<Option<Ast<Shape>>> }
 
     /// The ast node for a block that represents a sequence of equally indented lines.
     ///
@@ -108,14 +120,14 @@ pub mod lines {
     #[derive(Debug,Clone)]
     pub struct Block {
         /// Absolute's block indent, counting from the module's root.
-        pub indent: usize,
+        pub indent: i64,
         /// Leading empty lines. Each line is represented by absolute count of spaces
         /// it contains, counting from the root.
-        pub empty_lines: Vec<usize>,
+        pub empty_lines: Vec<i64>,
         /// First line with non-empty item.
-        pub first_line: Box<AnyAst>,
+        pub first_line: Box<Ast<Shape>>,
         /// Rest of lines, each of them optionally having contents.
-        pub lines: Vec<Option<AnyAst>>,
+        pub lines: Vec<Option<Ast<Shape>>>,
     }
 }
 
@@ -136,8 +148,8 @@ pub mod def {
     #[derive(Debug,Clone)]
     pub struct FunDef {
         pub name: Box<Ast<name::Var>>,
-        pub args: Vec<AnyAst>,
-        pub body: Box<AnyAst>,
+        pub args: Vec<Ast<Shape>>,
+        pub body: Box<Ast<Shape>>,
     }
 
     /// The ast node for an operator definition.
@@ -145,8 +157,8 @@ pub mod def {
     #[derive(Debug,Clone)]
     pub struct OprDef {
         pub name: Box<Ast<name::Opr>>,
-        pub args: Vec<AnyAst>,
-        pub body: Box<AnyAst>,
+        pub args: Vec<Ast<Shape>>,
+        pub body: Box<Ast<Shape>>,
     }
 
     /// The ast node for a variable definition.
@@ -154,7 +166,7 @@ pub mod def {
     #[derive(Debug,Clone)]
     pub struct VarDef {
         pub name: Box<Ast<name::Var>>,
-        pub value: Box<AnyAst>,
+        pub value: Box<Ast<Shape>>,
     }
 }
 
@@ -253,7 +265,7 @@ impl From<VarDef>       for Shape { fn from(val:VarDef)       -> Self { Self::Va
 // === Constructors ===
 // ====================
 
-impl AnyAst {
+impl Ast<Shape> {
     /// Creates a new ast node with random `Uuid` from `Shape`.
     pub fn new(ast:impl Into<Shape>) -> Self {
         Self {ast:ast.into(), uid: Some(Uuid::new_v4()), len:0, off:0 }
@@ -293,4 +305,6 @@ impl AnyAst {
     pub fn text(text:String) -> Self {
         Self::new(Text{text})
     }
+}
+
 }

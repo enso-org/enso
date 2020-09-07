@@ -4,7 +4,7 @@ use itertools::Itertools;
 use syn;
 use syn::{Ident, ItemMod};
 use quote::quote;
-
+use std::ops::Add;
 
 
 // =================
@@ -45,8 +45,9 @@ pub struct Module<'a> {
 /// Represents a class `class Name[Generics](field:Field, ...)`
 #[derive(Debug,Clone,Ord,PartialOrd,Eq,PartialEq)]
 pub struct Class {
-    pub typ  : Type,
-    pub args : Vec<(Name,Type)>,
+    pub typ   : Type,
+    pub args  : Vec<(Name,Type)>,
+    pub named : bool,
 }
 
 /// Represents a set of classes extending a sealed trait.
@@ -67,21 +68,27 @@ pub fn extends(name:&Name) -> Extends {
 
 /// Represents a qualified type `Path.Name[Bar[Baz], ..]`
 #[derive(Debug,Clone,Hash,PartialEq,Eq,PartialOrd,Ord)]
-pub struct Type { pub name: Name, pub path: Vec<Name>, pub args: Vec<Type> }
+pub struct Type {
+    pub name : Name,
+    pub path : Vec<Name>,
+    pub args : Vec<Type>
+}
 
 /// Represents a type alias `type Foo = Bar[Baz]`
 #[derive(Debug,Clone)]
 pub struct TypeAlias {
-    pub typ: Type,
-    pub val: Type,
+    pub typ : Type,
+    pub val : Type,
 }
 
 /// Represents a type name or a variable name.
-#[derive(Debug,Clone,Hash,PartialEq,Eq,PartialOrd,Ord)]
+#[derive(Debug,Clone,Default,Hash,PartialEq,Eq,PartialOrd,Ord)]
 pub struct Name { pub str:String }
 
-impl Name {
-    pub fn add(mut self, other:&Name) -> Self {
+impl Add<&Name> for Name {
+    type Output = Name;
+
+    fn add(mut self, other:&Name) -> Self {
         self.str.push_str(&other.str);
         self
     }
@@ -97,16 +104,17 @@ pub fn Name<T:Into<Name>>(t:T) -> Name {
 
 #[allow(non_snake_case)]
 pub fn Class(name:Type, fields:&syn::Fields) -> Class {
-    let args = fields.iter().enumerate().map(|(i,arg)| {
-       let name = arg.ident.as_ref().map_or(Name(format!("val{}",i)),Name);
-       (name, Type::from(&arg.ty))
+    let named = if let syn::Fields::Named{..} = fields {true} else {false};
+    let args  = fields.iter().enumerate().map(|(i,arg)| {
+        let name = arg.ident.as_ref().map_or(Name(format!("val{}",i)),Name);
+        (name, Type::from(&arg.ty))
     }).collect();
 
-    Class{ typ: name,args}
+    Class{typ:name, args, named}
 }
 
 #[allow(non_snake_case)]
-pub fn Type(name:impl Into<Name>, generics:&syn::Generics) -> Type {
+pub fn Type(name:impl Into<Name>,  generics:&syn::Generics) -> Type {
     let mut args = vec![];
     for arg in generics.params.iter() {
         if let syn::GenericParam::Type(typ) = arg {
@@ -145,7 +153,7 @@ impl From<&Ident> for Name {
 
 impl From<&syn::ItemType> for TypeAlias {
     fn from(ty:&syn::ItemType) -> Self {
-        Self{ typ: Type(&ty.ident, &ty.generics), val:Type::from(ty.ty.as_ref())}
+        Self{typ:Type(&ty.ident, &ty.generics), val:Type::from(ty.ty.as_ref())}
     }
 }
 
@@ -173,11 +181,12 @@ impl From<&syn::ItemEnum> for Enum {
                 syn::Fields::Named(_) =>
                     variants.push((None, Class(Type(&var.ident, generics), &var.fields))),
                 syn::Fields::Unnamed(fields) => {
-                    if let syn::Type::Path(path) = fields.unnamed.first().unwrap().ty.clone() {
-                        let segments             = path.path.segments.iter().rev().take(2);
-                        let (name, object)       = segments.map(|s| Name(&s.ident)).collect_tuple().unwrap();
+                    if let syn::Type::Path(val) = fields.unnamed.first().unwrap().ty.clone() {
+                        let segments             = val.path.segments.iter().rev().take(2);
+                        let (name, object)       = segments.map(|s|Name(&s.ident)).collect_tuple().expect("Unnamed fields in enum must be qualified.");
                         let args                 = vec![(Name("variant"), Type::from(name))];
-                        variants.push((Some(object), Class{typ:Type(&var.ident, generics), args}));
+                        let typ                  = Type(&var.ident,generics);
+                        variants.push((Some(object), Class{typ, args, named:false}));
                     }
                 }
                 _ => (),

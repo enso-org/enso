@@ -1,14 +1,14 @@
 [package]
-name    = "ast"
+name    = "ast-macros"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2018"
 
-description  = "An abstract syntax tree for the Enso language."
+description  = "Macros for generating AST."
 readme       = "README.md"
-homepage     = "https://github.com/enso-org/enso/lib/rust/ast"
+homepage     = "https://github.com/enso-org/enso/lib/rust/ast/macros"
 repository   = "https://github.com/enso-org/enso"
-license-file = "../../../LICENSE"
+license-file = "../../../../LICENSE"
 
 keywords   = ["ast"]
 categories = ["parsing"]
@@ -16,8 +16,8 @@ categories = ["parsing"]
 publish = false
 
 [lib]
-name       = "ast"
-crate-type = ["cdylib", "rlib"]
+name       = "ast_macros"
+proc-macro = true
 test       = true
 bench      = true
 
