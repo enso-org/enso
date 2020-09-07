@@ -178,6 +178,17 @@ class UpgradeSpec
       println("=" * 30)
       res should returnSuccess
       checkVersion() shouldEqual SemVer(0, 0, 3)
+
+      val launchedVersions =
+        """0.0.0
+          |0.0.0
+          |0.0.1
+          |0.0.2
+          |0.0.3""".stripMargin
+
+      TestHelpers
+        .readFileContent(launcherPath.getParent / ".launcher_version_log")
+        .trim shouldEqual launchedVersions
     }
   }
 }
