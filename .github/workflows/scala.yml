@@ -39,6 +39,8 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v2
+      - name: Enable Developer Command Prompt (Windows)
+        uses: ilammy/msvc-dev-cmd@v1.3.0
       - name: Disable TCP/UDP Offloading (Linux)
         if: runner.os == 'Linux'
         shell: bash
@@ -47,8 +49,6 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6 -UdpIPv6
-      - name: Enable Developer Command Prompt (Windows)
-        uses: ilammy/msvc-dev-cmd@v1.3.0
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -160,6 +160,8 @@ jobs:
       - name: Checkout (Branch)
         uses: actions/checkout@v2
         if: github.event_name != 'pull_request'
+      - name: Enable Developer Command Prompt (Windows)
+        uses: ilammy/msvc-dev-cmd@v1.3.0
       - name: Disable TCP/UDP Offloading (Linux)
         if: runner.os == 'Linux'
         shell: bash
@@ -173,8 +175,6 @@ jobs:
         with:
           toolchain: ${{ env.rustToolchain }}
           override: true
-      - name: Enable Developer Command Prompt (Windows)
-        uses: ilammy/msvc-dev-cmd@v1.3.0
       - name: Setup conda
         uses: s-weigand/setup-conda@v1
         with:
