@@ -24,8 +24,6 @@ jobs:
         with:
           node-version: ${{ env.nodeVersion }}
       - name: Install Prettier
-        run: |
-          npm install --exact prettier
-          npx prettier --version
+        run: npm install --exact prettier
       - name: Check Docs
         run: npx prettier --check .
