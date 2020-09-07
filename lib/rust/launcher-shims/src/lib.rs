@@ -21,7 +21,6 @@ pub fn wrap_launcher(version: &str) {
         String::from(exe_location)
     ];
     let modified_args = [&override_args[..], &args[1..]].concat();
-    eprintln!("Final args: {:?}", modified_args); // TODO remove this after test
     let exit_status =
         Command::new(path).args(modified_args).status();
     match exit_status {
