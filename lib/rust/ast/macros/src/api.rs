@@ -99,6 +99,7 @@ impl Generator<Collector> for &TypeAlias {
 impl Generator<Collector> for &Class {
     fn write(self, source:&mut Collector) {
         source.add_class(self.clone(), None);
+        source.types.insert(self.typ.name.clone());
         if self.typ.args.is_empty() {
             source.generics.entry(self.typ.name.clone()).or_default().insert(self.typ.clone());
         }
@@ -421,30 +422,6 @@ mod tests {
 
 
     #[test]
-    fn test_classes() {
-        let rust = File::new("", "", parse! {
-            pub enum FooBarBaz {
-                Foo(a::Foo),
-                Bar(a::Bar),
-                Baz(b::Baz),
-            }
-            mod a {
-                struct Foo {x:Box<Vec<i32>>}
-                struct Bar {x:usize, y:u8  }
-            }
-        });
-        let classes = vec![
-            Class::from(&parse!(struct Foo {variant:Foo})),
-            Class::from(&parse!(struct Bar {variant:Bar})),
-            Class::from(&parse!(struct Baz {variant:Baz})),
-            Class::from(&parse!(struct Foo {x:Box<Vec<i32>>})),
-            Class::from(&parse!(struct Bar {x:usize, y:u8  })),
-        ];
-        assert_eq!(Collector::from(rust).classes.into_iter().map(|x|x.0).collect::<Vec<_>>(), classes);
-    }
-
-
-    #[test]
     fn test_monomorphization() {
         let     generics = Collector::from(File::new("","",parse!(struct A(B<X,Y>, C<B<X,Box<i32>>>);))).generics;
         let     boxi32   = Type{name:Name("Box"), path:vec![], args:vec![Name("i32").into()]};
@@ -461,17 +438,29 @@ mod tests {
         set.insert(Name("A").into());
         expected.insert(Name("A"), std::mem::replace(&mut set, Set::new()));
 
-        set.insert(Name("X").into());
-        expected.insert(Name("X"), std::mem::replace(&mut set, Set::new()));
-
-        set.insert(Name("Y").into());
-        expected.insert(Name("Y"), std::mem::replace(&mut set, Set::new()));
-
         assert_eq!(generics, expected);
     }
 
     #[test]
-    fn test_api() {
+    fn test_trait_generics() {
+        let source = Source::new(File::new("Ast", "ast", parse!{
+            struct A<T>(T);
+            struct B(A<i32>);
+        }).into());
+        let expected = quote! {
+            trait Api {
+                type Ai32;
+                type B;
+                fn ai_32(&self, val0:i32<>              ) -> <Self as Api>::Ai32;
+                fn b    (&self, val0:<Self as Api>::Ai32) -> <Self as Api>::B;
+            }
+        };
+
+        assert_eq!(source.ast_trait().to_string(), expected.to_string())
+    }
+
+    #[test]
+    fn test_trait_nested_generics() {
         let source = Source::new(File::new("", "", parse!{
             struct A(B<X,Y>, C<B<X,Box<i32>>>);
             struct B<X,Y>(X,Y);
@@ -485,20 +474,20 @@ mod tests {
                 type CBXBoxi32;
 
                 fn a
-                (val0:<Self as Api>::BXY, val1:<Self as Api>::CBXBoxi32) -> <Self as Api>::A;
+                (&self, val0:<Self as Api>::BXY, val1:<Self as Api>::CBXBoxi32) -> <Self as Api>::A;
                 fn bx_boxi_32
-                (val0:<Self as Api>::X, val1:Box<i32 <> >) -> <Self as Api>::BXBoxi32;
+                (&self, val0:<Self as Api>::X, val1:Box<i32 <> >) -> <Self as Api>::BXBoxi32;
                 fn bxy
-                (val0:<Self as Api>::X, val1:<Self as Api>::Y) -> <Self as Api>::BXY;
+                (&self, val0:<Self as Api>::X, val1:<Self as Api>::Y) -> <Self as Api>::BXY;
                 fn cbx_boxi_32
-                (val0:<Self as Api>::BXBoxi32) -> <Self as Api>::CBXBoxi32;
+                (&self, val0:<Self as Api>::BXBoxi32) -> <Self as Api>::CBXBoxi32;
             }
         };
         assert_eq!(source.ast_trait().to_string(), expected.to_string())
     }
 
     #[test]
-    fn test_rust() {
+    fn test_rust_nested_generics() {
         let source = Source::new(File::new("", "", parse!{
             struct A(B<X,Y>, C<B<X,Box<i32>>>);
             struct B<X,Y>(X,Y);
@@ -510,17 +499,58 @@ mod tests {
                 type BXBoxi32  = B< <Self as Api>::X, Box<i32 <> > >;
                 type BXY       = B< <Self as Api>::X, <Self as Api>::Y>;
                 type CBXBoxi32 = C< <Self as Api>::BXBoxi32>;
-                fn a
-                (val0:<Self as Api>::BXY, val1:<Self as Api>::CBXBoxi32) -> <Self as Api>::A { A{val0, val1} }
-                fn bx_boxi_32
-                (val0:<Self as Api>::X, val1:Box<i32 <> >) -> <Self as Api>::BXBoxi32 { B{val0, val1} }
-                fn bxy
-                (val0:<Self as Api>::X, val1:<Self as Api>::Y) -> <Self as Api>::BXY { B{val0, val1} }
-                fn cbx_boxi_32
-                (val0:<Self as Api>::BXBoxi32) -> <Self as Api>::CBXBoxi32 { C{val0} }
+                fn a(&self, val0:<Self as Api>::BXY, val1:<Self as Api>::CBXBoxi32) -> <Self as Api>::A {
+                    A(val0, val1)
+                }
+                fn bx_boxi_32(&self, val0:<Self as Api>::X, val1:Box<i32 <> >) -> <Self as Api>::BXBoxi32 {
+                    B(val0, val1)
+                }
+                fn bxy(&self, val0:<Self as Api>::X, val1:<Self as Api>::Y) -> <Self as Api>::BXY {
+                    B(val0, val1)
+                }
+                fn cbx_boxi_32(&self,val0:<Self as Api>::BXBoxi32) -> <Self as Api>::CBXBoxi32 {
+                    C(val0)
+                }
             }
         };
         assert_eq!(source.rust_impl().to_string(), expected.to_string())
+    }
+
+    #[test]
+    fn test_scala_nested_generics_struct() {
+        let source = Source::new(File::new("Ast", "ast", parse!{
+            struct A(B<i8,u8>, C<B<i32,Vec<i64>>>);
+            struct B<X,Y>(X,Y);
+            struct C<T>(T);
+        }).into());
+        let expected = quote! {
+            use ffi::Object;
+            use ffi::StdLib;
+            use jni::JNIEnv;
+
+            #[derive(Clone)]
+            pub struct Scala<'a> {
+                pub env: &'a JNIEnv<'a>,
+                pub lib: StdLib<'a>,
+                pub a: Object<'a>,
+                pub b: Object<'a>,
+                pub c: Object<'a>
+            }
+
+            impl<'a> Scala<'a> {
+                pub fn new(env: &'a JNIEnv<'a>) -> Self {
+                    Self {
+                        env,
+                        lib: StdLib::new(env),
+                        a: Object::new(&env, "ast$Ast$A", "(Last$B;Last$C;)V"),
+                        b: Object::new(&env, "ast$Ast$B", "(Ljava/lang/Object;Ljava/lang/Object;)V"),
+                        c: Object::new(&env, "ast$Ast$C", "(Ljava/lang/Object;)V")
+                    }
+                }
+            }
+        };
+
+        assert_eq!(source.scala_struct().to_string(), expected.to_string())
     }
 
     #[test]
@@ -578,65 +608,5 @@ mod tests {
         };
 
         assert_eq!(source.scala_struct().to_string(), expected.to_string())
-    }
-
-    #[test]
-    fn test_trait_generics() {
-        let source = Source::new(File::new("Ast", "ast", parse!{
-            struct A<T>(T);
-            struct B(A<i32>);
-        }).into());
-        let expected = quote! {
-            trait Api {
-                type Ai32;
-                type B;
-                fn ai_32(&self, val0:i32<>              ) -> <Self as Api>::Ai32;
-                fn b    (&self, val0:<Self as Api>::Ai32) -> <Self as Api>::B;
-            }
-        };
-
-        assert_eq!(source.ast_trait().to_string(), expected.to_string())
-    }
-
-    #[test]
-    fn test_scalaa() {
-        let source = Source::new(File::new("Ast", "ast", parse!{
-            struct A{b:B<i8,u8>, c:C<B<i32,Vec<i64>>>}
-            struct B<X,Y>{x:X,y:Y}
-            struct C<T>{t:T}
-        }).into());
-        let expected = quote! {
-            use crate::generation::types::Object;
-            use crate::generation::types::StdLib;
-            use jni::JNIEnv;
-            use jni::objects::JObject;
-
-            pub struct Scala<'a> { pub env: &'a JNIEnv<'a>, pub lib: StdLib<'a>, pub a: Object<'a>, pub b: Object<'a>, pub c: Object<'a> }
-
-            impl<'a> Scala<'a> {
-                pub fn new(env: &'a JNIEnv<'a>) -> Self {
-                    Self {
-                        env,
-                        lib: StdLib::new(env),
-                        a: Object::new(&env, "Last$Ast$A;", "(Last$B;Last$C;)V"),
-                        b: Object::new(&env, "Last$Ast$B;", "(Ljava/lang/Object;Ljava/lang/Object;)V"),
-                        c: Object::new(&env, "Last$Ast$C;", "(Ljava/lang/Object;)V"),
-                    }
-                }
-            }
-
-            impl<'a> Api for Scala<'a> {
-                type A = JObject<'a>;
-                type BcharBoxi32 = JObject<'a>;
-                type Bi8u8 = JObject<'a>;
-                type CBcharBoxi32 = JObject<'a>;
-                fn a(&self, val0: <Self as Api>::Bi8u8, val1: <Self as Api>::CBcharBoxi32) -> <Self as Api>::A { self.a.init(&[val0.into(), val1.into()]) }
-                fn bchar_boxi_32(&self, val0: char<>, val1: Box<i32<>>) -> <Self as Api>::BcharBoxi32 { self.b.init(&[val0.into(), val1.into()]) }
-                fn bi_8u_8(&self, val0: i8<>, val1: u8<>) -> <Self as Api>::Bi8u8 { self.b.init(&[val0.into(), val1.into()]) }
-                fn c_bchar_boxi_32(&self, val0: <Self as Api>::BcharBoxi32) -> <Self as Api>::CBcharBoxi32 { self.c.init(&[val0.into()]) }
-            }
-        };
-
-        assert_eq!(source.ast_api().to_string(), expected.to_string())
     }
 }
