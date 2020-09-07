@@ -1,12 +1,10 @@
 use std::env;
 use std::process::{Command, exit};
 
-fn main() {
+pub fn wrap_launcher(version: &str) {
     let args: Vec<String> = env::args().collect();
     let path = option_env!("ENSO_LAUNCHER_LOCATION")
         .expect("`ENSO_LAUNCHER_LOCATION` was not set during compilation.");
-    let version = option_env!("ENSO_BUILD_VERSION")
-        .expect("`ENSO_BUILD_VERSION` was not set during compilation.");
     let current_exe_result = env::current_exe()
         .expect("Cannot get current executable path.");
     let exe_location = match current_exe_result.to_str() {

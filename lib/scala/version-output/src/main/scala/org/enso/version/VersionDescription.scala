@@ -40,9 +40,10 @@ object VersionDescription {
     header: String,
     includeRuntimeJVMInfo: Boolean,
     enableNativeImageOSWorkaround: Boolean                 = false,
-    additionalParameters: Seq[VersionDescriptionParameter] = Seq.empty
+    additionalParameters: Seq[VersionDescriptionParameter] = Seq.empty,
+    customVersion: Option[String]                          = None
   ): VersionDescription = {
-    val version   = Info.ensoVersion
+    val version   = customVersion.getOrElse(Info.ensoVersion)
     val osArch    = System.getProperty("os.arch")
     val osName    = System.getProperty("os.name")
     val osVersion = System.getProperty("os.version")

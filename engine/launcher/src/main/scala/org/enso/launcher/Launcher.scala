@@ -343,7 +343,8 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       "Enso Launcher",
       includeRuntimeJVMInfo         = false,
       enableNativeImageOSWorkaround = true,
-      additionalParameters          = runtimeVersionParameter.toSeq
+      additionalParameters          = runtimeVersionParameter.toSeq,
+      customVersion                 = Some(CurrentVersion.version.toString)
     )
 
     println(versionDescription.asString(useJSON))
