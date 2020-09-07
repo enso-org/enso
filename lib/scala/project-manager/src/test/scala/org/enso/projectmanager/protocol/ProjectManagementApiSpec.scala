@@ -361,6 +361,7 @@ class ProjectManagementApiSpec
           }
             """)
       //then
+      // 'not initialized' response indicates that language server is running
       languageServerClient.expectJson(json"""
           {
             "jsonrpc":"2.0",
