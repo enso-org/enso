@@ -48,7 +48,9 @@ jobs:
       - name: Disable TCP/UDP Offloading (Windows)
         if: runner.os == 'Windows'
         shell: powershell
-        run: Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6 -UdpIPv6
+        run: >
+          Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
+          -UdpIPv6
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -169,7 +171,9 @@ jobs:
       - name: Disable TCP/UDP Offloading (Windows)
         if: runner.os == 'Windows'
         shell: powershell
-        run: Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6 -UdpIPv6
+        run: >
+          Disable-NetAdapterChecksumOffload -Name * -TcpIPv4 -UdpIPv4 -TcpIPv6
+          -UdpIPv6
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
