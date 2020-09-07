@@ -99,7 +99,7 @@ object ProjectManager extends App with LazyLogging {
         success = ZIO.succeed(_)
       )
 
-  override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] = {
+  override def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] = {
     Cli.parse(args.toArray) match {
       case Right(opts) =>
         runOpts(opts)
@@ -114,7 +114,7 @@ object ProjectManager extends App with LazyLogging {
     * The main function of the application, which will be passed the command-line
     * arguments to the program and has to return an `IO` with the errors fully handled.
     */
-  def runOpts(options: CommandLine): ZIO[ZEnv, Nothing, Int] = {
+  def runOpts(options: CommandLine): ZIO[ZEnv, Nothing, ExitCode] = {
     if (options.hasOption(Cli.HELP_OPTION)) {
       ZIO.effectTotal(Cli.printHelp()) *>
       ZIO.succeed(SuccessExitCode)
@@ -147,7 +147,9 @@ object ProjectManager extends App with LazyLogging {
         }
       }
 
-  private def displayVersion(useJson: Boolean): ZIO[Console, Nothing, Int] = {
+  private def displayVersion(
+    useJson: Boolean
+  ): ZIO[Console, Nothing, ExitCode] = {
     val versionDescription = VersionDescription.make(
       "Enso Project Manager",
       includeRuntimeJVMInfo = true

@@ -8,7 +8,7 @@ import scala.util.{Either, Left, Right}
   * A class for covariant effects containing error channel used to chain
   * computations.
   *
-  * @tparam F a effectful context
+  * @tparam F an effectful context
   */
 trait CovariantFlatMap[F[+_, +_]] {
 

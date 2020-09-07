@@ -1,6 +1,6 @@
 package org.enso.projectmanager.boot
 
-import zio.{Has, ZEnv}
+import zio.{ExitCode, Has, ZEnv}
 import zio.blocking.Blocking
 import zio.clock.Clock
 import zio.console.Console
@@ -12,9 +12,9 @@ import zio.system.System
   */
 object Globals {
 
-  val FailureExitCode = 1
+  val FailureExitCode = ExitCode(1)
 
-  val SuccessExitCode = 0
+  val SuccessExitCode = ExitCode(0)
 
   val ConfigFilename = "application.conf"
 

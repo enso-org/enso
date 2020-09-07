@@ -8,10 +8,8 @@ import io.circe.{Decoder, Encoder}
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.control.effect.{ErrorChannel, Semaphore, Sync}
-import org.enso.projectmanager.data.Default
+import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.infrastructure.file.FileStorage._
-import org.enso.projectmanager.infrastructure.file.FileSystemFailure.FileNotFound
 import shapeless.{:+:, CNil, _}
 
 /**
@@ -22,12 +20,13 @@ import shapeless.{:+:, CNil, _}
   * @param fileSystem a filesystem algebra
   * @tparam A a datatype to store
   */
-class SynchronizedFileStorage[A: Encoder: Decoder: Default, F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
+class JsonFileStorage[
+  A: Encoder: Decoder,
+  F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap
+](
   path: File,
   fileSystem: FileSystem[F]
 ) extends FileStorage[A, F] {
-
-  private val semaphore = Semaphore.unsafeMake[F](1)
 
   /**
     * Loads the serialized object from the file.
@@ -39,9 +38,6 @@ class SynchronizedFileStorage[A: Encoder: Decoder: Default, F[+_, +_]: Sync: Err
       .readFile(path)
       .mapError(Coproduct[LoadFailure](_))
       .flatMap(tryDecodeFileContents)
-      .recover {
-        case Inr(Inl(FileNotFound)) => Default[A].value
-      }
 
   private def tryDecodeFileContents(contents: String): F[LoadFailure, A] = {
     decode[A](contents) match {
@@ -76,13 +72,11 @@ class SynchronizedFileStorage[A: Encoder: Decoder: Default, F[+_, +_]: Sync: Err
     f: A => (A, B)
   ): F[CannotDecodeData :+: FileSystemFailure :+: CNil, B] =
     // format: off
-    semaphore.withPermit {
-      for {
-        index             <- load()
-        (updated, output)  = f(index)
-        _                 <- persist(updated).mapError(Coproduct[LoadFailure](_))
-      } yield output
-    }
+    for {
+      index             <- load()
+      (updated, output)  = f(index)
+      _                 <- persist(updated).mapError(Coproduct[LoadFailure](_))
+    } yield output
     // format: on
 
 }
