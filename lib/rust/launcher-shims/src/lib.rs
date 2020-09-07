@@ -8,7 +8,7 @@ pub fn wrap_launcher(version: &str) {
     let current_exe_result = env::current_exe()
         .expect("Cannot get current executable path.");
     let exe_location = match current_exe_result.to_str() {
-        Some(str) => str.clone(),
+        Some(str) => str,
         None => {
             eprintln!("Path {} is invalid.", current_exe_result.to_string_lossy());
             exit(1)

@@ -150,6 +150,7 @@ Additionally, each release should contain an asset named
 `launcher-manifest.yaml` which contains launcher-specific release metadata.
 
 It contains the following fields:
+
 - `minimum-version-to-upgrade` - specifies the minimum version of the launcher
   that is allowed to upgrade to this launcher version. If a launcher is older
   than the version specified here it must perform the upgrade in steps, first

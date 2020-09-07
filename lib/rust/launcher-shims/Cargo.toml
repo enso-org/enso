@@ -1,9 +1,11 @@
 [package]
-name = "launcher-shims"
+name    = "launcher-shims"
 version = "0.1.0"
-authors = ["Radosław Waśko <radoslaw.wasko@enso.org>"]
+authors = ["Enso Team <enso-dev@enso.org>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description  = "Small wrappers for the launcher executable used for testing launcher upgrade."
+
+publish = false
 
 [dependencies]
