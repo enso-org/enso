@@ -17,21 +17,23 @@ import org.enso.projectmanager.infrastructure.shutdown.ShutdownHook
   * A hook responsible for moving a project to the target dir.
   *
   * @param projectId a project id
+  * @param newName a new project name
   * @param repo a project repository
   * @param log a logging facility
   */
 class MoveProjectDirCmd[F[+_, +_]: CovariantFlatMap: ErrorChannel](
   projectId: UUID,
+  newName: String,
   repo: ProjectRepository[F],
   log: Logging[F]
 ) extends ShutdownHook[F] {
 
-  /** @inheritdoc **/
+  /** @inheritdoc */
   override def execute(): F[Nothing, Unit] = {
     def go() =
       for {
-        _   <- log.debug(s"Moving project ${projectId}")
-        dir <- repo.moveProjectToTargetDir(projectId)
+        _   <- log.debug(s"Moving project ${projectId} to $newName")
+        dir <- repo.moveProjectToTargetDir(projectId, newName)
         _   <- log.info(s"Project $projectId moved to $dir")
       } yield ()
 

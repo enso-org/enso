@@ -54,4 +54,11 @@ trait FileSystem[F[+_, +_]] {
     */
   def exists(file: File): F[FileSystemFailure, Boolean]
 
+  /**
+    * List files in the directory.
+    *
+    * @param directory a path to the directory
+    * @return the directory contents
+    */
+  def list(directory: File): F[FileSystemFailure, List[File]]
 }
