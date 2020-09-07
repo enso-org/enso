@@ -99,7 +99,9 @@ class UpgradeSpec
   ): RunResult = {
     val testArgs = Seq(
       s"--${InternalOpts.EMULATE_REPOSITORY}",
-      fakeReleaseRoot.toAbsolutePath.toString
+      fakeReleaseRoot.toAbsolutePath.toString,
+      "--auto-confirm",
+      "--hide-progress"
     )
     runLauncherAt(launcherPath, testArgs ++ args, extraEnv)
   }
@@ -167,7 +169,14 @@ class UpgradeSpec
       )
 
       checkVersion() shouldEqual SemVer(0, 0, 0)
-      run(Seq("upgrade", "0.0.3")) should returnSuccess
+      val res = run(Seq("upgrade", "0.0.3"))
+      // TODO [RW] remove these logs
+      println("=" * 30)
+      println(res.stdout)
+      println("-" * 30)
+      println(res.stderr)
+      println("=" * 30)
+      res should returnSuccess
       checkVersion() shouldEqual SemVer(0, 0, 3)
     }
   }

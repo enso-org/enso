@@ -47,6 +47,7 @@ object InternalOpts {
   private val FINISH_UNINSTALL        = "internal-finish-uninstall"
   private val FINISH_UNINSTALL_PARENT = "internal-finish-uninstall-parent"
   private val CONTINUE_UPGRADE        = "internal-continue-upgrade"
+  private val UPGRADE_ORIGINAL_PATH   = "internal-upgrade-original-path"
 
   private val EMULATE_VERSION  = "internal-emulate-version"
   private val EMULATE_LOCATION = "internal-emulate-location"
@@ -96,19 +97,24 @@ object InternalOpts {
       )
       .hidden
 
+    val originalPath =
+      Opts.optionalParameter[Path](UPGRADE_ORIGINAL_PATH, "PATH", "").hidden
+
     (
       testingOptions,
       removeOldExecutableOpt,
       finishUninstallOpt,
       finishUninstallParentOpt,
-      continueUpgrade
+      continueUpgrade,
+      originalPath
     ) mapN {
       (
         _,
         removeOldExecutableOpt,
         finishUninstallOpt,
         finishUninstallParentOpt,
-        continueUpgrade
+        continueUpgrade,
+        originalPath
       ) => (config: GlobalCLIOptions) =>
         removeOldExecutableOpt.foreach { oldExecutablePath =>
           removeOldExecutable(oldExecutablePath)
@@ -121,7 +127,9 @@ object InternalOpts {
         }
 
         continueUpgrade.foreach { version =>
-          LauncherUpgrader.makeDefault(config).continueUpgrade(version)
+          LauncherUpgrader
+            .makeDefault(config, originalExecutablePath = originalPath)
+            .continueUpgrade(version)
           sys.exit(0)
         }
     }
@@ -220,6 +228,7 @@ object InternalOpts {
 
     def continueUpgrade(
       targetVersion: SemVer,
+      originalPath: Path,
       globalCLIOptions: GlobalCLIOptions
     ): Int = {
       val inheritOpts =
@@ -227,7 +236,9 @@ object InternalOpts {
       val command = Seq(
           pathToNewLauncher.toAbsolutePath.toString,
           s"--$CONTINUE_UPGRADE",
-          targetVersion.toString
+          targetVersion.toString,
+          s"--$UPGRADE_ORIGINAL_PATH",
+          originalPath.toAbsolutePath.normalize.toString
         ) ++ inheritOpts
       runAndWaitForResult(command)
     }

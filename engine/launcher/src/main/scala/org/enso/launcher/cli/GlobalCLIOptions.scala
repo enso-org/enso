@@ -23,9 +23,10 @@ object GlobalCLIOptions {
   val USE_JSON      = "json"
 
   def toOptions(config: GlobalCLIOptions): Seq[String] = {
-    val autoConfirm  = if (config.autoConfirm) Seq(AUTO_CONFIRM) else Seq()
-    val hideProgress = if (config.hideProgress) Seq(HIDE_PROGRESS) else Seq()
-    val useJSON      = if (config.useJSON) Seq(USE_JSON) else Seq()
+    val autoConfirm = if (config.autoConfirm) Seq(s"--$AUTO_CONFIRM") else Seq()
+    val hideProgress =
+      if (config.hideProgress) Seq(s"--$HIDE_PROGRESS") else Seq()
+    val useJSON = if (config.useJSON) Seq(s"--$USE_JSON") else Seq()
     autoConfirm ++ hideProgress ++ useJSON
   }
 }
