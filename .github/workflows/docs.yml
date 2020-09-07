@@ -8,7 +8,7 @@ on:
 
 env:
   nodeVersion: 12.18.0
-  
+
 jobs:
   check:
     name: Docs Check
