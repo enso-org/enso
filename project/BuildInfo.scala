@@ -11,7 +11,8 @@ object BuildInfo {
     scalacVersion: String,
     graalVersion: String
   ): Seq[File] = {
-    val gitInfo = getGitInformation(log).getOrElse(fallbackGitInformation)
+    val gitInfo   = getGitInformation(log).getOrElse(fallbackGitInformation)
+    val isRelease = isReleaseMode
     val fileContents =
       s"""
          |package buildinfo
@@ -28,12 +29,18 @@ object BuildInfo {
          |  val ref               = "${gitInfo.ref}"
          |  val isDirty           = ${gitInfo.isDirty}
          |  val latestCommitDate  = "${gitInfo.latestCommitDate}"
+         |
+         |  // Release
+         |  val isRelease = $isRelease
          |}
          |""".stripMargin
     IO.write(file, fileContents)
     log.debug("Build info updated.")
     Seq(file)
   }
+
+  private def isReleaseMode: Boolean =
+    if (sys.env.get("ENSO_RELEASE_MODE").contains("true")) true else false
 
   private case class GitInformation(
     ref: String,

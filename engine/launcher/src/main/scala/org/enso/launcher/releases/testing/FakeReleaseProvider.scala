@@ -1,4 +1,4 @@
-package org.enso.launcher.components
+package org.enso.launcher.releases.testing
 
 import java.nio.file.{Files, Path, StandardCopyOption}
 

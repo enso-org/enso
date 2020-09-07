@@ -7,6 +7,7 @@ import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.releases.engine.EngineReleaseProvider
 import org.enso.launcher.releases.runtime.GraalCEReleaseProvider
+import org.enso.launcher.releases.testing.FakeReleaseProvider
 import org.enso.launcher.{Environment, FakeEnvironment, WithTemporaryDirectory}
 import org.enso.pkg.{PackageManager, SemVerEnsoVersion}
 import org.scalatest.OptionValues

@@ -9,8 +9,9 @@ import org.enso.cli.arguments.Opts
 import org.enso.cli.arguments.Opts.implicits._
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.cli.Arguments._
+import org.enso.launcher.releases.EnsoRepository
 import org.enso.launcher.upgrade.LauncherUpgrader
-import org.enso.launcher.{FileSystem, OS}
+import org.enso.launcher.{CurrentVersion, Environment, FileSystem, OS}
 
 /**
   * Implements internal options that the launcher may use when running another
@@ -47,10 +48,9 @@ object InternalOpts {
   private val FINISH_UNINSTALL_PARENT = "internal-finish-uninstall-parent"
   private val CONTINUE_UPGRADE        = "internal-continue-upgrade"
 
-  private val EMULATE_VERSION  = "internal-emulate-version"
-  private val EMULATE_LOCATION = "internal-emulate-location"
-//  private val EMULATE_REPOSITORY = "internal-emulate-repository"
-  private val releaseBuild = false // TODO move to buildinfo
+  private val EMULATE_VERSION    = "internal-emulate-version"
+  private val EMULATE_LOCATION   = "internal-emulate-location"
+  private val EMULATE_REPOSITORY = "internal-emulate-repository"
 
   /**
     * Additional top level options that are internal to the launcher and should
@@ -126,17 +126,28 @@ object InternalOpts {
   }
 
   private def testingOptions: Opts[Unit] =
-    if (releaseBuild) Opts.pure(())
+    if (buildinfo.Info.isRelease) Opts.pure(())
     else {
       val emulateVersion =
         Opts.optionalParameter[SemVer](EMULATE_VERSION, "VERSION", "").hidden
       val emulateLocation =
         Opts.optionalParameter[Path](EMULATE_LOCATION, "PATH", "").hidden
+      val emulateRepository =
+        Opts.optionalParameter[Path](EMULATE_REPOSITORY, "PATH", "").hidden
 
-      (emulateVersion, emulateLocation) mapN {
-        (emulateLocation, emulateVersion) =>
-          emulateVersion.foreach(version => println(version))    // TODO
-          emulateLocation.foreach(location => println(location)) // TODO
+      (emulateVersion, emulateLocation, emulateRepository) mapN {
+        (emulateVersion, emulateLocation, emulateRepository) =>
+          emulateVersion.foreach { version =>
+            CurrentVersion.internalOverrideVersion(version)
+          }
+
+          emulateLocation.foreach { location =>
+            Environment.internalOverrideExecutableLocation(location)
+          }
+
+          emulateRepository.foreach { repositoryPath =>
+            EnsoRepository.internalUseFakeRepository(repositoryPath)
+          }
       }
 
     }

@@ -86,6 +86,8 @@ jobs:
           restore-keys: ${{ runner.os }}-sbt-
 
       # Build Artifacts
+      - name: Enable release mode
+        run: echo ::set-env name=ENSO_RELEASE_MODE::true
       - name: Bootstrap the Project
         working-directory: repo
         run: |

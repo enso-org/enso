@@ -5,7 +5,7 @@ import java.nio.file.Path
 import io.circe.Json
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.cli.GlobalCLIOptions
-import org.enso.launcher.components.DefaultComponentsManager
+import org.enso.launcher.components.ComponentsManager
 import org.enso.launcher.components.runner.{
   JVMSettings,
   LanguageServerOptions,
@@ -25,7 +25,7 @@ import org.enso.version.{VersionDescription, VersionDescriptionParameter}
   * @param cliOptions the global CLI options to use for the commands
   */
 case class Launcher(cliOptions: GlobalCLIOptions) {
-  private lazy val componentsManager = DefaultComponentsManager(cliOptions)
+  private lazy val componentsManager = ComponentsManager.makeDefault(cliOptions)
   private lazy val configurationManager =
     new GlobalConfigurationManager(componentsManager, DistributionManager)
   private lazy val projectManager = new ProjectManager(configurationManager)

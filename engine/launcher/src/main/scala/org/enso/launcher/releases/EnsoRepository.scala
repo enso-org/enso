@@ -1,11 +1,63 @@
 package org.enso.launcher.releases
 
-import org.enso.launcher.releases.github.GithubReleaseProvider
+import java.nio.file.Path
 
-object EnsoRepository
-    extends GithubReleaseProvider(
+import org.enso.launcher.Logger
+import org.enso.launcher.releases.engine.{EngineRelease, EngineReleaseProvider}
+import org.enso.launcher.releases.github.GithubReleaseProvider
+import org.enso.launcher.releases.launcher.{
+  LauncherRelease,
+  LauncherReleaseProvider
+}
+import org.enso.launcher.releases.testing.FakeReleaseProvider
+
+object EnsoRepository {
+  private var currentRepository: SimpleReleaseProvider =
+    // TODO [RW] The release provider will be moved from staging to the main
+    //  repository, when the first official Enso release is released.
+    new GithubReleaseProvider(
       "enso-org",
-      "enso-staging" // TODO [RW] The release provider will be moved from
-      // staging to the main repository, when the first official Enso release
-      // is released.
+      "enso-staging"
     )
+
+  /**
+    * Default repository for Enso releases.
+    */
+  def defaultReleaseRepository: SimpleReleaseProvider = currentRepository
+
+  /**
+    * Default provider of engine releases.
+    */
+  def defaultEngineReleaseProvider: ReleaseProvider[EngineRelease] =
+    new EngineReleaseProvider(defaultReleaseRepository)
+
+  /**
+    * Default provider of launcher releases.
+    */
+  def defaultLauncherReleaseProvider: ReleaseProvider[LauncherRelease] =
+    new LauncherReleaseProvider(defaultReleaseRepository)
+
+  /**
+    * Overrides the default repository with a local filesystem based fake
+    * repository.
+    *
+    * Internal method used for testing.
+    */
+  def internalUseFakeRepository(fakeRepositoryRoot: Path): Unit =
+    if (buildinfo.Info.isRelease)
+      throw new IllegalStateException(
+        "Internal testing function used in a release build."
+      )
+    else {
+      Logger.debug(s"[TEST] Using a fake repository at $fakeRepositoryRoot.")
+      currentRepository = makeFakeRepository(fakeRepositoryRoot)
+    }
+
+  private def makeFakeRepository(
+    fakeRepositoryRoot: Path
+  ): SimpleReleaseProvider =
+    FakeReleaseProvider(
+      fakeRepositoryRoot,
+      copyIntoArchiveRoot = Seq("manifest.yaml")
+    )
+}

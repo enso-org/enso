@@ -8,11 +8,8 @@ import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.archive.Archive
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.installation.DistributionManager
-import org.enso.launcher.releases.ReleaseProvider
-import org.enso.launcher.releases.engine.{
-  DefaultEngineReleaseProvider,
-  EngineRelease
-}
+import org.enso.launcher.releases.{EnsoRepository, ReleaseProvider}
+import org.enso.launcher.releases.engine.EngineRelease
 import org.enso.launcher.releases.runtime.{
   GraalCEReleaseProvider,
   RuntimeReleaseProvider
@@ -616,17 +613,20 @@ class ComponentsManager(
   }
 }
 
-/**
-  * Default [[ComponentsManager]] using the default [[DistributionManager]] and
-  * release providers.
-  *
-  * @param cliOptions options from the CLI setting verbosity of the executed
-  *                   actions
-  */
-case class DefaultComponentsManager(cliOptions: GlobalCLIOptions)
-    extends ComponentsManager(
-      cliOptions,
+object ComponentsManager {
+
+  /**
+    * Creates a [[ComponentsManager]] using the default [[DistributionManager]]
+    * and release providers.
+    *
+    * @param globalCLIOptions options from the CLI setting verbosity of the
+    *                         executed actions
+    */
+  def makeDefault(globalCLIOptions: GlobalCLIOptions): ComponentsManager =
+    new ComponentsManager(
+      globalCLIOptions,
       DistributionManager,
-      DefaultEngineReleaseProvider,
+      EnsoRepository.defaultEngineReleaseProvider,
       GraalCEReleaseProvider
     )
+}

@@ -8,11 +8,8 @@ import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.archive.Archive
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
 import org.enso.launcher.installation.DistributionManager
-import org.enso.launcher.releases.ReleaseProvider
-import org.enso.launcher.releases.launcher.{
-  DefaultLauncherReleaseProvider,
-  LauncherRelease
-}
+import org.enso.launcher.releases.launcher.LauncherRelease
+import org.enso.launcher.releases.{EnsoRepository, ReleaseProvider}
 import org.enso.launcher.{CurrentVersion, FileSystem, Logger, OS}
 
 import scala.util.Try
@@ -285,10 +282,21 @@ class LauncherUpgrader(
 }
 
 object LauncherUpgrader {
+
+  /**
+    * Creates a [[LauncherUpgrader]] using the default [[DistributionManager]]
+    * and release providers.
+    *
+    * Should be run late enough so that the testing repository override can be
+    * applied. It is enough to run it inside of the standard options parsing.
+    *
+    * @param globalCLIOptions options from the CLI setting verbosity of the
+    *                         executed actions
+    */
   def makeDefault(globalCLIOptions: GlobalCLIOptions): LauncherUpgrader =
     new LauncherUpgrader(
       globalCLIOptions,
       DistributionManager,
-      DefaultLauncherReleaseProvider
+      EnsoRepository.defaultLauncherReleaseProvider
     )
 }
