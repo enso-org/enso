@@ -176,7 +176,8 @@ object Archive {
           } else {
             val path = parseArchiveEntryName(entry.getName)
             val decoratedEntry = new ArchiveEntry {
-              override def relativePath: Path = path
+              override def isDirectory: Boolean = entry.isDirectory
+              override def relativePath: Path   = path
               override def extractTo(destinationPath: Path): Unit = {
                 if (entry.isDirectory) {
                   Files.createDirectories(destinationPath)

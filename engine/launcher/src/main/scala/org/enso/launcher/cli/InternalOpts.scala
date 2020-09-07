@@ -48,9 +48,11 @@ object InternalOpts {
   private val FINISH_UNINSTALL_PARENT = "internal-finish-uninstall-parent"
   private val CONTINUE_UPGRADE        = "internal-continue-upgrade"
 
-  private val EMULATE_VERSION    = "internal-emulate-version"
-  private val EMULATE_LOCATION   = "internal-emulate-location"
-  private val EMULATE_REPOSITORY = "internal-emulate-repository"
+  private val EMULATE_VERSION  = "internal-emulate-version"
+  private val EMULATE_LOCATION = "internal-emulate-location"
+  val EMULATE_REPOSITORY       = "internal-emulate-repository"
+
+  private var inheritEmulateRepository: Option[Path] = None
 
   /**
     * Additional top level options that are internal to the launcher and should
@@ -146,11 +148,19 @@ object InternalOpts {
           }
 
           emulateRepository.foreach { repositoryPath =>
+            inheritEmulateRepository = Some(repositoryPath)
             EnsoRepository.internalUseFakeRepository(repositoryPath)
           }
       }
 
     }
+
+  private def optionsToInherit: Seq[String] =
+    inheritEmulateRepository
+      .map { path =>
+        Seq(s"--$EMULATE_REPOSITORY", path.toAbsolutePath.toString)
+      }
+      .getOrElse(Seq())
 
   /**
     * Returns a helper class that allows to run the launcher located at the
@@ -212,7 +222,8 @@ object InternalOpts {
       targetVersion: SemVer,
       globalCLIOptions: GlobalCLIOptions
     ): Int = {
-      val inheritOpts = GlobalCLIOptions.toOptions(globalCLIOptions)
+      val inheritOpts =
+        GlobalCLIOptions.toOptions(globalCLIOptions) ++ optionsToInherit
       val command = Seq(
           pathToNewLauncher.toAbsolutePath.toString,
           s"--$CONTINUE_UPGRADE",

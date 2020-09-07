@@ -150,7 +150,11 @@ class LauncherUpgrader(
     var entryFound = false
     Archive
       .iterateArchive(archivePath) { entry =>
-        if (entry.relativePath.endsWith(OS.executableName("enso"))) {
+        if (
+          entry.relativePath.endsWith(
+            Path.of("bin") / OS.executableName("enso")
+          )
+        ) {
           entryFound = true
           entry.extractTo(executablePath)
           false

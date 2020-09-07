@@ -56,8 +56,5 @@ object EnsoRepository {
   private def makeFakeRepository(
     fakeRepositoryRoot: Path
   ): SimpleReleaseProvider =
-    FakeReleaseProvider(
-      fakeRepositoryRoot,
-      copyIntoArchiveRoot = Seq("manifest.yaml")
-    )
+    FakeReleaseProvider(fakeRepositoryRoot)
 }
