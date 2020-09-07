@@ -1,3 +1,5 @@
+from Base import all
+
 reverse_list = list ->
     go = list -> acc -> case list of
         Cons h t -> go t (Cons h acc)

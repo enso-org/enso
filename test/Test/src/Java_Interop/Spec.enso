@@ -1,0 +1,8 @@
+from Base import all
+import Base.Test
+
+polyglot java import java.lang.Long
+
+spec = describe "Java FFI" <|
+    it "should call methods imported from Java" <|
+        Long.sum [1, 2] . should_equal 3

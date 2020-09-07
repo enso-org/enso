@@ -65,15 +65,15 @@ case object VectorLiterals extends IRPass {
 
   private def vectorCons(bindings: BindingsMap): Option[IR.Expression] = {
     val module = bindings.resolvedImports
-      .flatMap(
-        _.module.getIr
+      .flatMap(imp =>
+        imp.module :: imp.module.getIr
           .unsafeGetMetadata(
             BindingAnalysis,
             "no binding analyis on an imported module"
           )
           .resolvedExports
+          .map(_.module)
       )
-      .map(_.module)
       .find(_.getName.toString == "Base.Vector")
     module.map { module =>
       val n = IR.Name.Literal("<Sequence Macro>", isReferent = true, None)
@@ -94,13 +94,17 @@ case object VectorLiterals extends IRPass {
     ir.transformExpressions {
       case seq: IR.Application.Literal.Sequence =>
         val trans = seq.mapExpressions(doExpression(_, vec))
-        vec.map(vec =>
-          IR.Application.Prefix(
-            vec,
-            List(IR.CallArgument.Specified(None, trans, None, None)),
-            false,
-            None
+        vec
+          .map(vec =>
+            IR.Application.Prefix(
+              vec,
+              List(IR.CallArgument.Specified(None, trans, None, None)),
+              false,
+              None
+            )
           )
-        ).getOrElse(trans.addDiagnostic(IR.Warning.UnresolvedVectorMacro(ir.location)))
+          .getOrElse(
+            trans.addDiagnostic(IR.Warning.UnresolvedVectorMacro(ir.location))
+          )
     }
 }

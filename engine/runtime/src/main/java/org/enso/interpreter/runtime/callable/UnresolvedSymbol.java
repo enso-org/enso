@@ -42,6 +42,10 @@ public class UnresolvedSymbol implements TruffleObject {
     return name;
   }
 
+  public ModuleScope getScope() {
+    return scope;
+  }
+
   /**
    * Resolves the symbol for a given hierarchy of constructors.
    *

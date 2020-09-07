@@ -1,6 +1,8 @@
 import Base.List
+import Base.Vector
 import Builtins
 
 from Builtins export all
 
 from Base.List export Nil, Cons
+from Base.Vector export Vector

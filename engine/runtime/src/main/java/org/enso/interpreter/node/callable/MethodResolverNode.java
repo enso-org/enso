@@ -224,7 +224,7 @@ public abstract class MethodResolverNode extends Node {
     if (symbol.getName().equals("new")) {
       return context.getBuiltins().getConstructorDispatch();
     } else {
-      return context.getBuiltins().buildPolyglotMethodDispatch(symbol.getName());
+      return context.getBuiltins().buildPolyglotMethodDispatch(symbol);
     }
   }
 

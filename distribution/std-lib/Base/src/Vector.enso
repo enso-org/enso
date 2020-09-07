@@ -1,2 +1,1 @@
-type Vector buffer
-
+type Vector to_array

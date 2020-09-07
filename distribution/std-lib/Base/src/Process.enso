@@ -1,5 +1,6 @@
 import Base.Process.Exit_Code
-from Builtins import System, True, False
+from Base.Vector import Vector
+from Builtins import Array, System, True, False
 
 ## The builder object that is used to create operating system processes.
 type Process_Builder command arguments stdin
@@ -16,7 +17,7 @@ type Process_Result exit_code stdout stderr
          8
 Process.execute : String -> Exit_Code
 Process.execute command =
-    result = System.create_process command (arguments = []) (input = "") (redirectIn = True) (redirectOut = True) (redirectErr = True)
+    result = System.create_process command (arguments = Array.empty) (input = "") (redirectIn = True) (redirectOut = True) (redirectErr = True)
     Exit_Code.from_number result.exit_code
 
 ## Call a command with a list of arguments.
@@ -28,7 +29,7 @@ Process.execute command =
          Hello!
 Process.run_command : String -> Vector -> Exit_Code
 Process.run_command command arguments =
-    result = System.create_process command arguments (input = "") (redirectIn = True) (redirectOut = True) (redirectErr = True)
+    result = System.create_process command arguments.to_array (input = "") (redirectIn = True) (redirectOut = True) (redirectErr = True)
     Exit_Code.from_number result.exit_code
 
 ## Create a process using a builder returning the result of execution.
@@ -41,5 +42,5 @@ Process.run_command command arguments =
          Process_Result Exit_Success "test" ""
 Process.create : Process_Builder -> Process_Result
 Process.create b =
-    result = System.create_process b.command b.arguments b.stdin (redirectIn = False) (redirectOut = False) (redirectErr = False)
+    result = System.create_process b.command b.arguments.to_array b.stdin (redirectIn = False) (redirectOut = False) (redirectErr = False)
     Process_Result (Exit_Code.from_number result.exit_code) result.stdout result.stderr
