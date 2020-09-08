@@ -32,6 +32,7 @@ command-line interface is described in the [CLI](./launcher-cli.md) document.
 - [Global User Configuration](#global-user-configuration)
 - [Updating the Launcher](#updating-the-launcher)
   - [Minimal Required Launcher Version](#minimal-required-launcher-version)
+  - [Step-by-Step Upgrade](#step-by-step-upgrade)
   - [Downloading Launcher Releases](#downloading-launcher-releases)
 
 <!-- /MarkdownTOC -->
@@ -104,11 +105,6 @@ the default version.
 > - Decide how to support inexact project bounds (like `>=3.1, <4` - when should
 >   the launcher check for new versions) and resolvers.
 > - Decide how to support nightly builds.
-
-### Project Configuration
-
-The command-line allows to edit project configuration, for example: change the
-author's name or Enso version.
 
 ## Enso and Graal Version Management
 
@@ -239,8 +235,40 @@ newer version of the launcher. Thus, project configuration can also specify a
 minimal required launcher version.
 
 If the launcher detects that the installed version is older than one of the two
-criteria above, it asks the user to upgrade the launcher using the `upgrade`
-command.
+criteria above, it offers to automatically upgrade to the latest version and
+re-run the current command.
+
+### Step-by-Step Upgrade
+
+It is possible that in the future, new launcher versions will require some
+additional logic when upgrading that we did not think of currently. To maintain
+future-compatibility, each launcher version can define in its manifest a minimum
+launcher version that can be used to upgrade to it. Any new upgrade logic can
+then be introduced gradually (by first releasing a new version which knows this
+new logic but does not require it and later releasing another version that can
+require this new logic). In that case, updates are performed step-by-step -
+first this new version that does not require new logic is downloaded and it is
+used to upgrade to the new version which requires the new logic. If necessary,
+such upgrade steps can be chained.
+
+The step-by-step upgrade logic is implemented by checking the
+`minimum-version-to-upgrade` property in the new launcher's manifest. If the
+current version is greater or equal to that version, the upgrade proceeds
+normally. Otherwise, the launcher tries to upgrade to this minimum version (or
+the closest to it newer non-broken version), recursively - i.e. if this upgrade
+also cannot be performed directly, it is also performed step-by-step in the same
+way.
+
+#### Testing Step-by-Step Upgrade
+
+To test the multi-step upgrade we need multiple launcher executables that report
+different versions. As building the launcher takes a substantial amount of time
+and it reports by default the version from build information, we created a
+simple wrapper in Rust which runs the original launcher executable with
+additional internal options that tell it to override its version. These options
+are only available in a development build. Similarly, internal options are used
+to override the default GitHub repository to a local filesystem based repository
+for launcher releases, as we want to avoid any network connectivity in tests.
 
 ### Downloading Launcher Releases
 

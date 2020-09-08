@@ -18,11 +18,15 @@ object LauncherShimsForTest {
         .toAbsolutePath
         .normalize
         .toString
-      Cargo.run(
-        "build -p launcher-shims",
-        rustVersion = rustcVersion,
-        log         = log,
-        extraEnv    = Seq("ENSO_LAUNCHER_LOCATION" -> launcherLocation)
-      )
+      def cargo(args: String): Unit =
+        Cargo.run(
+          args,
+          rustVersion = rustcVersion,
+          log         = log,
+          extraEnv    = Seq("ENSO_LAUNCHER_LOCATION" -> launcherLocation)
+        )
+
+      cargo("clean -p launcher-shims")
+      cargo("build -p launcher-shims")
     }
 }
