@@ -12,21 +12,10 @@ object LauncherShimsForTest {
   def prepare(rustcVersion: String): Def.Initialize[Task[Unit]] =
     Def.task {
       val log = state.value.log
-      val launcherLocation = NativeImage
-        .artifactFile("enso")
-        .toPath
-        .toAbsolutePath
-        .normalize
-        .toString
-      def cargo(args: String): Unit =
-        Cargo.run(
-          args,
-          rustVersion = rustcVersion,
-          log         = log,
-          extraEnv    = Seq("ENSO_LAUNCHER_LOCATION" -> launcherLocation)
-        )
-
-      cargo("clean -p launcher-shims")
-      cargo("build -p launcher-shims")
+      Cargo.run(
+        "build -p launcher-shims",
+        rustVersion = rustcVersion,
+        log         = log
+      )
     }
 }

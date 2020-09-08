@@ -31,6 +31,12 @@ class UpgradeSpec
   private val rustBuildRoot = Path.of("./target/rust/debug/")
 
   /**
+    * Location of the actual launcher executable that is wrapped by the shims.
+    */
+  private val realLauncherLocation =
+    Path.of(".").resolve(OS.executableName("enso")).toAbsolutePath.normalize
+
+  /**
     * Path to a launcher shim that pretends to be `version`.
     */
   private def builtLauncherBinary(version: SemVer): Path = {
@@ -101,14 +107,14 @@ class UpgradeSpec
     * @return the reported version
     */
   private def checkVersion(): SemVer = {
-    val run = runLauncherAt(
-      launcherPath,
+    val result = run(
       Seq("version", "--json", "--only-launcher")
     )
-    run should returnSuccess
-    val version = parser.parse(run.stdout).getOrElse {
+    result should returnSuccess
+    val version = parser.parse(result.stdout).getOrElse {
       throw new TestFailedException(
-        s"Version should be a valid JSON string, got '${run.stdout}' instead.",
+        s"Version should be a valid JSON string, got '${result.stdout}' " +
+        s"instead.",
         1
       )
     }
@@ -132,7 +138,9 @@ class UpgradeSpec
       "--auto-confirm",
       "--hide-progress"
     )
-    runLauncherAt(launcherPath, testArgs ++ args, extraEnv)
+    val env =
+      extraEnv.updated("ENSO_LAUNCHER_LOCATION", realLauncherLocation.toString)
+    runLauncherAt(launcherPath, testArgs ++ args, env)
   }
 
   "upgrade" should {

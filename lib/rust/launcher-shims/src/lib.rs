@@ -24,8 +24,8 @@ use std::process::{Command, exit};
 pub fn wrap_launcher(version:impl AsRef<str>) {
     let args: Vec<String> = env::args().collect();
 
-    let missing_location_message = "`ENSO_LAUNCHER_LOCATION` was not set during compilation.";
-    let path = option_env!("ENSO_LAUNCHER_LOCATION").expect(missing_location_message);
+    let missing_location_message = "`ENSO_LAUNCHER_LOCATION` is not defined.";
+    let launcher_location = env::var("ENSO_LAUNCHER_LOCATION").expect(missing_location_message);
 
     let current_exe_path = env::current_exe().expect("Cannot get current executable path.");
     let exe_location     = match current_exe_path.to_str() {
@@ -50,7 +50,7 @@ pub fn wrap_launcher(version:impl AsRef<str>) {
     ];
     let modified_args = [&override_args[..], &args[1..]].concat();
 
-    let exit_status = Command::new(path).args(modified_args).status();
+    let exit_status = Command::new(launcher_location).args(modified_args).status();
     let exit_code   = match exit_status {
         Ok (status) =>
             if let Some(code) = status.code() {
