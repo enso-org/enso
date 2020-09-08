@@ -504,10 +504,6 @@ Enso follows the standard rust convention for structuring crates, as provided by
 `cargo new`. This is discussed more in depth
 [here](https://learning-rust.github.io/docs/a4.cargo,crates_and_basic_project_structure.html#Project-Structure).
 
-In order to match up with the project naming convention we use for Scala and
-Java projects, any rust code must be in a directory named using `UpperCamelCase`
-in the root of the project (e.g. `enso/BaseGL`).
-
 ### The Public API
 
 Whereas Rust defaults to making module members _private_ by default, this is not
