@@ -1,4 +1,6 @@
-package org.enso.projectmanager.util
+package org.enso.languageserver.util
+
+import java.util
 
 import cats.syntax.either._
 import ch.qos.logback.classic.{Level, LoggerContext}
@@ -24,6 +26,16 @@ object Logging {
         case Info    => Level.INFO
         case Debug   => Level.DEBUG
         case Trace   => Level.TRACE
+      }
+
+    /** Convert to java util logging level. */
+    def toJava(level: LogLevel): util.logging.Level =
+      level match {
+        case Error   => util.logging.Level.SEVERE
+        case Warning => util.logging.Level.WARNING
+        case Info    => util.logging.Level.INFO
+        case Debug   => util.logging.Level.FINE
+        case Trace   => util.logging.Level.FINEST
       }
 
     /** Convert from logback log level. */
