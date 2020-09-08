@@ -128,10 +128,6 @@ right JVM version is used to launch each version of Enso, the user can override
 this mechanism to use the installed system JVM instead. This is an advanced
 feature and should rarely be used.
 
-The launcher will check the system JVM and refuse to launch Enso if it is not a
-GraalVM distribution. It will also print a warning if the major or minor version
-is different then required by that particular Enso version.
-
 ### Downloading Enso Releases
 
 The releases are discovered and downloaded using the
