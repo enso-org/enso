@@ -88,7 +88,7 @@ class LauncherUpgrader(
     val temporaryFiles =
       FileSystem.listDirectory(binRoot).filter(isTemporaryExecutable)
     if (temporaryFiles.nonEmpty && isStartup) {
-      Logger.info("Cleaning temporary files from a previous upgrade.")
+      Logger.debug("Cleaning temporary files from a previous upgrade.")
     }
     for (file <- temporaryFiles) {
       try {
