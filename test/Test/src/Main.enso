@@ -6,6 +6,7 @@ import Test.Deep_Export_Spec
 import Test.Names_Spec
 import Test.Process_Spec
 import Test.Java_Interop.Spec as Java_Spec
+import Test.Vector.Spec as Vector_Spec
 
 main = Test.Suite.runMain <|
     List_Spec.spec
@@ -15,3 +16,4 @@ main = Test.Suite.runMain <|
     Deep_Export_Spec.spec
     Process_Spec.spec
     Java_Spec.spec
+    Vector_Spec.spec

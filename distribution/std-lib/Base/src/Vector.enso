@@ -1,1 +1,39 @@
-type Vector to_array
+from Builtins import Array
+from Base import all
+
+type Vector
+    type Vector to_array
+
+    at index = this.to_array.at index
+
+    length = this.to_array.length
+
+    fold initial function =
+        arr = this.to_array
+        f = acc -> ix -> function acc (arr.at ix)
+        res = 0.upto this.length . fold initial f
+        res
+
+    new length constructor =
+        arr = Array.new length
+        0.upto length . each ix-> arr.set_at ix (constructor ix)
+        Vector arr
+
+    fill length item =
+        arr = Array.new length
+        0.upto length . each ix-> arr.set_at ix item
+        Vector arr
+
+    map function =
+        arr = this.to_array
+        new_arr = Array.new arr.length
+        0.upto arr.length . each ix-> new_arr.set_at ix (function (arr.at ix))
+        Vector new_arr
+
+    to_text =
+        arr = this.to_array
+        if arr.length == 0 then "[]" else
+            if arr.length == 1 then "[" + (arr.at 0 . to_text) + "]" else
+                folder = str -> ix -> str + ", " + (arr.at ix).to_text
+                tail_elems = 1.upto arr.length . fold "" folder
+                "[" + (arr.at 0 . to_text) + tail_elems + "]"

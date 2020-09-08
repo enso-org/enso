@@ -10,7 +10,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 /** An immutable array-like collection. */
 @ExportLibrary(InteropLibrary.class)
 public class Vector implements TruffleObject {
-  private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] items;
+  private final Object[] items;
 
   /**
    * Creates a new Vector
@@ -19,6 +19,10 @@ public class Vector implements TruffleObject {
    */
   public Vector(Object... items) {
     this.items = items;
+  }
+
+  public Vector(long size) {
+    this.items = new Object[(int)size];
   }
 
   /** @return the elements of this vector as an array. */
@@ -70,5 +74,20 @@ public class Vector implements TruffleObject {
   @ExportMessage
   public boolean isArrayElementReadable(long index) {
     return index < getArraySize() && index >= 0;
+  }
+
+  @ExportMessage
+  public void writeArrayElement(long index, Object value) {
+    items[(int) index] = value;
+  }
+
+  @ExportMessage
+  final boolean isArrayElementModifiable(long index) {
+    return isArrayElementReadable(index);
+  }
+
+  @ExportMessage
+  final boolean isArrayElementInsertable(long index) {
+    return false;
   }
 }

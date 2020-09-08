@@ -261,6 +261,10 @@ public class Builtins {
     return system;
   }
 
+  public Array array() {
+    return array;
+  }
+
   /**
    * Returns the builtin module scope.
    *

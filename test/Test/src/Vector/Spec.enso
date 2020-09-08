@@ -1,0 +1,22 @@
+from Base import all
+import Base.Test
+
+spec = describe "Vectors" <|
+    it "should allow accessing elements" <|
+        [1,2,3].at 2 . should_equal 3
+    it "should have a well-defined length" <|
+        [1,2,3].length . should_equal 3
+    it "should allow folding an operator over its elements" <|
+        [1,2,3].fold 0 (+) . should_equal 6
+    it "should allow vector creation with a programmatic constructor" <|
+        Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
+    it "should have a well-defined text conversion" <|
+        [].to_text.should_equal "[]"
+        [1,2,3].to_text.should_equal "[1, 2, 3]"
+        [Unit].to_text.should_equal "[Unit]"
+    it "should allow mapping an operation, returning a new vector" <|
+        vec = [1, 2, 3, 4]
+        mapped = vec.map x-> x * x
+        vec.to_text.should_equal "[1, 2, 3, 4]"
+        mapped.to_text.should_equal "[1, 4, 9, 16]"
+

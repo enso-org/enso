@@ -1,8 +1,27 @@
 import Base.List
 import Base.Vector
-import Builtins
+from Builtins import Number, Unit
 
 from Builtins export all
 
 from Base.List export Nil, Cons
 from Base.Vector export Vector
+
+type Range
+    type Range start end
+
+    each function =
+        it start end = if start == end then Unit else
+            function start
+            it start+1 end
+        it this.start this.end
+        Unit
+
+    fold initial function =
+        it acc start end = if start == end then acc else
+            new_acc = function acc start
+            it new_acc start+1 end
+        res = it initial this.start this.end
+        res
+
+Number.upto n = Range this n
