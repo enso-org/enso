@@ -53,6 +53,7 @@ pub fn builtin(name:&Name) -> Option<JName> {
     Some(name)
 }
 
+/// Returns the standard library name of given name if it exists.
 pub fn stdlib(name:&Name) -> Option<JName> {
     let name = match name.str.as_str() {
         "Object"                          => JName {jni:"java/lang/Object",   scala:"Object" },

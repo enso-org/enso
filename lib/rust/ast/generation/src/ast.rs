@@ -12,6 +12,7 @@ use std::ops::Add;
 // =================
 
 /// Represents a single source file `$name.scala`.
+#[allow(missing_docs)]
 #[derive(Debug,Clone)]
 pub struct File {
     pub lib     : Stdlib,
@@ -36,6 +37,7 @@ impl File {
 pub struct Stdlib();
 
 /// Represents an object `object Name { line; ... }`.
+#[allow(missing_docs)]
 #[derive(Debug,Clone)]
 pub struct Module<'a> {
     pub name  : Name,
@@ -43,6 +45,7 @@ pub struct Module<'a> {
 }
 
 /// Represents a class `class Name[Generics](field:Field, ...)`
+#[allow(missing_docs)]
 #[derive(Debug,Clone,Ord,PartialOrd,Eq,PartialEq)]
 pub struct Class {
     pub typ   : Type,
@@ -51,6 +54,7 @@ pub struct Class {
 }
 
 /// Represents a set of classes extending a sealed trait.
+#[allow(missing_docs)]
 #[derive(Debug,Clone)]
 pub struct Enum {
     pub typ      : Type,
@@ -58,6 +62,7 @@ pub struct Enum {
 }
 
 /// Represents the `extends Name` statement.
+#[allow(missing_docs)]
 #[derive(Debug,Clone,Copy)]
 pub struct Extends<'a> { pub name:&'a Name }
 
@@ -67,6 +72,7 @@ pub fn extends(name:&Name) -> Extends {
 }
 
 /// Represents a qualified type `Path.Name[Bar[Baz], ..]`
+#[allow(missing_docs)]
 #[derive(Debug,Clone,Hash,PartialEq,Eq,PartialOrd,Ord)]
 pub struct Type {
     pub name : Name,
@@ -75,6 +81,7 @@ pub struct Type {
 }
 
 /// Represents a type alias `type Foo = Bar[Baz]`
+#[allow(missing_docs)]
 #[derive(Debug,Clone)]
 pub struct TypeAlias {
     pub typ : Type,
@@ -82,6 +89,7 @@ pub struct TypeAlias {
 }
 
 /// Represents a type name or a variable name.
+#[allow(missing_docs)]
 #[derive(Debug,Clone,Default,Hash,PartialEq,Eq,PartialOrd,Ord)]
 pub struct Name { pub str:String }
 
@@ -97,11 +105,13 @@ impl Add<&Name> for Name {
 
 // === Constructors ===
 
+/// Name constructor.
 #[allow(non_snake_case)]
 pub fn Name<T:Into<Name>>(t:T) -> Name {
     t.into()
 }
 
+/// Class constructor.
 #[allow(non_snake_case)]
 pub fn Class(name:Type, fields:&syn::Fields) -> Class {
     let named = if let syn::Fields::Named{..} = fields {true} else {false};
@@ -113,6 +123,7 @@ pub fn Class(name:Type, fields:&syn::Fields) -> Class {
     Class{typ:name, args, named}
 }
 
+/// Type constructor.
 #[allow(non_snake_case)]
 pub fn Type(name:impl Into<Name>,  generics:&syn::Generics) -> Type {
     let mut args = vec![];

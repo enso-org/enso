@@ -186,7 +186,7 @@ pub struct Source {
     pub package: String,
     /// Vector of user defined associated types.
     pub types: Vec<AssociatedType>,
-
+    /// Set of generic parameters a type is used with.
     pub generics: Map<Name,Set<Type>>,
 }
 

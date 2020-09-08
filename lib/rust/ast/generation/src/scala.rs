@@ -41,6 +41,7 @@ impl Source {
         ast.write(self)
     }
 
+    /// Genereate a scala source code.
     pub fn ast() -> std::io::Result<String> {
         let mut content = String::new();
         let mut file    = fs::File::open("lib/rust/ast/src/ast.rs")?;
@@ -188,6 +189,7 @@ impl Generator<Source> for &Name {
 // === Name Conversions ===
 // ========================
 
+/// Name utilities.
 pub mod name {
     use crate::ast::Name;
     use crate::types;

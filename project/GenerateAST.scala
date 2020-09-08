@@ -33,7 +33,7 @@ object GenerateAST {
     */
   def generateAST
   (rustVersion: String, out: File, log: ManagedLogger): Unit = {
-    val args = s"run -p ast -- --generate-scala-ast $out"
+    val args = s"run -p ast-generation -- --generate-scala-ast $out"
 
     log.info(s"Generating Scala AST from Rust definitions.")
 

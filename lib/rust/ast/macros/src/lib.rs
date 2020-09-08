@@ -8,19 +8,16 @@
 #![warn(unsafe_code)]
 #![warn(unused_import_braces)]
 
-//! This module exports scala ast generator.
+//! This module exports an AST API macro.
+
+use ast_generation::ast;
+use ast_generation::api;
 
 extern crate proc_macro;
 use quote::quote;
 use syn;
 
 
-
-mod api;
-mod ast;
-mod generator;
-mod scala;
-mod types;
 
 /// Generates constructors for Rust and Scala AST with same API.
 #[proc_macro]

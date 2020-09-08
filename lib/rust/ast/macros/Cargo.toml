@@ -22,11 +22,6 @@ test       = true
 bench      = true
 
 [dependencies]
-clap        = { version = "2.33.1"                                                            }
-itertools   = { version = "0.9.0"                                                             }
-Inflector   = { version = "0.11.4"                                                            }
-jni         = { version = "0.17.0"                                                            }
-proc-macro2 = { version = "1.0.19"                                                            }
-quote       = { version = "1.0.7"                                                             }
-syn         = { version = "1.0.12", features = ["full", "extra-traits", "visit-mut", "visit"] }
-uuid        = { version = "0.8.1" , features = ["serde","v4","wasm-bindgen"]                  }
+quote          = { version = "1.0.7"                          }
+syn            = { version = "1.0.12"                         }
+ast-generation = { version = "0.1.0" , path = "../generation" }

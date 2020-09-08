@@ -1,3 +1,4 @@
+//! Generic generator API.
 
 
 
