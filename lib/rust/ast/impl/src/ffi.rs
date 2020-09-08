@@ -45,6 +45,106 @@ impl<'a> Object<'a> {
 
 /// === Scala Standard Library ===
 
+pub trait ToJValue<'a> {
+    fn jvalue(self, lib:&StdLib<'a>) -> JValue<'a>;
+}
+
+impl<'a> ToJValue<'a> for u8 {
+    fn jvalue(self, _lib:&StdLib<'a>) -> JValue<'a> {
+        self.into()
+    }
+}
+
+impl<'a> ToJValue<'a> for i8 {
+    fn jvalue(self, _lib:&StdLib<'a>) -> JValue<'a> {
+        self.into()
+    }
+}
+
+impl<'a> ToJValue<'a> for i16 {
+    fn jvalue(self, _lib:&StdLib<'a>) -> JValue<'a> {
+        self.into()
+    }
+}
+
+impl<'a> ToJValue<'a> for i32 {
+    fn jvalue(self, _lib:&StdLib<'a>) -> JValue<'a> {
+        self.into()
+    }
+}
+
+impl<'a> ToJValue<'a> for i64 {
+    fn jvalue(self, _lib:&StdLib<'a>) -> JValue<'a> {
+        self.into()
+    }
+}
+
+impl<'a> ToJValue<'a> for f32 {
+    fn jvalue(self, _lib:&StdLib<'a>) -> JValue<'a> {
+        self.into()
+    }
+}
+
+impl<'a> ToJValue<'a> for f64 {
+    fn jvalue(self, _lib:&StdLib<'a>) -> JValue<'a> {
+        self.into()
+    }
+}
+
+impl<'a> ToJValue<'a> for bool {
+    fn jvalue(self, _lib:&StdLib<'a>) -> JValue<'a> {
+        self.into()
+    }
+}
+
+impl<'a> ToJValue<'a> for JObject<'a> {
+    fn jvalue(self, _lib:&StdLib<'a>) -> JValue<'a> {
+        self.into()
+    }
+}
+
+impl<'a> ToJValue<'a> for JValue<'a> {
+    fn jvalue(self, _lib:&StdLib<'a>) -> JValue<'a> {
+        self
+    }
+}
+
+impl<'a> ToJValue<'a> for String {
+    fn jvalue(self, lib:&StdLib<'a>) -> JValue<'a> {
+        lib.env.new_string(self).unwrap().into()
+    }
+}
+
+// TODO[JV] implement stdlib constructors
+impl<'a,T:ToJValue<'a>> ToJValue<'a> for Vec<T> {
+    fn jvalue(self, _lib:&StdLib<'a>) -> JValue<'a> {
+        unimplemented!()
+    }
+}
+
+impl<'a,T:ToJValue<'a>> ToJValue<'a> for Option<T> {
+    fn jvalue(self, lib:&StdLib<'a>) -> JValue<'a> {
+        match self {
+            None    => lib.option.none.clone(),
+            Some(t) => lib.option.some.init(&[t.jvalue(lib)]),
+        }.into()
+    }
+}
+
+impl<'a,T:ToJValue<'a>> ToJValue<'a> for Box<T> {
+    fn jvalue(self, lib:&StdLib<'a>) -> JValue<'a> {
+        (*self).jvalue(lib)
+    }
+}
+
+
+impl<'a> ToJValue<'a> for uuid::Uuid {
+    fn jvalue(self, _lib:&StdLib<'a>) -> JValue<'a> {
+        unimplemented!()
+    }
+}
+
+
 /// Scala standard library.
 mod stdlib {
     use super::*;
@@ -52,64 +152,63 @@ mod stdlib {
 
 
     /// Constructors of types in scala strandard library.
+    #[allow(missing_docs)]
     #[derive(Clone)]
     pub struct StdLib<'a> {
-        /// Scala Vector.
-        pub vec: stdlib::Vector<'a>,
-        /// Scala Option.
-        pub option: stdlib::Option<'a>,
-        /// Scala Uuid.
-        pub uuid: stdlib::Uuid<'a>,
-        /// Scala Option.
-        pub string: stdlib::String<'a>,
+        pub env    : &'a JNIEnv<'a>,
+        pub vector : stdlib::Vector<'a>,
+        pub option : stdlib::Option<'a>,
+        pub uuid   : stdlib::Uuid<'a>,
     }
 
     impl<'a> StdLib<'a> {
         /// Creates a new instance of `StdLib`.
         pub fn new(env:&'a JNIEnv<'a>) -> Self {
             Self {
-                vec: stdlib::Vector{env},
-                option: stdlib::Option{env},
-                uuid: stdlib::Uuid{env},
-                string: stdlib::String{env},
+                env,
+                vector : stdlib::Vector::new(env),
+                option : stdlib::Option::new(env),
+                uuid   : stdlib::Uuid::new(env),
             }
         }
     }
 
-    /// Scala Vector.
+    #[allow(missing_docs)]
     #[derive(Clone)]
-    pub struct Vector<'a> { env:&'a JNIEnv<'a> }
+    pub struct Vector<'a> { pub obj:Object<'a> }
     impl<'a> Vector<'a> {
         /// Constructs a new Vector.
-        pub fn init<T>(&self, _arg:Vec<T>) -> JObject<'a> {
-            unimplemented!()
+        pub fn new(env:&'a JNIEnv<'a>) -> Self {
+            Self{obj:Object::new(env, "scala/Vector", "()V")}
         }
     }
 
+    #[allow(missing_docs)]
     #[derive(Clone)]
-    pub struct Option<'a> { env:&'a JNIEnv<'a> }
+    pub struct Option<'a> { pub none:JObject<'a>, pub some:Object<'a> }
     impl<'a> Option<'a> {
         /// Constructs a new Option.
-        pub fn init<T>(&self, _arg:std::option::Option<T>) -> JObject<'a> {
-            unimplemented!()
+        pub fn new(env:&'a JNIEnv<'a>) -> Self {
+            let none = env.get_static_field(
+               env.find_class("scala/None$").unwrap(),
+               "MODULE$",
+               "Lscala/None$;",
+            ).unwrap().l().unwrap();
+
+            let some = Object::new(env, "scala/Some", "(Ljava/lang/Object;)V");
+
+            Self{none, some}
         }
     }
 
-   #[derive(Clone)]
-    pub struct Uuid<'a> { env:&'a JNIEnv<'a> }
-    impl<'a> Uuid<'a> {
-        /// Constructs a new Option.
-        pub fn init<T>(&self, _arg:uuid::Uuid) -> JObject<'a> {
-            unimplemented!()
-        }
-    }
-
+    #[allow(missing_docs)]
     #[derive(Clone)]
-    pub struct String<'a> { env:&'a JNIEnv<'a> }
-    impl<'a> String<'a> {
-        /// Constructs a new Option.
-        pub fn init<T>(&self, _arg:std::string::String) -> JObject<'a> {
-            unimplemented!()
+    pub struct Uuid<'a> { pub obj:Object<'a> }
+    impl<'a> Uuid<'a> {
+        /// Constructs a new Uuid.
+        pub fn new(env:&'a JNIEnv<'a>) -> Self {
+            Self{obj:Object::new(env, "java/utils/UUID", "()V")}
         }
     }
+
 }

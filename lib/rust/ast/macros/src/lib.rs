@@ -22,6 +22,7 @@ mod generator;
 mod scala;
 mod types;
 
+/// Generates constructors for Rust and Scala AST with same API.
 #[proc_macro]
 pub fn generate_ast_api(input:proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = syn::parse_macro_input!(input as syn::File);

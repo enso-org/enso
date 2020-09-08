@@ -44,6 +44,8 @@
 //!    It will be generated into `target/rust/debug/`.
 //!    This step is done automatically by `sbt`.
 
+use ast::Api;
+
 use jni::JNIEnv;
 use jni::objects::*;
 use jni::sys::*;
@@ -59,25 +61,12 @@ use std::time::Instant;
 pub extern "system" fn Java_org_enso_parser_Parser_parseStr(
     env   : JNIEnv,
     _this : JClass,
-    input : JString,
+    _input : JString,
 ) -> jweak {
-    let txt = env.new_object(
-        env.find_class("org/enso/ast/Ast$Txt$Text").unwrap(),
-        "(Ljava/lang/String;)V",
-        &[input.into()],
-    ).unwrap();
+    let api = ast::Scala::new(&env);
+    let txt = api.text("Hello, World!".to_string());
 
-    let non = env.get_static_field(
-        env.find_class("scala/None$").unwrap(),
-        "MODULE$",
-        "Lscala/None$;",
-    ).unwrap().l().unwrap();
-
-    let ast = env.new_object(
-        env.find_class("org/enso/ast/Ast$Ast").unwrap(),
-        "(Lscala/Option;JJLjava/lang/Object;)V",
-        &[non.into(), 0i64.into(), 0i64.into(), txt.into()],
-    ).unwrap();
+    let ast = api.ast_shape(None, 0, 0, api.shape_text(txt));
 
     ast.into_inner()
 }
@@ -123,79 +112,24 @@ pub extern "system" fn Java_org_enso_parser_Parser_bench(
     env      : JNIEnv,
     _this    : JClass,
 ) -> jweak {
-    let non = env.get_static_field(
-        env.find_class("scala/None$").unwrap(),
-        "MODULE$",
-        "Lscala/None$;",
-    ).unwrap().l().unwrap();
-    let env = &env;
-    let env = Env {
-        env,
-        ast: JMethod::new(env, "org/enso/ast/Ast$Ast", "<init>", "(Lscala/Option;JJLjava/lang/Object;)V"),
-        app: JMethod::new(env, "org/enso/ast/Ast$App$Prefix", "<init>", "(Lorg/enso/ast/Ast$Ast;Lorg/enso/ast/Ast$Ast;)V"),
-        num: JMethod::new(env, "org/enso/ast/Ast$Num$Number", "<init>", "(Ljava/lang/String;)V"),
-        non
-    };
-
     let now = Instant::now();
-    let ast = tree(20);
+    let ast = tree(&ast::Rust, 20);
     println!("Rust AST build time: {}ms ({})", now.elapsed().as_millis(), ast.len);
 
     let now = Instant::now();
-    let ast = env.tree(20);
+    let ast = tree(&ast::Scala::new(&env), 20);
     println!("Scala AST build time: {}ms", now.elapsed().as_millis());
 
     ast.into_inner()
 }
 
-pub fn tree(depth:usize) -> ast::AnyAst {
+pub fn tree<Api:ast::Api>(api:&Api, depth:usize) -> Api::AstShape {
     if depth == 0 {
-        return ast::Ast::new(ast::num::Number{number:"0".into()})
+        return api.ast_shape(None, 0, 0, api.shape_number(api.number("0".to_string())));
     }
 
-    let fun = Box::new(tree(depth-1));
-    let arg = Box::new(tree(depth-1));
+    let fun = Box::new(tree(api, depth-1));
+    let arg = Box::new(tree(api, depth-1));
 
-    ast::Ast::new(ast::app::Prefix {fun, arg})
-}
-
-struct JMethod<'a> {
-    env:&'a JNIEnv<'a>,
-    obj:JClass<'a>,
-    fun:JMethodID<'a>,
-}
-
-impl<'a> JMethod<'a> {
-    pub fn new(env:&'a JNIEnv<'a>, obj:&str, fun:&str, typ:&str) -> Self {
-        let obj = env.find_class(obj).unwrap();
-        let fun = env.get_method_id(obj, fun, typ).unwrap();
-
-        Self{env,obj,fun}
-    }
-
-    pub fn call(&self, args:&[JValue]) -> JObject {
-        self.env.new_object_unchecked(self.obj, self.fun, args).unwrap()
-    }
-}
-
-struct Env<'a> {
-    env:&'a JNIEnv<'a>,
-    ast:JMethod<'a>,
-    app:JMethod<'a>,
-    num:JMethod<'a>,
-    non:JObject<'a>,
-}
-
-impl<'a> Env<'a> {
-    pub fn ast(&self, val:JObject) -> JObject {
-        self.ast.call(&[self.non.into(), 0.into(), 0.into(), val.into()])
-    }
-
-    pub fn tree(&self, depth:usize) -> JObject {
-        if depth == 0 {
-            return self.ast(self.num.call(&[self.env.new_string("0").unwrap().into()]))
-        }
-        let app = self.app.call(&[self.tree(depth-1).into(), self.tree(depth-1).into()]);
-        self.ast(app)
-    }
+    api.ast_shape(None, 0, 0, api.shape_prefix(api.prefix(fun, arg)))
 }

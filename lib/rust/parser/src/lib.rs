@@ -2,7 +2,7 @@
 #![deny(unconditional_recursion)]
 #![warn(missing_copy_implementations)]
 #![warn(missing_debug_implementations)]
-// #![warn(missing_docs)]
+#![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(trivial_numeric_casts)]
 #![warn(unsafe_code)]
@@ -14,7 +14,6 @@ mod jni;
 
 pub use crate::jni::*;
 
-use ast::AnyAst;
 use ast::Ast;
 
 
@@ -24,12 +23,12 @@ use ast::Ast;
 // =======================
 
 /// Parse a content of a single source file.
-pub fn parse_str(input:String) -> AnyAst {
+pub fn parse_str(input:String) -> Ast<ast::Shape> {
     Ast::new(ast::txt::Text{text:input})
 }
 
 /// Parse a single source file.
-pub fn parse_file(filename:String) -> AnyAst {
+pub fn parse_file(filename:String) -> Ast<ast::Shape> {
     parse_str(filename)
 }
 
@@ -37,11 +36,11 @@ pub fn parse_file(filename:String) -> AnyAst {
 // === Tokens ===
 
 /// Parse a content of single source file.
-pub fn lex_str(input:String) -> AnyAst {
+pub fn lex_str(input:String) -> Ast<ast::Shape> {
     parse_str(input)
 }
 
 /// Parse a single source file.
-pub fn lex_file(filename:String) -> AnyAst {
+pub fn lex_file(filename:String) -> Ast<ast::Shape> {
     parse_str(filename)
 }

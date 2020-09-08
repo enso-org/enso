@@ -308,3 +308,9 @@ impl Ast<Shape> {
 }
 
 }
+
+#[cfg(tests)]
+mod tests {
+    #[test]
+    pub fn foo() {}
+}
