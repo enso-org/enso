@@ -231,7 +231,7 @@ impl Source {
         let funs    = self.types.iter().map(|obj| obj.fun());
 
         quote! {
-            trait Api {
+            pub trait Api {
                 #(type #types);*;
 
                 #(#funs);*;
@@ -329,17 +329,13 @@ impl Source {
             if obj.variant.is_some() && !obj.class.named {
                 return quote!(#fun { variant })
             }
-            let typ  = &name::var(obj.variant.as_ref().unwrap_or_else(||&obj.name));
-            let args = obj.class.args.iter().map(|(name,typ)| {
-                if types::stdlib(&typ.name).is_none() {quote!(#name.into())} else {
-                    let typ_name = name::var(&typ.name);
-                    quote!(self.lib.#typ_name.init(#name))
-                }
-            });
+            let typ  = &name::var(obj.variant.as_ref().unwrap_or_else(||&obj.class.typ.name));
+            let args = obj.class.args.iter().map(|(name,_)| quote!(#name.jvalue(&self.lib)));
             quote!(#fun { self.#typ.init(&[#(#args),*]) })
         });
 
         quote! {
+            use ffi::ToJValue;
             use jni::objects::JObject;
 
             impl<'a> Api for Scala<'a> {
@@ -448,7 +444,7 @@ mod tests {
             struct B(A<i32>);
         }).into());
         let expected = quote! {
-            trait Api {
+            pub trait Api {
                 type Ai32;
                 type B;
                 fn ai_32(&self, val0:i32<>              ) -> <Self as Api>::Ai32;
@@ -467,7 +463,7 @@ mod tests {
             struct C<T>(T);
         }).into());
         let expected = quote! {
-            trait Api {
+            pub trait Api {
                 type A;
                 type BXBoxi32;
                 type BXY;
@@ -554,6 +550,39 @@ mod tests {
     }
 
     #[test]
+    fn test_scala_nested_generics_impl() {
+        let source = Source::new(File::new("", "", parse!{
+            struct A(B<X,Y>, C<B<X,Box<i32>>>);
+            struct B<X,Y>(X,Y);
+            struct C<T>(T);
+        }).into());
+        let expected = quote! {
+            use ffi::ToJValue;
+            use jni::objects::JObject;
+
+            impl<'a> Api for Scala<'a> {
+                type A         = JObject<'a>;
+                type BXBoxi32  = JObject<'a>;
+                type BXY       = JObject<'a>;
+                type CBXBoxi32 = JObject<'a>;
+                fn a(&self, val0:<Self as Api>::BXY, val1:<Self as Api>::CBXBoxi32) -> <Self as Api>::A {
+                    self.a.init(&[val0.jvalue(&self.lib), val1.jvalue(&self.lib)])
+                }
+                fn bx_boxi_32(&self, val0:<Self as Api>::X, val1:Box<i32 <> >) -> <Self as Api>::BXBoxi32 {
+                    self.b.init(&[val0.jvalue(&self.lib), val1.jvalue(&self.lib)])
+                }
+                fn bxy(&self, val0:<Self as Api>::X, val1:<Self as Api>::Y) -> <Self as Api>::BXY {
+                    self.b.init(&[val0.jvalue(&self.lib), val1.jvalue(&self.lib)])
+                }
+                fn cbx_boxi_32(&self,val0:<Self as Api>::BXBoxi32) -> <Self as Api>::CBXBoxi32 {
+                    self.c.init(&[val0.jvalue(&self.lib)])
+                }
+            }
+        };
+        assert_eq!(source.scala_impl().to_string(), expected.to_string())
+    }
+
+    #[test]
     fn test_rust_unnamed_enum_impl() {
         let source = Source::new(File::new("Ast", "ast", parse!{
             enum Enum { A(a::AA), B(a::AA) }
@@ -608,5 +637,28 @@ mod tests {
         };
 
         assert_eq!(source.scala_struct().to_string(), expected.to_string())
+    }
+
+    #[test]
+    fn test_scala_box() {
+        let source = Source::new(File::new("Ast", "ast", parse!{
+            struct A(Box<B>);
+        }).into());
+        let expected = quote! {
+            use ffi::Object;
+            use ffi::StdLib;
+            use jni::JNIEnv;
+
+            #[derive(Clone)]
+            pub struct Scala<'a> { pub env: &'a JNIEnv<'a>, pub lib: StdLib<'a>, }
+
+            impl<'a> Scala<'a> {
+                pub fn new(env: &'a JNIEnv<'a>) -> Self {
+                    Self { env, lib: StdLib::new(env), }
+                }
+            }
+        };
+
+        assert_eq!(source.scala_impl().to_string(), expected.to_string())
     }
 }
