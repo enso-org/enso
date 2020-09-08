@@ -169,26 +169,24 @@ class UpgradeSpec
       )
 
       checkVersion() shouldEqual SemVer(0, 0, 0)
-      val res = run(Seq("upgrade", "0.0.3"))
-      // TODO [RW] remove these logs
-      println("=" * 30)
-      println(res.stdout)
-      println("-" * 30)
-      println(res.stderr)
-      println("=" * 30)
-      res should returnSuccess
+      run(Seq("upgrade", "0.0.3")) should returnSuccess
       checkVersion() shouldEqual SemVer(0, 0, 3)
 
-      val launchedVersions =
-        """0.0.0
-          |0.0.0
-          |0.0.1
-          |0.0.2
-          |0.0.3""".stripMargin
+      val launchedVersions = Seq(
+        "0.0.0",
+        "0.0.0",
+        "0.0.1",
+        "0.0.2",
+        "0.0.3"
+      )
 
-      TestHelpers
+      val reportedLaunchLog = TestHelpers
         .readFileContent(launcherPath.getParent / ".launcher_version_log")
-        .trim shouldEqual launchedVersions
+        .trim
+        .linesIterator
+        .toSeq
+
+      reportedLaunchLog shouldEqual launchedVersions
     }
   }
 }
