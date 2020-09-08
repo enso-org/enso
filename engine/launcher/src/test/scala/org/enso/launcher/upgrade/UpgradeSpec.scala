@@ -217,5 +217,43 @@ class UpgradeSpec
 
       reportedLaunchLog shouldEqual launchedVersions
     }
+
+    "automatically trigger if an action requires a newer version and re-run " +
+    "that action with the upgraded launcher" ignore {
+      prepareDistribution(
+        portable        = true,
+        launcherVersion = Some(SemVer(0, 0, 2))
+      )
+      val enginesPath = getTestDirectory / "enso" / "dist"
+      Files.createDirectories(enginesPath)
+
+      // TODO [RW] re-enable this test when #1046 is done and the engine
+      //  distribution can be used in the test
+//      FileSystem.copyDirectory(
+//        Path.of("target/distribution/"),
+//        enginesPath / "0.1.0"
+//      )
+      val script  = getTestDirectory / "script.enso"
+      val message = "Hello from test"
+      val content =
+        s"""from Builtins import all
+           |main = IO.println "$message"
+           |""".stripMargin
+      FileSystem.writeTextFile(script, content)
+
+      // TODO [RW] make sure the right `java` is used to run the engine
+      //  (this should be dealt with in #1046)
+      val result = run(
+        Seq(
+          "run",
+          script.toAbsolutePath.toString,
+          "--use-system-jvm",
+          "--use-enso-version",
+          "0.1.0"
+        )
+      )
+      result should returnSuccess
+      result.stdout should include(message)
+    }
   }
 }
