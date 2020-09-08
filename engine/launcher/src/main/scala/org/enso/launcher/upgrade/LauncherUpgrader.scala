@@ -21,12 +21,23 @@ class LauncherUpgrader(
   releaseProvider: ReleaseProvider[LauncherRelease],
   originalExecutablePath: Option[Path]
 ) {
+
+  /**
+    * Queries the release provider for the latest available valid launcher
+    * version.
+    */
   def latestVersion(): Try[SemVer] = {
     releaseProvider.findLatestVersion()
   }
 
+  /**
+    * Performs an upgrade to the `targetVersion`.
+    *
+    * The upgrade may first temporarily install versions older than the target
+    * if the upgrade cannot be performed directly from the current version.
+    */
   def upgrade(targetVersion: SemVer): Unit = {
-    internalRunCleanup(isStartup = true)
+    runCleanup(isStartup = true)
     val release = releaseProvider.fetchRelease(targetVersion).get
     if (release.isMarkedBroken) {
       if (globalCLIOptions.autoConfirm) {
@@ -58,12 +69,44 @@ class LauncherUpgrader(
     else
       performStepByStepUpgrade(release)
 
-    if (!OS.isWindows) {
-      internalRunCleanup()
+    runCleanup()
+  }
+
+  /**
+    * Cleans up temporary and old launcher executables.
+    *
+    * Some executables may fail to be cleaned the first time, if other launcher
+    * instances are still running. To ensure that old executables are cleaned,
+    * this method can be run at launcher startup.
+    *
+    * @param isStartup specifies if the run is at startup; it will display a
+    *                  message informing about the cleanup in this case
+    */
+  def runCleanup(isStartup: Boolean = false): Unit = {
+    val binRoot = originalExecutable.getParent
+    val temporaryFiles =
+      FileSystem.listDirectory(binRoot).filter(isTemporaryExecutable)
+    if (temporaryFiles.nonEmpty && isStartup) {
+      Logger.info("Cleaning temporary files from a previous upgrade.")
+    }
+    for (file <- temporaryFiles) {
+      try {
+        Files.delete(file)
+        Logger.debug(s"Upgrade cleanup: removed `$file`.")
+      } catch {
+        case NonFatal(e) =>
+          Logger.debug(s"Cannot remove temporary file $file: $e", e)
+      }
     }
   }
 
-  def continueUpgrade(targetVersion: SemVer): Unit = {
+  /**
+    * Continues a multi-step upgrade.
+    *
+    * Called by [[InternalOpts]] when the upgrade continuation is requested by
+    * [[runNextUpgradeStep]].
+    */
+  def internalContinueUpgrade(targetVersion: SemVer): Unit = {
     val release = releaseProvider.fetchRelease(targetVersion).get
     if (release.canPerformUpgradeFromCurrentVersion)
       performUpgradeTo(release)
@@ -71,6 +114,13 @@ class LauncherUpgrader(
       performStepByStepUpgrade(release)
   }
 
+  /**
+    * Run the next step of the upgrade using the newly extracted newer launcher
+    * version.
+    *
+    * @param temporaryExecutable path to the new, temporary launcher executable
+    * @param targetVersion version to upgrade to
+    */
   private def runNextUpgradeStep(
     temporaryExecutable: Path,
     targetVersion: SemVer
@@ -79,7 +129,7 @@ class LauncherUpgrader(
       .runWithNewLauncher(temporaryExecutable)
       .continueUpgrade(
         targetVersion    = targetVersion,
-        originalPath     = currentExecutable,
+        originalPath     = originalExecutable,
         globalCLIOptions = globalCLIOptions
       )
     if (exitCode != 0) {
@@ -89,11 +139,24 @@ class LauncherUpgrader(
 
   private def showProgress = !globalCLIOptions.hideProgress
 
-  private val currentExecutable =
+  /**
+    * Path to the original launcher executable.
+    */
+  private val originalExecutable =
     originalExecutablePath.getOrElse(
       distributionManager.env.getPathToRunningExecutable
     )
 
+  /**
+    * Performs a step-by-step recursive upgrade.
+    *
+    * Finds a next version that can be directly upgraded to and is newer enough
+    * to allow to upgrade to new versions, extracts it and runs it telling it to
+    * continue upgrading to the target version. The extracted version may
+    * download additional versions if more steps are needed.
+    *
+    * @param release release associated with the target version
+    */
   private def performStepByStepUpgrade(release: LauncherRelease): Unit = {
     val availableVersions = releaseProvider.fetchAllValidVersions().get
     val nextStepRelease   = nextVersionToUpgradeTo(release, availableVersions)
@@ -151,6 +214,12 @@ class LauncherUpgrader(
     else nextVersionToUpgradeTo(nextRelease, availableVersions)
   }
 
+  /**
+    * Extracts just the launcher executable from the archive.
+    *
+    * @param archivePath path to the archive
+    * @param executablePath path where to put the extracted executable
+    */
   private def extractExecutable(
     archivePath: Path,
     executablePath: Path
@@ -177,26 +246,6 @@ class LauncherUpgrader(
     }
   }
 
-  def internalRunCleanup(isStartup: Boolean = false): Unit = {
-    // TODO when this is called ?
-    val binRoot = currentExecutable.getParent
-    val temporaryFiles =
-      FileSystem.listDirectory(binRoot).filter(isTemporaryExecutable)
-    if (temporaryFiles.nonEmpty && isStartup) {
-      Logger.info("Cleaning temporary files from a previous upgrade.")
-    }
-    for (file <- temporaryFiles) {
-      // TODO this may require retrying to ensure the file is not locked
-      try {
-        Files.delete(file)
-        Logger.debug(s"Upgrade cleanup: removed `$file`.")
-      } catch {
-        case NonFatal(e) =>
-          Logger.error(s"Cannot remove temporary file $file: $e", e)
-      }
-    }
-  }
-
   private val temporaryExecutablePrefix = "enso.tmp."
 
   private def isTemporaryExecutable(path: Path): Boolean =
@@ -204,7 +253,7 @@ class LauncherUpgrader(
 
   private def temporaryExecutablePath(suffix: String): Path = {
     val newName = OS.executableName(temporaryExecutablePrefix + suffix)
-    val binRoot = currentExecutable.getParent
+    val binRoot = originalExecutable.getParent
     binRoot / newName
   }
 
@@ -257,12 +306,10 @@ class LauncherUpgrader(
       copyNonEssentialFiles(extractedRoot, release)
 
       Logger.info("Replacing old launcher executable with the new one.")
-      replaceLauncherExecutable(temporaryExecutable, keepForRollback = false)
+      replaceLauncherExecutable(temporaryExecutable)
       Logger.info(s"Successfully upgraded launcher to ${release.version}.")
     }
   }
-
-  private def rollbackPath = temporaryExecutablePath("rollback")
 
   /**
     * Replaces the current launcher executable with a new one.
@@ -276,22 +323,16 @@ class LauncherUpgrader(
     *
     * @param newExecutable path to the new executable that will replace the old
     *                      one
-    * @param keepForRollback if true, the old executable is retained for possible rollback
     */
-  private def replaceLauncherExecutable(
-    newExecutable: Path,
-    keepForRollback: Boolean
-  ): Unit = {
-    Logger.debug(s"Replacing $currentExecutable with $newExecutable")
-    if (OS.isWindows || keepForRollback) {
-      val oldName =
-        if (keepForRollback) rollbackPath
-        else temporaryExecutablePath(s"old-${CurrentVersion.version}")
-      Files.move(currentExecutable, oldName)
-      Files.move(newExecutable, currentExecutable)
+  private def replaceLauncherExecutable(newExecutable: Path): Unit = {
+    Logger.debug(s"Replacing $originalExecutable with $newExecutable")
+    if (OS.isWindows) {
+      val oldName = temporaryExecutablePath(s"old-${CurrentVersion.version}")
+      Files.move(originalExecutable, oldName)
+      Files.move(newExecutable, originalExecutable)
     } else {
-      Files.delete(currentExecutable)
-      Files.move(newExecutable, currentExecutable)
+      Files.delete(originalExecutable)
+      Files.move(newExecutable, originalExecutable)
     }
   }
 

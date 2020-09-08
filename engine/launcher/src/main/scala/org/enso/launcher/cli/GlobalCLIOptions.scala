@@ -22,6 +22,10 @@ object GlobalCLIOptions {
   val AUTO_CONFIRM  = "auto-confirm"
   val USE_JSON      = "json"
 
+  /**
+    * Converts the [[GlobalCLIOptions]] to a sequence of arguments that can be
+    * added to a launcher invocation to set the same options.
+    */
   def toOptions(config: GlobalCLIOptions): Seq[String] = {
     val autoConfirm = if (config.autoConfirm) Seq(s"--$AUTO_CONFIRM") else Seq()
     val hideProgress =

@@ -18,7 +18,15 @@ object Cargo {
       run(args, rustVersion.value, state.value.log)
     }
 
-  /** Checks rust version and executes the command `cargo $args`. */
+  /**
+    * Checks rust version and executes the command `cargo $args`.
+    *
+    * @param args arguments to pass to cargo
+    * @param rustVersion Rust version that should be used
+    * @param log a logger instance for diagnostics
+    * @param extraEnv additional environment variables that should be set for
+    *                 the cargo process
+    */
   def run(
     args: String,
     rustVersion: String,

@@ -6,7 +6,6 @@ import io.circe.parser
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher._
-import org.enso.launcher.cli.InternalOpts
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 
 class UpgradeSpec
@@ -15,6 +14,9 @@ class UpgradeSpec
     with BeforeAndAfterAll
     with OptionValues {
 
+  /**
+    * Location of the fake releases root.
+    */
   private val fakeReleaseRoot = Path
       .of(
         getClass
@@ -22,13 +24,22 @@ class UpgradeSpec
           .toURI
       ) / "launcher"
 
+  /**
+    * Location of built Rust artifacts.
+    */
   private val rustBuildRoot = Path.of("./target/rust/debug/")
 
+  /**
+    * Path to a launcher shim that pretends to be `version`.
+    */
   private def builtLauncherBinary(version: SemVer): Path = {
     val simplifiedVersion = version.toString.replaceAll("[.-]", "")
     rustBuildRoot / OS.executableName(s"launcher_$simplifiedVersion")
   }
 
+  /**
+    * Copies a launcher shim into the fake release directory.
+    */
   private def prepareLauncherBinary(version: SemVer): Unit = {
     val os          = OS.operatingSystem.configName
     val arch        = OS.architecture
@@ -78,9 +89,16 @@ class UpgradeSpec
     Thread.sleep(100)
   }
 
+  /**
+    * Path to the launcher executable in the temporary distribution.
+    */
   private def launcherPath =
     getTestDirectory / "enso" / "bin" / OS.executableName("enso")
 
+  /**
+    * Runs `enso version` to inspect the version reported by the launcher.
+    * @return the reported version
+    */
   private def checkVersion(): SemVer = {
     val run = runLauncherAt(
       launcherPath,
@@ -93,12 +111,19 @@ class UpgradeSpec
     SemVer(version.asObject.value.apply("version").value.asString.value).value
   }
 
+  /**
+    * Runs the launcher in the temporary distribution.
+    *
+    * @param args arguments for the launcher
+    * @param extraEnv environment variable overrides
+    * @return result of the run
+    */
   private def run(
     args: Seq[String],
     extraEnv: Map[String, String] = Map.empty
   ): RunResult = {
     val testArgs = Seq(
-      s"--${InternalOpts.EMULATE_REPOSITORY}",
+      "--internal-emulate-repository",
       fakeReleaseRoot.toAbsolutePath.toString,
       "--auto-confirm",
       "--hide-progress"

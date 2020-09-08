@@ -4,6 +4,22 @@ import sbt.internal.util.ManagedLogger
 import scala.sys.process._
 
 object BuildInfo {
+
+  /**
+    * Writes build-time information to a Scala object that can be used by the
+    * components.
+    *
+    * If the `ENSO_RELEASE_MODE` environment variable is set to `true`, will set
+    * an `isRelease` flag to true. This flag can be used to disable
+    * development-specific features.
+    *
+    * @param file location where to write the Scala code
+    * @param log a logger instance for diagnostics
+    * @param ensoVersion Enso version
+    * @param scalacVersion Scala compiler version used in the project
+    * @param graalVersion GraalVM version used in the project
+    * @return sequence of modified files
+    */
   def writeBuildInfoFile(
     file: File,
     log: ManagedLogger,
@@ -30,7 +46,8 @@ object BuildInfo {
          |  val isDirty           = ${gitInfo.isDirty}
          |  val latestCommitDate  = "${gitInfo.latestCommitDate}"
          |
-         |  // Release
+         |  // Release mode, set to true if the environment variable
+         |  // `ENSO_RELEASE_MODE` is set to `true` at build time.
          |  val isRelease = $isRelease
          |}
          |""".stripMargin

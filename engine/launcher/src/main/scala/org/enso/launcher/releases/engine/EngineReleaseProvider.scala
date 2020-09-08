@@ -21,7 +21,7 @@ class EngineReleaseProvider(releaseProvider: SimpleReleaseProvider)
     extends EnsoReleaseProvider[EngineRelease](releaseProvider) {
 
   /**
-    * Fetches release metadata for a given version.
+    * @inheritdoc
     */
   def fetchRelease(version: SemVer): Try[EngineRelease] = {
     val tag = tagPrefix + version.toString
@@ -57,7 +57,7 @@ class EngineReleaseProvider(releaseProvider: SimpleReleaseProvider)
     )
   }
 
-  case class DefaultEngineRelease(
+  private case class DefaultEngineRelease(
     version: SemVer,
     manifest: Manifest,
     isBroken: Boolean,

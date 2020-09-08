@@ -7,6 +7,19 @@ import org.enso.pkg.SemVerJson._
 
 import scala.util.{Failure, Try}
 
+/**
+  * Contains release metadata associated with a launcher release.
+  *
+  * @param minimumVersionToUpgrade minimum version of the current launcher that
+  *                                is required to upgrade to this version; if
+  *                                current launcher is older than that provided
+  *                                version, a multi-step upgrade must be
+  *                                performed
+  * @param filesToCopy a sequence of filenames of files that should be updated
+  *                    in the data root
+  * @param directoriesToCopy a sequence of names of directories that should be
+  *                          updated in the data root
+  */
 case class LauncherManifest(
   minimumVersionToUpgrade: SemVer,
   filesToCopy: Seq[String],
@@ -14,12 +27,21 @@ case class LauncherManifest(
 )
 
 object LauncherManifest {
+
+  /**
+    * Default name of the asset containing the launcher manifest.
+    */
   val assetName: String = "launcher-manifest.yaml"
-  object Fields {
+
+  private object Fields {
     val minimumVersionToUpgrade = "minimum-version-to-upgrade"
     val filesToCopy             = "files-to-copy"
     val directoriesToCopy       = "directories-to-copy"
   }
+
+  /**
+    * [[Decoder]] instance for [[LauncherManifest]].
+    */
   implicit val decoder: Decoder[LauncherManifest] = { json =>
     for {
       minimumVersionToUpgrade <-
@@ -34,6 +56,9 @@ object LauncherManifest {
     )
   }
 
+  /**
+    * Tries to parse the [[LauncherManifest]] from a [[String]].
+    */
   def fromYAML(string: String): Try[LauncherManifest] =
     yaml.parser
       .parse(string)

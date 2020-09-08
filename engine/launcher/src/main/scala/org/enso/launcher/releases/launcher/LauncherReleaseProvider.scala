@@ -18,6 +18,10 @@ import scala.util.Try
   */
 class LauncherReleaseProvider(releaseProvider: SimpleReleaseProvider)
     extends EnsoReleaseProvider[LauncherRelease](releaseProvider) {
+
+  /**
+    * @inheritdoc
+    */
   override def fetchRelease(version: SemVer): Try[LauncherRelease] = {
     val tag = tagPrefix + version.toString
     for {
@@ -37,13 +41,11 @@ class LauncherReleaseProvider(releaseProvider: SimpleReleaseProvider)
     } yield GitHubLauncherRelease(version, manifest, release)
   }
 
-  case class GitHubLauncherRelease(
+  private case class GitHubLauncherRelease(
     version: SemVer,
     manifest: LauncherManifest,
     release: Release
   ) extends LauncherRelease {
-    def minimumVersionToPerformUpgrade: SemVer =
-      manifest.minimumVersionToUpgrade
     override def packageFileName: String =
       EnsoReleaseProvider.packageNameForComponent("launcher", version)
     override def downloadPackage(path: Path): TaskProgress[Unit] = {

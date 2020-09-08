@@ -21,7 +21,7 @@ import org.enso.launcher.{CurrentVersion, Environment, FileSystem, OS}
   * Windows-specific filesystem limitations. They should not be used by the
   * users directly, so they are not displayed in the help text.
   *
-  * The implemented workarounds are following:
+  * The implemented features are following:
   *
   * 1. Remove Old Executable
   *    On Windows, if an executable is running, its file is locked, so it is
@@ -40,7 +40,28 @@ import org.enso.launcher.{CurrentVersion, Environment, FileSystem, OS}
   *    when the system removes temporary files) and uses it to remove the
   *    original binary. It then can also remove the (now empty) installation
   *    directory if necessary.
-  * 3. TODO [RW] doc
+  * 3. Continue Upgrade
+  *    This one is not a Windows-specific workaround but a way for the launcher
+  *    to perform multi-step upgrade. If the launcher cannot upgrade directly to
+  *    a newer version (because, for example, it requires some additional
+  *    upgrade logic), it will first download some version 'in the middle' that
+  *    is old enough that it can upgrade to it directly, but new enough that it
+  *    has some new upgrade logic. It will extract it and run this temporary
+  *    launcher executable, telling it to continue the upgrade. This can be
+  *    repeated multiple times if multiple steps are required to reach the
+  *    target version. InternalOpts are used to run the new executable with all
+  *    the necessary options and to handle the upgrade continuation request.
+  * 4. Version and Repository Emulation
+  *    To be able to test the upgrade mechanism, we need to run it as built
+  *    native executables. But we do not want to do any network requests inside
+  *    of the tests because of their instability. Instead, we add internal
+  *    options that allow to override the default, network-backed repository
+  *    with a fake repository backed by the filesystem. Moreover, to avoid
+  *    building multiple fat launcher executables, we provide an internal option
+  *    to override its version (and executable location). This option is used by
+  *    thin wrappers written in Rust which run the original launcher but
+  *    overriding its version. This mechanism is used for testing the multi-step
+  *    upgrade. These emulation options are only enabled in development builds.
   */
 object InternalOpts {
   private val REMOVE_OLD_EXECUTABLE   = "internal-remove-old-executable"
@@ -49,9 +70,9 @@ object InternalOpts {
   private val CONTINUE_UPGRADE        = "internal-continue-upgrade"
   private val UPGRADE_ORIGINAL_PATH   = "internal-upgrade-original-path"
 
-  private val EMULATE_VERSION  = "internal-emulate-version"
-  private val EMULATE_LOCATION = "internal-emulate-location"
-  val EMULATE_REPOSITORY       = "internal-emulate-repository"
+  private val EMULATE_VERSION    = "internal-emulate-version"
+  private val EMULATE_LOCATION   = "internal-emulate-location"
+  private val EMULATE_REPOSITORY = "internal-emulate-repository"
 
   private var inheritEmulateRepository: Option[Path] = None
 
@@ -129,12 +150,17 @@ object InternalOpts {
         continueUpgrade.foreach { version =>
           LauncherUpgrader
             .makeDefault(config, originalExecutablePath = originalPath)
-            .continueUpgrade(version)
+            .internalContinueUpgrade(version)
           sys.exit(0)
         }
     }
   }
 
+  /**
+    * Internal options used for testing.
+    *
+    * Disabled in release mode.
+    */
   private def testingOptions: Opts[Unit] =
     if (buildinfo.Info.isRelease) Opts.pure(())
     else {
@@ -226,6 +252,18 @@ object InternalOpts {
       runDetachedAndExit(command)
     }
 
+    /**
+      * Tells the launcher to continue a multi-step upgrade.
+      *
+      * Creates an instance of [[LauncherUpgrader]] and invokes
+      * [[LauncherUpgrader.internalContinueUpgrade]].
+      *
+      * @param targetVersion target version to upgrade to
+      * @param originalPath path to the original launcher executable that should
+      *                     be replaced with the final executable
+      * @param globalCLIOptions cli options that should be inherited
+      * @return exit code of the child process
+      */
     def continueUpgrade(
       targetVersion: SemVer,
       originalPath: Path,

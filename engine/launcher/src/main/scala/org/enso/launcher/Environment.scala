@@ -171,7 +171,8 @@ object Environment extends Environment {
     * Overrides the return value of [[getPathToRunningExecutable]] with the
     * provided path.
     *
-    * Internal method used for testing.
+    * Internal method used for testing. It should be called as early as
+    * possible, before [[getPathToRunningExecutable]] is called.
     */
   def internalOverrideExecutableLocation(newLocation: Path): Unit =
     if (buildinfo.Info.isRelease)

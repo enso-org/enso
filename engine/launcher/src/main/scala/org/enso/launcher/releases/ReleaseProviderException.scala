@@ -1,5 +1,8 @@
 package org.enso.launcher.releases
 
+/**
+  * Indicates a release provider failure.
+  */
 case class ReleaseProviderException(message: String, cause: Throwable = null)
     extends RuntimeException(message, cause) {
 

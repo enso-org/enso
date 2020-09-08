@@ -41,6 +41,13 @@ abstract class EnsoReleaseProvider[ReleaseType](
 }
 
 object EnsoReleaseProvider {
+
+  /**
+    * Returns a full system-dependent package name for a component with a given
+    * name and version.
+    *
+    * The package name can depend on the current OS and its architecture.
+    */
   def packageNameForComponent(
     componentName: String,
     version: SemVer

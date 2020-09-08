@@ -11,6 +11,13 @@ import org.enso.launcher.releases.launcher.{
 }
 import org.enso.launcher.releases.testing.FakeReleaseProvider
 
+/**
+  * Represents the default Enso repository providing releases for the engine and
+  * the launcher.
+  *
+  * In test mode, the default GitHub repository can be overridden with a local
+  * filesystem-backed repository.
+  */
 object EnsoRepository {
   private var currentRepository: SimpleReleaseProvider =
     // TODO [RW] The release provider will be moved from staging to the main

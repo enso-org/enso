@@ -159,6 +159,10 @@ object NativeImage {
   private def isLinux: Boolean =
     sys.props("os.name").toLowerCase().contains("linux")
 
+  /**
+    * [[File]] representing the artifact called `name` built with the Native
+    * Image.
+    */
   def artifactFile(name: String): File =
     if (isWindows) file(name + ".exe")
     else file(name)

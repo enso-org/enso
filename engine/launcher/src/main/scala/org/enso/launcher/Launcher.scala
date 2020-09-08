@@ -37,6 +37,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
       Environment
     )
   private lazy val upgrader = LauncherUpgrader.makeDefault(cliOptions)
+  upgrader.runCleanup(isStartup = true)
 
   /**
     * Creates a new project with the given `name` in the given `path`.
@@ -381,6 +382,13 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     )
   }
 
+  /**
+    * Performs a self-upgrade.
+    *
+    * If a `version` is specified, installs that version (if the version is
+    * older than the current one, a downgrade is performed). If no `version` is
+    * specified, the latest available version is chosen.
+    */
   def upgrade(version: Option[SemVer]): Unit = {
     val targetVersion = version.getOrElse(upgrader.latestVersion().get)
     if (targetVersion == CurrentVersion.version) {
