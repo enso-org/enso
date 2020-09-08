@@ -150,6 +150,9 @@ class DemandAnalysisTest extends CompilerTest {
       val vec = ir
         .asInstanceOf[IR.Function.Lambda]
         .body
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments(0)
+        .value
         .asInstanceOf[IR.Application.Literal.Sequence]
 
       vec.items(0) shouldBe an[IR.Application.Force]

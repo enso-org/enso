@@ -13,6 +13,10 @@ public class Array {
     scope.registerConstructor(array);
     scope.registerMethod(array, "empty", EmptyMethodGen.makeFunction(language));
     scope.registerMethod(array, "new", NewMethodGen.makeFunction(language));
+    scope.registerMethod(array, "new_1", New1MethodGen.makeFunction(language));
+    scope.registerMethod(array, "new_2", New2MethodGen.makeFunction(language));
+    scope.registerMethod(array, "new_3", New3MethodGen.makeFunction(language));
+    scope.registerMethod(array, "new_4", New4MethodGen.makeFunction(language));
     scope.registerMethod(array, "length", LengthMethodGen.makeFunction(language));
     scope.registerMethod(array, "to_array", ToArrayMethodGen.makeFunction(language));
     scope.registerMethod(array, "at", GetAtMethodGen.makeFunction(language));

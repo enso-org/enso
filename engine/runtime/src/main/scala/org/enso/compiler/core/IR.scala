@@ -5140,18 +5140,6 @@ object IR {
       }
     }
 
-    case class UnresolvedVectorMacro(
-      override val location: Option[IdentifiedLocation]
-    ) extends Warning {
-
-      /**
-        * @return a human-readable description of this error condition.
-        */
-      override def message: String =
-        s"Marco definition for vector literals is not imported." +
-        s" Defaulting to bare arrays."
-    }
-
     /** Warnings for unreachable code. */
     sealed trait Unreachable extends Warning {
       val location: Option[IdentifiedLocation]
@@ -5314,6 +5302,12 @@ object IR {
         def explain(originalName: IR.Name): String
       }
 
+      case object UnresolvedSequenceMacro extends Reason {
+        override def explain(originalName: Name): String =
+          "No definition for the sequence macro could be found. Try" +
+          " importing the default definition from the Base.Vector module."
+      }
+
       /**
         * An error coming from an unexpected occurence of a polyglot symbol.
         *
@@ -5322,7 +5316,7 @@ object IR {
         */
       case class UnexpectedPolyglot(context: String) extends Reason {
         override def explain(originalName: Name): String =
-          s"The name ${originalName.name} resolved to a polyglot symbol," +
+          s"The name ${originalName.name} resolved to a polyglot symbol, " +
           s"but polyglot symbols are not allowed in $context."
       }
 
@@ -5334,7 +5328,7 @@ object IR {
         */
       case class UnexpectedMethod(context: String) extends Reason {
         override def explain(originalName: Name): String =
-          s"The name ${originalName.name} resolved to a method," +
+          s"The name ${originalName.name} resolved to a method, " +
           s"but methods are not allowed in $context."
       }
 

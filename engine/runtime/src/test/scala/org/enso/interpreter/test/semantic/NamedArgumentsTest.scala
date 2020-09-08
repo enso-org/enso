@@ -257,16 +257,5 @@ class NamedArgumentsTest extends InterpreterTest {
 
       eval(code) shouldEqual 10
     }
-
-    "be assignable from Vectors" in {
-      val code =
-        """from Builtins import all
-          |
-          |main =
-          |    lam = (x=[1,3]) -> y -> y + Polyglot.get_array_element x 0 + Polyglot.get_array_element x 1
-          |    lam y=10
-          |""".stripMargin
-      eval(code) shouldEqual 14
-    }
   }
 }

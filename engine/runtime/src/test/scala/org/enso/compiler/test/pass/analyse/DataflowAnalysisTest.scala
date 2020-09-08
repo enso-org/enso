@@ -856,21 +856,28 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val depInfo = ir.getMetadata(DataflowAnalysis).get
 
-      val vector = ir.body
+      val callArg = ir.body
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments(0)
+      val vector = callArg.value
         .asInstanceOf[IR.Application.Literal.Sequence]
 
-      val xDefId = mkStaticDep(ir.arguments(0).getId)
-      val xUseId = mkStaticDep(vector.items(0).getId)
-      val yId    = mkStaticDep(vector.items(1).getId)
-      val litId  = mkStaticDep(vector.items(2).getId)
-      val vecId  = mkStaticDep(vector.getId)
-      val lamId  = mkStaticDep(ir.getId)
+      val xDefId    = mkStaticDep(ir.arguments(0).getId)
+      val xUseId    = mkStaticDep(vector.items(0).getId)
+      val yId       = mkStaticDep(vector.items(1).getId)
+      val litId     = mkStaticDep(vector.items(2).getId)
+      val vecId     = mkStaticDep(vector.getId)
+      val callArgId = mkStaticDep(callArg.getId)
+      val appId     = mkStaticDep(ir.body.getId)
+      val lamId     = mkStaticDep(ir.getId)
 
       depInfo.getDirect(xDefId) shouldEqual Some(Set(xUseId))
       depInfo.getDirect(xUseId) shouldEqual Some(Set(vecId))
       depInfo.getDirect(yId) shouldEqual Some(Set(vecId))
       depInfo.getDirect(litId) shouldEqual Some(Set(vecId))
-      depInfo.getDirect(vecId) shouldEqual Some(Set(lamId))
+      depInfo.getDirect(vecId) shouldEqual Some(Set(callArgId))
+      depInfo.getDirect(callArgId) shouldEqual Some(Set(appId))
+      depInfo.getDirect(appId) shouldEqual Some(Set(lamId))
     }
 
     "work properly for typeset literals" in {

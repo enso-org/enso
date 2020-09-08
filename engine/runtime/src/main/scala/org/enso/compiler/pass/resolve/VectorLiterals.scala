@@ -63,7 +63,7 @@ case object VectorLiterals extends IRPass {
     doExpression(ir, vec)
   }
 
-  private def vectorCons(bindings: BindingsMap): Option[IR.Expression] = {
+  private def vectorCons(bindings: BindingsMap): IR.Expression = {
     val module = bindings.resolvedImports
       .flatMap(imp =>
         imp.module :: imp.module.getIr
@@ -75,36 +75,34 @@ case object VectorLiterals extends IRPass {
           .map(_.module)
       )
       .find(_.getName.toString == "Base.Vector")
-    module.map { module =>
-      val n = IR.Name.Literal("<Sequence Macro>", isReferent = true, None)
-      val withRes = n.updateMetadata(
-        UppercaseNames -->> BindingsMap.Resolution(
-          BindingsMap
-            .ResolvedConstructor(module, BindingsMap.Cons("Vector", 1))
+    val name = IR.Name.Literal("<Sequence Macro>", isReferent = true, None)
+    module
+      .map { module =>
+        val withRes = name.updateMetadata(
+          UppercaseNames -->> BindingsMap.Resolution(
+            BindingsMap
+              .ResolvedConstructor(module, BindingsMap.Cons("Vector", 1))
+          )
         )
-      )
-      withRes
-    }
+        withRes
+      }
+      .getOrElse {
+        IR.Error.Resolution(name, IR.Error.Resolution.UnresolvedSequenceMacro)
+      }
   }
 
   private def doExpression(
     ir: IR.Expression,
-    vec: Option[IR.Expression]
+    vec: IR.Expression
   ): IR.Expression =
     ir.transformExpressions {
       case seq: IR.Application.Literal.Sequence =>
         val trans = seq.mapExpressions(doExpression(_, vec))
-        vec
-          .map(vec =>
-            IR.Application.Prefix(
-              vec,
-              List(IR.CallArgument.Specified(None, trans, None, None)),
-              false,
-              None
-            )
-          )
-          .getOrElse(
-            trans.addDiagnostic(IR.Warning.UnresolvedVectorMacro(ir.location))
-          )
+        IR.Application.Prefix(
+          vec,
+          List(IR.CallArgument.Specified(None, trans, None, None)),
+          false,
+          None
+        )
     }
 }
