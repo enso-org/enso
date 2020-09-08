@@ -5,6 +5,8 @@
 use super::ast::Name;
 use super::ast::Type;
 
+use std::collections::BTreeSet as Set;
+
 
 
 // =====================
@@ -12,16 +14,32 @@ use super::ast::Type;
 // =====================
 
 /// Writes a JNI signature of user defined type into string buffer i.e. `package$Path$MyType`.
-pub fn jni_name(name:&mut String, package:&str, typ:&Type) {
-    name.push_str(package);
-    name.push('$');
+pub fn jni_name(mut name:String, typ:&Type, package:&str) -> String {
+    name += package;
+    name += "$";
     for path in &typ.path {
-        name.push_str(path.str.as_str());
-        name.push('$');
+        name += path.str.as_str();
+        name += "$";
     }
-    name.push_str(typ.name.str.as_str());
+    name + typ.name.str.as_str()
 }
 
+/// Writes a JNI argument signature of given type into string buffer i.e. `Lpackage$Path$MyType;`.
+pub fn jni_arg(mut name:String, typ:&Type, package:&str, type_names:&Set<Name>) -> String {
+    if let Some(jname) = builtin(&typ.name) {
+        if jname.jni.is_empty() {
+            return jni_arg(name, &typ.args[0], package, type_names);
+        }
+        name += jname.jni;
+    } else if !type_names.contains(&typ.name) {
+        name += "Ljava/lang/Object;";
+    } else {
+        name += "L";
+        name  = jni_name(name, typ, package);
+        name += ";";
+    }
+    name
+}
 
 // === Builtin Types ===
 
@@ -40,7 +58,7 @@ pub fn builtin(name:&Name) -> Option<JName> {
        // ERASED
        "Box"                             => JName {jni:"",  scala:""       },
        // PRIMITIVES (https://docs.oracle.com/javase/7/docs/technotes/guides/jni/spec/types.html)
-       "usize" | "isize" | "u64" | "i64" => JName {jni:"L", scala:"Long"   },
+       "usize" | "isize" | "u64" | "i64" => JName {jni:"J", scala:"Long"   },
        "u32"   | "i32"                   => JName {jni:"I", scala:"Int"    },
        "u16"   | "i16"   | "i8"          => JName {jni:"S", scala:"Short"  },
        "u8"                              => JName {jni:"B", scala:"Byte"   },
@@ -56,11 +74,11 @@ pub fn builtin(name:&Name) -> Option<JName> {
 /// Returns the standard library name of given name if it exists.
 pub fn stdlib(name:&Name) -> Option<JName> {
     let name = match name.str.as_str() {
-        "Object"                          => JName {jni:"java/lang/Object",   scala:"Object" },
-        "Vec"                             => JName {jni:"scala/Vector",       scala:"Vector" },
-        "Option"                          => JName {jni:"scala/Option",       scala:"Option" },
-        "Uuid"                            => JName {jni:"java/util/UUID",     scala:"UUID"   },
-        "String"                          => JName {jni:"java/lang/String",   scala:"String" },
+        "Object"                          => JName {jni:"Ljava/lang/Object;",   scala:"Object" },
+        "Vec"                             => JName {jni:"Lscala/Vector;",       scala:"Vector" },
+        "Option"                          => JName {jni:"Lscala/Option;",       scala:"Option" },
+        "Uuid"                            => JName {jni:"Ljava/util/UUID;",     scala:"UUID"   },
+        "String"                          => JName {jni:"Ljava/lang/String;",   scala:"String" },
         _                                 => None?,
     };
     Some(name)

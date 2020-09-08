@@ -61,11 +61,10 @@ use std::time::Instant;
 pub extern "system" fn Java_org_enso_parser_Parser_parseStr(
     env   : JNIEnv,
     _this : JClass,
-    _input : JString,
+    input : JString,
 ) -> jweak {
     let api = ast::Scala::new(&env);
-    let txt = api.text("Hello, World!".to_string());
-
+    let txt = api.text(env.get_string(input).unwrap().into());
     let ast = api.ast_shape(None, 0, 0, api.shape_text(txt));
 
     ast.into_inner()
@@ -107,6 +106,7 @@ pub extern "system" fn Java_org_enso_parser_Parser_lexFile(
 
 // === Benchmark ===
 
+/// Creates a prefix tree of depth 20 and prints the it took.
 #[no_mangle]
 pub extern "system" fn Java_org_enso_parser_Parser_bench(
     env      : JNIEnv,
@@ -123,6 +123,7 @@ pub extern "system" fn Java_org_enso_parser_Parser_bench(
     ast.into_inner()
 }
 
+/// Creates a prefix tree of given depth.
 pub fn tree<Api:ast::Api>(api:&Api, depth:usize) -> Api::AstShape {
     if depth == 0 {
         return api.ast_shape(None, 0, 0, api.shape_number(api.number("0".to_string())));

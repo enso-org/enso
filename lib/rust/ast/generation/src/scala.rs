@@ -44,7 +44,7 @@ impl Source {
     /// Genereate a scala source code.
     pub fn ast() -> std::io::Result<String> {
         let mut content = String::new();
-        let mut file    = fs::File::open("lib/rust/ast/src/ast.rs")?;
+        let mut file    = fs::File::open("lib/rust/ast/impl/src/ast.rs")?;
         file.read_to_string(&mut content)?;
 
         let file      = syn::parse_file(content.as_str()).unwrap();
@@ -96,13 +96,12 @@ impl<'a> Generator<Source> for &Module<'a> {
             write!(source, TAB, "sealed trait ", &name, extends(&name));
         }
         for item in self.lines {
-            source.write("\n");
             match item {
-                syn::Item::Mod   (val) => Module::from(val).write(source),
-                syn::Item::Type  (val) => TypeAlias::from(val).write(source),
-                syn::Item::Struct(val) => Class::from(val).write(source),
-                syn::Item::Enum  (val) => Enum::from(val).write(source),
-                _                      => (),
+                syn::Item::Mod   (val) => { source.write("\n"); Module   ::from(val).write(source) }
+                syn::Item::Type  (val) => { source.write("\n"); TypeAlias::from(val).write(source) }
+                syn::Item::Struct(val) => { source.write("\n"); Class    ::from(val).write(source) }
+                syn::Item::Enum  (val) => { source.write("\n"); Enum     ::from(val).write(source) }
+                _                      => { }
             }
         }
 
@@ -164,7 +163,7 @@ impl Generator<Source> for &Type {
         let name  = name::typ(&self.name);
         let valid = !name.str.is_empty();
         for name in &self.path {
-            write!(source, name, ".");
+            write!(source, &name::typ(name), ".");
         }
         if valid { write!(source, &name) }
         if !self.args.is_empty() {
@@ -260,7 +259,7 @@ object Ast {
 
     case class Foo() extends A
 
-    case class Bar(x:Long, y:Byte, z:b.Type) extends A
+    case class Bar(x:Long, y:Byte, z:B.Type) extends A
   }
 
   object B {

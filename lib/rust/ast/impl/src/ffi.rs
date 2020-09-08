@@ -19,10 +19,12 @@ pub use stdlib::StdLib;
 /// Ergonomic JObject constructor.
 #[derive(Clone)]
 pub struct Object<'a> {
+    /// JNI Environment.
     pub env:&'a JNIEnv<'a>,
+    /// JNI Object ID.
     pub obj:JClass<'a>,
+    /// JNI Method ID.
     pub fun:JMethodID<'a>,
-    pub typ:String,
 }
 
 impl<'a> Object<'a> {
@@ -33,7 +35,7 @@ impl<'a> Object<'a> {
         let obj = env.find_class(typ).unwrap();
         let fun = env.get_method_id(typ, "<init>", args).unwrap();
 
-        Self{env,obj,fun,typ:typ.into()}
+        Self{env,obj,fun}
     }
 
     /// Creates a new instance of the given object.
@@ -45,7 +47,9 @@ impl<'a> Object<'a> {
 
 /// === Scala Standard Library ===
 
+/// Trait for creating builtin objects from standard library.
 pub trait ToJValue<'a> {
+    /// JValue construct.
     fn jvalue(self, lib:&StdLib<'a>) -> JValue<'a>;
 }
 

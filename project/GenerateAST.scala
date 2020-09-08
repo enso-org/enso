@@ -9,7 +9,7 @@ object GenerateAST {
   lazy val task = Def.task {
     val log    = state.value.log
     val lib    = baseDirectory.value.getParentFile.getParentFile
-    val source = lib / "rust/ast/src/ast.rs"
+    val source = lib / "rust/ast/src/impl/ast.rs"
     val output = sourceManaged.value / "main/org/enso/ast/Ast.scala"
     val cache  = streams.value.cacheStoreFactory.make("ast_source")
 

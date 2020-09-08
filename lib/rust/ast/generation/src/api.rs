@@ -191,6 +191,15 @@ pub struct Source {
 }
 
 impl Source {
+    /// Returns API definition for the given AST definition.
+    pub fn api(ast:&str) -> String {
+        let input = syn::parse_str(ast).unwrap();
+        let file  = File::new("Ast", "org.enso.ast", input);
+        let api   = Self::new(file.into()).ast_api();
+
+        api.to_string()
+    }
+
     /// Creates a new instance from `Collector`.
     pub fn new(collector:Collector) -> Self {
         fn apply(typ:&Type, vars:&Map<&Name,&Type>) -> Type {
@@ -282,19 +291,10 @@ impl Source {
     pub fn scala_struct(&self) -> TokenStream {
         let fields  = self.classes.iter().map(|obj| name::var(&obj.typ.name)).collect_vec();
         let objects = self.classes.iter().map(|obj| {
-            let mut name = String::from("");
+            let     name = types::jni_name("".to_string(), &obj.typ, self.package.as_str());
             let mut args = String::from("(");
-            types::jni_name(&mut name, self.package.as_str(), &obj.typ);
             for (_, typ) in &obj.args {
-                if let Some(name) = types::builtin(&typ.name) {
-                    args += name.jni;
-                } else if !self.class_names.contains(&typ.name) {
-                    args += "Ljava/lang/Object;";
-                } else {
-                    args += "L";
-                    types::jni_name(&mut args, self.package.as_str(), &typ);
-                    args += ";";
-                }
+                args = types::jni_arg(args, &typ, self.package.as_str(), &self.class_names);
             }
             args += ")V";
             quote!(Object::new(&env,#name,#args))
@@ -302,10 +302,11 @@ impl Source {
 
 
         quote! {
-            use ffi::Object;
-            use ffi::StdLib;
+            use crate::ffi::Object;
+            use crate::ffi::StdLib;
             use jni::JNIEnv;
 
+            #[allow(missing_debug_implementations)]
             #[derive(Clone)]
             pub struct Scala<'a> {
                 pub env:&'a JNIEnv<'a>,
@@ -335,7 +336,7 @@ impl Source {
         });
 
         quote! {
-            use ffi::ToJValue;
+            use crate::ffi::ToJValue;
             use jni::objects::JObject;
 
             impl<'a> Api for Scala<'a> {
@@ -355,6 +356,10 @@ impl Source {
         let scala_impl   = self.scala_impl();
 
         quote! {
+            #![allow(missing_docs)]
+
+            use crate::ast::*;
+
             #rust_struct
             #scala_struct
 
@@ -520,10 +525,11 @@ mod tests {
             struct C<T>(T);
         }).into());
         let expected = quote! {
-            use ffi::Object;
-            use ffi::StdLib;
+            use crate::ffi::Object;
+            use crate::ffi::StdLib;
             use jni::JNIEnv;
 
+            #[allow(missing_debug_implementations)]
             #[derive(Clone)]
             pub struct Scala<'a> {
                 pub env: &'a JNIEnv<'a>,
@@ -557,7 +563,7 @@ mod tests {
             struct C<T>(T);
         }).into());
         let expected = quote! {
-            use ffi::ToJValue;
+            use crate::ffi::ToJValue;
             use jni::objects::JObject;
 
             impl<'a> Api for Scala<'a> {
@@ -622,10 +628,11 @@ mod tests {
             enum Enum { A(a::AA), B(a::AA) }
         }).into());
         let expected = quote! {
-            use ffi::Object;
-            use ffi::StdLib;
+            use crate::ffi::Object;
+            use crate::ffi::StdLib;
             use jni::JNIEnv;
 
+            #[allow(missing_debug_implementations)]
             #[derive(Clone)]
             pub struct Scala<'a> { pub env: &'a JNIEnv<'a>, pub lib: StdLib<'a>, }
 
@@ -645,10 +652,11 @@ mod tests {
             struct A(Box<B>);
         }).into());
         let expected = quote! {
-            use ffi::Object;
-            use ffi::StdLib;
+            use crate::ffi::Object;
+            use crate::ffi::StdLib;
             use jni::JNIEnv;
 
+            #[allow(missing_debug_implementations)]
             #[derive(Clone)]
             pub struct Scala<'a> { pub env: &'a JNIEnv<'a>, pub lib: StdLib<'a>, }
 

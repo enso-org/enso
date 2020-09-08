@@ -22,6 +22,8 @@ test       = true
 bench      = true
 
 [dependencies]
-uuid       = { version = "0.8.1" , features = ["serde","v4","wasm-bindgen"] }
-ast-macros = { version = "0.1.0" , path = "../macros"                       }
-jni        = { version = "0.17.0"                                           }
+uuid           = { version = "0.8.1" , features = ["serde","v4","wasm-bindgen"] }
+jni            = { version = "0.17.0"                                           }
+
+[build-dependencies]
+ast-generation = { version = "0.1.0" , path = "../generation" }

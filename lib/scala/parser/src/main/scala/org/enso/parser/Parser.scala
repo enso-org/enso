@@ -21,19 +21,19 @@ import scala.annotation.unused
   */
 class Parser private () {
   /**  Parses a content of a single source file. */
-  @native def parseStr(@unused input: String): Ast.AnyAst
+  @native def parseStr(@unused input: String): Ast.Ast[Ast.Shape]
 
   /**  Parses a single source file. */
-  @native def parseFile(@unused filename: String): Ast.AnyAst
+  @native def parseFile(@unused filename: String): Ast.Ast[Ast.Shape]
 
   /**  Parses a content of a single source file into a stream of tokens. */
-  @native def lexStr(@unused input: String): Ast.AnyAst
+  @native def lexStr(@unused input: String): Ast.Ast[Ast.Shape]
 
   /**  Parses a single source file into a stream of tokens. */
-  @native def lexFile(@unused filename: String): Ast.AnyAst
+  @native def lexFile(@unused filename: String): Ast.Ast[Ast.Shape]
 
   /** Benchmarks AST allocation */
-  @native def bench(): Ast.AnyAst
+  @native def bench(): Ast.Ast[Ast.Shape]
 }
 
 object Parser {
