@@ -7,6 +7,7 @@ import org.enso.cli.CLIOutput
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.archive.Archive
 import org.enso.launcher.cli.{GlobalCLIOptions, InternalOpts}
+import org.enso.launcher.components.LauncherUpgradeRequiredError
 import org.enso.launcher.installation.DistributionManager
 import org.enso.launcher.releases.launcher.LauncherRelease
 import org.enso.launcher.releases.{EnsoRepository, ReleaseProvider}
@@ -363,4 +364,52 @@ object LauncherUpgrader {
       EnsoRepository.defaultLauncherReleaseProvider,
       originalExecutablePath
     )
+
+  def recoverUpgradeRequiredErrors(originalArguments: Array[String])(
+    action: => Int
+  ): Int = {
+    try {
+      action
+    } catch {
+      case e: LauncherUpgradeRequiredError =>
+        val autoConfirm = e.globalCLIOptions.autoConfirm
+        def shouldProceed: Boolean =
+          if (autoConfirm) {
+            Logger.warn(
+              "A more recent launcher version is required. Since " +
+              "`auto-confirm` is set, the launcher upgrade will be peformed " +
+              "automatically."
+            )
+            true
+          } else {
+            Logger.warn("A more recent launcher version is required.")
+            CLIOutput.askConfirmation(
+              "Do you want to upgrade the launcher and continue?",
+              yesDefault = true
+            )
+          }
+
+        if (!shouldProceed) {
+          throw e
+        }
+
+        val upgrader           = makeDefault(e.globalCLIOptions)
+        val targetVersion      = upgrader.latestVersion().get
+        val launcherExecutable = upgrader.originalExecutable
+        upgrader.upgrade(targetVersion)
+
+        Logger.info(
+          "Re-running the current command with the upgraded launcher."
+        )
+
+        val arguments =
+          InternalOpts.removeInternalTestOptions(originalArguments.toIndexedSeq)
+        val rerunCommand =
+          Seq(launcherExecutable.toAbsolutePath.normalize.toString) ++ arguments
+        Logger.debug(s"Running `${rerunCommand.mkString(" ")}`.")
+        val processBuilder = new ProcessBuilder(rerunCommand: _*)
+        val process        = processBuilder.inheritIO().start()
+        process.waitFor()
+    }
+  }
 }

@@ -77,6 +77,37 @@ object InternalOpts {
   private var inheritEmulateRepository: Option[Path] = None
 
   /**
+    * Removes internal testing options that should not be preserved in the called executable.
+    *
+    * In release mode, this is an identity function, since these internal options are not permitted anyway.
+    */
+  def removeInternalTestOptions(args: Seq[String]): Seq[String] =
+    if (buildinfo.Info.isRelease) args
+    else {
+      (removeOption(EMULATE_VERSION) andThen removeOption(EMULATE_LOCATION))(
+        args
+      )
+    }
+
+  private def removeOption(name: String): Seq[String] => Seq[String] = {
+    args: Seq[String] =>
+      val indexedArgs = args.zipWithIndex
+      def dropArguments(fromIdx: Int, howMany: Int = 1): Seq[String] =
+        args.take(fromIdx) ++ args.drop(fromIdx + howMany)
+      indexedArgs.find(_._1.startsWith(s"--$name=")) match {
+        case Some((_, idx)) =>
+          dropArguments(idx)
+        case None =>
+          indexedArgs.find(_._1 == s"--$name") match {
+            case Some((_, idx)) =>
+              dropArguments(idx, howMany = 2)
+            case None =>
+              args
+          }
+      }
+  }
+
+  /**
     * Additional top level options that are internal to the launcher and should
     * not be used by users directly.
     *

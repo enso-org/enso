@@ -8,13 +8,13 @@ import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher.archive.Archive
 import org.enso.launcher.cli.GlobalCLIOptions
 import org.enso.launcher.installation.DistributionManager
-import org.enso.launcher.releases.{EnsoRepository, ReleaseProvider}
 import org.enso.launcher.releases.engine.EngineRelease
 import org.enso.launcher.releases.runtime.{
   GraalCEReleaseProvider,
   RuntimeReleaseProvider
 }
-import org.enso.launcher.{CurrentVersion, FileSystem, Logger}
+import org.enso.launcher.releases.{EnsoRepository, ReleaseProvider}
+import org.enso.launcher.{FileSystem, Logger}
 
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try, Using}
@@ -271,6 +271,12 @@ class ComponentsManager(
     */
   private def installEngine(version: SemVer): Engine = {
     val engineRelease = engineReleaseProvider.fetchRelease(version).get
+    if (!engineRelease.manifest.isUsableWithCurrentVersion) {
+      throw LauncherUpgradeRequiredError(
+        engineRelease.manifest.minimumLauncherVersion,
+        cliOptions
+      )
+    }
     if (engineRelease.isBroken) {
       if (cliOptions.autoConfirm) {
         Logger.warn(
@@ -496,8 +502,13 @@ class ComponentsManager(
     */
   private def loadAndCheckEngineManifest(path: Path): Try[Manifest] = {
     Manifest.load(path / Manifest.DEFAULT_MANIFEST_NAME).flatMap { manifest =>
-      if (manifest.minimumLauncherVersion > CurrentVersion.version) {
-        Failure(LauncherUpgradeRequiredError(manifest.minimumLauncherVersion))
+      if (!manifest.isUsableWithCurrentVersion) {
+        Failure(
+          LauncherUpgradeRequiredError(
+            manifest.minimumLauncherVersion,
+            cliOptions
+          )
+        )
       } else Success(manifest)
     }
   }

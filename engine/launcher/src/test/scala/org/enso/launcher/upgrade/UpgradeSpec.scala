@@ -6,6 +6,7 @@ import io.circe.parser
 import nl.gn0s1s.bump.SemVer
 import org.enso.launcher.FileSystem.PathSyntax
 import org.enso.launcher._
+import org.scalatest.exceptions.TestFailedException
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 
 class UpgradeSpec
@@ -106,7 +107,10 @@ class UpgradeSpec
     )
     run should returnSuccess
     val version = parser.parse(run.stdout).getOrElse {
-      throw new RuntimeException("Version should be a valid JSON string.")
+      throw new TestFailedException(
+        s"Version should be a valid JSON string, got '${run.stdout}' instead.",
+        1
+      )
     }
     SemVer(version.asObject.value.apply("version").value.asString.value).value
   }
