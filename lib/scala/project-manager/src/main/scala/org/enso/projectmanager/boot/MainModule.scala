@@ -3,15 +3,11 @@ package org.enso.projectmanager.boot
 import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
 import cats.MonadError
-import io.circe.generic.auto._
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
-import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Exec, Sync}
-import org.enso.projectmanager.infrastructure.file.{
-  BlockingFileSystem,
-  SynchronizedFileStorage
-}
+import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.languageserver.{
   LanguageServerGatewayImpl,
   LanguageServerRegistry,
@@ -19,10 +15,7 @@ import org.enso.projectmanager.infrastructure.languageserver.{
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
-import org.enso.projectmanager.infrastructure.repository.{
-  ProjectFileRepository,
-  ProjectIndex
-}
+import org.enso.projectmanager.infrastructure.repository.ProjectFileRepository
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.protocol.{
   JsonRpc,
@@ -40,7 +33,9 @@ import scala.concurrent.ExecutionContext
 /**
   * A main module containing all components of the project manager.
   */
-class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
+class MainModule[
+  F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Applicative: Async
+](
   config: ProjectManagerConfig,
   computeExecutionContext: ExecutionContext
 )(implicit
@@ -60,21 +55,17 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
   lazy val fileSystem =
     new BlockingFileSystem[F](config.timeout.ioTimeout)
 
-  lazy val indexStorage = new SynchronizedFileStorage[ProjectIndex, F](
-    config.storage.projectIndexPath,
-    fileSystem
-  )
+  lazy val gen = new SystemGenerator[F]
+
+  lazy val projectValidator = new MonadicProjectValidator[F]()
 
   lazy val projectRepository =
     new ProjectFileRepository[F](
       config.storage,
+      clock,
       fileSystem,
-      indexStorage
+      gen
     )
-
-  lazy val gen = new SystemGenerator[F]
-
-  lazy val projectValidator = new MonadicProjectValidator[F]()
 
   lazy val languageServerRegistry =
     system.actorOf(

@@ -83,6 +83,7 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
       val wrapped = CLIOutputInternal.alignAndWrapTable(
         Seq(
           ("abcdef", "a b c d e f"),
+          ("abcde", "f"),
           ("b", "a")
         ),
         10,
@@ -91,9 +92,12 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
       )
 
       wrapped.mkString(System.lineSeparator()) shouldEqual
-      """abcdef a b c
-        |       d e f
-        |b      a""".stripMargin
+      """abcdef
+        |     a b c
+        |     d e f
+        |abcde
+        |     f
+        |b    a""".stripMargin
     }
   }
 
@@ -108,6 +112,12 @@ class CLIOutputSpec extends AnyWordSpec with Matchers {
         s"""short     row
            |very long row
            |""".stripMargin
+      CLIOutput.alignAndWrap(unaligned) shouldEqual aligned
+    }
+
+    "align single row tables too" in {
+      val unaligned = s"a${tabulation}b"
+      val aligned   = "a b"
       CLIOutput.alignAndWrap(unaligned) shouldEqual aligned
     }
 

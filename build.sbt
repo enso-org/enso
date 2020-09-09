@@ -296,8 +296,8 @@ val splainOptions = Seq(
 
 // === ZIO ====================================================================
 
-val zioVersion            = "1.0.0-RC18-2"
-val zioInteropCatsVersion = "2.0.0.0-RC13"
+val zioVersion            = "1.0.1"
+val zioInteropCatsVersion = "2.1.4.0"
 val zio = Seq(
   "dev.zio" %% "zio"              % zioVersion,
   "dev.zio" %% "zio-interop-cats" % zioInteropCatsVersion
@@ -501,7 +501,8 @@ lazy val cli = project
     libraryDependencies ++= Seq(
         "org.scalatest" %% "scalatest" % scalatestVersion % Test,
         "org.typelevel" %% "cats-core" % catsVersion
-      )
+      ),
+    parallelExecution in Test := false
   )
   .settings(licenseSettings)
 

@@ -1,6 +1,10 @@
 package org.enso.projectmanager.infrastructure.file
 import java.io.{File, FileNotFoundException}
-import java.nio.file.{AccessDeniedException, NoSuchFileException}
+import java.nio.file.{
+  AccessDeniedException,
+  NoSuchFileException,
+  NotDirectoryException
+}
 
 import org.apache.commons.io.{FileExistsException, FileUtils}
 import org.enso.projectmanager.control.effect.syntax._
@@ -60,7 +64,7 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def move(from: File, to: File): F[FileSystemFailure, Unit] =
     Sync[F]
       .blockingOp {
@@ -75,14 +79,28 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
       }
       .mapError(toFsFailure)
 
-  /** @inheritdoc * */
+  /** @inheritdoc */
   override def exists(file: File): F[FileSystemFailure, Boolean] =
     Sync[F]
       .blockingOp(file.exists())
       .mapError(toFsFailure)
 
+  /** @inheritdoc */
+  override def list(directory: File): F[FileSystemFailure, List[File]] =
+    Sync[F]
+      .blockingOp {
+        val res = directory.listFiles()
+        if (res eq null) {
+          throw new NotDirectoryException(s"Not a directory: $directory")
+        } else {
+          res.toList
+        }
+      }
+      .mapError(toFsFailure)
+
   private val toFsFailure: Throwable => FileSystemFailure = {
     case _: FileNotFoundException => FileNotFound
+    case _: NotDirectoryException => NotDirectory
     case _: NoSuchFileException   => FileNotFound
     case _: FileExistsException   => FileExists
     case _: AccessDeniedException => AccessDenied

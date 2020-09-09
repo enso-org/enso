@@ -1,6 +1,7 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
-import org.enso.cli.Opts
+import org.enso.cli.arguments.Opts
+import org.enso.cli.internal.ParserContinuation
 
 class HiddenOpts[A](opts: Opts[A]) extends Opts[A] {
   override private[cli] def flags              = opts.flags
@@ -13,8 +14,11 @@ class HiddenOpts[A](opts: Opts[A]) extends Opts[A] {
     Seq()
 
   override private[cli] def wantsArgument() = opts.wantsArgument()
-  override private[cli] def consumeArgument(arg: String): Unit =
-    opts.consumeArgument(arg)
+  override private[cli] def consumeArgument(
+    arg: String,
+    commandPrefix: Seq[String]
+  ): ParserContinuation =
+    opts.consumeArgument(arg, commandPrefix)
 
   override private[cli] val requiredArguments: Seq[String]    = Seq()
   override private[cli] val optionalArguments: Seq[String]    = Seq()

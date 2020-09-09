@@ -1,4 +1,4 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
 class AdditionalArguments(helpComment: String) extends BaseOpts[Seq[String]] {
   var value: Seq[String]                        = Seq()

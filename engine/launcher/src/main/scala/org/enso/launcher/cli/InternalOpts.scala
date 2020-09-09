@@ -3,11 +3,11 @@ package org.enso.launcher.cli
 import java.io.IOException
 import java.nio.file.{Files, NoSuchFileException, Path}
 
-import org.enso.cli.Opts
-import org.enso.cli.Opts.implicits._
 import cats.implicits._
-import org.enso.launcher.{FileSystem, OS}
+import org.enso.cli.arguments.Opts
+import org.enso.cli.arguments.Opts.implicits._
 import org.enso.launcher.FileSystem.PathSyntax
+import org.enso.launcher.{FileSystem, OS}
 
 /**
   * Implements internal options that the launcher may use when running another

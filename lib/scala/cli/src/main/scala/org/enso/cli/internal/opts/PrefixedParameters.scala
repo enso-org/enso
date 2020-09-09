@@ -1,4 +1,4 @@
-package org.enso.cli.internal
+package org.enso.cli.internal.opts
 
 class PrefixedParameters(
   prefix: String,
