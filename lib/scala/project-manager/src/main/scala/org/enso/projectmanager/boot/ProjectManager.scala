@@ -6,6 +6,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.cli.CommandLine
+import org.enso.languageserver.util.Logging
 import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
   ConfigNamespace,
@@ -13,7 +14,6 @@ import org.enso.projectmanager.boot.Globals.{
   SuccessExitCode
 }
 import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
-import org.enso.projectmanager.util.Logging
 import org.enso.version.VersionDescription
 import pureconfig.ConfigSource
 import pureconfig.generic.auto._

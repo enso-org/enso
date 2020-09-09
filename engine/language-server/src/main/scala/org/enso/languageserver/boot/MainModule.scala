@@ -2,6 +2,7 @@ package org.enso.languageserver.boot
 
 import java.io.File
 import java.net.URI
+import java.util.logging.ConsoleHandler
 
 import akka.actor.ActorSystem
 import org.enso.jsonrpc.JsonRpcServer
@@ -28,6 +29,7 @@ import org.enso.languageserver.runtime._
 import org.enso.languageserver.search.SuggestionsHandler
 import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
+import org.enso.languageserver.util.Logging
 import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
 import org.enso.searcher.sql.{SqlDatabase, SqlSuggestionsRepo, SqlVersionsRepo}
@@ -148,12 +150,21 @@ class MainModule(serverConfig: LanguageServerConfig) {
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
   log.trace("Initializing Runtime context...")
+  val logHandler = Logging.getLogHandler(LanguageInfo.ID) match {
+    case Left(t) =>
+      log.warn("Failed to create the Runtime logger", t)
+      new ConsoleHandler()
+    case Right(handler) =>
+      log.trace(s"Setting Runtime logger")
+      handler
+  }
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
     .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .option(RuntimeOptions.PACKAGES_PATH, serverConfig.contentRootPath)
+    .option(RuntimeOptions.LOG_LEVEL, logHandler.getLevel.toString)
     .option(
       RuntimeServerInfo.JOB_PARALLELISM_OPTION,
       Runtime.getRuntime.availableProcessors().toString
@@ -161,6 +172,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
+    .logHandler(logHandler)
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
